@@ -32,10 +32,10 @@ convert.o : \
       vmec_params.o 
       
 
-csplinx.o : \
+csplinx.o :
       
 
-directaccess.o : \
+directaccess.o :
       
 
 fbal.o : \
@@ -96,7 +96,7 @@ precondn.o : \
       vmec_params.o 
       
 
-realspace.o : \
+realspace.o :
       
 
 residue.o : \
@@ -145,7 +145,7 @@ totzsp_mod.o : \
       xstuff.o 
       
 
-vforces.o : \
+vforces.o :
       
 
 vmec_main.o : \
@@ -154,13 +154,13 @@ vmec_main.o : \
       vmec_persistent.o 
       
 
-vmec_params.o : \
+vmec_params.o :
       
 
-vmec_persistent.o : \
+vmec_persistent.o :
       
 
-xstuff.o : \
+xstuff.o :
       
 
 allocate_funct3d.o : \
@@ -187,7 +187,7 @@ allocate_nunv.o : \
       vmec_params.o 
       
 
-close_all_files.o : \
+close_all_files.o :
       
 
 fixaray.o : \
@@ -254,10 +254,10 @@ load_xc_from_wout.o : \
       vmec_params.o 
       
 
-magnetic_fluxes.o : \
+magnetic_fluxes.o :
       
 
-open_output_files.o : \
+open_output_files.o :
       
 
 profil1d.o : \
@@ -277,7 +277,7 @@ profil3d.o : \
       xstuff.o 
       
 
-profile_functions.o : \
+profile_functions.o :
       
 
 reset_params.o : \
@@ -405,13 +405,13 @@ TestWout.o : \
       vmec_params.o 
       
 
-timer_sub.o : \
+timer_sub.o :
       
 
-vmec_io.o : \
+vmec_io.o :
       
 
-vmercier.o : \ 
+vmercier.o :
       
 
 write_dcon.o : \
@@ -491,7 +491,7 @@ tolicu.o : \
       vacmod.o 
       
 
-vac_persistent.o : \
+vac_persistent.o :
       
 
 vacmod.o : \
@@ -509,7 +509,7 @@ axisopt.o : \
       vsvd.o 
       
 
-cauchy.o : \
+cauchy.o :
       
 
 chisq.o : \
@@ -626,10 +626,10 @@ newprofil.o : \
       xstuff.o 
       
 
-pofs.o : \
+pofs.o :
       
 
-printmatrix.o : \
+printmatrix.o :
       
 
 radfor.o : \
@@ -645,7 +645,7 @@ readrecon.o : \
       vsvd.o 
       
 
-sgemvmm.o : \
+sgemvmm.o :
       
 
 smoothdata.o : \
@@ -665,14 +665,14 @@ storesvd.o : \
       vsvd.o 
       
 
-vsvd.o : \
+vsvd.o :
       
 
 add_tension.o : \
       vspline.o 
       
 
-getspline.o : \
+getspline.o :
       
 
 gety2.o : \
@@ -695,10 +695,10 @@ setspline.o : \
       vspline.o 
       
 
-setup_int.o : \
+setup_int.o :
       
 
-sort_data.o : \
+sort_data.o :
       
 
 splinint.o : \
@@ -715,7 +715,7 @@ splintx.o : \
       vsvd.o 
       
 
-vspline.o : \
+vspline.o :
       
 
 eqsolve.o : \

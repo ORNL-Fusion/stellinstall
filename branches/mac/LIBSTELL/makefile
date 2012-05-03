@@ -11,9 +11,9 @@ all: $(BUILD_DIR)/$(OBJS)
 
 include $(BUILD_DIR)/$(CURRENT_DIR_NAME).dep
 
-$(OBJS): $(patsubst ./%, %, $(shell find Sources -name "$(patsubst %.o,%, $@).*"))
+$(OBJS): $(patsubst ./%, %, $(shell find Sources -name "$(patsubst %.o,%, $@).*" \! -name "$(patsubst %.o,%, $@).f.svn-base" -prune \! -name "$(patsubst %.o,%, $@).f90.svn-base" -prune \))
 	@echo Building $@
-	@$(FC) $(FFLAGS) -c $(patsubst ./%, %, $(shell find Sources -name "$(patsubst %.o,%, $@).*")) -o $(BUILD_DIR)/$@
+	@$(FC) $(FFLAGS) -c $(patsubst ./%, %, $(shell find Sources -name "$(patsubst %.o,%, $@).*" \! -name "$(patsubst %.o,%, $@).f.svn-base" -prune \! -name "$(patsubst %.o,%, $@).f90.svn-base" -prune \)) -o $(BUILD_DIR)/$@
 	
 clean:
 	@echo Deleting $(CURRENT_DIR_NAME) build files

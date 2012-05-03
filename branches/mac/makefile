@@ -1,5 +1,8 @@
 include makefile.include
 
+ROOT_DIR = $(shell pwd)
+export ROOT_DIR
+
 all: v3fit
 
 v3fit: vmec

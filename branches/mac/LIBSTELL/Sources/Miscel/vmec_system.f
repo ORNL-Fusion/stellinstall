@@ -11,7 +11,7 @@
 #elif defined(IRIX64)
       CALL system(TRIM(cmd))
       ireturn = 0
-#elif defined(LINUX) || defined(OSF1)
+#elif defined(LINUX) || defined(OSF1) || defined(DARWIN)
 !      INTEGER, EXTERNAL :: system
       INTEGER :: system
       ireturn = system(TRIM(cmd))

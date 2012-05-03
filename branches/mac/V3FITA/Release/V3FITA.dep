@@ -17,13 +17,13 @@ bfield_grid_mod.o : \
       v3read_wout.o 
       
 
-bivariate.o : \
+bivariate.o :
       
 
-coosig_T.o : \
+coosig_T.o :
       
 
-density_T.o : \
+density_T.o :
       
 
 edge_limit_mc.o : \
@@ -41,7 +41,7 @@ eq_interface.o : \
       v3f_global.o 
       
 
-eq_T.o : \
+eq_T.o :
       
 
 faraday_mod.o : \
@@ -77,7 +77,7 @@ ipsl_mc.o : \
       model_T.o 
       
 
-limiter_iso_T.o : \
+limiter_iso_T.o :
       
 
 mddc_mc.o : \
@@ -90,13 +90,13 @@ model_T.o : \
       pprofile_T.o 
       
 
-plasma_edge.o : \
+plasma_edge.o :
       
 
-pprofile_T.o : \
+pprofile_T.o :
       
 
-ptr_links.o : \
+ptr_links.o :
       
 
 recon_param_model.o : \
@@ -105,7 +105,7 @@ recon_param_model.o : \
       recon_param_T.o 
       
 
-recon_param_T.o : \
+recon_param_T.o :
       
 
 signal_cdf.o : \
@@ -129,10 +129,10 @@ signal_T.o : \
       geometric_T.o 
       
 
-sxrch_dot.o : \
+sxrch_dot.o :
       
 
-ipch_dot.o : \
+ipch_dot.o :
       
 
 sxrch_mc.o : \
@@ -145,7 +145,7 @@ ipch_mc.o : \
       v3f_global.o 
       
 
-thscte_dot.o : \
+thscte_dot.o :
       
 
 thscte_mc.o : \

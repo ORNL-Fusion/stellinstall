@@ -1,8 +1,6 @@
 NETCDF_INCLUDE_DIR = /Users/mark/NetCDF/include
 NETCDF_LIB_DIR = /Users/mark/NetCDF/lib
 
-ROOT_DIR = $(shell pwd)
-
 BUILD_DIR = Release
 
 FC = gfortran
