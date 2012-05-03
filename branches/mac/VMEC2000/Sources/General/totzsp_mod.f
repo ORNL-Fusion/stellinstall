@@ -27,7 +27,7 @@ C-----------------------------------------------
       INTEGER :: ioff, joff, mj, ni, nsz
       REAL(rprec), DIMENSION(:,:,:), POINTER ::
      1           rmncc, rmnss, zmncs, zmnsc, lmncs, lmnsc
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
+      REAL(rprec), DIMENSION(ns*nzeta,12) :: work1
       REAL(rprec) :: cosmux, sinmux
 C-----------------------------------------------
 !
@@ -70,8 +70,6 @@ C-----------------------------------------------
      1   lmncs(1,:,m0+joff) = lmncs(2,:,m0+joff)
       
       nsz = ns*nzeta
-      ALLOCATE (work1(nsz,12), stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in VMEC2000 totzsps'
 
       r11 = 0;  ru1 = 0;  rv1 = 0;  rcn1 = 0
       z11 = 0;  zu1 = 0;  zv1 = 0;  zcn1 = 0
@@ -183,8 +181,6 @@ C-----------------------------------------------
          END DO
 
       END DO
-
-      DEALLOCATE (work1)
 
       z01(1:ns) = zmnsc(1:ns,n0+ioff,m1+joff)
       r01(1:ns) = rmncc(1:ns,n0+ioff,m1+joff)
