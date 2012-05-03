@@ -1,0 +1,783 @@
+# Microsoft Developer Studio Generated Dependency File, included by VMEC2000.mak
+
+add_fluxes.o : \
+      precon2d.o \
+      realspace.o \
+      vmec_main.o 
+      
+
+alias.o : \
+      vmec_main.o 
+      
+
+aspectratio.o : \
+      realspace.o \
+      vmec_io.o \
+      vmec_main.o 
+      
+
+bcovar.o : \
+      fbal.o \
+      precon2d.o \
+      realspace.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+convert.o : \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+csplinx.o : \
+      
+
+directaccess.o : \
+      
+
+fbal.o : \
+      precon2d.o \
+      realspace.o \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+forces.o : \
+      precon2d.o \
+      realspace.o \
+      vforces.o \
+      vmec_main.o 
+      
+
+funct3d.o : \
+      precon2d.o \
+      realspace.o \
+      timer_sub.o \
+      tomnsp_mod.o \
+      totzsp_mod.o \
+      vacmod.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+getfsq.o : \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+jacobian.o : \
+      realspace.o \
+      vforces.o \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+lamcal.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+lamfull.o : \
+      vmec_main.o 
+      
+
+precondn.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+realspace.o : \
+      
+
+residue.o : \
+      precon2d.o \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+scalfor.o : \
+      realspace.o \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+spectrum.o : \
+      totzsp_mod.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+symforce.o : \
+      vmec_main.o 
+      
+
+symrzl.o : \
+      vmec_main.o 
+      
+
+tomnsp_mod.o : \
+      fbal.o \
+      precon2d.o \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+totzsp_mod.o : \
+      precon2d.o \
+      vmec_main.o \
+      vmec_params.o \
+      vmec_persistent.o \
+      xstuff.o 
+      
+
+vforces.o : \
+      
+
+vmec_main.o : \
+      vmec_dim.o \
+      vmec_params.o \
+      vmec_persistent.o 
+      
+
+vmec_params.o : \
+      
+
+vmec_persistent.o : \
+      
+
+xstuff.o : \
+      
+
+allocate_funct3d.o : \
+      realspace.o \
+      vacmod.o \
+      vforces.o \
+      vmec_main.o 
+      
+
+allocate_ns.o : \
+      csplinx.o \
+      fbal.o \
+      realspace.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+allocate_nunv.o : \
+      vacmod.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+close_all_files.o : \
+      
+
+fixaray.o : \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+free_mem_funct3d.o : \
+      realspace.o \
+      vacmod.o \
+      vforces.o \
+      vmec_main.o 
+      
+
+free_mem_ns.o : \
+      csplinx.o \
+      fbal.o \
+      precon2d.o \
+      realspace.o \
+      vforces.o \
+      vmec_main.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+free_mem_nunv.o : \
+      vacmod.o \
+      vmec_main.o 
+      
+
+free_mem_recon.o : \
+      vspline.o \
+      vsvd.o 
+      
+
+free_persistent_mem.o : \
+      vmec_main.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+guess_axis.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+heading.o : \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+initialize_radial.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+load_xc_from_wout.o : \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+magnetic_fluxes.o : \
+      
+
+open_output_files.o : \
+      
+
+profil1d.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+profil3d.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+profile_functions.o : \
+      
+
+reset_params.o : \
+      precon2d.o \
+      timer_sub.o \
+      vmec_main.o \
+      vsvd.o 
+      
+
+vsetup.o : \
+      gmres_mod.o \
+      realspace.o \
+      vacmod.o \
+      vmec_main.o \
+      vsvd.o 
+      
+
+bss.o : \
+      realspace.o \
+      vmec_main.o \
+      vsvd.o 
+      
+
+dump_output.o : \
+      realspace.o \
+      vmec_main.o 
+      
+
+elongation.o : \
+      vmec_main.o 
+      
+
+eqfor.o : \
+      csplinx.o \
+      fbal.o \
+      realspace.o \
+      vacmod.o \
+      vforces.o \
+      vmec_io.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+fileout.o : \
+      precon2d.o \
+      realspace.o \
+      timer_sub.o \
+      vac_persistent.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+freeb_data.o : \
+      realspace.o \
+      vacmod.o \
+      vmec_main.o 
+      
+
+fsym_fft.o : \
+      vmec_main.o 
+      
+
+fsym_invfft.o : \
+      vmec_main.o 
+      
+
+getbrho.o : \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_persistent.o 
+      
+
+getcurmid.o : \
+      vmec_dim.o 
+      
+
+jxbforce.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+magnetics_data.o : \
+      vacmod.o \
+      vmec_main.o \
+      vsvd.o 
+      
+
+mercier.o : \
+      vmercier.o 
+      
+
+printout.o : \
+      realspace.o \
+      vmec_main.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+read_indata.o : \
+      vacmod.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+readin.o : \
+      timer_sub.o \
+      vacmod.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+TestWout.o : \
+      realspace.o \
+      vforces.o \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+timer_sub.o : \
+      
+
+vmec_io.o : \
+      
+
+vmercier.o : \ 
+      
+
+write_dcon.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o 
+      
+
+wrout.o : \
+      realspace.o \
+      totzsp_mod.o \
+      vforces.o \
+      vmec_io.o \
+      vmec_main.o \
+      vmec_params.o \
+      vmec_persistent.o \
+      vmercier.o \
+      vspline.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+wroutlim.o : \
+      vmec_main.o \
+      vsvd.o 
+      
+
+analysum.o : \
+      vacmod.o 
+      
+
+analysum2.o : \
+      vacmod.o 
+      
+
+analyt.o : \
+      vacmod.o 
+      
+
+becoil.o : \
+      vacmod.o 
+      
+
+belicu.o : \
+      vacmod.o 
+      
+
+bextern.o : \
+      vacmod.o 
+      
+
+fouri.o : \
+      vacmod.o 
+      
+
+fourp.o : \
+      vacmod.o 
+      
+
+greenf.o : \
+      vacmod.o 
+      
+
+precal.o : \
+      vacmod.o 
+      
+
+scalpot.o : \
+      vacmod.o 
+      
+
+surface.o : \
+      vacmod.o 
+      
+
+tolicu.o : \
+      vacmod.o 
+      
+
+vac_persistent.o : \
+      
+
+vacmod.o : \
+      vac_persistent.o \
+      vacmod0.o \
+      vmec_params.o 
+      
+
+vacuum.o : \
+      vacmod.o \
+      vmec_params.o 
+      
+
+axisopt.o : \
+      vsvd.o 
+      
+
+cauchy.o : \
+      
+
+chisq.o : \
+      vmec_main.o \
+      vspline.o \
+      vsvd.o 
+      
+
+findphi.o : \
+      realspace.o \
+      vmec_main.o 
+      
+
+fixrecon.o : \
+      vmec_main.o \
+      vspline.o \
+      vsvd.o 
+      
+
+flux_init.o : \
+      realspace.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o 
+      
+
+getbfld.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+getdiam.o : \
+      realspace.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+getflux.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+getgreen.o : \
+      vsvd.o 
+      
+
+getlim.o : \
+      realspace.o \
+      vmec_main.o \
+      vsvd.o 
+      
+
+getmse.o : \
+      realspace.o \
+      vmec_main.o \
+      vmec_params.o \
+      vspline.o \
+      vsvd.o 
+      
+
+getpresprofile.o : \
+      vmec_main.o \
+      vsvd.o 
+      
+
+gettflux.o : \
+      vsvd.o 
+      
+
+getthom.o : \
+      vmec_main.o \
+      vspline.o \
+      vsvd.o 
+      
+
+grnbfld.o : \
+      vsvd.o 
+      
+
+grnflx.o : \
+      vsvd.o 
+      
+
+movephi1.o : \
+      vmec_main.o \
+      vsvd.o 
+      
+
+newphi.o : \
+      realspace.o \
+      vmec_main.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+newprofil.o : \
+      realspace.o \
+      timer_sub.o \
+      vacmod.o \
+      vforces.o \
+      vmec_main.o \
+      vspline.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+pofs.o : \
+      
+
+printmatrix.o : \
+      
+
+radfor.o : \
+      realspace.o \
+      vforces.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o 
+      
+
+readrecon.o : \
+      vmec_main.o \
+      vsvd.o 
+      
+
+sgemvmm.o : \
+      
+
+smoothdata.o : \
+      vmec_main.o \
+      vsvd.o 
+      
+
+store_chisq.o : \
+      vmec_main.o \
+      vspline.o \
+      vsvd.o 
+      
+
+storesvd.o : \
+      realspace.o \
+      vmec_main.o \
+      vsvd.o 
+      
+
+vsvd.o : \
+      
+
+add_tension.o : \
+      vspline.o 
+      
+
+getspline.o : \
+      
+
+gety2.o : \
+      vspline.o 
+      
+
+initspline.o : \
+      vspline.o 
+      
+
+jacprod.o : \
+      vspline.o 
+      
+
+set_dual.o : \
+      vspline.o 
+      
+
+setspline.o : \
+      vspline.o 
+      
+
+setup_int.o : \
+      
+
+sort_data.o : \
+      
+
+splinint.o : \
+      vspline.o \
+      vsvd.o 
+      
+
+splints.o : \
+      vspline.o 
+      
+
+splintx.o : \
+      csplinx.o \
+      vsvd.o 
+      
+
+vspline.o : \
+      
+
+eqsolve.o : \
+      realspace.o \
+      vmec_history.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      gmres_mod.o \
+      xstuff.o 
+      
+
+evolve.o : \
+      gmres_mod.o \
+      precon2d.o \
+      timer_sub.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o \
+      xstuff.o 
+      
+
+gmres_mod.o : \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o \
+      xstuff.o 
+      
+
+interp.o : \
+      vmec_main.o \
+      vmec_params.o \
+      vmec_persistent.o 
+      
+
+restart.o : \
+      vmec_main.o \
+      xstuff.o 
+      
+
+runvmec.o : \
+      timer_sub.o \
+      vmec_main.o \
+      vmec_params.o \
+      vsvd.o 
+      
+
+vmec.o : \
+      vmec_params.o 
+      
+
+vmec_history.o : \
+      precon2d.o \
+      vmec_dim.o \
+      vmec_main.o 
+      
+
+precon2d.o : \
+      directaccess.o \
+      realspace.o \
+      timer_sub.o \
+      vmec_dim.o \
+      vmec_main.o \
+      vmec_params.o 
+      
