@@ -1,4 +1,4 @@
-!DEC$ IF .NOT.DEFINED (CRAY)
+#if !defined (CRAY)
       SUBROUTINE sgesl (A, LDA, N, IPVT, B, JOB)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE
@@ -228,7 +228,7 @@ c
       END IF
 
       END SUBROUTINE dgesl
-!DEC$ ENDIF
+#endif
       SUBROUTINE sgesl1 (A, LDA, N, IPVT, B, JOB)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE

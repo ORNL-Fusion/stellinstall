@@ -1,4 +1,4 @@
-!DEC$ IF .NOT.DEFINED (CRAY)
+#if !defined (CRAY)
       SUBROUTINE sgefa (A, LDA, N, IPVT, INFO)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE
@@ -228,7 +228,7 @@ c
       IF (a(n,n) .eq. zero) info = n
 
       END SUBROUTINE dgefa
-!DEC$ ENDIF
+#endif
       SUBROUTINE sgefa1 (A, LDA, N, IPVT, INFO)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE

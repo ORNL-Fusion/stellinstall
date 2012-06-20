@@ -7,7 +7,7 @@
       INTEGER n
       INTEGER, DIMENSION(13) :: ifax
       REAL(rprec), DIMENSION(*) :: trigs
-!DEC$ IF .NOT.DEFINED(CRAY) .OR. DEFINED(LONESTAR) .OR. DEFINED(MCURIE)
+#if !defined(CRAY) || defined(LONESTAR) || defined(MCURIE)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -24,8 +24,8 @@
       IF (ifax(i+1)>5 .or. n<=4) ifax(1) = -99
       IF (ifax(1) <= 0) STOP 'IFAX(1) <= 0 in fftfax'
       CALL fftrig_g (trigs, n, mode)
-!DEC$ ELSE
+#else
       CALL fftfax (n, ifax, trigs)
-!DEC$ ENDIF
+#endif
 
       END SUBROUTINE fftfax_g

@@ -22,7 +22,7 @@
       USE mgrid_mod
 
       IMPLICIT NONE
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
 !------------------------------------------------
 !   L O C A L   P A R A M E T E R S
 !------------------------------------------------
@@ -164,7 +164,7 @@
         ln_zbs = 'Initial boundary Z sin(mu-nv) coefficients',          &
         ln_rbs = 'Initial boundary R sin(mu-nv) coefficients',          &
         ln_zbc = 'Initial boundary Z cos(mu-nv) coefficients'
-!DEC$ ENDIF
+#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -207,11 +207,11 @@
           MODULE PROCEDURE readw_and_open, readw_only
       END INTERFACE
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       PRIVATE :: read_wout_text, read_wout_nc
-!DEC$ ELSE
+#else
       PRIVATE :: read_wout_text
-!DEC$ ENDIF
+#endif
       PRIVATE :: norm_term_flag, bad_jacobian_flag,                     &
                  more_iter_flag, jac75_flag
 
@@ -246,12 +246,12 @@
       CALL flush(6)
 !SPH  IF (.not.isnc) STOP 'ISNC ERR IN READ_WOUT_MOD'
       IF (isnc) THEN
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
          CALL read_wout_nc(filename, ierr)
-!DEC$ ELSE
+#else
          PRINT *, "NETCDF wout file can not be opened on this platform"
          ierr = -100
-!DEC$ ENDIF
+#endif
       ELSE
          iunit = iunit_init
          CALL safe_open (iunit, ierr, filename, 'old', 'formatted')
@@ -705,7 +705,7 @@
       END SUBROUTINE read_wout_text
 
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       SUBROUTINE read_wout_nc(filename, ierr)
       USE ezcdf
       USE stel_constants, ONLY: mu0
@@ -1090,7 +1090,7 @@
       IF (ierror .ne. 0) PRINT *,'in read_wout_nc ierror=',ierror
 
       END SUBROUTINE read_wout_nc
-!DEC$ ENDIF
+#endif
 
 
       SUBROUTINE Compute_Currents(ierror)

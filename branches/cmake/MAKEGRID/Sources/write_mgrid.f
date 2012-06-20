@@ -33,7 +33,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 
       CONTAINS
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       SUBROUTINE write_mgrid_nc
       USE ezcdf
       IMPLICIT NONE
@@ -128,7 +128,7 @@ C-----------------------------------------------
       DEALLOCATE (vn_br, vn_bz, vn_bp)
 
       END SUBROUTINE write_mgrid_nc
-!DEC$ ENDIF
+#endif
 
       SUBROUTINE write_mgrid_bin
       USE safe_open_mod

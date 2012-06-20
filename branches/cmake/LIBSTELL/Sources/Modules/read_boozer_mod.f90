@@ -8,7 +8,7 @@
 !
       USE stel_kinds
       IMPLICIT NONE
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
 !-----------------------------------------------
 !   L O C A L   P A R A M E T E R S
 !-----------------------------------------------
@@ -26,7 +26,7 @@
        vn_pmnc="pmnc_b", vn_gmns="gmns_b", vn_lasym="lasym",            &
        vn_jlist="jlist"
 
-!DEC$ ENDIF
+#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -73,12 +73,12 @@
       CALL parse_extension(filename, file_or_extension, isnc)
 
       IF (isnc) THEN
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
          CALL read_boozer_nc(filename, ierr)
-!DEC$ ELSE
+#else
          PRINT *, "NETCDF wout file can not be opened on this platform"
          ierr = -100
-!DEC$ ENDIF
+#endif
       ELSE
          iunit = unit_booz
          CALL safe_open (iunit, ierr, filename, 'old', 'unformatted')
@@ -90,7 +90,7 @@
 
       END SUBROUTINE read_boozer_file
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       SUBROUTINE read_boozer_nc(filename, ierr)
       USE stel_constants, ONLY: zero
       USE ezcdf
@@ -200,7 +200,7 @@
       CALL cdf_close(nbooz, ierr)
 
       END SUBROUTINE read_boozer_nc
-!DEC$ ENDIF
+#endif
 
       SUBROUTINE read_boozer_bin(iunit, ierr)
 !-----------------------------------------------
@@ -317,7 +317,7 @@
       END SUBROUTINE read_boozer_deallocate
 
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       SUBROUTINE unpack_cdf (nbooz, var_name, array2d)
       USE stel_kinds, ONLY: rprec
       USE ezcdf
@@ -344,7 +344,7 @@
       END DO
 
       END SUBROUTINE unpack_cdf
-!DEC$ ENDIF
+#endif
 
 
       END MODULE read_boozer_mod

@@ -617,11 +617,11 @@
       delz = (zmax-zmin)/(jz-1)                    
       delp = fperiod/kp
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       CALL write_mgrid_nc
-!DEC$ ELSE
+#else
       CALL write_mgrid_bin
-!DEC$ ENDIF
+#endif
 
       CALL second0(time_end2)
 
@@ -898,11 +898,11 @@
       delz = (zmax-zmin)/(jz-1)                    
       delp = fperiod/kp
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       CALL write_mgrid_nc
-!DEC$ ELSE
+#else
       CALL write_mgrid_bin
-!DEC$ ENDIF
+#endif
 
       CALL second0(time_end2)
 

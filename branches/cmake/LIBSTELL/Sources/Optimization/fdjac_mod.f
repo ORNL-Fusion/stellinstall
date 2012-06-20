@@ -15,9 +15,9 @@
       USE stel_kinds
       USE mpi_params
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       include 'mpif.h'                                       !mpi stuff
-!DEC$ ENDIF
+#endif
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
@@ -29,7 +29,7 @@ C-----------------------------------------------
       REAL(rprec) :: fjac(ldfjac,n)
       REAL(rprec) :: fnorm_min, x_min(n), wa(m)
       EXTERNAL fcn
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -268,7 +268,7 @@ c
       WRITE (6, *) ' MPI_BCAST error in FDJAC2_MP: IERR=', ierr_mpi,
      1             ' PROCESSOR: ',myid
 
-!DEC$ ENDIF
+#endif
       END SUBROUTINE fdjac2_mp
 
 
@@ -277,9 +277,9 @@ c
       USE stel_kinds
       USE mpi_params
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       include 'mpif.h'                                       !mpi stuff
-!DEC$ ENDIF
+#endif
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
@@ -291,7 +291,7 @@ C-----------------------------------------------
       REAL(rprec) :: fjac(ldfjac,n)
       REAL(rprec) :: fnorm_min, x_min(n), wa(m)
       EXTERNAL fcn
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -601,7 +601,7 @@ c      END DO
       WRITE (6, *) ' MPI_BCAST error in FDJAC2_MP: IERR=', ierr_mpi,
      1             ' PROCESSOR: ',myid
 
-!DEC$ ENDIF
+#endif
       END SUBROUTINE fdjac2_mp_queue
 
 
@@ -634,7 +634,7 @@ C-----------------------------------------------
       EXTERNAL fcn, dpmpar, multiprocess, fdjac_parallel
       REAL(rprec), EXTERNAL :: enorm
 C-----------------------------------------------
-!DEC$ IF .NOT.DEFINED (MPI_OPT)
+#if !defined (MPI_OPT)
 c
 c     SUBROUTINE fdjac2
 c
@@ -745,13 +745,13 @@ c      END DO
 
         IF (iflag .ne. 0) EXIT
 
-!DEC$ IF DEFINED (CRAY)
+#if defined (CRAY)
         DO k = 1, m
            READ (j+1000) wa(k)
         END DO
-!DEC$ ELSE
+#else
         READ (j+1000) wa
-!DEC$ ENDIF
+#endif
         fjac(:m,j) = (wa - fvec)/h
 
         IF( temp > cur_norm) flip(j) = .not. flip(j)  ! flip for next time
@@ -759,13 +759,13 @@ c      END DO
         IF( temp < fnorm_min) THEN
            fnorm_min = temp
            fvec_min = wa
-!DEC$ IF DEFINED (CRAY)
+#if defined (CRAY)
            DO k = 1, n
               READ (j+1000) x_min(k)
            END DO
-!DEC$ ELSE
+#else
            READ (j+1000) x_min
-!DEC$ ENDIF
+#endif
         END IF
 
         CLOSE (j+1000, status='delete')                        !!Needed to run correctly in multi-tasking...
@@ -779,7 +779,7 @@ c      END DO
       CALL fcn(m, n, x, wa, iflag, ncnt)
 
       time = time + REAL(ic2 - ic1)/REAL(irate)                !!Time in multi-process CALL
-!DEC$ ENDIF
+#endif
       END SUBROUTINE fdjac2
 
 

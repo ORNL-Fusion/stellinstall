@@ -130,11 +130,11 @@
       lfull3d1out = .false.
       lmoreiter = .false.      ! default value if no max_main_iterations given.
       max_main_iterations = 1  ! to keep a presumably expected standard behavior.
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       lwouttxt = .false.       ! to keep functionality as expected with netcdf
-!DEC$ ELSE
+#else
       lwouttxt = .true.        ! and without netcdf
-!DEC$ ENDIF
+#endif
                                ! J Geiger 2010-05-04 end
 
       pcurr_type = 'power_series'

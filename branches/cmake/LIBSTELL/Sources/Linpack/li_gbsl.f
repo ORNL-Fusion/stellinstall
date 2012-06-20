@@ -1,4 +1,4 @@
-!DEC$ IF .NOT.DEFINED (CRAY)
+#if !defined (CRAY)
       SUBROUTINE sgbsl (ABD, LDA, N, ML, MU, IPVT, B, JOB)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE
@@ -296,7 +296,7 @@ c
       END IF
 
       END SUBROUTINE dgbsl
-!DEC$ ENDIF
+#endif
       SUBROUTINE sgbsl1 (ABD, LDA, N, ML, MU, IPVT, B, JOB)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE

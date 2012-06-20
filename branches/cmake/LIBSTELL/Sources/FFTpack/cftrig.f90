@@ -6,7 +6,7 @@
 !-----------------------------------------------
       INTEGER n
       REAL(rprec), DIMENSION(*) :: trigs
-!DEC$ IF .NOT.DEFINED (CRAY) .OR. DEFINED(LONESTAR) .OR. DEFINED(MCURIE)
+#if !defined (CRAY) || defined(LONESTAR) || defined(MCURIE)
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
@@ -25,7 +25,7 @@
         trigs(i)=COS(angle)
         trigs(i+1)=SIN(angle)
    10 CONTINUE
-!DEC$ ELSE
+#else
       CALL cftrig (n, trigs)
-!DEC$ ENDIF
+#endif
       END SUBROUTINE cftrig_g

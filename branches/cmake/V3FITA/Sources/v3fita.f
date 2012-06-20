@@ -3855,10 +3855,10 @@
       CHARACTER(len=80) :: line
       INTEGER :: istat, line_number, i, ilast_slash
 
-!DEC$ IF DEFINED (WIN32)
+#if defined (WIN32)
       mem = 0
       RETURN
-!DEC$ ENDIF
+#endif
 
 !  Start of executable code
 

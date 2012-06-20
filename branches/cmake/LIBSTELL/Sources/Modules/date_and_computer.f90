@@ -9,11 +9,11 @@
       CONTAINS
 
       SUBROUTINE GetComputerInfo
-!DEC$ IF DEFINED (WIN32)
+#if defined (WIN32)
       computer = ' Window_NT'
       os       = ' MS Windows 2000'
       os_release  = ' 5.00'
-!DEC$ ELSE
+#else
       INTEGER :: ierror, ipid, iunit=10
       CHARACTER(LEN=200) :: fileId
 
@@ -36,7 +36,7 @@
          computer = 'Unknown'
          os_release = '0'
       END IF
-!DEC$ ENDIF
+#endif
 
       END SUBROUTINE GetComputerInfo
 

@@ -15,9 +15,9 @@
       USE fdjac_mod, ONLY: flag_cleanup
       USE mpi_params
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       INCLUDE 'mpif.h'                                       !mpi stuff
-!DEC$ ENDIF
+#endif
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
@@ -26,7 +26,7 @@ C-----------------------------------------------
       REAL(rprec), INTENT(in) :: x(n)
       REAL(rprec) :: wa1(n), wa2(n), wa3(n), wa4(m)
       EXTERNAL fcn
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -187,7 +187,7 @@ C-----------------------------------------------
 
       WRITE (6, *) 'MPI_BCAST error in LEVMARQ_PARAM_MP, ierr = ', ierr
       STOP
-!DEC$ ENDIF
+#endif
       END SUBROUTINE levmarq_param_mp
 
       SUBROUTINE levmarq_param(x, wa1, wa2, wa3, wa4,
@@ -201,7 +201,7 @@ C-----------------------------------------------
       REAL(rprec) :: time
       REAL(rprec), TARGET :: x(n1), wa1(n1), wa2(n1), wa3(n1), wa4(m1)
       EXTERNAL fcn
-!DEC$ IF .NOT.DEFINED (MPI_OPT)
+#if !defined (MPI_OPT)
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -267,7 +267,7 @@ C-----------------------------------------------
            pnorm  = pnorm_min(jmin)
            par    = par_min(jmin)
            delta  = delta_min(jmin)
-!DEC$ IF DEFINED (CRAY)
+#if defined (CRAY)
            DO k = 1, n1
               READ (j+1000) wa1(k), wa2(k)
               DO istat = 1, n1
@@ -277,9 +277,9 @@ C-----------------------------------------------
            DO k = 1, m1
               READ (j+1000) wa4(k)
            END DO
-!DEC$ ELSE
+#else
            READ (j+1000) wa1, wa2, wa4, fjac(1:n1, 1:n1)
-!DEC$ ENDIF
+#endif
 
         END IF
 
@@ -303,7 +303,7 @@ C-----------------------------------------------
       CALL fcn(m1, n1, x, wa4, iflag, ncnt)
 
       time = time + REAL(ic2 - ic1)/REAL(irate)                !!Time in multi-process CALL
-!DEC$ ENDIF
+#endif
       END SUBROUTINE levmarq_param
 
       END MODULE lmpar_mod

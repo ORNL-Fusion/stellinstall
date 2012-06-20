@@ -59,9 +59,9 @@
       USE gade_mod, ONLY : save_space
       USE mpi_params, ONLY: master, myid
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       include 'mpif.h'                                       !mpi stuff
-!DEC$ ENDIF
+#endif
 
       INTEGER, INTENT(in) :: NP, Dim_XC, itermax, strategy,             &
                              CR_strategy, iwrite, irestart, refresh
@@ -86,16 +86,16 @@
       REAL(rprec), DIMENSION(Dim_XC) :: rand_C1
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: pop_XC, rand_XC
       REAL(rprec), DIMENSION(nopt) :: fvec
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       REAL(rprec), DIMENSION(Dim_XC) :: temp_var
-!DEC$ ENDIF
+#endif
 
       INTRINSIC MAX, MIN, RANDOM_NUMBER, MOD, ABS, ANY, ALL, MAXLOC,    &
                 MINLOC, MAXVAL, MINVAL
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       CALL MPI_BARRIER(MPI_COMM_WORLD, ierr)                 !mpi stuff
-!DEC$ ENDIF
+#endif
 
       ALLOCATE (ui_XC(NP, Dim_XC), pop_XC(NP, Dim_XC),                  &
                 rand_XC(NP, Dim_XC), stat=ierr)
@@ -147,7 +147,7 @@
          END IF
       END IF
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 !!ALL processors need same random variables and initial values
       CALL MPI_BCAST(seed_size, 1, MPI_INTEGER, master,                 &
            MPI_COMM_WORLD, ierr)
@@ -162,7 +162,7 @@
               MPI_COMM_WORLD, ierr)
          IF (myid .ne. master) pop_XC(i,:) = temp_var
       END DO
-!DEC$ ENDIF
+#endif
 
 !!--------------------------------------------------------------------------!!
 !!------Evaluate fitness functions and find the best member-----------------!!
@@ -356,7 +356,7 @@
         END DO
 
  1000   CONTINUE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 !!ALL processors need same ui_XC values going into DE_Evaluate
       DO i = 1, NP
          IF (myid .eq. master) temp_var = ui_XC(i,:)
@@ -364,7 +364,7 @@
               MPI_COMM_WORLD, ierr)
          IF (myid .ne. master) ui_XC(i,:) = temp_var
       END DO
-!DEC$ ENDIF
+#endif
 
 
 !!--------------------------------------------------------------------------!!

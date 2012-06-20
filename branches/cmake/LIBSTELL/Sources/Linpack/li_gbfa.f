@@ -1,4 +1,4 @@
-!DEC$ IF .NOT.DEFINED (CRAY)
+#if !defined (CRAY)
       SUBROUTINE sgbfa (ABD, LDA, N, ML, MU, IPVT, INFO)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE
@@ -358,7 +358,7 @@ c
       IF (abd(m,n) .eq. zero) info = n
 
       END SUBROUTINE dgbfa
-!DEC$ ENDIF
+#endif
       SUBROUTINE sgbfa1 (ABD, LDA, N, ML, MU, IPVT, INFO)
       USE LIPREC, ONLY: WP => SP
       IMPLICIT NONE

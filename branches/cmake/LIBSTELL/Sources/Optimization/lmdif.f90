@@ -4,17 +4,17 @@
       USE stel_kinds
       USE lmpar_mod, fjac_mod=>fjac, ldfjac_mod=>ldfjac,                &
          ipvt_mod=>ipvt, qtf_mod=>qtf, diag_mod=>diag
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       USE fdjac_mod, ONLY: flip,flag_singletask,flag_cleanup,fdjac2_mp
-!DEC$ ELSE
+#else
       USE fdjac_mod, ONLY: max_processors, flip, flag_singletask,       &
                            flag_cleanup, fdjac2
-!DEC$ ENDIF
+#endif
       USE mpi_params
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       INCLUDE 'mpif.h'                                       !mpi stuff
-!DEC$ ENDIF
+#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -40,9 +40,9 @@
          gnorm, prered, ratio, sum0, temp,                              &
          temp1, temp2, xnorm
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: fjac_save
-!DEC$ IF .NOT.DEFINED (MPI_OPT)
+#if !defined (MPI_OPT)
       REAL(rprec) :: wall_time, wall_time_lev
-!DEC$ ENDIF
+#endif
       REAL(rprec) :: fnorm_min
       REAL(rprec), ALLOCATABLE, DIMENSION(:) :: x_min, fvec_min
 !-----------------------------------------------
@@ -188,13 +188,13 @@
 !
 !     **********
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 !     Get mpi parameters
       CALL MPI_COMM_RANK (MPI_COMM_WORLD, myid, ierr_mpi)       !mpi stuff
       IF (ierr_mpi .ne. 0) STOP 'MPI_COMM_RANK error in LMDIF'
       CALL MPI_COMM_SIZE (MPI_COMM_WORLD, numprocs, ierr_mpi)   !mpi stuff
       IF (ierr_mpi .ne. 0) STOP 'MPI_COMM_SIZE error in LMDIF'
-!DEC$ ENDIF
+#endif
 
       info = 0;      iflag = 0;      nfev = 0;      cycle_count = 0
 
@@ -245,7 +245,7 @@
       "Levenberg-Marquardt terminated prematurely: " //                 &
       "must request more than one (1) processor" 
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       IF (numprocs > n) THEN
          IF (myid .eq. master) THEN
             WRITE (6, *)'Warning: more processors have been requested', &
@@ -255,7 +255,7 @@
          info = 11
          GOTO 400
       END IF
-!DEC$ ENDIF
+#endif
 
 !
 !     check the input parameters for errors.
@@ -270,9 +270,9 @@
 
       epsmch = dpmpar(1)
       flip = .false.
-!DEC$ IF .NOT.DEFINED (MPI_OPT)
+#if !defined (MPI_OPT)
       myid = 0;      wall_time = 0;      wall_time_lev = 0
-!DEC$ ENDIF
+#endif
 !
 !     ASSIGN VALUES TO MODULE VARIABLES (FACILITATES PASSING TO SUBROUTINES)
 !
@@ -303,7 +303,7 @@
 !
 !     Set up workers communicator (only master processor here) for initial run
 !
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       IF (myid .ne. master) THEN
          ikey = MPI_UNDEFINED
       ELSE
@@ -312,17 +312,17 @@
       CALL MPI_COMM_SPLIT(MPI_COMM_WORLD, ikey, worker_id,              &
                           MPI_COMM_WORKERS, ierr_mpi)
       IF (ierr_mpi .ne. 0) STOP 'MPI_COMM_SPLIT error in lsfun1'
-!DEC$ ENDIF
+#endif
       IF (myid .eq. master) THEN
          iflag = flag_singletask
          CALL fcn (m, n, x, fvec, iflag, nfev)
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
          CALL MPI_COMM_FREE(MPI_COMM_WORKERS, ierr_mpi)      
-!DEC$ ENDIF
+#endif
       END IF
 
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       CALL MPI_BCAST(iflag,1, MPI_INTEGER, master,                      &
                      MPI_COMM_WORLD, ierr_mpi)
       IF (ierr_mpi .ne. 0) GOTO 3000
@@ -330,7 +330,7 @@
            MPI_BCAST(fvec, m, MPI_REAL8, master,                        &
            MPI_COMM_WORLD, ierr_mpi)
       IF (ierr_mpi .ne. 0) GOTO 3000
-!DEC$ ENDIF
+#endif
 
       IF (iflag .lt. 0) GOTO 300
       fnorm = enorm(m,fvec)
@@ -342,20 +342,20 @@
       par = 0
       iter = 1
       lfirst_lm = .true.
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       IF (myid .eq. master) WRITE (6, 1000) numprocs
  1000 FORMAT (/,' Beginning Levenberg-Marquardt Iterations',/,          &
               ' Number of Processors: ',i4,//,                          &
 !     1        ' Number of Processors: ',i4,' (1 controller proc)',//,
               70('='),/,2x,'Iteration',3x,'Processor',7x,'Chi-Sq',7x,   &
              'LM Parameter',6x,'Delta Tol'/,70('='))
-!DEC$ ELSE
+#else
       WRITE (6, 1000) max_processors
  1000 FORMAT (/,' Beginning Levenberg-Marquardt Iterations',/,          &
               ' Number processors requested: ', i4,//,                  &
               59('='),/,2x,'Iteration',8x,'Chi-Sq',7x,                  &
              'LM Parameter',6x,'Delta Tol',/,59('='))
-!DEC$ ENDIF
+#endif
 
 !
 !     beginning of the outer loop.
@@ -364,14 +364,14 @@
 !
 !        calculate the jacobian matrix.
 !
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
          CALL fdjac2_mp(fcn, m, n, x, fvec, fjac, ldfjac,               &
                  iflag, nfev, epsfcn, fnorm_min, x_min, fvec_min)
-!DEC$ ELSE
+#else
          iflag = 2
          CALL fdjac2(fcn, m, n, x, fvec, fjac, ldfjac, iflag, nfev,     &
                      epsfcn, wa4, wall_time, fnorm_min, x_min, fvec_min)
-!DEC$ ENDIF
+#endif
          nfev = nfev + n
          IF (iflag .lt. 0) EXIT outerloop
 
@@ -460,16 +460,16 @@
 !
 !        Determine the levenberg-marquardt PARAMETER.
 !
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
 !        for parallel processing, scan a range of values for this
 !        parameter to find the 'optimal' choice
 !
            CALL levmarq_param_mp (x, wa1, wa2, wa3, wa4,                &
                                   nfev, m, n, iflag, fcn)
-!DEC$ ELSE
+#else
            CALL levmarq_param(x, wa1, wa2, wa3, wa4,                    &
                 wall_time_lev, nfev, m, n, iflag, fcn)
-!DEC$ ENDIF
+#endif
            IF (iflag .lt. 0) EXIT
 
 !
@@ -617,16 +617,16 @@
          CALL fcn (m, n, x, fvec, iflag, nfev)
       END IF
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined (MPI_OPT)
       RETURN
 
  3000 CONTINUE
       WRITE (6, *) 'MPI_BCAST error in LMDIF, ierr = ', ierr_mpi
-!DEC$ ELSE
+#else
       WRITE(*, '(2(/,a, f10.2))')                                       &
            ' Total wall clock time in jacobian multi-process call  = ', &
            wall_time,                                                   &
            ' Total wall clock time in lev param multi-process call = ', &
            wall_time_lev
-!DEC$ ENDIF
+#endif
       END SUBROUTINE lmdif

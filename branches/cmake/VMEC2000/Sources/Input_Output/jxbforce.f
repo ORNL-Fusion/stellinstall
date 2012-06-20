@@ -5,12 +5,12 @@
       USE vmec_params, ONLY: mscale, nscale, signgs, mnyq, nnyq, 
      1                       successful_term_flag
       USE realspace
-!DEC$ IF DEFINED (WIN32)
-!DEC$ UNDEFINE NETCDF
-!DEC$ ENDIF
-!DEC$ IF DEFINED (NETCDF)
+#if defined (WIN32)
+#undef NETCDF
+#endif
+#if defined (NETCDF)
       USE ezcdf
-!DEC$ ENDIF
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -62,7 +62,7 @@ C-----------------------------------------------
       CHARACTER(LEN=100) :: legend(13)
       LOGICAL :: lprint_flag, ltest=.false.
 C-----------------------------------------------
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       CHARACTER(LEN=*), PARAMETER ::
      1  vn_legend = 'legend',
      1  vn_radial_surfaces = 'radial_surfaces',
@@ -91,7 +91,7 @@ C-----------------------------------------------
      1  vn_bsubv = 'bsubv',
      1  vn_bsubs = 'bsubs'
 C-----------------------------------------------
-!DEC$ ENDIF
+#endif
       IF (LTEST) THEN
          OPEN (UNIT=24,FILE="JXBOUT_TEST.TXT",STATUS='REPLACE')
          mtrig = SIZE(cosmu,2);  ntrig = SIZE(cosnv,2)
@@ -111,15 +111,15 @@ C-----------------------------------------------
       END IF
       lprint_flag = (ier_flag.eq.successful_term_flag)
       IF (lprint_flag) THEN
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       jxbout_file = 'jxbout_'//TRIM(input_extension)//'.nc'
 
       CALL cdf_open(njxbout,jxbout_file,'w',injxbout)
-!DEC$ ELSE
+#else
       jxbout_file = 'jxbout.'//TRIM(input_extension)
       CALL safe_open(njxbout, injxbout, jxbout_file, 'replace',
      1    'formatted')
-!DEC$ ENDIF
+#endif
       IF (injxbout .ne. 0) THEN
          PRINT *,' Error opening JXBOUT file in jxbforce'
          RETURN
@@ -154,7 +154,7 @@ C-----------------------------------------------
      1  " volume radial coordinate)"
       legend(13)= " <JSUP{U,V}> = Int_u Int_v [JSUP{U,V}]/dV/ds"
 
-!DEC$ IF .NOT.DEFINED (NETCDF)
+#if !defined (NETCDF)
       WRITE (njxbout,5) (ns1-1)/ns_skip, ntheta3/nu_skip, nzeta/nv_skip,
      1    mpol, ntor, phiedge
  5    FORMAT(/,' Radial surfaces = ',i3, ' Poloidal grid points = ',i3,
@@ -164,7 +164,7 @@ C-----------------------------------------------
       WRITE (njxbout, 6) (legend(j), j=1,13)
  6    FORMAT(/,100('-'),/,' LEGEND:',/,100('-'),/,
      1  2(3(a,/),/),5(a,/),/,2(a,/),100('-'),//)
-!DEC$ ENDIF
+#endif
       ENDIF
 
       nznt1 = nzeta*ntheta2
@@ -540,7 +540,7 @@ C-----------------------------------------------
 !     Note: Multiply currents, pressure by 1/mu0 to get in mks units!
 !           TWOPI*TWOPI factor incorporated in vp (thru ovp factor below), so V' = (2pi)**2*vp
 !
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       ALLOCATE(
      1     bsubs3(ns,nzeta,ntheta3), bsubv3(ns,nzeta,ntheta3), 
      2     bsubu3(ns,nzeta,ntheta3), jxb_gradp(ns,nzeta,ntheta3), 
@@ -554,7 +554,7 @@ C-----------------------------------------------
       jcrossb=0 ; bsupv3=0; bsupu3=0; jsups3=0
       jsupv3=0; jsupu3=0; phin=0; phin(ns)=1
       jdotb_sqrtg=0; sqrtg3=0 
-!DEC$ ENDIF
+#endif
  
       ALLOCATE (pprim(ns),stat=j)
       pprim=0
@@ -616,7 +616,7 @@ C-----------------------------------------------
      1            SUM(jp2(:nznt)*wint(2:nrzt:ns)*sqrtg(:nznt))
 
          IF (MOD(js,ns_skip) .eq. 0 .and. lprint_flag) THEN
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
             phin(js) = phi(js)/phi(ns)
             DO lz = 1, nzeta
                toroidal_angle(lz)=REAL(360*(lz-1),rprec)/nzeta
@@ -638,7 +638,7 @@ C                 lu (js,lz,lt ) =  lt
                   bsubs3(js,lz,lt) = bsubs(js,lk)
                END DO
             END DO
-!DEC$ ELSE
+#else
             WRITE (njxbout, 200) phi(js), avforce(js), jdotb(js),
      1         bdotgradv(js), pprime, one/ovp, 
      2         (twopi**2)*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
@@ -657,7 +657,7 @@ C                 lu (js,lz,lt ) =  lt
      5              bsubv(js,lk,0), bsubs(js,lk)
                END DO
             END DO
-!DEC$ ENDIF
+#endif
          ENDIF
       END DO
 
@@ -674,7 +674,7 @@ C                 lu (js,lz,lt ) =  lt
       pprim(ns) = 2*pprim(ns-1) - pprim(ns-2)
 
       IF (lprint_flag) THEN
-!DEC$ IF DEFINED (NETCDF)
+#if defined (NETCDF)
       CALL cdf_define(njxbout,vn_legend,legend)
       CALL cdf_define(njxbout,vn_mpol,mpol)
       CALL cdf_define(njxbout,vn_ntor,ntor)
@@ -738,7 +738,7 @@ C                 lu (js,lz,lt ) =  lt
      2     bsupu3, jsups3, jsupv3, jsupu3, jdotb_sqrtg, phin, 
      3     toroidal_angle, sqrtg3, stat=j)
 
-!DEC$ ELSE
+#else
       CLOSE (njxbout)
 
    90 FORMAT(/"   LU      JSUPU      JSUPV      JSUPS      BSUPU",
@@ -754,7 +754,7 @@ C                 lu (js,lz,lt ) =  lt
      2   "<JSUPU>   = ",e12.3,3x,"<JSUPV>         = ",e12.3,/,
      3   " MAXIMUM FORCE DEVIATIONS (RELATIVE TO p'): ",sp,0p,f7.2,"%",
      4     3x,f7.2,"%")
-!DEC$ ENDIF
+#endif
 
       END IF
       

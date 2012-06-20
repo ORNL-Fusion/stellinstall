@@ -6,7 +6,7 @@
 !-----------------------------------------------
       INTEGER n
       INTEGER, DIMENSION(13) :: ifax
-!DEC$ IF .NOT.DEFINED(CRAY) .OR. DEFINED(LONESTAR) .OR. DEFINED(MCURIE)
+#if !defined(CRAY) || defined(LONESTAR) || defined(MCURIE)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -58,7 +58,7 @@
       ifax(k) = nn
    80 ifax(1)=k-1
 !     ifax(1) now CONTAINS number of factors
-!DEC$ ELSE
+#else
       CALL fact (n, ifax)
-!DEC$ ENDIF
+#endif
       END SUBROUTINE fact_g
