@@ -4,10 +4,10 @@
 
       SUBROUTINE tomnsps(frzl_array, armn, brmn, crmn, azmn, 
      1   bzmn, czmn, blmn, clmn, arcon, azcon)
-      USE realspace, ONLY: phip
-      USE vmec_main
+      USE realspace, ONLY: wint, phip
+      USE vmec_main, p5 => cp5
       USE vmec_params, ONLY: jlam, jmin2, ntmax, rcc, rss, zsc, zcs,
-     1                       nscale
+     1                       mscale, nscale
       USE fbal, ONLY: rru_fac, rzu_fac, frcc_fac, fzsc_fac
       USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
@@ -27,7 +27,7 @@ C-----------------------------------------------
      1           frcc, frss, fzcs, fzsc, flcs, flsc
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: work1
       REAL(rprec), DIMENSION(:), ALLOCATABLE   :: tempr, tempz
-      REAL(rprec) :: t1
+      REAL(rprec)  :: t1
 C-----------------------------------------------
       frcc => frzl_array(:,:,:,rcc)               !!COS(mu) COS(nv)
       fzsc => frzl_array(:,:,:,zsc+ntmax)         !!SIN(mu) COS(nv)
@@ -142,33 +142,26 @@ C-----------------------------------------------
       IF (ictrl_prec2d.gt.0 .and. ncurr.eq.1) THEN
          ni = 0+ioff;  mj = 0+joff
          DO jl = 2, ns
-            flsc(jl, ni, mj) = -r0scale*phip(2)*(buco(jl) - icurv(jl))
+            flsc(jl, ni, mj) = -r0scale*(buco(jl) - icurv(jl))
          END DO
-!         IF (ictrl_prec2d.eq.1) PRINT *,' FIOTA = ', 
-!     1       SUM(flsc(2:ns,ni,mj)**2)
       END IF
 
 !
 !     MAKE R,Z(m=1,n=0) SATISFY AVERAGE FORCE BALANCE EXACTLY
 !     NOTE: for m=1, FR ~ Z1*(f0 + f2), FZ ~ R1*(f0 - f2), WHERE
 !     f0 is the m=0 component of frho, f2 is m=2 component.
-!
-!     The iter2.eq.1 is there in case this is a restart from a file
-!     FOR NOW, TURN OFF FOR RFP CASE
-!
-!     fsq_sum = fsqr+fsqz+fsql
       IF (lforbal) THEN
-!     1 .and. (fsq_sum.lt.1.E-8_dp .or. ictrl_prec2d.ge.1)) THEN
          mj = 1 + joff
          ni = 0 + ioff
-         t1 = nscale(0)*r0scale
+         t1 = nscale(0)*r0scale/4
          DO jl = 2, ns-1
-            work1(jl,1) = (frcc_fac(jl)*frcc(jl,ni,mj)
-     1                  +  fzsc_fac(jl)*fzsc(jl,ni,mj))/t1
-            frcc(jl,ni,mj) = t1*rzu_fac(jl)*(equif(jl) + work1(jl,1))
-            fzsc(jl,ni,mj) = t1*rru_fac(jl)*(equif(jl) - work1(jl,1))
+            work1(jl,1) = frcc_fac(jl)*frcc(jl,ni,mj)
+     1                  + fzsc_fac(jl)*fzsc(jl,ni,mj)
+            frcc(jl,ni,mj) = rzu_fac(jl)*(t1*equif(jl) + work1(jl,1))
+            fzsc(jl,ni,mj) = rru_fac(jl)*(t1*equif(jl) - work1(jl,1))
          END DO
       END IF
+
             
       DEALLOCATE (work1, tempr, tempz)
 

@@ -18,7 +18,7 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/lamfull.f
 	${CMAKE_CURRENT_SOURCE_DIR}/precondn.f
 	${CMAKE_CURRENT_SOURCE_DIR}/realspace.f
-	${CMAKE_CURRENT_SOURCE_DIR}/residue.f
+	${CMAKE_CURRENT_SOURCE_DIR}/residue.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/scalfor.f
 	${CMAKE_CURRENT_SOURCE_DIR}/spectrum.f
 	${CMAKE_CURRENT_SOURCE_DIR}/symforce.f

@@ -1,10 +1,11 @@
       SUBROUTINE profil1d(xc, xcdot, lreset)
       USE vmec_main
-      USE vmec_params, ONLY: signgs, rcc, pdamp
+      USE vmec_params, ONLY: signgs, lamscale, rcc, pdamp
       USE vmec_input, ONLY: lRFP
       USE vsvd, torflux_edge => torflux
       USE vspline
       USE realspace, ONLY: shalf, sqrts
+      USE init_geometry, ONLY: lflip
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -69,6 +70,15 @@ C-----------------------------------------------
          icurv(i) = pcurr(si)
       END DO
 
+!
+!     Compute lamscale factor for "normalizing" lambda (needed for scaling hessian)
+!
+      lamscale = SQRT(hs*SUM(phips(2:ns)**2))
+      IF (lflip) THEN
+         iotas = -iotas
+         chips = -chips
+      END IF
+
       DO i = 1,ns
          si = hs*(i-1)
 !         tflux = torflux(si)
@@ -99,7 +109,7 @@ C-----------------------------------------------
 !         See line 195 of bcovar: pres(2:ns) = mass(2:ns)/vp(2:ns)**gamma
 
           IF (lRFP) THEN
-             vpnorm = polflux_edge * polflux_deriv(si)
+             vpnorm = polflux_edge * polflux_deriv(si) 
           ELSE
              vpnorm = torflux_edge * torflux_deriv(si)
           END IF
@@ -109,6 +119,7 @@ C-----------------------------------------------
 !             si = torflux(si)
              pedge = pmass(si)
           END IF
+          pedge = pedge
           mass(i) = pedge*(ABS(vpnorm)*r00)**gamma
         END DO
 
@@ -123,15 +134,12 @@ C-----------------------------------------------
       xcdot(:neqs2) = 0
 
       DO i = 1, ns
-         si = hs*ABS(i - 1.5_dp)
+         si = hs*ABS(i-1.5_dp)
 !         si = torflux(si)                      !SPH060409: shalf = sqrt(s), NOT sqrt(phi(s))!
          shalf(i:nrzt:ns) = SQRT(si)
-         si = hs*(i - 1)
-!         si = torflux(si)
+         si = hs*(i-1)
          sqrts(i:nrzt:ns) = SQRT(si)
-!         bdamp(i) = pdamp*(1 - si)
-         bdamp(i) = 2*pdamp*(1 - si)
-!SPH111510         IF (lrfp) bdamp(i) = 1       !SPH081009 (no blending)
+         bdamp(i) = 2*pdamp*(1-si)
       END DO
 
       sqrts(ns:nrzt:ns) = 1     !!Avoid round-off

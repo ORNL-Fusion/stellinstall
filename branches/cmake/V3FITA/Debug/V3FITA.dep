@@ -236,6 +236,7 @@ signal_mc.o : \
       model_T.o \
       signal_T.o \
       sxrch_mc.o \
+      ipch_mc.o \
       thscte_mc.o 
       
 
@@ -255,10 +256,26 @@ sxrch_dot.o : \
       ../../LIBSTELL/Debug/sxrch_T.o 
       
 
+ipch_dot.o : \
+      ../../LIBSTELL/Debug/safe_open_mod.o \
+      ../../LIBSTELL/Debug/stel_constants.o \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/ipch_T.o 
+      
+
 sxrch_mc.o : \
       ../../LIBSTELL/Debug/read_wout_mod.o \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/sxrch_T.o \
+      ../../LIBSTELL/Debug/vmec_utils.o \
+      model_T.o \
+      v3f_global.o 
+      
+
+ipch_mc.o : \
+      ../../LIBSTELL/Debug/read_wout_mod.o \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/ipch_T.o \
       ../../LIBSTELL/Debug/vmec_utils.o \
       model_T.o \
       v3f_global.o 
@@ -300,6 +317,7 @@ v3fita.o : \
       ../../LIBSTELL/Debug/stel_constants.o \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/sxrch_T.o \
+      ../../LIBSTELL/Debug/ipch_T.o \
       ../../LIBSTELL/Debug/thscte_T.o \
       ../../LIBSTELL/Debug/v3_utilities.o \
       bfield_grid_mod.o \
@@ -321,6 +339,7 @@ v3fita.o : \
       signal_mc.o \
       signal_T.o \
       sxrch_dot.o \
+      ipch_dot.o \
       thscte_dot.o \
       v3f_global.o \
       v3read_wout.o 

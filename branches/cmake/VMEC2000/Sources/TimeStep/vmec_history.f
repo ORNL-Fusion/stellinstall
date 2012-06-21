@@ -68,7 +68,7 @@
 !-------------------------------------------------------------------------------
 !  Module Variables - Integer arrays
 !-------------------------------------------------------------------------------
-!  vmh_iter2           VMEC's iter2 
+!  vmh_iterc           VMEC's iterc 
 !  vmh_iter2m1         VMEC's iter2 - iter1 
 !  vmh_ns              VMEC's ns 
 !  vmh_nvacskip        VMEC's nvacskip
@@ -77,7 +77,7 @@
 !  vmh_i1              V3FIT, reconstruction iteration number
 !  vmh_i2              V3FIT, jacobian calculation, reconstruction parameter #
 
-      INTEGER, DIMENSION(vmh_dim) :: vmh_iter2, vmh_iter2m1, vmh_ns,           &
+      INTEGER, DIMENSION(vmh_dim) :: vmh_iterc, vmh_iter2m1, vmh_ns,           &
      &    vmh_nvacskip, vmh_ivac, vmh_ictrl_prec2d, vmh_i1, vmh_i2
 
 !-------------------------------------------------------------------------------
@@ -99,7 +99,7 @@
 !*******************************************************************************
 !  vmec_history_store
 !     subroutine to store local vmec and variables into the history arrays.
-!     Should be called ONLY from subroutine eqsolve, right after iter2
+!     Should be called ONLY from subroutine eqsolve, right after iterc
 !     is incremented.
 !-------------------------------------------------------------------------------
 
@@ -109,7 +109,7 @@
 !  USE statements
 !-------------------------------------------------------------------------------
 
-      USE vmec_main, ONLY: iter1, iter2, fsqr, fsqz, fsql,                     &
+      USE vmec_main, ONLY: iter1, iter2, iterc, fsqr, fsqz, fsql,              &
      &   fedge, ivac
       USE vmec_dim, ONLY: ns
       USE vmec_input, ONLY: nvacskip
@@ -139,7 +139,7 @@
       ENDIF
       vmh_index = vmh_index + 1
       IF (vmh_index .le. vmh_dim) THEN
-         vmh_iter2(vmh_index) = iter2
+         vmh_iterc(vmh_index) = iterc
          vmh_iter2m1(vmh_index) = iter2 - iter1
          vmh_ns(vmh_index) = ns
          vmh_nvacskip(vmh_index) = nvacskip
@@ -200,7 +200,7 @@
      &   vmh_index, ' times'
       WRITE(vmh_iou,*) 
 
-      vmh_header = '    i iter2  2m1   ns nvac ivac ictrl_ i1 i2' //           &
+      vmh_header = '    i iterc  2m1   ns nvac ivac ictrl_ i1 i2' //           &
      &  '    time_step  fsqr      fsqz       fsql      max(fsq)' //            &
      &  '    fedge      sys-time'
       WRITE(vmh_iou,*) TRIM(vmh_header)
@@ -208,7 +208,7 @@
 
       DO i = 1,MIN(vmh_index,vmh_dim)
          WRITE(vmh_iou,vmh_format2)                                            &
-     &      i, vmh_iter2(i), vmh_iter2m1(i), vmh_ns(i),                        &
+     &      i, vmh_iterc(i), vmh_iter2m1(i), vmh_ns(i),                        &
      &      vmh_nvacskip(i), vmh_ivac(i),                                      &
      &      vmh_ictrl_prec2d(i), vmh_i1(i), vmh_i2(i),                         &
      &      vmh_time_step(i), vmh_fsqr(i), vmh_fsqz(i), vmh_fsql(i),           &
@@ -302,6 +302,7 @@
 !  2011-02-15 JDH  Removed vmh_fsq
 !  2011-02-18 JDH  Added vmh_time - system time via LIBSTELL's second0
 !  2011-02-19 JDH  Fixed up issues with vmh_time
+!  2012-06-20 JDH  Changed iter2 to iterc for cumulative counter
 
 
 

@@ -47,10 +47,10 @@ C-----------------------------------------------
       IF (istat1.ne.0) STOP 'allocation error in fixaray: istat1'
       IF (istat2.ne.0) STOP 'allocation error in fixaray: istat2'
 
-      dnorm = one/(nzeta*(ntheta2 - 1))
+      dnorm = one/(nzeta*(ntheta2-1))
 
       mscale(0) = 1;  nscale(0) = 1                      
-!      mscale(0) = osqrt2;  nscale(0) = osqrt2    !versions < 6.9, used osqrt2
+!     mscale(0) = osqrt2;  nscale(0) = osqrt2    !versions < 6.9, incorrectly used osqrt2
 
       mscale(1:mnyq) = mscale(0)/osqrt2
       nscale(1:nnyq) = nscale(0)/osqrt2
@@ -69,9 +69,9 @@ C-----------------------------------------------
             sinmui(i,m) = dnorm*sinmu(i,m)
             IF (i.eq.1 .or. i.eq.ntheta2) cosmui(i,m)=cosmui(i,m)/2
             cosmum(i,m) = cosmu(i,m)*(m)
-            sinmum(i,m) = -sinmu(i,m)*(m)
-            cosmumi(i,m) = cosmui(i,m)*(m)
-            sinmumi(i,m) = -sinmui(i,m)*(m)
+            sinmum(i,m) =-sinmu(i,m)*(m)
+            cosmumi(i,m)= cosmui(i,m)*(m)
+            sinmumi(i,m)=-sinmui(i,m)*(m)
          END DO
       END DO
 

@@ -4,7 +4,7 @@
       USE realspace
       USE vforces, r12 => armn_o, bsupu => crmn_e, bsupv => czmn_e,
      1   gsqrt => azmn_o, bsq => bzmn_o, izeta => azmn_e,
-     2   bphi => czmn_o, curtheta => brmn_e, brho => bzmn_e
+     2   bphi => czmn_o, curtheta => brmn_e
       USE vacmod
       USE vsvd
       USE vspline
@@ -17,7 +17,7 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER :: ier_flag
-      REAL(rprec), DIMENSION(ns,nznt,0:1), INTENT(inout) :: bsubu, bsubv
+      REAL(rprec), DIMENSION(ns,nznt,0:1), INTENT(in) :: bsubu, bsubv
       REAL(rprec), DIMENSION(nrzt), INTENT(out) :: br, bz
       REAL(rprec), DIMENSION(nrzt), INTENT(out) :: tau
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,3*ntmax),
@@ -73,6 +73,7 @@ C-----------------------------------------------
         zmaga => rzl_array(1,:,0,zcc+ntmax)
       END IF
 
+!     crmn_o => bss on half grid
       CALL bss (r12, bzmn, brmn, azmn, armn, crmn_o, bsupu, bsupv,
      1          br, bphi, bz)
 
@@ -103,7 +104,7 @@ C-----------------------------------------------
 !
 
       CALL jxbforce (bsupu, bsupv, bsubu, bsubv, crmn_o, rcon, zcon, 
-     1               gsqrt, bsq, curtheta, izeta, brho, ier_flag)
+     1               gsqrt, bsq, curtheta, izeta, ier_flag)
 !
 !     HALF-MESH VOLUME-AVERAGED BETA
 !

@@ -278,7 +278,7 @@
 !-------------------------------------------------------------------------------
 
       SUBROUTINE eq_step(numiter,state,lconverged,iter_es,                     &
-     &   ier_flag_vmec,vmec_flag_name,delta_iter2)
+     &   ier_flag_vmec,vmec_flag_name,delta_iterc)
 
 !  JDH 2009-09-10. Changed err_fatal to err_warn for various VMEC flags
 !  JDH 2009-07-16. Revised and cleaned up coding
@@ -294,9 +294,9 @@
       USE vmec_params
 
 ! VMEC fsq - for monitoring convergence
-!      iter2 - vmec internal iteration counter
+!      iterc - vmec cumulative internal iteration counter
 !      SPH013108: add iter1 here
-      USE vmec_main, ONLY: fsqr, fsqz, fsql, iter1, iter2
+      USE vmec_main, ONLY: fsqr, fsqz, fsql, iter1, iter2, iterc
 
 !  VMEC history - iteration counter
 !      USE vmec_history, ONLY: iter_ha
@@ -314,9 +314,10 @@
 !  iter_es         integer, equilibrium solver internal iteration counter.
 !                  (07-24-06 - use iter_ha from vmec_history)
 !                  (2010-08-03 - use iter2 from vmec_main)
+!                  (2012-06-20 - use iterc from vmec_main)
 !  ier_flag_vmec   integer ier_flag returned from runvmec
 !  vmec_flag_name  name of the ier_flag from VMEC
-!  delta_iter2     Change in VMEC iter2 counter, due to runvmec call
+!  delta_iterc     Change in VMEC iterc counter, due to runvmec call
 !  
 !  Declare Arguments 
       INTEGER, INTENT(inout) :: numiter
@@ -325,10 +326,10 @@
       INTEGER, INTENT(out), OPTIONAL :: iter_es
       INTEGER, INTENT(out), OPTIONAL :: ier_flag_vmec
       CHARACTER	(len=*), INTENT(inout), OPTIONAL :: vmec_flag_name
-      INTEGER, INTENT(out), OPTIONAL :: delta_iter2     
+      INTEGER, INTENT(out), OPTIONAL :: delta_iterc     
 
 !  Declare local variables
-      INTEGER :: ictrl_array(5), ier_flag, ier1, iter2_before
+      INTEGER :: ictrl_array(5), ier_flag, ier1, iterc_before
       LOGICAL, PARAMETER :: lscreen     = .false.
       LOGICAL :: lconverged_local
       CHARACTER	(len=80) :: vmec_flag_name_local
@@ -360,7 +361,7 @@
       ictrl_array(1) = timestep_flag + output_flag + reset_jacdt_flag
       ictrl_array(3) = numiter
       ictrl_array(4) = state % varp % ns_index
-      iter2_before = iter2
+      iterc_before = iterc
       iter1        = iter2
       
 !  Construct input_filename from state % wout_filename
@@ -457,9 +458,9 @@
 !-------------------------------------------------------------------------------
 !  Diagnostic Printout
 !-------------------------------------------------------------------------------
-      WRITE(*,1000) iter2, iter2 - iter2_before,                               &
+      WRITE(*,1000) iterc, iterc - iterc_before,                               &
      &   vmec_flag_name_local, ier_flag, lconverged_local
-      WRITE(iou_runlog,1000) iter2, iter2 - iter2_before,                      &
+      WRITE(iou_runlog,1000) iterc, iterc - iterc_before,                      &
      &   vmec_flag_name_local, ier_flag, lconverged_local
 1000  FORMAT('   eq_step:', i7,1x,i7,1x,a20,1x,i3,1x,l1)
 
@@ -487,7 +488,7 @@
 !  Clean up loose ends
 !-------------------------------------------------------------------------------
          
-      IF (PRESENT(delta_iter2)) delta_iter2 = iter2 - iter2_before
+      IF (PRESENT(delta_iterc)) delta_iterc = iterc - iterc_before
 
 !  Logicals for auxiliarys defined in eq_state set to false
       state % l_def_aux1 = .false.
@@ -495,7 +496,7 @@
 
 !  Cumulative Internal iteration counter
 !      iter_es = iter_ha JDH 2010-08-03
-      iter_es = iter2
+      iter_es = iterc
       
       RETURN
       
@@ -1292,6 +1293,8 @@
 
       SUBROUTINE eq_interface_nli_write(input_file_end,istat)
 !  Write out a VMEC namelist-input file
+!  Modified JDH 2012-06-01
+
       USE vmec_input
       USE mgrid_mod, ONLY:  curlabel, nextcur
       USE safe_open_mod
@@ -1300,11 +1303,15 @@
       USE date_and_computer
       USE vmec_params, ONLY: version_
       IMPLICIT NONE
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(out) :: istat
       CHARACTER(LEN=*) :: input_file_end
+      INTEGER, INTENT(inout) :: istat
+!  input_file_end    full path to vmec namelist input file, to be written
+!  istat             output error indicator
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -1317,14 +1324,21 @@
       CHARACTER(LEN=80), PARAMETER ::                                          &
      &   banner =                                                              &
      &'! THIS IS WRITTEN BY V3FIT USING VMEC2000, VERSION '
+
 !-----------------------------------------------
+!  Start of Executable Code
+
+!  Define dateloc variable, for write at end of file
+!   GetComputerInfo is in module date_and_computer
+!   DATE_AND_TIME is Fotran intrinsic function
       CALL GetComputerInfo
       CALL DATE_AND_TIME(date0,time0,zone0)
-      READ(date0(5:6),'(i2)')imon
-      WRITE(dateloc,100)months(imon),date0(7:8),date0(1:4),                    &
+      READ(date0(5:6),'(i2)') imon
+      WRITE(dateloc,100) months(imon), date0(7:8), date0(1:4),                 &
      &  time0(1:2),time0(3:4),time0(5:6)
  100  FORMAT('! DATE = ',a3,' ',a2,',',a4,' ',' TIME = ',2(a2,':'),a2)
 
+!  Open the file to write to
       iunit = iout+2
       CALL safe_open(iunit, istat, input_file_end,                             & 
      &	'replace', 'formatted')
@@ -1333,14 +1347,18 @@
          RETURN
       END IF
 
+!  find print out size for NS_ARRAY
       ins = MAXLOC(ns_array)
       ns0 = ns_array(ins(1))
 
+!  find print out size for FTOL_ARRAY
       iftol =0 
       DO WHILE(ftol_array(iftol+1).ne.zero .and. iftol.lt.100)
          iftol = iftol + 1
       END DO
 
+!  find print out size for EXTCUR, onnly when nextcur is zero to start.
+!  (NB - redefines nextcur, module variable in mgrid_mod)
       IF (nextcur .eq. 0) THEN
          DO nextcur = SIZE(extcur), 1, -1
             IF (extcur(nextcur) .ne. zero) EXIT
@@ -1353,53 +1371,106 @@
 !     so that it can be read in under the indata NAMELIST
 !
       WRITE (iunit, '(a7)') '&INDATA'
-      WRITE (iunit, '(2x,3a)') "MGRID_FILE = '", TRIM(mgrid_file), "'"
-      WRITE (iunit, 1007) 'LFREEB = ', lfreeb
-      WRITE (iunit, 1007) 'LASYM = ', lasym
-      WRITE (iunit, 1007) 'LFORBAL = ', lforbal
-      WRITE (iunit, '(2x,a,1p,e10.2)') 'DELT = ', delt
-      WRITE (iunit, '(2x,a,1p,e10.2)') 'TCON0 = ', tcon0
-      WRITE (iunit,'(2x,3a)') "PRECON_TYPE = '", TRIM(precon_type),"'" 
-      WRITE (iunit,'(2x,a,1p,e14.6)') "PREC2D_THRESHOLD = ",                   &
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Free / Fixed Boundary ---------------")')
+      WRITE(iunit, 1007) 'LFREEB = ', lfreeb
+      IF (lfreeb) THEN
+         WRITE(iunit,'(2x,3a)') "MGRID_FILE = '", TRIM(mgrid_file), "'"
+         IF (nextcur .gt. 0) then
+            DO i=1,nextcur 
+               WRITE(iunit,'(a,i2.2,a,1p,e22.14,2a)')                          &
+     &		"  EXTCUR(",i,") = ", extcur(i),"	  !",TRIM(curlabel(i))
+        ENDDO
+      ENDIF
+      ENDIF
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Runtime Parameters ---------------")')
+      WRITE(iunit,'(2x,a,1p,e10.2)') 'DELT = ', delt
+      WRITE(iunit,'(2x,a,i6)') 'NITER = ', niter
+      WRITE(iunit,'(2x,a,i4)') 'NSTEP = ', nstep
+      WRITE(iunit,'(2x,a,1p,e10.2)') 'TCON0 = ', tcon0
+      WRITE(iunit,1007) 'LFORBAL = ', lforbal
+      WRITE(iunit, '(2x,a,i4)') 'NVACSKIP = ', nvacskip
+      WRITE(iunit,'(2x,a)') 'NS_ARRAY = '
+      WRITE(iunit,980) (ns_array(i),i=1,ins(1))
+      WRITE(iunit,'(2x,a)') 'FTOL_ARRAY ='
+      WRITE(iunit,995) (ftol_array(i),i=1,iftol )
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Preconditioning Parameters -------------")')
+      WRITE(iunit,'(2x,3a)') "PRECON_TYPE = '", TRIM(precon_type),"'" 
+      WRITE(iunit,'(2x,a,1p,e14.6)') "PREC2D_THRESHOLD = ",                    &
      &                                prec2d_threshold
-      WRITE (iunit, '(2x,a,i4)') 'NFP = ', nfp
-      WRITE (iunit, '(2x,a,i4)') 'NCURR = ', ncurr
-      WRITE (iunit, '(2(2x,a,i4))') 'MPOL = ', mpol, 'NTOR = ', ntor
-      IF (ntheta.gt.0) WRITE (iunit, '(2x,a,i4)') 'NTHETA = ',ntheta
-      IF (nzeta.gt.0)  WRITE (iunit, '(2x,a,i4)') 'NZETA  = ',nzeta
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Grid Parameters -------------")')
+      WRITE(iunit,1007) 'LASYM = ', lasym
+      WRITE(iunit,'(2x,a,i4)') 'NFP = ', nfp
+      WRITE(iunit,'(2(2x,a,i4))') 'MPOL = ', mpol, 'NTOR = ', ntor
+      IF (ntheta .gt. 0) WRITE(iunit,'(2x,a,i4)') 'NTHETA = ',ntheta
+      IF (nzeta .gt. 0)  WRITE(iunit,'(2x,a,i4)') 'NZETA  = ',nzeta
+      WRITE (iunit, 996) phiedge
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Pressure Parameters -------------")')
+      WRITE(iunit, 994) gamma
+      WRITE(iunit, '(2x,a,1p,e14.6)') 'BLOAT = ', bloat
+      WRITE(iunit, 997) pres_scale
+      WRITE(iunit, '(2x,3a)') "PMASS_TYPE = '", pmass_type, "'"      
+      WRITE(iunit, '(2x,a,/,2x,3(1pe22.14))')'AM = ', am
+      SELECT CASE(TRIM(pmass_type))
+         CASE ('Akima_spline','cubic_spline')
+            CALL write_array(iunit,'AM_AUX_S',am_aux_s,SIZE(am_aux_s))
+            CALL write_array(iunit,'AM_AUX_F',am_aux_f,SIZE(am_aux_s))
+      END SELECT
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Current / Iota Parameters -------------")')
+      WRITE(iunit, '(2x,a,i4)') 'NCURR = ', ncurr
+      WRITE(iunit, 998) curtor
+      WRITE(iunit, '(2x,3a)') "PCURR_TYPE = '", pcurr_type, "'"      
+      WRITE(iunit, '(2x,a,/,2x,3(1pe22.14))')'AC = ', ac
+      SELECT CASE(TRIM(pcurr_type))
+         CASE ('Akima_spline_Ip','Akima_spline_I',                             &
+     &           'cubic_spline_Ip','cubic_spline_I')
+            CALL write_array(iunit,'AC_AUX_S',ac_aux_s,SIZE(am_aux_s))
+            CALL write_array(iunit,'AC_AUX_F',ac_aux_f,SIZE(am_aux_s))
+      END SELECT
+      WRITE(iunit, '(2x,3a)') "PIOTA_TYPE = '", piota_type, "'"      
+      WRITE(iunit, '(2x,a,/,2x,3(1pe22.14))')'AI = ', ai
+      SELECT CASE(TRIM(piota_type))
+         CASE ('Akima_spline','cubic_spline')
+            CALL write_array(iunit,'AI_AUX_S',ai_aux_s,SIZE(am_aux_s))
+            CALL write_array(iunit,'AI_AUX_F',ai_aux_f,SIZE(am_aux_s))
+      END SELECT
+
+      WRITE(iunit,*) 
+      WRITE(iunit,'("!---- Axis, Boundary -------------")')
       IF (mfilter_fbdy.gt.0)                                                   &
      &    WRITE (iunit, '(2x,a,i4)') 'mfilter_fbdy  = ',mfilter_fbdy
       IF (nfilter_fbdy.gt.0)                                                   & 
      &    WRITE (iunit, '(2x,a,i4)') 'nfilter_fbdy  = ',nfilter_fbdy
 
-      WRITE (iunit, '(2x,a)') 'NS_ARRAY = '
-      WRITE (iunit, 980) (ns_array(i),i=1,ins(1))
-!  JDH 2010-07-20 i -> i6, single line below, to make gfortran happy
-      WRITE (iunit, '(2x,a,i6)') 'NITER = ', niter
-      WRITE (iunit, '(2x,a,i4)') 'NSTEP = ', nstep
-      WRITE (iunit, '(2x,a,i4)') 'NVACSKIP = ', nvacskip
-      WRITE (iunit, 994) gamma
-      WRITE (iunit, '(2x,a)') 'FTOL_ARRAY ='
-      WRITE (iunit, 995, err=2000) (ftol_array(i),i=1,iftol )
-      WRITE (iunit, 996) phiedge
-      WRITE (iunit, 997) pres_scale
-      WRITE (iunit, 998) curtor
-      WRITE (iunit, '(2x,a,1p,e14.6)') 'BLOAT = ', bloat
-      WRITE (iunit, '(2x,3a)') "PMASS_TYPE = '", pmass_type, "'"      
-      WRITE (iunit, '(2x,a,/,2x,3(1pe22.14))')'AM = ', am
-      WRITE (iunit, '(2x,3a)') "PCURR_TYPE = '", pcurr_type, "'"      
-      WRITE (iunit, '(2x,a,/,2x,3(1pe22.14))')'AC = ', ac
-      WRITE (iunit, '(2x,a,/,2x,3(1pe22.14))')'AI = ', ai
-      IF (nextcur .gt. 0) then
-        DO i=1,nextcur 
-          WRITE(iunit,'(a,i2.2,a,1p,e22.14,2a)')                               &
-     &		"  EXTCUR(",i,") = ", extcur(i),"	!",TRIM(curlabel(i))
-!     1    CALL write_array(iunit, 'EXTCUR', extcur, nextcur)
-        ENDDO
-      ENDIF
-
       CALL write_rbzb (iunit, istat)
-      IF (istat .ne. 0) GOTO 2000
+      IF (istat .ne. 0) THEN
+         istat = -5
+         RETURN
+      ENDIF
+!  End of Namelist
+       WRITE (iunit, 1009) 
+
+! Information after end of namelist       
+      CALL GetComputerInfo
+      Version = TRIM(ADJUSTL(version_))
+      WRITE(iunit,*) 
+      WRITE(iunit,'(a,x,a,/,a,x,a,/,a,/,a,x,a)')                               &
+     &  TRIM(banner),TRIM(Version),                                            &
+     &     '! COMPUTER: ', TRIM(computer),                                     &
+     &  TRIM(dateloc)
+      CLOSE (iunit)
+      RETURN
 
   980 FORMAT(2x,16i5)
   981 FORMAT(2x,a,10(i5))
@@ -1414,21 +1485,7 @@
  1000 FORMAT(5(1p,e22.14))
  1007 FORMAT(2x,a,L1)
  1008 FORMAT(2x,a,L1,2x,a,i2)
- 1009 FORMAT("/",a)
-      WRITE (iunit, 1009) 
-      CALL GetComputerInfo
-      Version = TRIM(ADJUSTL(version_))
-      WRITE(iunit,'(a,x,a,/,a,x,a,/,a,/,a,x,a)')                               &
-     &  TRIM(banner),TRIM(Version),                                            &
-     &     '! COMPUTER: ', TRIM(computer),                                     &
-     &  TRIM(dateloc)
-      CLOSE (iunit)
-      RETURN
-     
-!
-!     Handle errors here
-!
- 2000 istat = -5
+ 1009 FORMAT("/",a)     
 
       END  SUBROUTINE eq_interface_nli_write
 

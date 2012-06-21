@@ -1,5 +1,5 @@
       SUBROUTINE jxbforce(bsupu, bsupv, bsubu, bsubv, bsubs, bsubsu,
-     1   bsubsv, gsqrt, bsq, itheta, izeta, brho, ier_flag)
+     1   bsubsv, gsqrt, bsq, itheta, izeta, ier_flag)
       USE safe_open_mod
       USE vmec_main
       USE vmec_params, ONLY: mscale, nscale, signgs, mnyq, nnyq, 
@@ -17,25 +17,23 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       REAL(rprec), DIMENSION(ns,nznt), INTENT(in) ::
      1  bsupu, bsupv, bsq, gsqrt
-      REAL(rprec), DIMENSION(ns,nznt,0:1), TARGET, INTENT(inout) ::
+!ONLY CHANGE COMPONENT 1 (MUST KEEP COMPONENT 0 UNCHANGED FOR USE IN WROUT!)
+      REAL(rprec), DIMENSION(ns,nznt,0:1), INTENT(inout), TARGET ::
      1  bsubu, bsubv
       REAL(rprec), DIMENSION(ns,nznt), INTENT(inout), TARGET :: bsubs
-      REAL(rprec), DIMENSION(ns,nznt), INTENT(out) ::
-     1  itheta, brho, izeta
+      REAL(rprec), DIMENSION(ns,nznt), INTENT(out) :: itheta, izeta
       REAL(rprec), DIMENSION(ns,nznt,0:1) :: bsubsu, bsubsv
       INTEGER, INTENT(in) :: ier_flag
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      LOGICAL, PARAMETER :: lbsubs = .true.       !!True  to use NEW bsubs calculation (from mag. diff. eq.)
-                                                  !!False to use OLD bsubs calculation (from metrics)
       LOGICAL, PARAMETER :: lprint = .false.      !!Prints out bsubs spectrum to fort.33
       REAL(rprec), PARAMETER :: two=2, p5=0.5_dp, c1p5=1.5_dp
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER lk, lz, lt, k, m, js, j, n, injxbout, mparity, nznt1
-      INTEGER :: njxbout = jxbout0, nmin, info, mtrig, ntrig
+      INTEGER :: njxbout = jxbout0, info, mtrig, ntrig
       INTEGER, PARAMETER :: ns_skip = 1, nu_skip = 1, nv_skip = 1
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::
      1    bdotj, bsubuv, bsubvu
@@ -60,55 +58,26 @@ C-----------------------------------------------
      1    bsubs_s, bsubs_a
       CHARACTER(LEN=100) :: jxbout_file
       CHARACTER(LEN=100) :: legend(13)
-      LOGICAL :: lprint_flag, ltest=.false.
+      LOGICAL :: lprint_flag
 C-----------------------------------------------
 #if defined (NETCDF)
       CHARACTER(LEN=*), PARAMETER ::
-     1  vn_legend = 'legend',
-     1  vn_radial_surfaces = 'radial_surfaces',
-     1  vn_poloidal_grid_points = 'poloidal_grid_points',
-     1  vn_toroidal_grid_points = 'toroidal_grid_points',
-     1  vn_mpol = 'mpol',
-     1  vn_ntor = 'ntor',
-     1  vn_phin = 'phin',
-     1  vn_toroidal_angle = 'toroidal_angle',
-     1  vn_avforce = 'avforce',
-     1  vn_jdotb = 'surf_av_jdotb',
-     1  vn_sqg_bdotj = 'sqrt(g)*jdotb',
-     1  vn_sqrtg = 'sqrt(g)',
-     1  vn_bdotgradv = 'bdotgradv',
-     1  vn_amaxfor = 'amaxfor',
-     1  vn_aminfor = 'aminfor',
-     1  vn_pprime = 'pprime',
-     1  vn_jsupu = 'jsupu',
-     1  vn_jsupv = 'jsupv',
-     1  vn_jsups = 'jsups',
-     1  vn_bsupu = 'bsupu',
-     1  vn_bsupv = 'bsupv',
-     1  vn_jcrossb = 'jcrossb',
-     1  vn_jxb_gradp = 'jxb_gradp',
-     1  vn_bsubu = 'bsubu',
-     1  vn_bsubv = 'bsubv',
-     1  vn_bsubs = 'bsubs'
+     1  vn_legend = 'legend', vn_radial_surfaces = 'radial_surfaces',
+     2  vn_poloidal_grid_points = 'poloidal_grid_points',
+     3  vn_toroidal_grid_points = 'toroidal_grid_points',
+     4  vn_mpol = 'mpol', vn_ntor = 'ntor', vn_phin = 'phin',
+     5  vn_toroidal_angle = 'toroidal_angle',
+     6  vn_avforce = 'avforce', vn_jdotb = 'surf_av_jdotb',
+     7  vn_sqg_bdotj = 'sqrt(g)*jdotb', vn_sqrtg = 'sqrt(g)',
+     8  vn_bdotgradv = 'bdotgradv', vn_amaxfor = 'amaxfor',
+     9  vn_aminfor = 'aminfor', vn_pprime = 'pprime',
+     A  vn_jsupu = 'jsupu', vn_jsupv = 'jsupv',
+     B  vn_jsups = 'jsups', vn_bsupu = 'bsupu',
+     C  vn_bsupv = 'bsupv', vn_jcrossb = 'jcrossb',
+     D  vn_jxb_gradp = 'jxb_gradp', vn_bsubu = 'bsubu',
+     E  vn_bsubv = 'bsubv', vn_bsubs = 'bsubs'
 C-----------------------------------------------
 #endif
-      IF (LTEST) THEN
-         OPEN (UNIT=24,FILE="JXBOUT_TEST.TXT",STATUS='REPLACE')
-         mtrig = SIZE(cosmu,2);  ntrig = SIZE(cosnv,2)
-         WRITE (24, *) ns, nznt, nzeta, ntheta1, ntheta2, ntheta3, 
-     1                 mnyq, nnyq, mpol1, ntor, phiedge, 
-     2                 ns1, lasym, r0scale, mtrig, ntrig, nrzt, signgs
-         WRITE (24, *) ireflect
-         WRITE (24, *) bsupu, bsupv, bsq, gsqrt, bsubs
-         WRITE (24, *) bsubu, bsubv
-         WRITE (24, *) shalf(1:ns), vp(1:ns), pres(1:ns), phi, 
-     &                 phip(1:ns)
-         WRITE (24, *) sinmu, cosmu, sinmum, cosmum
-         WRITE (24, *) sinmui, cosmui, sinmumi, cosmumi
-         WRITE (24, *) sinnv, cosnv, sinnvn, cosnvn
-         WRITE (24, *) guu, guv, gvv, wint
-         CLOSE (UNIT=24)
-      END IF
       lprint_flag = (ier_flag.eq.successful_term_flag)
       IF (lprint_flag) THEN
 #if defined (NETCDF)
@@ -131,11 +100,11 @@ C-----------------------------------------------
 !     Compute u (=theta), v (=zeta) derivatives of B sub s
 !
       legend(1) = " S = normalized toroidal flux (0 - 1)"
-	IF (lasym) THEN
+      IF (lasym) THEN
          legend(2) = " U = VMEC poloidal angle (0 - 2*pi, FULL period)"
-	ELSE
+      ELSE
          legend(2) = " U = VMEC poloidal angle (0 - pi, HALF a period)"
-	END IF
+      END IF
       legend(3) = " V = VMEC (geometric) toroidal angle (0 - 2*pi)"
       legend(4) = " SQRT(g') = |SQRT(g-VMEC)| / VOL':" //
      1  " Cylindrical-to-s,u,v Jacobian normed to volume derivative"
@@ -334,13 +303,13 @@ C-----------------------------------------------
          END DO
 
          IF (lasym) THEN
-!           EXTEND FILTERED bsubu, bsubv TO NTHETA3 MESH
+!           EXTEND FILTERED bsubu, bsubv TO NTHETA3 MESH AND STORE IN COMPONENT=1
 !           NOTE: INDEX 0 - COS(mu-nv) SYMMETRY; 1 - SIN(mu-nv) SYMMETRY
-            CALL fext_fft (bsubu(js,:,0), bsubua(:,0), bsubua(:,1))
-            CALL fext_fft (bsubv(js,:,0), bsubva(:,0), bsubva(:,1))
+            CALL fext_fft (bsubu(js,:,1), bsubua(:,0), bsubua(:,1))
+            CALL fext_fft (bsubv(js,:,1), bsubva(:,0), bsubva(:,1))
          ELSE
-            bsubu(js,:,0) = bsubua(:,0)
-            bsubv(js,:,0) = bsubva(:,0)
+            bsubu(js,:,1) = bsubua(:,0)
+            bsubv(js,:,1) = bsubva(:,0)
          END IF
 
       END DO radial
@@ -349,167 +318,6 @@ C-----------------------------------------------
 
 !     EXTEND bsubsu, bsubsv TO NTHETA3 MESH
       IF (lasym) CALL fsym_invfft (bsubsu, bsubsv)
-
-!     SKIPS Bsubs Correction - uses Bsubs from metric elements
-      IF (.not.lbsubs) GOTO 1500          
-
-!
-!     Compute corrected Bsubs coefficients (brhomn) (impacts currents)
-!     by solving es dot (JXB - gradp) = 0 equation for brhomn in REAL SPACE
-!     Can be written Bsupu d(bs)/du + Bsupv d(bs)/dv = RHS (jxb below), bs==bsubs
-!
-      correct_bsubs: DO js = 2, ns-1
-         jxb(:) = p5*(gsqrt(js,:) + gsqrt(js+1,:))
-         bsupu1(:) = p5*(bsupu(js,:)*gsqrt(js,:)
-     1    + bsupu(js+1,:)*gsqrt(js+1,:))
-         bsupv1(:) = p5*(bsupv(js,:)*gsqrt(js,:)
-     1    + bsupv(js+1,:)*gsqrt(js+1,:))
-         brho(js,:) = ohs*
-     1   ( bsupu1(:)*(bsubu(js+1,:,0) - bsubu(js,:,0))
-     2   + bsupv1(:)*(bsubv(js+1,:,0) - bsubv(js,:,0)))
-     3   + (pres(js+1) - pres(js))*ohs*jxb(:)
-!
-!     SUBTRACT FLUX-SURFACE AVERAGE FORCE BALANCE FROM brho, OTHERWISE
-!     LOCAL FORCE BALANCE EQUATION B dot grad(Bs) = brho CAN'T BE SOLVED
-!
-         brho00(js) = SUM(brho(js,:)*wint(js:nrzt:ns))
-         brho(js,:) = brho(js,:) - signgs*jxb(:)*brho00(js)/
-     1      (p5*(vp(js) + vp(js+1)))
-
-         jxb(:) = brho(js,:)
-         CALL getbrho (brhomn, jxb, bsupu1, bsupv1, mnyq, nnyq, info)
-         IF (info .ne. 0) THEN
-            PRINT *, 'Error in GETBRHO: info= ',info, ' js= ',js
-         ELSE IF (lprint) THEN
-            WRITE (33, *) ' JS = ', js
-            IF (lasym) THEN
-            WRITE (33, '(a)') 
-     1      '   M    N        BSUBS(old)        BSUBS(new)' //
-     2      '        BSUBS(old)        BSUBS(new)'
-            ELSE
-            WRITE (33, *) '  M    N        BSUBS(old)        BSUBS(new)'
-            END IF
-            DO m = 0, mpol1
-               DO n = -ntor, ntor
-                  IF (lasym) THEN
-                  WRITE(33,1223) m, n, bsubsmn(js,m,n,0), brhomn(m,n,0),
-     1                                 bsubsmn(js,m,n,1), brhomn(m,n,1)
-                  ELSE
-                  WRITE(33,1224) m, n, bsubsmn(js,m,n,0), brhomn(m,n,0)
-                  END IF
-               END DO
-            END DO
-         END IF
- 1223    FORMAT (i4,1x,i4,4(6x,1p,e12.3))
- 1224    FORMAT (i4,1x,i4,2(6x,1p,e12.3))
-
-!
-!        Recompute bsubsu,v now using corrected bsubs
-!        Store old values (itheta,izeta) for checking force balance later
-!
-         itheta(js,:) = bsubsu(js,:,0);  izeta (js,:) = bsubsv(js,:,0)
-
-         IF (info .ne. 0) CYCLE
-         bsubsu(js,:,:) = 0;   bsubsv(js,:,:) = 0;  bsubs_s = 0
-         IF (lasym) bsubs_a = 0;
-
-         DO m = 0, mnyq
-            DO n = 0, nnyq
-               IF (n .eq. 0) THEN
-                  bsubsmn1 = brhomn(m,0,0)
-                  bsubsmn2 = 0
-               ELSE
-                  bsubsmn1 = brhomn(m,n,0)
-                  bsubsmn2 = brhomn(m,-n,0)
-               END IF
-
-               IF (lasym) THEN
-                  IF (n .eq. 0) THEN
-                     bsubsmn3 = brhomn(m,0,1)
-                     bsubsmn4 = 0
-                  ELSE
-                     bsubsmn3 = brhomn(m,n,1)
-                     bsubsmn4 = brhomn(m,-n,1)
-                  END IF
-               END IF
-
-               DO k = 1, nzeta
-                  lk = k
-                  DO j = 1, ntheta2
-                     tsin1 = sinmu(j,m)*cosnv(k,n)
-                     tsin2 = cosmu(j,m)*sinnv(k,n)
-                     bsubs_s(lk) = bsubs_s(lk) + tsin1*bsubsmn1
-     1                                         + tsin2*bsubsmn2
-                     tcosm1 = cosmum(j,m)*cosnv(k,n)
-                     tcosm2 = sinmum(j,m)*sinnv(k,n)
-                     bsubsu(js,lk,0) = bsubsu(js,lk,0) +
-     1                  tcosm1*bsubsmn1 + tcosm2*bsubsmn2
-                     tcosn1 = sinmu(j,m)*sinnvn(k,n)
-                     tcosn2 = cosmu(j,m)*cosnvn(k,n)
-                     bsubsv(js,lk,0) = bsubsv(js,lk,0) +
-     1                  tcosn1*bsubsmn1 + tcosn2*bsubsmn2
-                     
-                     IF (lasym) THEN
-                     tcos1 = cosmu(j,m)*cosnv(k,n)
-                     tcos2 = sinmu(j,m)*sinnv(k,n)
-                     bsubs_a(lk) = bsubs_a(lk) + tcos1*bsubsmn3
-     1                                         + tcos2*bsubsmn4
-                     tsinm1 = sinmum(j,m)*cosnv(k,n)
-                     tsinm2 = cosmum(j,m)*sinnv(k,n)
-                     bsubsu(js,lk,1) = bsubsu(js,lk,1) +
-     1                  tsinm1*bsubsmn3 + tsinm2*bsubsmn4
-                     tsinn1 = cosmu(j,m)*sinnvn(k,n)
-                     tsinn2 = sinmu(j,m)*cosnvn(k,n)
-                     bsubsv(js,lk,1) = bsubsv(js,lk,1) +
-     1                  tsinn1*bsubsmn3 + tsinn2*bsubsmn4
-
-                     END IF
- 
-                     lk = lk + nzeta
-
-                  END DO
-               END DO
-            END DO
-         END DO
-
-         IF (lasym) THEN
-!           EXTEND TO FULL (ntheta3) u-GRID
-            bs1 => bsubs(js,:)
-            CALL fext_fft (bs1, bsubs_a, bsubs_s)
-         ELSE
-            bsubs(js,:) = bsubs_s(:)
-         END IF
-
-      END DO correct_bsubs
-
-!     EXTEND bsubsu, bsubsv TO NTHETA3 MESH
-      IF (lasym) CALL fsym_invfft (bsubsu, bsubsv)
-
-!
-!     CHECK FORCE BALANCE: SQRT(g)*(bsupu*bsubsu + bsupv*bsubsv) = brho
-!
-      IF (.not.lprint) GOTO 1500
-
-      WRITE (33, '(/,2a,/)') 'ANGLE INDEX       B*grad(Bs)      Frhs',
-     1              '          Fold'
-      check_fb: DO js = 2, ns-1
-         bsupu1(:) = p5*(bsupu(js,:)*gsqrt(js,:)
-     1             +     bsupu(js+1,:)*gsqrt(js+1,:))
-         bsupv1(:) = p5*(bsupv(js,:)*gsqrt(js,:)
-     1             + bsupv(js+1,:)*gsqrt(js+1,:))
-         jp2(:) = bsupu1(:)*bsubsu(js,:,0) + bsupv1(:)*bsubsv(js,:,0)
-         jxb(:) = bsupu1(:)*itheta(js,:) + bsupv1(:)*izeta(js,:)
-
-         WRITE (33, '(/,a,i4)') 'JS = ',js
-         DO lk = 1, nznt
-            WRITE(33,1230) lk, brho(js,lk),  jp2(lk),  jxb(lk)
-         END DO
-
-      END DO check_fb
-
- 1230 FORMAT (i9,5x, 1p,3e14.4)
-
- 1500 CONTINUE
 
       DEALLOCATE (bsubs_s, bsubs_a, bsubu_s,
      1            bsubu_a, bsubv_s, bsubv_a, stat=lk)
@@ -571,17 +379,23 @@ C-----------------------------------------------
 !         IF (ANY(sqgb2(:nznt)*signgs .le. zero)) 
 !     1       STOP ' SQGB2 <= 0 in JXBFORCE'
          pprime = ohs*(pres(js+1)-pres(js))/mu0              !dp/ds here
-         jperpu(:nznt) = p5*(bsubv(js+1,:nznt,0) + bsubv(js,:nznt,0))*
+
+!        NOTE: COMPONENT 1 OF bsubX, X=u,v, IS THE FILTERED COVARIANT COMPONENT 
+!              COMPONENT 0 IS UNFILTERED 
+         jperpu(:nznt) = p5*(bsubv(js+1,:nznt,1) + bsubv(js,:nznt,1))*
      1                       pprime/sqgb2
-         jperpv(:nznt) =-p5*(bsubu(js+1,:nznt,0) + bsubu(js,:nznt,0))*
+         jperpv(:nznt) =-p5*(bsubu(js+1,:nznt,1) + bsubu(js,:nznt,1))*
      1                       pprime/sqgb2
+         bsubu1(:nznt) = p5*(bsubu(js+1,:nznt,1) + bsubu(js,:nznt,1))
+         bsubv1(:nznt) = p5*(bsubv(js+1,:nznt,1) + bsubv(js,:nznt,1))
+
          jp2(:nznt)=p5*(jperpu**2*(guu(js+1:nrzt:ns) + guu(js:nrzt:ns))
      1          + 2*jperpu*jperpv*(guv(js+1:nrzt:ns) + guv(js:nrzt:ns))
      2          +       jperpv**2*(gvv(js+1:nrzt:ns) + gvv(js:nrzt:ns)))
          itheta(js,:nznt) =  bsubsv(js,:nznt,0) - ohs*
-     1                      (bsubv(js+1,:nznt,0) - bsubv(js,:nznt,0))
+     1                      (bsubv(js+1,:nznt,1) - bsubv(js,:nznt,1))
          izeta(js,:nznt)  = -bsubsu(js,:nznt,0) + ohs*
-     1                      (bsubu(js+1,:nznt,0) - bsubu(js,:nznt,0))
+     1                      (bsubu(js+1,:nznt,1) - bsubu(js,:nznt,1))
          itheta(js,:nznt) = itheta(js,:nznt)/mu0
          izeta(js,:nznt)  = izeta(js,:nznt)/mu0
          sqrtg(:) = p5*(gsqrt(js,:) + gsqrt(js+1,:))
@@ -589,8 +403,7 @@ C-----------------------------------------------
      1                 +     bsupu(js,:nznt)  *gsqrt(js,:)) / sqrtg(:)
          bsupv1(:nznt) = p5*(bsupv(js+1,:nznt)*gsqrt(js+1,:)
      1                 +     bsupv(js,:nznt)  *gsqrt(js,:)) / sqrtg(:)
-         bsubu1(:nznt) = p5*(bsubu(js+1,:nznt,0) + bsubu(js,:nznt,0))
-         bsubv1(:nznt) = p5*(bsubv(js+1,:nznt,0) + bsubv(js,:nznt,0))
+
          jxb(:nznt) = ovp*(itheta(js,:nznt) * bsupv1(:nznt)
      1              -      izeta (js,:nznt) * bsupu1(:nznt))
          bdotj(js,:nznt) = itheta(js,:nznt) * bsubu1(:nznt) +
@@ -626,15 +439,15 @@ C                 lu (js,lz,lt ) =  lt
                   jsupu3 (js,lz,lt) = ovp*itheta(js,lk)
                   jsupv3 (js,lz,lt) = ovp*izeta(js,lk) 
                   jsups3 (js,lz,lt) = ovp*(bsubuv(js,lk)
-     1					          -      bsubvu(js,lk))/mu0
+     1                              -      bsubvu(js,lk))/mu0
                   bsupu3 (js,lz,lt) = bsupu1(lk)
                   bsupv3 (js,lz,lt) = bsupv1(lk)
                   jcrossb (js,lz,lt) = jxb(lk)
                   jxb_gradp (js,lz,lt) = (jxb(lk) - pprime)
                   jdotb_sqrtg (js,lz,lt) = ovp*bdotj(js,lk) 
                   sqrtg3(js,lz,lt) = sqrtg(lk)*ovp
-                  bsubu3(js,lz,lt) = bsubu(js,lk,0)
-                  bsubv3(js,lz,lt) = bsubv(js,lk,0)
+                  bsubu3(js,lz,lt) = bsubu(js,lk,1)
+                  bsubv3(js,lz,lt) = bsubv(js,lk,1)
                   bsubs3(js,lz,lt) = bsubs(js,lk)
                END DO
             END DO
@@ -653,8 +466,8 @@ C                 lu (js,lz,lt ) =  lt
      1              tjnorm*izeta(js,lk), ovp*(bsubuv(js,lk) -
      2              bsubvu(js,lk))/mu0, bsupu1(lk), bsupv1(lk),
      3              sqrtg(lk)*ovp, jxb(lk), jxb(lk) - pprime,
-     4              ovp*bdotj(js,lk), bsubu(js,lk,0),
-     5              bsubv(js,lk,0), bsubs(js,lk)
+     4              ovp*bdotj(js,lk), bsubu(js,lk,1),
+     5              bsubv(js,lk,1), bsubs(js,lk)
                END DO
             END DO
 #endif

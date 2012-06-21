@@ -260,6 +260,11 @@ heading.o : \
       vmec_params.o 
       
 
+init_geometry.o : \
+      vmec_params.o \
+      vmec_main.o \
+
+
 initialize_radial.o : \
       realspace.o \
       vmec_main.o \
@@ -291,6 +296,7 @@ profil1d.o : \
       realspace.o \
       vmec_main.o \
       vmec_params.o \
+      init_geometry.o \
       vspline.o \
       vsvd.o 
       
@@ -434,6 +440,7 @@ read_indata.o : \
 
 readin.o : \
       ../../LIBSTELL/Debug/mgrid_mod.o \
+      init_geometry.o \
       timer_sub.o \
       vacmod.o \
       vmec_main.o \

@@ -50,10 +50,10 @@ C-----------------------------------------------
 !
 !     COMPUTE FIELD-PERIOD INVARIANT VECTORS
 !
-!     NOTE: |x - x'|**2 = gSAVE - 2*[x*x' + y*y']
+!     NOTE: |x - x'|**2 = gsave - 2*[x*x' + y*y']
 !
       DO i = 1, nuv
-         gSAVE(i) = rzb2(ip) + rzb2(i) - 2*z1b(ip)*z1b(i)
+         gsave(i) = rzb2(ip) + rzb2(i) - 2*z1b(ip)*z1b(i)
          dsave(i) = drv(ip) + z1b(i)*snz(ip)
       END DO
 

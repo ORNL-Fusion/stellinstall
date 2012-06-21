@@ -18,7 +18,7 @@
 !                         for the computed equilibrium
 !
       USE stel_kinds
-      USE vmec_input, ONLY: lrfp
+      USE vmec_input, ONLY: lrfp, lmove_axis
       USE mgrid_mod
 
       IMPLICIT NONE
@@ -34,7 +34,8 @@
         vn_maxz = 'zmax_surf', vn_fp = 'nfp',                           &
         vn_radnod = 'ns', vn_polmod = 'mpol', vn_tormod = 'ntor',       &
         vn_maxmod = 'mnmax', vn_maxit = 'niter', vn_actit = 'itfsq',    &
-        vn_asym = 'lasym', vn_recon = 'lrecon', vn_free = 'lfreeb',     &
+        vn_asym = 'lasym', vn_recon = 'lrecon',                         &
+        vn_free = 'lfreeb', vn_moveaxis = 'lmove_axis',                 &
         vn_error = 'ier_flag', vn_aspect = 'aspect', vn_rfp = 'lrfp',   &
         vn_maxmod_nyq = 'mnmax_nyq',                                    &
         vn_beta = 'betatotal', vn_pbeta = 'betapol',                    &
@@ -763,6 +764,7 @@
       CALL cdf_read(nwout, vn_recon, lrecon)
       IF (lrecon) ireconstruct = 1
       CALL cdf_read(nwout, vn_free, lfreeb)
+      CALL cdf_read(nwout, vn_moveaxis, lmove_axis)
       CALL cdf_read(nwout, vn_rfp, lrfp)
       CALL cdf_read(nwout, vn_aspect, aspect)
       CALL cdf_read(nwout, vn_beta, betatot)

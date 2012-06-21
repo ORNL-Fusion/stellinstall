@@ -1,6 +1,6 @@
       SUBROUTINE bcovar (lu, lv, lmnsc00)
       USE vmec_main, fpsi => bvco, p5 => cp5
-      USE vmec_params, ONLY: ns4, signgs, pdamp
+      USE vmec_params, ONLY: ns4, signgs, pdamp, lamscale
       USE realspace
       USE vforces, r12 => armn_o, ru12 => azmn_e, gsqrt => azmn_o,
      1             rs => bzmn_e, zs => brmn_e, zu12 => armn_e,
@@ -29,7 +29,7 @@
 !-----------------------------------------------
       INTEGER :: l, js, ndim
       REAL(rprec) :: r2
-      REAL(rprec) :: arnorm, aznorm, volume, tcon_mul
+      REAL(rprec) :: arnorm, aznorm, dnorm1, volume, tcon_mul
       REAL(rprec), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
       REAL(rprec) :: curpol_temp
       REAL(rprec), DIMENSION(:), POINTER :: bsupu, bsubuh, 
@@ -114,6 +114,7 @@
 
       gvv(2:nrzt) = gvv(2:nrzt) + r12sq(2:nrzt)
 
+      phipog = 0
       WHERE (gsqrt(2:ndim) .ne. zero) 
      1       phipog(2:ndim) = one/gsqrt(2:ndim)
       phipog(1:ndim:ns) = 0
@@ -125,31 +126,29 @@
       IF (iter2 .eq. 1) voli = twopi*twopi*hs*SUM(vp(2:ns))
 
 !
-!     RECONSTRUCT IOTA, PRESSURE PROFILE FROM DATA (TURN OFF FOR NOW - 07/10)
-!
-!      IF (lrecon) CALL newprofil (phipog)
-!      IF (.not.lrecon .and. imovephi.gt.0) CALL newphi (phipog)
-
-!
-!     STORE CURRENT(0), MAGNETIC PITCH, PRESSURE DATA
-!     STORE HALF-MESH VALUES OF LU, LV FOR ACCURATE CURRENT CALCULATION
-!
-!      IF (iequi .eq. 1) CALL storesvd (r1(1,0), r1(1,1), lu(1,0),
-!     1   lu(1,1), lv(1,0), phipog, zu0)
-
-!
 !     COMPUTE CONTRA-VARIANT COMPONENTS OF B (Bsupu,v) ON RADIAL HALF-MESH
+!     TO ACCOMODATE LRFP=T CASES, THE OVERALL PHIP FACTOR (PRIOR TO v8.46)
+!     HAS BEEN REMOVED FROM PHIPOG, SO NOW PHIPOG == 1/GSQRT!
 !
-!     NOTE: LU = LAMU, LV = -LAMV COMING INTO THIS ROUTINE
-!     WILL ADD PHIP, CHIP AFTER CALL TO ADD_FLUXES (07/10), WITH PHIPOG = 1/GSQRT
-!          BSUPU = (1/GSQRT)*(CHIP - LAMV),
-!          BSUPV = (1/GSQRT)*(PHIP + LAMU)
+!     NOTE: LU = LAMU == d(LAM)/du, LV = -LAMV == -d(LAM)/dv COMING INTO THIS ROUTINE
+!     WILL ADD CHIP IN CALL TO ADD_FLUXES. THE NET BSUPU, BSUPV ARE (PHIPOG=1/GSQRT AS NOTED ABOVE):
 !
+!          BSUPU = PHIPOG*(chip + LAMV),
+!          BSUPV = PHIPOG*(phip + LAMU)
+!
+      lu = lu*lamscale
+      lv = lv*lamscale
+
+      DO js=1,ns
+         lu(js:nrzt:ns,0)=lu(js:nrzt:ns,0)+phipf(js)
+      END DO
+
       bsupu(2:nrzt) = p5*phipog(2:nrzt)*(lv(2:nrzt,0) + lv(1:nrzt-1,0) 
      1              + shalf(2:nrzt)*(lv(2:nrzt,1) + lv(1:nrzt-1,1)))
       bsupv(2:nrzt) = p5*phipog(2:nrzt)*(lu(2:nrzt,0) + lu(1:nrzt-1,0) 
      1              + shalf(2:nrzt)*(lu(2:nrzt,1) + lu(1:nrzt-1,1)))
-      bsupu(1) = 0;  bsupv(1) = 0
+      bsupu(1) =0;  bsupu(ndim) = 0
+      bsupv(1) =0;  bsupv(ndim) = 0
 
 !
 !     UPDATE IOTA EITHER OF TWO WAYS:
@@ -164,23 +163,23 @@
 !
 
       IF (ncurr .eq. 1) THEN
-         IF (ictrl_prec2d .eq. 2) THEN
-            IF (.not.lRFP) lmnsc00(2:ns) = iotas(2:ns)            !Initialize
+        IF (ictrl_prec2d .eq. 2) THEN
+            lmnsc00(2:ns) = iotas(2:ns)            !Initialize
          ELSE IF (ictrl_prec2d .ne. 0) THEN
-            IF (.not.lRFP) iotas(2:ns) = lmnsc00(2:ns)            !Evolution
+            iotas(2:ns) = lmnsc00(2:ns)            !Evolution
          END IF
       END IF
 
-!     ADDS chip, phip FLUXES to bsupX, X=u,v
+!     COMPUTE (IF NEEDED) AND ADD CHIP TO BSUPU
       CALL add_fluxes(phipog, bsupu, bsupv, ictrl_prec2d.eq.0)
 
 !
-!     COMPUTE LAMBDA FORCES (COVARIANT B COMPONENT bsubu,v) ON RADIAL HALF-MESH
+!     COMPUTE LAMBDA FORCE KERNELS (COVARIANT B COMPONENT bsubu,v) ON RADIAL HALF-MESH
 !
       bsubuh(1:nrzt)=guu(1:nrzt)*bsupu(1:nrzt)+guv(1:nrzt)*bsupv(1:nrzt)
       bsubvh(1:nrzt)=guv(1:nrzt)*bsupu(1:nrzt)+gvv(1:nrzt)*bsupv(1:nrzt)
-      bsubuh(1) =0;  bsubuh(ndim) = 0
-      bsubvh(1) =0;  bsubvh(ndim) = 0
+      bsubuh(ndim) = 0
+      bsubvh(ndim) = 0
 
 !
 !     COMPUTE MAGNETIC AND KINETIC PRESSURE ON RADIAL HALF-MESH
@@ -201,25 +200,29 @@
          bsq(js:nrzt:ns) = bsq(js:nrzt:ns) + pres(js)
       END DO
 
+!WAC-SPH: MODIFY EFFECTIVE CURRENT K = curl(sigma_an*B)
+!      phipog(1:nrzt) = phipog(1:nrzt)*sigma_an(1:nrzt)
+!      bsubuh(1:nrzt) = bsubuh(1:nrzt)*sigma_an(1:nrzt)
+!      bsubvh(1:nrzt) = bsubvh(1:nrzt)*sigma_an(1:nrzt)
 
-!SPH122407-MOVED HERE
+
+!SPH122407-MOVED HERE: COMPUTE LAMBDA FULL MESH FORCES
       lvv = phipog(:ndim)*gvv
-      bsubu_e(:nrzt) = phip(:nrzt)*lvv(:nrzt)
-      bsubu_e(ndim) = 0
-      bsubv_e(1:nrzt) = p5*((lvv(1:nrzt)+lvv(2:ndim))*lu(1:nrzt,0)
-     1                +  bsubu_e(1:nrzt) + bsubu_e(2:nrzt+1))
+      bsubv_e(1:nrzt) = p5*(lvv(1:nrzt)+lvv(2:ndim))*lu(1:nrzt,0)
+
       lvv = lvv*shalf
-      bsubu_e(:nrzt) = guv(:nrzt)*bsupu(:nrzt)                     !Temp variable
+      bsubu_e(:nrzt) = guv(:nrzt)*bsupu(:nrzt)   !*sigma_an(:nrzt)
+      bsubu_e(ndim) = 0
       bsubv_e(1:nrzt) = bsubv_e(1:nrzt) 
-     1            + p5*((lvv(1:nrzt) + lvv(2:nrzt+1))*lu(1:nrzt,1)
-     2            +  bsubu_e(1:nrzt) + bsubu_e(2:nrzt+1))
+     1            + p5*((lvv(1:nrzt) + lvv(2:ndim))*lu(1:nrzt,1)
+     2            +      bsubu_e(1:nrzt) + bsubu_e(2:ndim))
 
 !
 !     COMPUTE AVERAGE FORCE BALANCE AND TOROIDAL/POLOIDAL CURRENTS
 !
 !WAC: UPDATE buco, bvco AFTER pressure called
       CALL calc_fbal(bsubuh, bsubvh)
-
+    
       rbtor0= c1p5*fpsi(2)  - p5*fpsi(3)
       rbtor = c1p5*fpsi(ns) - p5*fpsi(ns-1)
 !
@@ -246,7 +249,6 @@
          lctor = lfreeb .and. ictrl_prec2d.gt.1      !Yields better accuracy in solution
       END IF
       IF (lctor) THEN       
-!        CONSTANT DERIVATIVE TERM TO EXTRAPOLATE CTOR
          IF (ictrl_prec2d .eq. 2) 
      1       ctor_prec2d = signgs*twopi*p5*(buco(ns) - buco(ns1))
          ctor = ctor_prec2d + signgs*twopi*buco(ns)
@@ -257,7 +259,6 @@
 !
 !     AVERAGE LAMBDA FORCES ONTO FULL RADIAL MESH
 !     USE BLENDING FOR bsubv_e FOR NUMERICAL STABILITY NEAR AXIS
-!     MUST MULTIPLY BY PHIP(js) FOR SYMMETRY FOR RFP CASE
 !
       DO l=1,ns
          lvv(l:nrzt:ns) = bdamp(l)
@@ -268,13 +269,12 @@
 
 !
 !     COMPUTE R,Z AND LAMBDA PRE-CONDITIONING MATRIX
-!     ELEMENTS AND FORCE NORMS
+!     ELEMENTS AND FORCE NORMS: NOTE THAT lu=>czmn, lv=>crmn externally
+!     SO THIS STORES bsupv in czmn_e, bsupu in crmn_e
 !
-      IF (ictrl_prec2d.eq.2 .or. iequi.eq.1) THEN
+      IF (iequi.eq.1) THEN
          lu(:nrzt,0) = bsupv(:nrzt)
          lv(:nrzt,0) = bsupu(:nrzt)
-!         IF (ictrl_prec2d .eq. 2) 
-!     1      CALL lam_blks (phipog, guu, guv, gvv, tau)
       END IF
  
 !
@@ -300,7 +300,9 @@
          volume = hs*SUM(vp(2:ns))
          r2 = MAX(wb,wp)/volume
          fnorm = one/(SUM(guu(1:nrzt)*wint(1:nrzt))*(r2*r2))
-         fnorm1 = 4._dp/SUM(xc(1+ns:2*irzloff)**2)                 !Norm for preconditioned R,Z forces
+         fnorm1 = one/SUM(xc(1+ns:2*irzloff)**2)                   !Norm for preconditioned R,Z forces
+         dnorm1 = one/(nzeta*(ntheta2-1))
+         fnormL = one/(dnorm1*SUM(bsubuh**2 + bsubvh**2))
 !         r3 = one/(2*r0scale)**2
 !         fnorm2 = one/MAX(SUM(xc(2*irzloff+1:3*irzloff)**2),r3/4) !Norm for preconditioned Lambda force
 
@@ -309,10 +311,11 @@
 !        OVERRIDE USER INPUT VALUE HERE
 !
          r2 = ns
-         tcon0 = MIN(ABS(tcon0), one)                              !ignore large tcon0 from old-style files
+         tcon0 = MIN(ABS(tcon0), one)                              !!ignore large tcon0 from old-style files
          tcon_mul = tcon0*(1 + r2*(one/60 + r2/(200*120)))
-         tcon_mul = tcon_mul/((4*r0scale**2)**2)                   !Scaling of ard, azd (2*r0scale**2); 
-                                                                   !Scaling of cos**2 in alias (4*r0scale**2)
+
+         tcon_mul = tcon_mul/((4*r0scale**2)**2)                   !!Scaling of ard, azd (2*r0scale**2); 
+                                                                   !!Scaling of cos**2 in alias (4*r0scale**2)
 
          DO js = 2, ns-1
            arnorm = SUM(wint(js:nrzt:ns)*ru0(js:nrzt:ns)**2)
@@ -336,7 +339,7 @@
 !
       IF (iequi .eq. 1) THEN
 
-!SPH111510         IF (.not.lrfp) THEN
+!         IF (.FALSE.) THEN
          DO js = ns-1,2,-1
             DO l = js, nrzt, ns
                bsubvh(l) = 2*bsubv_e(l) - bsubvh(l+1)
@@ -351,31 +354,39 @@
                bsubvh(l) = bsubvh(l) + curpol_temp
             END DO
          END DO
-!SPH111510         END IF
+!         END IF
 
          bsubu_e(:nrzt) = bsubuh(:nrzt)
          bsubv_e(:nrzt) = bsubvh(:nrzt)
 
+!         DO js = 2, ns
+!            WRITE (100, *) 'JS: ', js, 'BSUBU, BSUBV'
+!            WRITE (100, '(1p,6e12.4)') 
+!     1          bsubu_e(js:nrzt:ns), bsubvh(js:nrzt:ns)
+!         END DO
+
          bsubu_o(:nrzt) = shalf(:nrzt)*bsubu_e(:nrzt)
          bsubv_o(:nrzt) = shalf(:nrzt)*bsubv_e(:nrzt)
 
-         GOTO 1000
+         RETURN
 
       END IF
 
+!     MINUS SIGN => HESSIAN DIAGONALS ARE POSITIVE
+      bsubu_e = -bsubu_e
+      bsubv_e = -bsubv_e
       bsubu_o(:nrzt)  = sqrts(:nrzt)*bsubu_e(:nrzt)
       bsubv_o(:nrzt)  = sqrts(:nrzt)*bsubv_e(:nrzt)
 !
 !     STORE LU * LV COMBINATIONS USED IN FORCES
 !
-      lvv(2:nrzt)  = gsqrt(2:nrzt)
+!WAC, SPH122407
+      lvv(2:nrzt) = gsqrt(2:nrzt)  !*sigma_an(2:nrzt)
       guu(2:nrzt)  = bsupu(2:nrzt)*bsupu(2:nrzt)*lvv(2:nrzt)
       guv(2:nrzt)  = bsupu(2:nrzt)*bsupv(2:nrzt)*lvv(2:nrzt)
       gvv(2:nrzt)  = bsupv(2:nrzt)*bsupv(2:nrzt)*lvv(2:nrzt)
       lv(2:nrzt,0) = bsq(2:nrzt)*tau(2:nrzt)
       lu(2:nrzt,0) = bsq(2:nrzt)*r12(2:nrzt)
-
- 1000 CONTINUE
 
       END SUBROUTINE bcovar
 

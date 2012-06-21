@@ -32,6 +32,9 @@ C-----------------------------------------------
 !
 !     POINTER ALIASES
 !
+!
+!     POINTER ALIASES
+!
       lu => czmn;  lv => crmn
 
       CALL second0 (tfunon)
@@ -118,15 +121,13 @@ C-----------------------------------------------
 !     BOUNDARY, WE SET RCON0,ZCON0 THE SAME INITIALLY, BUT TURN THEM OFF
 !     SLOWLY IN FREE-BOUNDARY VACUUM LOOP (BELOW)
 !
-!!!      IF (iter2.eq.1 .and. ivac.le.0) THEN
       IF (iter2.eq.iter1 .and. ivac.le.0) THEN
-!      IF (iter2.eq.1 .and. .not.lfreeb) THEN
+!!         rcon0(1:nrzt) = rcon(1:nrzt,0)
+!!         zcon0(1:nrzt) = zcon(1:nrzt,0)
          DO l = 1, ns
             rcon0(l:nrzt:ns) = rcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
             zcon0(l:nrzt:ns) = zcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
          END DO
-!         rcon0(:nrzt) = rcon(:nrzt,0)
-!         zcon0(:nrzt) = zcon(:nrzt,0)
       ENDIF
 
 !
@@ -226,12 +227,22 @@ C-----------------------------------------------
      1         presf_ns = (pmass(1._dp)/presf_ns) * pres(ns)
 
             lk = 0
+            gcon(:nrzt) = r1(:nrzt,0)+sqrts(:nrzt)*r1(:nrzt,1)
+            gcon(1+nrzt) = 0
             DO l = ns, nrzt, ns
                lk = lk + 1
                bsqsav(lk,3) = 1.5_dp*bzmn_o(l) - 0.5_dp*bzmn_o(l-1)
-               rbsq(lk) = (bsqvac(lk) + presf_ns)*ohs*(r1(l,0)+r1(l,1))
+               rbsq(lk) = (bsqvac(lk) + presf_ns)*ohs*gcon(l)
                dbsq(lk) = ABS(bsqvac(lk) + presf_ns - bsqsav(lk,3))
             END DO
+!           
+!           COMPUTE m=0,n=0 EDGE "pedestals"
+!
+!!            alphaR = hs*hs*ard(ns,1)
+!!            IF (alphaR .ne. zero) alphaR = 
+!!     1         hs*SUM(wint(ns:nrzt:ns)*zu0(ns:nrzt:ns)*rbsq)/alphaR
+
+!!            PRINT *,' alphaR/r1(ns) = ', alphaR/gcon(ns)
 
             IF (ivac .eq. 1) THEN
                bsqsav(:nznt,1) = bzmn_o(ns:nrzt:ns)
@@ -293,8 +304,10 @@ C-----------------------------------------------
 
       gc = gc * scalxc
 
-      CALL residue (gc, gc(1+irzloff), gc(1+2*irzloff), xc(1+irzloff))
-      IF (iter2.eq.1 .and. (fsqr+fsqz+fsql).gt.1.E2_dp) irst = 4
+      CALL residue (gc, gc(1+irzloff), gc(1+2*irzloff))
+!     Force new initial axis guess IF ALLOWED (l_moveaxis=T)
+      IF (lmove_axis .and. iter2.eq.1 .and. (fsqr+fsqz+fsql).gt.1.E2_dp)
+     1    irst = 4
 
       CALL second0 (tresoff)
       IF (ictrl_prec2d .le. 1) timer(tres) = timer(tres) 

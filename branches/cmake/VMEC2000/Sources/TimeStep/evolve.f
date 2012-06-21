@@ -54,6 +54,7 @@ C-----------------------------------------------
 !     2                     .and. r0dot.lt.r0dot_threshold) THEN
          lqmr = (itype_precon .ge. 2)
          lfirst = (lqmr .and. iter_on.eq.-1) 
+
 !
 !        INITIATES 2D PRECONDITIONER CALCULATION
 !
@@ -92,12 +93,6 @@ C-----------------------------------------------
 !     INITIAL RESIDUALS MUST BE KNOWN WHEN CALLING gmres_fun, etc.
 !
       CALL funct3d (lscreen, ier_flag)
-!
-!     JDH 07-13-2006 Add call to vmec_history_store, keep track of fsq values 
-!     for later post-processing
-!  Comment Out below JDH 2010-08-03
-!      CALL vmec_history_store  
-
 !
 !     COMPUTE ABSOLUTE STOPPING CRITERION
       IF (iter2.eq.1 .and. irst.eq.2) THEN

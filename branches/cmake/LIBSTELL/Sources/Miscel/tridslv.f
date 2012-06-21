@@ -48,7 +48,7 @@ C-----------------------------------------------
       in1 = in + 1
 
       psi0(:)= d(in,:)
-!     IF (ANY(psi0 .eq. zero)) STOP 'error in tridslv'
+      IF (ANY(psi0 .eq. zero)) STOP 'psi0 == 0 error in tridslv'
       psi0 = one/psi0
       DO jrhs = 1, nrhs
          c(in,:,jrhs) = c(in,:,jrhs)*psi0(:)
@@ -56,10 +56,13 @@ C-----------------------------------------------
 
       DO i0 = in1,jmax
          alf(i0-1,:) = a(i0-1,:)*psi0(:)
-         psi0(:)  = one/(d(i0,:) - b(i0,:)*alf(i0-1,:))
+         psi0 = d(i0,:) - b(i0,:)*alf(i0-1,:)
+         IF (ANY(ABS(psi0) .le. 1.E-8_dp*ABS(d(i0,:)))) 
+     1       STOP 'psi0/d(i0) < 1.E-8: possible singularity in tridslv'
+         psi0  = one/psi0
          DO jrhs = 1, nrhs
             c(i0,:,jrhs) = (c(i0,:,jrhs) - b(i0,:)*c(i0-1,:,jrhs))
-     1                   * psi0(:)
+     1                   * psi0
          END DO
       END DO
 

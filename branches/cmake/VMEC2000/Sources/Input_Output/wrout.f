@@ -599,7 +599,8 @@ C-----------------------------------------------
      1                                xfinal(1+irzloff+mns*(zcc-1)))
 
 !
-!     CONVERT TO rmnc, zmns, lmns, etc EXTERNAL representation
+!     CONVERT TO rmnc, zmns, lmns, etc EXTERNAL representation (without internal mscale, nscale)
+!     IF B^v ~ phip + lamu, MUST DIVIDE BY phipf(js) below to maintain old-style format
 !
       RADIUS1: DO js = 1, ns
 
@@ -608,11 +609,11 @@ C-----------------------------------------------
 
          rmnc(:,js) = rmnc1(:)
          zmns(:,js) = zmns1(:)
-         lmns(:,js) = lmns1(:)/phipf(js)                    !SPH (10/10/10): Maintain OLD-style format
+         lmns(:,js) = (lmns1(:)/phipf(js)) * lamscale
          IF (lasym) THEN
             rmns(:,js) = rmns1(:)
             zmnc(:,js) = zmnc1(:)
-            lmnc(:,js) = lmnc1(:)/phipf(js)                 !SPH (10/10/10): Maintain OLD-style format
+            lmnc(:,js) = (lmnc1(:)/phipf(js)) * lamscale
          END IF
 
       END DO RADIUS1
@@ -623,6 +624,7 @@ C-----------------------------------------------
 !     INTERPOLATE LAMBDA ONTO HALF-MESH FOR BACKWARDS CONSISTENCY WITH EARLIER VERSIONS OF VMEC
 !     AND SMOOTHS POSSIBLE UNPHYSICAL "WIGGLE" ON RADIAL MESH
 !
+
       WHERE (NINT(xm) .le. 1) lmns(:,1) = lmns(:,2)
       DO js = ns,2,-1
          WHERE (MOD(NINT(xm),2) .eq. 0) 
@@ -669,6 +671,11 @@ C-----------------------------------------------
      3                   bsupva, bsubsa)
       END IF
 
+!         DO js = 2, ns
+!            WRITE (200, *) 'JS: ', js, 'BSUBU, BSUBV'
+!            WRITE (200, '(1p,6e12.4)') bsubu(js,:), bsubv(js,:)
+!         END DO
+
       RADIUS2: DO js = 2, ns
          gmn = 0
          bmn = 0
@@ -698,8 +705,10 @@ C-----------------------------------------------
                   bsubumn(mn) = bsubumn(mn) + tcosi*bsubu(js,lk)
                   bsubvmn(mn) = bsubvmn(mn) + tcosi*bsubv(js,lk)
                   bsubsmn(mn) = bsubsmn(mn) + tsini*bsubs(js,lk)
-                  bsupumn(mn) = bsupumn(mn) + tcosi*bsupu(js,lk)
-                  bsupvmn(mn) = bsupvmn(mn) + tcosi*bsupv(js,lk)
+                  bsupumn(mn) = bsupumn(mn) + tcosi*bsupu(js,lk) 
+!!     1                                      * gsqrt(js,lk)         !!TESTING SIESTA (ADD THIS?)
+                  bsupvmn(mn) = bsupvmn(mn) + tcosi*bsupv(js,lk) 
+!!     1                                      * gsqrt(js,lk)         !!TESTING SIESTA (ADD THIS?)
                END DO
             END DO
          END DO MN2

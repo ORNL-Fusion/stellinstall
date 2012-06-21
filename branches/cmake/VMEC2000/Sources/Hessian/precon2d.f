@@ -12,7 +12,8 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
 !     INTEGER, PARAMETER :: sp = KIND(1.0)
       INTEGER, PARAMETER :: sp = rprec2
-      INTEGER :: ntyptot, ntype_2d, m_2d, n_2d
+      INTEGER :: ntyptot
+      INTEGER :: ntype_2d, m_2d, n_2d
       INTEGER, ALLOCATABLE :: ipiv_blk(:,:)
       REAL(sp), ALLOCATABLE, DIMENSION(:,:,:,:,:,:,:) :: 
      1    block_diag, block_plus, block_mins,
@@ -28,7 +29,6 @@ C-----------------------------------------------
      1   r1a_save, rua_save, rva_save, rcona_save,
      2   z1a_save, zua_save, zva_save, zcona_save,
      3   lua_save, lva_save
-      REAL(rprec2), ALLOCATABLE, DIMENSION(:,:,:) :: z1_save
       REAL(rprec2) :: ctor_prec2d
       INTEGER :: ictrl_prec2d
       LOGICAL :: lHess_exact = .false.,
@@ -419,7 +419,7 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER, PARAMETER :: jstart(3) = (/1,2,3/)
       REAL(rprec2), DIMENSION(:,:,:,:), ALLOCATABLE :: xstore
-      REAL(rprec2) :: eps, hj, diag_val(ns)
+      REAL(rprec2) :: eps, hj, diag_val(ns), t1
 !      INTEGER :: js, i, istat=0, mesh, lamtype, rztype
       INTEGER :: js, istat, mesh, lamtype, rztype
       LOGICAL, PARAMETER :: lscreen = .false.
@@ -449,9 +449,6 @@ C-----------------------------------------------
 !     THIS WILL CALL LAMBLKS (SO FAR, ONLY IMPLEMENTED FOR lasym = false)
 !
       ictrl_prec2d = 2                 !Signals funct3d that preconditioner is being initialized
-      IF (ALLOCATED(z1_save)) DEALLOCATE(z1_save)
-      ALLOCATE (z1_save(ns,0:ntor,2))
-
       CALL funct3d (lscreen, istat)
       IF (istat .ne. 0) THEN
          PRINT *,' ier_flag = ', istat,
@@ -466,13 +463,13 @@ C-----------------------------------------------
 
 !
 !     PERFORM "JOGS" FOR EACH VARIABLE AT EVERY 3rd RADIAL POINT ACROSS MESH
-!     FOR ntype_2d = (Rcc, Rss, Rsc, Rcs, Zsc, Zcs, Zcc, Zss)
+!     FOR ntyp = (Rcc, Rss, Rsc, Rcs, Zsc, Zcs, Zcc, Zss)
 !     AND EVERY n2d (toroidal mode index) and EVERY m2d (poloidal mode index)
 !
 !     Lambda jogs are implemented analytically for lasym=FALSE
 !      
 
-      VAR2D_TYPE: DO ntype_2d = 1, nmax_jog
+      NTYPE2D: DO ntype_2d = 1, nmax_jog
          IF (ntype_2d .lt. lamtype) THEN
             hj = eps * MAX(ABS(r01(ns)), ABS(z01(ns)))
          ELSE
@@ -620,39 +617,36 @@ C-----------------------------------------------
                      block_diag(:,:,:,n_2d,m_2d,ntype_2d,js) = DataItem
 
 !add this for gcz = 0 constraint for m=1, n!=0
-           IF (block_diag(n_2d,m_2d,ntype_2d,n_2d,m_2d,ntype_2d,js) .eq.  
-     1     0._dp)  THEN 
-!              PRINT *,' DIAG=0, n_2d=',n_2d,' m_2d = ',m_2d,
-!     1                ' n_type=', ntype_2d,' js= ',js
-              IF (diag_val(js) .eq. 0._dp) diag_val(js) = 1
-              block_diag(n_2d,m_2d,ntype_2d,n_2d,m_2d,ntype_2d,js)=
-     1        diag_val(js)
-           ENDIF
-
+               t1 = block_diag(n_2d,m_2d,ntype_2d,n_2d,m_2d,ntype_2d,js)
+                     IF (t1 .eq. zero)  THEN 
+                        IF (diag_val(js) .eq. zero) diag_val(js) = 1
+                   block_diag(n_2d,m_2d,ntype_2d,n_2d,m_2d,ntype_2d,js)=
+     1                  diag_val(js)
+                     ENDIF
                   END IF
 
-                  !block_plus(js-1)
-                  IF (js .gt. 1) THEN
-                     DataItem = (gc(js-1,:,:,:)-gc_save(js-1,:,:,:))/hj
+                 !block_plus(js-1)
+                 IF (js .gt. 1) THEN
+                    DataItem = (gc(js-1,:,:,:)-gc_save(js-1,:,:,:))/hj
 !no coupling of ALL fixed bdy forces to ANY r,z bdy values
-                     IF (.not.lfreeb .and. js.eq.ns) THEN
-                        IF (ntype_2d .le. rztype) DataItem = 0
-                     END IF
-                  ELSE IF (lswap2disk) THEN
+                    IF (.not.lfreeb .and. js.eq.ns) THEN
+                       IF (ntype_2d .le. rztype) DataItem = 0
+                    END IF
+                 ELSE IF (lswap2disk) THEN
                      DataItem = 0
-                  END IF
-                  IF (lswap2disk) THEN
-                     !CALL WriteDAItem_RA(DataItem,js-1,blpls,index)
-                     CALL WriteDAItem_SEQ(DataItem)
-                  ELSE IF (js .gt. 1) THEN
-                     block_plus(:,:,:,n_2d,m_2d,ntype_2d,js-1)=DataItem
-                  END IF
+                 END IF
+                 IF (lswap2disk) THEN
+                    !CALL WriteDAItem_RA(DataItem,js-1,blpls,index)
+                    CALL WriteDAItem_SEQ(DataItem)
+                 ELSE IF (js .gt. 1) THEN
+                    block_plus(:,:,:,n_2d,m_2d,ntype_2d,js-1)=DataItem
+                 END IF
 
                END DO SKIP3_MESH
                END DO MESH_3PT
             END DO N2D
          END DO M2D
-      END DO VAR2D_TYPE
+      END DO NTYPE2D
 
       DEALLOCATE(DataItem, xstore)
 

@@ -6,7 +6,6 @@
       USE xstuff
       USE csplinx
       USE fbal
-      USE precon2d, ONLY: z1_save
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -21,8 +20,6 @@ C-----------------------------------------------
 C-----------------------------------------------
       IF (ALLOCATED(phip))
      1  DEALLOCATE (phip, chip, shalf, sqrts, wint, stat=istat3)
-
-      IF (ALLOCATED(z1_save)) DEALLOCATE(z1_save)
 
       IF (ALLOCATED(ireflect))
      1  DEALLOCATE (ireflect,indexr,imid, stat=istat4)

@@ -1,7 +1,5 @@
       MODULE fbal
       USE stel_kinds, ONLY: dp
-!      USE vmec_main, ONLY: lforbal, fsqr, fsqz, fsql
-!      USE precon2d, ONLY: ictrl_prec2d
       REAL(dp), DIMENSION(:), ALLOCATABLE :: rzu_fac, rru_fac,
      1  frcc_fac, fzsc_fac
 

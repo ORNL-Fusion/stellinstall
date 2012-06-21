@@ -6,19 +6,19 @@
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: p25 = p5*p5
+      REAL(rprec), PARAMETER :: p25 = p5*p5, dphids=p25
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l, ndim
       REAL(rprec), DIMENSION(:), POINTER :: lv_e, lu_e, lu_o,
      1    bsqr, gvvs, guvs, guus
-      REAL(rprec) :: dphids
 C-----------------------------------------------
       ndim = 1+nrzt
 !
 !     POINTER ALIASES
 !
+!      gcon => z1(:,0)
       lv_e => crmn_e; lu_e => czmn_e; lu_o => czmn_o
 
       bsqr => extra1(:,1);  gvvs => extra2(:,1)
@@ -49,8 +49,6 @@ C-----------------------------------------------
 !
 !     GUU, GUV: VARIATION OF Ru, Rv, Zu, Zv IN guu, guv
 !
-      dphids = p25
-
       lu_e(1:ndim:ns) = 0; lv_e(1:ndim:ns) = 0
       guu(1:ndim:ns)  = 0; guv(1:ndim:ns)  = 0; gvv(1:ndim:ns) = 0
       guus = guu*shalf;    guvs = guv*shalf;    gvvs = gvv*shalf

@@ -6,7 +6,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(nrzt), INTENT(in) :: overg
+      REAL(rprec), DIMENSION(nrzt), INTENT(in)    :: overg
       REAL(rprec), DIMENSION(nrzt), INTENT(inout) :: bsupu, bsupv
       LOGICAL, INTENT(in) :: lcurrent
 !-----------------------------------------------
@@ -25,8 +25,6 @@
 !     COMPUTE FLUX FROM ITOR = <B_u>, ITOR(s) = integrated toroidal current (icurv)
 !     IF ncurr == 1
 !
-      bsupv = phip*overg+bsupv
-   
       IF (.not.lcurrent .or. ncurr.eq.0) GOTO 100
 
       DO js = 2, ns
@@ -36,25 +34,21 @@
             top = top - wint(l)*(guu(l)*bsupu(l) + guv(l)*bsupv(l))
             bot = bot + wint(l)*overg(l)*guu(l)
          END DO
-         chips(js) = top/bot
+         IF (bot .ne. zero) chips(js) = top/bot
          IF (phips(js) .ne. zero) iotas(js) = chips(js)/phips(js)
-      END DO
-
-      DO js = 2, ns
-         chip(js:nrzt:ns) = chips(js)
       END DO
 
  100  CONTINUE
 
 !     CHANGE THIS FOR lRFP = T  (solve for phips?)
-      IF (.not.lcurrent) THEN
-         DO js = 2, ns
-            chips(js) = iotas(js)*phips(js)
-            chip(js:nrzt:ns) = chips(js)
-         END DO
-      END IF
+      IF (.not.lcurrent) chips(2:ns) = iotas(2:ns)*phips(2:ns)
+
+      DO js = 2, ns
+         chip(js:nrzt:ns) = chips(js)
+      END DO
 
       chipf(2:ns1) = (chips(2:ns1) + chips(3:ns1+1))/2
+      chipf(ns)    = 2*chips(ns)-chips(ns1)
 
 
 !     Do not compute iota too near origin
@@ -73,11 +67,10 @@
          END DO
       END IF
 
-      bsupu = chip*overg+bsupu
-
+      bsupu(:nrzt) = bsupu(:nrzt)+chip(:nrzt)*overg(:nrzt)
 
 !     FOR PRECONDITIONER, GIVE IOTA A PEDESTAL VALUE TO AVOID SINGULAR HESSIAN
-!     WITHOUT THIS, THE curhole CASES, WHERE iota CHANGES SIGN, DO NOT CONVERGE WELL IF AT ALL
+!     WITHOUT THIS, THE D3D curhole CASES, WHERE iota CHANGES SIGN, DO NOT CONVERGE WELL IF AT ALL
 !      IF (ictrl_prec2d .ge. 2) THEN
 !         DO js = 2, ns
 !           IF (ABS(iotas(js)) .le. iotaped) THEN

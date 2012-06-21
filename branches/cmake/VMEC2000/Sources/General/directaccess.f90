@@ -19,7 +19,6 @@
       INTEGER, PARAMETER :: CreateNew=0, OpenExisting=1, Scratch=2
       INTEGER :: ierr
       REAL(dp) :: dummy
-      REAL     :: d2
       CHARACTER(LEN=10) :: Status
    
 !GET EFFECTIVE "byte_size" OF UNFORMATTED dp VARIABLE (machine dependent!)
