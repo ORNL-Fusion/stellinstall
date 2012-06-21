@@ -17,7 +17,7 @@ set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
 # Set Apple specific options. This add a predefine for DARWIN and adds lapack from the Accelerate framework.
 if (APPLE)
     set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D DARWIN")
-    set (CMAKE_EXE_LINKER_FLAGS "-framework Accelerate")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
 endif ()
 
 # Use netcdf if libraries are found. The values of NETCDF_LIB_PATH and NETCDF_INC_PATH should be set from the command line or Cmake GUI. Convert path from native format to cmake internal format.
