@@ -1,8 +1,0 @@
-NETCDF_INCLUDE_DIR = /Users/mark/NetCDF/include
-NETCDF_LIB_DIR = /Users/mark/NetCDF/lib
-
-BUILD_DIR = Release
-
-FC = gfortran
-FFLAGS = -O3 -I $(NETCDF_INCLUDE_DIR) -cpp -M/LIBSTELL -M/VMEC2000 -D DARWIN -D NETCDF -ftree-vectorize -m64 -march=native -fomit-frame-pointer -falign-functions -mfpmath=sse
-LDFLAGS = $(FFLAGS) -lnetcdf -lnetcdff -L$(NETCDF_LIB_DIR) -framework Accelerate
