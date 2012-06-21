@@ -300,7 +300,7 @@ C-----------------------------------------------
 ! J Geiger: if lmoreiter and lfull3d1out are false
 !           the o-lines (original) are the only
 !           ones to be executed.
-            IF(lmoreiter)THEN                                   ! J Geiger: --start--
+            IF (lmoreiter) THEN                                 ! J Geiger: --start--
               DO i=2,max_main_iterations                        ! Changes to run
                 ictrl(1) = timestep_flag                        ! some more iterations if requested
                 ictrl(3) = niter                                ! - this is the number of iterations

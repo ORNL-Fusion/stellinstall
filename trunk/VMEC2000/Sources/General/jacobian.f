@@ -3,8 +3,8 @@
       USE vmec_params, ONLY: meven, modd
       USE realspace
       USE vmec_dim, ONLY: ns
-      USE vforces, r12 => armn_o, ru12 => azmn_e, z12 => blmn_e,
-     1    zu12 => armn_e, rs => bzmn_e, zs => brmn_e, tau => azmn_o
+      USE vforces, r12 => armn_o, ru12 => azmn_e, zu12 => armn_e, 
+     1             rs => bzmn_e, zs => brmn_e, tau => azmn_o  !,z12 => blmn_e,
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -21,6 +21,8 @@ C-----------------------------------------------
 !     AND TAU=SQRT(G)/R ARE DIFFERENCED ON HALF MESH
 !     NOTE: LOOPS WERE SPLIT TO ALLOW EFFICIENT MEMORY BUS USAGE
 !
+!     SQRT(G) = R*TAU IS COMPUTED IN BCOVAR
+!
 !     FOR OPTIMIZATION ON CRAY, MUST USE COMPILER DIRECTIVES TO
 !     GET VECTORIZATION OF LOOPS INVOLVING MORE THAN ONE POINTER!
 !
@@ -32,7 +34,7 @@ C-----------------------------------------------
 !
 !
       dphids = p25
-	irst   = 1
+      irst = 1
 
 CDIR$ IVDEP
       DO l = 2,nrzt
@@ -40,8 +42,8 @@ CDIR$ IVDEP
      1       shalf(l)*(ru(l,modd)  + ru(l-1,modd)))
         zs(l)   = ohs*(z1(l,meven) - z1(l-1,meven) +
      1       shalf(l)*(z1(l,modd)  - z1(l-1,modd)))
-        z12(l)  = p5*(z1(l,meven) + z1(l-1,meven) +
-     1       shalf(l)*(z1(l,modd)  + z1(l-1,modd)))
+!        z12(l)  = p5*(z1(l,meven) + z1(l-1,meven) +
+!     1       shalf(l)*(z1(l,modd)  + z1(l-1,modd)))
         tau(l) = ru12(l)*zs(l) + dphids*
      1  (ru(l,modd) *z1(l,modd) + ru(l-1,modd) *z1(l-1,modd) +
      2  (ru(l,meven)*z1(l,modd) + ru(l-1,meven)*z1(l-1,modd))/shalf(l))
@@ -62,7 +64,7 @@ CDIR$ IVDEP
       END DO
 
 !
-!     TEST FOR SIGN CHANGE IN JACOBIAN (WINT = 0 AT JS=1 POINTS WHERE TAU IS NOT COMPUTED)
+!     TEST FOR SIGN CHANGE IN JACOBIAN
 !
       temp(:) = tau(2:nrzt:ns)
       tau(1:nrzt:ns) = temp(:)

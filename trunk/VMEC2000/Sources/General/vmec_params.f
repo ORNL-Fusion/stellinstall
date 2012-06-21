@@ -1,6 +1,6 @@
       MODULE vmec_params
-      USE stel_kinds, ONLY: rprec1 => rprec, dp1 => dp
-      USE vparams, ONLY: mpold1 => mpold
+      USE stel_kinds, ONLY: rprec, dp
+      USE vparams, ONLY: mpold
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -9,10 +9,10 @@ C-----------------------------------------------
       INTEGER, PARAMETER :: ns4 = 25
 
       INTEGER, PRIVATE :: ink
-      INTEGER, PARAMETER, DIMENSION(0:mpold1) ::
-     1  jmin1 = (/ 1,1,(2,ink=2,mpold1) /),        !starting js(m) values where R,Z are non-zero
-     2  jmin2 = (/ 1,2,(2,ink=2,mpold1) /),        !starting js(m) values for which R,Z are evolved
-     3  jlam  = (/ 2,2,(2,ink=2,mpold1) /)         !starting js(m) values for which Lambda is evolved
+      INTEGER, PARAMETER, DIMENSION(0:mpold) ::
+     1  jmin1 = (/ 1,1,(2,ink=2,mpold) /),        !starting js(m) values where R,Z are non-zero
+     2  jmin2 = (/ 1,2,(2,ink=2,mpold) /),        !starting js(m) values for which R,Z are evolved
+     3  jlam  = (/ 2,2,(2,ink=2,mpold) /)         !starting js(m) values for which Lambda is evolved
 
       INTEGER, PARAMETER :: norm_term_flag=0, bad_jacobian_flag=1, 
      1                      more_iter_flag=2, 
@@ -25,16 +25,16 @@ C-----------------------------------------------
      1                      timestep_flag=4,output_flag=8, 
      2                      cleanup_flag=16, reset_jacdt_flag=32
     
-      REAL(rprec1), PARAMETER :: pdamp = 0.05_dp1  
-      CHARACTER(LEN=*), PARAMETER :: version_ = '8.48'
+      REAL(rprec), PARAMETER :: pdamp = 0.05_dp  
+      CHARACTER(LEN=*), PARAMETER :: version_ = '8.49'
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: ntmax, rcc, rss, rsc, rcs, zsc, zcs, zcc, zss
       INTEGER :: mnyq, nnyq
       INTEGER, ALLOCATABLE :: uminus(:)
-      REAL(rprec1), ALLOCATABLE :: mscale(:), nscale(:)
-      REAL(rprec1) :: signgs
+      REAL(rprec), ALLOCATABLE :: mscale(:), nscale(:)
+      REAL(rprec) :: signgs, lamscale
 !-----------------------------------------------
 !
 !     VERSION INFORMATION HISTORY
@@ -121,7 +121,15 @@ C-----------------------------------------------
 !             
 !             If none of these new variables is set, the behavior of vmec2000 is as
 !             expected from the version without the changes.
-!
+!     8.49  (June, 2012)
+!          a) Fixed bug in bcovar when averaging half-grid covariant components onto full grid: did not
+!             zero components at (phantom) js=1 point, so edge force averages were incorrect
+!          b) Added lamscale factor to scale lambda in contravariant B-components. Modify wrout to maintain
+!             old-style lambda output
+!          c) Set lbsubs=F in jxbforce by default to capture current sheets
+!          d) Added lmove_axis INPUT logical (=T by default) so user can control whether or not the magnetic
+!             axis can be initially shifted to improve the initial force residuals. It is important NOT to move
+!             the helical axis for RFP equilibria requiring a helical seed (set l_moveaxis=F for this case!)
 !
 !-----------------------------------------------
       END MODULE vmec_params

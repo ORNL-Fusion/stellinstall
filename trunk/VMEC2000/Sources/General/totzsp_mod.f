@@ -1,12 +1,13 @@
       MODULE totzsp_mod
-      USE vmec_main
 
       CONTAINS
 
       SUBROUTINE totzsps(rzl_array, r11, ru1, rv1, z11, zu1, zv1,
      1                   lu1, lv1, rcn1, zcn1)
-      USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs 
+      USE vmec_main
+      USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs
       USE precon2d, ONLY: ictrl_prec2d
+      USE xstuff, ONLY: xc
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -15,7 +16,7 @@ C-----------------------------------------------
      1   TARGET, INTENT(inout) :: rzl_array
       REAL(rprec), DIMENSION(ns*nzeta*ntheta3,0:1),
      1   INTENT(out) :: r11, ru1,
-     1   rv1, z11, zu1, zv1, lu1, lv1, rcn1, zcn1
+     1   rv1, z11, zu1,  zv1, lu1, lv1, rcn1, zcn1
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -34,8 +35,8 @@ C-----------------------------------------------
 !     WORK1 Array of inverse transforms in toroidal angle (zeta), for all radial positions
 !     NOTE: ORDERING OF LAST INDEX IS DIFFERENT HERE THAN IN PREVIOUS VMEC2000 VERSIONS
 !
-!     CONVERT FROM INTERNAL XC REPRESENTATION FOR m=1 MODES, xc(stored at rss) = .5(rss + zcs),
-!     xc(stored at zcs) = .5(rss - zcs), TO EXTERNAL ("PHYSICAL") rss, zcs FORMS. NEED THIS EVEN 
+!     CONVERT FROM INTERNAL XC REPRESENTATION FOR m=1 MODES, R+(stored at rss) = .5(rss + zcs),
+!     R-(stored at zcs) = .5(rss - zcs), TO EXTERNAL ("PHYSICAL") rss, zcs FORMS. NEED THIS EVEN 
 !     WHEN COMPUTING HESSIAN FOR FREE BOUNDARY (rmnss, zmncs at JS=NS needed in vacuum call)
 !
 !     WHEN COMPUTING PRECONDITIONER, USE FASTER HESSIAN VERSION (totzsps_hess) INSTEAD.
@@ -44,9 +45,9 @@ C-----------------------------------------------
       zmnsc => rzl_array(:,:,:,zsc+ntmax)         !!SIN(mu) COS(nv)
       lmnsc => rzl_array(:,:,:,zsc+2*ntmax)       !!SIN(mu) COS(nv)
       IF (lthreed) THEN
-         rmnss => rzl_array(:,:,:,rss)            !!SIN(mu) SIN(nv)
-         zmncs => rzl_array(:,:,:,zcs+ntmax)      !!COS(mu) SIN(nv)
-         lmncs => rzl_array(:,:,:,zcs+2*ntmax)    !!COS(mu) SIN(nv)
+         rmnss => rzl_array(:,:,:,rss)               !!SIN(mu) SIN(nv)
+         zmncs => rzl_array(:,:,:,zcs+ntmax)         !!COS(mu) SIN(nv)
+         lmncs => rzl_array(:,:,:,zcs+2*ntmax)       !!COS(mu) SIN(nv)
          CALL convert_sym (rmnss, zmncs)
       END IF
 
@@ -58,8 +59,6 @@ C-----------------------------------------------
 !
       rzl_array(1,:,m1,:)  = rzl_array(2,:,m1,:)
 
-      IF (ictrl_prec2d .eq. 3) RETURN
-
       ioff = LBOUND(rmncc,2)
       joff = LBOUND(rmncc,3)
 
@@ -68,7 +67,9 @@ C-----------------------------------------------
 !
       IF (lthreed .and. jlam(m0).gt.1) 
      1   lmncs(1,:,m0+joff) = lmncs(2,:,m0+joff)
-      
+ 
+      IF (ictrl_prec2d .eq. 3) RETURN
+     
       nsz = ns*nzeta
       ALLOCATE (work1(nsz,12), stat=i)
       IF (i .ne. 0) STOP 'Allocation error in VMEC2000 totzsps'
@@ -196,6 +197,7 @@ C-----------------------------------------------
  
       SUBROUTINE totzsps_hess(rzl_array, r11, ru1, rv1, z11, zu1, 
      1                        zv1, lu1, lv1, rcn1, zcn1)
+      USE vmec_main
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs
       USE precon2d
       IMPLICIT NONE
@@ -406,12 +408,14 @@ C-----------------------------------------------
             END IF
 
          END DO
-      
+
       DEALLOCATE (work1)
 
       END SUBROUTINE totzsps_hess
 
       SUBROUTINE convert_sym(rmnss, zmncs)
+      USE vmec_main, p5 => cp5
+      USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -437,6 +441,7 @@ C-----------------------------------------------
 
       SUBROUTINE totzspa(rzl_array, r11, ru1, rv1, z11, zu1, zv1, lu1,
      1   lv1, rcn1, zcn1)
+      USE vmec_main
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcs, rsc, zcc, zss
       USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
@@ -586,9 +591,9 @@ C-----------------------------------------------
 
       END SUBROUTINE totzspa
 
-
       SUBROUTINE totzspa_hess(rzl_array, r11, ru1, rv1, z11, zu1, 
      1                        zv1, lu1, lv1, rcn1, zcn1)
+      USE vmec_main
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcs, rsc, zcc, zss
       USE precon2d
       IMPLICIT NONE
@@ -800,6 +805,7 @@ C-----------------------------------------------
 
 
       SUBROUTINE convert_asym(rmnsc, zmncc)
+      USE vmec_main, p5_2 => cp5
       USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
 C-----------------------------------------------

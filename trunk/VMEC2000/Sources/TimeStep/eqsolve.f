@@ -4,12 +4,12 @@
      1                       bad_jacobian_flag, more_iter_flag,
      2                       successful_term_flag
       USE precon2d, ONLY: ScratchFile, lswap2disk, ictrl_prec2d
+
       USE directaccess, ONLY: DeleteDAFile
+
       USE realspace
       USE vsvd
       USE xstuff
-      USE gmres_mod, ONLY: lqmr
-
 ! Add below JDH 2010-08-03
       USE vmec_history
       IMPLICIT NONE
@@ -27,7 +27,7 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       REAL(rprec) :: w1, r00s, w0, wdota, r0dot
-      LOGICAL     :: liter_flag, lreset_internal
+      LOGICAL :: liter_flag, lreset_internal
 C-----------------------------------------------
 !
 !                INDEX OF LOCAL VARIABLES
@@ -37,6 +37,8 @@ C-----------------------------------------------
 !        irst    counter monitoring sign of jacobian; resets R, Z, and
 !                Lambda when jacobian changes sign and decreases time step
 !        signgs  sign of Jacobian : must be =1 (right-handed) or =-1 (left-handed)
+
+!        lflip   = F if input signgs < 0; = T if input signgs > 0 and needs to be (internally) flipped
 !        iterj   stores position in main iteration loop (j=1,2)
 !        itfsq   counter for storing FSQ into FSQT for plotting
 !        ivac    counts number of free-boundary iterations
@@ -45,8 +47,9 @@ C-----------------------------------------------
 !        modd    parity selection label for odd poloidal modes of R and
 !        gc      stacked array of R, Z, Lambda Spectral force coefficients (see readin for stack order)
 !        xc      stacked array of scaled R, Z, Lambda Fourier coefficients
+
+
       liter_flag = iter2 .eq. 1
-!!	IF (l_v3fit) liter_flag = (iter2 .eq. iter1)    !!NEED FOR V3FITA WITH PRECONDITIONER?
 
  1000 CONTINUE
 
@@ -69,30 +72,37 @@ C-----------------------------------------------
          xc = 0
          CALL profil3d (xc(1), xc(1+irzloff), lreset_internal)
          irst = 1
-         IF (liter_flag) CALL restart_iter(delt0)
       END IF
 
-      liter_flag = .true.
+      if (liter_flag) CALL restart_iter(delt0)
       ier_flag = norm_term_flag
 
 !
 !     FORCE ITERATION LOOP
 !
-      iter_loop: DO WHILE (liter_flag)
+      liter_flag = .true.
 
+      iter_loop: DO WHILE (liter_flag)
 !
 !     ADVANCE FOURIER AMPLITUDES OF R, Z, AND LAMBDA
 !
          CALL evolve (delt0, ier_flag, liter_flag, lscreen)
-         IF (ijacob.eq.0 .and. (ier_flag.eq.bad_jacobian_flag 
+         IF (ijacob.eq.0 .and. (ier_flag.eq.bad_jacobian_flag
      1       .or. irst.eq.4) .and. ns.ge.3) THEN
             IF (lscreen) THEN
+
                IF (ier_flag .eq. bad_jacobian_flag) THEN
+
                   PRINT *, ' INITIAL JACOBIAN CHANGED SIGN!'
+
                END IF
+
                PRINT *,
+
      1         ' TRYING TO IMPROVE INITIAL MAGNETIC AXIS GUESS'
+
             END IF
+
             CALL guess_axis (r1, z1, ru0, zu0)
             lreset_internal = .true.
             ijacob = 1
@@ -133,7 +143,7 @@ C-----------------------------------------------
 !
 !       TIME STEP CONTROL
 !
-         IF (iter2.eq.iter1 .or. res0.eq.-1) res0 = fsq
+         IF (iter2 .eq. iter1 .or. res0.eq.-1) res0 = fsq
          res0 = MIN(res0,fsq)
 !       Store current state (irst=1)
          IF (fsq.le.res0 .and. iter2-iter1.gt.10) THEN
@@ -155,6 +165,10 @@ C-----------------------------------------------
             IF (MOD(iter2,nstep).eq.0 .or. iter2.eq.1 .or.
      1         .not.liter_flag) CALL printout(iter2, delt0, w0, lscreen)
             iter2 = iter2 + 1
+            iterc = iterc + 1
+! JDH 2012-06-20 ^^^ iterc is a cumulative iteration counter. Used in V3FIT.
+!   Never reset to 1
+
 ! JDH 2010-08-03: Call to vmec_history_store moved here from evolve.f
 !  Stores fsq values and other, for later post-processing
             CALL vmec_history_store(delt0)
@@ -186,17 +200,30 @@ C-----------------------------------------------
       END DO iter_loop
 
 !SPH (021711): V3FITA - SAVE STATE FOR RESTART IF PRECONDITION IS ON
+
       IF (l_v3fit) THEN
+
 !JDH 2011-09-14. Correct logic error.
+
 !         IF (ictrl_prec2d .eq. 0) THEN
+
 !            lqmr = (itype_precon .ge. 2)
+
 !         ELSE
+
          IF (ictrl_prec2d .gt. 0) THEN
+
             CALL restart_iter(delt0)
+
          END IF
+
       END IF
 
+
+
       IF (lSwap2Disk) CALL DeleteDAFile(ScratchFile)
+
+
 
       WRITE (nthreed, 60) wdota, r0dot, w0*twopi**2
       IF (lrecon) WRITE (nthreed, 70) r00*fsqsum0/wb

@@ -653,12 +653,12 @@ diagnostic_cdf.o : \
       
 
 diagnostic_T.o : \
+      ipch_T.o \
       ipsl_T.o \
       mddc_T.o \
       stel_constants.o \
       stel_kinds.o \
       sxrch_T.o \
-      ipch_T.o \
       thscte_T.o \
       v3_utilities.o 
       
@@ -688,6 +688,12 @@ ip_beamline.o : \
       stel_constants.o \
       stel_kinds.o \
       v3_utilities.o 
+      
+
+ipch_T.o : \
+      safe_open_mod.o \
+      stel_constants.o \
+      stel_kinds.o 
       
 
 ipsl_cdf.o : \
@@ -803,12 +809,6 @@ stel_constants.o : \
       
 
 sxrch_T.o : \
-      safe_open_mod.o \
-      stel_constants.o \
-      stel_kinds.o 
-      
-
-ipch_T.o : \
       safe_open_mod.o \
       stel_constants.o \
       stel_kinds.o 

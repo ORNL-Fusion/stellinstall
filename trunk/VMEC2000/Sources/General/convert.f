@@ -24,7 +24,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 !
 !     CONVERTS INTERNAL MODE REPRESENTATION TO STANDARD
-!     FORM FOR OUTPUT (COEFFICIENTS OF COS(mu-nv), SIN(mu-nv))
+!     FORM FOR OUTPUT (COEFFICIENTS OF COS(mu-nv), SIN(mu-nv) WITHOUT mscale,nscale norms)
 !
       rmncc = rcc
       rmnss = rss

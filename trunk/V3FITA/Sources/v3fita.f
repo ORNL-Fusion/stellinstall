@@ -1345,10 +1345,8 @@
 ! this is where-am-I stuff and can be eliminated later
 !----------------------------------------------------------------------
       WRITE(*,*) ' *** IN SUBROUTINE ', sub_name
-      isigin=isig
-      idiagin=idiag
-!      WRITE(*,*) '----------------------------------'
-!      WRITE(*,*)'Camera file - ',TRIM(sxr_nli_filename)
+      isigin = isig
+      idiagin = idiag
  
 !----------------------------------------------------------------------
 ! Allocate the thscte_pts array. Read in the thscte_dot file
@@ -1365,11 +1363,11 @@
 ! and store the thscte info in them
 !----------------------------------------------------------------------------                
       DO ic=1,n_chords ! for all sxr chords
-         idiag=idiag+1
-         s_name=thscte_pts(ic) % chord_name
+         idiag = idiag+1
+         s_name = thscte_pts(ic) % chord_name
          l_name= ''
          units='arb'
-         CALL diagnostic_desc_construct_thscte(d_desc(idiag),d_type,            &
+         CALL diagnostic_desc_cnstrct_thscte(d_desc(idiag),d_type,             &
      &      s_name,l_name, units,sigma_default,thscte_pts(ic))
 
       END DO

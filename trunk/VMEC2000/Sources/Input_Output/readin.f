@@ -6,6 +6,7 @@
       USE vspline
       USE timer_sub
       USE mgrid_mod, ONLY: nextcur, curlabel, nfper0, read_mgrid
+      USE init_geometry
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -297,18 +298,18 @@ C-----------------------------------------------
 !
       nsin = MAX (3, nsin)
       multi_ns_grid = 1
-      IF (ns_array(1) .eq. 0) THEN                    !!Old input style
+      IF (ns_array(1) .eq. 0) THEN                    !Old input style
           ns_array(1) = MIN(nsin,nsd)
           multi_ns_grid = 2
-          ns_array(multi_ns_grid) = ns_default        !!Run on 31-point mesh
+          ns_array(multi_ns_grid) = ns_default        !Run on 31-point mesh
       ELSE
           nsmin = 1
-          DO WHILE (ns_array(multi_ns_grid) .gt. nsmin .and.
+          DO WHILE (ns_array(multi_ns_grid) .ge. nsmin .and.
      1             multi_ns_grid .lt. 100)
              nsmin = MAX(nsmin, ns_array(multi_ns_grid))
              IF (nsmin .le. nsd) THEN
                 multi_ns_grid = multi_ns_grid + 1
-             ELSE                                      !!Optimizer, Boozer code overflows otherwise
+             ELSE                                      !Optimizer, Boozer code overflows otherwise
                 ns_array(multi_ns_grid) = nsd
                 nsmin = nsd
                 PRINT *,' NS_ARRAY ELEMENTS CANNOT EXCEED ',nsd
@@ -344,13 +345,14 @@ C-----------------------------------------------
       IF (nvacskip.le.0) nvacskip = nfp
       WRITE (nthreed,110) ncurr,niter_array(multi_ns_grid),ns_array(1),
      1  nstep,nvacskip,
-     1  ftol_array(multi_ns_grid),tcon0,lasym,lforbal,lconm1,
-     2  mfilter_fbdy,nfilter_fbdy,lfull3d1out,max_main_iterations
+     2  ftol_array(multi_ns_grid),tcon0,lasym,lforbal,lmove_axis,lconm1,
+     3  mfilter_fbdy,nfilter_fbdy,lfull3d1out,max_main_iterations
  110  FORMAT(' RUN CONTROL PARAMETERS:',/,1x,23('-'),/,
      1  '  ncurr  niter   nsin  nstep  nvacskip      ftol     tcon0',
-     2  '   lasym lforbal  lconm1 mfilter_fbdy nfilter_fbdy',  ! J Geiger 20120203
-     2  ' lfull3d1out max_main_iterations',/,                  ! J Geiger 20120203
-     3      4i7,i10,1p,2e10.2,3L8,2(6x,i7),L12,10x,i10,/)      ! J Geiger 20120203
+     2  '    lasym  lforbal lmove_axis lconm1',/,
+     3     4i7,i10,1p,2e10.2,4L9,/,
+     3  '  mfilter_fbdy nfilter_fbdy lfull3d1out max_main_iterations',/, ! J Geiger 20120203
+     4     2(6x,i7),L12,10x,i10,/)
 
       WRITE (nthreed,120) precon_type, prec2d_threshold
  120  FORMAT(' PRECONDITIONER CONTROL PARAMETERS:',/,1x,34('-'),/,
@@ -459,10 +461,11 @@ C-----------------------------------------------
 
  1000  CONTINUE
 
+!
+!     CONVERT TO REPRESENTATION WITH RBS(m=1) = ZBC(m=1)
+!
       IF (lasym) THEN
-!
-!       CONVERT TO REPRESENTATION WITH RBS(m=1) = ZBC(m=1)
-!
+
       delta = ATAN( (rbs(0,1) - zbc(0,1))/
      1           (ABS(rbc(0,1)) + ABS(zbs(0,1))) )
       IF (delta .ne. zero) THEN
@@ -535,23 +538,19 @@ C-----------------------------------------------
                isgn = -1
             END IF
             rbcc(ni,mj) = rbcc(ni,mj) + rbc(n,m)
-            zbsc(ni,mj) = zbsc(ni,mj) + zbs(n,m)
-            IF (m .eq. 0) zbsc(ni,mj) = 0
+            IF (m .gt. 0) zbsc(ni,mj) = zbsc(ni,mj) + zbs(n,m)
 
             IF (lthreed) THEN
-               rbss(ni,mj) = rbss(ni,mj) + isgn*rbc(n,m)
+               IF (m .gt. 0) rbss(ni,mj) = rbss(ni,mj) + isgn*rbc(n,m)
                zbcs(ni,mj) = zbcs(ni,mj) - isgn*zbs(n,m)
-               IF (m .eq. 0) rbss(ni,mj) = 0
             END IF
 
             IF (lasym) THEN
-               rbsc(ni,mj) = rbsc(ni,mj) + rbs(n,m)
+               IF (m .gt. 0) rbsc(ni,mj) = rbsc(ni,mj) + rbs(n,m)
                zbcc(ni,mj) = zbcc(ni,mj) + zbc(n,m)
-               IF (m .eq. 0) rbsc(ni,mj) = 0
                IF (lthreed) THEN
                rbcs(ni,mj) = rbcs(ni,mj) - isgn*rbs(n,m)
-               zbss(ni,mj) = zbss(ni,mj) + isgn*zbc(n,m)
-               IF (m .eq. 0) zbss(ni,mj) = 0
+               IF (m .gt. 0) zbss(ni,mj) = zbss(ni,mj) + isgn*zbc(n,m)
                END IF
             END IF
 
@@ -581,9 +580,9 @@ C-----------------------------------------------
       mj = m+joff
       rtest = SUM(rbcc(1:ntor1,mj))
       ztest = SUM(zbsc(1:ntor1,mj))
-      signgs = one
-      IF (rtest*ztest .gt. zero) signgs = -one
-
+      lflip=(rtest*ztest .lt. zero)
+      signgs = -1
+      IF (lflip) CALL flip_theta(rmn_bdy, zmn_bdy)
 
 !
 !     CONVERT TO INTERNAL FORM FOR (CONSTRAINED) m=1 MODES

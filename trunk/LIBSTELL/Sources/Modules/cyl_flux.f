@@ -15,9 +15,6 @@
 !  Note - since newt2d and get_flxcoord are CONTAINed in cyl2flx, they have 
 !  access to all the variables in cyl2flx.
 !
-!  2011-09-08 JDH. rzl* declaration 2*ntmax) -> 3*ntmax), consistency
-!    with rzl* usage in VMEC, even though lambdas aren't used here.
-!
 !  2011-09-06 JDH
 !    Split this module from vmec_utils, to clarify interfaces and dependencies
 !-------------------------------------------------------------------------------
@@ -38,10 +35,8 @@ C-----------------------------------------------
       INTEGER, INTENT(out) :: iflag
       INTEGER, INTENT(in)  :: ns, ntmax, mpol, ntor
       LOGICAL :: lthreed, lasym
-      
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol-1,3*ntmax),
      1   INTENT(in) :: rzl_array
-
       REAL(rprec), INTENT(in) :: c_flux(3)
       REAL(rprec), INTENT(out) :: r_cyl(3)
       REAL(rprec), INTENT(in), OPTIONAL :: 

@@ -608,6 +608,7 @@ c      END DO
       SUBROUTINE fdjac2(fcn, m1, n1, x, fvec, fjac, ldfjac, iflag,
      1    ncnt1, epsfcn, wa, time, fnorm_min, x_min, fvec_min)
       USE stel_kinds
+!DEC$ IF .NOT.DEFINED (MPI_OPT)
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -634,7 +635,6 @@ C-----------------------------------------------
       EXTERNAL fcn, dpmpar, multiprocess, fdjac_parallel
       REAL(rprec), EXTERNAL :: enorm
 C-----------------------------------------------
-!DEC$ IF .NOT.DEFINED (MPI_OPT)
 c
 c     SUBROUTINE fdjac2
 c

@@ -67,6 +67,7 @@ C-----------------------------------------------
 !
       lreset_internal = .true.
       linterp = (ns_old.lt.ns .and. ns_old.ne.0)
+      IF (ns_old .eq. ns) RETURN
       CALL allocate_ns(linterp, neqs2_old)
 
 !

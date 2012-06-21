@@ -113,7 +113,7 @@
      &                    diagnostic_desc_construct_ipsl,                      &
      &                    diagnostic_desc_construct_sxrch,                     &     
      &                    diagnostic_desc_construct_ipch,                      &     
-     &                    diagnostic_desc_construct_thscte       
+     &                    diagnostic_desc_cnstrct_thscte       
          END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -299,7 +299,7 @@
       END SUBROUTINE diagnostic_desc_construct_ipch
 
 !======================================================================
-      SUBROUTINE diagnostic_desc_construct_thscte(this,d_type,s_name,          &
+      SUBROUTINE diagnostic_desc_cnstrct_thscte(this,d_type,s_name,          &
      &   l_name, units,sigma_default,thscte)
 !-------------------------------------------------------------------------------
 !  Construct a diagnostic_desc with thscte diagnostic
@@ -324,7 +324,7 @@
       
 !  Declare local variables
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'diagnostic_desc_construct_thscte: '
+     &  'diagnostic_desc_cnstrct_thscte: '
 
 !  Start of executable code
 
@@ -349,7 +349,7 @@
       END SELECT ! Different coding depending on d_type
      
      
-      END SUBROUTINE diagnostic_desc_construct_thscte
+      END SUBROUTINE diagnostic_desc_cnstrct_thscte
 !=======================================================================
       SUBROUTINE diagnostic_desc_construct_ipsl(this,d_type,s_name,            &
      &   l_name,units,sigma_default,ipsl)
@@ -620,5 +620,9 @@
 !
 !  JDH 2012-03-16
 !    Add ipch
+!
+!  JDH 2012-06-08
+!    Change diagnostic_desc_construct_thscte to diagnostic_desc_cnstrct_thscte
+!    as first form had 32 characters.
 
       END MODULE diagnostic_T

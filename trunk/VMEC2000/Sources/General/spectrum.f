@@ -6,8 +6,8 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,ntmax) ::
-     1   rmn, zmn
+      REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,ntmax), 
+     1             INTENT(inout) :: rmn, zmn
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------

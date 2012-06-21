@@ -384,9 +384,9 @@
      &  'gsq_evaluate_jac: '
 
       INTEGER :: nda, ndr, nw, iw, ir, k, icount
-      INTEGER :: ier_flag_vmec_local, delta_iter2_local
+      INTEGER :: ier_flag_vmec_local, delta_iterc_local
       CHARACTER(len=80) vmec_flag_name_local
-      REAL(rprec) :: fd_factor
+      REAL(rprec) :: fd_factor, denom
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: temp_np, temp_ns,              &
      &   wi_temp
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: temp_jac
@@ -442,8 +442,9 @@
       CALL assert_eq(gsq_nrp,nrp,sub_name // 'array nrp ?')
 
 !  Define the pphi values. _ppi allocated in _initialize
+!  Added ABS 2012-06-01 JDH
       DO irp = 1,nrp
-         gsq_ppi(irp) = rparam_a_arg(irp) % vrnc
+         gsq_ppi(irp) = ABS(rparam_a_arg(irp) % vrnc)
          IF (gsq_ppi(irp) .le. zero) THEN
             gsq_ppi(irp) = one
          ENDIF
@@ -503,7 +504,7 @@
          CALL eq_step(numiter,state_vec,lconverged = lconv,                    &
      &      iter_es = iter_v,ier_flag_vmec=ier_flag_vmec_local,                &
      &      vmec_flag_name=vmec_flag_name_local,                               &
-     &      delta_iter2=delta_iter2_local)
+     &      delta_iterc=delta_iterc_local)
 
 !  Check for convergence
          IF (.not. lconv) THEN
@@ -664,12 +665,20 @@
 !  Although marginal efficiencies are not strictly defined for the
 !  Steepest Descent (index 0) and just one singular value cases, for convenience
 !  I define them here. JDH 2008-06-04
+!  denom - avoid division by zero. JDH 2012-06-01
       gsq_marg_exp_eff(0:1) = gsq_exp_eff(0:1)
       DO k = 2,gsq_nsv
+         denom = gsq_delta_a_len(k) - gsq_delta_a_len(k-1)
+         IF (denom .eq. zero) THEN
+            IF (gsq_delta_a_len(k) .eq. zero) THEN
+               denom = 1.D-10
+            ELSE
+               denom = 1.D-10 *  gsq_delta_a_len(k)
+            ENDIF
+         ENDIF
          gsq_marg_exp_eff(k) =                                                 &
      &      (ABS(gsq_dg2exp_lin(k) + gsq_dg2exp_quad(k)) -                     &
-     &       ABS(gsq_dg2exp_lin(k-1) + gsq_dg2exp_quad(k-1))) /                & 
-     &      (gsq_delta_a_len(k) - gsq_delta_a_len(k-1))
+     &       ABS(gsq_dg2exp_lin(k-1) + gsq_dg2exp_quad(k-1))) / denom
       END DO
       
       RETURN
@@ -1420,7 +1429,7 @@
       INTEGER      :: i, icol_per_page, kmax, k, jmin, jmax, j
       INTEGER      :: mrp, ksvr, lsv, irp, jsv, ier1
       INTEGER      :: ier2, ier3
-      REAL(rprec)         :: w_one, temp
+      REAL(rprec)         :: w_one, temp, denom
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: gsq_1pcl
       
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: gsq_b_1pcl,gsq_b_pace
@@ -1505,8 +1514,9 @@
          DO ksvr = 1,gsq_nsv
             temp = zero
             DO lsv = 1,ksvr
-               temp = temp + (gsq_jsvd_vt(lsv,mrp) /                           &
-     &                        gsq_jsvd_w(lsv)) ** 2
+!  denom - avoid division by zero. JDH 2012-06-01
+               denom = MAX(gsq_jsvd_w(lsv),1.D-30)
+               temp = temp + (gsq_jsvd_vt(lsv,mrp) / denom) ** 2 
             END DO
             gsq_1pcl(mrp,ksvr) = gsq_ppi(mrp) * SQRT(temp)
          END DO
@@ -1567,8 +1577,9 @@
          DO ksvr = 1,gsq_nsv
             temp = zero
             DO lsv = 1,ksvr
-               temp = temp + (gsq_b_vt(lsv,mrp) /                              &
-     &                        gsq_b_w(lsv)) ** 2
+!  denom - avoid division by zero. JDH 2012-06-01
+               denom = MAX(gsq_b_w(lsv),1.D-30)
+               temp = temp + (gsq_b_vt(lsv,mrp) / denom) ** 2 
             END DO
             gsq_b_1pcl(mrp,ksvr) = SQRT(temp)
          END DO

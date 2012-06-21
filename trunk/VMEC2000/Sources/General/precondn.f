@@ -41,8 +41,7 @@ C-----------------------------------------------
       bx = 0
       cx = 0
       temp = 0
-!      pfactor = -2*r0scale**2
-      pfactor = -4*r0scale**2
+      pfactor = -2*r0scale**2
 
       DO 20 js = 2,ns
 !

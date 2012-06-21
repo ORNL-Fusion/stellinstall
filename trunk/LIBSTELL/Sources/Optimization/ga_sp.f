@@ -112,6 +112,6 @@ c  $$$$$ End of main generational processing loop. $$$$$
  1225 FORMAT(/'  Number of Crossovers      =',i5)
  3000 FORMAT(2x//'Summary of Output'/
      +       2x,'Generation   Evaluations   Avg.Fitness   Best Fitness')
- 3100 FORMAT(2x,3(e11.4,4x),e12.5)
+ 3100 FORMAT(2x,3(e10.4,4x),e11.5)
 
       END SUBROUTINE ga_sp

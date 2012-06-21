@@ -51,12 +51,12 @@
       REAL(rprec), DIMENSION(nbcoilsp,nbsetsp) :: bbc, sigma_b
       REAL(rprec), DIMENSION(ndatafmax) :: psa, pfa, isa, ifa
       LOGICAL :: lpofr, lmac, lfreeb, lrecon, loldout, ledge_dump,
-     1           lasym, lforbal,lrfp,
-     1           lwouttxt, ldiagno,       ! J.Geiger: for txt- and diagno-output
-     1           lmoreiter,               ! J.Geiger: if force residuals are not fulfilled add more iterations.
-     1           lfull3d1out,             ! J.Geiger: to force full 3D1-output
-     1           l_v3fit=.false.
-     2         , lspectrum_dump, loptim           !!Obsolete
+     1           lasym, lforbal, lrfp, lmove_axis,
+     2           lwouttxt, ldiagno,       ! J.Geiger: for txt- and diagno-output
+     3           lmoreiter,               ! J.Geiger: if force residuals are not fulfilled add more iterations.
+     4           lfull3d1out,             ! J.Geiger: to force full 3D1-output
+     5           l_v3fit=.false.
+     A         , lspectrum_dump, loptim           !!Obsolete
       CHARACTER(len=200) :: mgrid_file
       CHARACTER(len=10)  :: precon_type
       CHARACTER(len=120) :: arg1
@@ -78,8 +78,8 @@
      8   presfac, pres_offset, rthom, datathom, sigma_thom, phidiam, 
      9   sigma_delphid, tensi2, fpolyi, nflxs, indxflx, dsiobt, 
      A   sigma_flux, nbfld, indxbfld, bloat, raxis, zaxis,
-     A   bbc, sigma_b, lpofr, lforbal, lfreeb, lrecon, lmac, lasym,
-     B   ledge_dump, lspectrum_dump, loptim, lrfp,
+     A   bbc, sigma_b, lpofr, lforbal, lfreeb, lmove_axis, lrecon, lmac, 
+     B   lasym, ledge_dump, lspectrum_dump, loptim, lrfp,
      C   loldout, lwouttxt, ldiagno, lfull3d1out, max_main_iterations      ! J Geiger 2010-05-04
 
       NAMELIST /mseprofile/ mseprof
@@ -121,6 +121,7 @@
       extcur = 0;  phiedge = 1;
       mgrid_file = 'NONE'
       lfreeb = .true.
+	lmove_axis = .true.
       lmac = .false.
       lforbal = .true.
       lasym = .false.

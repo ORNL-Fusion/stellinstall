@@ -15,7 +15,7 @@ C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
       CHARACTER(LEN=*), PARAMETER :: 
      1   iter_line = " ITER    FSQR      FSQZ      FSQL   ",
-     1   delt_line = "    DELT    ",        !J.Geiger 20101118
+     1   delt_line = "    DELT  ",        !J.Geiger 20101118
      2   fsq_line  = "   fsqr      fsqz      fsql      DELT    ",
      3   raxis_line = " RAX(v=0) ",
      4   zaxis_line = "  ZAX(v=0)      "
@@ -81,12 +81,11 @@ C-----------------------------------------------
      1      fsql1, delt0, r00, w, betav, avm, delbsq, fedge
          ELSE
             WRITE (nthreed, 42) i0, fsqr, fsqz, fsql, fsqr1, fsqz1, 
-     1      fsql1, delt0, r00, w, betav, ABS(phiedge*phifac), delbsq, 
-     2      fedge
+     1      fsql1, delt0, r00, w, betav, ABS(phiedge*phifac), 
+     1      delbsq, fedge
          ENDIF
       
       ELSE
-      
          IF (.not.lfreeb) THEN
             IF (lscreen) PRINT 65, i0, fsqr, fsqz, fsql, r00, z00, !J Geiger 20101118
      1                             delt0, w !J Geiger 20101118
@@ -101,40 +100,17 @@ C-----------------------------------------------
      1      fsql1, delt0, r00, z00, w, betav, avm, delbsq, fedge
          ELSE
             WRITE (nthreed, 60) i0, fsqr, fsqz, fsql, fsqr1, fsqz1, 
-     1      fsql1, delt0, r00, z00, w, betav, ABS(phiedge*phifac),
-     2      delbsq,fedge
+     1      fsql1, delt0, r00, z00, w, betav, 
+     2      ABS(phiedge*phifac), delbsq, fedge
          ENDIF
       END IF
 
    40 FORMAT(i5,1p,7e10.2,e11.3,e12.4,e11.3,0p,f7.3,1p,2e9.2)
    42 FORMAT(i5,1p,7e10.2,e11.3,e12.4,2e11.3,0p,f7.3,1p,e9.2)
-   45 FORMAT(i5,1p,3e10.2,e11.3,e12.4,e12.4)
-   50 FORMAT(i5,1p,3e10.2,e11.3,e12.4,e12.4,e11.3)
+   45 FORMAT(i5,1p,3e10.2,e11.3,e10.2,e12.4)
+   50 FORMAT(i5,1p,3e10.2,e11.3,e10.2,e12.4,e11.3)
    60 FORMAT(i5,1p,7e10.2,2e11.3,e12.4,e11.3,0p,f7.3,1p,2e9.2)
-   65 FORMAT(i5,1p,3e10.2,2e11.3,e12.4)
-   70 FORMAT(i5,1p,3e10.2,2e11.3,e12.4,e11.3)
-
-!     IF (lrecon) THEN
-!        IF (ystark(1)*ystark(isnodes).lt.zero .or.
-!    1       ystark(2)*ystark(isnodes-1).lt.zero) THEN
-!           IF (lscreen) PRINT 200
-!           WRITE (nthreed, 200)
-!        ENDIF
-! 200    FORMAT(' CHECK THE SIGN OF MSE DATA: INCONSISTENT WITH ',
-!    1      'CURRENT, TOROIDAL FIELD!')
-!       IF (pressum0 .ne. zero .and. apres .ne. zero .and. lscreen)
-!    1     PRINT 60, errsvd, pfac, phifac,
-!    2               ABS(fsqsum0/pressum0), aminor/apres
-!  60    FORMAT(2x,'chisq-err   = ',f8.3,3x,'pres-scale = ',f8.3,3x,
-!    1      'phifac    = ',f8.3,/,2x,'<F00> force = ',f8.3,3x,
-!    2      '<a>/apres  = ',f8.3)
-!        IF (imatch_phiedge.eq.2 .and. ivac>1) THEN
-!           IF (lscreen) PRINT 65, dlim_min, rlim_min, zlim_min
-!  65       FORMAT(2x,'dlim (min)  = ',f8.3,3x,'at rlim    = ',f8.3,
-!    1         '   zlim = ',f8.3/)
-!        ELSE
-!           IF (lscreen) PRINT *, ' '
-!        ENDIF
-!     ENDIF
+   65 FORMAT(i5,1p,3e10.2,2e11.3,e10.2,e12.4)
+   70 FORMAT(i5,1p,3e10.2,2e11.3,e10.2,e12.4,e11.3)
 
       END SUBROUTINE printout
