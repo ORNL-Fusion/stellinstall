@@ -25,8 +25,13 @@ C-----------------------------------------------
       INTEGER :: ioff, joff, mj, ni, nsl, j2, j2l, jl, jll, jmaxl 
       REAL(rprec), DIMENSION(:,:,:), POINTER :: 
      1           frcc, frss, fzcs, fzsc, flcs, flsc
+#if defined (DEFAULT)
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: work1
       REAL(rprec), DIMENSION(:), ALLOCATABLE   :: tempr, tempz
+#else
+      REAL(rprec), DIMENSION(ns*nzeta,12) :: work1
+      REAL(rprec), DIMENSION(ns*nzeta)    :: tempr, tempz
+#endif
       REAL(rprec)  :: t1
 C-----------------------------------------------
       frcc => frzl_array(:,:,:,rcc)               !!COS(mu) COS(nv)
@@ -39,10 +44,11 @@ C-----------------------------------------------
       END IF
 
       nsz = ns*nzeta
-
+#if defined (DEFAULT)
       ALLOCATE (work1(nsz,12), tempr(nsz), tempz(nsz),
      1          stat=i)
       IF (i .ne. 0) STOP 'Allocation error in VMEC2000 tomnsps'
+#endif
 
       ioff = LBOUND(frcc,2)
       joff = LBOUND(frcc,3)
@@ -162,8 +168,9 @@ C-----------------------------------------------
          END DO
       END IF
 
-            
+#if defined (DEFAULT)            
       DEALLOCATE (work1, tempr, tempz)
+#endif
 
       END SUBROUTINE tomnsps
 
