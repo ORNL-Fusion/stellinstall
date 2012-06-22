@@ -1,3 +1,15 @@
+# cmake build system was created by Mark Cianciosa.
+#
+# All option can be define by using -DOPTION_NAME="Definition of option"
+#
+# Options:
+# EXTRA_FLAGS         -- Compiler flags added to all builds.
+# EXTRA_RELEASE_FLAGS -- Compiler flags added to release builds.
+# EXTRA_DEBUG_FLAGS   -- Compiler flags added to release builds.
+#
+# NETCDF_LIB_PATH     -- Path to the netcdf libraries.
+# NETCDF_INC_PATH     -- Path to the netcdf include files.
+
 cmake_minimum_required (VERSION 2.8)
 
 # Start Project and note the language used.
