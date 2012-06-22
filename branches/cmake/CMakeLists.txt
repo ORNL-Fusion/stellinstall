@@ -10,8 +10,13 @@ set (awk_script Scripts/awk_cdir.awks)
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
 set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/lib)
 
+# Add extra compiler flags to various builds.
+set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} ${EXTRA_RELEASE_FLAGS}")
+set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${EXTRA_DEBUG_FLAGS}")
+set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_FLAGS}")
+
 # Fortran specific settings. The fits setting tells the compiler to use the C preprocessor. The second places a common directory to place all of the module files.
-set (CMAKE_Fortran_FLAGS -cpp)
+set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp")
 set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
 
 # Set Apple specific options. This add a predefine for DARWIN and adds lapack from the Accelerate framework.
