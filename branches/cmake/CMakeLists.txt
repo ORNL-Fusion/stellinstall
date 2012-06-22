@@ -5,7 +5,7 @@
 # Options:
 # EXTRA_FLAGS         -- Compiler flags added to all builds.
 # EXTRA_RELEASE_FLAGS -- Compiler flags added to release builds.
-# EXTRA_DEBUG_FLAGS   -- Compiler flags added to release builds.
+# EXTRA_DEBUG_FLAGS   -- Compiler flags added to debug builds.
 #
 # NETCDF_LIB_PATH     -- Path to the netcdf libraries.
 # NETCDF_INC_PATH     -- Path to the netcdf include files.
