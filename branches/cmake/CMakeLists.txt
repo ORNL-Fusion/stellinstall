@@ -1,6 +1,6 @@
 # cmake build system was created by Mark Cianciosa.
 #
-# All option can be define by using -DOPTION_NAME="Definition of option"
+# All options can be define by using -DOPTION_NAME="Definition of option"
 #
 # Options:
 # EXTRA_FLAGS         -- Compiler flags added to all builds.
