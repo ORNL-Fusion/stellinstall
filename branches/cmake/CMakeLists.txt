@@ -1,5 +1,6 @@
 # cmake build system was created by Mark Cianciosa. Current this only supports Mac OS X.
 #
+#
 # All options can be define by using -DOPTION_NAME="Definition of option"
 #
 # Options:
