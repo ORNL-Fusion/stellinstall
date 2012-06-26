@@ -6,6 +6,9 @@
       USE xstuff
       USE csplinx
       USE fbal
+#if defined (WORK_ARRAYS)
+      USE work_arrays
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -18,6 +21,11 @@ C-----------------------------------------------
      1           istat5 = 0, istat6 = 0, istat7 = 0, istat8 = 0,
      2           istat9 = 0, istat10 = 0
 C-----------------------------------------------
+#if defined (WORK_ARRAYS)
+      IF (ALLOCATED(work1))
+     1  DEALLOCATE (work1, tempr, tempz, stat=istat1)
+#endif
+
       IF (ALLOCATED(phip))
      1  DEALLOCATE (phip, chip, shalf, sqrts, wint, stat=istat3)
 

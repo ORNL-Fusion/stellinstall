@@ -10,6 +10,9 @@
      1                       mscale, nscale
       USE fbal, ONLY: rru_fac, rzu_fac, frcc_fac, fzsc_fac
       USE precon2d, ONLY: ictrl_prec2d
+#if defined (WORK_ARRAYS)
+      USE work_arrays
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -29,8 +32,10 @@ C-----------------------------------------------
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: work1
       REAL(rprec), DIMENSION(:), ALLOCATABLE   :: tempr, tempz
 #else
+#if !defined (WORK_ARRAYS)
       REAL(rprec), DIMENSION(ns*nzeta,12) :: work1
       REAL(rprec), DIMENSION(ns*nzeta)    :: tempr, tempz
+#endif
 #endif
       REAL(rprec)  :: t1
 C-----------------------------------------------

@@ -8,6 +8,9 @@
       USE csplinx
       USE mgrid_mod
       USE fbal
+#if defined (WORK_ARRAYS)
+      USE work_arrays
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   V a r i a b l e s
@@ -44,6 +47,13 @@ C-----------------------------------------------
 !     FIRST BE SURE TO FREE MEMORY PREVIOUSLY ALLOCATED
 !
       CALL free_mem_ns (.true.)
+
+#if defined (WORK_ARRAYS)
+      ALLOCATE (work1(ns*nzeta,12), tempr(ns*nzeta), tempz(ns*nzeta),
+     1          stat=istat1)
+      IF (istat1.ne.0) STOP 'allocation error #1 in allocate_ns'
+      work1=0; tempr=0; tempz=0;
+#endif
 
       ALLOCATE (phip(ndim), chip(ndim), shalf(ndim), sqrts(ndim), 
      1          wint(ndim), stat=istat1)

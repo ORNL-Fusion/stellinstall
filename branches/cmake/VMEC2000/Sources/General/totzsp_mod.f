@@ -8,6 +8,9 @@
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs
       USE precon2d, ONLY: ictrl_prec2d
       USE xstuff, ONLY: xc
+#if defined (WORK_ARRAYS)
+      USE work_arrays, ONLY: work1
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -31,7 +34,9 @@ C-----------------------------------------------
 #if defined (DEFAULT)
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
 #else
+#if !defined (WORK_ARRAYS)
       REAL(rprec), DIMENSION(ns*nzeta,12) :: work1
+#endif
 #endif
       REAL(rprec) :: cosmux, sinmux
 C-----------------------------------------------
