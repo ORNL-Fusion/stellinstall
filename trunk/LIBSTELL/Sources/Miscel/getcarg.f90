@@ -15,7 +15,7 @@
       INTEGER :: nargs
       numargs = nargs() - 1
       CALL getarg(narg, arg, numchars)
-#elif defined(LINUX)
+#elif defined(LINUX) || defined(DARWIN)
       INTEGER iargc
       numargs = iargc()
       CALL getarg(narg, arg)
