@@ -16,8 +16,8 @@
      1                   bsubsa=>armn_e, bsubua=>azmn_e, bsubva=>armn_o 
       USE vacmod, ONLY: potvac, mnpd    !added for diagno, J.Geiger
 !     ADD (ELIMINATE FIRST LEADING '!') FOLLOWING LINE IF TXT FILE OUTPUT IS DESIRED
-!!DEC$ UNDEFINE NETCDF
-!DEC$ IF DEFINED (NETCDF)
+!#undef NETCDF
+#ifdef NETCDF      
       USE ezcdf
       USE read_wout_mod, ONLY: vn_version, vn_extension, vn_mgrid,
      1  vn_magen, vn_therm, vn_gam, vn_maxr, vn_minr, vn_maxz, vn_fp,
@@ -63,25 +63,25 @@
      F  ln_bmns, ln_bsubumns, ln_bsubvmns, ln_bsubsmnc, ln_bsupumns, 
      G  ln_bsupvmns, ln_rbc, ln_zbs, ln_rbs, ln_zbc
 !------------------DEC$ ELSE !to use safe_open_mod in any case (J.Geiger)
-!DEC$ ENDIF
+#endif
       USE safe_open_mod
       USE mgrid_mod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(in) :: ier_flag
       REAL(rprec), DIMENSION(mnmax,ns,3*MAX(ntmax/2,1)),           !reverse ns, mnmax for backwards compatibility
      1   INTENT(inout), TARGET :: rzl_array, gc_array
       REAL(rprec), DIMENSION(ns,nznt), INTENT(inout) ::
      1   bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, bsupu
       LOGICAL :: lwrite
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       REAL(rprec), PARAMETER :: c1p5 = 1.5_dp
       LOGICAL :: lnyquist = .FALSE.                               !=false, eliminate nyquist stuff
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       CHARACTER(LEN=*), PARAMETER, DIMENSION(1) ::
      1             r1dim = (/'radius'/), mn1dim = (/'mn_mode'/),
      2             mn2dim = (/'mn_mode_nyq'/),
@@ -90,10 +90,10 @@ C-----------------------------------------------
       CHARACTER(LEN=*), DIMENSION(2), PARAMETER :: 
      1             r2dim = (/'mn_mode','radius '/),
      1             r3dim = (/'mn_mode_nyq','radius     '/)
-!DEC$ ENDIF
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+#endif
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: j, js, jlk, mn, lk, iasym, ireconstruct,
      1           m, n, k, iwout0, n1, nwout, istat, i, indx1(1),
      2           mnmax_nyq0, mnyq0, nnyq0, nwout2   ! nwout2 by J.Geiger
@@ -120,7 +120,7 @@ C-----------------------------------------------
       LOGICAL :: lcurr
       INTEGER :: nmin0     ! J Geiger:   Added for diagno-file
 
-C-----------------------------------------------
+!-----------------------------------------------
 !
 !  Pointer assignments for storage arrays
 !
@@ -193,7 +193,7 @@ C-----------------------------------------------
       wout_file = version_
       READ (wout_file, *) vversion
 
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       wout_file = 'wout_' // TRIM(input_extension) // '.nc'
       CALL cdf_open(nwout,wout_file,'w',iwout0)
       IF (iwout0 .ne. 0) STOP 'Error opening wout.nc file VMEC WROUT'
@@ -537,9 +537,7 @@ C-----------------------------------------------
       CALL cdf_write(nwout, vn_tmod_nyq, xn_nyq0)
 
 940   CONTINUE   ! before closing, write the initial part of the wouttxt-file
-
-!---------------------DEC$ ELSE
-!DEC$ ENDIF
+#endif
       IF(lwouttxt) THEN
          wout2_file = 'wout_'//TRIM(input_extension) // '.txt'
          nwout2 = nwout0
@@ -790,7 +788,7 @@ C-----------------------------------------------
 !
 !     WRITE OUT ARRAYS
 !
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       CALL cdf_write(nwout, vn_racc, raxis_cc(0:ntor))
       CALL cdf_write(nwout, vn_zacs, zaxis_cs(0:ntor)) 
       CALL cdf_write(nwout, vn_rmnc, rmnc)
@@ -871,8 +869,7 @@ C-----------------------------------------------
 !      IF (.not.lrecon) GOTO 925
 ! 925  CONTINUE
 
-!--------------------DEC$ ELSE
-!DEC$ ENDIF
+#endif
       IF(lwouttxt) THEN
          DO js = 1, ns
             MN1_OUT: DO mn = 1, mnmax
@@ -1170,7 +1167,7 @@ C-----------------------------------------------
       IF (lwouttxt) CLOSE (unit=nwout2)   !J Geiger: Close only if open, i.e. lwouttxt==true
 !--------------------DEC$ ENDIF
       IF (.not. lwrite) GOTO 970   ! J Geiger: in case lwouttxt is not true and netcdf-write is finished
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       IF (lasym) THEN
          CALL cdf_write(nwout, vn_racs, raxis_cs(0:ntor))
          CALL cdf_write(nwout, vn_zacc, zaxis_cc(0:ntor)) 
@@ -1186,14 +1183,12 @@ C-----------------------------------------------
          CALL cdf_write(nwout, vn_bsupumns, bsupumns)
          CALL cdf_write(nwout, vn_bsupvmns, bsupvmns)
       END IF
-!DEC$ ENDIF
-
+#endif
  970  CONTINUE   ! J Geiger: need to keep label 970 out of NETCDF defines.
 
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       CALL cdf_close(nwout)
-!DEC$ ENDIF
-
+#endif
 !
 !     RESTORE nyq ENDPOINT VALUES
 !
@@ -1224,4 +1219,3 @@ C-----------------------------------------------
       rzl_array = 0
 
       END SUBROUTINE wrout
-

@@ -1,7 +1,7 @@
 MODULE ezcdf_inqvar
  
   IMPLICIT NONE
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
   PUBLIC :: cdfInqVar, cdfgv, cdfInqV, cdf_inquire, alpha_numeric
 
   INTERFACE cdfInqVarDim
@@ -306,5 +306,5 @@ end subroutine cdfInqVar
      end do
 
   END SUBROUTINE alpha_numeric
-!DEC$ ENDIF
+#endif
 END MODULE ezcdf_inqvar

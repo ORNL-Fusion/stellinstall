@@ -9,10 +9,10 @@ c  generator, parent and iparent arrays (reads the ga.restart file).
       USE safe_open_mod
       USE mpi_params, ONLY: master
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined(MPI_OPT)
       include 'mpif.h'                                       !mpi stuff
       INTEGER :: ierr
-!DEC$ ENDIF
+#endif
       INTEGER :: istart, npossum, ig2sum, myid
       INTEGER :: i, j, k, l, itemp, istat
       CHARACTER(LEN=100) :: filename
@@ -90,7 +90,7 @@ c  If irestrt.ne.0, READ from restart file.
             END DO
             CLOSE (iunit_ga_restart)
          END IF
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined(MPI_OPT)
          CALL MPI_BCAST(istart, 1, MPI_INTEGER, master,
      1     MPI_COMM_WORLD, ierr)
          CALL MPI_BCAST(npopsiz, 1, MPI_INTEGER, master,
@@ -101,8 +101,7 @@ c  If irestrt.ne.0, READ from restart file.
      1        MPI_COMM_WORLD, ierr)
          IF (myid .ne. master) iparent(l,:) = fitness
       END DO
-!DEC$ ENDIF
-
+#endif
       END IF
 c
       IF(irestrt.ne.0) CALL ran3(idum-istart,rand)

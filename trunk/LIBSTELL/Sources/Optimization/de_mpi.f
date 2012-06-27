@@ -2,14 +2,14 @@
       USE de_mod
       USE mpi_params
       IMPLICIT NONE
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined(MPI_OPT)
       include 'mpif.h'                                       !mpi stuff
-!DEC$ ENDIF
+#endif
       INTEGER :: np
       REAL(rprec) :: funcval(np)
       EXTERNAL fcn
 
-!DEC$ IF DEFINED (MPI_OPT)
+#if defined(MPI_OPT)
       INTEGER :: status(MPI_STATUS_size)                     !mpi stuff
       INTEGER :: i,  j, iflag                                !mpi stuff
       INTEGER :: numsent, sender, ierr                       !mpi stuff
@@ -133,5 +133,5 @@ c
  300  CONTINUE
       PRINT *,' IFLAG = ', iflag, ' in de_mpi CALL to fcn'
       STOP
-!DEC$ ENDIF
+#endif
       END SUBROUTINE de_mpi

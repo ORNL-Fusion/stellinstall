@@ -9,7 +9,7 @@
 !   E x t e r n a l   F u n c t i o n s
 !-----------------------------------------------
       EXTERNAL wrapper, fcn
-!DEC$ IF .NOT.DEFINED (MPI_OPT)
+#if !defined(MPI_OPT)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -39,13 +39,13 @@
  
       IF (pid .eq. 0) THEN
          CALL wrapper (i, fcn)
-!DEC$ IF DEFINED (CRAY)
+#if defined(CRAY)
          CALL EXIT(1)
-!DEC$ ELSE
+#else
          STOP
-!DEC$ ENDIF
+#endif
       END IF
  
       nprocess = nprocess + 1
-!DEC$ ENDIF
+#endif
       END SUBROUTINE myfork

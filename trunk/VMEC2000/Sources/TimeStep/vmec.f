@@ -276,13 +276,12 @@ C-----------------------------------------------
          ictrl(5) = iseq-1
          ncount = 0
          IF (iseq .gt. 1) THEN
-!DEC$ IF DEFINED(NETCDF)
             reset_file_name =
+#ifdef NETCDF
      1       'wout_' // TRIM(extension(index_seq-1)) // ".nc"
-!DEC$ ELSE
-            reset_file_name =
+#else
      1       'wout.' // TRIM(extension(index_seq-1))
-!DEC$ ENDIF
+#endif
          END IF
 !    
 !     SET UP A "REVERSE-COMMUNICATION" LOOP FOR RUNNING VMEC

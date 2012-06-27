@@ -7,11 +7,11 @@
 !**                                                                  **
 !**                                                                  **
 !**     PROGRAM DESCRIPTION:                                         **
-!**          MAKEGRID reads in a coils-dot file, and generates       **
-!**	     an MGRID file.                                              **
+!**        MAKEGRID reads in a coils-dot file, and generates         **
+!**	     an MGRID file.                                            **
 !**                                                                  **
 !**     Author: Steve Hirshman                                       **
-!**             Jams Hanson                                          **
+!**             James Hanson                                         **
 !**             Jonathan Hebert                                      **
 !**                                                                  **
 !**     REFERENCES:                                                  **
@@ -617,11 +617,11 @@
       delz = (zmax-zmin)/(jz-1)                    
       delp = fperiod/kp
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined(NETCDF)
       CALL write_mgrid_nc
-!DEC$ ELSE
+#else
       CALL write_mgrid_bin
-!DEC$ ENDIF
+#endif
 
       CALL second0(time_end2)
 
@@ -898,11 +898,11 @@
       delz = (zmax-zmin)/(jz-1)                    
       delp = fperiod/kp
 
-!DEC$ IF DEFINED (NETCDF)
+#if defined(NETCDF)
       CALL write_mgrid_nc
-!DEC$ ELSE
+#else
       CALL write_mgrid_bin
-!DEC$ ENDIF
+#endif
 
       CALL second0(time_end2)
 

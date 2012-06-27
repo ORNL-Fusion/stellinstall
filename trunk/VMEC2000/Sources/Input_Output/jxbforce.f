@@ -5,13 +5,14 @@
       USE vmec_params, ONLY: mscale, nscale, signgs, mnyq, nnyq, 
      1                       successful_term_flag
       USE realspace
-!DEC$ IF DEFINED (NETCDF)
+!!#undef NETCDF     !!undefine NETCDF if text output desired
+#ifdef NETCDF
       USE ezcdf
-!DEC$ ENDIF
+#endif
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(rprec), DIMENSION(ns,nznt), INTENT(in) ::
      1  bsupu, bsupv, bsq, gsqrt
 !ONLY CHANGE COMPONENT 1 (MUST KEEP COMPONENT 0 UNCHANGED FOR USE IN WROUT!)
@@ -21,14 +22,14 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(ns,nznt), INTENT(out) :: itheta, izeta
       REAL(rprec), DIMENSION(ns,nznt,0:1) :: bsubsu, bsubsv
       INTEGER, INTENT(in) :: ier_flag
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       LOGICAL, PARAMETER :: lprint = .false.      !!Prints out bsubs spectrum to fort.33
       REAL(rprec), PARAMETER :: two=2, p5=0.5_dp, c1p5=1.5_dp
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER lk, lz, lt, k, m, js, j, n, injxbout, mparity, nznt1
       INTEGER :: njxbout = jxbout0, info, mtrig, ntrig
       INTEGER, PARAMETER :: ns_skip = 1, nu_skip = 1, nv_skip = 1
@@ -56,8 +57,8 @@ C-----------------------------------------------
       CHARACTER(LEN=100) :: jxbout_file
       CHARACTER(LEN=100) :: legend(13)
       LOGICAL :: lprint_flag
-C-----------------------------------------------
-!DEC$ IF DEFINED (NETCDF)
+!-----------------------------------------------
+#ifdef NETCDF
       CHARACTER(LEN=*), PARAMETER ::
      1  vn_legend = 'legend', vn_radial_surfaces = 'radial_surfaces',
      2  vn_poloidal_grid_points = 'poloidal_grid_points',
@@ -73,19 +74,19 @@ C-----------------------------------------------
      C  vn_bsupv = 'bsupv', vn_jcrossb = 'jcrossb',
      D  vn_jxb_gradp = 'jxb_gradp', vn_bsubu = 'bsubu',
      E  vn_bsubv = 'bsubv', vn_bsubs = 'bsubs'
-C-----------------------------------------------
-!DEC$ ENDIF
+!-----------------------------------------------
+#endif
       lprint_flag = (ier_flag.eq.successful_term_flag)
       IF (lprint_flag) THEN
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       jxbout_file = 'jxbout_'//TRIM(input_extension)//'.nc'
 
       CALL cdf_open(njxbout,jxbout_file,'w',injxbout)
-!DEC$ ELSE
-      jxbout_file = 'jxbout.'//TRIM(input_extension)
+#else
+      jxbout_file = 'jxbout_'//TRIM(input_extension)//'.txt'
       CALL safe_open(njxbout, injxbout, jxbout_file, 'replace',
      1    'formatted')
-!DEC$ ENDIF
+#endif
       IF (injxbout .ne. 0) THEN
          PRINT *,' Error opening JXBOUT file in jxbforce'
          RETURN
@@ -120,7 +121,7 @@ C-----------------------------------------------
      1  " volume radial coordinate)"
       legend(13)= " <JSUP{U,V}> = Int_u Int_v [JSUP{U,V}]/dV/ds"
 
-!DEC$ IF .NOT.DEFINED (NETCDF)
+#ifndef NETCDF
       WRITE (njxbout,5) (ns1-1)/ns_skip, ntheta3/nu_skip, nzeta/nv_skip,
      1    mpol, ntor, phiedge
  5    FORMAT(/,' Radial surfaces = ',i3, ' Poloidal grid points = ',i3,
@@ -130,7 +131,7 @@ C-----------------------------------------------
       WRITE (njxbout, 6) (legend(j), j=1,13)
  6    FORMAT(/,100('-'),/,' LEGEND:',/,100('-'),/,
      1  2(3(a,/),/),5(a,/),/,2(a,/),100('-'),//)
-!DEC$ ENDIF
+#endif
       ENDIF
 
       nznt1 = nzeta*ntheta2
@@ -345,7 +346,7 @@ C-----------------------------------------------
 !     Note: Multiply currents, pressure by 1/mu0 to get in mks units!
 !           TWOPI*TWOPI factor incorporated in vp (thru ovp factor below), so V' = (2pi)**2*vp
 !
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       ALLOCATE(
      1     bsubs3(ns,nzeta,ntheta3), bsubv3(ns,nzeta,ntheta3), 
      2     bsubu3(ns,nzeta,ntheta3), jxb_gradp(ns,nzeta,ntheta3), 
@@ -359,8 +360,7 @@ C-----------------------------------------------
       jcrossb=0 ; bsupv3=0; bsupu3=0; jsups3=0
       jsupv3=0; jsupu3=0; phin=0; phin(ns)=1
       jdotb_sqrtg=0; sqrtg3=0 
-!DEC$ ENDIF
- 
+#endif 
       ALLOCATE (pprim(ns),stat=j)
       pprim=0
 
@@ -426,13 +426,12 @@ C-----------------------------------------------
      1            SUM(jp2(:nznt)*wint(2:nrzt:ns)*sqrtg(:nznt))
 
          IF (MOD(js,ns_skip) .eq. 0 .and. lprint_flag) THEN
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
             phin(js) = phi(js)/phi(ns)
             DO lz = 1, nzeta
                toroidal_angle(lz)=REAL(360*(lz-1),rprec)/nzeta
                DO lt = 1, ntheta3
                   lk = lz + nzeta*(lt-1)
-C                 lu (js,lz,lt ) =  lt
                   jsupu3 (js,lz,lt) = ovp*itheta(js,lk)
                   jsupv3 (js,lz,lt) = ovp*izeta(js,lk) 
                   jsups3 (js,lz,lt) = ovp*(bsubuv(js,lk)
@@ -448,7 +447,7 @@ C                 lu (js,lz,lt ) =  lt
                   bsubs3(js,lz,lt) = bsubs(js,lk)
                END DO
             END DO
-!DEC$ ELSE
+#else
             WRITE (njxbout, 200) phi(js), avforce(js), jdotb(js),
      1         bdotgradv(js), pprime, one/ovp, 
      2         (twopi**2)*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
@@ -467,7 +466,7 @@ C                 lu (js,lz,lt ) =  lt
      5              bsubv(js,lk,1), bsubs(js,lk)
                END DO
             END DO
-!DEC$ ENDIF
+#endif
          ENDIF
       END DO
 
@@ -484,7 +483,7 @@ C                 lu (js,lz,lt ) =  lt
       pprim(ns) = 2*pprim(ns-1) - pprim(ns-2)
 
       IF (lprint_flag) THEN
-!DEC$ IF DEFINED (NETCDF)
+#ifdef NETCDF
       CALL cdf_define(njxbout,vn_legend,legend)
       CALL cdf_define(njxbout,vn_mpol,mpol)
       CALL cdf_define(njxbout,vn_ntor,ntor)
@@ -548,7 +547,7 @@ C                 lu (js,lz,lt ) =  lt
      2     bsupu3, jsups3, jsupv3, jsupu3, jdotb_sqrtg, phin, 
      3     toroidal_angle, sqrtg3, stat=j)
 
-!DEC$ ELSE
+#else
       CLOSE (njxbout)
 
    90 FORMAT(/"   LU      JSUPU      JSUPV      JSUPS      BSUPU",
@@ -564,8 +563,7 @@ C                 lu (js,lz,lt ) =  lt
      2   "<JSUPU>   = ",e12.3,3x,"<JSUPV>         = ",e12.3,/,
      3   " MAXIMUM FORCE DEVIATIONS (RELATIVE TO p'): ",sp,0p,f7.2,"%",
      4     3x,f7.2,"%")
-!DEC$ ENDIF
-
+#endif
       END IF
       
       DEALLOCATE (jperpu, jperpv, sqgb2, sqrtg, jp2, brhomn, bsubsmn, 

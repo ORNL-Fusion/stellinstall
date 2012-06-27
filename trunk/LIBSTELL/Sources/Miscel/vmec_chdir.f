@@ -1,17 +1,17 @@
       INTEGER FUNCTION vmec_chdir(new_path)
       IMPLICIT NONE
       CHARACTER*(*), INTENT(in) :: new_path
-!DEC$ IF DEFINED (CRAY)
+#if defined(CRAY)
       INTEGER :: ilen
       iLEN = 0
       CALL pxfchdir(new_path, ilen, vmec_chdir)
-!DEC$ ELSE
+#else
       INTEGER, EXTERNAL :: chdir
  
-!DEC$ IF DEFINED (SUNOS)
+#if defined(SUNOS)
       vmec_chdir = chdir(TRIM(new_path))
-!DEC$ ELSE
+#else
       vmec_chdir = chdir(TRIM(new_path) // char(0))
-!DEC$ ENDIF
-!DEC$ ENDIF
+#endif
+#endif
       END FUNCTION vmec_chdir
