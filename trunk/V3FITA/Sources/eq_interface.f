@@ -379,7 +379,6 @@
          IF (l_zero_xcdot) CALL eq_change_vmi_zero_xcdot
 !  l_zero_xcdot gets here via a USE v3f_global
 !  For testing 2008-08-04
-
          CALL runvmec(ictrl_array, input_filename, lscreen)
 
 !-------------------------------------------------------------------------------
@@ -389,7 +388,7 @@
 !
 !  Check error flags for error recovery modes.
 !  If a recoverable error has occured, rerun vmec with altered eq_state. Error
-!  recovery is attempted an maximum of 10.
+!  recovery is attempted an maximum of 2.
 !  If a non-recoverable error has occured, do not rerun vmec and report error.
 !  If vmec terminated sucessfully contiune.
 
@@ -405,10 +404,10 @@
             vmec_flag_name_local = 'more_iter_flag'       ! = 2
             EXIT
          CASE (jac75_flag) ! Jacobian failed decrease DELT
-            IF (recovIndex .le. 10) THEN
+            IF (recovIndex .le. 2) THEN
                state%fixp%delt = state%fixp%delt / 2.0
             ELSE
-               vmec_flag_name_local = 'jac75_flag'           ! = 4
+               vmec_flag_name_local = 'jac75_flag'        ! = 4
                EXIT
             ENDIF
          CASE (input_error_flag)
@@ -431,9 +430,16 @@
             EXIT
          END SELECT
 
+!-------------------------------------------------------------------------------
+!  Reset vmec state with altered recovery variable.
+!-------------------------------------------------------------------------------
+!  'state' emains unaltered until VMEC variables are copied bad into 'state' 
+!  after errors are reported.
          WRITE (*,*) 'Attempting error recovery'
-!  Reload vmec variables
+!  Reload vmec variables.
          CALL eq_change_vmi_varp(state)
+!  Reset vmec xc variables.
+         CALL eq_change_vmi_cp_xc(state)
          recovIndex = recovIndex + 1
       END DO
 
