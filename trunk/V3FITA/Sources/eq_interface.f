@@ -433,7 +433,7 @@
 !-------------------------------------------------------------------------------
 !  Reset vmec state with altered recovery variable.
 !-------------------------------------------------------------------------------
-!  'state' emains unaltered until VMEC variables are copied bad into 'state' 
+!  'state' remains unaltered until VMEC variables are copied back into 'state' 
 !  after errors are reported.
          WRITE (*,*) 'Attempting error recovery'
 !  Reload vmec variables.
