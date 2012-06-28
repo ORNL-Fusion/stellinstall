@@ -337,6 +337,7 @@
       CHARACTER	(len=100) :: input_filename
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'eq_step: '
+      INTEGER :: recovIndex = 0
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -351,60 +352,94 @@
       CALL assert_eq(SIZE(state % xcdot),SIZE(xcdot_vmec_2),                   &
      &   sub_name // 'xcdot and state % xcdot not the same size')
 
+!-------------------------------------------------------------------------------
+!  Run vmec until successful or an unrecoverable error has occured.
+!-------------------------------------------------------------------------------
 !  Internal VMEC state is unchanged before call to runvmec.
- 
+      DO
+
 !-------------------------------------------------------------------------------
 !  Setup call to runvmec
 !-------------------------------------------------------------------------------
 !  Use ns_index from the state
-      ictrl_array = 0
-      ictrl_array(1) = timestep_flag + output_flag + reset_jacdt_flag
-      ictrl_array(3) = numiter
-      ictrl_array(4) = state % varp % ns_index
-      iterc_before = iterc
-      iter1        = iter2
+         ictrl_array = 0
+         ictrl_array(1) = timestep_flag + output_flag + reset_jacdt_flag
+         ictrl_array(3) = numiter
+         ictrl_array(4) = state % varp % ns_index
+         iterc_before = iterc
+         iter1        = iter2
       
 !  Construct input_filename from state % wout_filename
 !  Assumes wout_filename is  = 'wout_' // TRIM(input_extension) // '.nc'
 
-      index_end = LEN_TRIM(state % wout_filename)
-      input_filename = 'input.'//state % wout_filename(6:index_end - 3)
+         index_end = LEN_TRIM(state % wout_filename)
+         input_filename =                                                      &
+     &      'input.'//state % wout_filename(6:index_end - 3)
       
-      IF (l_zero_xcdot) CALL eq_change_vmi_zero_xcdot
+         IF (l_zero_xcdot) CALL eq_change_vmi_zero_xcdot
 !  l_zero_xcdot gets here via a USE v3f_global
 !  For testing 2008-08-04
 
-      CALL runvmec(ictrl_array, input_filename, lscreen)
+         CALL runvmec(ictrl_array, input_filename, lscreen)
 
-      CALL eq_aux_12_undefine(state)
-
+!-------------------------------------------------------------------------------
+!  Check error flags for recovery
 !-------------------------------------------------------------------------------
 !  Set error flag. (Flags declared in vmec_params.f)
-!-------------------------------------------------------------------------------
+!
+!  Check error flags for error recovery modes.
+!  If a recoverable error has occured, rerun vmec with altered eq_state. Error
+!  recovery is attempted an maximum of 10.
+!  If a non-recoverable error has occured, do not rerun vmec and report error.
+!  If vmec terminated sucessfully contiune.
 
-      ier_flag = ictrl_array(2)
-      SELECT CASE (ier_flag)
-      CASE (norm_term_flag)
-         vmec_flag_name_local = 'norm_term_flag'       ! = 0
-      CASE (bad_jacobian_flag)
-         vmec_flag_name_local = 'bad_jacobian_flag'    ! = 1
-      CASE (more_iter_flag)
-         vmec_flag_name_local = 'more_iter_flag'       ! = 2
-      CASE (jac75_flag)
-         vmec_flag_name_local = 'jac75_flag'           ! = 4
-      CASE (input_error_flag)
-         vmec_flag_name_local = 'input_error_flag'     ! = 5
-      CASE (phiedge_error_flag)
-         vmec_flag_name_local = 'phiedge_error_flag'   ! = 7
-      CASE (ns_error_flag)
-         vmec_flag_name_local = 'ns_error_flag'        ! = 8
-      CASE (misc_error_flag)
-         vmec_flag_name_local = 'misc_error_flag'      ! = 9
-      CASE (successful_term_flag)
-         vmec_flag_name_local = 'successful_term_flag' ! = 11
-      CASE DEFAULT
-         vmec_flag_name_local = 'default'
-      END SELECT
+         ier_flag = ictrl_array(2)
+         SELECT CASE (ier_flag)
+         CASE (norm_term_flag)
+            vmec_flag_name_local = 'norm_term_flag'       ! = 0
+            EXIT
+         CASE (bad_jacobian_flag)
+            vmec_flag_name_local = 'bad_jacobian_flag'    ! = 1
+            EXIT
+         CASE (more_iter_flag)
+            vmec_flag_name_local = 'more_iter_flag'       ! = 2
+            EXIT
+         CASE (jac75_flag) ! Jacobian failed decrease DELT
+            IF (recovIndex .le. 10) THEN
+               state%fixp%delt = state%fixp%delt / 2.0
+            ELSE
+               vmec_flag_name_local = 'jac75_flag'           ! = 4
+               EXIT
+            ENDIF
+         CASE (input_error_flag)
+            vmec_flag_name_local = 'input_error_flag'     ! = 5
+            EXIT
+         CASE (phiedge_error_flag)
+            vmec_flag_name_local = 'phiedge_error_flag'   ! = 7
+            EXIT
+         CASE (ns_error_flag)
+            vmec_flag_name_local = 'ns_error_flag'        ! = 8
+            EXIT
+         CASE (misc_error_flag)
+            vmec_flag_name_local = 'misc_error_flag'      ! = 9
+            EXIT
+         CASE (successful_term_flag)
+            vmec_flag_name_local = 'successful_term_flag' ! = 11
+            EXIT
+         CASE DEFAULT
+            vmec_flag_name_local = 'default'
+            EXIT
+         END SELECT
+
+         WRITE (*,*) 'Attempting error recovery'
+!  Reload vmec variables
+         CALL eq_change_vmi_varp(state)
+         recovIndex = recovIndex + 1
+      END DO
+
+!-------------------------------------------------------------------------------
+!  Report errors
+!-------------------------------------------------------------------------------
 
       IF (PRESENT(vmec_flag_name)) vmec_flag_name =                            &
      &      vmec_flag_name_local
@@ -418,6 +453,10 @@
           CALL err_warn(sub_name // 'Bad ier_flag ' //                         &
      &            vmec_flag_name_local, int = ier_flag)
       ENDIF
+
+!  Moved by MRC 2012-6-28. This was moved to after error recovery to keep VMEC
+!  state when attempting to recover from an error.
+      CALL eq_aux_12_undefine(state)
       
 !-------------------------------------------------------------------------------
 !  Copy the VMEC variables into the state variables
@@ -525,7 +564,7 @@
      &   ac, ac_aux_s, ac_aux_f, ai, ai_aux_s, ai_aux_f,                       &
      &   am, am_aux_s, am_aux_f, bloat, rbc, zbs, zbc, rbs,                    &     
      &   extcur, curtor, phiedge, pres_scale,                                  &
-     &   mgrid_file, nfp, lfreeb
+     &   mgrid_file, nfp, lfreeb, delt
 
 ! VMEC  - icurv array, for checking. currv - for curtor
 !   irzloff - for call to profil3d
@@ -602,6 +641,11 @@
       bloat = state % varp % bloat
       curtor = state % varp % curtor
       pres_scale = state % varp % pres_scale
+
+!-------------------------------------------------------------------------------
+!  Change error recovery variables.
+!-------------------------------------------------------------------------------
+      delt = state%fixp%delt
 
 !  See if phiedge has changed, set lphiedge_diff, phiedge_ratio
       lphiedge_diff = .false.
