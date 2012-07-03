@@ -305,6 +305,10 @@
 !  IOU for runlog file
       USE v3f_global, ONLY: iou_runlog
 
+!  VMEC inout state. Error recovery is performed directly with out altering the 
+!  orginal state.
+      USE vmec_input, ONLY: delt
+
 !-------------------------------------------------------------------------------
 !  Declarations
 !-------------------------------------------------------------------------------
@@ -380,6 +384,7 @@
 !  l_zero_xcdot gets here via a USE v3f_global
 !  For testing 2008-08-04
          CALL runvmec(ictrl_array, input_filename, lscreen)
+         CALL eq_aux_12_undefine(state)
 
 !-------------------------------------------------------------------------------
 !  Check error flags for recovery
@@ -391,6 +396,9 @@
 !  recovery is attempted an maximum of 2.
 !  If a non-recoverable error has occured, do not rerun vmec and report error.
 !  If vmec terminated sucessfully contiune.
+!  
+!  When altering a fixed parameter, change the value directly in the vmec_input
+!  to avoid altering the eq_state.
 
          ier_flag = ictrl_array(2)
          SELECT CASE (ier_flag)
@@ -405,7 +413,7 @@
             EXIT
          CASE (jac75_flag) ! Jacobian failed decrease DELT
             IF (recovIndex .le. 2) THEN
-               state%fixp%delt = state%fixp%delt / 2.0
+               delt = delt / 2.0
             ELSE
                vmec_flag_name_local = 'jac75_flag'        ! = 4
                EXIT
@@ -436,8 +444,6 @@
 !  'state' remains unaltered until VMEC variables are copied back into 'state' 
 !  after errors are reported.
          WRITE (*,*) 'Attempting error recovery'
-!  Reload vmec variables.
-         CALL eq_change_vmi_varp(state)
 !  Reset vmec xc variables.
          CALL eq_change_vmi_cp_xc(state)
          recovIndex = recovIndex + 1
@@ -459,10 +465,6 @@
           CALL err_warn(sub_name // 'Bad ier_flag ' //                         &
      &            vmec_flag_name_local, int = ier_flag)
       ENDIF
-
-!  Moved by MRC 2012-6-28. This was moved to after error recovery to keep VMEC
-!  state when attempting to recover from an error.
-      CALL eq_aux_12_undefine(state)
       
 !-------------------------------------------------------------------------------
 !  Copy the VMEC variables into the state variables
@@ -570,7 +572,7 @@
      &   ac, ac_aux_s, ac_aux_f, ai, ai_aux_s, ai_aux_f,                       &
      &   am, am_aux_s, am_aux_f, bloat, rbc, zbs, zbc, rbs,                    &     
      &   extcur, curtor, phiedge, pres_scale,                                  &
-     &   mgrid_file, nfp, lfreeb, delt
+     &   mgrid_file, nfp, lfreeb
 
 ! VMEC  - icurv array, for checking. currv - for curtor
 !   irzloff - for call to profil3d
@@ -647,11 +649,6 @@
       bloat = state % varp % bloat
       curtor = state % varp % curtor
       pres_scale = state % varp % pres_scale
-
-!-------------------------------------------------------------------------------
-!  Change error recovery variables.
-!-------------------------------------------------------------------------------
-      delt = state%fixp%delt
 
 !  See if phiedge has changed, set lphiedge_diff, phiedge_ratio
       lphiedge_diff = .false.
