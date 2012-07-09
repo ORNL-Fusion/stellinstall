@@ -322,6 +322,9 @@
 !  ier_flag_vmec   integer ier_flag returned from runvmec
 !  vmec_flag_name  name of the ier_flag from VMEC
 !  delta_iterc     Change in VMEC iterc counter, due to runvmec call
+!  recovIndex      Integer counter, to keep track of number of recovery attempts
+!  delt_local_store  Value of delt on entry. Store, for restoration after
+!                    error recovery
 !  
 !  Declare Arguments 
       INTEGER, INTENT(inout) :: numiter
@@ -339,9 +342,10 @@
       CHARACTER	(len=80) :: vmec_flag_name_local
       INTEGER :: index_end
       CHARACTER	(len=100) :: input_filename
+      INTEGER :: recovIndex = 0
+      REAL(rprec) :: delt_local_store
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'eq_step: '
-      INTEGER :: recovIndex = 0
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -355,10 +359,19 @@
      &   sub_name // 'xc and state % xc not the same size')
       CALL assert_eq(SIZE(state % xcdot),SIZE(xcdot_vmec_2),                   &
      &   sub_name // 'xcdot and state % xcdot not the same size')
+      CALL assert(state % fixp % delt .eq. delt,                               &
+     &   sub_name // 'state % fixp % delt .ne. vmec_input:delt')
+
+!-------------------------------------------------------------------------------
+!  Error recovery - save initial values in _local_store variables
+!-------------------------------------------------------------------------------
+
+      delt_local_store = delt
 
 !-------------------------------------------------------------------------------
 !  Run vmec until successful or an unrecoverable error has occured.
 !-------------------------------------------------------------------------------
+
 !  Internal VMEC state is unchanged before call to runvmec.
       DO
 
@@ -393,12 +406,14 @@
 !
 !  Check error flags for error recovery modes.
 !  If a recoverable error has occured, rerun vmec with altered eq_state. Error
-!  recovery is attempted an maximum of 2.
+!  recovery is attempted a maximum of 2 times.
 !  If a non-recoverable error has occured, do not rerun vmec and report error.
-!  If vmec terminated sucessfully contiune.
+!  If vmec terminated sucessfully continue.
 !  
-!  When altering a fixed parameter, change the value directly in the vmec_input
-!  to avoid altering the eq_state.
+!  When altering a fixed parameter, change the value directly in the 
+!  VMI (VMEC Internal State) and in the eq_state, to keep them consistent.
+!  (Value should have been stored in a _local_store variable, for later
+!  restoration.)
 
          ier_flag = ictrl_array(2)
          SELECT CASE (ier_flag)
@@ -413,7 +428,13 @@
             EXIT
          CASE (jac75_flag) ! Jacobian failed decrease DELT
             IF (recovIndex .le. 2) THEN
-               delt = delt / 2.0
+               WRITE(*,*) sub_name, ' delt change: old, new:',                 &
+     &            delt, delt / 2.
+               WRITE(iou_runlog,*) sub_name, ' delt change: old, new:',        &
+     &            delt, delt / 2.
+               delt = delt / 2.0                          ! Note - no EXIT
+               state % fixp % delt = delt                 ! Keep state consistent
+                                                          ! with VMI
             ELSE
                vmec_flag_name_local = 'jac75_flag'        ! = 4
                EXIT
@@ -444,6 +465,7 @@
 !  'state' remains unaltered until VMEC variables are copied back into 'state' 
 !  after errors are reported.
          WRITE (*,*) 'Attempting error recovery'
+         WRITE (iou_runlog,*) 'Attempting error recovery'
 !  Reset vmec xc variables.
          CALL eq_change_vmi_cp_xc(state)
          recovIndex = recovIndex + 1
@@ -491,6 +513,12 @@
 !    have been put into the eq_state in eq_init_file.
 !  Need to get correct wout filename.
 !      state % wout_filename = 'wout_.nc'
+
+!-------------------------------------------------------------------------------
+!  Error recovery - restore initial values from _local_store variables
+!-------------------------------------------------------------------------------
+      delt = delt_local_store
+      state % fixp % delt = delt_local_store
 
 !-------------------------------------------------------------------------------
 !  Logic to see if have converged
@@ -1782,4 +1810,6 @@
 !  JDH 2012-04-24
 !    In eq_change_vmi_cp_xc, added change of phiedge, to keep phiedge consistent
 !    with the xc array.
+!
+!  MC and JDH, 2012-07-09. Modified eq_step to add error recovery possibilities.
          
