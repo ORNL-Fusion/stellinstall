@@ -11,6 +11,6 @@ add_executable (mgrid ${mgrid_sources})
 add_dependencies (mgrid stell)
 target_link_libraries (mgrid stell)
 
-if (NETCDF_C AND NETCDF_F)
+if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
    target_link_libraries (mgrid ${NETCDF_C} ${NETCDF_F})
 endif ()

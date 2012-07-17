@@ -11,6 +11,6 @@ add_executable (xv3fit ${v3fit_sources})
 add_dependencies (xv3fit vmec stell)
 target_link_libraries (xv3fit vmec stell)
 
-if (NETCDF_C AND NETCDF_F)
+if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
     target_link_libraries (xv3fit ${NETCDF_C} ${NETCDF_F})
 endif ()

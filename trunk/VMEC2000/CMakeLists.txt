@@ -14,6 +14,6 @@ add_executable (xvmec ${CMAKE_CURRENT_SOURCE_DIR}/Sources/General/vmec_main.f)
 add_dependencies (xvmec vmec)
 target_link_libraries (xvmec vmec stell)
 
-if (NETCDF_C AND NETCDF_F)
+if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
     target_link_libraries (xvmec ${NETCDF_C} ${NETCDF_F})
 endif ()
