@@ -14,3 +14,7 @@ target_link_libraries (xv3fit vmec stell)
 if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
     target_link_libraries (xv3fit ${NETCDF_C} ${NETCDF_F})
 endif ()
+
+if (BLAS AND LAPACK)
+    target_link_libraries (xv3fit ${BLAS} ${LAPACK})
+endif ()

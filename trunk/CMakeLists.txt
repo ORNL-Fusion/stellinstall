@@ -35,8 +35,10 @@ if (APPLE)
 endif ()
 
 # Set Linux specific options. This adds a predefine for LINUX.
-if (LINUX)
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D LINUX")
+    find_library (BLAS blas /usr/lib)
+    find_library (LAPACK lapack /usr/lib)
 endif ()
 
 # Use netcdf if libraries are found. The values of NETCDF_LIB_PATH and NETCDF_INC_PATH should be set from the command line or Cmake GUI. Convert path from native format to cmake internal format.
