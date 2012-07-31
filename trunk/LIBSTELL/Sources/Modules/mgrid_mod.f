@@ -708,6 +708,9 @@ C-----------------------------------------------
 
       IF (ALLOCATED(rlim))
      1   DEALLOCATE (rlim,zlim, reslim,seplim,stat=istat)
+     
+!  Reset mgrid_path_old, so that can reread an mgrid file. SL, JDH 2012-07-16
+      mgrid_path_old = " "     
 
       END SUBROUTINE free_mgrid
 

@@ -160,6 +160,14 @@
              WRITE(6,*)"x = ", x
              STOP 'pcurr: outside value from spline_akima_int requested'
         ENDIF
+!  Note that spline_akima_int integrates with ac_aux_s(1) as the lower limit.
+!  Assumption here is that lower limit is s = 0. Check this assumption.
+        IF (ABS(ac_aux_s(1)) .gt. 0.0001) THEN
+           WRITE(*,*) ' Error in profile_functions, Akima_spline_Ip'
+           WRITE(*,*) ' ABS(ac_aux_s(1)) .gt. 0.0001'
+           WRITE(*,*) ' Fix This. Stopping'
+           STOP
+        ENDIF
 
       CASE('cubic_spline_I','cubic_spline_i') ! former ipcurr=13
 !  I(s) with Cubic splines
@@ -195,6 +203,14 @@
           ELSE
             STOP 'pcurr: unknown error from spline_cubic_int'
           ENDIF
+        ENDIF
+!  Note that spline_cubic_int integrates with ac_aux_s(1) as the lower limit.
+!  Assumption here is that lower limit is s = 0. Check this assumption.
+        IF (ABS(ac_aux_s(1)) .gt. 0.0001) THEN
+           WRITE(*,*) ' Error in profile_functions, cubic_spline_Ip'
+           WRITE(*,*) ' ABS(ac_aux_s(1)) .gt. 0.0001'
+           WRITE(*,*) ' Fix This. Stopping'
+           STOP
         ENDIF
 
       CASE ('pedestal')
