@@ -1683,6 +1683,8 @@
 !    (Used for the inversion of the inverse posterior covariance matrix)
 !  As of 2009-10-06, the signal covariance matrix is assumed to be diagonal.
 !  JDH 2009-10-06
+!  JDH 2012-07-31 - Changed tiny, and modified code to avoid floating point
+!    exceptions
 
 !            Arguments
 !   ssigma_v      1d array of signal sigma values, nsig long
@@ -1722,7 +1724,8 @@
       INTEGER  :: nrow, ncol, minrowcol, l_work_svd, info_svd
 
 !      REAL(rprec)  :: tiny=1.D-20
-      REAL(rprec)  :: tiny=1.D-40 !  JDH 2010-06-11. Kludge for sxrch test
+!      REAL(rprec)  :: tiny=1.D-40 !  JDH 2010-06-11. Kludge for sxrch test
+      REAL(rprec), PARAMETER :: tiny_local = 10. * TINY(one)
 
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: jac_local,                   &
      &   csignal, cposterior, svd_u, svd_vt, cpinv, wpi,                       &
@@ -1769,7 +1772,7 @@
       csignalinv = zero
       DO i = 1,nsig
          csignal(i,i) = ssigma_v(i) ** 2
-         csignalinv(i,i) = one / ssigma_v(i) ** 2
+         csignalinv(i,i) = one / (ssigma_v(i) ** 2 + tiny_local)
       END DO
 
 !  Generate inverse of posterior covariance matrix
@@ -1805,16 +1808,16 @@
       CALL assert_eq(0,ier1,sub_name // 'alloc wpi array')
       wpi = zero
       DO i = 1,minrowcol
-         IF (svd_w(i) .lt. tiny) THEN
-            CALL err_warn(sub_name ,'SV small',svd_w(i),i)
-         ENDIF
-         wpi(i,i) = one / MAX(svd_w(i),tiny)
+!         IF (svd_w(i) .lt. tiny) THEN
+!            CALL err_warn(sub_name ,'SV small',svd_w(i),i)
+!         ENDIF
+         wpi(i,i) = one / MAX(svd_w(i),tiny_local)
       END DO
       cposterior = MATMUL(TRANSPOSE(svd_vt),                                   &
      &   MATMUL(wpi,TRANSPOSE(svd_u)))
 
       DO j = 1,nrp
-         psigma_v(j) = SQRT(cposterior(j,j))
+         psigma_v(j) = SQRT(MAX(cposterior(j,j),tiny_local))
       END DO
 
 !  Generate SEM matrix
@@ -1823,7 +1826,7 @@
       DO j = 1,nrp
          DO i = 1,nsig
             sem_a(j,i) = (jac_dot_cp(i,j) /                                    &
-     &            (psigma_v(j) * ssigma_v(i))) ** 2
+     &            (MAX(psigma_v(j) * ssigma_v(i),tiny_local))) ** 2
          END DO
       END DO
       
