@@ -86,20 +86,25 @@
 !    nsignal    Number of signals.
 !
 !  Variables:
-!    nsteps (INT)
+!    nsteps (INT) Actual number of reconstruction steps. This starts from zero.
 !
-!    g2 (DOUBLE)
+!    g2 (DOUBLE) g^2 of each reconstruction step.
 !
-!    param_name (STRING)
-!    param_index (INT)
-!    param_value (DOUBLE)
-!    param_sigma (DOUBLE)
+!    param_name (STRING) Name of the reconstruction parameter.
+!    param_index (INT) Index of the reconstruction parameter.
+!    param_value (DOUBLE) Value of the reconstruction parameter at each 
+!                         reconstruction step.
+!    param_sigma (DOUBLE) Sigma of the reconstruction parameter at each 
+!                         reconstruction step.
 !
-!    signal_name (STRING)
-!    signal_type (STRING)
-!    signal_observed_value (DOUBLE)
-!    signal_model_value (DOUBLE)
-!    signal_sigma (DOUBLE)
+!    signal_name (STRING) Long name of the signal.
+!    signal_type (STRING) Description of the signal.
+!    signal_observed_value (DOUBLE) Observed value of the signal at each 
+!                                   reconstruction step.
+!    signal_model_value (DOUBLE) Modeled value of the signal at each 
+!                                reconstruction step.
+!    signal_sigma (DOUBLE) Sigma value of the reconstruction step.
+!                          sig = Sqrt( Model_sig^2 + Observe_sig^2 )
 !
 !*******************************************************************************
       FUNCTION result_output_file_create(path, sd_model, sd_observed)
@@ -267,6 +272,7 @@
      &                gsq_g2)
       CALL result_output_check_error(result_output_file_create%status)
 
+! Fill in reconstuction parameters.
       DO i = 1, n_rparam
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
@@ -301,6 +307,7 @@
      &      result_output_check_error(result_output_file_create%status)
       END DO
 
+! Fill in signals
       DO i = 1, n_sdata_o
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
@@ -351,17 +358,90 @@
 !*******************************************************************************
 !  Write reconstruction step to the netcdf file.
 !*******************************************************************************
-      SUBROUTINE result_output_file_write_step(result_file_ref)
+      SUBROUTINE result_output_file_write_step(result_file_ref,                &
+     &                                         sd_model,                       &
+     &                                         sd_observed)
+      USE v3f_global, ONLY: n_rparam, n_sdata_o
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       TYPE (result_file) :: result_file_ref
+      TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
+     &   sd_model, sd_observed
+      INTEGER :: nsteps, i
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
+! Read and update current step.
+      result_file_ref%status =                                                 &
+     &   nf90_get_var(result_file_ref%ncid,                                    &
+     &                result_file_ref%nsteps_id,                               &
+     &                nsteps)
+      CALL result_output_check_error(result_file_ref%status)
+      nsteps = nsteps + 1
+      result_file_ref%status =                                                 &
+     &   nf90_put_var(result_file_ref%ncid,                                    &
+     &                result_file_ref%nsteps_id,                               &
+     &                nsteps)
+      CALL result_output_check_error(result_file_ref%status)
+
+! Steps start at zero however array offsets in the netcdf routines start at one. 
+! Increment nsteps to reflect the correct array position.
+      nsteps = nsteps + 1
+
+      result_file_ref%status =                                                 &
+     &   nf90_put_var(result_file_ref%ncid,                                    &
+     &                result_file_ref%g2_id,                                   & 
+     &                gsq_g2,                                                  &
+     &                start = (/ nsteps /))
+      CALL result_output_check_error(result_file_ref%status)
+
+! Fill in reconstuction parameters.
+      DO i = 1, n_rparam
+         result_file_ref%status =                                              &
+     &      nf90_put_var(result_file_ref%ncid,                                 &
+     &                   result_file_ref%param_value_id,                       &
+     &                   rparam(i)%value,                                      &
+     &                   start = (/ nsteps, i /))
+         CALL result_output_check_error(result_file_ref%status)
+
+         result_file_ref%status =                                              &
+     &      nf90_put_var(result_file_ref%ncid,                                 &
+     &                   result_file_ref%param_index_id,                       &
+     &                   rparam(i)%vrnc,                                       &
+     &                   start = (/ nsteps, i /))
+         CALL result_output_check_error(result_file_ref%status)
+      END DO
+
+! Fill in signals
+      DO i = 1, n_sdata_o
+         result_file_ref%status =                                              &
+     &      nf90_put_var(                                                      &
+     &         result_file_ref%ncid,                                           &
+     &         result_file_ref%signal_obser_value_id,                          &
+     &         sd_observed(i)%data(1),                                         &
+     &         start = (/ nsteps, i /))
+         CALL result_output_check_error(result_file_ref%status)
+
+         result_file_ref%status =                                              &
+     &      nf90_put_var(                                                      &
+     &         result_file_ref%ncid,                                           &
+     &         result_file_ref%signal_model_value_id,                          &
+     &         sd_model(i)%data(1),                                            &
+     &         start = (/ nsteps, i /))
+         CALL result_output_check_error(result_file_ref%status)
+
+         result_file_ref%status =                                              &
+     &      nf90_put_var(result_file_ref%ncid,                                 &
+     &                   result_file_ref%signal_sigma_id,                      &
+     &                   SQRT(sd_model(i)%sigma(1)**2 +                        &
+     &                        sd_observed(i)%sigma(1)**2),                     &
+     &                   start = (/ nsteps, i /))
+         CALL result_output_check_error(result_file_ref%status)
+      END DO
 
       END SUBROUTINE
 
