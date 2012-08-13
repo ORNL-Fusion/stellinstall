@@ -127,13 +127,13 @@
 ! name list input file.
 
       beginIndex = INDEX(path, "input") + 5
-      endIndex = INDEX(path, "v3fit", .FALSE.)
+      endIndex = INDEX(path, "v3fit", .FALSE.) - 1
 
       result_output_file_create%status =                                       &
      &   nf90_create(path  = "result" //                                       &
      &                       TRIM(path(beginIndex:endIndex)) //                &
      &                       "nc",                                             &
-     &               cmode = nf90_noclobber,                                   &
+     &               cmode = nf90_clobber,                                     &
      &               ncid  = result_output_file_create%ncid)        
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -186,8 +186,8 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "param_name",                                            &
      &                nf90_char,                                               &
-     &                (/ result_output_file_create%nparam_dim_id,              &
-     &                   result_output_file_create%string_len_id /),           & 
+     &                (/ result_output_file_create%string_len_id,              &
+     &                   result_output_file_create%nparam_dim_id /),           & 
      &                result_output_file_create%param_name_id)
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -203,8 +203,8 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "param_value",                                           &
      &                nf90_double,                                             &
-     &                (/ result_output_file_create%maxnsteps_dim_id,           &
-     &                   result_output_file_create%nparam_dim_id /),           &
+     &                (/ result_output_file_create%nparam_dim_id,              &
+     &                   result_output_file_create%maxnsteps_dim_id /),        &
      &                result_output_file_create%param_value_id)                &
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -212,8 +212,8 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "param_sigma",                                           &
      &                nf90_double,                                             &
-     &                (/ result_output_file_create%maxnsteps_dim_id,           &
-     &                   result_output_file_create%nparam_dim_id /),           &
+     &                (/ result_output_file_create%nparam_dim_id,              &
+     &                   result_output_file_create%maxnsteps_dim_id /),        &
      &                result_output_file_create%param_sigma_id)                &
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -221,17 +221,17 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "signal_name",                                           &
      &                nf90_char,                                               &
-     &                (/ result_output_file_create%nparam_dim_id,              &
-     &                   result_output_file_create%string_len_id /),           & 
+     &                (/ result_output_file_create%string_len_id,              &
+     &                   result_output_file_create%nsignal_dim_id /),          & 
      &                result_output_file_create%signal_name_id)
       CALL result_output_check_error(result_output_file_create%status)
 
       result_output_file_create%status =                                       &
      &   nf90_def_var(result_output_file_create%ncid,                          &
-     &                "signal_type",                                            &
+     &                "signal_type",                                           &
      &                nf90_char,                                               &
-     &                (/ result_output_file_create%nparam_dim_id,              &
-     &                   result_output_file_create%string_len_id /),           & 
+     &                (/ result_output_file_create%string_len_id,              &
+     &                   result_output_file_create%nsignal_dim_id /),          & 
      &                result_output_file_create%signal_type_id)
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -239,8 +239,8 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "signal_observed_value",                                 &
      &                nf90_double,                                             &
-     &                (/ result_output_file_create%maxnsteps_dim_id,           &
-     &                   result_output_file_create%nsignal_dim_id /),          &
+     &                (/ result_output_file_create%nsignal_dim_id,             &
+     &                   result_output_file_create%maxnsteps_dim_id /),        &
      &                result_output_file_create%signal_obser_value_id)         &
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -248,8 +248,8 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "signal_model_value",                                    &
      &                nf90_double,                                             &
-     &                (/ result_output_file_create%maxnsteps_dim_id,           &
-     &                   result_output_file_create%nparam_dim_id /),           &
+     &                (/ result_output_file_create%nsignal_dim_id,             &
+     &                   result_output_file_create%maxnsteps_dim_id /),        &
      &                result_output_file_create%signal_model_value_id)         &
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -257,8 +257,8 @@
      &   nf90_def_var(result_output_file_create%ncid,                          &
      &                "signal_sigma",                                          &
      &                nf90_double,                                             &
-     &                (/ result_output_file_create%maxnsteps_dim_id,           &
-     &                   result_output_file_create%nparam_dim_id /),           &
+     &                (/ result_output_file_create%nsignal_dim_id,             &
+     &                   result_output_file_create%maxnsteps_dim_id /),        &
      &                result_output_file_create%signal_sigma_id)               &
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -286,7 +286,7 @@
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_name_id,              &
      &                   rparam(i)%p_type,                                     &
-     &                   start = (/ i /))
+     &                   start = (/ 1, i /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
@@ -302,7 +302,7 @@
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_value_id,             &
      &                   rparam(i)%value,                                      &
-     &                   start = (/ 1, i /))
+     &                   start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
@@ -310,9 +310,10 @@
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_index_id,             &
      &                   rparam(i)%vrnc,                                       &
-     &                   start = (/ 1, i /))
+     &                   start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
+
       END DO
 
 ! Fill in signals
@@ -320,16 +321,16 @@
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%signal_name_id,             &
-     &                   s_desc(i)%l_name,                                &
-     &                   start = (/ i /))
+     &                   s_desc(i)%l_name,                                     &
+     &                   start = (/ 1, i /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%signal_type_id,             &
-     &                   s_desc(i)%s_type,                                &
-     &                   start = (/ i /))
+     &                   s_desc(i)%s_type,                                     &
+     &                   start = (/ 1, i /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
@@ -338,7 +339,7 @@
      &         result_output_file_create%ncid,                                 &
      &         result_output_file_create%signal_obser_value_id,                &
      &         sd_observed(i)%data(1),                                         &
-     &         start = (/ 1, i /))
+     &         start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
@@ -347,7 +348,7 @@
      &         result_output_file_create%ncid,                                 &
      &         result_output_file_create%signal_model_value_id,                &
      &         sd_model(i)%data(1),                                            &
-     &         start = (/ 1, i /))
+     &         start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
@@ -356,9 +357,10 @@
      &                   result_output_file_create%signal_sigma_id,            &
      &                   SQRT(sd_model(i)%sigma(1)**2 +                        &
      &                        sd_observed(i)%sigma(1)**2),                     &
-     &                   start = (/ 1, i /))
+     &                   start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
+
       END DO
 
       END FUNCTION result_output_file_create
@@ -413,14 +415,14 @@
      &      nf90_put_var(result_file_ref%ncid,                                 &
      &                   result_file_ref%param_value_id,                       &
      &                   rparam(i)%value,                                      &
-     &                   start = (/ nsteps, i /))
+     &                   start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
 
          result_file_ref%status =                                              &
      &      nf90_put_var(result_file_ref%ncid,                                 &
      &                   result_file_ref%param_index_id,                       &
      &                   rparam(i)%vrnc,                                       &
-     &                   start = (/ nsteps, i /))
+     &                   start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
       END DO
 
@@ -431,7 +433,7 @@
      &         result_file_ref%ncid,                                           &
      &         result_file_ref%signal_obser_value_id,                          &
      &         sd_observed(i)%data(1),                                         &
-     &         start = (/ nsteps, i /))
+     &         start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
 
          result_file_ref%status =                                              &
@@ -439,7 +441,7 @@
      &         result_file_ref%ncid,                                           &
      &         result_file_ref%signal_model_value_id,                          &
      &         sd_model(i)%data(1),                                            &
-     &         start = (/ nsteps, i /))
+     &         start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
 
          result_file_ref%status =                                              &
@@ -447,7 +449,7 @@
      &                   result_file_ref%signal_sigma_id,                      &
      &                   SQRT(sd_model(i)%sigma(1)**2 +                        &
      &                        sd_observed(i)%sigma(1)**2),                     &
-     &                   start = (/ nsteps, i /))
+     &                   start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
       END DO
 
