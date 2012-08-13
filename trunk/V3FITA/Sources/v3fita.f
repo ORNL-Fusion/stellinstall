@@ -2065,6 +2065,7 @@
       USE recon_param_model
       USE gsq_mod
       USE mmaw
+      USE result_output
       IMPLICIT NONE
 !----------------------------------------------------------------------
 ! A R G U M E N T Declarations
@@ -2091,6 +2092,10 @@
 !  temp_npvec   vector of length gsq_np, for parameter error printout
 !  nrs          integer, number of actual reconstruction steps taken
 !  irstep       integer, index for reconstruction step loop
+!
+!  result_file_ref reference to the netcdf file containing reconstruction
+!                  parameters
+!
 
       REAL(rprec), DIMENSION(5) :: step_cntrl_array
 
@@ -2123,6 +2128,9 @@
       CHARACTER(len=25)     :: a_string
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'task_reconstruct_a1: '
+
+      TYPE (result_file) :: result_file_ref      
+
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
@@ -2225,7 +2233,11 @@
       WRITE(iou_runlog,*) '  g2 = ', save_g2(0)
       CALL recon_param_write(rp_old,                                           &
      &   ' Initial Reconstruction Parameters',iou_runlog)
-      
+
+      result_file_ref = result_output_file_create(main_nli_filename,           &
+     &                                            sd_model,                    &
+     &                                            sd_observe)
+
 !  Loop over the reconstruction steps
       sum_dr = 0.
       sum_da = 0.
@@ -2432,8 +2444,14 @@
             WRITE(iou_runlog,*) irstep,                                        &
      &          ' steps completed - may be reconstructed'
          ENDIF
+         
+         CALL result_output_file_write_step(result_file_ref,                   &
+     &                                      sd_model,                          &
+     &                                      sd_observe)
 
       END DO
+
+      CALL result_output_file_close(result_file_ref)
 
 !  Print out final information
       nrs = MIN(irstep,nrstep)
