@@ -118,13 +118,21 @@
       TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
      &   sd_model, sd_observed
       TYPE (result_file) :: result_output_file_create
-      INTEGER :: i
+      INTEGER :: i, beginIndex, endIndex
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
+! Fine the start and end index of the of the "." to get the base name of the
+! name list input file.
+
+      beginIndex = INDEX(path, "input") + 5
+      endIndex = INDEX(path, "v3fit", .FALSE.)
+
       result_output_file_create%status =                                       &
-     &   nf90_create(path  = path,                                             &
+     &   nf90_create(path  = "result" //                                       &
+     &                       TRIM(path(beginIndex:endIndex)) //                &
+     &                       "nc",                                             &
      &               cmode = nf90_noclobber,                                   &
      &               ncid  = result_output_file_create%ncid)        
       CALL result_output_check_error(result_output_file_create%status)
