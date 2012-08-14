@@ -16,7 +16,9 @@
 !  pcurr_type       character, specifies the parameterization of the profile
 !                     | - X for parametrization of I-prime(s), _ for I(s)
 !    gauss_trunc      X    Truncated Gaussian - I-prime
-!    two_power        X    Two powers - (1 - s ** ac(0)) ** ac(1)
+!    two_power        X    Two powers - ac(0) * (1 - s ** ac(1)) ** ac(2)
+!    two_power_gs     X    Two powers with guassian peaks -
+!                          ac(0) * ((1 - s ** ac(1)) ** ac(2))*(1 + Sum[ac(i)*Exp((s - ac(i+1))/ac(i+2)) ** 2])
 !    sum_atan         _    sum of arctangents
 !    power_series_I   _    Power series for I(s) (NOT default)
 !    Akima_spline_Ip  X    Akima spline for I-prime(s) 
@@ -100,7 +102,7 @@
       CASE ('two_power')
 !  Two power profile
 !  I-prime(s) = [1 - s**ac(0)]**ac(1)            !! Old as of 2010-05-26
-!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2)    !! Current as of 2010-05-26
+!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2)]   !! Current as of 2010-05-26
 !  Gauss-Legendre Quadrature to get I(s)
          DO gli = 1,gln
             xp = x * glx(gli)
@@ -108,7 +110,23 @@
          END DO
          pcurr = pcurr * x     ! correct for x interval
 
-      CASE('sum_atan') 
+      CASE ('two_power_gs')
+!  Two power profile
+!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2) * (1 + Sum[ac(i)*Exp((s - ac(i+1))/ac(i+2)) ** 2])
+!  Gauss-Legendre Quadrature to get I(s)
+         DO gli = 1,gln
+            xp = x * glx(gli)
+            temp_num = 1.0
+            DO i = 3, 18, 3
+               temp_num = temp_num + ac(i)                                     &
+     &                  * exp(((xp - ac(i+1))/ac(i+2)) ** 2)
+            ENDDO
+            pcurr = pcurr + glw(gli) * ac(0) * ((1-xp**ac(1))**ac(2))          &
+     &            * temp_num
+         END DO
+         pcurr = pcurr * x     ! correct for x interval
+
+      CASE('sum_atan')
 !  I(s)  - not I-prime(s)
 !       pcurr = ac(0) +                                                         &
 !     &         ac(1) * (2/pi) * atan(ac(2)*x**ac(3)/(1-x)**ac(4)) +            &
