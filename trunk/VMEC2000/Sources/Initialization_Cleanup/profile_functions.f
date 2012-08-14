@@ -17,7 +17,7 @@
 !                     | - X for parametrization of I-prime(s), _ for I(s)
 !    gauss_trunc      X    Truncated Gaussian - I-prime
 !    two_power        X    Two powers - ac(0) * (1 - s ** ac(1)) ** ac(2)
-!    two_power_gs     X    Two powers with guassian peaks -
+!    two_power_gs     X    Two powers with gaussian peaks -
 !                          ac(0) * ((1 - s ** ac(1)) ** ac(2))*(1 + Sum[ac(i)*Exp((s - ac(i+1))/ac(i+2)) ** 2])
 !    sum_atan         _    sum of arctangents
 !    power_series_I   _    Power series for I(s) (NOT default)
@@ -102,7 +102,7 @@
       CASE ('two_power')
 !  Two power profile
 !  I-prime(s) = [1 - s**ac(0)]**ac(1)            !! Old as of 2010-05-26
-!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2)]   !! Current as of 2010-05-26
+!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2)    !! Current as of 2010-05-26
 !  Gauss-Legendre Quadrature to get I(s)
          DO gli = 1,gln
             xp = x * glx(gli)
@@ -111,7 +111,7 @@
          pcurr = pcurr * x     ! correct for x interval
 
       CASE ('two_power_gs')
-!  Two power profile
+!  Two power with Gaussian peak profile
 !  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2) * (1 + Sum[ac(i)*Exp((s - ac(i+1))/ac(i+2)) ** 2])
 !  Gauss-Legendre Quadrature to get I(s)
          DO gli = 1,gln
