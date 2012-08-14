@@ -2408,6 +2408,11 @@
          WRITE(iou_runlog,'(3(4x,es11.4))') save_g2(irstep-1),                 &
      &      save_g2(irstep), g2_diff
 
+!  Write out step data to result file.
+         CALL result_output_file_write_step(result_file_ref,                   &
+     &                                      sd_model,                          &
+     &                                      sd_observe)
+
         rp_old = rp_new
 
 !  This is where an exit test should go
@@ -2444,13 +2449,10 @@
             WRITE(iou_runlog,*) irstep,                                        &
      &          ' steps completed - may be reconstructed'
          ENDIF
-         
-         CALL result_output_file_write_step(result_file_ref,                   &
-     &                                      sd_model,                          &
-     &                                      sd_observe)
 
       END DO
 
+!  Close result file.
       CALL result_output_file_close(result_file_ref)
 
 !  Print out final information
