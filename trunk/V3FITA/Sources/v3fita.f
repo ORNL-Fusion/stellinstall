@@ -2235,6 +2235,7 @@
      &   ' Initial Reconstruction Parameters',iou_runlog)
 
       result_file_ref = result_output_file_create(main_nli_filename,           &
+     &                                            rp_old,                      &
      &                                            sd_model,                    &
      &                                            sd_observe)
 
@@ -2410,6 +2411,7 @@
 
 !  Write out step data to result file.
          CALL result_output_file_write_step(result_file_ref,                   &
+     &                                      rp_new,                            &
      &                                      sd_model,                          &
      &                                      sd_observe)
 

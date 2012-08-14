@@ -11,7 +11,7 @@
       USE netcdf
       USE gsq_mod, ONLY: gsq_g2
       USE signal_T
-      USE v3f_global, ONLY: rparam, s_desc
+      USE recon_param_T
 
 !*******************************************************************************
 !  Object representing the results file. This is mean to be an opaque. All 
@@ -40,7 +40,7 @@
 !    param_sigma_id (maxnsteps_dim_id, nparam_dim_id) Parameter sigmas for each
 !                   reconstruction step.
 !
-!    signal_name_id (nsignal_dim_id) Long name of the signals.
+!    signal_name_id (nsignal_dim_id) Short name of the signals.
 !    signal_type_id (nsignal_dim_id) Type of the signals.
 !    signal_obser_value_id (maxnsteps_dim_id, nsignal_dim_id) Observed signals 
 !                          for each reconstruction step.
@@ -107,14 +107,18 @@
 !                          sig = Sqrt( Model_sig^2 + Observe_sig^2 )
 !
 !*******************************************************************************
-      FUNCTION result_output_file_create(path, sd_model, sd_observed)
-      USE v3f_global, ONLY: nrstep, n_rparam, n_sdata_o
+      FUNCTION result_output_file_create(path,                                 &
+     &                                   params,                               &
+     &                                   sd_model,                             &
+     &                                   sd_observed)
+      USE v3f_global, ONLY: nrstep, n_rparam, n_sdata_o, s_desc
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       CHARACTER (len = *), INTENT(in) :: path
+      TYPE (recon_param), DIMENSION(n_rparam), INTENT(in) :: params
       TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
      &   sd_model, sd_observed
       TYPE (result_file) :: result_output_file_create
@@ -285,7 +289,7 @@
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_name_id,              &
-     &                   rparam(i)%p_type,                                     &
+     &                   params(i)%p_type,                                     &
      &                   start = (/ 1, i /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -293,7 +297,7 @@
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_index_id,             &
-     &                   rparam(i)%index,                                      &
+     &                   params(i)%index,                                      &
      &                   start = (/ i /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -301,7 +305,7 @@
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_value_id,             &
-     &                   rparam(i)%value,                                      &
+     &                   params(i)%value,                                      &
      &                   start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -309,7 +313,7 @@
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%param_sigma_id,             &
-     &                   rparam(i)%vrnc,                                       &
+     &                   params(i)%vrnc,                                       &
      &                   start = (/ i, 1 /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -321,7 +325,7 @@
          result_output_file_create%status =                                    &
      &      nf90_put_var(result_output_file_create%ncid,                       &
      &                   result_output_file_create%signal_name_id,             &
-     &                   s_desc(i)%l_name,                                     &
+     &                   s_desc(i)%s_name,                                     &
      &                   start = (/ 1, i /))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -369,6 +373,7 @@
 !  Write reconstruction step to the netcdf file.
 !*******************************************************************************
       SUBROUTINE result_output_file_write_step(result_file_ref,                &
+     &                                         params,                         &
      &                                         sd_model,                       &
      &                                         sd_observed)
       USE v3f_global, ONLY: n_rparam, n_sdata_o
@@ -378,6 +383,7 @@
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       TYPE (result_file) :: result_file_ref
+      TYPE (recon_param), DIMENSION(n_rparam) :: params
       TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
      &   sd_model, sd_observed
       INTEGER :: nsteps, i
@@ -414,14 +420,14 @@
          result_file_ref%status =                                              &
      &      nf90_put_var(result_file_ref%ncid,                                 &
      &                   result_file_ref%param_value_id,                       &
-     &                   rparam(i)%value,                                      &
+     &                   params(i)%value,                                      &
      &                   start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
 
          result_file_ref%status =                                              &
      &      nf90_put_var(result_file_ref%ncid,                                 &
      &                   result_file_ref%param_sigma_id,                       &
-     &                   rparam(i)%vrnc,                                       &
+     &                   params(i)%vrnc,                                       &
      &                   start = (/ i, nsteps /))
          CALL result_output_check_error(result_file_ref%status)
       END DO
