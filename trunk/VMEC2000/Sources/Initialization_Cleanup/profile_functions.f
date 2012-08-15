@@ -18,7 +18,7 @@
 !    gauss_trunc      X    Truncated Gaussian - I-prime
 !    two_power        X    Two powers - ac(0) * (1 - s ** ac(1)) ** ac(2)
 !    two_power_gs     X    Two powers with gaussian peaks -
-!                          ac(0) * ((1 - s ** ac(1)) ** ac(2))*(1 + Sum[ac(i)*Exp((s - ac(i+1))/ac(i+2)) ** 2])
+!                          ac(0) * ((1 - s ** ac(1)) ** ac(2))*(1 + Sum[ac(i)*Exp(-(s - ac(i+1))/ac(i+2)) ** 2])
 !    sum_atan         _    sum of arctangents
 !    power_series_I   _    Power series for I(s) (NOT default)
 !    Akima_spline_Ip  X    Akima spline for I-prime(s) 
@@ -112,14 +112,14 @@
 
       CASE ('two_power_gs')
 !  Two power with Gaussian peak profile
-!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2) * (1 + Sum[ac(i)*Exp((s - ac(i+1))/ac(i+2)) ** 2])
+!  I-prime(s) = ac(0) * [1 - s**ac(1)]**ac(2) * (1 + Sum[ac(i)*Exp(-(s - ac(i+1))/ac(i+2)) ** 2])
 !  Gauss-Legendre Quadrature to get I(s)
          DO gli = 1,gln
             xp = x * glx(gli)
             temp_num = 1.0
             DO i = 3, 18, 3
                temp_num = temp_num + ac(i)                                     &
-     &                  * exp(((xp - ac(i+1))/ac(i+2)) ** 2)
+     &                  * exp(-((xp - ac(i+1))/ac(i+2)) ** 2)
             ENDDO
             pcurr = pcurr + glw(gli) * ac(0) * ((1-xp**ac(1))**ac(2))          &
      &            * temp_num
