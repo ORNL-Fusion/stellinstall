@@ -232,6 +232,9 @@
 !         CALL init_equilibrium
          CALL task_bfield_grid
 
+      CASE('unit_tests')
+         CALL task_unit_tests
+
 !  2009-03-05 JDH - Deleted tasks 'ray_tracing' and 'rtrace_circle', along with
 !     corresponding subroutines task_ray_tracing and task_rtrace_circle
 
@@ -3832,6 +3835,24 @@
 
 !  2009-03-05 JDH - Deleted tasks 'ray_tracing' and 'rtrace_circle', along with
 !     corresponding subroutines task_ray_tracing and task_rtrace_circle
+
+!----------------------------------------------------------------------
+!*******************************************************************************
+!----------------------------------------------------------------------
+      SUBROUTINE task_unit_tests
+      USE line_segment
+!----------------------------------------------------------------------
+! L O C A L Variable Declarations
+!----------------------------------------------------------------------
+      LOGICAL :: test_passed
+!-----------------------------------------------
+!  Start of Executable Code
+!-----------------------------------------------
+! Line segment tests
+      test_passed = line_seg_test()
+      IF (test_passed) write(*,*) "Line Segment Test Passed"
+      
+      END SUBROUTINE
 
 !*******************************************************************************
 ! SECTION V.	SUBROUTINES FOR TESTNG
