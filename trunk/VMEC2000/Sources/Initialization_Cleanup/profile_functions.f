@@ -27,6 +27,8 @@
 !    cubic_spline_I   _    cubic spline for I(s) 
 !    pedestal         _    Pedestal profile
 !    rational         _    Rational function (ratio of polynomials)
+!    line_segment_Ip  X    Line segments for I-prime(s)
+!    line_segment_I   _    Line segments for I(s)
 !    power_series     X    Power Series for I-prime(s) (Default)
 
 !    Local Variables
@@ -50,6 +52,7 @@
       USE stel_kinds
       USE stel_constants, ONLY: zero, one, pi
       USE vmec_input, ONLY: ac, bloat, pcurr_type, ac_aux_s, ac_aux_f
+      USE line_segment
       IMPLICIT NONE
 ! ac assumed to be dimensioned (0:n), with n >= 20 
 !-----------------------------------------------
@@ -281,6 +284,18 @@
             pcurr = HUGE(pcurr)
          ENDIF
       
+      CASE('line_segment_Ip', 'line_segment_ip')
+!  I(s) from I-prime(s)-values. Integrated line segments to determine the plasma
+!  current.
+         i = minloc(ac_aux_s(2:),dim=1)
+         CALL line_seg_int(x,pcurr,ac_aux_s,ac_aux_f,i)
+      
+      CASE('line_segment_I', 'line_segment_i')
+!  I(s) values. Linearly interpolated line segments to determine the plasma
+!  current.
+         i = minloc(ac_aux_s(2:),dim=1)
+         CALL line_seg(x,pcurr,ac_aux_s,ac_aux_f,i)
+
       CASE DEFAULT
 !  Power series
 !  I-prime(s) = Sum(i,0,-)[ac(i) * s ** i] 
@@ -315,6 +330,7 @@
 !    cubic_spline      cubic spline
 !    rational          rational (ratio of polynomials)
 !    nice_quadratic    quadratic with rerranged coefficients.
+!    line_segment      Linearly interpolated line segments
 !    power_series      Power Series (Default)
 !  lRFP             logical - Reversed Field Pinch
 !    True -  ai parameterization specifies q-profile (= 1 / iota)
@@ -330,6 +346,7 @@
       USE stel_kinds
       USE stel_constants, ONLY: zero, one, pi
       USE vmec_input, ONLY: ai, piota_type, ai_aux_s, ai_aux_f, lRFP
+      USE line_segment
       IMPLICIT NONE
 ! ai assumed to be dimensioned (0:n), with n >= 20 
 !-----------------------------------------------
@@ -418,6 +435,11 @@
 !          (Thus, a2 = 0 gives a linear iota profile.
          piota = ai(0) * (one - x) + ai(1) * x + 4 * ai(2) *                   &
      &      x * (one - x)
+
+      CASE('line_segment')
+!  Linearly interpolated line segments to determine the iotabar profile.
+         i = minloc(ai_aux_s(2:),dim=1)
+         CALL line_seg(x,piota,ai_aux_s,ai_aux_f,i)
             
       CASE default
 !  Power Series is the default
@@ -462,6 +484,7 @@
 !    cubic_spline      Cubic-spline (magrid[-> am_aux_f] + smagrid[-> am_aux_s])
 !    pedestal          Pedestal profile
 !    rational          rational (ratio of polynomials)
+!    line_segment      Linearly interpolated line segments
 !    power_series      Power Series (Default)
 
 !    Local Variables
@@ -477,6 +500,7 @@
      &   am_aux_s, am_aux_f
 !  am is assumed to be dimensioned starting at zero.
       USE vparams, ONLY: mu0
+      USE line_segment
       IMPLICIT NONE
 !-----------------------------------------------
       INTEGER     :: i, iflag, ioff
@@ -564,7 +588,7 @@
      1 ( TANH( 2*(am(i+2)-SQRT(x))/am(i+3) )
      2  -TANH( 2*(am(i+2)-1._dp)  /am(i+3) ) )
 
-      CASE('rational') ! 
+      CASE('rational') !
 !  Ratio of polynomials. 
 !  Numerator coefficients: am(LBOUND) - am(9)
 !  Denominator coefficients: am(10) - am(UBOUND)
@@ -581,6 +605,11 @@
          ELSE
             pmass = HUGE(pmass)
          ENDIF
+
+      CASE('line_segment')
+!  Linearly interpolated line segments to determine the pressure profile.
+         i = minloc(am_aux_s(2:),dim=1)
+         CALL line_seg(x,pmass,am_aux_s,am_aux_f,i)
       
       CASE DEFAULT
          DO i = UBOUND(am,1), LBOUND(am,1), -1

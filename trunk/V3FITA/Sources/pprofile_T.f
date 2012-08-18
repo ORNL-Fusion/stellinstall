@@ -209,6 +209,7 @@
 !-------------------------------------------------------------------------------
 
       FUNCTION pprofile_evaluate(this,s_arg)
+      USE line_segment
 
       IMPLICIT NONE
 
@@ -290,6 +291,13 @@
                STOP 'pprofile: bad value from spline_akima requested'
             ENDIF
 
+         CASE ('line_segment')
+!  Line segments come from LIBSTELL/miscel/line_segment_mod.f
+!  As of 2012-08-18, this subrountine is used in VMEC profile_functions.f
+            i_max = MINLOC(this % as(2:),dim=1)
+            CALL line_seg(s_use, pprofile_value, this % as, this % af,         &
+     &                    i_max)
+    
          CASE DEFAULT
             WRITE(*,*) sub_name, 'Unrecognized p_type:', this % p_type
             WRITE(*,*) ' SHOULD HAVE BEEN CORRECTLY SET IN ',                  &
@@ -458,7 +466,7 @@
             WRITE(iou,1220)
             WRITE(iou,1300) this % b(ilb_b:iub_b)
             
-         CASE ('cubic_spline','akima_spline')
+         CASE ('cubic_spline','akima_spline', 'line_segment')
             i_max = MINLOC(this % as(2:),dim=1) ! last value used for splines
             WRITE(iou,1230)
             WRITE(iou,1231) (i, this % as(i), this % af(i),i=1,i_max)

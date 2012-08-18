@@ -23,14 +23,13 @@
 !  Find the linearly interpolated value of y at position x from line sigments
 !  specified by yy(xx).
 !*******************************************************************************
-      SUBROUTINE line_seg(x, y, xx, yy, n, iflag)
+      SUBROUTINE line_seg(x, y, xx, yy, n)
       IMPLICIT none
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       INTEGER, INTENT(in) :: n
-      INTEGER, INTENT(out), OPTIONAL :: iflag
 
       REAL(rprec), INTENT(out) :: y
       REAL(rprec), INTENT(in)  :: x
@@ -45,11 +44,9 @@
 !-------------------------------------------------------------------------------
 ! Check for valid line segments.
       IF (n .le. 1) THEN
-         iflag = -1 ! Line sigments require at least two points
-         RETURN
+         STOP "Line sigments require at least two points"
       ELSE IF (xx(1) .ge. xx(2)) THEN
-         iflag = -2 ! Line sigments must be specified in increasing order of x
-         RETURN
+         STOP "Line sigments must be specified in increasing order of x"
       END IF
 
 ! If x is outside of array, linearly interprolate from the last two points.
@@ -69,14 +66,13 @@
 !  Find the linearly integrated value of y at position x from line sigments
 !  specified by yy(xx).
 !*******************************************************************************
-      SUBROUTINE line_seg_int(x, y, xx, yy, n, iflag)
+      SUBROUTINE line_seg_int(x, y, xx, yy, n)
       IMPLICIT none
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       INTEGER, INTENT(in) :: n
-      INTEGER, INTENT(out), OPTIONAL :: iflag
 
       REAL(rprec), INTENT(out) :: y
       REAL(rprec), INTENT(in)  :: x
@@ -91,11 +87,9 @@
 !-------------------------------------------------------------------------------
 ! Check for valid line segments.
       IF (n .le. 1) THEN
-         iflag = -1 ! Line sigments require at least two points
-         RETURN
+         STOP "Line sigments require at least two points"
       ELSE IF (xx(1) .ge. xx(2)) THEN
-         iflag = -2 ! Line sigments must be specified in increasing order of x
-         RETURN
+         STOP "Line sigments must be specified in increasing order of x"
       END IF
 
 ! If x is outside of array, linearly interprolate from the last two points.
