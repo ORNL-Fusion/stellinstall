@@ -1,7 +1,7 @@
 !*******************************************************************************
 !  File line_segment.f
 !
-!  Module is part of the libstell.a. This module containes code to create
+!  Module is part of the libstell.a. This module containes code to create a
 !  profile constructed of line sigments. These line segments are assumed to be
 !  specified such that xx(i) < xx(i + 1)
 !
@@ -153,7 +153,8 @@
 ! Perform a tree search to find the interval that x falls between. This
 ! algorthim works by dividing the array into two sub arrays then determining if
 ! x is in the lower or upper array. Then the algortrim recurses on the sub array
-! until n equals 2. This assumes that the array xx is correctly sorted.
+! until the size of the array equals 2. This assumes that the array xx is
+! correctly sorted.
       IF (uBound - lBound .eq. 1) THEN
          ilow = lBound; ihigh = uBound
          RETURN
