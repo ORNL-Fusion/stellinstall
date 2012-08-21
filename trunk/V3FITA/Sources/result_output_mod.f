@@ -86,6 +86,7 @@
 !
 !    vmec_extcur External currents.
 !    vmec_curtor Non-reconstructed plasma current.
+!    vmec_pres_scale Non-reconstructed plasma pressure.
 !
 !    param_name (STRING) Name of the reconstruction parameter.
 !    param_index (INT) Index of the reconstruction parameter.
@@ -125,7 +126,7 @@
 ! Dimension IDs
       INTEGER :: string_len_id, nextcur_dim_id
 ! Variable IDs
-      INTEGER :: vmec_extcur_id, vmec_curtor_id
+      INTEGER :: vmec_extcur_id, vmec_curtor_id, vmec_pres_scale_id
       INTEGER :: param_name_id, param_index_id
       INTEGER :: signal_name_id, signal_type_id
 
@@ -212,6 +213,13 @@
      &                name  = "vmec_curtor",                                   &
      &                xtype = nf90_double,                                     &
      &                varid = vmec_curtor_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf90_def_var(ncid  = result_output_file_create%ncid,                  &
+     &                name  = "vmec_pres_scale",                               &
+     &                xtype = nf90_double,                                     &
+     &                varid = vmec_pres_scale_id)
       CALL result_output_check_error(result_output_file_create%status)
 
 ! Define reconstruction parameter variables.
@@ -328,6 +336,12 @@
      &   nf90_put_var(result_output_file_create%ncid,                          &
      &                vmec_curtor_id,                                          &
      &                model_a%eqstate%varp%curtor)
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf90_put_var(result_output_file_create%ncid,                          &
+     &                vmec_pres_scale_id,                                      &
+     &                model_a%eqstate%varp%pres_scale)
       CALL result_output_check_error(result_output_file_create%status)
 
 ! Fill in reconstuction parameters.
