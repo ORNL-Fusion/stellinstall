@@ -142,7 +142,7 @@
       SELECT CASE(TRIM(p_type_lc))
       
          CASE ('two_power','power_series','none','cubic_spline',               &
-     &      'akima_spline')
+     &      'akima_spline','line_segment')
             this % p_type = p_type_lc
       
          CASE DEFAULT
@@ -466,7 +466,7 @@
             WRITE(iou,1220)
             WRITE(iou,1300) this % b(ilb_b:iub_b)
             
-         CASE ('cubic_spline','akima_spline', 'line_segment')
+         CASE ('cubic_spline','akima_spline','line_segment')
             i_max = MINLOC(this % as(2:),dim=1) ! last value used for splines
             WRITE(iou,1230)
             WRITE(iou,1231) (i, this % as(i), this % af(i),i=1,i_max)
@@ -499,6 +499,9 @@
 !  To Do (2011-10-21)
 ! 1) add other p_type
 !
+!  2012-08-18 MRC
+!    Add profile type for line segments
+!
 !  2011-10-21 JDH
 !    Add coding for cubic aplines and Akima splines
 !
@@ -508,5 +511,6 @@
 !  2011-07-26 JDH
 !    First version, based on module density_T
 !    Wait on use until have refactored model to have appropriate methods.
+!
            
       END MODULE pprofile_T
