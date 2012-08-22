@@ -36,7 +36,6 @@
       USE bsc_T
       USE v3_utilities
       USE eq_T
-!      USE density_T
       USE pprofile_T
 
 !-------------------------------------------------------------------------------
@@ -115,7 +114,7 @@
 !-------------------------------------------------------------------------------
 !  Generic construct
 !-------------------------------------------------------------------------------
- !-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
 !  Generic destroy
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
@@ -274,10 +273,11 @@
 !  For profiles, the _xcyl functions call the _s functions.
 !-------------------------------------------------------------------------------
 !  Plasma surface information (Pass through to eq)
+!
+!  Calculate the cylindrical r and z position on the s = 1 flux surface at a
+!  constant phi position.
 !-------------------------------------------------------------------------------
       SUBROUTINE model_get_seq1_rz(this,phi,r_at_seq1,z_at_seq1)
-!  Subroutine to return the R and Z positions of points on the
-!  plasma surface (s = 1 surface), on a constant_phi plane.
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -289,14 +289,14 @@
       CALL eq_get_seq1_rz(this % eqstate,phi,r_at_seq1,z_at_seq1)
          
       END SUBROUTINE model_get_seq1_rz
+
 !-------------------------------------------------------------------------------
-!  Electron Density ne
+!  Electron Density ne(r,phi,z)
 !
-!     Given Cylindrical Coordinates XCYL
+!  Calculate the electron density from a given model at a cylindrical
+!  coordinate position (r,phi,z).
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ne_xcyl(this,xcyl)
-!  FUNCTION to return the electron density, given a model and 
-!  Cylindrical coordinates xcyl(3) [ = R, Phi, Z]
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -305,33 +305,26 @@
       REAL (rprec), INTENT (in)                :: xcyl(3)
 
 !  Declare local variables
-      REAL(rprec) :: c_flux(3)               ! VMEC coordinates (s,u,v)
-      REAL(rprec) :: s                       ! VMEC radial coordinate
-      REAL(rprec) :: ne                      ! electron density
+      REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_ne_s: '
                
 !  Start of executable code.
-
-!  Get the radial coordinate s
-      c_flux = (/zero, zero, zero /)
+!  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
+!  coordinate (r,phi,z).
       CALL eq_get_flux(this % eqstate,xcyl,c_flux)
-      s = c_flux(1)
-
-      ne = model_get_ne_s(this,s)       
-      model_get_ne_xcyl = ne
-      RETURN
+!  Calculate the electron density at s.
+      model_get_ne_xcyl = model_get_ne_s(this, c_flux(1))
          
       END FUNCTION model_get_ne_xcyl
+
 !-------------------------------------------------------------------------------
-!  Electron Density ne
+!  Electron Density ne(s)
 !
-!     Given VMEC radial coordinate S
+!  Calculate the electron density from a given model on a flux surface s.
+!  Note the conversion factor ne_pp_unit.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ne_s(this,s_arg)
-!  FUNCTION to return the electron density in m ** -3, given a model 
-!  and a value of the radial coordinate s.
-!  Note the conversion factor ne_pp_unit.
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -345,21 +338,18 @@
      &  'model_get_ne_s: '
                
 !  Start of executable code.
-
       model_get_ne_s = MAX(this % ne_min,this % ne_pp_unit *                   &
      &   pprofile_evaluate(this % pp_ne,s_arg))
-      RETURN
          
       END FUNCTION model_get_ne_s
 
 !-------------------------------------------------------------------------------
-!  Soft x-ray emissivity
+!  Soft x-ray emissivity sxrem(r,phi,z)
 !
-!     Given Cylindrical Coordinates XCYL
+!  Calculate the soft x-ray emissivity from a given model at a cylindrical
+!  coordinate position (r,phi,z).
 !-------------------------------------------------------------------------------
       FUNCTION model_get_sxrem_xcyl(this,xcyl)
-!  FUNCTION to return the soft x-ray emissivity, given a model and 
-!  Cylindrical coordinates xcyl(3) [ = R, Phi, Z]
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -368,31 +358,25 @@
       REAL (rprec), INTENT (in)                :: xcyl(3)
 
 !  Declare local variables
-      REAL(rprec) :: c_flux(3)               ! VMEC coordinates (s,u,v)
-      REAL(rprec) :: s                       ! VMEC radial coordinate
+      REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_sxrem_xcyl: '
                
 !  Start of executable code.
-
-!  Get the radial coordinate s
-      c_flux = (/zero, zero, zero /)
+!  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
+!  coordinate (r,phi,z).
       CALL eq_get_flux(this % eqstate,xcyl,c_flux)
-      s = c_flux(1)
-
-      model_get_sxrem_xcyl = model_get_sxrem_s(this,s)
-
-      RETURN         
+!  Calculate the soft x-ray emissivity at s.
+      model_get_sxrem_xcyl = model_get_sxrem_s(this,c_flux(1))
+        
       END FUNCTION model_get_sxrem_xcyl
 
 !-------------------------------------------------------------------------------
-!  Soft x-ray emissivity
+!  Soft x-ray emissivity sxrem(s)
 !
-!     Given VMEC radial coordinate S
+!  Calculate the soft x-ray emissivity from a given model on a flux surface s.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_sxrem_s(this,s_arg)
-!  FUNCTION to return the soft x-ray emissivity, given a model and 
-!  and a value of the radial coordinate s.
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -401,9 +385,8 @@
       REAL (rprec), INTENT (in)                :: s_arg
 
 !  Declare local variables
-      REAL(rprec) :: ne 
+      REAL(rprec) :: ne
       REAL(rprec) :: pressure
-      REAL(rprec) :: emissivity
       REAL(rprec) :: ne_norm = 1.E18         ! Normalizing constant, per Hartwell routine
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_ne_s: '
@@ -412,19 +395,19 @@
       SELECT CASE(TRIM(this % model_sxrem_type))
       
       CASE('pp_sxrem')
-         emissivity = pprofile_evaluate(this % pp_sxrem,s_arg)     
+         model_get_sxrem_s = pprofile_evaluate(this % pp_sxrem,s_arg)
 
       CASE('pp_ne_vmec_p')
          IF (s_arg .le. one) THEN
             ne = model_get_ne_s(this,s_arg)
             pressure = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
-            emissivity = (ne / ne_norm) ** (3/2) * SQRT(pressure)   ! per comments         
+            model_get_sxrem_s = (ne / ne_norm) ** (3/2) * SQRT(pressure)   ! per comments         
          ELSE
-            emissivity = zero
+            model_get_sxrem_s = zero
          ENDIF
          
       CASE ('none')
-         emissivity = -2.E49_rprec
+         model_get_sxrem_s = -2.E49_rprec
          
       CASE DEFAULT
          WRITE(*,*) ' IN model_get_sxrem_s. model_sxrem_type is ',             &
@@ -433,20 +416,19 @@
          STOP
 
       END SELECT
-       
-      model_get_sxrem_s = emissivity
 
-      RETURN
       END FUNCTION model_get_sxrem_s
 
+! FIXME: These next two functions duplicate the functionality of
+!    model_get_ne_xcyl and model_get_ne_xcys
+! Are these really needed? MRC
 !-------------------------------------------------------------------------------
-!  Line integral for Interferometry - ne
+!  Line integral for Interferometry - ne(r,phi,z)
 !
-!     Given Cylindrical Coordinates XCYL
+!  Calculate the interferometry integrand from a given model at a cylindrical
+!  coordinate position (r,phi,z).
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ip_i_xcyl(this,xcyl)
-!  FUNCTION to return the interferometry integrand, given a model and 
-!  Cylindrical coordinates xcyl(3) [ = R, Phi, Z]
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -455,31 +437,26 @@
       REAL (rprec), INTENT (in)                :: xcyl(3)
 
 !  Declare local variables
-      REAL(rprec) :: c_flux(3)               ! VMEC coordinates (s,u,v)
-      REAL(rprec) :: s                       ! VMEC radial coordinate
+      REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_ip_i_xcyl: '
                
 !  Start of executable code.
-
-!  Get the radial coordinate s
-      c_flux = (/zero, zero, zero /)
+!  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
+!  coordinate (r,phi,z).
       CALL eq_get_flux(this % eqstate,xcyl,c_flux)
-      s = c_flux(1)
-
-      model_get_ip_i_xcyl = model_get_ip_i_s(this,s)
-
-      RETURN         
+!  Calculate the interferometry integrand at s.
+      model_get_ip_i_xcyl = model_get_ip_i_s(this,c_flux(1))
+        
       END FUNCTION model_get_ip_i_xcyl
 
 !-------------------------------------------------------------------------------
-!  Line integral for Interferometry - ne
+!  Line integral for Interferometry - ne(S)
 !
-!     Given VMEC radial coordinate S
+!  Calculate the interferometry integrand from a given model on a flux surface
+!  s.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ip_i_s(this,s_arg)
-!  FUNCTION to return the soft x-ray emissivity, given a model and 
-!  and a value of the radial coordinate s.
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -492,19 +469,17 @@
      &  'model_get_ip_i_s: '
                
 !  Start of executable code.
-       
       model_get_ip_i_s = model_get_ne_s(this,s_arg)
 
-      RETURN
       END FUNCTION model_get_ip_i_s
+
 !-------------------------------------------------------------------------------
-!  Electron Temperature 
+!  Electron Temperature te(r,phi,z)
 !
-!     Given Cylindrical Coordinates XCYL
+!  Calculate the electron temperature from a given model at a cylindrical
+!  coordinate position (r,phi,z).
 !-------------------------------------------------------------------------------
       FUNCTION model_get_te_xcyl(this,xcyl)
-!  FUNCTION to return the electron temperature in eV, given a model and 
-!  Cylindrical coordinates xcyl(3) [ = R, Phi, Z]
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -513,30 +488,25 @@
       REAL (rprec), INTENT (in)                :: xcyl(3)
 
 !  Declare local variables
-      REAL(rprec) :: c_flux(3)               ! VMEC coordinates (s,u,v)
-      REAL(rprec) :: s                       ! VMEC radial coordinate
+      REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_te_xcyl: '
                
 !  Start of executable code.
-
-!  Get the radial coordinate s
-      c_flux = (/zero, zero, zero /)
+!  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
+!  coordinate (r,phi,z).
       CALL eq_get_flux(this % eqstate,xcyl,c_flux)
-      s = c_flux(1)
-       
-      model_get_te_xcyl = model_get_te_s(this,s)
-      RETURN
-         
+!  Calculate the interferometry integrand at s.
+      model_get_te_xcyl = model_get_te_s(this,c_flux(1))
+      
       END FUNCTION model_get_te_xcyl
+
 !-------------------------------------------------------------------------------
-!  Electron Temperature 
+!  Electron Temperature te(s)
 !
-!     Given VMEC radial coordinate S
+!  Calculate the electron temperature from a given model on a flux surface s.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_te_s(this,s_arg)
-!  FUNCTION to return the electron temperature in eV, given a model and 
-!  and a value of the radial coordinate s.
       IMPLICIT NONE
       
 !  Declare Arguments 
@@ -549,7 +519,6 @@
 
 !  Declare local variables
       REAL(rprec) :: ne                      ! electron density (m ** -3)
-      REAL(rprec) :: te                      ! electron temperature (eV)
       REAL(rprec) :: pressure                ! pressure
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_te_s: '
@@ -560,15 +529,16 @@
       SELECT CASE(TRIM(this % model_te_type))
       
       CASE('pp_te')
-         te = pprofile_evaluate(this % pp_te,s_arg)     
+         model_get_te_s = pprofile_evaluate(this % pp_te,s_arg)     
 
       CASE('pp_ne_vmec_p')
          ne = model_get_ne_s(this,s_arg)
          pressure = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
-         te = eV_per_Joule * this % e_pressure_fraction * pressure / ne         
+         model_get_te_s = eV_per_Joule * this % e_pressure_fraction            &
+     &                  * pressure / ne
          
       CASE ('none')
-         te = -2.E49_rprec
+         model_get_te_s = -2.E49_rprec
          
       CASE DEFAULT
          WRITE(*,*) ' IN model_get_te_s. model_te_type is ',                   &
@@ -577,11 +547,9 @@
          STOP
 
       END SELECT
-       
-      model_get_te_s = te
-      RETURN
          
       END FUNCTION model_get_te_s
+
 !*******************************************************************************
 ! SECTION VIII.  WRITE SUBROUTINES
 !*******************************************************************************
