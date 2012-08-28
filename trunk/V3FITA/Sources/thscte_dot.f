@@ -301,6 +301,7 @@
       SUBROUTINE thscte_dot_parse_chord(coordinate_type)
 !  Subroutine to parse an thscte chord (redundant chord there)
 !      thscted_keyword(1) = 'thscte_XYZ' or 'thscte_RPhiDegZ'
+      USE coordinate_utilities
 
       IMPLICIT NONE
 
@@ -313,7 +314,6 @@
 !-----------------------------------------------
       INTEGER                     :: istat
       INTEGER                     :: inode, nnode
-      REAL(rprec)                 :: phi_rad
       REAL(rprec), DIMENSION(3)   :: x_start, xcart
       CHARACTER (len=30)          :: chord_name                               
       
@@ -355,10 +355,8 @@
 !-----------------------------------------------
 
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         phi_rad = x_start(2) * pi / 180.
-         xcart(1) = x_start(1) * COS(phi_rad)
-         xcart(2) = x_start(1) * SIN(phi_rad)
-         xcart(3) = x_start(3)
+         x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
+         xcart = cyl_to_cart(x_start)
       ELSE
          xcart = x_start
       ENDIF

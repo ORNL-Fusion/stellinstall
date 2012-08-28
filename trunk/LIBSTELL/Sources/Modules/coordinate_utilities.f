@@ -10,7 +10,7 @@
       USE stel_kinds
       USE stel_constants
 
-      PUBLIC :: cart_to_cyl, cood_utils_test
+      PUBLIC :: cart_to_cyl, cyl_to_cart, cood_utils_test
       PRIVATE :: check
 
       CONTAINS
@@ -40,6 +40,30 @@
       END FUNCTION
 
 !*******************************************************************************
+!  Convert from cylindical coordinates to carteasan coordinates.
+!
+!  NOTE: Phi must be in radians.
+!
+!*******************************************************************************
+      FUNCTION cyl_to_cart(cyl)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      REAL(rprec), DIMENSION(3), INTENT(in) :: cyl
+      REAL(rprec), DIMENSION(3)             :: cyl_to_cart
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      cyl_to_cart(1) = cyl(1)*COS(cyl(2))
+      cyl_to_cart(2) = cyl(1)*SIN(cyl(2))
+      cyl_to_cart(3) = cyl(3)
+
+      END FUNCTION
+
+!*******************************************************************************
 !  Unit Test Functions
 !*******************************************************************************
 !*******************************************************************************
@@ -60,20 +84,58 @@
 ! Test cart_to_cyl function. cart(0,0,1) = cyl(0,0,1)
       result = cart_to_cyl((/ 0.0d+0, 0.0d+0, 1.0d+0 /))
       cood_utils_test = check(0.0d+0, result(1), 1, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(0.0d+0, result(2), 2, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(1.0d+0, result(3), 3, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
 
-! Test cart_to_cyl function. cart(-1,0,0) = cyl(1,0,1)
+! Test cart_to_cyl function. cart(-1,0,0) = cyl(1,Pi,0)
       result = cart_to_cyl((/ -1.0d+0, 0.0d+0, 0.0d+0 /))
       cood_utils_test = check(1.0d+0, result(1), 4, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(pi, result(2), 5, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(0.0d+0, result(3), 6, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
 
-! Test cart_to_cyl function. cart(-1,0,-1) = cyl(1,0,1)
+! Test cart_to_cyl function. cart(-1,0,-1) = cyl(1,Pi/2,-1)
       result = cart_to_cyl((/ 0.0d+0, 1.0d+0, -1.0d+0 /))
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(1.0d+0, result(1), 7, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(pi/2.0d+0, result(2), 8, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(-1.0d+0, result(3), 9, "cart_to_cyl")
+      IF (.not.cood_utils_test) RETURN
+
+! Test cyl_to_cart function. cart(0,0,1) = cyl(0,0,1)
+      result = cyl_to_cart((/ 0.0d+0, 0.0d+0, 1.0d+0 /))
+      cood_utils_test = check(0.0d+0, result(1), 1, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(0.0d+0, result(2), 2, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(1.0d+0, result(3), 3, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+
+! Test cyl_to_cart function. cart(-1,0,0) = cyl(1,Pi,0)
+      result = cyl_to_cart((/ 1.0d+0, pi, 0.0d+0 /))
+      cood_utils_test = check(-1.0d+0, result(1), 4, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(SIN(pi), result(2), 5, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(0.0d+0, result(3), 6, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+
+! Test cyl_to_cart function. cart(0,1,-1) = cyl(1,Pi/2,-1)
+      result = cyl_to_cart((/ 1.0d+0, pi/2.0d+0, -1.0d+0 /))
+      cood_utils_test =                                                        &
+     &   check(COS(pi/2.0d+0), result(1), 7, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(1.0d+0, result(2), 8, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(-1.0d+0, result(3), 9, "cyl_to_cart")
+      IF (.not.cood_utils_test) RETURN
 
       END FUNCTION
 
