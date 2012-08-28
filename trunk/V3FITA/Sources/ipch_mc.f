@@ -120,7 +120,7 @@
 
 !  Integrate ne*dl along the cord.
       dxcart = (a_ipch % xcart_f - a_ipch % xcart_i)/ipoints
-      dx = SQRT(dxcart(1) ** 2 + dxcart(2) ** 2 + dxcart(3) ** 2)
+      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
       DO istep=1,ipoints
          xcart = a_ipch % xcart_i + istep * dxcart
          r_cyl = cart_to_cyl(xcart)
@@ -128,7 +128,7 @@
             
             CASE DEFAULT
                mod_signal(1) = mod_signal(1) +                                 &
-     &            model_get_ne_xcyl(a_model,r_cyl)*dx
+     &            model_get_ne_xcyl(a_model,r_cyl) * dx
          END SELECT
       ENDDO
 

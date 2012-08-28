@@ -111,27 +111,27 @@
 !  START OF EXECUTABLE CODE
 !-------------------------------------------------------------------------------         
 !  Allocate data and sigma
-         IF (ASSOCIATED(mod_signal)) THEN
-           DEALLOCATE(mod_signal,mod_sigma, stat=istat1)
-           CALL assert_eq(0,istat1,sub_name //                                 &
+      IF (ASSOCIATED(mod_signal)) THEN
+         DEALLOCATE(mod_signal,mod_sigma, stat=istat1)
+         CALL assert_eq(0,istat1,sub_name //                                   &
      &                     'mod_signal, sigma dealloc')
-         ENDIF
-         ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
-         CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
+      ENDIF
+      ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
+      CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
 !  Integrate sxrem*dl along the cord.
-         dxcart = (a_sxrch % xcart_f - a_sxrch % xcart_i)/ipoints
-         dx = SQRT(dxcart(1) ** 2 + dxcart(2) ** 2 + dxcart(3) ** 2)
-         DO istep=1,ipoints
-            xcart = a_sxrch % xcart_i + istep * dxcart
-            r_cyl = cart_to_cyl(xcart)
-            mod_signal(1) = mod_signal(1) +                                    &
-     &         model_get_sxrem_xcyl(a_model,r_cyl) * dx
-         ENDDO
+      dxcart = (a_sxrch % xcart_f - a_sxrch % xcart_i)/ipoints
+      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
+      DO istep=1,ipoints
+         xcart = a_sxrch % xcart_i + istep * dxcart
+         r_cyl = cart_to_cyl(xcart)
+         mod_signal(1) = mod_signal(1) +                                       &
+     &      model_get_sxrem_xcyl(a_model,r_cyl) * dx
+      ENDDO
 
 ! make up a sigma         
 !         mod_sigma(1)=0.5   Changed to zero JDH 2011-10-17
-         mod_sigma(1)=0.0
+      mod_sigma(1)=0.0
          
       END SUBROUTINE sxrch_mc_model_compute
 

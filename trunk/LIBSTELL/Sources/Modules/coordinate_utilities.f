@@ -33,7 +33,7 @@
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      cart_to_cyl(1) = SQRT(cart(1)**2 + cart(2)**2)
+      cart_to_cyl(1) = SQRT(DOT_PRODUCT(cart(1:2),cart(1:2)))
       cart_to_cyl(2) = ATAN2(cart(2), cart(1))
       cart_to_cyl(3) = cart(3)
 
