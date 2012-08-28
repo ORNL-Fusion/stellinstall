@@ -3841,6 +3841,7 @@
 !----------------------------------------------------------------------
       SUBROUTINE task_unit_tests
       USE line_segment
+      USE coordinate_utilities
 !----------------------------------------------------------------------
 ! L O C A L Variable Declarations
 !----------------------------------------------------------------------
@@ -3851,6 +3852,9 @@
 ! Line segment tests
       test_passed = line_seg_test()
       IF (test_passed) write(*,*) "Line Segment Test Passed"
+! Coordinate tests
+      test_passed = cood_utils_test()
+      IF (test_passed) write(*,*) "Coord Utilites Test Passed"
       
       END SUBROUTINE
 

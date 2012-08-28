@@ -30,6 +30,7 @@
       USE v3f_global
       USE vmec_utils
       USE read_wout_mod
+      USE coordinate_utilities
 
 !-------------------------------------------------------------------------------
 !  thscte Derived Type
@@ -108,9 +109,7 @@
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
       xcart = a_thscte % xcart
-      r_cyl(1) = SQRT(xcart(1) ** 2 + xcart(2) ** 2)
-      r_cyl(2) = ATAN2(xcart(2),xcart(1))
-      r_cyl(3) = xcart(3)
+      r_cyl = cart_to_cyl(xcart)
       te = model_get_te_xcyl(a_model,r_cyl)
       mod_signal(1) = te
 

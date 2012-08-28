@@ -31,6 +31,7 @@
       USE v3f_global
       USE vmec_utils
       USE read_wout_mod
+      USE coordinate_utilities
 
 !-------------------------------------------------------------------------------
 !  sxrch Derived Type
@@ -128,9 +129,7 @@
          dx = SQRT(dxcart(1) ** 2 + dxcart(2) ** 2 + dxcart(3) ** 2)
          DO istep=1,ipoints
             xcart = a_sxrch % xcart_i + istep * dxcart
-            r_cyl(1) = SQRT(xcart(1) ** 2 + xcart(2) ** 2)
-            r_cyl(2) = ATAN2(xcart(2),xcart(1))
-            r_cyl(3) = xcart(3)
+            r_cyl = cart_to_cyl(xcart)
             sxrem_array(istep) =                                               &
      &         model_get_sxrem_xcyl(a_model,r_cyl) * dx
          ENDDO
