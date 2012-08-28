@@ -251,16 +251,12 @@
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      LOGICAL :: line_seg_test, test
+      LOGICAL :: line_seg_test
       REAL(rprec) :: result
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-! This is currently just a stub testing code will be placed in here. If all
-! tests pass, return true.
-      line_seg_test = .true.
-
 ! Test slope function. yy(0.0,1.0) and xx(0.0,1.0) should have a slope of 1.0
       result = slope((/ 0.0d+0, 1.0d+0 /),                                     &
      &               (/ 0.0d+0, 1.0d+0 /),                                     &
