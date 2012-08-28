@@ -419,60 +419,6 @@
 
       END FUNCTION model_get_sxrem_s
 
-! FIXME: These next two functions duplicate the functionality of
-!    model_get_ne_xcyl and model_get_ne_xcys
-! Are these really needed? MRC
-!-------------------------------------------------------------------------------
-!  Line integral for Interferometry - ne(r,phi,z)
-!
-!  Calculate the interferometry integrand from a given model at a cylindrical
-!  coordinate position (r,phi,z).
-!-------------------------------------------------------------------------------
-      FUNCTION model_get_ip_i_xcyl(this,xcyl)
-      IMPLICIT NONE
-      
-!  Declare Arguments 
-      REAL(rprec) :: model_get_ip_i_xcyl
-      TYPE (model), INTENT (inout)             :: this
-      REAL (rprec), INTENT (in)                :: xcyl(3)
-
-!  Declare local variables
-      REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'model_get_ip_i_xcyl: '
-               
-!  Start of executable code.
-!  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
-!  coordinate (r,phi,z).
-      CALL eq_get_flux(this % eqstate,xcyl,c_flux)
-!  Calculate the interferometry integrand at s.
-      model_get_ip_i_xcyl = model_get_ip_i_s(this,c_flux(1))
-        
-      END FUNCTION model_get_ip_i_xcyl
-
-!-------------------------------------------------------------------------------
-!  Line integral for Interferometry - ne(S)
-!
-!  Calculate the interferometry integrand from a given model on a flux surface
-!  s.
-!-------------------------------------------------------------------------------
-      FUNCTION model_get_ip_i_s(this,s_arg)
-      IMPLICIT NONE
-      
-!  Declare Arguments 
-      REAL(rprec) :: model_get_ip_i_s
-      TYPE (model), INTENT (inout)             :: this
-      REAL (rprec), INTENT (in)                :: s_arg
-
-!  Declare local variables
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'model_get_ip_i_s: '
-               
-!  Start of executable code.
-      model_get_ip_i_s = model_get_ne_s(this,s_arg)
-
-      END FUNCTION model_get_ip_i_s
-
 !-------------------------------------------------------------------------------
 !  Electron Temperature te(r,phi,z)
 !

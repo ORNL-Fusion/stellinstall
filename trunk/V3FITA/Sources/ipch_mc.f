@@ -134,8 +134,7 @@
             SELECT CASE(a_ipch % ip_type)
             
             CASE DEFAULT
-               ipem_array(istep) =                                             &
-     &            model_get_ip_i_xcyl(a_model,r_cyl) * dx
+               ipem_array(istep) = model_get_ne_xcyl(a_model,r_cyl)*dx
             END SELECT
          ENDDO
          mod_signal(1)=SUM(ipem_array)
