@@ -90,13 +90,13 @@
 !------------------------------------------------------------------------------- 
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'ipch_mc_model_compute'
+      INTEGER, PARAMETER :: ipoints = 200 ! number of integration points
      
 !-------------------------------------------------------------------------------      
 ! cyl2flx declarations  - used for the subroutine cyl2flx call
 !------------------------------------------------------------------------------- 
-      REAL(rprec), DIMENSION(3) :: r_cyl(1:3)=0.0
+      REAL(rprec), DIMENSION(3) :: r_cyl
       REAL(rprec), DIMENSION(3) :: xcart, dxcart
-      INTEGER :: points
        
 !------------------------------------------------------------------------------- 
 ! other declarations
@@ -104,45 +104,37 @@
 !-------------------------------------------------------------------------------        
       INTEGER       :: istat1
       REAL(rprec)   :: dx               ! integration step size
-      INTEGER       :: ipoints          ! number of integration points
       INTEGER       :: istep
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: ipem_array
 
 !-------------------------------------------------------------------------------
 !  START OF EXECUTABLE CODE
 !-------------------------------------------------------------------------------         
 !  Allocate data and sigma
-         IF (ASSOCIATED(mod_signal)) THEN
-           DEALLOCATE(mod_signal,mod_sigma, stat=istat1)
-           CALL assert_eq(0,istat1,sub_name //                                 &
-     &                     'mod_signal, sigma dealloc')
-         ENDIF
-         ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
-         CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
+      IF (ASSOCIATED(mod_signal)) THEN
+         DEALLOCATE(mod_signal,mod_sigma, stat=istat1)
+         CALL assert_eq(0,istat1,sub_name //                                   &
+     &                  'mod_signal, sigma dealloc')
+      ENDIF
+      ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
+      CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
-!  Allocate space for ipem_array
-         ipoints=200
-         ALLOCATE(ipem_array(ipoints),stat=istat1)
-         CALL assert_eq(0,istat1,sub_name // 'alloc ipem_array')
-
-         dxcart = (a_ipch % xcart_f - a_ipch % xcart_i)/ipoints
-         dx = SQRT(dxcart(1) ** 2 + dxcart(2) ** 2 + dxcart(3) ** 2)
-         DO istep=1,ipoints
-            xcart = a_ipch % xcart_i + istep * dxcart
-            r_cyl = cart_to_cyl(xcart)
-            SELECT CASE(a_ipch % ip_type)
+!  Integrate ne*dl along the cord.
+      dxcart = (a_ipch % xcart_f - a_ipch % xcart_i)/ipoints
+      dx = SQRT(dxcart(1) ** 2 + dxcart(2) ** 2 + dxcart(3) ** 2)
+      DO istep=1,ipoints
+         xcart = a_ipch % xcart_i + istep * dxcart
+         r_cyl = cart_to_cyl(xcart)
+         SELECT CASE(a_ipch % ip_type)
             
             CASE DEFAULT
-               ipem_array(istep) = model_get_ne_xcyl(a_model,r_cyl)*dx
-            END SELECT
-         ENDDO
-         mod_signal(1)=SUM(ipem_array)
-         DEALLOCATE(ipem_array,stat=istat1)
-         CALL assert_eq(0,istat1,sub_name // 'dealloc ipem_array')
+               mod_signal(1) = mod_signal(1) +                                 &
+     &            model_get_ne_xcyl(a_model,r_cyl)*dx
+         END SELECT
+      ENDDO
 
 ! make up a sigma         
 !         mod_sigma(1)=0.5   Changed to zero JDH 2011-10-17
-         mod_sigma(1)=0.0
+      mod_sigma(1)=0.0
          
       END SUBROUTINE ipch_mc_model_compute
 

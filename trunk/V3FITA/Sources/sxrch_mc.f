@@ -90,11 +90,12 @@
 !------------------------------------------------------------------------------- 
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'sxrch_mc_model_compute'
+      INTEGER, PARAMETER :: ipoints = 100 ! number of integration points
      
 !-------------------------------------------------------------------------------      
 ! cyl2flx declarations  - used for the subroutine cyl2flx call
 !------------------------------------------------------------------------------- 
-      REAL(rprec), DIMENSION(3) :: r_cyl(1:3)=0.0
+      REAL(rprec), DIMENSION(3) :: r_cyl
       REAL(rprec), DIMENSION(3) :: xcart, dxcart
       INTEGER :: points
        
@@ -104,9 +105,7 @@
 !-------------------------------------------------------------------------------        
       INTEGER       :: istat1
       REAL(rprec)   :: dx               ! integration step size
-      INTEGER       :: ipoints          ! number of integration points
       INTEGER       :: istep
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: sxrem_array
 
 !-------------------------------------------------------------------------------
 !  START OF EXECUTABLE CODE
@@ -120,22 +119,15 @@
          ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
          CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
-!  Allocate space for sxrem_array
-         ipoints=100
-         ALLOCATE(sxrem_array(ipoints),stat=istat1)
-         CALL assert_eq(0,istat1,sub_name // 'alloc sxrem_array')
-
+!  Integrate sxrem*dl along the cord.
          dxcart = (a_sxrch % xcart_f - a_sxrch % xcart_i)/ipoints
          dx = SQRT(dxcart(1) ** 2 + dxcart(2) ** 2 + dxcart(3) ** 2)
          DO istep=1,ipoints
             xcart = a_sxrch % xcart_i + istep * dxcart
             r_cyl = cart_to_cyl(xcart)
-            sxrem_array(istep) =                                               &
+            mod_signal(1) = mod_signal(1) +                                    &
      &         model_get_sxrem_xcyl(a_model,r_cyl) * dx
          ENDDO
-         mod_signal(1)=SUM(sxrem_array)
-         DEALLOCATE(sxrem_array,stat=istat1)
-         CALL assert_eq(0,istat1,sub_name // 'dealloc sxrem_array')
 
 ! make up a sigma         
 !         mod_sigma(1)=0.5   Changed to zero JDH 2011-10-17
