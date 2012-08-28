@@ -88,9 +88,7 @@
 ! Local Variables
 !------------------------------------------------------------------------------- 
       INTEGER       :: istat1
-      REAL(rprec), DIMENSION(3) :: r_cyl(1:3)=0.0
-      REAL(rprec), DIMENSION(3) :: xcart
-      REAL(rprec)               :: te
+      REAL(rprec), DIMENSION(3) :: r_cyl
 
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'thscte_mc_model_compute'
@@ -108,13 +106,11 @@
       ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
-      xcart = a_thscte % xcart
-      r_cyl = cart_to_cyl(xcart)
-      te = model_get_te_xcyl(a_model,r_cyl)
-      mod_signal(1) = te
+      r_cyl = cart_to_cyl(a_thscte % xcart)
+      mod_signal(1) = model_get_te_xcyl(a_model,r_cyl)
 
 ! make up a sigma         
-         mod_sigma(1)=0.
+      mod_sigma(1)=0.
          
       END SUBROUTINE thscte_mc_model_compute
 
