@@ -100,11 +100,11 @@
 
 ! Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
+         x_start(2) = x_start(2)*pi/180. ! Convert from degrees to radians.
          xcart_i = cyl_to_cart(x_start)
 
          IF (PRESENT(xcart_f)) THEN
-            x_end(2) = x_end(2)*pi/180.  ! Convert to degrees to radians.
+            x_end(2) = x_end(2)*pi/180.  ! Convert from degrees to radians.
             xcart_f = cyl_to_cart(x_end)
          ENDIF
       ELSE
@@ -141,7 +141,7 @@
 !  Private Functions and Subroutines.
 !*******************************************************************************
 !*******************************************************************************
-! Check and handle errors.
+!  Check and handle errors.
 !*******************************************************************************
       SUBROUTINE signal_dot_check_status(istat,                                &
      &                                   i_line,                               &
