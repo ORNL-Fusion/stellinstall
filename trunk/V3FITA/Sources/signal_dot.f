@@ -25,20 +25,21 @@
      &                                  coordinate_type,                       &
      &                                  signal_id,                             &
      &                                  line, i_line,                          &
-     &                                  xcart_i, xcart_f,                      &
-     &                                  chord_name)
+     &                                  chord_name,                            &
+     &                                  xcart_i, xcart_f)
       USE coordinate_utilities
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(inout)                 :: iou, istat
-      CHARACTER (len=*), INTENT(in)          :: signal_id
-      CHARACTER (len=200), INTENT(inout)     :: line
-      INTEGER, INTENT(inout)                 :: i_line
-      REAL(rprec), DIMENSION(3), INTENT(out) :: xcart_i, xcart_f
-      CHARACTER (len=30), INTENT(out)        :: chord_name
+      INTEGER, INTENT(inout)                           :: iou, istat
+      CHARACTER (len=*), INTENT(in)                    :: signal_id
+      CHARACTER (len=200), INTENT(inout)               :: line
+      INTEGER, INTENT(inout)                           :: i_line
+      CHARACTER (len=30), INTENT(out)                  :: chord_name
+      REAL(rprec), DIMENSION(3), INTENT(out)           :: xcart_i
+      REAL(rprec), DIMENSION(3), OPTIONAL, INTENT(out) :: xcart_f
 
 !-------------------------------------------------------------------------------
 !  Dummy Arguments
@@ -80,31 +81,37 @@
      &                             " start position",                          &
      &                             signal_id)
 
+      IF (PRESENT(xcart_f)) THEN
 ! Read the fourth line, end position.
-      READ (iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      CALL signal_dot_check_status(istat, i_line,                              &
-     &                             "Error ",                                   &
-     &                             " end position line",                       &
-     &                             signal_id)
+         READ (iou, '(a)', iostat=istat) line
+         i_line = i_line + 1
+         CALL signal_dot_check_status(istat, i_line,                           &
+     &                                "Error ",                                &
+     &                                " end position line",                    &
+     &                                signal_id)
 
 ! Reread the line, looking for three reals.
-      READ(line, *, iostat=istat) x_end(1:3)
-      CALL signal_dot_check_status(istat, i_line,                              &
-     &                             "Error ",                                   &
-     &                             " end position",                            &
-     &                             signal_id)
+         READ(line, *, iostat=istat) x_end(1:3)
+         CALL signal_dot_check_status(istat, i_line,                           &
+     &                                "Error ",                                &
+     &                                " end position",                         &
+     &                                signal_id)
+      ENDIF
 
 ! Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
          x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
          xcart_i = cyl_to_cart(x_start)
 
-         x_end(2) = x_end(2)*pi/180.     ! Convert to degrees to radians.
-         xcart_f = cyl_to_cart(x_end)
+         IF (PRESENT(xcart_f)) THEN
+            x_end(2) = x_end(2)*pi/180.  ! Convert to degrees to radians.
+            xcart_f = cyl_to_cart(x_end)
+         ENDIF
       ELSE
          xcart_i = x_start
-         xcart_f = x_end
+         IF (PRESENT(xcart_f)) THEN
+            xcart_f = x_end
+         ENDIF
       ENDIF
 
       END SUBROUTINE

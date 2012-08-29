@@ -314,8 +314,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER                     :: istat
-      INTEGER                     :: inode, nnode
-      REAL(rprec), DIMENSION(3)   :: x_start, x_end, xcart_i, xcart_f
+      REAL(rprec), DIMENSION(3)   :: xcart_i, xcart_f
       CHARACTER (len=30)          :: chord_name                               
       
 !-----------------------------------------------
@@ -326,8 +325,8 @@
      &                            coordinate_type,                             &
      &                            "sxr",                                       &
      &                            line, i_line,                                &
-     &                            xcart_i, xcart_f,                            &
-     &                            chord_name)
+     &                            chord_name,                                  &
+     &                            xcart_i, xcart_f)
       CALL sxrch_desc_construct(sxrch_desc_temp,chord_name,                    &
      &                          xcart_i,xcart_f)
 

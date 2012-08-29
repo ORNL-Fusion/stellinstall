@@ -301,8 +301,6 @@
       SUBROUTINE thscte_dot_parse_chord(coordinate_type)
 !  Subroutine to parse an thscte chord (redundant chord there)
 !      thscted_keyword(1) = 'thscte_XYZ' or 'thscte_RPhiDegZ'
-      USE coordinate_utilities
-
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -313,54 +311,19 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER                     :: istat
-      INTEGER                     :: inode, nnode
-      REAL(rprec), DIMENSION(3)   :: x_start, xcart
+      REAL(rprec), DIMENSION(3)   :: xcart
       CHARACTER (len=30)          :: chord_name                               
       
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
-
-!  Parse beyond the keyword in the first line
-
-!  Read the second line, chord identification
-!-----------------------------------------------
-      READ (thscted_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error reading ID for sxr chord, line ', i_line
-         STOP
-      END IF
-
-      chord_name = TRIM(line)
-
-!  Read the third line, start position
-!-----------------------------------------------
-      READ (thscted_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error thste position line', i_line
-         STOP
-      END IF
-
-!  Reread the line, looking for three reals
-         READ(line, *, iostat=istat) x_start(1:3)
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error thste position', i_line
-         STOP
-      END IF
-
-
-!  Done reading information for this thscte. Generate the thscte
-!-----------------------------------------------
-
-      IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
-         xcart = cyl_to_cart(x_start)
-      ELSE
-         xcart = x_start
-      ENDIF
-      
+!  Get the start, end and name of chord.
+      CALL signal_dot_parse_chord(thscted_iou, istat,                          &
+     &                            coordinate_type,                             &
+     &                            "thscte",                                    &
+     &                            line, i_line,                                &
+     &                            chord_name,                                  &
+     &                            xcart)
       CALL thscte_desc_construct(thscte_desc_temp,chord_name,                  &
      &                           xcart)
 
