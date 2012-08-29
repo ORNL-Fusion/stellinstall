@@ -304,7 +304,7 @@
       SUBROUTINE sxrch_dot_parse_chord(coordinate_type)
 !  Subroutine to parse an sxrch chord (redundant chord there)
 !      sxrchd_keyword(1) = 'sxr_chord_XYZ' or 'sxr_chord_RPhiDegZ'
-
+      USE coordinate_utilities
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -316,7 +316,6 @@
 !-----------------------------------------------
       INTEGER                     :: istat
       INTEGER                     :: inode, nnode
-      REAL(rprec)                 :: phi_rad
       REAL(rprec), DIMENSION(3)   :: x_start, x_end, xcart_i, xcart_f
       CHARACTER (len=30)          :: chord_name                               
       
@@ -373,14 +372,11 @@
 !-----------------------------------------------
 
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         phi_rad = x_start(2) * pi / 180.
-         xcart_i(1) = x_start(1) * COS(phi_rad)
-         xcart_i(2) = x_start(1) * SIN(phi_rad)
-         xcart_i(3) = x_start(3)
-         phi_rad = x_end(2) * pi / 180.
-         xcart_f(1) = x_end(1) * COS(phi_rad)
-         xcart_f(2) = x_end(1) * SIN(phi_rad)
-         xcart_f(3) = x_end(3)
+         x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
+         xcart_i = cyl_to_cart(x_start)
+
+         x_end(2) = x_end(2)*pi/180.     ! Convert to degrees to radians.
+         xcart_f = cyl_to_cart(x_end)
       ELSE
          xcart_i = x_start
          xcart_f = x_end
