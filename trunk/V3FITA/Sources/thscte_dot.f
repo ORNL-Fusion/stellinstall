@@ -235,22 +235,14 @@
      &                                                     line)
             
             CASE ('thscte_XYZ')
-               CALL thscte_dot_parse_chord('XYZ')
-               icount_points = icount_points + 1
-               IF (icount_points .gt. n_thscte_desc_arr) THEN
-                  WRITE(*,*) 'TOO MANY thscte. Increase dimensions'
-               ELSE
-                  thscte_desc_arr(icount_points) = thscte_desc_temp
-               ENDIF
+               CALL thscte_dot_parse_chord('XYZ', icount_points,               &
+     &                                     n_thscte_desc_arr,                  &
+     &                                     thscte_desc_arr)
                
             CASE ('thscte_RPhiDegZ')
-               CALL thscte_dot_parse_chord('RPHiDegZ')
-               icount_points = icount_points + 1
-               IF (icount_points .gt. n_thscte_desc_arr) THEN
-                  WRITE(*,*) 'TOO MANY thscte. Increase dimensions'
-               ELSE
-                  thscte_desc_arr(icount_points) = thscte_desc_temp
-               ENDIF
+               CALL thscte_dot_parse_chord('RPHiDegZ', icount_points,          &
+     &                                     n_thscte_desc_arr,                  &
+     &                                     thscte_desc_arr)
                            
             CASE ('end_of_file')
                thscted_l_done = .true.
@@ -298,7 +290,10 @@
 !     
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE thscte_dot_parse_chord(coordinate_type)
+      SUBROUTINE thscte_dot_parse_chord(coordinate_type,                       &
+     &                                  icount_points,                         &
+     &                                  n_thscte_desc_arr,                     &
+     &                                  thscte_desc_arr)
 !  Subroutine to parse an thscte chord (redundant chord there)
 !      thscted_keyword(1) = 'thscte_XYZ' or 'thscte_RPhiDegZ'
       IMPLICIT NONE
@@ -306,7 +301,11 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
+      INTEGER, INTENT(inout) :: icount_points
+      INTEGER, INTENT(in)    :: n_thscte_desc_arr
+      TYPE(thscte_desc), DIMENSION(:), INTENT(inout) :: thscte_desc_arr
       CHARACTER (len=*) :: coordinate_type
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -331,6 +330,13 @@
 !-----------------------------------------------
       thscted_l_done = signal_dot_check_next_line(thscted_iou, istat,          &
      &                                            i_line, line)
+
+      icount_points = icount_points + 1
+      IF (icount_points .gt. n_thscte_desc_arr) THEN
+         WRITE(*,*) 'TOO MANY thscte. Increase dimensions'
+      ELSE
+         thscte_desc_arr(icount_points) = thscte_desc_temp
+      ENDIF
 
       END SUBROUTINE thscte_dot_parse_chord
 

@@ -151,7 +151,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                 &
+      CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                  &
      &   ipchd_keyword
       INTEGER, DIMENSION(1:n_ipchd_keyword) :: n_char_key, i_find_key
 
@@ -178,7 +178,7 @@
       ipchd_keyword(1) = 'ip_chord_XYZ'
       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
       ipchd_keyword(3) = 'end_of_file'
-      n_char_key(1:n_ipchd_keyword) =                                         &
+      n_char_key(1:n_ipchd_keyword) =                                          &
      &   len_trim(ipchd_keyword(1:n_ipchd_keyword))
 
 !  Find the length of the ipch_desc_arr array
@@ -186,7 +186,7 @@
 
 !  Open up the 'ipch.' file
       ipchd_iou = ipchd_iou_0
-      CALL safe_open(ipchd_iou, istat,                                        &
+      CALL safe_open(ipchd_iou, istat,                                         &
      &     TRIM(ipch_file), 'old', 'formatted')
       IF (istat .ne. 0) STOP 'Error opening ipch. file'
 
@@ -235,22 +235,14 @@
      &                                                   line)
             
             CASE ('ip_chord_XYZ')
-               CALL ipch_dot_parse_chord('XYZ')
-               icount_chords = icount_chords + 1
-               IF (icount_chords .gt. n_ipch_desc_arr) THEN
-                  WRITE(*,*) 'TOO MANY ipCH. Increase dimensions'
-               ELSE
-                  ipch_desc_arr(icount_chords) = ipch_desc_temp
-               ENDIF
+               CALL ipch_dot_parse_chord('XYZ', icount_chords,                 &
+     &                                   n_ipch_desc_arr,                      &
+     &                                   ipch_desc_arr)
                
             CASE ('ip_chord_RPhiDegZ')
-               CALL ipch_dot_parse_chord('RPHiDegZ')
-               icount_chords = icount_chords + 1
-               IF (icount_chords .gt. n_ipch_desc_arr) THEN
-                  WRITE(*,*) 'TOO MANY ipCH. Increase dimensions'
-               ELSE
-                  ipch_desc_arr(icount_chords) = ipch_desc_temp
-               ENDIF
+               CALL ipch_dot_parse_chord('RPHiDegZ', icount_chords,            &
+     &                                   n_ipch_desc_arr,                      &
+     &                                   ipch_desc_arr)
                            
             CASE ('end_of_file')
                ipchd_l_done = .true.
@@ -298,7 +290,10 @@
 !     
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE ipch_dot_parse_chord(coordinate_type)
+      SUBROUTINE ipch_dot_parse_chord(coordinate_type,                         &
+     &                                icount_chords,                           &
+     &                                n_ipch_desc_arr,                         &
+     &                                ipch_desc_arr)
 !  Subroutine to parse an ipch chord (redundant chord there)
 !      ipchd_keyword(1) = 'ip_chord_XYZ' or 'ip_chord_RPhiDegZ'
       IMPLICIT NONE
@@ -306,6 +301,9 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
+      INTEGER, INTENT(inout)                       :: icount_chords
+      INTEGER, INTENT(in)                          :: n_ipch_desc_arr
+      TYPE(ipch_desc), DIMENSION(:), INTENT(inout) :: ipch_desc_arr
       CHARACTER (len=*) :: coordinate_type
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -331,6 +329,13 @@
 !-----------------------------------------------
       ipchd_l_done = signal_dot_check_next_line(ipchd_iou, istat,              &
      &                                          i_line, line)
+
+      icount_chords = icount_chords + 1
+      IF (icount_chords .gt. n_ipch_desc_arr) THEN
+         WRITE(*,*) 'TOO MANY ipCH. Increase dimensions'
+      ELSE
+         ipch_desc_arr(icount_chords) = ipch_desc_temp
+      ENDIF
 
       END SUBROUTINE ipch_dot_parse_chord
 

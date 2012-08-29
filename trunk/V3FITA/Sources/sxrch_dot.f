@@ -231,29 +231,21 @@
 !  Branch on the keyword
          SELECT CASE (this_keyword)
          
-            CASE DEFAULT ! Did  not find a keyword. Read another line.
+            CASE DEFAULT ! Did not find a keyword. Read another line.
                sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou,          &
      &                                                    istat,               &
      &                                                    i_line,              &
      &                                                    line)
             
             CASE ('sxr_chord_XYZ')
-               CALL sxrch_dot_parse_chord('XYZ')
-               icount_chords = icount_chords + 1
-               IF (icount_chords .gt. n_sxrch_desc_arr) THEN
-                  WRITE(*,*) 'TOO MANY SXRCH. Increase dimnesions'
-               ELSE
-                  sxrch_desc_arr(icount_chords) = sxrch_desc_temp
-               ENDIF
+               CALL sxrch_dot_parse_chord('XYZ', icount_chords,                &
+     &                                    n_sxrch_desc_arr,                    &
+     &                                    sxrch_desc_arr)
                
             CASE ('sxr_chord_RPhiDegZ')
-               CALL sxrch_dot_parse_chord('RPHiDegZ')
-               icount_chords = icount_chords + 1
-               IF (icount_chords .gt. n_sxrch_desc_arr) THEN
-                  WRITE(*,*) 'TOO MANY SXRCH. Increase dimnesions'
-               ELSE
-                  sxrch_desc_arr(icount_chords) = sxrch_desc_temp
-               ENDIF
+               CALL sxrch_dot_parse_chord('RPHiDegZ', icount_chords,           &
+     &                                    n_sxrch_desc_arr,                    &
+     &                                    sxrch_desc_arr)
                            
             CASE ('end_of_file')
                sxrchd_l_done = .true.
@@ -301,7 +293,10 @@
 !     
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE sxrch_dot_parse_chord(coordinate_type)
+      SUBROUTINE sxrch_dot_parse_chord(coordinate_type,                        &
+     &                                 icount_chords,                          &
+     &                                 n_sxrch_desc_arr,                       &
+     &                                 sxrch_desc_arr)
 !  Subroutine to parse an sxrch chord (redundant chord there)
 !      sxrchd_keyword(1) = 'sxr_chord_XYZ' or 'sxr_chord_RPhiDegZ'
       IMPLICIT NONE
@@ -309,7 +304,11 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
+      INTEGER, INTENT(inout)                        :: icount_chords
+      INTEGER, INTENT(in)                           :: n_sxrch_desc_arr
+      TYPE(sxrch_desc), DIMENSION(:), INTENT(inout) :: sxrch_desc_arr
       CHARACTER (len=*) :: coordinate_type
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -334,6 +333,13 @@
 !-----------------------------------------------
       sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou, istat,            &
      &                                           i_line, line)
+
+      icount_chords = icount_chords + 1
+      IF (icount_chords .gt. n_sxrch_desc_arr) THEN
+         WRITE(*,*) 'TOO MANY SXRCH. Increase dimnesions'
+      ELSE
+         sxrch_desc_arr(icount_chords) = sxrch_desc_temp
+      ENDIF
 
       END SUBROUTINE sxrch_dot_parse_chord
 
