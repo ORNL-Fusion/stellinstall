@@ -82,6 +82,7 @@
       USE stel_kinds
       USE stel_constants
       USE ipch_T
+      USE signal_dot
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -228,11 +229,10 @@
          SELECT CASE (this_keyword)
          
             CASE DEFAULT ! Did  not find a keyword. Read another line.
-               READ (ipchd_iou, '(a)', iostat=istat) line
-               i_line = i_line + 1
-               IF (istat .ne. 0) THEN
-                  ipchd_l_done = .true.
-               END IF
+               ipchd_l_done = signal_dot_check_next_line(ipchd_iou,            &
+     &                                                   istat,                &
+     &                                                   i_line,               &
+     &                                                   line)
             
             CASE ('ip_chord_XYZ')
                CALL ipch_dot_parse_chord('XYZ')
@@ -301,7 +301,6 @@
       SUBROUTINE ipch_dot_parse_chord(coordinate_type)
 !  Subroutine to parse an ipch chord (redundant chord there)
 !      ipchd_keyword(1) = 'ip_chord_XYZ' or 'ip_chord_RPhiDegZ'
-      USE coordinate_utilities
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -319,78 +318,21 @@
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
-
-!  Parse beyond the keyword in the first line
-
-!  Read the second line, chord identification
-!-----------------------------------------------
-      READ (ipchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error reading ID for ip chord, line ', i_line
-         STOP
-      END IF
-
-      chord_name = TRIM(line)
-
-!  Read the third line, start position
-!-----------------------------------------------
-      READ (ipchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error ip start position line', i_line
-         STOP
-      END IF
-
-!  Reread the line, looking for three reals
-         READ(line, *, iostat=istat) x_start(1:3)
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error ip start position', i_line
-         STOP
-      END IF
-
-!  Read the fourth line, end position
-!-----------------------------------------------
-      READ (ipchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error ip end position line', i_line
-         STOP
-      END IF
-
-!  Reread the line, looking for three reals
-         READ(line, *, iostat=istat) x_end(1:3)
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error ip end position', i_line
-         STOP
-      END IF
-
-!  Done reading information for this ipch. Generate the ipch
-!-----------------------------------------------
-
-      IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
-         xcart_i = cyl_to_cart(x_start)
-
-         x_end(2) = x_end(2)*pi/180.     ! Convert to degrees to radians.
-         xcart_f = cyl_to_cart(x_end)
-      ELSE
-         xcart_i = x_start
-         xcart_f = x_end
-      ENDIF
-      
-      CALL ipch_desc_construct(ipch_desc_temp,chord_name,                    &
-     &    xcart_i,xcart_f)
+!  Get the start, end and name of chord.
+      CALL signal_dot_parse_chord(ipchd_iou, istat,                            &
+     &                            coordinate_type,                             &
+     &                            "ip",                                        &
+     &                            line, i_line,                                &
+     &                            xcart_i, xcart_f,                            &
+     &                            chord_name)
+      CALL ipch_desc_construct(ipch_desc_temp,chord_name,                      &
+     &                         xcart_i,xcart_f)
 
 !  Read the next line, in preparation for returning to main parsing loop
 !-----------------------------------------------
-      READ (ipchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         ipchd_l_done = .true.
-      END IF
+      ipchd_l_done = signal_dot_check_next_line(ipchd_iou, istat,              &
+     &                                          i_line, line)
 
-      RETURN
       END SUBROUTINE ipch_dot_parse_chord
 
 

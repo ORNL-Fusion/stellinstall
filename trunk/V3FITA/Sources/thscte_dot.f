@@ -82,6 +82,7 @@
       USE stel_kinds
       USE stel_constants
       USE thscte_T
+      USE signal_dot
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -228,11 +229,10 @@
          SELECT CASE (this_keyword)
          
             CASE DEFAULT ! Did  not find a keyword. Read another line.
-               READ (thscted_iou, '(a)', iostat=istat) line
-               i_line = i_line + 1
-               IF (istat .ne. 0) THEN
-                  thscted_l_done = .true.
-               END IF
+               thscted_l_done = signal_dot_check_next_line(thscted_iou,        &
+     &                                                     istat,              &
+     &                                                     i_line,             &
+     &                                                     line)
             
             CASE ('thscte_XYZ')
                CALL thscte_dot_parse_chord('XYZ')
@@ -362,17 +362,13 @@
       ENDIF
       
       CALL thscte_desc_construct(thscte_desc_temp,chord_name,                  &
-     &    xcart)
+     &                           xcart)
 
 !  Read the next line, in preparation for returning to main parsing loop
 !-----------------------------------------------
-      READ (thscted_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         thscted_l_done = .true.
-      END IF
+      thscted_l_done = signal_dot_check_next_line(thscted_iou, istat,          &
+     &                                            i_line, line)
 
-      RETURN
       END SUBROUTINE thscte_dot_parse_chord
 
 

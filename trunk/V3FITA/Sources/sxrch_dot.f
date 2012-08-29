@@ -85,6 +85,7 @@
       USE stel_kinds
       USE stel_constants
       USE sxrch_T
+      USE signal_dot
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -231,11 +232,10 @@
          SELECT CASE (this_keyword)
          
             CASE DEFAULT ! Did  not find a keyword. Read another line.
-               READ (sxrchd_iou, '(a)', iostat=istat) line
-               i_line = i_line + 1
-               IF (istat .ne. 0) THEN
-                  sxrchd_l_done = .true.
-               END IF
+               sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou,          &
+     &                                                    istat,               &
+     &                                                    i_line,              &
+     &                                                    line)
             
             CASE ('sxr_chord_XYZ')
                CALL sxrch_dot_parse_chord('XYZ')
@@ -304,7 +304,6 @@
       SUBROUTINE sxrch_dot_parse_chord(coordinate_type)
 !  Subroutine to parse an sxrch chord (redundant chord there)
 !      sxrchd_keyword(1) = 'sxr_chord_XYZ' or 'sxr_chord_RPhiDegZ'
-      USE coordinate_utilities
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -322,78 +321,21 @@
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
-
-!  Parse beyond the keyword in the first line
-
-!  Read the second line, chord identification
-!-----------------------------------------------
-      READ (sxrchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error reading ID for sxr chord, line ', i_line
-         STOP
-      END IF
-
-      chord_name = TRIM(line)
-
-!  Read the third line, start position
-!-----------------------------------------------
-      READ (sxrchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error sxr start position line', i_line
-         STOP
-      END IF
-
-!  Reread the line, looking for three reals
-         READ(line, *, iostat=istat) x_start(1:3)
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error sxr start position', i_line
-         STOP
-      END IF
-
-!  Read the fourth line, end position
-!-----------------------------------------------
-      READ (sxrchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error sxr end position line', i_line
-         STOP
-      END IF
-
-!  Reread the line, looking for three reals
-         READ(line, *, iostat=istat) x_end(1:3)
-      IF (istat .ne. 0) THEN 
-         WRITE(*,*) 'Error sxr end position', i_line
-         STOP
-      END IF
-
-!  Done reading information for this sxrch. Generate the sxrch
-!-----------------------------------------------
-
-      IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
-         xcart_i = cyl_to_cart(x_start)
-
-         x_end(2) = x_end(2)*pi/180.     ! Convert to degrees to radians.
-         xcart_f = cyl_to_cart(x_end)
-      ELSE
-         xcart_i = x_start
-         xcart_f = x_end
-      ENDIF
-      
+!  Get the start, end and name of chord.
+      CALL signal_dot_parse_chord(sxrchd_iou, istat,                           &
+     &                            coordinate_type,                             &
+     &                            "sxr",                                       &
+     &                            line, i_line,                                &
+     &                            xcart_i, xcart_f,                            &
+     &                            chord_name)
       CALL sxrch_desc_construct(sxrch_desc_temp,chord_name,                    &
-     &    xcart_i,xcart_f)
+     &                          xcart_i,xcart_f)
 
 !  Read the next line, in preparation for returning to main parsing loop
 !-----------------------------------------------
-      READ (sxrchd_iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      IF (istat .ne. 0) THEN 
-         sxrchd_l_done = .true.
-      END IF
+      sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou, istat,            &
+     &                                           i_line, line)
 
-      RETURN
       END SUBROUTINE sxrch_dot_parse_chord
 
 

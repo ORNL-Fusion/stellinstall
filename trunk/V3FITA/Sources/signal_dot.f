@@ -10,7 +10,7 @@
       USE stel_constants
       IMPLICIT NONE
 
-      PUBLIC signal_dot_parse_chord
+      PUBLIC signal_dot_parse_chord, signal_dot_check_next_line
       PRIVATE signal_dot_check_status
 
       CONTAINS
@@ -95,7 +95,7 @@
      &                             " end position",                            &
      &                             signal_id)
 
-! Done reading information for this sxrch. Generate the sxrch
+! Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
          x_start(2) = x_start(2)*pi/180. ! Convert to degrees to radians.
          xcart_i = cyl_to_cart(x_start)
@@ -108,6 +108,27 @@
       ENDIF
 
       END SUBROUTINE
+
+!*******************************************************************************
+!  Check the next line for valid input.
+!*******************************************************************************
+      FUNCTION signal_dot_check_next_line(iou, istat, i_line, line)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      INTEGER, INTENT(inout)             :: iou, istat, i_line
+      CHARACTER (len=200), INTENT(inout) :: line
+      LOGICAL                            :: signal_dot_check_next_line
+!-------------------------------------------------------------------------------
+!  Start of Executable Code
+!-------------------------------------------------------------------------------
+      READ (iou, '(a)', iostat=istat) line
+      i_line = i_line + 1
+      signal_dot_check_next_line = istat .ne. 0
+
+      END FUNCTION
 
 !*******************************************************************************
 !  Private Functions and Subroutines.
