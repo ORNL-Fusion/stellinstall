@@ -30,6 +30,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/recon_param_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/result_output_mod.f
 	${CMAKE_CURRENT_SOURCE_DIR}/signal_cdf.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/signal_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/signal_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/signal_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrch_dot.f
