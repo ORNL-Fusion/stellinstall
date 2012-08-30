@@ -11,8 +11,7 @@
       USE gsq_mod, ONLY: gsq_g2
       USE signal_T
       USE recon_param_T
-
-      INCLUDE 'netcdf.inc'
+      USE ezcdf
 
 !*******************************************************************************
 !  Object representing the results file. This is mean to be an opaque. All 
