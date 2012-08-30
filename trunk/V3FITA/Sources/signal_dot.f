@@ -10,14 +10,64 @@
       USE stel_constants
       IMPLICIT NONE
 
-      PUBLIC signal_dot_parse_chord, signal_dot_check_next_line
-      PRIVATE signal_dot_check_status
+      PUBLIC  :: signal_dot_open, signal_dot_parse_chord,                      &
+     &           signal_dot_check_next_line
+      PRIVATE :: signal_dot_check_status
 
       CONTAINS
 
 !*******************************************************************************
 !  Public Functions and Subroutines.
 !*******************************************************************************
+!*******************************************************************************
+!  Parse a chord from a diagnostic dot file.
+!*******************************************************************************
+      FUNCTION signal_dot_open(file, signal_id, istat, line)
+      USE safe_open_mod
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      INTEGER, INTENT(inout)             :: istat
+      CHARACTER*(*), INTENT(in)          :: file
+      CHARACTER (len=*), INTENT(in)      :: signal_id
+      CHARACTER (len=200), INTENT(inout) :: line
+      INTEGER                            :: signal_dot_open
+
+!-------------------------------------------------------------------------------
+!  Local Parameters
+!-------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: iou_0=32
+
+!-------------------------------------------------------------------------------
+!  Start of Executable Code
+!-------------------------------------------------------------------------------
+!  Open up the file
+      signal_dot_open = iou_0
+      CALL safe_open(signal_dot_open, istat, file, 'old', 'formatted')
+      CALL signal_dot_check_status(istat, 2,                                   &
+     &                             "Error opening ",                           &
+     &                             ". file  line",                             &
+     &                             signal_id)
+
+!  Read the first line
+      READ (signal_dot_open, '(a)', iostat=istat) line
+      CALL signal_dot_check_status(istat, 1,                                   &
+     &                             "Error in ",                                &
+     &                             ". file  line",                             &
+     &                             signal_id)
+
+
+!  Read the second line, and get ready to enter the parsing loop
+      READ (signal_dot_open, '(a)', iostat=istat) line
+      CALL signal_dot_check_status(istat, 2,                                   &
+     &                             "Error in ",                                &
+     &                             ". file  line",                             &
+     &                             signal_id)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  Parse a chord from a diagnostic dot file.
 !*******************************************************************************

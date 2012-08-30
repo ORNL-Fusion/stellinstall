@@ -185,21 +185,8 @@
       n_ipch_desc_arr = SIZE(ipch_desc_arr)
 
 !  Open up the 'ipch.' file
-      ipchd_iou = ipchd_iou_0
-      CALL safe_open(ipchd_iou, istat,                                         &
-     &     TRIM(ipch_file), 'old', 'formatted')
-      IF (istat .ne. 0) STOP 'Error opening ipch. file'
-
-!  Read the first line
-      READ (ipchd_iou, '(a)', iostat=istat) line
-      IF (istat .ne. 0)                                                        &   
-     &   STOP 'Error in First line of ipch. file '
-
-
-!  Read the second line, and get ready to enter the parsing loop
-      READ (ipchd_iou, '(a)', iostat=istat) line
-      IF (istat .ne. 0)                                                        &   
-     &   STOP 'Error in Second line of ipch. file '
+      ipchd_iou = signal_dot_open(TRIM(ipch_file), "ipch",               &
+     &                            istat, line)
       i_line = 2
       ipchd_l_done = .false.
 

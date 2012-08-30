@@ -188,21 +188,8 @@
       n_sxrch_desc_arr = SIZE(sxrch_desc_arr)
 
 !  Open up the 'sxrch.' file
-      sxrchd_iou = sxrchd_iou_0
-      CALL safe_open(sxrchd_iou, istat,                                        &
-     &     TRIM(sxrch_file), 'old', 'formatted')
-      IF (istat .ne. 0) STOP 'Error opening sxrch. file'
-
-!  Read the first line
-      READ (sxrchd_iou, '(a)', iostat=istat) line
-      IF (istat .ne. 0)                                                        &   
-     &   STOP 'Error in First line of sxrch. file '
-
-
-!  Read the second line, and get ready to enter the parsing loop
-      READ (sxrchd_iou, '(a)', iostat=istat) line
-      IF (istat .ne. 0)                                                        &   
-     &   STOP 'Error in Second line of sxrch. file '
+      sxrchd_iou = signal_dot_open(TRIM(sxrch_file), "sxrch",                  &
+     &                             istat, line)
       i_line = 2
       sxrchd_l_done = .false.
 

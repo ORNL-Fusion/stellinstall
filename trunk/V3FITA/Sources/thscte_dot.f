@@ -185,21 +185,8 @@
       n_thscte_desc_arr = SIZE(thscte_desc_arr)
 
 !  Open up the 'thscte.' file
-      thscted_iou = thscted_iou_0
-      CALL safe_open(thscted_iou, istat,                                        &
-     &     TRIM(thscte_file), 'old', 'formatted')
-      IF (istat .ne. 0) STOP 'Error opening thscte. file'
-
-!  Read the first line
-      READ (thscted_iou, '(a)', iostat=istat) line
-      IF (istat .ne. 0)                                                        &   
-     &   STOP 'Error in First line of thscte. file '
-
-
-!  Read the second line, and get ready to enter the parsing loop
-      READ (thscted_iou, '(a)', iostat=istat) line
-      IF (istat .ne. 0)                                                        &   
-     &   STOP 'Error in Second line of thscte. file '
+      thscted_iou = signal_dot_open(TRIM(thscte_file), "thscte",               &
+     &                              istat, line)
       i_line = 2
       thscted_l_done = .false.
 
