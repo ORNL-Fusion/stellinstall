@@ -501,10 +501,9 @@
          CALL eq_change_vmi_precon2d_off_same_blocks
          CALL eq_history_set(i2 = irp)
          numiter = state_vec % fixp % niter
-         CALL eq_step(numiter,state_vec,lconverged = lconv,                    &
-     &      iter_es = iter_v,ier_flag_vmec=ier_flag_vmec_local,                &
-     &      vmec_flag_name=vmec_flag_name_local,                               &
-     &      delta_iterc=delta_iterc_local)
+         CALL eq_step(numiter, state_vec, lconv, iter_v,                       &
+     &      ier_flag_vmec_local, vmec_flag_name_local,                         &
+     &      delta_iterc_local)
 
 !  Check for convergence
          IF (.not. lconv) THEN

@@ -157,7 +157,7 @@
      &                    signal_desc_construct_c,                             &
      &                    signal_data_construct,                               &
      &                    signal_data_construct_sds
-         END INTERFACE
+      END INTERFACE
 
 !-------------------------------------------------------------------------------
 !  Generic destroy
