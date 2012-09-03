@@ -143,12 +143,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: sxrchd_iou_0=32
-      INTEGER, PARAMETER :: len_key = 30
       INTEGER, PARAMETER :: n_sxrchd_keyword = 3
-
-!  sxrchd_iou_0            INTEGER - starting I/O unit number, for safe_open
-!  len_key                 integer - length of the sxrchd_keyword character variables
 !  n_sxrchd_keyword        integer - number of sxrchd_keyword s.
 
 !-----------------------------------------------
@@ -156,22 +151,16 @@
 !-----------------------------------------------
       CHARACTER(len=len_key), DIMENSION(1:n_sxrchd_keyword) ::                 &
      &   sxrchd_keyword
-      INTEGER, DIMENSION(1:n_sxrchd_keyword) :: n_char_key, i_find_key
+      INTEGER, DIMENSION(1:n_sxrchd_keyword) :: n_char_key
 
-      INTEGER               :: istat
-      INTEGER, DIMENSION(1) :: loc_of_max
-      INTEGER               :: i, icount_chords
+      INTEGER               :: icount_chords
       INTEGER               :: n_sxrch_desc_arr
       CHARACTER (len=30)    :: s_name                                 
       CHARACTER (len=80)    :: l_name
-      CHARACTER (len=len_key) :: this_keyword
 !  Make sure that len for this_keyword is the same as len for sxrchd_keyword.
 
 !  sxrchd_keyword    character array - keywords for various sxrch input types
 !  n_char_key        integer array - lengths of the sxrchd_keyword strings
-!  i_find_key        integer array - lengths of sxrchd_keyword strings contained in line
-!  istat             integer - status variable
-!  loc_of_max        Integer array of length 1, to store result from maxloc call.
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -188,39 +177,21 @@
       n_sxrch_desc_arr = SIZE(sxrch_desc_arr)
 
 !  Open up the 'sxrch.' file
-      sxrchd_iou = signal_dot_open(TRIM(sxrch_file), "sxrch",                  &
-     &                             istat, line)
+      sxrchd_iou = signal_dot_open(TRIM(sxrch_file), "sxrch", line)
       i_line = 2
       sxrchd_l_done = .false.
-
       icount_chords = 0
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
-      DO 
-!  Check for keyword.
-!  Trying to identify the LONGEST keyword contained in line
-         i_find_key(1:n_sxrchd_keyword) = 0
-         DO i = 1,n_sxrchd_keyword
-            istat = INDEX(line,sxrchd_keyword(i))
-            IF (istat .ne. 0) THEN
-               i_find_key(i) = n_char_key(i)
-            END IF
-         END DO
-         IF (maxval(i_find_key(1:n_sxrchd_keyword)) .gt. 0) THEN
-            loc_of_max = maxloc(i_find_key(1:n_sxrchd_keyword))
-            this_keyword =                                                     &
-     &         sxrchd_keyword(loc_of_max(1))
-         ELSE
-            this_keyword = ''
-         END IF
-
+      DO
 !  Branch on the keyword
-         SELECT CASE (this_keyword)
+         SELECT CASE (signal_dot_read_keyword(n_sxrchd_keyword,                &
+     &                                        n_char_key, line,                &
+     &                                        sxrchd_keyword))
          
             CASE DEFAULT ! Did not find a keyword. Read another line.
                sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou,          &
-     &                                                    istat,               &
      &                                                    i_line,              &
      &                                                    line)
             
@@ -299,7 +270,6 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER                     :: istat
       REAL(rprec), DIMENSION(3)   :: xcart_i, xcart_f
       CHARACTER (len=30)          :: chord_name                               
       
@@ -307,7 +277,7 @@
 !  Start of Executable Code
 !-----------------------------------------------
 !  Get the start, end and name of chord.
-      CALL signal_dot_parse_chord(sxrchd_iou, istat,                           &
+      CALL signal_dot_parse_chord(sxrchd_iou,                                  &
      &                            coordinate_type,                             &
      &                            "sxr",                                       &
      &                            line, i_line,                                &
@@ -318,8 +288,7 @@
 
 !  Read the next line, in preparation for returning to main parsing loop
 !-----------------------------------------------
-      sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou, istat,            &
-     &                                           i_line, line)
+      sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou,i_line,line)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_sxrch_desc_arr) THEN

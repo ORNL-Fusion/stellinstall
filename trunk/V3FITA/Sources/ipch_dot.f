@@ -140,12 +140,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: ipchd_iou_0=32
-      INTEGER, PARAMETER :: len_key = 30
       INTEGER, PARAMETER :: n_ipchd_keyword = 3
-
-!  ipchd_iou_0            INTEGER - starting I/O unit number, for safe_open
-!  len_key                 integer - length of the ipchd_keyword character variables
 !  n_ipchd_keyword        integer - number of ipchd_keyword s.
 
 !-----------------------------------------------
@@ -153,22 +148,16 @@
 !-----------------------------------------------
       CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                  &
      &   ipchd_keyword
-      INTEGER, DIMENSION(1:n_ipchd_keyword) :: n_char_key, i_find_key
+      INTEGER, DIMENSION(1:n_ipchd_keyword) :: n_char_key
 
-      INTEGER               :: istat
-      INTEGER, DIMENSION(1) :: loc_of_max
-      INTEGER               :: i, icount_chords
+      INTEGER               :: icount_chords
       INTEGER               :: n_ipch_desc_arr
       CHARACTER (len=30)    :: s_name                                 
       CHARACTER (len=80)    :: l_name
-      CHARACTER (len=len_key) :: this_keyword
 !  Make sure that len for this_keyword is the same as len for ipchd_keyword.
 
 !  ipchd_keyword    character array - keywords for various ipch input types
 !  n_char_key        integer array - lengths of the ipchd_keyword strings
-!  i_find_key        integer array - lengths of ipchd_keyword strings contained in line
-!  istat             integer - status variable
-!  loc_of_max        Integer array of length 1, to store result from maxloc call.
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -185,8 +174,7 @@
       n_ipch_desc_arr = SIZE(ipch_desc_arr)
 
 !  Open up the 'ipch.' file
-      ipchd_iou = signal_dot_open(TRIM(ipch_file), "ipch",               &
-     &                            istat, line)
+      ipchd_iou = signal_dot_open(TRIM(ipch_file), "ipch", line)
       i_line = 2
       ipchd_l_done = .false.
 
@@ -194,30 +182,14 @@
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
-      DO 
-!  Check for keyword.
-!  Trying to identify the LONGEST keyword contained in line
-         i_find_key(1:n_ipchd_keyword) = 0
-         DO i = 1,n_ipchd_keyword
-            istat = INDEX(line,ipchd_keyword(i))
-            IF (istat .ne. 0) THEN
-               i_find_key(i) = n_char_key(i)
-            END IF
-         END DO
-         IF (maxval(i_find_key(1:n_ipchd_keyword)) .gt. 0) THEN
-            loc_of_max = maxloc(i_find_key(1:n_ipchd_keyword))
-            this_keyword =                                                     &
-     &         ipchd_keyword(loc_of_max(1))
-         ELSE
-            this_keyword = ''
-         END IF
-
+      DO
 !  Branch on the keyword
-         SELECT CASE (this_keyword)
+         SELECT CASE (signal_dot_read_keyword(n_ipchd_keyword,                 &
+     &                                        n_char_key, line,                &
+     &                                        ipchd_keyword))
          
             CASE DEFAULT ! Did  not find a keyword. Read another line.
                ipchd_l_done = signal_dot_check_next_line(ipchd_iou,            &
-     &                                                   istat,                &
      &                                                   i_line,               &
      &                                                   line)
             
@@ -295,7 +267,6 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER                     :: istat
       REAL(rprec), DIMENSION(3)   :: xcart_i, xcart_f
       CHARACTER (len=30)          :: chord_name                               
       
@@ -303,7 +274,7 @@
 !  Start of Executable Code
 !-----------------------------------------------
 !  Get the start, end and name of chord.
-      CALL signal_dot_parse_chord(ipchd_iou, istat,                            &
+      CALL signal_dot_parse_chord(ipchd_iou,                                   &
      &                            coordinate_type,                             &
      &                            "ip",                                        &
      &                            line, i_line,                                &
@@ -314,8 +285,7 @@
 
 !  Read the next line, in preparation for returning to main parsing loop
 !-----------------------------------------------
-      ipchd_l_done = signal_dot_check_next_line(ipchd_iou, istat,              &
-     &                                          i_line, line)
+      ipchd_l_done = signal_dot_check_next_line(ipchd_iou, i_line, line)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_ipch_desc_arr) THEN

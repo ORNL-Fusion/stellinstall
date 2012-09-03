@@ -140,12 +140,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: thscted_iou_0=32
-      INTEGER, PARAMETER :: len_key = 30
       INTEGER, PARAMETER :: n_thscted_keyword = 3
-
-!  thscted_iou_0        INTEGER - starting I/O unit number, for safe_open
-!  len_key              integer - length of the thscted_keyword character variables
 !  n_thscted_keyword    integer - number of thscted_keyword s.
 
 !-----------------------------------------------
@@ -156,8 +151,7 @@
       INTEGER, DIMENSION(1:n_thscted_keyword) :: n_char_key, i_find_key
 
       INTEGER               :: istat
-      INTEGER, DIMENSION(1) :: loc_of_max
-      INTEGER               :: i, icount_points
+      INTEGER               :: icount_points
       INTEGER               :: n_thscte_desc_arr
       CHARACTER (len=30)    :: s_name                                 
       CHARACTER (len=80)    :: l_name
@@ -185,8 +179,7 @@
       n_thscte_desc_arr = SIZE(thscte_desc_arr)
 
 !  Open up the 'thscte.' file
-      thscted_iou = signal_dot_open(TRIM(thscte_file), "thscte",               &
-     &                              istat, line)
+      thscted_iou = signal_dot_open(TRIM(thscte_file), "thscte", line)
       i_line = 2
       thscted_l_done = .false.
 
@@ -194,30 +187,14 @@
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
-      DO 
-!  Check for keyword.
-!  Trying to identify the LONGEST keyword contained in line
-         i_find_key(1:n_thscted_keyword) = 0
-         DO i = 1,n_thscted_keyword
-            istat = INDEX(line,thscted_keyword(i))
-            IF (istat .ne. 0) THEN
-               i_find_key(i) = n_char_key(i)
-            END IF
-         END DO
-         IF (maxval(i_find_key(1:n_thscted_keyword)) .gt. 0) THEN
-            loc_of_max = maxloc(i_find_key(1:n_thscted_keyword))
-            this_keyword =                                                     &
-     &         thscted_keyword(loc_of_max(1))
-         ELSE
-            this_keyword = ''
-         END IF
-
+      DO
 !  Branch on the keyword
-         SELECT CASE (this_keyword)
+         SELECT CASE (signal_dot_read_keyword(n_thscted_keyword,               &
+     &                                        n_char_key, line,                &
+     &                                        thscted_keyword))
          
             CASE DEFAULT ! Did  not find a keyword. Read another line.
                thscted_l_done = signal_dot_check_next_line(thscted_iou,        &
-     &                                                     istat,              &
      &                                                     i_line,             &
      &                                                     line)
             
@@ -296,7 +273,6 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER                     :: istat
       REAL(rprec), DIMENSION(3)   :: xcart
       CHARACTER (len=30)          :: chord_name                               
       
@@ -304,7 +280,7 @@
 !  Start of Executable Code
 !-----------------------------------------------
 !  Get the start, end and name of chord.
-      CALL signal_dot_parse_chord(thscted_iou, istat,                          &
+      CALL signal_dot_parse_chord(thscted_iou,                                 &
      &                            coordinate_type,                             &
      &                            "thscte",                                    &
      &                            line, i_line,                                &
@@ -315,8 +291,8 @@
 
 !  Read the next line, in preparation for returning to main parsing loop
 !-----------------------------------------------
-      thscted_l_done = signal_dot_check_next_line(thscted_iou, istat,          &
-     &                                            i_line, line)
+      thscted_l_done = signal_dot_check_next_line(thscted_iou,                 &
+     &                                            i_line,line)
 
       icount_points = icount_points + 1
       IF (icount_points .gt. n_thscte_desc_arr) THEN

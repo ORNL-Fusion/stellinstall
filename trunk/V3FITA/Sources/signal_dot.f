@@ -11,8 +11,10 @@
       IMPLICIT NONE
 
       PUBLIC  :: signal_dot_open, signal_dot_parse_chord,                      &
-     &           signal_dot_check_next_line
+     &           signal_dot_check_next_line, signal_dot_read_keyword
       PRIVATE :: signal_dot_check_status
+
+      INTEGER, PARAMETER :: len_key = 30
 
       CONTAINS
 
@@ -22,18 +24,22 @@
 !*******************************************************************************
 !  Parse a chord from a diagnostic dot file.
 !*******************************************************************************
-      FUNCTION signal_dot_open(file, signal_id, istat, line)
+      FUNCTION signal_dot_open(file, signal_id, line)
       USE safe_open_mod
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(inout)             :: istat
       CHARACTER*(*), INTENT(in)          :: file
       CHARACTER (len=*), INTENT(in)      :: signal_id
       CHARACTER (len=200), INTENT(inout) :: line
       INTEGER                            :: signal_dot_open
+
+!-------------------------------------------------------------------------------
+!   Local Variables
+!-------------------------------------------------------------------------------
+      INTEGER :: istat
 
 !-------------------------------------------------------------------------------
 !  Local Parameters
@@ -71,7 +77,7 @@
 !*******************************************************************************
 !  Parse a chord from a diagnostic dot file.
 !*******************************************************************************
-      SUBROUTINE signal_dot_parse_chord(iou, istat,                            &
+      SUBROUTINE signal_dot_parse_chord(iou,                                   &
      &                                  coordinate_type,                       &
      &                                  signal_id,                             &
      &                                  line, i_line,                          &
@@ -83,7 +89,7 @@
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(inout)                           :: iou, istat
+      INTEGER, INTENT(inout)                           :: iou
       CHARACTER (len=*), INTENT(in)                    :: signal_id
       CHARACTER (len=200), INTENT(inout)               :: line
       INTEGER, INTENT(inout)                           :: i_line
@@ -100,6 +106,7 @@
 !   Local Variables
 !-------------------------------------------------------------------------------
       REAL(rprec), DIMENSION(3) :: x_start, x_end
+      INTEGER                   :: istat
 
 !-------------------------------------------------------------------------------
 !  Start of Executable Code
@@ -169,21 +176,71 @@
 !*******************************************************************************
 !  Check the next line for valid input.
 !*******************************************************************************
-      FUNCTION signal_dot_check_next_line(iou, istat, i_line, line)
+      FUNCTION signal_dot_check_next_line(iou, i_line, line)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(inout)             :: iou, istat, i_line
+      INTEGER, INTENT(inout)             :: iou, i_line
       CHARACTER (len=200), INTENT(inout) :: line
       LOGICAL                            :: signal_dot_check_next_line
+
+!-------------------------------------------------------------------------------
+!   Local Variables
+!-------------------------------------------------------------------------------
+      INTEGER :: istat
+
 !-------------------------------------------------------------------------------
 !  Start of Executable Code
 !-------------------------------------------------------------------------------
       READ (iou, '(a)', iostat=istat) line
       i_line = i_line + 1
       signal_dot_check_next_line = istat .ne. 0
+
+      END FUNCTION
+
+!*******************************************************************************
+!  Read a keyword from the diagnostic dot file.
+!
+!  Check for keyword trying to identify the LONGEST keyword contained in line.
+!*******************************************************************************
+      FUNCTION signal_dot_read_keyword(n_keyword, n_char_key,                  &
+     &                                 line, keywords)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      INTEGER, INTENT(in)                            :: n_keyword
+      INTEGER, DIMENSION(1:n_keyword), INTENT(in)    :: n_char_key
+      CHARACTER(len=200), INTENT(in)                 :: line
+      CHARACTER(len=len_key), DIMENSION(1:n_keyword) :: keywords
+      CHARACTER (len=len_key) :: signal_dot_read_keyword
+
+!-------------------------------------------------------------------------------
+!   Local Variables
+!-------------------------------------------------------------------------------
+      INTEGER, DIMENSION(1:n_keyword) :: i_find_key
+      INTEGER, DIMENSION(1)           :: loc_of_max
+      INTEGER                         :: i, istat
+
+!-------------------------------------------------------------------------------
+!  Start of Executable Code
+!-------------------------------------------------------------------------------
+      i_find_key(1:n_keyword) = 0
+      DO i = 1,n_keyword
+         istat = INDEX(line, keywords(i))
+         IF (istat .ne. 0) THEN
+            i_find_key(i) = n_char_key(i)
+         END IF
+      END DO
+      IF (maxval(i_find_key(1:n_keyword)) .gt. 0) THEN
+         loc_of_max = maxloc(i_find_key)
+         signal_dot_read_keyword = keywords(loc_of_max(1))
+      ELSE
+         signal_dot_read_keyword = ''
+      END IF
 
       END FUNCTION
 
