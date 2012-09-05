@@ -88,21 +88,11 @@
 !-------------------------------------------------------------------------------
 !  Variables local to the module. Make them private.
 !-------------------------------------------------------------------------------
-      INTEGER ::  ipchd_iou
-      INTEGER :: i_line
-      CHARACTER(len=200) :: line
-      LOGICAL :: ipchd_l_done
       TYPE (ipch_desc), SAVE :: ipch_desc_temp
-
-      PRIVATE ipchd_iou,i_line 
-      PRIVATE line, ipchd_l_done, ipch_desc_temp
+      PRIVATE ipch_desc_temp
 
 !  ipch_desc_temp    A temporary ipch_desc. SAVE attribute - see note in 
 !                         diagostic_dot about Lahey Fujitsu compiler
-!  ipchd_iou          i/o unit number for ipch_dot file
-!  ipchd_l_done       logical - true if done reading file
-!  i_line             integer - line counter for file
-!  line               character - the last line read from the file
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -148,16 +138,16 @@
 !-----------------------------------------------
       CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                  &
      &   ipchd_keyword
-      INTEGER, DIMENSION(1:n_ipchd_keyword) :: n_char_key
 
       INTEGER               :: icount_chords
       INTEGER               :: n_ipch_desc_arr
       CHARACTER (len=30)    :: s_name                                 
       CHARACTER (len=80)    :: l_name
+
+      TYPE(signal_dot_file) :: ipch_dot_file_ref
 !  Make sure that len for this_keyword is the same as len for ipchd_keyword.
 
 !  ipchd_keyword    character array - keywords for various ipch input types
-!  n_char_key        integer array - lengths of the ipchd_keyword strings
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -167,44 +157,38 @@
       ipchd_keyword(1) = 'ip_chord_XYZ'
       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
       ipchd_keyword(3) = 'end_of_file'
-      n_char_key(1:n_ipchd_keyword) =                                          &
-     &   len_trim(ipchd_keyword(1:n_ipchd_keyword))
 
 !  Find the length of the ipch_desc_arr array
       n_ipch_desc_arr = SIZE(ipch_desc_arr)
 
 !  Open up the 'ipch.' file
-      ipchd_iou = signal_dot_open(TRIM(ipch_file), "ipch", line)
-      i_line = 2
-      ipchd_l_done = .false.
+      ipch_dot_file_ref = signal_dot_open(TRIM(ipch_file), "ipch")
 
       icount_chords = 0
-
 !  Infinite Loop
 !  Character variable line should be defined on entry
       DO
 !  Branch on the keyword
-         SELECT CASE (signal_dot_read_keyword(n_ipchd_keyword,                 &
-     &                                        n_char_key, line,                &
+         SELECT CASE (signal_dot_read_keyword(ipch_dot_file_ref,               &
      &                                        ipchd_keyword))
          
-            CASE DEFAULT ! Did  not find a keyword. Read another line.
-               ipchd_l_done = signal_dot_check_next_line(ipchd_iou,            &
-     &                                                   i_line,               &
-     &                                                   line)
+            CASE DEFAULT ! This case should never fire.
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('end_of_file')
+               EXIT ! Exit out of infinte loop.
             
             CASE ('ip_chord_XYZ')
-               CALL ipch_dot_parse_chord('XYZ', icount_chords,                 &
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'XYZ', icount_chords,                 &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
                
             CASE ('ip_chord_RPhiDegZ')
-               CALL ipch_dot_parse_chord('RPHiDegZ', icount_chords,            &
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'RPHiDegZ', icount_chords,            &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
-                           
-            CASE ('end_of_file')
-               ipchd_l_done = .true.
 
          END SELECT
          
@@ -212,8 +196,6 @@
          IF  (icount_chords .gt. SIZE(ipch_desc_arr)) THEN
             STOP 'ipch_dot: Too many coils for ipch_desc_arr '
          ENDIF
-        
-         IF (ipchd_l_done) EXIT ! the infinite loop
          
       END DO
 
@@ -221,7 +203,7 @@
       CALL ipch_desc_destroy(ipch_desc_temp)
 
 !  Close the 'ipch.' file
-      CLOSE(ipchd_iou)
+      CALL signal_dot_close(ipch_dot_file_ref)
       
       n_chords = icount_chords
       
@@ -249,7 +231,8 @@
 !     
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE ipch_dot_parse_chord(coordinate_type,                         &
+      SUBROUTINE ipch_dot_parse_chord(ipch_dot_file_ref,                       &
+     &                                coordinate_type,                         &
      &                                icount_chords,                           &
      &                                n_ipch_desc_arr,                         &
      &                                ipch_desc_arr)
@@ -264,28 +247,24 @@
       INTEGER, INTENT(in)                          :: n_ipch_desc_arr
       TYPE(ipch_desc), DIMENSION(:), INTENT(inout) :: ipch_desc_arr
       CHARACTER (len=*) :: coordinate_type
+      TYPE(signal_dot_file), INTENT(inout) :: ipch_dot_file_ref
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(3)   :: xcart_i, xcart_f
-      CHARACTER (len=30)          :: chord_name                               
+      REAL(rprec), DIMENSION(3)  :: xcart_i, xcart_f
+      CHARACTER (len=c_name_len) :: chord_name                               
       
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
 !  Get the start, end and name of chord.
-      CALL signal_dot_parse_chord(ipchd_iou,                                   &
+      CALL signal_dot_parse_chord(ipch_dot_file_ref,                           &
      &                            coordinate_type,                             &
-     &                            "ip",                                        &
-     &                            line, i_line,                                &
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
       CALL ipch_desc_construct(ipch_desc_temp,chord_name,                      &
      &                         xcart_i,xcart_f)
-
-!  Read the next line, in preparation for returning to main parsing loop
-!-----------------------------------------------
-      ipchd_l_done = signal_dot_check_next_line(ipchd_iou, i_line, line)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_ipch_desc_arr) THEN
@@ -295,7 +274,6 @@
       ENDIF
 
       END SUBROUTINE ipch_dot_parse_chord
-
 
 !*******************************************************************************
 ! SECTION V. AUXILIARY SUBROUTINES

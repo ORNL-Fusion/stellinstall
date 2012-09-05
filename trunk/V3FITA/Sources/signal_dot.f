@@ -10,11 +10,22 @@
       USE stel_constants
       IMPLICIT NONE
 
-      PUBLIC  :: signal_dot_open, signal_dot_parse_chord,                      &
-     &           signal_dot_check_next_line, signal_dot_read_keyword
-      PRIVATE :: signal_dot_check_status
+      TYPE signal_dot_file
+         PRIVATE
+         INTEGER :: iou
+         INTEGER :: i_line
+         CHARACTER (len=6) :: signal_id
+      END TYPE
 
-      INTEGER, PARAMETER :: len_key = 30
+      PUBLIC  :: signal_dot_open, signal_dot_close,
+     &           signal_dot_parse_chord, signal_dot_read_keyword
+      PRIVATE :: signal_dot_check_status, signal_dot_read_line
+
+!-------------------------------------------------------------------------------
+!  Module Parameters
+!-------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: len_key = 30, c_name_len = 30
+      INTEGER, PARAMETER :: line_len = 200
 
       CONTAINS
 
@@ -22,19 +33,18 @@
 !  Public Functions and Subroutines.
 !*******************************************************************************
 !*******************************************************************************
-!  Parse a chord from a diagnostic dot file.
+!  Open diagnostic dot file.
 !*******************************************************************************
-      FUNCTION signal_dot_open(file, signal_id, line)
+      FUNCTION signal_dot_open(file, signal_id)
       USE safe_open_mod
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      CHARACTER*(*), INTENT(in)          :: file
-      CHARACTER (len=*), INTENT(in)      :: signal_id
-      CHARACTER (len=200), INTENT(inout) :: line
-      INTEGER                            :: signal_dot_open
+      CHARACTER*(*), INTENT(in)     :: file
+      CHARACTER (len=*), INTENT(in) :: signal_id
+      TYPE(signal_dot_file)         :: signal_dot_open
 
 !-------------------------------------------------------------------------------
 !   Local Variables
@@ -50,37 +60,42 @@
 !  Start of Executable Code
 !-------------------------------------------------------------------------------
 !  Open up the file
-      signal_dot_open = iou_0
-      CALL safe_open(signal_dot_open, istat, file, 'old', 'formatted')
-      CALL signal_dot_check_status(istat, 2,                                   &
+      signal_dot_open%iou       = iou_0
+      signal_dot_open%signal_id = signal_id
+      CALL safe_open(signal_dot_open%iou,istat,file,'old','formatted')
+      CALL signal_dot_check_status(istat, signal_dot_open,                     &
      &                             "Error opening ",                           &
-     &                             ". file  line",                             &
-     &                             signal_id)
-
-!  Read the first line
-      READ (signal_dot_open, '(a)', iostat=istat) line
-      CALL signal_dot_check_status(istat, 1,                                   &
-     &                             "Error in ",                                &
-     &                             ". file  line",                             &
-     &                             signal_id)
-
-
-!  Read the second line, and get ready to enter the parsing loop
-      READ (signal_dot_open, '(a)', iostat=istat) line
-      CALL signal_dot_check_status(istat, 2,                                   &
-     &                             "Error in ",                                &
-     &                             ". file  line",                             &
-     &                             signal_id)
+     &                             " file.")
 
       END FUNCTION
 
 !*******************************************************************************
-!  Parse a chord from a diagnostic dot file.
+!  Close diagnostic dot file.
 !*******************************************************************************
-      SUBROUTINE signal_dot_parse_chord(iou,                                   &
+      SUBROUTINE signal_dot_close(signal_dot_file_ref)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(signal_dot_file) :: signal_dot_file_ref
+
+!-------------------------------------------------------------------------------
+!  Start of Executable Code
+!-------------------------------------------------------------------------------
+!  Close the file
+      CLOSE(signal_dot_file_ref%iou)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  Parse a chord from a diagnostic dot file.
+!
+!  Chords start with the first line as the chord name. The it is followed by one
+!  or two lines of 3 coordinates.
+!*******************************************************************************
+      SUBROUTINE signal_dot_parse_chord(signal_dot_file_ref,                   &
      &                                  coordinate_type,                       &
-     &                                  signal_id,                             &
-     &                                  line, i_line,                          &
      &                                  chord_name,                            &
      &                                  xcart_i, xcart_f)
       USE coordinate_utilities
@@ -89,70 +104,48 @@
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(inout)                           :: iou
-      CHARACTER (len=*), INTENT(in)                    :: signal_id
-      CHARACTER (len=200), INTENT(inout)               :: line
-      INTEGER, INTENT(inout)                           :: i_line
-      CHARACTER (len=30), INTENT(out)                  :: chord_name
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*) :: coordinate_type
+      CHARACTER (len=c_name_len), INTENT(out)          :: chord_name
       REAL(rprec), DIMENSION(3), INTENT(out)           :: xcart_i
       REAL(rprec), DIMENSION(3), OPTIONAL, INTENT(out) :: xcart_f
-
-!-------------------------------------------------------------------------------
-!  Dummy Arguments
-!-------------------------------------------------------------------------------
-      CHARACTER (len=*) :: coordinate_type
 
 !-------------------------------------------------------------------------------
 !   Local Variables
 !-------------------------------------------------------------------------------
       REAL(rprec), DIMENSION(3) :: x_start, x_end
       INTEGER                   :: istat
+      CHARACTER (len=line_len)  :: line
 
 !-------------------------------------------------------------------------------
 !  Start of Executable Code
 !-------------------------------------------------------------------------------
-
-! Parse beyond the keyword in the first line.
-! Read the second line, chord identification.
-      READ (iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      CALL signal_dot_check_status(istat, i_line,                              &
-     &                             "Error reading ID for ",                    &
-     &                             " chord, line ",                            &
-     &                             signal_id)
-
+! Read the chord identification.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            "Error reading ID for ",                     &
+     &                            " chord.")
       chord_name = TRIM(line)
 
-! Read the third line, start position.
-      READ (iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      CALL signal_dot_check_status(istat, i_line,                              &
-     &                             "Error ",                                   &
-     &                             " start position line",                     &
-     &                             signal_id)
-
+! Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            "Error reading start position for ",         &
+     &                            " chord.")
 ! Reread the line, looking for three reals
       READ(line, *, iostat=istat) x_start(1:3)
-      CALL signal_dot_check_status(istat, i_line,                              &
+      CALL signal_dot_check_status(istat, signal_dot_file_ref,                 &
      &                             "Error ",                                   &
-     &                             " start position",                          &
-     &                             signal_id)
+     &                             " chord start position.")
 
       IF (PRESENT(xcart_f)) THEN
-! Read the fourth line, end position.
-         READ (iou, '(a)', iostat=istat) line
-         i_line = i_line + 1
-         CALL signal_dot_check_status(istat, i_line,                           &
-     &                                "Error ",                                &
-     &                                " end position line",                    &
-     &                                signal_id)
-
-! Reread the line, looking for three reals.
+! Read the end position.
+         line = signal_dot_read_line(signal_dot_file_ref,                      &
+     &                               "Error reading end position for ",        &
+     &                               " chord.")
+! Reread the line, looking for three reals
          READ(line, *, iostat=istat) x_end(1:3)
-         CALL signal_dot_check_status(istat, i_line,                           &
+         CALL signal_dot_check_status(istat, signal_dot_file_ref,              &
      &                                "Error ",                                &
-     &                                " end position",                         &
-     &                                signal_id)
+     &                                " chord end position.")
       ENDIF
 
 ! Done reading information for this chord. Generate the chord
@@ -174,17 +167,63 @@
       END SUBROUTINE
 
 !*******************************************************************************
-!  Check the next line for valid input.
+!  Read a keyword from the diagnostic dot file.
+!
+!  Read lines until a valid keyword is reached ot the end of the file is
+!  reached.
 !*******************************************************************************
-      FUNCTION signal_dot_check_next_line(iou, i_line, line)
+      FUNCTION signal_dot_read_keyword(signal_dot_file_ref, keywords)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(inout)             :: iou, i_line
-      CHARACTER (len=200), INTENT(inout) :: line
-      LOGICAL                            :: signal_dot_check_next_line
+      CHARACTER (len=len_key), DIMENSION(:) :: keywords
+      CHARACTER (len=len_key) :: signal_dot_read_keyword
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+
+!-------------------------------------------------------------------------------
+!   Local Variables
+!-------------------------------------------------------------------------------
+      INTEGER                  :: i
+      CHARACTER (len=line_len) :: line
+
+!-------------------------------------------------------------------------------
+!  Start of Executable Code
+!-------------------------------------------------------------------------------
+! Contine looping until a vaild keyword is read. If the end of the file is
+! reached an error will kill the program.
+      DO
+         line = signal_dot_read_line(signal_dot_file_ref,                      &
+     &                               "Failed to read ",                        &
+     &                               " keyword before end of file.")
+         DO i = 1, SIZE(keywords)
+             IF (TRIM(ADJUSTL(line)) .eq. TRIM(keywords(i))) THEN
+                signal_dot_read_keyword = keywords(i)
+                RETURN
+             ENDIF
+         END DO
+      END DO
+
+      END FUNCTION
+
+!*******************************************************************************
+!  Private Functions and Subroutines.
+!*******************************************************************************
+!*******************************************************************************
+!  Read line from diagnostic dot file.
+!*******************************************************************************
+      FUNCTION signal_dot_read_line(signal_dot_file_ref,                       &
+     &                              pre_message,                               &
+     &                              post_message)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      CHARACTER (len=*), INTENT(in) :: pre_message, post_message
+      CHARACTER (len=line_len) :: signal_dot_read_line
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
 
 !-------------------------------------------------------------------------------
 !   Local Variables
@@ -194,80 +233,35 @@
 !-------------------------------------------------------------------------------
 !  Start of Executable Code
 !-------------------------------------------------------------------------------
-      READ (iou, '(a)', iostat=istat) line
-      i_line = i_line + 1
-      signal_dot_check_next_line = istat .ne. 0
+      READ (signal_dot_file_ref%iou, '(a)', iostat=istat)                      &
+     &   signal_dot_read_line
+      signal_dot_file_ref%i_line = signal_dot_file_ref%i_line + 1
+      CALL signal_dot_check_status(istat, signal_dot_file_ref,                 &
+     &                             pre_message, post_message)
 
       END FUNCTION
 
-!*******************************************************************************
-!  Read a keyword from the diagnostic dot file.
-!
-!  Check for keyword trying to identify the LONGEST keyword contained in line.
-!*******************************************************************************
-      FUNCTION signal_dot_read_keyword(n_keyword, n_char_key,                  &
-     &                                 line, keywords)
-      IMPLICIT NONE
-
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
-      INTEGER, INTENT(in)                            :: n_keyword
-      INTEGER, DIMENSION(1:n_keyword), INTENT(in)    :: n_char_key
-      CHARACTER(len=200), INTENT(in)                 :: line
-      CHARACTER(len=len_key), DIMENSION(1:n_keyword) :: keywords
-      CHARACTER (len=len_key) :: signal_dot_read_keyword
-
-!-------------------------------------------------------------------------------
-!   Local Variables
-!-------------------------------------------------------------------------------
-      INTEGER, DIMENSION(1:n_keyword) :: i_find_key
-      INTEGER, DIMENSION(1)           :: loc_of_max
-      INTEGER                         :: i, istat
-
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
-      i_find_key(1:n_keyword) = 0
-      DO i = 1,n_keyword
-         istat = INDEX(line, keywords(i))
-         IF (istat .ne. 0) THEN
-            i_find_key(i) = n_char_key(i)
-         END IF
-      END DO
-      IF (maxval(i_find_key(1:n_keyword)) .gt. 0) THEN
-         loc_of_max = maxloc(i_find_key)
-         signal_dot_read_keyword = keywords(loc_of_max(1))
-      ELSE
-         signal_dot_read_keyword = ''
-      END IF
-
-      END FUNCTION
-
-!*******************************************************************************
-!  Private Functions and Subroutines.
-!*******************************************************************************
 !*******************************************************************************
 !  Check and handle errors.
 !*******************************************************************************
       SUBROUTINE signal_dot_check_status(istat,                                &
-     &                                   i_line,                               &
+     &                                   signal_dot_file_ref,                  &
      &                                   pre_message,                          &
-     &                                   post_message,                         &
-     &                                   signal_id)
+     &                                   post_message)
       IMPLICIT NONE
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      INTEGER, INTENT(in)           :: istat, i_line
-      CHARACTER (len=*), INTENT(in) :: pre_message, post_message,              &
-     &                                 signal_id
+      INTEGER, INTENT(in)           :: istat
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in) :: pre_message, post_message
 
 !-------------------------------------------------------------------------------
 !  Start of Executable Code
 !-------------------------------------------------------------------------------
       IF (istat .ne. 0) THEN
-         WRITE(*,*) pre_message // signal_id // post_message, i_line
+         WRITE(*,*) pre_message//TRIM(signal_dot_file_ref%signal_id)//         &
+     &              post_message//" line ",signal_dot_file_ref%i_line
          STOP
       END IF
 

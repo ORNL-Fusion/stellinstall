@@ -88,21 +88,11 @@
 !-------------------------------------------------------------------------------
 !  Variables local to the module. Make them private.
 !-------------------------------------------------------------------------------
-      INTEGER ::  thscted_iou
-      INTEGER :: i_line
-      CHARACTER(len=200) :: line
-      LOGICAL :: thscted_l_done
       TYPE (thscte_desc), SAVE :: thscte_desc_temp
-
-      PRIVATE thscted_iou,i_line 
-      PRIVATE line, thscted_l_done, thscte_desc_temp
+      PRIVATE thscte_desc_temp
 
 !  thscte_desc_temp     A temporary thscte_desc. SAVE attribute - see note in 
 !                         diagostic_dot about Lahey Fujitsu compiler
-!  thscted_iou          i/o unit number for thscte_dot file
-!  thscted_l_done       logical - true if done reading file
-!  i_line               integer - line counter for file
-!  line                 character - the last line read from the file
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -146,23 +136,19 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      CHARACTER(len=len_key), DIMENSION(1:n_thscted_keyword) ::                 &
+      CHARACTER(len=len_key), DIMENSION(1:n_thscted_keyword) ::                &
      &   thscted_keyword
-      INTEGER, DIMENSION(1:n_thscted_keyword) :: n_char_key, i_find_key
 
-      INTEGER               :: istat
       INTEGER               :: icount_points
       INTEGER               :: n_thscte_desc_arr
       CHARACTER (len=30)    :: s_name                                 
       CHARACTER (len=80)    :: l_name
       CHARACTER (len=len_key) :: this_keyword
+
+      TYPE(signal_dot_file) :: thscte_dot_file_ref
 !  Make sure that len for this_keyword is the same as len for thscted_keyword.
 
 !  thscted_keyword   character array - keywords for various thscte input types
-!  n_char_key        integer array - lengths of the thscted_keyword strings
-!  i_find_key        integer array - lengths of thscted_keyword strings contained in line
-!  istat             integer - status variable
-!  loc_of_max        Integer array of length 1, to store result from maxloc call.
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -172,44 +158,39 @@
       thscted_keyword(1) = 'thscte_XYZ'
       thscted_keyword(2) = 'thscte_RPhiDegZ'
       thscted_keyword(3) = 'end_of_file'
-      n_char_key(1:n_thscted_keyword) =                                         &
-     &   len_trim(thscted_keyword(1:n_thscted_keyword))
 
 !  Find the length of the thscte_desc_arr array
       n_thscte_desc_arr = SIZE(thscte_desc_arr)
 
 !  Open up the 'thscte.' file
-      thscted_iou = signal_dot_open(TRIM(thscte_file), "thscte", line)
-      i_line = 2
-      thscted_l_done = .false.
+      thscte_dot_file_ref = signal_dot_open(TRIM(thscte_file),                 &
+     &                                      "thscte")
 
       icount_points = 0
-
 !  Infinite Loop
 !  Character variable line should be defined on entry
       DO
 !  Branch on the keyword
-         SELECT CASE (signal_dot_read_keyword(n_thscted_keyword,               &
-     &                                        n_char_key, line,                &
+         SELECT CASE (signal_dot_read_keyword(thscte_dot_file_ref,             &
      &                                        thscted_keyword))
          
-            CASE DEFAULT ! Did  not find a keyword. Read another line.
-               thscted_l_done = signal_dot_check_next_line(thscted_iou,        &
-     &                                                     i_line,             &
-     &                                                     line)
+            CASE DEFAULT ! This case should never fire.
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('end_of_file')
+               EXIT ! Exit out of infinte loop.
             
             CASE ('thscte_XYZ')
-               CALL thscte_dot_parse_chord('XYZ', icount_points,               &
+               CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
+     &                                     'XYZ', icount_points,               &
      &                                     n_thscte_desc_arr,                  &
      &                                     thscte_desc_arr)
                
             CASE ('thscte_RPhiDegZ')
-               CALL thscte_dot_parse_chord('RPHiDegZ', icount_points,          &
+               CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
+     &                                     'RPHiDegZ', icount_points,          &
      &                                     n_thscte_desc_arr,                  &
      &                                     thscte_desc_arr)
-                           
-            CASE ('end_of_file')
-               thscted_l_done = .true.
 
          END SELECT
          
@@ -217,8 +198,6 @@
          IF  (icount_points .gt. SIZE(thscte_desc_arr)) THEN
             STOP 'thscte_dot: Too many coils for thscte_desc_arr '
          ENDIF
-        
-         IF (thscted_l_done) EXIT ! the infinite loop
          
       END DO
 
@@ -226,7 +205,7 @@
       CALL thscte_desc_destroy(thscte_desc_temp)
 
 !  Close the 'thscte.' file
-      CLOSE(thscted_iou)
+      CALL signal_dot_close(thscte_dot_file_ref)
       
       n_points = icount_points
       
@@ -254,7 +233,8 @@
 !     
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE thscte_dot_parse_chord(coordinate_type,                       &
+      SUBROUTINE thscte_dot_parse_chord(thscte_dot_file_ref,                   &
+     &                                  coordinate_type,                       &
      &                                  icount_points,                         &
      &                                  n_thscte_desc_arr,                     &
      &                                  thscte_desc_arr)
@@ -269,30 +249,24 @@
       INTEGER, INTENT(in)    :: n_thscte_desc_arr
       TYPE(thscte_desc), DIMENSION(:), INTENT(inout) :: thscte_desc_arr
       CHARACTER (len=*) :: coordinate_type
+      TYPE(signal_dot_file), INTENT(inout) :: thscte_dot_file_ref
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(3)   :: xcart
-      CHARACTER (len=30)          :: chord_name                               
+      REAL(rprec), DIMENSION(3)  :: xcart
+      CHARACTER (len=c_name_len) :: chord_name
       
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
 !  Get the start, end and name of chord.
-      CALL signal_dot_parse_chord(thscted_iou,                                 &
+      CALL signal_dot_parse_chord(thscte_dot_file_ref,                         &
      &                            coordinate_type,                             &
-     &                            "thscte",                                    &
-     &                            line, i_line,                                &
      &                            chord_name,                                  &
      &                            xcart)
       CALL thscte_desc_construct(thscte_desc_temp,chord_name,                  &
      &                           xcart)
-
-!  Read the next line, in preparation for returning to main parsing loop
-!-----------------------------------------------
-      thscted_l_done = signal_dot_check_next_line(thscted_iou,                 &
-     &                                            i_line,line)
 
       icount_points = icount_points + 1
       IF (icount_points .gt. n_thscte_desc_arr) THEN
@@ -302,7 +276,6 @@
       ENDIF
 
       END SUBROUTINE thscte_dot_parse_chord
-
 
 !*******************************************************************************
 ! SECTION V. AUXILIARY SUBROUTINES

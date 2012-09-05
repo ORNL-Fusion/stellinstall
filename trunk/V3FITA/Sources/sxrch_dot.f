@@ -91,21 +91,11 @@
 !-------------------------------------------------------------------------------
 !  Variables local to the module. Make them private.
 !-------------------------------------------------------------------------------
-      INTEGER ::  sxrchd_iou
-      INTEGER :: i_line
-      CHARACTER(len=200) :: line
-      LOGICAL :: sxrchd_l_done
       TYPE (sxrch_desc), SAVE :: sxrch_desc_temp
-
-      PRIVATE sxrchd_iou,i_line 
-      PRIVATE line, sxrchd_l_done, sxrch_desc_temp
+      PRIVATE sxrch_desc_temp
 
 !  sxrch_desc_temp    A temporary sxrch_desc. SAVE attribute - see note in 
 !                         diagostic_dot about Lahey Fujitsu compiler
-!  sxrchd_iou          i/o unit number for sxrch_dot file
-!  sxrchd_l_done       logical - true if done reading file
-!  i_line              integer - line counter for file
-!  line                character - the last line read from the file
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -151,12 +141,13 @@
 !-----------------------------------------------
       CHARACTER(len=len_key), DIMENSION(1:n_sxrchd_keyword) ::                 &
      &   sxrchd_keyword
-      INTEGER, DIMENSION(1:n_sxrchd_keyword) :: n_char_key
 
       INTEGER               :: icount_chords
       INTEGER               :: n_sxrch_desc_arr
       CHARACTER (len=30)    :: s_name                                 
       CHARACTER (len=80)    :: l_name
+
+      TYPE(signal_dot_file) :: sxrch_dot_file_ref
 !  Make sure that len for this_keyword is the same as len for sxrchd_keyword.
 
 !  sxrchd_keyword    character array - keywords for various sxrch input types
@@ -170,43 +161,38 @@
       sxrchd_keyword(1) = 'sxr_chord_XYZ'
       sxrchd_keyword(2) = 'sxr_chord_RPhiDegZ'
       sxrchd_keyword(3) = 'end_of_file'
-      n_char_key(1:n_sxrchd_keyword) =                                         &
-     &   len_trim(sxrchd_keyword(1:n_sxrchd_keyword))
 
 !  Find the length of the sxrch_desc_arr array
       n_sxrch_desc_arr = SIZE(sxrch_desc_arr)
 
 !  Open up the 'sxrch.' file
-      sxrchd_iou = signal_dot_open(TRIM(sxrch_file), "sxrch", line)
-      i_line = 2
-      sxrchd_l_done = .false.
-      icount_chords = 0
+      sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file),"sxrch")
 
+      icount_chords = 0
 !  Infinite Loop
 !  Character variable line should be defined on entry
       DO
 !  Branch on the keyword
-         SELECT CASE (signal_dot_read_keyword(n_sxrchd_keyword,                &
-     &                                        n_char_key, line,                &
+         SELECT CASE (signal_dot_read_keyword(sxrch_dot_file_ref,              &
      &                                        sxrchd_keyword))
          
-            CASE DEFAULT ! Did not find a keyword. Read another line.
-               sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou,          &
-     &                                                    i_line,              &
-     &                                                    line)
+            CASE DEFAULT ! This case should never fire.
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('end_of_file')
+               EXIT ! Exit out of infinte loop.
             
             CASE ('sxr_chord_XYZ')
-               CALL sxrch_dot_parse_chord('XYZ', icount_chords,                &
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'XYZ', icount_chords,                &
      &                                    n_sxrch_desc_arr,                    &
      &                                    sxrch_desc_arr)
                
             CASE ('sxr_chord_RPhiDegZ')
-               CALL sxrch_dot_parse_chord('RPHiDegZ', icount_chords,           &
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'RPHiDegZ', icount_chords,           &
      &                                    n_sxrch_desc_arr,                    &
      &                                    sxrch_desc_arr)
-                           
-            CASE ('end_of_file')
-               sxrchd_l_done = .true.
 
          END SELECT
          
@@ -214,8 +200,6 @@
          IF  (icount_chords .gt. SIZE(sxrch_desc_arr)) THEN
             STOP 'sxrch_dot: Too many coils for sxrch_desc_arr '
          ENDIF
-        
-         IF (sxrchd_l_done) EXIT ! the infinite loop
          
       END DO
 
@@ -223,7 +207,7 @@
       CALL sxrch_desc_destroy(sxrch_desc_temp)
 
 !  Close the 'sxrch.' file
-      CLOSE(sxrchd_iou)
+      CALL signal_dot_close(sxrch_dot_file_ref)
       
       n_chords = icount_chords
       
@@ -251,7 +235,8 @@
 !     
 !-------------------------------------------------------------------------------
 
-      SUBROUTINE sxrch_dot_parse_chord(coordinate_type,                        &
+      SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
+     &                                 coordinate_type,                        &
      &                                 icount_chords,                          &
      &                                 n_sxrch_desc_arr,                       &
      &                                 sxrch_desc_arr)
@@ -266,29 +251,24 @@
       INTEGER, INTENT(in)                           :: n_sxrch_desc_arr
       TYPE(sxrch_desc), DIMENSION(:), INTENT(inout) :: sxrch_desc_arr
       CHARACTER (len=*) :: coordinate_type
+      TYPE(signal_dot_file), INTENT(inout) :: sxrch_dot_file_ref
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(3)   :: xcart_i, xcart_f
-      CHARACTER (len=30)          :: chord_name                               
+      REAL(rprec), DIMENSION(3)      :: xcart_i, xcart_f
+      CHARACTER (len=chord_name_len) :: chord_name
       
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
 !  Get the start, end and name of chord.
-      CALL signal_dot_parse_chord(sxrchd_iou,                                  &
+      CALL signal_dot_parse_chord(sxrch_dot_file_ref,                          &
      &                            coordinate_type,                             &
-     &                            "sxr",                                       &
-     &                            line, i_line,                                &
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
       CALL sxrch_desc_construct(sxrch_desc_temp,chord_name,                    &
      &                          xcart_i,xcart_f)
-
-!  Read the next line, in preparation for returning to main parsing loop
-!-----------------------------------------------
-      sxrchd_l_done = signal_dot_check_next_line(sxrchd_iou,i_line,line)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_sxrch_desc_arr) THEN
@@ -298,7 +278,6 @@
       ENDIF
 
       END SUBROUTINE sxrch_dot_parse_chord
-
 
 !*******************************************************************************
 ! SECTION V. AUXILIARY SUBROUTINES
