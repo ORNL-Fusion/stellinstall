@@ -32,6 +32,13 @@
 !    
 !    g2_id (maxnsteps_dim_id) g^2 value for each reconstruction step.
 !
+!    vmec_rbc00_id (maxnsteps_dim_id) VMEC value of inital major radus
+!                                      position.
+!    vmec_rbc01_id (maxnsteps_dim_id) VMEC value of the inital oval radius in
+!                                      the r direction.
+!    vmec_zbs01_id (maxnsteps_dim_id) VMEC value of the inital oval radius in
+!                                      the z direction.
+!
 !    param_value_id (maxnsteps_dim_id, nparam_dim_id) Parameter values for each
 !                   reconstruction step.
 !    param_sigma_id (maxnsteps_dim_id, nparam_dim_id) Parameter sigmas for each
@@ -51,6 +58,7 @@
 ! Dimension IDs
          INTEGER :: maxnsteps_dim_id, nparam_dim_id, nsignal_dim_id
 ! Variable IDs
+         INTEGER :: vmec_rbc00_id, vmec_rbc01_id, vmec_zbs01_id
          INTEGER :: nsteps_id
          INTEGER :: g2_id
          INTEGER :: param_value_id, param_sigma_id
@@ -87,6 +95,10 @@
 !    vmec_extcur External currents.
 !    vmec_curtor Non-reconstructed plasma current.
 !    vmec_pres_scale Non-reconstructed plasma pressure.
+!
+!    vmec_rbc00 Inital major radus position.
+!    vmec_rbc01 Inital oval radius r direction.
+!    vmec_zbs01 Inital oval radius z direction.
 !
 !    param_name (STRING) Name of the reconstruction parameter.
 !    param_index (INT) Index of the reconstruction parameter.
@@ -227,6 +239,33 @@
      &              vmec_pres_scale_id)
       CALL result_output_check_error(result_output_file_create%status)
 
+      result_output_file_create%status =                                       &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "vmec_rbc00",                                              &
+     &              nf_double,                                                 &
+     &              1,                                                         &
+     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_rbc00_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "vmec_rbc01",                                              &
+     &              nf_double,                                                 &
+     &              1,                                                         &
+     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_rbc01_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "vmec_zbs01",                                              &
+     &              nf_double,                                                 &
+     &              1,                                                         &
+     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_zbs01_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
 ! Define reconstruction parameter variables.
       result_output_file_create%status =                                       &
      &   nf_def_var(result_output_file_create%ncid,                            &
@@ -358,6 +397,24 @@
      &                      1, model_a%eqstate%varp%pres_scale)
       CALL result_output_check_error(result_output_file_create%status)
 
+      result_output_file_create%status =                                       &
+     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &                      result_output_file_create%vmec_rbc00_id,           &
+     &                      1, model_a%eqstate%varp%rbc(0,0))
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &                      result_output_file_create%vmec_rbc01_id,           &
+     &                      1, model_a%eqstate%varp%rbc(0,1))
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &                      result_output_file_create%vmec_zbs01_id,           &
+     &                      1, model_a%eqstate%varp%zbs(0,1))
+      CALL result_output_check_error(result_output_file_create%status)
+
 ! Fill in reconstuction parameters.
       DO i = 1, n_rparam
          result_output_file_create%status =                                    &
@@ -450,7 +507,7 @@
      &                                         params,                         &
      &                                         sd_model,                       &
      &                                         sd_observed)
-      USE v3f_global, ONLY: n_rparam, n_sdata_o
+      USE v3f_global, ONLY: n_rparam, n_sdata_o, model_a
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -486,6 +543,25 @@
      &   nf_put_var1_double(result_file_ref%ncid,                              &
      &                      result_file_ref%g2_id,                             &
      &                      nsteps, gsq_g2)
+      CALL result_output_check_error(result_file_ref%status)
+
+! Fill in vmec parameters.
+      result_file_ref%status =                                                 &
+     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &                      result_file_ref%vmec_rbc00_id,                     &
+     &                      nsteps, model_a%eqstate%varp%rbc(0,0))
+      CALL result_output_check_error(result_file_ref%status)
+
+      result_file_ref%status =                                                 &
+     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &                      result_file_ref%vmec_rbc01_id,                     &
+     &                      nsteps, model_a%eqstate%varp%rbc(0,1))
+      CALL result_output_check_error(result_file_ref%status)
+
+      result_file_ref%status =                                                 &
+     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &                      result_file_ref%vmec_zbs01_id,                     &
+     &                      nsteps, model_a%eqstate%varp%zbs(0,1))
       CALL result_output_check_error(result_file_ref%status)
 
 ! Fill in reconstuction parameters.
