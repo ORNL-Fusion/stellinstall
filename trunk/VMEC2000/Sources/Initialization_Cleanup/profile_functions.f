@@ -53,6 +53,7 @@
       USE stel_constants, ONLY: zero, one, pi
       USE vmec_input, ONLY: ac, bloat, pcurr_type, ac_aux_s, ac_aux_f
       USE line_segment
+      USE functions
       IMPLICIT NONE
 ! ac assumed to be dimensioned (0:n), with n >= 20 
 !-----------------------------------------------
@@ -109,7 +110,7 @@
 !  Gauss-Legendre Quadrature to get I(s)
          DO gli = 1,gln
             xp = x * glx(gli)
-            pcurr = pcurr + glw(gli) * ac(0) * ((1-xp**ac(1))**ac(2))
+            pcurr = pcurr + glw(gli) * two_power(xp, ac)
          END DO
          pcurr = pcurr * x     ! correct for x interval
 
@@ -119,13 +120,7 @@
 !  Gauss-Legendre Quadrature to get I(s)
          DO gli = 1,gln
             xp = x * glx(gli)
-            temp_num = 1.0
-            DO i = 3, 18, 3
-               temp_num = temp_num + ac(i)                                     &
-     &                  * exp(-((xp - ac(i+1))/ac(i+2)) ** 2)
-            ENDDO
-            pcurr = pcurr + glw(gli) * ac(0) * ((1-xp**ac(1))**ac(2))          &
-     &            * temp_num
+            pcurr = pcurr + glw(gli) * two_power_gs(xp, ac)
          END DO
          pcurr = pcurr * x     ! correct for x interval
 
@@ -478,7 +473,9 @@
 !  bloat            used to expand the profile
 !  pmass_type       character, specifies the parameterization of the profile
 !    gauss_trunc       Truncated Gaussian
-!    two_power         (1 - x ** am(0)) ** am(1)
+!    two_power         am(0) * [1 - s**am(1)]**am(2)
+!    two_power_gs      am(0) * [1 - s**am(1)]**am(2)*
+!                      (1 + Sum[am(i)*Exp(-((x - am(i+1))/am(i+2))**2)])
 !    two_Lorentz       two Lorentz-type functions, mapped to [0:1]
 !    Akima_spline      Akima-spline (magrid[-> am_aux_f] + smagrid[-> am_aux_s])
 !    cubic_spline      Cubic-spline (magrid[-> am_aux_f] + smagrid[-> am_aux_s])
@@ -501,6 +498,7 @@
 !  am is assumed to be dimensioned starting at zero.
       USE vparams, ONLY: mu0
       USE line_segment
+      USE functions
       IMPLICIT NONE
 !-----------------------------------------------
       INTEGER     :: i, iflag, ioff
@@ -532,7 +530,11 @@
 !  Two power profile
 !  p(s) = [1 - s**am(0)]**am(1)          !! Old as of 2010-05-26
 !  p(s) = am(0) * [1 - s**am(1)]**am(2)  !! Current as of 2010-05-26
-         pmass = am(0) * ((one-x**am(1))**am(2))
+         pmass = two_power(x, am)
+
+      CASE ('two_power_gs')
+!  Two power profile with guassian peaks.
+         pmass = two_power_gs(x, am)
 
       CASE ('two_Lorentz','two_lorentz') ! former ipmass=1
        pmass = am(0)*(am(1)*(one/(one+(  x/am(2)**2)**am(3))**am(4)            &

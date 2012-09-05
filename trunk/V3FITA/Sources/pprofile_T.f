@@ -50,7 +50,7 @@
 !  Array Bounds for the components
 !-------------------------------------------------------------------------------
       INTEGER, PARAMETER, PRIVATE :: ilb_b = 0     
-      INTEGER, PARAMETER, PRIVATE :: iub_b = 20    
+      INTEGER, PARAMETER, PRIVATE :: iub_b = 20
       INTEGER, PARAMETER, PRIVATE :: iub_asf = 101    
 !-------------------------------------------------------------------------------
 !  Other Dependencies
@@ -141,8 +141,8 @@
       CALL tolower(p_type_lc)
       SELECT CASE(TRIM(p_type_lc))
       
-         CASE ('two_power','power_series','none','cubic_spline',               &
-     &      'akima_spline','line_segment')
+         CASE ('two_power', 'two_power_gs','power_series', 'none',             &
+     &         'cubic_spline', 'akima_spline','line_segment')
             this % p_type = p_type_lc
       
          CASE DEFAULT
@@ -210,6 +210,7 @@
 
       FUNCTION pprofile_evaluate(this,s_arg)
       USE line_segment
+      USE functions
 
       IMPLICIT NONE
 
@@ -236,12 +237,24 @@
       
          CASE ('none')
             pprofile_value = -1.E49_rprec
-         
+
+! v3fit uses an extra varible as an offset than vmec as a result the b array is
+! one index shorter than what two_power takes.
          CASE ('two_power')
             pprofile_value = this % b(0)
             IF (l_01) THEN
-               pprofile_value = pprofile_value + this % b(1) *                 &
-     &            ((1 - s_arg ** this % b(2)) ** this % b(3))
+               pprofile_value = pprofile_value                                 &
+     &                        + two_power(s_arg, this % b(1:20))
+            ENDIF
+
+! v3fit uses an extra varible as an offset than vmec as a result the b array is
+! one index shorter than what two_power_gs takes. As a result only 5 guassian
+! peaks maybe specified instead of the 6 vmec can use.
+         CASE ('two_power_gs')
+            pprofile_value = this % b(0)
+            IF (l_01) THEN
+               pprofile_value = pprofile_value                                 &
+     &                        + two_power_gs(s_arg, this % b(1:20))
             ENDIF
       
          CASE ('power_series')
