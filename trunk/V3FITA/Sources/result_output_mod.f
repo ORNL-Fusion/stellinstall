@@ -8,10 +8,11 @@
 !*******************************************************************************
 
       MODULE result_output
-      USE gsq_mod, ONLY: gsq_g2
+      USE gsq_mod
       USE signal_T
       USE recon_param_T
       USE ezcdf
+      USE stel_kinds, only : rprec
 
 !*******************************************************************************
 !  Object representing the results file. This is mean to be an opaque. All 
@@ -50,6 +51,8 @@
 !                          for each reconstruction step.
 !    signal_sigma_id (maxnsteps_dim_id, nsignal_dim_id) Signal sigmas 
 !                          for each reconstruction step.
+!    signal_eff_matrix_id (maxnsteps_dim_id, nparam_dim_id, nsignal_dim_id)
+!                          Signal effectiveness matrix.
 !
 !*******************************************************************************
       TYPE result_file
@@ -63,7 +66,7 @@
          INTEGER :: g2_id
          INTEGER :: param_value_id, param_sigma_id
          INTEGER :: signal_obser_value_id, signal_model_value_id,              &
-     &              signal_sigma_id
+     &              signal_sigma_id, signal_eff_matrix_id
       END TYPE result_file
 
       PUBLIC  :: result_output_file_create, result_output_file_write_step,     &
@@ -115,6 +118,7 @@
 !                                reconstruction step.
 !    signal_sigma (DOUBLE) Sigma value of the reconstruction step.
 !                          sig = Sqrt( Model_sig^2 + Observe_sig^2 )
+!    signal_eff_matrix (DOUBLE) Matrix of signal effectiveness values.
 !
 !*******************************************************************************
       FUNCTION result_output_file_create(path,                                 &
@@ -141,6 +145,13 @@
       INTEGER :: vmec_extcur_id, vmec_curtor_id, vmec_pres_scale_id
       INTEGER :: param_name_id, param_index_id
       INTEGER :: signal_name_id, signal_type_id
+
+! Working variables
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: sem_a
+      REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: psigma_v
+      INTEGER                                  :: err
+      CHARACTER(len=*), PARAMETER              :: sub_name =                   &
+     &  'result_output_file_create: '
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -357,6 +368,17 @@
      &              result_output_file_create%signal_sigma_id)
       CALL result_output_check_error(result_output_file_create%status)
 
+      result_output_file_create%status =                                       &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "signal_eff_matrix",                                       &
+     &              nf_double,                                                 &
+     &              3,                                                         &
+     &              (/ result_output_file_create%nsignal_dim_id,               &
+     &                 result_output_file_create%nparam_dim_id,                &
+     &                 result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%signal_eff_matrix_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
 ! Finished defining netcdf file. Exit out of define mode.
       result_output_file_create%status =                                       &
      &   nf_enddef(result_output_file_create%ncid)
@@ -445,7 +467,7 @@
      &      nf_put_var1_double(result_output_file_create%ncid,                 &
      &                         result_output_file_create%param_sigma_id,       &
      &                         (/ i, 1 /),                                     &
-     &                         params(i)%vrnc)
+     &                         0.0)
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
       END DO
@@ -495,8 +517,21 @@
      &              sd_observed(i)%sigma(1)**2))
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
-
       END DO
+
+! Calculate signal effectiveness matrix
+      ALLOCATE(psigma_v(gsq_nrp),STAT=err)
+      CALL assert_eq(0,err,sub_name // 'allocate psigma_v')
+      ALLOCATE(sem_a(gsq_nrp,gsq_nsig),STAT=err)
+      CALL assert_eq(0,err,sub_name // 'allocate sem_a')
+      CALL gsq_sem(gsq_ssigma,gsq_jacobian,psigma_v,sem_a)
+      result_output_file_create%status =                                       &
+     &   nf_put_vara_double(                                                   &
+     &      result_output_file_create%ncid,                                    &
+     &      result_output_file_create%signal_eff_matrix_id,                    &
+     &      (/ 1, 1, 1 /), (/ n_sdata_o, n_rparam, 1 /),                       &
+     &      TRANSPOSE(sem_a))
+      DEALLOCATE(sem_a, psigma_v)
 
       END FUNCTION result_output_file_create
 
@@ -518,6 +553,13 @@
       TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
      &   sd_model, sd_observed
       INTEGER :: nsteps, i
+
+! Working variables
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: gsq_1pcl, sem_a
+      REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: psigma_v
+      INTEGER                                  :: err
+      CHARACTER(len=*), PARAMETER              :: sub_name =                   &
+     &  'result_output_file_write_step: '
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -564,6 +606,10 @@
      &                      nsteps, model_a%eqstate%varp%zbs(0,1))
       CALL result_output_check_error(result_file_ref%status)
 
+! Calculate parameter sigma.
+      ALLOCATE(gsq_1pcl(gsq_nrp,gsq_nsv),STAT=err)
+      CALL assert_eq(0,err,sub_name // 'allocate gsq_1pcl')
+      CALL gsq_ps1(gsq_1pcl)
 ! Fill in reconstuction parameters.
       DO i = 1, n_rparam
          result_file_ref%status =                                              &
@@ -575,9 +621,10 @@
          result_file_ref%status =                                              &
      &      nf_put_var1_double(result_file_ref%ncid,                           &
      &                         result_file_ref%param_sigma_id,                 &
-     &                         (/ i, nsteps /), params(i)%vrnc)
+     &                         (/ i, nsteps /), gsq_1pcl(i, gsq_nrp))
          CALL result_output_check_error(result_file_ref%status)
       END DO
+      DEALLOCATE(gsq_1pcl)
 
 ! Fill in signals
       DO i = 1, n_sdata_o
@@ -604,6 +651,19 @@
      &              sd_observed(i)%sigma(1)**2))
          CALL result_output_check_error(result_file_ref%status)
       END DO
+
+! Calculate signal effectiveness matrix
+      ALLOCATE(psigma_v(gsq_nrp),STAT=err)
+      CALL assert_eq(0,err,sub_name // 'allocate psigma_v')
+      ALLOCATE(sem_a(gsq_nrp,gsq_nsig),STAT=err)
+      CALL assert_eq(0,err,sub_name // 'allocate sem_a')
+      CALL gsq_sem(gsq_ssigma,gsq_jacobian,psigma_v,sem_a)
+      result_file_ref%status = nf_put_vara_double(                             &
+     &   result_file_ref%ncid,                                                 &
+     &   result_file_ref%signal_eff_matrix_id,                                 &
+     &   (/ 1, 1, nsteps /), (/ n_sdata_o, n_rparam, 1 /),                     &
+     &   TRANSPOSE(sem_a))
+      DEALLOCATE(sem_a, psigma_v)
 
       END SUBROUTINE
 

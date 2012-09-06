@@ -1509,17 +1509,18 @@
 !  Form the matrix of one-parameter confidence limits, gsq_1pcl
       ALLOCATE(gsq_1pcl(gsq_nrp,gsq_nsv),STAT=ier1)
       CALL assert_eq(0,ier1,sub_name // 'allocate gsq_1pcl')
-      DO mrp = 1,gsq_nrp
-         DO ksvr = 1,gsq_nsv
-            temp = zero
-            DO lsv = 1,ksvr
+      CALL gsq_ps1(gsq_1pcl)
+!      DO mrp = 1,gsq_nrp
+!         DO ksvr = 1,gsq_nsv
+!            temp = zero
+!            DO lsv = 1,ksvr
 !  denom - avoid division by zero. JDH 2012-06-01
-               denom = MAX(gsq_jsvd_w(lsv),1.D-30)
-               temp = temp + (gsq_jsvd_vt(lsv,mrp) / denom) ** 2 
-            END DO
-            gsq_1pcl(mrp,ksvr) = gsq_ppi(mrp) * SQRT(temp)
-         END DO
-      END DO
+!               denom = MAX(gsq_jsvd_w(lsv),1.D-30)
+!               temp = temp + (gsq_jsvd_vt(lsv,mrp) / denom) ** 2
+!            END DO
+!            gsq_1pcl(mrp,ksvr) = gsq_ppi(mrp) * SQRT(temp)
+!         END DO
+!      END DO
 !  JDH 2009-10-06. Only want the last column of gsq_1pcl.
 !  Delay printout
 
@@ -1671,6 +1672,34 @@
 
       RETURN
       END SUBROUTINE gsq_write_conf
+
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+      SUBROUTINE gsq_ps1(gsq_1pcl)
+      IMPLICIT NONE
+!  Subroutine to compute the posterior sigmas of reconstruction parameters using
+!  The first method. Written to be a stand-alone subroutine, even though it is
+!  located in the gsq module. This routine will be used by
+      REAL(rprec), DIMENSION(gsq_nrp,gsq_nsv), INTENT(inout)
+     &   :: gsq_1pcl
+
+      INTEGER     :: mrp, ksvr, lsv
+      REAL(rprec) :: temp, denom
+
+      DO mrp = 1,gsq_nrp
+         DO ksvr = 1,gsq_nsv
+            temp = zero
+            DO lsv = 1,ksvr
+!  denom - avoid division by zero. JDH 2012-06-01
+               denom = MAX(gsq_jsvd_w(lsv),1.D-30)
+               temp = temp + (gsq_jsvd_vt(lsv,mrp) / denom) ** 2
+            END DO
+            gsq_1pcl(mrp,ksvr) = gsq_ppi(mrp) * SQRT(temp)
+         END DO
+      END DO
+
+      END SUBROUTINE
+
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
       SUBROUTINE gsq_sem(ssigma_v,jac_a,psigma_v,sem_a) 
