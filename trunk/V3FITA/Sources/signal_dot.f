@@ -105,7 +105,7 @@
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
-      CHARACTER (len=*) :: coordinate_type
+      CHARACTER (len=*), INTENT (in) :: coordinate_type
       CHARACTER (len=c_name_len), INTENT(out)          :: chord_name
       REAL(rprec), DIMENSION(3), INTENT(out)           :: xcart_i
       REAL(rprec), DIMENSION(3), OPTIONAL, INTENT(out) :: xcart_f
@@ -150,11 +150,11 @@
 
 ! Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         x_start(2) = x_start(2)*pi/180. ! Convert from degrees to radians.
+         x_start(2) = x_start(2)*degree ! Convert from degrees to radians.
          xcart_i = cyl_to_cart(x_start)
 
          IF (PRESENT(xcart_f)) THEN
-            x_end(2) = x_end(2)*pi/180.  ! Convert from degrees to radians.
+            x_end(2) = x_end(2)*degree  ! Convert from degrees to radians.
             xcart_f = cyl_to_cart(x_end)
          ENDIF
       ELSE
@@ -178,7 +178,7 @@
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      CHARACTER (len=len_key), DIMENSION(:) :: keywords
+      CHARACTER (len=len_key), DIMENSION(:), INTENT(in) :: keywords
       CHARACTER (len=len_key) :: signal_dot_read_keyword
       TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
 
