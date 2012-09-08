@@ -159,13 +159,13 @@
 ! Find the start and end index of the basename. The basename is defined as
 ! input.BASENAME.v3fit if the prefix "input" and postfix "v3fit" are present.
 ! Other wise the entire filename is used.
-      beginIndex = INDEX(path, "input") + 5
-      endIndex = INDEX(path, "v3fit", .FALSE.) - 1
+      beginIndex = INDEX(path, "input.") + 6
+      endIndex = INDEX(path, ".v3fit", .FALSE.) - 1
 
       result_output_file_create%status =                                       &
-     &   nf_create("result" //                                                 &
+     &   nf_create("result." //                                                &
      &             TRIM(path(beginIndex:endIndex)) //                          &
-     &             "nc",                                                       &
+     &             ".nc",                                                      &
      &             nf_clobber,                                                 &
      &             result_output_file_create%ncid)
       CALL result_output_check_error(result_output_file_create%status)
@@ -463,6 +463,8 @@
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
+! There is no sigma to be calculated for the first reconstruction step. Fill
+! this step in with zeros.
          result_output_file_create%status =                                    &
      &      nf_put_var1_double(result_output_file_create%ncid,                 &
      &                         result_output_file_create%param_sigma_id,       &
@@ -519,19 +521,17 @@
      &      result_output_check_error(result_output_file_create%status)
       END DO
 
-! Calculate signal effectiveness matrix
-      ALLOCATE(psigma_v(gsq_nrp),STAT=err)
-      CALL assert_eq(0,err,sub_name // 'allocate psigma_v')
+! Calculating the signal effective causes a crash on the D3D test case. For this
+! initial reconstruction step, just fill in zeros.
       ALLOCATE(sem_a(gsq_nrp,gsq_nsig),STAT=err)
       CALL assert_eq(0,err,sub_name // 'allocate sem_a')
-      CALL gsq_sem(gsq_ssigma,gsq_jacobian,psigma_v,sem_a)
       result_output_file_create%status =                                       &
      &   nf_put_vara_double(                                                   &
      &      result_output_file_create%ncid,                                    &
      &      result_output_file_create%signal_eff_matrix_id,                    &
      &      (/ 1, 1, 1 /), (/ n_sdata_o, n_rparam, 1 /),                       &
      &      TRANSPOSE(sem_a))
-      DEALLOCATE(sem_a, psigma_v)
+      DEALLOCATE(sem_a)
 
       END FUNCTION result_output_file_create
 
