@@ -442,7 +442,7 @@
          result_output_file_create%status =                                    &
      &      nf_put_vara_text(result_output_file_create%ncid,                   &
      &                       param_name_id,                                    &
-     &                       (/ 1, i /), (/ 80, 1 /),                          &
+     &                       (/ 1, i /), (/ 20, 1 /),                          &
      &                       params(i)%p_type)
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -479,7 +479,7 @@
          result_output_file_create%status =                                    &
      &      nf_put_vara_text(result_output_file_create%ncid,                   &
      &                       signal_name_id,                                   &
-     &                       (/ 1, i /), (/ 80, 1 /),                          &
+     &                       (/ 1, i /), (/ 30, 1 /),                          &
      &                       s_desc(i)%s_name)
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
@@ -487,7 +487,7 @@
          result_output_file_create%status =                                    &
      &      nf_put_vara_text(result_output_file_create%ncid,                   &
      &                       signal_type_id,                                   &
-     &                       (/ 1, i /), (/ 80, 1 /),                          &
+     &                       (/ 1, i /), (/ 10, 1 /),                          &
      &                       s_desc(i)%s_type)
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
