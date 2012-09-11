@@ -2521,6 +2521,10 @@
 !      CALL gsq_write_conf(rp_new,'end reconstruct_a1',6)
       CALL gsq_write_conf(rp_new,'end reconstruct_a1',iou_recout)
 
+!  Write out the weighted and non weighted segments of g^2.
+      CALL gsq_write_g2_comp(sd_model,sd_observe(1:n_s_desc),                  &
+     &                       iou_recout)
+
 !  Write out the most redundant parameters
 !  Commented out JDH 2010-06-10. Not very useful.
 !      CALL gsq_write_mr(rp_new,'end reconstruct_a1',6)

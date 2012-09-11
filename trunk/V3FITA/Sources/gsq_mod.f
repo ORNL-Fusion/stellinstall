@@ -1992,7 +1992,40 @@
 
       RETURN
       END SUBROUTINE gsq_write_mr
-      
+
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+
+      SUBROUTINE gsq_write_g2_comp(sdm_a_arg,sdo_a_arg,unit)
+      USE v3f_global
+      IMPLICIT NONE
+
+!  Subroutine to write out the weighted and non-weighted partitioned g^2 values.
+      TYPE (signal_data), DIMENSION(:), INTENT(in) :: sdm_a_arg,               &
+     &                                                sdo_a_arg
+      INTEGER, INTENT(in), OPTIONAL :: unit
+
+!  Local variables.
+      REAL(rprec) :: gs2_weighted, gs2_non_weighted
+      INTEGER :: i 
+
+!  start of executable code
+      WRITE (unit,1000) "Signal#", "Name", "Weighted g^2",                     &
+     &                  "Non weighted g^2"
+
+      DO i = 1,gsq_nsig
+         gs2_non_weighted =                                                    &
+     &      ((sdo_a_arg(i)%data(1) - sdm_a_arg(i)%data(1))/                    &
+     &      gsq_ssigma(i))**2
+         gs2_weighted = gsq_sweight(i)*gs2_non_weighted
+         WRITE (unit,2000) i, s_desc(i)%s_name, gs2_weighted,                  &
+     &                     gs2_non_weighted
+      END DO
+
+1000  FORMAT(A7,1X,A4,27X,A12,1X,A15)
+2000  FORMAT(I7,1X,A31,es10.3,5X,es10.3)
+      END SUBROUTINE
+
 *******************************************************************************
 ! SECTION XVI.  COMMENTS FOR DIFFERENT REVISIONS
 !*******************************************************************************
