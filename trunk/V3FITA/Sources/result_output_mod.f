@@ -178,10 +178,12 @@
      &              nextcur_dim_id)
       CALL result_output_check_error(result_output_file_create%status)
 
+! Add space dimension for all reconstruction steps including a step before
+! reconstruction.
       result_output_file_create%status =                                       &
      &   nf_def_dim(result_output_file_create%ncid,                            &
      &              "maxnsteps",                                               &
-     &              nrstep,                                                    &
+     &              nrstep + 1,                                                &
      &              result_output_file_create%maxnsteps_dim_id)
       CALL result_output_check_error(result_output_file_create%status)
 
