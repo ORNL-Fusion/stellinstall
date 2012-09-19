@@ -111,7 +111,6 @@
 !  Subroutine to parse the large structure of the ipch_dot_file
 !  Individual ip chords are parsed by the ipch_dot_parse_xxxx subroutines
 
-      USE safe_open_mod
       IMPLICIT NONE
       
 !-----------------------------------------------

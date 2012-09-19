@@ -114,7 +114,6 @@
 !  Subroutine to parse the large structure of the sxrch_dot_file
 !  Individual sxr chords are parsed by the sxrch_dot_parse_xxxx subroutines
 
-      USE safe_open_mod
       IMPLICIT NONE
       
 !-----------------------------------------------
