@@ -45,12 +45,12 @@
 !-------------------------------------------------------------------------------
 !  Lengths of Character Variables
 !-------------------------------------------------------------------------------
-      INTEGER, PARAMETER, PRIVATE :: p_type_len=20      
+      INTEGER, PARAMETER, PRIVATE :: p_type_len=20
 !-------------------------------------------------------------------------------
 !  Array Bounds for the components
 !-------------------------------------------------------------------------------
       INTEGER, PARAMETER, PRIVATE :: ilb_b = 0     
-      INTEGER, PARAMETER, PRIVATE :: iub_b = 20
+      INTEGER, PARAMETER, PRIVATE :: iub_b = 21
       INTEGER, PARAMETER, PRIVATE :: iub_asf = 101    
 !-------------------------------------------------------------------------------
 !  Other Dependencies
@@ -244,7 +244,7 @@
             pprofile_value = this % b(0)
             IF (l_01) THEN
                pprofile_value = pprofile_value                                 &
-     &                        + two_power(s_arg, this % b(1:20))
+     &                        + two_power(s_arg, this % b(1:iub_b))
             ENDIF
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
@@ -254,7 +254,7 @@
             pprofile_value = this % b(0)
             IF (l_01) THEN
                pprofile_value = pprofile_value                                 &
-     &                        + two_power_gs(s_arg, this % b(1:20))
+     &                        + two_power_gs(s_arg, this%b(1:iub_b))
             ENDIF
       
          CASE ('power_series')
