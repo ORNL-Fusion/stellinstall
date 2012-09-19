@@ -12,6 +12,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/edge_limit_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/eq_interface.f
 	${CMAKE_CURRENT_SOURCE_DIR}/eq_T.f
+	${CMAKE_CURRENT_SOURCE_DIR}/extcurz_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/faraday_mod.f
 	${CMAKE_CURRENT_SOURCE_DIR}/geometric_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/gsq_mod.f

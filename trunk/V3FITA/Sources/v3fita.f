@@ -597,7 +597,8 @@
      &   sdo_s_spec_fraction,                                                  & 
      &   sdo_w_spec_imin, sdo_w_spec_imax, sdo_w_spec_weight,                  &
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
-     &   cut_dg2, astep_max, step_type
+     &   cut_dg2, astep_max, step_type,                                        &
+     &   extcurz_s0, extcurz_u0 ! GLT 12-sep-2012
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -980,6 +981,13 @@
       ENDIF
 !----------------------------------------------------------------------
 !--  END thscte (Thomson Scattering Te) SubSection                   --
+!----------------------------------------------------------------------
+
+!----------------------------------------------------------------------
+!--  extcurz (EXTernal CURrent along Z) SubSection                   --
+      IF (extcurz_s0 .NE. -1) THEN
+         CALL init_signal_extcurz(isig,idiag)    
+      END IF
 !----------------------------------------------------------------------
 
 !      IPSL Deprecated 2012-03-15
@@ -1409,9 +1417,61 @@
      
       END SUBROUTINE init_signal_thscte
 
-!----------------------------------------------------------------------
-!*******************************************************************************
-!----------------------------------------------------------------------
+!======================================================================
+
+      SUBROUTINE init_signal_extcurz(isig,idiag)
+      
+      USE v3f_global
+      USE signal_T
+      USE extcurz_T
+      
+      IMPLICIT NONE
+
+      INTEGER, INTENT(inout)      :: isig, idiag
+      TYPE (extcurz_desc)         :: extcurz
+      CHARACTER(LEN=*), PARAMETER :: d_type='extcurz'
+      CHARACTER(LEN=30)           :: s_name
+      CHARACTER(LEN=100)          :: l_name
+      CHARACTER(LEN=100)          :: units
+      CHARACTER(LEN=*), PARAMETER :: sub_name='init_signal_extcurz'
+      REAL (rprec), PARAMETER     :: sigma_default=0.1
+
+      WRITE(*,*) ' *** IN SUBROUTINE ', sub_name
+
+      ! add a new (single) diagnostic
+      idiag = idiag + 1
+      n_d_desc = n_d_desc + 1
+      s_name = 'extcurz'
+      l_name = 'EXTernal CURrent along Z'
+      units = 'A'
+      CALL diagnostic_desc_construct_extcurz( d_desc(idiag),                   &
+     &                                        d_type,                          &
+     &                                        s_name,                          &
+     &                                        l_name,                          &
+     &                                        units,                           &
+     &                                        sigma_default,                   &
+     &                                        extcurz,                         &
+     &                                        extcurz_s0,                      &
+     &                                        extcurz_u0 )
+
+      ! add a new (single) signal
+      isig = isig + 1
+      n_s_desc = n_s_desc + 1
+      CALL signal_construct( s_desc(isig),                                     &
+     &                       'diagnostic',                                     &
+     &                       d_desc(idiag) % s_name,                           &
+     &                       d_desc(idiag) % l_name,                           &
+     &                       d_desc(idiag) % units,                            &
+     &                       d_desc(idiag) )
+
+      WRITE(*,*) ' extcurz diag: id =', idiag
+      !WRITE(*,*) '               s0 =', extcurz_s0
+      !WRITE(*,*) '               u0 =', extcurz_u0
+
+      END SUBROUTINE init_signal_extcurz
+
+!======================================================================
+
       SUBROUTINE init_signal_mddc(isig,idiag)
 !--------------------------------------------------------------------------
 !  Subroutine to initialize the mddc diagnostic signals
@@ -4353,4 +4413,7 @@
 !
 !  JDH 2011-10-23
 !    Added pp_te and some thscte_dot file stuff
+!
+!  GLT 11-sep-2012
+!    added coding for extcurz
 !

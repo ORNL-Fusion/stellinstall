@@ -15,6 +15,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/de_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/diagnostic_cdf.f
         ${CMAKE_CURRENT_SOURCE_DIR}/diagnostic_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/extcurz_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/fftpack.f
 	${CMAKE_CURRENT_SOURCE_DIR}/functions.f
         ${CMAKE_CURRENT_SOURCE_DIR}/ga_mod.f

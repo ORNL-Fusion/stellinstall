@@ -56,6 +56,8 @@
       INTEGER :: n_d_desc_thscte = 0     ! JDH added 2011-10-23
       TYPE(diagnostic_desc), DIMENSION(:), ALLOCATABLE, TARGET ::              &
      &    d_desc
+      REAL(rprec) :: extcurz_s0 = -1     ! GLT 12-sep-2012
+      REAL(rprec) :: extcurz_u0 =  0     ! GLT 12-sep-2012
 
 !-------------------------------------------------------------------------------
 !  Geometric Descriptions

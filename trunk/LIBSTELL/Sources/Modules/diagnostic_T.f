@@ -37,6 +37,7 @@
       USE sxrch_T             ! GJH 2009-01-20
       USE ipch_T              ! JDH 2012-03-15
       USE thscte_T            ! JDH 2011-10-23
+      USE extcurz_T           ! GLT 10-sep-2012
       USE v3_utilities
 
 !-------------------------------------------------------------------------------
@@ -81,6 +82,7 @@
 !      sxrch      Soft X-Ray CHord
 !      ipch       Interferometry-Polarimetry CHord
 !      thscte     THomson SCattering TE
+!      extcurz    EXTernal CURrent along Z
 !-------------------------------------------------------------------------------
       TYPE diagnostic_desc
          CHARACTER (len=type_len)  :: d_type
@@ -93,6 +95,7 @@
          TYPE (sxrch_desc)         :: sxrch      !GJH 2010-01-20
          TYPE (ipch_desc)          :: ipch       ! JDH 2012-03-15
          TYPE (thscte_desc)        :: thscte     ! JDH 2011-10-23
+         TYPE (extcurz_desc)       :: extcurz    ! GLT 10-sep-2012
       END TYPE diagnostic_desc
 
 !*******************************************************************************
@@ -113,7 +116,8 @@
      &                    diagnostic_desc_construct_ipsl,                      &
      &                    diagnostic_desc_construct_sxrch,                     &     
      &                    diagnostic_desc_construct_ipch,                      &     
-     &                    diagnostic_desc_cnstrct_thscte       
+     &                    diagnostic_desc_cnstrct_thscte,                      &
+     &                    diagnostic_desc_construct_extcurz
          END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -244,6 +248,50 @@
      
      
       END SUBROUTINE diagnostic_desc_construct_sxrch
+
+!======================================================================
+
+      SUBROUTINE diagnostic_desc_construct_extcurz(this,d_type,                &
+     &   s_name,l_name,units,sigma_default,extcurz,s0,u0)
+
+      IMPLICIT NONE
+
+      ! arguments
+      TYPE (diagnostic_desc), INTENT(inout) :: this
+      CHARACTER (len=*), INTENT(in)         :: d_type
+      CHARACTER (len=*), INTENT(in)         :: s_name
+      CHARACTER (len=*), INTENT(in)         :: l_name
+      CHARACTER (len=*), INTENT(in)         :: units
+      REAL(rprec), INTENT(in)               :: sigma_default
+      TYPE (extcurz_desc), INTENT(in)       :: extcurz
+      REAL(rprec), INTENT(in)               :: s0, u0
+      
+      ! local variables
+      CHARACTER(len=*), PARAMETER :: sub_name =                                &
+     &  'diagnostic_desc_construct_extcurz: '
+
+      ! destroy the extcurz component
+      CALL extcurz_desc_destroy(this % extcurz)
+
+      ! scalar assignments
+      this % s_name = TRIM(ADJUSTL(s_name))
+      this % l_name = TRIM(ADJUSTL(l_name))
+      this % units = TRIM(ADJUSTL(units))
+      this % sigma_default = sigma_default
+      
+      ! extcurz specific coding
+      SELECT CASE (TRIM(ADJUSTL(d_type)))
+      CASE ('extcurz')
+         this % d_type = 'extcurz'
+         this % extcurz = extcurz
+         this % extcurz % s0 = s0
+         this % extcurz % u0 = u0
+      CASE DEFAULT
+         CALL err_fatal(sub_name // 'unrecognized d_type: ',                   &
+     &      char=d_type)
+      END SELECT
+
+      END SUBROUTINE diagnostic_desc_construct_extcurz
 
 !======================================================================
       SUBROUTINE diagnostic_desc_construct_ipch(this,d_type,s_name,            &
@@ -444,6 +492,10 @@
          this % d_type = ' '
          CALL thscte_desc_destroy(this % thscte)
          
+      CASE ('extcurz')
+         this % d_type = ' '
+         CALL extcurz_desc_destroy(this % extcurz)
+         
       CASE DEFAULT
          CALL err_fatal(sub_name // 'unrecognized d_type: ',                   &
      &      char=this % d_type)
@@ -483,6 +535,7 @@
       left % sxrch = right % sxrch          ! GJH 2010-01-20
       left % ipch = right % ipch            ! JDH 2012-03-16
       left % thscte = right % thscte        ! JDH 2011-10-23
+      left % extcurz = right % extcurz      ! GLT 10-sep-2012
          
       END SUBROUTINE diagnostic_desc_assign
           
@@ -624,5 +677,9 @@
 !  JDH 2012-06-08
 !    Change diagnostic_desc_construct_thscte to diagnostic_desc_cnstrct_thscte
 !    as first form had 32 characters.
+!
+!  GLT 10-sep-2012
+!    added coding for extcurz
+!
 
       END MODULE diagnostic_T

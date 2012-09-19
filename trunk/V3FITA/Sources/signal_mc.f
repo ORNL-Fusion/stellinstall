@@ -51,6 +51,7 @@
       USE sxrch_mc           !GJH 2010-01-20
       USE ipch_mc            !JDH 2012-03-15
       USE thscte_mc
+      USE extcurz_mc         ! GLT 10-sep-2012
       USE edge_limit_mc
 !  Note that there is no coosig_mc module. Coosig's are computed here.
       
@@ -138,6 +139,9 @@
      &               sdata % data, sdata % sigma)
          CASE ('thscte')
              CALL thscte_mc_model_compute(sdesc % diag % thscte,               &
+     &               a_model, sdata % data, sdata % sigma)
+         CASE ('extcurz')
+             CALL extcurz_mc_model_compute(sdesc % diag % extcurz,             &
      &               a_model, sdata % data, sdata % sigma)
          CASE DEFAULT
             CALL err_fatal(sub_name // 'unrecognized d_type: ',                &
@@ -307,6 +311,9 @@
 !
 !  JDH 2012-03-15
 !    Added coding for ipch
+!
+!  GLT 10-sep-2012
+!    added coding for extcurz
 !
 
       END MODULE signal_mc
