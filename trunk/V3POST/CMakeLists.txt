@@ -12,5 +12,7 @@ add_dependencies (xv3post stell)
 target_link_libraries (xv3post stell)
 
 if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
-   target_link_libraries (xv3post ${NETCDF_C} ${NETCDF_F})
+    target_link_libraries (xv3post ${NETCDF_C} ${NETCDF_F})
+elseif (NOT ${NETCDF_C} STREQUAL "")
+    target_link_libraries (xv3post ${NETCDF_C})
 endif ()

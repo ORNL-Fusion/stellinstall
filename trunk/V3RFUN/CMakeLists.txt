@@ -12,7 +12,9 @@ add_dependencies (xv3rfun stell)
 target_link_libraries (xv3rfun stell)
 
 if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
-   target_link_libraries (xv3rfun ${NETCDF_C} ${NETCDF_F})
+    target_link_libraries (xv3rfun ${NETCDF_C} ${NETCDF_F})
+elseif (NOT ${NETCDF_C} STREQUAL "")
+    target_link_libraries (xv3rfun ${NETCDF_C})
 endif ()
 
 if (LAPACK)

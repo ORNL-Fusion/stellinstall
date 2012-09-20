@@ -16,6 +16,8 @@ target_link_libraries (xvmec vmec stell)
 
 if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_F} STREQUAL ""))
     target_link_libraries (xvmec ${NETCDF_C} ${NETCDF_F})
+elseif (NOT ${NETCDF_C} STREQUAL "")
+    target_link_libraries (xvmec ${NETCDF_C})
 endif ()
 
 if (BLAS AND LAPACK)
