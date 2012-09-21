@@ -122,7 +122,7 @@
       result = cyl_to_cart((/ 1.0d+0, pi, 0.0d+0 /))
       cood_utils_test = check(-1.0d+0, result(1), 4, "cyl_to_cart")
       IF (.not.cood_utils_test) RETURN
-      cood_utils_test = check(SIN(pi), result(2), 5, "cyl_to_cart")
+      cood_utils_test = check(1.0*SIN(pi), result(2), 5, "cyl_to_cart")
       IF (.not.cood_utils_test) RETURN
       cood_utils_test = check(0.0d+0, result(3), 6, "cyl_to_cart")
       IF (.not.cood_utils_test) RETURN

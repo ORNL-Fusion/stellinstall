@@ -166,6 +166,11 @@
       beginIndex = INDEX(path, "input.") + 6
       endIndex = INDEX(path, ".v3fit", .TRUE.) - 1
 
+      ! If the end index failed, use the entire string.
+      IF (beginIndex.ge.endIndex) THEN
+         endIndex = LEN(path)
+      ENDIF
+
       result_output_file_create%status =                                       &
      &   nf_create("result." //                                                &
      &             TRIM(path(beginIndex:endIndex)) //                          &
