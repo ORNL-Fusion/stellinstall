@@ -12,6 +12,7 @@
       USE vmec_io
       USE mgrid_mod
       USE fbal
+      USE v3f_vmec_comm, ONLY : vvc_smaleli
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -642,6 +643,7 @@ C-----------------------------------------------
       fgeo = rshaf/rcen
 
       smaleli = factor*sumbpol
+      vvc_smaleli = smaleli ! Save result for v3fit.
       betai   = 2*factor*sump
       musubi  = vnorm*factor*musubi
       dmusubi_meas = 2*twopi*factor*delphid*rbtor

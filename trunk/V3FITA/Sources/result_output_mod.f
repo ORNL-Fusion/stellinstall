@@ -13,6 +13,7 @@
       USE recon_param_T
       USE ezcdf
       USE stel_kinds, only : rprec
+      USE v3f_vmec_comm, only : vvc_smaleli
 
 !*******************************************************************************
 !  Object representing the results file. This is mean to be an opaque. All 
@@ -39,6 +40,7 @@
 !                                      the r direction.
 !    vmec_zbs01_id (maxnsteps_dim_id) VMEC value of the inital oval radius in
 !                                      the z direction.
+!    vmec_i_sub_i_id (maxnsteps_dim_id) VMEC value of the internal inductance.
 !
 !    param_value_id (maxnsteps_dim_id, nparam_dim_id) Parameter values for each
 !                   reconstruction step.
@@ -61,7 +63,8 @@
 ! Dimension IDs
          INTEGER :: maxnsteps_dim_id, nparam_dim_id, nsignal_dim_id
 ! Variable IDs
-         INTEGER :: vmec_rbc00_id, vmec_rbc01_id, vmec_zbs01_id
+         INTEGER :: vmec_rbc00_id, vmec_rbc01_id, vmec_zbs01_id,               &
+     &              vmec_i_sub_i_id
          INTEGER :: nsteps_id
          INTEGER :: g2_id
          INTEGER :: param_value_id, param_sigma_id
@@ -99,9 +102,10 @@
 !    vmec_curtor Non-reconstructed plasma current.
 !    vmec_pres_scale Non-reconstructed plasma pressure.
 !
-!    vmec_rbc00 Inital major radus position.
-!    vmec_rbc01 Inital oval radius r direction.
-!    vmec_zbs01 Inital oval radius z direction.
+!    vmec_rbc00   Inital major radus position.
+!    vmec_rbc01   Inital oval radius r direction.
+!    vmec_zbs01   Inital oval radius z direction.
+!    vmec_i_sub_i Internal inducance.
 !
 !    param_name (STRING) Name of the reconstruction parameter.
 !    param_index (INT) Index of the reconstruction parameter.
@@ -279,6 +283,15 @@
      &              result_output_file_create%vmec_zbs01_id)
       CALL result_output_check_error(result_output_file_create%status)
 
+      result_output_file_create%status =                                       &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "vmec_i_sub_i",                                            &
+     &              nf_double,                                                 &
+     &              1,                                                         &
+     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_i_sub_i_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
 ! Define reconstruction parameter variables.
       result_output_file_create%status =                                       &
      &   nf_def_var(result_output_file_create%ncid,                            &
@@ -437,6 +450,12 @@
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbs01_id,           &
      &                      1, model_a%eqstate%varp%zbs(0,1))
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &                      result_output_file_create%vmec_i_sub_i_id,         &
+     &                      1, vvc_smaleli)
       CALL result_output_check_error(result_output_file_create%status)
 
 ! Fill in reconstuction parameters.
@@ -606,6 +625,12 @@
      &   nf_put_var1_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbs01_id,                     &
      &                      nsteps, model_a%eqstate%varp%zbs(0,1))
+      CALL result_output_check_error(result_file_ref%status)
+
+      result_file_ref%status =                                                 &
+     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &                      result_file_ref%vmec_i_sub_i_id,                   &
+     &                      nsteps, vvc_smaleli)
       CALL result_output_check_error(result_file_ref%status)
 
 ! Calculate parameter sigma.
