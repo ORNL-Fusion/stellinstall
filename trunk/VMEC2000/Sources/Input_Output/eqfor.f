@@ -12,7 +12,7 @@
       USE vmec_io
       USE mgrid_mod
       USE fbal
-      USE v3f_vmec_comm, ONLY : vvc_smaleli
+      USE v3f_vmec_comm
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -246,6 +246,7 @@ C-----------------------------------------------
       er = aminr1/aminor_p
       er = one/er**2
       kappa_p = er + SQRT(ABS(er*er - 1))
+      vvc_kappa_p = kappa_p ! Save result for v3fit.
  
 !
 !

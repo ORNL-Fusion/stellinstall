@@ -14,6 +14,7 @@
 !  Module variables.
 !*******************************************************************************
       REAL(rprec) :: vvc_smaleli ! Internal Inductance
+      REAL(rprec) :: vvc_kappa_p ! Mean Elongation
 
       END MODULE
 
