@@ -164,7 +164,7 @@
 ! input.BASENAME.v3fit if the prefix "input" and postfix "v3fit" are present.
 ! Other wise the entire filename is used.
       beginIndex = INDEX(path, "input.") + 6
-      endIndex = INDEX(path, ".v3fit", .FALSE.) - 1
+      endIndex = INDEX(path, ".v3fit", .TRUE.) - 1
 
       result_output_file_create%status =                                       &
      &   nf_create("result." //                                                &
