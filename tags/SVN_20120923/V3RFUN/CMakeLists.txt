@@ -17,6 +17,6 @@ elseif (NOT ${NETCDF_C} STREQUAL "")
     target_link_libraries (xv3rfun ${NETCDF_C})
 endif ()
 
-if (LAPACK)
-    target_link_libraries (xv3rfun ${LAPACK})
+if (LAPACK_FOUND)
+    target_link_libraries (xv3rfun ${LAPACK_LIBRARIES})
 endif ()
