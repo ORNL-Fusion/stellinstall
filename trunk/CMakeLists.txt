@@ -12,8 +12,8 @@
 
 cmake_minimum_required (VERSION 2.8)
 
-# Start Project and note the language used.
-project (v3fit_suite Fortran)
+# Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
+project (v3fit_suite Fortran C CXX)
 
 # Set a directories to build all binary files.
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
@@ -49,7 +49,7 @@ endif ()
 find_library (NETCDF_C NAMES netcdf PATHS ${NETCDF_LIB_PATH})
 find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH})
 find_file (NETCDF_I netcdf.inc ${NETCDF_INC_PATH})
-if ((NOT ${NETCDF_C} STREQUAL "") AND (NOT ${NETCDF_I} STREQUAL ""))
+if ((NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND")) AND (NOT (${NETCDF_I} STREQUAL "NETCDF_I-NOTFOUND")))
     message (STATUS "Using netcdf")
     set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D NETCDF -I ${NETCDF_INC_PATH}")
 endif ()
