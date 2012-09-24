@@ -957,3 +957,27 @@ li_gefa.o : \
 li_gesl.o : \
       liprec.o 
       
+      
+line_segment_mod.o : \
+      stel_constants.o \
+      stel_kinds.o
+      
+
+functions.o : \
+      stel_kinds.o
+      
+      
+coordinate_utilities.o : \
+      stel_constants.o \
+      stel_kinds.o
+
+
+v3f_vmec_comm.o : \
+      stel_kinds.o
+
+
+extcurz_T.o : \
+      stel_constants.o \
+      stel_kinds.o \
+      safe_open_mod.o
+      

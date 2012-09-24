@@ -135,7 +135,7 @@ gsq_mod.o : \
       recon_param_T.o \
       signal_mc.o \
       signal_T.o \
-      v3f_global.o 
+      v3f_global.o
       
 
 ip_global.o : \
@@ -237,7 +237,8 @@ signal_mc.o : \
       signal_T.o \
       sxrch_mc.o \
       ipch_mc.o \
-      thscte_mc.o 
+      thscte_mc.o \
+      extcurz_mc.o
       
 
 signal_T.o : \
@@ -250,17 +251,17 @@ signal_T.o : \
       
 
 sxrch_dot.o : \
-      ../../LIBSTELL/Debug/safe_open_mod.o \
       ../../LIBSTELL/Debug/stel_constants.o \
       ../../LIBSTELL/Debug/stel_kinds.o \
-      ../../LIBSTELL/Debug/sxrch_T.o 
+      ../../LIBSTELL/Debug/sxrch_T.o \
+      signal_dot.o
       
 
 ipch_dot.o : \
-      ../../LIBSTELL/Debug/safe_open_mod.o \
       ../../LIBSTELL/Debug/stel_constants.o \
       ../../LIBSTELL/Debug/stel_kinds.o \
-      ../../LIBSTELL/Debug/ipch_T.o 
+      ../../LIBSTELL/Debug/ipch_T.o \
+      signal_dot.o
       
 
 sxrch_mc.o : \
@@ -268,6 +269,7 @@ sxrch_mc.o : \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/sxrch_T.o \
       ../../LIBSTELL/Debug/vmec_utils.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
       model_T.o \
       v3f_global.o 
       
@@ -277,15 +279,16 @@ ipch_mc.o : \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/ipch_T.o \
       ../../LIBSTELL/Debug/vmec_utils.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
       model_T.o \
       v3f_global.o 
       
 
 thscte_dot.o : \
-      ../../LIBSTELL/Debug/safe_open_mod.o \
       ../../LIBSTELL/Debug/stel_constants.o \
       ../../LIBSTELL/Debug/stel_kinds.o \
-      ../../LIBSTELL/Debug/thscte_T.o 
+      ../../LIBSTELL/Debug/thscte_T.o \
+      signal_dot.o
       
 
 thscte_mc.o : \
@@ -293,6 +296,7 @@ thscte_mc.o : \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/thscte_T.o \
       ../../LIBSTELL/Debug/vmec_utils.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
       model_T.o \
       v3f_global.o 
       
@@ -308,7 +312,7 @@ v3f_global.o : \
       recon_param_T.o \
       signal_T.o 
       
-
+      
 v3fita.o : \
       ../../LIBSTELL/Debug/diagnostic_cdf.o \
       ../../LIBSTELL/Debug/diagnostic_T.o \
@@ -320,6 +324,7 @@ v3fita.o : \
       ../../LIBSTELL/Debug/ipch_T.o \
       ../../LIBSTELL/Debug/thscte_T.o \
       ../../LIBSTELL/Debug/v3_utilities.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
       bfield_grid_mod.o \
       coosig_T.o \
       edge_limit_T.o \
@@ -342,7 +347,9 @@ v3fita.o : \
       ipch_dot.o \
       thscte_dot.o \
       v3f_global.o \
-      v3read_wout.o 
+      v3read_wout.o \
+      result_output_mod.o \
+      extcurz_mc.o
       
 
 v3read_wout.o : \
@@ -355,4 +362,30 @@ v3read_wout.o : \
       ../../LIBSTELL/Debug/write_mod.o \
       eq_T.o \
       v3f_global.o 
+
+
+result_output_mod.o : \
+      ../../LIBSTELL/Debug/ezcdf.o \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/v3_utilities.o \
+      ../../LIBSTELL/Debug/v3f_vmec_comm.o \
+      gsq_mod.o \
+      signal_T.o \
+      recon_param_T.o \
+      v3f_global.o
+      
+
+signal_dot.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/stel_constants.o \
+      ../../LIBSTELL/Debug/safe_open_mod.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o
+      
+      
+extcurz_mc.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/extcurz_T.o \
+      model_T.o \
+      v3f_global.o
+      
       

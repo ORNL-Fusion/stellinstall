@@ -314,7 +314,9 @@ profile_functions.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/vmec_input.o \
-      ../../LIBSTELL/Release/vparams.o 
+      ../../LIBSTELL/Release/vparams.o \
+      ../../LIBSTELL/Release/line_segment_mod.o \
+      ../../LIBSTELL/Release/functions.o
       
 
 reset_params.o : \
@@ -350,6 +352,7 @@ elongation.o : \
 
 eqfor.o : \
       ../../LIBSTELL/Release/mgrid_mod.o \
+      ../../LIBSTELL/Release/v3f_vmec_comm.o \
       csplinx.o \
       fbal.o \
       realspace.o \
