@@ -9,7 +9,7 @@
       MODULE functions
       USE stel_kinds
 
-      PUBLIC :: two_power, two_power_gs, functions_test
+      PUBLIC :: two_power, two_power_gs      !UNDEFINED, functions_test
       PRIVATE :: check
 
       CONTAINS
@@ -23,7 +23,7 @@
 !    b(0) * (1 - x ** b(1)) ** b(2)
 !
 !*******************************************************************************
-      FUNCTION two_power(x, b)
+      REAL(rprec) FUNCTION two_power(x, b)
       IMPLICIT none
 
 !-------------------------------------------------------------------------------
@@ -31,8 +31,6 @@
 !-------------------------------------------------------------------------------
       REAL(rprec), INTENT(in)                  :: x
       REAL(rprec), DIMENSION(0:20), INTENT(in) :: b
-      REAL(rprec)                              :: two_power
-
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
@@ -46,7 +44,7 @@
 !    two_power(x)*(1 + Sum[b(i)*Exp(-(x - b(i+1))/b(i+2)) ** 2])
 !
 !*******************************************************************************
-      FUNCTION two_power_gs(x, b)
+      REAL(rprec) FUNCTION two_power_gs(x, b)
       IMPLICIT none
 
 !-------------------------------------------------------------------------------
@@ -54,7 +52,6 @@
 !-------------------------------------------------------------------------------
       REAL(rprec), INTENT(in)                  :: x
       REAL(rprec), DIMENSION(0:20), INTENT(in) :: b
-      REAL(rprec)                              :: two_power_gs
 
 !-------------------------------------------------------------------------------
 !  Local Variable declarations.
