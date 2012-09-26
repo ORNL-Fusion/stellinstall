@@ -40,7 +40,7 @@
 !                                      the r direction.
 !    vmec_zbs01_id (maxnsteps_dim_id) VMEC value of the inital oval radius in
 !                                      the z direction.
-!    vmec_i_sub_i_id (maxnsteps_dim_id) VMEC value of the internal inductance.
+!    vmec_l_sub_i_id (maxnsteps_dim_id) VMEC value of the internal inductance.
 !    vmec_kappa_p_id (maxnsteps_dim_id) VMEC value of the mean elongation.
 !
 !    param_value_id (maxnsteps_dim_id, nparam_dim_id) Parameter values for each
@@ -65,7 +65,7 @@
          INTEGER :: maxnsteps_dim_id, nparam_dim_id, nsignal_dim_id
 ! Variable IDs
          INTEGER :: vmec_rbc00_id, vmec_rbc01_id, vmec_zbs01_id,               &
-     &              vmec_i_sub_i_id, vmec_kappa_p_id
+     &              vmec_l_sub_i_id, vmec_kappa_p_id
          INTEGER :: nsteps_id
          INTEGER :: g2_id
          INTEGER :: param_value_id, param_sigma_id
@@ -106,7 +106,7 @@
 !    vmec_rbc00   Inital major radus position.
 !    vmec_rbc01   Inital oval radius r direction.
 !    vmec_zbs01   Inital oval radius z direction.
-!    vmec_i_sub_i Internal inducance.
+!    vmec_l_sub_i Internal inducance.
 !    vmec_kappa_p Mean elongation.
 !
 !    param_name (STRING) Name of the reconstruction parameter.
@@ -118,6 +118,7 @@
 !
 !    signal_name (STRING) Long name of the signal.
 !    signal_type (STRING) Description of the signal.
+!    signal_weight (DOUBLE) Weight value for each signal.
 !    signal_observed_value (DOUBLE) Observed value of the signal at each 
 !                                   reconstruction step.
 !    signal_model_value (DOUBLE) Modeled value of the signal at each 
@@ -150,7 +151,7 @@
 ! Variable IDs
       INTEGER :: vmec_extcur_id, vmec_curtor_id, vmec_pres_scale_id
       INTEGER :: param_name_id, param_index_id
-      INTEGER :: signal_name_id, signal_type_id
+      INTEGER :: signal_name_id, signal_type_id, signal_weight_id
 
 ! Working variables
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: sem_a
@@ -165,7 +166,7 @@
 ! Find the start and end index of the basename. The basename is defined as
 ! input.BASENAME.v3fit if the prefix "input" and postfix "v3fit" are present.
 ! Other wise the entire filename is used.
-      beginIndex = INDEX(path, "input.") + 6
+      beginIndex = INDEX(path, ".") + 1
       endIndex = INDEX(path, ".v3fit", .TRUE.) - 1
 
       ! If the end index failed, use the entire string.
@@ -292,11 +293,11 @@
 
       result_output_file_create%status =                                       &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_i_sub_i",                                            &
+     &              "vmec_l_sub_i",                                            &
      &              nf_double,                                                 &
      &              1,                                                         &
      &              (/ result_output_file_create%maxnsteps_dim_id /),          &
-     &              result_output_file_create%vmec_i_sub_i_id)
+     &              result_output_file_create%vmec_l_sub_i_id)
       CALL result_output_check_error(result_output_file_create%status)
 
       result_output_file_create%status =                                       &
@@ -367,6 +368,15 @@
      &              (/ string_len_id,                                          &
      &                 result_output_file_create%nsignal_dim_id /),            &
      &              signal_type_id)
+      CALL result_output_check_error(result_output_file_create%status)
+
+      result_output_file_create%status =                                       &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "signal_weight",                                           &
+     &              nf_double,                                                 &
+     &              1,                                                         &
+     &              (/ result_output_file_create%nsignal_dim_id /),            &
+     &              signal_weight_id)
       CALL result_output_check_error(result_output_file_create%status)
 
       result_output_file_create%status =                                       &
@@ -470,7 +480,7 @@
 
       result_output_file_create%status =                                       &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
-     &                      result_output_file_create%vmec_i_sub_i_id,         &
+     &                      result_output_file_create%vmec_l_sub_i_id,         &
      &                      1, vvc_smaleli)
       CALL result_output_check_error(result_output_file_create%status)
 
@@ -532,6 +542,14 @@
      &                       signal_type_id,                                   &
      &                       (/ 1, i /), (/ 10, 1 /),                          &
      &                       s_desc(i)%s_type)
+         CALL                                                                  &
+     &      result_output_check_error(result_output_file_create%status)
+
+         result_output_file_create%status =                                    &
+     &      nf_put_var1_double(result_output_file_create%ncid,                 &
+     &                         signal_weight_id,                               &
+     &                         (/ i /),                                        &
+     &                         sd_observed(i)%weight)
          CALL                                                                  &
      &      result_output_check_error(result_output_file_create%status)
 
@@ -651,7 +669,7 @@
 
       result_file_ref%status =                                                 &
      &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%vmec_i_sub_i_id,                   &
+     &                      result_file_ref%vmec_l_sub_i_id,                   &
      &                      nsteps, vvc_smaleli)
       CALL result_output_check_error(result_file_ref%status)
 
