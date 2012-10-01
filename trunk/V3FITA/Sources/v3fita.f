@@ -731,7 +731,7 @@
                   sdo_sigma_a(i) = MAX(sdo_s_spec_floor(j),                    & 
      &               ABS(sdo_s_spec_fraction(j) * sdo_data_a(i)))
                ELSE
-                  sdo_sigma_a(i) = SQRT(sdo_s_spec_floor(j) ** 2 +             & 
+                  sdo_sigma_a(i) = SQRT(sdo_s_spec_floor(j) ** 2 +             &
      &               (sdo_s_spec_fraction(j) * sdo_data_a(i)) ** 2)
                ENDIF
             ENDIF
@@ -2435,17 +2435,19 @@
         END DO ! loop over step size trys
 
 !  Unsuccessful step
-      IF (.not. l_step_succeed) THEN
-         WRITE(*,*)
-         WRITE(*,*) ' Result of Step - DID NOT SUCCEED '
-         WRITE(*,*) '  g2 old      '
-         WRITE(*,'(3(4x,es11.4))') save_g2(irstep-1)
-         WRITE(iou_runlog,*)
-         WRITE(iou_runlog,*) ' Result of Step - DID NOT SUCCEED '
-         WRITE(iou_runlog,*) '  g2 old      '
-         WRITE(iou_runlog,'(3(4x,es11.4))') save_g2(irstep-1)
-         EXIT  ! Loop over reconstruction steps
-      ENDIF
+        IF (irstep .ge. nrstep_min) THEN
+          IF (.not. l_step_succeed) THEN
+            WRITE(*,*)
+            WRITE(*,*) ' Result of Step - DID NOT SUCCEED '
+            WRITE(*,*) '  g2 old      '
+            WRITE(*,'(3(4x,es11.4))') save_g2(irstep-1)
+            WRITE(iou_runlog,*)
+            WRITE(iou_runlog,*) ' Result of Step - DID NOT SUCCEED '
+            WRITE(iou_runlog,*) '  g2 old      '
+            WRITE(iou_runlog,'(3(4x,es11.4))') save_g2(irstep-1)
+            EXIT  ! Loop over reconstruction steps
+          ENDIF
+        ENDIF
 
 !  Save information about step
          eq_state_0 = state_vec
