@@ -222,7 +222,7 @@
 !  Declare local variables
       REAL(rprec) :: s_use, s_01
       LOGICAL     :: l_01
-      INTEGER     :: i, i_max, iflag
+      INTEGER     :: i, iflag
       REAL(rprec) :: pprofile_value
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'pprofile_evaluate: '
@@ -267,9 +267,9 @@
          CASE ('cubic_spline')
 !  Cubic splines come from LIBSTELL/miscel/cubic_spline.f
 !  As of 2011-10-21, this subroutine is used in VMEC profile_functions.f
-            IF (i_max .lt. 4) THEN
+            IF (this % maxSplineIndex .lt. 4) THEN
                WRITE(*,*) 'pprofile:cubic spline: too few as values'
-               WRITE(*,*) 'i_max, as = ', i_max
+               WRITE(*,*) 'maxSplineIndex, as = ', this % maxSplineIndex
                WRITE(*,*) this % as
                STOP
             ENDIF
@@ -290,9 +290,9 @@
          CASE ('akima_spline')
 !  Akima splines come from LIBSTELL/miscel/spline_akima.f
 !  As of 2011-10-21, this subroutine is used in VMEC profile_functions.f
-            IF (i_max .lt. 4) THEN
+            IF (this % maxSplineIndex .lt. 4) THEN
                WRITE(*,*) 'pprofile:akima spline: too few as values'
-               WRITE(*,*) 'i_max, as = ', i_max
+               WRITE(*,*) 'maxSplineIndex, as = ', this % maxSplineIndex
                WRITE(*,*) this % as
                STOP
             ENDIF
