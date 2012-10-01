@@ -424,17 +424,20 @@
 ! Parameterized Profile Input variables 
 !-------------------------------------------------------------------------------
 !  electron density ne
-      CHARACTER(LEN=20)             :: pp_ne_ptype='none'
-      REAL(rprec), DIMENSION(0:20)  :: pp_ne_b
-      REAL(rprec), DIMENSION(101)   :: pp_ne_as, pp_ne_af
+      CHARACTER(LEN=p_type_len)          :: pp_ne_ptype='none'
+      REAL(rprec),DIMENSION(ilb_b:iub_b) :: pp_ne_b = 0.0
+      REAL(rprec),DIMENSION(iub_asf)     :: pp_ne_as = 0.0,                    &
+     &                                      pp_ne_af = 0.0
 !  Soft x-ray emissivity
-      CHARACTER(LEN=20)             :: pp_sxrem_ptype='none'
-      REAL(rprec), DIMENSION(0:20)  :: pp_sxrem_b
-      REAL(rprec), DIMENSION(101)   :: pp_sxrem_as, pp_sxrem_af
+      CHARACTER(LEN=p_type_len)          :: pp_sxrem_ptype='none'
+      REAL(rprec),DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
+      REAL(rprec),DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0,                 &
+     &                                      pp_sxrem_af = 0.0
 !  electron temperature
-      CHARACTER(LEN=20)             :: pp_te_ptype='none'
-      REAL(rprec), DIMENSION(0:20)  :: pp_te_b
-      REAL(rprec), DIMENSION(101)   :: pp_te_as, pp_te_af
+      CHARACTER(LEN=p_type_len)          :: pp_te_ptype='none'
+      REAL(rprec),DIMENSION(ilb_b:iub_b) :: pp_te_b = 0.0
+      REAL(rprec),DIMENSION(iub_asf)     :: pp_te_as = 0.0,                    &
+     &                                      pp_te_af = 0.0
 
 !----------------------------------------------------------------------
 !  Namelist v3fit_main_nli definition

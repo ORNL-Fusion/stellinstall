@@ -40,18 +40,20 @@
 !  Use Statements for  V3 Utilities
 !-------------------------------------------------------------------------------
       USE v3_utilities
+
       
+
       IMPLICIT NONE
 !-------------------------------------------------------------------------------
 !  Lengths of Character Variables
 !-------------------------------------------------------------------------------
-      INTEGER, PARAMETER, PRIVATE :: p_type_len=20
+      INTEGER, PARAMETER, PUBLIC :: p_type_len=20
 !-------------------------------------------------------------------------------
 !  Array Bounds for the components
 !-------------------------------------------------------------------------------
-      INTEGER, PARAMETER, PRIVATE :: ilb_b = 0     
-      INTEGER, PARAMETER, PRIVATE :: iub_b = 21
-      INTEGER, PARAMETER, PRIVATE :: iub_asf = 101    
+      INTEGER, PARAMETER, PUBLIC :: ilb_b = 0
+      INTEGER, PARAMETER, PUBLIC :: iub_b = 21
+      INTEGER, PARAMETER, PUBLIC :: iub_asf = 101    
 !-------------------------------------------------------------------------------
 !  Other Dependencies
 !    1) pprofile_construct uses to_lower, from LIBSTELL
@@ -94,9 +96,10 @@
       TYPE pprofile
 !  Variables for a parameterized profile
 
-         CHARACTER (len = p_type_len)                :: p_type
-         REAL(rprec), DIMENSION(ilb_b:iub_b)         :: b              ! (0:20)
-         REAL(rprec), DIMENSION(iub_asf)             :: as, af
+         CHARACTER (len = p_type_len)        :: p_type
+         REAL(rprec), DIMENSION(ilb_b:iub_b) :: b = 0.0
+         REAL(rprec), DIMENSION(iub_asf)     :: as = 0.0, af = 0.0
+         INTEGER                             :: maxSplineIndex = 1
       END TYPE pprofile
 
 !*******************************************************************************
@@ -108,6 +111,8 @@
       INTERFACE pprofile_get
          MODULE PROCEDURE pprofile_get_ch, pprofile_get_real
       END INTERFACE
+
+      PRIVATE findMaxIndex
 
       CONTAINS
 !*******************************************************************************
@@ -152,22 +157,17 @@
          
       END SELECT
 
-! Store the coefficients, being careful with the indices.
-      n_b_copy = MIN(SIZE(b_arg),iub_b - ilb_b + 1)
-      ilb_b_arg = LBOUND(b_arg,1)
-      this % b = zero
-      this % b(ilb_b:ilb_b + n_b_copy) =                                       &
-     &    b_arg(ilb_b_arg: ilb_b_arg + n_b_copy)
-      
-      this % as = zero
-      this % af = zero
+! Store profile coeffients.
+      this % b = b_arg
+
+! Find and store the maximum s index if specifying splines.
       IF (PRESENT(as_arg)) THEN
-         n_as_copy = MIN(SIZE(as_arg),iub_asf)
-         this % as(1:n_as_copy) = as_arg(1:n_as_copy)         
-      ENDIF
-      IF (PRESENT(af_arg)) THEN
-         n_af_copy = MIN(SIZE(af_arg),iub_asf)
-         this % af(1:n_af_copy) = af_arg(1:n_af_copy)         
+         IF (.not.PRESENT(af_arg)) THEN
+            STOP "Spline Functions require *_af arrays."
+         ENDIF
+         this % maxSplineIndex = findMaxIndex(as_arg)
+         this % as = as_arg
+         this % af = af_arg
       ENDIF
       
       END SUBROUTINE pprofile_construct
@@ -267,16 +267,16 @@
          CASE ('cubic_spline')
 !  Cubic splines come from LIBSTELL/miscel/cubic_spline.f
 !  As of 2011-10-21, this subroutine is used in VMEC profile_functions.f
-            i_max = MINLOC(this % as(2:),dim=1)
             IF (i_max .lt. 4) THEN
                WRITE(*,*) 'pprofile:cubic spline: too few as values'
                WRITE(*,*) 'i_max, as = ', i_max
                WRITE(*,*) this % as
                STOP
             ENDIF
-            s_use = MIN(this % as(i_max - 1), MAX(s_arg,this % as(1)))
+            s_use = MIN(this % as(this % maxSplineIndex - 1),                  &
+     &                  MAX(s_arg,this % as(1)))
             CALL spline_cubic(s_use,pprofile_value,this % as,this % af,        &
-     &         i_max,iflag)
+     &         this % maxSplineIndex,iflag)
             IF (iflag < 0) THEN
                IF(iflag == -1) THEN
                   STOP 'pprofile: outside value from spline_cubic'
@@ -290,16 +290,16 @@
          CASE ('akima_spline')
 !  Akima splines come from LIBSTELL/miscel/spline_akima.f
 !  As of 2011-10-21, this subroutine is used in VMEC profile_functions.f
-            i_max = MINLOC(this % as(2:),dim=1)
             IF (i_max .lt. 4) THEN
                WRITE(*,*) 'pprofile:akima spline: too few as values'
                WRITE(*,*) 'i_max, as = ', i_max
                WRITE(*,*) this % as
                STOP
             ENDIF
-            s_use = MIN(this % as(i_max - 1), MAX(s_arg,this % as(1)))
+            s_use = MIN(this % as(this % maxSplineIndex - 1),                  &
+     &                  MAX(s_arg,this % as(1)))
             CALL spline_akima(s_use,pprofile_value,this % as,this % af,        &
-     &         i_max,iflag)
+     &         this % maxSplineIndex,iflag)
             IF (iflag < 0) THEN
                STOP 'pprofile: bad value from spline_akima requested'
             ENDIF
@@ -307,9 +307,8 @@
          CASE ('line_segment')
 !  Line segments come from LIBSTELL/miscel/line_segment_mod.f
 !  As of 2012-08-18, this subrountine is used in VMEC profile_functions.f
-            i_max = MINLOC(this % as(2:),dim=1)
-            CALL line_seg(s_use, pprofile_value, this % as, this % af,         &
-     &                    i_max)
+            CALL line_seg(s_arg, pprofile_value, this % as, this % af,         &
+     &                    this % maxSplineIndex)
     
          CASE DEFAULT
             WRITE(*,*) sub_name, 'Unrecognized p_type:', this % p_type
@@ -504,6 +503,30 @@
 1400  FORMAT(" END Parameterized Profile Write: id = ",a)
 
       END SUBROUTINE pprofile_write
+
+!*******************************************************************************
+!  Private Functions and Subroutines.
+!*******************************************************************************
+!*******************************************************************************
+!  Find the maximum index of spline arrays.
+!
+!  This is separated out into it's own function for unit testing purposes.
+!*******************************************************************************
+      FUNCTION findMaxIndex(s_array)
+      IMPLICIT none
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      REAL(rprec), DIMENSION(:), INTENT(in) :: s_array
+      INTEGER                               :: findMaxIndex
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      findMaxIndex = MINLOC(s_array(2:),dim=1)
+
+      END FUNCTION
 
 !*******************************************************************************
 ! SECTION XI.  COMMENTS FOR DIFFERENT REVISIONS
