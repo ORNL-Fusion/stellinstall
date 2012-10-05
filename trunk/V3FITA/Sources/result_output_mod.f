@@ -586,13 +586,19 @@
 ! initial reconstruction step, just fill in zeros.
       ALLOCATE(sem_a(gsq_nrp,gsq_nsig),STAT=err)
       CALL assert_eq(0,err,sub_name // 'allocate sem_a')
+      sem_a = 0
       result_output_file_create%status =                                       &
      &   nf_put_vara_double(                                                   &
      &      result_output_file_create%ncid,                                    &
      &      result_output_file_create%signal_eff_matrix_id,                    &
      &      (/ 1, 1, 1 /), (/ n_sdata_o, n_rparam, 1 /),                       &
      &      TRANSPOSE(sem_a))
+      CALL result_output_check_error(result_output_file_create%status)
       DEALLOCATE(sem_a)
+
+      result_output_file_create%status =                                       &
+     &   nf_sync(result_output_file_create%ncid)
+      CALL result_output_check_error(result_output_file_create%status)
 
       END FUNCTION result_output_file_create
 
@@ -736,7 +742,11 @@
      &   result_file_ref%signal_eff_matrix_id,                                 &
      &   (/ 1, 1, nsteps /), (/ n_sdata_o, n_rparam, 1 /),                     &
      &   TRANSPOSE(sem_a))
+      CALL result_output_check_error(result_file_ref%status)
       DEALLOCATE(sem_a, psigma_v)
+
+      result_file_ref%status = nf_sync(result_file_ref%ncid)
+      CALL result_output_check_error(result_file_ref%status)
 
       END SUBROUTINE
 
