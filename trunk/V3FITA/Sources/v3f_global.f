@@ -281,7 +281,6 @@
 ! Reconstruction step control NLI variables  
 !-------------------------------------------------------------------------------
 !  nrstep         max number of reconstruction steps to perform
-!  nrstep_min     min number of reconstruction steps to perform
 !  dg2_stop       Stopping criterion on change in g^2
 !  cut_svd        cutoff value for relative Singular Values
 !  cut_eff        cutoff value for expected step efficiency
@@ -292,7 +291,7 @@
 !  step_type      character specification of reconstruction step type
 !                   'sl' - straight line
 !                   'seg' - segmented
-      INTEGER           :: nrstep = 0, nrstep_min = 1
+      INTEGER           :: nrstep = 0
       REAL(rprec)       :: dg2_stop = zero
       REAL(rprec)       :: cut_svd = zero
       REAL(rprec)       :: cut_eff = zero
