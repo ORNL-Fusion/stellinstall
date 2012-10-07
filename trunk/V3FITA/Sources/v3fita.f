@@ -563,7 +563,6 @@
 !
 !    Reconstruction step control NLI variables  
 !  nrstep         max number of reconstruction steps to perform
-!  nrstep_min     min number of reconstruction steps to perform
 !  dg2_stop       Stopping criterion on change in g^2
 !  cut_svd        cutoff value for relative Singular Values
 !  cut_eff        cutoff value for expected step efficiency
@@ -600,9 +599,8 @@
      &   sdo_s_spec_imin, sdo_s_spec_imax, sdo_s_spec_floor,                   & 
      &   sdo_s_spec_fraction,                                                  & 
      &   sdo_w_spec_imin, sdo_w_spec_imax, sdo_w_spec_weight,                  &
-     &   nrstep, nrstep_min,                                                   &
-     &   dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,                &
-     &   cut_dg2, astep_max, step_type,                                        &
+     &   nrstep,  dg2_stop, cut_svd, cut_eff, cut_marg_eff,                    &
+     &   cut_delta_a, cut_dg2, astep_max, step_type,                           &
      &   extcurz_s0, extcurz_u0 ! GLT 12-sep-2012
 
 !-----------------------------------------------
@@ -808,10 +806,6 @@
       CALL pprofile_destroy(pp_ne_temp)
       CALL pprofile_destroy(pp_sxrem_temp)
       CALL pprofile_destroy(pp_te_temp)
-
-!  Make sure the max number of steps is larger than or equal to the min number
-!  of steps.
-      nrstep = MAX(nrstep, nrstep_min)
 
       RETURN
       END SUBROUTINE init_main_nli
@@ -2386,8 +2380,8 @@
      &         iter_es = iter_v)
      
             IF (.not. lconv) THEN
-                  WRITE(*,*) 'VMEC did not converge.'
-                  WRITE(iou_runlog,*) 'VMEC did not converge.'
+               WRITE(*,*) 'VMEC did not converge.'
+               WRITE(iou_runlog,*) 'VMEC did not converge.'
                IF (i_try .LT. n_try) THEN
                   WRITE(*,*) 'Changing step size factor to ',                  &
      &               try_factor_a(i_try + 1)
@@ -2432,11 +2426,10 @@
                WRITE(iou_runlog,*)
             ENDIF           
                
-        END DO ! loop over step size trys
+         END DO ! loop over step size trys
 
 !  Unsuccessful step
-        IF (irstep .ge. nrstep_min) THEN
-          IF (.not. l_step_succeed) THEN
+         IF (.not. l_step_succeed) THEN
             WRITE(*,*)
             WRITE(*,*) ' Result of Step - DID NOT SUCCEED '
             WRITE(*,*) '  g2 old      '
@@ -2446,8 +2439,7 @@
             WRITE(iou_runlog,*) '  g2 old      '
             WRITE(iou_runlog,'(3(4x,es11.4))') save_g2(irstep-1)
             EXIT  ! Loop over reconstruction steps
-          ENDIF
-        ENDIF
+         ENDIF
 
 !  Save information about step
          eq_state_0 = state_vec
@@ -2489,45 +2481,41 @@
      &                                      sd_model,                          &
      &                                      sd_observe)
 
-        rp_old = rp_new
+         rp_old = rp_new
 
 !  This is where an exit test should go
 !  Convergence Tests
-        IF (irstep .ge. nrstep_min) THEN
          IF ((g2_diff .lt. zero) .and. (g2_diff .gt. - dg2_stop)) THEN
-            WRITE(*,*) 
+            WRITE(*,*)
             WRITE(*,*) 'dg2_stop = ', dg2_stop
             WRITE(*,*) 'g2 decreasing slowly - reconstructed'
-            WRITE(iou_runlog,*) 
+            WRITE(iou_runlog,*)
             WRITE(iou_runlog,*) 'dg2_stop = ', dg2_stop
-            WRITE(iou_runlog,*)                                                &
-     &            'g2 decreasing slowly - reconstructed'
+            WRITE(iou_runlog,*) 'g2 decreasing slowly - reconstructed'
             EXIT
          ENDIF
          
          IF (save_g2(irstep) .lt. dg2_stop) THEN
-            WRITE(*,*) 
+            WRITE(*,*)
             WRITE(*,*) 'dg2_stop = ', dg2_stop
             WRITE(*,*) 'g2 small - reconstructed'
-            WRITE(iou_runlog,*) 
+            WRITE(iou_runlog,*)
             WRITE(iou_runlog,*) 'dg2_stop = ', dg2_stop
             WRITE(iou_runlog,*) 'g2 small - reconstructed'
             EXIT
          ENDIF
 
          IF (irstep .ge. nrstep) THEN
-            WRITE(*,*) 
+            WRITE(*,*)
             WRITE(*,*) 'dg2_stop = ', dg2_stop
             WRITE(*,*) 'nrstep = ', nrstep
             WRITE(*,*) irstep,' steps completed - may be reconstructed'
-            WRITE(iou_runlog,*) 
+            WRITE(iou_runlog,*)
             WRITE(iou_runlog,*) 'dg2_stop = ', dg2_stop
             WRITE(iou_runlog,*) 'nrstep = ', nrstep
             WRITE(iou_runlog,*) irstep,                                        &
-     &          ' steps completed - may be reconstructed'
-           ENDIF
-        ENDIF
-
+     &         ' steps completed - may be reconstructed'
+         ENDIF
       END DO
 
 !  Close result file.
