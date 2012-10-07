@@ -1,0 +1,65 @@
+cmake_minimum_required (VERSION 2.8)
+# Append all source files to variable stell_sources. As new files are added this must be updated.
+list (APPEND stell_sources
+        ${CMAKE_CURRENT_SOURCE_DIR}/bcoils_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/biotsavart.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/bnorm_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/bootsj_input.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/bsc_cdf.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/bsc_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/coilsnamin.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/control_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/coordinate_utilities.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/cyl_flux.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/date_and_computer.f90
+        ${CMAKE_CURRENT_SOURCE_DIR}/de_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/diagnostic_cdf.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/diagnostic_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/extcurz_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/fftpack.f
+	${CMAKE_CURRENT_SOURCE_DIR}/functions.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/ga_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/gade_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/intpol_cdf.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/ip_beamline.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/ipch_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/ipsl_cdf.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/ipsl_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/math_utilities.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/mddc_cdf.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/mddc_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/mgrid_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/modular_coils.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/mpi_params.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/optim_params.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/packafile.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/read_boozer_mod.f90
+        ${CMAKE_CURRENT_SOURCE_DIR}/read_response_nompi.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/read_response.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/read_v3post_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/read_wout_mod.f90
+        ${CMAKE_CURRENT_SOURCE_DIR}/saddle_coils.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/saddle_surface.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/safe_open_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/stel_constants.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/stel_kinds.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/sxrch_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/system_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/tf_coils.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/thscte_T.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/v3_utilities.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/v3post_rfun.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vacfield_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vcoilpts.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vertex_list.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vf_coils.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vmec_input.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vmec_seq.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vmec_utils.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vparams.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/vsvd0.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/v3f_vmec_comm.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/write_array_generic.f
+)
+set (stell_sources "${stell_sources}" PARENT_SCOPE)
+
