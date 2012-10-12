@@ -103,6 +103,7 @@
          REAL(rprec)              :: ne_pp_unit
          REAL(rprec)              :: ne_min
          REAL(rprec)              :: e_pressure_fraction
+         REAL(rprec)              :: sxrem_scale
       END TYPE model
 
 !*******************************************************************************
@@ -133,7 +134,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE model_construct(this,eqstate, pp_ne, pp_sxrem,                &
      &   pp_te, model_sxrem_type, model_te_type,ne_pp_unit,ne_min,             &
-     &   e_pressure_fraction)
+     &   e_pressure_fraction, sxrem_scale)
 
       IMPLICIT NONE
 
@@ -148,7 +149,8 @@
       REAL(rprec), INTENT(in), OPTIONAL        :: ne_pp_unit
       REAL(rprec), INTENT(in), OPTIONAL        :: ne_min
       REAL(rprec), INTENT(in), OPTIONAL        :: e_pressure_fraction
-      
+      REAL(rprec), INTENT(in), OPTIONAL        :: sxrem_scale
+
 !  Declare local variables
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_construct: '
@@ -191,7 +193,11 @@
       IF (PRESENT(e_pressure_fraction)) THEN
          this % e_pressure_fraction = e_pressure_fraction
       ENDIF
-     
+
+      IF (PRESENT(sxrem_scale)) THEN
+         this % sxrem_scale = sxrem_scale
+      ENDIF
+
       END SUBROUTINE model_construct
 
       
@@ -401,7 +407,8 @@
          IF (s_arg .le. one) THEN
             ne = model_get_ne_s(this,s_arg)
             pressure = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
-            model_get_sxrem_s = (ne / ne_norm) ** (3/2) * SQRT(pressure)   ! per comments         
+            model_get_sxrem_s =                                                &
+     &         this%sxrem_scale*ne**(3/2)/SQRT(pressure)   ! per comments
          ELSE
             model_get_sxrem_s = zero
          ENDIF

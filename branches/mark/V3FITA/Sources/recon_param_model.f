@@ -226,6 +226,9 @@
             CALL assert_eq(iub2,MAX(iub2,i2),sub_name // 'zbs r max2')
             rparam(i) % value = state % varp % zbs(i1,i2)
 
+         CASE ('sxrem_scale')
+            rparam(i) % value = a_model % sxrem_scale
+
 !         CASE ('density_max')
 !            rparam(i) % value = a_model % density % ne_max
 !
@@ -445,6 +448,9 @@
             CALL assert_eq(iub1,MAX(iub1,i1),sub_name // 'zbs r max1')
             CALL assert_eq(iub2,MAX(iub2,i2),sub_name // 'zbs r max2')
             state % varp % zbs(i1,i2) = rparam_a(i) % value
+
+         CASE ('sxrem_scale')
+            a_model % sxrem_scale = rparam_a(i) % value
 
 !         CASE ('density_max')
 !            a_model % density % ne_max = rparam_a(i) % value

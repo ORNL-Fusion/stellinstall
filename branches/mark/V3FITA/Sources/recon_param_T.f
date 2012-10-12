@@ -91,6 +91,7 @@
 !       density_max - max plasma density (assumed to be at magnetic axis)
 !       density_tau - exponent on radial flux for density distribution of form:
 !                   - ne = ne_max*(1-s^tau)^kappa +ne_ambient
+!       sxrem_scale - Soft X-Ray Emissivity constant
 !    (JDH 2011-10-19 - switch from density_max and tau to pp_ne_b - 
 !      parameterized profile coefficients for ne profile)
 !       pp_ne_b        - model electron density parameterized profile coefficients
@@ -218,6 +219,7 @@
       CASE ('rbs')
       CASE ('zbc')
       CASE ('zbs')
+      CASE ('sxrem_scale')
 !      CASE ('density_max')
 !      CASE ('density_tau')
       CASE ('pp_ne_b')

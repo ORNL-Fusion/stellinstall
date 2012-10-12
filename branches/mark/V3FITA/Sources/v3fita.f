@@ -429,6 +429,7 @@
       REAL(rprec),DIMENSION(iub_asf)     :: pp_ne_as = 0.0,                    &
      &                                      pp_ne_af = 0.0
 !  Soft x-ray emissivity
+      REAL(rprec)                        :: sxrem_scale = 1.0
       CHARACTER(LEN=p_type_len)          :: pp_sxrem_ptype='none'
       REAL(rprec),DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
       REAL(rprec),DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0,                 &
@@ -481,6 +482,7 @@
 !  pp_te_af              array of af_coefficients e-temperature splines
 !
 !      Model Specification Variables
+!  sxrem_scale          Constant SXR Emissivity scale.
 !  model_sxrem_type     Character variable to specify how the Soft x-ray 
 !                       emissivity will be calculated by the model.
 !      'none'             Not part of the model.
@@ -582,7 +584,8 @@
      &   my_task, i_work, c_work, r_work,                                      &
 
      &   pp_ne_ptype, pp_ne_b, pp_ne_as, pp_ne_af,                             &
-     &   pp_sxrem_ptype, pp_sxrem_b, pp_sxrem_as, pp_sxrem_af,                 &
+     &   sxrem_scale, pp_sxrem_ptype, pp_sxrem_b,                              &
+     &   pp_sxrem_as, pp_sxrem_af,                                             &
      &   model_sxrem_type,                                                     &
      &   pp_te_ptype, pp_te_b, pp_te_as, pp_te_af,                             &
      &   model_te_type,                                                        &
@@ -801,7 +804,8 @@
      &   model_te_type = model_te_type,                                        &
      &   ne_pp_unit = ne_pp_unit,                                              &
      &   ne_min = ne_min,                                                      &
-     &   e_pressure_fraction = e_pressure_fraction)
+     &   e_pressure_fraction = e_pressure_fraction,                            &
+     &   sxrem_scale = sxrem_scale)
 
       CALL pprofile_destroy(pp_ne_temp)
       CALL pprofile_destroy(pp_sxrem_temp)
