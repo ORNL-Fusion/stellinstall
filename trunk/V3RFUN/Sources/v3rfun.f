@@ -435,6 +435,7 @@
       USE mddc_T
       USE safe_open_mod
       USE v3_utilities
+      USE coordinate_utilities
 
 !      Variables declared in v3rfun_data used in this subroutine:
 !  iou_mdsig_ncdf        i/o unit number for mdsig file
@@ -463,7 +464,7 @@
       INTEGER :: i, j, k, l, idc 
       INTEGER :: iss, jss, kss
       INTEGER :: istat, i_last_slash
-      REAL(rprec) :: phi0, phi, r, z
+      REAL(rprec) :: phi0
       REAL(rprec) :: fperiod, delr, delz, delp
       CHARACTER (len=120) :: mdsig_filename, list_filename,                    &
      &   name_dd_nopath, mi_filename
@@ -516,10 +517,7 @@
 !  l				index, runs over field periods
 !  idc				index, runs over the diagnostic coils
 !  istat			status variable
-!  phi0				phi value on computational grid				
-!  phi				phi value on extended computational grid
-!  r				r value on computational grid
-!  z				z value on computational grid
+!  phi0				phi value on computational grid
 !  fperiod			extent of a field period, in phi
 !  delr				radial spacing of computational mesh
 !  delz				z spacing of computational mesh
@@ -558,16 +556,13 @@
       DO k = 1,kp
          phi0 = (k - 1) * delp 
          DO l = 1,n_field_periods
-            phi = phi0 + (l - 1) * fperiod
-            phi_grid_e(k,l) = phi
+            xcyl(2) = phi0 + (l - 1) * fperiod
+            phi_grid_e(k,l) = xcyl(2)
             DO i = 1,ir
-               r = rmin + (i - 1) * delr
+               xcyl(1) = rmin + (i - 1) * delr
                DO j = 1,jz
-                  z = zmin + (j - 1) * delz
-                  xcyl(1) = r
-                  xcyl(2) = phi
-                  xcyl(3) = z
-                  CALL cyl2cart_x(xcyl,xcart_grid_e(i,j,k,l,1:3))
+                  xcyl(3) = zmin + (j - 1) * delz
+                  xcart_grid_e(i,j,k,l,1:3) = cyl_to_cart(xcyl)
                END DO ! over j
             END DO ! over i
          END DO ! over l
@@ -815,32 +810,6 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
 !*******************************************************************************
 ! SECTION III.	AUXILIARY SUBROUTINES
 !*******************************************************************************
-
-!----------------------------------------------------------------------
-!----------------------------------------------------------------------
-
-      SUBROUTINE cyl2cart_x(xcyl,xcart)
-!  Subroutine to convert a position vector from cylindrical coordinates 
-!  to Cartesian coordinates
-
-      USE stel_kinds
-
-      IMPLICIT NONE
-      
-!   Declare Arguments
-      REAL(rprec), DIMENSION(3), INTENT(in) :: xcyl
-      REAL(rprec), DIMENSION(3), INTENT(out) :: xcart
-
-!  Start of executable code
-      xcart(1) = xcyl(1) * cos(xcyl(2))
-      xcart(2) =  xcyl(1) * sin(xcyl(2))
-      xcart(3) = xcyl(3)
-
-      RETURN
-      END SUBROUTINE cyl2cart_x
-
-!----------------------------------------------------------------------
-!----------------------------------------------------------------------
 
       SUBROUTINE cart2cyl_v(vcart,xphi,vcyl)
 !  Subroutine to convert a tangent vector from Cartesian coordinates 

@@ -1,0 +1,19 @@
+# The fortran modules provided by this target.
+provides
+ ezcdf
+ ezcdf_attrib
+ ezcdf_genget
+ ezcdf_genput
+ ezcdf_inqvar
+ ezcdf_opncls
+ gfile
+ knots
+ mapg_mod
+ mapout
+ mcomd1
+ physical_constants
+ polynomial
+ precision
+ sparmd
+ vname0
+ vname1

@@ -9,6 +9,9 @@
 #
 # NETCDF_LIB_PATH     -- Path to the netcdf libraries.
 # NETCDF_INC_PATH     -- Path to the netcdf include files.
+#
+# BUILD_GTOVMI        -- Optionally builds GTOVMI
+#
 
 cmake_minimum_required (VERSION 2.8)
 
@@ -30,28 +33,28 @@ set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
 
 # Set Apple specific options. This adds a predefine for DARWIN and adds lapack from the Accelerate framework.
 if (APPLE)
-    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D DARWIN")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
+	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D DARWIN")
+	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
 endif ()
 
 # Set Linux specific options. This adds a predefine for LINUX.
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D LINUX")
-    find_package(BLAS REQUIRED)
-    find_package(LAPACK REQUIRED)
+	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D LINUX")
+	find_package(BLAS REQUIRED)
+	find_package(LAPACK REQUIRED)
 endif ()
 
 # Use netcdf if libraries are found. The values of NETCDF_LIB_PATH and NETCDF_INC_PATH should be set from the command line or Cmake GUI. Convert path from native format to cmake internal format.
-if ($(NETCDF_LIB_PATH))
-    file (TO_NATIVE_PATH ${NETCDF_INC_PATH} NETCDF_INC_PATH)
-    file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
+if (${NETCDF_LIB_PATH})
+	file (TO_NATIVE_PATH ${NETCDF_INC_PATH} NETCDF_INC_PATH)
+	file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
 endif ()
 find_library (NETCDF_C NAMES netcdf PATHS ${NETCDF_LIB_PATH})
 find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH})
 find_file (NETCDF_I netcdf.inc ${NETCDF_INC_PATH})
 if ((NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND")) AND (NOT (${NETCDF_I} STREQUAL "NETCDF_I-NOTFOUND")))
-    message (STATUS "Using netcdf")
-    set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D NETCDF -I ${NETCDF_INC_PATH}")
+	message (STATUS "Using netcdf")
+	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D NETCDF -I ${NETCDF_INC_PATH}")
 endif ()
 
 # List all the subdirectories these are in library dependancy order.
@@ -61,3 +64,8 @@ add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
 add_subdirectory (V3POST)
 add_subdirectory (V3RFUN)
+
+# Optional extra builds
+if (BUILD_GTOVMI)
+	add_subdirectory (GTOVMI)
+endif ()
