@@ -84,13 +84,12 @@ c-----------------------------------------------------------------------
         WRITE(*,*)"Enter file name:  "
         READ(*,FMT='(a)')filename
         WRITE(*,*)"Enter flux fraction:  "
-        READ(*,FMT='(f1.6)')flux_fraction
-         IF(
-     &  .NOT.((flux_fraction >= 0.9) .AND. (flux_fraction < 1.0)))then
+        READ(*,FMT='(f6.14)')flux_fraction
+        IF((flux_fraction.ge.0.9).AND.(flux_fraction.lt.1.0))then
+           percenflux = flux_fraction
+        ELSE
            PRINT*,'NOT IN RANGE: flux_fraction=',percenflux
-         ELSE
-          percenflux = flux_fraction
-         ENDIF
+        ENDIF
         WRITE(*,*)"plot device:  "
         READ(*,FMT='(a)')device
         INQUIRE(file = TRIM(filename),exist = lexist)
@@ -100,12 +99,11 @@ c-----------------------------------------------------------------------
       IF(.NOT.lexist) STOP "STOP on nofile"
       IF (numarg > 1) THEN
          CALL getarg(2,arg2)
-         READ(arg2,FMT='(f1.6)')flux_fraction
-         IF(
-     &	.NOT.((flux_fraction >= 0.9) .AND. (flux_fraction < 1.0)))then
-           PRINT*,'NOT IN RANGE: flux_fraction=',percenflux
+         READ(arg2,FMT='(f6.14)')flux_fraction
+         IF((flux_fraction.ge.0.9).AND.(flux_fraction.lt.1.0))then
+            percenflux = flux_fraction
          ELSE
-          percenflux = flux_fraction
+            PRINT*,'NOT IN RANGE: flux_fraction=',percenflux
          ENDIF
       ENDIF   
       if (numarg >= 3) CALL getarg (3, device)

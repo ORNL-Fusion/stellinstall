@@ -109,8 +109,6 @@ c     I don't know what the purpose of a negative B field is.
 !	load g
       write(6,'("begin loading geqdsk")')
       call gfile_allocate(nx,nz,mbdry,limitr,g1)
-      write(*,*)ntitle(4)(3:8)
-      write(*,*)ntitle(5)(1:6)
       read(ntitle(4)(3:8),fmt='(i10)')i
       g1%shot=i
       read(ntitle(5)(1:6),fmt='(i10)')j
@@ -143,6 +141,7 @@ c     I don't know what the purpose of a negative B field is.
       g1%ylim(1:limitr)=zlim(1:limitr)
       write(6,'("end loading geqdsk")')
       end subroutine rdeqdsk
+
       subroutine  eqdsk_allocate(mw,mh)
       USE mapg_mod
       INTEGER,  INTENT(IN) :: mw,mh
@@ -157,7 +156,8 @@ c     I don't know what the purpose of a negative B field is.
         if(istat.ne.0)print*,"STAT=",istat
 !      parameter(nxd=129,nzd=129,nxzd=6*(nxd+nzd),nh2=2*nzd,
 !     $     nwk=2*nxd*nzd+nh2)
-      nxd=mw; nzd=mh;nxzd=6*(nxd+nzd);nh2=2*nzd;nwk=2*nxd*nzd+nh2
+!      nxd=mw; nzd=mh;nxzd=6*(nxd+nzd);nh2=2*nzd;nwk=2*nxd*nzd+nh2
+      nxd=mw; nzd=mh;nxzd=2000;nh2=2*nzd;nwk=2*nxd*nzd+nh2
 ! allocate splining arrays for eqdsk
       ALLOCATE(csplpsi(4,nxd,nzd),STAT=istat)
         if(istat.ne.0)print*,"STAT=",istat

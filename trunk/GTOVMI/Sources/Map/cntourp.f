@@ -123,6 +123,7 @@ c
      $     xemin,xemax,yemin,yemax,yxmin,yxmax,xymin,xymax,
      $     dang,arcl,bperr,xmin,xmax,ymin,ymax
       INTEGER jcmax,ihlfmx
+      INTEGER i, j
       REAL(rprec) stfrac,delta
       PARAMETER (jcmax=5, ihlfmx=4)
       PARAMETER (stfrac=0.5,delta=0.1)
@@ -149,6 +150,13 @@ c.........................................................................
       yxmax   =  0.0
       ntmx1   = ntmx - 1
       dthet0  = dang*twopi
+!      do i = 1, nxd
+!         do j = 1, nxd
+!            CALL bcsplINT(x,y,cspln,nw,nh,nxd,x(i),y(j),pds,1,ier)
+!            WRITE (*,*) x(i),y(j),pds(1)
+!         enddo
+!      enddo
+
       CALL bcsplINT(x,y,cspln,nw,nh,nxd,xaxd,yaxd,pds,1,ier)
       psiaxd = pds(1)
       IF(psiaxd .gt. psivl) THEN

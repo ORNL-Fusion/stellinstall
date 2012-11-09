@@ -101,6 +101,7 @@ c ===== variables READ in from dskbal or obtained from mapper=====
       REAL(rprec) fracg(kpsi)
       INTEGER iphi
       CONTAINS
+
         REAL FUNCTION trap(n,x,y)
           INTEGER, INTENT(IN) :: n
           REAL*8, INTENT(IN) :: x(n), y(n)
@@ -112,10 +113,12 @@ c ===== variables READ in from dskbal or obtained from mapper=====
           ENDdo
           trap=summ
         END FUNCTION trap
+
         REAL FUNCTION axisv(x,y,n)
           IMPLICIT NONE
           INTEGER, INTENT(in) :: n
           REAL(rprec), INTENT(in) :: x(n), y(n)
           axisv=y(2)+(y(3)-y(2))*(x(2)-x(1))/(x(3)-x(2))
         END FUNCTION axisv
+
       END MODULE mapg_mod
