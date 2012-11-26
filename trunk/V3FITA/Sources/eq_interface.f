@@ -1496,7 +1496,8 @@
       WRITE(iunit, '(2x,3a)') "PMASS_TYPE = '", pmass_type, "'"      
       WRITE(iunit, '(2x,a,/,2x,3(1pe22.14))')'AM = ', am
       SELECT CASE(TRIM(pmass_type))
-         CASE ('Akima_spline','cubic_spline')
+         CASE ('Akima_spline','akima_spline',                                  &
+     &         'cubic_spline','line_segment')
             CALL write_array(iunit,'AM_AUX_S',am_aux_s,SIZE(am_aux_s))
             CALL write_array(iunit,'AM_AUX_F',am_aux_f,SIZE(am_aux_s))
       END SELECT
@@ -1509,14 +1510,19 @@
       WRITE(iunit, '(2x,a,/,2x,3(1pe22.14))')'AC = ', ac
       SELECT CASE(TRIM(pcurr_type))
          CASE ('Akima_spline_Ip','Akima_spline_I',                             &
-     &           'cubic_spline_Ip','cubic_spline_I')
+     &         'akima_spline_ip','akima_spline_i',                             &
+     &         'cubic_spline_Ip','cubic_spline_I',                             &
+     &         'cubic_spline_ip','cubic_spline_i',                             &
+     &         'line_segment_Ip','line_segment_I',                             &
+     &         'line_segment_ip','line_segment_i')
             CALL write_array(iunit,'AC_AUX_S',ac_aux_s,SIZE(am_aux_s))
             CALL write_array(iunit,'AC_AUX_F',ac_aux_f,SIZE(am_aux_s))
       END SELECT
       WRITE(iunit, '(2x,3a)') "PIOTA_TYPE = '", piota_type, "'"      
       WRITE(iunit, '(2x,a,/,2x,3(1pe22.14))')'AI = ', ai
       SELECT CASE(TRIM(piota_type))
-         CASE ('Akima_spline','cubic_spline')
+         CASE ('Akima_spline','akima_spline',                                  &
+     &         'cubic_spline','line_segment')
             CALL write_array(iunit,'AI_AUX_S',ai_aux_s,SIZE(am_aux_s))
             CALL write_array(iunit,'AI_AUX_F',ai_aux_f,SIZE(am_aux_s))
       END SELECT
