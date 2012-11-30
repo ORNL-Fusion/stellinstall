@@ -473,8 +473,8 @@
          CASE ('two_power')
             WRITE(iou,1210)
             WRITE(iou,1300) this % b(0:3)
-      
-         CASE ('power_series')
+
+         CASE ('power_series','two_power_gs')
             WRITE(iou,1220)
             WRITE(iou,1300) this % b(ilb_b:iub_b)
             

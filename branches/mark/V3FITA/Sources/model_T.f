@@ -233,6 +233,7 @@
       this % ne_pp_unit = zero
       this % ne_min = zero
       this % e_pressure_fraction = zero
+      this % sxrem_scale = zero
 
       END SUBROUTINE model_destroy
 
@@ -265,6 +266,7 @@
       left % ne_pp_unit = right % ne_pp_unit
       left % ne_min = right % ne_min
       left % e_pressure_fraction = right % e_pressure_fraction
+      left % sxrem_scale = right % sxrem_scale
          
       END SUBROUTINE model_assign
 
