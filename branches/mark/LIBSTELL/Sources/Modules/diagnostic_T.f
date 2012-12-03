@@ -507,7 +507,7 @@
       CHARACTER (len=60) :: id
 
 !  Declare Format array  modified GJH 2010-01-15
-      CHARACTER(len=*), PARAMETER, DIMENSION(11) :: fmt1 = (/                  &
+      CHARACTER(len=*), PARAMETER, DIMENSION(10) :: fmt1 = (/                  &
      & '(" start diagnostic_desc write, called with id = ",a)',                &
      & '(" d_type = ",a)                                     ',                &
      & '(" s_name = ",a)                                     ',                &
