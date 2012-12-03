@@ -47,7 +47,6 @@
 !  Other _mc modules
 !-------------------------------------------------------------------------------
       USE mddc_mc
-      USE ipsl_mc
       USE sxrch_mc           !GJH 2010-01-20
       USE ipch_mc            !JDH 2012-03-15
       USE thscte_mc
@@ -124,12 +123,6 @@
          SELECT CASE (TRIM(ADJUSTL(sdesc % diag % d_type)))
          CASE ('mddc')
              CALL mddc_mc_model_compute(sdesc % diag % mddc,a_model,           &
-     &               sdata % data,sdata % sigma)
-         CASE ('ipsl')
-             CALL read_wout_file('wout_.nc', ierr)
-             if (ierr .ne. 0 ) write(*,*) sub_name // 'read_wout error'
-             call VMEC_B_INIT(1)
-             CALL ipsl_mc_model_compute(sdesc % diag % ipsl,a_model,           &
      &               sdata % data,sdata % sigma)
          CASE ('sxrch')
              CALL sxrch_mc_model_compute(sdesc % diag % sxrch,a_model,         &

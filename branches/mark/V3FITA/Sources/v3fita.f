@@ -207,31 +207,6 @@
          CALL init_equilibrium
          CALL task_add_noise_a1
 
-      CASE('faraday_rotation') !  Run VMEC, compute signals, mimicking v3post, then run faraday_rotation
-         CALL init_signal
-         CALL init_equilibrium
-         CALL task_vmec_v3post
-         CALL AJAX_FARADAY_INIT(1,0)
-
-      CASE('f_rotation_and_cm') !  Run VMEC, etc , then run faraday_rotation AND Cotton-Mouton
-         CALL init_signal
-         CALL init_equilibrium
-         CALL task_vmec_v3post
-         CALL AJAX_FARADAY_INIT(4,0)
-
-      CASE('faraday_only_no_vmec') !  run faraday rotation stuff ONLY (ie no VMEC, V3POST, etc)
-         CALL init_signal_ipsl
-         CALL AJAX_FARADAY_INIT(1,1)
-
-      CASE('fr_cm_only_no_vmec') !  run Faraday & Cotton-Mouton stuff ONLY (ie no VMEC, V3POST, etc)
-         CALL init_signal_ipsl
-         CALL AJAX_FARADAY_INIT(4,1)
-
-      CASE('bfield_grid')
-!         CALL init_signal
-!         CALL init_equilibrium
-         CALL task_bfield_grid
-
       CASE('unit_tests')
          CALL task_unit_tests
 
@@ -448,8 +423,6 @@
 !  mdsig_list_filename   File name for list of MDSIG files (v3f_global)
 !  intpol_filename       File name for interferometry/polarimetry (v3f_global)
 !  vmec_nli_filename     File name for VMEC namelist input (v3f_global)
-!  sxr_nli_filename		 file holding sxr camera information   GJH 2009-08-26 (v3f_global)
-!   ^ Eliminate sxr_nli_filename JDH 2011-10-18
 !  sxrch_dot_filename	 file holding sxr chord information   JDH 2011-10-18 (v3f_global)
 !  thscte_dot_filename	 file holding Thomson Scattering information   JDH 2011-10-23 (v3f_global)
 !  ipch_dot_filenam      file holding interferometry-polarimetry information   JDH 2012-03-15 (v3f_global)
@@ -992,18 +965,13 @@
 
 !----------------------------------------------------------------------
 !--  extcurz (EXTernal CURrent along Z) SubSection                   --
+!----------------------------------------------------------------------
       IF (extcurz_s0 .NE. -1) THEN
          CALL init_signal_extcurz(isig,idiag)    
       END IF
 !----------------------------------------------------------------------
-
-!      IPSL Deprecated 2012-03-15
+!--  END extcurz (EXTernal CURrent along Z) SubSection                   --
 !----------------------------------------------------------------------
-!--  ipsl (Interferometry/Polarimetry Straight Line) SubSection      --
-!----------------------------------------------------------------------
-      IF ( TRIM(intpol_filename) .NE. '' ) THEN
-        CALL init_signal_ipsl
-      END IF
 
 !----------------------------------------------------------------------
 !--  END Diagnostics Section  –  START Geometric Section             --
@@ -1013,6 +981,9 @@
  
 !----------------------------------------------------------------------
 !--  END Geometric Section                                           --
+!----------------------------------------------------------------------
+
+!----------------------------------------------------------------------
 !-–  START Coosig (Combination Of Other Signals) Section             --
 !----------------------------------------------------------------------
 
@@ -1127,8 +1098,6 @@
       WRITE(*,*) ' *** IN SUBROUTINE ', sub_name
       isigin=isig
       idiagin=idiag
-!      WRITE(*,*) '----------------------------------'
-!      WRITE(*,*)'Camera file - ',TRIM(sxr_nli_filename)
  
 !----------------------------------------------------------------------
 ! Allocate the sxr_chords array. Read in the sxrch_dot file
@@ -1139,8 +1108,6 @@
       CALL assert_eq(0,ier1,sub_name // 'alloc sxr_chords')
       
       CALL sxrch_dot_read(sxrch_dot_filename,sxr_chords,n_chords)
-!      CALL init_sxr_chords(sxr_nli_filename,sxr_chords)   ! from sxr_routines
-!      n_chords=SIZE(sxr_chords)
         
 !----------------------------------------------------------------------------        
 ! construct the d_desc arrays to hold the diagnostic information
@@ -1633,206 +1600,7 @@
 
       RETURN
       END SUBROUTINE init_signal_mddc
-!
-!----------------------------------------------------------------------
-!*******************************************************************************
-!----------------------------------------------------------------------
-      SUBROUTINE init_signal_ipsl
-!--------------------------------------------------------------------------------
-!
-! Function:  Initialization routine for interferometery/polarimetry.  
-!               (At the moment, all it does is fill the global ipcoll_g TYPE variable
-!                using data from the input ip_*.nc file that was output by V3RFUN and then
-!                converts in into an array of TYPE diagnostic_desc)
-!
-! INPUTS:   (none)
-!
-! OUTPUTS:  (none)
-!
-! global inputs: n_d_desc, n_s_desc
-!
-! global outputs: ipcoll_g, ipsl_cdf_infile, n_d_desc_g, n_s_desc_g, d_desc_g, s_desc_g
-!
-!  created June, 2007 by J. Shields
-!  **updated June 28,2007 to fill existing global variables s_desc & d_desc
-! 
-! CAVEAT: Current version of routine assumes only two types of diagnostics (mddc & ipsl)
-!         so it may need to be modified when more types are added.
-! 
-!----------------------------------------------------------------------------------
-      USE stel_kinds
-      USE stel_constants
-      USE eq_T         ! module containing VMEC output info
-      USE ip_beamline  ! module containing int_pol TYPE definition
-      USE ip_global    ! module containing interfermeter/polarimeter global variables
-      USE v3f_global, ONLY: intpol_filename, n_d_desc, n_s_desc,               &
-     &                    n_d_desc_mddc, n_s_desc_mddc,                        &
-     &                    n_d_desc_ipsl , n_s_desc_ipsl, d_desc, s_desc,       &
-     &                    n_sdata_o, my_task
-      USE faraday_mod, ONLY: read_intpol_data_from_cdf
-      IMPLICIT NONE
 
-
-!........local variables........................................................!
-
-      INTEGER     :: counter = 0
-      INTEGER     :: ilastslash
-      INTEGER     :: i, j, k, idiag, isig
-      INTEGER     :: idiag_ip_min            ! index of 1st ipsl element in d_desc
-      INTEGER     :: isig_ip_min             ! index of 1st ipsl element in s_desc
-      INTEGER     :: iflag, istat
-      INTEGER     :: n_ip_units
-      INTEGER     :: sum_nbeams
-
-      CHARACTER(len=80) :: mychar1, filestr
-      CHARACTER(len=80) :: mychar2, message
-      CHARACTER(len=80) :: frcm_outfile
-      CHARACTER(len=300) :: intpol_path
-      CHARACTER(len=*), PARAMETER :: subname = 'init_signal_ipsl: '
-
-      write(*,*) '===================================================='    
-      write(*,*) ' '
-      write(*,*) 'Hi.  Now in ', subname
-
-!      write(*,*) subname, 'intpol file = ', TRIM(intpol_filename)
-
-      write(*,*) subname, 'input n_d_desc = ', n_d_desc
-      write(*,*) subname, 'input n_s_desc = ', n_s_desc
-
-!..........**DEBUGGING: hard-wire global variable n_sdata_o = 0 to allow
-!...........simple testing of task_ipsl_signals_test.  (obviously this hard-wire will
-!...........need to be DELETED at some point...). JS 6/29/07
-!      n_sdata_o = 0
-
-      intpol_filename = ADJUSTL(intpol_filename)
-
-!........read in int/polarimeter path info from input .nc file...............!
-      call read_intpol_data_from_cdf(intpol_filename, ipcoll_g)
-
-
-!........verify that the "intpol collection" variable ipcoll_g was read in correctly...!
-      do i = 1,1
-
-        write(*,*) '&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&'
-        write(*,*) subname, '**** READ-IN intpol element = ', i
-        write(*,*) 'READ IN nbeams = ', ipcoll_g%ip(i)%nbeams   
-        write(*,*) 'READ IN q0vec 1 = ', ipcoll_g%ip(i)%ipbeam(1)%q0vec   
-        write(*,*) 'READ IN qfvec 1 = ', ipcoll_g%ip(i)%ipbeam(1)% qfvec   
-        write(*,*) 'READ IN q0vec 2 = ', ipcoll_g%ip(i)%ipbeam(2)%q0vec   
-        write(*,*) 'READ IN qfvec 2 = ', ipcoll_g%ip(i)%ipbeam(2)% qfvec   
-
-        write(*,*) 'READ IN beam1 q0 = ', ipcoll_g%ip(i)%ipbeam(1)%q0   
-        write(*,*) 'READ IN wavelength = ',                                    &
-     &             ipcoll_g%ip(i)%ipbeam(1)% wavelength
-!        write(*,*) 'READ IN B_ratio = ', ipcoll_g%ip(i)%ipbeam(1)% B_ratio
-        write(*,*) 'READ IN s_name 1= ',                                       &
-     &               ipcoll_g%ip(i)%ipbeam(1)% s_name
-        write(*,*) 'READ IN l_name 1= ',                                       &
-     &              ipcoll_g%ip(i)%ipbeam(1)% l_name
-        write(*,*) 'READ IN s_name 2= ',                                       &
-     &              ipcoll_g%ip(i)%ipbeam(2)% s_name
-        write(*,*) 'READ IN l_name 2= ',                                       &
-     &              ipcoll_g%ip(i)%ipbeam(2)% l_name
-      end do
-
-!..............allocate the global d_desc_g & s_desc_g arrays......................!
-      n_ip_units = ipcoll_g%n_ip
-
-      sum_nbeams = 0
-      do i = 1, n_ip_units
-        sum_nbeams = sum_nbeams + ipcoll_g % ip(i) % nbeams
-      end do
-
-
-      SELECT CASE(TRIM(my_task))
-      
-      CASE('reconstruct_a1')
-
-!..........compute the total # of ipsl diagnostics..............!
-        n_d_desc_ipsl = 2 * sum_nbeams
-        n_s_desc_ipsl = n_d_desc_ipsl
-
-
-!        n_d_desc_g = n_ipsl_diags
-!        n_s_desc_g = n_ipsl_diags
-!        ALLOCATE( d_desc_g(n_d_desc_g) )
-!        ALLOCATE( s_desc_g(n_s_desc_g) )
-
-        write(*,*) subname, 'n_ip_units = ', n_ip_units
-        write(*,*) subname, 'n_d_desc_g = ', n_d_desc_g
-
-
-!..........convert info into a (global) "diagnostic_desc" TYPE variable. (this entails treating each
-!..........microwave beam as a completely separate diagnostic)...............!
-        idiag_ip_min = n_d_desc + 1
-        isig_ip_min  = n_s_desc + 1
-
-!.........initialize diagnostic index to last filled mddc index...................!
-!        idiag = 0 
-        idiag = n_d_desc 
-
-
-        do i = 1, n_ip_units
-          do j = 1, ipcoll_g % ip(i) % nbeams
-            do k = 1,2
-              idiag = idiag + 1
-              d_desc(idiag)%d_type = 'ipsl'
-              d_desc(idiag)%ipsl%ip_sname = TRIM(ipcoll_g%ip(i)%s_name)
-              d_desc(idiag)%ipsl%ip_lname = TRIM(ipcoll_g%ip(i)%l_name)
-              d_desc(idiag)%ipsl%ipbeam   = ipcoll_g%ip(i)%ipbeam(j)
-
-              SELECT CASE (k)
-              CASE(1)
-                d_desc(idiag)%ipsl%ipsl_type = 'interf'              
-              CASE(2)
-                d_desc(idiag)%ipsl%ipsl_type = 'polarim'              
-              CASE DEFAULT
-                write(*,*)  subname, 'error in CASE selection'
-              END SELECT
-
-!..............define the "long name" of the diagnostic to be a concatentation of the ip_type, .....!
-!..............and the short names of the "ip unit" (ie the source) and the individual beam...........!
-              d_desc(idiag)%l_name =                                           &
-     &                          TRIM(d_desc(idiag)%ipsl%ipsl_type) //          &
-     &                   '_' // TRIM(ipcoll_g%ip(i)%s_name) //                 &
-     &                   '_' // TRIM(ipcoll_g%ip(i)%ipbeam(j)%s_name)
-            end do
-          end do
-        end do
-
-
-        write(*,*) subname, 'final idiag after loop = ', idiag
-
-!...........modify n_d_desc to include ipsl diagnostics..................!
-        n_d_desc = n_d_desc + n_d_desc_ipsl
-        n_s_desc = n_s_desc + n_s_desc_ipsl
-
-
-
-!..............now construct the signal description array.......................!
-        do i= isig_ip_min, n_s_desc
-           CALL signal_construct( s_desc(i),'diagnostic',                      &
-     &        d_desc(i) % s_name,d_desc(i) % l_name,                           &
-     &        d_desc(i) % units,d_desc(i) )
-        end do
-
-
-!        n_d_desc = 2
-!        n_s_desc = 2
-
-        write(*,*) subname, 'output n_d_desc = ', n_d_desc
-        write(*,*) subname, 'output n_s_desc = ', n_s_desc
-
-      CASE DEFAULT
-         WRITE(*,*) subname, 'CASE SELECT - DEFAULT'
-         WRITE(*,*) 'my_task = ', my_task
-      END SELECT
-
-      write(*,*) 'Now exiting ', subname
-
-
-      RETURN
-      END SUBROUTINE init_signal_ipsl
 !----------------------------------------------------------------------
 !*******************************************************************************
 !----------------------------------------------------------------------
@@ -3875,35 +3643,6 @@
       
       RETURN
       END SUBROUTINE task_test
- 
-!===============================================================================
-      SUBROUTINE task_bfield_grid
-!-------------------------------------------------------------------------------
-!  Task subroutine to invoke the bfield_grid_mod module, which computes a 2D grid
-!      of B field values.
-!
-!  Created 10/23/06 by J. Shields
-!-------------------------------------------------------------------------------
-!      USE v3f_global
-!      USE signal_mc
-!      USE eq_interface
-      USE bfield_grid_mod
-      
-      IMPLICIT NONE
-
-!----------------------------------------------------------------------
-! L O C A L Variable Declarations
-!----------------------------------------------------------------------
-      INTEGER  :: i,j,k,m
-      REAL(rprec)     :: p_area_min, p_area_max
-
-      call B_GRID_DRIVER
-
-      RETURN
-      END SUBROUTINE task_bfield_grid
-
-!  2009-03-05 JDH - Deleted tasks 'ray_tracing' and 'rtrace_circle', along with
-!     corresponding subroutines task_ray_tracing and task_rtrace_circle
 
 !----------------------------------------------------------------------
 !*******************************************************************************
@@ -4203,120 +3942,6 @@
       STOP
       
       END
-
-!===================================================================================
-      SUBROUTINE AJAX_FARADAY_INIT(integral_mode, in_dataset)
-!--------------------------------------------------------------------------------
-!
-! Function:  Initializes the Faraday Rotation (aka interferometry/polarimetry) 
-!             module by loading the current equilibrium into AJAX and calling the
-!             top-level Faraday rotation subroutine.
-!
-! INPUTS:   integral_mode       ! integer toggle for integral of interest (FR, CM, interferometry, etc)
-!                                       0 = INITIALIZATION_ONLY     ! no integration performed 
-!                                       1 = F_ROTATION_ONLY         ! polarimetry integration only
-!                                       2 = PHASE_SHIFT_ONLY        ! interferometry integration only
-!                                       3 =  F_ROTATION_AND_PSHIFT
-!                                       4 = FR_AND_COTTON_MOUTON 
-!
-!           in_dataset        !  specifies what type of data should be used to compute the
-!                                B field info, etc
-!                                       0 = V3FIT_IN_MEMORY     ! "model a" version of VMEC info
-!                                       1 = GENERIC_WOUT_FILE   ! std VMEC output file
-!                                       2 = HOULBERG_DATAFILE   ! test file that came w. TRACK package
-!
-!
-! created Aug, 2005 by J. Shields
-!
-!----------------------------------------------------------------------------------
-      USE stel_kinds
-      USE stel_constants
-      USE v3read_wout  ! loads an equilibrium from a wout file into AJAX
-      USE faraday_mod  ! module integrating over Faraday rotation angle
-      IMPLICIT NONE
-
-!.........dummy variables...................................................................!
-      INTEGER, INTENT(IN) :: integral_mode   ! specifies which integrals code should compute
-      INTEGER, INTENT(IN) :: in_dataset   ! specifies where VMEC info is taken from
-
-
-!.........local variables.......................................................................!
-      INTEGER :: mysize = 99
-      INTEGER :: counter = 0
-      INTEGER :: myint, istat =1, i
-      INTEGER :: input_dataset               ! specifies where VMEC info is taken from
-      INTEGER :: input_dataset_default       ! default location to take VMEC info from
-      INTEGER :: selected_integrals          ! local toggle to specify integrals of interest
-      INTEGER :: selected_integrals_default
-      INTEGER, PARAMETER :: V3FIT_IN_MEMORY = 0
-      INTEGER, PARAMETER :: GENERIC_WOUT_FILE = 1
-      INTEGER, PARAMETER :: HOULBERG_DATAFILE = 2
-      INTEGER, PARAMETER :: INITIALIZATION_ONLY   = 0
-      INTEGER, PARAMETER :: F_ROTATION_ONLY       = 1
-      INTEGER, PARAMETER :: PHASE_SHIFT_ONLY      = 2
-      INTEGER, PARAMETER :: F_ROTATION_AND_PSHIFT = 3
-      INTEGER, PARAMETER :: FR_AND_COTTON_MOUTON  = 4
-
-      CHARACTER(len=*), PARAMETER :: in_woutfile = 'wout_.nc'     
-      CHARACTER(len=*), PARAMETER :: subname = 'AJAX_FARADAY_INIT: '     
-
-      write(*,*) subname, 'passed dataset toggle = ', in_dataset
-
-
-!      input_dataset_default = HOULBERG_DATAFILE
-!      input_dataset_default = GENERIC_WOUT_FILE
-      input_dataset_default = V3FIT_IN_MEMORY
-
-      selected_integrals_default = F_ROTATION_ONLY
-
-!.............check input integral_mode for bad input............!
-      SELECT CASE(integral_mode)
-      CASE(0)
-         selected_integrals = selected_integrals_default
-      CASE(1:4) 
-        selected_integrals = integral_mode
-      CASE DEFAULT 
-        write(*,*) subname, "Unknown integral mode.  Using default FR"
-        selected_integrals = selected_integrals_default
-      END SELECT
-
-!...........optional stuff apparently ONLY works in "explicit interfaces"!
-!      if( PRESENT(in_dataset) ) then
-!        input_dataset = in_dataset
-!      else
-!        input_dataset = input_dataset_default
-!      end if
-
-      SELECT CASE(in_dataset)
-      CASE(0:2) 
-        input_dataset = in_dataset
-      CASE DEFAULT 
-        write(*,*) subname, "Unknown dataset mode.  Using default."
-        input_dataset = input_dataset_default
-      END SELECT
-
-
-
-!.......link "model_a" values with the AJAX RZLAM & MAGFLUX subroutines.  JS 3/7/05....!
-      if ( input_dataset == HOULBERG_DATAFILE) then
-         call JS_TRACK_AJAX_DR
-      else if ( input_dataset == GENERIC_WOUT_FILE) then        
-        call READEQ_FROM_WOUT(in_woutfile)
-      else if ( input_dataset == V3FIT_IN_MEMORY) then        
-        call JS_READEQ
-      else
-         write(*,*) subname, 'input_dataset LOGIC ERROR'
-      end if
-
-      if ( integral_mode .NE. INITIALIZATION_ONLY) then
-        call  FARADAY_ROTATION(selected_integrals)
-      end if
-
-      RETURN
-      END SUBROUTINE AJAX_FARADAY_INIT
-
-!===================================================================================
-
 
 !*******************************************************************************
 ! SECTION VI.	COMMENTS FOR DIFFERENT REVISIONS

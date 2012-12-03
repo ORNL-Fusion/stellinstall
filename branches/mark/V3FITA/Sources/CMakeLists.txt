@@ -4,7 +4,6 @@ cmake_minimum_required (VERSION 2.8)
 list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/b_transform_mod.f
 	${CMAKE_CURRENT_SOURCE_DIR}/b_transform_vmec.f
-	${CMAKE_CURRENT_SOURCE_DIR}/bfield_grid_mod.f
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
 	${CMAKE_CURRENT_SOURCE_DIR}/coosig_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/density_T.f
@@ -13,13 +12,11 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/eq_interface.f
 	${CMAKE_CURRENT_SOURCE_DIR}/eq_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/extcurz_mc.f
-	${CMAKE_CURRENT_SOURCE_DIR}/faraday_mod.f
 	${CMAKE_CURRENT_SOURCE_DIR}/geometric_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/gsq_mod.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ip_global.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ipch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ipch_mc.f
-	${CMAKE_CURRENT_SOURCE_DIR}/ipsl_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_iso_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/mddc_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/mmaw.f

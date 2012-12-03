@@ -219,15 +219,15 @@
 !  DEPRECATED  JDH 2011-10-23. USE pp_ne instead. TO DO - find and fix coding
 !    that uses these variables.
 
-      REAL(rprec) :: density_max_default_g     = 4.0e18
-      REAL(rprec) :: density_ambient_default_g = 0.01_rprec
-      REAL(rprec) :: density_tau_default_g     = 2.0_rprec
-      REAL(rprec) :: density_kappa_default_g   = 1.0_rprec
+      !REAL(rprec) :: density_max_default_g     = 4.0e18
+      !REAL(rprec) :: density_ambient_default_g = 0.01_rprec
+      !REAL(rprec) :: density_tau_default_g     = 2.0_rprec
+      !REAL(rprec) :: density_kappa_default_g   = 1.0_rprec
 
-      REAL(rprec) :: density_max_g
-      REAL(rprec) :: density_ambient_g
-      REAL(rprec) :: density_tau_g
-      REAL(rprec) :: density_kappa_g
+      !REAL(rprec) :: density_max_g
+      !REAL(rprec) :: density_ambient_g
+      !REAL(rprec) :: density_tau_g
+      !REAL(rprec) :: density_kappa_g
 !-------------------------------------------------------------------------------
 ! geometric NLI variables  
 !-------------------------------------------------------------------------------
