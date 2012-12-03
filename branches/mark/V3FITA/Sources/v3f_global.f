@@ -52,7 +52,6 @@
       INTEGER :: n_d_desc_mddc = 0
       INTEGER :: n_d_desc_sxrch = 0      ! GJH added 2010-01-21
       INTEGER :: n_d_desc_ipch = 0       ! JDH added 2012-03-15
-      INTEGER :: n_d_desc_ipsl = 0
       INTEGER :: n_d_desc_thscte = 0     ! JDH added 2011-10-23
       TYPE(diagnostic_desc), DIMENSION(:), ALLOCATABLE, TARGET ::              &
      &    d_desc
@@ -88,7 +87,6 @@
       INTEGER :: n_s_desc_sxrch = 0          ! GJH added 2010-01-21
       INTEGER :: n_s_desc_ipch = 0          ! JDH added 2012-03-15
       INTEGER :: n_s_desc_thscte = 0         ! JDH added 2011-10-23
-      INTEGER :: n_s_desc_ipsl = 0
       INTEGER :: n_s_desc_geom = 0
       INTEGER :: n_s_desc_coosig = 0
       TYPE(signal_desc), DIMENSION(:), ALLOCATABLE, TARGET ::                  &

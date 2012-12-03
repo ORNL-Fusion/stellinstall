@@ -66,7 +66,7 @@
 !     Type of signal specified by  % s_type.
 !     Allowable values of s_type:
 !       diagnostic     -  implemented in module diagnostic_T
-!                             Diagnostic Types are: mddc, ipsl, sxrch
+!                             Diagnostic Types are: mddc, sxrch
 !       geometric      - implemented in module geometric_T
 !                             Only geometric type at this time is edge_limit
 !       coosig [Combination Of Other SIGnals] - implemented in module coosig_T

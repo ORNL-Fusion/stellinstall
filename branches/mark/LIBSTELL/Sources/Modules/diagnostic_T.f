@@ -33,7 +33,6 @@
 !  Use Statements for other structures, V3 Utilities
 !-------------------------------------------------------------------------------
       USE mddc_T
-      USE ipsl_T
       USE sxrch_T             ! GJH 2009-01-20
       USE ipch_T              ! JDH 2012-03-15
       USE thscte_T            ! JDH 2011-10-23
@@ -78,7 +77,6 @@
 !
 !  Derived Types for various diagnostic types
 !      mddc       Magnetic Diagnostic Dot Coil
-!      ipsl       Interferometry/Polarimetry Straight Line
 !      sxrch      Soft X-Ray CHord
 !      ipch       Interferometry-Polarimetry CHord
 !      thscte     THomson SCattering TE
@@ -90,8 +88,7 @@
          CHARACTER (len=ln_len)    :: l_name
          CHARACTER (len=units_len) :: units                                 
          REAL(rprec)               :: sigma_default
-         TYPE (mddc_desc)          :: mddc 
-         TYPE (ipsl_desc)          :: ipsl
+         TYPE (mddc_desc)          :: mddc
          TYPE (sxrch_desc)         :: sxrch      !GJH 2010-01-20
          TYPE (ipch_desc)          :: ipch       ! JDH 2012-03-15
          TYPE (thscte_desc)        :: thscte     ! JDH 2011-10-23
@@ -113,7 +110,6 @@
 !-------------------------------------------------------------------------------
       INTERFACE diagnostic_construct
          MODULE PROCEDURE diagnostic_desc_construct_mddc,                      &
-     &                    diagnostic_desc_construct_ipsl,                      &
      &                    diagnostic_desc_construct_sxrch,                     &     
      &                    diagnostic_desc_construct_ipch,                      &     
      &                    diagnostic_desc_cnstrct_thscte,                      &
@@ -146,8 +142,6 @@
 !  Construct a diagnostic_desc with mddc diagnostic
 !
 !  For d_type = 'mddc' (magnetic diagnostic-dot coil)
-!   **NOTE that d_type "ipsl" is NOT constructed at this time.  This is
-!  an area for future work.  JS 6/20/07
 !-------------------------------------------------------------------------------
       SUBROUTINE diagnostic_desc_construct_mddc(this,d_type,s_name,            &
      &   l_name, units,sigma_default,mddc)
@@ -398,54 +392,6 @@
      
      
       END SUBROUTINE diagnostic_desc_cnstrct_thscte
-!=======================================================================
-      SUBROUTINE diagnostic_desc_construct_ipsl(this,d_type,s_name,            &
-     &   l_name,units,sigma_default,ipsl)
-
-!  NB. 
-!  The ipsl argument is assigned to the 'this' component. Do NOT call this
-!  subroutine with this % ipsl as the ipsl argument.
-
-      IMPLICIT NONE
-
-!  Declare Arguments 
-      TYPE (diagnostic_desc), INTENT(inout)      :: this
-      CHARACTER (len=*), INTENT(in)              :: d_type
-      CHARACTER (len=*), INTENT(in)              :: s_name
-      CHARACTER (len=*), INTENT(in)              :: l_name
-      CHARACTER (len=*), INTENT(in)              :: units
-      REAL(rprec), INTENT(in)                    :: sigma_default
-      TYPE (ipsl_desc), INTENT(in)               :: ipsl
-
-!  Declare local variables
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'diagnostic_desc_construct_ipsl: '
-
-!  Start of executable code
-
-!  Destroy the ipsl component
-      CALL ipsl_destroy(this % ipsl)
-
-!  Scalar assignments
-      this % s_name = TRIM(ADJUSTL(s_name))
-      this % l_name = TRIM(ADJUSTL(l_name))
-      this % units = TRIM(ADJUSTL(units))
-      this % sigma_default = sigma_default
-
-!  Different coding, depending on d_type
-      SELECT CASE (TRIM(ADJUSTL(d_type)))
-      CASE ('ipsl')
-         this % d_type = 'ipsl'
-         this % ipsl =  ipsl
-
-      CASE DEFAULT
-         CALL err_fatal(sub_name // 'unrecognized d_type: ',                   &
-     &      char=d_type)
-      END SELECT ! Different coding depending on d_type
-      
- 
-      END SUBROUTINE diagnostic_desc_construct_ipsl
-
 
 !*******************************************************************************
 ! SECTION V. DESTRUCTION SUBROUTINES
@@ -475,10 +421,6 @@
       CASE ('mddc')
          this % d_type = ' '
          CALL mddc_destroy(this % mddc)
-
-      CASE ('ipsl')
-         this % d_type = ' '
-         CALL ipsl_destroy(this % ipsl)
       
       CASE ('sxrch')                              ! GJH 2010-01-20
          this % d_type = ' '
@@ -531,7 +473,6 @@
       left % units = right % units
       left % sigma_default = right % sigma_default
       left % mddc = right % mddc
-      left % ipsl = right % ipsl
       left % sxrch = right % sxrch          ! GJH 2010-01-20
       left % ipch = right % ipch            ! JDH 2012-03-16
       left % thscte = right % thscte        ! JDH 2011-10-23
@@ -573,7 +514,6 @@
      & '(" l_name = ",a)                                     ',                &
      & '(" units = ",a)                                      ',                &
      & '(" mddc s_name = ",a)                                ',                &
-     & '(" ipsl s_name = ",a)                                ',                &
      & '(" sxrch s_name = ",a)                               ',                & 
      & '(" ipch s_name = ",a)                                ',                & 
      & '(" thscte s_name = ",a)                              ',                & 
@@ -608,7 +548,6 @@
          WRITE(iou,*) this % l_name
          WRITE(iou,*) this % units
          WRITE(iou,*) this % mddc % s_name
-         WRITE(iou,*) this % ipsl % s_name
          WRITE(iou,*) this % sxrch % chord_name           ! GJH 2010-01-20
          WRITE(iou,*) this % ipch % chord_name           ! JDH 2012-03-16
          WRITE(iou,*) this % thscte % chord_name          ! JDH 2011-10-23
@@ -620,7 +559,6 @@
          WRITE(iou,fmt1(4)) this % l_name
          WRITE(iou,fmt1(5)) this % units
          WRITE(iou,fmt1(6)) this % mddc % s_name
-         WRITE(iou,fmt1(7)) this % ipsl % s_name
          WRITE(iou,fmt1(8)) this % sxrch % chord_name    ! GJH 2010-01-20
          WRITE(iou,fmt1(9)) this % ipch % chord_name           ! JDH 2012-03-16
          WRITE(iou,fmt1(10)) this % thscte % chord_name          ! JDH 2011-10-23
@@ -653,8 +591,6 @@
 !     Removed 'pointer' attribute from mdcoil component of diagnostic_desc. 
 !     Added l_mdcoil_def component to diagnostic_desc. Added subroutine 
 !     diagnostic_desc_assign.
-!  JMS 6-22-2007
-!     Added ipsl as a subTYPE of diagnostic_desc. 
 !
 !  JDH 2008-01-19 - Added => null() to pointer declarations
 !

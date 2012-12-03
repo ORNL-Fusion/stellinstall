@@ -987,8 +987,6 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
 !  2007-06-28 JDH
 !    Fixed test for kp odd, only needed when lstell_sym is TRUE.
 !
-!  2007-08-01 JMS
-!    Added code to take IPSL input & output files from the rfun.in namelist
 
 !  2007-10-06 JDH
 !    Earlier changes, and today. Fix problem with number of field periods,

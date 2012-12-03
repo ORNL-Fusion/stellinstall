@@ -421,7 +421,6 @@
 !          File name variables
 !  main_nli_filename     File name for main namelist input (v3f_global)
 !  mdsig_list_filename   File name for list of MDSIG files (v3f_global)
-!  intpol_filename       File name for interferometry/polarimetry (v3f_global)
 !  vmec_nli_filename     File name for VMEC namelist input (v3f_global)
 !  sxrch_dot_filename	 file holding sxr chord information   JDH 2011-10-18 (v3f_global)
 !  thscte_dot_filename	 file holding Thomson Scattering information   JDH 2011-10-23 (v3f_global)
@@ -551,7 +550,7 @@
 !                   'lm' - Levenberg-Marquardt
 !----------------------------------------------------------------------
       NAMELIST/v3fit_main_nli/  main_nli_filename, mdsig_list_filename,        &
-     &   intpol_filename, vmec_nli_filename, geometric_filename,               &
+     &   vmec_nli_filename, geometric_filename,                                &
      &   sxrch_dot_filename, thscte_dot_filename, ipch_dot_filename,           &
      &   na_d_desc, na_g_desc, na_c_desc, na_s_desc, na_rparam,                &
      &   my_task, i_work, c_work, r_work,                                      &
@@ -582,9 +581,6 @@
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
-
-!.........initialize name of (optionally input) ipsl file from V3RFUN..........!
-      intpol_filename = ''
 
 !----------------------------------------------------------------------
 !-- open input/output units                                          --
@@ -859,7 +855,6 @@
 !  Subroutine to initialize the signals
 !  Reads in mdsig files, written by V3RFUN - done in init_signal_mddc
 !
-! *modified to initialize ipsl signals as well.  JMS 6/27/07
 !  JDH 2008-01-20 - Clean up, eliminate some extraneous writes.
 !  GJH 2010-01-15 - Added SXR initialization - done in init_signal_sxrch
 !---------------------------------------------------------------------------
@@ -1170,7 +1165,6 @@
       
       USE ipch_T
       USE v3f_global
-!      USE ip_routines
       USE ipch_dot
       USE signal_T
       
@@ -3985,9 +3979,6 @@
 !    Added task_test - a generic test task, to be used by anybody
 !    Added task_add_noise_a1 - adds noise to observed signal data, and reconstructs
 !    Added subroutine gauss_rand - gaussian distribution, for task_add_noise_a1
-!
-! JMS 2007-08-07 moved VMEC_B_INIT call (needed for ipsl stuff) from reconstruct_a1 to
-!                 module signal_model
 !
 !  JDH 2007-10-06
 !    Modifications for reconstruction constraints.
