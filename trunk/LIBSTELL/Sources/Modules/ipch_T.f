@@ -4,7 +4,6 @@
 !  Contains module ipch_T
 !  Defines derived-types: ipch_desc
 !  A type of Diagnostic - Interferometry-Polarimetry chordal diagnostic
-!  Supercedes and replaces the ipsl coding
 !
 !*******************************************************************************
 !  MODULE ip_T

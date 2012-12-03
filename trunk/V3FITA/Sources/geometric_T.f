@@ -337,8 +337,6 @@
 !     Removed 'pointer' attribute from mdcoil component of geometric_desc. 
 !     Added l_mdcoil_def component to geometric_desc. Added subroutine 
 !     geometric_desc_assign.
-!  JMS 6-22-2007
-!     Added ipsl as a subTYPE of geometric_desc. 
 !
 !  JDH 2008-01-19 - Added => null() to pointer declarations
 !

@@ -18,8 +18,6 @@
 !       stel_constants
 !       mddc_T
 !       mddc_cdf
-!       ipsl_T
-!       ipsl_cdf
 !       diagnostic_T
 !       ezcdf
 !       v3_utilities
@@ -74,8 +72,6 @@
       USE diagnostic_T
       USE mddc_T
       USE mddc_cdf
-      USE ipsl_T
-      USE ipsl_cdf
       USE ezcdf
       USE v3_utilities
 
@@ -207,9 +203,6 @@
       CASE ('mddc') ! Magnetic Diagnostic
          CALL mddc_cdf_define(this % mddc,iou,prefix)
 
-      CASE ('ipsl') ! Interferometer/Polarimeter Diagnostic
-         CALL ipsl_cdf_define(this % ipsl,iou,prefix)
-
       CASE DEFAULT
          CALL err_fatal(sub_name // 'unrecognized d_type: ',                   &
      &      char = this % d_type)
@@ -275,9 +268,6 @@
       CASE ('mddc') ! Magnetic Diagnostic
          CALL mddc_cdf_write(this % mddc,iou,prefix)
 
-      CASE ('ipsl') ! Interferometer/Polarimeter Diagnostic
-         CALL ipsl_cdf_write(this % ipsl,iou,prefix)
-
       CASE DEFAULT
          CALL err_fatal(sub_name // 'unrecognized d_type: ',                   &
      &      char = this % d_type)
@@ -322,7 +312,6 @@
       CHARACTER (len=units_len)  :: units                                 
       REAL(rprec)                :: sigma_default
       TYPE (mddc_desc)           :: mddc
-      TYPE (ipsl_desc)           :: ipsl
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -357,13 +346,6 @@
          CALL diagnostic_construct(this,d_type,s_name,l_name,                     &
      &                             units,sigma_default,mddc)
 
-      CASE ('ipsl') ! Interferometer/Polarimeter Diagnostic
-         CALL ipsl_cdf_read(ipsl,iou,prefix)
-
-!...............Create the diagnostic_desc, this...............!
-         CALL diagnostic_construct(this,d_type,s_name,l_name,                     &
-     &                             units,sigma_default,ipsl)
-
       CASE DEFAULT
          CALL err_fatal(sub_name // 'unrecognized d_type: ',                   &
      &      char = d_type)
@@ -374,9 +356,6 @@
 
 !  Destroy the local mddc, to avoid memory leakage
       CALL mddc_destroy(mddc)
-
-!  Destroy the local ipsl, to avoid memory leakage
-      CALL ipsl_destroy(ipsl)
       
       RETURN
       
@@ -468,9 +447,6 @@
 !     diagnostic_cdf_read_desc, to avoid memory leaks.
 !
 !  JDH 2007-06-11 - Altered coding to reflect definition of mddc_desc derived type
-!
-!  JMS 2007-06-20 - Altered coding to reflect addition of ipsl_desc as a subTYPE
-!      of diagnostic_desc
 !
 !  JDH 2008-01-19 - Added => null() to pointer declarations
 !

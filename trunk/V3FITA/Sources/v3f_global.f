@@ -52,7 +52,6 @@
       INTEGER :: n_d_desc_mddc = 0
       INTEGER :: n_d_desc_sxrch = 0      ! GJH added 2010-01-21
       INTEGER :: n_d_desc_ipch = 0       ! JDH added 2012-03-15
-      INTEGER :: n_d_desc_ipsl = 0
       INTEGER :: n_d_desc_thscte = 0     ! JDH added 2011-10-23
       TYPE(diagnostic_desc), DIMENSION(:), ALLOCATABLE, TARGET ::              &
      &    d_desc
@@ -88,7 +87,6 @@
       INTEGER :: n_s_desc_sxrch = 0          ! GJH added 2010-01-21
       INTEGER :: n_s_desc_ipch = 0          ! JDH added 2012-03-15
       INTEGER :: n_s_desc_thscte = 0         ! JDH added 2011-10-23
-      INTEGER :: n_s_desc_ipsl = 0
       INTEGER :: n_s_desc_geom = 0
       INTEGER :: n_s_desc_coosig = 0
       TYPE(signal_desc), DIMENSION(:), ALLOCATABLE, TARGET ::                  &
@@ -219,15 +217,15 @@
 !  DEPRECATED  JDH 2011-10-23. USE pp_ne instead. TO DO - find and fix coding
 !    that uses these variables.
 
-      REAL(rprec) :: density_max_default_g     = 4.0e18
-      REAL(rprec) :: density_ambient_default_g = 0.01_rprec
-      REAL(rprec) :: density_tau_default_g     = 2.0_rprec
-      REAL(rprec) :: density_kappa_default_g   = 1.0_rprec
+      !REAL(rprec) :: density_max_default_g     = 4.0e18
+      !REAL(rprec) :: density_ambient_default_g = 0.01_rprec
+      !REAL(rprec) :: density_tau_default_g     = 2.0_rprec
+      !REAL(rprec) :: density_kappa_default_g   = 1.0_rprec
 
-      REAL(rprec) :: density_max_g
-      REAL(rprec) :: density_ambient_g
-      REAL(rprec) :: density_tau_g
-      REAL(rprec) :: density_kappa_g
+      !REAL(rprec) :: density_max_g
+      !REAL(rprec) :: density_ambient_g
+      !REAL(rprec) :: density_tau_g
+      !REAL(rprec) :: density_kappa_g
 !-------------------------------------------------------------------------------
 ! geometric NLI variables  
 !-------------------------------------------------------------------------------
