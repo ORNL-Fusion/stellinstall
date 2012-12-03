@@ -559,10 +559,10 @@
          WRITE(iou,fmt1(4)) this % l_name
          WRITE(iou,fmt1(5)) this % units
          WRITE(iou,fmt1(6)) this % mddc % s_name
-         WRITE(iou,fmt1(8)) this % sxrch % chord_name    ! GJH 2010-01-20
-         WRITE(iou,fmt1(9)) this % ipch % chord_name           ! JDH 2012-03-16
-         WRITE(iou,fmt1(10)) this % thscte % chord_name          ! JDH 2011-10-23
-         WRITE(iou,fmt1(11)) id
+         WRITE(iou,fmt1(7)) this % sxrch % chord_name    ! GJH 2010-01-20
+         WRITE(iou,fmt1(8)) this % ipch % chord_name           ! JDH 2012-03-16
+         WRITE(iou,fmt1(9)) this % thscte % chord_name          ! JDH 2011-10-23
+         WRITE(iou,fmt1(10)) id
       
       END SELECT
 
