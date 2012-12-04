@@ -193,19 +193,42 @@
             
             CASE ('thscte_XYZ','thscte_XYZ_te')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
-     &                                     'XYZ', icount_points,               &
+     &                                     'XYZ', 't', icount_points,          &
      &                                     n_thscte_desc_arr,                  &
      &                                     thscte_desc_arr)
                
             CASE ('thscte_RPhiDegZ','thscte_RPhiDegZ_te')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
-     &                                     'RPHiDegZ', icount_points,          &
+     &                                     'RPHiDegZ', 't',                    &
+     &                                     icount_points,                      &
      &                                     n_thscte_desc_arr,                  &
      &                                     thscte_desc_arr)
 
-            CASE ('thscte_XYZ_ne','thscte_RPhiDegZ_ne',                   &
-     &            'thscte_XYZ_pres','thscte_RPhiDegZ_pres')
-               STOP 'thscte_dot: Cord type not supported yet. '
+            CASE ('thscte_XYZ_ne')
+               CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
+     &                                     'XYZ', 'd', icount_points,          &
+     &                                     n_thscte_desc_arr,                  &
+     &                                     thscte_desc_arr)
+
+            CASE ('thscte_RPhiDegZ_ne')
+               CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
+     &                                     'RPHiDegZ', 'd',                    &
+     &                                     icount_points,                      &
+     &                                     n_thscte_desc_arr,                  &
+     &                                     thscte_desc_arr)
+
+            CASE ('thscte_XYZ_pres')
+               CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
+     &                                     'XYZ', 'p', icount_points,          &
+     &                                     n_thscte_desc_arr,                  &
+     &                                     thscte_desc_arr)
+
+            CASE ('thscte_RPhiDegZ_pres')
+               CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
+     &                                     'RPHiDegZ', 'p',                    &
+     &                                     icount_points,                      &
+     &                                     n_thscte_desc_arr,                  &
+     &                                     thscte_desc_arr)
 
          END SELECT
          
@@ -250,6 +273,7 @@
 
       SUBROUTINE thscte_dot_parse_chord(thscte_dot_file_ref,                   &
      &                                  coordinate_type,                       &
+     &                                  point_type,                            &
      &                                  icount_points,                         &
      &                                  n_thscte_desc_arr,                     &
      &                                  thscte_desc_arr)
@@ -264,6 +288,7 @@
       INTEGER, INTENT(in)    :: n_thscte_desc_arr
       TYPE(thscte_desc), DIMENSION(:), INTENT(inout) :: thscte_desc_arr
       CHARACTER (len=*) :: coordinate_type
+      CHARACTER (len=1) :: point_type
       TYPE(signal_dot_file), INTENT(inout) :: thscte_dot_file_ref
 
 !-----------------------------------------------
@@ -281,7 +306,7 @@
      &                            chord_name,                                  &
      &                            xcart)
       CALL thscte_desc_construct(thscte_desc_temp,chord_name,                  &
-     &                           xcart)
+     &                           xcart,point_type)
 
       icount_points = icount_points + 1
       IF (icount_points .gt. n_thscte_desc_arr) THEN

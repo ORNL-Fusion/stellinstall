@@ -69,10 +69,14 @@
 !  Declare type thscte_desc
 !         chord_name            - character, chord name
 !         xcart(3)              - Cartesian position vector - where Te is measured
+!         thsc_type             - 't' - Temperature
+!                               - 'd' - Density
+!                               - 'p' - Pressure
 !-------------------------------------------------------------------------------
       TYPE thscte_desc
         CHARACTER(LEN=chord_name_len) :: chord_name
         REAL(rprec), DIMENSION(3) :: xcart
+        CHARACTER(LEN=1) :: thsc_type
       END TYPE thscte_desc
 
 !*******************************************************************************
@@ -88,17 +92,18 @@
 !
 !  For d_type = 'thscte' (Thomson Scattering Te)
 !-------------------------------------------------------------------------------
-      SUBROUTINE thscte_desc_construct(this,chord_name,                         &
-     &    xcart)             
+      SUBROUTINE thscte_desc_construct(this, chord_name, xcart,                &
+     &                                 chord_type)
 
          IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Argument Declarations
 !-------------------------------------------------------------------------------
-         TYPE (thscte_desc), INTENT(inout)    :: this
-         CHARACTER(LEN=chord_name_len),INTENT(in)   :: chord_name
-         REAL(rprec), DIMENSION(3), INTENT(in) :: xcart
+         TYPE (thscte_desc), INTENT(inout)        :: this
+         CHARACTER(LEN=chord_name_len),INTENT(in) :: chord_name
+         REAL(rprec), DIMENSION(3), INTENT(in)    :: xcart
+         CHARACTER(LEN=1),INTENT(in)              :: chord_type
  
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -107,6 +112,7 @@
 !  Assignments    
          this % chord_name = chord_name
          this % xcart = xcart
+         this % thsc_type = chord_type
       
       END SUBROUTINE thscte_desc_construct
 

@@ -187,21 +187,30 @@
             
             CASE ('ip_chord_XYZ','ip_chord_XYZ_int')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
-     &                                   'XYZ', icount_chords,                 &
+     &                                   'XYZ', 'i', icount_chords,            &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
                
             CASE ('ip_chord_RPhiDegZ','ip_chord_RPhiDegZ_int')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
-     &                                   'RPHiDegZ', icount_chords,            &
+     &                                   'RPHiDegZ', 'i', icount_chords,       &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
 
-            CASE ('ip_chord_XYZ_pol','ip_chord_RPhiDegZ_pol')
-               STOP 'ipch_dot: Polemetry cords not supported yet '
+            CASE ('ip_chord_XYZ_pol')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'XYZ', 'p', icount_chords,            &
+     &                                   n_ipch_desc_arr,                      &
+     &                                   ipch_desc_arr)
+
+            CASE ('ip_chord_RPhiDegZ_pol')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'RPHiDegZ', 'p', icount_chords,       &
+     &                                   n_ipch_desc_arr,                      &
+     &                                   ipch_desc_arr)
 
          END SELECT
-         
+
 !  Check for too many additions to the ipch_desc_arr array
          IF  (icount_chords .gt. SIZE(ipch_desc_arr)) THEN
             STOP 'ipch_dot: Too many coils for ipch_desc_arr '
@@ -243,6 +252,7 @@
 
       SUBROUTINE ipch_dot_parse_chord(ipch_dot_file_ref,                       &
      &                                coordinate_type,                         &
+     &                                coord_type,                              &
      &                                icount_chords,                           &
      &                                n_ipch_desc_arr,                         &
      &                                ipch_desc_arr)
@@ -257,6 +267,7 @@
       INTEGER, INTENT(in)                          :: n_ipch_desc_arr
       TYPE(ipch_desc), DIMENSION(:), INTENT(inout) :: ipch_desc_arr
       CHARACTER (len=*) :: coordinate_type
+      CHARACTER (len=1) :: coord_type
       TYPE(signal_dot_file), INTENT(inout) :: ipch_dot_file_ref
 
 !-----------------------------------------------
@@ -274,7 +285,7 @@
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
       CALL ipch_desc_construct(ipch_desc_temp,chord_name,                      &
-     &                         xcart_i,xcart_f)
+     &                         xcart_i,xcart_f,coord_type)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_ipch_desc_arr) THEN
