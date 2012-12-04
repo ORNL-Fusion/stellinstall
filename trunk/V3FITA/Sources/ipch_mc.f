@@ -129,6 +129,10 @@
             CASE DEFAULT
                mod_signal(1) = mod_signal(1) +                                 &
      &            model_get_ne_xcyl(a_model,r_cyl) * dx
+
+            CASE ('p')
+               STOP 'ipch_mc: Polarimetry not implemented yet'
+
          END SELECT
       ENDDO
 

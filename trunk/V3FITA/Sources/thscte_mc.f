@@ -107,9 +107,20 @@
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
       r_cyl = cart_to_cyl(a_thscte % xcart)
-      mod_signal(1) = model_get_te_xcyl(a_model,r_cyl)
+      SELECT CASE(a_thscte % thsc_type)
 
-! make up a sigma         
+         CASE DEFAULT
+            mod_signal(1) = model_get_te_xcyl(a_model,r_cyl)
+
+         CASE ('d')
+            mod_signal(1) = model_get_ne_xcyl(a_model,r_cyl)
+
+         CASE ('p')
+            mod_signal(1) = model_get_p_xcyl(a_model,r_cyl)
+
+      END SELECT
+
+! make up a sigma
       mod_sigma(1)=0.
          
       END SUBROUTINE thscte_mc_model_compute

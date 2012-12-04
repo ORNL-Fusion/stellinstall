@@ -291,6 +291,55 @@
       END SUBROUTINE model_get_seq1_rz
 
 !-------------------------------------------------------------------------------
+!  Plasma Pressure p(r,phi,z)
+!
+!  Calculate the plasma pressure from a given model at a cylindrical
+!  coordinate position (r,phi,z).
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_p_xcyl(this,xcyl)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(rprec) :: model_get_p_xcyl
+      TYPE (model), INTENT (inout)             :: this
+      REAL (rprec), INTENT (in)                :: xcyl(3)
+
+!  Declare local variables
+      REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
+      CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_p_s: '
+
+!  Start of executable code.
+!  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
+!  coordinate (r,phi,z).
+      CALL eq_get_flux(this % eqstate,xcyl,c_flux)
+!  Calculate the plasma pressure at s.
+      model_get_p_xcyl = model_get_p_s(this, c_flux(1))
+
+      END FUNCTION model_get_p_xcyl
+
+!-------------------------------------------------------------------------------
+!  Plasma Pressure p(s)
+!
+!  Calculate the plasma pressure from a given model on a flux surface s.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_p_s(this,s_arg)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(rprec) :: p                      ! plasma pressure
+      TYPE (model), INTENT (inout) :: this
+      REAL (rprec), INTENT (in)    :: s_arg
+
+!  Declare local variables
+      REAL(rprec) :: model_get_p_s
+      CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_p_s: '
+
+!  Start of executable code.
+      model_get_p_s = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
+
+      END FUNCTION model_get_p_s
+
+!-------------------------------------------------------------------------------
 !  Electron Density ne(r,phi,z)
 !
 !  Calculate the electron density from a given model at a cylindrical
@@ -306,8 +355,7 @@
 
 !  Declare local variables
       REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'model_get_ne_s: '
+      CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_ne_s: '
                
 !  Start of executable code.
 !  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
@@ -400,7 +448,7 @@
       CASE('pp_ne_vmec_p')
          IF (s_arg .le. one) THEN
             ne = model_get_ne_s(this,s_arg)
-            pressure = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
+            pressure = model_get_p_s(this,s_arg)
             model_get_sxrem_s = (ne / ne_norm) ** (3/2) * SQRT(pressure)   ! per comments         
          ELSE
             model_get_sxrem_s = zero
