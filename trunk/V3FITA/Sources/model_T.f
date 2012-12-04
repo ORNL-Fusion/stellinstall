@@ -382,8 +382,7 @@
 
 !  Declare local variables
       REAL(rprec) :: model_get_ne_s
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'model_get_ne_s: '
+      CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_ne_s: '
                
 !  Start of executable code.
       model_get_ne_s = MAX(this % ne_min,this % ne_pp_unit *                   &
@@ -407,8 +406,7 @@
 
 !  Declare local variables
       REAL(rprec) :: c_flux(1:3) = zero               ! VMEC coordinates (s,u,v)
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'model_get_sxrem_xcyl: '
+      CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_sxrem_xcyl: '
                
 !  Start of executable code.
 !  Get the flux surface coordinate(s,u,v) coresponding to the cylindrical
@@ -436,8 +434,7 @@
       REAL(rprec) :: ne
       REAL(rprec) :: pressure
       REAL(rprec) :: ne_norm = 1.E18         ! Normalizing constant, per Hartwell routine
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'model_get_ne_s: '
+      CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_ne_s: '
                
 !  Start of executable code.
       SELECT CASE(TRIM(this % model_sxrem_type))

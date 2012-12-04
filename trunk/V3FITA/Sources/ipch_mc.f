@@ -135,7 +135,7 @@
 
             CASE ('p')
                CALL COMPUTE_B_CAR(xcart, bcart)
-               mod_signal(1) = mod_signal(1) +                                 &
+               mod_signal(1) = mod_signal(1) + 2.62E-13 *                      &
      &            model_get_ne_xcyl(a_model,r_cyl) *                           &
      &            DOT_PRODUCT(bcart,dxcart)
 
