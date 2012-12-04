@@ -73,6 +73,8 @@
 
       SUBROUTINE ipch_mc_model_compute(a_ipch,a_model,mod_signal,              &
      &   mod_sigma)
+      USE b_transform_mod
+      IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 ! ARGUMENTS
@@ -97,7 +99,8 @@
 !------------------------------------------------------------------------------- 
       REAL(rprec), DIMENSION(3) :: r_cyl
       REAL(rprec), DIMENSION(3) :: xcart, dxcart
-       
+      REAL(rprec), DIMENSION(3) :: bcart
+
 !------------------------------------------------------------------------------- 
 ! other declarations
 !
@@ -131,7 +134,10 @@
      &            model_get_ne_xcyl(a_model,r_cyl) * dx
 
             CASE ('p')
-               STOP 'ipch_mc: Polarimetry not implemented yet'
+               CALL COMPUTE_B_CAR(xcart, bcart)
+               mod_signal(1) = mod_signal(1) +                                 &
+     &            model_get_ne_xcyl(a_model,r_cyl) *                           &
+     &            DOT_PRODUCT(bcart,dxcart)
 
          END SELECT
       ENDDO
