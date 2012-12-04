@@ -496,20 +496,29 @@
 !  Propagate this change to the VMEC Internal State
          CALL recon_param_model_put(rp_delta,model_arg,rcons,'VMI')
 
+! Only reconverge VMEC when changing a VMEC parameter.
+         SELECT CASE (TRIM(ADJUSTL(rp_delta%p_type)))
+            CASE ('ac','ac_aux_s','ac_aux_f',                                  &
+     &            'ai','ai_aux_s','ai_aux_f',                                  &
+     &            'am','am_aux_s','am_aux_f',                                  &
+     &            'bloat','curtor','pres_scale','phiedge','extcur',            &
+     &            'rbc','rbs','zbc','zbs','ac_edge','am_edge')
 !  Try to equilibrate
 !    Turn off preconditioning, but don't recompute new matrix when cross threshold
-         CALL eq_change_vmi_precon2d_off_same_blocks
-         CALL eq_history_set(i2 = irp)
-         numiter = state_vec % fixp % niter
-         CALL eq_step(numiter, state_vec, lconv, iter_v,                       &
-     &      ier_flag_vmec_local, vmec_flag_name_local,                         &
-     &      delta_iterc_local)
+               CALL eq_change_vmi_precon2d_off_same_blocks
+               CALL eq_history_set(i2 = irp)
+               numiter = state_vec % fixp % niter
+               CALL eq_step(numiter, state_vec, lconv, iter_v,                 &
+     &                      ier_flag_vmec_local, vmec_flag_name_local,         &
+     &                      delta_iterc_local)
 
 !  Check for convergence
-         IF (.not. lconv) THEN
-            CALL eq_history_print
-            CALL assert(lconv,sub_name // ' no convergence, irp')
-         ENDIF
+               IF (.not. lconv) THEN
+                  CALL eq_history_print
+                  CALL assert(lconv,sub_name // ' no convergence, irp')
+               ENDIF
+
+         END SELECT
 
 !  Coding below commented out JDH 2008-08-08
 !         IF ((delta_iter2_local .le. 1) .AND. (icount .le. 3)) THEN
