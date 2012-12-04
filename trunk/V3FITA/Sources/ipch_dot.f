@@ -60,7 +60,11 @@
 ! 1)  Defined keywords are:
 !       ipchd_keyword(1) = 'ip_chord_XYZ'
 !       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
-!       ipchd_keyword(3) = 'end_of_file' 
+!       ipchd_keyword(3) = 'ip_chord_XYZ_int'
+!       ipchd_keyword(4) = 'ip_chord_RPhiDegZ_int'
+!       ipchd_keyword(5) = 'ip_chord_XYZ_pol'
+!       ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol'
+!       ipchd_keyword(7) = 'end_of_file' 
 !
 !*******************************************************************************
 
@@ -129,7 +133,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: n_ipchd_keyword = 3
+      INTEGER, PARAMETER :: n_ipchd_keyword = 7
 !  n_ipchd_keyword        integer - number of ipchd_keyword s.
 
 !-----------------------------------------------
@@ -155,7 +159,11 @@
 !  Initialize the keywords and keyword lengths
       ipchd_keyword(1) = 'ip_chord_XYZ'
       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
-      ipchd_keyword(3) = 'end_of_file'
+      ipchd_keyword(3) = 'ip_chord_XYZ_int'
+      ipchd_keyword(4) = 'ip_chord_RPhiDegZ_int'
+      ipchd_keyword(5) = 'ip_chord_XYZ_pol'
+      ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol'
+      ipchd_keyword(7) = 'end_of_file'
 
 !  Find the length of the ipch_desc_arr array
       n_ipch_desc_arr = SIZE(ipch_desc_arr)
@@ -177,17 +185,20 @@
             CASE ('end_of_file')
                EXIT ! Exit out of infinte loop.
             
-            CASE ('ip_chord_XYZ')
+            CASE ('ip_chord_XYZ','ip_chord_XYZ_int')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
      &                                   'XYZ', icount_chords,                 &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
                
-            CASE ('ip_chord_RPhiDegZ')
+            CASE ('ip_chord_RPhiDegZ','ip_chord_RPhiDegZ_int')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
      &                                   'RPHiDegZ', icount_chords,            &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
+
+            CASE ('ip_chord_XYZ_pol','ip_chord_RPhiDegZ_pol')
+               STOP 'ipch_dot: Polemetry cords not supported yet '
 
          END SELECT
          

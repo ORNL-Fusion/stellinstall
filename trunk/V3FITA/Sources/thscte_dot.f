@@ -60,7 +60,13 @@
 ! 1)  Defined keywords are:
 !       thscted_keyword(1) = 'thscte_XYZ'
 !       thscted_keyword(2) = 'thscte_RPhiDegZ'
-!       thscted_keyword(3) = 'end_of_file' 
+!       thscted_keyword(3) = 'thscte_XYZ_te'
+!       thscted_keyword(4) = 'thscte_RPhiDegZ_te'
+!       thscted_keyword(5) = 'thscte_XYZ_ne'
+!       thscted_keyword(6) = 'thscte_RPhiDegZ_ne'
+!       thscted_keyword(7) = 'thscte_XYZ_pres'
+!       thscted_keyword(8) = 'thscte_RPhiDegZ_pres'
+!       thscted_keyword(9) = 'end_of_file'
 !
 !*******************************************************************************
 
@@ -129,7 +135,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: n_thscted_keyword = 3
+      INTEGER, PARAMETER :: n_thscted_keyword = 9
 !  n_thscted_keyword    integer - number of thscted_keyword s.
 
 !-----------------------------------------------
@@ -156,7 +162,13 @@
 !  Initialize the keywords and keyword lengths
       thscted_keyword(1) = 'thscte_XYZ'
       thscted_keyword(2) = 'thscte_RPhiDegZ'
-      thscted_keyword(3) = 'end_of_file'
+      thscted_keyword(3) = 'thscte_XYZ_te'
+      thscted_keyword(4) = 'thscte_RPhiDegZ_te'
+      thscted_keyword(5) = 'thscte_XYZ_ne'
+      thscted_keyword(6) = 'thscte_RPhiDegZ_ne'
+      thscted_keyword(7) = 'thscte_XYZ_pres'
+      thscted_keyword(8) = 'thscte_RPhiDegZ_pres'
+      thscted_keyword(9) = 'end_of_file'
 
 !  Find the length of the thscte_desc_arr array
       n_thscte_desc_arr = SIZE(thscte_desc_arr)
@@ -179,17 +191,21 @@
             CASE ('end_of_file')
                EXIT ! Exit out of infinte loop.
             
-            CASE ('thscte_XYZ')
+            CASE ('thscte_XYZ','thscte_XYZ_te')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'XYZ', icount_points,               &
      &                                     n_thscte_desc_arr,                  &
      &                                     thscte_desc_arr)
                
-            CASE ('thscte_RPhiDegZ')
+            CASE ('thscte_RPhiDegZ','thscte_RPhiDegZ_te')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'RPHiDegZ', icount_points,          &
      &                                     n_thscte_desc_arr,                  &
      &                                     thscte_desc_arr)
+
+            CASE ('thscte_XYZ_ne','thscte_RPhiDegZ_ne',                   &
+     &            'thscte_XYZ_pres','thscte_RPhiDegZ_pres')
+               STOP 'thscte_dot: Cord type not supported yet. '
 
          END SELECT
          
