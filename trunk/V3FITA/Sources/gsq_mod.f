@@ -550,6 +550,9 @@
 !         WRITE(59,1000) irp, icount, delta_iter2_local, fd_factor
       END DO ! loop over the reconstruction parameters
 
+! Restore VMEC back to it's inital state.
+      CALL eq_change_vmi_cp_xc(eq_state_0)
+
 !  Restore initial g2 and evector values. (reconstruction parameter argument is unchanged)
       gsq_g2 = g2_initial
       gsq_evector = evector_initial
