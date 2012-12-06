@@ -88,7 +88,7 @@
         call VMEC_B( x_cyl, B_cyl, ierr, R_FLX=x_flx, B_CON=B_con)
         istat = ierr
       else
-        write(*,*) subname, 'ERROR!!! Input coordinates OUTSIDE PLASMA!'
+!        write(*,*) subname, 'ERROR!!! Input coordinates OUTSIDE PLASMA!'
         istat = 1
         go to 100
       end if  ! end if for "inside plasma" check

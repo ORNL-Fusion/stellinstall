@@ -153,7 +153,7 @@ C-----------------------------------------------
       LOGICAL     :: lthreed_temp
       CHARACTER(len=*), PARAMETER :: subname = 'VMEC_B_INIT: '
 C-----------------------------------------------
-      write(*,*) 'now in ', subname
+!      write(*,*) 'now in ', subname
 
       IF (.not.lwout_opened) THEN
          WRITE(6, '(2a,/,a)')
