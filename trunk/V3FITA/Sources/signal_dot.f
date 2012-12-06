@@ -17,8 +17,9 @@
          CHARACTER (len=6) :: signal_id
       END TYPE
 
-      PUBLIC  :: signal_dot_open, signal_dot_close,
-     &           signal_dot_parse_chord, signal_dot_read_keyword
+      PUBLIC  :: signal_dot_open, signal_dot_close,                            &
+     &           signal_dot_parse_chord, signal_dot_read_keyword,              &
+     &           signal_dot_parse_real
       PRIVATE :: signal_dot_check_status, signal_dot_read_line
 
 !-------------------------------------------------------------------------------
@@ -165,6 +166,43 @@
       ENDIF
 
       END SUBROUTINE
+
+!*******************************************************************************
+!  Parse a single real from a diagnostic dot file.
+!
+!  Reads a single real from the diagnostic dot file. This is used to tobeable to
+!  extra information about a diagnostic in the diagnostic dot file.
+!*******************************************************************************
+      FUNCTION signal_dot_parse_real(signal_dot_file_ref, message)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)        :: message
+      REAL(rprec)                          :: signal_dot_parse_real
+
+!-------------------------------------------------------------------------------
+!   Local Variables
+!-------------------------------------------------------------------------------
+      INTEGER                   :: istat
+      CHARACTER (len=line_len)  :: line
+
+!-------------------------------------------------------------------------------
+!  Start of Executable Code
+!-------------------------------------------------------------------------------
+! Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            "Error ",                                    &
+     &                            message)
+! Reread the line, looking for a single real
+      READ(line, *, iostat=istat) signal_dot_parse_real
+      CALL signal_dot_check_status(istat, signal_dot_file_ref,                 &
+     &                             "Error ",                                   &
+     &                             message)
+
+      END FUNCTION
 
 !*******************************************************************************
 !  Read a keyword from the diagnostic dot file.

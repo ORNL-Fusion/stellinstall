@@ -134,8 +134,10 @@
      &            model_get_ne_xcyl(a_model,r_cyl) * dx
 
             CASE ('p')
+!  Compute the faraday rotation angle.
                CALL COMPUTE_B_CAR(xcart, bcart)
-               mod_signal(1) = mod_signal(1) + 2.62E-13 *                      &
+               mod_signal(1) = mod_signal(1) +                                 &
+     &            2.62E-13 * (a_ipch%wavelength**2) *                          &
      &            model_get_ne_xcyl(a_model,r_cyl) *                           &
      &            DOT_PRODUCT(bcart,dxcart)
 

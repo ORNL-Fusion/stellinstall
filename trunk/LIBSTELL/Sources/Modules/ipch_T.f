@@ -71,12 +71,14 @@
 !         xcart_i(3)            - Cartesian position vector, start of chord (meters)
 !         xcart_f(3)            - Cartesian position vector, end of chord (meters)
 !         ip_type               - 'i' - interferometry
-!                               - 'p' - polarimetry (not yet implemented)
+!                               - 'p' - polarimetry
+!         wavelength            _ wavelength of the beam
 !-------------------------------------------------------------------------------
       TYPE ipch_desc
         CHARACTER(LEN=chord_name_len) :: chord_name
-        REAL(rprec), DIMENSION(3) :: xcart_i, xcart_f
-        CHARACTER(LEN=1) :: ip_type
+        REAL(rprec), DIMENSION(3)     :: xcart_i, xcart_f
+        CHARACTER(LEN=1)              :: ip_type
+        REAL(rprec)                   :: wavelength
       END TYPE ipch_desc
 
 !*******************************************************************************
@@ -92,19 +94,21 @@
 !
 !  For d_type = 'ipch' (interferometry-polarimetry chord)
 !-------------------------------------------------------------------------------
-      SUBROUTINE ipch_desc_construct(this,chord_name,                         &
-     &    xcart_i,xcart_f,ip_type)             
+      SUBROUTINE ipch_desc_construct(this, chord_name,                         &
+     &                               xcart_i, xcart_f,                         &
+     &                               ip_type, wavelength)
 
          IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Argument Declarations
 !-------------------------------------------------------------------------------
-         TYPE (ipch_desc), INTENT(inout)    :: this
-         CHARACTER(LEN=chord_name_len),INTENT(in)   :: chord_name
-         REAL(rprec), DIMENSION(3), INTENT(in)      :: xcart_i
-         REAL(rprec), DIMENSION(3), INTENT(in)      :: xcart_f
-         CHARACTER(LEN=1), OPTIONAL, INTENT(in)     :: ip_type
+         TYPE (ipch_desc), INTENT(inout)          :: this
+         CHARACTER(LEN=chord_name_len),INTENT(in) :: chord_name
+         REAL(rprec), DIMENSION(3), INTENT(in)    :: xcart_i
+         REAL(rprec), DIMENSION(3), INTENT(in)    :: xcart_f
+         CHARACTER(LEN=1), INTENT(in)             :: ip_type
+         REAL(rprec), INTENT(in)                  :: wavelength
  
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -114,7 +118,8 @@
          this % chord_name = chord_name
          this % xcart_i = xcart_i
          this % xcart_f = xcart_f
-         this % ip_type = 'i'        ! Only allowable type - at this time
+         this % ip_type = ip_type
+         this % wavelength = wavelength
                
       END SUBROUTINE ipch_desc_construct
 
@@ -135,6 +140,7 @@
          this % xcart_i = zero
          this % xcart_f = zero
          this % ip_type = ' '
+         this % wavelength = zero
       
       END SUBROUTINE ipch_desc_destroy
 

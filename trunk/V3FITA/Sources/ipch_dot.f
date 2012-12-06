@@ -275,7 +275,7 @@
 !-----------------------------------------------
       REAL(rprec), DIMENSION(3)  :: xcart_i, xcart_f
       CHARACTER (len=c_name_len) :: chord_name                               
-      
+      REAL(rprec)                :: wavelength = 0.0
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
@@ -284,8 +284,15 @@
      &                            coordinate_type,                             &
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
-      CALL ipch_desc_construct(ipch_desc_temp,chord_name,                      &
-     &                         xcart_i,xcart_f,coord_type)
+
+      IF (coord_type .eq. 'p') THEN
+         wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
+     &                   "Expected wavelength for polarimetry chord")
+      END IF
+
+      CALL ipch_desc_construct(ipch_desc_temp, chord_name,                     &
+     &                         xcart_i, xcart_f,                               &
+     &                         coord_type, wavelength)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_ipch_desc_arr) THEN
