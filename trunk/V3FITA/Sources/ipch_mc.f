@@ -74,6 +74,7 @@
       SUBROUTINE ipch_mc_model_compute(a_ipch,a_model,mod_signal,              &
      &   mod_sigma)
       USE b_transform_mod
+      USE b_transform_vmec
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -120,6 +121,11 @@
       ENDIF
       ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
+
+! Initalize Magnetic file routines if using polarimetry.
+      IF (a_ipch % ip_type .eq. 'p') THEN
+         CALL VMEC_B_INIT(1)
+      ENDIF
 
 !  Integrate ne*dl along the cord.
       dxcart = (a_ipch % xcart_f - a_ipch % xcart_i)/ipoints
