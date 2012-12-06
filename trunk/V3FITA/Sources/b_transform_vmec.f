@@ -2002,7 +2002,7 @@ C-----------------------------------------------
       this % xn_nyq = xn_nyq
 
 
-!      IF (lasym) THEN
+      IF (lasym) THEN
          dims(1:2) = shape(rmns)
          ALLOCATE(this % rmns(dims(1),dims(2)))
          this % rmns = rmns
@@ -2019,7 +2019,7 @@ C-----------------------------------------------
          dims(1:2) = shape(bsupvmns)
          ALLOCATE(this % bsupvmns(dims(1),dims(2)))
          this % bsupvmns = bsupvmns
-!      END IF
+      END IF
 
       
       RETURN
