@@ -122,6 +122,7 @@
 !  Integrate sxrem*dl along the cord.
       dxcart = (a_sxrch % xcart_f - a_sxrch % xcart_i)/ipoints
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
+      mod_signal(1) = 0.0
       DO istep=1,ipoints
          xcart = a_sxrch % xcart_i + istep * dxcart
          r_cyl = cart_to_cyl(xcart)

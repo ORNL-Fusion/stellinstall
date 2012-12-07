@@ -130,6 +130,7 @@
 !  Integrate ne*dl along the cord.
       dxcart = (a_ipch % xcart_f - a_ipch % xcart_i)/ipoints
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
+      mod_signal(1) = 0.0
       DO istep=1,ipoints
          xcart = a_ipch % xcart_i + istep * dxcart
          r_cyl = cart_to_cyl(xcart)
