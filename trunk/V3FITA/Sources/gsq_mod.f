@@ -469,13 +469,6 @@
       g2_initial = gsq_g2
       evector_initial = gsq_evector
       DO irp = 1,nrp   ! loop over the reconstruction parameters
-         icount = 0   !  Count the number of attempts with this parameter
-100      icount = icount + 1
-
-!  Put in a test to see if the count is too high. If so, neutralize the recon_param
-               
-!  Put a test to see if this recon_param has been temporarily neutralized
-!    If so, set the jacobian column to zero, and cycle.
 
 !  Start from the initial reconstruction parameters, and increment the
 !  parameter for the finite difference. Note that the recon_param keeps track 
@@ -483,20 +476,11 @@
          rp_delta = rp_initial_a(irp)
          CALL recon_param_fd_increment(rp_delta,delta_rp)
 
-!  JDH 2010-11-23. Switch Order. Before, call to recon_param_model_put was
-!    before eq_change_vmi_cp_xc
-!    Should be eq_change_vmi_cp_xc before recon_param_model_put because
-!    eq_change_vmi_cp_xc also changes internal state variables.
-!  Restore eq_state_0 xc vector to the VMEC Internal State
-! JDH 2011-06-21. Change from eq_change_vmi_cp_xc to eq_change_vmi_reset_xc
-!  JDH 2011-06-24. Back to eq_change_vmi_cp_xc
-         CALL eq_change_vmi_cp_xc(eq_state_0)
-!         CALL eq_change_vmi_reset_x(eq_state_0)
-
 !  Propagate this change to the VMEC Internal State
          CALL recon_param_model_put(rp_delta,model_arg,rcons,'VMI')
 
 ! Only reconverge VMEC when changing a VMEC parameter.
+         CALL eq_history_set(i2 = irp)
          SELECT CASE (TRIM(ADJUSTL(rp_delta%p_type)))
             CASE ('ac','ac_aux_s','ac_aux_f',                                  &
      &            'ai','ai_aux_s','ai_aux_f',                                  &
@@ -506,7 +490,6 @@
 !  Try to equilibrate
 !    Turn off preconditioning, but don't recompute new matrix when cross threshold
                CALL eq_change_vmi_precon2d_off_same_blocks
-               CALL eq_history_set(i2 = irp)
                numiter = state_vec % fixp % niter
                CALL eq_step(numiter, state_vec, lconv, iter_v,                 &
      &                      ier_flag_vmec_local, vmec_flag_name_local,         &
@@ -517,17 +500,9 @@
                   CALL eq_history_print
                   CALL assert(lconv,sub_name // ' no convergence, irp')
                ENDIF
-
+!  Restore eq_state_0 xc vector to the VMEC Internal State
+               CALL eq_change_vmi_cp_xc(eq_state_0)
          END SELECT
-
-!  Coding below commented out JDH 2008-08-08
-!         IF ((delta_iter2_local .le. 1) .AND. (icount .le. 3)) THEN
-!            CALL recon_param_fdf_get(rp_initial_a(irp),fd_factor)
-!            fd_factor = 3 * fd_factor
-!            WRITE(*,*) '     jac: irp, fd_factor:', irp, fd_factor
-!            CALL recon_param_fdf_put(rp_initial_a(irp),fd_factor)
-!            GO TO 100
-!         END IF
             
 !  Compute model signals at displaced parameters
          CALL signal_mc_model_compute(sdm_temp,model_arg)
@@ -541,17 +516,34 @@
 !  Compute displaced gsq
          CALL gsq_evaluate_g2(sdm_temp,sdo_a_arg)
 
-!  Restore the initial parameter
+!  Reset VMEC back to it's initial state. VMEC Needs to be reconverged otherwise
+!  the AUX signals models will be read from the wrong state. 
          CALL recon_param_model_put(rp_initial_a(irp),model_arg,rcons,         &
      &      'VMI')
+         SELECT CASE (TRIM(ADJUSTL(rp_delta%p_type)))
+            CASE ('ac','ac_aux_s','ac_aux_f',                                  &
+     &            'ai','ai_aux_s','ai_aux_f',                                  &
+     &            'am','am_aux_s','am_aux_f',                                  &
+     &            'bloat','curtor','pres_scale','phiedge','extcur',            &
+     &            'rbc','rbs','zbc','zbs','ac_edge','am_edge')
+!  Try to equilibrate
+!    Turn off preconditioning, but don't recompute new matrix when cross threshold
+               CALL eq_change_vmi_precon2d_off_same_blocks
+               numiter = state_vec % fixp % niter
+               CALL eq_step(numiter, state_vec, lconv, iter_v,                 &
+     &                      ier_flag_vmec_local, vmec_flag_name_local,         &
+     &                      delta_iterc_local)
 
-!  print out to 59 for diagnostic [JDH commented out below 2008-08-08]
-!         CALL recon_param_fdf_get(rp_delta,fd_factor)
-!         WRITE(59,1000) irp, icount, delta_iter2_local, fd_factor
+!  Check for convergence
+               IF (.not. lconv) THEN
+                  CALL eq_history_print
+                  CALL assert(lconv,sub_name // ' no convergence, irp')
+               ENDIF
+!  Restore eq_state_0 xc vector to the VMEC Internal State
+               CALL eq_change_vmi_cp_xc(eq_state_0)
+         END SELECT
+
       END DO ! loop over the reconstruction parameters
-
-! Restore VMEC back to it's inital state.
-      CALL eq_change_vmi_cp_xc(eq_state_0)
 
 !  Restore initial g2 and evector values. (reconstruction parameter argument is unchanged)
       gsq_g2 = g2_initial
