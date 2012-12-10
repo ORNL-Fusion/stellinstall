@@ -490,6 +490,10 @@
 !  sdo_sigma_a           Array of sigmas for observed signals (v3f_global)
 !  sdo_weight_a          Array of weight for observed signals (v3f_global)
 !
+! These two are used by the extcurz diagnostic signal.
+!  extcurz_s0            S position to integrate about.
+!  extcurz_u0            U position to integrate about.
+!
 !        Signal Data sigma and weight specification
 !  sdo_s_spec_imin       Array of minimum index values, for specifying sigmas
 !  sdo_s_spec_imax       Array of maximum index values, for specifying sigmas
@@ -916,7 +920,9 @@
 !--  mddc (Magnetic Diagnostics) SubSection                          --
 !----------------------------------------------------------------------
 
-      CALL init_signal_mddc(isig,idiag)
+      IF (TRIM(mdsig_list_filename) .NE. '') THEN
+         CALL init_signal_mddc(isig,idiag)
+      ENDIF
 !----------------------------------------------------------------------
 !--  END mddc (Magnetic Diagnostics) SubSection                      --
 !----------------------------------------------------------------------
