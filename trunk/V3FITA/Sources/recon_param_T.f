@@ -88,10 +88,7 @@
 !       rbs         - VMEC2000 R-Sine boundary specification (LFREEB = F)
 !       zbc         - VMEC2000 Z-Cosine boundary specification (LFREEB = F)
 !       zbs         - VMEC2000 Z-Sine boundary specification (LFREEB = F)
-!       density_max - max plasma density (assumed to be at magnetic axis)
-!       density_tau - exponent on radial flux for density distribution of form:
-!                   - ne = ne_max*(1-s^tau)^kappa +ne_ambient
-!    (JDH 2011-10-19 - switch from density_max and tau to pp_ne_b - 
+!
 !      parameterized profile coefficients for ne profile)
 !       pp_ne_b        - model electron density parameterized profile coefficients
 !       pp_ne_as       - model electron density spline s values (independent variable)
@@ -107,7 +104,7 @@
 !         recon_cnstrnts
 !     Type of constraint is specified by % c_type
 !     Allowable values of c_type:
-!       ac_edge     - VMEC200 current profile (I') at edge specification
+!       ac_edge     - VMEC2000 current profile (I') at edge specification
 !       am_edge     - VMEC2000 pressure profile at edge specification
 !
 !*******************************************************************************
