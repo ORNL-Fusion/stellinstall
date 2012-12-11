@@ -75,6 +75,7 @@
      &   mod_sigma)
       USE b_transform_mod
       USE b_transform_vmec
+      USE stel_constants
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -150,6 +151,10 @@
 
          END SELECT
       ENDDO
+
+      IF (a_ipch%ip_type .eq. 'p' .and. a_ipch%inDegrees) THEN
+         mod_signal(1) = mod_signal(1)*degree
+      END IF
 
 ! make up a sigma         
 !         mod_sigma(1)=0.5   Changed to zero JDH 2011-10-17

@@ -79,6 +79,7 @@
         REAL(rprec), DIMENSION(3)     :: xcart_i, xcart_f
         CHARACTER(LEN=1)              :: ip_type
         REAL(rprec)                   :: wavelength
+        LOGICAL                       :: inDegrees
       END TYPE ipch_desc
 
 !*******************************************************************************
@@ -96,7 +97,8 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_desc_construct(this, chord_name,                         &
      &                               xcart_i, xcart_f,                         &
-     &                               ip_type, wavelength)
+     &                               ip_type, wavelength,                      &
+     &                               inDegrees)
 
          IMPLICIT NONE
 
@@ -109,6 +111,7 @@
          REAL(rprec), DIMENSION(3), INTENT(in)    :: xcart_f
          CHARACTER(LEN=1), INTENT(in)             :: ip_type
          REAL(rprec), INTENT(in)                  :: wavelength
+         LOGICAL, INTENT(in)                      :: inDegrees
  
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -120,7 +123,8 @@
          this % xcart_f = xcart_f
          this % ip_type = ip_type
          this % wavelength = wavelength
-               
+         this % inDegrees = inDegrees
+
       END SUBROUTINE ipch_desc_construct
 
 !*******************************************************************************

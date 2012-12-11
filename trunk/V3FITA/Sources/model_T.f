@@ -520,7 +520,7 @@
       SELECT CASE(TRIM(this % model_te_type))
       
       CASE('pp_te')
-         model_get_te_s = pprofile_evaluate(this % pp_te,s_arg)     
+         model_get_te_s = pprofile_evaluate(this % pp_te,s_arg)
 
       CASE('pp_ne_vmec_p')
          ne = model_get_ne_s(this,s_arg)

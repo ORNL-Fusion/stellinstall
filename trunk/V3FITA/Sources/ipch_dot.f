@@ -133,7 +133,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: n_ipchd_keyword = 7
+      INTEGER, PARAMETER :: n_ipchd_keyword = 9
 !  n_ipchd_keyword        integer - number of ipchd_keyword s.
 
 !-----------------------------------------------
@@ -161,9 +161,11 @@
       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
       ipchd_keyword(3) = 'ip_chord_XYZ_int'
       ipchd_keyword(4) = 'ip_chord_RPhiDegZ_int'
-      ipchd_keyword(5) = 'ip_chord_XYZ_pol'
-      ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol'
-      ipchd_keyword(7) = 'end_of_file'
+      ipchd_keyword(5) = 'ip_chord_XYZ_pol_rad'
+      ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol_rad'
+      ipchd_keyword(7) = 'ip_chord_XYZ_pol_deg'
+      ipchd_keyword(8) = 'ip_chord_RPhiDegZ_pol_deg'
+      ipchd_keyword(9) = 'end_of_file'
 
 !  Find the length of the ipch_desc_arr array
       n_ipch_desc_arr = SIZE(ipch_desc_arr)
@@ -187,25 +189,43 @@
             
             CASE ('ip_chord_XYZ','ip_chord_XYZ_int')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
-     &                                   'XYZ', 'i', icount_chords,            &
+     &                                   'XYZ', 'i', .false.,                  &
+     &                                   icount_chords,                        &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
                
             CASE ('ip_chord_RPhiDegZ','ip_chord_RPhiDegZ_int')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
-     &                                   'RPHiDegZ', 'i', icount_chords,       &
+     &                                   'RPHiDegZ', 'i', .false.,             &
+     &                                   icount_chords,                        &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
 
-            CASE ('ip_chord_XYZ_pol')
+            CASE ('ip_chord_XYZ_pol_rad')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
-     &                                   'XYZ', 'p', icount_chords,            &
+     &                                   'XYZ', 'p', .false.,                  &
+     &                                   icount_chords,                        &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
 
-            CASE ('ip_chord_RPhiDegZ_pol')
+            CASE ('ip_chord_RPhiDegZ_pol_rad')
                CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
-     &                                   'RPHiDegZ', 'p', icount_chords,       &
+     &                                   'RPHiDegZ', 'p', .false.,             &
+     &                                   icount_chords,                        &
+     &                                   n_ipch_desc_arr,                      &
+     &                                   ipch_desc_arr)
+
+            CASE ('ip_chord_XYZ_pol_deg')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'XYZ', 'p', .true.,                   &
+     &                                   icount_chords,                        &
+     &                                   n_ipch_desc_arr,                      &
+     &                                   ipch_desc_arr)
+
+            CASE ('ip_chord_RPhiDegZ_pol_deg')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'RPHiDegZ', 'p', .true.,              &
+     &                                   icount_chords,                        &
      &                                   n_ipch_desc_arr,                      &
      &                                   ipch_desc_arr)
 
@@ -253,6 +273,7 @@
       SUBROUTINE ipch_dot_parse_chord(ipch_dot_file_ref,                       &
      &                                coordinate_type,                         &
      &                                coord_type,                              &
+     &                                inDegrees,                               &
      &                                icount_chords,                           &
      &                                n_ipch_desc_arr,                         &
      &                                ipch_desc_arr)
@@ -268,6 +289,7 @@
       TYPE(ipch_desc), DIMENSION(:), INTENT(inout) :: ipch_desc_arr
       CHARACTER (len=*) :: coordinate_type
       CHARACTER (len=1) :: coord_type
+      LOGICAL, INTENT(in) :: inDegrees
       TYPE(signal_dot_file), INTENT(inout) :: ipch_dot_file_ref
 
 !-----------------------------------------------
@@ -292,7 +314,7 @@
 
       CALL ipch_desc_construct(ipch_desc_temp, chord_name,                     &
      &                         xcart_i, xcart_f,                               &
-     &                         coord_type, wavelength)
+     &                         coord_type, wavelength, inDegrees)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_ipch_desc_arr) THEN
