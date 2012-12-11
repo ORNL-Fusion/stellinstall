@@ -2,7 +2,7 @@
 {\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-Bold;
 }
 {\colortbl;\red255\green255\blue255;}
-\margl1440\margr1440\vieww38140\viewh20640\viewkind0
+\margl1440\margr1440\vieww38140\viewh19520\viewkind0
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc
 
 \f0\b\fs48 \cf0 V3FIT User Manual
@@ -32,8 +32,7 @@ This is a class of signals that comes from experimentally measured data.\
 1. Magnetics\
 \
 2. SXR\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 Soft x-ray chords are specified in a diagnostic dot file.\
+Soft x-ray chords are specified in a diagnostic dot file.\
 \
 Namelist input values:\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
@@ -48,8 +47,9 @@ Diagnostic Dot File Keywords:\
 \f1 \cf0 \CocoaLigature0 end_of_file
 \f0 								\
 Specifies the end of the diagnostic dot file.\
+\pard\tx529\pardeftab529\pardirnatural
 
-\f1 \CocoaLigature1 \
+\f1 \cf0 \CocoaLigature1 \
 sxrchd_XYZ
 \f0 ,				\
 Specifies a SXR chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers.\
@@ -80,8 +80,9 @@ end_of_file
 Interferometer and polarimetry chords are specified in a diagnostic dot file.\
 \
 Namelist input values:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\f1 ipch_dot_filename
+\f1 \cf0 ipch_dot_filename
 \f0 	Path to the interferometer polarimetry diagnostic dot file.\
 \
 Diagnostic Dot File Keywords:\
@@ -91,8 +92,9 @@ Diagnostic Dot File Keywords:\
 \f1 \cf0 \CocoaLigature0 end_of_file
 \f0 								\
 Specifies the end of the diagnostic dot file.\
+\pard\tx529\pardeftab529\pardirnatural
 
-\f1 \CocoaLigature1 \
+\f1 \cf0 \CocoaLigature1 \
 ip_chord_XYZ
 \f0 , 
 \f1 ip_chord_XYZ_int
@@ -107,14 +109,24 @@ ip_chord_RPhiDegZ
 Specifies an interferometer chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers. Phi is in degrees.\
 
 \f1 \
-ip_chord_XYZ_pol
+ip_chord_XYZ_pol_rad
 \f0 							\
 Specifies a polarimetry chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Data is specified as the faraday rotation angle in radians.\
 
 \f1 \
-ip_chord_RPhiDegZ_pol					
+ip_chord_RPhiDegZ_pol_rad					
 \f0 	\
 Specifies a polarimetry chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Phi is in degrees. Data is specified as the faraday rotation angle in radians.\
+\
+
+\f1 ip_chord_XYZ_pol_deg
+\f0 							\
+Specifies a polarimetry chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Data is specified as the faraday rotation angle in degrees.\
+
+\f1 \
+ip_chord_RPhiDegZ_pol_deg					
+\f0 	\
+Specifies a polarimetry chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Phi is in degrees. Data is specified as the faraday rotation angle in degrees.\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \
 Example diagnostic dot file.\
@@ -139,8 +151,7 @@ end_of_file
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 \cf0 \
 4. Thomson Scattering\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 Thomson Scattering points are specified in a diagnostic dot file.\
+Thomson Scattering points are specified in a diagnostic dot file.\
 \
 Namelist input values:\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
@@ -155,8 +166,9 @@ Diagnostic Dot File Keywords:\
 \f1 \cf0 \CocoaLigature0 end_of_file
 \f0 								\
 Specifies the end of the diagnostic dot file.\
+\pard\tx529\pardeftab529\pardirnatural
 
-\f1 \CocoaLigature1 \
+\f1 \cf0 \CocoaLigature1 \
 thscte_XYZ
 \f0 , 
 \f1 thscte_XYZ_te
@@ -214,8 +226,7 @@ end_of_file
 5. External Z currents\
 As a way of specifying external current when operated in fixed boundary mode, this diagnostic integrates the magnetic field on the inside of the torus to determine the enclosed current in the Z direction in A.\
 \
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 Namelist input values:\
+Namelist input values:\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \f1 \cf0 extcurz_s0
@@ -223,17 +234,18 @@ As a way of specifying external current when operated in fixed boundary mode, th
 \f1 \
 extcurz_u0
 \f0 	U position to integrate about.\
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
-\cf0 \
+\
 B. Geometric\
 1. Bar Limiters\
 2. Circular Limiters\
 \
 C. Combination\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\b \
+\b \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\fs28 III. Models
+\fs28 \cf0 III. Models
 \fs24 \
 
 \b0 Each signal is calculated from a model of that signal. Some signals can be determined directly from VMEC. Other signals need additional models imposed on top of the equilibrium in the form of a flux surface constant profile. Data is specified as total enclosed current in the Z direction.
@@ -462,15 +474,18 @@ model_sxrem_type		STRING\
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
 \b \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\fs28 IV. Parameters
+\fs28 \cf0 IV. Parameters
 \fs24 \
 
 \b0 Any model parameter may be specified as a reconstruction parameter.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\b \
+\b \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
 
-\b0 A. VMEC\
+\b0 \cf0 A. VMEC\
 \pard\tx529\pardeftab529\pardirnatural
 
 \f1 \cf0 \CocoaLigature0 ac						REAL[0:20]\
