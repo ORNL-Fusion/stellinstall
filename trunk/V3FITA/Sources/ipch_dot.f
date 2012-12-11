@@ -62,9 +62,11 @@
 !       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
 !       ipchd_keyword(3) = 'ip_chord_XYZ_int'
 !       ipchd_keyword(4) = 'ip_chord_RPhiDegZ_int'
-!       ipchd_keyword(5) = 'ip_chord_XYZ_pol'
-!       ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol'
-!       ipchd_keyword(7) = 'end_of_file' 
+!       ipchd_keyword(5) = 'ip_chord_XYZ_pol_rad'
+!       ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol_rad'
+!       ipchd_keyword(7) = 'ip_chord_XYZ_pol_deg'
+!       ipchd_keyword(8) = 'ip_chord_RPhiDegZ_pol_deg'
+!       ipchd_keyword(9) = 'end_of_file' 
 !
 !*******************************************************************************
 
