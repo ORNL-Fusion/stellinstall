@@ -138,7 +138,6 @@
       CHARACTER(LEN=8)   :: main_nli_filename_default = 'v3fit.in'
       CHARACTER(LEN=300) :: main_nli_filename = ''
       CHARACTER(LEN=300) :: mdsig_list_filename = ''
-      CHARACTER(LEN=300) :: intpol_filename = ''
       CHARACTER(LEN=300) :: vmec_nli_filename = ''
       CHARACTER(LEN=300) :: geometric_filename = ''
       CHARACTER(LEN=300) :: runlog_filename = ''

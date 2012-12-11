@@ -332,8 +332,6 @@
       SUBROUTINE init_main_nli
 !---------------------------------------------------------------------
 ! FUNCTION: reads in NML variables from V3FIT namelist file
-!
-! **Updates: added intpol_filename to namelist.  JS 6/27/07
 !--------------------------------------------------------------------      
       USE stel_kinds
       USE stel_constants
@@ -909,9 +907,9 @@
       isig = 0
 
       mdsig_list_filename = ADJUSTL(mdsig_list_filename)
-      intpol_filename     = ADJUSTL(intpol_filename)
+      thscte_dot_filename = ADJUSTL(thscte_dot_filename)
       sxrch_dot_filename  = ADJUSTL(sxrch_dot_filename) 
-      ipch_dot_filename  = ADJUSTL(ipch_dot_filename) 
+      ipch_dot_filename   = ADJUSTL(ipch_dot_filename)
 !----------------------------------------------------------------------
 !--  Diagnostics Section                                             --
 !----------------------------------------------------------------------
