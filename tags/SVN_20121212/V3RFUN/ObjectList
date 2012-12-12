@@ -1,0 +1,4 @@
+ObjectFiles = \
+v3rfun_data.o \
+diagnostic_dot.o \
+v3rfun.o 
