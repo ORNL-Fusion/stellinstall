@@ -96,7 +96,8 @@
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'ipch_mc_model_compute'
       INTEGER, PARAMETER :: ipoints = 200 ! number of integration points
-     
+      INTEGER            :: ierr
+
 !-------------------------------------------------------------------------------      
 ! cyl2flx declarations  - used for the subroutine cyl2flx call
 !------------------------------------------------------------------------------- 
@@ -126,11 +127,10 @@
 
 ! Initalize Magnetic file routines if using polarimetry.
       IF (a_ipch % ip_type .eq. 'p') THEN
-         IF (lwout_opened) THEN
-            CALL VMEC_B_INIT(1)
-         ELSE
-            CALL VMEC_B_INIT(0)
+         IF (.not.lwout_opened) THEN
+            read_wout_file('.nc', ierr)
          ENDIF
+         CALL VMEC_B_INIT(1)
       ENDIF
 
 !  Integrate ne*dl along the cord.
