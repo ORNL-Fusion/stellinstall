@@ -394,7 +394,7 @@
 
 !  Declare local variables
       REAL(rprec) :: ne
-      REAL(rprec) :: pressure
+      REAL(rprec) :: te
       REAL(rprec) :: ne_norm = 1.E18         ! Normalizing constant, per Hartwell routine
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_ne_s: '
@@ -407,10 +407,10 @@
 
       CASE('pp_ne_vmec_p')
          IF (s_arg .le. one) THEN
-            ne = model_get_ne_s(this,s_arg)
-            pressure = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
+            ne = model_get_ne_s(this, s_arg)
+            te = model_get_te_s(this, s_arg)
             model_get_sxrem_s =                                                &
-     &         this%sxrem_scale*ne**(3/2)/SQRT(pressure)   ! per comments
+     &         this%sxrem_scale*ne**2*SQRT(te)*EXP(-600.0/te)   ! per comments
          ELSE
             model_get_sxrem_s = zero
          ENDIF
