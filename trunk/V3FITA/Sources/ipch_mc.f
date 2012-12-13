@@ -76,6 +76,7 @@
       USE b_transform_mod
       USE b_transform_vmec
       USE stel_constants
+      USE read_wout_mod, ONLY: lwout_opened
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -125,7 +126,11 @@
 
 ! Initalize Magnetic file routines if using polarimetry.
       IF (a_ipch % ip_type .eq. 'p') THEN
-         CALL VMEC_B_INIT(1)
+         IF (lwout_opened) THEN
+            CALL VMEC_B_INIT(1)
+         ELSE
+            CALL VMEC_B_INIT(0)
+         ENDIF
       ENDIF
 
 !  Integrate ne*dl along the cord.
