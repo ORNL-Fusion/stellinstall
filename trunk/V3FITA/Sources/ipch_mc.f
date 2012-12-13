@@ -76,7 +76,7 @@
       USE b_transform_mod
       USE b_transform_vmec
       USE stel_constants
-      USE read_wout_mod, ONLY: lwout_opened
+      USE read_wout_mod
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -127,9 +127,9 @@
 
 ! Initalize Magnetic file routines if using polarimetry.
       IF (a_ipch % ip_type .eq. 'p') THEN
-         IF (.not.lwout_opened) THEN
-            read_wout_file('.nc', ierr)
-         ENDIF
+         IF (.not. a_model%eqstate%l_def_aux2) THEN
+            CALL eq_aux_2_define(a_model%eqstate, 0)  !! NEED TO FIX
+         END IF
          CALL VMEC_B_INIT(1)
       ENDIF
 
