@@ -618,7 +618,7 @@ C-----------------------------------------------
 
 !add this for gcz = 0 constraint for m=1, n!=0
                t1 = block_diag(n_2d,m_2d,ntype_2d,n_2d,m_2d,ntype_2d,js)
-                     IF (t1 .eq. zero)  THEN 
+      IF (t1 .eq. zero .or. (js.eq.1 .and. ntype_2d .ge. lamtype)) THEN 
                         IF (diag_val(js) .eq. zero) diag_val(js) = 1
                    block_diag(n_2d,m_2d,ntype_2d,n_2d,m_2d,ntype_2d,js)=
      1                  diag_val(js)

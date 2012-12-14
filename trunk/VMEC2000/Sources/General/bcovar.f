@@ -27,7 +27,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: l, js, ndim
+      INTEGER :: l, js, ndim, nu, nv
       REAL(rprec) :: r2
       REAL(rprec) :: arnorm, aznorm, dnorm1, volume, tcon_mul
       REAL(rprec), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
@@ -359,11 +359,16 @@
          bsubu_e(:nrzt) = bsubuh(:nrzt)
          bsubv_e(:nrzt) = bsubvh(:nrzt)
 
-!         DO js = 2, ns
-!            WRITE (100, *) 'JS: ', js, 'BSUBU, BSUBV'
-!            WRITE (100, '(1p,6e12.4)') 
-!     1          bsubu_e(js:nrzt:ns), bsubvh(js:nrzt:ns)
-!         END DO
+         DO js = 2, ns
+            WRITE (100, *) 'JS: ', js, 'JAC*BSUPU, JAC*BSUPV, JAC'
+         DO nu = 1, ntheta2
+            DO nv = 1, nzeta
+           l = js + ns*((nv-1) + nzeta*(nu-1))
+            WRITE (100, '(1p,3e12.4)')  gsqrt(l)*bsupu(l), 
+     1          gsqrt(l)*bsupv(l), gsqrt(l)
+         END DO
+         END DO
+         END DO
 
          bsubu_o(:nrzt) = shalf(:nrzt)*bsubu_e(:nrzt)
          bsubv_o(:nrzt) = shalf(:nrzt)*bsubv_e(:nrzt)

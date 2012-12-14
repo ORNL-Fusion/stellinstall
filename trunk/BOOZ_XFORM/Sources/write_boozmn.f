@@ -2,7 +2,7 @@
       USE booz_params
       USE booz_persistent, ONLY: xmb, xnb 
       USE read_wout_mod, ONLY: rmax_surf, rmin_surf, betaxis, aspect
-#if defined(NETCDF)
+#ifdef NETCDF
       USE ezcdf
 C-----------------------------------------------
 C   L O C A L   P A R A M E T E R S
@@ -26,7 +26,7 @@ C-----------------------------------------------
       CHARACTER(LEN=*), PARAMETER :: version =
      1   "Boozer Transformation Code Version 2.0"
 !-----------------------------------------------
-#if defined(NETCDF)
+#ifdef NETCDF
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------

@@ -48,12 +48,12 @@
             tnm = 2*m*n*nfp
             DO js = jlam(m), ns
                faclam(js,n,m,1) = ((blam(js) + blam(js+1))*tnn          &
-     &         + SIGN((dlam(js) + dlam(js+1)),blam(js))*tnm             &
-     &         +      (clam(js) + clam(js+1))*tmm)
+               + SIGN((dlam(js) + dlam(js+1)),blam(js))*tnm             &
+               +      (clam(js) + clam(js+1))*tmm)
               IF (faclam(js,n,m,1) .eq. zero)                           &
-     &            faclam(js,n,m,1) = -1.E-10_dp
+                  faclam(js,n,m,1) = -1.E-10_dp
             faclam(js,n,m,1) = (pfactor/faclam(js,n,m,1))               &
-     &         * sqrts(js)**power                                        !Damps m > 16 modes
+               * sqrts(js)**power                                        !Damps m > 16 modes
             END DO
          END DO
       END DO

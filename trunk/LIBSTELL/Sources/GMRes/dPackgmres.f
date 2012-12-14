@@ -65,8 +65,20 @@ C*
 C*    I agree all the terms and conditions of the above license agreement
 C*
 *
+        MODULE GMRES_DIM
+        INTEGER, PARAMETER :: dp = SELECTED_REAL_KIND(12,100)
+        INTEGER            :: icheck=0
+!       DATA icheck /0/
+        INTEGER            :: iterOut, jH, 
+     &                        retlbl=0, j, nOrtho, compRsd
+        REAL(dp)           :: dnormres, beta, bn, sA, sb, sPA, sPb,
+     &                        dloo, dnormx, trueNormRes, bea, be
+        END MODULE GMRES_DIM
+
         subroutine drive_dgmres(n,nloc,m,lwork,work,
-     &                         irc,icntl,cntl,info,rinfo)
+     &                          irc,icntl,cntl,info,rinfo)
+        USE GMRES_DIM, ONLY: dp, icheck
+        IMPLICIT NONE
 *
 *  Purpose
 *  =======
@@ -115,7 +127,7 @@ C*
 *          Unchanged on exit.
 *
 *
-*  m      (input) INTEGER
+*  m      (input/output) INTEGER
 *          Restart parameter, <= N. This parameter controls the amount
 *          of memory required for matrix H (see WORK and H).
 *          Unchanged on exit.
@@ -129,7 +141,7 @@ C*
 *            lwork >= m*m + m*(n+5) + 5*n+m+1, if icntl(8) = 1
 *            lwork >= m*m + m*(n+5) + 6*n+m+1, if icntl(8) = 0
 *
-*  work   (workspace) double precision/double precision array, length lwork
+*  work   (workspace) REAL(dp)/REAL(dp) array, length lwork
 *          work contains the required vector and matrices stored in the 
 *          following order :
 *            x  (n,1)       : computed solution.
@@ -151,7 +163,7 @@ C*
 *            irc(4) : COLZ     used for reverse communication
 *            irc(5) : NBSCAL   used for reverse communication
 *
-*  icntl   (input) INTEGER array. length 7
+*  icntl   (input/output) INTEGER array. length 9
 *            icntl(1) : stdout for error messages
 *            icntl(2) : stdout for warnings
 *            icntl(3) : stdout for convergence history
@@ -167,11 +179,11 @@ C*
 *            icntl(6) : 0 - default initial guess x_0 = 0 (to be set)
 *                       1 - user supplied initial guess
 *            icntl(7) : maximum number of iterations
-*            icntl(8) : 0 - use recurence formula at restart
+*            icntl(8) : 0 - use recurrence formula at restart
 *                       1 - default compute the true residual at each restart
 *            icntl(9) : frequency of updated solution return to user
 *
-*  cntl    (input) double precision array, length 5
+*  cntl    (input) REAL(dp) array, length 5
 *            cntl(1) : tolerance for convergence
 *            cntl(2) : scaling factor for normwise perturbation on A
 *            cntl(3) : scaling factor for normwise perturbation on b
@@ -191,37 +203,35 @@ C*
 *                      if info(1)=-3 - minimum workspace size necessary
 *            info(3) : optimal size for the workspace
 *
-*  rinfo   (output) double precision array, length 2
+*  rinfo   (output) REAL(dp) array, length 2
 *            if info(1)=0 
 *              rinfo(1) : backward error for the preconditioned system
 *              rinfo(2) : backward error for the unpreconditioned system
 *
 * Input variables
 * ---------------
-       integer n, nloc, lwork, icntl(*)
-       double precision   cntl(*)
-       double precision   sA, sb, sPA, sPb
+       INTEGER, INTENT(IN)    :: n, nloc, lwork
+       REAL(dp),INTENT(IN)    :: cntl(5)
+       REAL(dp)   sA, sb, sPA, sPb
 * Output variables
 * ----------------
-       integer  info(*)
-       double precision    rinfo(*)
+       integer, INTENT(OUT)   :: info(3)
+       REAL(dp),INTENT(OUT)   :: rinfo(2)
 * Input/Output variables
 * ----------------------
-       integer  m, irc(*)
-       double precision work(*)
+       integer, INTENT(INOUT) :: icntl(9), irc(5), m
+       REAL(dp),INTENT(INOUT) :: work(lwork)
 * Local variables
 * ---------------
        integer xptr, bptr, wptr, r0ptr, Vptr, Hptr, dotptr
        integer yCurrent,rotSin, rotCos, xCurrent
        integer sizeWrk, newRestart
        integer iwarn, ierr, ihist, compRsd
-       real    rn,rx,rc
-       double precision DZRO
-       parameter (DZRO = 0.0d0)
+!       real    rn,rx,rc
+       REAL(dp)               :: rn,rx,rc
+       REAL(dp), PARAMETER    :: DZRO=0
+!       parameter (DZRO = 0.0d0)
 *
-       integer icheck
-       save icheck
-       DATA icheck /0/
 *
 !SPH - use INT, REAL       intrinsic ifix, float
 *
@@ -354,9 +364,9 @@ C*
            endif
            if ((lwork.lt.sizeWrk).and.(n.eq.nloc)) then
 * Compute the maximum size of the m according to the memory space
-             rn         = real(n)
-             rx         = rn + 5.0
-             rc         = 5.0*rn + 1 - real(lwork)
+             rn         = n                        !real(n)
+             rx         = rn + 5                   !rn + 5.0
+             rc         = 5*rn+1-lwork             !5.0*rn + 1 - real(lwork)
 *
 * Update the linear part of the second order equation to be solved
              if ((icntl(5).eq.2).or.(icntl(5).eq.3)) then
@@ -368,7 +378,8 @@ C*
                rc = rc + rn
              endif
 * Solution of the the second order equation
-             newRestart = int((-rx+sqrt(rx**2-4.0*rc))/2.0)
+             newRestart = int((-rx+sqrt(rx*rx-4*rc))/2)
+!             newRestart = int((-rx+sqrt(rx**2-4.0*rc))/2.0)
              if (newRestart.gt.0) then
                m = newRestart
                if (iwarn.ne.0) then
@@ -522,7 +533,9 @@ C*
        end
 *
         subroutine dgmres(n,m,b,x,H,w,r0,V,dot,yCurrent,xCurrent,rotSin,
-     &                   rotCos,irc,icntl,cntl,info,rinfo)
+     &                    rotCos,irc,icntl,cntl,info,rinfo)
+        USE GMRES_DIM
+        IMPLICIT NONE
 *
 *
 *  Purpose
@@ -599,40 +612,40 @@ C*
 *           of memory required for matrix H (see WORK and H).
 *           Unchanged on exit.
 *
-*  b        (input) double precision/double precision
+*  b        (input) REAL(dp)/REAL(dp)
 *           Right hand side of the linear system.
 *
-*  x        (output) double precision/double precision
+*  x        (output) REAL(dp)/REAL(dp)
 *           Computed solution of the linear system.
 *
-*  H        (workspace)  double precision/double precision
+*  H        (workspace)  REAL(dp)/REAL(dp)
 *           Hessenberg matrix built within dgmres
 *
-*  w        (workspace)  double precision/double precision
+*  w        (workspace)  REAL(dp)/REAL(dp)
 *           Vector used as temporary storage
 *
-*  r0       (workspace)  double precision/double precision
+*  r0       (workspace)  REAL(dp)/REAL(dp)
 *           Vector used as temporary storage
 *
-*  V        (workspace)  double precision/double precision
+*  V        (workspace)  REAL(dp)/REAL(dp)
 *           Basis computed by the Arnoldi's procedure.
 *  
-*  dot      (workspace) double precision/double precision
+*  dot      (workspace) REAL(dp)/REAL(dp)
 *           Store the results of the dot product calculation
 *
-*  yCurrent (workspace) double precision/double precision
+*  yCurrent (workspace) REAL(dp)/REAL(dp)
 *           solution of the current LS
 *
-*  xCurrent (workspace) double precision/double precision
+*  xCurrent (workspace) REAL(dp)/REAL(dp)
 *           current iterate
 *
-*  rotSin   (workspace) double precision/double precision
+*  rotSin   (workspace) REAL(dp)/REAL(dp)
 *           Sine of the Givens rotation
 *
-*  rotCos   (workspace) double precision
+*  rotCos   (workspace) REAL(dp)
 *           Cosine of the Givens rotation
 *
-*  irc      (input/output) INTEGER array. length 3
+*  irc      (input/output) INTEGER array. length 5
 *             irc(1) : REVCOM   used for reverse communication
 *                              (type of external operation)
 *             irc(2) : COLX     used for reverse communication
@@ -640,7 +653,7 @@ C*
 *             irc(4) : COLZ     used for reverse communication
 *             irc(5) : NBSCAL   used for reverse communication
 *
-*  icntl    (input) INTEGER array. length 7
+*  icntl    (input) INTEGER array. length 9
 *             icntl(1) : stdout for error messages
 *             icntl(2) : stdout for warnings
 *             icntl(3) : stdout for convergence history
@@ -658,8 +671,9 @@ C*
 *             icntl(7) : maximum number of iterations
 *             icntl(8) : 1 - default compute the true residual at each restart
 *                        0 - use recurence formula at restart
+*             icntl(9) : frequency of updated solution return to user
 *
-*  cntl     (input) double precision array, length 5
+*  cntl     (input) REAL(dp) array, length 5
 *             cntl(1) : tolerance for convergence
 *             cntl(2) : scaling factor for normwise perturbation on A
 *             cntl(3) : scaling factor for normwise perturbation on b
@@ -668,7 +682,7 @@ C*
 *             cntl(5) : scaling factor for normwise perturbation on
 *                       preconditioned right hand side
 *
-*  info     (output) INTEGER array, length 2
+*  info     (output) INTEGER array, length 3
 *             info(1) :  0 - normal exit
 *                       -1 - n < 1
 *                       -2 - m < 1
@@ -679,78 +693,74 @@ C*
 *                       if info(1)=-3 - minimum workspace size necessary
 *             info(3) : optimal size for the workspace
 *
-* rinfo     (output) double precision array, length 2
+* rinfo     (output) REAL(dp) array, length 2
 *             if info(1)=0 
 *               rinfo(1) : backward error for the preconditioned system
 *               rinfo(2) : backward error for the unpreconditioned system
 *
 * Input variables
 * ---------------
-        integer  n, m, icntl(*)
-        double precision b(*)
-        double precision    cntl(*)
+       integer, INTENT(IN)       ::  n, m, icntl(9)
+       REAL(dp),INTENT(IN)       ::  b(n), cntl(5)
 *
 * Output variables
 * ----------------
-       integer  info(*)
-       double precision    rinfo(*)
+       integer, INTENT(OUT)       ::  info(3)
+       REAL(dp),INTENT(OUT)       ::  rinfo(2)
 *
 * Input/Output variables
 * ----------------------
-       integer  irc(*)
-       double precision x(*), H(m+1,*), w(*), r0(*) 
-       double precision V(n,*),dot(*),yCurrent(*)  
-       double precision xCurrent(*), rotSin(*)
-       double precision rotCos(*)
+       integer, INTENT(INOUT)     :: irc(5)
+       REAL(dp),INTENT(INOUT)     :: x(n), H(m+1,m+1), w(n), r0(n) 
+       REAL(dp)                   :: V(n,m), dot(*), yCurrent(m)  
+       REAL(dp)                   :: xCurrent(n), rotSin(m), rotCos(m)
 *
 * Local variables
 * ---------------
-       integer  j, jH, iterOut, nOrtho, iterMax, initGuess, iOrthog
+       INTEGER  iterMax, initGuess, iOrthog
        integer  xptr, bptr, wptr, r0ptr, Vptr, Hptr, yptr, xcuptr
        integer  dotptr,itMod
-       integer  typePrec, leftPrec, rightPrec, dblePrec, noPrec
-       integer  iwarn, ihist
-       integer  compRsd
-       double precision    beta, bn, sA, sb, sPA, sPb, bea, be, temp
-       double precision    dloo, dnormw, dnormx, dnormres, trueNormRes
-       double precision dVi, aux
-       double precision auxHjj, auxHjp1j
+       integer  typePrec, iwarn, ihist
+       REAL(dp) temp, dnormw 
+       REAL(dp) dVi, aux
+       REAL(dp) auxHjj, auxHjp1j
 *
-       parameter (noPrec = 0, leftPrec = 1)
-       parameter (rightPrec = 2, dblePrec = 3)  
+       integer, parameter  :: noPrec = 0, leftPrec = 1, rightPrec = 2, 
+     &                        dblePrec = 3  
 *
-       double precision ZERO, ONE
-       parameter (ZERO = 0.0d0, ONE = 1.0d0)
-       double precision DZRO,DONE
-       parameter (DZRO = 0.0d0, DONE = 1.0d0)
+       REAL(dp), PARAMETER     :: ZERO=0, ONE=1
+!       parameter (ZERO = 0.0d0, ONE = 1.0d0)
+       REAL(dp), PARAMETER     :: DZRO=0, DONE=1
+!       parameter (DZRO = 0.0d0, DONE = 1.0d0)
 *
 *
 * External functions
 * ------------------
-       double precision    dnrm2
+       REAL(dp)   ::    dnrm2
        external dnrm2
 *
-* Saved variables
+* Saved variables (moved to module GMRES_DIM)
 * ---------------
-       save iterOut, jH, beta, bn, dnormres, retlbl, j
-       save sA, sb, sPA, sPb, dnormx, trueNormRes, bea, be
-       save dloo, nOrtho, compRsd
-*
-* Intrinsic function
-* ------------------
-       intrinsic dabs, dsqrt 
+!       save iterOut, jH, beta, bn, dnormres, retlbl, j
+!       save sA, sb, sPA, sPb, dnormx, trueNormRes, bea, be
+!       save dloo, nOrtho, compRsd
 *
 *
 * Reverse communication variables
 * -------------------------------
-       integer matvec, precondLeft, precondRight, prosca
-       parameter(matvec=1, precondLeft=2, precondRight=3, prosca=4)
-       integer retlbl
-       DATA retlbl /0/
+       integer, parameter :: matvec=1, precondLeft=2, precondRight=3, 
+     &                       prosca=4
+!       parameter(matvec=1, precondLeft=2, precondRight=3, prosca=4)
+!       integer retlbl
+!       DATA retlbl /0/
 *
 *       Executable statements
 *
 * setup some pointers on the workspace
+
+!!!SPH ADD
+       info     = 0
+
        xptr     = 1
        bptr     = xptr + n
        r0ptr    = bptr + n
@@ -861,7 +871,7 @@ C*
       retlbl = 5
       return
  5    continue
-      bn = dsqrt((dot(1)))
+      bn = sqrt((dot(1)))
 *
       if (bn.eq.DZRO) then
         do j=1,n
@@ -930,7 +940,7 @@ C*
  8     continue
        if ((sPA.eq.DZRO).and.(sPb.eq.DZRO)) then
          if ((typePrec.eq.dblePrec).or.(typePrec.eq.leftPrec)) then
-           sPb = dsqrt((dot(1)))
+           sPb = sqrt((dot(1)))
 * 
          endif
        endif
@@ -983,7 +993,7 @@ C*
        retlbl = 18
        return
  18    continue
-       beta = dsqrt((dot(1)))
+       beta = sqrt((dot(1)))
 *
        if (beta .eq. DZRO) then
 *  The residual is exactly zero : x is the exact solution
@@ -1112,7 +1122,7 @@ C*
        if ((iOrthog.eq.0).or.(iOrthog.eq.1)) then
          dVi     = dot(1)
          H(j,jH) = H(j,jH) + dVi
-         dloo    = dloo + dabs(dVi)**2
+         dloo    = dloo + abs(dVi)**2
          aux = -ONE*dVi
          call daxpy(n,aux,V(1,j),1,w,1)
          j = j + 1
@@ -1150,11 +1160,11 @@ C*
        retlbl = 33
        return
  33    continue
-       dnormw = dsqrt((dot(1)))
+       dnormw = sqrt((dot(1)))
 *
        if ((iOrthog.eq.1).or.(iOrthog.eq.3)) then
 * IMGS / CGS orthogonalisation
-         dloo = dsqrt(dloo)
+         dloo = sqrt(dloo)
 * check the orthogonalization quality
          if (((2.0*dnormw).le.dloo).and.(nOrtho.lt.3)) then
            goto 19
@@ -1192,7 +1202,7 @@ C*
 *
 * Get the Least square residual
 *
-       dnormres = dabs(H(jH+1,m+1))
+       dnormres = abs(H(jH+1,m+1))
 * ORNL
        if ((sPa.ne.DZRO).or.(mod(iterOut*m+jH,itMod).eq.0)) then
 *
@@ -1241,7 +1251,7 @@ C*
        endif
  38    continue
        if (sPa.ne.DZRO) then
-         dnormx = dsqrt((dot(1)))
+         dnormx = sqrt((dot(1)))
        endif
 *
        bea = dnormres/(sPA*dnormx+sPb)
@@ -1332,7 +1342,7 @@ C*
        endif
  43    continue
        if ((bea.le.cntl(1)).or.(iterOut*m+jH.ge.iterMax)) then
-         trueNormRes = dsqrt((dot(1)))
+         trueNormRes = sqrt((dot(1)))
 *
          if ((typePrec.eq.leftPrec).or.(typePrec.eq.dblePrec)) then  
 *
@@ -1362,7 +1372,7 @@ C*
        endif
  48    continue
        if ((bea.le.cntl(1)).or.(iterOut*m+jH.ge.iterMax)) then
-         dnormres = dsqrt((dot(1)))
+         dnormres = sqrt((dot(1)))
 *
          be = dnormres/(sPA*dnormx+sPb)
 * Save the backward error on a file if convergence history requested
@@ -1399,7 +1409,7 @@ C*
        if ((bea.le.cntl(1)).or.(iterOut*m+jH.ge.iterMax)) then
          if ((be.le.cntl(1)).or.(iterOut*m+jH.ge.iterMax)) then
            if (sA.ne.DZRO) then
-             dnormx = dsqrt((dot(1)))
+             dnormx = sqrt((dot(1)))
 *
            else
              dnormx = DONE
@@ -1547,11 +1557,11 @@ C*
        endif
  68    continue
        if (compRsd.eq.1) then
-         beta = dsqrt((dot(1)))
+         beta = sqrt((dot(1)))
 *
        else
 * Use recurrence to approximate the residual at restart
-         beta = dabs(H(m+1,m+1))
+         beta = abs(H(m+1,m+1))
 * Apply the Givens rotation is the reverse order
          do j=m,1,-1
            H(j,m+1)   = ZERO
@@ -1576,6 +1586,8 @@ C*
 *
 *
         subroutine init_dgmres(icntl,cntl)
+        USE GMRES_DIM
+        IMPLICIT NONE
 *
 *  Purpose
 *  =======
@@ -1592,7 +1604,7 @@ C*
 *  Arguments
 *  =========
 *
-* icntl    (input) INTEGER array. length 6
+* icntl    (output) INTEGER array. length 9
 *            icntl(1) : stdout for error messages
 *            icntl(2) : stdout for warnings
 *            icntl(3) : stdout for convergence history
@@ -1612,7 +1624,7 @@ C*
 *                       0 - use recurence formaula at restart
 *            icntl(9) : frequency of updated solution return to user
 *
-* cntl     (input) double precision array, length 5
+* cntl     (output) REAL(dp) array, length 5
 *            cntl(1) : tolerance for convergence
 *            cntl(2) : scaling factor for normwise perturbation on A
 *            cntl(3) : scaling factor for normwise perturbation on b
@@ -1623,8 +1635,8 @@ C*
 *
 * Output variables
 * ----------------
-       integer icntl(*)
-       double precision   cntl(*)
+       integer, INTENT(OUT)  :: icntl(9)
+       REAL(dp),INTENT(OUT)  :: cntl(5)
 *
        icntl(1) = 6
        icntl(2) = 6
@@ -1636,11 +1648,11 @@ C*
        icntl(8) = 1
        icntl(9) = HUGE(icntl(9))-1
 * 
-       cntl(1) = 1.0 d -5
-       cntl(2) = 0.0 d 0
-       cntl(3) = 0.0 d 0
-       cntl(4) = 0.0 d 0
-       cntl(5) = 0.0 d 0
+       cntl(1) = 1.E-5_dp    !1.0 d -5
+       cntl(2) = 0           !0.0 d 0
+       cntl(3) = 0           !0.0 d 0
+       cntl(4) = 0           !0.0 d 0
+       cntl(5) = 0           !0.0 d 0
 *
        return
        end

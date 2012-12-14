@@ -135,7 +135,6 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-
 !
 !     COMPUTE IOTA EVOLUTION EQUATION [STORED IN LMNSC(0,0) COMPONENT]
 !

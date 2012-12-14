@@ -20,7 +20,7 @@ C-----------------------------------------------
       REAL(rprec), ALLOCATABLE, DIMENSION(:) ::
      1   bsupu, bsupv, psubu, psubv
       REAL(rprec) :: dem, dem2, gpsi1, hiota1, ipsi1
-	INTEGER     :: istat
+      INTEGER     :: istat
 C-----------------------------------------------
 !
 !     HERE, W IS THE PART OF THE TRANSFORMATION FUNCTION P
@@ -46,7 +46,7 @@ C-----------------------------------------------
 !
       ALLOCATE(bsupu(nznt), bsupv(nznt), psubu(nznt), psubv(nznt),
      1         stat=istat)
-	IF (istat .ne. 0) STOP 'Allocation error in harfun!'
+      IF (istat .ne. 0) STOP 'Allocation error in harfun!'
 
       jacfac = gpsi(js) + hiota(js)*ipsi(js)
       IF (jacfac .eq. zero) 
