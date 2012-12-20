@@ -158,7 +158,7 @@
       ENDDO
 
       IF (a_ipch%ip_type .eq. 'p' .and. a_ipch%inDegrees) THEN
-         mod_signal(1) = mod_signal(1)*degree
+         mod_signal(1) = mod_signal(1)/degree
       END IF
 
 ! make up a sigma         
