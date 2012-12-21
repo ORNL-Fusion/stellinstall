@@ -529,9 +529,10 @@
 !  coosig_coeff     2d real array of coefficients for the combination
 !                   (a's in the type)
 !  coosig_type      Character array of combination types
-!                     'sum' - linear combination
-!                     'max' - maximum of wieghted signals
-!                     'min' - minimum of weighted signals
+!                     'sum'  - linear combination
+!                     'max'  - maximum of wieghted signals
+!                     'min'  - minimum of weighted signals
+!                     'diff' - difference between two signals
 !  coosig_name      Character array of coosig names
 !  coosig_units     Character array of coosig units
 !

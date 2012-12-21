@@ -61,6 +61,7 @@
 !       'sum'
 !       'max'
 !       'min'
+!       'diff'
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
@@ -70,6 +71,7 @@
 !          sum                s = Sum_over_i[a(i) * signal(index(i))]
 !          max                s = Max[a(i) * signal(index(i))]
 !          min                s = Min[a(i) * signal(index(i))]
+!          diff               s = a(1)*signal(index(1)) - a(2)*signal(index(2))
 !       name               character, name of coosig
 !       units              character, physical units that the data is measured in
 !       sigma_default      real, default value of the uncertainty in the data
@@ -162,6 +164,8 @@
          this % comb_type = 'max'
       CASE ('min')
          this % comb_type = 'min'
+      CASE ('diff')
+         this % comb_type = 'diff'
 
       CASE DEFAULT
          CALL err_fatal(sub_name // 'unrecognized comb_type: ',                &
