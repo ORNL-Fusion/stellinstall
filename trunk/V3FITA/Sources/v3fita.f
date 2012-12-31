@@ -1563,6 +1563,7 @@
      &      d_desc(idiag) % s_name,d_desc(idiag) % l_name,                     &
      &      d_desc(idiag) % units,d_desc(idiag))
       END DO
+      isig = idiag
 
       CALL getmem(mem)
       WRITE(*,*) 'Current Memory Usage (kB) is ',mem
