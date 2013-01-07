@@ -261,7 +261,6 @@
 !                     'sum'  - linear combination
 !                     'max'  - maximum of wieghted signals
 !                     'min'  - minimum of weighted signals
-!                     'diff' - difference of weighted signals
 !  coosig_name      Character array of coosig names
 !  coosig_units     Character array of coosig units
 

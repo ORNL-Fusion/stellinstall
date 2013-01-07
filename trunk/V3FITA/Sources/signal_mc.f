@@ -226,11 +226,6 @@
      &      tdata = -1.e99_rprec
          IF (TRIM(ADJUSTL(this_coosig % comb_type)) .eq. 'min')                &
      &      tdata = 1.e99_rprec
-! diff is a special case since it works on only two signals at a time.
-         IF (TRIM(ADJUSTL(this_coosig % comb_type)) .eq. 'diff')               &
-     &      tdata =                                                            &
-     &         this_coosig%a(1)*sdata(this_coosig%index(1))%data(1) -          &
-     &         this_coosig%a(2)*sdata(this_coosig%index(2))%data(1)
 
          tsigma = zero
          nc = SIZE(this_coosig % index)
@@ -254,9 +249,6 @@
      &               sdata(ind) % data(1))
                   tsigma = MIN(tsigma,this_coosig % a(ic) *                    &
      &               sdata(ind) % sigma(1))
-               CASE ('diff')
-                  EXIT ! Leave the DO loop. The signal was determined before the
-                       ! loop.
 
                CASE DEFAULT
                   CALL err_fatal(sub_name //'unrecognized comb_type: ',        &
