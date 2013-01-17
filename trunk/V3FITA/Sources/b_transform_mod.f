@@ -767,8 +767,9 @@
 !
 !  LOGIC:  The 2D (R,phi) ---> (x,y) transform matrix is
 !
-!   [B_x]  =  [ cos_phi     -sin_phi ]  [ B_R ]
-!   [B_y]  =  [ sin_phi      cos_phi ]  [B_phi]
+!   [B_x]  =  [ cos_phi      sin_phi    0]  [B_R  ]
+!   [B_y]  =  [-sin_phi      cos_phi    0]  [B_phi]
+!   [B_z]  =  [ 0            0          1]  [B_z  ]
 !
 !--------------------------------------------------------------------------------------
       USE stel_kinds
@@ -794,13 +795,13 @@
 
 
 !..................B_x component.....................................!
-      B_CAR(1) = B_cyl(1)*COS(x_cyl(2)) - B_cyl(2)*SIN(x_cyl(2))
+      B_CAR(1) =  B_cyl(1)*COS(x_cyl(2)) + B_cyl(2)*SIN(x_cyl(2))
 
 !...................B_y component.....................................!
-      B_CAR(2) = B_cyl(1)*SIN(x_cyl(2)) + B_cyl(2)*COS(x_cyl(2))
+      B_CAR(2) = -B_cyl(1)*SIN(x_cyl(2)) + B_cyl(2)*COS(x_cyl(2))
 
 !...................B_z component.....................................!
-      B_CAR(3) = B_cyl(3)
+      B_CAR(3) =  B_cyl(3)
 
 
       if ( PRESENT(MOD_B) ) then
