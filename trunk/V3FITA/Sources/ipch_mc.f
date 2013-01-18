@@ -103,7 +103,7 @@
 !------------------------------------------------------------------------------- 
       REAL(rprec), DIMENSION(3) :: r_cyl
       REAL(rprec), DIMENSION(3) :: xcart, dxcart
-      REAL(rprec), DIMENSION(3) :: bcart
+      REAL(rprec), DIMENSION(3) :: bcart = 0
 
 !------------------------------------------------------------------------------- 
 ! other declarations
@@ -148,7 +148,7 @@
 
             CASE ('p')
 !  Compute the faraday rotation angle in radians.
-               CALL COMPUTE_B_CAR(r_cyl, bcart)
+               CALL eq_get_B_field(a_model%eqstate, r_cyl, bcart)
                mod_signal(1) = mod_signal(1) +                                 &
      &            2.62E-13 * (a_ipch%wavelength**2) *                          &
      &            model_get_ne_xcyl(a_model,r_cyl) *                           &

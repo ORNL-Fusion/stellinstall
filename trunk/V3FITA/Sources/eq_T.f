@@ -2136,10 +2136,11 @@
       RETURN
                
       END FUNCTION eq_get_pressure_x
+
 !-------------------------------------------------------------------------------
 !  Get vmec flux coordinates
 !-------------------------------------------------------------------------------
-        SUBROUTINE eq_get_flux(this,x_cylin,c_flux)
+      SUBROUTINE eq_get_flux(this, x_cylin, c_flux, ru, zu, rv, zv)
 
 !  Subroutine to return the VMEC s,u,v coordinates (in c_flux)
 !  for an equilibrium state and cylindrical coordinates R,phi,Z
@@ -2178,7 +2179,13 @@
       TYPE (eq_state), TARGET, INTENT (inout)          :: this
       REAL(rprec), INTENT (in)                         :: x_cylin(3)
       REAL(rprec), INTENT(inout)                       :: c_flux(3)
-      
+
+! Optional Arguments
+      REAL(rprec), INTENT(out), OPTIONAL               :: ru
+      REAL(rprec), INTENT(out), OPTIONAL               :: rv
+      REAL(rprec), INTENT(out), OPTIONAL               :: zu
+      REAL(rprec), INTENT(out), OPTIONAL               :: zv
+
 !  Pointers to components
       TYPE (eq_aux_1), POINTER :: aux1 => null()
 
@@ -2221,7 +2228,7 @@
 
       CALL cyl2flx(aux1 % rzl, r_cyl, c_flux, ns_local, ntor_local,            &
      &   mpol_local,ntmax_local,lthreed_local,lasym_local,info_local,          &
-     &   nfe_local,fmin_local)
+     &   nfe_local,fmin_local, ru = ru, rv = rv, zu = zu, zv = zv)
         
         
 !  info_local = -1, did not converge
@@ -2238,7 +2245,62 @@
 
       RETURN
       END SUBROUTINE eq_get_flux
-    
+
+!-------------------------------------------------------------------------------
+!  Get B Field vector in carteasian coordinates.
+!-------------------------------------------------------------------------------
+      SUBROUTINE eq_get_B_field(this, x_cylin, b_cart)
+
+!  Subroutine to return the magnetic field in cartesian coordinates
+!
+!    Arguments
+!  this          An eq_state (inout)
+!  x_cylin       Array of cylindrical coordinates R, Phi, Z (in)
+!  b_cart        Array of cartesian B field components (out)
+
+      USE coordinate_utilities, ONLY : cyl_to_cart_vec
+      USE read_wout_mod, ONLY : tosuvspace
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (eq_state), TARGET, INTENT (inout) :: this
+      REAL(rprec), INTENT(in)                 :: x_cylin(3)
+      REAL(rprec), INTENT(out)                :: b_cart(3)
+
+!  Declare local variables
+      REAL(rprec)                             :: c_flux(3)
+      REAL(rprec)                             :: ru, rv, zu, zv
+      REAL(rprec)                             :: bsupu, bsupv
+      REAL(rprec)                             :: b_cyl(3)
+
+!----------------------------------------------------------------------
+!-- Start of executable code                                         --
+!----------------------------------------------------------------------
+
+! Get convert cylindrical position into suv space with the covariant basis
+! vectors.
+      CALL eq_get_flux(this, x_cylin, c_flux, ru, zu, rv, zv)
+
+! Get Covariant magnetic field components.
+      CALL tosuvspace(c_flux(1), c_flux(2), c_flux(3),                         &
+     &                bsupu = bsupu, bsupv = bsupv)
+
+! Transform flux surface space magnetic field vector to flux surface space.
+! Transformation matrix is
+!
+! [  b_r  ]   [ dr/ds dr/du dr/dv ]   [ B^s ]
+! [ b_phi ] = [ 0     0     r     ] * [ B^u ]
+! [  b_z  ]   [ dz/ds dz/du dz/dv ]   [ B^v ]
+
+      b_cyl(1) = ru*bsupu + rv*bsupv
+      b_cyl(2) = x_cylin(1)*bsupv
+      b_cyl(3) = zu*bsupu + zu*bsupv
+
+! Transform cylindrical magnetic field vector to cartesian
+      b_cart = cyl_to_cart_vec(c_flux, b_cyl)
+
+      END SUBROUTINE eq_get_B_field
+
 !*******************************************************************************
 ! SECTION IX.   OTHER SUBROUTINES
 !*******************************************************************************

@@ -19,7 +19,7 @@
 !  Public Functions and Subroutines.
 !*******************************************************************************
 !*******************************************************************************
-!  Convert from carteasan coordinates to cylindical coordinates.
+!  Convert from cartesian coordinates to cylindical coordinates.
 !*******************************************************************************
       FUNCTION cart_to_cyl(cart)
       IMPLICIT NONE
@@ -40,7 +40,7 @@
       END FUNCTION
 
 !*******************************************************************************
-!  Convert from cylindical coordinates to carteasan coordinates.
+!  Convert from cylindical coordinates to cartesian coordinates.
 !
 !  NOTE: Phi must be in radians.
 !
@@ -60,6 +60,37 @@
       cyl_to_cart(1) = cyl(1)*COS(cyl(2))
       cyl_to_cart(2) = cyl(1)*SIN(cyl(2))
       cyl_to_cart(3) = cyl(3)
+
+      END FUNCTION
+
+!*******************************************************************************
+!  Convert vector from cylindical coordinates to cartesian coordinates.
+!
+!  NOTE: Phi must be in radians.
+!
+!*******************************************************************************
+      FUNCTION cyl_to_cart_vec(cyl, vec)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      REAL(rprec), DIMENSION(3), INTENT(in) :: cyl
+      REAL(rprec), DIMENSION(3), INTENT(in) :: vec
+      REAL(rprec), DIMENSION(3)             :: cyl_to_cart_vec
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+! Transformation matrix is
+!
+! [ v_x ]   [ cos[phi] -sin[phi] 0 ]   [  v_r  ]
+! [ v_y ] = [ sin[phi]  cos[phi] 0 ] * [ v_phi ]
+! [ v_z ]   [ 0         0        1 ]   [  v_z  ]
+
+      cyl_to_cart_vec(1) = COS(cyl(2))*vec(1) - SIN(cyl(2))*vec(2)
+      cyl_to_cart_vec(2) = SIN(cyl(2))*vec(1) + COS(cyl(2))*vec(2)
+      cyl_to_cart_vec(3) = vec(3)
 
       END FUNCTION
 
