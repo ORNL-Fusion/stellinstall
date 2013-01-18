@@ -2258,7 +2258,7 @@
 !  x_cylin       Array of cylindrical coordinates R, Phi, Z (in)
 !  b_cart        Array of cartesian B field components (out)
 
-!      USE coordinate_utilities, ONLY : cyl_to_cart_vec
+      USE coordinate_utilities, ONLY : cyl_to_cart_vec
 !      USE read_wout_mod, ONLY : tosuvspace
       USE vmec_utils, ONLY : GetBcyl_WOUT
       IMPLICIT NONE
