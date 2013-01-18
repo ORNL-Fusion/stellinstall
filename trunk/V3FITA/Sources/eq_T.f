@@ -2258,8 +2258,9 @@
 !  x_cylin       Array of cylindrical coordinates R, Phi, Z (in)
 !  b_cart        Array of cartesian B field components (out)
 
-      USE coordinate_utilities, ONLY : cyl_to_cart_vec
-      USE read_wout_mod, ONLY : tosuvspace
+!      USE coordinate_utilities, ONLY : cyl_to_cart_vec
+!      USE read_wout_mod, ONLY : tosuvspace
+      USE vmec_utils, ONLY : GetBcyl_WOUT
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -2268,7 +2269,7 @@
       REAL(rprec), INTENT(out)                :: b_cart(3)
 
 !  Declare local variables
-      REAL(rprec)                             :: c_flux(3)
+      REAL(rprec)                             :: c_flux(3), s, u
       REAL(rprec)                             :: ru, rv, zu, zv
       REAL(rprec)                             :: bsupu, bsupv
       REAL(rprec)                             :: b_cyl(3)
@@ -2279,11 +2280,11 @@
 
 ! Get convert cylindrical position into suv space with the covariant basis
 ! vectors.
-      CALL eq_get_flux(this, x_cylin, c_flux, ru, zu, rv, zv)
+!      CALL eq_get_flux(this, x_cylin, c_flux, ru, zu, rv, zv)
 
 ! Get Covariant magnetic field components.
-      CALL tosuvspace(c_flux(1), c_flux(2), c_flux(3),                         &
-     &                bsupu = bsupu, bsupv = bsupv)
+!      CALL tosuvspace(c_flux(1), c_flux(2)*this%fixp%nfp, c_flux(3),                         &
+!     &                bsupu = bsupu, bsupv = bsupv)
 
 ! Transform flux surface space magnetic field vector to flux surface space.
 ! Transformation matrix is
@@ -2292,9 +2293,12 @@
 ! [ b_phi ] = [ 0     0     r     ] * [ B^u ]
 ! [  b_z  ]   [ dz/ds dz/du dz/dv ]   [ B^v ]
 
-      b_cyl(1) = ru*bsupu + rv*bsupv
-      b_cyl(2) = x_cylin(1)*bsupv
-      b_cyl(3) = zu*bsupu + zu*bsupv
+!      b_cyl(1) = ru*bsupu + rv*bsupv
+!      b_cyl(2) = x_cylin(1)*bsupv
+!      b_cyl(3) = zu*bsupu + zu*bsupv
+
+      CALL GetBcyl_WOUT(x_cylin(1), x_cylin(2), x_cylin(3),                    &
+     &                  b_cyl(1), b_cyl(2), b_cyl(3))
 
 ! Transform cylindrical magnetic field vector to cartesian
       b_cart = cyl_to_cart_vec(c_flux, b_cyl)
