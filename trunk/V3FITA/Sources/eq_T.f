@@ -2274,7 +2274,7 @@
      &                  b_cyl(1),   b_cyl(2),   b_cyl(3))
 
 ! Transform cylindrical magnetic field vector to cartesian
-      b_cart = cyl_to_cart_vec(c_flux, b_cyl)
+      b_cart = cyl_to_cart_vec(x_cylin, b_cyl)
 
       END SUBROUTINE eq_get_B_field
 
