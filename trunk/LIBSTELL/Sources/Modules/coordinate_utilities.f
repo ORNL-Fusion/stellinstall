@@ -168,6 +168,36 @@
       cood_utils_test = check(-1.0d+0, result(3), 9, "cyl_to_cart")
       IF (.not.cood_utils_test) RETURN
 
+! Test cyl_to_cart_vec function. cart(1,0,0) = cyl(1,0,0) @ phi=0
+      result = cyl_to_cart_vec((/ 1.0d+0, 0.0d+0, 0.0d+0 /),                   &
+     &                         (/ 1.0d+0, 0.0d+0, 0.0d+0 /))
+      cood_utils_test = check(1.0d+0, result(1), 1, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(0.0d+0, result(2), 2, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(0.0d+0, result(3), 3, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+
+! Test cyl_to_cart_vec function. cart(-1,0,0) = cyl(0,1,0) @ phi=0
+      result = cyl_to_cart_vec((/ 1.0d+0, 0.0d+0, 0.0d+0 /),                   &
+     &                         (/ 0.0d+0, 1.0d+0, 0.0d+0 /))
+      cood_utils_test = check(0.0d+0, result(1), 4, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(1.0d+0, result(2), 5, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(0.0d+0, result(3), 6, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+
+! Test cyl_to_cart_vec function. cart(0,0,1) = cyl(0,0,1) @ phi=Pi/2
+      result = cyl_to_cart_vec((/ 1.0d+0, pi/2.0d+0, 0.0d+0 /),                &
+     &                         (/ 0.0d+0, 0.0d+0, 1.0d+0 /))
+      cood_utils_test = check(0.0d+0, result(1), 7, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(0.0d+0, result(2), 8, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+      cood_utils_test = check(1.0d+0, result(3), 9, "cyl_to_cart_vec")
+      IF (.not.cood_utils_test) RETURN
+
       END FUNCTION
 
 !*******************************************************************************
