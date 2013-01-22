@@ -2,8 +2,6 @@ cmake_minimum_required (VERSION 2.8)
 
 # Append all source files to variable stell_sources. As new files are added this must be updated.
 list (APPEND v3fit_sources
-	${CMAKE_CURRENT_SOURCE_DIR}/b_transform_mod.f
-	${CMAKE_CURRENT_SOURCE_DIR}/b_transform_vmec.f
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
 	${CMAKE_CURRENT_SOURCE_DIR}/coosig_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/density_T.f
