@@ -2262,7 +2262,6 @@
       REAL(rprec), INTENT(out)                :: b_cart(3)
 
 !  Declare local variables
-      REAL(rprec)                             :: c_flux(3)
       REAL(rprec)                             :: b_cyl(3)
 
 !----------------------------------------------------------------------
