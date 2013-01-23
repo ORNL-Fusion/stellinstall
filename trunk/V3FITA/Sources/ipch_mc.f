@@ -124,7 +124,7 @@
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
 !  Load up the wout file
-      IF (.not. a_model%eqstate%l_def_aux2) THEN
+      IF (.not. a_model%eqstate%l_def_aux1) THEN
          CALL eq_aux_1_define(a_model%eqstate)
       END IF
 
