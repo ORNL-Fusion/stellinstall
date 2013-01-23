@@ -261,7 +261,7 @@
          !  use s_01, so that value is constant outside
             pprofile_value = zero
             DO i = iub_b, ilb_b, -1      ! all of b array, backwards
-               pprofile_value = (pprofile_value + this % b(i)) * s_01
+               pprofile_value = pprofile_value*s_01 + this%b(i)
             END DO
 
          CASE ('cubic_spline')
