@@ -4,7 +4,6 @@ cmake_minimum_required (VERSION 2.8)
 list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
 	${CMAKE_CURRENT_SOURCE_DIR}/coosig_T.f
-	${CMAKE_CURRENT_SOURCE_DIR}/density_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/edge_limit_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/edge_limit_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/eq_interface.f
