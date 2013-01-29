@@ -16,7 +16,7 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/getcarg.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/getfilesize.f
 	${CMAKE_CURRENT_SOURCE_DIR}/integral.f
-	${CMAKE_CURRENT_SOURCE_DIR}/line_segment_mod.f
+	${CMAKE_CURRENT_SOURCE_DIR}/line_segment.f
 	${CMAKE_CURRENT_SOURCE_DIR}/legendre_to_power.f
 	${CMAKE_CURRENT_SOURCE_DIR}/multxy.f
 	${CMAKE_CURRENT_SOURCE_DIR}/parse_extension.f
