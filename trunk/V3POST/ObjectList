@@ -1,5 +1,0 @@
-ObjectFiles = \
-v3post.o \
-spline_parm.o \
-bivariate.o \
-spline.o 

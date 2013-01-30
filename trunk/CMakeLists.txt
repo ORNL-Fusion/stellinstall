@@ -62,7 +62,6 @@ add_subdirectory (LIBSTELL)
 add_subdirectory (VMEC2000)
 add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
-add_subdirectory (V3POST)
 add_subdirectory (V3RFUN)
 add_subdirectory (BOOZ_XFORM)
 
