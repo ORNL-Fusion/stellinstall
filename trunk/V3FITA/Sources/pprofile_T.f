@@ -147,7 +147,7 @@
       SELECT CASE(TRIM(p_type_lc))
       
          CASE ('two_power', 'two_power_gs','power_series', 'none',             &
-     &         'cubic_spline', 'akima_spline','line_segment')
+     &         'cubic_spline', 'akima_spline', 'line_segment')
             this % p_type = p_type_lc
       
          CASE DEFAULT

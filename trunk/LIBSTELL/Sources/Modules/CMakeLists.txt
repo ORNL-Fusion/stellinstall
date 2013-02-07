@@ -20,6 +20,7 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/functions.f
         ${CMAKE_CURRENT_SOURCE_DIR}/ga_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/gade_mod.f
+	${CMAKE_CURRENT_SOURCE_DIR}/integration_path.f
         ${CMAKE_CURRENT_SOURCE_DIR}/ipch_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/math_utilities.f
         ${CMAKE_CURRENT_SOURCE_DIR}/mddc_cdf.f
