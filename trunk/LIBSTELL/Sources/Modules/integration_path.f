@@ -66,11 +66,15 @@
          vertices(1:UBOUND(this%vertices, 1)) = this%vertices
          DEALLOCATE(this%vertices)
          this%vertices = vertices
+
+         this%vertices(SIZE(vertices))%x = x
+         this%vertices(SIZE(vertices))%y = y
+         this%vertices(SIZE(vertices))%z = z
       ELSE
          ALLOCATE(this%vertices(1), STAT = status)
  
          this%vertices(1)%x = x
-         this%vertices(1)%z = y
+         this%vertices(1)%y = y
          this%vertices(1)%z = z
       ENDIF
 
