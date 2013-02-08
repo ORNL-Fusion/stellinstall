@@ -27,8 +27,10 @@
          MODULE PROCEDURE check_log, check_real, check_int
       END INTERFACE
 
-      PUBLIC :: path_append_vertex, path_destroy, path_test
-      PRIVATE :: check, check_real, check_log, check_int
+      PUBLIC :: path_append_vertex, path_destroy, path_test                    &
+     &          path_integrate
+      PRIVATE :: check, check_real, check_log, check_int, check_status         &
+     &           integrate, test_function
 
       CONTAINS
 
@@ -64,12 +66,14 @@
 ! Create a temporary array the same size as current number of vertices. Copy the
 ! contents of the old array to the new array then delete the old array.
          ALLOCATE(vertices(SIZE(this%vertices)), STAT = status)
+         CALL check_status(status)
          vertices(1:UBOUND(this%vertices, 1)) = this%vertices
          DEALLOCATE(this%vertices)
 
 ! Create a new array with one extra element. Copy the contents of the temporary
 ! arra to the new one the delete the temporary array.
-         ALLOCATE(this%vertices(SIZE(vertices) + 1))
+         ALLOCATE(this%vertices(SIZE(vertices) + 1), STAT = status)
+         CALL check_status(status)
          this%vertices = vertices
          DEALLOCATE(vertices)
 
@@ -78,7 +82,8 @@
          this%vertices(SIZE(this%vertices))%z = z
       ELSE
          ALLOCATE(this%vertices(1), STAT = status)
- 
+         CALL check_status(status)
+
          this%vertices(1)%x = x
          this%vertices(1)%y = y
          this%vertices(1)%z = z
@@ -110,8 +115,143 @@
       END SUBROUTINE
 
 !*******************************************************************************
+!  Integrate along the path.
+!
+!  This integrates the specified function along the path.
+!
+!*******************************************************************************
+      FUNCTION path_integrate(this, integration_function, context)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(path), INTENT(inout) :: this
+      REAL(rprec)               :: path_integrate
+      CHARACTER(len=1), INTENT(in) :: context(:)
+      INTERFACE
+         FUNCTION integration_function(context, xcart, dxcart, dx)
+         USE stel_kinds
+         CHARACTER(len=1), INTENT(in)          :: context(:)
+         REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+         REAL(rprec), INTENT(in)               :: dx
+         REAL(rprec)               :: integration_function
+         END FUNCTION
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!  Local Variable declarations.
+!-------------------------------------------------------------------------------
+      INTEGER :: i
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      IF (SIZE(this%vertices) .lt. 2) THEN
+         STOP 'Path integrals require a minimum of two vertices.'
+      ENDIF
+
+      DO i = 1, SIZE(this%vertices) - 1
+         path_integrate = path_integrate +                                     &
+     &                    integrate(context,                                   &
+     &                              this%vertices(i),                          &
+     &                              this%vertices(i + 1),                      &
+     &                              integration_function)
+      ENDDO
+
+      END FUNCTION
+
+!*******************************************************************************
 !  Private Functions and Subroutines.
 !*******************************************************************************
+!*******************************************************************************
+!  Integrate along the segment.
+!
+!  This integrates the specified function along the line specified by two
+!  vertices.
+!
+!*******************************************************************************
+      FUNCTION integrate(context, vertex1, vertex2,                            &
+     &                   integration_function)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(vertex), INTENT(in) :: vertex1, vertex2
+      REAL(rprec)              :: integrate
+      CHARACTER(len=1), INTENT(in) :: context(:)
+      INTERFACE
+         FUNCTION integration_function(context, xcart, dxcart, dx)
+         USE stel_kinds
+         CHARACTER(len=1), INTENT(in)          :: context(:)
+         REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+         REAL(rprec), INTENT(in)               :: dx
+         REAL(rprec)               :: integration_function
+         END FUNCTION
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!  Local Variable declarations.
+!-------------------------------------------------------------------------------
+      REAL(rprec), DIMENSION(3) :: xcart, dxcart
+      REAL(rprec)               :: dx
+      INTEGER                   :: nsteps, i
+
+!-------------------------------------------------------------------------------
+!  Local Variable declarations.
+!-------------------------------------------------------------------------------
+      REAL(rprec), PARAMETER :: dxOptimal = 0.0001
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+! Determine the number of integration steps to take by dividing the path length
+! by the step length and rounding to the nearest integer.
+      dxcart(1) = vertex2%x - vertex1%x
+      dxcart(2) = vertex2%y - vertex1%y
+      dxcart(3) = vertex2%z - vertex1%z
+
+! Store the entire length in dx temporarly.
+      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
+      nsteps = INT(dx/dxOptimal)
+
+! Choose the actual step size.
+      dxcart = dxcart/nsteps
+      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
+
+      integrate = 0.0
+      xcart = (/ vertex1%x, vertex1%y, vertex1%z /)
+      DO i = 1, nsteps
+         xcart = xcart + dxcart
+         integrate = integrate                                                 &
+     &             + integration_function(context, xcart, dxcart, dx)
+      ENDDO
+
+      END FUNCTION
+
+!*******************************************************************************
+!  Check Allocation Status
+!
+!  If an array allocation has failed terminate the program.
+!
+!*******************************************************************************
+      SUBROUTINE check_status(status)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      INTEGER, INTENT(in) :: status
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      IF (status .ne. 0) THEN
+         STOP 'ALLOCATION error in LIBSTELL integration_path.f'
+      ENDIF
+
+      END SUBROUTINE
 
 !*******************************************************************************
 !  Unit Test Functions
@@ -125,8 +265,10 @@
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-      LOGICAL :: path_test
-      TYPE(path) :: test_path
+      LOGICAL                       :: path_test
+      REAL(rprec)                   :: result
+      TYPE(path)                    :: test_path
+      CHARACTER(len=1), ALLOCATABLE :: context(:)
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -205,12 +347,23 @@
      &                  "path_destroy")
       IF (.not.path_test) RETURN
 
+! Test path integration.
+      CALL path_append_vertex(test_path,                                       &
+     &                        1.0_rprec, 0.0_rprec, 0.0_rprec)
+      CALL path_append_vertex(test_path,                                       &
+     &                        0.0_rprec, 0.0_rprec, 0.0_rprec)
+      result = path_integrate(test_path, test_function, context)
+      path_test = check(10000.0_rprec, result, 1, "path_integrate")
+      CALL path_destroy(test_path)
+
       END FUNCTION
 
 !*******************************************************************************
 !  Check Test result logical
 !*******************************************************************************
       FUNCTION check_log(expected, recieved, testNum, name)
+      IMPLICIT NONE
+
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
@@ -218,6 +371,7 @@
       LOGICAL, INTENT(in) :: expected, recieved
       INTEGER, INTENT(in) :: testNum
       CHARACTER (LEN=*), INTENT(in) :: name
+
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
@@ -234,6 +388,8 @@
 !  Check Test result real
 !*******************************************************************************
       FUNCTION check_real(expected, recieved, testNum, name)
+      IMPLICIT NONE
+
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
@@ -241,6 +397,7 @@
       REAL(rprec), INTENT(in) :: expected, recieved
       INTEGER, INTENT(in) :: testNum
       CHARACTER (LEN=*), INTENT(in) :: name
+
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
@@ -257,12 +414,15 @@
 !  Check Test result Integer
 !*******************************************************************************
       FUNCTION check_int(expected, recieved, testNum, name)
+      IMPLICIT NONE
+
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       LOGICAL :: check_int
       INTEGER, INTENT(in) :: expected, recieved, testNum
       CHARACTER (LEN=*), INTENT(in) :: name
+
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
@@ -272,6 +432,28 @@
      &              "failed."
          write(*,*) "Expected", expected, "Recieved", recieved
       END IF
+
+      END FUNCTION
+
+!*******************************************************************************
+!  Test Integration Function
+!*******************************************************************************
+      FUNCTION test_function(context, xcart, dxcart, dx)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+
+      CHARACTER(len=1), INTENT(in)          :: context(:)
+      REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL(rprec), INTENT(in)               :: dx
+      REAL(rprec)               :: test_function
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      test_function = 1.0
 
       END FUNCTION
 
