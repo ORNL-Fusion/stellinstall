@@ -124,6 +124,8 @@
          this % wavelength = wavelength
          this % inDegrees = inDegrees
 
+         this % choordPath % vertices => NULL()
+
          call path_append_vertex(this%choordPath,                              &
      &                           xcart_i(1), xcart_i(2), xcart_i(3))
          call path_append_vertex(this%choordPath,                              &
