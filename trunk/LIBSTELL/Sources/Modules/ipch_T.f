@@ -124,6 +124,8 @@
          this % wavelength = wavelength
          this % inDegrees = inDegrees
 
+!  Must NULL out the vertices array or else it will point to the last
+!  integration_path created in memory
          this % choordPath % vertices => NULL()
 
          call path_append_vertex(this%choordPath,                              &
