@@ -20,7 +20,7 @@
 !  Object representing a path. A path is defined by two or more vertex points.
 !*******************************************************************************
       TYPE path
-         TYPE(vertex), DIMENSION(:), POINTER :: vertices
+         TYPE(vertex), DIMENSION(:), POINTER :: vertices => NULL()
       END TYPE
 
       INTERFACE check
@@ -61,15 +61,21 @@
 !  Start of executable code
 !-------------------------------------------------------------------------------
       IF (ASSOCIATED(this%vertices)) THEN
-         ALLOCATE(vertices(SIZE(this%vertices) + 1), STAT = status)
-
+! Create a temporary array the same size as current number of vertices. Copy the
+! contents of the old array to the new array then delete the old array.
+         ALLOCATE(vertices(SIZE(this%vertices)), STAT = status)
          vertices(1:UBOUND(this%vertices, 1)) = this%vertices
          DEALLOCATE(this%vertices)
-         this%vertices = vertices
 
-         this%vertices(SIZE(vertices))%x = x
-         this%vertices(SIZE(vertices))%y = y
-         this%vertices(SIZE(vertices))%z = z
+! Create a new array with one extra element. Copy the contents of the temporary
+! arra to the new one the delete the temporary array.
+         ALLOCATE(this%vertices(SIZE(vertices) + 1))
+         this%vertices = vertices
+         DEALLOCATE(vertices)
+
+         this%vertices(SIZE(this%vertices))%x = x
+         this%vertices(SIZE(this%vertices))%y = y
+         this%vertices(SIZE(this%vertices))%z = z
       ELSE
          ALLOCATE(this%vertices(1), STAT = status)
  
@@ -155,18 +161,46 @@
       path_test = check(2, SIZE(test_path%vertices), 6,                        &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(4.0_rprec, test_path%vertices(2)%x, 7,                 &
+      path_test = check(1.0_rprec, test_path%vertices(1)%x, 7,                 &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(5.0_rprec, test_path%vertices(2)%y, 8,                 &
+      path_test = check(2.0_rprec, test_path%vertices(1)%y, 8,                 &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(6.0_rprec, test_path%vertices(2)%z, 9,                 &
+      path_test = check(3.0_rprec, test_path%vertices(1)%z, 9,                 &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(4.0_rprec, test_path%vertices(2)%x, 10,                &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(5.0_rprec, test_path%vertices(2)%y, 11,                &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(6.0_rprec, test_path%vertices(2)%z, 12,                &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+
+! Test to make sure third vertex is appended.
+      CALL path_append_vertex(test_path,                                       &
+     &                        7.0_rprec, 8.0_rprec, 9.0_rprec)
+      path_test = check(.true., ASSOCIATED(test_path%vertices), 13,            &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(3, SIZE(test_path%vertices), 14,                       &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(7.0_rprec, test_path%vertices(3)%x, 15,                &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(8.0_rprec, test_path%vertices(3)%y, 16,                &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(9.0_rprec, test_path%vertices(3)%z, 17,                &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
 ! Test to make sure path object is destroyed.
-      CALL path_destroy(test_path)       
+      CALL path_destroy(test_path)
       path_test = check(.false., ASSOCIATED(test_path%vertices), 1,            &
      &                  "path_destroy")
       IF (.not.path_test) RETURN

@@ -3646,6 +3646,7 @@
       USE line_segment
       USE coordinate_utilities
       USE functions
+      USE integration_path
 
 !----------------------------------------------------------------------
 ! L O C A L Variable Declarations
@@ -3663,6 +3664,9 @@
 ! Profile function tests
       test_passed = function_test()
       IF (test_passed) write(*,*) "Functions Test Passed"
+! Integration path tests
+      test_passed = path_test()
+      IF (test_passed) write(*,*) "Integration Path Test Passed"
 
       END SUBROUTINE
 
