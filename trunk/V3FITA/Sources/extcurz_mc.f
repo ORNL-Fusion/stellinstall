@@ -50,7 +50,7 @@
 
       CHARACTER(*), PARAMETER :: sub_name = 'extcurz_mc_model_compute'
       INTEGER :: ns, jj, istat
-      REAL(rprec) :: ds, bsubv00c, bsubv00s
+      REAL(rprec) :: ds, bsubv00c
       REAL(rprec), ALLOCATABLE :: svec(:), bvec(:)
 
 !-------------------------------------------------------------------------------
@@ -88,21 +88,12 @@
       CALL line_seg(  x=a_extcurz % s0,  y=bsubv00c,                           &
      &               xx=svec(2:ns),     yy=bvec(2:ns), n=ns-1 )
 
-      IF ( a_model % eqstate % fixp % lasym ) THEN
-         ! compute sine component bsubv00s
-         bvec(2:ns) = a_model % eqstate % aux1 % bsubvmns(1,2:ns)
-         CALL line_seg(  x=a_extcurz % s0,  y=bsubv00s,                        &
-     &                  xx=svec(2:ns),     yy=bvec(2:ns), n=ns-1 )
-      ELSE
-         bsubv00s = 0.
-      END IF
-
       ! free memory
       DEALLOCATE(svec,bvec,stat=istat)
       CALL assert_eq(0,istat,sub_name // 'svec, bvec dealloc')
 
       ! compute model: current = circuitation / mu0
-      mod_signal(1) = twopi * ( bsubv00c + bsubv00s ) / mu0
+      mod_signal(1) = twopi * bsubv00c / mu0
       mod_sigma (1) = 0.
 
       !WRITE(*,*) '               out =', mod_signal(1), mod_sigma(1)
