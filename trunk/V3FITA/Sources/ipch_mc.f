@@ -102,8 +102,11 @@
      &  'ipch_mc_model_compute'
       INTEGER, PARAMETER :: ipoints = 200 ! number of integration points
       INTEGER            :: ierr
+      CHARACTER(len=1), ALLOCATABLE :: context(:)
+      TYPE(pol_context)  :: p_context
+      INTEGER            :: context_length
 
-!-------------------------------------------------------------------------------      
+!-------------------------------------------------------------------------------
 ! cyl2flx declarations  - used for the subroutine cyl2flx call
 !------------------------------------------------------------------------------- 
       REAL(rprec), DIMENSION(3) :: r_cyl
@@ -135,29 +138,31 @@
          CALL eq_aux_1_define(a_model%eqstate)
       END IF
 
-!  Integrate ne*dl along the cord.
-      dxcart = (a_ipch % xcart_f - a_ipch % xcart_i)/ipoints
-      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
-      mod_signal(1) = 0.0
-      DO istep=1,ipoints
-         xcart = a_ipch % xcart_i + istep * dxcart
-         r_cyl = cart_to_cyl(xcart)
-         SELECT CASE(a_ipch % ip_type)
+      SELECT CASE(a_ipch % ip_type)
             
-            CASE DEFAULT
-               mod_signal(1) = mod_signal(1) +                                 &
-     &            model_get_ne_xcyl(a_model,r_cyl) * dx
+         CASE DEFAULT
+!  Compute the line average density
+            context_length = SIZE(TRANSFER(a_model, context))
+            ALLOCATE(context(context_length))
+            context = TRANSFER(a_model, context)
+            mod_signal(1) = path_integrate(a_ipch%choordPath,                  &
+     &                                     int_function,                       &
+     &                                     context)
+            DEALLOCATE(context)
 
-            CASE ('p')
+         CASE ('p')
 !  Compute the faraday rotation angle in radians.
-               CALL eq_get_B_field(a_model%eqstate, r_cyl, bcart)
-               mod_signal(1) = mod_signal(1) +                                 &
-     &            2.62E-13 * (a_ipch%wavelength**2) *                          &
-     &            model_get_ne_xcyl(a_model,r_cyl) *                           &
-     &            DOT_PRODUCT(bcart,dxcart)
+            p_context%a_model = a_model
+            p_context%wavelength = a_ipch%wavelength
+            context_length = SIZE(TRANSFER(p_context, context))
+            ALLOCATE(context(context_length))
+            context = TRANSFER(p_context, context)
+            mod_signal(1) = path_integrate(a_ipch%choordPath,                  &
+     &                                     pol_function,                       &
+     &                                     context)
+            DEALLOCATE(context)
 
-         END SELECT
-      ENDDO
+      END SELECT
 
       IF (a_ipch%ip_type .eq. 'p' .and. a_ipch%inDegrees) THEN
          mod_signal(1) = mod_signal(1)/degree
