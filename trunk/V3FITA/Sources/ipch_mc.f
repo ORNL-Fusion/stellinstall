@@ -45,10 +45,17 @@
 
 !------------------------------------------------------------------------------
       IMPLICIT NONE
-      
+
+      TYPE pol_context
+         TYPE(model) :: a_model
+         REAL(rprec) :: wavelength
+      END TYPE
+
 !*******************************************************************************
 ! SECTION II.  INTERFACE BLOCKS
 !*******************************************************************************
+
+      PRIVATE :: int_function, pol_function, pol_context
 
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
@@ -161,6 +168,73 @@
       mod_sigma(1)=0.0
          
       END SUBROUTINE ipch_mc_model_compute
+
+!*******************************************************************************
+!  Interferometer Integration Function
+!
+!  lineAve = Int[ne*dl]
+!
+!*******************************************************************************
+      FUNCTION int_function(context, xcart, dxcart, dx)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      CHARACTER(len=1), INTENT(in)          :: context(:)
+      REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL(rprec), INTENT(in)               :: dx
+      REAL(rprec)                           :: int_function
+
+!-------------------------------------------------------------------------------
+!  Local Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(model) :: a_model
+      REAL(rprec), DIMENSION(3) :: r_cyl
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      a_model = TRANSFER(context, a_model)
+      r_cyl = cart_to_cyl(xcart)
+      int_function = model_get_ne_xcyl(a_model, r_cyl)*dx
+
+      END FUNCTION
+
+!*******************************************************************************
+!  Polarimetry Integration Function
+!
+!  Phi = 2.62E-13*lamba^2*Int[ne*B.dl]
+!
+!*******************************************************************************
+      FUNCTION pol_function(context, xcart, dxcart, dx)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      CHARACTER(len=1), INTENT(in)          :: context(:)
+      REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL(rprec), INTENT(in)               :: dx
+      REAL(rprec)                           :: pol_function
+
+!-------------------------------------------------------------------------------
+!  Local Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(pol_context) :: p_context
+      REAL(rprec), DIMENSION(3) :: r_cyl, bcart
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      p_context = TRANSFER(context, p_context)
+      r_cyl = cart_to_cyl(xcart)
+      CALL eq_get_B_field(p_context%a_model%eqstate, r_cyl, bcart)
+      pol_function = 2.62E-13*(p_context%wavelength**2)                        &
+     &             * model_get_ne_xcyl(p_context%a_model, r_cyl)               &
+     &             * DOT_PRODUCT(bcart, dxcart)
+
+      END FUNCTION
 
 !*******************************************************************************
 ! SECTION X.  COMMENTS FOR DIFFERENT REVISIONS

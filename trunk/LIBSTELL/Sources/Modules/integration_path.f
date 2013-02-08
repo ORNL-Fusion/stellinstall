@@ -199,9 +199,9 @@
       INTEGER                   :: nsteps, i
 
 !-------------------------------------------------------------------------------
-!  Local Variable declarations.
+!  Local Parameter declarations.
 !-------------------------------------------------------------------------------
-      REAL(rprec), PARAMETER :: dxOptimal = 0.0001
+      REAL(rprec), PARAMETER :: dxOptimal = 0.0025
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -353,7 +353,7 @@
       CALL path_append_vertex(test_path,                                       &
      &                        0.0_rprec, 0.0_rprec, 0.0_rprec)
       result = path_integrate(test_path, test_function, context)
-      path_test = check(10000.0_rprec, result, 1, "path_integrate")
+      path_test = check(400.0_rprec, result, 1, "path_integrate")
       CALL path_destroy(test_path)
 
       END FUNCTION
@@ -444,7 +444,6 @@
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
-
       CHARACTER(len=1), INTENT(in)          :: context(:)
       REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
       REAL(rprec), INTENT(in)               :: dx
