@@ -94,11 +94,6 @@
 !-------------------------------------------------------------------------------
 !  Variables local to the module. Make them private.
 !-------------------------------------------------------------------------------
-!      TYPE (ipch_desc), SAVE :: ipch_desc_temp
-!     PRIVATE ipch_desc_temp
-
-!  ipch_desc_temp    A temporary ipch_desc. SAVE attribute - see note in 
-!                         diagostic_dot about Lahey Fujitsu compiler
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -239,9 +234,6 @@
          ENDIF
          
       END DO
-
-!  Clean up
-!      CALL ipch_desc_destroy(ipch_desc_temp)
 
 !  Close the 'ipch.' file
       CALL signal_dot_close(ipch_dot_file_ref)

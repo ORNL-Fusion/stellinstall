@@ -152,6 +152,7 @@
          STOP 'Path integrals require a minimum of two vertices.'
       ENDIF
 
+      path_integrate = 0.0
       DO i = 1, SIZE(this%vertices) - 1
          path_integrate = path_integrate +                                     &
      &                    integrate(context,                                   &
