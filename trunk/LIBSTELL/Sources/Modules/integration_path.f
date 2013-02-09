@@ -71,7 +71,7 @@
          DEALLOCATE(this%vertices)
 
 ! Create a new array with one extra element. Copy the contents of the temporary
-! arra to the new one the delete the temporary array.
+! array to the new one the delete the temporary array.
          ALLOCATE(this%vertices(SIZE(vertices) + 1), STAT = status)
          CALL check_status(status)
          this%vertices(1:SIZE(vertices)) = vertices
@@ -110,6 +110,7 @@
 !-------------------------------------------------------------------------------
       IF (ASSOCIATED(this%vertices)) THEN
          DEALLOCATE(this%vertices)
+         this%vertices => NULL()
       ENDIF
 
       END SUBROUTINE

@@ -145,7 +145,7 @@
             context_length = SIZE(TRANSFER(a_model, context))
             ALLOCATE(context(context_length))
             context = TRANSFER(a_model, context)
-            mod_signal(1) = path_integrate(a_ipch%choordPath,                  &
+            mod_signal(1) = path_integrate(a_ipch%chordPath,                   &
      &                                     int_function,                       &
      &                                     context)
             DEALLOCATE(context)
@@ -157,7 +157,7 @@
             context_length = SIZE(TRANSFER(p_context, context))
             ALLOCATE(context(context_length))
             context = TRANSFER(p_context, context)
-            mod_signal(1) = path_integrate(a_ipch%choordPath,                  &
+            mod_signal(1) = path_integrate(a_ipch%chordPath,                   &
      &                                     pol_function,                       &
      &                                     context)
             DEALLOCATE(context)
