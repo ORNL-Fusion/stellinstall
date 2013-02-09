@@ -67,14 +67,14 @@
 ! contents of the old array to the new array then delete the old array.
          ALLOCATE(vertices(SIZE(this%vertices)), STAT = status)
          CALL check_status(status)
-         vertices(1:UBOUND(this%vertices, 1)) = this%vertices
+         vertices = this%vertices
          DEALLOCATE(this%vertices)
 
 ! Create a new array with one extra element. Copy the contents of the temporary
 ! arra to the new one the delete the temporary array.
          ALLOCATE(this%vertices(SIZE(vertices) + 1), STAT = status)
          CALL check_status(status)
-         this%vertices = vertices
+         this%vertices(1:SIZE(vertices)) = vertices
          DEALLOCATE(vertices)
 
          this%vertices(SIZE(this%vertices))%x = x

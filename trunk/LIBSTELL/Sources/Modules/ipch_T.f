@@ -128,9 +128,9 @@
 !  integration_path created in memory
          this % choordPath % vertices => NULL()
 
-         call path_append_vertex(this%choordPath,                              &
+         CALL path_append_vertex(this%choordPath,                              &
      &                           xcart_i(1), xcart_i(2), xcart_i(3))
-         call path_append_vertex(this%choordPath,                              &
+         CALL path_append_vertex(this%choordPath,                              &
      &                           xcart_f(1), xcart_f(2), xcart_f(3))
 
       END SUBROUTINE ipch_desc_construct
