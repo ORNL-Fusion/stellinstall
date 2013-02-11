@@ -34,6 +34,7 @@
       USE stel_kinds , only : rprec
       USE stel_constants, only : pi, zero
       USE safe_open_mod    !from LIBSTELL/MODULES
+      USE integration_path
      
 !-------------------------------------------------------------------------------
 !  Use Statements for other structures, V3 Utilities
@@ -74,7 +75,7 @@
 !-------------------------------------------------------------------------------
       TYPE sxrch_desc
         CHARACTER(LEN=chord_name_len) :: chord_name
-        REAL(rprec), DIMENSION(3) :: xcart_i, xcart_f
+        TYPE(path)                    :: chordPath
       END TYPE sxrch_desc
 
 !*******************************************************************************
@@ -90,8 +91,8 @@
 !
 !  For d_type = 'sxrch' (soft x-ray chord)
 !-------------------------------------------------------------------------------
-      SUBROUTINE sxrch_desc_construct(this,chord_name,                         &
-     &    xcart_i,xcart_f)             
+      SUBROUTINE sxrch_desc_construct(this, chord_name,                        &
+     &                                xcart_i, xcart_f)             
 
          IMPLICIT NONE
 
@@ -109,9 +110,16 @@
 
 !  Assignments    
          this % chord_name = chord_name
-         this % xcart_i = xcart_i
-         this % xcart_f = xcart_f
-      
+
+!  Must NULL out the vertices array or else it will point to the last
+!  integration_path created in memory
+         this % chordPath % vertices => NULL()
+
+         CALL path_append_vertex(this%chordPath,                              &
+     &                           xcart_i(1), xcart_i(2), xcart_i(3))
+         CALL path_append_vertex(this%chordPath,                              &
+     &                           xcart_f(1), xcart_f(2), xcart_f(3))
+
       END SUBROUTINE sxrch_desc_construct
 
 !*******************************************************************************
@@ -128,8 +136,8 @@
          TYPE (sxrch_desc),INTENT(inout) :: this
          
          this % chord_name = ''
-         this % xcart_i = zero
-         this % xcart_f = zero
+
+         CALL path_destroy(this%chordPath)
       
       END SUBROUTINE sxrch_desc_destroy
 
@@ -167,21 +175,30 @@
 ! Local Variables
 ! iou  - iounit to use
 ! istat - status of file opening
-!-------------------------------------------------------------------------------     
-     
+!-------------------------------------------------------------------------------
+      REAL(rprec), DIMENSION(3)    :: xcart_i
+      REAL(rprec), DIMENSION(3)    :: xcart_f
+
       INTEGER :: iou = 6
       INTEGER :: istat = 0      !status of safe_open call
-      
+
+      xcart_i(1) = this%chordPath%vertices(1)%x
+      xcart_i(2) = this%chordPath%vertices(1)%y
+      xcart_i(3) = this%chordPath%vertices(1)%z
+      xcart_f(1) = this%chordPath%vertices(2)%x
+      xcart_f(2) = this%chordPath%vertices(2)%y
+      xcart_f(3) = this%chordPath%vertices(2)%z
+
       IF (PRESENT(iounit).AND.PRESENT(filename)) THEN
          iou=iounit
          CALL safe_open(iou,istat,filename,'replace','formatted')
          WRITE(iou,*) 'chord name  - ', this % chord_name 
-         WRITE(iou,*) 'start position -', this % xcart_i
-         WRITE(iou,*) 'end position   -', this % xcart_f
+         WRITE(iou,*) 'start position -', xcart_i
+         WRITE(iou,*) 'end position   -', xcart_f
       ELSE
          WRITE(*,*)'chord name  - ',this % chord_name 
-         WRITE(*,*)'start position -',this % xcart_i
-         WRITE(*,*)'end position   -',this % xcart_f
+         WRITE(*,*)'start position -', xcart_i
+         WRITE(*,*)'end position   -', xcart_f
       END IF
       
       END SUBROUTINE sxrch_desc_write

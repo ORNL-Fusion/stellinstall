@@ -50,6 +50,8 @@
 ! SECTION II.  INTERFACE BLOCKS
 !*******************************************************************************
 
+      PRIVATE :: sxr_function
+
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
       CONTAINS
@@ -72,8 +74,8 @@
 !-------------------------------------------------------------------------------
 
       SUBROUTINE sxrch_mc_model_compute(a_sxrch,a_model,mod_signal,            &
-     &   mod_sigma)
-
+     &                                  mod_sigma)
+      IMPLICIT NONE
 !-------------------------------------------------------------------------------
 ! ARGUMENTS
 ! a_sxrch        - type sxrch_desc - holds sxr chord info
@@ -81,31 +83,18 @@
 ! mod_signal    - output of the generated signal
 ! mod_sigma     - output sigma      
 !------------------------------------------------------------------------------- 
-      TYPE (sxrch_desc), INTENT (inout)     :: a_sxrch
+      TYPE (sxrch_desc), INTENT (inout)    :: a_sxrch
       TYPE (model), INTENT (inout), TARGET :: a_model
-      REAL(rprec), POINTER, DIMENSION(:) :: mod_signal, mod_sigma
+      REAL(rprec), POINTER, DIMENSION(:)   :: mod_signal, mod_sigma
 
 !------------------------------------------------------------------------------- 
 ! local variables
 !------------------------------------------------------------------------------- 
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
+      CHARACTER(len=*), PARAMETER   :: sub_name =                              &
      &  'sxrch_mc_model_compute'
-      INTEGER, PARAMETER :: ipoints = 100 ! number of integration points
-     
-!-------------------------------------------------------------------------------      
-! cyl2flx declarations  - used for the subroutine cyl2flx call
-!------------------------------------------------------------------------------- 
-      REAL(rprec), DIMENSION(3) :: r_cyl
-      REAL(rprec), DIMENSION(3) :: xcart, dxcart
-      INTEGER :: points
-       
-!------------------------------------------------------------------------------- 
-! other declarations
-!
-!-------------------------------------------------------------------------------        
-      INTEGER       :: istat1
-      REAL(rprec)   :: dx               ! integration step size
-      INTEGER       :: istep
+      INTEGER                       :: istat1
+      CHARACTER(len=1), ALLOCATABLE :: context(:)
+      INTEGER                       :: context_length
 
 !-------------------------------------------------------------------------------
 !  START OF EXECUTABLE CODE
@@ -119,22 +108,51 @@
       ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
-!  Integrate sxrem*dl along the cord.
-      dxcart = (a_sxrch % xcart_f - a_sxrch % xcart_i)/ipoints
-      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
-      mod_signal(1) = 0.0
-      DO istep=1,ipoints
-         xcart = a_sxrch % xcart_i + istep * dxcart
-         r_cyl = cart_to_cyl(xcart)
-         mod_signal(1) = mod_signal(1) +                                       &
-     &      model_get_sxrem_xcyl(a_model,r_cyl) * dx
-      ENDDO
+!  Compute the line soft xray emissivity
+      context_length = SIZE(TRANSFER(a_model, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(a_model, context)
+      mod_signal(1) = path_integrate(a_sxrch%chordPath,                        &
+     &                               sxr_function, context)
+      DEALLOCATE(context)
 
 ! make up a sigma         
 !         mod_sigma(1)=0.5   Changed to zero JDH 2011-10-17
       mod_sigma(1)=0.0
          
       END SUBROUTINE sxrch_mc_model_compute
+
+!*******************************************************************************
+!  SXRem Integration Function
+!
+!  lineAve = Int[sxrem*dl]
+!
+!*******************************************************************************
+      FUNCTION sxr_function(context, xcart, dxcart, dx)
+      IMPLICIT NONE
+
+!-------------------------------------------------------------------------------
+!  Variable declarations.
+!-------------------------------------------------------------------------------
+      CHARACTER(len=1), INTENT(in)          :: context(:)
+      REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL(rprec), INTENT(in)               :: dx
+      REAL(rprec)                           :: sxr_function
+
+!-------------------------------------------------------------------------------
+!  Local Variable declarations.
+!-------------------------------------------------------------------------------
+      TYPE(model) :: a_model
+      REAL(rprec), DIMENSION(3) :: r_cyl
+
+!-------------------------------------------------------------------------------
+!  Start of executable code
+!-------------------------------------------------------------------------------
+      a_model = TRANSFER(context, a_model)
+      r_cyl = cart_to_cyl(xcart)
+      sxr_function = model_get_sxrem_xcyl(a_model, r_cyl)*dx
+
+      END FUNCTION
 
 !*******************************************************************************
 ! SECTION X.  COMMENTS FOR DIFFERENT REVISIONS

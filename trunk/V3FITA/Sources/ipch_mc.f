@@ -79,9 +79,7 @@
 !-------------------------------------------------------------------------------
 
       SUBROUTINE ipch_mc_model_compute(a_ipch,a_model,mod_signal,              &
-     &   mod_sigma)
-      USE stel_constants
-      USE read_wout_mod
+     &                                 mod_sigma)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -93,33 +91,17 @@
 !------------------------------------------------------------------------------- 
       TYPE (ipch_desc), INTENT (inout)     :: a_ipch
       TYPE (model), INTENT (inout), TARGET :: a_model
-      REAL(rprec), POINTER, DIMENSION(:) :: mod_signal, mod_sigma
+      REAL(rprec), POINTER, DIMENSION(:)   :: mod_signal, mod_sigma
 
 !------------------------------------------------------------------------------- 
 ! local variables
 !------------------------------------------------------------------------------- 
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
+      CHARACTER(len=*), PARAMETER   :: sub_name =                              &
      &  'ipch_mc_model_compute'
-      INTEGER, PARAMETER :: ipoints = 200 ! number of integration points
-      INTEGER            :: ierr
+      INTEGER                       :: istat1
       CHARACTER(len=1), ALLOCATABLE :: context(:)
-      TYPE(pol_context)  :: p_context
-      INTEGER            :: context_length
-
-!-------------------------------------------------------------------------------
-! cyl2flx declarations  - used for the subroutine cyl2flx call
-!------------------------------------------------------------------------------- 
-      REAL(rprec), DIMENSION(3) :: r_cyl
-      REAL(rprec), DIMENSION(3) :: xcart, dxcart
-      REAL(rprec), DIMENSION(3) :: bcart = 0
-
-!------------------------------------------------------------------------------- 
-! other declarations
-!
-!-------------------------------------------------------------------------------        
-      INTEGER       :: istat1
-      REAL(rprec)   :: dx               ! integration step size
-      INTEGER       :: istep
+      TYPE(pol_context)             :: p_context
+      INTEGER                       :: context_length
 
 !-------------------------------------------------------------------------------
 !  START OF EXECUTABLE CODE
