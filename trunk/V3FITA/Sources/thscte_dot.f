@@ -94,11 +94,6 @@
 !-------------------------------------------------------------------------------
 !  Variables local to the module. Make them private.
 !-------------------------------------------------------------------------------
-      TYPE (thscte_desc), SAVE :: thscte_desc_temp
-      PRIVATE thscte_desc_temp
-
-!  thscte_desc_temp     A temporary thscte_desc. SAVE attribute - see note in 
-!                         diagostic_dot about Lahey Fujitsu compiler
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -239,9 +234,6 @@
          
       END DO
 
-!  Clean up
-      CALL thscte_desc_destroy(thscte_desc_temp)
-
 !  Close the 'thscte.' file
       CALL signal_dot_close(thscte_dot_file_ref)
       
@@ -305,14 +297,13 @@
      &                            coordinate_type,                             &
      &                            chord_name,                                  &
      &                            xcart)
-      CALL thscte_desc_construct(thscte_desc_temp,chord_name,                  &
-     &                           xcart,point_type)
 
       icount_points = icount_points + 1
       IF (icount_points .gt. n_thscte_desc_arr) THEN
          WRITE(*,*) 'TOO MANY thscte. Increase dimensions'
       ELSE
-         thscte_desc_arr(icount_points) = thscte_desc_temp
+         CALL thscte_desc_construct(thscte_desc_arr(icount_points),            &
+     &                              chord_name, xcart, point_type)
       ENDIF
 
       END SUBROUTINE thscte_dot_parse_chord

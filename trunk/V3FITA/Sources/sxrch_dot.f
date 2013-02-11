@@ -91,11 +91,6 @@
 !-------------------------------------------------------------------------------
 !  Variables local to the module. Make them private.
 !-------------------------------------------------------------------------------
-      TYPE (sxrch_desc), SAVE :: sxrch_desc_temp
-      PRIVATE sxrch_desc_temp
-
-!  sxrch_desc_temp    A temporary sxrch_desc. SAVE attribute - see note in 
-!                         diagostic_dot about Lahey Fujitsu compiler
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -202,9 +197,6 @@
          
       END DO
 
-!  Clean up
-      CALL sxrch_desc_destroy(sxrch_desc_temp)
-
 !  Close the 'sxrch.' file
       CALL signal_dot_close(sxrch_dot_file_ref)
       
@@ -266,14 +258,13 @@
      &                            coordinate_type,                             &
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
-      CALL sxrch_desc_construct(sxrch_desc_temp,chord_name,                    &
-     &                          xcart_i,xcart_f)
 
       icount_chords = icount_chords + 1
       IF (icount_chords .gt. n_sxrch_desc_arr) THEN
          WRITE(*,*) 'TOO MANY SXRCH. Increase dimnesions'
       ELSE
-         sxrch_desc_arr(icount_chords) = sxrch_desc_temp
+         CALL sxrch_desc_construct(sxrch_desc_arr(icount_chords),              &
+     &                             chord_name, xcart_i, xcart_f)
       ENDIF
 
       END SUBROUTINE sxrch_dot_parse_chord
