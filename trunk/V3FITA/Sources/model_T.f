@@ -430,10 +430,8 @@
       TYPE (model), INTENT (inout)             :: this
       REAL (rprec), INTENT (in)                :: s_arg
 
-!  Declare local variables
-      REAL(rprec) :: ne
-      REAL(rprec) :: pressure
-      REAL(rprec) :: ne_norm = 1.E18         ! Normalizing constant, per Hartwell routine
+!  Declare local parameters
+      REAL(rprec), PARAMETER      :: ne_norm = 1.E18_rprec ! Normalizing constant, per Hartwell routine
       CHARACTER(len=*), PARAMETER :: sub_name = 'model_get_ne_s: '
                
 !  Start of executable code.
@@ -444,9 +442,9 @@
 
       CASE('pp_ne_vmec_p')
          IF (s_arg .le. one) THEN
-            ne = model_get_ne_s(this,s_arg)
-            pressure = model_get_p_s(this,s_arg)
-            model_get_sxrem_s = (ne / ne_norm) ** (3/2) * SQRT(pressure)   ! per comments         
+            model_get_sxrem_s =                                                &
+     &         (model_get_ne_s(this, s_arg)/ne_norm)**(3.0/2.0)                &
+     &         * SQRT(model_get_p_s(this, s_arg))   ! per comments
          ELSE
             model_get_sxrem_s = zero
          ENDIF
@@ -506,11 +504,9 @@
       REAL (rprec), INTENT (in)                :: s_arg
 
 !  Declare Parameters
-      REAL(rprec), PARAMETER :: eV_per_Joule = one / 1.602e-19
+      REAL(rprec), PARAMETER :: eV_per_Joule = one / 1.602e-19_rprec
 
 !  Declare local variables
-      REAL(rprec) :: ne                      ! electron density (m ** -3)
-      REAL(rprec) :: pressure                ! pressure
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'model_get_te_s: '
                
@@ -523,10 +519,9 @@
          model_get_te_s = pprofile_evaluate(this % pp_te,s_arg)
 
       CASE('pp_ne_vmec_p')
-         ne = model_get_ne_s(this,s_arg)
-         pressure = MAX(0.,eq_get_pressure_s(this % eqstate,s_arg))
          model_get_te_s = eV_per_Joule * this % e_pressure_fraction            &
-     &                  * pressure / ne
+     &                  * model_get_p_s(this, s_arg)                           &
+     &                  / model_get_ne_s(this, s_arg)
          
       CASE ('none')
          model_get_te_s = -2.E49_rprec
