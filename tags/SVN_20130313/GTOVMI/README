@@ -1,0 +1,11 @@
+Build instructions for xgtovmi are at the end of this file
+This is not built by the set5up script.
+It deliberately avoids libstell because of
+some naming conflicts.
+
+
+cd Release/
+ln -s ../Makefile.ifc ./Makefile
+ln -s ../Sources/*/*.f* .
+make 
+
