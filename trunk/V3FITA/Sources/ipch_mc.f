@@ -46,16 +46,11 @@
 !------------------------------------------------------------------------------
       IMPLICIT NONE
 
-      TYPE pol_context
-         TYPE(model) :: a_model
-         REAL(rprec) :: wavelength
-      END TYPE
-
 !*******************************************************************************
 ! SECTION II.  INTERFACE BLOCKS
 !*******************************************************************************
 
-      PRIVATE :: int_function, pol_function, pol_context
+      PRIVATE :: int_function, pol_function
 
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
@@ -100,8 +95,12 @@
      &  'ipch_mc_model_compute'
       INTEGER                       :: istat1
       CHARACTER(len=1), ALLOCATABLE :: context(:)
-      TYPE(pol_context)             :: p_context
       INTEGER                       :: context_length
+
+!-------------------------------------------------------------------------------
+! parameters
+!-------------------------------------------------------------------------------
+      REAL(rprec), PARAMETER :: polarConstant = 2.62E-13_rprec
 
 !-------------------------------------------------------------------------------
 !  START OF EXECUTABLE CODE
@@ -120,13 +119,16 @@
          CALL eq_aux_1_define(a_model%eqstate)
       END IF
 
+!  Cast model into a data to a context. This is the equivalent to casting to a
+!  void pointer in C.
+      context_length = SIZE(TRANSFER(a_model, context))
+      ALLOCATE(context(context_length))
+      context = TRANSFER(a_model, context)
+
       SELECT CASE(a_ipch % ip_type)
-            
+
          CASE DEFAULT
 !  Compute the line average density
-            context_length = SIZE(TRANSFER(a_model, context))
-            ALLOCATE(context(context_length))
-            context = TRANSFER(a_model, context)
             mod_signal(1) = path_integrate(a_ipch%chordPath,                   &
      &                                     int_function,                       &
      &                                     context)
@@ -134,17 +136,14 @@
 
          CASE ('p')
 !  Compute the faraday rotation angle in radians.
-            p_context%a_model = a_model
-            p_context%wavelength = a_ipch%wavelength
-            context_length = SIZE(TRANSFER(p_context, context))
-            ALLOCATE(context(context_length))
-            context = TRANSFER(p_context, context)
-            mod_signal(1) = path_integrate(a_ipch%chordPath,                   &
+            mod_signal(1) = polarConstant*(a_ipch%wavelength**2.0_rprec)       &
+     &                    * path_integrate(a_ipch%chordPath,                   &
      &                                     pol_function,                       &
      &                                     context)
-            DEALLOCATE(context)
 
       END SELECT
+
+      DEALLOCATE(context)
 
       IF (a_ipch%ip_type .eq. 'p' .and. a_ipch%inDegrees) THEN
          mod_signal(1) = mod_signal(1)/degree
@@ -208,17 +207,16 @@
 !-------------------------------------------------------------------------------
 !  Local Variable declarations.
 !-------------------------------------------------------------------------------
-      TYPE(pol_context) :: p_context
+      TYPE(model)               :: a_model
       REAL(rprec), DIMENSION(3) :: r_cyl, bcart
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      p_context = TRANSFER(context, p_context)
+      a_model = TRANSFER(context, a_model)
       r_cyl = cart_to_cyl(xcart)
-      CALL eq_get_B_field(p_context%a_model%eqstate, r_cyl, bcart)
-      pol_function = 2.62E-13*(p_context%wavelength**2)                        &
-     &             * model_get_ne_xcyl(p_context%a_model, r_cyl)               &
+      CALL eq_get_B_field(a_model%eqstate, r_cyl, bcart)
+      pol_function = model_get_ne_xcyl(a_model, r_cyl)                         &
      &             * DOT_PRODUCT(bcart, dxcart)
 
       END FUNCTION
