@@ -21,8 +21,6 @@
 !
 !  NetCDF variables:
 !    ncid    Reference to the netcdf file.
-!    status  Status value of the netcdf file. If this evaluates to anything
-!            that nf_noerror, then an assert is triggered.
 !
 !  Dimensions: Reference IDs for the created dimensions.
 !    maxnsteps_dim_id  The max number of reconstruction steps.
@@ -34,12 +32,10 @@
 !    
 !    g2_id (maxnsteps_dim_id) g^2 value for each reconstruction step.
 !
-!    vmec_rbc00_id (maxnsteps_dim_id) VMEC value of inital major radus
-!                                      position.
-!    vmec_rbc01_id (maxnsteps_dim_id) VMEC value of the inital oval radius in
-!                                      the r direction.
-!    vmec_zbs01_id (maxnsteps_dim_id) VMEC value of the inital oval radius in
-!                                      the z direction.
+!    vmec_rbc_id (maxnsteps_dim_id) VMEC radial cosine boundary coefficients.
+!    vmec_rbs_id (maxnsteps_dim_id) VMEC radial sine boundary coefficients.
+!    vmec_zbc_id (maxnsteps_dim_id) VMEC z cosine boundary coefficients.
+!    vmec_zbs_id (maxnsteps_dim_id) VMEC z sine boundary coefficients.
 !    vmec_l_sub_i_id (maxnsteps_dim_id) VMEC value of the internal inductance.
 !    vmec_kappa_p_id (maxnsteps_dim_id) VMEC value of the mean elongation.
 !
@@ -60,11 +56,12 @@
 !*******************************************************************************
       TYPE result_file
          PRIVATE
-         INTEGER :: ncid, status
+         INTEGER :: ncid
 ! Dimension IDs
          INTEGER :: maxnsteps_dim_id, nparam_dim_id, nsignal_dim_id
 ! Variable IDs
-         INTEGER :: vmec_rbc00_id, vmec_rbc01_id, vmec_zbs01_id,               &
+         INTEGER :: vmec_rbc_id, vmec_rbs_id,                                  &
+     &              vmec_zbc_id, vmec_zbs_id,                                  &
      &              vmec_l_sub_i_id, vmec_kappa_p_id
          INTEGER :: nsteps_id
          INTEGER :: g2_id
@@ -93,6 +90,8 @@
 !    nparam     Number of parameters.
 !    nsignal    Number of signals.
 !    string_len Max length of strings. Set to 80.
+!    boundary_i Number of ith boundary coefficients.
+!    boundary_j Number of jth boundary coefficients.
 !
 !  Variables:
 !    nsteps (INT) Actual number of reconstruction steps. This starts from zero.
@@ -103,9 +102,10 @@
 !    vmec_curtor Non-reconstructed plasma current.
 !    vmec_pres_scale Non-reconstructed plasma pressure.
 !
-!    vmec_rbc00   Inital major radus position.
-!    vmec_rbc01   Inital oval radius r direction.
-!    vmec_zbs01   Inital oval radius z direction.
+!    vmec_rbc     R direction cosine coefficients.
+!    vmec_rbs     R direction sine coefficients.
+!    vmec_zbc     Z direction cosine coefficients.
+!    vmec_zbs     Z direction sine coefficients.
 !    vmec_l_sub_i Internal inducance.
 !    vmec_kappa_p Mean elongation.
 !
@@ -143,11 +143,12 @@
       TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
      &   sd_model, sd_observed
       TYPE (result_file) :: result_output_file_create
-      INTEGER :: i, beginIndex, endIndex
+      INTEGER :: i, beginIndex, endIndex, status
 
 ! Netcdf ids that are not needed after this subroutine is finished.
 ! Dimension IDs
-      INTEGER :: string_len_id, nextcur_dim_id
+      INTEGER :: string_len_id, nextcur_dim_id,                                &
+     &           boundary_i_dim_id, boundary_j_dim_id
 ! Variable IDs
       INTEGER :: vmec_extcur_id, vmec_curtor_id, vmec_pres_scale_id
       INTEGER :: param_name_id, param_index_id
@@ -174,183 +175,165 @@
          endIndex = LEN(path)
       ENDIF
 
-      result_output_file_create%status =                                       &
-     &   nf_create("result." //                                                &
-     &             TRIM(path(beginIndex:endIndex)) //                          &
-     &             ".nc",                                                      &
-     &             nf_clobber,                                                 &
-     &             result_output_file_create%ncid)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_create("result." //                                          &
+     &                   TRIM(path(beginIndex:endIndex)) //                    &
+     &                   ".nc",                                                &
+     &                   nf_clobber,                                           &
+     &                   result_output_file_create%ncid)
+      CALL result_output_check_error(status)
 
 ! Define dimensions for data.
-      result_output_file_create%status =                                       &
-     &   nf_def_dim(result_output_file_create%ncid,                            &
-     &              "nextcur",                                                 &
-     &              model_a%eqstate%fixp%nextcur,                              &
-     &              nextcur_dim_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_dim(result_output_file_create%ncid,                      &
+     &                    "nextcur",                                           &
+     &                    model_a%eqstate%fixp%nextcur,                        &
+     &                    nextcur_dim_id)
+      CALL result_output_check_error(status)
 
 ! Add space dimension for all reconstruction steps including a step before
 ! reconstruction.
-      result_output_file_create%status =                                       &
-     &   nf_def_dim(result_output_file_create%ncid,                            &
-     &              "maxnsteps",                                               &
-     &              nrstep + 1,                                                &
-     &              result_output_file_create%maxnsteps_dim_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_dim(result_output_file_create%ncid,                      &
+     &                    "maxnsteps", nrstep + 1,                             &
+     &                    result_output_file_create%maxnsteps_dim_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
-     &   nf_def_dim(result_output_file_create%ncid,                            &
-     &              "nparam",                                                  &
-     &              n_rparam,                                                  &
-     &              result_output_file_create%nparam_dim_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_dim(result_output_file_create%ncid,                      &
+     &                    "nparam", n_rparam,                                  &
+     &                    result_output_file_create%nparam_dim_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
-     &   nf_def_dim(result_output_file_create%ncid,                            &
-     &              "nsignal",                                                 &
-     &              n_sdata_o,                                                 &
-     &              result_output_file_create%nsignal_dim_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_dim(result_output_file_create%ncid,                      &
+     &                    "nsignal", n_sdata_o,                                &
+     &                    result_output_file_create%nsignal_dim_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
-     &   nf_def_dim(result_output_file_create%ncid,                            &
-     &              "string_len",                                              &
-     &              80,                                                        &
-     &              string_len_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_dim(result_output_file_create%ncid,                      &
+     &                    "string_len", 80,                                    &
+     &                    string_len_id)
+      CALL result_output_check_error(status)
+
+      status =                                                                 &
+     &   nf_def_dim(result_output_file_create%ncid, "boundary_i",              &
+     &              model_a%eqstate%varp%rbc_bounds(2)                         &
+     &              - model_a%eqstate%varp%rbc_bounds(1),                      &
+     &              boundary_i_dim_id)
+      CALL result_output_check_error(status)
+
+      status =                                                                 &
+     &   nf_def_dim(result_output_file_create%ncid, "boundary_j",              &
+     &              model_a%eqstate%varp%rbc_bounds(4)                         &
+     &              - model_a%eqstate%varp%rbc_bounds(3),                      &
+     &              boundary_j_dim_id)
+      CALL result_output_check_error(status)
 
 ! Define variables for data.
-      result_output_file_create%status =                                       &
-     &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "nsteps",                                                  &
-     &              nf_int,                                                    &
-     &              0, 0,                                                      &
-     &              result_output_file_create%nsteps_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_var(result_output_file_create%ncid,                      &
+     &                    "nsteps", nf_int, 0, 0,                              &
+     &                    result_output_file_create%nsteps_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "g2",                                                      &
-     &              nf_double,                                                 &
-     &              1,                                                         &
+     &              "g2", nf_double, 1,                                        &
      &              (/ result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%g2_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
 ! Define vmec variables.
-      result_output_file_create%status =                                       &
-     &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_extcur",                                             &
-     &              nf_double,                                                 &
-     &              1,                                                         &
-     &              (/ nextcur_dim_id /),                                      &
-     &              vmec_extcur_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_var(result_output_file_create%ncid,                      &
+     &                    "vmec_extcur", nf_double, 1,                         &
+     &                    (/ nextcur_dim_id /), vmec_extcur_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
-     &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_curtor",                                             &
-     &              nf_double,                                                 &
-     &              0, 0,                                                      &
-     &              vmec_curtor_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_def_var(result_output_file_create%ncid,                      &
+     &                    "vmec_curtor", nf_double, 0, 0,                      &
+     &                    vmec_curtor_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
-     &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_pres_scale",                                         &
-     &              nf_double,                                                 &
-     &              0, 0,                                                      &
-     &              vmec_pres_scale_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      status =  nf_def_var(result_output_file_create%ncid,                     &
+     &                     "vmec_pres_scale", nf_double, 0, 0,                 &
+     &                     vmec_pres_scale_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_rbc00",                                              &
-     &              nf_double,                                                 &
-     &              1,                                                         &
-     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
-     &              result_output_file_create%vmec_rbc00_id)
-      CALL result_output_check_error(result_output_file_create%status)
+     &              "vmec_rbc", nf_double, 3,                                  &
+     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &                 result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_rbc_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_rbc01",                                              &
-     &              nf_double,                                                 &
-     &              1,                                                         &
-     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
-     &              result_output_file_create%vmec_rbc01_id)
-      CALL result_output_check_error(result_output_file_create%status)
+     &              "vmec_rbs", nf_double, 3,                                  &
+     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &                 result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_rbs_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_zbs01",                                              &
-     &              nf_double,                                                 &
-     &              1,                                                         &
-     &              (/ result_output_file_create%maxnsteps_dim_id /),          &
-     &              result_output_file_create%vmec_zbs01_id)
-      CALL result_output_check_error(result_output_file_create%status)
+     &              "vmec_zbc", nf_double, 3,                                  &
+     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &                 result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_zbc_id)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_l_sub_i",                                            &
-     &              nf_double,                                                 &
-     &              1,                                                         &
+     &              "vmec_zbs", nf_double, 3,                                  &
+     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &                 result_output_file_create%maxnsteps_dim_id /),          &
+     &              result_output_file_create%vmec_zbs_id)
+      CALL result_output_check_error(status)
+
+      status =                                                                 &
+     &   nf_def_var(result_output_file_create%ncid,                            &
+     &              "vmec_l_sub_i", nf_double, 1,                              &
      &              (/ result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%vmec_l_sub_i_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "vmec_kappa_p",                                            &
-     &              nf_double,                                                 &
-     &              1,                                                         &
+     &              "vmec_kappa_p", nf_double, 1,                              &
      &              (/ result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%vmec_kappa_p_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
 ! Define reconstruction parameter variables.
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "param_name",                                              &
-     &              nf_char,                                                   &
-     &              2,                                                         &
+     &              "param_name", nf_char, 2,                                  &
      &              (/ string_len_id,                                          &
      &                 result_output_file_create%nparam_dim_id /),             &
      &              param_name_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "param_index",                                             &
-     &              nf_int,                                                    &
-     &              1,                                                         &
+     &              "param_index", nf_int, 1,                                  &
      &              (/ result_output_file_create%nparam_dim_id /),             &
      &              param_index_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "param_value",                                             &
-     &              nf_double,                                                 &
-     &              2,                                                         &
+     &              "param_value", nf_double, 2,                               &
      &              (/ result_output_file_create%nparam_dim_id,                &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%param_value_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "param_sigma",                                             &
-     &              nf_double,                                                 &
-     &              2,                                                         &
+     &              "param_sigma", nf_double, 2,                               &
      &              (/ result_output_file_create%nparam_dim_id,                &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%param_sigma_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
 ! Define signal variables.
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
      &              "signal_name",                                             &
      &              nf_char,                                                   &
@@ -358,228 +341,224 @@
      &              (/ string_len_id,                                          &
      &                 result_output_file_create%nsignal_dim_id /),            &
      &              signal_name_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_type",                                             &
-     &              nf_char,                                                   &
-     &              2,                                                         &
+     &              "signal_type", nf_char, 2,                                 &
      &              (/ string_len_id,                                          &
      &                 result_output_file_create%nsignal_dim_id /),            &
      &              signal_type_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_weight",                                           &
-     &              nf_double,                                                 &
-     &              1,                                                         &
+     &              "signal_weight", nf_double, 1,                             &
      &              (/ result_output_file_create%nsignal_dim_id /),            &
      &              signal_weight_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_observed_value",                                   &
-     &              nf_double,                                                 &
-     &              2,                                                         &
+     &              "signal_observed_value", nf_double, 2,                     &
      &              (/ result_output_file_create%nsignal_dim_id,               &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%signal_obser_value_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_model_value",                                      &
-     &              nf_double,                                                 &
-     &              2,                                                         &
+     &              "signal_model_value", nf_double, 2,                        &
      &              (/ result_output_file_create%nsignal_dim_id,               &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%signal_model_value_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_sigma",                                            &
-     &              nf_double,                                                 &
-     &              2,                                                         &
+     &              "signal_sigma", nf_double, 2,                              &
      &              (/ result_output_file_create%nsignal_dim_id,               &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%signal_sigma_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_eff_matrix",                                       &
-     &              nf_double,                                                 &
-     &              3,                                                         &
+     &              "signal_eff_matrix", nf_double, 3,                         &
      &              (/ result_output_file_create%nsignal_dim_id,               &
      &                 result_output_file_create%nparam_dim_id,                &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%signal_eff_matrix_id)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
 ! Finished defining netcdf file. Exit out of define mode.
-      result_output_file_create%status =                                       &
-     &   nf_enddef(result_output_file_create%ncid)
-      CALL result_output_check_error(result_output_file_create%status)
+      status = nf_enddef(result_output_file_create%ncid)
+      CALL result_output_check_error(status)
 
 ! Fill in initial variable values.
-      result_output_file_create%status =                                       &
-     &   nf_put_var1_int(result_output_file_create%ncid,                       &
-     &                   result_output_file_create%nsteps_id,                  &
-     &                   1, 0)
-      CALL result_output_check_error(result_output_file_create%status)
+      status =  nf_put_var1_int(result_output_file_create%ncid,                &
+     &                          result_output_file_create%nsteps_id,           &
+     &                          1, 0)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
-     &   nf_put_var1_double(result_output_file_create%ncid,                    &
-     &                      result_output_file_create%g2_id,                   & 
-     &                      1, gsq_g2)
-      CALL result_output_check_error(result_output_file_create%status)
+      status =  nf_put_var1_double(result_output_file_create%ncid,             &
+     &                             result_output_file_create%g2_id,            & 
+     &                             1, gsq_g2)
+      CALL result_output_check_error(status)
 
 ! Fill in vmec variables.
 ! Only the number of currents specified in the mgrid file should be written out.
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var_double(result_output_file_create%ncid,                     &
      &                     vmec_extcur_id,                                     &
      &                     model_a%eqstate%varp%extcur(                        &
      &                       1:model_a%eqstate%fixp%nextcur                    &
      &                     ))
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      vmec_curtor_id,                                    &
      &                      1, model_a%eqstate%varp%curtor)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      vmec_pres_scale_id,                                &
      &                      1, model_a%eqstate%varp%pres_scale)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
-     &                      result_output_file_create%vmec_rbc00_id,           &
-     &                      1, model_a%eqstate%varp%rbc(0,0))
-      CALL result_output_check_error(result_output_file_create%status)
+     &                      result_output_file_create%vmec_rbc_id,             &
+     &                      (/ 1, 1, 1 /),                                     &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%rbc))
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
+     &   nf_put_vara_double(result_output_file_create%ncid,                    &
+     &                      result_output_file_create%vmec_rbs_id,             &
+     &                      (/ 1, 1, 1 /),                                     &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%rbs))
+      CALL result_output_check_error(status)
+
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
-     &                      result_output_file_create%vmec_rbc01_id,           &
-     &                      1, model_a%eqstate%varp%rbc(0,1))
-      CALL result_output_check_error(result_output_file_create%status)
+     &                      result_output_file_create%vmec_zbc_id,             &
+     &                      (/ 1, 1, 1 /),                                     &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%zbc))
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
-     &                      result_output_file_create%vmec_zbs01_id,           &
-     &                      1, model_a%eqstate%varp%zbs(0,1))
-      CALL result_output_check_error(result_output_file_create%status)
+     &                      result_output_file_create%vmec_zbs_id,             &
+     &                      (/ 1, 1, 1 /),                                     &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%zbs))
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_l_sub_i_id,         &
      &                      1, vvc_smaleli)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_kappa_p_id,         &
      &                      1, vvc_kappa_p)
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
 
 ! Fill in reconstuction parameters.
       DO i = 1, n_rparam
-         result_output_file_create%status =                                    &
-     &      nf_put_vara_text(result_output_file_create%ncid,                   &
-     &                       param_name_id,                                    &
-     &                       (/ 1, i /), (/ 20, 1 /),                          &
-     &                       params(i)%p_type)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         status = nf_put_vara_text(result_output_file_create%ncid,             &
+     &                             param_name_id,                              &
+     &                             (/ 1, i /), (/ 20, 1 /),                    &
+     &                             params(i)%p_type)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
-     &      nf_put_var1_int(result_output_file_create%ncid,                    &
-     &                      param_index_id,                                    &
-     &                      i,                                                 &
-     &                      params(i)%index)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         status = nf_put_var1_int(result_output_file_create%ncid,              &
+     &                            param_index_id,                              &
+     &                            i,                                           &
+     &                            params(i)%index)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
+         status =                                                              &
      &      nf_put_var1_double(result_output_file_create%ncid,                 &
      &                         result_output_file_create%param_value_id,       &
      &                         (/ i, 1 /),                                     &
      &                         params(i)%value)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         CALL result_output_check_error(status)
 
 ! There is no sigma to be calculated for the first reconstruction step. Fill
 ! this step in with zeros.
-         result_output_file_create%status =                                    &
+         status =                                                              &
      &      nf_put_var1_double(result_output_file_create%ncid,                 &
      &                         result_output_file_create%param_sigma_id,       &
      &                         (/ i, 1 /),                                     &
      &                         0.0)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         CALL result_output_check_error(status)
       END DO
 
 ! Fill in signals
       DO i = 1, n_sdata_o
-         result_output_file_create%status =                                    &
-     &      nf_put_vara_text(result_output_file_create%ncid,                   &
-     &                       signal_name_id,                                   &
-     &                       (/ 1, i /), (/ 30, 1 /),                          &
-     &                       s_desc(i)%s_name)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         status = nf_put_vara_text(result_output_file_create%ncid,             &
+     &                             signal_name_id,                             &
+     &                             (/ 1, i /), (/ 30, 1 /),                    &
+     &                             s_desc(i)%s_name)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
-     &      nf_put_vara_text(result_output_file_create%ncid,                   &
-     &                       signal_type_id,                                   &
-     &                       (/ 1, i /), (/ 10, 1 /),                          &
-     &                       s_desc(i)%s_type)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         status = nf_put_vara_text(result_output_file_create%ncid,             &
+     &                             signal_type_id,                             &
+     &                             (/ 1, i /), (/ 10, 1 /),                    &
+     &                             s_desc(i)%s_type)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
-     &      nf_put_var1_double(result_output_file_create%ncid,                 &
-     &                         signal_weight_id,                               &
-     &                         (/ i /),                                        &
-     &                         sd_observed(i)%weight)
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         status = nf_put_var1_double(result_output_file_create%ncid,           &
+     &                               signal_weight_id,                         &
+     &                               (/ i /),                                  &
+     &                               sd_observed(i)%weight)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
+         status =                                                              &
      &      nf_put_var1_double(                                                &
      &         result_output_file_create%ncid,                                 &
      &         result_output_file_create%signal_obser_value_id,                &
      &         (/ i, 1 /),                                                     &
      &         sd_observed(i)%data(1))
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
+         status =                                                              &
      &      nf_put_var1_double(                                                &
      &         result_output_file_create%ncid,                                 &
      &         result_output_file_create%signal_model_value_id,                &
      &         (/ i, 1 /),                                                     &
      &         sd_model(i)%data(1))
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         CALL result_output_check_error(status)
 
-         result_output_file_create%status =                                    &
+         status =                                                              &
      &      nf_put_var1_double(                                                &
      &         result_output_file_create%ncid,                                 &
      &         result_output_file_create%signal_sigma_id,                      &
      &         (/ i, 1 /),                                                     &
      &         SQRT(sd_model(i)%sigma(1)**2 +                                  &
      &              sd_observed(i)%sigma(1)**2))
-         CALL                                                                  &
-     &      result_output_check_error(result_output_file_create%status)
+         CALL result_output_check_error(status)
       END DO
 
 ! Calculating the signal effective causes a crash on the D3D test case. For this
@@ -587,18 +566,18 @@
       ALLOCATE(sem_a(gsq_nrp,gsq_nsig),STAT=err)
       CALL assert_eq(0,err,sub_name // 'allocate sem_a')
       sem_a = 0
-      result_output_file_create%status =                                       &
+      status =                                                                 &
      &   nf_put_vara_double(                                                   &
      &      result_output_file_create%ncid,                                    &
      &      result_output_file_create%signal_eff_matrix_id,                    &
      &      (/ 1, 1, 1 /), (/ n_sdata_o, n_rparam, 1 /),                       &
      &      TRANSPOSE(sem_a))
-      CALL result_output_check_error(result_output_file_create%status)
+      CALL result_output_check_error(status)
       DEALLOCATE(sem_a)
 
-      result_output_file_create%status =                                       &
-     &   nf_sync(result_output_file_create%ncid)
-      CALL result_output_check_error(result_output_file_create%status)
+! Flush netcdf file to disk.
+      status = nf_sync(result_output_file_create%ncid)
+      CALL result_output_check_error(status)
 
       END FUNCTION result_output_file_create
 
@@ -619,7 +598,7 @@
       TYPE (recon_param), DIMENSION(n_rparam), INTENT(in) :: params
       TYPE (signal_data), DIMENSION(:), INTENT (in) ::                         &
      &   sd_model, sd_observed
-      INTEGER :: nsteps, i
+      INTEGER :: nsteps, i, status
 
 ! Working variables
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: gsq_1pcl, sem_a
@@ -632,58 +611,79 @@
 !  Start of executable code
 !-------------------------------------------------------------------------------
 ! Read and update current step.
-      result_file_ref%status =                                                 &
-     &   nf_get_var1_int(result_file_ref%ncid,                                 &
-     &                   result_file_ref%nsteps_id,                            &
-     &                   1, nsteps)
-      CALL result_output_check_error(result_file_ref%status)
+      status = nf_get_var1_int(result_file_ref%ncid,                           &
+     &                         result_file_ref%nsteps_id,                      &
+     &                         1, nsteps)
+      CALL result_output_check_error(status)
       nsteps = nsteps + 1
-      result_file_ref%status =                                                 &
-     &   nf_put_var1_int(result_file_ref%ncid,                                 &
-     &                   result_file_ref%nsteps_id,                            &
-     &                   1, nsteps)
-      CALL result_output_check_error(result_file_ref%status)
+      status = nf_put_var1_int(result_file_ref%ncid,                           &
+     &                         result_file_ref%nsteps_id,                      &
+     &                         1, nsteps)
+      CALL result_output_check_error(status)
 
 ! Steps start at zero however array offsets in the netcdf routines start at one. 
 ! Increment nsteps to reflect the correct array position.
       nsteps = nsteps + 1
 
-      result_file_ref%status =                                                 &
-     &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%g2_id,                             &
-     &                      nsteps, gsq_g2)
-      CALL result_output_check_error(result_file_ref%status)
+      status = nf_put_var1_double(result_file_ref%ncid,                        &
+     &                            result_file_ref%g2_id,                       &
+     &                            nsteps, gsq_g2)
+      CALL result_output_check_error(status)
 
 ! Fill in vmec parameters.
-      result_file_ref%status =                                                 &
+      status =                                                                 &
      &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%vmec_rbc00_id,                     &
-     &                      nsteps, model_a%eqstate%varp%rbc(0,0))
-      CALL result_output_check_error(result_file_ref%status)
+     &                      result_file_ref%vmec_rbc_id,                       &
+     &                      (/ 1, 1, nsteps /),                                &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%rbc))
+      CALL result_output_check_error(status)
 
-      result_file_ref%status =                                                 &
+      status =                                                                 &
      &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%vmec_rbc01_id,                     &
-     &                      nsteps, model_a%eqstate%varp%rbc(0,1))
-      CALL result_output_check_error(result_file_ref%status)
+     &                      result_file_ref%vmec_rbs_id,                       &
+     &                      (/ 1, 1, nsteps /),                                &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%rbs))
+      CALL result_output_check_error(status)
 
-      result_file_ref%status =                                                 &
+      status =                                                                 &
      &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%vmec_zbs01_id,                     &
-     &                      nsteps, model_a%eqstate%varp%zbs(0,1))
-      CALL result_output_check_error(result_file_ref%status)
+     &                      result_file_ref%vmec_zbc_id,                       &
+     &                      (/ 1, 1, nsteps /),                                &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%zbc))
+      CALL result_output_check_error(status)
 
-      result_file_ref%status =                                                 &
+      status =                                                                 &
      &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%vmec_l_sub_i_id,                   &
-     &                      nsteps, vvc_smaleli)
-      CALL result_output_check_error(result_file_ref%status)
+     &                      result_file_ref%vmec_zbs_id,                       &
+     &                      (/ 1, 1, nsteps /),                                &
+     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
+     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
+     &                         model_a%eqstate%varp%rbc_bounds(2),             &
+     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      TRANSPOSE(model_a%eqstate%varp%zbs))
+      CALL result_output_check_error(status)
 
-      result_file_ref%status =                                                 &
-     &   nf_put_var1_double(result_file_ref%ncid,                              &
-     &                      result_file_ref%vmec_kappa_p_id,                   &
-     &                      nsteps, vvc_kappa_p)
-      CALL result_output_check_error(result_file_ref%status)
+      status = nf_put_var1_double(result_file_ref%ncid,                        &
+     &                            result_file_ref%vmec_l_sub_i_id,             &
+     &                            nsteps, vvc_smaleli)
+      CALL result_output_check_error(status)
+
+      status = nf_put_var1_double(result_file_ref%ncid,                        &
+     &                            result_file_ref%vmec_kappa_p_id,             &
+     &                            nsteps, vvc_kappa_p)
+      CALL result_output_check_error(status)
 
 ! Calculate parameter sigma.
       ALLOCATE(gsq_1pcl(gsq_nrp,gsq_nsv),STAT=err)
@@ -691,44 +691,43 @@
       CALL gsq_ps1(gsq_1pcl)
 ! Fill in reconstuction parameters.
       DO i = 1, n_rparam
-         result_file_ref%status =                                              &
-     &      nf_put_var1_double(result_file_ref%ncid,                           &
-     &                         result_file_ref%param_value_id,                 &
-     &                         (/ i, nsteps /), params(i)%value)
-         CALL result_output_check_error(result_file_ref%status)
+         status = nf_put_var1_double(result_file_ref%ncid,                     &
+     &                               result_file_ref%param_value_id,           &
+     &                               (/ i, nsteps /), params(i)%value)
+         CALL result_output_check_error(status)
 
-         result_file_ref%status =                                              &
-     &      nf_put_var1_double(result_file_ref%ncid,                           &
-     &                         result_file_ref%param_sigma_id,                 &
-     &                         (/ i, nsteps /), gsq_1pcl(i, gsq_nrp))
-         CALL result_output_check_error(result_file_ref%status)
+         status = nf_put_var1_double(result_file_ref%ncid,                     &
+     &                               result_file_ref%param_sigma_id,           &
+     &                               (/ i, nsteps /),                          &
+     &                               gsq_1pcl(i, gsq_nrp))
+         CALL result_output_check_error(status)
       END DO
       DEALLOCATE(gsq_1pcl)
 
 ! Fill in signals
       DO i = 1, n_sdata_o
-         result_file_ref%status =                                              &
+         status =                                                              &
      &      nf_put_var1_double(                                                &
      &         result_file_ref%ncid,                                           &
      &         result_file_ref%signal_obser_value_id,                          &
      &         (/ i, nsteps /), sd_observed(i)%data(1))
-         CALL result_output_check_error(result_file_ref%status)
+         CALL result_output_check_error(status)
 
-         result_file_ref%status =                                              &
+         status =                                                              &
      &      nf_put_var1_double(                                                &
      &         result_file_ref%ncid,                                           &
      &         result_file_ref%signal_model_value_id,                          &
      &         (/ i, nsteps /), sd_model(i)%data(1))
-         CALL result_output_check_error(result_file_ref%status)
+         CALL result_output_check_error(status)
 
-         result_file_ref%status =                                              &
-     &      nf_put_var1_double(
+         status =                                                              &
+     &      nf_put_var1_double(                                                &
      &         result_file_ref%ncid,                                           &
      &         result_file_ref%signal_sigma_id,                                &
      &         (/ i, nsteps /),                                                &
      &         SQRT(sd_model(i)%sigma(1)**2 +                                  &
      &              sd_observed(i)%sigma(1)**2))
-         CALL result_output_check_error(result_file_ref%status)
+         CALL result_output_check_error(status)
       END DO
 
 ! Calculate signal effectiveness matrix
@@ -737,16 +736,16 @@
       ALLOCATE(sem_a(gsq_nrp,gsq_nsig),STAT=err)
       CALL assert_eq(0,err,sub_name // 'allocate sem_a')
       CALL gsq_sem(gsq_ssigma,gsq_jacobian,psigma_v,sem_a)
-      result_file_ref%status = nf_put_vara_double(                             &
+      status = nf_put_vara_double(                                             &
      &   result_file_ref%ncid,                                                 &
      &   result_file_ref%signal_eff_matrix_id,                                 &
      &   (/ 1, 1, nsteps /), (/ n_sdata_o, n_rparam, 1 /),                     &
      &   TRANSPOSE(sem_a))
-      CALL result_output_check_error(result_file_ref%status)
+      CALL result_output_check_error(status)
       DEALLOCATE(sem_a, psigma_v)
 
-      result_file_ref%status = nf_sync(result_file_ref%ncid)
-      CALL result_output_check_error(result_file_ref%status)
+      status = nf_sync(result_file_ref%ncid)
+      CALL result_output_check_error(status)
 
       END SUBROUTINE
 
@@ -760,12 +759,13 @@
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       TYPE (result_file) :: result_file_ref
+      INTEGER            :: status
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      result_file_ref%status = nf_close(result_file_ref%ncid)
-      CALL result_output_check_error(result_file_ref%status)
+      status = nf_close(result_file_ref%ncid)
+      CALL result_output_check_error(status)
 
       END SUBROUTINE
 
