@@ -132,7 +132,6 @@
             mod_signal(1) = path_integrate(a_ipch%chordPath,                   &
      &                                     int_function,                       &
      &                                     context)
-            DEALLOCATE(context)
 
          CASE ('p')
 !  Compute the faraday rotation angle in radians.

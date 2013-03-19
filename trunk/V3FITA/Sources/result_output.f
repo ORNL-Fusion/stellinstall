@@ -335,9 +335,7 @@
 ! Define signal variables.
       status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
-     &              "signal_name",                                             &
-     &              nf_char,                                                   &
-     &              2,                                                         &
+     &              "signal_name", nf_char, 2,                                 &
      &              (/ string_len_id,                                          &
      &                 result_output_file_create%nsignal_dim_id /),            &
      &              signal_name_id)
