@@ -158,6 +158,7 @@
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: sem_a
       REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: psigma_v
       INTEGER                                  :: err
+      INTEGER                                  :: boundary_i, boundary_j
       CHARACTER(len=*), PARAMETER              :: sub_name =                   &
      &  'result_output_file_create: '
 
@@ -211,18 +212,18 @@
      &                    string_len_id)
       CALL result_output_check_error(status)
 
+      boundary_i = 1 + model_a%eqstate%varp%rbc_bounds(2)                      &
+     &               - model_a%eqstate%varp%rbc_bounds(1)
       status =                                                                 &
      &   nf_def_dim(result_output_file_create%ncid, "boundary_i",              &
-     &              model_a%eqstate%varp%rbc_bounds(2)                         &
-     &              - model_a%eqstate%varp%rbc_bounds(1),                      &
-     &              boundary_i_dim_id)
+     &              boundary_i, boundary_i_dim_id)
       CALL result_output_check_error(status)
 
+      boundary_j = 1 + model_a%eqstate%varp%rbc_bounds(4)                      &
+     &               - model_a%eqstate%varp%rbc_bounds(3)
       status =                                                                 &
      &   nf_def_dim(result_output_file_create%ncid, "boundary_j",              &
-     &              model_a%eqstate%varp%rbc_bounds(4)                         &
-     &              - model_a%eqstate%varp%rbc_bounds(3),                      &
-     &              boundary_j_dim_id)
+     &              boundary_j, boundary_j_dim_id)
       CALL result_output_check_error(status)
 
 ! Define variables for data.
@@ -430,10 +431,7 @@
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_rbc_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%rbc))
       CALL result_output_check_error(status)
 
@@ -441,10 +439,7 @@
      &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_rbs_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%rbs))
       CALL result_output_check_error(status)
 
@@ -452,10 +447,7 @@
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbc_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%zbc))
       CALL result_output_check_error(status)
 
@@ -463,10 +455,7 @@
      &   nf_put_var1_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbs_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%zbs))
       CALL result_output_check_error(status)
 
@@ -602,6 +591,7 @@
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: gsq_1pcl, sem_a
       REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: psigma_v
       INTEGER                                  :: err
+      INTEGER                                  :: boundary_i, boundary_j
       CHARACTER(len=*), PARAMETER              :: sub_name =                   &
      &  'result_output_file_write_step: '
 
@@ -629,14 +619,16 @@
       CALL result_output_check_error(status)
 
 ! Fill in vmec parameters.
+      boundary_i = 1 + model_a%eqstate%varp%rbc_bounds(2)                      &
+     &               - model_a%eqstate%varp%rbc_bounds(1)
+      boundary_j = 1 + model_a%eqstate%varp%rbc_bounds(4)                      &
+     &               - model_a%eqstate%varp%rbc_bounds(3)
+
       status =                                                                 &
      &   nf_put_var1_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_rbc_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%rbc))
       CALL result_output_check_error(status)
 
@@ -644,10 +636,7 @@
      &   nf_put_var1_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_rbs_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%rbs))
       CALL result_output_check_error(status)
 
@@ -655,10 +644,7 @@
      &   nf_put_var1_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbc_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%zbc))
       CALL result_output_check_error(status)
 
@@ -666,10 +652,7 @@
      &   nf_put_var1_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbs_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ model_a%eqstate%varp%rbc_bounds(4)              &
-     &                         - model_a%eqstate%varp%rbc_bounds(3),           &
-     &                         model_a%eqstate%varp%rbc_bounds(2),             &
-     &                         - model_a%eqstate%varp%rbc_bounds(1) /),        &
+     &                      (/ boundary_j, boundary_i, 1/),                    &
      &                      TRANSPOSE(model_a%eqstate%varp%zbs))
       CALL result_output_check_error(status)
 
