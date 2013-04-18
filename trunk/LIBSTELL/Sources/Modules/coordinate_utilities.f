@@ -21,7 +21,7 @@
 !*******************************************************************************
 !  Convert from cartesian coordinates to cylindical coordinates.
 !*******************************************************************************
-      FUNCTION cart_to_cyl(cart)
+      PURE FUNCTION cart_to_cyl(cart)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -45,7 +45,7 @@
 !  NOTE: Phi must be in radians.
 !
 !*******************************************************************************
-      FUNCTION cyl_to_cart(cyl)
+      PURE FUNCTION cyl_to_cart(cyl)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -69,7 +69,7 @@
 !  NOTE: Phi must be in radians.
 !
 !*******************************************************************************
-      FUNCTION cyl_to_cart_vec(cyl, vec)
+      PURE FUNCTION cyl_to_cart_vec(cyl, vec)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
