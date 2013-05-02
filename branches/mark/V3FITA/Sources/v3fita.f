@@ -521,6 +521,9 @@
 !                           true  - edge of plasma is on limiter
 !                           false - edge of plasma is within limiter
 !
+!  use_boundary          Toggle use of the fixed boundary coeffients as a
+!                        reconstruction signal.
+!
 !     COOSIG - Combination Of Other SIGnals NLI Variables
 !  n_coosig         Number of new signals of signal_type coosig
 !  coosig_indices   2d Integer Array of indices (to list of signals)
@@ -566,7 +569,7 @@
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
      &   r_major_radius, a_minor_radius,                                       &
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 & 
-     &   lif_phi_degree, lif_on_edge,                                          &
+     &   lif_phi_degree, lif_on_edge, use_boundary,                            &
      &   n_coosig, coosig_indices, coosig_coeff, coosig_type,                  &
      &   coosig_name, coosig_units,                                            &
      &   l_zero_xcdot,                                                         & 
@@ -965,7 +968,7 @@
          CALL init_signal_extcurz(isig,idiag)    
       END IF
 !----------------------------------------------------------------------
-!--  END extcurz (EXTernal CURrent along Z) SubSection                   --
+!--  END extcurz (EXTernal CURrent along Z) SubSection               --
 !----------------------------------------------------------------------
 
 !----------------------------------------------------------------------
@@ -973,7 +976,17 @@
 !----------------------------------------------------------------------
 
       CALL init_signal_geometric
- 
+
+!----------------------------------------------------------------------
+!--  boundary (Uses fixed boundary as signal) SubSection             --
+!----------------------------------------------------------------------
+      IF (use_boundary) THEN
+         CALL init_signal_boundary
+      ENDIF
+!----------------------------------------------------------------------
+!--  END boundary (Uses fixed boundary as signal) SubSection         --
+!----------------------------------------------------------------------
+
 !----------------------------------------------------------------------
 !--  END Geometric Section                                           --
 !----------------------------------------------------------------------
@@ -1739,6 +1752,14 @@
 
       RETURN
       END SUBROUTINE init_signal_geometric
+
+!----------------------------------------------------------------------
+!*******************************************************************************
+!----------------------------------------------------------------------
+
+      SUBROUTINE init_signal_boundary
+
+      END SUBROUTINE init_signal_boundary
 
 !----------------------------------------------------------------------
 !*******************************************************************************
