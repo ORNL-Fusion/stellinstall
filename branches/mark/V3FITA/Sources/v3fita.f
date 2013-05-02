@@ -1758,6 +1758,15 @@
 !----------------------------------------------------------------------
 
       SUBROUTINE init_signal_boundary
+      USE v3f_global, ONLY : model_a, n_s_desc
+      IMPLICIT NONE
+
+      n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%mpol, 1)                &
+     &                    * model_a%eqstate%fixp%ntor
+      IF (model_a%eqstate%fixp%lasym) THEN
+         n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%mpol, 1)             &
+     &                       * model_a%eqstate%fixp%ntor
+      ENDIF
 
       END SUBROUTINE init_signal_boundary
 
