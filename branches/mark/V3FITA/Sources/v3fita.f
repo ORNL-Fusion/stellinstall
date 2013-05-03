@@ -1762,12 +1762,17 @@
       USE signal_T
       IMPLICIT NONE
 
-      INTEGER               :: i_signal, i_geo, m, n
+      INTEGER               :: i_signal, i_geo, m, n, num_m, num_n
       TYPE(boundary_desc)   :: temp_boundary
       CHARACTER(len=20)     :: temp_name
 
       i_signal = n_s_desc
       i_geo = n_g_desc
+
+      num_m = model_a%eqstate%varp%rbc_bounds(2)                               &
+     &      - model_a%eqstate%varp%rbc_bounds(1) + 1
+      num_n = model_a%eqstate%varp%rbc_bounds(4)                               &
+     &      - model_a%eqstate%varp%rbc_bounds(3) + 1
 
       DO m = model_a%eqstate%varp%rbc_bounds(1),                               &
      &       model_a%eqstate%varp%rbc_bounds(2)
@@ -1824,20 +1829,12 @@
          END DO
       END DO
 
-!  Increment the number of geometric signals.
-      n_g_desc = n_g_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)                &
-     &                    * model_a%eqstate%fixp%mpol
+!  Increment the number of geometric signals and total signals
+      n_g_desc = n_g_desc + 2*num_m*num_n
+      n_s_desc = n_s_desc + 2*num_m*num_n
       IF (model_a%eqstate%fixp%lasym) THEN
-         n_g_desc = n_g_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)             &
-     &                       * model_a%eqstate%fixp%mpol
-      ENDIF
-
-!  Increment the number of signals.
-      n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)                &
-     &                    * model_a%eqstate%fixp%mpol
-      IF (model_a%eqstate%fixp%lasym) THEN
-         n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)             &
-     &                       * model_a%eqstate%fixp%mpol
+         n_g_desc = n_g_desc + 2*num_m*num_n
+         n_s_desc = n_s_desc + 2*num_m*num_n
       ENDIF
 
       END SUBROUTINE init_signal_boundary
