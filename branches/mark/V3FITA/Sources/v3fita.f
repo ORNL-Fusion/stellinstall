@@ -1635,7 +1635,7 @@
 !----------------------------------------------------------------------
 ! L O C A L Variable Declarations
 !----------------------------------------------------------------------
-      TYPE (geometric_desc)     :: geom_local
+!      TYPE (geometric_desc)     :: geom_local
       TYPE (edge_limit_desc)    :: el_desc_local
       TYPE (limiter_iso)        :: lim_iso_local
 
@@ -1742,7 +1742,7 @@
 !  signal descriptions
       DO isig = n_s_desc + 1,n_s_desc + n_g_desc
          igeom = isig - n_s_desc
-        CALL signal_construct(s_desc(isig),'geometric',                        &
+         CALL signal_construct(s_desc(isig),'geometric',                       &
      &      g_desc(igeom) % name,g_desc(igeom) % name,                         &
      &      g_desc(igeom) % units,g_desc(igeom))
       END DO
@@ -1758,23 +1758,85 @@
 !----------------------------------------------------------------------
 
       SUBROUTINE init_signal_boundary
-      USE v3f_global, ONLY : model_a, n_s_desc, n_g_desc
+      USE v3f_global, ONLY : model_a, n_s_desc, n_g_desc, sdo_data_a,          &
+     &                       lif_sigma, s_desc, g_desc
+      USE signal_T
       IMPLICIT NONE
 
-! Increment the number of geometric signals.
-      n_g_desc = n_g_desc + 2*MAX(model_a%eqstate%fixp%mpol, 1)                &
-     &                    * model_a%eqstate%fixp%ntor
+      INTEGER               :: i_signal, i_geo, m, n
+      TYPE(boundary_desc)   :: temp_boundary
+      CHARACTER(len=20)     :: temp_name
+
+      i_signal = n_s_desc
+      i_geo = n_g_desc
+
+      DO m = 1, model_a%eqstate%fixp%mpol
+         DO n = 1, MAX(model_a%eqstate%fixp%ntor, 1)
+!  Load inital boundary from VMEC input as the signal.
+            i_signal = i_signal + 1
+            i_geo = i_geo + 1
+            sdo_data_a(i_signal) = model_a%eqstate%varp%rbc(m, n)
+            CALL boundary_desc_construct(temp_boundary, 'rbc', n, m)
+            WRITE (unit=temp_name,fmt=*) 'rbc(', m, ',', n, ')'
+            CALL geometric_construct(g_desc(i_geo), 'boundary',                &
+     &                               temp_name, 'm',                           &
+     &                               lif_sigma(i_signal), temp_boundary)
+            CALL signal_construct(s_desc(i_signal), 'geometric',               &
+     &                            temp_name, ' ', 'm', g_desc(i_geo))
+
+            i_signal = i_signal + 1
+            i_geo = i_geo + 1
+            sdo_data_a(i_signal) = model_a%eqstate%varp%zbs(m, n)
+            CALL boundary_desc_construct(temp_boundary, 'zbs', n, m)
+            WRITE (unit=temp_name,fmt=*) 'rbs(', m, ',', n, ')'
+            CALL geometric_construct(g_desc(i_geo), 'boundary',                &
+     &                               temp_name, 'm',                           &
+     &                               lif_sigma(i_signal), temp_boundary)
+            CALL signal_construct(s_desc(i_signal), 'geometric',               &
+     &                            temp_name, ' ', 'm', g_desc(i_geo))
+
+            IF (model_a%eqstate%fixp%lasym) THEN
+               i_signal = i_signal + 1
+               i_geo = i_geo + 1
+               sdo_data_a(i_signal) = model_a%eqstate%varp%rbs(m, n)
+               CALL boundary_desc_construct(temp_boundary, 'rbs', n, m)
+               CALL geometric_construct(g_desc(i_geo), 'boundary',             &
+     &                                  temp_name, 'm',                        &
+     &                                  lif_sigma(i_signal),                   &
+     &                                  temp_boundary)
+               CALL signal_construct(s_desc(i_signal), 'geometric',            &
+     &                               temp_name, ' ', 'm', g_desc(i_geo))
+
+
+               i_signal = i_signal + 1
+               i_geo = i_geo + 1
+               sdo_data_a(i_signal) = model_a%eqstate%varp%zbc(m, n)
+               CALL boundary_desc_construct(temp_boundary, 'zbc', n, m)
+               CALL geometric_construct(g_desc(i_geo), 'boundary',             &
+     &                                  temp_name, 'm',                        &
+     &                                  lif_sigma(i_signal),                   &
+     &                                  temp_boundary)
+               CALL signal_construct(s_desc(i_signal), 'geometric',            &
+     &                               temp_name, ' ', 'm', g_desc(i_geo))
+            ENDIF
+
+         END DO
+      END DO
+
+!  Increment the number of geometric signals.
+      n_g_desc = n_g_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)                &
+     &                    * model_a%eqstate%fixp%mpol
       IF (model_a%eqstate%fixp%lasym) THEN
-         n_g_desc = n_g_desc + 2*MAX(model_a%eqstate%fixp%mpol, 1)             &
-     &                       * model_a%eqstate%fixp%ntor
+         n_g_desc = n_g_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)             &
+     &                       * model_a%eqstate%fixp%mpol
       ENDIF
 
 !  Increment the number of signals.
-      n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%mpol, 1)                &
-     &                    * model_a%eqstate%fixp%ntor
+      n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)                &
+     &                    * model_a%eqstate%fixp%mpol
       IF (model_a%eqstate%fixp%lasym) THEN
-         n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%mpol, 1)             &
-     &                       * model_a%eqstate%fixp%ntor
+         n_s_desc = n_s_desc + 2*MAX(model_a%eqstate%fixp%ntor, 1)             &
+     &                       * model_a%eqstate%fixp%mpol
       ENDIF
 
       END SUBROUTINE init_signal_boundary

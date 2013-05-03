@@ -19,6 +19,7 @@
 ! SECTION XVI.  COMMENTS FOR DIFFERENT REVISIONS
 !*******************************************************************************
       MODULE boundary_T
+      USE safe_open_mod
 
 !*******************************************************************************
 ! SECTION I. VARIABLE DECLARATIONS
