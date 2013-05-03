@@ -1769,8 +1769,10 @@
       i_signal = n_s_desc
       i_geo = n_g_desc
 
-      DO m = 1, model_a%eqstate%fixp%mpol
-         DO n = 1, MAX(model_a%eqstate%fixp%ntor, 1)
+      DO m = model_a%eqstate%varp%rbc_bounds(1),                               &
+     &       model_a%eqstate%varp%rbc_bounds(2)
+         DO n = model_a%eqstate%varp%rbc_bounds(3),                            &
+     &          model_a%eqstate%varp%rbc_bounds(4)
 !  Load inital boundary from VMEC input as the signal.
             i_signal = i_signal + 1
             i_geo = i_geo + 1
