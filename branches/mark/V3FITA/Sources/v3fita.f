@@ -1635,7 +1635,6 @@
 !----------------------------------------------------------------------
 ! L O C A L Variable Declarations
 !----------------------------------------------------------------------
-!      TYPE (geometric_desc)     :: geom_local
       TYPE (edge_limit_desc)    :: el_desc_local
       TYPE (limiter_iso)        :: lim_iso_local
 
