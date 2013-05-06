@@ -94,21 +94,26 @@
       ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
+!  Update eqstate if needed.
+      IF (.not. a_model%eqstate%l_def_aux1) THEN
+         CALL eq_aux_1_define(a_model%eqstate)
+      END IF
+
       m = a_boundary%m_index
       n = a_boundary%n_index
 
       SELECT CASE (a_boundary%coefficientName)
          CASE ('rbc')
-            mod_signal(1) = model_a%eqstate%varp%rbc(m, n)
+            mod_signal(1) = model_a%eqstate%varp%rbc(n, m)
 
          CASE ('zbs')
-            mod_signal(1) = model_a%eqstate%varp%zbs(m, n)
+            mod_signal(1) = model_a%eqstate%varp%zbs(n, m)
 
          CASE ('rbs')
-            mod_signal(1) = model_a%eqstate%varp%rbs(m, n)
+            mod_signal(1) = model_a%eqstate%varp%rbs(n, m)
 
          CASE ('zbc')
-            mod_signal(1) = model_a%eqstate%varp%zbc(m, n)
+            mod_signal(1) = model_a%eqstate%varp%zbc(n, m)
 
          CASE DEFAULT
             WRITE (*,*) 'Unknown coeffient type '                              &

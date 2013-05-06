@@ -151,60 +151,59 @@
       SELECT CASE(TRIM(my_task))
       
       CASE('reconstruct_a1')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_reconstruct_a1
          CALL eq_interface_nli_write(v3f_nli_filename_out,iero)
 
       CASE('gsq_jac_test')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_gsq_jac_test
 
       CASE('vmec_v3post') !  Run VMEC, compute signals, mimicking v3post
-
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_v3post
 
       CASE('vmec_monitor')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_monitor
 
       CASE('vmec_change_rp')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_change_rp
 
       CASE('vmec_changep')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_changep
          CALL eq_interface_nli_write(v3f_nli_filename_out,iero)
 
       CASE('vmec_change_one_p')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_change_one_p
          CALL eq_interface_nli_write(v3f_nli_filename_out,iero)
 
       CASE('gsq_on_grid')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_gsq_on_grid
 
       CASE('test') !  Generic test - free to use
          CALL task_test
       
       CASE('sxr') ! SXR_chord testing  GJH 2010-01-05
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_v3post
                  
       CASE('add_noise_a1') ! Adds noise to observed signals, and reconstructs
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_add_noise_a1
 
       CASE('unit_tests')
@@ -1764,24 +1763,20 @@
 
       INTEGER               :: i_signal, i_geo, m, n, num_m, num_n
       TYPE(boundary_desc)   :: temp_boundary
-      CHARACTER(len=20)     :: temp_name
+      CHARACTER(len=80)     :: temp_name
 
       i_signal = n_s_desc
       i_geo = n_g_desc
 
-      num_m = model_a%eqstate%varp%rbc_bounds(2)                               &
-     &      - model_a%eqstate%varp%rbc_bounds(1) + 1
-      num_n = model_a%eqstate%varp%rbc_bounds(4)                               &
-     &      - model_a%eqstate%varp%rbc_bounds(3) + 1
+      num_m = MAX(model_a%eqstate%fixp%mpol, 1)
+      num_n = MAX(model_a%eqstate%fixp%ntor, 1)
 
-      DO m = model_a%eqstate%varp%rbc_bounds(1),                               &
-     &       model_a%eqstate%varp%rbc_bounds(2)
-         DO n = model_a%eqstate%varp%rbc_bounds(3),                            &
-     &          model_a%eqstate%varp%rbc_bounds(4)
+      DO m = 0, num_m - 1
+         DO n = 0, num_n - 1
 !  Load inital boundary from VMEC input as the signal.
             i_signal = i_signal + 1
             i_geo = i_geo + 1
-            sdo_data_a(i_signal) = model_a%eqstate%varp%rbc(m, n)
+            sdo_data_a(i_signal) = model_a%eqstate%varp%rbc(n, m)
             CALL boundary_desc_construct(temp_boundary, 'rbc', n, m)
             WRITE (unit=temp_name,fmt=*) 'rbc(', m, ',', n, ')'
             CALL geometric_construct(g_desc(i_geo), 'boundary',                &
@@ -1792,7 +1787,7 @@
 
             i_signal = i_signal + 1
             i_geo = i_geo + 1
-            sdo_data_a(i_signal) = model_a%eqstate%varp%zbs(m, n)
+            sdo_data_a(i_signal) = model_a%eqstate%varp%zbs(n, m)
             CALL boundary_desc_construct(temp_boundary, 'zbs', n, m)
             WRITE (unit=temp_name,fmt=*) 'rbs(', m, ',', n, ')'
             CALL geometric_construct(g_desc(i_geo), 'boundary',                &
@@ -1804,7 +1799,7 @@
             IF (model_a%eqstate%fixp%lasym) THEN
                i_signal = i_signal + 1
                i_geo = i_geo + 1
-               sdo_data_a(i_signal) = model_a%eqstate%varp%rbs(m, n)
+               sdo_data_a(i_signal) = model_a%eqstate%varp%rbs(n, m)
                CALL boundary_desc_construct(temp_boundary, 'rbs', n, m)
                CALL geometric_construct(g_desc(i_geo), 'boundary',             &
      &                                  temp_name, 'm',                        &
@@ -1816,7 +1811,7 @@
 
                i_signal = i_signal + 1
                i_geo = i_geo + 1
-               sdo_data_a(i_signal) = model_a%eqstate%varp%zbc(m, n)
+               sdo_data_a(i_signal) = model_a%eqstate%varp%zbc(n, m)
                CALL boundary_desc_construct(temp_boundary, 'zbc', n, m)
                CALL geometric_construct(g_desc(i_geo), 'boundary',             &
      &                                  temp_name, 'm',                        &

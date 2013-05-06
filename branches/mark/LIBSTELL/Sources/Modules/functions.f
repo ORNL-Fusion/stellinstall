@@ -9,7 +9,7 @@
       MODULE functions
       USE stel_kinds
 
-      PUBLIC :: two_power, two_power_gs      !UNDEFINED, functions_test
+      PUBLIC :: two_power, two_power_gs, function_test
       PRIVATE :: check
 
       CONTAINS
