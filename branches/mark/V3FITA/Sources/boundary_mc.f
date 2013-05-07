@@ -80,7 +80,7 @@
       CHARACTER(len=*), PARAMETER   :: sub_name =                              &
      &  'boundary_model_compute'
       INTEGER                       :: istat1
-      INTEGER                       :: m, n
+      INTEGER                       :: m, n, s
 
 !-------------------------------------------------------------------------------
 !  START OF EXECUTABLE CODE
@@ -99,21 +99,22 @@
          CALL eq_aux_1_define(a_model%eqstate)
       END IF
 
+      s = a_model%eqstate%fixp%ns_array(1)
       m = a_boundary%m_index
       n = a_boundary%n_index
 
       SELECT CASE (a_boundary%coefficientName)
          CASE ('rbc')
-            mod_signal(1) = model_a%eqstate%varp%rbc(n, m)
+            mod_signal(1) = model_a%eqstate%aux1%rmnc(m*n + m + 1, s)
 
          CASE ('zbs')
-            mod_signal(1) = model_a%eqstate%varp%zbs(n, m)
+            mod_signal(1) = model_a%eqstate%aux1%zmns(m*n + m + 1, s)
 
          CASE ('rbs')
-            mod_signal(1) = model_a%eqstate%varp%rbs(n, m)
+            mod_signal(1) = model_a%eqstate%aux1%rmns(m*n + m + 1, s)
 
          CASE ('zbc')
-            mod_signal(1) = model_a%eqstate%varp%zbc(n, m)
+            mod_signal(1) = model_a%eqstate%aux1%zmnc(m*n + m + 1, s)
 
          CASE DEFAULT
             WRITE (*,*) 'Unknown coeffient type '                              &

@@ -1023,7 +1023,8 @@
          ENDIF
          
          DO ic = 1,n_s_desc
-            IF (s_desc(ic) % s_type .eq. 'geometric') THEN
+            IF ((s_desc(ic) % s_type .eq. 'geometric') .and.                   &
+     &          (s_desc(ic) % geom % g_type .eq. 'edge_limit')) THEN
                sdo_data_a(ic) = zero
             ENDIF
             CALL signal_construct(sd_observe(ic),s_desc(ic),                   &
@@ -1756,8 +1757,7 @@
 !----------------------------------------------------------------------
 
       SUBROUTINE init_signal_boundary
-      USE v3f_global, ONLY : model_a, n_s_desc, n_g_desc, sdo_data_a,          &
-     &                       lif_sigma, s_desc, g_desc
+      USE v3f_global
       USE signal_T
       IMPLICIT NONE
 
@@ -1778,7 +1778,7 @@
             i_geo = i_geo + 1
             sdo_data_a(i_signal) = model_a%eqstate%varp%rbc(n, m)
             CALL boundary_desc_construct(temp_boundary, 'rbc', n, m)
-            WRITE (unit=temp_name,fmt=*) 'rbc(', m, ',', n, ')'
+            WRITE (unit=temp_name,fmt=*) 'rbc(', n, ',', m, ')'
             CALL geometric_construct(g_desc(i_geo), 'boundary',                &
      &                               temp_name, 'm',                           &
      &                               lif_sigma(i_signal), temp_boundary)
@@ -1789,7 +1789,7 @@
             i_geo = i_geo + 1
             sdo_data_a(i_signal) = model_a%eqstate%varp%zbs(n, m)
             CALL boundary_desc_construct(temp_boundary, 'zbs', n, m)
-            WRITE (unit=temp_name,fmt=*) 'rbs(', m, ',', n, ')'
+            WRITE (unit=temp_name,fmt=*) 'zbs(', n, ',', m, ')'
             CALL geometric_construct(g_desc(i_geo), 'boundary',                &
      &                               temp_name, 'm',                           &
      &                               lif_sigma(i_signal), temp_boundary)
@@ -1801,6 +1801,7 @@
                i_geo = i_geo + 1
                sdo_data_a(i_signal) = model_a%eqstate%varp%rbs(n, m)
                CALL boundary_desc_construct(temp_boundary, 'rbs', n, m)
+               WRITE (unit=temp_name,fmt=*) 'rbs(', n, ',', m, ')'
                CALL geometric_construct(g_desc(i_geo), 'boundary',             &
      &                                  temp_name, 'm',                        &
      &                                  lif_sigma(i_signal),                   &
@@ -1813,6 +1814,7 @@
                i_geo = i_geo + 1
                sdo_data_a(i_signal) = model_a%eqstate%varp%zbc(n, m)
                CALL boundary_desc_construct(temp_boundary, 'zbc', n, m)
+               WRITE (unit=temp_name,fmt=*) 'zbc(', n, ',', m, ')'
                CALL geometric_construct(g_desc(i_geo), 'boundary',             &
      &                                  temp_name, 'm',                        &
      &                                  lif_sigma(i_signal),                   &
