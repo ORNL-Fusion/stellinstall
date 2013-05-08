@@ -150,12 +150,17 @@ c.........................................................................
       yxmax   =  0.0
       ntmx1   = ntmx - 1
       dthet0  = dang*twopi
-!      do i = 1, nxd
-!         do j = 1, nxd
-!            CALL bcsplINT(x,y,cspln,nw,nh,nxd,x(i),y(j),pds,1,ier)
-!            WRITE (*,*) x(i),y(j),pds(1)
-!         enddo
-!      enddo
+
+! MRC: Add hack to debug efit gfile issues. This dumps out the flux surface
+! contours to a file.
+      OPEN(UNIT=1, FILE="dump.txt", ACTION='WRITE')
+      do i = 1, nxd
+         do j = 1, nxd
+            CALL bcsplINT(x,y,cspln,nw,nh,nxd,x(i),y(j),pds,1,ier)
+            WRITE (1,*) x(i),y(j),pds(1)
+         enddo
+      enddo
+      CLOSE(UNIT=1)
 
       CALL bcsplINT(x,y,cspln,nw,nh,nxd,xaxd,yaxd,pds,1,ier)
       psiaxd = pds(1)

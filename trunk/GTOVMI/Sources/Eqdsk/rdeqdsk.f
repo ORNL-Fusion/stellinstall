@@ -15,6 +15,7 @@ c-----------------------------------------------------------------------
       REAL(rprec) :: totcur,psimx(2),xax(2)
       REAL(rprec) :: zax(2),psisep,xsep,zsep
       REAL(rprec) :: dpsiv
+      REAL(rprec) :: zmin
       INTEGER :: i,j,isave
       neqdsk=118
       ntitle=" "
@@ -91,11 +92,15 @@ c     generate x,z gridd
  500  continue
       dx=xdim/(nx-1.)
       dz=zdim/(nz-1.)
-      do i=1,nx
-         xgrid(i)=redge+(i-1.)*dx
+      do i=0,nx - 1
+          xgrid(i + 1)=redge + dx*i
+!         xgrid(i)=redge+(i-1.)*dx
       end do
-      do i=1,nz
-         zgrid(i)=-0.5*zdim+(i-1.)*dz
+! nz is an integer. Need the intger devide here so the floor comes for free.
+      zmin = zmid - zdim/2.0
+      do i=0,nz - 1
+          zgrid(i + 1) = zmin + dz*i
+!         zgrid(i)=-0.5*zdim+(i-1.)*dz
       end do
 c     if sf is negative change it's sign
 c     I don't know what the purpose of a negative B field is.
