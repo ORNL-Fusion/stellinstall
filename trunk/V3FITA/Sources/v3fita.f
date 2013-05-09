@@ -151,60 +151,59 @@
       SELECT CASE(TRIM(my_task))
       
       CASE('reconstruct_a1')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_reconstruct_a1
          CALL eq_interface_nli_write(v3f_nli_filename_out,iero)
 
       CASE('gsq_jac_test')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_gsq_jac_test
 
       CASE('vmec_v3post') !  Run VMEC, compute signals, mimicking v3post
-
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_v3post
 
       CASE('vmec_monitor')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_monitor
 
       CASE('vmec_change_rp')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_change_rp
 
       CASE('vmec_changep')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_changep
          CALL eq_interface_nli_write(v3f_nli_filename_out,iero)
 
       CASE('vmec_change_one_p')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_change_one_p
          CALL eq_interface_nli_write(v3f_nli_filename_out,iero)
 
       CASE('gsq_on_grid')
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_gsq_on_grid
 
       CASE('test') !  Generic test - free to use
          CALL task_test
       
       CASE('sxr') ! SXR_chord testing  GJH 2010-01-05
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_vmec_v3post
                  
       CASE('add_noise_a1') ! Adds noise to observed signals, and reconstructs
-         CALL init_signal
          CALL init_equilibrium
+         CALL init_signal
          CALL task_add_noise_a1
 
       CASE('unit_tests')
@@ -521,6 +520,9 @@
 !                           true  - edge of plasma is on limiter
 !                           false - edge of plasma is within limiter
 !
+!  use_boundary          Toggle use of the fixed boundary coeffients as a
+!                        reconstruction signal.
+!
 !     COOSIG - Combination Of Other SIGnals NLI Variables
 !  n_coosig         Number of new signals of signal_type coosig
 !  coosig_indices   2d Integer Array of indices (to list of signals)
@@ -566,7 +568,7 @@
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
      &   r_major_radius, a_minor_radius,                                       &
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 & 
-     &   lif_phi_degree, lif_on_edge,                                          &
+     &   lif_phi_degree, lif_on_edge, use_boundary,                            &
      &   n_coosig, coosig_indices, coosig_coeff, coosig_type,                  &
      &   coosig_name, coosig_units,                                            &
      &   l_zero_xcdot,                                                         & 
@@ -965,7 +967,7 @@
          CALL init_signal_extcurz(isig,idiag)    
       END IF
 !----------------------------------------------------------------------
-!--  END extcurz (EXTernal CURrent along Z) SubSection                   --
+!--  END extcurz (EXTernal CURrent along Z) SubSection               --
 !----------------------------------------------------------------------
 
 !----------------------------------------------------------------------
@@ -973,7 +975,17 @@
 !----------------------------------------------------------------------
 
       CALL init_signal_geometric
- 
+
+!----------------------------------------------------------------------
+!--  boundary (Uses fixed boundary as signal) SubSection             --
+!----------------------------------------------------------------------
+      IF (use_boundary) THEN
+         CALL init_signal_boundary
+      ENDIF
+!----------------------------------------------------------------------
+!--  END boundary (Uses fixed boundary as signal) SubSection         --
+!----------------------------------------------------------------------
+
 !----------------------------------------------------------------------
 !--  END Geometric Section                                           --
 !----------------------------------------------------------------------
@@ -1011,7 +1023,8 @@
          ENDIF
          
          DO ic = 1,n_s_desc
-            IF (s_desc(ic) % s_type .eq. 'geometric') THEN
+            IF ((s_desc(ic) % s_type .eq. 'geometric') .and.                   &
+     &          (s_desc(ic) % geom % g_type .eq. 'edge_limit')) THEN
                sdo_data_a(ic) = zero
             ENDIF
             CALL signal_construct(sd_observe(ic),s_desc(ic),                   &
@@ -1622,7 +1635,6 @@
 !----------------------------------------------------------------------
 ! L O C A L Variable Declarations
 !----------------------------------------------------------------------
-      TYPE (geometric_desc)     :: geom_local
       TYPE (edge_limit_desc)    :: el_desc_local
       TYPE (limiter_iso)        :: lim_iso_local
 
@@ -1729,7 +1741,7 @@
 !  signal descriptions
       DO isig = n_s_desc + 1,n_s_desc + n_g_desc
          igeom = isig - n_s_desc
-        CALL signal_construct(s_desc(isig),'geometric',                        &
+         CALL signal_construct(s_desc(isig),'geometric',                       &
      &      g_desc(igeom) % name,g_desc(igeom) % name,                         &
      &      g_desc(igeom) % units,g_desc(igeom))
       END DO
@@ -1739,6 +1751,90 @@
 
       RETURN
       END SUBROUTINE init_signal_geometric
+
+!----------------------------------------------------------------------
+!*******************************************************************************
+!----------------------------------------------------------------------
+
+      SUBROUTINE init_signal_boundary
+      USE v3f_global
+      USE signal_T
+      IMPLICIT NONE
+
+      INTEGER               :: i_signal, i_geo, m, n, num_m, num_n
+      TYPE(boundary_desc)   :: temp_boundary
+      CHARACTER(len=80)     :: temp_name
+
+      i_signal = n_s_desc
+      i_geo = n_g_desc
+
+      num_m = MAX(model_a%eqstate%fixp%mpol, 1)
+      num_n = MAX(model_a%eqstate%fixp%ntor, 1)
+
+      DO m = 0, num_m - 1
+         DO n = 0, num_n - 1
+!  Load inital boundary from VMEC input as the signal.
+            i_signal = i_signal + 1
+            i_geo = i_geo + 1
+            sdo_data_a(i_signal) = model_a%eqstate%varp%rbc(n, m)
+            CALL boundary_desc_construct(temp_boundary, 'rbc', n, m)
+            WRITE (unit=temp_name,fmt=*) 'rbc(', n, ',', m, ')'
+            CALL geometric_construct(g_desc(i_geo), 'boundary',                &
+     &                               temp_name, 'm',                           &
+     &                               lif_sigma(i_signal), temp_boundary)
+            CALL signal_construct(s_desc(i_signal), 'geometric',               &
+     &                            temp_name, ' ', 'm', g_desc(i_geo))
+
+            i_signal = i_signal + 1
+            i_geo = i_geo + 1
+            sdo_data_a(i_signal) = model_a%eqstate%varp%zbs(n, m)
+            CALL boundary_desc_construct(temp_boundary, 'zbs', n, m)
+            WRITE (unit=temp_name,fmt=*) 'zbs(', n, ',', m, ')'
+            CALL geometric_construct(g_desc(i_geo), 'boundary',                &
+     &                               temp_name, 'm',                           &
+     &                               lif_sigma(i_signal), temp_boundary)
+            CALL signal_construct(s_desc(i_signal), 'geometric',               &
+     &                            temp_name, ' ', 'm', g_desc(i_geo))
+
+            IF (model_a%eqstate%fixp%lasym) THEN
+               i_signal = i_signal + 1
+               i_geo = i_geo + 1
+               sdo_data_a(i_signal) = model_a%eqstate%varp%rbs(n, m)
+               CALL boundary_desc_construct(temp_boundary, 'rbs', n, m)
+               WRITE (unit=temp_name,fmt=*) 'rbs(', n, ',', m, ')'
+               CALL geometric_construct(g_desc(i_geo), 'boundary',             &
+     &                                  temp_name, 'm',                        &
+     &                                  lif_sigma(i_signal),                   &
+     &                                  temp_boundary)
+               CALL signal_construct(s_desc(i_signal), 'geometric',            &
+     &                               temp_name, ' ', 'm', g_desc(i_geo))
+
+
+               i_signal = i_signal + 1
+               i_geo = i_geo + 1
+               sdo_data_a(i_signal) = model_a%eqstate%varp%zbc(n, m)
+               CALL boundary_desc_construct(temp_boundary, 'zbc', n, m)
+               WRITE (unit=temp_name,fmt=*) 'zbc(', n, ',', m, ')'
+               CALL geometric_construct(g_desc(i_geo), 'boundary',             &
+     &                                  temp_name, 'm',                        &
+     &                                  lif_sigma(i_signal),                   &
+     &                                  temp_boundary)
+               CALL signal_construct(s_desc(i_signal), 'geometric',            &
+     &                               temp_name, ' ', 'm', g_desc(i_geo))
+            ENDIF
+
+         END DO
+      END DO
+
+!  Increment the number of geometric signals and total signals
+      n_g_desc = n_g_desc + 2*num_m*num_n
+      n_s_desc = n_s_desc + 2*num_m*num_n
+      IF (model_a%eqstate%fixp%lasym) THEN
+         n_g_desc = n_g_desc + 2*num_m*num_n
+         n_s_desc = n_s_desc + 2*num_m*num_n
+      ENDIF
+
+      END SUBROUTINE init_signal_boundary
 
 !----------------------------------------------------------------------
 !*******************************************************************************

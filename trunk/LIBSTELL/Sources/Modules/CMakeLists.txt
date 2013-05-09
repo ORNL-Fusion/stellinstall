@@ -5,6 +5,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/biotsavart.f
         ${CMAKE_CURRENT_SOURCE_DIR}/bnorm_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/bootsj_input.f
+	${CMAKE_CURRENT_SOURCE_DIR}/boundary_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/bsc_cdf.f
         ${CMAKE_CURRENT_SOURCE_DIR}/bsc_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/coilsnamin.f

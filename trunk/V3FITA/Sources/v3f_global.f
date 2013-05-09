@@ -206,26 +206,6 @@
       CHARACTER(LEN=100), DIMENSION(100)      :: c_work = ''
 
 !-------------------------------------------------------------------------------
-! Density NML variables  
-!-------------------------------------------------------------------------------
-!   These variables are used to specify the density profile for the INITIAL iteration
-!   (only) of the model, for use in reconstruction involving Interferometry/Polarimetry 
-!   signals.  Note that once the values pass from the NML to the model, these global variables
-!   cease to be utilized.  The density profile is assumed to be of form:
-!           N = N_max*(1 - s^tau)^kappa + N_ambient       (added 7/24/07 by JMS)
-!  DEPRECATED  JDH 2011-10-23. USE pp_ne instead. TO DO - find and fix coding
-!    that uses these variables.
-
-      !REAL(rprec) :: density_max_default_g     = 4.0e18
-      !REAL(rprec) :: density_ambient_default_g = 0.01_rprec
-      !REAL(rprec) :: density_tau_default_g     = 2.0_rprec
-      !REAL(rprec) :: density_kappa_default_g   = 1.0_rprec
-
-      !REAL(rprec) :: density_max_g
-      !REAL(rprec) :: density_ambient_g
-      !REAL(rprec) :: density_tau_g
-      !REAL(rprec) :: density_kappa_g
-!-------------------------------------------------------------------------------
 ! geometric NLI variables  
 !-------------------------------------------------------------------------------
 
@@ -245,6 +225,8 @@
       REAL(rprec), DIMENSION(na_lif)           :: lif_sigma = 0.001D00
       REAL(rprec), DIMENSION(na_lif,na_phi_lif):: lif_phi_degree = zero
       LOGICAL, DIMENSION(na_lif)               :: lif_on_edge = .false.
+
+      LOGICAL                                  :: use_boundary
 
 !-------------------------------------------------------------------------------
 ! coosig (Combination Of Other SIGnals) NLI variables  
