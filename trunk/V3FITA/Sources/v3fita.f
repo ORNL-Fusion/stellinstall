@@ -348,7 +348,7 @@
 ! L O C A L Variable Declarations
 !----------------------------------------------------------------------
       INTEGER   :: i, istat, ier1, ier2, ier3, ios1, l_rl_fn, l_so_fn,         &
-     &   j, imin, imax
+     &   j, imax, imin
       CHARACTER(LEN=300)                 :: mnli_filename = ''
 
       TYPE(pprofile) :: pp_ne_temp, pp_sxrem_temp, pp_te_temp
@@ -375,14 +375,8 @@
 
 !  Signal Data Observed (sdo) sigma and weight specification
 !  Declare length from v3f_global, parameter na_sdata_o_default
-      INTEGER, DIMENSION(na_sdata_o_default) :: sdo_s_spec_imin = 0
-      INTEGER, DIMENSION(na_sdata_o_default) :: sdo_s_spec_imax = 0
       INTEGER, DIMENSION(na_sdata_o_default) :: sdo_w_spec_imin = 0
       INTEGER, DIMENSION(na_sdata_o_default) :: sdo_w_spec_imax = 0
-      REAL(rprec), DIMENSION(na_sdata_o_default) ::                            & 
-     &   sdo_s_spec_floor = zero
-      REAL(rprec), DIMENSION(na_sdata_o_default) ::                            &
-     &   sdo_s_spec_fraction = zero
       REAL(rprec), DIMENSION(na_sdata_o_default) ::                            & 
      &   sdo_w_spec_weight = zero
 
@@ -690,25 +684,6 @@
       END DO
 
 !----------------------------------------------------------------------
-!-- Easy specification of observed signal data sigmas                --
-!----------------------------------------------------------------------
-      DO j = 1,SIZE(sdo_s_spec_imin)
-         IF (sdo_s_spec_imin(j) .le. 0) EXIT
-         imin = MAX(MIN(sdo_s_spec_imin(j),n_sdata_o),1)
-         imax = MIN(MAX(sdo_s_spec_imax(j),imin),n_sdata_o)
-         DO i = imin,imax
-            IF (sdo_sigma_a(i) .eq. 0) THEN
-               IF (sdo_s_spec_floor(j) .ge. 0) THEN
-                  sdo_sigma_a(i) = MAX(sdo_s_spec_floor(j),                    & 
-     &               ABS(sdo_s_spec_fraction(j) * sdo_data_a(i)))
-               ELSE
-                  sdo_sigma_a(i) = SQRT(sdo_s_spec_floor(j) ** 2 +             &
-     &               (sdo_s_spec_fraction(j) * sdo_data_a(i)) ** 2)
-               ENDIF
-            ENDIF
-         END DO
-      END DO
-!----------------------------------------------------------------------
 !-- Easy specification of observed signal data weights               --
 !----------------------------------------------------------------------
       sdo_weight_a = one
@@ -886,6 +861,7 @@
 
       INTEGER              :: isig, idiag, imddc
       INTEGER              :: i, istat, ic, mem, na_min, idc
+      INTEGER              :: imin, imax, j
       INTEGER              :: ier1, ilastslash
       TYPE (bsc_coil)             :: temp_coil
       CHARACTER(len=300)          :: mdsig_filename, mdsig_filename_pp,        &
@@ -995,7 +971,30 @@
 !----------------------------------------------------------------------
 
       CALL init_signal_coosig
-  
+
+!----------------------------------------------------------------------
+!-- Initialize observed signal data                                  --
+!----------------------------------------------------------------------
+!----------------------------------------------------------------------
+!-- Easy specification of observed signal data sigmas                --
+!----------------------------------------------------------------------
+      DO j = 1,SIZE(sdo_s_spec_imin)
+         IF (sdo_s_spec_imin(j) .le. 0) EXIT
+         imin = MAX(MIN(sdo_s_spec_imin(j),n_sdata_o),1)
+         imax = MIN(MAX(sdo_s_spec_imax(j),imin),n_sdata_o)
+         DO i = imin,imax
+            IF (sdo_sigma_a(i) .eq. 0) THEN
+               IF (sdo_s_spec_floor(j) .ge. 0) THEN
+                  sdo_sigma_a(i) = MAX(sdo_s_spec_floor(j),                    &
+     &               ABS(sdo_s_spec_fraction(j) * sdo_data_a(i)))
+               ELSE
+                  sdo_sigma_a(i) = SQRT(sdo_s_spec_floor(j) ** 2 +             &
+     &               (sdo_s_spec_fraction(j) * sdo_data_a(i)) ** 2)
+               ENDIF
+            ENDIF
+         END DO
+      END DO
+
 !----------------------------------------------------------------------
 !-- Initialize observed signal data                                  --
 !----------------------------------------------------------------------

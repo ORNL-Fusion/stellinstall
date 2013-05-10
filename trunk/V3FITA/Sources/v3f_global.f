@@ -121,7 +121,17 @@
       REAL(rprec), DIMENSION(1000)    :: sdo_weight_a
       TYPE(signal_data), DIMENSION(:), ALLOCATABLE, TARGET ::                  &
      &    sd_observe
-            
+
+!-------------------------------------------------------------------------------
+!  Easy sigma specification
+!-------------------------------------------------------------------------------
+      INTEGER, DIMENSION(na_sdata_o_default) :: sdo_s_spec_imin = 0
+      INTEGER, DIMENSION(na_sdata_o_default) :: sdo_s_spec_imax = 0
+      REAL(rprec), DIMENSION(na_sdata_o_default) ::                            &
+     &   sdo_s_spec_floor = zero
+      REAL(rprec), DIMENSION(na_sdata_o_default) ::                            &
+     &   sdo_s_spec_fraction = zero
+
 !-------------------------------------------------------------------------------
 !  Command Line Parsing (including debug logical)
 !-------------------------------------------------------------------------------
