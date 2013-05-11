@@ -33,6 +33,7 @@
 !  Use Statements for other structures, V3 Utilities
 !-------------------------------------------------------------------------------
       USE edge_limit_T
+      USE boundary_T
       USE v3_utilities
 
 !-------------------------------------------------------------------------------
@@ -78,7 +79,8 @@
          CHARACTER (len=name_len)  :: name                                 
          CHARACTER (len=units_len) :: units                                 
          REAL(rprec)               :: sigma_default
-         TYPE (edge_limit_desc)    :: el_desc 
+         TYPE (edge_limit_desc)    :: el_desc
+         TYPE (boundary_desc)      :: b_desc
       END TYPE geometric_desc
 
 !*******************************************************************************
@@ -95,8 +97,9 @@
 !  Generic construct
 !-------------------------------------------------------------------------------
       INTERFACE geometric_construct
-         MODULE PROCEDURE geometric_desc_construct
-         END INTERFACE
+         MODULE PROCEDURE geometric_desc_construct_el,                         &
+     &                    geometric_desc_construct_boundary
+      END INTERFACE
 
 !-------------------------------------------------------------------------------
 !  Generic destroy
@@ -125,7 +128,7 @@
 !
 !  For g_type = 'edge_limit' (edge - limiter)
 !-------------------------------------------------------------------------------
-      SUBROUTINE geometric_desc_construct(this,g_type,name,                    &
+      SUBROUTINE geometric_desc_construct_el(this,g_type,name,                 &
      &   units,sigma_default,el_desc)
 
       IMPLICIT NONE
@@ -164,7 +167,52 @@
       END SELECT ! Different coding depending on g_type
       
 
-      END SUBROUTINE geometric_desc_construct
+      END SUBROUTINE geometric_desc_construct_el
+
+!-------------------------------------------------------------------------------
+!  Construct a geometric_desc
+!
+!  For g_type = 'boundary' (boundary)
+!-------------------------------------------------------------------------------
+      SUBROUTINE geometric_desc_construct_boundary(this,g_type,name,           &
+     &   units,sigma_default,b_desc)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (geometric_desc), INTENT(inout) :: this
+      CHARACTER (len=*), INTENT(in)        :: g_type
+      CHARACTER (len=*), INTENT(in)        :: name
+      CHARACTER (len=*), INTENT(in)        :: units
+      REAL(rprec), INTENT(in)              :: sigma_default
+      TYPE (boundary_desc), INTENT(in)     :: b_desc
+
+!  Declare local variables
+      CHARACTER(len=*), PARAMETER :: sub_name =                                &
+     &  'geometric_desc_construct_mddc: '
+
+!  Start of executable code
+
+!  Destroy the mddc component
+      CALL boundary_desc_destroy(this % b_desc)
+
+!  Scalar assignments
+      this % name = TRIM(ADJUSTL(name))
+      this % units = TRIM(ADJUSTL(units))
+      this % sigma_default = sigma_default
+
+!  Different coding, depending on g_type
+      SELECT CASE (TRIM(ADJUSTL(g_type)))
+         CASE ('boundary')
+            this % g_type = 'boundary'
+            this % b_desc =  b_desc
+
+         CASE DEFAULT
+            CALL err_fatal(sub_name // 'unrecognized g_type: ',                &
+     &      char=g_type)
+      END SELECT ! Different coding depending on g_type
+
+      END SUBROUTINE geometric_desc_construct_boundary
 
 !*******************************************************************************
 ! SECTION V. DESTRUCTION SUBROUTINES

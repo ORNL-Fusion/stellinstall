@@ -46,6 +46,7 @@
       USE thscte_mc
       USE extcurz_mc         ! GLT 10-sep-2012
       USE edge_limit_mc
+      USE boundary_mc
 !  Note that there is no coosig_mc module. Coosig's are computed here.
       
       IMPLICIT NONE
@@ -138,8 +139,12 @@
       CASE ('geometric')
          SELECT CASE (TRIM(ADJUSTL(sdesc % geom % g_type)))
          CASE ('edge_limit')
-             CALL edge_limit_mc_model_compute(sdesc % geom % el_desc,          &
-     &               a_model,sdata % data,sdata % sigma)
+            CALL edge_limit_mc_model_compute(sdesc % geom % el_desc,           &
+     &              a_model,sdata % data,sdata % sigma)
+         CASE ('boundary')
+            CALL boundary_model_compute(sdesc %geom % b_desc,                  &
+     &              a_model, sdata % data, sdata % sigma)
+
          CASE DEFAULT
             CALL err_fatal(sub_name // 'unrecognized g_type: ',                &
      &         sdesc % geom % g_type)

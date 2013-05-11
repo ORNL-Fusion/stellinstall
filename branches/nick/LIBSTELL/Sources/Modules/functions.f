@@ -9,7 +9,7 @@
       MODULE functions
       USE stel_kinds
 
-      PUBLIC :: two_power, two_power_gs      !UNDEFINED, functions_test
+      PUBLIC :: two_power, two_power_gs, function_test
       PRIVATE :: check
 
       CONTAINS
@@ -23,7 +23,7 @@
 !    b(0) * (1 - x ** b(1)) ** b(2)
 !
 !*******************************************************************************
-      REAL(rprec) FUNCTION two_power(x, b)
+      REAL(rprec) PURE FUNCTION two_power(x, b)
       IMPLICIT none
 
 !-------------------------------------------------------------------------------
@@ -44,7 +44,7 @@
 !    two_power(x)*(1 + Sum[b(i)*Exp(-(x - b(i+1))/b(i+2)) ** 2])
 !
 !*******************************************************************************
-      REAL(rprec) FUNCTION two_power_gs(x, b)
+      REAL(rprec) PURE FUNCTION two_power_gs(x, b)
       IMPLICIT none
 
 !-------------------------------------------------------------------------------
