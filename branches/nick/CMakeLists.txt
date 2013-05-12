@@ -18,6 +18,8 @@ cmake_minimum_required (VERSION 2.8)
 # Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
 project (v3fit_suite Fortran C CXX)
 
+enable_testing()
+
 # Set a directories to build all binary files.
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
 set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/lib)
@@ -64,6 +66,7 @@ add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
 add_subdirectory (V3RFUN)
 add_subdirectory (BOOZ_XFORM)
+add_subdirectory (Testing)
 
 # Optional extra builds
 if (BUILD_GTOVMI)
