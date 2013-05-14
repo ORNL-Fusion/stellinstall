@@ -7,7 +7,7 @@
       USE realspace, ONLY: wint, phip
       USE vmec_main, p5 => cp5
       USE vmec_params, ONLY: jlam, jmin2, ntmax, rcc, rss, zsc, zcs,
-     1                       mscale, nscale
+     1                       mscale, nscale, lamscale
       USE fbal, ONLY: rru_fac, rzu_fac, frcc_fac, fzsc_fac
       USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
@@ -140,8 +140,9 @@ C-----------------------------------------------
 !
       IF (ictrl_prec2d.gt.0 .and. ncurr.eq.1) THEN
          ni = 0+ioff;  mj = 0+joff
+         t1 = r0scale    !!*lamscale**2
          DO jl = 2, ns
-            flsc(jl, ni, mj) = -r0scale*(buco(jl) - icurv(jl))
+            flsc(jl, ni, mj) = -t1*(buco(jl) - icurv(jl))
          END DO
       END IF
 

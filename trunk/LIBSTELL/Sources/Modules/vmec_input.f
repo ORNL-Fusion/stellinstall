@@ -57,6 +57,8 @@
      4           lfull3d1out,             ! J.Geiger: to force full 3D1-output
      5           l_v3fit=.false.
      A         , lspectrum_dump, loptim           !!Obsolete
+      LOGICAL :: lgiveup                  ! inserted M.Drevlak
+      REAL(rprec) :: fgiveup              ! inserted M.Drevlak, giveup-factor for ftolv
       CHARACTER(len=200) :: mgrid_file
       CHARACTER(len=10)  :: precon_type
       CHARACTER(len=120) :: arg1
@@ -80,7 +82,8 @@
      A   sigma_flux, nbfld, indxbfld, bloat, raxis, zaxis,
      A   bbc, sigma_b, lpofr, lforbal, lfreeb, lmove_axis, lrecon, lmac, 
      B   lasym, ledge_dump, lspectrum_dump, loptim, lrfp,
-     C   loldout, lwouttxt, ldiagno, lfull3d1out, max_main_iterations      ! J Geiger 2010-05-04
+     C   loldout, lwouttxt, ldiagno, lfull3d1out, max_main_iterations,     ! J Geiger 2010-05-04
+     D   lgiveup,fgiveup                                                   ! M.Drevlak 2012-05-10
 
       NAMELIST /mseprofile/ mseprof
 
@@ -121,13 +124,15 @@
       extcur = 0;  phiedge = 1;
       mgrid_file = 'NONE'
       lfreeb = .true.
-	lmove_axis = .true.
+      lmove_axis = .true.
       lmac = .false.
       lforbal = .true.
       lasym = .false.
       lrfp = .false.
       loldout = .false.        ! J Geiger 2010-05-04 start
       ldiagno = .false.
+      lgiveup = .false.        ! inserted M.Drevlak
+      fgiveup = 3.E+01_dp      ! inserted M.Drevlak
       lfull3d1out = .false.
       lmoreiter = .false.      ! default value if no max_main_iterations given.
       max_main_iterations = 1  ! to keep a presumably expected standard behavior.

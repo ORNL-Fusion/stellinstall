@@ -35,7 +35,7 @@
       END DO
 
       faclam = 0
-      pfactor0 = 2*damping_fac/(2*r0scale)**2/lamscale
+      pfactor0 = 2*damping_fac/(2*r0scale*lamscale)**2
 
       DO m = 0, mpol1
          tmm = m*m
@@ -63,10 +63,10 @@
       END DO
 
 !
-!     ADD NORM FOR IOTA FORCE, STORED IN lmnsc(m=0,n=0) COMPONENT
+!     ADD NORM FOR CHIP (PREVIOUSLY IOTA) FORCE, STORED IN lmnsc(m=0,n=0) COMPONENT
 !
       DO js = 1, ns
-         faclam(js,0,0,1) = pfactor/(blam(js) + blam(js+1))
+         faclam(js,0,0,1) = (pfactor*lamscale**2)/(blam(js) + blam(js+1))
       END DO
 
       END SUBROUTINE lamcal

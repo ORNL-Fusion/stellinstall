@@ -62,8 +62,6 @@ C-----------------------------------------------
 !     IN PARTICULAR, NEEDED TO ACCOUNT FOR POTENTIAL ZERO
 !     EIGENVALUE DUE TO NEUMANN (GRADIENT) CONDITION AT EDGE
 !
-!!         dx(ns,0,0) = (1+edge_pedestal)*dx(ns,0,0) 
-!!           dx(ns,0,0) = dx(ns,0,0) + alfR*ohs**2
          dx(ns,:,0:1)     = (1+edge_pedestal)  *dx(ns,:,0:1)
          dx(ns,:,2:mpol1) = (1+2*edge_pedestal)*dx(ns,:,2:mpol1)
 !

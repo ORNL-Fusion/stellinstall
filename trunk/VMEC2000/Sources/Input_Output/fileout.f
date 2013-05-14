@@ -8,7 +8,7 @@
       USE vforces
       USE vsvd
       USE xstuff, ONLY: xc, gc, xsave, scalxc
-      USE precon2d, ONLY: ictrl_prec2d      !, free_mem_precon
+      USE precon2d, ONLY: ictrl_prec2d
       USE timer_sub
 !      USE dump_output
 
@@ -46,34 +46,6 @@ C-----------------------------------------------
      1    Warning = " Error deallocating global memory FILEOUT"
       LOGICAL :: log_open, lwrite, loutput, lterm
 C-----------------------------------------------
-      INTERFACE
-         SUBROUTINE wrout(bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, 
-     1                    bsupu, rzl_array, gc_array, ier_flag, lwrite)
-         USE vmec_main
-         USE vmec_params, ONLY: ntmax
-         IMPLICIT NONE
-         INTEGER :: ier_flag
-         REAL(rprec), DIMENSION(mnmax,ns,3*MAX(ntmax/2,1)),
-     1      INTENT(inout), TARGET :: rzl_array, gc_array
-         REAL(rprec), DIMENSION(ns,nznt), INTENT(in) ::
-     1      bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, bsupu
-         LOGICAL :: lwrite
-         END SUBROUTINE wrout
-
-         SUBROUTINE eqfor(br, bz, bsubu, bsubv, tau, rzl_array, 
-     1                    ier_flag)
-         USE vmec_main
-         USE vmec_params, ONLY: ntmax
-         IMPLICIT NONE
-         INTEGER :: ier_flag
-         REAL(rprec), DIMENSION(ns,nznt,0:1), INTENT(in) :: bsubu, bsubv
-         REAL(rprec), DIMENSION(nrzt), INTENT(out) :: br, bz
-         REAL(rprec), DIMENSION(nrzt), INTENT(out) :: tau
-         REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,3*ntmax),
-     1      TARGET, INTENT(in) :: rzl_array
-         END SUBROUTINE eqfor
-      END INTERFACE
-   
       lu => czmn;   lv => crmn
 
 !
@@ -127,8 +99,11 @@ C-----------------------------------------------
          CALL second0 (twouton)
 
          CALL wrout (bzmn_o, azmn_o, clmn, blmn, crmn_o, czmn_e,
-     1        crmn_e, xsave, gc, loc_ier_flag, lwrite)
-
+     1        crmn_e, xsave, gc, loc_ier_flag, lwrite
+#ifdef _ANIMEC
+     2       ,brmn_o, sigma_an, ppar, pperp, onembc, pp1, pp2, pp3
+#endif 
+     3        )
          CALL second0 (twoutoff)
 
          timer(twout) = timer(twout) + twoutoff - twouton

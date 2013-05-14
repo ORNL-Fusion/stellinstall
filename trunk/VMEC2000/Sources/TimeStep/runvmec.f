@@ -228,6 +228,22 @@ C-----------------------------------------------
      1       ier_flag.ne.successful_term_flag .and. 
      2       ier_flag.ne.more_iter_flag) EXIT
          IF (numsteps>0 .or. ns_index>0) EXIT
+
+!
+! give up if it refuses to converge, M.Drevlak
+! it may help to end a vmec run in an optimization environment, if it
+! fails to converge in the first iterations of an ns_array sequence
+! within the set number of iterations specified by NITER.
+! The parameter fgiveup defaults to 30.
+!
+
+         IF (lgiveup .and. (fsqr.gt.ftolv*fgiveup .or. 
+     1                      fsqz.gt.ftolv*fgiveup .or.
+     2                      fsql.gt.ftolv*fgiveup     )) THEN
+            print *, "runvmec: giving up due to poor convergence"
+            EXIT
+         ENDIF
+
       END DO
 
   100 CONTINUE

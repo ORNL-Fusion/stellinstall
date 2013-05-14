@@ -1,5 +1,10 @@
-      SUBROUTINE wrout(bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, 
-     1                 bsupu, rzl_array, gc_array, ier_flag, lwrite)
+      SUBROUTINE wrout(bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, bsupu, 
+     1                 rzl_array, gc_array, ier_flag, lwrite
+#ifdef _ANIMEC
+     2                ,tau_an, sigma_an, ppar, pperp, onembc, pbprim,
+     3                 ppprim, densit
+#endif
+     4                 )
 ! ... from SPH 2009-10-05; changes for modB sine-harmonics included
       USE vmec_main, p5 => cp5, two => c2p0
       USE vmec_input, ONLY: ns_array, ftol_array, lwouttxt
@@ -10,7 +15,7 @@
       USE vspline
       USE xstuff
       USE vmec_io
-      USE realspace, gsqrta=>z1, z1=>z1
+      USE realspace, ONLY: phip, gsqrta=>z1, z1=>z1
       USE totzsp_mod
       USE vforces, ONLY: bsupua=>brmn_e, bsupva=>czmn_o, bsqa=>bzmn_e, 
      1                   bsubsa=>armn_e, bsubua=>azmn_e, bsubva=>armn_o 
@@ -75,6 +80,11 @@
      1   INTENT(inout), TARGET :: rzl_array, gc_array
       REAL(rprec), DIMENSION(ns,nznt), INTENT(inout) ::
      1   bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, bsupu
+#ifdef _ANIMEC
+     2  ,tau_an, ppar, pperp, onembc, sigma_an
+      REAL(rprec), DIMENSION(ns,nznt), INTENT(out) ::
+     1   densit, pbprim, ppprim
+#endif
       LOGICAL :: lwrite
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -100,16 +110,28 @@
      3          ,isgn, js2, nfort      !for diagno 1.5
       REAL(rprec) :: dmult, tcosi, tsini, vversion, sgn, tmult,
      1               presfactor, ftolx1, d_bsupumn, d_bsupvmn   ! diagno 1.5
+#ifdef _ANIMEC
+     2              ,hotdam, omtbc, optbc, pdh, pmh, pde, pme, eps
+#endif
       REAL(rprec), POINTER, DIMENSION(:,:) :: rmnc, rmns, zmns, 
      1   zmnc, lmns, lmnc
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: 
      1   gmnc, bmnc, gmns, bmns, 
      2   bsubumnc, bsubvmnc, bsubsmns, bsubumns, bsubvmns, bsubsmnc
-      REAL(rprec), DIMENSION(nznt) :: bmod
+#ifdef _ANIMEC
+     3  ,sigmnc  , taumnc  , pparmnc , ppermnc , pbprmnc , ppprmnc ,
+     4   hotdmnc , hotdmns ,
+     5   sigmns  , taumns  , pparmns , ppermns , pbprmns , ppprmns
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: sigma_ana, tau_ana,
+     1                      ppara, pperpa, pbprima, ppprima, densita     
+#endif
       REAL(rprec), DIMENSION(mnmax) :: rmnc1, zmns1, lmns1,
      1   rmns1, zmnc1, lmnc1, bmodmn, bmodmn1
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: gmn, bmn,
      1   bsubumn, bsubvmn, bsubsmn, bsupumn, bsupvmn
+#ifdef _ANIMEC
+     2  ,sigmn  , taumn  , pparmn , ppermn , pbprmn , ppprmn , hotdmn
+#endif
       CHARACTER(LEN=120) :: wout_file, wout2_file         ! wout2_file by J.Geiger
       CHARACTER(LEN=120) :: fort_file   ! fort_file for diagno 1.5
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: xfinal
@@ -158,20 +180,45 @@
 
       ALLOCATE (gmn(mnmax_nyq0), bmn(mnmax_nyq0),
      1   bsubumn(mnmax_nyq0), bsubvmn(mnmax_nyq0), bsubsmn(mnmax_nyq0), 
-     2   bsupumn(mnmax_nyq0), bsupvmn(mnmax_nyq0), stat=istat)
+     2   bsupumn(mnmax_nyq0), bsupvmn(mnmax_nyq0), 
+#ifdef _ANIMEC
+     3   sigmn(mnmax_nyq0)  ,
+     4   taumn(mnmax_nyq0)  , pparmn(mnmax_nyq0) , ppermn(mnmax_nyq0) ,
+     5   pbprmn(mnmax_nyq0) , ppprmn(mnmax_nyq0) , hotdmn(mnmax_nyq0) ,
+#endif
+     6   stat=istat)
 
       ALLOCATE (gmnc(mnmax_nyq0,ns), bmnc(mnmax_nyq0,ns),
      1          bsubumnc(mnmax_nyq0,ns), bsubvmnc(mnmax_nyq0,ns),
      2          bsubsmns(mnmax_nyq0,ns), bsupumnc(mnmax_nyq0,ns),
-     3          bsupvmnc(mnmax_nyq0,ns), stat=istat)
+     3          bsupvmnc(mnmax_nyq0,ns), 
+#ifdef _ANIMEC
+     4          sigmnc(mnmax_nyq0,ns)  ,
+     5          taumnc(mnmax_nyq0,ns)  , pparmnc(mnmax_nyq0,ns) ,
+     6          ppermnc(mnmax_nyq0,ns) , pbprmnc(mnmax_nyq0,ns) ,
+     7          ppprmnc(mnmax_nyq0,ns) , hotdmnc(mnmax_nyq0,ns) ,
+#endif
+     8          stat=istat)
       IF (lasym) THEN
       ALLOCATE (gmns(mnmax_nyq0,ns), bmns(mnmax_nyq0,ns),
      1          bsubumns(mnmax_nyq0,ns), bsubvmns(mnmax_nyq0,ns),
      2          bsubsmnc(mnmax_nyq0,ns), bsupumns(mnmax_nyq0,ns),
-     3          bsupvmns(mnmax_nyq0,ns), stat=istat)
+     3          bsupvmns(mnmax_nyq0,ns), 
+#ifdef _ANIMEC
+     4          sigmns(mnmax_nyq0,ns)  ,
+     5          taumns(mnmax_nyq0,ns)  , pparmns(mnmax_nyq0,ns) ,
+     6          ppermns(mnmax_nyq0,ns) , pbprmns(mnmax_nyq0,ns) ,
+     7          ppprmns(mnmax_nyq0,ns) , hotdmns(mnmax_nyq0,ns) ,
+#endif
+     8          stat=istat)
+#ifdef _ANIMEC
+      ALLOCATE (sigma_ana(ns,nznt) ,tau_ana(ns,nznt) ,densita(ns,nznt),
+     1          ppara(ns,nznt)     ,pperpa(ns,nznt)  ,pbprima(ns,nznt),
+     2          ppprima(ns,nznt), stat=istat)
+#endif
       END IF
-
       IF (istat .ne. 0) STOP 'Error allocating arrays in VMEC WROUT'
+
 !      IF (nextcur .eq. 0) THEN
 !         DO j = SIZE(extcur), 1, -1
 !           IF (extcur(j) .ne. zero) THEN
@@ -563,7 +610,11 @@
 !     read_wout_file to return the real value version_ to check the version number.
 !
          WRITE (nwout2, '(a15,a)') 'VMEC VERSION = ', version_
+#ifdef _ANIMEC
+         WRITE (nwout2, *) wb, wpar, gamma, pfac,
+#else
          WRITE (nwout2, *) wb, wp, gamma, pfac,
+#endif
      1    rmax_surf, rmin_surf, zmax_surf
 
          WRITE (nwout2, *) nfp, ns, mpol, ntor, mnmax, mnmax_nyq0,
@@ -599,6 +650,7 @@
 !
 !     CONVERT TO rmnc, zmns, lmns, etc EXTERNAL representation (without internal mscale, nscale)
 !     IF B^v ~ phip + lamu, MUST DIVIDE BY phipf(js) below to maintain old-style format
+!     THIS COULD BE A PROBLEM FOR RFP WHERE PHIPF->0 INSIDE THE PLASMA!
 !
       RADIUS1: DO js = 1, ns
 
@@ -627,7 +679,7 @@
       DO js = ns,2,-1
          WHERE (MOD(NINT(xm),2) .eq. 0) 
             lmns(:,js) = p5*(lmns(:,js) + lmns(:,js-1))
-         ELSE WHERE
+         ELSEWHERE
             lmns(:,js) = p5*(sm(js)*lmns(:,js) + sp(js-1)*lmns(:,js-1))
          END WHERE
       END DO
@@ -642,7 +694,7 @@
       DO js = ns,2,-1
          WHERE (MOD(NINT(xm),2) .eq. 0) 
             lmnc(:,js) = p5*(lmnc(:,js) + lmnc(:,js-1))
-         ELSE WHERE
+         ELSEWHERE
             lmnc(:,js) = p5*(sm(js)*lmnc(:,js) + sp(js-1)*lmnc(:,js-1))
          END WHERE
       END DO
@@ -653,6 +705,63 @@
 
  900  CONTINUE
 
+#ifdef _ANIMEC
+!... CALCULATE RADIAL DERIVATIVES OF HOT PARTICLE PRESSURE TERMS
+!... STORE IN ARRAYS pm AND pd PREVIOUSLY USED IN PRESSURE AND EQFOR
+      eps = EPSILON(eps)
+      DO js=2,ns-1
+         pd(js) = ohs * (pres(js+1) * phot(js+1) - pres(js) * phot(js))
+         pmap(js) = ohs * (tpotb(js+1) - tpotb(js))
+      END DO
+!... INTERPOLATE (EXTRAPOLATE) TO HALF INTEGER MESH
+      pdh = c1p5 * pd(2) - p5 * pd(3)
+      pmh = c1p5 * pmap(2) - p5 * pmap(3)
+      pde = c1p5 * pd(ns-1) - p5 * pd(ns-2)
+      pme = c1p5 * pmap(ns-1) - p5 * pmap(ns-2)
+      DO js=ns-2,2,-1
+         pd(js+1) = p5*(pd(js+1) + pd(js)) / (pres(js+1)*phot(js+1)+eps)
+         pmap(js+1) = p5 * (pmap(js+1) + pmap(js))
+      END DO
+      pd(2)  = pdh / (pres(2)*phot(2)+eps)
+      pd(ns) = pde / (pres(ns)*phot(ns)+eps)
+      pmap(2)  = pmh
+      pmap(ns) = pme
+!ALTERNATE EXTRAPOLATION
+      pd(2) = 2*pd(3) - pd(4)
+      pd(ns) = 2*pd(ns-1) - pd(ns-2) 
+
+!CALCULATE HOT PARTICLE PARALLEL AND PERPENDICULAR PRESSURE GRADIENT; DENSITY
+      DO 20 js = 2, ns 
+        hotdam = pres(js) * phot(js) / SQRT(tpotb(js)+eps)
+        DO 10 lk = 1, nznt  
+!  
+           omtbc = one - tpotb(js) * onembc(js,lk)
+           optbc = one + tpotb(js) * onembc(js,lk)
+        IF (onembc(js,lk) <= zero) THEN
+           densit(js,lk)= (ppar(js,lk) - pres(js))*hotdam / 
+     &                    (pres(js)*phot(js)+eps)
+           pbprim(js,lk) =  (ppar(js,lk) -pres(js)) *
+     &             (pd(js) + onembc(js,lk) * pmap(js) / (omtbc+eps))
+           ppprim(js,lk) =  (pperp(js,lk)-pres(js)) *
+     &            (pd(js) + optbc * pmap(js) / (omtbc * tpotb(js)+eps))
+        ELSE
+          densit(js,lk) = hotdam * (one - onembc(js,lk)) *
+     &  (optbc - 2*(tpotb(js)*onembc(js,lk))**c1p5) / (omtbc*optbc+eps)
+          pbprim(js,lk) =  (ppar(js,lk) -pres(js)) * pd(js) +
+     &    ( 2 * tpotb(js) * onembc(js,lk)**2 * (ppar(js,lk)-pres(js))
+     &   + pres(js)*phot(js)*(one-onembc(js,lk))*onembc(js,lk)*(one -5
+     & *(tpotb(js)*onembc(js,lk))**c1p5))* pmap(js) / (omtbc*optbc+eps)
+          ppprim(js,lk) =  (pperp(js,lk)-pres(js)) * pd(js) +
+     & ((pperp(js,lk)-pres(js))*(one+3*(tpotb(js)*onembc(js,lk))**2) /
+     &  (tpotb(js)+eps)+ pres(js)*phot(js)*tpotb(js)
+     &   *(one-onembc(js,lk))**2
+     &   * onembc(js,lk)*(two*optbc-sqrt(tpotb(js)*onembc(js,lk))*(7.5
+     &   - 3.5_dp*(tpotb(js)*onembc(js,lk))**2))/(omtbc*optbc+eps))
+     &   * pmap(js)/ (omtbc * optbc + eps)
+        END IF  
+   10   END DO
+   20  END DO
+#endif
 !SPH100209: COMPUTE |B| = SQRT(|B|**2) and store in bsq, bsqa
       DO js = 2, ns
          bsq(js,:nznt) = SQRT(2*ABS(bsq(js,:nznt)-pres(js)))
@@ -665,8 +774,17 @@
          bsubs(1,:) = 0
          CALL symoutput (bsq,   gsqrt,  bsubu,  bsubv,  bsupu,  
      1                   bsupv,  bsubs, 
-     2                   bsqa,  gsqrta, bsubua, bsubva, bsupua,
-     3                   bsupva, bsubsa)
+#ifdef _ANIMEC
+     2                   ppar   , pperp  , densit ,
+     3                   sigma_an , tau_an , pbprim , ppprim ,
+#endif
+     4                   bsqa,  gsqrta, bsubua, bsubva, bsupua,
+     5                   bsupva, bsubsa
+#ifdef _ANIMEC
+     6                  ,ppara  , pperpa , densita,
+     7                   sigma_ana, tau_ana, pbprima, ppprima
+#endif
+     8                    )
       END IF
 
 !         DO js = 2, ns
@@ -704,9 +822,18 @@
                   bsubvmn(mn) = bsubvmn(mn) + tcosi*bsubv(js,lk)
                   bsubsmn(mn) = bsubsmn(mn) + tsini*bsubs(js,lk)
                   bsupumn(mn) = bsupumn(mn) + tcosi*bsupu(js,lk) 
-!!     1                                      * gsqrt(js,lk)         !!TESTING SIESTA (ADD THIS?)
                   bsupvmn(mn) = bsupvmn(mn) + tcosi*bsupv(js,lk) 
-!!     1                                      * gsqrt(js,lk)         !!TESTING SIESTA (ADD THIS?)
+#ifdef _ANIMEC
+                  pparmn(mn)  = pparmn(mn)  + tcosi*
+     1                                       (ppar(js,lk)-pres(js))
+                  ppermn(mn)  = ppermn(mn)  + tcosi*
+     1                                       (pperp(js,lk)-pres(js))
+                  sigmn(mn)   = sigmn(mn)   + tcosi*sigma_an(js,lk)
+                  taumn(mn)   = taumn(mn)   + tcosi*tau_an(js,lk)
+                  pbprmn(mn)  = pbprmn(mn)  + tcosi*pbprim(js,lk)
+                  ppprmn(mn)  = ppprmn(mn)  + tcosi*ppprim(js,lk)
+                  hotdmn(mn)  = hotdmn(mn)  + tcosi*densit(js,lk)
+#endif
                END DO
             END DO
          END DO MN2
@@ -720,7 +847,15 @@
          bsubsmns(:,js) = bsubsmn(:)
          bsupumnc(:,js) = bsupumn(:)
          bsupvmnc(:,js) = bsupvmn(:)
-
+#ifdef _ANIMEC
+         pparmnc(:,js)  = pparmn(:)
+         ppermnc(:,js)  = ppermn(:)
+         sigmnc(:,js)   = sigmn(:)
+         taumnc(:,js)   = taumn(:)
+         pbprmnc(:,js)  = pbprmn(:)
+         ppprmnc(:,js)  = ppprmn(:)
+         hotdmnc(:,js)  = hotdmn(:)
+#endif
       END DO RADIUS2
 
       gmnc(:,1) = 0; bmnc(:,1) = 0; 
@@ -728,7 +863,11 @@
       bsubvmnc(:,1) = 0
       bsubsmns(:,1) = 2*bsubsmns(:,2) - bsubsmns(:,3)
       bsupumnc(:,1) = 0;  bsupvmnc(:,1) = 0
-
+#ifdef _ANIMEC
+      hotdmnc(:,1)  = 0;  pparmnc(:,1)  = 0;  ppermnc(:,1) = 0
+      pbprmnc(:,1)  = 0;  ppprmnc(:,1)  = 0
+      sigmnc(:,1)   = 0;  taumnc(:,1)   = 0   
+#endif
       IF (.not.lasym) GO TO 200
 
       RADIUS3: DO js = 2, ns
@@ -739,6 +878,15 @@
          bsubsmn = 0
          bsupumn = 0
          bsupvmn = 0
+#ifdef _ANIMEC
+         pparmn  = 0
+         ppermn  = 0
+         sigmn   = 0
+         taumn   = 0
+         pbprmn  = 0
+         ppprmn  = 0
+         hotdmn  = 0
+#endif
          MN3: DO mn = 1, mnmax_nyq0
             n = NINT(xn_nyq0(mn))/nfp
             m = NINT(xm_nyq0(mn))
@@ -762,6 +910,15 @@
                   bsubsmn(mn) = bsubsmn(mn) + tcosi*bsubsa(jlk)
                   bsupumn(mn) = bsupumn(mn) + tsini*bsupua(jlk)
                   bsupvmn(mn) = bsupvmn(mn) + tsini*bsupva(jlk)
+#ifdef _ANIMEC
+                  pparmn(mn)  = pparmn(mn)  + tsini*ppara(js,lk)
+                  ppermn(mn)  = ppermn(mn)  + tsini*pperpa(js,lk)
+                  sigmn(mn)   = sigmn(mn)   + tsini*sigma_ana(js,lk)
+                  taumn(mn)   = taumn(mn)   + tsini*tau_ana(js,lk)
+                  pbprmn(mn)  = pbprmn(mn)  + tsini*pbprima(js,lk)
+                  ppprmn(mn)  = ppprmn(mn)  + tsini*ppprima(js,lk)
+                  hotdmn(mn)  = hotdmn(mn)  + tsini*densita(js,lk)
+#endif
                   jlk = jlk+ns
                END DO
             END DO
@@ -774,7 +931,15 @@
          bsubsmnc(:,js) = bsubsmn(:)
          bsupumns(:,js) = bsupumn(:)
          bsupvmns(:,js) = bsupvmn(:)
-
+#ifdef _ANIMEC
+         pparmns(:,js)  = pparmn(:)
+         ppermns(:,js)  = ppermn(:)
+         sigmns(:,js)   = sigmn(:)
+         taumns(:,js)   = taumn(:)
+         pbprmns(:,js)  = pbprmn(:)
+         ppprmns(:,js)  = ppprmn(:)
+         hotdmns(:,js)  = hotdmn(:)
+#endif
       END DO RADIUS3
 
       gmns(:,1) = 0; bmns(:,1) = 0
@@ -782,7 +947,11 @@
       bsubvmns(:,1) = 0
       bsubsmnc(:,1) = 2*bsubsmnc(:,2) - bsubsmnc(:,3)
       bsupumns(:,1) = 0;  bsupvmns(:,1) = 0
-
+#ifdef _ANIMEC
+      hotdmns(:,1)  = 0;  pparmns(:,1)  = 0;  ppermns(:,1) = 0
+      pbprmns(:,1)  = 0;  ppprmns(:,1)  = 0
+      sigmns(:,1)   = 0;  taumns(:,1)   = 0   
+#endif
  200  CONTINUE
 
 !
@@ -889,11 +1058,21 @@
                END IF
                WRITE (nwout2, *) bmnc(mn,js), gmnc(mn,js),
      1               bsubumnc(mn,js), bsubvmnc(mn,js), bsubsmns(mn,js),
-     3               bsupumnc(mn,js), bsupvmnc(mn,js)
+     2               bsupumnc(mn,js), bsupvmnc(mn,js)
+#ifdef _ANIMEC
+     3              ,pparmnc (mn,js), ppermnc (mn,js), hotdmnc (mn,js),
+     4               pbprmnc (mn,js), ppprmnc (mn,js), sigmnc  (mn,js),
+     5               taumnc  (mn,js)
+#endif
                IF (lasym) THEN
                   WRITE (nwout2, *) bmns(mn,js), gmns(mn,js), 
      1               bsubumns(mn,js), bsubvmns(mn,js), bsubsmnc(mn,js), 
-     3               bsupumns(mn,js), bsupvmns(mn,js)
+     2               bsupumns(mn,js), bsupvmns(mn,js)
+#ifdef _ANIMEC
+     3              ,pparmns (mn,js), ppermns (mn,js), hotdmns (mn,js),
+     4               pbprmns (mn,js), ppprmns (mn,js), sigmns  (mn,js),
+     5               taumns  (mn,js)
+#endif
                ENDIF
             END DO MN2_OUT
          END DO
@@ -1201,12 +1380,29 @@
 ! DEALLOCATIONS ! J Geiger: these have been moved downwards.
 !
       IF (ALLOCATED(gmnc)) DEALLOCATE(gmnc, bmnc, bsubumnc, bsubvmnc,
-     1                                bsubsmns, bsupumnc, bsupvmnc)
+     1                                bsubsmns, bsupumnc, bsupvmnc
+#ifdef _ANIMEC
+     2   ,sigmnc,taumnc,pparmnc,ppermnc,pbprmnc,ppprmnc,hotdmnc
+#endif
+     3                                )
       IF (ALLOCATED(gmns)) DEALLOCATE(gmns, bmns, bsubumns, bsubvmns,
-     1                                bsubsmnc, bsupumns, bsupvmns)
+     1                                bsubsmnc, bsupumns, bsupvmns
+#ifdef _ANIMEC
+     2   ,sigmns,taumns,pparmns,ppermns,pbprmns,ppprmns,hotdmns
+#endif
+     3                                )
+#ifdef _ANIMEC
+      IF (ALLOCATED(tau_ana)) DEALLOCATE(sigma_ana, tau_ana, ppara,
+     1                        pperpa, pbprima, ppprima, densita)
+#endif
 ! J Geiger: check also for allocation.
-      IF (ALLOCATED(gmn) ) DEALLOCATE (gmn, bmn, bsubumn, bsubvmn,
-     1             bsubsmn, bsupumn, bsupvmn, stat=istat)
+      IF (ALLOCATED(gmn)) DEALLOCATE (gmn, bmn, bsubumn, bsubvmn,
+     1             bsubsmn, bsupumn, bsupvmn,
+#ifdef _ANIMEC
+     2             sigmn, taumn, pparmn, ppermn, pbprmn, ppprmn,
+     3             hotdmn,
+#endif
+     4             stat=istat)
 
 !-----------------------------------------------
 !     FREE BOUNDARY DATA

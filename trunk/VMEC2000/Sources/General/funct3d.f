@@ -1,7 +1,7 @@
       SUBROUTINE funct3d (lscreen, ier_flag)
       USE vmec_main
       USE vacmod, ONLY: bsqvac, raxis_nestor, zaxis_nestor
-      USE vmec_params, ONLY: bad_jacobian_flag, zsc
+      USE vmec_params, ONLY: bad_jacobian_flag, zsc, lamscale
       USE realspace
       USE vforces
       USE vsvd, ONLY: router, rinner, gphifac, grmse
@@ -81,7 +81,7 @@ C-----------------------------------------------
      1                         timer(tfft) + (tfftoff - tffton)
 
 !
-!     IN HESSIAN LOOP, ONLY COMPUTE PERTURBATIONS TO R, Z (L) FOR A SINGLE (m,n,ntype)
+!     IN HESSIAN LOOP, ONLY COMPUTE PERTURBATIONS TO R, Z, AND L FOR A SINGLE (m,n,ntype)
 !
       IF (ictrl_prec2d .ge. 2) THEN
          xcdot(:neqs2) = xcdot(:neqs2)*scalxc(:neqs2)
@@ -170,7 +170,7 @@ C-----------------------------------------------
 
 !           EXTEND NVACSKIP AS EQUILIBRIUM CONVERGES
             IF (ivacskip .eq. 0) THEN
-               nvacskip = 1/MAX(1.e-1_dp, 1.e11_dp*(fsqr+fsqz))
+               nvacskip = one/MAX(1.e-1_dp, 1.e11_dp*(fsqr+fsqz))
                nvacskip = MAX(nvacskip, nvskip0)
             END IF
 
@@ -232,8 +232,14 @@ C-----------------------------------------------
             DO l = ns, nrzt, ns
                lk = lk + 1
                bsqsav(lk,3) = 1.5_dp*bzmn_o(l) - 0.5_dp*bzmn_o(l-1)
-               rbsq(lk) = (bsqvac(lk) + presf_ns)*ohs*gcon(l)
-               dbsq(lk) = ABS(bsqvac(lk) + presf_ns - bsqsav(lk,3))
+#ifdef _ANIMEC
+               gcon(l)     = bsqvac(lk) + pperp_ns(lk)
+#else
+               gcon(l)     = bsqvac(lk) + presf_ns
+#endif 
+
+               rbsq(lk) = gcon(l)*(r1(l,0) + r1(l,1))*ohs
+               dbsq(lk) = ABS(gcon(l)-bsqsav(lk,3))  
             END DO
 !           
 !           COMPUTE m=0,n=0 EDGE "pedestals"

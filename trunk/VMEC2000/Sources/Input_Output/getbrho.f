@@ -1,4 +1,5 @@
-      SUBROUTINE getbrho (brhomn, frho, bsupu, bsupv, mmax, nmax, info)
+      SUBROUTINE getbsubs (bsubsmn, frho, bsupu, bsupv, mmax, 
+     1                     nmax, info)
       USE stel_kinds
       USE vmec_input, ONLY: nfp, nzeta, lasym
       USE vmec_dim, ONLY: ntheta1, ntheta2, ntheta3
@@ -10,7 +11,7 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: mmax, nmax
       INTEGER, INTENT(out) :: info
-      REAL(rprec), INTENT(out) :: brhomn(0:mmax, -nmax:nmax, 0:1)
+      REAL(rprec), INTENT(out) :: bsubsmn(0:mmax, -nmax:nmax, 0:1)
       REAL(rprec), DIMENSION(nzeta, ntheta3), INTENT(in) ::
      1    bsupu, bsupv, frho
 C-----------------------------------------------
@@ -29,15 +30,15 @@ C-----------------------------------------------
       EXTERNAL solver
 C-----------------------------------------------
 !
-!     Solves the radial force balance B dot Brho = Fs for Brho in real space using collocation
+!     Solves the radial force balance B dot bsubs = Fs for bsubs in real space using collocation
 !     Here, Fs = frho(mn) is the Fourier transform SQRT(g)*F (part of radial force
-!     balance sans the B dot Brho term)
+!     balance sans the B dot bsubs term)
 !
-!     Storage layout: brhomn(0:mmax, 0:nmax,0) :: coefficient of sin(mu)cos(nv)
-!                     brhomn(0:mmax,-1:nmax,0) :: coefficient of cos(mu)sin(nv)
+!     Storage layout: bsubsmn(0:mmax, 0:nmax,0) :: coefficient of sin(mu)cos(nv)
+!                     bsubsmn(0:mmax,-1:nmax,0) :: coefficient of cos(mu)sin(nv)
 !     for lasym = T
-!                     brhomn(0:mmax, 0:nmax,1) :: coefficient of cos(mu)cos(nv)
-!                     brhomn(0:mmax,-1:nmax,1) :: coefficient of sin(mu)sin(nv)
+!                     bsubsmn(0:mmax, 0:nmax,1) :: coefficient of cos(mu)cos(nv)
+!                     bsubsmn(0:mmax,-1:nmax,1) :: coefficient of sin(mu)sin(nv)
 !
 !     where 0<=m<=mmax and 0<=n<=nmax 
 !
@@ -49,12 +50,12 @@ C-----------------------------------------------
       IF (.not.lasym) itotal = itotal - 2*nmax1
       ALLOCATE (amatrix(itotal, itotal),
      1      brhs(itotal), save_matrix(itotal, itotal), stat=m)
-      IF (m .ne. 0) STOP 'Allocation error in getbrho'
+      IF (m .ne. 0) STOP 'Allocation error in getbsubs'
 
       amatrix = 0
 
 !
-!     BRHO = BSC(M,N)*SIN(MU)COS(NV) + BCS(M,N)*COS(MU)SIN(NV)
+!     bsubs = BSC(M,N)*SIN(MU)COS(NV) + BCS(M,N)*COS(MU)SIN(NV)
 !          + BCC(M,N)*COS(MU)COS(NV) + BSS(M,N)*SIN(MU)SIN(NV)   (LASYM=T ONLY)
 !
 
@@ -147,7 +148,7 @@ C-----------------------------------------------
             amn = SUM(save_matrix(ijtot,:)*brhs(:))
             IF (ABS(amn) .lt. 1.E-12_dp) CYCLE
             IF (ABS(frho(j,i) - amn) .gt. 1.e-8_dp*ABS(amn)) THEN
-               PRINT 50,'In GETBRHO, i = ',i,' j = ',j,
+               PRINT 50,'In GETbsubs, i = ',i,' j = ',j,
      1         ' Original force = ', frho(j,i),' Final force = ', amn
             END IF
         END DO
@@ -159,7 +160,7 @@ C-----------------------------------------------
 !     AND (FOR lasym) BC*COS(MU - NV)
 !
       mntot = 0
-      brhomn = 0
+      bsubsmn = 0
       DO m = 0, mmax
          DO n = 0, nmax
             IF (mntot .ge. itotal) EXIT
@@ -167,18 +168,18 @@ C-----------------------------------------------
             mntot = mntot+1
             IF (n.eq.0 .or. n.eq.nmax) THEN
                IF (m .gt. 0) THEN
-                  brhomn(m,n,0) = brhs(mntot)
+                  bsubsmn(m,n,0) = brhs(mntot)
                ELSE IF (n .eq. 0) THEN
-                  brhomn(m,n,0) = brhs(mntot)
+                  bsubsmn(m,n,0) = brhs(mntot)
                ELSE
-                  brhomn(m,-n,0) = brhs(mntot)
+                  bsubsmn(m,-n,0) = brhs(mntot)
                END IF
             ELSE IF (m.eq.0 .or. m.eq.mmax) THEN
-               brhomn(m,-n,0) = brhs(mntot)
+               bsubsmn(m,-n,0) = brhs(mntot)
             ELSE
-               brhomn(m,n,0) = brhs(mntot)
+               bsubsmn(m,n,0) = brhs(mntot)
                mntot = mntot+1
-               brhomn(m,-n,0) = brhs(mntot)
+               bsubsmn(m,-n,0) = brhs(mntot)
             END IF
 
             IF (.not.lasym) CYCLE
@@ -188,11 +189,11 @@ C-----------------------------------------------
 
             IF ((n.eq.0 .or. n.eq.nmax) .or.
      1          (m.eq.0 .or. m.eq.mmax)) THEN
-               brhomn(m,n,1) = brhs(mntot)
+               bsubsmn(m,n,1) = brhs(mntot)
             ELSE
-               brhomn(m,n,1) = brhs(mntot)
+               bsubsmn(m,n,1) = brhs(mntot)
                mntot = mntot+1
-               brhomn(m,-n,1)= brhs(mntot)
+               bsubsmn(m,-n,1)= brhs(mntot)
             END IF
 
          END DO
@@ -204,4 +205,4 @@ C-----------------------------------------------
 
       DEALLOCATE (amatrix, save_matrix, brhs)
 
-      END SUBROUTINE getbrho
+      END SUBROUTINE getbsubs

@@ -33,3 +33,5 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/xstuff.f
 )
 set (vmec_sources "${vmec_sources}" PARENT_SCOPE)
+
+set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/fbal.f APPEND PROPERTY OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vforce.f")
