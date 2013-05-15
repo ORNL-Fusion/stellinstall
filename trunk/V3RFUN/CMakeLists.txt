@@ -10,6 +10,8 @@ add_subdirectory (Sources)
 add_executable (xv3rfun ${v3rfun_sources})
 add_dependencies (xv3rfun stell)
 target_link_libraries (xv3rfun stell)
+set_target_properties (xv3rfun PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xv3rfun)
+set_target_properties (xv3rfun PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
 
 if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
     target_link_libraries (xv3rfun ${NETCDF_C})

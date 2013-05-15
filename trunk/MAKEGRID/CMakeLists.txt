@@ -10,6 +10,8 @@ add_subdirectory (Sources)
 add_executable (mgrid ${mgrid_sources})
 add_dependencies (mgrid stell)
 target_link_libraries (mgrid stell)
+set_target_properties (mgrid PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/mgrid)
+set_target_properties (mgrid PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
 
 if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
     target_link_libraries (mgrid ${NETCDF_C})

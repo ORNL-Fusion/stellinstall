@@ -10,6 +10,8 @@ add_subdirectory (Sources)
 add_executable (xv3fit ${v3fit_sources})
 add_dependencies (xv3fit vmec stell)
 target_link_libraries (xv3fit vmec stell)
+set_target_properties (xv3fit PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xv3fit)
+set_target_properties (xv3fit PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell -I${CMAKE_Fortran_MODULE_DIRECTORY}/vmec")
 
 if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
 	target_link_libraries (xv3fit ${NETCDF_C})

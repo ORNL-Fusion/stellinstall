@@ -33,13 +33,13 @@ set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
 
 # Set Apple specific options. This adds a predefine for DARWIN and adds lapack from the Accelerate framework.
 if (APPLE)
-	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D DARWIN")
+	add_definitions(-DDARWIN)
 	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
 endif ()
 
 # Set Linux specific options. This adds a predefine for LINUX.
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D LINUX")
+	add_definitions(-DLINUX)
 	find_package(BLAS REQUIRED)
 	find_package(LAPACK REQUIRED)
 endif ()
@@ -54,7 +54,8 @@ find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH})
 find_file (NETCDF_I netcdf.inc ${NETCDF_INC_PATH})
 if ((NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND")) AND (NOT (${NETCDF_I} STREQUAL "NETCDF_I-NOTFOUND")))
 	message (STATUS "Using netcdf")
-	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -D NETCDF -I ${NETCDF_INC_PATH}")
+	add_definitions(-DNETCDF)
+	include_directories(${NETCDF_INC_PATH})
 endif ()
 
 # List all the subdirectories these are in library dependancy order.

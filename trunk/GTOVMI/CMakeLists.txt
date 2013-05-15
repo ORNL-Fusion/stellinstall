@@ -8,6 +8,7 @@ add_subdirectory (Sources)
 
 # Define a library build from all the sources.
 add_executable (xgtovmi ${gtovmi_sources})
+set_target_properties (xgtovmi PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xgtovmi)
 
 if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
 	target_link_libraries (xgtovmi ${NETCDF_C})
