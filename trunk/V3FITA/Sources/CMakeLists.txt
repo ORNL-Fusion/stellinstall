@@ -20,6 +20,9 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/model_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/plasma_edge.f
 	${CMAKE_CURRENT_SOURCE_DIR}/pprofile_T.f
+	${CMAKE_CURRENT_SOURCE_DIR}/prior.f
+	${CMAKE_CURRENT_SOURCE_DIR}/prior_range.f
+	${CMAKE_CURRENT_SOURCE_DIR}/prior_gaussian.f
 	${CMAKE_CURRENT_SOURCE_DIR}/recon_param_model.f
 	${CMAKE_CURRENT_SOURCE_DIR}/recon_param_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/result_output.f
