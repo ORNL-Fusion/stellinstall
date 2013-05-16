@@ -42,7 +42,6 @@
      &                    prior_construct_gaussian
       END INTERFACE
 
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES

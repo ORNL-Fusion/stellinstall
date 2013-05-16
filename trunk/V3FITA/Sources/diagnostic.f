@@ -1,0 +1,219 @@
+!*******************************************************************************
+!  File diagnostic.f
+!  Contains module diagnostic
+!  Defines the base class of the type signal:
+!
+!  Super Class: signal
+!  Sub Classes: magnetic, sxrem, intpol, thomson, extcurz
+!*******************************************************************************
+
+      MODULE diagnostic
+
+      USE stel_kinds, only: rprec
+      USE magnetic
+      USE sxrem
+      USE intpol
+      USE thomson
+      USE extcurz
+
+      IMPLICIT NONE
+
+!*******************************************************************************
+!  diagnostic module parameters
+!*******************************************************************************
+      INTEGER, PARAMETER :: diagnostic_no_type = -1
+      INTEGER, PARAMETER :: diagnostic_magnetic_type = 0
+      INTEGER, PARAMETER :: diagnostic_sxrem_type = 1
+      INTEGER, PARAMETER :: diagnostic_intpol_type = 2
+      INTEGER, PARAMETER :: diagnostic_thomson_type = 3
+      INTEGER, PARAMETER :: diagnostic_extcurz_type = 4
+
+!*******************************************************************************
+!  DERIVED-TYPE DECLARATIONS
+!  1) diagnostic base class
+!
+!*******************************************************************************
+
+      TYPE diagnostic_class
+         INTEGER                       :: type = diagnostic_no_type
+         TYPE(magnetic_class), POINTER :: magnetic => null()
+         TYPE(sxrem_class), POINTER    :: sxrem => null()
+         TYPE(intpol_class), POINTER   :: intpol => null()
+         TYPE(thomson_class), POINTER  :: thomson => null()
+         TYPE(extcurz_class), POINTER  :: extcurz => null()
+      END TYPE diagnostic_class
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+      INTERFACE diagnostic_construct
+         MODULE PROCEDURE diagnostic_construct_magnetic,                       &
+     &                    diagnostic_construct_sxrem,                          &
+     &                    diagnostic_construct_intpol,                         &
+     &                    diagnostic_construct_thomson,                        &
+     &                    diagnostic_construct_extcurz
+      END INTERFACE
+
+      CONTAINS
+
+!*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Construct a diagnostic containing a magnetic.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_magnetic(magnetic_object)
+
+      IMPLICIT NONE
+      TYPE (diagnostic_class) :: diagnostic_construct_magnetic
+      TYPE (magnetic_class), INTENT(in) :: magnetic_object
+
+!  Start of executable code
+      diagnostic_construct_magnetic%type = diagnostic_magnetic_type
+      diagnostic_construct_magnetic%magnetic = magnetic_object
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a diagnostic containing a sxrem.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_sxrem(sxrem_object)
+
+      IMPLICIT NONE
+      TYPE (diagnostic_class) :: diagnostic_construct_sxrem
+      TYPE (sxrem_class), INTENT(in) :: sxrem_object
+
+!  Start of executable code
+      diagnostic_construct_sxrem%type = diagnostic_sxrem_type
+      diagnostic_construct_sxrem%sxrem = sxrem_object
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a diagnostic containing a intpol.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_intpol(intpol_object)
+
+      IMPLICIT NONE
+      TYPE (diagnostic_class) :: diagnostic_construct_intpol
+      TYPE (intpol_class), INTENT(in) :: intpol_object
+
+!  Start of executable code
+      diagnostic_construct_intpol%type = diagnostic_intpol_type
+      diagnostic_construct_intpol%intpol = intpol_object
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a diagnostic containing a thomson.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_thomson(thomson_object)
+
+      IMPLICIT NONE
+      TYPE (diagnostic_class) :: diagnostic_construct_thomson
+      TYPE (thomson_object), INTENT(in) :: thomson_object
+
+!  Start of executable code
+      diagnostic_construct_thomson%type = diagnostic_thomson_type
+      diagnostic_construct_thomson%thomson = thomson_object
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a diagnostic containing a extcurz.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_extcurz(extcurz_object)
+
+      IMPLICIT NONE
+      TYPE (diagnostic_class) :: diagnostic_construct_extcurz
+      TYPE (extcurz_object), INTENT(in) :: extcurz_object
+
+!  Start of executable code
+      diagnostic_construct_extcurz%type = diagnostic_extcurz_type
+      diagnostic_construct_extcurz%extcurz = extcurz_object
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE diagnostic_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (diagnostic_class), INTENT(inout) :: this
+
+!  Start of executable code
+      IF (ASSOCIATED(this%magnetic)) THEN
+         magnetic_destruct(this%magnetic)
+         this%magnetic => null()
+      END IF
+
+      IF (ASSOCIATED(this%sxrem)) THEN
+         sxrem_destruct(this%sxrem)
+         this%sxrem => null()
+      END IF
+
+      IF (ASSOCIATED(this%intpol)) THEN
+         intpol_destruct(this%intpol)
+         this%intpol => null()
+      END IF
+
+      IF (ASSOCIATED(this%thomson)) THEN
+         thomson_destruct(this%thomson)
+         this%thomson => null()
+      END IF
+
+      IF (ASSOCIATED(this%extcurz)) THEN
+         extcurz_destruct(this%extcurz)
+         this%extcurz => null()
+      END IF
+
+      this%type = diagnostic_no_type
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Get the modeled signal
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_modeled_signal(this, a_model)
+      USE model_T
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(2),     :: diagnostic_get_modeled_signal
+      TYPE (diagnostic_class), INTENT(in) :: this
+      TYPE (model), INTENT(in)            :: a_model
+
+!  Start of executable code
+      SELECT CASE(this%type)
+         CASE (diagnostic_magnetic_type)
+            diagnostic_get_modeled_signal =                                    &
+     &         magnetic_get_modeled_signal(this%magnetic, a_model)
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_modeled_signal =                                    &
+     &         sxrem_get_modeled_signal(this%sxrem, a_model)
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_modeled_signal =                                    &
+     &         intpol_get_modeled_signal(this%intpol, a_model)
+
+         CASE (diagnostic_thomson_type)
+            signal_get_modeled_signal =                                        &
+     &         thomson_get_modeled_signal(this%thomson, a_model)
+
+         CASE (diagnostic_extcurz_type)
+            signal_get_modeled_signal =                                        &
+     &         geometric_get_modeled_signal(this%extcurz, a_model)
+
+      END SELECT
+
+      END FUNCTION
+
+      END MODULE
