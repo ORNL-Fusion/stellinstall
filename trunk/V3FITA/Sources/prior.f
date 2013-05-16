@@ -212,7 +212,7 @@
       REAL(rprec), INTENT(in)       :: value
 
 !  Start of executable code
-      SELECT CASE(this%TYPE)
+      SELECT CASE(this%type)
          CASE (prior_range_type)
             prior_is_in_range = prior_range_is_in_range(this%range,            &
      &                                                  value)
@@ -236,7 +236,7 @@
       REAL(rprec), INTENT(in)       :: value
 
 !  Start of executable code
-      SELECT CASE(this%TYPE)
+      SELECT CASE(this%type)
          CASE (prior_range_type)
             prior_get_g2 = prior_range_get_g2(this%range, value)
 
