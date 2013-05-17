@@ -186,8 +186,8 @@
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(2)      :: diagnostic_get_modeled_signal
-      TYPE (diagnostic_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)         :: a_model
+      TYPE (diagnostic_class), INTENT(inout) :: this
+      TYPE (model), INTENT(inout)            :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)

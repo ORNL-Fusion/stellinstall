@@ -222,9 +222,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)      :: signal_get_modeled_signal
-      TYPE (signal_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)     :: a_model
+      REAL (rprec), DIMENSION(2)         :: signal_get_modeled_signal
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model), INTENT(inout)        :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)
@@ -252,12 +252,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                    :: signal_get_g2
-      TYPE (signal_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)     :: a_model
+      REAL (rprec)                       :: signal_get_g2
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model), INTENT(inout)        :: a_model
 
 !  Local Variables
-      REAL (rprec), DIMENSION(2)      :: modeled_signal
+      REAL (rprec), DIMENSION(2)         :: modeled_signal
 
 !  Start of executable code
       modeled_signal = signal_get_modeled_signal(this, a_model)
@@ -370,11 +370,11 @@
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(2)      :: combination_get_modeled_signal
-      TYPE (combination_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)          :: a_model
+      TYPE (combination_class), INTENT(inout) :: this
+      TYPE (model), INTENT(inout)             :: a_model
 
 !  Local Variables
-      INTEGER                              :: i
+      INTEGER                                 :: i
 
 !  Start of executable code
       combination_get_modeled_signal =                                         &
