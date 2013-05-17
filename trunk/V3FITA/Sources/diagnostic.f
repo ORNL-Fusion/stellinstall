@@ -9,7 +9,6 @@
 
       MODULE diagnostic
 
-      USE stel_kinds, only: rprec
       USE magnetic
       USE sxrem
       USE intpol
