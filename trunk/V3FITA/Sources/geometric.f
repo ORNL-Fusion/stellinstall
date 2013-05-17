@@ -1,15 +1,14 @@
 !*******************************************************************************
 !  File geometric.f
 !  Contains module geometric
-!  Defines the base class of the type signal:
+!  Defines the base class of the type geometric:
 !
-!  Super Class: geometric
+!  Super Class: signal
 !  Sub Classes: limiter, boundary
 !*******************************************************************************
 
       MODULE geometric
 
-      USE stel_kinds, only: rprec
       USE limiter
       USE boundary
 
@@ -53,7 +52,9 @@
       FUNCTION geometric_construct_limiter(limiter_object)
 
       IMPLICIT NONE
-      TYPE (geometric_class) :: geometric_construct_limiter
+
+!  Declare Arguments
+	  TYPE (geometric_class) :: geometric_construct_limiter
       TYPE (limiter_class), INTENT(in) :: limiter_class
 
 !  Start of executable code
@@ -89,12 +90,12 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%limiter)) THEN
-         limiter_destruct(this%limiter)
+         CALL limiter_destruct(this%limiter)
          this%limiter => null()
       END IF
 
       IF (ASSOCIATED(this%boundary)) THEN
-         boundary_destruct(this%boundary)
+         CALL boundary_destruct(this%boundary)
          this%boundary => null()
       END IF
 
@@ -114,9 +115,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2),     :: geometric_get_modeled_signal
+      REAL (rprec), DIMENSION(2)       :: geometric_get_modeled_signal
       TYPE (geometric_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)            :: a_model
+      TYPE (model), INTENT(in)           :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)

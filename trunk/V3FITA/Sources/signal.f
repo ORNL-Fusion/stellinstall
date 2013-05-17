@@ -188,17 +188,17 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%diagnostic)) THEN
-         diagnostic_destruct(this%diagnostic)
+         CALL diagnostic_destruct(this%diagnostic)
          this%diagnostic => null()
       END IF
 
       IF (ASSOCIATED(this%geometric)) THEN
-         geometric_destruct(this%geometric)
+         CALL geometric_destruct(this%geometric)
          this%geometric => null()
       END IF
 
       IF (ASSOCIATED(this%combination)) THEN
-         combination_destruct(this%combination)
+         CALL combination_destruct(this%combination)
          this%combination => null()
       END IF
 

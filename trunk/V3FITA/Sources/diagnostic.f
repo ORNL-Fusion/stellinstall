@@ -146,27 +146,27 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%magnetic)) THEN
-         magnetic_destruct(this%magnetic)
+         CALL magnetic_destruct(this%magnetic)
          this%magnetic => null()
       END IF
 
       IF (ASSOCIATED(this%sxrem)) THEN
-         sxrem_destruct(this%sxrem)
+         CALL sxrem_destruct(this%sxrem)
          this%sxrem => null()
       END IF
 
       IF (ASSOCIATED(this%intpol)) THEN
-         intpol_destruct(this%intpol)
+         CALL intpol_destruct(this%intpol)
          this%intpol => null()
       END IF
 
       IF (ASSOCIATED(this%thomson)) THEN
-         thomson_destruct(this%thomson)
+         CALL thomson_destruct(this%thomson)
          this%thomson => null()
       END IF
 
       IF (ASSOCIATED(this%extcurz)) THEN
-         extcurz_destruct(this%extcurz)
+         CALL extcurz_destruct(this%extcurz)
          this%extcurz => null()
       END IF
 
