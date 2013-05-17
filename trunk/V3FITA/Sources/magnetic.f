@@ -22,6 +22,7 @@
       TYPE magnetic_class
       END TYPE magnetic_class
 
+      CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -31,6 +32,8 @@
       FUNCTION magnetic_construct()
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (magnetic_class) :: magnetic_construct
 
 !  Start of executable code
@@ -44,9 +47,12 @@
 
       IMPLICIT NONE
 
+!  Declare Arguments
+      TYPE (magnetic_class), INTENT(inout) :: this
+
 !  Start of executable code
 
-      END FUNCTION
+      END SUBROUTINE
 
 !*******************************************************************************
 !  GETTER SUBROUTINES
@@ -60,7 +66,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2),       :: diagnostic_get_modeled_signal
+      REAL (rprec), DIMENSION(2)        :: magnetic_get_modeled_signal
       TYPE (magnetic_class), INTENT(in) :: this
       TYPE (model), INTENT(in)          :: a_model
 

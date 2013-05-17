@@ -99,13 +99,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class)                :: signal_construct_diagnostic
-      TYPE (geometric_class), INTENT(in) :: diagnostic_object
+      TYPE (signal_class)                 :: signal_construct_diagnostic
+      TYPE (diagnostic_class), INTENT(in) :: diagnostic_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      REAL(rprec), INTENT(in)            :: observed
-      REAL(rprec), INTENT(in)            :: sigma
-      REAL(rprec), INTENT(in)            :: weight
+      REAL(rprec), INTENT(in)             :: observed
+      REAL(rprec), INTENT(in)             :: sigma
+      REAL(rprec), INTENT(in)             :: weight
 
 !  Start of executable code
       signal_construct_diagnostic%type = signal_geometric_type
@@ -143,7 +143,7 @@
       signal_construct_geometric%observed = observed
       signal_construct_geometric%sigma = sigma
       signal_construct_geometric%weight = weight
-      signal_construct_geometric%diagnostic = geometric_object
+      signal_construct_geometric%geometric = geometric_object
 
       END FUNCTION
 
@@ -172,7 +172,7 @@
       signal_construct_combination%observed = observed
       signal_construct_combination%sigma = sigma
       signal_construct_combination%weight = weight
-      signal_construct_combination%diagnostic = combination_object
+      signal_construct_combination%combination = combination_object
 
       END FUNCTION
 
@@ -222,9 +222,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2),     :: signal_get_modeled_signal
+      REAL (rprec), DIMENSION(2)      :: signal_get_modeled_signal
       TYPE (signal_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)        :: a_model
+      TYPE (model), INTENT(inout)     :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)
@@ -238,7 +238,7 @@
 
          CASE (signal_combination_type)
             signal_get_modeled_signal =                                        &
-     &         combination_get_modeled_signal(this%geometric, a_model)
+     &         combination_get_modeled_signal(this%combination, a_model)
 
       END SELECT
 
@@ -254,14 +254,16 @@
 !  Declare Arguments
       REAL (rprec)                    :: signal_get_g2
       TYPE (signal_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)        :: a_model
+      TYPE (model), INTENT(inout)     :: a_model
+
+!  Local Variables
+      REAL (rprec), DIMENSION(2)      :: modeled_signal
 
 !  Start of executable code
+      modeled_signal = signal_get_modeled_signal(this, a_model)
       signal_get_g2 =                                                          &
-     &   this%weight*((this%signal -                                           &
-     &                 signal_get_modeled_signal(this, a_model)(1))            &
+     &   this%weight*((this%observed - modeled_signal(1))                      &
      &                /this%sigma)**2.0
-      END IF
 
       END FUNCTION
 
@@ -278,7 +280,7 @@
 !-------------------------------------------------------------------------------
 !  Construct a combination object.
 !-------------------------------------------------------------------------------
-      FUNCTION combination_construct(n_signals)
+      FUNCTION combination_construct(n_signals, combination_type)
 
       IMPLICIT NONE
 
@@ -343,9 +345,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (combination_class), INTENT(inout) :: this
-      TYPE (signal), INTENT(in), POINTER      :: signal
-      INTEGER, INTENT(in)                     :: index
+      TYPE (combination_class), INTENT(inout)  :: this
+      TYPE (signal_class), INTENT(in), POINTER :: signal
+      INTEGER, INTENT(in)                      :: index
+      REAL (rprec), INTENT(in)                 :: a
 
 !  Local Variables
 
@@ -353,7 +356,7 @@
       this%a(index) = a
       this%signals(index)%p = signal
 
-      END FUNCTION
+      END SUBROUTINE
 
 !*******************************************************************************
 !  GETTER SUBROUTINES
@@ -368,35 +371,38 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(2)      :: combination_get_modeled_signal
       TYPE (combination_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)             :: a_model
+      TYPE (model), INTENT(inout)          :: a_model
 
 !  Local Variables
       INTEGER                              :: i
 
 !  Start of executable code
       combination_get_modeled_signal =                                         &
-     &   this%a(1)*signal_get_modeled_signal(this%signals(1)%p)
+     &   this%a(1)*signal_get_modeled_signal(this%signals(1)%p, a_model)
 
       SELECT CASE(this%type)
          CASE (combination_sum)
             DO i = 2, UBOUND(this%signals, 1)
                combination_get_modeled_signal =                                &
      &            combination_get_modeled_signal +                             &
-     &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p)
+     &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
+     &                                                a_model)
             END DO
 
          CASE (combination_max)
             DO i = 2, UBOUND(this%signals, 1)
                combination_get_modeled_signal = MAX(                           &
      &            combination_get_modeled_signal,                              &
-     &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p))
+     &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
+     &                                                a_model))
             END DO
 
          CASE (combination_min)
             DO i = 2, UBOUND(this%signals, 1)
                combination_get_modeled_signal = MIN(                           &
      &            combination_get_modeled_signal,                              &
-     &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p))
+     &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
+     &                                                a_model))
             END DO
 
       END SELECT

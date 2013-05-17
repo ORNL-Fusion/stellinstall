@@ -33,6 +33,7 @@
          INTEGER     :: n_index
       END TYPE boundary_class
 
+      CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -41,8 +42,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (boundary_class) :: boundary_construct
+      TYPE (boundary_class)         :: boundary_construct
       CHARACTER (len=3), INTENT(in) :: coefficient_type
+      INTEGER, INTENT(in)           :: m_index
+      INTEGER, INTENT(in)           :: n_index
 
       boundary_construct%m_index = m_index
       boundary_construct%n_index = n_index
@@ -61,6 +64,8 @@
          CASE ('zbc')
             boundary_construct%type = boundary_zbc_type
 
+      END SELECT
+
       END FUNCTION
 
 !*******************************************************************************
@@ -76,7 +81,7 @@
 !  Start of executable code
       this%m_index = 0
       this%n_index = 0
-      this%coefficient_type = boundary_no_type
+      this%type = boundary_no_type
 
       END SUBROUTINE
 
@@ -92,12 +97,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2) :: boundary_get_modeled_signal
-      TYPE (limiter_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)         :: a_model
+      REAL (rprec), DIMENSION(2)        :: boundary_get_modeled_signal
+      TYPE (boundary_class), INTENT(in) :: this
+      TYPE (model), INTENT(inout)       :: a_model
 
 !  local variables
-      INTEGER                          :: m, n, s
+      INTEGER                           :: m, n, s
 
 !  Start of executable code
       IF (.not. a_model%eqstate%l_def_aux1) THEN
@@ -105,25 +110,27 @@
       END IF
 
       s = a_model%eqstate%fixp%ns_array(1)
-      m = a_boundary%m_index
-      n = a_boundary%n_index
+      m = this%m_index
+      n = this%n_index
 
       SELECT CASE (this%type)
          CASE (boundary_rbc_type)
             boundary_get_modeled_signal(1) =                                   &
-     &         model_a%eqstate%aux1%rmnc(m*n + m + 1, s)
+     &         a_model%eqstate%aux1%rmnc(m*n + m + 1, s)
 
 		 CASE (boundary_zbs_type)
             boundary_get_modeled_signal(1) =                                   &
-     &         model_a%eqstate%aux1%zmns(m*n + m + 1, s)
+     &         a_model%eqstate%aux1%zmns(m*n + m + 1, s)
 
          CASE (boundary_rbs_type)
             boundary_get_modeled_signal(1) =                                   &
-     &         model_a%eqstate%aux1%rmns(m*n + m + 1, s)
+     &         a_model%eqstate%aux1%rmns(m*n + m + 1, s)
 
          CASE (boundary_zbc_type)
             boundary_get_modeled_signal(1) =                                   &
-               model_a%eqstate%aux1%zmnc(m*n + m + 1, s)
+     &         a_model%eqstate%aux1%zmnc(m*n + m + 1, s)
+
+      END SELECT
 
       END FUNCTION
 

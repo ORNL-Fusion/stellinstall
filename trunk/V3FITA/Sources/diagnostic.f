@@ -110,7 +110,7 @@
 
       IMPLICIT NONE
       TYPE (diagnostic_class) :: diagnostic_construct_thomson
-      TYPE (thomson_object), INTENT(in) :: thomson_object
+      TYPE (thomson_class), INTENT(in) :: thomson_object
 
 !  Start of executable code
       diagnostic_construct_thomson%type = diagnostic_thomson_type
@@ -125,7 +125,7 @@
 
       IMPLICIT NONE
       TYPE (diagnostic_class) :: diagnostic_construct_extcurz
-      TYPE (extcurz_object), INTENT(in) :: extcurz_object
+      TYPE (extcurz_class), INTENT(in) :: extcurz_object
 
 !  Start of executable code
       diagnostic_construct_extcurz%type = diagnostic_extcurz_type
@@ -185,9 +185,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2),     :: diagnostic_get_modeled_signal
+      REAL (rprec), DIMENSION(2)      :: diagnostic_get_modeled_signal
       TYPE (diagnostic_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)            :: a_model
+      TYPE (model), INTENT(inout)         :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)
@@ -204,12 +204,12 @@
      &         intpol_get_modeled_signal(this%intpol, a_model)
 
          CASE (diagnostic_thomson_type)
-            signal_get_modeled_signal =                                        &
+            diagnostic_get_modeled_signal =                                    &
      &         thomson_get_modeled_signal(this%thomson, a_model)
 
          CASE (diagnostic_extcurz_type)
-            signal_get_modeled_signal =                                        &
-     &         geometric_get_modeled_signal(this%extcurz, a_model)
+            diagnostic_get_modeled_signal =                                    &
+     &         extcurz_get_modeled_signal(this%extcurz, a_model)
 
       END SELECT
 

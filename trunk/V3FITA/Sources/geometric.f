@@ -55,7 +55,7 @@
 
 !  Declare Arguments
 	  TYPE (geometric_class) :: geometric_construct_limiter
-      TYPE (limiter_class), INTENT(in) :: limiter_class
+      TYPE (limiter_class), INTENT(in) :: limiter_object
 
 !  Start of executable code
       geometric_construct_limiter%type = geometric_limiter_type
@@ -117,7 +117,7 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(2)       :: geometric_get_modeled_signal
       TYPE (geometric_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)           :: a_model
+      TYPE (model), INTENT(inout)        :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)
@@ -125,7 +125,7 @@
             geometric_get_modeled_signal =                                     &
      &         limiter_get_modeled_signal(this%limiter, a_model)
 
-         CASE (diagnostic_boundary_type)
+         CASE (geometric_boundary_type)
             geometric_get_modeled_signal =                                    &
      &         boundary_get_modeled_signal(this%boundary, a_model)
 

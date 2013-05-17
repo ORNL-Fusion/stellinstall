@@ -22,6 +22,7 @@
       TYPE intpol_class
       END TYPE intpol_class
 
+      CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -31,6 +32,8 @@
       FUNCTION intpol_construct()
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (intpol_class) :: intpol_construct
 
 !  Start of executable code
@@ -44,9 +47,12 @@
 
       IMPLICIT NONE
 
+!  Declare Arguments
+      TYPE (intpol_class), INTENT(inout) :: this
+
 !  Start of executable code
 
-      END FUNCTION
+      END SUBROUTINE
 
 !*******************************************************************************
 !  GETTER SUBROUTINES
@@ -54,15 +60,15 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_modeled_signal(this, a_model)
+      FUNCTION intpol_get_modeled_signal(this, a_model)
       USE model_T
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2),    :: intpol_get_modeled_signal
+      REAL (rprec), DIMENSION(2)      :: intpol_get_modeled_signal
       TYPE (intpol_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)            :: a_model
+      TYPE (model), INTENT(in)        :: a_model
 
 !  Start of executable code
       intpol_get_modeled_signal = 0.0
