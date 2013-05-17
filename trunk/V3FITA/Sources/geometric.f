@@ -115,7 +115,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)       :: geometric_get_modeled_signal
+      REAL (rprec), DIMENSION(4)       :: geometric_get_modeled_signal
       TYPE (geometric_class), INTENT(in) :: this
       TYPE (model), INTENT(inout)        :: a_model
 

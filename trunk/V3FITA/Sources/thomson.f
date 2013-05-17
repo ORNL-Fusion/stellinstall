@@ -83,7 +83,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)       :: thomson_get_modeled_signal
+      REAL (rprec), DIMENSION(4)       :: thomson_get_modeled_signal
       TYPE (thomson_class), INTENT(in) :: this
       TYPE (model), INTENT(inout)      :: a_model
 

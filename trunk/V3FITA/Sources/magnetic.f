@@ -66,7 +66,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)        :: magnetic_get_modeled_signal
+      REAL (rprec), DIMENSION(4)        :: magnetic_get_modeled_signal
       TYPE (magnetic_class), INTENT(in) :: this
       TYPE (model), INTENT(in)          :: a_model
 

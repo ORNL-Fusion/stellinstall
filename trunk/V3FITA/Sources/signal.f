@@ -222,7 +222,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)         :: signal_get_modeled_signal
+      REAL (rprec), DIMENSION(4)         :: signal_get_modeled_signal
       TYPE (signal_class), INTENT(inout) :: this
       TYPE (model), INTENT(inout)        :: a_model
 
@@ -257,7 +257,7 @@
       TYPE (model), INTENT(inout)        :: a_model
 
 !  Local Variables
-      REAL (rprec), DIMENSION(2)         :: modeled_signal
+      REAL (rprec), DIMENSION(4)         :: modeled_signal
 
 !  Start of executable code
       modeled_signal = signal_get_modeled_signal(this, a_model)
@@ -369,7 +369,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)      :: combination_get_modeled_signal
+      REAL (rprec), DIMENSION(4)      :: combination_get_modeled_signal
       TYPE (combination_class), INTENT(inout) :: this
       TYPE (model), INTENT(inout)             :: a_model
 

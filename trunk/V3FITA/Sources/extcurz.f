@@ -94,7 +94,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)       :: extcurz_get_modeled_signal
+      REAL (rprec), DIMENSION(4)       :: extcurz_get_modeled_signal
       TYPE (extcurz_class), INTENT(in) :: this
       TYPE (model), INTENT(inout)      :: a_model
 

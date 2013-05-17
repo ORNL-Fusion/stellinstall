@@ -78,7 +78,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)        :: sxrem_get_modeled_signal
+      REAL (rprec), DIMENSION(4)        :: sxrem_get_modeled_signal
       TYPE (sxrem_class), INTENT(inout) :: this
       TYPE (model), INTENT(in)          :: a_model
 

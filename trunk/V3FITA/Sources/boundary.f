@@ -97,7 +97,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)        :: boundary_get_modeled_signal
+      REAL (rprec), DIMENSION(4)        :: boundary_get_modeled_signal
       TYPE (boundary_class), INTENT(in) :: this
       TYPE (model), INTENT(inout)       :: a_model
 

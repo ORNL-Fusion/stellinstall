@@ -119,7 +119,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(2)         :: intpol_get_modeled_signal
+      REAL (rprec), DIMENSION(4)         :: intpol_get_modeled_signal
       TYPE (intpol_class), INTENT(inout) :: this
       TYPE (model), INTENT(inout)        :: a_model
 
