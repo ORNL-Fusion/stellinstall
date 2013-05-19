@@ -27,6 +27,11 @@
       REAL(rprec), PARAMETER :: prior_range_large = 1.0E100_dp
       INTEGER, PARAMETER     :: prior_label_length = 80
 
+      INTEGER, PARAMETER :: range_no_type = -1
+      INTEGER, PARAMETER :: range_value_type = 0
+      INTEGER, PARAMETER :: range_parameter_type = 1
+      INTEGER, PARAMETER :: range_infinity_type = 2
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) prior_range base class
@@ -39,8 +44,7 @@
 !  are:
 !      'value'
 !      'infinity'
-!      '-infinity'
-!      'parameter'
+!      'parameter_****'
 !
 !  When the range either range label is a value, then upper_value or lower_value
 !  contain the bound values. When either range label is a parameter,
@@ -48,6 +52,8 @@
 !  reconstruction parameter.
 !-------------------------------------------------------------------------------
       TYPE prior_range_class
+         INTEGER                            :: lower_range_type
+         INTEGER                            :: upper_range_type
          CHARACTER (len=prior_label_length) :: lower_range_label
          CHARACTER (len=prior_label_length) :: upper_range_label
          REAL(rprec)                        :: lower_value
@@ -57,6 +63,122 @@
       END TYPE prior_range_class
 
       CONTAINS
+!*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+      FUNCTION prior_range_construct(lower_range_label,                        &
+     &                               upper_range_label,                        &
+     &                               lower_value,                              &
+     &                               upper_value,                              &
+     &                               lower_param_indices,                      &
+     &                               upper_param_indices)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_range_class) :: prior_range_construct
+      CHARACTER (len=prior_label_length), INTENT(in) ::                        &
+     &   lower_range_label
+      CHARACTER (len=prior_label_length), INTENT(in) ::                        &
+     &   upper_range_label
+      REAL(rprec), INTENT(in)           :: lower_value
+      REAL(rprec), INTENT(in)           :: upper_value
+      INTEGER, DIMENSION(2), INTENT(in) :: lower_param_indices
+      INTEGER, DIMENSION(2), INTENT(in) :: upper_param_indices
+
+!  Local Variables
+      INTEGER                           :: status, i
+
+!  Start of executable code
+! Check to see where the first '_' character is located. This is used to split
+! strings of the format 'parameter_param'
+      i = INDEX(TRIM(ADJUSTL(lower_range_label)), '_')
+      IF (i .eq. 0) THEN
+         i = LEN_TRIM(lower_range_label) + 1
+      ENDIF
+
+      SELECT CASE (lower_range_label(1:i - 1))
+
+         CASE ('value')
+            prior_range_construct%lower_range_type = range_value_type
+            prior_range_construct%lower_value = lower_value
+
+         CASE ('parameter')
+            prior_range_construct%lower_range_type                             &
+     &         = range_parameter_type
+            prior_range_construct%lower_param_indices                          &
+     &         = lower_param_indices
+            prior_range_construct%lower_range_label                            &
+     &         = lower_range_label(i + 1:LEN_TRIM(lower_range_label))
+
+         CASE ('infinity')
+            prior_range_construct%lower_range_type = range_infinity_type
+
+         CASE DEFAULT
+            CALL err_fatal('prior_range_construct unrecongnized ' //           &
+     &                     'lower_range_label: ' // lower_range_label)
+      END SELECT
+
+      prior_range_construct%lower_range_label                                  &
+     &   = TRIM(ADJUSTL(lower_range_label))
+
+! Check to see where the first '_' character is located. This is used to split
+! strings of the format 'parameter_param'
+      i = INDEX(TRIM(ADJUSTL(upper_range_label)), '_')
+      IF (i .eq. 0) THEN
+         i = LEN_TRIM(lower_range_label) + 1
+      ENDIF
+
+      SELECT CASE (upper_range_label(1:i - 1))
+
+         CASE ('value')
+            prior_range_construct%upper_range_type = range_value_type
+            prior_range_construct%upper_value = upper_value
+
+         CASE ('parameter')
+            prior_range_construct%upper_range_type                             &
+     &         = range_parameter_type
+            prior_range_construct%upper_param_indices                          &
+     &         = upper_param_indices
+            prior_range_construct%upper_range_label                            &
+     &         = upper_range_label(i + 1:LEN_TRIM(upper_range_label))
+
+         CASE ('infinity')
+            prior_range_construct%upper_range_type = range_infinity_type
+
+         CASE DEFAULT
+            CALL err_fatal('prior_range_construct unrecongnized ' //           &
+     &                     'upper_range_label: ' // upper_range_label)
+      END SELECT
+
+      prior_range_construct%upper_range_label                                  &
+     &   = TRIM(ADJUSTL(upper_range_label))
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE prior_range_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_range_class), INTENT(inout) :: this
+
+!  Start of executable code
+      this%lower_range_type = range_no_type
+      this%lower_range_label = ' '
+      this%lower_value = 0.0
+      this%lower_param_indices = 0
+
+      this%upper_range_type = range_no_type
+      this%upper_range_label = ' '
+      this%upper_value = 0.0
+      this%upper_param_indices = 0
+
+      END SUBROUTINE
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
@@ -69,40 +191,33 @@
       REAL(rprec), INTENT(in)             :: value
 
 !  Start of executable code
-      SELECT CASE (TRIM(ADJUSTL(this%lower_range_label)))
-         CASE ('value')
+      SELECT CASE (this%lower_range_type)
+
+         CASE (range_value_type)
             prior_range_is_in_range = value .ge. this%lower_value
 
-         CASE ('parameter')
+         CASE (range_parameter_type)
+            prior_range_is_in_range = .true. ! Set to true until parameters are implemented.
+
+         CASE (range_infinity_type)
             prior_range_is_in_range = .true.
 
-         CASE ('infinity', '-infinity')
-            prior_range_is_in_range = .true.
+      END SELECT
 
-         CASE DEFAULT
-            CALL err_fatal('prior_range_is_in_range unrecongnized ' //         &
-     &                     'lower_range_label: ' //                            &
-     &                     this%lower_range_label)
-       END SELECT
-
-      SELECT CASE (TRIM(ADJUSTL(this%upper_range_label)))
-         CASE ('value')
+      SELECT CASE (this%upper_range_type)
+         CASE (range_value_type)
             prior_range_is_in_range = prior_range_is_in_range .and.            &
      &                                value .le. this%upper_value
 
-         CASE ('parameter')
+         CASE (range_parameter_type)
+            prior_range_is_in_range = prior_range_is_in_range .and.            &
+     &                                .true. ! Set to true until parameters are implemented.
+
+         CASE (range_infinity_type)
             prior_range_is_in_range = prior_range_is_in_range .and.            &
      &                                .true.
 
-         CASE ('infinity', '-infinity')
-            prior_range_is_in_range = prior_range_is_in_range .and.            &
-     &                                .true.
-
-         CASE DEFAULT
-            CALL err_fatal('prior_range_is_in_range unrecongnized ' //         &
-     &                     'upper_range_label: ' //                            &
-     &                     this%upper_range_label)
-         END SELECT
+      END SELECT
 
       END FUNCTION
 

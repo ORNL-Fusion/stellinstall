@@ -45,6 +45,46 @@
 
       CONTAINS
 !*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Construct a prior_gaussian.
+!-------------------------------------------------------------------------------
+      FUNCTION prior_gaussian_construct(mu, sigma)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_gaussian_class) :: prior_gaussian_construct
+      REAL(rprec), INTENT(in)     :: mu
+      REAL(rprec), INTENT(in)     :: sigma
+
+!  Local Variables
+      INTEGER                     :: status
+
+!  Start of executable code
+      prior_gaussian_construct%mu = mu
+      prior_gaussian_construct%sigma = sigma
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE prior_gaussian_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_gaussian_class), INTENT(inout) :: this
+
+!  Start of executable code
+      this%mu = 0.0
+      this%sigma = 0.0
+
+      END SUBROUTINE
+
+!*******************************************************************************
 !  Getters SUBROUTINES
 !*******************************************************************************
       FUNCTION prior_gaussian_get_g2(this, value)

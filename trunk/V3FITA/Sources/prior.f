@@ -81,104 +81,11 @@
 
       END FUNCTION
 
-!-------------------------------------------------------------------------------
-!  Construct a prior_range.
-!-------------------------------------------------------------------------------
-      FUNCTION prior_range_construct(lower_range_label,                        &
-     &                               upper_range_label,                        &
-     &                               lower_value,                              &
-     &                               upper_value,                              &
-     &                               lower_param_indices,                      &
-     &                               upper_param_indices)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (prior_class) :: prior_range_construct
-      CHARACTER (len=prior_label_length), INTENT(in) ::                        &
-     &   lower_range_label
-      CHARACTER (len=prior_label_length), INTENT(in) ::                        &
-     &   upper_range_label
-      REAL(rprec), INTENT(in)           :: lower_value
-      REAL(rprec), INTENT(in)           :: upper_value
-      INTEGER, DIMENSION(2), INTENT(in) :: lower_param_indices
-      INTEGER, DIMENSION(2), INTENT(in) :: upper_param_indices
-
-!  Local Variables
-      TYPE (prior_range_class), ALLOCATABLE :: range_object
-      INTEGER                               :: status
-
-!  Start of executable code
-      ALLOCATE(range_object, STAT=status)
-
-      SELECT CASE (TRIM(ADJUSTL(lower_range_label)))
-         CASE ('value')
-            range_object%lower_value = lower_value
-
-         CASE ('parameter')
-            range_object%lower_param_indices = lower_param_indices
-
-         CASE ('infinity', '-infinity')
-!  Do nothing
-
-         CASE DEFAULT
-            CALL err_fatal('prior_range_construct unrecongnized ' //           &
-     &                     'lower_range_label: ' // lower_range_label)
-      END SELECT
-
-      range_object%lower_range_label = TRIM(ADJUSTL(lower_range_label))
-
-      SELECT CASE (TRIM(ADJUSTL(upper_range_label)))
-         CASE ('value')
-            range_object%upper_value = upper_value
-
-         CASE ('parameter')
-            range_object%upper_param_indices = upper_param_indices
-
-         CASE ('infinity', '-infinity')
-!  Do nothing
-
-         CASE DEFAULT
-            CALL err_fatal('prior_range_construct unrecongnized ' //           &
-     &                     'upper_range_label: ' // upper_range_label)
-      END SELECT
-
-      range_object%upper_range_label = TRIM(ADJUSTL(upper_range_label))
-
-      prior_range_construct = prior_construct(range_object)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Construct a prior_gaussian.
-!-------------------------------------------------------------------------------
-      FUNCTION prior_gaussian_construct(mu, sigma)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (prior_class)      :: prior_gaussian_construct
-      REAL(rprec), INTENT(in) :: mu
-      REAL(rprec), INTENT(in) :: sigma
-
-!  Local Variables
-      TYPE (prior_gaussian_class), ALLOCATABLE :: gaussian_object
-      INTEGER                                  :: status
-
-!  Start of executable code
-      ALLOCATE(gaussian_object, STAT=status)
-
-      gaussian_object%mu = mu
-      gaussian_object%sigma = sigma
-
-      prior_gaussian_construct = prior_construct(gaussian_object)
-
-      END FUNCTION
-
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
       SUBROUTINE prior_destruct(this)
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -186,12 +93,12 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%range)) THEN
-         DEALLOCATE(this%range)
+         CALL prior_range_destruct(this%range)
          this%range => null()
       END IF
 
       IF (ASSOCIATED(this%gaussian)) THEN
-         DEALLOCATE(this%gaussian)
+         CALL prior_gaussian_destruct(this%gaussian)
          this%gaussian => null()
       END IF
 
