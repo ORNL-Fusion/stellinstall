@@ -215,8 +215,6 @@
       CASE ('rbs')
       CASE ('zbc')
       CASE ('zbs')
-!      CASE ('density_max')
-!      CASE ('density_tau')
       CASE ('pp_ne_b')
       CASE ('pp_ne_as')
       CASE ('pp_ne_af')
