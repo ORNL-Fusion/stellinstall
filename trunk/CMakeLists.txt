@@ -32,13 +32,13 @@ set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp")
 set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
 
 # Set Apple specific options. This adds a predefine for DARWIN and adds lapack from the Accelerate framework.
-if (APPLE)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_definitions(-DDARWIN)
 	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
 endif ()
 
 # Set Linux specific options. This adds a predefine for LINUX.
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	add_definitions(-DLINUX)
 	find_package(BLAS REQUIRED)
 	find_package(LAPACK REQUIRED)
