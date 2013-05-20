@@ -99,8 +99,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class)                 :: signal_construct_diagnostic
-      TYPE (diagnostic_class), INTENT(in) :: diagnostic_object
+      TYPE (signal_class), POINTER        :: signal_construct_diagnostic
+      TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
       REAL(rprec), INTENT(in)             :: observed
@@ -108,13 +108,15 @@
       REAL(rprec), INTENT(in)             :: weight
 
 !  Start of executable code
+      ALLOCATE(signal_construct_diagnostic)
+
       signal_construct_diagnostic%type = signal_geometric_type
       signal_construct_diagnostic%s_name = s_name
       signal_construct_diagnostic%l_name = l_name
       signal_construct_diagnostic%observed = observed
       signal_construct_diagnostic%sigma = sigma
       signal_construct_diagnostic%weight = weight
-      signal_construct_diagnostic%diagnostic = diagnostic_object
+      signal_construct_diagnostic%diagnostic => diagnostic_object
 
       END FUNCTION
 
@@ -128,8 +130,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class)                :: signal_construct_geometric
-      TYPE (geometric_class), INTENT(in) :: geometric_object
+      TYPE (signal_class), POINTER       :: signal_construct_geometric
+      TYPE (geometric_class), POINTER, INTENT(in) :: geometric_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
       REAL(rprec), INTENT(in)            :: observed
@@ -137,13 +139,15 @@
       REAL(rprec), INTENT(in)            :: weight
 
 !  Start of executable code
+      ALLOCATE(signal_construct_geometric)
+
       signal_construct_geometric%type = signal_geometric_type
       signal_construct_geometric%s_name = s_name
       signal_construct_geometric%l_name = l_name
       signal_construct_geometric%observed = observed
       signal_construct_geometric%sigma = sigma
       signal_construct_geometric%weight = weight
-      signal_construct_geometric%geometric = geometric_object
+      signal_construct_geometric%geometric => geometric_object
 
       END FUNCTION
 
@@ -157,8 +161,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class)               :: signal_construct_combination
-      TYPE (combination_class), INTENT(in) :: combination_object
+      TYPE (signal_class), POINTER :: signal_construct_combination
+      TYPE (combination_class), POINTER, INTENT(in)                            &
+     &                             :: combination_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
       REAL(rprec), INTENT(in)              :: observed
@@ -166,13 +171,15 @@
       REAL(rprec), INTENT(in)              :: weight
 
 !  Start of executable code
+      ALLOCATE(signal_construct_combination)
+
       signal_construct_combination%type = signal_combination_type
       signal_construct_combination%s_name = s_name
       signal_construct_combination%l_name = l_name
       signal_construct_combination%observed = observed
       signal_construct_combination%sigma = sigma
       signal_construct_combination%weight = weight
-      signal_construct_combination%combination = combination_object
+      signal_construct_combination%combination => combination_object
 
       END FUNCTION
 
@@ -184,7 +191,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (signal_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%diagnostic)) THEN
@@ -208,6 +215,8 @@
       this%observed = 0.0
       this%sigma = 0.0
       this%weight = 0.0
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 
@@ -285,14 +294,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (combination_class)      :: combination_construct
-      INTEGER, INTENT(in)           :: n_signals
-      CHARACTER (len=3), INTENT(in) :: combination_type
+      TYPE (combination_class), POINTER :: combination_construct
+      INTEGER, INTENT(in)               :: n_signals
+      CHARACTER (len=3), INTENT(in)     :: combination_type
 
 !  Local Variables
-      INTEGER                       :: status
+      INTEGER                           :: status
 
 !  Start of executable code
+      ALLOCATE(combination_construct)
+
       ALLOCATE(combination_construct%signals(n_signals),                       &
      &         combination_construct%a(n_signals), STAT=status)
 
@@ -318,10 +329,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (combination_class), INTENT(inout) :: this
+      TYPE (combination_class), POINTER, INTENT(inout) :: this
 
 !  Local Variables
-      INTEGER                                 :: i
+      INTEGER                                          :: i
 
 !  Start of executable code
 
@@ -332,6 +343,8 @@
 
       DEALLOCATE(this%signals)
       this%type = combination_none
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 !*******************************************************************************
@@ -354,7 +367,7 @@
 
 !  Start of executable code
       this%a(index) = a
-      this%signals(index)%p = signal
+      this%signals(index)%p => signal
 
       END SUBROUTINE
 

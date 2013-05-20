@@ -57,10 +57,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class)     :: intpol_construct_int
-      TYPE (path), INTENT(in) :: chord_path
+      TYPE (intpol_class), POINTER :: intpol_construct_int
+      TYPE (path), INTENT(in)      :: chord_path
 
 !  Start of executable code
+      ALLOCATE(intpol_construct_int)
+
       intpol_construct_int%type = intpol_interferometry_type
       intpol_construct_int%wavelength = 0.0
       intpol_construct_int%in_degrees = .false.
@@ -76,12 +78,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class)      :: intpol_construct_pol
-      REAL (rprec), INTENT(in) :: wavelength
-      LOGICAL, INTENT(in)      :: in_degrees
-      TYPE (path), INTENT(in)  :: chord_path
+      TYPE (intpol_class), POINTER :: intpol_construct_pol
+      REAL (rprec), INTENT(in)     :: wavelength
+      LOGICAL, INTENT(in)          :: in_degrees
+      TYPE (path), INTENT(in)      :: chord_path
 
 !  Start of executable code
+      ALLOCATE(intpol_construct_pol)
+
       intpol_construct_pol%type = intpol_polarimetry_type
       intpol_construct_pol%wavelength = wavelength
       intpol_construct_pol%in_degrees = in_degrees
@@ -97,13 +101,15 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class), INTENT(inout) :: this
+      TYPE (intpol_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%type = intpol_no_type
       this%wavelength = 0.0
       this%in_degrees = .false.
       CALL path_destroy(this%chord_path)
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

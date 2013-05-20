@@ -37,7 +37,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (extcurz_class)           :: extcurz_construct
+      TYPE (extcurz_class), POINTER  :: extcurz_construct
       TYPE (eq_state), INTENT(inout) :: eqstate
       REAL(rprec), INTENT(in)        :: s0
 
@@ -46,6 +46,8 @@
       REAL(rprec)                    :: ds
 
 !  Start of executable code
+      ALLOCATE(extcurz_construct)
+
       extcurz_construct%s0 = s0
 
       IF (.not. eqstate%l_def_aux1) THEN
@@ -71,12 +73,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (extcurz_class), INTENT(inout) :: this
+      TYPE (extcurz_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%s0 = 0.0
 
       DEALLOCATE(this%svec)
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

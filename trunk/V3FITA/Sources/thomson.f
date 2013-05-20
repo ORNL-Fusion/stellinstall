@@ -37,18 +37,20 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a magnetic.
+!  Construct a thomson.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct(type, xcart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class)                   :: thomson_construct
+      TYPE (thomson_class), POINTER          :: thomson_construct
       INTEGER, INTENT(in)                    :: type
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
 
 !  Start of executable code
+      ALLOCATE(thomson_construct)
+
       thomson_construct%type = type
       thomson_construct%xcart = xcart
 
@@ -62,11 +64,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class), INTENT(inout) :: this
+      TYPE (thomson_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%type = thomson_no_type
       this%xcart = 0.0
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

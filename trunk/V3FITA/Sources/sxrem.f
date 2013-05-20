@@ -42,10 +42,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class)      :: sxrem_construct
-      TYPE (path), INTENT(in) :: chord_path
+      TYPE (sxrem_class), POINTER :: sxrem_construct
+      TYPE (path), INTENT(in)     :: chord_path
 
 !  Start of executable code
+      ALLOCATE(sxrem_construct)
+
       sxrem_construct%chord_path = chord_path
 
       END FUNCTION
@@ -58,11 +60,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), INTENT(inout) :: this
-      
+      TYPE (sxrem_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       CALL path_destroy(this%chord_path)
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

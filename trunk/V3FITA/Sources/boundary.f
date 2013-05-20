@@ -42,15 +42,17 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (boundary_class)         :: boundary_construct
-      CHARACTER (len=3), INTENT(in) :: coefficient_type
-      INTEGER, INTENT(in)           :: m_index
-      INTEGER, INTENT(in)           :: n_index
+      TYPE (boundary_class), POINTER :: boundary_construct
+      CHARACTER (len=3), INTENT(in)  :: coefficient_type
+      INTEGER, INTENT(in)            :: m_index
+      INTEGER, INTENT(in)            :: n_index
+
+!  Start of executable code
+      ALLOCATE(boundary_construct)
 
       boundary_construct%m_index = m_index
       boundary_construct%n_index = n_index
 
-!  Start of executable code
       SELECT CASE (coefficient_type)
          CASE ('rbc')
             boundary_construct%type = boundary_rbc_type
@@ -76,12 +78,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (boundary_class), INTENT(inout) :: this
+      TYPE (boundary_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%m_index = 0
       this%n_index = 0
       this%type = boundary_no_type
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

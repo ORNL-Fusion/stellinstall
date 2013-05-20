@@ -52,14 +52,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_class)           :: limiter_construct_iso
-      TYPE (limiter_iso), INTENT(in) :: iso
-      LOGICAL, INTENT(in)            :: on_edge
+      TYPE (limiter_class), POINTER           :: limiter_construct_iso
+      TYPE (limiter_iso), POINTER, INTENT(in) :: iso
+      LOGICAL, INTENT(in)                     :: on_edge
 
 !  Start of executable code
+      ALLOCATE(limiter_construct_iso)
+
       limiter_construct_iso%type = limiter_iso_type
       limiter_construct_iso%on_edge = on_edge
-      limiter_construct_iso%iso = iso
+      limiter_construct_iso%iso => iso
 
       END FUNCTION
 
@@ -71,10 +73,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_class)           :: limiter_construct_polygon
-      LOGICAL, INTENT(in)            :: on_edge
+      TYPE (limiter_class), POINTER :: limiter_construct_polygon
+      LOGICAL, POINTER, INTENT(in)  :: on_edge
 
 !  Start of executable code
+      ALLOCATE(limiter_construct_polygon)
+
       limiter_construct_polygon%type = limiter_iso_type
       limiter_construct_polygon%on_edge = on_edge
 
@@ -88,7 +92,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_class), INTENT(inout) :: this
+      TYPE (limiter_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%iso)) THEN
@@ -98,6 +102,8 @@
 
       this%type = limiter_no_type
       this%on_edge = .false.
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

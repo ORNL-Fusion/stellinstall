@@ -43,10 +43,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class)             :: magnetic_construct
+      TYPE (magnetic_class), POINTER    :: magnetic_construct
       REAL(rprec), INTENT(in), OPTIONAL :: flux_factor
 
 !  Start of executable code
+      ALLOCATE(magnetic_construct)
+
 !      magnetic_construct%l_mdcoil_def = l_mdcoil_def
       IF (PRESENT(flux_factor)) THEN
          magnetic_construct%flux_factor = flux_factor
@@ -64,11 +66,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), INTENT(inout) :: this
+      TYPE (magnetic_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%l_mdcoil_def = .false.
       this%flux_factor = 0.0
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

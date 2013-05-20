@@ -54,12 +54,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-	  TYPE (geometric_class) :: geometric_construct_limiter
-      TYPE (limiter_class), INTENT(in) :: limiter_object
+	  TYPE (geometric_class), POINTER :: geometric_construct_limiter
+      TYPE (limiter_class), POINTER, INTENT(in) :: limiter_object
 
 !  Start of executable code
+      ALLOCATE(geometric_construct_limiter)
+
       geometric_construct_limiter%type = geometric_limiter_type
-      geometric_construct_limiter%limiter = limiter_object
+      geometric_construct_limiter%limiter => limiter_object
 
       END FUNCTION
 
@@ -69,12 +71,14 @@
       FUNCTION geometric_construct_boundary(boundary_object)
 
       IMPLICIT NONE
-      TYPE (geometric_class) :: geometric_construct_boundary
-      TYPE (boundary_class), INTENT(in) :: boundary_object
+      TYPE (geometric_class), POINTER :: geometric_construct_boundary
+      TYPE (boundary_class), POINTER, INTENT(in) :: boundary_object
 
 !  Start of executable code
+      ALLOCATE(geometric_construct_boundary)
+
       geometric_construct_boundary%type = geometric_boundary_type
-      geometric_construct_boundary%boundary = boundary_object
+      geometric_construct_boundary%boundary => boundary_object
 
       END FUNCTION
 
@@ -86,7 +90,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (geometric_class), INTENT(inout) :: this
+      TYPE (geometric_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%limiter)) THEN
@@ -100,6 +104,8 @@
       END IF
 
       this%type = geometric_no_type
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

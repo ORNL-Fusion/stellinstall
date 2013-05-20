@@ -54,12 +54,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_class)                   :: prior_construct_range
-      TYPE (prior_range_class), INTENT(in) :: range_object
+      TYPE (prior_class), POINTER          :: prior_construct_range
+      TYPE (prior_range_class), POINTER, INTENT(in) :: range_object
 
 !  Start of executable code
+      ALLOCATE(prior_construct_range)
+
       prior_construct_range%type = prior_range_type
-      prior_construct_range%range = range_object
+      prior_construct_range%range => range_object
 
       END FUNCTION
 
@@ -71,13 +73,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_class)                      ::                               &
+      TYPE (prior_class), POINTER                      ::                      &
      &   prior_construct_gaussian
-      TYPE (prior_gaussian_class), INTENT(in) :: gaussian_object
+      TYPE (prior_gaussian_class), POINTER, INTENT(in) ::                      &
+     &   gaussian_object
 
 !  Start of executable code
+      ALLOCATE(prior_construct_gaussian)
+
       prior_construct_gaussian%type = prior_gaussian_type
-      prior_construct_gaussian%gaussian = gaussian_object
+      prior_construct_gaussian%gaussian => gaussian_object
 
       END FUNCTION
 
@@ -89,7 +94,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_class), INTENT(inout) :: this
+      TYPE (prior_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%range)) THEN
@@ -103,6 +108,8 @@
       END IF
 
       this%type = prior_no_type
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

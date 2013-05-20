@@ -76,7 +76,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_range_class) :: prior_range_construct
+      TYPE (prior_range_class), POINTER :: prior_range_construct
       CHARACTER (len=prior_label_length), INTENT(in) ::                        &
      &   lower_range_label
       CHARACTER (len=prior_label_length), INTENT(in) ::                        &
@@ -90,6 +90,8 @@
       INTEGER                           :: status, i
 
 !  Start of executable code
+      ALLOCATE(prior_range_construct)
+
 ! Check to see where the first '_' character is located. This is used to split
 ! strings of the format 'parameter_param'
       i = INDEX(TRIM(ADJUSTL(lower_range_label)), '_')
@@ -164,7 +166,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_range_class), INTENT(inout) :: this
+      TYPE (prior_range_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%lower_range_type = range_no_type
@@ -176,6 +178,8 @@
       this%upper_range_label = ' '
       this%upper_value = 0.0
       this%upper_param_indices = 0
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

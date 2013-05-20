@@ -64,12 +64,14 @@
       FUNCTION diagnostic_construct_magnetic(magnetic_object)
 
       IMPLICIT NONE
-      TYPE (diagnostic_class) :: diagnostic_construct_magnetic
-      TYPE (magnetic_class), INTENT(in) :: magnetic_object
+      TYPE (diagnostic_class), POINTER  :: diagnostic_construct_magnetic
+      TYPE (magnetic_class), POINTER, INTENT(in) :: magnetic_object
 
 !  Start of executable code
+      ALLOCATE(diagnostic_construct_magnetic)
+
       diagnostic_construct_magnetic%type = diagnostic_magnetic_type
-      diagnostic_construct_magnetic%magnetic = magnetic_object
+      diagnostic_construct_magnetic%magnetic => magnetic_object
 
       END FUNCTION
 
@@ -79,12 +81,14 @@
       FUNCTION diagnostic_construct_sxrem(sxrem_object)
 
       IMPLICIT NONE
-      TYPE (diagnostic_class) :: diagnostic_construct_sxrem
-      TYPE (sxrem_class), INTENT(in) :: sxrem_object
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_sxrem
+      TYPE (sxrem_class), POINTER, INTENT(in)   :: sxrem_object
 
 !  Start of executable code
+      ALLOCATE(diagnostic_construct_sxrem)
+
       diagnostic_construct_sxrem%type = diagnostic_sxrem_type
-      diagnostic_construct_sxrem%sxrem = sxrem_object
+      diagnostic_construct_sxrem%sxrem => sxrem_object
 
       END FUNCTION
 
@@ -94,12 +98,14 @@
       FUNCTION diagnostic_construct_intpol(intpol_object)
 
       IMPLICIT NONE
-      TYPE (diagnostic_class) :: diagnostic_construct_intpol
-      TYPE (intpol_class), INTENT(in) :: intpol_object
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_intpol
+      TYPE (intpol_class), POINTER, INTENT(in) :: intpol_object
 
 !  Start of executable code
+      ALLOCATE(diagnostic_construct_intpol)
+
       diagnostic_construct_intpol%type = diagnostic_intpol_type
-      diagnostic_construct_intpol%intpol = intpol_object
+      diagnostic_construct_intpol%intpol => intpol_object
 
       END FUNCTION
 
@@ -109,12 +115,14 @@
       FUNCTION diagnostic_construct_thomson(thomson_object)
 
       IMPLICIT NONE
-      TYPE (diagnostic_class) :: diagnostic_construct_thomson
-      TYPE (thomson_class), INTENT(in) :: thomson_object
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_thomson
+      TYPE (thomson_class), POINTER, INTENT(in) :: thomson_object
 
 !  Start of executable code
+      ALLOCATE(diagnostic_construct_thomson)
+
       diagnostic_construct_thomson%type = diagnostic_thomson_type
-      diagnostic_construct_thomson%thomson = thomson_object
+      diagnostic_construct_thomson%thomson => thomson_object
 
       END FUNCTION
 
@@ -124,12 +132,14 @@
       FUNCTION diagnostic_construct_extcurz(extcurz_object)
 
       IMPLICIT NONE
-      TYPE (diagnostic_class) :: diagnostic_construct_extcurz
-      TYPE (extcurz_class), INTENT(in) :: extcurz_object
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_extcurz
+      TYPE (extcurz_class), POINTER, INTENT(in) :: extcurz_object
 
 !  Start of executable code
+      ALLOCATE(diagnostic_construct_extcurz)
+
       diagnostic_construct_extcurz%type = diagnostic_extcurz_type
-      diagnostic_construct_extcurz%extcurz = extcurz_object
+      diagnostic_construct_extcurz%extcurz => extcurz_object
 
       END FUNCTION
 
@@ -141,7 +151,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (diagnostic_class), INTENT(inout) :: this
+      TYPE (diagnostic_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%magnetic)) THEN
@@ -170,6 +180,8 @@
       END IF
 
       this%type = diagnostic_no_type
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 

@@ -47,22 +47,21 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Construct a prior_gaussian.
-!-------------------------------------------------------------------------------
       FUNCTION prior_gaussian_construct(mu, sigma)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_gaussian_class) :: prior_gaussian_construct
-      REAL(rprec), INTENT(in)     :: mu
-      REAL(rprec), INTENT(in)     :: sigma
+      TYPE (prior_gaussian_class), POINTER :: prior_gaussian_construct
+      REAL(rprec), INTENT(in)              :: mu
+      REAL(rprec), INTENT(in)              :: sigma
 
 !  Local Variables
-      INTEGER                     :: status
+      INTEGER                              :: status
 
 !  Start of executable code
+      ALLOCATE(prior_gaussian_construct)
+
       prior_gaussian_construct%mu = mu
       prior_gaussian_construct%sigma = sigma
 
@@ -76,11 +75,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_gaussian_class), INTENT(inout) :: this
+      TYPE (prior_gaussian_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
       this%mu = 0.0
       this%sigma = 0.0
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 
