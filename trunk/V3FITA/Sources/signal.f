@@ -336,7 +336,8 @@
 
 !  Start of executable code
 
-!  Null all pointers in the signals array.
+!  Null all pointers in the signals array. Do not deallocate the signals in the
+!  array since this object is not the owner.
       DO i = 1, UBOUND(this%signals, 1)
          this%signals(i)%p => null()
       END DO
@@ -352,6 +353,8 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !  Set the signal
+!
+!  Add a pointer to the signal to be used for the combination.
 !-------------------------------------------------------------------------------
       SUBROUTINE combination_set_signal(this, signal, a, index)
 
