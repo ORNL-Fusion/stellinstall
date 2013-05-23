@@ -47,8 +47,8 @@
 !  Diagnostic Descriptions
 !-------------------------------------------------------------------------------
 
-      INTEGER :: na_d_desc_default = 1000
-      INTEGER :: na_d_desc = 1000, n_d_desc = 0
+      INTEGER :: na_d_desc_default = 10000
+      INTEGER :: na_d_desc = 10000, n_d_desc = 0
       INTEGER :: n_d_desc_mddc = 0
       INTEGER :: n_d_desc_sxrch = 0      ! GJH added 2010-01-21
       INTEGER :: n_d_desc_ipch = 0       ! JDH added 2012-03-15
@@ -62,8 +62,8 @@
 !  Geometric Descriptions
 !-------------------------------------------------------------------------------
 
-      INTEGER :: na_g_desc_default = 1000
-      INTEGER :: na_g_desc = 1000, n_g_desc = 0
+      INTEGER :: na_g_desc_default = 10000
+      INTEGER :: na_g_desc = 10000, n_g_desc = 0
       INTEGER :: n_g_desc_iso = 0
       TYPE(geometric_desc), DIMENSION(:), ALLOCATABLE, TARGET ::               &
      &    g_desc
@@ -81,8 +81,8 @@
 !  Signal Descriptions
 !-------------------------------------------------------------------------------
 
-      INTEGER :: na_s_desc_default = 1000
-      INTEGER :: na_s_desc = 1000, n_s_desc = 0
+      INTEGER :: na_s_desc_default = 10000
+      INTEGER :: na_s_desc = 10000, n_s_desc = 0
       INTEGER :: n_s_desc_mddc = 0
       INTEGER :: n_s_desc_sxrch = 0          ! GJH added 2010-01-21
       INTEGER :: n_s_desc_ipch = 0          ! JDH added 2012-03-15
@@ -113,8 +113,8 @@
 !  Arrays for NLI of data and sigma (sdo_data_a and sdo_sigma_a) declared here
 !  iw_sdo_verbose   Verbosity level for writing signal_data observe, -1 no write
 
-      INTEGER, PARAMETER :: na_sdata_o_default = 1000
-      INTEGER :: na_sdata_o = 1000, n_sdata_o = 0
+      INTEGER, PARAMETER :: na_sdata_o_default = 10000
+      INTEGER :: na_sdata_o = 10000, n_sdata_o = 0
       INTEGER :: iw_sdo_verbose = -1
       REAL(rprec), DIMENSION(1000)    :: sdo_data_a
       REAL(rprec), DIMENSION(1000)    :: sdo_sigma_a
