@@ -155,6 +155,131 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get equilibrium electron density at position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ne(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_ne
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ne = vmec_get_ne(this%vmec, x_cart)
+
+         CASE DEFAULT
+            equilibrium_get_ne = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get equilibrium electron temperature at position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_te(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_te
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_te = vmec_get_te(this%vmec, x_cart)
+
+         CASE DEFAULT
+            equilibrium_get_te = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get equilibrium soft x-ray emissivity at position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_sxrem(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_sxrem
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_sxrem = vmec_get_sxrem(this%vmec, x_cart)
+
+         CASE DEFAULT
+            equilibrium_get_sxrem = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get equilibrium plasma pressure at position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_p(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_p
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_p = vmec_get_p(this%vmec, x_cart)
+
+         CASE DEFAULT
+            equilibrium_get_p = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get equilibrium b field at position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_B_vec(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3) :: equilibrium_get_B_vec
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_B_vec = vmec_get_B_vec(this%vmec, x_cart)
+
+         CASE DEFAULT
+            equilibrium_get_B_vec = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************

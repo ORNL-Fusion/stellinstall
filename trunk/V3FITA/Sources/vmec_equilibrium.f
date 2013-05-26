@@ -596,6 +596,170 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get vmec electron density at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_ne(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_ne
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      IF (ASSOCIATED(this%ne)) THEN
+         vmec_get_ne = pprofile_evaluate(this%ne,                              &
+     &                                   vmec_get_s(this, x_cart))
+      ELSE
+         vmec_get_ne = 0.0
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get vmec electrocn temperature at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_te(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_te
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      IF (ASSOCIATED(this%te)) THEN
+         vmec_get_te = pprofile_evaluate(this%te,                              &
+     &                                   vmec_get_s(this, x_cart))
+      ELSE
+         vmec_get_te = 0.0
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get vmec soft x-ray emissivity at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_sxrem(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_sxrem
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      IF (ASSOCIATED(this%te)) THEN
+         vmec_get_sxrem = pprofile_evaluate(this%sxrem,                        &
+     &                                      vmec_get_s(this, x_cart))
+      ELSE
+         vmec_get_sxrem = 0.0
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get vmec plasma pressure at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_p(this, x_cart)
+      USE stel_constants, only: mu0
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_p
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Forward declare the interface for pmass. This explicitly defined the type for
+!  pmass to avoid a compiler error. If profile_functions.f was implimented as a
+!  module this would not be needed.
+      INTERFACE
+         FUNCTION pmass(s)
+         USE stel_kinds
+         REAL (rprec)             :: pmass
+         REAL (rprec), INTENT(in) :: s
+         END FUNCTION
+      END INTERFACE
+
+!  Start of executable code
+      vmec_get_p = pmass(vmec_get_s(this, x_cart))/mu0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get vmec b field at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_B_vec(this, x_cart)
+      USE coordinate_utilities, ONLY : cyl_to_cart_vec, cart_to_cyl
+      USE vmec_utils, ONLY : GetBcyl_WOUT
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3)             :: vmec_get_B_vec
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec), DIMENSION(3)             :: r_cyl
+
+!  Start of executable code
+      r_cyl = cart_to_cyl(x_cart)
+
+      CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                          &
+     &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
+     &                  vmec_get_B_vec(3))
+
+      vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get vmec s value at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_s(this, x_cart)
+      USE cyl_flux, only: cyl2flx
+      USE coordinate_utilities, only: cart_to_cyl
+      USE read_wout_mod, only: rzl_local, ns, ntmax, lthreed
+      USE vmec_input, only: ntor, mpol, nfp, lasym
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_s
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec), DIMENSION(3)             :: s_flux = 0.0
+      REAL (rprec)                           :: fmin = 0.0
+      INTEGER                                :: info = 0
+      INTEGER                                :: nfe = 0
+
+!  Start of executable code
+      r_cyl = cart_to_cyl(x_cart)
+      r_cyl(2) = nfp*r_cyl(2)
+
+      CALL cyl2flx(rzl_local, r_cyl, s_flux, ns, ntor, mpol, ntmax,            &
+     &             lthreed, lasym, info, nfe, fmin)
+
+      vmec_get_s = s_flux(1)
+
+      IF (vmec_get_s .le. 1.0) THEN
+         IF (fmin .gt.  1.0E-8_rprec) THEN
+            WRITE(*,*) "Warn: VMEC could not converge to flux position."       &
+            WRITE(*,*) info, fmin, vmec_get_s
+         END IF
+      END IF
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
