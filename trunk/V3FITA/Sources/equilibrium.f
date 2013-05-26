@@ -394,4 +394,27 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Query variable id is a valid reconstruction parameter
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_is_recon_param(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: equilibrium_is_recon_param
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_is_recon_param =                                       &
+     &         vmec_is_recon_param(this%vmec, id)
+
+      END SELECT
+
+      END FUNCTION
+
       END MODULE

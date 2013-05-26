@@ -905,4 +905,37 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Query variable id is a valid reconstruction parameter
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_recon_param(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_recon_param
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
+     &         vmec_ac_id, vmec_ac_aux_s_id, vmec_ac_aux_f_id,                 &
+     &         vmec_ai_id, vmec_ai_aux_s_id, vmec_ai_aux_f_id,                 &
+     &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
+     &         vmec_pp_ne_b_id, vmec_pp_ne_as_id, vmec_pp_ne_af_id,            &
+     &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
+     &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
+     &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_curtor_id,            &
+     &         vmec_phiedge_id, vmec_pres_scale_id)
+            vmec_is_recon_param = .true.
+
+         CASE DEFAULT
+            vmec_is_recon_param = .false.
+
+      END SELECT
+
+      END FUNCTION
+
       END MODULE
