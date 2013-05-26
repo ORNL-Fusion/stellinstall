@@ -73,8 +73,8 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%vmec)) THEN
-         CALL vmec_destruct(this%diagnostic)
-         this%diagnostic => null()
+         CALL vmec_destruct(this%vmec)
+         this%vmec => null()
       END IF
 
       this%type = equilibrium_no_type
@@ -112,55 +112,21 @@
 !-------------------------------------------------------------------------------
 !   Get Scaler Real value for an id number
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_real_value(this, id)
-      USE v3_utilities
+      FUNCTION equilibrium_get_scaler_value(this, id)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_real_value
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
+      REAL (rprec) :: equilibrium_get_scaler_value
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
 
 !  Start of executable code
-      IF (.not. equilibrium_is_integer_value(this, id)) THEN
-         STOP equilibrium_get_param_name(this, id) //                          &
-     &        " Not integer type.")
-      END IF
-
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_real_value =                                       &
-     &         vmec_get_real_value(this%vmec, id)
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Get Scaler Integer value for an id number
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_integer_value(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec) :: equilibrium_get_real_value
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
-
-!  Start of executable code
-      IF (.not. equilibrium_is_integer_value(this, id)) THEN
-         STOP equilibrium_get_param_name(this, id) //                          &
-     &        " Not integer type.")
-      END IF
-
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_get_integer_value =                                    &
-     &         vmec_get_integer_value(this%vmec, id)
+            equilibrium_get_scaler_value =                                     &
+     &         vmec_get_scaler_value(this%vmec, id)
 
       END SELECT
 
@@ -175,8 +141,8 @@
 
 !  Declare Arguments
       CHARACTER(len=data_name_length) :: equilibrium_get_param_name
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
 
 !  Start of executable code
       SELECT CASE (this%type)
@@ -193,68 +159,23 @@
 !  QUERY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Query variable id for real type
+!  Query variable id for scaler type
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_real_value(this, id)
+      FUNCTION equilibrium_is_scaler_value(this, id)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL :: equilibrium_is_real_value
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-      CASE (equilibrium_vmec_type)
-         equilibrium_is_real_value = vmec_is_real_value(this%vmec, id)
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for real type
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_integer_value(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_integer_value
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
+      LOGICAL :: equilibrium_is_scaler_value
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_is_integer_value =                                     &
-     &         vmec_is_integer_value(this%vmec, id)
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for logical type
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_logical_value(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_logical_value
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_is_integer_value =                                     &
-     &         vmec_is_integer_value(this%vmec, id)
+            equilibrium_is_scaler_value =                                      &
+     &         vmec_is_scaler_value(this%vmec, id)
 
       END SELECT
 
@@ -269,14 +190,14 @@
 
 !  Declare Arguments
       LOGICAL :: equilibrium_is_1d_array
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
 
 !  Start of executable code
       SELECT CASE (this%type)
 
-      CASE (equilibrium_vmec_type)
-         equilibrium_is_1d_array = vmec_is_1d_array(this%vmec, id)
+         CASE (equilibrium_vmec_type)
+            equilibrium_is_1d_array = vmec_is_1d_array(this%vmec, id)
 
       END SELECT
 
@@ -291,8 +212,8 @@
 
 !  Declare Arguments
       LOGICAL :: equilibrium_is_2d_array
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
 
 !  Start of executable code
       SELECT CASE (this%type)
@@ -313,14 +234,36 @@
 
 !  Declare Arguments
       LOGICAL :: equilibrium_is_3d_array
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      INTEGER (len=data_name_length), INTENT(in) :: id
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_is_3d_array = vmec_is_3d_array(this%vmec, id)
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Query variable id for 4D array
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_is_4d_array(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: equilibrium_is_4d_array
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: id
 
 !  Start of executable code
       SELECT CASE (this%type)
 
       CASE (equilibrium_vmec_type)
-         equilibrium_is_3d_array = vmec_is_3d_array(this%vmec, id)
+         equilibrium_is_4d_array = vmec_is_4d_array(this%vmec, id)
 
       END SELECT
 

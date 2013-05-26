@@ -23,332 +23,722 @@
 !  outside of the vmec interface.
 
 !  Variable Parameters
-      INTEGER, PARAMETER :: vmec_ac_id            =  1
-      INTEGER, PARAMETER :: vmec_ac_aux_s_id      =  2
-      INTEGER, PARAMETER :: vmec_ac_aux_f_file_id =  3
-      INTEGER, PARAMETER :: vmec_ai_id            =  4
-      INTEGER, PARAMETER :: vmec_ai_aux_s_id      =  5
-      INTEGER, PARAMETER :: vmec_ai_aux_f_id      =  6
-      INTEGER, PARAMETER :: vmec_am_id            =  7
-      INTEGER, PARAMETER :: vmec_am_aux_s_id      =  8
-      INTEGER, PARAMETER :: vmec_am_aux_f_id      =  9
-      INTEGER, PARAMETER :: vmec_bloat_id         = 10
-      INTEGER, PARAMETER :: vmec_rbc_id           = 11
-      INTEGER, PARAMETER :: vmec_zbs_id           = 12
-      INTEGER, PARAMETER :: vmec_rbs_id           = 13
-      INTEGER, PARAMETER :: vmec_zbc_id           = 14
-      INTEGER, PARAMETER :: vmec_extcur_id        = 15
-      INTEGER, PARAMETER :: vmec_curtor_id        = 16
-      INTEGER, PARAMETER :: vmec_phiedge_id       = 17
-      INTEGER, PARAMETER :: vmec_pres_scale_id    = 18
+      INTEGER, PARAMETER :: vmec_ac_id          =  1
+      INTEGER, PARAMETER :: vmec_ac_aux_s_id    =  2
+      INTEGER, PARAMETER :: vmec_ac_aux_f_id    =  3
+      INTEGER, PARAMETER :: vmec_ai_id          =  4
+      INTEGER, PARAMETER :: vmec_ai_aux_s_id    =  5
+      INTEGER, PARAMETER :: vmec_ai_aux_f_id    =  6
+      INTEGER, PARAMETER :: vmec_am_id          =  7
+      INTEGER, PARAMETER :: vmec_am_aux_s_id    =  8
+      INTEGER, PARAMETER :: vmec_am_aux_f_id    =  9
+      INTEGER, PARAMETER :: vmec_bloat_id       = 10
+      INTEGER, PARAMETER :: vmec_rbc_id         = 11
+      INTEGER, PARAMETER :: vmec_zbs_id         = 12
+      INTEGER, PARAMETER :: vmec_rbs_id         = 13
+      INTEGER, PARAMETER :: vmec_zbc_id         = 14
+      INTEGER, PARAMETER :: vmec_extcur_id      = 15
+      INTEGER, PARAMETER :: vmec_curtor_id      = 16
+      INTEGER, PARAMETER :: vmec_phiedge_id     = 17
+      INTEGER, PARAMETER :: vmec_pres_scale_id  = 18
 
 !  Auxilary Parameters
-      INTEGER, PARAMETER :: vmec_rmnc_id          = 19
-      INTEGER, PARAMETER :: vmec_zmns_id          = 20
-      INTEGER, PARAMETER :: vmec_lmns_id          = 21
-      INTEGER, PARAMETER :: vmec_gmnc_id          = 22
-      INTEGER, PARAMETER :: vmec_bsubumnc_id      = 23
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id      = 24
-      INTEGER, PARAMETER :: vmec_bsupsmns_id      = 25
-      INTEGER, PARAMETER :: vmec_bsupumnc_id      = 26
-      INTEGER, PARAMETER :: vmec_bsupvmnc_id      = 27
-      INTEGER, PARAMETER :: vmec_rmns_id          = 28
-      INTEGER, PARAMETER :: vmec_zmnc_id          = 29
-      INTEGER, PARAMETER :: vmec_lmnc_id          = 30
-      INTEGER, PARAMETER :: vmec_gmns_id          = 31
-      INTEGER, PARAMETER :: vmec_bsubumns_id      = 32
-      INTEGER, PARAMETER :: vmec_bsubvmns_id      = 33
-      INTEGER, PARAMETER :: vmec_bsupsmnc_id      = 34
-      INTEGER, PARAMETER :: vmec_bsupumns_id      = 35
-      INTEGER, PARAMETER :: vmec_bsupvmns_id      = 36
-      INTEGER, PARAMETER :: vmec_phi_id           = 37
-      INTEGER, PARAMETER :: vmec_iotaf_id         = 38
-      INTEGER, PARAMETER :: vmec_rzl_id           = 39
+      INTEGER, PARAMETER :: vmec_rmnc_id        = 19
+      INTEGER, PARAMETER :: vmec_zmns_id        = 20
+      INTEGER, PARAMETER :: vmec_lmns_id        = 21
+      INTEGER, PARAMETER :: vmec_gmnc_id        = 22
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 23
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 24
+      INTEGER, PARAMETER :: vmec_bsupsmns_id    = 25
+      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 26
+      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 27
+      INTEGER, PARAMETER :: vmec_rmns_id        = 28
+      INTEGER, PARAMETER :: vmec_zmnc_id        = 29
+      INTEGER, PARAMETER :: vmec_lmnc_id        = 30
+      INTEGER, PARAMETER :: vmec_gmns_id        = 31
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 32
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 33
+      INTEGER, PARAMETER :: vmec_bsupsmnc_id    = 34
+      INTEGER, PARAMETER :: vmec_bsupumns_id    = 35
+      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 36
+      INTEGER, PARAMETER :: vmec_phi_id         = 37
+      INTEGER, PARAMETER :: vmec_iotaf_id       = 38
+      INTEGER, PARAMETER :: vmec_rzl_id         = 39
 
 !  Auxilary Parameters 2
-      INTEGER, PARAMETER :: vmec_bsubu_id         = 40
-      INTEGER, PARAMETER :: vmec_bsubv_id         = 41
-      INTEGER, PARAMETER :: vmec_rsuv_id          = 42
-      INTEGER, PARAMETER :: vmec_zsuv_id          = 43
-      INTEGER, PARAMETER :: vmec_gsuv_id          = 44
-      INTEGER, PARAMETER :: vmec_currusuv_id      = 45
-      INTEGER, PARAMETER :: vmec_currvsuv_id      = 46
-      INTEGER, PARAMETER :: vmec_rusuv_id         = 47
-      INTEGER, PARAMETER :: vmec_zusuv_id         = 48
-      INTEGER, PARAMETER :: vmec_rvsuv_id         = 49
-      INTEGER, PARAMETER :: vmec_zvsuv_id         = 50
-      INTEGER, PARAMETER :: vmec_phitot_id        = 51
+      INTEGER, PARAMETER :: vmec_bsubu_id       = 40
+      INTEGER, PARAMETER :: vmec_bsubv_id       = 41
+      INTEGER, PARAMETER :: vmec_rsuv_id        = 42
+      INTEGER, PARAMETER :: vmec_zsuv_id        = 43
+      INTEGER, PARAMETER :: vmec_gsuv_id        = 44
+      INTEGER, PARAMETER :: vmec_currusuv_id    = 45
+      INTEGER, PARAMETER :: vmec_currvsuv_id    = 46
+      INTEGER, PARAMETER :: vmec_rusuv_id       = 47
+      INTEGER, PARAMETER :: vmec_zusuv_id       = 48
+      INTEGER, PARAMETER :: vmec_rvsuv_id       = 49
+      INTEGER, PARAMETER :: vmec_zvsuv_id       = 50
+      INTEGER, PARAMETER :: vmec_phitot_id      = 51
 
 !  Auxilary Model Parameters
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id       = 52
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id      = 53
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id      = 54
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id    = 55
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id   = 56
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id   = 57
-      INTEGER, PARAMETER :: vmec_pp_te_b_id       = 58
-      INTEGER, PARAMETER :: vmec_pp_te_as_id      = 59
-      INTEGER, PARAMETER :: vmec_pp_te_af_id      = 60
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 52
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 53
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 54
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 55
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 56
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 57
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 58
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 59
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 60
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) vmec base class
-!  2) vmec auxilary model parameters
-!  3) vmec fixed parameters
-!  4) vmec variable parameters
-!  5) vmec aux 1 parameters
-!  6) vmec aux 2 parameters
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!  Define the vmec base class
+!
+!  needs_reconvergence  External vmec only needs to be reconverged after a vmec
+!                       reconstruction parameter has been changed.
+!
+!  ne     Parameterized profile describing a flux surface constant electron
+!         denisty profile.
+!
+!  te     Parameterized profile describing a flux surface constant electron
+!         temperature profile.
+!
+!  sxrem  Parameterized profile describing a flux surface conatsnt soft x-ray
+!         emissivity profile.
+!-------------------------------------------------------------------------------
       TYPE vmec_class
-         TYPE (vmec_aux_model)           :: aux_model
-         TYPE (vmec_fixed_parameters)    :: fixed_parameters
-         TYPE (vmec_variable_parameters) :: aux_model
-         TYPE (vmec_aux_1_parameters)    :: aux_1_parameters
-         TYPE (vmec_aux_2_parameters)    :: aux_2_parameters
-      END TYPE
-
-!-------------------------------------------------------------------------------
-!  Define the vmec auxilary model parameters type
-!
-!  ne      Parameterized profile describing a flux surface constant electron
-!          denisty profile.
-!
-!  te      Parameterized profile describing a flux surface constant electron
-!          temperature profile.
-!
-!  sxrem   Parameterized profile describing a flux surface conatsnt soft x-ray
-!          emissivity profile.
-!-------------------------------------------------------------------------------
-      TYPE vmec_aux_model
+         LOGICAL                  :: needs_reconvergence
          TYPE (pprofile), POINTER :: ne => null()
          TYPE (pprofile), POINTER :: te => null()
          TYPE (pprofile), POINTER :: sxrem => null()
       END TYPE
 
+      CONTAINS
+!*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+      FUNCTION vmec_construct()
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), POINTER :: vmec_construct
+
+!  Start of executable code
+      ALLOCATE(vmec_construct)
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE vmec_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), POINTER,INTENT(inout) :: this
+
+!  Start of executable code
+      IF (ASSOCIATED(this%ne)) THEN
+         CALL pprofile_destroy(this%ne)
+         this%ne => null()
+      END IF
+
+      IF (ASSOCIATED(this%te)) THEN
+         CALL pprofile_destroy(this%te)
+         this%te => null()
+      END IF
+
+      IF (ASSOCIATED(this%sxrem)) THEN
+         CALL pprofile_destroy(this%sxrem)
+         this%sxrem => null()
+      END IF
+
+      DEALLOCATE(this)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Define the vmec fixed parameters type
-!
-!  lasym      logical,   .true.  stellarator asymmetric
-!                        .false. stellarator symmetric
-!                        vmec_input : vmec_input.f
-!
-!  lfreeb     logical,   .true.  Do fixed boundary equilibrium
-!                        .false. Do free boundary equilibrium
-!                        vmec_input : vmec_input.f
-!
-!  lforbal    logical,   .true.  improved avg force bal
-!                        .false. variational avg force bal
-!                        vmec_input : vmec_input.f
-!
-!  lRFP       logical,   .true.  Reversed Field Pinch
-!                        .false. Tokamaks, stellarators
-!                        vmec_input : vmec_input.f
-!
-!  mgrid_file character, name for mgrid file.
-!                        vmec_input : vmec_input.f
-!
-!  nfp        integer,   number of toroidal field periods (=1 for Tokamak)
-!                        vmec_input : vmec_input.f
-!
-!  ncurr      integer,   flux conserving (=0) or prescribed toroidal current
-!                        (=1)
-!                        vmec_input : vmec_input.f
-!
-!  nvacskip   integer,   iterations skipped between full updates of vacuum
-!                        solution
-!                        vmec_input : vmec_input.f
-!
-!  mpol       integer,   number of poloidal modes
-!                        vmec_input : vmec_input.f
-!
-!  ntor       integer,   number of toroidal modes
-!                        vmec_input : vmec_input.f
-!
-!  ntheta     integer,   number of poloidal points, 0 - 2Pi
-!                        vmec_input : vmec_input.f
-!
-!  nzeta      integer,   number of toroifal points per field period
-!                        vmec_input : vmec_input.f
-!
-!  mns        integer,   length of Xmn arrays
-!                        vmec_dim : vmec_dim.f
-!
-!  ns_array   integer,   array of radial (multi-) grids sizes
-!                        vmec_dim : vmec_dim.f
-!
-!  nextcur    integer,   number of external current to use (extcur array)
-!                        mgrid_mod.f
-!
-!  pcurr_type character, specify type of current profile
-!                        vmec_input : vmec_input.f
-!
-!  piota_type character, specify type of iota or q profile
-!                        vmec_input : vmec_input.f
-!
-!  pmass_type character, specify type of pressure profile
-!                        vmec_input : vmec_input.f
-!
-!- Run Control Parameters ------------------------------------------------------
-!
-!  niter      integer,   maximum number of iterations for convergence (VMEC will
-!                        retry once if ftol convergence level not achieved yet)
-!                        vmec_dim : vmec_dim.f
-!
-!  nstep      integer,   iterations between printout of equilibrium data to
-!                        threed1 file/screen
-!                        vmec_dim : vmec_dim.f
-!
-!  delt       real,      intial guess (~1) for time step
-!                        vmec_dim : vmec_dim.f
-!
-!  ftol_array real,      array of force convergence tolerances on radial grids
-!                        defined by ns_array
-!                        vmec_dim : vmec_dim.f
-!
-!  gamma      real,      value of compressibility index (gamma=0 => pressure
-!                        prescribed)
-!                        vmec_input : vmec_input.f
-!
-!  tcon0      real,      optional parameter weight for spectral constraint force
-!                        (~1)
-!                        vmec_dim : vmec_dim.f
+!  Get the id number for a vmec parameter
 !-------------------------------------------------------------------------------
-      TYPE vmec_fixed_parameters
-         LOGICAL                                  :: lasym
-         LOGICAL                                  :: lfreeb
-         LOGICAL                                  :: lforbal
-         LOGICAL                                  :: lRFP
-         CHARACTER (len=data_filename_length)     :: mgrid_file
-         INTEGER                                  :: nfp
-         INTEGER                                  :: ncurr
-         INTEGER                                  :: nvacskip
-         INTEGER                                  :: mpol
-         INTEGER                                  :: ntor
-         INTEGER                                  :: ntheta
-         INTEGER                                  :: nzeta
-         INTEGER                                  :: mns
-         INTEGER, DIMENSION(100)                  :: ns_array
-         INTEGER                                  :: nextcur
-         CHARACTER (len=vmec_profile_type_length) :: pcurr_type
-         CHARACTER (len=vmec_profile_type_length) :: piota_type
-         CHARACTER (len=vmec_profile_type_length) :: pmass_type
-         INTEGER                                  :: niter
-         INTEGER                                  :: nstep
-         REAL (rprec)                             :: delt
-         REAL (rprec), DIMENSION(100)             :: ftol_array
-         REAL (rprec)                             :: gamma
-         REAL (rprec)                             :: tcon0
-      END TYPE
+      FUNCTION vmec_get_param_id(this, param_name)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: vmec_get_param_id
+      TYPE (vmec_class), INTENT(in)                :: this
+      CHARACTER (len=data_name_length), INTENT(in) :: param_name
+
+!  Start of executable code
+      SELECT CASE (TRIM(ADJUSTL(param_name)))
+
+         CASE ('ac')
+            vmec_get_param_id = vmec_ac_id
+
+         CASE ('ac_aux_s')
+            vmec_get_param_id = vmec_ac_aux_s_id
+
+         CASE ('ac_aux_f')
+            vmec_get_param_id = vmec_ac_aux_f_id
+
+         CASE ('ai')
+            vmec_get_param_id = vmec_ai_id
+
+         CASE ('ai_aux_s')
+            vmec_get_param_id = vmec_ai_aux_s_id
+
+         CASE ('ai_aux_f')
+            vmec_get_param_id = vmec_ai_aux_f_id
+
+         CASE ('am')
+            vmec_get_param_id = vmec_am_id
+
+         CASE ('am_aux_s')
+            vmec_get_param_id = vmec_am_aux_s_id
+
+         CASE ('am_aux_f')
+            vmec_get_param_id = vmec_am_aux_f_id
+
+         CASE ('bloat')
+            vmec_get_param_id = vmec_bloat_id
+
+         CASE ('rbc')
+            vmec_get_param_id = vmec_rbc_id
+
+         CASE ('zbs')
+            vmec_get_param_id = vmec_zbs_id
+
+         CASE ('rbs')
+            vmec_get_param_id = vmec_rbs_id
+
+         CASE ('zbc')
+            vmec_get_param_id = vmec_zbc_id
+
+         CASE ('extcur')
+            vmec_get_param_id = vmec_extcur_id
+
+         CASE ('curtor')
+            vmec_get_param_id = vmec_curtor_id
+
+         CASE ('phiedge')
+            vmec_get_param_id = vmec_phiedge_id
+
+         CASE ('pres_scale')
+            vmec_get_param_id = vmec_pres_scale_id
+
+         CASE ('rmnc')
+            vmec_get_param_id = vmec_rmnc_id
+
+         CASE ('zmns')
+            vmec_get_param_id = vmec_zmns_id
+
+         CASE ('lmns')
+            vmec_get_param_id = vmec_lmns_id
+
+         CASE ('gmnc')
+            vmec_get_param_id = vmec_gmnc_id
+
+         CASE ('bsubumnc')
+            vmec_get_param_id = vmec_bsubumnc_id
+
+         CASE ('bsubvmnc')
+            vmec_get_param_id = vmec_bsubvmnc_id
+
+         CASE ('bsupsmns')
+            vmec_get_param_id = vmec_bsupsmns_id
+
+         CASE ('bsupumnc')
+            vmec_get_param_id = vmec_bsupumnc_id
+
+         CASE ('bsupvmnc')
+            vmec_get_param_id = vmec_bsupvmnc_id
+
+         CASE ('rmns')
+            vmec_get_param_id = vmec_rmns_id
+
+         CASE ('zmnc')
+            vmec_get_param_id = vmec_zmnc_id
+
+         CASE ('lmnc')
+            vmec_get_param_id = vmec_lmnc_id
+
+         CASE ('gmns')
+            vmec_get_param_id = vmec_gmns_id
+
+         CASE ('bsubumns')
+            vmec_get_param_id = vmec_bsubumns_id
+
+         CASE ('bsubvmns')
+            vmec_get_param_id = vmec_bsubvmns_id
+
+         CASE ('bsupsmnc')
+            vmec_get_param_id = vmec_bsupsmnc_id
+
+         CASE ('bsupumns')
+            vmec_get_param_id = vmec_bsupumns_id
+
+         CASE ('bsupvmns')
+            vmec_get_param_id = vmec_bsupvmns_id
+
+         CASE ('phi')
+            vmec_get_param_id = vmec_phi_id
+
+         CASE ('iotaf')
+            vmec_get_param_id = vmec_iotaf_id
+
+         CASE ('rzl')
+            vmec_get_param_id = vmec_rzl_id
+
+         CASE ('bsubu')
+            vmec_get_param_id = vmec_bsubu_id
+
+         CASE ('bsubv')
+            vmec_get_param_id = vmec_bsubv_id
+
+         CASE ('rsuv')
+            vmec_get_param_id = vmec_rsuv_id
+
+         CASE ('zsuv')
+            vmec_get_param_id = vmec_zsuv_id
+
+         CASE ('gsuv')
+            vmec_get_param_id = vmec_gsuv_id
+
+         CASE ('currusuv')
+            vmec_get_param_id = vmec_currusuv_id
+
+         CASE ('currvsuv')
+            vmec_get_param_id = vmec_currvsuv_id
+
+         CASE ('rusuv')
+            vmec_get_param_id = vmec_rusuv_id
+
+         CASE ('zusuv')
+            vmec_get_param_id = vmec_zusuv_id
+
+         CASE ('rvsuv')
+            vmec_get_param_id = vmec_rvsuv_id
+
+         CASE ('zvsuv')
+            vmec_get_param_id = vmec_zvsuv_id
+
+         CASE ('phitot')
+            vmec_get_param_id = vmec_phitot_id
+
+         CASE ('pp_ne_b')
+            vmec_get_param_id = vmec_pp_ne_b_id
+
+         CASE ('pp_ne_as')
+            vmec_get_param_id = vmec_pp_ne_as_id
+
+         CASE ('pp_ne_af')
+            vmec_get_param_id = vmec_pp_ne_af_id
+
+         CASE ('pp_sxrem_b')
+            vmec_get_param_id = vmec_pp_sxrem_b_id
+
+         CASE ('pp_sxrem_as')
+            vmec_get_param_id = vmec_pp_sxrem_as_id
+
+         CASE ('pp_sxrem_af')
+            vmec_get_param_id = vmec_pp_sxrem_af_id
+
+         CASE ('pp_te_b')
+            vmec_get_param_id = vmec_pp_te_b_id
+
+         CASE ('pp_te_as')
+            vmec_get_param_id = vmec_pp_te_as_id
+
+         CASE ('pp_te_af')
+            vmec_get_param_id = vmec_pp_te_af_id
+
+         CASE DEFAULT
+            WRITE(*,*) TRIM(ADJUSTL(param_name)) //                            &
+     &                 ' is not a valid vmec parameter'
+            STOP
+
+      END SELECT
+
+      END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Define the vmec variable parameters type
-!
-!  ns_index   integer,   Index to the ns_array and ftol_array arrays. Called
-!                        multi_ns_grid(vmec_main.f) in readin.f and eqsolve.f
-!
-!  rbc_bounds integer,   Bounds od the rbc, rbs, zbc, and zbs arrays order
-!                        assumed is lower_1, upper_1, lower_2, upper_2
-!
-!  ac         real,      array(0:20) surface averaged toroidal current density
-!                        (ncurr=1) expansion coefficients (power series in s)
-!                        vmec_input : vmec_input.f
-!
-!  ac_aux_s   real,      array(ndatafmax[101]) Auxiliary 's' array for ac
-!                        specification (splines)
-!                        vmec_input : vmec_input.f
-!
-!  ac_aux_f   real,      array(ndatafmax[101]) Auxiliary 'f' array for ac
-!                        specification (splines)
-!                        vmec_input : vmec_input.f
-!
-!  ai         real,      array(0:20) surface dimensionless iota expansion
-!                        coefficients (power series in s)
-!                        vmec_input : vmec_input.f
-!
-!  ai_aux_s   real,      array(ndatafmax[101]) Auxiliary 's' array for ai
-!                        specification (splines)
-!                        vmec_input : vmec_input.f
-!
-!  ai_aux_f   real,      array(ndatafmax[101]) Auxiliary 'f' array for ai
-!                        specification (splines)
-!                        vmec_input : vmec_input.f
-!
-!  am         real,      array(0:20) mass or pressure expansion coefficients
-!                        (power series in s) in MKS units (NWT/M**2)
-!                        vmec_input : vmec_input.f
-!
-!  am_aux_s   real,      array(ndatafmax[101]) Auxiliary 's' array for am
-!                        specification (splines)
-!                        vmec_input : vmec_input.f
-!
-!  am_aux_f   real,      array(ndatafmax[101]) Auxiliary 'f' array for am
-!                        specification (splines)
-!                        vmec_input : vmec_input.f
-!
-!  bloat      real,      used to expand the computational region
-!                        vmec_input : vmec_input.f
-!
-!  rbc        real,      array, (-ntord:ntord,0:mpol1d)
-!                        boundary coefficients of COS(m*theta-n*zeta) for R
-!                        vmec_input : vmec_input.f
-!                        ALLOCATABLE
-!
-!  zbs        real,      array, (-ntord:ntord,0:mpol1d)
-!                        boundary coefficients of SIN(m*theta-n*zeta) for Z
-!                        vmec_input : vmec_input.f
-!                        ALLOCATABLE
-!
-!  rbs        real,      array, (-ntord:ntord,0:mpol1d)
-!                        boundary coefficients of SIN(m*theta-n*zeta) for R
-!                        vmec_input : vmec_input.f
-!                        ALLOCATABLE
-!
-!  zbc        real,      array, (-ntord:ntord,0:mpol1d)
-!                        boundary coefficients of COS(m*theta-n*zeta) for Z
-!                        vmec_input : vmec_input.f
-!                        ALLOCATABLE
-!
-!  extcur     real,      array(nigroup[nigroup set to 100 in vsvd0.f])
-!                        array of currents in each external current group. Used
-!                        to multiply Green''s function for fields and loops read
-!                        in from MGRID file. Should use real current units (A).
-!                        vmec_input : vmec_input.f
-!
-!  curtor     real,      net toroidal current (used if ncurr=1) in MKS [A]
-!                        vmec_dim : vmec_dim.f
-!
-!  phiedge    real,      value of toroidal flux at plasma edge (defines plasma
-!                        volume in free-bdy case)
-!                        vmec_input : vmec_input.f
-!
-!  pres_scale real,      factor used to scale pressure profile (default value =
-!                        1) useful so user can fix profile and change beta
-!                        without having to change all AM coefficients separately
-!                        vmec_input : vmec_input.f
+!   Get Scaler Real value for an id number
 !-------------------------------------------------------------------------------
-      TYPE vmec_variable_parameters
-         INTEGER                              :: ns_index
-         INTEGER                              :: rbc_bounds(4)
-         REAL(rprec), DIMENSION(0:20)         :: ac
-         REAL(rprec), DIMENSION(ndatafmax)    :: ac_aux_s
-         REAL(rprec), DIMENSION(ndatafmax)    :: ac_aux_f
-         REAL(rprec), DIMENSION(0:20)         :: ai
-         REAL(rprec), DIMENSION(ndatafmax)    :: ai_aux_s
-         REAL(rprec), DIMENSION(ndatafmax)    :: ai_aux_f
-         REAL(rprec), DIMENSION(0:20)         :: am
-         REAL(rprec), DIMENSION(ndatafmax)    :: am_aux_s
-         REAL(rprec), DIMENSION(ndatafmax)    :: am_aux_f
-         REAL(rprec)                          :: bloat
-         REAL(rprec), DIMENSION(:,:), POINTER :: rbc => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: zbs => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: rbs => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: zbc => null()
-         REAL(rprec), DIMENSION(100)          :: extcur
-         REAL(rprec)                          :: curtor
-         REAL(rprec)                          :: phiedge
-         REAL(rprec)                          :: pres_scale
-      END TYPE
+      FUNCTION vmec_get_scaler_value(this, id)
+      USE v3_utilities
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: vmec_get_scaler_value
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      IF (.not. vmec_is_scaler_value(this, id)) THEN
+         WRITE(*,*) vmec_get_param_name(this, id) //                           &
+     &              ' Not scaler type.'
+         STOP
+      END IF
+
+      vmec_get_scaler_value = 0.0 ! Set to zero for now.
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get vmec parameter name for an id number
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_param_name(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER(len=data_name_length) :: vmec_get_param_name
+      TYPE (vmec_class), INTENT(in)   :: this
+      INTEGER, INTENT(in)             :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_ac_id)
+            vmec_get_param_name = 'ac'
+
+         CASE (vmec_ac_aux_s_id)
+            vmec_get_param_name = 'ac_aux_s'
+
+         CASE (vmec_ac_aux_f_id)
+            vmec_get_param_name = 'ac_aux_f'
+
+         CASE (vmec_ai_id)
+            vmec_get_param_name = 'ai'
+
+         CASE (vmec_ai_aux_s_id)
+            vmec_get_param_name = 'ai_aux_s'
+
+         CASE (vmec_ai_aux_f_id)
+            vmec_get_param_name = 'ai_aux_f'
+
+         CASE (vmec_am_id)
+            vmec_get_param_name = 'am'
+
+         CASE (vmec_am_aux_s_id)
+            vmec_get_param_name = 'am_aux_s'
+
+         CASE (vmec_am_aux_f_id)
+            vmec_get_param_name = 'am_aux_f'
+
+         CASE (vmec_bloat_id)
+            vmec_get_param_name = 'bloat'
+
+         CASE (vmec_rbc_id)
+            vmec_get_param_name = 'rbc'
+
+         CASE (vmec_zbs_id)
+            vmec_get_param_name = 'zbs'
+
+         CASE (vmec_rbs_id)
+            vmec_get_param_name = 'rbs'
+
+         CASE (vmec_zbc_id)
+            vmec_get_param_name = 'zbc'
+
+         CASE (vmec_extcur_id)
+            vmec_get_param_name = 'extcur'
+
+         CASE (vmec_curtor_id)
+            vmec_get_param_name = 'curtor'
+
+         CASE (vmec_phiedge_id)
+            vmec_get_param_name = 'phiedge'
+
+         CASE (vmec_pres_scale_id)
+            vmec_get_param_name = 'pres_scale'
+
+         CASE (vmec_rmnc_id)
+            vmec_get_param_name = 'rmnc'
+
+         CASE (vmec_zmns_id)
+            vmec_get_param_name = 'zmns'
+
+         CASE (vmec_lmns_id)
+            vmec_get_param_name = 'lmns'
+
+         CASE (vmec_gmnc_id)
+            vmec_get_param_name = 'gmnc'
+
+         CASE (vmec_bsubumnc_id)
+            vmec_get_param_name = 'bsubumnc'
+
+         CASE (vmec_bsubvmnc_id)
+            vmec_get_param_name = 'bsubvmnc'
+
+         CASE (vmec_bsupsmns_id)
+            vmec_get_param_name = 'bsupsmns'
+
+         CASE (vmec_bsupumnc_id)
+            vmec_get_param_name = 'bsupumnc'
+ 
+         CASE (vmec_bsupvmnc_id)
+            vmec_get_param_name = 'bsupvmnc'
+
+         CASE (vmec_rmns_id)
+            vmec_get_param_name = 'rmns'
+
+         CASE (vmec_zmnc_id)
+            vmec_get_param_name = 'zmnc'
+
+         CASE (vmec_lmnc_id)
+            vmec_get_param_name = 'lmnc'
+
+         CASE (vmec_gmns_id)
+            vmec_get_param_name = 'gmns'
+ 
+         CASE (vmec_bsubumns_id)
+            vmec_get_param_name = 'bsubumns'
+
+         CASE (vmec_bsubvmns_id)
+            vmec_get_param_name = 'bsubvmns'
+
+         CASE (vmec_bsupsmnc_id)
+            vmec_get_param_name = 'bsupsmnc'
+
+         CASE (vmec_bsupumns_id)
+            vmec_get_param_name = 'bsupumns'
+
+         CASE (vmec_bsupvmns_id)
+            vmec_get_param_name = 'bsupvmns'
+
+         CASE (vmec_phi_id)
+            vmec_get_param_name = 'phi'
+
+         CASE (vmec_iotaf_id)
+            vmec_get_param_name = 'iotaf'
+
+         CASE (vmec_rzl_id)
+            vmec_get_param_name = 'rzl'
+
+         CASE (vmec_bsubu_id)
+            vmec_get_param_name = 'bsubu'
+
+         CASE (vmec_bsubv_id)
+            vmec_get_param_name = 'bsubv'
+
+         CASE (vmec_rsuv_id)
+            vmec_get_param_name = 'rsuv'
+
+         CASE (vmec_zsuv_id)
+            vmec_get_param_name = 'zsuv'
+
+         CASE (vmec_gsuv_id)
+            vmec_get_param_name = 'gsuv'
+
+         CASE (vmec_currusuv_id)
+            vmec_get_param_name = 'currusuv'
+
+         CASE (vmec_currvsuv_id)
+            vmec_get_param_name = 'currvsuv'
+
+         CASE (vmec_rusuv_id)
+            vmec_get_param_name = 'rusuv'
+   
+         CASE (vmec_zusuv_id)
+            vmec_get_param_name = 'zusuv'
+
+         CASE (vmec_rvsuv_id)
+            vmec_get_param_name = 'rvsuv'
+
+         CASE (vmec_zvsuv_id)
+            vmec_get_param_name = 'zvsuv'
+
+         CASE (vmec_phitot_id)
+            vmec_get_param_name = 'phitot'
+
+         CASE (vmec_pp_ne_b_id)
+            vmec_get_param_name = 'pp_ne_b'
+
+         CASE (vmec_pp_ne_as_id)
+            vmec_get_param_name = 'pp_ne_as'
+
+         CASE (vmec_pp_ne_af_id)
+            vmec_get_param_name = 'pp_ne_af'
+
+         CASE (vmec_pp_sxrem_b_id)
+            vmec_get_param_name = 'pp_sxrem_b'
+
+         CASE (vmec_pp_sxrem_as_id)
+            vmec_get_param_name = 'pp_sxrem_as'
+
+         CASE (vmec_pp_sxrem_af_id)
+            vmec_get_param_name = 'pp_sxrem_af'
+
+         CASE (vmec_pp_te_b_id)
+            vmec_get_param_name = 'pp_te_b'
+
+         CASE (vmec_pp_te_as_id)
+            vmec_get_param_name = 'pp_te_as'
+
+         CASE (vmec_pp_te_af_id)
+            vmec_get_param_name = 'pp_te_af'
+
+         CASE DEFAULT
+            STOP 'Invalid VMEC parameter id.'
+
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  QUERY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Query variable id for scaler type
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_scaler_value(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_scaler_value
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
+     &         vmec_pres_scale_id, vmec_phitot_id)
+            vmec_is_scaler_value = .true.
+
+         CASE DEFAULT
+            vmec_is_scaler_value = .false.
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Query variable id for 1D array
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_1d_array(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_1d_array
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_ac_id, vmec_ac_aux_s_id, vmec_ac_aux_f_id,                 &
+     &         vmec_ai_id, vmec_ai_aux_s_id, vmec_ai_aux_f_id,                 &
+     &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
+     &         vmec_pp_ne_b_id, vmec_pp_ne_as_id, vmec_pp_ne_af_id,            &
+     &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
+     &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
+     &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_phi_id,               &
+     &         vmec_iotaf_id)
+            vmec_is_1d_array = .true.
+
+         CASE DEFAULT
+            vmec_is_1d_array = .false.
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Query variable id for 2D array
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_2d_array(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_2d_array
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
+     &         vmec_rmnc_id, vmec_zmns_id, vmec_lmns_id, vmec_gmnc_id,         &
+     &         vmec_bsubumnc_id, vmec_bsubvmnc_id,                             &
+     &         vmec_bsupsmns_id, vmec_bsupumnc_id, vmec_bsupvmnc_id,           &
+     &         vmec_rmns_id, vmec_zmnc_id, vmec_lmnc_id, vmec_gmns_id,         &
+     &         vmec_bsubumns_id, vmec_bsubvmns_id,                             &
+     &         vmec_bsupsmnc_id, vmec_bsupumns_id, vmec_bsupvmns_id)
+            vmec_is_2d_array = .true.
+
+         CASE DEFAULT
+            vmec_is_2d_array = .false.
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Query variable id for 3D array
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_3d_array(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_3d_array
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_bsubu_id, vmec_bsubv_id,                                   &
+     &         vmec_rsuv_id, vmec_zsuv_id, vmec_gsuv_id,                       &
+     &         vmec_currusuv_id, vmec_currvsuv_id, vmec_rusuv_id,              &
+     &         vmec_zusuv_id, vmec_rvsuv_id, vmec_zvsuv_id)
+            vmec_is_3d_array = .true.
+
+         CASE DEFAULT
+            vmec_is_3d_array = .false.
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Query variable id for 4D array
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_4d_array(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_4d_array
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_rzl_id)
+            vmec_is_4d_array = .true.
+
+         CASE DEFAULT
+            vmec_is_4d_array = .false.
+
+      END SELECT
+
+      END FUNCTION
 
       END MODULE
