@@ -20,8 +20,8 @@
 !*******************************************************************************
 
       TYPE extcurz_class
-         REAL(rprec)                        :: s0
-         REAL(rprec), DIMENSION(:), POINTER :: svec
+         REAL (rprec) :: r
+         REAL (rprec) :: theta
       END TYPE extcurz_class
 
       CONTAINS
@@ -31,37 +31,19 @@
 !-------------------------------------------------------------------------------
 !  Construct a magnetic.
 !-------------------------------------------------------------------------------
-      FUNCTION extcurz_construct(s0, eqstate)
+      FUNCTION extcurz_construct(r, theta)
       USE eq_T
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (extcurz_class), POINTER  :: extcurz_construct
-      TYPE (eq_state), INTENT(inout) :: eqstate
-      REAL(rprec), INTENT(in)        :: s0
-
-!  local variables
-      INTEGER                        :: ns, status, i
-      REAL(rprec)                    :: ds
+      REAL(rprec), INTENT(in)        :: r
+      REAL(rprec), INTENT(in)        :: theta
 
 !  Start of executable code
-      ALLOCATE(extcurz_construct)
-
-      extcurz_construct%s0 = s0
-
-      IF (.not. eqstate%l_def_aux1) THEN
-         CALL eq_aux_1_define(eqstate)
-      END IF
-
-      ns = eqstate%aux1%ns - 1
-      ds = 1.0/ns
-
-      ALLOCATE(extcurz_construct%svec(ns), STAT=status)
-
-      DO i = 1, ns
-         extcurz_construct%svec(i) = i*ds + ds/2.0
-      END DO
+      extcurz_construct%r = r
+      extcurz_construct%theta = theta
 
       END FUNCTION
 
@@ -76,9 +58,8 @@
       TYPE (extcurz_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
-      this%s0 = 0.0
-
-      DEALLOCATE(this%svec)
+      this%r = 0.0
+      this%theta = 0.0
 
       DEALLOCATE(this)
 
@@ -91,32 +72,20 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_get_modeled_signal(this, a_model)
-      USE model_T
-      USE line_segment, only: line_seg
-      USE stel_constants, only: twopi, mu0
+      USE model
+      USE stel_constants, only: mu0
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)       :: extcurz_get_modeled_signal
-      TYPE (extcurz_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)      :: a_model
-
-!  local variables
-      REAL(rprec)                      :: bsubv00c
-      INTEGER                          :: u_bound
+      REAL (rprec), DIMENSION(4)        :: extcurz_get_modeled_signal
+      TYPE (extcurz_class), INTENT(in)  :: this
+      TYPE (model_class), INTENT(inout) :: a_model
 
 !  Start of executable code
-      IF (.not. a_model%eqstate%l_def_aux1) THEN
-         CALL eq_aux_1_define(a_model%eqstate)
-      END IF
-
-      u_bound = UBOUND(this%svec,1)
-      CALL line_seg(this%s0, bsubv00c, this%svec,                              &
-     &              a_model%eqstate%aux1%bsubvmnc(1,2:u_bound + 1),            &
-     &              u_bound)
-
-      extcurz_get_modeled_signal(1) = twopi*bsubv00c/mu0
+      extcurz_get_modeled_signal(1) =                                          &
+     &   equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,               &
+     &                              this%theta)/mu0
 
       END FUNCTION
 

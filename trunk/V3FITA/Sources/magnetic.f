@@ -83,19 +83,16 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)        :: magnetic_get_modeled_signal
       TYPE (magnetic_class), INTENT(in) :: this
-      TYPE (model), INTENT(in)          :: a_model
+      TYPE (model_class), INTENT(in)    :: a_model
 
 !  Start of executable code
-!      IF (.not. state % l_def_aux2) THEN
-!         CALL eq_aux_2_define(a_model%eqstate ,mrf_local%kp)  !! NEED TO FIX
-!      END IF
 
       END FUNCTION
 

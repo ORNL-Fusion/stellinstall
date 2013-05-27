@@ -13,4 +13,6 @@
       INTEGER, PARAMETER :: data_name_length = 30
       INTEGER, PARAMETER :: data_filename_length = 100
 
+      INTEGER, PARAMETER :: data_no_id = -1
+
       END MODULE

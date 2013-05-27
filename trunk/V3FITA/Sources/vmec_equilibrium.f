@@ -721,6 +721,39 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!  Get vmec line integrated b at position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_Int_B_dphi(this, r, theta)
+      USE line_segment, only: line_seg
+      USE stel_constants, only: twopi
+      USE read_wout_mod, only: bsubvmnc, ns
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_Int_B_dphi
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: r
+      REAL (rprec), INTENT(in)      :: theta
+
+!  local variables
+      REAL (rprec)                  :: bsubv00c, ds
+      INTEGER                       :: i
+      REAL (rprec), DIMENSION(ns)   :: s
+
+!  Start of executable code
+      ds = 1.0/(ns - 1)
+      DO i = 0, ns - 1
+         s(i + 1) = i*ds
+      END DO
+
+      CALL line_seg(r, bsubv00c, s, bsubvmnc(1,:), ns)
+
+      vmec_get_Int_B_dphi = twopi*bsubv00c
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !  Get vmec s value at position
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_s(this, x_cart)

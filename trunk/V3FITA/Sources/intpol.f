@@ -120,14 +120,14 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)         :: intpol_get_modeled_signal
       TYPE (intpol_class), INTENT(inout) :: this
-      TYPE (model), INTENT(inout)        :: a_model
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE :: context(:)
@@ -137,10 +137,6 @@
       REAL(rprec), PARAMETER :: polar_constant = 2.62E-13_dp
 
 !  Start of executable code
-      IF (.not. a_model%eqstate%l_def_aux1) THEN
-         CALL eq_aux_1_define(a_model%eqstate)
-      END IF
-
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
       context_length = SIZE(TRANSFER(a_model, context))
@@ -178,7 +174,7 @@
 !
 !-------------------------------------------------------------------------------
       FUNCTION int_function(context, xcart, dxcart, dx)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
@@ -189,11 +185,11 @@
       REAL(rprec)                           :: int_function
 
 !  local variables
-      TYPE(model) :: a_model
+      TYPE(model_class)                     :: a_model
 
 !  Start of executable code
       a_model = TRANSFER(context, a_model)
-      int_function = model_get_ne_xcyl(a_model, cart_to_cyl(xcart))*dx
+      int_function = model_get_ne(a_model, xcart)*dx
 
       END FUNCTION
 
@@ -204,7 +200,7 @@
 !
 !-------------------------------------------------------------------------------
       FUNCTION pol_function(context, xcart, dxcart, dx)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
@@ -215,15 +211,16 @@
       REAL(rprec)                           :: pol_function
 
 !  local variables
-      TYPE(model)               :: a_model
-      REAL(rprec), DIMENSION(3) :: r_cyl, bcart
+      TYPE(model_class)                     :: a_model
+      REAL(rprec), DIMENSION(3)             :: bcart
 
 !  Start of executable code
       a_model = TRANSFER(context, a_model)
-      r_cyl = cart_to_cyl(xcart)
-      CALL eq_get_B_field(a_model%eqstate, r_cyl, bcart)
-      pol_function = model_get_ne_xcyl(a_model, r_cyl)                         &
-     &             * DOT_PRODUCT(bcart, dxcart)
+
+      bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart)
+      pol_function =                                                           &
+     &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
+
 
       END FUNCTION
 

@@ -192,14 +192,14 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)      :: diagnostic_get_modeled_signal
       TYPE (diagnostic_class), INTENT(inout) :: this
-      TYPE (model), INTENT(inout)            :: a_model
+      TYPE (model_class), INTENT(inout)      :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)

@@ -116,14 +116,14 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)       :: geometric_get_modeled_signal
       TYPE (geometric_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)        :: a_model
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)

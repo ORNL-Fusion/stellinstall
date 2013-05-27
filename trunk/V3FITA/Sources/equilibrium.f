@@ -105,6 +105,9 @@
             equilibrium_get_param_id =                                         &
      &         vmec_get_param_id(this%vmec, param_name)
 
+         CASE DEFAULT
+            equilibrium_get_param_id = data_no_id
+
       END SELECT
 
       END FUNCTION
@@ -128,6 +131,9 @@
             equilibrium_get_scaler_value =                                     &
      &         vmec_get_scaler_value(this%vmec, id)
 
+         CASE DEFAULT
+            equilibrium_get_scaler_value = 0.0
+
       END SELECT
 
       END FUNCTION
@@ -150,6 +156,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_param_name =                                       &
      &         vmec_get_param_name(this%vmec, id)
+
+         CASE DEFAULT
+            equilibrium_get_param_name = ''
 
       END SELECT
 
@@ -280,6 +289,33 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get equilibrium line integrated b at position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_Int_B_dphi(this, r, theta)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_Int_B_dphi
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r
+      REAL (rprec), INTENT(in)             :: theta
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_Int_B_dphi =                                       &
+     &         vmec_get_Int_B_dphi(this%vmec, r, theta)
+
+         CASE DEFAULT
+            equilibrium_get_Int_B_dphi = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
@@ -301,6 +337,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_is_scaler_value =                                      &
      &         vmec_is_scaler_value(this%vmec, id)
+
+         CASE DEFAULT
+            equilibrium_is_scaler_value = .false.
 
       END SELECT
 
@@ -324,6 +363,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_is_1d_array = vmec_is_1d_array(this%vmec, id)
 
+         CASE DEFAULT
+            equilibrium_is_1d_array = .false.
+
       END SELECT
 
       END FUNCTION
@@ -345,6 +387,9 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_is_2d_array = vmec_is_2d_array(this%vmec, id)
+
+         CASE DEFAULT
+            equilibrium_is_2d_array = .false.
 
       END SELECT
 
@@ -368,6 +413,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_is_3d_array = vmec_is_3d_array(this%vmec, id)
 
+         CASE DEFAULT
+            equilibrium_is_3d_array = .false.
+
       END SELECT
 
       END FUNCTION
@@ -387,8 +435,11 @@
 !  Start of executable code
       SELECT CASE (this%type)
 
-      CASE (equilibrium_vmec_type)
-         equilibrium_is_4d_array = vmec_is_4d_array(this%vmec, id)
+         CASE (equilibrium_vmec_type)
+            equilibrium_is_4d_array = vmec_is_4d_array(this%vmec, id)
+
+         CASE DEFAULT
+            equilibrium_is_4d_array = .false.
 
       END SELECT
 
@@ -412,6 +463,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_is_recon_param =                                       &
      &         vmec_is_recon_param(this%vmec, id)
+
+         CASE DEFAULT
+            equilibrium_is_recon_param = .false.
 
       END SELECT
 

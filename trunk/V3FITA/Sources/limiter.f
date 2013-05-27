@@ -114,14 +114,14 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_signal
-      TYPE (limiter_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)      :: a_model
+      TYPE (limiter_class), INTENT(in)  :: this
+      TYPE (model_class), INTENT(inout) :: a_model
 
 !  Start of executable code
       SELECT CASE (this%type)
@@ -144,14 +144,14 @@
 !  Get the iso function signal
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_iso_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_iso_signal
       TYPE (limiter_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)      :: a_model
+      TYPE (model_class), INTENT(inout)      :: a_model
 
 !  local variables
       INTEGER                                :: nu, j, k
@@ -160,45 +160,6 @@
       REAL(rprec)                            :: fval_max, fval
 
 !  Start of executable code
-      fval_max = -1.0E10_dp
-
-      nu = MAX(this%iso%numin,                                                 &
-     &   a_model%eqstate%fixp%ns_array(a_model%eqstate%varp%ns_index),         &
-     &   2*a_model%eqstate%fixp%mpol + 6)
-
-      ALLOCATE(r_at_seq1(nu), z_at_seq1(nu))
-
-!  loop around the s = 1 surface
-!  Evaluate limiter function for each point
-!  take maximum, store R, Phi, and Z at location of maximum
-      rphiz_at_max = 0.0
-
-      DO k = 1, SIZE(this%iso%vgrid, 1)
-         CALL model_get_seq1_rz(a_model, this%iso%vgrid(k),                    &
-     &                          r_at_seq1, z_at_seq1)
-
-         DO j = 1, nu
-            rphiz_edge(1) = r_at_seq1(j)
-            rphiz_edge(2) = this%iso%vgrid(k)
-            rphiz_edge(3) = z_at_seq1(j)
-
-            CALL limiter_iso_f_cyl(this%iso, rphiz_edge, fval)
-
-            IF (fval .gt. fval_max) THEN
-               fval_max = fval
-               rphiz_at_max = rphiz_edge
-            END IF
-         END DO
-      END DO
-
-      IF (this%on_edge) THEN
-         limiter_get_modeled_iso_signal(1) = fval_max
-      ELSE
-         limiter_get_modeled_iso_signal(1) = MAX(fval_max, 0.0)
-      ENDIF
-      limiter_get_modeled_iso_signal(2:4) = rphiz_at_max
-
-      DEALLOCATE(r_at_seq1, z_at_seq1)
 
       END FUNCTION
 

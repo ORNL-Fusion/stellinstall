@@ -76,14 +76,14 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)        :: sxrem_get_modeled_signal
       TYPE (sxrem_class), INTENT(inout) :: this
-      TYPE (model), INTENT(in)          :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE  :: context(:)
@@ -112,7 +112,7 @@
 !
 !-------------------------------------------------------------------------------
       FUNCTION sxr_function(context, xcart, dxcart, dx)
-      USE model_T
+      USE model
       USE coordinate_utilities
 
       IMPLICIT NONE
@@ -124,12 +124,11 @@
       REAL(rprec)                           :: sxr_function
 
 ! local variables
-      TYPE(model) :: a_model
+      TYPE(model_class)                     :: a_model
 
 !  Start of executable code
       a_model = TRANSFER(context, a_model)
-      sxr_function = model_get_sxrem_xcyl(a_model,                             &
-     &                                    cart_to_cyl(xcart))*dx
+      sxr_function = model_get_sxrem(a_model, cart_to_cyl(xcart))*dx
 
       END FUNCTION
 

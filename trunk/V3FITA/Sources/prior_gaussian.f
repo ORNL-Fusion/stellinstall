@@ -56,9 +56,6 @@
       REAL(rprec), INTENT(in)              :: mu
       REAL(rprec), INTENT(in)              :: sigma
 
-!  Local Variables
-      INTEGER                              :: status
-
 !  Start of executable code
       ALLOCATE(prior_gaussian_construct)
 

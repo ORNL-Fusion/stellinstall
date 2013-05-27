@@ -81,35 +81,33 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION thomson_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
       USE coordinate_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)       :: thomson_get_modeled_signal
-      TYPE (thomson_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)      :: a_model
+      REAL (rprec), DIMENSION(4)        :: thomson_get_modeled_signal
+      TYPE (thomson_class), INTENT(in)  :: this
+      TYPE (model_class), INTENT(inout) :: a_model
 
 !  Local variables
-      REAL(rprec), DIMENSION(3) :: r_cyl
 
 !  Start of executable code
-      r_cyl = cart_to_cyl(this%xcart)
 
       SELECT CASE(this%type)
 
          CASE (thomson_temperature_type)
-            thomson_get_modeled_signal(1) = model_get_te_xcyl(a_model,         &
-     &                                                        r_cyl)
+            thomson_get_modeled_signal(1) =                                    &
+     &         model_get_te(a_model, this%xcart)
 
          CASE (thomson_density_type)
-            thomson_get_modeled_signal(1) = model_get_ne_xcyl(a_model,         &
-     &                                                        r_cyl)
+            thomson_get_modeled_signal(1) =                                    &
+     &         model_get_te(a_model, this%xcart)
 
          CASE (thomson_pressure_type)
-            thomson_get_modeled_signal(1) = model_get_p_xcyl(a_model,          &
-     &                                                       r_cyl)
+            thomson_get_modeled_signal(1) =                                    &
+     &         equilibrium_get_p(a_model%equilibrium, this%xcart)
 
       END SELECT
 

@@ -227,13 +227,13 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)         :: signal_get_modeled_signal
       TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model), INTENT(inout)        :: a_model
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Start of executable code
       SELECT CASE(this%type)
@@ -257,13 +257,13 @@
 !  Get the g2 contribution.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_g2(this, a_model)
-      USE model_T
+      USE model
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec)                       :: signal_get_g2
       TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model), INTENT(inout)        :: a_model
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Local Variables
       REAL (rprec), DIMENSION(4)         :: modeled_signal
@@ -381,13 +381,13 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)      :: combination_get_modeled_signal
       TYPE (combination_class), INTENT(inout) :: this
-      TYPE (model), INTENT(inout)             :: a_model
+      TYPE (model_class), INTENT(inout)       :: a_model
 
 !  Local Variables
       INTEGER                                 :: i

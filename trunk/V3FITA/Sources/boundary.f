@@ -96,45 +96,19 @@
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
       FUNCTION boundary_get_modeled_signal(this, a_model)
-      USE model_T
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)        :: boundary_get_modeled_signal
       TYPE (boundary_class), INTENT(in) :: this
-      TYPE (model), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(inout) :: a_model
 
 !  local variables
       INTEGER                           :: m, n, s
 
 !  Start of executable code
-      IF (.not. a_model%eqstate%l_def_aux1) THEN
-         CALL eq_aux_1_define(a_model%eqstate)
-      END IF
-
-      s = a_model%eqstate%fixp%ns_array(1)
-      m = this%m_index
-      n = this%n_index
-
-      SELECT CASE (this%type)
-         CASE (boundary_rbc_type)
-            boundary_get_modeled_signal(1) =                                   &
-     &         a_model%eqstate%aux1%rmnc(m*n + m + 1, s)
-
-		 CASE (boundary_zbs_type)
-            boundary_get_modeled_signal(1) =                                   &
-     &         a_model%eqstate%aux1%zmns(m*n + m + 1, s)
-
-         CASE (boundary_rbs_type)
-            boundary_get_modeled_signal(1) =                                   &
-     &         a_model%eqstate%aux1%rmns(m*n + m + 1, s)
-
-         CASE (boundary_zbc_type)
-            boundary_get_modeled_signal(1) =                                   &
-     &         a_model%eqstate%aux1%zmnc(m*n + m + 1, s)
-
-      END SELECT
 
       END FUNCTION
 

@@ -87,7 +87,7 @@
       INTEGER, DIMENSION(2), INTENT(in) :: upper_param_indices
 
 !  Local Variables
-      INTEGER                           :: status, i
+      INTEGER                           :: i
 
 !  Start of executable code
       ALLOCATE(prior_range_construct)
@@ -195,6 +195,8 @@
       REAL(rprec), INTENT(in)             :: value
 
 !  Start of executable code
+      prior_range_is_in_range = .false.
+
       SELECT CASE (this%lower_range_type)
 
          CASE (range_value_type)

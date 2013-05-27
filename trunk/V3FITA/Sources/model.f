@@ -31,6 +31,8 @@
       INTEGER, PARAMETER :: model_ne_min_id            = 1
       INTEGER, PARAMETER :: model_pressure_fraction_id = 2
 
+      REAL(rprec), PARAMETER :: eV_per_Joule = one/1.602e-19_rprec
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) model class
@@ -147,5 +149,94 @@
       DEALLOCATE(this)
 
       END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Get model electron density at position
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ne(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_ne
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%ne_type)
+
+         CASE (model_ne_type)
+            model_get_ne = equilibrium_get_ne(this%equilibrium, x_cart)
+
+         CASE (model_ne_te_p_type)
+            model_get_ne = eV_per_Joule*this%pressure_fraction                 &
+     &                   * equilibrium_get_p(this%equilibrium, x_cart)         &
+     &                   / equilibrium_get_te(this%equilibrium, x_cart)
+
+         CASE DEFAULT
+             model_get_ne = -2.0E49_rprec
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model electron temperature at position
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_te(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_te
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%ne_type)
+
+         CASE (model_te_type)
+            model_get_te = equilibrium_get_te(this%equilibrium, x_cart)
+
+         CASE (model_te_ne_p_type)
+            model_get_te = eV_per_Joule*this%pressure_fraction                 &
+     &                   * equilibrium_get_p(this%equilibrium, x_cart)         &
+     &                   / equilibrium_get_ne(this%equilibrium, x_cart)
+
+         CASE DEFAULT
+            model_get_te = -2.0E49_rprec
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model soft x-ray emissivity at position
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_sxrem(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_sxrem
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      SELECT CASE (this%sxrem_type)
+
+         CASE (model_sxrem_type)
+            model_get_sxrem =                                                  &
+     &         equilibrium_get_sxrem(this%equilibrium, x_cart)
+
+         CASE DEFAULT
+            model_get_sxrem = -2.0E49_rprec
+
+      END SELECT
+
+      END FUNCTION
 
       END MODULE
