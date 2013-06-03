@@ -316,6 +316,36 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get plasma edge at phi position
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_plasma_edge(this, phi, r, z)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_plasma_edge
+      TYPE (equilibrium_class), INTENT(in)             :: this
+      REAL (rprec), INTENT (in)                        :: phi
+      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: r
+      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: z
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_plasma_edge =                                      &
+     &         vmec_get_plasma_edge(this%vmec, phi, r, z)
+
+         CASE DEFAULT
+            equilibrium_get_plasma_edge = 0
+            r => null()
+            z => null()
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************

@@ -157,7 +157,7 @@
                rpz_edge(1) = r_at_seq1(j)
                rpz_edge(2) = phi
                rpz_edge(3) = z_at_seq1(j)
-               CALL limiter_iso_f_cyl(my_iso,rpz_edge,fval)
+               fval = limiter_iso_f_cyl(my_iso,rpz_edge)
                IF (fval .gt. fval_max) THEN
                   fval_max = fval
                   rpz_at_max = rpz_edge

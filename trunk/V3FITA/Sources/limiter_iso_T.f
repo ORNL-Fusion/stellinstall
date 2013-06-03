@@ -361,13 +361,13 @@
 !-------------------------------------------------------------------------------
 !  Evaluate the limiter function
 !-------------------------------------------------------------------------------
-      SUBROUTINE limiter_iso_f_cyl(this,rpz_arg,fval)
+      FUNCTION limiter_iso_f_cyl(this,rpz_arg)
       IMPLICIT NONE
 
-!  Declare Arguments 
+!  Declare Arguments
+      REAL (rprec) :: limiter_iso_f_cyl
       TYPE (limiter_iso), INTENT(in)          :: this
-      REAL(rprec), DIMENSION(3), INTENT(in)   :: rpz_arg
-      REAL(rprec), INTENT(out)                :: fval
+      REAL (rprec), DIMENSION(3), INTENT(in)   :: rpz_arg
 
 !  Declare local variables
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
@@ -406,9 +406,9 @@
       
       grad_e = MAX(1.E-12,SQRT(er * er + ez * ez))
       
-      fval = e / grad_e
+      limiter_iso_f_cyl = e / grad_e
       
-      END SUBROUTINE limiter_iso_f_cyl
+      END FUNCTION limiter_iso_f_cyl
       
 !*******************************************************************************
 ! SECTION XVI.  COMMENTS FOR DIFFERENT REVISIONS

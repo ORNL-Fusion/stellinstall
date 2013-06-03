@@ -131,7 +131,7 @@
      &         limiter_get_modeled_iso_signal(this, a_model)
 
          CASE (limiter_polygon_type)
-            limiter_get_modeled_signal(1) = 0.0
+            limiter_get_modeled_signal = 0.0
 
       END SELECT
 
@@ -150,16 +150,52 @@
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_iso_signal
-      TYPE (limiter_class), INTENT(in) :: this
+      TYPE (limiter_class), INTENT(in)       :: this
       TYPE (model_class), INTENT(inout)      :: a_model
 
 !  local variables
-      INTEGER                                :: nu, j, k
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) :: r_at_seq1, z_at_seq1
-      REAL(rprec), DIMENSION(3)              :: rphiz_at_max, rphiz_edge
-      REAL(rprec)                            :: fval_max, fval
+      INTEGER                                :: phi_index, theta_index
+      INTEGER                                :: num_theta
+      REAL(rprec), DIMENSION(:), POINTER     :: r => null(), z => null()
+      REAL(rprec), DIMENSION(3)              :: rphiz_at_max = 0
+      REAL(rprec)                            :: fval_max = -1.0E10, fval
 
 !  Start of executable code
+!  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
+!  There is no need to allocate and deallocate r and z for each phi angle.
+      DO phi_index = 1, SIZE(this%iso%vgrid, 1)
+         num_theta =                                                           &
+     &      equilibrium_get_plasma_edge(a_model%equilibrium,                   &
+     &                                  this%iso%vgrid(phi_index),             &
+     &                                  r, z)
+
+!  Loop over each theta angle
+         DO theta_index = 1, num_theta
+            fval = limiter_iso_f_cyl(this%iso,                                 &
+     &                               (/ r(theta_index),                        &
+     &                                  this%iso%vgrid(phi_index),             &
+     &                                  z(theta_index) /))
+
+            IF (fval .gt. fval_max) THEN
+               fval_max = fval
+               rphiz_at_max = (/ r(theta_index),                               &
+     &                           this%iso%vgrid(phi_index),                    &
+     &                           z(theta_index) /)
+            END IF
+         END DO
+      END DO
+
+      IF (this%on_edge) THEN
+         limiter_get_modeled_iso_signal(1) = fval_max
+      ELSE
+         limiter_get_modeled_iso_signal(1) = MAX(fval_max, 0.0)
+      END IF
+      limiter_get_modeled_iso_signal(2:4) = rphiz_at_max
+
+!  Dealloctae r and z since they are no longer needed.
+      DEALLOCATE(r, z)
+      r => null()
+      z => null()
 
       END FUNCTION
 

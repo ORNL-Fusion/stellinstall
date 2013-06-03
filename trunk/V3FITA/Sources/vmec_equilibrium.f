@@ -794,6 +794,58 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get plasma edge at phi position
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_plasma_edge(this, phi, r, z)
+      USE vmec_input, only: mpol
+      USE read_wout_mod, only: xm, xn, rmnc, zmns, rmns, zmnc, lasym, ns
+      USE stel_constants, only: twopi
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: vmec_get_plasma_edge
+      TYPE (vmec_class), INTENT(in)                    :: this
+      REAL (rprec), INTENT (in)                        :: phi
+      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: r
+      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: z
+
+!  local variables
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosv, sinv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosu, sinu
+      INTEGER                                 :: i
+
+!  Start of executable code
+      vmec_get_plasma_edge = 2*mpol + 6
+
+      IF (.not.ASSOCIATED(r)) THEN
+         ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
+      END IF
+      ALLOCATE(cosv(SIZE(xn, 1)), sinv(SIZE(xn, 1)))
+      ALLOCATE(cosu(SIZE(xm, 1)), sinu(SIZE(xm, 1)))
+
+      cosv(:) = COS(xn*phi)
+      sinv(:) = SIN(xn*phi)
+      DO i = 1, vmec_get_plasma_edge
+         cosu(:) = COS(xm*(i - 1)*twopi/vmec_get_plasma_edge)
+         sinu(:) = SIN(xm*(i - 1)*twopi/vmec_get_plasma_edge)
+
+         r(i) = SUM(rmnc(:, ns)*(cosu(:)*cosv(:) + sinu(:)*sinv(:)))
+         z(i) = SUM(zmns(:, ns)*(sinu(:)*cosv(:) - cosu(:)*sinv(:)))
+
+         IF (lasym) THEN
+            r(i) = r(i) +                                                      &
+     &             SUM(rmns(:, ns)*(sinu(:)*cosv(:) - cosu(:)*sinv(:)))
+            z(i) = z(i) +                                                      &
+     &             SUM(zmnc(:, ns)*(cosu(:)*cosv(:) + sinu(:)*sinv(:)))
+         END IF
+      END DO
+
+      DEALLOCATE(cosu, cosv, sinu, sinv)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
