@@ -55,15 +55,17 @@
 !*******************************************************************************
 
       TYPE signal_class
-         INTEGER                           :: type = signal_no_type
-         CHARACTER(len=signal_name_short_length) :: s_name
-         CHARACTER(len=signal_name_long_length)  :: l_name
-         REAL(rprec)                       :: observed
-         REAL(rprec)                       :: sigma
-         REAL(rprec)                       :: weight
-         TYPE(diagnostic_class), POINTER   :: diagnostic => null()
-         TYPE(geometric_class), POINTER    :: geometric => null()
-         TYPE(combination_class), POINTER  :: combination => null()
+         INTEGER                            :: type = signal_no_type
+         CHARACTER (len=signal_name_short_length) :: s_name
+         CHARACTER (len=signal_name_long_length)  :: l_name
+         REAL (rprec)                       :: observed
+         REAL (rprec)                       :: observed_sigma
+         REAL (rprec)                       :: weight
+         REAL (rprec), DIMENSION(4)         :: modeled
+         REAL (rprec), DIMENSION(4)         :: modeled_sigma
+         TYPE (diagnostic_class), POINTER   :: diagnostic => null()
+         TYPE (geometric_class), POINTER    :: geometric => null()
+         TYPE (combination_class), POINTER  :: combination => null()
       END TYPE signal_class
 
       TYPE signal_pointer
@@ -114,9 +116,11 @@
       signal_construct_diagnostic%s_name = s_name
       signal_construct_diagnostic%l_name = l_name
       signal_construct_diagnostic%observed = observed
-      signal_construct_diagnostic%sigma = sigma
+      signal_construct_diagnostic%observed_sigma = sigma
       signal_construct_diagnostic%weight = weight
       signal_construct_diagnostic%diagnostic => diagnostic_object
+      signal_construct_diagnostic%modeled = 0.0
+      signal_construct_diagnostic%modeled_sigma = 0.0
 
       END FUNCTION
 
@@ -145,9 +149,11 @@
       signal_construct_geometric%s_name = s_name
       signal_construct_geometric%l_name = l_name
       signal_construct_geometric%observed = observed
-      signal_construct_geometric%sigma = sigma
+      signal_construct_geometric%observed_sigma = sigma
       signal_construct_geometric%weight = weight
       signal_construct_geometric%geometric => geometric_object
+      signal_construct_geometric%modeled = 0.0
+      signal_construct_geometric%modeled_sigma = 0.0
 
       END FUNCTION
 
@@ -177,9 +183,11 @@
       signal_construct_combination%s_name = s_name
       signal_construct_combination%l_name = l_name
       signal_construct_combination%observed = observed
-      signal_construct_combination%sigma = sigma
+      signal_construct_combination%observed_sigma = sigma
       signal_construct_combination%weight = weight
       signal_construct_combination%combination => combination_object
+      signal_construct_combination%modeled = 0.0
+      signal_construct_combination%modeled_sigma = 0.0
 
       END FUNCTION
 
@@ -213,8 +221,10 @@
       this%s_name = ''
       this%l_name = ''
       this%observed = 0.0
-      this%sigma = 0.0
+      this%observed_sigma = 0.0
       this%weight = 0.0
+      this%modeled = 0.0
+      this%modeled_sigma = 0.0
 
       DEALLOCATE(this)
 
@@ -226,30 +236,46 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_modeled_signal(this, a_model)
+      FUNCTION signal_get_modeled_signal(this, a_model, sigma,                 &
+     &                                   use_cache)
       USE model
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)         :: signal_get_modeled_signal
-      TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
+      REAL (rprec), DIMENSION(4) :: signal_get_modeled_signal
+      TYPE (signal_class), INTENT(inout)      :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
+      LOGICAL, INTENT(in)                     :: use_cache
 
 !  Start of executable code
-      SELECT CASE(this%type)
-         CASE (signal_diagnostic_type)
-            signal_get_modeled_signal =                                        &
-     &         diagnostic_get_modeled_signal(this%diagnostic, a_model)
+      IF (use_cache) THEN
+         sigma = this%modeled_sigma
+         signal_get_modeled_signal = this%modeled
+      ELSE
 
-         CASE (signal_geometric_type)
-            signal_get_modeled_signal =                                        &
-     &         geometric_get_modeled_signal(this%geometric, a_model)
+         SELECT CASE(this%type)
+            CASE (signal_diagnostic_type)
+               signal_get_modeled_signal =                                     &
+     &            diagnostic_get_modeled_signal(this%diagnostic,               &
+     &                                          a_model, sigma)
 
-         CASE (signal_combination_type)
-            signal_get_modeled_signal =                                        &
-     &         combination_get_modeled_signal(this%combination, a_model)
+            CASE (signal_geometric_type)
+               signal_get_modeled_signal =                                     &
+     &            geometric_get_modeled_signal(this%geometric,                 &
+     &                                         a_model, sigma)
 
-      END SELECT
+            CASE (signal_combination_type)
+               signal_get_modeled_signal =                                     &
+     &            combination_get_modeled_signal(this%combination,             &
+     &                                           a_model, sigma)
+
+         END SELECT
+
+         this%modeled = signal_get_modeled_signal
+         this%modeled_sigma = sigma
+
+      END IF
 
       END FUNCTION
 
@@ -267,12 +293,14 @@
 
 !  Local Variables
       REAL (rprec), DIMENSION(4)         :: modeled_signal
+      REAL (rprec), DIMENSION(4)         :: modeled_sigma
 
 !  Start of executable code
-      modeled_signal = signal_get_modeled_signal(this, a_model)
+      modeled_signal = signal_get_modeled_signal(this, a_model,                &
+     &                                           modeled_sigma, .false.)
       signal_get_g2 =                                                          &
      &   this%weight*((this%observed - modeled_signal(1))                      &
-     &                /this%sigma)**2.0
+     &               /(this%observed_sigma - modeled_sigma(1)))**2.0
 
       END FUNCTION
 
@@ -380,7 +408,7 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION combination_get_modeled_signal(this, a_model)
+      FUNCTION combination_get_modeled_signal(this, a_model, sigma)
       USE model
       IMPLICIT NONE
 
@@ -388,13 +416,16 @@
       REAL (rprec), DIMENSION(4)      :: combination_get_modeled_signal
       TYPE (combination_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Local Variables
       INTEGER                                 :: i
+      REAL (rprec), DIMENSION(4)              :: sigma_local
 
 !  Start of executable code
       combination_get_modeled_signal =                                         &
-     &   this%a(1)*signal_get_modeled_signal(this%signals(1)%p, a_model)
+     &   this%a(1)*signal_get_modeled_signal(this%signals(1)%p, a_model,       &
+     &                                       sigma, .true.)
 
       SELECT CASE(this%type)
          CASE (combination_sum)
@@ -402,7 +433,10 @@
                combination_get_modeled_signal =                                &
      &            combination_get_modeled_signal +                             &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
-     &                                                a_model)
+     &                                                a_model,                 &
+     &                                                sigma_local,             &
+     &                                                .true.)
+               sigma = sigma + sigma_local
             END DO
 
          CASE (combination_max)
@@ -410,7 +444,10 @@
                combination_get_modeled_signal = MAX(                           &
      &            combination_get_modeled_signal,                              &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
-     &                                                a_model))
+     &                                                a_model,                 &
+     &                                                sigma_local,             &
+     &                                                .true.))
+               sigma = MAX(sigma, sigma_local)
             END DO
 
          CASE (combination_min)
@@ -418,7 +455,10 @@
                combination_get_modeled_signal = MIN(                           &
      &            combination_get_modeled_signal,                              &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
-     &                                                a_model))
+     &                                                a_model,                 &
+     &                                                sigma_local,             &
+     &                                                .true.))
+               sigma = MIN(sigma, sigma_local)
             END DO
 
       END SELECT

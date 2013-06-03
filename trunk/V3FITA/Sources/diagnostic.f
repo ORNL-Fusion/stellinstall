@@ -191,37 +191,39 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION diagnostic_get_modeled_signal(this, a_model)
+      FUNCTION diagnostic_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)      :: diagnostic_get_modeled_signal
-      TYPE (diagnostic_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)      :: a_model
+      REAL (rprec), DIMENSION(4) :: diagnostic_get_modeled_signal
+      TYPE (diagnostic_class), INTENT(inout)  :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
       SELECT CASE(this%type)
          CASE (diagnostic_magnetic_type)
             diagnostic_get_modeled_signal =                                    &
-     &         magnetic_get_modeled_signal(this%magnetic, a_model)
+     &         magnetic_get_modeled_signal(this%magnetic, a_model,             &
+     &                                     sigma)
 
          CASE (diagnostic_sxrem_type)
             diagnostic_get_modeled_signal =                                    &
-     &         sxrem_get_modeled_signal(this%sxrem, a_model)
+     &         sxrem_get_modeled_signal(this%sxrem, a_model, sigma)
 
          CASE (diagnostic_intpol_type)
             diagnostic_get_modeled_signal =                                    &
-     &         intpol_get_modeled_signal(this%intpol, a_model)
+     &         intpol_get_modeled_signal(this%intpol, a_model, sigma)
 
          CASE (diagnostic_thomson_type)
             diagnostic_get_modeled_signal =                                    &
-     &         thomson_get_modeled_signal(this%thomson, a_model)
+     &         thomson_get_modeled_signal(this%thomson, a_model, sigma)
 
          CASE (diagnostic_extcurz_type)
             diagnostic_get_modeled_signal =                                    &
-     &         extcurz_get_modeled_signal(this%extcurz, a_model)
+     &         extcurz_get_modeled_signal(this%extcurz, a_model, sigma)
 
       END SELECT
 

@@ -113,25 +113,27 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_get_modeled_signal(this, a_model)
+      FUNCTION limiter_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_signal
-      TYPE (limiter_class), INTENT(in)  :: this
-      TYPE (model_class), INTENT(inout) :: a_model
+      TYPE (limiter_class), INTENT(in)        :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (limiter_iso_type)
             limiter_get_modeled_signal =                                       &
-     &         limiter_get_modeled_iso_signal(this, a_model)
+     &         limiter_get_modeled_iso_signal(this, a_model, sigma)
 
          CASE (limiter_polygon_type)
             limiter_get_modeled_signal = 0.0
+            sigma = 0.0
 
       END SELECT
 
@@ -143,15 +145,16 @@
 !-------------------------------------------------------------------------------
 !  Get the iso function signal
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_get_modeled_iso_signal(this, a_model)
+      FUNCTION limiter_get_modeled_iso_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_iso_signal
-      TYPE (limiter_class), INTENT(in)       :: this
-      TYPE (model_class), INTENT(inout)      :: a_model
+      TYPE (limiter_class), INTENT(in)        :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
       INTEGER                                :: phi_index, theta_index
@@ -196,6 +199,8 @@
       DEALLOCATE(r, z)
       r => null()
       z => null()
+
+      sigma = 1.0E-10
 
       END FUNCTION
 

@@ -80,16 +80,17 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_modeled_signal(this, a_model)
+      FUNCTION thomson_get_modeled_signal(this, a_model, sigma)
       USE model
       USE coordinate_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)        :: thomson_get_modeled_signal
-      TYPE (thomson_class), INTENT(in)  :: this
-      TYPE (model_class), INTENT(inout) :: a_model
+      REAL (rprec), DIMENSION(4) :: thomson_get_modeled_signal
+      TYPE (thomson_class), INTENT(in)        :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Local variables
 
@@ -110,6 +111,8 @@
      &         equilibrium_get_p(a_model%equilibrium, this%xcart)
 
       END SELECT
+
+      sigma = 0.0
 
       END FUNCTION
 

@@ -42,6 +42,7 @@
       REAL(rprec), INTENT(in)        :: theta
 
 !  Start of executable code
+      ALLOCATE(extcurz_construct)
       extcurz_construct%r = r
       extcurz_construct%theta = theta
 
@@ -71,21 +72,24 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION extcurz_get_modeled_signal(this, a_model)
+      FUNCTION extcurz_get_modeled_signal(this, a_model, sigma)
       USE model
       USE stel_constants, only: mu0
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)        :: extcurz_get_modeled_signal
-      TYPE (extcurz_class), INTENT(in)  :: this
-      TYPE (model_class), INTENT(inout) :: a_model
+      REAL (rprec), DIMENSION(4) :: extcurz_get_modeled_signal
+      TYPE (extcurz_class), INTENT(in)        :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
       extcurz_get_modeled_signal(1) =                                          &
      &   equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,               &
      &                              this%theta)/mu0
+
+      sigma = 0
 
       END FUNCTION
 

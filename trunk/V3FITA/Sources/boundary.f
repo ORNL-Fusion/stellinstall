@@ -95,20 +95,23 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION boundary_get_modeled_signal(this, a_model)
+      FUNCTION boundary_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)        :: boundary_get_modeled_signal
-      TYPE (boundary_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(inout) :: a_model
+      REAL (rprec), DIMENSION(4) :: boundary_get_modeled_signal
+      TYPE (boundary_class), INTENT(in)       :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
       INTEGER                           :: m, n, s
 
 !  Start of executable code
+      boundary_get_modeled_signal = 0.0
+      sigma = 0.0
 
       END FUNCTION
 

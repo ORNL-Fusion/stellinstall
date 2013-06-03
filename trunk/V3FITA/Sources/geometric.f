@@ -115,25 +115,28 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION geometric_get_modeled_signal(this, a_model)
+      FUNCTION geometric_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)       :: geometric_get_modeled_signal
-      TYPE (geometric_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
+      TYPE (geometric_class), INTENT(in)      :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
       SELECT CASE(this%type)
          CASE (geometric_limiter_type)
             geometric_get_modeled_signal =                                     &
-     &         limiter_get_modeled_signal(this%limiter, a_model)
+     &         limiter_get_modeled_signal(this%limiter, a_model,               &
+     &                                    sigma)
 
          CASE (geometric_boundary_type)
-            geometric_get_modeled_signal =                                    &
-     &         boundary_get_modeled_signal(this%boundary, a_model)
+            geometric_get_modeled_signal =                                     &
+     &         boundary_get_modeled_signal(this%boundary, a_model,             &
+     &                                     sigma)
 
       END SELECT
 

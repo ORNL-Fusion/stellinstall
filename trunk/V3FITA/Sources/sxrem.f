@@ -75,15 +75,16 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_get_modeled_signal(this, a_model)
+      FUNCTION sxrem_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)        :: sxrem_get_modeled_signal
-      TYPE (sxrem_class), INTENT(inout) :: this
+      REAL (rprec), DIMENSION(4) :: sxrem_get_modeled_signal
+      TYPE (sxrem_class), INTENT(inout)       :: this
       TYPE (model_class), INTENT(in)          :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE  :: context(:)
@@ -98,6 +99,8 @@
       sxrem_get_modeled_signal(1) = path_integrate(this%chord_Path,            &
      &                                             sxr_function,               &
      &                                             context)
+
+      sigma = 0.0
       DEALLOCATE(context)
 
       END FUNCTION

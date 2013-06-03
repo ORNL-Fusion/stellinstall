@@ -82,17 +82,20 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_get_modeled_signal(this, a_model)
+      FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)        :: magnetic_get_modeled_signal
-      TYPE (magnetic_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in)    :: a_model
+      REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal
+      TYPE (magnetic_class), INTENT(in)       :: this
+      TYPE (model_class), INTENT(in)          :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
+      magnetic_get_modeled_signal = 0.0
+      sigma = 0.0
 
       END FUNCTION
 

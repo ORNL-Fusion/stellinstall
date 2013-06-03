@@ -119,15 +119,16 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_get_modeled_signal(this, a_model)
+      FUNCTION intpol_get_modeled_signal(this, a_model, sigma)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4)         :: intpol_get_modeled_signal
-      TYPE (intpol_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
+      REAL (rprec), DIMENSION(4) :: intpol_get_modeled_signal
+      TYPE (intpol_class), INTENT(inout)      :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE :: context(:)
@@ -160,6 +161,7 @@
 
       END SELECT
 
+      sigma = 0.0
       DEALLOCATE(context)
 
       END FUNCTION
