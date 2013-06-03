@@ -151,6 +151,40 @@
       END SUBROUTINE
 
 !*******************************************************************************
+!  SETTER SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE model_set_param(this, id, i_index, j_index, value)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: id
+      INTEGER, INTENT(in)               :: i_index
+      INTEGER, INTENT(in)               :: j_index
+      REAL (rprec), INTENT(in)          :: value
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id)
+            this%ne_unit = value
+
+         CASE (model_ne_min_id)
+            this%ne_min = value
+
+         CASE (model_pressure_fraction_id)
+            this%pressure_fraction = value
+
+         CASE DEFAULT
+            CALL equilibrium_set_param(this%equilibrium, id,                   &
+     &                                 i_index, j_index, value)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!*******************************************************************************
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------

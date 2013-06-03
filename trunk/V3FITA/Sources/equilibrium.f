@@ -28,6 +28,7 @@
 
       TYPE equilibrium_class
          INTEGER                    :: type = equilibrium_no_type
+         LOGICAL                    :: not_converged
          TYPE (vmec_class), POINTER :: vmec => null()
       END TYPE
 
@@ -58,6 +59,7 @@
 
       equilibrium_construct_vmec%type = equilibrium_vmec_type
       equilibrium_construct_vmec%vmec => vmec_object
+      equilibrium_construct_vmec%not_converged = .true.
 
       END FUNCTION
 
@@ -78,8 +80,38 @@
       END IF
 
       this%type = equilibrium_no_type
+      this%not_converged = .true.
 
       DEALLOCATE(this)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  SETTER SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE equilibrium_set_param(this, id, i_index, j_index,             &
+     &                                 value)
+
+      IMPLICIT NONE
+
+!  Declare Sruments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                     :: id
+      INTEGER, INTENT(in)                     :: i_index
+      INTEGER, INTENT(in)                     :: j_index
+      REAL (rprec), INTENT(in)                :: value
+
+!  local variables
+      LOGICAL                                 :: needs_convergence
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            this%not_converged = this%not_converged .or.                       &
+     &         vmec_set_param(this%vmec, id, i_index, j_index, value)
+
+      END SELECT
 
       END SUBROUTINE
 

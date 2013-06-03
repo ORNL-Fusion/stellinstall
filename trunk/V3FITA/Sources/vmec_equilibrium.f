@@ -21,75 +21,77 @@
       INTEGER, PARAMETER :: vmec_profile_type_length = 30
 
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface.
+!  outside of the vmec interface. Parameter id's start at 3 since 0-2 are
+!  reserved for non equilibrium model parameters. These numbers will need to be
+!  update if any new model parameters are added.
 
 !  Variable Parameters
-      INTEGER, PARAMETER :: vmec_ac_id          =  0
-      INTEGER, PARAMETER :: vmec_ac_aux_s_id    =  1
-      INTEGER, PARAMETER :: vmec_ac_aux_f_id    =  2
-      INTEGER, PARAMETER :: vmec_ai_id          =  3
-      INTEGER, PARAMETER :: vmec_ai_aux_s_id    =  4
-      INTEGER, PARAMETER :: vmec_ai_aux_f_id    =  5
-      INTEGER, PARAMETER :: vmec_am_id          =  6
-      INTEGER, PARAMETER :: vmec_am_aux_s_id    =  7
-      INTEGER, PARAMETER :: vmec_am_aux_f_id    =  8
-      INTEGER, PARAMETER :: vmec_bloat_id       =  9
-      INTEGER, PARAMETER :: vmec_rbc_id         = 10
-      INTEGER, PARAMETER :: vmec_zbs_id         = 11
-      INTEGER, PARAMETER :: vmec_rbs_id         = 12
-      INTEGER, PARAMETER :: vmec_zbc_id         = 13
-      INTEGER, PARAMETER :: vmec_extcur_id      = 14
-      INTEGER, PARAMETER :: vmec_curtor_id      = 15
-      INTEGER, PARAMETER :: vmec_phiedge_id     = 16
-      INTEGER, PARAMETER :: vmec_pres_scale_id  = 17
+      INTEGER, PARAMETER :: vmec_ac_id          =  3
+      INTEGER, PARAMETER :: vmec_ac_aux_s_id    =  4
+      INTEGER, PARAMETER :: vmec_ac_aux_f_id    =  5
+      INTEGER, PARAMETER :: vmec_ai_id          =  6
+      INTEGER, PARAMETER :: vmec_ai_aux_s_id    =  7
+      INTEGER, PARAMETER :: vmec_ai_aux_f_id    =  8
+      INTEGER, PARAMETER :: vmec_am_id          =  9
+      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 10
+      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 11
+      INTEGER, PARAMETER :: vmec_bloat_id       = 12
+      INTEGER, PARAMETER :: vmec_rbc_id         = 13
+      INTEGER, PARAMETER :: vmec_zbs_id         = 14
+      INTEGER, PARAMETER :: vmec_rbs_id         = 15
+      INTEGER, PARAMETER :: vmec_zbc_id         = 16
+      INTEGER, PARAMETER :: vmec_extcur_id      = 17
+      INTEGER, PARAMETER :: vmec_curtor_id      = 18
+      INTEGER, PARAMETER :: vmec_phiedge_id     = 19
+      INTEGER, PARAMETER :: vmec_pres_scale_id  = 20
 
 !  Auxilary Parameters
-      INTEGER, PARAMETER :: vmec_rmnc_id        = 18
-      INTEGER, PARAMETER :: vmec_zmns_id        = 19
-      INTEGER, PARAMETER :: vmec_lmns_id        = 20
-      INTEGER, PARAMETER :: vmec_gmnc_id        = 21
-      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 22
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 23
-      INTEGER, PARAMETER :: vmec_bsupsmns_id    = 24
-      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 25
-      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 26
-      INTEGER, PARAMETER :: vmec_rmns_id        = 27
-      INTEGER, PARAMETER :: vmec_zmnc_id        = 28
-      INTEGER, PARAMETER :: vmec_lmnc_id        = 29
-      INTEGER, PARAMETER :: vmec_gmns_id        = 30
-      INTEGER, PARAMETER :: vmec_bsubumns_id    = 31
-      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 32
-      INTEGER, PARAMETER :: vmec_bsupsmnc_id    = 33
-      INTEGER, PARAMETER :: vmec_bsupumns_id    = 34
-      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 35
-      INTEGER, PARAMETER :: vmec_phi_id         = 36
-      INTEGER, PARAMETER :: vmec_iotaf_id       = 37
-      INTEGER, PARAMETER :: vmec_rzl_id         = 38
+      INTEGER, PARAMETER :: vmec_rmnc_id        = 21
+      INTEGER, PARAMETER :: vmec_zmns_id        = 22
+      INTEGER, PARAMETER :: vmec_lmns_id        = 23
+      INTEGER, PARAMETER :: vmec_gmnc_id        = 24
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 25
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 26
+      INTEGER, PARAMETER :: vmec_bsupsmns_id    = 27
+      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 28
+      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 29
+      INTEGER, PARAMETER :: vmec_rmns_id        = 30
+      INTEGER, PARAMETER :: vmec_zmnc_id        = 31
+      INTEGER, PARAMETER :: vmec_lmnc_id        = 32
+      INTEGER, PARAMETER :: vmec_gmns_id        = 33
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 34
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 35
+      INTEGER, PARAMETER :: vmec_bsupsmnc_id    = 36
+      INTEGER, PARAMETER :: vmec_bsupumns_id    = 37
+      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 38
+      INTEGER, PARAMETER :: vmec_phi_id         = 39
+      INTEGER, PARAMETER :: vmec_iotaf_id       = 40
+      INTEGER, PARAMETER :: vmec_rzl_id         = 41
 
 !  Auxilary Parameters 2
-      INTEGER, PARAMETER :: vmec_bsubu_id       = 39
-      INTEGER, PARAMETER :: vmec_bsubv_id       = 40
-      INTEGER, PARAMETER :: vmec_rsuv_id        = 41
-      INTEGER, PARAMETER :: vmec_zsuv_id        = 42
-      INTEGER, PARAMETER :: vmec_gsuv_id        = 43
-      INTEGER, PARAMETER :: vmec_currusuv_id    = 44
-      INTEGER, PARAMETER :: vmec_currvsuv_id    = 45
-      INTEGER, PARAMETER :: vmec_rusuv_id       = 46
-      INTEGER, PARAMETER :: vmec_zusuv_id       = 47
-      INTEGER, PARAMETER :: vmec_rvsuv_id       = 48
-      INTEGER, PARAMETER :: vmec_zvsuv_id       = 49
-      INTEGER, PARAMETER :: vmec_phitot_id      = 50
+      INTEGER, PARAMETER :: vmec_bsubu_id       = 42
+      INTEGER, PARAMETER :: vmec_bsubv_id       = 43
+      INTEGER, PARAMETER :: vmec_rsuv_id        = 44
+      INTEGER, PARAMETER :: vmec_zsuv_id        = 45
+      INTEGER, PARAMETER :: vmec_gsuv_id        = 46
+      INTEGER, PARAMETER :: vmec_currusuv_id    = 47
+      INTEGER, PARAMETER :: vmec_currvsuv_id    = 48
+      INTEGER, PARAMETER :: vmec_rusuv_id       = 49
+      INTEGER, PARAMETER :: vmec_zusuv_id       = 50
+      INTEGER, PARAMETER :: vmec_rvsuv_id       = 51
+      INTEGER, PARAMETER :: vmec_zvsuv_id       = 52
+      INTEGER, PARAMETER :: vmec_phitot_id      = 53
 
 !  Auxilary Model Parameters
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 51
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 52
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 53
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 54
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 55
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 56
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 57
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 58
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 59
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 54
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 55
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 56
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 57
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 58
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 59
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 60
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 61
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 62
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -163,6 +165,139 @@
       DEALLOCATE(this)
 
       END SUBROUTINE
+
+!*******************************************************************************
+!  SETTER SUBROUTINES
+!*******************************************************************************
+      FUNCTION vmec_set_param(this, id, i_index, j_index, value)
+      USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
+     &                      ac, ac_aux_s, ac_aux_f,                            &
+     &                      ai, ai_aux_s, ai_aux_f,                            &
+     &                      am, am_aux_s, am_aux_f,                            &
+     &                      extcur, curtor, phiedge, pres_scale
+      IMPLICIT NONE
+
+!  Declare Sruments
+      LOGICAL                          :: vmec_set_param
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)              :: id
+      INTEGER, INTENT(in)              :: i_index
+      INTEGER, INTENT(in)              :: j_index
+      REAL (rprec), INTENT(in)         :: value
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_rbc_id)
+            vmec_set_param = .true.
+            rbc(i_index, j_index) = value
+
+         CASE (vmec_zbs_id)
+            vmec_set_param = .true.
+            zbs(i_index, j_index) = value
+
+         CASE (vmec_rbs_id)
+            vmec_set_param = .true.
+            rbs(i_index, j_index) = value
+
+         CASE (vmec_zbc_id)
+            vmec_set_param = .true.
+            zbc(i_index, j_index) = value
+
+         CASE (vmec_ac_id)
+            vmec_set_param = .true.
+            ac(i_index) = value
+
+         CASE (vmec_ac_aux_s_id)
+            vmec_set_param = .true.
+            ac_aux_s(i_index) = value
+
+         CASE (vmec_ac_aux_f_id)
+            vmec_set_param = .true.
+            ac_aux_f(i_index) = value
+
+         CASE (vmec_ai_id)
+            vmec_set_param = .true.
+            ai(i_index) = value
+
+         CASE (vmec_ai_aux_s_id)
+            vmec_set_param = .true.
+            ai_aux_s(i_index) = value
+
+         CASE (vmec_ai_aux_f_id)
+            vmec_set_param = .true.
+            ai_aux_f(i_index) = value
+
+         CASE (vmec_am_id)
+            vmec_set_param = .true.
+            am(i_index) = value
+
+         CASE (vmec_am_aux_s_id)
+            vmec_set_param = .true.
+            am_aux_s(i_index) = value
+
+         CASE (vmec_am_aux_f_id)
+            vmec_set_param = .true.
+            am_aux_f(i_index) = value
+
+         CASE (vmec_pp_ne_b_id)
+            vmec_set_param = .false.
+            this%ne%b(i_index) = value
+
+         CASE (vmec_pp_ne_as_id)
+            vmec_set_param = .false.
+            this%ne%as(i_index) = value
+
+         CASE (vmec_pp_ne_af_id)
+            vmec_set_param = .false.
+            this%ne%af(i_index) = value
+
+         CASE (vmec_pp_te_b_id)
+            vmec_set_param = .false.
+            this%te%b(i_index) = value
+
+         CASE (vmec_pp_te_as_id)
+            vmec_set_param = .false.
+            this%te%as(i_index) = value
+
+         CASE (vmec_pp_te_af_id)
+            vmec_set_param = .false.
+            this%te%af(i_index) = value
+
+         CASE (vmec_pp_sxrem_b_id)
+            vmec_set_param = .false.
+            this%sxrem%b(i_index) = value
+
+         CASE (vmec_pp_sxrem_as_id)
+            vmec_set_param = .false.
+            this%sxrem%as(i_index) = value
+
+         CASE (vmec_pp_sxrem_af_id)
+            vmec_set_param = .false.
+            this%sxrem%af(i_index) = value
+
+         CASE (vmec_extcur_id)
+            vmec_set_param = .true.
+            extcur(i_index) = value
+
+         CASE (vmec_curtor_id)
+            vmec_set_param = .true.
+            curtor = value
+
+         CASE (vmec_phiedge_id)
+            vmec_set_param = .true.
+            phiedge = value
+
+         CASE (vmec_pres_scale_id)
+            vmec_set_param = .true.
+            pres_scale = value
+
+         CASE DEFAULT
+            vmec_set_param = .true.
+
+      END SELECT
+
+      END FUNCTION
 
 !*******************************************************************************
 !  GETTER SUBROUTINES
