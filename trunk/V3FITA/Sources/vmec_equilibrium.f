@@ -114,7 +114,8 @@
 !         emissivity profile.
 !-------------------------------------------------------------------------------
       TYPE vmec_class
-         LOGICAL                  :: needs_reconvergence
+         CHARACTER (len=data_filename_length) :: wout_file_name
+         INTEGER                  :: wout_file_name_end_index
          TYPE (pprofile), POINTER :: ne => null()
          TYPE (pprofile), POINTER :: te => null()
          TYPE (pprofile), POINTER :: sxrem => null()
@@ -1158,5 +1159,107 @@
       END SELECT
 
       END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+      FUNCTION vmec_converge(this, num_iter)
+      USE vmec_input, only: delt
+      USE vmec_params, only: timestep_flag, output_flag,                       &
+     &                       reset_jacdt_flag, jac75_flag,                     &
+     &                       successful_term_flag, norm_term_flag,             &
+     &                       more_iter_flag
+      USE xstuff, only: xcdot
+      USE v3f_global, only: iou_runlog
+      USE read_wout_mod, only: read_wout_file, LoadRZL
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_converge
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(inout)        :: num_iter
+
+!  local variables
+!  delt_local   Value of delt on entry. Store, for restoration after error
+!               recovery.
+!  ictrl_array  Array containing various vmec control parameters.
+      REAL(rprec)                   :: delt_local
+      INTEGER, DIMENSION(5)         :: ictrl_array = 0
+      INTEGER                       :: recovery_index = 0
+      INTEGER                       :: error
+
+!  Start of executable code
+      delt_local = delt
+
+!  Run vmec until successful or an unrecoverable error has occured.
+      DO
+
+         ictrl_array(1) = timestep_flag + output_flag +                        &
+     &                    reset_jacdt_flag
+         ictrl_array(3) = num_iter
+         ictrl_array(4) = 1
+
+!  Zero the xc arrays.
+         xcdot = zero
+         CALL runvmec(ictrl_array, this%wout_file_name, .false.)
+
+!  Set error flag. (Flags declared in vmec_params.f)
+!
+!  Check error flags for error recovery modes.
+!  If a recoverable error has occured, rerun vmec with altered eq_state. Error
+!  recovery is attempted a maximum of 2 times.
+!  If a non-recoverable error has occured, do not rerun vmec and report error.
+!  If vmec terminated sucessfully continue.
+         SELECT CASE (ictrl_array(2))
+            CASE (jac75_flag)
+               IF (recovery_index .le. 2) THEN
+                  WRITE (*,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
+                  WRITE (*,*) 'delt chnage: old, new:', delt, delt/2.0
+                  WRITE (iou_runlog,*)                                         &
+     &               'VMEC CONVERGENCE ERROR: jac75_flag'
+                  WRITE (iou_runlog,*)                                         &
+     &               'delt chnage: old, new:', delt, delt/2.0
+                  delt = delt/2.0
+               ELSE
+                  EXIT
+               END IF
+
+            CASE DEFAULT
+               EXIT
+
+         END SELECT
+
+         WRITE (*,*) 'Attempting error recovery'
+         WRITE (iou_runlog,*) 'Attempting error recovery'
+
+         recovery_index = recovery_index + 1
+      END DO
+
+!  Check for errors, if vmec was successful, load vmec data for use with the
+!  signals. Other wise report the error.
+      SELECT CASE (ictrl_array(2))
+
+         CASE (successful_term_flag, norm_term_flag, more_iter_flag)
+            CALL read_wout_file(this%wout_file_name, error)
+            IF (error .eq. 0) THEN
+               CALL LoadRZL
+               vmec_converge = .true.
+            END IF
+
+         CASE DEFAULT
+            vmec_converge = .false.
+!  FIXME: Put in error reporting here. For now leave this blank until I can
+!  figure how v3fit decides if vmec has converged.
+
+      END SELECT
+
+      delt = delt_local
+
+      END FUNCTION
+
+!*******************************************************************************
+!  PRIVATE
+!*******************************************************************************
 
       END MODULE

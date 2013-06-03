@@ -101,9 +101,6 @@
       INTEGER, INTENT(in)                     :: j_index
       REAL (rprec), INTENT(in)                :: value
 
-!  local variables
-      LOGICAL                                 :: needs_convergence
-
 !  Start of executable code
       SELECT CASE (this%type)
 
@@ -530,6 +527,37 @@
             equilibrium_is_recon_param = .false.
 
       END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+      FUNCTION equilibrium_converge(this, num_iter)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                                 :: equilibrium_converge
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      INTEGER, INTENT(inout)                  :: num_iter
+
+!  Start of executable code
+      IF (this%not_converged) THEN
+         SELECT CASE (this%type)
+
+            CASE (equilibrium_vmec_type)
+               equilibrium_converge = vmec_converge(this%vmec, num_iter)
+               this%not_converged = .not.equilibrium_converge
+
+            CASE DEFAULT
+               equilibrium_converge = .false.
+               this%not_converged = .true.
+
+         END SELECT
+      ELSE
+         equilibrium_converge = .true.
+      ENDIF
 
       END FUNCTION
 
