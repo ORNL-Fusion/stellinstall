@@ -175,7 +175,8 @@
      &                      ac, ac_aux_s, ac_aux_f,                            &
      &                      ai, ai_aux_s, ai_aux_f,                            &
      &                      am, am_aux_s, am_aux_f,                            &
-     &                      extcur, curtor, phiedge, pres_scale
+     &                      extcur, curtor, phiedge, pres_scale,               &
+     &                      bloat
       IMPLICIT NONE
 
 !  Declare Sruments
@@ -292,6 +293,10 @@
          CASE (vmec_pres_scale_id)
             vmec_set_param = .true.
             pres_scale = value
+
+         CASE (vmec_bloat_id)
+            vmec_set_param = .true.
+            bloat = value
 
          CASE DEFAULT
             vmec_set_param = .true.
@@ -1150,7 +1155,7 @@
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
      &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_curtor_id,            &
-     &         vmec_phiedge_id, vmec_pres_scale_id)
+     &         vmec_phiedge_id, vmec_pres_scale_id, vmec_bloat_id)
             vmec_is_recon_param = .true.
 
          CASE DEFAULT
@@ -1164,7 +1169,7 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
       FUNCTION vmec_converge(this, num_iter)
-      USE vmec_input, only: delt
+      USE vmec_input, only: delt, niter
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
@@ -1172,6 +1177,7 @@
       USE xstuff, only: xcdot
       USE v3f_global, only: iou_runlog
       USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE vmec_main, only: iterc
 
       IMPLICIT NONE
 
@@ -1187,17 +1193,18 @@
       REAL(rprec)                   :: delt_local
       INTEGER, DIMENSION(5)         :: ictrl_array = 0
       INTEGER                       :: recovery_index = 0
-      INTEGER                       :: error
+      INTEGER                       :: error, num_iter_init
 
 !  Start of executable code
       delt_local = delt
+      num_iter_init = iterc
 
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
 
          ictrl_array(1) = timestep_flag + output_flag +                        &
      &                    reset_jacdt_flag
-         ictrl_array(3) = num_iter
+         ictrl_array(3) = niter
          ictrl_array(4) = 1
 
 !  Zero the xc arrays.
@@ -1238,6 +1245,7 @@
 
 !  Check for errors, if vmec was successful, load vmec data for use with the
 !  signals. Other wise report the error.
+      vmec_converge = .false.
       SELECT CASE (ictrl_array(2))
 
          CASE (successful_term_flag, norm_term_flag, more_iter_flag)
@@ -1248,12 +1256,14 @@
             END IF
 
          CASE DEFAULT
-            vmec_converge = .false.
 !  FIXME: Put in error reporting here. For now leave this blank until I can
 !  figure how v3fit decides if vmec has converged.
 
       END SELECT
 
+!  Increment the number of iterations by the number of iterations used by
+!  runvmec.
+      num_iter = num_iter + iterc - num_iter_init
       delt = delt_local
 
       END FUNCTION
