@@ -228,7 +228,7 @@
       INTEGER, PARAMETER, PRIVATE :: n_lif_pd = na_phi_lif * na_lif
 
       INTEGER                                  :: n_lif = 0
-      INTEGER, DIMENSION(na_lif)               :: n_phi_lif = zero
+      INTEGER, DIMENSION(na_lif)               :: n_phi_lif = 0
       REAL(rprec), DIMENSION(na_lif,0:4,0:4)   :: lif_arz = zero
       REAL(rprec), DIMENSION(na_lif)           :: lif_rc = zero
       REAL(rprec), DIMENSION(na_lif)           :: lif_zc= zero
