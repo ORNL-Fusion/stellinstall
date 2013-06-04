@@ -111,6 +111,7 @@
       INTEGER :: istat1, istat2
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'mddc_mc_model_compute: '
+      TYPE (bivariate_type) :: bivariate_object
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
@@ -233,12 +234,14 @@
 !-- bivariate (4 pt) interpolation response tables                  ---
 !----------------------------------------------------------------------
             IF (lfirst .and. mc.eq.1) THEN
-               CALL setbivariate (state % aux2 % rsuv(:,:,k),                  &
+               CALL setbivariate (bivariate_object,                            &
+     &                            state % aux2 % rsuv(:,:,k),                  &
      &                            state % aux2 % zsuv(:,:,k),                  &
      &                            rgrid, zgrid, k, kv, ib)
             END IF
 !            IF (.not.(lsurf)) THEN
-               CALL bivariate4pt (pl_response, pl_respsuv(1,1,mc), k)
+               CALL bivariate4pt (bivariate_object,                            &
+     &                            pl_response, pl_respsuv(1,1,mc), k)
 !            ELSE
 !               CALL bivariate4pt (pl_response, pl_respns(1), k)
 !               pl_respsuv(ns,:,mc) = pl_respns(:)
@@ -363,7 +366,9 @@
       
       DEALLOCATE(sum1k,stat = istat1)
       CALL assert_eq(0,istat1,sub_name // 'dealloc sum1k')
-      
+
+      CALL clear_bivar(bivariate_object)
+
       RETURN
       END SUBROUTINE mddc_mc_model_compute
 

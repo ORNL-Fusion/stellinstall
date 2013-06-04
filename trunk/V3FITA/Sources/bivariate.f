@@ -1,14 +1,15 @@
       MODULE bivariate
       USE stel_kinds
 
-      INTEGER :: nrgrid, nzgrid, ndim
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: irz11_bi, irz12_bi
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: irz21_bi, irz22_bi
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: w11_bi, w12_bi
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: w21_bi, w22_bi
+      TYPE bivariate_type
+         PRIVATE
+         INTEGER :: nrgrid, nzgrid, ndim
+         INTEGER, DIMENSION(:,:), ALLOCATABLE :: irz11_bi, irz12_bi
+         INTEGER, DIMENSION(:,:), ALLOCATABLE :: irz21_bi, irz22_bi
+         REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: w11_bi, w12_bi
+         REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: w21_bi, w22_bi
+      END TYPE
 
-      PRIVATE :: irz11_bi, irz12_bi, irz21_bi, irz22_bi,
-     &             w11_bi,   w12_bi,   w21_bi,   w22_bi
 C-----------------------------------------------
 !
 !     Written by S. P. Hirshman (01/30/03)
@@ -31,8 +32,10 @@ C-----------------------------------------------
      
       CONTAINS
 
-      SUBROUTINE setbivariate (rsu, zsu, rgrid, zgrid, kin, kp, ib)
+      SUBROUTINE setbivariate (this, rsu, zsu,                                 &
+     &                         rgrid, zgrid, kin, kp, ib)
       IMPLICIT NONE
+      TYPE (bivariate_type), INTENT(inout) :: this
       INTEGER, INTENT(in) :: kin, kp, ib
       REAL(rprec), INTENT(in) :: rsu(:,:), zsu(:,:), rgrid(:), zgrid(:)
       INTEGER :: ku, js, istat, ns, nu, index1d, ir, jz, ir1, jz1
@@ -57,25 +60,29 @@ C-----------------------------------------------
 !                        (improves speed by as much as 2X)
 !     
 C-----------------------------------------------
-      nrgrid = SIZE(rgrid); nzgrid = SIZE(zgrid)
+      this%nrgrid = SIZE(rgrid); this%nzgrid = SIZE(zgrid)
       ns = SIZE(rsu,1);  nu = SIZE(rsu,2)
-      ndim = (ns-ib+1)*nu
+      this%ndim = (ns-ib+1)*nu
       istat = 0
 
       delr = rgrid(2) - rgrid(1)
       delz = zgrid(2) - zgrid(1)
 
 !  JDH 12-20-2004 Change Allocation - Deallocation logic.
-      IF (ALLOCATED(irz11_bi)) THEN
-         DEALLOCATE (irz11_bi, irz12_bi, irz21_bi, irz22_bi, w11_bi,           &
-     &      w12_bi, w21_bi, w22_bi, stat = istat)
+      IF (ALLOCATED(this%irz11_bi)) THEN
+         DEALLOCATE (this%irz11_bi, this%irz12_bi, this%irz21_bi,              &
+     &               this%irz22_bi, this%w11_bi, this%w12_bi,                  &
+     &               this%w21_bi, this%w22_bi, stat = istat)
          IF (istat .ne. 0) STOP 'Deallocation error in setbivariate'
       ENDIF
 
-      ALLOCATE (irz11_bi(ndim,kp), irz12_bi(ndim,kp),                          &
-     &   irz21_bi(ndim,kp), irz22_bi(ndim,kp), w11_bi(ndim,kp),                &
-     &   w12_bi(ndim,kp), w21_bi(ndim,kp), w22_bi(ndim,kp),                    &
-     &   stat = istat)
+      ALLOCATE (this%irz11_bi(this%ndim,kp),                                   &
+     &          this%irz12_bi(this%ndim,kp),                                   &
+     &          this%irz21_bi(this%ndim,kp),                                   &
+     &          this%irz22_bi(this%ndim,kp),                                   &
+     &          this%w11_bi(this%ndim,kp), this%w12_bi(this%ndim,kp),          &
+     &          this%w21_bi(this%ndim,kp), this%w22_bi(this%ndim,kp),          &
+     &          stat = istat)
       IF (istat .ne. 0) STOP 'Allocation error in setbivariate'
 
 !      IF (.not.ALLOCATED(irz11_bi)) ALLOCATE (irz11_bi(ndim,kp), 
@@ -96,24 +103,24 @@ C-----------------------------------------------
          rad0 = rsu(js, ku)
          zee0 = zsu(js, ku)
 
-         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nrgrid) .or.
-     &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(nzgrid)) 
+         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(this%nrgrid) .or.
+     &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(this%nzgrid)) 
      &       STOP 'Plasma point outside response function grid!'
 !
 !       DETERMINE INTEGER INDICES (IR,JZ) FOR LOWER LEFT R, Z CORNER GRID POINT
 !
          ir = INT((rad0 - rgrid(1))/delr) + 1
          jz = INT((zee0 - zgrid(1))/delz) + 1
-         ir1 = MIN(nrgrid,ir+1)
-         jz1 = MIN(nzgrid,jz+1)
+         ir1 = MIN(this%nrgrid,ir+1)
+         jz1 = MIN(this%nzgrid,jz+1)
 
 !
 !        STORE INDICES IN 1D ARRAYS
 !
-         irz11_bi(index1d,kin) = ir  + nrgrid*(jz-1)
-         irz22_bi(index1d,kin) = ir1 + nrgrid*(jz1-1)
-         irz12_bi(index1d,kin) = ir  + nrgrid*(jz1-1)
-         irz21_bi(index1d,kin) = ir1 + nrgrid*(jz-1)
+         this%irz11_bi(index1d,kin) = ir  + this%nrgrid*(jz-1)
+         this%irz22_bi(index1d,kin) = ir1 + this%nrgrid*(jz1-1)
+         this%irz12_bi(index1d,kin) = ir  + this%nrgrid*(jz1-1)
+         this%irz21_bi(index1d,kin) = ir1 + this%nrgrid*(jz-1)
 !
 !       COMPUTE RI, ZJ AND PR , QZ AT GRID POINT (IR , JZ)
 !       ALSO, COMPUTE WEIGHTS WIJ FOR 4 CORNER GRID POINTS
@@ -123,21 +130,22 @@ C-----------------------------------------------
          pr = (rad0 - ri)/delr
          qz = (zee0 - zj)/delz
          temp = pr*qz
-         w22_bi(index1d,kin) = temp                   !p*q               
-         w21_bi(index1d,kin) = pr - temp              !p*(1-q)
-         w12_bi(index1d,kin) = qz - temp              !q*(1-p)
-         w11_bi(index1d,kin) = 1 + temp - (pr + qz)   !(1-p)*(1-q)
+         this%w22_bi(index1d,kin) = temp                   !p*q               
+         this%w21_bi(index1d,kin) = pr - temp              !p*(1-q)
+         this%w12_bi(index1d,kin) = qz - temp              !q*(1-p)
+         this%w11_bi(index1d,kin) = 1 + temp - (pr + qz)   !(1-p)*(1-q)
 
       END DO
       END DO
 
       END SUBROUTINE setbivariate
 
-      SUBROUTINE bivariate4pt (resp_rz, resp_su, kin)
+      SUBROUTINE bivariate4pt (this, resp_rz, resp_su, kin)
       IMPLICIT NONE
+      TYPE (bivariate_type), INTENT(inout) :: this
       INTEGER, INTENT(in)      :: kin
-      REAL(rprec), INTENT(in)  :: resp_rz(nrgrid*nzgrid)
-      REAL(rprec), INTENT(out) :: resp_su(ndim)
+      REAL(rprec), INTENT(in)  :: resp_rz(this%nrgrid*this%nzgrid)
+      REAL(rprec), INTENT(out) :: resp_su(this%ndim)
       INTEGER :: jsu, irz11, irz12, irz21, irz22
 !-----------------------------------------------
 !
@@ -152,34 +160,37 @@ C-----------------------------------------------
 !     resp_su(1:ns,1:nu)          :   interpolated response on s,u grid (as 1d array)
 !
 !-----------------------------------------------
-      DO jsu = 1, ndim
+      DO jsu = 1, this%ndim
          
-         irz11 = irz11_bi(jsu,kin)
-         irz22 = irz22_bi(jsu,kin)
-         irz12 = irz12_bi(jsu,kin)
-         irz21 = irz21_bi(jsu,kin)
+         irz11 = this%irz11_bi(jsu,kin)
+         irz22 = this%irz22_bi(jsu,kin)
+         irz12 = this%irz12_bi(jsu,kin)
+         irz21 = this%irz21_bi(jsu,kin)
 !
 !       COMPUTE RESPONSE AT R, PHI (fixed kin), Z BY 4-PT INTERPOLATION
 !
-         resp_su(jsu) = w11_bi(jsu,kin)*resp_rz(irz11) 
-     &                + w22_bi(jsu,kin)*resp_rz(irz22) 
-     &                + w21_bi(jsu,kin)*resp_rz(irz21) 
-     &                + w12_bi(jsu,kin)*resp_rz(irz12)
+         resp_su(jsu) = this%w11_bi(jsu,kin)*resp_rz(irz11) 
+     &                + this%w22_bi(jsu,kin)*resp_rz(irz22) 
+     &                + this%w21_bi(jsu,kin)*resp_rz(irz21) 
+     &                + this%w12_bi(jsu,kin)*resp_rz(irz12)
 
       END DO
 
       END SUBROUTINE bivariate4pt
 
-      SUBROUTINE clear_bivar
+      SUBROUTINE clear_bivar(this)
 
-      IF (ALLOCATED(irz11_bi)) DEALLOCATE (irz11_bi)
-      IF (ALLOCATED(irz12_bi)) DEALLOCATE (irz12_bi)
-      IF (ALLOCATED(irz21_bi)) DEALLOCATE (irz21_bi)
-      IF (ALLOCATED(irz22_bi)) DEALLOCATE (irz22_bi)
-      IF (ALLOCATED(w11_bi)) DEALLOCATE (w11_bi) 
-      IF (ALLOCATED(w12_bi)) DEALLOCATE (w12_bi)
-      IF (ALLOCATED(w21_bi)) DEALLOCATE (w21_bi)
-      IF (ALLOCATED(w22_bi)) DEALLOCATE (w22_bi)
+      IMPLICIT NONE
+      TYPE (bivariate_type), INTENT(inout) :: this
+
+      IF (ALLOCATED(this%irz11_bi)) DEALLOCATE (this%irz11_bi)
+      IF (ALLOCATED(this%irz12_bi)) DEALLOCATE (this%irz12_bi)
+      IF (ALLOCATED(this%irz21_bi)) DEALLOCATE (this%irz21_bi)
+      IF (ALLOCATED(this%irz22_bi)) DEALLOCATE (this%irz22_bi)
+      IF (ALLOCATED(this%w11_bi)) DEALLOCATE (this%w11_bi)
+      IF (ALLOCATED(this%w12_bi)) DEALLOCATE (this%w12_bi)
+      IF (ALLOCATED(this%w21_bi)) DEALLOCATE (this%w21_bi)
+      IF (ALLOCATED(this%w22_bi)) DEALLOCATE (this%w22_bi)
   
       END SUBROUTINE clear_bivar
 
