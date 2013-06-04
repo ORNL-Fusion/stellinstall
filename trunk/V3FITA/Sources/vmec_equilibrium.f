@@ -987,6 +987,47 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the number of external currents used by the equilibrium.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_num_external_currents(this)
+      USE vmec_input, only: lfreeb
+      USE mgrid_mod, only: nextcur
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                       :: vmec_get_num_external_currents
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      IF (lfreeb) THEN
+         vmec_get_num_external_currents = nextcur
+      ELSE
+         vmec_get_num_external_currents = 0
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the external currents used by the equilibrium.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_external_currents(this, num_currents)
+      USE vmec_input, only: extcur
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(num_currents) ::                                 &
+     &   vmec_get_external_currents
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: num_currents
+
+!  Start of executable code
+      vmec_get_external_currents = extcur(1:num_currents)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************

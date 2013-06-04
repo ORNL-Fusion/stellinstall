@@ -375,6 +375,58 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the number of external currents used by the equilibrium.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_num_external_currents(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_num_external_currents
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_num_external_currents =                            &
+     &         vmec_get_num_external_currents(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_num_external_currents = 0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the external currents used by the equilibrium.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_external_currents(this, num_currents)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(num_currents) ::                                 &
+     &   equilibrium_get_external_currents
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: num_currents
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_external_currents =                                &
+     &         vmec_get_external_currents(this%vmec, num_currents)
+
+         CASE DEFAULT
+            equilibrium_get_external_currents = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
