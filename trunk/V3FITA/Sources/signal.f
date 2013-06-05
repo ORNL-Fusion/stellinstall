@@ -74,8 +74,8 @@
 
       TYPE combination_class
          INTEGER :: type = combination_none
-         TYPE (signal_pointer), DIMENSION(:), ALLOCATABLE :: signals
-         REAL(rprec), DIMENSION(:), ALLOCATABLE :: a
+         TYPE (signal_pointer), DIMENSION(:), POINTER :: signals
+         REAL(rprec), DIMENSION(:), POINTER           :: a
       END TYPE combination_class
 
 !*******************************************************************************
