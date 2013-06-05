@@ -1431,18 +1431,18 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL                       :: vmec_converge
-      TYPE (vmec_class), INTENT(in) :: this
-      INTEGER, INTENT(inout)        :: num_iter
+      LOGICAL                          :: vmec_converge
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(inout)           :: num_iter
 
 !  local variables
 !  delt_local   Value of delt on entry. Store, for restoration after error
 !               recovery.
 !  ictrl_array  Array containing various vmec control parameters.
-      REAL(rprec)                   :: delt_local
-      INTEGER, DIMENSION(5)         :: ictrl_array = 0
-      INTEGER                       :: recovery_index = 0
-      INTEGER                       :: error, num_iter_init
+      REAL(rprec)                      :: delt_local
+      INTEGER, DIMENSION(5)            :: ictrl_array = 0
+      INTEGER                          :: recovery_index = 0
+      INTEGER                          :: error, num_iter_init
 
 !  Start of executable code
       delt_local = delt
@@ -1502,6 +1502,10 @@
             IF (error .eq. 0) THEN
                CALL LoadRZL
                vmec_converge = .true.
+
+               IF (ASSOCIATED(this%magnetic_cache)) THEN
+                  CALL vmec_set_magnetic_cache(this)
+               END IF
             END IF
 
          CASE DEFAULT
