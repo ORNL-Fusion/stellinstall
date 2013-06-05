@@ -2,12 +2,15 @@
       USE stel_kinds
 
       TYPE bivariate_type
-         PRIVATE
          INTEGER :: nrgrid, nzgrid, ndim
-         INTEGER, DIMENSION(:,:), ALLOCATABLE :: irz11_bi, irz12_bi
-         INTEGER, DIMENSION(:,:), ALLOCATABLE :: irz21_bi, irz22_bi
-         REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: w11_bi, w12_bi
-         REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: w21_bi, w22_bi
+         INTEGER, DIMENSION(:,:), POINTER     :: irz11_bi => null()
+         INTEGER, DIMENSION(:,:), POINTER     :: irz12_bi => null()
+         INTEGER, DIMENSION(:,:), POINTER     :: irz21_bi => null()
+         INTEGER, DIMENSION(:,:), POINTER     :: irz22_bi => null()
+         REAL(rprec), DIMENSION(:,:), POINTER :: w11_bi => null()
+         REAL(rprec), DIMENSION(:,:), POINTER :: w12_bi => null()
+         REAL(rprec), DIMENSION(:,:), POINTER :: w21_bi => null()
+         REAL(rprec), DIMENSION(:,:), POINTER :: w22_bi => null()
       END TYPE
 
 C-----------------------------------------------
@@ -32,13 +35,32 @@ C-----------------------------------------------
      
       CONTAINS
 
-      SUBROUTINE setbivariate (this, rsu, zsu,                                 &
-     &                         rgrid, zgrid, kin, kp, ib)
+      SUBROUTINE createbivariate (this, ns, nu, kp, ib)
       IMPLICIT NONE
       TYPE (bivariate_type), INTENT(inout) :: this
-      INTEGER, INTENT(in) :: kin, kp, ib
+      INTEGER, INTENT(in) :: ns, nu, kp, ib
+      INTEGER :: istat = 0
+
+      this%ndim = (ns - ib + 1)*nu
+
+      ALLOCATE (this%irz11_bi(this%ndim,kp),                                   &
+     &          this%irz12_bi(this%ndim,kp),                                   &
+     &          this%irz21_bi(this%ndim,kp),                                   &
+     &          this%irz22_bi(this%ndim,kp),                                   &
+     &          this%w11_bi(this%ndim,kp), this%w12_bi(this%ndim,kp),          &
+     &          this%w21_bi(this%ndim,kp), this%w22_bi(this%ndim,kp),          &
+     &          stat = istat)
+      IF (istat .ne. 0) STOP 'Allocation error in setbivariate'
+
+      END SUBROUTINE
+
+      SUBROUTINE setbivariate (this, rsu, zsu,                                 &
+     &                         rgrid, zgrid, kin, ib)
+      IMPLICIT NONE
+      TYPE (bivariate_type), INTENT(inout) :: this
+      INTEGER, INTENT(in) :: kin, ib
       REAL(rprec), INTENT(in) :: rsu(:,:), zsu(:,:), rgrid(:), zgrid(:)
-      INTEGER :: ku, js, istat, ns, nu, index1d, ir, jz, ir1, jz1
+      INTEGER :: ku, js, ns, nu, index1d, ir, jz, ir1, jz1
       REAL(rprec) :: rad0, zee0, ri, zj, pr, qz, temp, delr, delz
 C-----------------------------------------------
 !
@@ -60,36 +82,11 @@ C-----------------------------------------------
 !                        (improves speed by as much as 2X)
 !     
 C-----------------------------------------------
-      this%nrgrid = SIZE(rgrid); this%nzgrid = SIZE(zgrid)
+      this%nrgrid = SIZE(rgrid, 1); this%nzgrid = SIZE(zgrid, 1)
       ns = SIZE(rsu,1);  nu = SIZE(rsu,2)
-      this%ndim = (ns-ib+1)*nu
-      istat = 0
 
       delr = rgrid(2) - rgrid(1)
       delz = zgrid(2) - zgrid(1)
-
-!  JDH 12-20-2004 Change Allocation - Deallocation logic.
-      IF (ALLOCATED(this%irz11_bi)) THEN
-         DEALLOCATE (this%irz11_bi, this%irz12_bi, this%irz21_bi,              &
-     &               this%irz22_bi, this%w11_bi, this%w12_bi,                  &
-     &               this%w21_bi, this%w22_bi, stat = istat)
-         IF (istat .ne. 0) STOP 'Deallocation error in setbivariate'
-      ENDIF
-
-      ALLOCATE (this%irz11_bi(this%ndim,kp),                                   &
-     &          this%irz12_bi(this%ndim,kp),                                   &
-     &          this%irz21_bi(this%ndim,kp),                                   &
-     &          this%irz22_bi(this%ndim,kp),                                   &
-     &          this%w11_bi(this%ndim,kp), this%w12_bi(this%ndim,kp),          &
-     &          this%w21_bi(this%ndim,kp), this%w22_bi(this%ndim,kp),          &
-     &          stat = istat)
-      IF (istat .ne. 0) STOP 'Allocation error in setbivariate'
-
-!      IF (.not.ALLOCATED(irz11_bi)) ALLOCATE (irz11_bi(ndim,kp), 
-!     &    irz12_bi(ndim,kp), irz21_bi(ndim,kp), irz22_bi(ndim,kp),
-!     &    w11_bi(ndim,kp), w12_bi(ndim,kp), 
-!     &    w21_bi(ndim,kp), w22_bi(ndim,kp),stat = istat)
-!      IF (istat .ne. 0) STOP 'Allocation error in setbivariate'
 
       index1d = 0
 
@@ -183,15 +180,24 @@ C-----------------------------------------------
       IMPLICIT NONE
       TYPE (bivariate_type), INTENT(inout) :: this
 
-      IF (ALLOCATED(this%irz11_bi)) DEALLOCATE (this%irz11_bi)
-      IF (ALLOCATED(this%irz12_bi)) DEALLOCATE (this%irz12_bi)
-      IF (ALLOCATED(this%irz21_bi)) DEALLOCATE (this%irz21_bi)
-      IF (ALLOCATED(this%irz22_bi)) DEALLOCATE (this%irz22_bi)
-      IF (ALLOCATED(this%w11_bi)) DEALLOCATE (this%w11_bi)
-      IF (ALLOCATED(this%w12_bi)) DEALLOCATE (this%w12_bi)
-      IF (ALLOCATED(this%w21_bi)) DEALLOCATE (this%w21_bi)
-      IF (ALLOCATED(this%w22_bi)) DEALLOCATE (this%w22_bi)
-  
+      IF (ASSOCIATED(this%irz11_bi)) DEALLOCATE (this%irz11_bi)
+      IF (ASSOCIATED(this%irz12_bi)) DEALLOCATE (this%irz12_bi)
+      IF (ASSOCIATED(this%irz21_bi)) DEALLOCATE (this%irz21_bi)
+      IF (ASSOCIATED(this%irz22_bi)) DEALLOCATE (this%irz22_bi)
+      IF (ASSOCIATED(this%w11_bi)) DEALLOCATE (this%w11_bi)
+      IF (ASSOCIATED(this%w12_bi)) DEALLOCATE (this%w12_bi)
+      IF (ASSOCIATED(this%w21_bi)) DEALLOCATE (this%w21_bi)
+      IF (ASSOCIATED(this%w22_bi)) DEALLOCATE (this%w22_bi)
+
+      this%irz11_bi => null()
+      this%irz12_bi => null()
+      this%irz21_bi => null()
+      this%irz22_bi => null()
+      this%w11_bi => null()
+      this%w12_bi => null()
+      this%w21_bi => null()
+      this%w22_bi => null()
+
       END SUBROUTINE clear_bivar
 
       END MODULE bivariate

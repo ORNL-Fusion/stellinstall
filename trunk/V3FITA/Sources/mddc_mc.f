@@ -103,7 +103,7 @@
 
       INTEGER :: nextcur, nextcur_2, nextcur_3
       INTEGER :: n_data
-      INTEGER :: i, k, mc, index
+      INTEGER :: i, k, mc!, index
       INTEGER :: ir, jz, kp, kp_store, ns, ju, kv
       REAL(rprec) :: fperiod, delr, delz, delp, dels, delu, delv,              &
      &    deluv, delsuv
@@ -218,6 +218,10 @@
 !----------------------------------------------------------------------
 !-- Loop over toroidal planes                                        --
 !----------------------------------------------------------------------
+      CALL createbivariate(bivariate_object,                                   &
+     &                     SIZE(state % aux2 % rsuv(:,:,1), 1),                &
+     &                     SIZE(state % aux2 % rsuv(:,:,1), 2),                &
+     &                     kv, ib)
       sumtot = zero
       TOR_PLANE: DO k = 1, kp_store
 
@@ -237,7 +241,7 @@
                CALL setbivariate (bivariate_object,                            &
      &                            state % aux2 % rsuv(:,:,k),                  &
      &                            state % aux2 % zsuv(:,:,k),                  &
-     &                            rgrid, zgrid, k, kv, ib)
+     &                            rgrid, zgrid, k, ib)
             END IF
 !            IF (.not.(lsurf)) THEN
                CALL bivariate4pt (bivariate_object,                            &
@@ -246,6 +250,7 @@
 !               CALL bivariate4pt (pl_response, pl_respns(1), k)
 !               pl_respsuv(ns,:,mc) = pl_respns(:)
 !            END IF
+
          END DO ! mc
 !----------------------------------------------------------------------
 !-- form plasma response integral (R=1, PHI=2, Z=3)                  --
@@ -271,8 +276,11 @@
              sum1k(k) =  SUM(sumsuv(2:ns-1,1:ju)) +                            &
      &          SUM(sumsuv(1,1:ju) + sumsuv(ns,1:ju))/2
 !          END IF
+
       END DO TOR_PLANE
-        
+
+      CALL clear_bivar(bivariate_object)
+
       sumtot = SUM(sum1k)
       
       IF (mrf_local % lstell_sym) THEN
@@ -322,18 +330,25 @@
          CASE ('S','s', 'N', 'n')  ! Scaled. Per Ed Lazarus Request, (V3POST 
                                 ! comment of 07.15.04), also treat 'N' this way
                                 ! Uses "inductance"
-            DO i = 1,nextcur
-              index = 3 + i
-              arr_data(index) = mrf_local % rdiag_coilg_1(i) *                 & 
-     &            state % varp % extcur(i) / mrf_local % extcur_mg(i)
-            END DO
+            arr_data(4:n_data) = mrf_local%rdiag_coilg_1(1:nextcur) *          &
+     &                           state%varp%extcur(1:nextcur) /                &
+     &                           mrf_local%extcur_mg(1:nextcur)
+
+!            DO i = 1,nextcur
+!              index = 3 + i
+!              arr_data(index) = mrf_local % rdiag_coilg_1(i) *                 &
+!     &            state % varp % extcur(i) / mrf_local % extcur_mg(i)
+!            END DO
       
-         CASE DEFAULT ! Includes Raw ('R','r') 
-            DO i = 1,nextcur
-              index = 3 + i
-              arr_data(index) = mrf_local % rdiag_coilg_1(i) *                 & 
-     &            state % varp % extcur(i)
-            END DO
+         CASE DEFAULT ! Includes Raw ('R','r')
+            arr_data(4:n_data) = mrf_local%rdiag_coilg_1(1:nextcur) *          &
+     &                           state%varp%extcur(1:nextcur)
+
+!            DO i = 1,nextcur
+!              index = 3 + i
+!              arr_data(index) = mrf_local % rdiag_coilg_1(i) *                 &
+!     &            state % varp % extcur(i)
+!            END DO
          END SELECT
       ENDIF
       
@@ -366,8 +381,6 @@
       
       DEALLOCATE(sum1k,stat = istat1)
       CALL assert_eq(0,istat1,sub_name // 'dealloc sum1k')
-
-      CALL clear_bivar(bivariate_object)
 
       RETURN
       END SUBROUTINE mddc_mc_model_compute

@@ -1160,13 +1160,17 @@
          rgrid(z) = z_min + (z - 1)*(z_max - z_min)/(num_z - 1)
       END DO
 
+      CALL createbivariate(bivariate_object,                                   &
+     &                     SIZE(this%magnetic_cache%rsuv(:,:,1), 1),           &
+     &                     SIZE(this%magnetic_cache%rsuv(:,:,1), 2),           &
+     &                     this%magnetic_cache%kv, 1)
+
       DO v = 1, this%magnetic_cache%kv
 !  Generate bivariate interpolation responce tables.
          CALL setbivariate(bivariate_object,                                   &
      &                     this%magnetic_cache%rsuv(:,:,v),                    &
      &                     this%magnetic_cache%zsuv(:,:,v),                    &
-     &                     rgrid, zgrid, v, this%magnetic_cache%kv,            &
-     &                     1)
+     &                     rgrid, zgrid, v, 1)
 
          CALL bivariate4pt(bivariate_object,                                   &
      &                     r_fun, responce_suv(:,:,1), v)
@@ -1187,6 +1191,8 @@
      &                                           sumsuv(ns,:))/2.0
 
       END DO
+
+      CALL clear_bivar(bivariate_object)
 
       vmec_get_plasma_mag_signal = SUM(sumv)
       IF (is_stell_sym) THEN
