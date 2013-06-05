@@ -68,36 +68,38 @@
       INTEGER, PARAMETER :: vmec_iotaf_id       = 40
       INTEGER, PARAMETER :: vmec_rzl_id         = 41
 
-!  Auxilary Parameters 2
-      INTEGER, PARAMETER :: vmec_bsubu_id       = 42
-      INTEGER, PARAMETER :: vmec_bsubv_id       = 43
-      INTEGER, PARAMETER :: vmec_rsuv_id        = 44
-      INTEGER, PARAMETER :: vmec_zsuv_id        = 45
-      INTEGER, PARAMETER :: vmec_gsuv_id        = 46
-      INTEGER, PARAMETER :: vmec_currusuv_id    = 47
-      INTEGER, PARAMETER :: vmec_currvsuv_id    = 48
-      INTEGER, PARAMETER :: vmec_rusuv_id       = 49
-      INTEGER, PARAMETER :: vmec_zusuv_id       = 50
-      INTEGER, PARAMETER :: vmec_rvsuv_id       = 51
-      INTEGER, PARAMETER :: vmec_zvsuv_id       = 52
-      INTEGER, PARAMETER :: vmec_phitot_id      = 53
-
 !  Auxilary Model Parameters
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 54
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 55
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 56
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 57
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 58
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 59
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 60
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 61
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 62
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 42
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 43
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 44
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 45
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 46
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 47
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 48
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 49
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 50
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
-!  1) vmec base class
+!  1) vmec magnetic cache
+!  2) vmec base class
 !
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Define an object to cache data needed to compute magnetic signals.
+!-------------------------------------------------------------------------------
+      TYPE vmec_magnetic_cache
+         INTEGER                                 :: kv
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: zsuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: rusuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: zusuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: rvsuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: zvsuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: curusuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: curvsuv => null()
+      END TYPE
+
 !-------------------------------------------------------------------------------
 !  Define the vmec base class
 !
@@ -115,16 +117,27 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
          CHARACTER (len=data_filename_length) :: wout_file_name
-         INTEGER                  :: wout_file_name_end_index
-         TYPE (pprofile), POINTER :: ne => null()
-         TYPE (pprofile), POINTER :: te => null()
-         TYPE (pprofile), POINTER :: sxrem => null()
+         INTEGER                    :: wout_file_name_end_index
+         TYPE (pprofile), POINTER   :: ne => null()
+         TYPE (pprofile), POINTER   :: te => null()
+         TYPE (pprofile), POINTER   :: sxrem => null()
+         TYPE (vmec_magnetic_cache), POINTER ::                                &
+     &      magnetic_cache => null()
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+      INTERFACE vmec_set_magnetic_cache
+         MODULE PROCEDURE vmec_set_magnetic_cache_init,                        &
+     &                    vmec_set_magnetic_cache_calc
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+
       FUNCTION vmec_construct()
 
       IMPLICIT NONE
@@ -163,6 +176,30 @@
          this%sxrem => null()
       END IF
 
+      IF (ASSOCIATED(this%magnetic_cache)) THEN
+         DEALLOCATE(this%magnetic_cache%rsuv)
+         DEALLOCATE(this%magnetic_cache%zsuv)
+         DEALLOCATE(this%magnetic_cache%rusuv)
+         DEALLOCATE(this%magnetic_cache%zusuv)
+         DEALLOCATE(this%magnetic_cache%rvsuv)
+         DEALLOCATE(this%magnetic_cache%zvsuv)
+         DEALLOCATE(this%magnetic_cache%curusuv)
+         DEALLOCATE(this%magnetic_cache%curvsuv)
+
+         this%magnetic_cache%rsuv => null()
+         this%magnetic_cache%zsuv => null()
+         this%magnetic_cache%rusuv => null()
+         this%magnetic_cache%zusuv => null()
+         this%magnetic_cache%rvsuv => null()
+         this%magnetic_cache%zvsuv => null()
+         this%magnetic_cache%curusuv => null()
+         this%magnetic_cache%curvsuv => null()
+         this%magnetic_cache%kv = 0
+
+         DEALLOCATE(this%magnetic_cache)
+         this%magnetic_cache => null()
+      END IF
+
       DEALLOCATE(this)
 
       END SUBROUTINE
@@ -170,6 +207,9 @@
 !*******************************************************************************
 !  SETTER SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Set reconstruction parameter
+!-------------------------------------------------------------------------------
       FUNCTION vmec_set_param(this, id, i_index, j_index, value)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
      &                      ac, ac_aux_s, ac_aux_f,                            &
@@ -305,6 +345,166 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Set magnetic cache initialy
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_set_magnetic_cache_init(this, num_tor_planes)
+      USE read_wout_mod, only: ns
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)              :: num_tor_planes
+
+!  Start of executable code.
+      ALLOCATE(this%magnetic_cache)
+
+      this%magnetic_cache%kv = num_tor_planes
+
+      ALLOCATE(this%magnetic_cache%rsuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%zsuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%rusuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%zusuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%rvsuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%zvsuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%curusuv(ns, ns, num_tor_planes))
+      ALLOCATE(this%magnetic_cache%curvsuv(ns, ns, num_tor_planes))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Set magnetic cache
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_set_magnetic_cache_calc(this)
+      USE vmec_input, only: nfp
+      USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
+     &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
+     &                         currumnc, currvmnc, currumns, currvmns,         &
+     &                         ns
+      USE stel_constants, only: twopi
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+
+!  local variables
+      INTEGER                                   :: s, u, v
+      REAL (rprec)                              :: du, dv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, cosv,                 &
+     &                                             sinu, sinv
+
+!  Start of executable code.
+      ALLOCATE(cosz(mnmax), sinz(mnmax))
+      ALLOCATE(cosu(mnmax, ns), sinu(mnmax, ns),                               &
+     &         cosv(mnmax, this%magnetic_cache%kv),                            &
+     &         sinv(mnmax, this%magnetic_cache%kv))
+
+      du = twopi/ns
+      dv = twopi/nfp/this%magnetic_cache%kv
+
+! U grid is square with the s grid.
+      DO u = 1, ns
+         cosu(:,u) = COS(xm*(u - 1)*du)
+         sinu(:,u) = SIN(xm*(u - 1)*du)
+      END DO
+      DO v = 1, this%magnetic_cache%kv
+         cosv(:,v) = COS(xn*(v - 1)*dv)
+         sinv(:,v) = SIN(xn*(v - 1)*dv)
+      END DO
+
+      DO u = 1, ns
+
+         DO v = 1, this%magnetic_cache%kv
+
+            cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
+            sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
+
+            DO s = 1, ns
+
+               this%magnetic_cache%rsuv(s,u,v) = SUM(rmnc(:,s)*cosz)
+               this%magnetic_cache%zsuv(s,u,v) = SUM(zmns(:,s)*sinz)
+               this%magnetic_cache%rusuv(s,u,v) =                              &
+     &            -SUM(xm*rmnc(:,s)*sinz)
+               this%magnetic_cache%zusuv(s,u,v) =                              &
+     &            SUM(xm*zmns(:,s)*cosz)
+               this%magnetic_cache%rvsuv(s,u,v) =                              &
+     &            SUM(xn*rmnc(:,s)*sinz)
+               this%magnetic_cache%zvsuv(s,u,v) =                              &
+     &            -SUM(xn*zmns(:,s)*cosz)
+
+               IF (lasym) THEN
+                  this%magnetic_cache%rsuv(s, u, v) =                          &
+     &               this%magnetic_cache%rsuv(s, u, v) +                       &
+     &               SUM(rmns(:,s)*sinz)
+                  this%magnetic_cache%zsuv(s, u, v) =                          &
+     &               this%magnetic_cache%zsuv(s, u, v) +                       &
+     &               SUM(zmnc(:,s)*cosz)
+                  this%magnetic_cache%rusuv(s,u,v) =                           &
+     &               this%magnetic_cache%rusuv(s,u,v) +                        &
+     &               SUM(xm*rmns(:,s)*cosz)
+                  this%magnetic_cache%zusuv(s,u,v) =                           &
+     &               this%magnetic_cache%zusuv(s,u,v) -                        &
+     &               SUM(xm*zmnc(:,s)*sinz)
+                  this%magnetic_cache%rvsuv(s,u,v) =                           &
+     &               this%magnetic_cache%rvsuv(s,u,v) -                        &
+     &               SUM(xn*rmns(:,s)*cosz)
+                  this%magnetic_cache%zvsuv(s,u,v) =                           &
+     &               this%magnetic_cache%zvsuv(s,u,v) +                        &
+     &               SUM(xn*zmnc(:,s)*sinz)
+               END IF
+            END DO
+         END DO
+      END DO
+
+      DEALLOCATE(cosz, sinz)
+      ALLOCATE(cosz(mnmax_nyq), sinz(mnmax_nyq))
+      DEALLOCATE(cosu, sinu, cosv, sinv)
+      ALLOCATE(cosu(mnmax_nyq, ns), sinu(mnmax_nyq, ns),                       &
+     &         cosv(mnmax_nyq, this%magnetic_cache%kv),                        &
+     &         sinv(mnmax_nyq, this%magnetic_cache%kv))
+
+      DO u = 1, ns
+         cosu(:,u) = COS(xm_nyq*(u - 1)*du)
+         sinu(:,u) = SIN(xm_nyq*(u - 1)*du)
+      END DO
+      DO v = 1, this%magnetic_cache%kv
+         cosv(:,v) = COS(xn_nyq*(v - 1)*dv)
+         sinv(:,v) = SIN(xn_nyq*(v - 1)*dv)
+      END DO
+
+      DO u = 1, ns
+
+         DO v = 1, this%magnetic_cache%kv
+
+            cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
+
+            DO s = 1, ns
+
+               this%magnetic_cache%curusuv(s,u,v) =                            &
+     &            SUM(currumnc(:,s)*cosz)
+               this%magnetic_cache%curvsuv(s,u,v) =                            &
+     &            SUM(currvmnc(:,s)*cosz)
+
+               IF (lasym) THEN
+                  this%magnetic_cache%curusuv(s,u,v) =                         &
+     &               this%magnetic_cache%curusuv(s,u,v) +                      &
+     &               SUM(currumns(:,s)*sinz)
+                  this%magnetic_cache%curvsuv(s,u,v) =                         &
+     &               this%magnetic_cache%curvsuv(s,u,v) +                      &
+     &               SUM(currvmns(:,s)*sinz)
+               END IF
+            END DO
+         END DO
+      END DO
+
+      DEALLOCATE(cosz, sinz)
+      DEALLOCATE(cosu, sinu, cosv, sinv)
+
+      END SUBROUTINE
+
 !*******************************************************************************
 !  GETTER SUBROUTINES
 !*******************************************************************************
@@ -439,42 +639,6 @@
 
          CASE ('rzl')
             vmec_get_param_id = vmec_rzl_id
-
-         CASE ('bsubu')
-            vmec_get_param_id = vmec_bsubu_id
-
-         CASE ('bsubv')
-            vmec_get_param_id = vmec_bsubv_id
-
-         CASE ('rsuv')
-            vmec_get_param_id = vmec_rsuv_id
-
-         CASE ('zsuv')
-            vmec_get_param_id = vmec_zsuv_id
-
-         CASE ('gsuv')
-            vmec_get_param_id = vmec_gsuv_id
-
-         CASE ('currusuv')
-            vmec_get_param_id = vmec_currusuv_id
-
-         CASE ('currvsuv')
-            vmec_get_param_id = vmec_currvsuv_id
-
-         CASE ('rusuv')
-            vmec_get_param_id = vmec_rusuv_id
-
-         CASE ('zusuv')
-            vmec_get_param_id = vmec_zusuv_id
-
-         CASE ('rvsuv')
-            vmec_get_param_id = vmec_rvsuv_id
-
-         CASE ('zvsuv')
-            vmec_get_param_id = vmec_zvsuv_id
-
-         CASE ('phitot')
-            vmec_get_param_id = vmec_phitot_id
 
          CASE ('pp_ne_b')
             vmec_get_param_id = vmec_pp_ne_b_id
@@ -667,42 +831,6 @@
 
          CASE (vmec_rzl_id)
             vmec_get_param_name = 'rzl'
-
-         CASE (vmec_bsubu_id)
-            vmec_get_param_name = 'bsubu'
-
-         CASE (vmec_bsubv_id)
-            vmec_get_param_name = 'bsubv'
-
-         CASE (vmec_rsuv_id)
-            vmec_get_param_name = 'rsuv'
-
-         CASE (vmec_zsuv_id)
-            vmec_get_param_name = 'zsuv'
-
-         CASE (vmec_gsuv_id)
-            vmec_get_param_name = 'gsuv'
-
-         CASE (vmec_currusuv_id)
-            vmec_get_param_name = 'currusuv'
-
-         CASE (vmec_currvsuv_id)
-            vmec_get_param_name = 'currvsuv'
-
-         CASE (vmec_rusuv_id)
-            vmec_get_param_name = 'rusuv'
-   
-         CASE (vmec_zusuv_id)
-            vmec_get_param_name = 'zusuv'
-
-         CASE (vmec_rvsuv_id)
-            vmec_get_param_name = 'rvsuv'
-
-         CASE (vmec_zvsuv_id)
-            vmec_get_param_name = 'zvsuv'
-
-         CASE (vmec_phitot_id)
-            vmec_get_param_name = 'phitot'
 
          CASE (vmec_pp_ne_b_id)
             vmec_get_param_name = 'pp_ne_b'
@@ -988,43 +1116,134 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the number of external currents used by the equilibrium.
+!  Get plasma only magnetic signal.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_num_external_currents(this)
-      USE vmec_input, only: lfreeb
-      USE mgrid_mod, only: nextcur
+      FUNCTION vmec_get_plasma_mag_signal(this, r_fun, phi_fun, z_fun,         &
+     &                                    r_max, r_min, num_r,                 &
+     &                                    z_max, z_min, num_z,                 &
+     &                                    is_stell_sym)
+      USE read_wout_mod, only: isigng, ns
+      USE vmec_input, only: nfp
+      USE bivariate
+      USE stel_constants, only: twopi
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER                       :: vmec_get_num_external_currents
-      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec) :: vmec_get_plasma_mag_signal
+      TYPE (vmec_class), INTENT(in)              :: this
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: r_fun
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: phi_fun
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: z_fun
+      REAL (rprec), INTENT(in)                   :: r_max
+      REAL (rprec), INTENT(in)                   :: r_min
+      INTEGER, INTENT(in)                        :: num_r
+      REAL (rprec), INTENT(in)                   :: z_max
+      REAL (rprec), INTENT(in)                   :: z_min
+      INTEGER, INTENT(in)                        :: num_z
+      LOGICAL, INTENT(in)                        :: is_stell_sym
+
+!  local variables
+      TYPE (bivariate_type)                      :: bivariate_object
+      INTEGER                                    :: v, r, z
+      REAL (rprec), DIMENSION(num_r)             :: rgrid
+      REAL (rprec), DIMENSION(num_z)             :: zgrid
+      REAL (rprec), DIMENSION(ns, ns, 3)         :: responce_suv
+      REAL (rprec), DIMENSION(ns, ns)            :: sumsuv
+      REAL (rprec), DIMENSION(this%magnetic_cache%kv) :: sumv
 
 !  Start of executable code
-      IF (lfreeb) THEN
-         vmec_get_num_external_currents = nextcur
-      ELSE
-         vmec_get_num_external_currents = 0
+      DO r = 1, num_r
+         rgrid(r) = r_min + (r - 1)*(r_max - r_min)/(num_r - 1)
+      END DO
+      DO z = 1, num_z
+         rgrid(z) = z_min + (z - 1)*(z_max - z_min)/(num_z - 1)
+      END DO
+
+      DO v = 1, this%magnetic_cache%kv
+!  Generate bivariate interpolation responce tables.
+         CALL setbivariate(bivariate_object,                                   &
+     &                     this%magnetic_cache%rsuv(:,:,v),                    &
+     &                     this%magnetic_cache%zsuv(:,:,v),                    &
+     &                     rgrid, zgrid, v, this%magnetic_cache%kv,            &
+     &                     1)
+
+         CALL bivariate4pt(bivariate_object,                                   &
+     &                     r_fun, responce_suv(:,:,1), v)
+         CALL bivariate4pt(bivariate_object,                                   &
+     &                     phi_fun, responce_suv(:,:,2), v)
+         CALL bivariate4pt(bivariate_object,                                   &
+     &                     z_fun, responce_suv(:,:,3), v)
+
+         sumsuv = this%magnetic_cache%curusuv(:,:,v)                           &
+     &          * (this%magnetic_cache%rusuv(:,:,v)*responce_suv(:,:,1)        &
+     &          +  this%magnetic_cache%zusuv(:,:,v)*responce_suv(:,:,3))       &
+     &          + this%magnetic_cache%curvsuv(:,:,v)                           &
+     &          * (this%magnetic_cache%rvsuv(:,:,v)*responce_suv(:,:,1)        &
+     &          +  this%magnetic_cache%zvsuv(:,:,v)*responce_suv(:,:,3)        &
+     &          +  this%magnetic_cache%rsuv(:,:,v)*responce_suv(:,:,2))
+
+         sumv(v) = SUM(sumsuv(2:ns - 1,:)) + SUM(sumsuv(1,:) +                 &
+     &                                           sumsuv(ns,:))/2.0
+
+      END DO
+
+      vmec_get_plasma_mag_signal = SUM(sumv)
+      IF (is_stell_sym) THEN
+         vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal -             &
+     &      (sumv(1) + sumv(this%magnetic_cache%kv))/2.0
       END IF
+
+!  Correct for sign of the jabcobian.
+      vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal*isigng           &
+     &                           * (1.0/(ns -1))*twopi/ns                      &
+     &                           * twopi/nfp/this%magnetic_cache%kv
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the external currents used by the equilibrium.
+!  Get external current magnetic signal.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_external_currents(this, num_currents)
+      FUNCTION vmec_get_ext_mag_signal(this, diag_coils,                       &
+     &                                 current_scales, num_coil_groups)
+      USE vmec_input, only: lfreeb
+      USE mgrid_mod, only: mgrid_mode, nextcur
       USE vmec_input, only: extcur
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(num_currents) ::                                 &
-     &   vmec_get_external_currents
-      TYPE (vmec_class), INTENT(in) :: this
-      INTEGER, INTENT(in)           :: num_currents
+      REAL (rprec) :: vmec_get_ext_mag_signal
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(:), INTENT(in) :: diag_coils
+      REAL (rprec), DIMENSION(:), INTENT(in) :: current_scales
+      INTEGER, INTENT(in)                    :: num_coil_groups
+
+!  local variables
+      INTEGER                       :: num_currents
 
 !  Start of executable code
-      vmec_get_external_currents = extcur(1:num_currents)
+      IF (lfreeb) THEN
+         num_currents = MIN(nextcur, SIZE(diag_coils, 1),                      &
+     &                      num_coil_groups)
+
+         SELECT CASE (mgrid_mode)
+
+            CASE ('S', 's', 'N', 'n')
+               vmec_get_ext_mag_signal =                                       &
+     &            SUM(diag_coils(1:num_currents) *                             &
+     &                extcur(1:num_currents) /                                 &
+     &                current_scales(1:num_currents))
+
+            CASE DEFAULT
+               vmec_get_ext_mag_signal =                                       &
+     &            SUM(diag_coils(1:num_currents) *                             &
+     &                extcur(1:num_currents))
+
+         END SELECT
+      ELSE
+         vmec_get_ext_mag_signal = 0.0
+      END IF
 
       END FUNCTION
 
@@ -1047,7 +1266,7 @@
       SELECT CASE (id)
 
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
-     &         vmec_pres_scale_id, vmec_phitot_id)
+     &         vmec_pres_scale_id)
             vmec_is_scaler_value = .true.
 
          CASE DEFAULT
@@ -1133,18 +1352,7 @@
       INTEGER, INTENT(in)           :: id
 
 !  Start of executable code
-      SELECT CASE (id)
-
-         CASE (vmec_bsubu_id, vmec_bsubv_id,                                   &
-     &         vmec_rsuv_id, vmec_zsuv_id, vmec_gsuv_id,                       &
-     &         vmec_currusuv_id, vmec_currvsuv_id, vmec_rusuv_id,              &
-     &         vmec_zusuv_id, vmec_rvsuv_id, vmec_zvsuv_id)
-            vmec_is_3d_array = .true.
-
-         CASE DEFAULT
-            vmec_is_3d_array = .false.
-
-      END SELECT
+      vmec_is_3d_array = .false.
 
       END FUNCTION
 

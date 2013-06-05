@@ -376,52 +376,75 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the number of external currents used by the equilibrium.
+!  Get plasma only magnetic signal.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_num_external_currents(this)
+      FUNCTION equilibrium_get_plasma_mag_signal(this,                         &
+     &                                           r_fun, phi_fun, z_fun,        &
+     &                                           r_max, r_min, num_r,          &
+     &                                           z_max, z_min, num_z,          &
+     &                                           is_stell_sym)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER :: equilibrium_get_num_external_currents
-      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec) :: equilibrium_get_plasma_mag_signal
+      TYPE (equilibrium_class), INTENT(in)       :: this
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: r_fun
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: phi_fun
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: z_fun
+      REAL (rprec), INTENT(in)                   :: r_max
+      REAL (rprec), INTENT(in)                   :: r_min
+      INTEGER, INTENT(in)                        :: num_r
+      REAL (rprec), INTENT(in)                   :: z_max
+      REAL (rprec), INTENT(in)                   :: z_min
+      INTEGER, INTENT(in)                        :: num_z
+      LOGICAL, INTENT(in)                        :: is_stell_sym
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_num_external_currents =                            &
-     &         vmec_get_num_external_currents(this%vmec)
+            equilibrium_get_plasma_mag_signal =                                &
+     &         vmec_get_plasma_mag_signal(this%vmec,                           &
+     &                                    r_fun, phi_fun, z_fun,               &
+     &                                    r_max, r_min, num_r,                 &
+     &                                    z_max, z_min, num_z,                 &
+     &                                    is_stell_sym)
 
          CASE DEFAULT
-            equilibrium_get_num_external_currents = 0
+            equilibrium_get_plasma_mag_signal = 0.0
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the external currents used by the equilibrium.
+!  Get external current magnetic signal.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_external_currents(this, num_currents)
+      FUNCTION equilibrium_get_ext_mag_signal(this, diag_coils,                &
+     &                                        current_scales,                  &
+     &                                        num_coil_groups)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(num_currents) ::                                 &
-     &   equilibrium_get_external_currents
-      TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: num_currents
+      REAL (rprec) :: equilibrium_get_ext_mag_signal
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(:), INTENT(in) :: diag_coils
+      REAL (rprec), DIMENSION(:), INTENT(in) :: current_scales
+      INTEGER, INTENT(in)                    :: num_coil_groups
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_external_currents =                                &
-     &         vmec_get_external_currents(this%vmec, num_currents)
+            equilibrium_get_ext_mag_signal =                                   &
+     &         vmec_get_ext_mag_signal(this%vmec, diag_coils,                  &
+     &                                 current_scales,                         &
+     &                                 num_coil_groups)
 
          CASE DEFAULT
-            equilibrium_get_external_currents = 0.0
+            equilibrium_get_ext_mag_signal = 0.0
 
       END SELECT
 

@@ -10,6 +10,7 @@
       MODULE magnetic
 
       USE stel_kinds, only: rprec
+      USE mddc_T, only: mddc_mrf, mddc_mrf_destroy
 
       IMPLICIT NONE
 
@@ -25,9 +26,7 @@
 !*******************************************************************************
 
       TYPE magnetic_class
-         INTEGER      :: type
-         REAL (rprec) :: flux_factor
-         LOGICAL      :: l_mdcoil_def
+         TYPE (mddc_mrf), POINTER :: responce_function => null()
       END TYPE magnetic_class
 
       CONTAINS
@@ -37,24 +36,18 @@
 !-------------------------------------------------------------------------------
 !  Construct a magnetic.
 !-------------------------------------------------------------------------------
-!      FUNCTION magnetic_construct(l_mdcoil_def, flux_factor)
-      FUNCTION magnetic_construct(flux_factor)
+      FUNCTION magnetic_construct(responce_function)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), POINTER    :: magnetic_construct
-      REAL(rprec), INTENT(in), OPTIONAL :: flux_factor
+      TYPE (magnetic_class), POINTER       :: magnetic_construct
+      TYPE (mddc_mrf), POINTER, INTENT(in) :: responce_function
 
 !  Start of executable code
       ALLOCATE(magnetic_construct)
 
-!      magnetic_construct%l_mdcoil_def = l_mdcoil_def
-      IF (PRESENT(flux_factor)) THEN
-         magnetic_construct%flux_factor = flux_factor
-      ELSE
-         magnetic_construct%flux_factor = 1.0  
-      END IF
+      magnetic_construct%responce_function => responce_function
 
       END FUNCTION
 
@@ -69,8 +62,10 @@
       TYPE (magnetic_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
-      this%l_mdcoil_def = .false.
-      this%flux_factor = 0.0
+      IF (ASSOCIATED(this%responce_function)) THEN
+         CALL mddc_mrf_destroy(this%responce_function)
+         this%responce_function => null()
+      END IF
 
       DEALLOCATE(this)
 
@@ -84,6 +79,7 @@
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
       USE model
+      USE v3_utilities
 
       IMPLICIT NONE
 
@@ -94,7 +90,29 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
-      magnetic_get_modeled_signal = 0.0
+!  Calculate the plasma only signal from the responce function.
+      magnetic_get_modeled_signal(2) =                                         &
+     &   equilibrium_get_plasma_mag_signal(a_model%equilibrium,                &
+     &      this%responce_function%a_r,                                        &
+     &      this%responce_function%a_f,                                        &
+     &      this%responce_function%a_z,                                        &
+     &      this%responce_function%rmax,                                       &
+     &      this%responce_function%rmin,                                       &
+     &      this%responce_function%ir,                                         &
+     &      this%responce_function%zmax,                                       &
+     &      this%responce_function%zmin,                                       &
+     &      this%responce_function%jz,                                         &
+     &      this%responce_function%lstell_sym)
+
+      magnetic_get_modeled_signal(3) =                                         &
+     &   equilibrium_get_ext_mag_signal(a_model%equilibrium,                   &
+     &      this%responce_function%rdiag_coilg_1,                              &
+     &      this%responce_function%extcur_mg,                                  &
+     &      this%responce_function%n_field_cg)
+
+      magnetic_get_modeled_signal(1) =                                         &
+     &   SUM(magnetic_get_modeled_signal(2:3))
+
       sigma = 0.0
 
       END FUNCTION
