@@ -104,12 +104,14 @@
      &      this%responce_function%jz,                                         &
      &      this%responce_function%lstell_sym)
 
+!  Calculate the induced signal from external currents.
       magnetic_get_modeled_signal(3) =                                         &
      &   equilibrium_get_ext_mag_signal(a_model%equilibrium,                   &
      &      this%responce_function%rdiag_coilg_1,                              &
      &      this%responce_function%extcur_mg,                                  &
      &      this%responce_function%n_field_cg)
 
+!  Add plasma signals and induced signal to create total signal.
       magnetic_get_modeled_signal(1) =                                         &
      &   SUM(magnetic_get_modeled_signal(2:3))
 
