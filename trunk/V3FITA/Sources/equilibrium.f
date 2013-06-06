@@ -44,7 +44,7 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct an signal equilibrium a vmec equilibrium.
+!  Construct an signal equilibrium with a vmec equilibrium.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_construct_vmec(vmec_object)
 

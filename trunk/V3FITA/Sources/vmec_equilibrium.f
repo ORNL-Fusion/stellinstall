@@ -117,7 +117,6 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
          CHARACTER (len=data_filename_length) :: wout_file_name
-         INTEGER                    :: wout_file_name_end_index
          TYPE (pprofile), POINTER   :: ne => null()
          TYPE (pprofile), POINTER   :: te => null()
          TYPE (pprofile), POINTER   :: sxrem => null()
@@ -137,16 +136,53 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
-
-      FUNCTION vmec_construct()
+      FUNCTION vmec_construct(file_name)
+      USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
+     &                       successful_term_flag, norm_term_flag
+      USE vmec_input, only: l_v3fit
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER :: vmec_construct
+      TYPE (vmec_class), POINTER    :: vmec_construct
+      CHARACTER (len=*), INTENT(in) :: file_name
+
+!  local variables
+      INTEGER, DIMENSION(5)         :: ictrl_array = 0
+      INTEGER                       :: index_dat, index_end
 
 !  Start of executable code
       ALLOCATE(vmec_construct)
+
+!  Initialize VMEC by taking a single step.
+      ictrl_array(1) = restart_flag + readin_flag + timestep_flag
+      ictrl_array(3) = 1
+      ictrl_array(4) = 1 ! Limit VMEC to single grid.
+
+      l_v3fit = .true.
+
+      CALL runvmec(ictrl_array, file_name, .false.)
+
+!  Check for errors in runvmec.
+      SELECT CASE (ictrl_array(2))
+
+         CASE (successful_term_flag, norm_term_flag)
+!  Set the wout file name.
+            index_dat = INDEX(file_name,'input.')
+            index_end = LEN_TRIM(file_name)
+            IF (index_dat .gt. 0) THEN
+               vmec_construct%wout_file_name = 'wout_' //                      &
+     &            TRIM(file_name(index_dat + 6:index_end)) // '.nc'
+            ELSE
+               vmec_construct%wout_file_name = 'wout_' //                      &
+     &            TRIM(file_name(1:index_end)) // '.nc'
+            END IF
+
+         CASE DEFAULT
+            CALL err_fatal('vmec_construct runvmec command failed ',           &
+     &                     int = ictrl_array(2))
+
+      END SELECT
 
       END FUNCTION
 
