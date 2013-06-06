@@ -122,6 +122,7 @@
          TYPE (pprofile), POINTER   :: sxrem => null()
          TYPE (vmec_magnetic_cache), POINTER ::                                &
      &      magnetic_cache => null()
+         REAL (rprec), DIMENSION(:), POINTER :: xc => null()
       END TYPE
 
 !*******************************************************************************
@@ -234,6 +235,11 @@
 
          DEALLOCATE(this%magnetic_cache)
          this%magnetic_cache => null()
+      END IF
+
+      IF (ASSOCIATED(this%xc)) THEN
+         DEALLOCATE(this%xc)
+         this%xc => null()
       END IF
 
       DEALLOCATE(this)
@@ -1459,6 +1465,9 @@
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Converge the equilibrium.
+!-------------------------------------------------------------------------------
       FUNCTION vmec_converge(this, num_iter)
       USE vmec_input, only: delt, niter
       USE vmec_params, only: timestep_flag, output_flag,                       &
@@ -1562,6 +1571,57 @@
       delt = delt_local
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Save the internal state of the equilibrium.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_save_state(this)
+      USE xstuff, only: xc
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+
+!  Start of executable code
+      IF (ASSOCIATED(this%xc)) THEN
+         IF (SIZE(xc, 1) .eq. SIZE(this%xc, 1)) THEN
+            this%xc = xc
+         ELSE
+            DEALLOCATE(this%xc)
+            ALLOCATE(this%xc(SIZE(xc, 1)))
+            this%xc = xc
+         END IF
+      ELSE
+         ALLOCATE(this%xc(SIZE(xc, 1)))
+         this%xc = xc
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Reset the internal state of the equilibrium.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_reset_state(this)
+      USE xstuff, only: xc
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      IF (ASSOCIATED(this%xc)) THEN
+         IF (SIZE(xc, 1) .eq. SIZE(this%xc, 1)) THEN
+            xc = this%xc
+         ELSE IF (SIZE(xc, 1) .eq. SIZE(this%xc, 1)) THEN
+            xc(1:SIZE(this%xc, 1)) = this%xc
+         ELSE
+            xc = this%xc(1:SIZE(xc, 1))
+         END IF
+      END IF
+
+      END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE

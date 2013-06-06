@@ -636,4 +636,44 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Save the internal state of the equilibrium.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_save_state(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_save_state(this%vmec)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Reset the internal state of the equilibrium.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_reset_state(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_reset_state(this%vmec)
+
+      END SELECT
+
+      END SUBROUTINE
+
       END MODULE
