@@ -118,12 +118,12 @@
       TYPE vmec_class
          CHARACTER (len=data_filename_length) :: wout_file_name
          CHARACTER (len=data_filename_length) :: vmec_file_name
-         TYPE (pprofile), POINTER   :: ne => null()
-         TYPE (pprofile), POINTER   :: te => null()
-         TYPE (pprofile), POINTER   :: sxrem => null()
-         TYPE (vmec_magnetic_cache), POINTER ::                                &
+         TYPE (pprofile), POINTER             :: ne => null()
+         TYPE (pprofile), POINTER             :: te => null()
+         TYPE (pprofile), POINTER             :: sxrem => null()
+         TYPE (vmec_magnetic_cache), POINTER  ::                               &
      &      magnetic_cache => null()
-         REAL (rprec), DIMENSION(:), POINTER :: xc => null()
+         REAL (rprec), DIMENSION(:), POINTER  :: xc => null()
       END TYPE
 
 !*******************************************************************************
