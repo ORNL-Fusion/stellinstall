@@ -117,6 +117,7 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
          CHARACTER (len=data_filename_length) :: wout_file_name
+         CHARACTER (len=data_filename_length) :: vmec_file_name
          TYPE (pprofile), POINTER   :: ne => null()
          TYPE (pprofile), POINTER   :: te => null()
          TYPE (pprofile), POINTER   :: sxrem => null()
@@ -152,7 +153,8 @@
 !*******************************************************************************
       FUNCTION vmec_construct(file_name)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
-     &                       successful_term_flag, norm_term_flag
+     &                       successful_term_flag, norm_term_flag,             &
+     &                       more_iter_flag
       USE vmec_input, only: l_v3fit
 
       IMPLICIT NONE
@@ -175,12 +177,13 @@
 
       l_v3fit = .true.
 
+      vmec_construct%vmec_file_name = TRIM(file_name)
       CALL runvmec(ictrl_array, file_name, .false.)
 
 !  Check for errors in runvmec.
       SELECT CASE (ictrl_array(2))
 
-         CASE (successful_term_flag, norm_term_flag)
+         CASE (successful_term_flag, norm_term_flag, more_iter_flag)
 !  Set the wout file name.
             index_dat = INDEX(file_name,'input.')
             index_end = LEN_TRIM(file_name)
@@ -1522,7 +1525,7 @@
 
 !  Zero the xc arrays.
          xcdot = zero
-         CALL runvmec(ictrl_array, this%wout_file_name, .false.)
+         CALL runvmec(ictrl_array, this%vmec_file_name, .false.)
 
 !  Set error flag. (Flags declared in vmec_params.f)
 !
