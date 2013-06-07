@@ -45,7 +45,7 @@
       INTEGER, PARAMETER :: vmec_phiedge_id     = 19
       INTEGER, PARAMETER :: vmec_pres_scale_id  = 20
 
-!  Auxilary Parameters
+!  Auxiliary Parameters
       INTEGER, PARAMETER :: vmec_rmnc_id        = 21
       INTEGER, PARAMETER :: vmec_zmns_id        = 22
       INTEGER, PARAMETER :: vmec_lmns_id        = 23
@@ -68,7 +68,7 @@
       INTEGER, PARAMETER :: vmec_iotaf_id       = 40
       INTEGER, PARAMETER :: vmec_rzl_id         = 41
 
-!  Auxilary Model Parameters
+!  Auxiliary Model Parameters
       INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 42
       INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 43
       INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 44
@@ -131,6 +131,19 @@
       INTERFACE vmec_set_magnetic_cache
          MODULE PROCEDURE vmec_set_magnetic_cache_init,                        &
      &                    vmec_set_magnetic_cache_calc
+      END INTERFACE
+
+!  Forward declare the interface for runvmec. This explicitly defined the type
+!  for runvmec to avoid a compiler bugs. If runvmec.f was implimented as a
+!  module this would not be needed.
+      INTERFACE
+         SUBROUTINE runvmec(control_array, vmec_input_file,                    &
+     &                      use_screen, reset_file_name)
+         INTEGER, INTENT(inout), TARGET :: control_array(5)
+         LOGICAL, INTENT(in)            :: use_screen
+         CHARACTER(LEN=*), INTENT(in)   :: vmec_input_file
+         CHARACTER(LEN=*), OPTIONAL     :: reset_file_name
+         END SUBROUTINE
       END INTERFACE
 
       CONTAINS

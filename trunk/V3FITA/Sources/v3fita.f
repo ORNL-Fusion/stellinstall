@@ -166,6 +166,9 @@
          CALL init_signal
          CALL task_vmec_v3post
 
+      CASE ('v3post') !  Run equilibrium compute signals.
+         CALL tast_v3post
+
       CASE('vmec_monitor')
          CALL init_equilibrium
          CALL init_signal
@@ -1959,6 +1962,27 @@
 !*******************************************************************************
 ! SECTION III.   TASK SUBROUTINES
 !*******************************************************************************
+
+      SUBROUTINE tast_v3post
+      USE equilibrium
+      USE v3f_global
+
+      IMPLICIT NONE
+
+!  local variables
+      TYPE (equilibrium_class), POINTER :: eq => null()
+      INTEGER                           :: num_steps = 1
+      LOGICAL                           :: converged
+
+!  Start of executable code
+      eq => equilibrium_construct(vmec_construct(vmec_nli_filename))
+      converged = equilibrium_converge(eq, num_steps)
+      CALL equilibrium_destruct(eq)
+
+      WRITE (*,*) converged, num_steps
+
+      END SUBROUTINE
+
 !----------------------------------------------------------------------
 !*******************************************************************************
 !----------------------------------------------------------------------

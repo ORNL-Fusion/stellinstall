@@ -89,6 +89,9 @@
 !*******************************************************************************
 !  SETTER SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Set reconstruction parameter
+!-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_param(this, id, i_index, j_index,             &
      &                                 value)
 
@@ -107,6 +110,27 @@
          CASE (equilibrium_vmec_type)
             this%not_converged = this%not_converged .or.                       &
      &         vmec_set_param(this%vmec, id, i_index, j_index, value)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Set magnetic cache
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_set_magnetic_cache(this, num_tor_planes)
+
+      IMPLICIT NONE
+
+!  Declare Sruments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                     :: num_tor_planes
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_set_magnetic_cache(this%vmec, num_tor_planes)
 
       END SELECT
 
@@ -608,6 +632,9 @@
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Converge the equilibrium.
+!-------------------------------------------------------------------------------
       FUNCTION equilibrium_converge(this, num_iter)
 
       IMPLICIT NONE

@@ -58,6 +58,7 @@
          INTEGER                            :: type = signal_no_type
          CHARACTER (len=signal_name_short_length) :: s_name
          CHARACTER (len=signal_name_long_length)  :: l_name
+         CHARACTER (len=signal_units_length)      :: units
          REAL (rprec)                       :: observed
          REAL (rprec)                       :: observed_sigma
          REAL (rprec)                       :: weight
@@ -95,8 +96,8 @@
 !  Construct a signal containing a diagnostic.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_diagnostic(diagnostic_object, s_name,          &
-     &                                     l_name, observed, sigma,            &
-     &                                     weight)
+     &                                     l_name, units, observed,            &
+     &                                     sigma, weight)
 
       IMPLICIT NONE
 
@@ -105,6 +106,7 @@
       TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
+      CHARACTER(len=signal_units_length), INTENT(in)      :: units
       REAL(rprec), INTENT(in)             :: observed
       REAL(rprec), INTENT(in)             :: sigma
       REAL(rprec), INTENT(in)             :: weight
@@ -115,6 +117,7 @@
       signal_construct_diagnostic%type = signal_geometric_type
       signal_construct_diagnostic%s_name = s_name
       signal_construct_diagnostic%l_name = l_name
+      signal_construct_diagnostic%units = units
       signal_construct_diagnostic%observed = observed
       signal_construct_diagnostic%observed_sigma = sigma
       signal_construct_diagnostic%weight = weight
@@ -128,8 +131,8 @@
 !  Construct a signal containing a geometric.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_geometric(geometric_object, s_name,            &
-     &                                    l_name, observed, sigma,             &
-     &                                    weight)
+     &                                    l_name, units, observed,             &
+     &                                    sigma, weight)
 
       IMPLICIT NONE
 
@@ -138,6 +141,7 @@
       TYPE (geometric_class), POINTER, INTENT(in) :: geometric_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
+      CHARACTER(len=signal_units_length), INTENT(in)      :: units
       REAL(rprec), INTENT(in)            :: observed
       REAL(rprec), INTENT(in)            :: sigma
       REAL(rprec), INTENT(in)            :: weight
@@ -148,6 +152,7 @@
       signal_construct_geometric%type = signal_geometric_type
       signal_construct_geometric%s_name = s_name
       signal_construct_geometric%l_name = l_name
+      signal_construct_geometric%units = units
       signal_construct_geometric%observed = observed
       signal_construct_geometric%observed_sigma = sigma
       signal_construct_geometric%weight = weight
@@ -161,8 +166,8 @@
 !  Construct a signal containing a combination.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_combination(combination_object, s_name,        &
-     &                                      l_name, observed, sigma,           &
-     &                                      weight)
+     &                                      l_name, units, observed,           &
+     &                                      sigma, weight)
 
       IMPLICIT NONE
 
@@ -172,6 +177,7 @@
      &                             :: combination_object
       CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
       CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
+      CHARACTER(len=signal_units_length), INTENT(in)      :: units
       REAL(rprec), INTENT(in)              :: observed
       REAL(rprec), INTENT(in)              :: sigma
       REAL(rprec), INTENT(in)              :: weight
@@ -182,6 +188,7 @@
       signal_construct_combination%type = signal_combination_type
       signal_construct_combination%s_name = s_name
       signal_construct_combination%l_name = l_name
+      signal_construct_combination%units = units
       signal_construct_combination%observed = observed
       signal_construct_combination%observed_sigma = sigma
       signal_construct_combination%weight = weight
@@ -220,6 +227,7 @@
       this%type = signal_no_type
       this%s_name = ''
       this%l_name = ''
+      this%units = ''
       this%observed = 0.0
       this%observed_sigma = 0.0
       this%weight = 0.0
