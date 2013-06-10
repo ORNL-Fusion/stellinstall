@@ -136,8 +136,8 @@
 !  Command Line Parsing (including debug logical)
 !-------------------------------------------------------------------------------
 
-      INTEGER :: num_cl_args = 0
-      CHARACTER(LEN=80), DIMENSION(10) :: command_line_args
+ !     INTEGER :: num_cl_args = 0
+ !     CHARACTER(LEN=80), DIMENSION(10) :: command_line_args
       LOGICAL :: l_debug
 
 !-------------------------------------------------------------------------------

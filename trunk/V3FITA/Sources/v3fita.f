@@ -116,7 +116,6 @@
 !*******************************************************************************
 ! SECTION I. MAIN PROGRAM
 !*******************************************************************************
-
       PROGRAM v3fit
 !**     MAIN PROGRAM:  Equilibrium reconstruction                    **
 !**                                                                  **
@@ -248,83 +247,37 @@
 !
       SUBROUTINE init_command_line
 
-      USE stel_kinds
-      USE stel_constants
-      USE v3f_global, only: num_cl_args, command_line_args,                    &
-     &   main_nli_filename, main_nli_filename_default, l_debug
+      USE v3f_global, only: main_nli_filename,                                 &
+     &                      main_nli_filename_default, l_debug
       USE v3_utilities                                     ! subroutine err_warn
-      
+      USE commandline_parser
+
       IMPLICIT NONE
 
 !  Declare local variables
       INTEGER           :: i
       CHARACTER(len=*), PARAMETER :: sub_name =                                &
      &  'init_command_line: '
-
-!  Declare Format array for help message'
-      CHARACTER(len=*), PARAMETER, DIMENSION(7) :: fmt1 = (/                   &
-     & '                                                             ',        &
-     & 'Help (-h) message for program V3FIT.                         ',        &
-     & '  Source of message is subroutine init_command_line          ',        &
-     & '  The single command line argument is the file name of the   ',        &
-     & '  main namelist input file. If there is no argument, the code',        &
-     & '  uses v3fit.in as the main namelist input file name.        ',        &
-     & 'End of Help (-h) message for program V3FIT.                  '         &
-     &  /) 
+      TYPE (commandline_parser_class), POINTER :: cl_parser => null()
 
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
-!----------------------------------------------------------------------
-!  Parse the execute line.
-!    Fortran 95 does NOT have intrinsics for getting command line arguments
-!    The subroutine getcarg (LIBSTELL/Miscel/getcarg.f) has versions of this
-!    functionality for WIN32, LINUX, VMS, CRAY machines.
-!
-!    The equivalent Fortran 2003 intrinsics will be 
-!    command_argument_count and get_command_argument
-!    See Section 18.0.2 of Metcalf, Reid, & Cohen, Fortran 95/2003 Explained
-!----------------------------------------------------------------------
-      CALL getcarg(1, command_line_args(1), num_cl_args)
-      DO i = 2, MIN(num_cl_args,SIZE(command_line_args))
-         CALL getcarg(i, command_line_args(i), num_cl_args)
-      END DO
-      
-!  Choose action based on the number of arguments
-!  (Will need a more sophisticated parsing algorithm if the 
-!  number of command line argments gets much larger)
-      SELECT CASE(num_cl_args)
-      CASE(0)
-         main_nli_filename = main_nli_filename_default
-      
-      CASE(1)
-         main_nli_filename = TRIM(ADJUSTL(command_line_args(1)))
-
-      CASE DEFAULT
-         main_nli_filename = TRIM(ADJUSTL(command_line_args(1)))
-         CALL err_warn(sub_name // ' Expected 0 or 1 cl arguments',            &
-     &  int=num_cl_args)
-
-      END SELECT
-      
-!  Look for help flag, print out help message, and quit
-      IF (TRIM(ADJUSTL(command_line_args(1))) .eq. '-h') THEN
-         DO i = 1,SIZE(fmt1)
-            WRITE(*,*) fmt1(i)
-         END DO
-         STOP '-h flag causes termination of program'
-      END IF
+      cl_parser => commandline_parser_construct()
+      main_nli_filename =                                                      &
+     &   commandline_parser_get_string(cl_parser, '-file')
       
 !  Look for debug flag. Print out indicator, and set global logical
 !    (debug flag uses default main NLI file)
       l_debug = .FALSE.
-      IF (TRIM(ADJUSTL(command_line_args(1))) .eq. '-d') THEN
+      IF (commandline_parser_is_flag_set(cl_parser, '-d')) THEN
          main_nli_filename = main_nli_filename_default
          l_debug = .TRUE.
          CALL err_warn(sub_name // ' Saw -d argument. l_debug set')
       END IF
 
-      RETURN
+      CALL commandline_parser_destruct(cl_parser)
+
       END SUBROUTINE init_command_line
 !
 !----------------------------------------------------------------------
@@ -507,7 +460,7 @@
 !       first dimension of arrays is dimensioned na_lif
 !
 !  n_lif                 number of limiter_iso functions
-!  n_phis_lif            array of number of phi values (:)
+!  n_phi_lif             array of number of phi values (:)
 !  lif_arz               array of r-z polynomial coefficients, (:,0:4,0:4)
 !  lif_rc                array of r offset values (:)
 !  lif_zc                array of z offset values (:)
@@ -4060,7 +4013,6 @@
       STOP
       
       END
-
 !*******************************************************************************
 ! SECTION VI.	COMMENTS FOR DIFFERENT REVISIONS
 !*******************************************************************************

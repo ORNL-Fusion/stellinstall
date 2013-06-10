@@ -41,6 +41,8 @@
 !*******************************************************************************
 !  combination module parameters
 !*******************************************************************************
+      INTEGER, PARAMETER :: combination_type_length= 3
+
       INTEGER, PARAMETER :: combination_none = -1
       INTEGER, PARAMETER :: combination_sum = 0
       INTEGER, PARAMETER :: combination_max = 1
@@ -53,7 +55,17 @@
 !  3) combination base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!  Signal base class
+!
+!  Superclass:
+!     None
+!
+!  Subclasses:
+!     diagnostic_class
+!     geometric_class
+!     combination_class
+!-------------------------------------------------------------------------------
       TYPE signal_class
          INTEGER                            :: type = signal_no_type
          CHARACTER (len=signal_name_short_length) :: s_name
@@ -69,10 +81,23 @@
          TYPE (combination_class), POINTER  :: combination => null()
       END TYPE signal_class
 
+!-------------------------------------------------------------------------------
+!  Derived type to hold a pointer to a signal. This is needed because fortran
+!  does not allow arrays of pointers directly.
+!-------------------------------------------------------------------------------
       TYPE signal_pointer
          TYPE (signal_class), POINTER :: p => null()
       END TYPE
 
+!-------------------------------------------------------------------------------
+!  Combination base class
+!
+!  Superclass:
+!     signal_class
+!
+!  Subclasses:
+!     None
+!-------------------------------------------------------------------------------
       TYPE combination_class
          INTEGER :: type = combination_none
          TYPE (signal_pointer), DIMENSION(:), POINTER :: signals
@@ -332,7 +357,8 @@
 !  Declare Arguments
       TYPE (combination_class), POINTER :: combination_construct
       INTEGER, INTENT(in)               :: n_signals
-      CHARACTER (len=3), INTENT(in)     :: combination_type
+      CHARACTER (len=combination_type_length), INTENT(in)                      &
+     &                                  :: combination_type
 
 !  Local Variables
       INTEGER                           :: status
