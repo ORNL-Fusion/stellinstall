@@ -164,6 +164,8 @@
       REAL(rprec)                            :: fval_max = -1.0E10, fval
 
 !  Start of executable code
+      limiter_get_modeled_iso_signal = 0.0
+
 !  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
 !  There is no need to allocate and deallocate r and z for each phi angle.
       DO phi_index = 1, SIZE(this%iso%vgrid, 1)

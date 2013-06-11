@@ -91,6 +91,8 @@
       INTEGER                        :: context_length
 
 !  Start of executable code
+      sxrem_get_modeled_signal = 0.0
+
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
       context_length = SIZE(TRANSFER(a_model, context))

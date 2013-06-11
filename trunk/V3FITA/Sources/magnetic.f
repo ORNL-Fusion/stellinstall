@@ -181,6 +181,8 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
+      magnetic_get_modeled_signal = 0.0
+
 !  Calculate the plasma only signal from the responce function.
       magnetic_get_modeled_signal(2) =                                         &
      &   equilibrium_get_plasma_mag_signal(a_model%equilibrium,                &
@@ -193,7 +195,8 @@
      &      this%responce_function%zmax,                                       &
      &      this%responce_function%zmin,                                       &
      &      this%responce_function%jz,                                         &
-     &      this%responce_function%lstell_sym)
+     &      this%responce_function%lstell_sym,                                 &
+     &      this%responce_function%kp_store)
 
 !  Calculate the induced signal from external currents.
       magnetic_get_modeled_signal(3) =                                         &

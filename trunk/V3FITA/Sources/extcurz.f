@@ -85,6 +85,8 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  Start of executable code
+      extcurz_get_modeled_signal = 0.0
+
       extcurz_get_modeled_signal(1) =                                          &
      &   equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,               &
      &                              this%theta)/mu0

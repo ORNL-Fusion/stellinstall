@@ -95,6 +95,7 @@
 !  Local variables
 
 !  Start of executable code
+      thomson_get_modeled_signal = 0.0
 
       SELECT CASE(this%type)
 

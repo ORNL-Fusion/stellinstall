@@ -222,7 +222,8 @@
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
       DO i = 1, SIZE(context%signals)
-         WRITE (*,*) signal_get_modeled_signal(context%signals(i)%p,           &
+         WRITE (*,*) i, context%signals(i)%p%s_name,                           &
+     &               signal_get_modeled_signal(context%signals(i)%p,           &
      &                                         context%model,                  &
      &                                         sigma, .false.)
       END DO

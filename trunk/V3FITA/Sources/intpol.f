@@ -138,6 +138,8 @@
       REAL(rprec), PARAMETER :: polar_constant = 2.62E-13_dp
 
 !  Start of executable code
+      intpol_get_modeled_signal = 0.0
+
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
       context_length = SIZE(TRANSFER(a_model, context))

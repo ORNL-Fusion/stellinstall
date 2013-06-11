@@ -406,7 +406,7 @@
      &                                           r_fun, phi_fun, z_fun,        &
      &                                           r_max, r_min, num_r,          &
      &                                           z_max, z_min, num_z,          &
-     &                                           is_stell_sym)
+     &                                           is_stell_sym, num_phi)
 
       IMPLICIT NONE
 
@@ -423,6 +423,7 @@
       REAL (rprec), INTENT(in)                   :: z_min
       INTEGER, INTENT(in)                        :: num_z
       LOGICAL, INTENT(in)                        :: is_stell_sym
+      INTEGER, INTENT(in)                        :: num_phi
 
 !  Start of executable code
       SELECT CASE (this%type)
@@ -433,7 +434,7 @@
      &                                    r_fun, phi_fun, z_fun,               &
      &                                    r_max, r_min, num_r,                 &
      &                                    z_max, z_min, num_z,                 &
-     &                                    is_stell_sym)
+     &                                    is_stell_sym, num_phi)
 
          CASE DEFAULT
             equilibrium_get_plasma_mag_signal = 0.0
@@ -469,6 +470,31 @@
 
          CASE DEFAULT
             equilibrium_get_ext_mag_signal = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume integration element.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_volume_int_element(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_volume_int_element
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+        CASE (equilibrium_vmec_type)
+            equilibrium_get_volume_int_element =                               &
+     &         vmec_get_volume_int_element(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_volume_int_element = 0.0
 
       END SELECT
 

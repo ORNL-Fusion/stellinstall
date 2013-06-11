@@ -546,6 +546,7 @@
          DO v = 1, this%magnetic_cache%kv
 
             cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
+            sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
 
             DO s = 1, ns
 
@@ -1187,7 +1188,7 @@
       FUNCTION vmec_get_plasma_mag_signal(this, r_fun, phi_fun, z_fun,         &
      &                                    r_max, r_min, num_r,                 &
      &                                    z_max, z_min, num_z,                 &
-     &                                    is_stell_sym)
+     &                                    is_stell_sym, num_phi)
       USE read_wout_mod, only: isigng, ns
       USE vmec_input, only: nfp
       USE bivariate
@@ -1208,6 +1209,7 @@
       REAL (rprec), INTENT(in)                   :: z_min
       INTEGER, INTENT(in)                        :: num_z
       LOGICAL, INTENT(in)                        :: is_stell_sym
+      INTEGER, INTENT(in)                        :: num_phi
 
 !  local variables
       TYPE (bivariate_type)                      :: bivariate_object
@@ -1216,7 +1218,7 @@
       REAL (rprec), DIMENSION(num_z)             :: zgrid
       REAL (rprec), DIMENSION(ns, ns, 3)         :: responce_suv
       REAL (rprec), DIMENSION(ns, ns)            :: sumsuv
-      REAL (rprec), DIMENSION(this%magnetic_cache%kv) :: sumv
+      REAL (rprec), DIMENSION(num_phi)           :: sumv
 
 !  Start of executable code
       DO r = 1, num_r
@@ -1231,7 +1233,7 @@
      &                     SIZE(this%magnetic_cache%rsuv(:,:,1), 2),           &
      &                     this%magnetic_cache%kv, 1)
 
-      DO v = 1, this%magnetic_cache%kv
+      DO v = 1, num_phi
 !  Generate bivariate interpolation responce tables.
          CALL setbivariate(bivariate_object,                                   &
      &                     this%magnetic_cache%rsuv(:,:,v),                    &
@@ -1263,13 +1265,37 @@
       vmec_get_plasma_mag_signal = SUM(sumv)
       IF (is_stell_sym) THEN
          vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal -             &
-     &      (sumv(1) + sumv(this%magnetic_cache%kv))/2.0
+     &      (sumv(1) + sumv(num_phi))/2.0
       END IF
 
 !  Correct for sign of the jabcobian.
       vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal*isigng           &
-     &                           * (1.0/(ns -1))*twopi/ns                      &
-     &                           * twopi/nfp/this%magnetic_cache%kv
+     &                           * (1.0/(ns - 1.0))*(twopi/ns)                 &
+     &                           * ((twopi/nfp)/this%magnetic_cache%kv)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume integration element.
+!
+!  For vmec this is J*ds*du*dv where J is the jacobian. The jacobian is
+!  integrated into cur*suv.
+!
+!  ds = 1/(ns - 1)
+!  du = 2*Pi/number of flux surfaces
+!  dv = 2*Pi/number of field periods/number of toroidal planes
+!
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_volume_int_element(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: vmec_get_volume_int_element
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      vmec_get_volume_int_element = 0.0
 
       END FUNCTION
 
