@@ -16,15 +16,15 @@
 !*******************************************************************************
 !  model module parameters
 !*******************************************************************************
-      INTEGER, PARAMETER :: model_none_type     = -1
+      INTEGER, PARAMETER, PRIVATE :: model_none_type     = -1
 
-      INTEGER, PARAMETER :: model_ne_type       =  0 ! Straight ne profile.
-      INTEGER, PARAMETER :: model_ne_te_p_type  =  1 ! derived from temp/press
+      INTEGER, PARAMETER, PRIVATE :: model_ne_type       =  0 ! Straight ne profile.
+      INTEGER, PARAMETER, PRIVATE :: model_ne_te_p_type  =  1 ! derived from temp/press
 
-      INTEGER, PARAMETER :: model_sxrem_type    =  0 ! Straight sxrem profile.
+      INTEGER, PARAMETER, PRIVATE :: model_sxrem_type    =  0 ! Straight sxrem profile.
 
-      INTEGER, PARAMETER :: model_te_type       =  0 ! Straight te profile.
-      INTEGER, PARAMETER :: model_te_ne_p_type  =  1 ! derived from dens/press
+      INTEGER, PARAMETER, PRIVATE :: model_te_type       =  0 ! Straight te profile.
+      INTEGER, PARAMETER, PRIVATE :: model_te_ne_p_type  =  1 ! derived from dens/press
 
 !  Model parameter ids
       INTEGER, PARAMETER :: model_ne_unit_id           = 0

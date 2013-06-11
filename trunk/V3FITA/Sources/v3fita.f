@@ -113,6 +113,269 @@
 ! SECTION VI.	COMMENTS FOR DIFFERENT REVISIONS
 !*******************************************************************************
 
+#ifdef NEW_CODE
+!*******************************************************************************
+!  MAIN PROGRAM
+!*******************************************************************************
+      PROGRAM v3fit
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  local variables
+      TYPE (v3fit_context_class), POINTER :: context => null()
+      REAL (rprec)                        :: time_start, time_end
+
+!  Start of executable code
+      CALL second0(time_start)
+
+!  Create a context and read in the v3fit namelist input file.
+      context => v3fit_context_construct(commandline_parser_construct())
+      CALL v3fit_input_read_namelist(                                          &
+     &        commandline_parser_get_string(context%cl_parser, '-file'))
+
+      SELECT CASE (my_task)
+
+         CASE ('equilibrium')
+            CALL task_equilibrium(context)
+
+         CASE ('v3post')
+            CALL task_v3post(context)
+
+      END SELECT
+
+!  Clean up memory
+      CALL v3fit_context_destruct(context)
+      context => null()
+
+      CALL second0(time_end)
+
+      WRITE (*,'(/,a,f10.2)') '  *** V3FIT run time (s): ',                    &
+     &                        time_end - time_start
+
+      END PROGRAM
+
+!*******************************************************************************
+!  TASK SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Solves the equilibrium.
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_equilibrium(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: num_steps = 1
+      LOGICAL                                   :: converged
+
+!  Start of executable code
+      WRITE (*,*) ' *** In task equilibrium'
+
+!  Initialize equilibrium
+      CALL init_equilibrium(context)
+
+!  Solve equilibrium
+      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      converged = equilibrium_converge(context%model%equilibrium,              &
+     &                                 num_steps)
+
+      WRITE (*,*) converged, num_steps
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Solves the equilibrium and calculates the modeled signals.
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_v3post(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: num_steps = 1
+      LOGICAL                                   :: converged
+      INTEGER                                   :: i
+      REAL (rprec), DIMENSION(4)                :: sigma
+
+!  Start of executable code
+      WRITE (*,*) ' *** In task v3post'
+
+!  Initialize v3post
+      CALL init_equilibrium(context)
+      CALL init_signals(context)
+
+!  Solve equilibrium
+      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      converged = equilibrium_converge(context%model%equilibrium,              &
+     &                                 num_steps)
+
+      WRITE (*,*) converged, num_steps
+
+!  Calculate and display the signals.
+      WRITE (*,*) ' *** Calculating modeled signals'
+      DO i = 1, SIZE(context%signals)
+         WRITE (*,*) signal_get_modeled_signal(context%signals(i)%p,           &
+     &                                         context%model,                  &
+     &                                         sigma, .false.)
+      END DO
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  INITIALIZE SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Initialize Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_equilibrium(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing equilibrium model'
+
+      IF (vmec_nli_filename .ne. '') THEN
+         context%model => model_construct(                                     &
+     &      model_ne_type, model_sxrem_type, model_te_type,                    &
+     &      ne_pp_unit, ne_min, e_pressure_fraction,                           &
+     &      equilibrium_construct(vmec_construct(vmec_nli_filename)))
+
+         RETURN ! Only initialize one equilibrium.
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_signals(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: signals_created = 0
+
+!  Start of executable code
+      IF (na_s_desc .eq. 0) THEN
+         CALL err_warn('init_signals: no signals will be created. ' //         &
+     &                 'na_s_desc = 0')
+         RETURN
+      END IF
+
+      WRITE (*,*) ' *** Constructing signals'
+
+      ALLOCATE(context%signals(na_s_desc))
+
+!  If a mdsig filename is given, construct the diagnostic contain inside it.
+      IF (mdsig_list_filename .ne. '') THEN
+         CALL init_magnetic_signals(context, signals_created)
+      END IF
+
+!  TODO: Add in all the rest of the diagnostic signals.
+
+      CALL v3fit_context_resize(context)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Magnetic Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_magnetic_signals(context, signals_created)
+      USE v3fit_context
+      USE safe_open_mod
+      USE v3_utilities
+      USE ezcdf
+      USE magnetic
+
+      IMPLICIT NONE
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: mdsig_list_iou
+      INTEGER                                   :: mdsig_iou
+      INTEGER                                   :: status = 0
+      INTEGER                                   :: mdsig_index
+      CHARACTER (len=data_filename_length)      :: mdsig_path
+      CHARACTER (len=data_filename_length)      :: mdsig_filename
+
+      TYPE (magnetic_class), POINTER :: magnetic_object => null()
+      LOGICAL                        :: first_run = .true.
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing magnetic signals from ' //                &
+     &            TRIM(mdsig_list_filename)
+
+      CALL safe_open(mdsig_list_iou, status, TRIM(mdsig_list_filename),        &
+     &               'old', 'formatted')
+      CALL assert_eq(0, status, 'init_magnetic_signals: ' //                   &
+     &               'failed to open ' // TRIM(mdsig_list_filename))
+
+!  Get the directory of the mdsig path.
+      mdsig_path =                                                             &
+     &   mdsig_list_filename(1:INDEX(TRIM(mdsig_list_filename),                &
+     &                       '/', back = .true.))
+
+!  Loop over the file in the list file
+      DO
+         READ(mdsig_list_iou, *, iostat=status)                                &
+     &      mdsig_index, mdsig_filename
+
+         IF (status .ne. 0) RETURN
+
+!  Check if there are two many signals.
+         IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
+            CALL err_fatal('init_magnetic_signals: created signals' //         &
+     &                     ' exceeds v3fit_max_diagnostics')
+         END IF
+
+!  Open the netcdf file for the mdsig.
+         CALL cdf_open(mdsig_iou, TRIM(mdsig_path) //                          &
+     &                 TRIM(mdsig_filename), 'r', status)
+         CALL assert_eq(0, status, 'init_magnetic_signals: ' //                &
+     &                  'failed to open ', TRIM(mdsig_path) //                 &
+     &                  TRIM(mdsig_filename))
+
+!  Construct a magnetic diagnostic signal using from the mdsig netcdf file.
+         signals_created = signals_created + 1
+         magnetic_object => magnetic_construct(mdsig_iou)
+         context%signals(signals_created)%p => signal_construct(               &
+     &      diagnostic_construct(magnetic_object),                             &
+     &      mdsig_iou, sdo_data_a(signals_created),                            &
+     &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created))
+
+!  If a signal magnetic signal is created, the magnetic cache must be used.
+         IF (first_run) THEN
+            CALL equilibrium_set_magnetic_cache(                               &
+     &              context%model%equilibrium,                                 &
+     &              magnetic_object%responce_function%kp)
+            first_run = .false.
+         END IF
+
+         CALL cdf_close(mdsig_iou)
+
+      END DO
+
+      END SUBROUTINE
+#else
+
 !*******************************************************************************
 ! SECTION I. MAIN PROGRAM
 !*******************************************************************************
@@ -164,9 +427,6 @@
          CALL init_equilibrium
          CALL init_signal
          CALL task_vmec_v3post
-
-      CASE ('v3post') !  Run equilibrium compute signals.
-         CALL tast_v3post
 
       CASE('vmec_monitor')
          CALL init_equilibrium
@@ -1915,30 +2175,6 @@
 !*******************************************************************************
 ! SECTION III.   TASK SUBROUTINES
 !*******************************************************************************
-
-      SUBROUTINE tast_v3post
-      USE equilibrium
-      USE v3f_global
-
-      IMPLICIT NONE
-
-!  local variables
-      TYPE (equilibrium_class), POINTER :: eq => null()
-      INTEGER                           :: num_steps = 1
-      LOGICAL                           :: converged
-
-!  Start of executable code
-      eq => equilibrium_construct(vmec_construct(vmec_nli_filename))
-      converged = equilibrium_converge(eq, num_steps)
-      CALL equilibrium_destruct(eq)
-
-      WRITE (*,*) converged, num_steps
-
-      END SUBROUTINE
-
-!----------------------------------------------------------------------
-!*******************************************************************************
-!----------------------------------------------------------------------
 !
       SUBROUTINE task_reconstruct_a1
 !  Task subroutine, Reconstruction, Algorithm 1
@@ -4012,7 +4248,10 @@
  
       STOP
       
-      END
+      END SUBROUTINE
+
+#endif
+
 !*******************************************************************************
 ! SECTION VI.	COMMENTS FOR DIFFERENT REVISIONS
 !*******************************************************************************

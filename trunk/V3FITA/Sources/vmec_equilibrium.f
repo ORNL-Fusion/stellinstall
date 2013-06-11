@@ -168,6 +168,9 @@
       INTEGER                       :: index_dat, index_end
 
 !  Start of executable code
+      WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
+     &            TRIM(file_name)
+
       ALLOCATE(vmec_construct)
 
 !  Initialize VMEC by taking a single step.
@@ -407,7 +410,7 @@
 !  Set magnetic cache initialy
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, num_tor_planes)
-      USE read_wout_mod, only: ns
+      USE read_wout_mod, only: read_wout_file, ns
 
       IMPLICIT NONE
 
@@ -415,8 +418,13 @@
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(in)              :: num_tor_planes
 
+!  local arguments
+      INTEGER                          :: error
+
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
+
+      CALL read_wout_file(this%wout_file_name, error)
 
       this%magnetic_cache%kv = num_tor_planes
 
@@ -1215,7 +1223,7 @@
          rgrid(r) = r_min + (r - 1)*(r_max - r_min)/(num_r - 1)
       END DO
       DO z = 1, num_z
-         rgrid(z) = z_min + (z - 1)*(z_max - z_min)/(num_z - 1)
+         zgrid(z) = z_min + (z - 1)*(z_max - z_min)/(num_z - 1)
       END DO
 
       CALL createbivariate(bivariate_object,                                   &

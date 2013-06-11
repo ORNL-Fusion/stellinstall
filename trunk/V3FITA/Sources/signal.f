@@ -110,7 +110,8 @@
       INTERFACE signal_construct
          MODULE PROCEDURE signal_construct_diagnostic,                         &
      &                    signal_construct_geometric,                          &
-     &                    signal_construct_combination                         
+     &                    signal_construct_combination,                        &
+     &                    signal_construct_diagnostic_netcdf
       END INTERFACE
 
       CONTAINS 
@@ -139,7 +140,7 @@
 !  Start of executable code
       ALLOCATE(signal_construct_diagnostic)
 
-      signal_construct_diagnostic%type = signal_geometric_type
+      signal_construct_diagnostic%type = signal_diagnostic_type
       signal_construct_diagnostic%s_name = s_name
       signal_construct_diagnostic%l_name = l_name
       signal_construct_diagnostic%units = units
@@ -220,6 +221,40 @@
       signal_construct_combination%combination => combination_object
       signal_construct_combination%modeled = 0.0
       signal_construct_combination%modeled_sigma = 0.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a signal containing a diagnostic from a netcdf file.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_diagnostic_netcdf(diagnostic_object,           &
+     &                                            mdsig_iou, observed,         &
+     &                                            sigma, weight)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER :: signal_construct_diagnostic_netcdf
+      TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
+      INTEGER, INTENT(in)                      :: mdsig_iou
+      REAL(rprec), INTENT(in)                  :: observed
+      REAL(rprec), INTENT(in)                  :: sigma
+      REAL(rprec), INTENT(in)                  :: weight
+
+!  local variables
+      CHARACTER (len=signal_name_short_length) :: s_name
+      CHARACTER (len=signal_name_long_length)  :: l_name
+      CHARACTER (len=signal_units_length)      :: units
+
+!  Start of executable code
+      CALL cdf_read(mdsig_iou, 'diagnostic_desc_s_name', s_name)
+      CALL cdf_read(mdsig_iou, 'diagnostic_desc_l_name', l_name)
+      CALL cdf_read(mdsig_iou, 'diagnostic_desc_units', units)
+
+      signal_construct_diagnostic_netcdf =>                                     &
+     &   signal_construct(diagnostic_object, s_name, l_name, units,             &
+     &                   observed, sigma, weight)
 
       END FUNCTION
 
