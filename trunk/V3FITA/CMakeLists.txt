@@ -13,6 +13,11 @@ target_link_libraries (xv3fit vmec stell)
 set_target_properties (xv3fit PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xv3fit)
 set_target_properties (xv3fit PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_MODULE_DIRECTORY}/stell;${CMAKE_Fortran_MODULE_DIRECTORY}/vmec")
 
+# HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set_target_properties (xv3fit PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell -I${CMAKE_Fortran_MODULE_DIRECTORY}/vmec")
+endif()
+
 if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
 	target_link_libraries (xv3fit ${NETCDF_C})
 endif ()
