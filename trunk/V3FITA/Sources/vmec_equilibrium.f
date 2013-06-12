@@ -89,15 +89,22 @@
 !  Define an object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
+!  Number of toroidal planes.
          INTEGER                                 :: kv
+
+!  Volume differential elements
+         REAL (rprec)                            :: ds
+         REAL (rprec)                            :: du
+         REAL (rprec)                            :: dv
+
+!  R and Z positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
          REAL (rprec), DIMENSION(:,:,:), POINTER :: zsuv => null()
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: rusuv => null()
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: zusuv => null()
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: rvsuv => null()
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: zvsuv => null()
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: curusuv => null()
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: curvsuv => null()
+
+!  The following have a 1/Sqrt(g) factor embeded.
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: jrsuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: jphisuv => null()
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: jzsuv => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -235,21 +242,15 @@
       IF (ASSOCIATED(this%magnetic_cache)) THEN
          DEALLOCATE(this%magnetic_cache%rsuv)
          DEALLOCATE(this%magnetic_cache%zsuv)
-         DEALLOCATE(this%magnetic_cache%rusuv)
-         DEALLOCATE(this%magnetic_cache%zusuv)
-         DEALLOCATE(this%magnetic_cache%rvsuv)
-         DEALLOCATE(this%magnetic_cache%zvsuv)
-         DEALLOCATE(this%magnetic_cache%curusuv)
-         DEALLOCATE(this%magnetic_cache%curvsuv)
+         DEALLOCATE(this%magnetic_cache%jrsuv)
+         DEALLOCATE(this%magnetic_cache%jphisuv)
+         DEALLOCATE(this%magnetic_cache%jzsuv)
 
          this%magnetic_cache%rsuv => null()
          this%magnetic_cache%zsuv => null()
-         this%magnetic_cache%rusuv => null()
-         this%magnetic_cache%zusuv => null()
-         this%magnetic_cache%rvsuv => null()
-         this%magnetic_cache%zvsuv => null()
-         this%magnetic_cache%curusuv => null()
-         this%magnetic_cache%curvsuv => null()
+         this%magnetic_cache%jrsuv => null()
+         this%magnetic_cache%jphisuv => null()
+         this%magnetic_cache%jzsuv => null()
          this%magnetic_cache%kv = 0
 
          DEALLOCATE(this%magnetic_cache)
@@ -409,14 +410,18 @@
 !-------------------------------------------------------------------------------
 !  Set magnetic cache initialy
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_set_magnetic_cache_init(this, num_tor_planes)
+      SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
+     &                                        tor_planes_used)
       USE read_wout_mod, only: read_wout_file, ns
+      USE vmec_input, only: nfp
+      USE stel_constants, only: twopi
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (vmec_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)              :: num_tor_planes
+      INTEGER, INTENT(in)              :: total_tor_planes
+      INTEGER, INTENT(in)              :: tor_planes_used
 
 !  local arguments
       INTEGER                          :: error
@@ -424,18 +429,24 @@
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
+!  Need the number of s positions. Get this from the wout file. The equilibrium
+!  must be initialized before this method is called.
       CALL read_wout_file(this%wout_file_name, error)
 
-      this%magnetic_cache%kv = num_tor_planes
+!  Set the differental volume elements.
+      this%magnetic_cache%ds = 1.0/(ns - 1.0)
+      this%magnetic_cache%du = twopi/ns
+      this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
-      ALLOCATE(this%magnetic_cache%rsuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%zsuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%rusuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%zusuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%rvsuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%zvsuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%curusuv(ns, ns, num_tor_planes))
-      ALLOCATE(this%magnetic_cache%curvsuv(ns, ns, num_tor_planes))
+!  When stellarator symmetry is used, do not need to store all the toroidal
+!  planes in a single field period.
+      this%magnetic_cache%kv = tor_planes_used
+
+      ALLOCATE(this%magnetic_cache%rsuv(ns, ns, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns, ns, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns, ns, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns, ns, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns, ns, tor_planes_used))
 
       END SUBROUTINE
 
@@ -443,12 +454,10 @@
 !  Set magnetic cache
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_calc(this)
-      USE vmec_input, only: nfp
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
      &                         currumnc, currvmnc, currumns, currvmns,         &
      &                         ns
-      USE stel_constants, only: twopi
 
       IMPLICIT NONE
 
@@ -457,10 +466,14 @@
 
 !  local variables
       INTEGER                                   :: s, u, v
-      REAL (rprec)                              :: du, dv
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, cosv,                 &
-     &                                             sinu, sinv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, cosv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu, sinv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz_nyq, sinz_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu_nyq, cosv_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu_nyq, sinv_nyq
+      REAL (rprec)                              :: ru, rv, zu, zv
+      REAL (rprec)                              :: ju, jv
 
 !  Start of executable code.
       ALLOCATE(cosz(mnmax), sinz(mnmax))
@@ -468,19 +481,36 @@
      &         cosv(mnmax, this%magnetic_cache%kv),                            &
      &         sinv(mnmax, this%magnetic_cache%kv))
 
-      du = twopi/ns
-      dv = twopi/nfp/this%magnetic_cache%kv
+      ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+      ALLOCATE(cosu_nyq(mnmax_nyq, ns), sinu_nyq(mnmax_nyq, ns),               &
+     &         cosv_nyq(mnmax_nyq, this%magnetic_cache%kv),                    &
+     &         sinv_nyq(mnmax_nyq, this%magnetic_cache%kv))
 
 ! U grid is square with the s grid.
       DO u = 1, ns
-         cosu(:,u) = COS(xm*(u - 1)*du)
-         sinu(:,u) = SIN(xm*(u - 1)*du)
+         cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
+         sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
+         cosu_nyq(:,u) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
+         sinu_nyq(:,u) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
       END DO
       DO v = 1, this%magnetic_cache%kv
-         cosv(:,v) = COS(xn*(v - 1)*dv)
-         sinv(:,v) = SIN(xn*(v - 1)*dv)
+         cosv(:,v) = COS(xn*(v - 1)*this%magnetic_cache%dv)
+         sinv(:,v) = SIN(xn*(v - 1)*this%magnetic_cache%dv)
+         cosv_nyq(:,v) = COS(xn_nyq*(v - 1)*this%magnetic_cache%dv)
+         sinv_nyq(:,v) = SIN(xn_nyq*(v - 1)*this%magnetic_cache%dv)
       END DO
 
+!  Set the suv grids
+!
+!  ru = dR/du
+!  rv = dRdv   Note: dRHat/dv = PhiHat
+!
+!  zu = dZ/du
+!  zu = dZ/dv
+!
+!  jr = ju*ru + jv*rv
+!  jphi = jv*R
+!  jz = ju*zu + jv*zv
       DO u = 1, ns
 
          DO v = 1, this%magnetic_cache%kv
@@ -488,18 +518,22 @@
             cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
             sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
 
+            cosz_nyq = cosu_nyq(:,u)*cosv_nyq(:,v)                             &
+     &               + sinu_nyq(:,u)*sinv_nyq(:,v)
+            sinz_nyq = sinu_nyq(:,u)*cosv_nyq(:,v)                             &
+     &               - cosu_nyq(:,u)*sinv_nyq(:,v)
+
             DO s = 1, ns
 
                this%magnetic_cache%rsuv(s,u,v) = SUM(rmnc(:,s)*cosz)
                this%magnetic_cache%zsuv(s,u,v) = SUM(zmns(:,s)*sinz)
-               this%magnetic_cache%rusuv(s,u,v) =                              &
-     &            -SUM(xm*rmnc(:,s)*sinz)
-               this%magnetic_cache%zusuv(s,u,v) =                              &
-     &            SUM(xm*zmns(:,s)*cosz)
-               this%magnetic_cache%rvsuv(s,u,v) =                              &
-     &            SUM(xn*rmnc(:,s)*sinz)
-               this%magnetic_cache%zvsuv(s,u,v) =                              &
-     &            -SUM(xn*zmns(:,s)*cosz)
+               ru = -SUM(xm*rmnc(:,s)*sinz)
+               zu = SUM(xm*zmns(:,s)*cosz)
+               rv = SUM(xn*rmnc(:,s)*sinz)
+               zv = -SUM(xn*zmns(:,s)*cosz)
+
+               ju = SUM(currumnc(:,s)*cosz_nyq)
+               jv = SUM(currvmnc(:,s)*cosz_nyq)
 
                IF (lasym) THEN
                   this%magnetic_cache%rsuv(s, u, v) =                          &
@@ -508,67 +542,27 @@
                   this%magnetic_cache%zsuv(s, u, v) =                          &
      &               this%magnetic_cache%zsuv(s, u, v) +                       &
      &               SUM(zmnc(:,s)*cosz)
-                  this%magnetic_cache%rusuv(s,u,v) =                           &
-     &               this%magnetic_cache%rusuv(s,u,v) +                        &
-     &               SUM(xm*rmns(:,s)*cosz)
-                  this%magnetic_cache%zusuv(s,u,v) =                           &
-     &               this%magnetic_cache%zusuv(s,u,v) -                        &
-     &               SUM(xm*zmnc(:,s)*sinz)
-                  this%magnetic_cache%rvsuv(s,u,v) =                           &
-     &               this%magnetic_cache%rvsuv(s,u,v) -                        &
-     &               SUM(xn*rmns(:,s)*cosz)
-                  this%magnetic_cache%zvsuv(s,u,v) =                           &
-     &               this%magnetic_cache%zvsuv(s,u,v) +                        &
-     &               SUM(xn*zmnc(:,s)*sinz)
+                  ru = ru + SUM(xm*rmns(:,s)*cosz)
+                  zu = zu - SUM(xm*zmnc(:,s)*sinz)
+                  rv = rv - SUM(xn*rmns(:,s)*cosz)
+                  zv = zv + SUM(xn*zmnc(:,s)*sinz)
+
+                  ju = ju + SUM(currumnc(:,s)*sinz_nyq)
+                  jv = jv + SUM(currvmnc(:,s)*sinz_nyq)
                END IF
-            END DO
-         END DO
-      END DO
 
-      DEALLOCATE(cosz, sinz)
-      ALLOCATE(cosz(mnmax_nyq), sinz(mnmax_nyq))
-      DEALLOCATE(cosu, sinu, cosv, sinv)
-      ALLOCATE(cosu(mnmax_nyq, ns), sinu(mnmax_nyq, ns),                       &
-     &         cosv(mnmax_nyq, this%magnetic_cache%kv),                        &
-     &         sinv(mnmax_nyq, this%magnetic_cache%kv))
-
-      DO u = 1, ns
-         cosu(:,u) = COS(xm_nyq*(u - 1)*du)
-         sinu(:,u) = SIN(xm_nyq*(u - 1)*du)
-      END DO
-      DO v = 1, this%magnetic_cache%kv
-         cosv(:,v) = COS(xn_nyq*(v - 1)*dv)
-         sinv(:,v) = SIN(xn_nyq*(v - 1)*dv)
-      END DO
-
-      DO u = 1, ns
-
-         DO v = 1, this%magnetic_cache%kv
-
-            cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
-            sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
-
-            DO s = 1, ns
-
-               this%magnetic_cache%curusuv(s,u,v) =                            &
-     &            SUM(currumnc(:,s)*cosz)
-               this%magnetic_cache%curvsuv(s,u,v) =                            &
-     &            SUM(currvmnc(:,s)*cosz)
-
-               IF (lasym) THEN
-                  this%magnetic_cache%curusuv(s,u,v) =                         &
-     &               this%magnetic_cache%curusuv(s,u,v) +                      &
-     &               SUM(currumns(:,s)*sinz)
-                  this%magnetic_cache%curvsuv(s,u,v) =                         &
-     &               this%magnetic_cache%curvsuv(s,u,v) +                      &
-     &               SUM(currvmns(:,s)*sinz)
-               END IF
+               this%magnetic_cache%jrsuv(s,u,v) = ju*ru + jv*rv
+               this%magnetic_cache%jphisuv(s,u,v) =                            &
+     &            jv*this%magnetic_cache%rsuv(s, u, v)
+               this%magnetic_cache%jzsuv(s,u,v) = ju*zu + jv*zv
             END DO
          END DO
       END DO
 
       DEALLOCATE(cosz, sinz)
       DEALLOCATE(cosu, sinu, cosv, sinv)
+      DEALLOCATE(cosz_nyq, sinz_nyq)
+      DEALLOCATE(cosu_nyq, sinu_nyq, cosv_nyq, sinv_nyq)
 
       END SUBROUTINE
 
@@ -1216,7 +1210,9 @@
       INTEGER                                    :: v, r, z
       REAL (rprec), DIMENSION(num_r)             :: rgrid
       REAL (rprec), DIMENSION(num_z)             :: zgrid
-      REAL (rprec), DIMENSION(ns, ns, 3)         :: responce_suv
+      REAL (rprec), DIMENSION(ns, ns)            :: responce_rsuv
+      REAL (rprec), DIMENSION(ns, ns)            :: responce_phisuv
+      REAL (rprec), DIMENSION(ns, ns)            :: responce_zsuv
       REAL (rprec), DIMENSION(ns, ns)            :: sumsuv
       REAL (rprec), DIMENSION(num_phi)           :: sumv
 
@@ -1229,9 +1225,9 @@
       END DO
 
       CALL createbivariate(bivariate_object,                                   &
-     &                     SIZE(this%magnetic_cache%rsuv(:,:,1), 1),           &
-     &                     SIZE(this%magnetic_cache%rsuv(:,:,1), 2),           &
-     &                     this%magnetic_cache%kv, 1)
+     &                     SIZE(this%magnetic_cache%rsuv, 1),                  &
+     &                     SIZE(this%magnetic_cache%rsuv, 2),                  &
+     &                     SIZE(this%magnetic_cache%rsuv, 3), 1)
 
       DO v = 1, num_phi
 !  Generate bivariate interpolation responce tables.
@@ -1241,22 +1237,18 @@
      &                     rgrid, zgrid, v, 1)
 
          CALL bivariate4pt(bivariate_object,                                   &
-     &                     r_fun, responce_suv(:,:,1), v)
+     &                     r_fun, responce_rsuv, v)
          CALL bivariate4pt(bivariate_object,                                   &
-     &                     phi_fun, responce_suv(:,:,2), v)
+     &                     phi_fun, responce_phisuv, v)
          CALL bivariate4pt(bivariate_object,                                   &
-     &                     z_fun, responce_suv(:,:,3), v)
+     &                     z_fun, responce_zsuv, v)
 
-         sumsuv = this%magnetic_cache%curusuv(:,:,v)                           &
-     &          * (this%magnetic_cache%rusuv(:,:,v)*responce_suv(:,:,1)        &
-     &          +  this%magnetic_cache%zusuv(:,:,v)*responce_suv(:,:,3))       &
-     &          + this%magnetic_cache%curvsuv(:,:,v)                           &
-     &          * (this%magnetic_cache%rvsuv(:,:,v)*responce_suv(:,:,1)        &
-     &          +  this%magnetic_cache%zvsuv(:,:,v)*responce_suv(:,:,3)        &
-     &          +  this%magnetic_cache%rsuv(:,:,v)*responce_suv(:,:,2))
+         sumsuv = this%magnetic_cache%jrsuv(:,:,v)*responce_rsuv               &
+     &          + this%magnetic_cache%jphisuv(:,:,v)*responce_phisuv           &
+     &          + this%magnetic_cache%jzsuv(:,:,v)*responce_zsuv
 
-         sumv(v) = SUM(sumsuv(2:ns - 1,:)) + SUM(sumsuv(1,:) +                 &
-     &                                           sumsuv(ns,:))/2.0
+         sumv(v) = SUM(sumsuv(2:ns - 1,:))                                     &
+     &           + SUM(sumsuv(1,:) + sumsuv(ns,:))/2.0
 
       END DO
 
@@ -1268,10 +1260,8 @@
      &      (sumv(1) + sumv(num_phi))/2.0
       END IF
 
-!  Correct for sign of the jabcobian.
-      vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal*isigng           &
-     &                           * (1.0/(ns - 1.0))*(twopi/ns)                 &
-     &                           * ((twopi/nfp)/this%magnetic_cache%kv)
+      vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal                  &
+     &                           * vmec_get_volume_int_element(this)
 
       END FUNCTION
 
@@ -1279,7 +1269,8 @@
 !  Get volume integration element.
 !
 !  For vmec this is J*ds*du*dv where J is the jacobian. The jacobian is
-!  integrated into cur*suv.
+!  integrated into Jr, Jphi and Jz but still need to account for the sign of the
+!  jacobian.
 !
 !  ds = 1/(ns - 1)
 !  du = 2*Pi/number of flux surfaces
@@ -1287,6 +1278,7 @@
 !
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_volume_int_element(this)
+      USE read_wout_mod, only: isigng
 
       IMPLICIT NONE
 
@@ -1295,7 +1287,9 @@
       TYPE (vmec_class), INTENT(in) :: this
 
 !  Start of executable code
-      vmec_get_volume_int_element = 0.0
+      vmec_get_volume_int_element = isigng*this%magnetic_cache%ds              &
+     &                            * this%magnetic_cache%du                     &
+     &                            * this%magnetic_cache%dv
 
       END FUNCTION
 

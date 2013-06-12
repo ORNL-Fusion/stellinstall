@@ -118,19 +118,22 @@
 !-------------------------------------------------------------------------------
 !  Set magnetic cache
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_set_magnetic_cache(this, num_tor_planes)
+      SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
+     &                                          tor_planes_used)
 
       IMPLICIT NONE
 
 !  Declare Sruments
       TYPE (equilibrium_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                     :: num_tor_planes
+      INTEGER, INTENT(in)                     :: total_tor_planes
+      INTEGER, INTENT(in)                     :: tor_planes_used
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            CALL vmec_set_magnetic_cache(this%vmec, num_tor_planes)
+            CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
+     &                                   tor_planes_used)
 
       END SELECT
 

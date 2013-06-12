@@ -362,11 +362,12 @@
      &      mdsig_iou, sdo_data_a(signals_created),                            &
      &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created))
 
-!  If a signal magnetic signal is created, the magnetic cache must be used.
+!  If a magnetic signal is created, the magnetic cache must be used.
          IF (first_run) THEN
             CALL equilibrium_set_magnetic_cache(                               &
      &              context%model%equilibrium,                                 &
-     &              magnetic_object%responce_function%kp)
+     &              magnetic_object%responce_function%kp,                      &
+     &              magnetic_object%responce_function%kp_store)
             first_run = .false.
          END IF
 
