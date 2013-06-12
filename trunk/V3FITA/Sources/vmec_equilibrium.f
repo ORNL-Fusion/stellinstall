@@ -412,8 +412,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
      &                                        tor_planes_used)
-      USE read_wout_mod, only: read_wout_file, ns
-      USE vmec_input, only: nfp
+      USE vmec_input, only: nfp, ns_array
       USE stel_constants, only: twopi
 
       IMPLICIT NONE
@@ -429,24 +428,25 @@
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-!  Need the number of s positions. Get this from the wout file. The equilibrium
-!  must be initialized before this method is called.
-      CALL read_wout_file(this%wout_file_name, error)
-
 !  Set the differental volume elements.
-      this%magnetic_cache%ds = 1.0/(ns - 1.0)
-      this%magnetic_cache%du = twopi/ns
+      this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)
+      this%magnetic_cache%du = twopi/ns_array(1)
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
       this%magnetic_cache%kv = tor_planes_used
 
-      ALLOCATE(this%magnetic_cache%rsuv(ns, ns, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns, ns, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns, ns, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns, ns, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns, ns, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns_array(1), ns_array(1),              &
+     &                                  tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns_array(1), ns_array(1),              &
+     &                                  tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns_array(1), ns_array(1),             &
+     &                                   tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns_array(1), ns_array(1),           &
+     &                                     tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns_array(1), ns_array(1),             &
+     &                                   tor_planes_used))
 
       END SUBROUTINE
 
