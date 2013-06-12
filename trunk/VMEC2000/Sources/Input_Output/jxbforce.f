@@ -141,7 +141,7 @@
      1  " volume radial coordinate)"
       legend(13)= " <KSUP{U,V}> = Int_u Int_v [KSUP{U,V}]"
 
-!DEC$ IF .NOT.DEFINED (NETCDF)
+#ifndef NETCDF
       WRITE (njxbout,5) (ns1-1)/ns_skip, ntheta2/nu_skip, nzeta/nv_skip,
      1    mpol, ntor, phiedge
  5    FORMAT(/,' Radial surfaces = ',i3, ' Poloidal grid points = ',i3,
@@ -151,7 +151,7 @@
       WRITE (njxbout, 6) (legend(j), j=1,13)
  6    FORMAT(/,100('-'),/,' LEGEND:',/,100('-'),/,
      1  2(3(a,/),/),5(a,/),/,2(a,/),100('-'),//)
-!DEC$ ENDIF
+#endif
       ENDIF
 
       lz = nzeta*ntheta2
