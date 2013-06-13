@@ -403,38 +403,6 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get external current magnetic signal.
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_ext_mag_signal(this, diag_coils,                &
-     &                                        current_scales,                  &
-     &                                        num_coil_groups)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec) :: equilibrium_get_ext_mag_signal
-      TYPE (equilibrium_class), INTENT(in)   :: this
-      REAL (rprec), DIMENSION(:), INTENT(in) :: diag_coils
-      REAL (rprec), DIMENSION(:), INTENT(in) :: current_scales
-      INTEGER, INTENT(in)                    :: num_coil_groups
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_get_ext_mag_signal =                                   &
-     &         vmec_get_ext_mag_signal(this%vmec, diag_coils,                  &
-     &                                 current_scales,                         &
-     &                                 num_coil_groups)
-
-         CASE DEFAULT
-            equilibrium_get_ext_mag_signal = 0.0
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
 !  Get volume magnetic volume integration radial grid points.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_magnetic_volume_rgrid(this)
@@ -584,6 +552,34 @@
 
          CASE DEFAULT
             equilibrium_get_volume_int_element = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get external current.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ext_currents(this, scale_currents)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER  ::                                  &
+     &   equilibrium_get_ext_currents
+      TYPE (equilibrium_class), INTENT(in) :: this
+      LOGICAL, INTENT(out)                 :: scale_currents
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ext_currents =>                                    &
+     &         vmec_get_ext_currents(this%vmec, scale_currents)
+
+         CASE DEFAULT
+            scale_currents = .false.
+            equilibrium_get_ext_currents => null()
 
       END SELECT
 

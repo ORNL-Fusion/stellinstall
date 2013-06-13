@@ -187,6 +187,7 @@
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
       USE model
       USE bivariate
+      USE v3_utilities, only: err_warn
 
       IMPLICIT NONE
 
@@ -212,6 +213,10 @@
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_zvol
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sumrz
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sumphi
+
+      LOGICAL                                   :: scale_current
+      INTEGER                                   :: num_currents
+      REAL (rprec), DIMENSION(:), POINTER       :: extcur
 
 !  Start of executable code
       magnetic_get_modeled_signal = 0.0
@@ -314,13 +319,31 @@
       DEALLOCATE(rgrid, zgrid)
 
 !-------------------------------------------------------------------------------
-
 !  Calculate the induced signal from external currents.
-      magnetic_get_modeled_signal(3) =                                         &
-     &   equilibrium_get_ext_mag_signal(a_model%equilibrium,                   &
-     &      this%responce_function%rdiag_coilg_1,                              &
-     &      this%responce_function%extcur_mg,                                  &
-     &      this%responce_function%n_field_cg)
+      extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
+     &                                       scale_current)
+
+!  If there are no external current extcur will be a null pointer
+      IF (ASSOCIATED(extcur)) THEN
+
+!  Make sure we don't go out of bounds on any array.
+         num_currents = MIN(SIZE(extcur),                                      &
+     &                      SIZE(this%responce_function%rdiag_coilg_1))
+         IF (num_currents .lt. this%responce_function%n_field_cg) THEN
+            CALL err_warn('magnetic_get_modeled_signal: ' //                   &
+     &                    'mdsig_file expected more currents')
+         END IF
+
+         IF (scale_current) THEN
+            magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
+     &         this%responce_function%rdiag_coilg_1(1:num_currents),           &
+     &         extcur(1:num_currents)/this%responce_function%extcur_mg)
+         ELSE
+            magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
+     &         this%responce_function%rdiag_coilg_1(1:num_currents),           &
+     &         extcur(1:num_currents))
+         END IF
+      END IF
 
 !-------------------------------------------------------------------------------
 

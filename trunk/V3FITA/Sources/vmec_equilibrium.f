@@ -1293,10 +1293,9 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get external current magnetic signal.
+!  Get external current.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_ext_mag_signal(this, diag_coils,                       &
-     &                                 current_scales, num_coil_groups)
+      FUNCTION vmec_get_ext_currents(this, scale_currents)
       USE vmec_input, only: lfreeb
       USE mgrid_mod, only: mgrid_mode, nextcur
       USE vmec_input, only: extcur
@@ -1304,36 +1303,24 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: vmec_get_ext_mag_signal
-      TYPE (vmec_class), INTENT(in)          :: this
-      REAL (rprec), DIMENSION(:), INTENT(in) :: diag_coils
-      REAL (rprec), DIMENSION(:), INTENT(in) :: current_scales
-      INTEGER, INTENT(in)                    :: num_coil_groups
-
-!  local variables
-      INTEGER                       :: num_currents
+      REAL (rprec), DIMENSION(:), POINTER :: vmec_get_ext_currents
+      TYPE (vmec_class), INTENT(in)       :: this
+      LOGICAL, INTENT(out)                :: scale_currents
 
 !  Start of executable code
       IF (lfreeb) THEN
-         num_currents = MIN(nextcur, SIZE(diag_coils, 1),                      &
-     &                      num_coil_groups)
-
          SELECT CASE (mgrid_mode)
 
             CASE ('S', 's', 'N', 'n')
-               vmec_get_ext_mag_signal =                                       &
-     &            SUM(diag_coils(1:num_currents) *                             &
-     &                extcur(1:num_currents) /                                 &
-     &                current_scales(1:num_currents))
+               scale_currents = .true.
 
             CASE DEFAULT
-               vmec_get_ext_mag_signal =                                       &
-     &            SUM(diag_coils(1:num_currents) *                             &
-     &                extcur(1:num_currents))
+               scale_currents = .false.
 
          END SELECT
+         vmec_get_ext_currents => extcur(1:nextcur)
       ELSE
-         vmec_get_ext_mag_signal = 0.0
+         vmec_get_ext_currents => null()
       END IF
 
       END FUNCTION
