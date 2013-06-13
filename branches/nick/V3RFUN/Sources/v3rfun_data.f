@@ -67,7 +67,7 @@
 !      TYPE (bsc_coilcoll), SAVE :: diagnostic_coils
 
 !  Store the mddc_desc-s in an array.
-      TYPE(mddc_desc), DIMENSION(2000), SAVE :: mddc_desc_array
+      TYPE(mddc_desc), DIMENSION(10000), SAVE :: mddc_desc_array
 
 !----------------------------------------------------------------------
 !-- response functions due to external coils                         --

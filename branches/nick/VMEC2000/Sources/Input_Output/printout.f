@@ -14,7 +14,7 @@ C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
       CHARACTER(LEN=*), PARAMETER :: 
-     1   iter_line = " ITER    FSQR      FSQZ      FSQL   ",
+     1   iter_line = "  ITER    FSQR      FSQZ      FSQL   ",
      1   delt_line = "    DELT  ",        !J.Geiger 20101118
      2   fsq_line  = "   fsqr      fsqz      fsql      DELT    ",
      3   raxis_line = " RAX(v=0) ",
@@ -27,7 +27,11 @@ C-----------------------------------------------
      1          LEN(raxis_line) + LEN(zaxis_line)) :: 
      2          print_line
 C-----------------------------------------------
+#ifdef _ANIMEC
+      betav = (2*wper + wpar)/(3*wb)
+#else
       betav = wp/wb
+#endif
       w = w0*twopi*twopi
       den = zero
       specw(1) = one

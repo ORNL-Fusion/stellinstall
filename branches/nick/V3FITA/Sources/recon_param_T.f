@@ -152,7 +152,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE recon_param_change_value
          MODULE PROCEDURE recon_param_change_value_s,                          & 
-     &      recon_param_change_value_a
+     &                    recon_param_change_value_a
       END INTERFACE
 
       CONTAINS
@@ -215,8 +215,6 @@
       CASE ('rbs')
       CASE ('zbc')
       CASE ('zbs')
-!      CASE ('density_max')
-!      CASE ('density_tau')
       CASE ('pp_ne_b')
       CASE ('pp_ne_as')
       CASE ('pp_ne_af')

@@ -113,8 +113,11 @@ C-----------------------------------------------
             RETURN
          ENDIF
 
+#ifdef _ANIMEC
+         w0 = wb + wpar/(gamma-one)
+#else
          w0 = wb + wp/(gamma - one)
-
+#endif
 !
 !     ADDITIONAL STOPPING CRITERION (set liter_flag to FALSE)
 !

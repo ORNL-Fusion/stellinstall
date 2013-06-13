@@ -8,4 +8,4 @@ add_subdirectory (Sources)
 
 # Define a library build from all the sources.
 add_library (stell STATIC ${stell_sources})
-
+set_target_properties (stell PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/stell)

@@ -3,8 +3,11 @@
       USE vmec_params
       USE realspace
       USE vforces, r12 => armn_o, bsupu => crmn_e, bsupv => czmn_e,
-     1   gsqrt => azmn_o, bsq => bzmn_o, izeta => azmn_e,
-     2   bphi => czmn_o, curtheta => brmn_e
+     1   gsqrt => azmn_o, bsq => bzmn_o, izeta => azmn_e, 
+     2   brho => bzmn_e, bphi => czmn_o, curtheta => brmn_e
+#ifdef _ANIMEC
+     3  ,tau_an => brmn_o
+#endif
       USE vacmod
       USE vsvd
       USE vspline
@@ -97,6 +100,10 @@ C-----------------------------------------------
          END DO
       END IF
 
+#ifdef _ANIMEC
+!EVALUATE MIRROR STABILITY CRITERION; BSQ ==> MAGNETIC PRESSURE
+      CALL mirror_crit(tau_an,bsq)
+#endif
 !
 !     NOTE: JXBFORCE ROUTINE MUST BE CALLED TO COMPUTE IZETA, JDOTB
 !           ON OUTPUT, J, IZETA, JDOTB ARE IN MKS UNITS (1/MU0 FACTOR)
@@ -105,7 +112,11 @@ C-----------------------------------------------
 !
 
       CALL jxbforce (bsupu, bsupv, bsubu, bsubv, crmn_o, rcon, zcon, 
-     1               gsqrt, bsq, curtheta, izeta, ier_flag)
+     1        gsqrt, bsq, curtheta, izeta, brho, sigma_an, ier_flag
+#ifdef _ANIMEC
+     2       ,pp1, pp2, ppar, onembc
+#endif
+     3                )
 !
 !     HALF-MESH VOLUME-AVERAGED BETA
 !
@@ -247,7 +258,7 @@ C-----------------------------------------------
       er = one/er**2
       kappa_p = er + SQRT(ABS(er*er - 1))
       vvc_kappa_p = kappa_p ! Save result for v3fit.
- 
+
 !
 !
 !     OUTPUT BETAS, INDUCTANCES, SAFETY FACTORS, ETC.

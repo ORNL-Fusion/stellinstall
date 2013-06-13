@@ -26,6 +26,9 @@ C   E x t e r n a l   F u n c t i o n s
 C-----------------------------------------------
       REAL(rprec), EXTERNAL :: pcurr, pmass, piota, torflux,
      1    torflux_deriv, polflux, polflux_deriv
+#ifdef _ANIMEC
+     2  , photp, ptrat
+#endif
 C-----------------------------------------------
 !
 !                INDEX OF LOCAL VARIABLES
@@ -74,6 +77,9 @@ C-----------------------------------------------
 !     Compute lamscale factor for "normalizing" lambda (needed for scaling hessian)
 !
       lamscale = SQRT(hs*SUM(phips(2:ns)**2))
+!      lamscale = 1
+      PRINT *,' LAMSCALE = ', lamscale
+
       IF (lflip) THEN
          iotas = -iotas
          chips = -chips
@@ -81,7 +87,7 @@ C-----------------------------------------------
 
       DO i = 1,ns
          si = hs*(i-1)
-!         tflux = torflux(si)
+!         si = torflux(si)
          iotaf(i) = piota(si)
          phipf(i) = torflux_edge * torflux_deriv(si)
          chipf(i) = torflux_edge * polflux_deriv(si)
@@ -121,6 +127,11 @@ C-----------------------------------------------
           END IF
           pedge = pedge
           mass(i) = pedge*(ABS(vpnorm)*r00)**gamma
+#ifdef _ANIMEC
+!         ANISOTROPIC PRESSURE, Tper/T|| RATIOS
+          phot(i) = photp(si)
+          tpotb(i)= ptrat(si)
+#endif
         END DO
 
       ELSE
@@ -133,6 +144,10 @@ C-----------------------------------------------
       pres(:ns+1) = 0
       xcdot(:neqs2) = 0
 
+#ifdef _ANIMEC
+      medge  = pmass (one) * (ABS(phips(ns))*r00)**gamma
+      phedg  = photp (one)
+#endif
       DO i = 1, ns
          si = hs*ABS(i-1.5_dp)
 !         si = torflux(si)                      !SPH060409: shalf = sqrt(s), NOT sqrt(phi(s))!

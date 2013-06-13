@@ -6,31 +6,31 @@
      1                   lu1, lv1, rcn1, zcn1)
       USE vmec_main
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs
+     1                      ,lamscale
       USE precon2d, ONLY: ictrl_prec2d
-      USE xstuff, ONLY: xc
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,3*ntmax),
      1   TARGET, INTENT(inout) :: rzl_array
       REAL(rprec), DIMENSION(ns*nzeta*ntheta3,0:1),
      1   INTENT(out) :: r11, ru1,
      1   rv1, z11, zu1,  zv1, lu1, lv1, rcn1, zcn1
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       INTEGER, PARAMETER :: m0 = 0, m1 = 1, n0 = 0
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: n, m, mparity, k, i, j1, l, j1l, nsl
       INTEGER :: ioff, joff, mj, ni, nsz
       REAL(rprec), DIMENSION(:,:,:), POINTER ::
      1           rmncc, rmnss, zmncs, zmnsc, lmncs, lmnsc
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
       REAL(rprec) :: cosmux, sinmux
-C-----------------------------------------------
+!-----------------------------------------------
 !
 !     WORK1 Array of inverse transforms in toroidal angle (zeta), for all radial positions
 !     NOTE: ORDERING OF LAST INDEX IS DIFFERENT HERE THAN IN PREVIOUS VMEC2000 VERSIONS
@@ -50,6 +50,8 @@ C-----------------------------------------------
          lmncs => rzl_array(:,:,:,zcs+2*ntmax)       !!COS(mu) SIN(nv)
          CALL convert_sym (rmnss, zmncs)
       END IF
+
+      fnorm1 = one/SUM(rzl_array(ns,n0,m1,:)**2)    !Norm for preconditioned R,Z forces: scale to m=1,n=0 r,z
 
 !
 !     ORIGIN EXTRAPOLATION (JS=1) FOR M=1 MODES
@@ -201,21 +203,21 @@ C-----------------------------------------------
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs
       USE precon2d
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,3*ntmax),
      1   TARGET, INTENT(inout) :: rzl_array
       REAL(rprec), DIMENSION(ns*nzeta,ntheta3,0:1),
      1   INTENT(inout) :: r11, ru1,
      1   rv1, z11, zu1,  zv1, lu1, lv1, rcn1, zcn1
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       INTEGER, PARAMETER :: m0 = 0, m1 = 1, n0 = 0
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: n, m, mparity, k, i, j1, l, j1l, nsl
       INTEGER :: ioff, joff, mj, ni
       REAL(rprec), DIMENSION(:,:,:), POINTER ::
@@ -223,7 +225,7 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
       REAL(rprec) :: cosmux, sinmux
       LOGICAL :: logl, logr, logz
-C-----------------------------------------------
+!-----------------------------------------------
 !
 !     SAME AS totzsps, BUT ONLY COMPUTES perturbation (rzl_array is perturbation) TO EXISTING R,Z FOR
 !     A PARTICULAR (m,n,ntype) = (m_2d,n_2d,ntype_2d) VALUE

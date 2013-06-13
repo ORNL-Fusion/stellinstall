@@ -70,7 +70,8 @@
      &              signal_sigma_id, signal_eff_matrix_id
       END TYPE result_file
 
-      PUBLIC  :: result_output_file_create, result_output_file_write_step,     &
+      PUBLIC  :: result_output_file_create,                                    &
+     &           result_output_file_write_step,                                & 
      &           result_output_file_close
       PRIVATE :: result_output_check_error
       
@@ -156,7 +157,6 @@
 
 ! Working variables
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: sem_a
-      REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: psigma_v
       INTEGER                                  :: err
       INTEGER                                  :: boundary_i, boundary_j
       CHARACTER(len=*), PARAMETER              :: sub_name =                   &

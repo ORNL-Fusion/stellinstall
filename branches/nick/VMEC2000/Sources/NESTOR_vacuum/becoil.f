@@ -50,7 +50,7 @@ C-----------------------------------------------
 !       DETERMINE PHI-PLANE, KV (MUST LIE IN FIRST FIELD PERIOD)
 !
          kv = 1 + MOD(i - 1,nv)
-         kv = MIN (kv, np0b)                       !!Axi-symmetric special CASE
+         kv = MIN (kv, np0b)                       !!Axi-symmetric special case
 !
 !
 !       DETERMINE INTEGER INDICES (IR,JZ) FOR LOWER LEFT R, Z CORNER GRID POINT

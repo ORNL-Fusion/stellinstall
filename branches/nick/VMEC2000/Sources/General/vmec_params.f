@@ -26,7 +26,7 @@ C-----------------------------------------------
      2                      cleanup_flag=16, reset_jacdt_flag=32
     
       REAL(rprec), PARAMETER :: pdamp = 0.05_dp  
-      CHARACTER(LEN=*), PARAMETER :: version_ = '8.49'
+      CHARACTER(LEN=*), PARAMETER :: version_ = '8.50'
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -48,7 +48,7 @@ C-----------------------------------------------
 !          b) added "bias" to iotas in bcovar when determining preconditioner for very small iota
 !             values. Seems to need this for improving convergence of preconditioned current-hole cases.
 !             Eliminated in v8.20.
-!          c) added "totzsp_hess" to recompute r,z,l rapidly for only those modes that are jogged during
+!          c) added "totzsps,a_hess" to recompute r,z,l rapidly for only those modes that are jogged during
 !             Hessian calculation. NOTE: need to do this for lasym=true case, as well, eventually
 !     8.20  (August, 2004)
 !          a) removed 2-pt tie at origin for m=1 modes, to preserve tri-diagonal structure of Hessian.
@@ -131,5 +131,9 @@ C-----------------------------------------------
 !             axis can be initially shifted to improve the initial force residuals. It is important NOT to move
 !             the helical axis for RFP equilibria requiring a helical seed (set l_moveaxis=F for this case!)
 !
+!     8.50   (Jan, 2013)
+!          a) Improved scaling of lambda forces with respect to lamscale
+!          b) Fixed fnorm1 scaling (remove hs dependence)
+!          c) Added lgiveup logical (M. Drevlak/J. Geiger)
 !-----------------------------------------------
       END MODULE vmec_params

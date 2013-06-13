@@ -234,6 +234,7 @@ C-----------------------------------------------
       k = 1                     ! this is always a symmetry plane
       phi = (k-1)*delp
 
+!$omp parallel do private(zee, rad)
       DO j=1,jz2 + jz_odd
          zee = zmin + (j-1)*delz
          DO i=1,ir
@@ -248,9 +249,11 @@ C-----------------------------------------------
             END IF
          END DO
       END DO
+!$omp end parallel do
       IF (kp .ne. 1) 
      1   WRITE (6, '(a,i4,a,i4,a)') ' K = ',k,' (OUT OF ',KP,')'
 
+!$omp parallel do private(zee, rad, phi)
       DO k=2,kp2+kp_odd
          phi = (k-1)*delp
          DO j=1,jz
@@ -268,10 +271,12 @@ C-----------------------------------------------
          END DO
          WRITE (6,'(a,i4)') ' K = ',k
       END DO
+!$omp end parallel do
 
       IF ((kp_odd == 0) .and. lstell_sym) THEN       ! another symmetry plane
          k = kp2 + 1
          phi = (k-1)*delp
+!$omp parallel do private(zee, rad)
          DO j=1,jz2 + jz_odd
             zee = zmin + (j-1)*delz
             DO i=1,ir
@@ -283,6 +288,7 @@ C-----------------------------------------------
                bp(i,jz+1-j,k) =  bp(i,j,k)
             END DO
          END DO
+!$omp end parallel do
          WRITE (6,'(a,i4)') ' K = ',k
       END IF
 

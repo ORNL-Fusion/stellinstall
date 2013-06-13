@@ -13,8 +13,15 @@ C-----------------------------------------------
       IF (ALLOCATED(armn))
      1   DEALLOCATE (armn, azmn, brmn, bzmn, crmn, czmn, blmn, clmn,
      2   r1, ru, rv, z1, zu, zv, gcon, rcon, zcon, ru0, zu0,
-     3   rcon0, zcon0, guu, guv, gvv, stat=istat1)
+     3   rcon0, zcon0, guu, guv, gvv, sigma_an, stat=istat1)
       IF (istat1 .ne. 0) STOP 'deallocation error#1 in funct3d'
+
+#ifdef _ANIMEC
+      IF (ALLOCATED(pperp))
+     1   DEALLOCATE (pperp, ppar, onembc, pp1, pp2, pp3,
+     2               stat=istat1)
+      IF (istat1 .ne. 0) STOP 'deallocation error#1A in funct3d'
+#endif
 
       IF (ALLOCATED(brv))
      1   DEALLOCATE (brv, bphiv, bzv, bsqvac, stat=istat1)

@@ -70,8 +70,6 @@ C-----------------------------------------------
 
 !         iter_on = iter2                     !Flag to monitor progress of preconditioner
 
-!SPH093009: ADD THIS IF lforbal WAS OFF FOR REGULAR ITERATIONS (FOR CONVERGENCE PURPOSES)
-!!         lforbal = .true.
 !SPH022111: ADD NEW CONTROL PARAMETER, l_comp_prec2D, TO FORCE RECALCULATION
 !           OF PRECONDITIONING BLOCKS IN V3FIT, FOR EXAMPLE
          IF (lfirst .or. l_comp_prec2D) THEN

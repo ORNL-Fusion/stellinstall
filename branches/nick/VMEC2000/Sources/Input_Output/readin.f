@@ -305,7 +305,7 @@ C-----------------------------------------------
       ELSE
           nsmin = 1
           DO WHILE (ns_array(multi_ns_grid) .ge. nsmin .and.
-     1             multi_ns_grid .lt. 100)
+     1             multi_ns_grid .lt. 100)      ! .ge. previously .gt.
              nsmin = MAX(nsmin, ns_array(multi_ns_grid))
              IF (nsmin .le. nsd) THEN
                 multi_ns_grid = multi_ns_grid + 1
@@ -331,28 +331,48 @@ C-----------------------------------------------
 !
 !     WRITE OUT DATA TO THREED1 FILE
 !
+
+!SPH121912 - SCALING TO RENDER LAMSCALE=1
+!      delta = twopi/phiedge    !phiedge=>twopi
+!      phiedge = phiedge*delta
+!      bcrit = bcrit*delta
+!      curtor = curtor*delta
+!      extcur = extcur*delta
+!      am = am*delta**2
+
       WRITE (nthreed,100)
      1  ns_array(multi_ns_grid),ntheta1,nzeta,mpol,ntor,nfp,
+#ifdef _ANIMEC
+     2  gamma,spres_ped,phiedge,curtor,bcrit,lRFP
+#else
      2  gamma,spres_ped,phiedge,curtor,lRFP
+#endif
  100  FORMAT(/,' COMPUTATION PARAMETERS: (u = theta, v = zeta)'/,
      1  1x,45('-'),/,
      2  '     ns     nu     nv     mu     mv',/,
      3  5i7,//,' CONFIGURATION PARAMETERS:',/,1x,39('-'),/,
      4  '    nfp      gamma      spres_ped    phiedge(wb)'
+#ifdef _ANIMEC
+     5  '     curtor(A)      BCrit(T)        lRFP',
+     6  /,i7,1p,e11.3,2e15.3,2e14.3,L12/)
+#else
      5  '     curtor(A)        lRFP',
-     5  /,i7,1p,e11.3,2e15.3,e14.3,L12/)
+     6  /,i7,1p,e11.3,2e15.3,e14.3,L12/)
+#endif
 
       IF (nvacskip.le.0) nvacskip = nfp
       WRITE (nthreed,110) ncurr,niter_array(multi_ns_grid),ns_array(1),
      1  nstep,nvacskip,
      2  ftol_array(multi_ns_grid),tcon0,lasym,lforbal,lmove_axis,lconm1,
-     3  mfilter_fbdy,nfilter_fbdy,lfull3d1out,max_main_iterations
+     3  mfilter_fbdy,nfilter_fbdy,lfull3d1out,max_main_iterations,
+     4  lgiveup,fgiveup                                         ! M Drevlak 20130114
  110  FORMAT(' RUN CONTROL PARAMETERS:',/,1x,23('-'),/,
      1  '  ncurr  niter   nsin  nstep  nvacskip      ftol     tcon0',
      2  '    lasym  lforbal lmove_axis lconm1',/,
      3     4i7,i10,1p,2e10.2,4L9,/,
-     3  '  mfilter_fbdy nfilter_fbdy lfull3d1out max_main_iterations',/, ! J Geiger 20120203
-     4     2(6x,i7),L12,10x,i10,/)
+     4  '  mfilter_fbdy nfilter_fbdy lfull3d1out max_main_iterations', ! J Geiger 20120203
+     5  ' lgiveup fgiveup',/,               ! M Drevlak 20130114
+     6     2(6x,i7),L12,10x,i10,L8,e9.1,/)  ! M Drevlak 20130114
 
       WRITE (nthreed,120) precon_type, prec2d_threshold
  120  FORMAT(' PRECONDITIONER CONTROL PARAMETERS:',/,1x,34('-'),/,
@@ -449,6 +469,19 @@ C-----------------------------------------------
       WRITE(nthreed,135)(aphi(i),i=1, SIZE(aphi))
  150  FORMAT(/' NORMALIZED TOROIDAL FLUX COEFFICIENTS aphi',
      1   ' (EXPANSION IN S):',/,1x,35('-'))
+#ifdef _ANIMEC
+      IF (ANY(ah .ne. zero)) THEN
+         WRITE(nthreed,160)
+         WRITE(nthreed,135)(ah(i-1),i=1, SIZE(ah))
+         WRITE(nthreed,165)
+         WRITE(nthreed,135)(at(i-1),i=1, SIZE(at))
+      END IF
+
+ 160  FORMAT(' HOT PARTICLE PRESSURE COEFFICIENTS ah',
+     1  ' (EXPANSION IN TOROIDAL FLUX):',/,1x,35('-'))
+ 165  FORMAT(' HOT PARTICLE TPERP/T|| COEFFICIENTS at',
+     1  ' (EXPANSION IN TOROIDAL FLUX):',/,1x,35('-'))
+#endif
 
 !  Fourier Boundary Coefficients
       WRITE(nthreed,180)

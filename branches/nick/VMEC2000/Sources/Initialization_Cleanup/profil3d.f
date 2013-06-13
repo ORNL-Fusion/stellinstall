@@ -37,9 +37,11 @@ C-----------------------------------------------
       END DO
 
       phip(nrzt+1) = 0
-
       faclam = 0
-
+#ifdef _ANIMEC
+!INITIALIZE sigma FOR ANISOTROPIC PLASMA
+      sigma_an = 1
+#endif
       lk = 0
       DO lt = 1, ntheta3
          DO lz = 1, nzeta

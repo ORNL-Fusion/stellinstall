@@ -41,7 +41,12 @@
  100  CONTINUE
 
 !     CHANGE THIS FOR lRFP = T  (solve for phips?)
-      IF (.not.lcurrent) chips(2:ns) = iotas(2:ns)*phips(2:ns)
+      IF (ncurr .eq. 0) THEN
+         chips = iotas*phips
+      ELSE IF (.not.lcurrent) THEN
+         WHERE (phips .ne. zero) iotas = chips/phips
+      END IF
+!!      IF (.not.lcurrent) chips = iotas*phips
 
       DO js = 2, ns
          chip(js:nrzt:ns) = chips(js)
@@ -68,16 +73,5 @@
       END IF
 
       bsupu(:nrzt) = bsupu(:nrzt)+chip(:nrzt)*overg(:nrzt)
-
-!     FOR PRECONDITIONER, GIVE IOTA A PEDESTAL VALUE TO AVOID SINGULAR HESSIAN
-!     WITHOUT THIS, THE D3D curhole CASES, WHERE iota CHANGES SIGN, DO NOT CONVERGE WELL IF AT ALL
-!      IF (ictrl_prec2d .ge. 2) THEN
-!         DO js = 2, ns
-!           IF (ABS(iotas(js)) .le. iotaped) THEN
-!              bsupu(js:nrzt:ns) = bsupu(js:nrzt:ns) +                   &
-!     &         (SIGN(iotaped,chips(js)) - chips(js))*overg(js:nrzt:ns)
-!           END IF
-!         END DO
-!      END IF
 
       END SUBROUTINE add_fluxes
