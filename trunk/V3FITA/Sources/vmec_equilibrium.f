@@ -486,7 +486,10 @@
      &         cosv_nyq(mnmax_nyq, this%magnetic_cache%kv),                    &
      &         sinv_nyq(mnmax_nyq, this%magnetic_cache%kv))
 
-! U grid is square with the s grid.
+!  U grid is square with the s grid.
+!  FIXME: There is no reason to recalulate the sin and cosin arrays every time.
+!  Instead cache these in magnetic cache and calculate them once in
+!  vmec_set_magnetic_cache_init
       DO u = 1, ns
          cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
          sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
@@ -536,24 +539,24 @@
                jv = SUM(currvmnc(:,s)*cosz_nyq)
 
                IF (lasym) THEN
-                  this%magnetic_cache%rsuv(s, u, v) =                          &
-     &               this%magnetic_cache%rsuv(s, u, v) +                       &
+                  this%magnetic_cache%rsuv(s,u,v) =                            &
+     &               this%magnetic_cache%rsuv(s,u,v) +                         &
      &               SUM(rmns(:,s)*sinz)
-                  this%magnetic_cache%zsuv(s, u, v) =                          &
-     &               this%magnetic_cache%zsuv(s, u, v) +                       &
+                  this%magnetic_cache%zsuv(s,u,v) =                            &
+     &               this%magnetic_cache%zsuv(s,u,v) +                         &
      &               SUM(zmnc(:,s)*cosz)
                   ru = ru + SUM(xm*rmns(:,s)*cosz)
                   zu = zu - SUM(xm*zmnc(:,s)*sinz)
                   rv = rv - SUM(xn*rmns(:,s)*cosz)
                   zv = zv + SUM(xn*zmnc(:,s)*sinz)
 
-                  ju = ju + SUM(currumnc(:,s)*sinz_nyq)
-                  jv = jv + SUM(currvmnc(:,s)*sinz_nyq)
+                  ju = ju + SUM(currumns(:,s)*sinz_nyq)
+                  jv = jv + SUM(currvmns(:,s)*sinz_nyq)
                END IF
 
                this%magnetic_cache%jrsuv(s,u,v) = ju*ru + jv*rv
                this%magnetic_cache%jphisuv(s,u,v) =                            &
-     &            jv*this%magnetic_cache%rsuv(s, u, v)
+     &            jv*this%magnetic_cache%rsuv(s,u,v)
                this%magnetic_cache%jzsuv(s,u,v) = ju*zu + jv*zv
             END DO
          END DO
@@ -1208,15 +1211,21 @@
 !  local variables
       TYPE (bivariate_type)                      :: bivariate_object
       INTEGER                                    :: v, r, z
-      REAL (rprec), DIMENSION(num_r)             :: rgrid
-      REAL (rprec), DIMENSION(num_z)             :: zgrid
-      REAL (rprec), DIMENSION(ns, ns)            :: responce_rsuv
-      REAL (rprec), DIMENSION(ns, ns)            :: responce_phisuv
-      REAL (rprec), DIMENSION(ns, ns)            :: responce_zsuv
-      REAL (rprec), DIMENSION(ns, ns)            :: sumsuv
-      REAL (rprec), DIMENSION(num_phi)           :: sumv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: rgrid
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: zgrid
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: responce_rsuv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: responce_phisuv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: responce_zsuv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: sumsuv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: sumv
 
 !  Start of executable code
+      ALLOCATE(rgrid(num_r), zgrid(num_z))
+      ALLOCATE(responce_rsuv(ns,ns))
+      ALLOCATE(responce_phisuv(ns,ns))
+      ALLOCATE(responce_zsuv(ns,ns))
+      ALLOCATE(sumsuv(ns,ns), sumv(num_phi))
+
       DO r = 1, num_r
          rgrid(r) = r_min + (r - 1)*(r_max - r_min)/(num_r - 1)
       END DO
@@ -1237,11 +1246,11 @@
      &                     rgrid, zgrid, v, 1)
 
          CALL bivariate4pt(bivariate_object,                                   &
-     &                     r_fun, responce_rsuv, v)
+     &                     r_fun(:,:,v), responce_rsuv, v)
          CALL bivariate4pt(bivariate_object,                                   &
-     &                     phi_fun, responce_phisuv, v)
+     &                     phi_fun(:,:,v), responce_phisuv, v)
          CALL bivariate4pt(bivariate_object,                                   &
-     &                     z_fun, responce_zsuv, v)
+     &                     z_fun(:,:,v), responce_zsuv, v)
 
          sumsuv = this%magnetic_cache%jrsuv(:,:,v)*responce_rsuv               &
      &          + this%magnetic_cache%jphisuv(:,:,v)*responce_phisuv           &
@@ -1251,6 +1260,11 @@
      &           + SUM(sumsuv(1,:) + sumsuv(ns,:))/2.0
 
       END DO
+
+!      DO v = 1, ns
+!         WRITE(*,*) responce_rsuv(v,:)
+!      END DO
+!      STOP
 
       CALL clear_bivar(bivariate_object)
 
@@ -1262,6 +1276,12 @@
 
       vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal                  &
      &                           * vmec_get_volume_int_element(this)
+
+      DEALLOCATE(rgrid, zgrid)
+      DEALLOCATE(responce_rsuv)
+      DEALLOCATE(responce_phisuv)
+      DEALLOCATE(responce_zsuv)
+      DEALLOCATE(sumsuv, sumv)
 
       END FUNCTION
 

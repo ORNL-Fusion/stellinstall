@@ -204,6 +204,7 @@
       LOGICAL                                   :: converged
       INTEGER                                   :: i
       REAL (rprec), DIMENSION(4)                :: sigma
+      REAL (rprec), DIMENSION(4)                :: observed
 
 !  Start of executable code
       WRITE (*,*) ' *** In task v3post'
@@ -222,10 +223,10 @@
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
       DO i = 1, SIZE(context%signals)
-         WRITE (*,*) i, context%signals(i)%p%s_name,                           &
-     &               signal_get_modeled_signal(context%signals(i)%p,           &
+         observed = signal_get_modeled_signal(context%signals(i)%p,            &
      &                                         context%model,                  &
      &                                         sigma, .false.)
+         WRITE (*,*) i, context%signals(i)%p%s_name, observed
       END DO
 
       END SUBROUTINE
