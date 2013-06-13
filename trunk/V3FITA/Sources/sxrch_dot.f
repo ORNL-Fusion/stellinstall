@@ -95,19 +95,24 @@
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!  
-!-------------------------------------------------------------------------------
+      INTERFACE sxrch_dot_read
+         MODULE PROCEDURE sxrch_dot_read_old,                                  &
+     &                    sxrch_dot_read_new
+      END INTERFACE
+
+      INTERFACE sxrch_dot_parse_chord
+         MODULE PROCEDURE sxrch_dot_parse_chord_old,                           &
+     &                    sxrch_dot_parse_chord_new
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
 ! SECTION III. PUBLICLY ACCESSIBLE SUBROUTINES
 !*******************************************************************************
-
-      SUBROUTINE sxrch_dot_read (sxrch_file,sxrch_desc_arr,n_chords)
-      
 !  Subroutine to parse the large structure of the sxrch_dot_file
 !  Individual sxr chords are parsed by the sxrch_dot_parse_xxxx subroutines
+!-------------------------------------------------------------------------------
+      SUBROUTINE sxrch_dot_read_old (sxrch_file,sxrch_desc_arr,n_chords)
 
       IMPLICIT NONE
       
@@ -138,8 +143,6 @@
 
       INTEGER               :: icount_chords
       INTEGER               :: n_sxrch_desc_arr
-      CHARACTER (len=30)    :: s_name                                 
-      CHARACTER (len=80)    :: l_name
 
       TYPE(signal_dot_file) :: sxrch_dot_file_ref
 !  Make sure that len for this_keyword is the same as len for sxrchd_keyword.
@@ -203,7 +206,95 @@
       n_chords = icount_chords
       
       RETURN
-      END SUBROUTINE sxrch_dot_read
+      END SUBROUTINE sxrch_dot_read_old
+
+!-------------------------------------------------------------------------------
+!  Subroutine to parse the large structure of the sxrch_dot_file
+!  Individual sxr chords are parsed by the sxrch_dot_parse_xxxx subroutines
+!
+!  This new coding constructs signals using the new signal classes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE sxrch_dot_read_new(sxrch_file, signals,                       &
+     &                              signals_created, observed, sigma,          &
+     &                              weight)
+      USE signal
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+!  sxrch_file       Name of the sxrch. file.
+!  signals          Array of pointers to the a signal
+!  signals_created  Number valid signals in the array, or index of the last
+!                   created.
+      CHARACTER (len=data_filename_length), INTENT(in)   :: sxrch_file
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      INTEGER, INTENT(inout) :: signals_created
+
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+!  n_sxrchd_keyword        integer - number of sxrchd_keyword s.
+      INTEGER, PARAMETER :: n_sxrchd_keyword = 3
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+!  sxrchd_keyword    character array - keywords for various sxrch input types
+      CHARACTER(len=len_key), DIMENSION(1:n_sxrchd_keyword) ::                 &
+     &   sxrchd_keyword
+      TYPE(signal_dot_file)                 :: sxrch_dot_file_ref
+      REAL(rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL(rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL(rprec), DIMENSION(:), INTENT(in) :: weight
+
+!-----------------------------------------------
+!  Start of Executable Code
+!-----------------------------------------------
+
+!  Initialize the keywords
+      sxrchd_keyword(1) = 'sxr_chord_XYZ'
+      sxrchd_keyword(2) = 'sxr_chord_RPhiDegZ'
+      sxrchd_keyword(3) = 'end_of_file'
+
+!  Open up the 'sxrch.' file
+      sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file),"sxrch")
+
+!  Infinite Loop
+!  Character variable line should be defined on entry
+      DO
+!  Branch on the keyword
+         SELECT CASE (signal_dot_read_keyword(sxrch_dot_file_ref,              &
+     &                                        sxrchd_keyword))
+
+            CASE DEFAULT ! This case should never fire.
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('end_of_file')
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('sxr_chord_XYZ')
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'XYZ', signals,                      &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight)
+
+            CASE ('sxr_chord_RPhiDegZ')
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'RPHiDegZ', signals,                 &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight)
+
+         END SELECT
+
+      END DO
+
+!  Close the 'sxrch.' file
+      CALL signal_dot_close(sxrch_dot_file_ref)
+
+      END SUBROUTINE sxrch_dot_read_new
 
 !*******************************************************************************
 ! SECTION IV. PARSING SUBROUTINES
@@ -225,14 +316,14 @@
 !     - End of File or other problem: sxrchd_l_done set to .true.
 !     
 !-------------------------------------------------------------------------------
-
-      SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
-     &                                 coordinate_type,                        &
-     &                                 icount_chords,                          &
-     &                                 n_sxrch_desc_arr,                       &
-     &                                 sxrch_desc_arr)
 !  Subroutine to parse an sxrch chord (redundant chord there)
 !      sxrchd_keyword(1) = 'sxr_chord_XYZ' or 'sxr_chord_RPhiDegZ'
+!-------------------------------------------------------------------------------
+      SUBROUTINE sxrch_dot_parse_chord_old(sxrch_dot_file_ref,                 &
+     &                                     coordinate_type,                    &
+     &                                     icount_chords,                      &
+     &                                     n_sxrch_desc_arr,                   &
+     &                                     sxrch_desc_arr)
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -267,7 +358,63 @@
      &                             chord_name, xcart_i, xcart_f)
       ENDIF
 
-      END SUBROUTINE sxrch_dot_parse_chord
+      END SUBROUTINE sxrch_dot_parse_chord_old
+
+!-------------------------------------------------------------------------------
+!  Subroutine to parse an sxrch chord (redundant chord there)
+!      sxrchd_keyword(1) = 'sxr_chord_XYZ' or 'sxr_chord_RPhiDegZ'
+!-------------------------------------------------------------------------------
+      SUBROUTINE sxrch_dot_parse_chord_new(sxrch_dot_file_ref,                 &
+     &                                     coordinate_type,                    &
+     &                                     signals,                            &
+     &                                     signals_created,                    &
+     &                                     observed, sigma, weight)
+      USE signal
+      USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3_utilities, only: err_fatal
+
+      IMPLICIT NONE
+
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      TYPE(signal_dot_file), INTENT(inout)  :: sxrch_dot_file_ref
+      CHARACTER (len=*)                     :: coordinate_type
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      INTEGER, INTENT(inout)                :: signals_created
+      REAL(rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL(rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL(rprec), DIMENSION(:), INTENT(in) :: weight
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(rprec), DIMENSION(3)      :: xcart_i, xcart_f
+      CHARACTER (len=chord_name_len) :: chord_name
+
+!-----------------------------------------------
+!  Start of Executable Code
+!-----------------------------------------------
+!  Check if there are two many signals.
+      IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
+         CALL err_fatal('sxrch_dot_parse_chord_new: created signals' //        &
+     &                  ' exceeds v3fit_max_diagnostics')
+      END IF
+
+!  Get the start, end and name of chord.
+      CALL signal_dot_parse_chord(sxrch_dot_file_ref,                          &
+     &                            coordinate_type,                             &
+     &                            chord_name,                                  &
+     &                            xcart_i, xcart_f)
+
+      signals(signals_created + 1)%p => signal_construct(                      &
+     &   diagnostic_construct(                                                 &
+     &      sxrem_construct(xcart_i, xcart_f)), chord_name, chord_name,        &
+     &   'arb', observed(signals_created + 1),                                 &
+     &   sigma(signals_created + 1), weight(signals_created + 1))
+      signals_created = signals_created + 1
+
+      END SUBROUTINE sxrch_dot_parse_chord_new
 
 !*******************************************************************************
 ! SECTION V. AUXILIARY SUBROUTINES

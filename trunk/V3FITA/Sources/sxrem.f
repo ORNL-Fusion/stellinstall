@@ -37,18 +37,22 @@
 !-------------------------------------------------------------------------------
 !  Construct a sxrem.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct(chord_path)
+      FUNCTION sxrem_construct(start_path, end_path)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (sxrem_class), POINTER :: sxrem_construct
-      TYPE (path), INTENT(in)     :: chord_path
+      REAL(rprec), DIMENSION(3)   :: start_path
+      REAL(rprec), DIMENSION(3)   :: end_path
 
 !  Start of executable code
       ALLOCATE(sxrem_construct)
 
-      sxrem_construct%chord_path = chord_path
+      CALL path_append_vertex(sxrem_construct%chord_path, start_path(1),       &
+     &                        start_path(2), start_path(3))
+      CALL path_append_vertex(sxrem_construct%chord_path, end_path(1),         &
+     &                        end_path(2), end_path(3))
 
       END FUNCTION
 

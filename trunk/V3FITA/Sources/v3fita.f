@@ -235,7 +235,7 @@
 !  INITIALIZE SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Initialize Signals
+!  Initialize equilibrium
 !-------------------------------------------------------------------------------
       SUBROUTINE init_equilibrium(context)
       USE v3fit_context
@@ -245,14 +245,28 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+!  local variables
+      TYPE (pprofile), POINTER                  :: ne => null()
+      TYPE (pprofile), POINTER                  :: te => null()
+      TYPE (pprofile), POINTER                  :: sxr => null()
+
 !  Start of executable code
       WRITE (*,*) ' *** Constructing equilibrium model'
+
+      ALLOCATE(ne, te, sxr)
+      CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
+     &                        pp_ne_as, pp_ne_af)
+      CALL pprofile_construct(te, TRIM(pp_ne_ptype), pp_te_b,                  &
+     &                        pp_te_as, pp_te_af)
+      CALL pprofile_construct(sxr, TRIM(pp_ne_ptype), pp_sxrem_b,              &
+     &                        pp_sxrem_as, pp_sxrem_af)
 
       IF (vmec_nli_filename .ne. '') THEN
          context%model => model_construct(                                     &
      &      model_ne_type, model_sxrem_type, model_te_type,                    &
      &      ne_pp_unit, ne_min, e_pressure_fraction,                           &
-     &      equilibrium_construct(vmec_construct(vmec_nli_filename)))
+     &      equilibrium_construct(vmec_construct(vmec_nli_filename,            &
+     &                                           ne, te, sxr)))
 
          RETURN ! Only initialize one equilibrium.
       END IF
@@ -284,9 +298,14 @@
 
       ALLOCATE(context%signals(na_s_desc))
 
-!  If a mdsig filename is given, construct the diagnostic contain inside it.
+!  If a mdsig filename is given, construct the diagnostics contained inside it.
       IF (mdsig_list_filename .ne. '') THEN
          CALL init_magnetic_signals(context, signals_created)
+      END IF
+
+!  If a sxrem filename is given, construct the diagnostics contained inside it.
+      IF (sxrch_dot_filename .ne. '') THEN
+         CALL init_sxrem_signals(context, signals_created)
       END IF
 
 !  TODO: Add in all the rest of the diagnostic signals.
@@ -303,7 +322,6 @@
       USE safe_open_mod
       USE v3_utilities
       USE ezcdf
-      USE magnetic
 
       IMPLICIT NONE
 !  Declare Arguments
@@ -375,6 +393,29 @@
          CALL cdf_close(mdsig_iou)
 
       END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Soft X-Ray Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_sxrem_signals(context, signals_created)
+      USE v3fit_context
+      USE sxrch_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing sxrem signals from ' //                   &
+     &            TRIM(sxrch_dot_filename)
+
+      CALL sxrch_dot_read(sxrch_dot_filename, context%signals,                 &
+     &                    signals_created, sdo_data_a, sdo_sigma_a,            &
+     &                    sdo_weight_a)
 
       END SUBROUTINE
 #else

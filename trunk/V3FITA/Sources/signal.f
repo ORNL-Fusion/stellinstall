@@ -130,9 +130,9 @@
 !  Declare Arguments
       TYPE (signal_class), POINTER        :: signal_construct_diagnostic
       TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
-      CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
-      CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      CHARACTER(len=signal_units_length), INTENT(in)      :: units
+      CHARACTER(len=*), INTENT(in)        :: s_name
+      CHARACTER(len=*), INTENT(in)        :: l_name
+      CHARACTER(len=*), INTENT(in)        :: units
       REAL(rprec), INTENT(in)             :: observed
       REAL(rprec), INTENT(in)             :: sigma
       REAL(rprec), INTENT(in)             :: weight
@@ -165,9 +165,9 @@
 !  Declare Arguments
       TYPE (signal_class), POINTER       :: signal_construct_geometric
       TYPE (geometric_class), POINTER, INTENT(in) :: geometric_object
-      CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
-      CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      CHARACTER(len=signal_units_length), INTENT(in)      :: units
+      CHARACTER(len=*), INTENT(in)       :: s_name
+      CHARACTER(len=*), INTENT(in)       :: l_name
+      CHARACTER(len=*), INTENT(in)       :: units
       REAL(rprec), INTENT(in)            :: observed
       REAL(rprec), INTENT(in)            :: sigma
       REAL(rprec), INTENT(in)            :: weight
@@ -201,12 +201,12 @@
       TYPE (signal_class), POINTER :: signal_construct_combination
       TYPE (combination_class), POINTER, INTENT(in)                            &
      &                             :: combination_object
-      CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
-      CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      CHARACTER(len=signal_units_length), INTENT(in)      :: units
-      REAL(rprec), INTENT(in)              :: observed
-      REAL(rprec), INTENT(in)              :: sigma
-      REAL(rprec), INTENT(in)              :: weight
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
 
 !  Start of executable code
       ALLOCATE(signal_construct_combination)

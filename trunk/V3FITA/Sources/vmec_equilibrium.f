@@ -158,7 +158,7 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
-      FUNCTION vmec_construct(file_name)
+      FUNCTION vmec_construct(file_name, ne, te, sxrem)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -169,6 +169,9 @@
 !  Declare Arguments
       TYPE (vmec_class), POINTER    :: vmec_construct
       CHARACTER (len=*), INTENT(in) :: file_name
+      TYPE (pprofile), POINTER      :: ne
+      TYPE (pprofile), POINTER      :: te
+      TYPE (pprofile), POINTER      :: sxrem
 
 !  local variables
       INTEGER, DIMENSION(5)         :: ictrl_array = 0
@@ -179,6 +182,9 @@
      &            TRIM(file_name)
 
       ALLOCATE(vmec_construct)
+      vmec_construct%ne => ne
+      vmec_construct%te => te
+      vmec_construct%sxrem => sxrem
 
 !  Initialize VMEC by taking a single step.
       ictrl_array(1) = restart_flag + readin_flag + timestep_flag

@@ -168,18 +168,18 @@
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
 !
-!  The plasma signal is volume integral of the current denisty dotted with the
-!  diagnostic responce function vector. The responce_function contains a r z
+!  The plasma signal is the volume integral of the current denisty dotted with
+!  the diagnostic responce function vector. The responce_function contains a r z
 !  grid of reponce function vectors. These grid points are then interpolated
 !  into the equilibrium grid positions for a single toroidal plane.
 !  Hishman et. al. Phys. Plasmas 11, 595 (2004); doi: 10.1063/1.1637347
 !
 !    phi = Int[dV J_plasma * A_diag]
-!
-!  External current contribrutions are included by doting the currents by the
-!  mutual inductance values.
-!
-!  The plasma only signal is store in the 2nd index.
+!-------------------------------------------------------------------------------
+!  External current contribrutions are included by the dot product of the
+!  external currents with mutual inductance values.
+!-------------------------------------------------------------------------------
+!  The plasma only signal is stored in the 2nd index.
 !  The external current signal is stored in the 3rd index.
 !  Total signal is the sum of plasma signal and external signal.
 !
