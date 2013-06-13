@@ -403,50 +403,6 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get plasma only magnetic signal.
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_plasma_mag_signal(this,                         &
-     &                                           r_fun, phi_fun, z_fun,        &
-     &                                           r_max, r_min, num_r,          &
-     &                                           z_max, z_min, num_z,          &
-     &                                           is_stell_sym, num_phi)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec) :: equilibrium_get_plasma_mag_signal
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: r_fun
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: phi_fun
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: z_fun
-      REAL (rprec), INTENT(in)                   :: r_max
-      REAL (rprec), INTENT(in)                   :: r_min
-      INTEGER, INTENT(in)                        :: num_r
-      REAL (rprec), INTENT(in)                   :: z_max
-      REAL (rprec), INTENT(in)                   :: z_min
-      INTEGER, INTENT(in)                        :: num_z
-      LOGICAL, INTENT(in)                        :: is_stell_sym
-      INTEGER, INTENT(in)                        :: num_phi
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_get_plasma_mag_signal =                                &
-     &         vmec_get_plasma_mag_signal(this%vmec,                           &
-     &                                    r_fun, phi_fun, z_fun,               &
-     &                                    r_max, r_min, num_r,                 &
-     &                                    z_max, z_min, num_z,                 &
-     &                                    is_stell_sym, num_phi)
-
-         CASE DEFAULT
-            equilibrium_get_plasma_mag_signal = 0.0
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
 !  Get external current magnetic signal.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_ext_mag_signal(this, diag_coils,                &
@@ -473,6 +429,136 @@
 
          CASE DEFAULT
             equilibrium_get_ext_mag_signal = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_rgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_rgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_rgrid =>                           &
+     &         vmec_get_magnetic_volume_rgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_rgrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration z grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_zgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_zgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_zgrid =>                           &
+     &         vmec_get_magnetic_volume_zgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_zgrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jr grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_jrgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_jrgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_jrgrid =>                          &
+     &         vmec_get_magnetic_volume_jrgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_jrgrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jphi grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_jphigrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_jphigrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_jphigrid =>                        &
+     &         vmec_get_magnetic_volume_jphigrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_jphigrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jz grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_jzgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_jzgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_jzgrid =>                          &
+     &         vmec_get_magnetic_volume_jzgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_jzgrid => null()
 
       END SELECT
 

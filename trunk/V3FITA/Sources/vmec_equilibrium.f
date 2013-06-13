@@ -1180,108 +1180,87 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get plasma only magnetic signal.
+!  Get volume magnetic volume integration radial grid points.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_plasma_mag_signal(this, r_fun, phi_fun, z_fun,         &
-     &                                    r_max, r_min, num_r,                 &
-     &                                    z_max, z_min, num_z,                 &
-     &                                    is_stell_sym, num_phi)
-      USE read_wout_mod, only: isigng, ns
-      USE vmec_input, only: nfp
-      USE bivariate
-      USE stel_constants, only: twopi
+      FUNCTION vmec_get_magnetic_volume_rgrid(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: vmec_get_plasma_mag_signal
-      TYPE (vmec_class), INTENT(in)              :: this
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: r_fun
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: phi_fun
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: z_fun
-      REAL (rprec), INTENT(in)                   :: r_max
-      REAL (rprec), INTENT(in)                   :: r_min
-      INTEGER, INTENT(in)                        :: num_r
-      REAL (rprec), INTENT(in)                   :: z_max
-      REAL (rprec), INTENT(in)                   :: z_min
-      INTEGER, INTENT(in)                        :: num_z
-      LOGICAL, INTENT(in)                        :: is_stell_sym
-      INTEGER, INTENT(in)                        :: num_phi
-
-!  local variables
-      TYPE (bivariate_type)                      :: bivariate_object
-      INTEGER                                    :: v, r, z
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: rgrid
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: zgrid
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: responce_rsuv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: responce_phisuv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: responce_zsuv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: sumsuv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: sumv
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   vmec_get_magnetic_volume_rgrid
+      TYPE (vmec_class), INTENT(in) :: this
 
 !  Start of executable code
-      ALLOCATE(rgrid(num_r), zgrid(num_z))
-      ALLOCATE(responce_rsuv(ns,ns))
-      ALLOCATE(responce_phisuv(ns,ns))
-      ALLOCATE(responce_zsuv(ns,ns))
-      ALLOCATE(sumsuv(ns,ns), sumv(num_phi))
+      vmec_get_magnetic_volume_rgrid => this%magnetic_cache%rsuv
 
-      DO r = 1, num_r
-         rgrid(r) = r_min + (r - 1)*(r_max - r_min)/(num_r - 1)
-      END DO
-      DO z = 1, num_z
-         zgrid(z) = z_min + (z - 1)*(z_max - z_min)/(num_z - 1)
-      END DO
+      END FUNCTION
 
-      CALL createbivariate(bivariate_object,                                   &
-     &                     SIZE(this%magnetic_cache%rsuv, 1),                  &
-     &                     SIZE(this%magnetic_cache%rsuv, 2),                  &
-     &                     SIZE(this%magnetic_cache%rsuv, 3), 1)
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration z grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_magnetic_volume_zgrid(this)
 
-      DO v = 1, num_phi
-!  Generate bivariate interpolation responce tables.
-         CALL setbivariate(bivariate_object,                                   &
-     &                     this%magnetic_cache%rsuv(:,:,v),                    &
-     &                     this%magnetic_cache%zsuv(:,:,v),                    &
-     &                     rgrid, zgrid, v, 1)
+      IMPLICIT NONE
 
-         CALL bivariate4pt(bivariate_object,                                   &
-     &                     r_fun(:,:,v), responce_rsuv, v)
-         CALL bivariate4pt(bivariate_object,                                   &
-     &                     phi_fun(:,:,v), responce_phisuv, v)
-         CALL bivariate4pt(bivariate_object,                                   &
-     &                     z_fun(:,:,v), responce_zsuv, v)
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   vmec_get_magnetic_volume_zgrid
+      TYPE (vmec_class), INTENT(in) :: this
 
-         sumsuv = this%magnetic_cache%jrsuv(:,:,v)*responce_rsuv               &
-     &          + this%magnetic_cache%jphisuv(:,:,v)*responce_phisuv           &
-     &          + this%magnetic_cache%jzsuv(:,:,v)*responce_zsuv
+!  Start of executable code
+      vmec_get_magnetic_volume_zgrid => this%magnetic_cache%zsuv
 
-         sumv(v) = SUM(sumsuv(2:ns - 1,:))                                     &
-     &           + SUM(sumsuv(1,:) + sumsuv(ns,:))/2.0
+      END FUNCTION
 
-      END DO
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jr grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_magnetic_volume_jrgrid(this)
 
-!      DO v = 1, ns
-!         WRITE(*,*) responce_rsuv(v,:)
-!      END DO
-!      STOP
+      IMPLICIT NONE
 
-      CALL clear_bivar(bivariate_object)
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   vmec_get_magnetic_volume_jrgrid
+      TYPE (vmec_class), INTENT(in) :: this
 
-      vmec_get_plasma_mag_signal = SUM(sumv)
-      IF (is_stell_sym) THEN
-         vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal -             &
-     &      (sumv(1) + sumv(num_phi))/2.0
-      END IF
+!  Start of executable code
+      vmec_get_magnetic_volume_jrgrid => this%magnetic_cache%jrsuv
 
-      vmec_get_plasma_mag_signal = vmec_get_plasma_mag_signal                  &
-     &                           * vmec_get_volume_int_element(this)
+      END FUNCTION
 
-      DEALLOCATE(rgrid, zgrid)
-      DEALLOCATE(responce_rsuv)
-      DEALLOCATE(responce_phisuv)
-      DEALLOCATE(responce_zsuv)
-      DEALLOCATE(sumsuv, sumv)
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jphi grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_magnetic_volume_jphigrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   vmec_get_magnetic_volume_jphigrid
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      vmec_get_magnetic_volume_jphigrid => this%magnetic_cache%jphisuv
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jz grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_magnetic_volume_jzgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   vmec_get_magnetic_volume_jzgrid
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      vmec_get_magnetic_volume_jzgrid => this%magnetic_cache%jzsuv
 
       END FUNCTION
 
