@@ -98,19 +98,24 @@
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!  
-!-------------------------------------------------------------------------------
+      INTERFACE ipch_dot_read
+         MODULE PROCEDURE ipch_dot_read_old,                                   &
+     &                    ipch_dot_read_new
+      END INTERFACE
+
+      INTERFACE ipch_dot_parse_chord
+         MODULE PROCEDURE ipch_dot_parse_chord_old,                            &
+     &                    ipch_dot_parse_chord_new
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
 ! SECTION III. PUBLICLY ACCESSIBLE SUBROUTINES
 !*******************************************************************************
-
-      SUBROUTINE ipch_dot_read (ipch_file,ipch_desc_arr,n_chords)
-      
 !  Subroutine to parse the large structure of the ipch_dot_file
 !  Individual ip chords are parsed by the ipch_dot_parse_xxxx subroutines
+!-------------------------------------------------------------------------------
+      SUBROUTINE ipch_dot_read_old (ipch_file,ipch_desc_arr,n_chords)
 
       IMPLICIT NONE
       
@@ -141,8 +146,6 @@
 
       INTEGER               :: icount_chords
       INTEGER               :: n_ipch_desc_arr
-      CHARACTER (len=30)    :: s_name                                 
-      CHARACTER (len=80)    :: l_name
 
       TYPE(signal_dot_file) :: ipch_dot_file_ref
 !  Make sure that len for this_keyword is the same as len for ipchd_keyword.
@@ -241,7 +244,123 @@
       n_chords = icount_chords
       
       RETURN
-      END SUBROUTINE ipch_dot_read
+      END SUBROUTINE ipch_dot_read_old
+
+!-------------------------------------------------------------------------------
+!  Subroutine to parse the large structure of the ipch_dot_file
+!  Individual ip chords are parsed by the ipch_dot_parse_xxxx subroutines
+!-------------------------------------------------------------------------------
+      SUBROUTINE ipch_dot_read_new(ipch_file, signals,                         &
+     &                             signals_created, observed, sigma,           &
+     &                             weight)
+      USE signal
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+!  ipch_file            Name of the ipch. file.
+!  ipch_desc_arr        Array of ipch_desc. Assumed to have been allocated
+!                        before call to ipch_dot_read
+!  n_chords              Number of chords read from the file
+      CHARACTER (len=data_filename_length), INTENT(in)   :: ipch_file
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      INTEGER, INTENT(inout) :: signals_created
+      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+!  n_ipchd_keyword        integer - number of ipchd_keyword s.
+      INTEGER, PARAMETER :: n_ipchd_keyword = 9
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+!  ipchd_keyword    character array - keywords for various ipch input types
+      CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                  &
+     &   ipchd_keyword
+      TYPE(signal_dot_file) :: ipch_dot_file_ref
+
+!-----------------------------------------------
+!  Start of Executable Code
+!-----------------------------------------------
+
+!  Initialize the keywords and keyword lengths
+      ipchd_keyword(1) = 'ip_chord_XYZ'
+      ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
+      ipchd_keyword(3) = 'ip_chord_XYZ_int'
+      ipchd_keyword(4) = 'ip_chord_RPhiDegZ_int'
+      ipchd_keyword(5) = 'ip_chord_XYZ_pol_rad'
+      ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol_rad'
+      ipchd_keyword(7) = 'ip_chord_XYZ_pol_deg'
+      ipchd_keyword(8) = 'ip_chord_RPhiDegZ_pol_deg'
+      ipchd_keyword(9) = 'end_of_file'
+
+!  Open up the 'ipch.' file
+      ipch_dot_file_ref = signal_dot_open(TRIM(ipch_file), "ipch")
+
+!  Infinite Loop
+!  Character variable line should be defined on entry
+      DO
+!  Branch on the keyword
+         SELECT CASE (signal_dot_read_keyword(ipch_dot_file_ref,               &
+     &                                        ipchd_keyword))
+
+            CASE DEFAULT ! This case should never fire.
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('end_of_file')
+               EXIT ! Exit out of infinte loop.
+
+            CASE ('ip_chord_XYZ','ip_chord_XYZ_int')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'XYZ', 'i', .false.,                  &
+     &                                    signals, signals_created,            &
+     &                                    observed, sigma, weight)
+
+            CASE ('ip_chord_RPhiDegZ','ip_chord_RPhiDegZ_int')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'RPHiDegZ', 'i', .false.,             &
+     &                                    signals, signals_created,            &
+     &                                    observed, sigma, weight)
+
+            CASE ('ip_chord_XYZ_pol_rad')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'XYZ', 'p', .false.,                  &
+     &                                    signals, signals_created,            &
+     &                                    observed, sigma, weight)
+
+            CASE ('ip_chord_RPhiDegZ_pol_rad')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'RPHiDegZ', 'p', .false.,             &
+     &                                    signals, signals_created,            &
+     &                                    observed, sigma, weight)
+
+            CASE ('ip_chord_XYZ_pol_deg')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'XYZ', 'p', .true.,                   &
+     &                                    signals, signals_created,            &
+     &                                    observed, sigma, weight)
+
+            CASE ('ip_chord_RPhiDegZ_pol_deg')
+               CALL ipch_dot_parse_chord(ipch_dot_file_ref,                    &
+     &                                   'RPHiDegZ', 'p', .true.,              &
+     &                                    signals, signals_created,            &
+     &                                    observed, sigma, weight)
+
+         END SELECT
+
+      END DO
+
+!  Close the 'ipch.' file
+      CALL signal_dot_close(ipch_dot_file_ref)
+
+      END SUBROUTINE ipch_dot_read_new
 
 !*******************************************************************************
 ! SECTION IV. PARSING SUBROUTINES
@@ -263,16 +382,16 @@
 !     - End of File or other problem: ipchd_l_done set to .true.
 !     
 !-------------------------------------------------------------------------------
-
-      SUBROUTINE ipch_dot_parse_chord(ipch_dot_file_ref,                       &
-     &                                coordinate_type,                         &
-     &                                coord_type,                              &
-     &                                inDegrees,                               &
-     &                                icount_chords,                           &
-     &                                n_ipch_desc_arr,                         &
-     &                                ipch_desc_arr)
 !  Subroutine to parse an ipch chord (redundant chord there)
 !      ipchd_keyword(1) = 'ip_chord_XYZ' or 'ip_chord_RPhiDegZ'
+!-------------------------------------------------------------------------------
+      SUBROUTINE ipch_dot_parse_chord_old(ipch_dot_file_ref,                   &
+     &                                    coordinate_type,                     &
+     &                                    coord_type,                          &
+     &                                    inDegrees,                           &
+     &                                    icount_chords,                       &
+     &                                    n_ipch_desc_arr,                     &
+     &                                    ipch_desc_arr)
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -315,7 +434,79 @@
      &                            coord_type, wavelength, inDegrees)
       ENDIF
 
-      END SUBROUTINE ipch_dot_parse_chord
+      END SUBROUTINE ipch_dot_parse_chord_old
+
+!-------------------------------------------------------------------------------
+!  Subroutine to parse an ipch chord (redundant chord there)
+!      ipchd_keyword(1) = 'ip_chord_XYZ' or 'ip_chord_RPhiDegZ'
+!-------------------------------------------------------------------------------
+      SUBROUTINE ipch_dot_parse_chord_new(ipch_dot_file_ref,                   &
+     &                                    coordinate_type,                     &
+     &                                    coord_type,                          &
+     &                                    inDegrees,                           &
+     &                                    signals,                             &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight)
+      USE signal
+      USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3_utilities, only: err_fatal
+      IMPLICIT NONE
+
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      TYPE(signal_dot_file), INTENT(inout)   :: ipch_dot_file_ref
+      CHARACTER (len=*), INTENT(in)          :: coordinate_type
+      CHARACTER (len=1), INTENT(in)          :: coord_type
+      LOGICAL, INTENT(in)                    :: inDegrees
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      INTEGER, INTENT(inout)                 :: signals_created
+      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL (rprec), DIMENSION(2,3) :: xcart
+      CHARACTER (len=c_name_len)   :: chord_name
+      REAL (rprec)                 :: wavelength = 0.0
+
+!-----------------------------------------------
+!  Start of Executable Code
+!-----------------------------------------------
+!  Check if there are two many signals.
+      IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
+         CALL err_fatal('ipch_dot_parse_chord_new: created signals' //         &
+     &                  ' exceeds v3fit_max_diagnostics')
+      END IF
+
+!  Get the start, end and name of chord.
+      CALL signal_dot_parse_chord(ipch_dot_file_ref,                           &
+     &                            coordinate_type,                             &
+     &                            chord_name,                                  &
+     &                            xcart(1,:), xcart(2,:))
+
+      IF (coord_type .eq. 'p') THEN
+         wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
+     &                   "Expected wavelength for polarimetry chord")
+         signals(signals_created + 1)%p => signal_construct(                   &
+     &      diagnostic_construct(                                              &
+     &         intpol_construct(wavelength, inDegrees, xcart)),                &
+     &      chord_name, chord_name, 'm^-2',                                    &
+     &      observed(signals_created + 1), sigma(signals_created + 1),         &
+     &      weight(signals_created + 1))
+      ELSE
+         signals(signals_created + 1)%p => signal_construct(                   &
+     &      diagnostic_construct(                                              &
+     &         intpol_construct(xcart)), chord_name, chord_name,               &
+     &      'm^-2', observed(signals_created + 1),                             &
+     &      sigma(signals_created + 1), weight(signals_created + 1))
+      END IF
+
+      signals_created = signals_created + 1
+
+      END SUBROUTINE ipch_dot_parse_chord_new
 
 !*******************************************************************************
 ! SECTION V. AUXILIARY SUBROUTINES

@@ -232,6 +232,9 @@
       CHARACTER (len=data_filename_length), INTENT(in)   :: sxrch_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created
+      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
 
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -246,9 +249,6 @@
       CHARACTER(len=len_key), DIMENSION(1:n_sxrchd_keyword) ::                 &
      &   sxrchd_keyword
       TYPE(signal_dot_file)                 :: sxrch_dot_file_ref
-      REAL(rprec), DIMENSION(:), INTENT(in) :: observed
-      REAL(rprec), DIMENSION(:), INTENT(in) :: sigma
-      REAL(rprec), DIMENSION(:), INTENT(in) :: weight
 
 !-----------------------------------------------
 !  Start of Executable Code
@@ -379,7 +379,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       TYPE(signal_dot_file), INTENT(inout)  :: sxrch_dot_file_ref
-      CHARACTER (len=*)                     :: coordinate_type
+      CHARACTER (len=*), INTENT(in)         :: coordinate_type
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout)                :: signals_created
       REAL(rprec), DIMENSION(:), INTENT(in) :: observed
