@@ -246,7 +246,10 @@
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
 
 !  Model Specification Variables
-      CHARACTER (len=data_name_length) :: model_ne_type = 'none'
+!  FIXME: New coding contains a model_ne_type that old code did not have. Make
+!  the default value pp_ne for compatibility. Eventially this shoud be set back
+!  to none and users should set model_ne_type in the namelist input.
+      CHARACTER (len=data_name_length) :: model_ne_type = 'pp_ne'
       CHARACTER (len=data_name_length) :: model_sxrem_type = 'none'
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
       REAL (rprec)                     :: ne_pp_unit = 0.0

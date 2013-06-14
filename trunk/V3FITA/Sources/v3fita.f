@@ -256,9 +256,9 @@
       ALLOCATE(ne, te, sxr)
       CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
      &                        pp_ne_as, pp_ne_af)
-      CALL pprofile_construct(te, TRIM(pp_ne_ptype), pp_te_b,                  &
+      CALL pprofile_construct(te, TRIM(pp_te_ptype), pp_te_b,                  &
      &                        pp_te_as, pp_te_af)
-      CALL pprofile_construct(sxr, TRIM(pp_ne_ptype), pp_sxrem_b,              &
+      CALL pprofile_construct(sxr, TRIM(pp_sxrem_ptype), pp_sxrem_b,           &
      &                        pp_sxrem_as, pp_sxrem_af)
 
       IF (vmec_nli_filename .ne. '') THEN

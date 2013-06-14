@@ -1,5 +1,5 @@
 !*******************************************************************************
-!  File intpol.f
+!  File magnetic.f
 !  Contains module intpol
 !  Defines the base class of the type intpol:
 !

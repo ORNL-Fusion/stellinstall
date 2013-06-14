@@ -86,7 +86,7 @@
          CASE DEFAULT
             WRITE (*,*) 'ne type: ' // TRIM(ADJUSTL(ne_type)) //               &
      &                  'setting type to none.'
-            model_construct%ne_type = model_ne_type
+            model_construct%ne_type = model_none_type
 
       END SELECT
 
@@ -96,7 +96,7 @@
             model_construct%sxrem_type = model_none_type
 
          CASE ('pp_sxrem')
-            model_construct%ne_type = model_sxrem_type
+            model_construct%sxrem_type = model_sxrem_type
 
          CASE DEFAULT
             WRITE (*,*) 'sxrem type: ' // TRIM(ADJUSTL(ne_type)) //            &
@@ -108,7 +108,7 @@
       SELECT CASE (TRIM(ADJUSTL(te_type)))
 
          CASE ('none')
-            model_construct%ne_type = model_none_type
+            model_construct%te_type = model_none_type
 
          CASE ('pp_te')
             model_construct%te_type = model_te_type
@@ -204,6 +204,7 @@
 
          CASE (model_ne_type)
             model_get_ne = equilibrium_get_ne(this%equilibrium, x_cart)
+            model_get_ne = MAX(this%ne_min, this%ne_unit*model_get_ne)
 
          CASE (model_ne_te_p_type)
             model_get_ne = eV_per_Joule*this%pressure_fraction                 &
