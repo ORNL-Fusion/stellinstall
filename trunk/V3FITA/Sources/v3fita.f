@@ -520,7 +520,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE init_geometric_signals(context, signals_created)
       USE v3fit_context
-      USE stel_constants, only: 
+      USE stel_constants, only: degree
 
       IMPLICIT NONE
 

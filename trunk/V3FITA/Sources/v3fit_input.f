@@ -427,6 +427,7 @@
 !*******************************************************************************
       SUBROUTINE v3fit_input_read_namelist(namelist_file)
       USE safe_open_mod
+      USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
 
@@ -498,9 +499,9 @@
             END DO
             lif_on_edge(n_lif) = .true.
          ELSE
-            fatal_err('Adding limiter by specifying major/minor '              &
-     &                'radii causes n_lif to exceed'                           &
-     &                'v3fit_max_geometrics')
+            CALL err_fatal('Adding limiter by specifying ' //                  &
+     &                     'major/minor radii causes n_lif to ' //             &
+     &                     'exceed v3fit_max_geometrics')
          END IF
       END IF
 
