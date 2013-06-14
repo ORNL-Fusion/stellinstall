@@ -617,7 +617,7 @@
          combination_signal => combination_construct(n_sig_coosig(i),          &
      &                                               coosig_type(i))
          DO j = 1, n_sig_coosig(i)
-            IF (coosig_indices(i,j) .ge. signals_created) THEN
+            IF (coosig_indices(i,j) .gt. signals_created) THEN
                CALL err_fatal('init_combination_signals: cannot ' //           &
      &                        'create combination signal with ' //            &
      &                        'uninitalized signal')
