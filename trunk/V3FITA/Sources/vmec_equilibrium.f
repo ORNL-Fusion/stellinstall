@@ -512,7 +512,7 @@
 !  Set the suv grids
 !
 !  ru = dR/du
-!  rv = dRdv   Note: dRHat/dv = PhiHat
+!  rv = dR/dv   Note: dRHat/dv = PhiHat
 !
 !  zu = dZ/du
 !  zu = dZ/dv

@@ -90,10 +90,6 @@
       USE ipch_T
       USE signal_dot
       IMPLICIT NONE
-
-!-------------------------------------------------------------------------------
-!  Variables local to the module. Make them private.
-!-------------------------------------------------------------------------------
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -261,10 +257,13 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-!  ipch_file            Name of the ipch. file.
-!  ipch_desc_arr        Array of ipch_desc. Assumed to have been allocated
-!                        before call to ipch_dot_read
-!  n_chords              Number of chords read from the file
+!  ipch_file        Name of the ipch. file.
+!  signals          Array of pointers to the a signal
+!  signals_created  Number valid signals in the array, or index of the last
+!                   created.
+!  observed         Array of observed values.
+!  sigma            Array of observed sigma values
+!  weight           Array of signal weight values
       CHARACTER (len=data_filename_length), INTENT(in)   :: ipch_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created

@@ -37,6 +37,57 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
+!  Construct a thomson measuring temperature.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_construct_te(xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (thomson_class), POINTER          :: thomson_construct_te
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+
+!  Start of executable code
+      thomson_construct_te =>                                                  &
+     &   thomson_construct(thomson_temperature_type, xcart)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a thomson.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_construct_ne(xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (thomson_class), POINTER          :: thomson_construct_ne
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+
+!  Start of executable code
+      thomson_construct_ne => thomson_construct(thomson_density_type,          &
+     &                                          xcart)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a thomson.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_construct_p(xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (thomson_class), POINTER          :: thomson_construct_p
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+
+!  Start of executable code
+      thomson_construct_p => thomson_construct(thomson_pressure_type,          &
+     &                                         xcart)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !  Construct a thomson.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct(type, xcart)

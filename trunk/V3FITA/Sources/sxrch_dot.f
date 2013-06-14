@@ -87,10 +87,6 @@
       USE sxrch_T
       USE signal_dot
       IMPLICIT NONE
-
-!-------------------------------------------------------------------------------
-!  Variables local to the module. Make them private.
-!-------------------------------------------------------------------------------
           
 !*******************************************************************************
 ! SECTION II. INTERFACE BLOCKS
@@ -229,6 +225,9 @@
 !  signals          Array of pointers to the a signal
 !  signals_created  Number valid signals in the array, or index of the last
 !                   created.
+!  observed         Array of observed values.
+!  sigma            Array of observed sigma values
+!  weight           Array of signal weight values
       CHARACTER (len=data_filename_length), INTENT(in)   :: sxrch_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created

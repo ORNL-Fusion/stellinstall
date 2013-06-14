@@ -313,7 +313,14 @@
          CALL init_intpol_signals(context, signals_created)
       END IF
 
+!  If a thscte filename is given, construct the diagnostics contained inside it.
+      IF (thscte_dot_filename .ne. '') THEN
+         CALL init_intpol_signals(context, signals_created)
+      END IF
+
 !  TODO: Add in all the rest of the diagnostic signals.
+!  TODO: Construct geometric signals
+!  TODO: Construct combination signals
 
       CALL v3fit_context_resize(context)
 
@@ -446,6 +453,30 @@
      &                   sdo_weight_a)
 
       END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Interferometer/Polarimetry  Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_thomson_signals(context, signals_created)
+      USE v3fit_context
+      USE thscte_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing thomson signals from ' //                 &
+     &            TRIM(thscte_dot_filename)
+
+      CALL thscte_dot_read(thscte_dot_filename, context%signals,               &
+     &                     signals_created, sdo_data_a, sdo_sigma_a,           &
+     &                     sdo_weight_a)
+
+      END SUBROUTINE
+
 #else
 
 !*******************************************************************************
