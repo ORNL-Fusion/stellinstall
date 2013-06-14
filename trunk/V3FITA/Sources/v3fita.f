@@ -325,7 +325,7 @@
 
       CALL init_geometric_signals(context, signals_created)
 
-!  TODO: Construct combination signals
+      CALL init_combination_signals(context, signals_created)
 
       CALL v3fit_context_resize(context)
 
@@ -574,6 +574,65 @@
 !  Set the iso_funct to null. This sets the local pointer of iso_funct to null.
 !  The pointer allocated above is now owned by the limiter_class instance.
          iso_funct => null()
+
+         signals_created = signals_created + 1
+
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Combination Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_combination_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i, j
+      TYPE (combination_class), POINTER         :: combination_signal
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing combination signals'
+
+      DO i = 1, n_coosig
+!  Check if there are two many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_combination_signals: created ' //             &
+     &                     'signals exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are two many geometric signals.
+         IF (i .gt. v3fit_max_combinations) THEN
+            CALL err_fatal('init_combination_signals: created ' //             &
+     &                     'signals exceeds v3fit_max_combinations')
+         END IF
+
+!  Search for the last index. It would be better if there was a 
+         combination_signal => combination_construct(n_sig_coosig(i),          &
+     &                                               coosig_type(i))
+         DO j = 1, n_sig_coosig(i)
+            IF (coosig_indices(i,j) .ge. signals_created) THEN
+               CALL err_fatal('init_combination_signals: cannot ' //           &
+     &                        'combination signal with uninitalized' //        &
+     &                        ' signal')
+            END IF
+
+            CALL combination_set_signal(combination_signal,                    &
+     &              context%signals(coosig_indices(i,j))%p,                    &
+     &              coosig_coeff(i,j), j)
+         END DO
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      combination_signal, coosig_name(i), coosig_name(i),                &
+     &      coosig_units(i), sdo_data_a(signals_created + 1),                  &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
 
          signals_created = signals_created + 1
 

@@ -170,6 +170,7 @@
 !
 !     COOSIG - Combination Of Other SIGnals NLI Variables
 !  n_coosig         Number of new signals of signal_type coosig
+!  n_sig_coosig     Array of number of signals in a combinaton.
 !  coosig_indices   2d Integer Array of indices (to list of signals)
 !                   for combinations. First index is for which new signal,
 !                   second index is for terms in the combination
@@ -337,6 +338,7 @@
 
 !  Combinations of other signals specification.
       INTEGER :: n_coosig = 0
+      INTEGER, DIMENSION(v3fit_max_cos_size) :: n_sig_coosig = 0
       INTEGER, DIMENSION(v3fit_max_combinations,v3fit_max_cos_size) ::         &
      &   coosig_indices = 0
       REAL (rprec),                                                            &
@@ -412,8 +414,8 @@
 !  replaced by priors when they are implemented.
      &   use_boundary,                                                         &
 !  Combinations of other signals specification.
-     &   n_coosig, coosig_indices, coosig_coeff, coosig_type,                  &
-     &   coosig_name, coosig_units,                                            &
+     &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
+     &   coosig_type, coosig_name, coosig_units,                               &
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type,                                        &
@@ -504,6 +506,17 @@
      &                     'exceed v3fit_max_geometrics')
          END IF
       END IF
+
+!  Search for the last index greater than 0 to determine the number of signals
+!  in a combination.
+!  FIXME: Remove this when n_sig_coosig is mandatory.
+      DO i = 1, n_coosig
+         DO j = 1, v3fit_max_cos_size
+            IF (coosig_indices(i,j) .eq. 0) THEN
+               n_sig_coosig(i) = j - 1
+            END IF
+         END DO
+      END DO
 
       WRITE (*,*) ' *** V3FIT namelist input read from ' //                    &
      &            TRIM(namelist_file)
