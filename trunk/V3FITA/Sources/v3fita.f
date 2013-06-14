@@ -619,8 +619,8 @@
          DO j = 1, n_sig_coosig(i)
             IF (coosig_indices(i,j) .ge. signals_created) THEN
                CALL err_fatal('init_combination_signals: cannot ' //           &
-     &                        'combination signal with uninitalized' //        &
-     &                        ' signal')
+     &                        'create combination signal with ' //            &
+     &                        'uninitalized signal')
             END IF
 
             CALL combination_set_signal(combination_signal,                    &
