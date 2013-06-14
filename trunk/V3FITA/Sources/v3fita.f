@@ -318,7 +318,11 @@
          CALL init_intpol_signals(context, signals_created)
       END IF
 
-!  TODO: Add in all the rest of the diagnostic signals.
+!  If the radial extcur z position isn't negative, construct an extcurz signal.
+      IF (extcurz_s0 .lt. 0.0) THEN
+         CALL init_extcurz_signals(context, signals_created)
+      END IF
+
 !  TODO: Construct geometric signals
 !  TODO: Construct combination signals
 
@@ -432,7 +436,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Interferometer/Polarimetry  Signals
+!  Initialize Interferometer/Polarimetry Signals
 !-------------------------------------------------------------------------------
       SUBROUTINE init_intpol_signals(context, signals_created)
       USE v3fit_context
@@ -455,7 +459,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Interferometer/Polarimetry  Signals
+!  Initialize Thomson Scattering Signals
 !-------------------------------------------------------------------------------
       SUBROUTINE init_thomson_signals(context, signals_created)
       USE v3fit_context
@@ -474,6 +478,39 @@
       CALL thscte_dot_read(thscte_dot_filename, context%signals,               &
      &                     signals_created, sdo_data_a, sdo_sigma_a,           &
      &                     sdo_weight_a)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize External Z current Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_extcurz_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing extcurz signals'
+
+!  Check if there are two many signals.
+      IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
+         CALL err_fatal('init_extcurz_signals: created signals' //             &
+     &                  ' exceeds v3fit_max_diagnostics')
+      END IF
+
+      context%signals(signals_created + 1)%p => signal_construct(              &
+     &   diagnostic_construct(extcurz_construct(extcurz_s0,                    &
+     &                                          extcurz_u0)),                  &
+     &   'extcurz', 'EXTernal CURrent along Z', 'A',                           &
+     &   sdo_data_a(signals_created + 1),                                      &
+     &   sdo_sigma_a(signals_created + 1),                                     &
+     &   sdo_weight_a(signals_created + 1))
+
+      signals_created = signals_created + 1
 
       END SUBROUTINE
 

@@ -289,7 +289,7 @@
 !  External current signal specification
 !  FIXME: The label of s0 and u0 are vmec specific. These should be changed to a
 !  radial coordinate and poloidal angle.
-      REAL (rprec) :: extcurz_s0 = 0.0
+      REAL (rprec) :: extcurz_s0 = -1.0
       REAL (rprec) :: extcurz_u0 = 0.0
 
 !  Signal data sigma specification
