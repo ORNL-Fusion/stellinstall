@@ -323,7 +323,8 @@
          CALL init_extcurz_signals(context, signals_created)
       END IF
 
-!  TODO: Construct geometric signals
+      CALL init_geometric_signals(context, signals_created)
+
 !  TODO: Construct combination signals
 
       CALL v3fit_context_resize(context)
@@ -511,6 +512,72 @@
      &   sdo_weight_a(signals_created + 1))
 
       signals_created = signals_created + 1
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Geometric Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_geometric_signals(context, signals_created)
+      USE v3fit_context
+      USE stel_constants, only: 
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i
+      CHARACTER (len=signal_name_short_length)  :: s_name = ''
+      CHARACTER (len=signal_name_long_length)   :: l_name = ''
+      TYPE (limiter_iso), POINTER               :: iso_funct => null()
+      INTEGER                                   :: num_phi
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing geometric signals'
+
+!  For now, only limiter functions can be created.
+      DO i = 1, n_lif
+!  Check if there are two many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_geometric_signals: created signals' //        &
+     &                     ' exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are two many geometric signals.
+         IF (i .gt. v3fit_max_geometrics) THEN
+            CALL err_fatal('init_geometric_signals: created signals' //        &
+     &                     ' exceeds v3fit_max_geometrics')
+         END IF
+
+         WRITE (s_name,'(a,i4)') 'edge_lim_', i
+         WRITE (l_name,'(a,i4)') 'edge limiter iso function ', i
+
+         num_phi = MAX(MIN(v3fit_max_lif_size, n_phi_lif(i)), 1)
+!  Do not deallocate the iso_funct. It memory is taken over by the limiter_class
+!  and freed during it's destruction.
+         ALLOCATE(iso_funct)
+         CALL limiter_iso_construct(iso_funct, lif_arz(i,:,:),                 &
+     &           lif_rc(i), lif_zc(i), 20,                                     &
+     &           lif_phi_degree(i,1:num_phi)*degree)
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      geometric_construct(                                               &
+     &         limiter_construct(iso_funct, lif_on_edge(i),                    &
+     &                           lif_sigma(i))),                               &
+     &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
+
+!  Set the iso_funct to null. This sets the local pointer of iso_funct to null.
+!  The pointer allocated above is now owned by the limiter_class instance.
+         iso_funct => null()
+
+         signals_created = signals_created + 1
+
+      END DO
 
       END SUBROUTINE
 

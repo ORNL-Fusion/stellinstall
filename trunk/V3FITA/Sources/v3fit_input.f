@@ -155,7 +155,7 @@
 !       first dimension of arrays is dimensioned na_lif
 !
 !  n_lif                 number of limiter_iso functions
-!  n_phis_lif            array of number of phi values (:)
+!  n_phi_lif             array of number of phi values (:)
 !  lif_arz               array of r-z polynomial coefficients, (:,0:4,0:4)
 !  lif_rc                array of r offset values (:)
 !  lif_zc                array of z offset values (:)
@@ -471,14 +471,38 @@
                ELSE
                   sdo_sigma_a(i) = SQRT(sdo_s_spec_floor(j)**2.0 +             &
      &               (sdo_s_spec_fraction(j)*sdo_data_a(i))**2.0)
-               ENDIF
-            ENDIF
+               END IF
+            END IF
          END DO
       END DO
 
       IF (main_nli_filename .eq. '') THEN
          main_nli_filename = namelist_file
-      ENDIF
+      END IF
+
+      IF ((r_major_radius .gt. 0.0) .and.                                      &
+     &    (a_minor_radius .gt. 0.0)) THEN
+         IF (n_lif + 1 .le. v3fit_max_geometrics) THEN
+            n_lif = n_lif + 1 ! Add this as a new limiter.
+            lif_arz(n_lif,:,:) = 0.0
+            lif_arz(n_lif,0,0) = -a_minor_radius**2.0
+            lif_arz(n_lif,2,0) = 1.0
+            lif_arz(n_lif,0,2) = 1.0
+            lif_rc(n_lif) = r_major_radius
+            lif_zc(n_lif) = 0.0
+            lif_sigma(n_lif) = 0.001_rprec
+            n_phi_lif(n_lif) = v3fit_max_lif_size
+            DO i = 1, v3fit_max_lif_size
+               lif_phi_degree(n_lif,i) = (i - 1)*360.0                         &
+     &                                 / v3fit_max_lif_size
+            END DO
+            lif_on_edge(n_lif) = .true.
+         ELSE
+            fatal_err('Adding limiter by specifying major/minor '              &
+     &                'radii causes n_lif to exceed'                           &
+     &                'v3fit_max_geometrics')
+         END IF
+      END IF
 
       WRITE (*,*) ' *** V3FIT namelist input read from ' //                    &
      &            TRIM(namelist_file)

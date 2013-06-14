@@ -27,8 +27,9 @@
 !*******************************************************************************
 
       TYPE limiter_class
-         INTEGER                     :: type
-         LOGICAL                     :: on_edge
+         INTEGER                     :: type = limiter_no_type
+         LOGICAL                     :: on_edge = .false.
+         REAL (rprec)                :: model_sigma = 0.0
          TYPE (limiter_iso), POINTER :: iso => null()
       END TYPE limiter_class
 
@@ -47,7 +48,7 @@
 !-------------------------------------------------------------------------------
 !  Construct a limiter containing an iso function.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_construct_iso(iso, on_edge)
+      FUNCTION limiter_construct_iso(iso, on_edge, model_sigma)
 
       IMPLICIT NONE
 
@@ -55,12 +56,14 @@
       TYPE (limiter_class), POINTER           :: limiter_construct_iso
       TYPE (limiter_iso), POINTER, INTENT(in) :: iso
       LOGICAL, INTENT(in)                     :: on_edge
+      REAL (rprec), INTENT(in)                :: model_sigma
 
 !  Start of executable code
       ALLOCATE(limiter_construct_iso)
 
       limiter_construct_iso%type = limiter_iso_type
       limiter_construct_iso%on_edge = on_edge
+      limiter_construct_iso%model_sigma = model_sigma
       limiter_construct_iso%iso => iso
 
       END FUNCTION
@@ -202,7 +205,7 @@
       r => null()
       z => null()
 
-      sigma = 1.0E-10
+      sigma = this%model_sigma
 
       END FUNCTION
 
