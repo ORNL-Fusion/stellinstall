@@ -993,7 +993,7 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
 !  Start of executable code
-      IF (ASSOCIATED(this%te)) THEN
+      IF (ASSOCIATED(this%sxrem)) THEN
          vmec_get_sxrem = pprofile_evaluate(this%sxrem,                        &
      &                                      vmec_get_s(this, x_cart))
       ELSE

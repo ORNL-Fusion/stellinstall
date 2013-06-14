@@ -229,19 +229,19 @@
 
 !  Model profile specification
 !  Electron Denisty
-      CHARACTER (len=p_type_len)           :: pp_ne_ptype = ''
+      CHARACTER (len=p_type_len)           :: pp_ne_ptype = 'none'
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_ne_b = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_as = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_af = 0.0
 
 !  Soft x-ray emissvity
-      CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = ''
+      CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = 'none'
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_af = 0.0
 
 !  Electron temperature
-      CHARACTER (len=p_type_len)           :: pp_te_ptype = ''
+      CHARACTER (len=p_type_len)           :: pp_te_ptype = 'none'
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_te_b = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_as = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
