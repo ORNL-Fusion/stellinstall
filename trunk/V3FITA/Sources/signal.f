@@ -498,7 +498,7 @@
 
       SELECT CASE(this%type)
          CASE (combination_sum)
-            DO i = 2, UBOUND(this%signals, 1)
+            DO i = 2, SIZE(this%signals)
                combination_get_modeled_signal =                                &
      &            combination_get_modeled_signal +                             &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
@@ -509,7 +509,7 @@
             END DO
 
          CASE (combination_max)
-            DO i = 2, UBOUND(this%signals, 1)
+            DO i = 2, SIZE(this%signals)
                combination_get_modeled_signal = MAX(                           &
      &            combination_get_modeled_signal,                              &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
@@ -520,7 +520,7 @@
             END DO
 
          CASE (combination_min)
-            DO i = 2, UBOUND(this%signals, 1)
+            DO i = 2, SIZE(this%signals)
                combination_get_modeled_signal = MIN(                           &
      &            combination_get_modeled_signal,                              &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
