@@ -319,7 +319,7 @@
       END IF
 
 !  If the radial extcur z position isn't negative, construct an extcurz signal.
-      IF (extcurz_s0 .lt. 0.0) THEN
+      IF (extcurz_s0 .ge. 0.0) THEN
          CALL init_extcurz_signals(context, signals_created)
       END IF
 
