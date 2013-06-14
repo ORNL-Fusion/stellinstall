@@ -514,6 +514,7 @@
          DO j = 1, v3fit_max_cos_size
             IF (coosig_indices(i,j) .eq. 0) THEN
                n_sig_coosig(i) = j - 1
+               EXIT ! Exit out of the j loop.
             END IF
          END DO
       END DO
