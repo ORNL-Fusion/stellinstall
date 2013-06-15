@@ -164,11 +164,13 @@
       INTEGER                                :: num_theta
 !  The r and z arrays will be allocated by the equilibrium.
       REAL(rprec), DIMENSION(:), POINTER     :: r => null(), z => null()
-      REAL(rprec), DIMENSION(3)              :: rphiz_at_max = 0
-      REAL(rprec)                            :: fval_max = -1.0E10, fval
+      REAL(rprec), DIMENSION(3)              :: rphiz_at_max
+      REAL(rprec)                            :: fval_max, fval
 
 !  Start of executable code
       limiter_get_modeled_iso_signal = 0.0
+      rphiz_at_max = 0.0
+      fval_max = -1.0E10
 
 !  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
 !  There is no need to allocate and deallocate r and z for each phi angle.
