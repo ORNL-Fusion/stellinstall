@@ -157,13 +157,14 @@
       END SELECT
 
 !  Clean up memory
-      CALL v3fit_context_destruct(context)
-      context => null()
-
       CALL second0(time_end)
 
-      WRITE (*,'(/,a,f10.2)') '  *** V3FIT run time (s): ',                    &
-     &                        time_end - time_start
+      WRITE (context%recout_iou,'(/,a,f10.2)')                                 &
+     &   '  *** V3FIT run time (s): ', time_end - time_start
+      WRITE (*,'(/,a,f10.2)')                                                  &
+     &   '  *** V3FIT run time (s): ', time_end - time_start
+
+      CALL v3fit_context_destruct(context)
 
       END PROGRAM
 
@@ -245,7 +246,7 @@
       WRITE (context%recout_iou,'(i4,a)') SIZE(context%signals),               &
      &   ' Signals'
       WRITE (context%recout_iou,*)
-      WRITE (context%recout_iou,*) '   #          type           ' //          &
+      WRITE (context%recout_iou,*) '  #          type           ' //           &
      &   's_name                  Model         Model(2)'
 
       DO i = 1, SIZE(context%signals)

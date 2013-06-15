@@ -244,24 +244,24 @@
 !  Start of executable code
       SELECT CASE(this%type)
          CASE (diagnostic_magnetic_type)
-            diagnostic_get_signal_type = 'diagnostic ' //                      &
-     &         TRIM(magnetic_get_signal_type(this%magnetic))
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         magnetic_get_signal_type(this%magnetic))
 
          CASE (diagnostic_sxrem_type)
-            diagnostic_get_signal_type = 'diagnostic ' //                      &
-     &         TRIM(sxrem_get_signal_type(this%sxrem))
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         sxrem_get_signal_type(this%sxrem))
 
          CASE (diagnostic_intpol_type)
-            diagnostic_get_signal_type = 'diagnostic ' //                      &
-     &         TRIM(intpol_get_signal_type(this%intpol))
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         intpol_get_signal_type(this%intpol))
 
          CASE (diagnostic_thomson_type)
-            diagnostic_get_signal_type = 'diagnostic ' //                      &
-     &         TRIM(thomson_get_signal_type(this%thomson))
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         thomson_get_signal_type(this%thomson))
 
          CASE (diagnostic_extcurz_type)
-            diagnostic_get_signal_type = 'diagnostic ' //                      &
-     &         TRIM(extcurz_get_signal_type(this%extcurz))
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         extcurz_get_signal_type(this%extcurz))
 
       END SELECT
 

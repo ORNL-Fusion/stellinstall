@@ -449,10 +449,10 @@
 !  FIXME: It is too convoluted to keep the recout identical at this point.
 !  Write out the model 1 and 2 for every signal. Eventually all for should be
 !  written out.
-      WRITE (iou,4000) index, TRIM(signal_get_signal_type(this)),              &
-     &                 this%s_name, this%modeled(1:2)
+      WRITE (iou,1000) index, signal_get_signal_type(this),                    &
+     &                 this%s_name, this%modeled(1), this%modeled(2)
 
-4000  FORMAT(i4,2x,2(a10,1x),a20,2(2x,es12.5),3(2x,es10.3),2x,es12.5)
+1000  FORMAT(i4,2(2x,a20),2(2x,es12.5))
 
       END SUBROUTINE
 
@@ -631,7 +631,7 @@
       TYPE (combination_class), INTENT(in) :: this
 
 !  Start of executable code
-      combination_get_signal_type = 'combination'
+      combination_get_signal_type = 'coosig'
 
       END FUNCTION
 
