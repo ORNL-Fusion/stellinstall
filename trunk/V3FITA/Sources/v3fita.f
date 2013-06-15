@@ -552,7 +552,7 @@
      &                     ' exceeds v3fit_max_geometrics')
          END IF
 
-         WRITE (s_name,'(a,i4)') 'edge_lim_', i
+         WRITE (s_name,*) TRIM(signal_make_short_name('edge_lim_', i))
          WRITE (l_name,'(a,i4)') 'edge limiter iso function ', i
 
          num_phi = MAX(MIN(v3fit_max_lif_size, n_phi_lif(i)), 1)

@@ -373,6 +373,35 @@
       END FUNCTION
 
 !*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Generate a short name with an index
+!-------------------------------------------------------------------------------
+      FUNCTION signal_make_short_name(name, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=signal_name_short_length) :: signal_make_short_name
+      CHARACTER (len=*), INTENT(in)            :: name
+      INTEGER, INTENT(in)                      :: index
+
+!  Start of executable code
+!  Find the number of digits in the index
+      IF (index .lt. 10) THEN
+         WRITE(signal_make_short_name,'(a,i1)') TRIM(name), index
+      ELSE IF (index .lt. 100) THEN
+         WRITE(signal_make_short_name,'(a,i2)') TRIM(name), index
+      ELSE IF (index .lt. 1000) THEN
+         WRITE(signal_make_short_name,'(a,i3)') TRIM(name), index
+      ELSE
+         WRITE(signal_make_short_name,'(a,i4)') TRIM(name), index
+      END IF
+
+      END FUNCTION
+
+!*******************************************************************************
 !*******************************************************************************
 !*******************************************************************************
 !*******************************************************************************
@@ -435,7 +464,7 @@
 
 !  Null all pointers in the signals array. Do not deallocate the signals in the
 !  array since this object is not the owner.
-      DO i = 1, UBOUND(this%signals, 1)
+      DO i = 1, SIZE(this%signals)
          this%signals(i)%p => null()
       END DO
 
