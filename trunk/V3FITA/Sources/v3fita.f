@@ -601,7 +601,10 @@
          num_phi = MAX(MIN(v3fit_max_lif_size, n_phi_lif(i)), 1)
 !  Do not deallocate the iso_funct. It memory is taken over by the limiter_class
 !  and freed during it's destruction.
-         ALLOCATE(iso_funct)
+!  FIXME: need to use the limiter_allocate_iso_funct because ALLOCATE was not
+!  allocating uniquie iso functions. Remove this by having limiter_iso_construct
+!  be a function returning a pointer to a limiter_iso
+         iso_funct => limiter_allocate_iso_funct()
          CALL limiter_iso_construct(iso_funct, lif_arz(i,:,:),                 &
      &           lif_rc(i), lif_zc(i), 20,                                     &
      &           lif_phi_degree(i,1:num_phi)*degree)
@@ -662,7 +665,7 @@
          DO j = 1, n_sig_coosig(i)
             IF (coosig_indices(i,j) .gt. signals_created) THEN
                CALL err_fatal('init_combination_signals: cannot ' //           &
-     &                        'create combination signal with ' //            &
+     &                        'create combination signal with ' //             &
      &                        'uninitalized signal')
             END IF
 

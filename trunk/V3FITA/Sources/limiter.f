@@ -143,6 +143,28 @@
       END FUNCTION
 
 !*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Allocate a uniquie iso_function.
+!
+!  FIXME: This method should be removed and limiter_iso_construct should be
+!  changed to a function returning a pointer. This method is a solution to the
+!  the problem of making sure only unique ios fuctions are allocated.
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_allocate_iso_funct()
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (limiter_iso), POINTER :: limiter_allocate_iso_funct
+
+!  Start of executable code
+      ALLOCATE (limiter_allocate_iso_funct)
+
+      END FUNCTION
+
+!*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
