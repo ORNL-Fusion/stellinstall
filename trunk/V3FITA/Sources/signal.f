@@ -307,6 +307,7 @@
       FUNCTION signal_get_modeled_signal(this, a_model, sigma,                 &
      &                                   use_cache)
       USE model
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -352,6 +353,7 @@
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_g2(this, a_model)
       USE model
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -369,6 +371,36 @@
       signal_get_g2 =                                                          &
      &   this%weight*((this%observed - modeled_signal(1))                      &
      &               /(this%observed_sigma - modeled_sigma(1)))**2.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the signal type
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: signal_get_signal_type
+      TYPE (signal_class), INTENT(in)  :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+         CASE (signal_diagnostic_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(diagnostic_get_signal_type(this%diagnostic))
+
+         CASE (signal_geometric_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(geometric_get_signal_type(this%geometric))
+
+         CASE (signal_combination_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(combination_get_signal_type(this%combination))
+
+      END SELECT
 
       END FUNCTION
 
@@ -400,6 +432,29 @@
       END IF
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Write out the signal
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_write(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: iou
+      INTEGER, INTENT(in)             :: index
+
+!  Start of executable code
+!  FIXME: It is too convoluted to keep the recout identical at this point.
+!  Write out the model 1 and 2 for every signal. Eventually all for should be
+!  written out.
+      WRITE (iou,4000) index, TRIM(signal_get_signal_type(this)),              &
+     &                 this%s_name, this%modeled(1:2)
+
+4000  FORMAT(i4,2x,2(a10,1x),a20,2(2x,es12.5),3(2x,es10.3),2x,es12.5)
+
+      END SUBROUTINE
 
 !*******************************************************************************
 !*******************************************************************************
@@ -560,6 +615,23 @@
             END DO
 
       END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the combination type
+!-------------------------------------------------------------------------------
+      FUNCTION combination_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: combination_get_signal_type
+      TYPE (combination_class), INTENT(in) :: this
+
+!  Start of executable code
+      combination_get_signal_type = 'combination'
 
       END FUNCTION
 

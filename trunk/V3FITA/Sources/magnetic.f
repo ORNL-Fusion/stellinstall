@@ -355,4 +355,21 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the magnetic type
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: magnetic_get_signal_type
+      TYPE (magnetic_class), INTENT(in) :: this
+
+!  Start of executable code
+      magnetic_get_signal_type = 'mddc'
+
+      END FUNCTION
+
       END MODULE

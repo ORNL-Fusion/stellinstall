@@ -95,4 +95,21 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the extcurz type
+!-------------------------------------------------------------------------------
+      FUNCTION extcurz_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: extcurz_get_signal_type
+      TYPE (extcurz_class), INTENT(in) :: this
+
+!  Start of executable code
+      extcurz_get_signal_type = 'extcur'
+
+      END FUNCTION
+
       END MODULE

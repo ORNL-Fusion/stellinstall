@@ -229,4 +229,42 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the diagnostic type
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: diagnostic_get_signal_type
+      TYPE (diagnostic_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+         CASE (diagnostic_magnetic_type)
+            diagnostic_get_signal_type = 'diagnostic ' //                      &
+     &         TRIM(magnetic_get_signal_type(this%magnetic))
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_signal_type = 'diagnostic ' //                      &
+     &         TRIM(sxrem_get_signal_type(this%sxrem))
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_signal_type = 'diagnostic ' //                      &
+     &         TRIM(intpol_get_signal_type(this%intpol))
+
+         CASE (diagnostic_thomson_type)
+            diagnostic_get_signal_type = 'diagnostic ' //                      &
+     &         TRIM(thomson_get_signal_type(this%thomson))
+
+         CASE (diagnostic_extcurz_type)
+            diagnostic_get_signal_type = 'diagnostic ' //                      &
+     &         TRIM(extcurz_get_signal_type(this%extcurz))
+
+      END SELECT
+
+      END FUNCTION
+
       END MODULE

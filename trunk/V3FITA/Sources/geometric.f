@@ -142,4 +142,21 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the geometric type
+!-------------------------------------------------------------------------------
+      FUNCTION geometric_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: geometric_get_signal_type
+      TYPE (geometric_class), INTENT(in) :: this
+
+!  Start of executable code
+      geometric_get_signal_type = 'geometric'
+
+      END FUNCTION
+
       END MODULE

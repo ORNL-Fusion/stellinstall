@@ -22,6 +22,7 @@
 !  This object holds all the memory for running v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
+         INTEGER                                  :: recout_iou
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
          TYPE (model_class), POINTER              :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
@@ -33,6 +34,7 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
       FUNCTION v3fit_context_construct(cl_parser)
+      USE safe_open_mod
 
       IMPLICIT NONE
 
@@ -40,7 +42,26 @@
       TYPE (v3fit_context_class), POINTER :: v3fit_context_construct
       TYPE (commandline_parser_class), POINTER :: cl_parser
 
+!  local variables
+      CHARACTER (len=data_filename_length)     :: filename
+      INTEGER                                  :: status
+
 !  Start of executable code
+      filename = commandline_parser_get_string(cl_parser, '-file')
+
+!  Setup the recout file.
+      CALL safe_open(v3fit_context_construct%recout_iou, status,               &
+     &               'recout.' // filename_base(filename),                     &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of recout. ' //                                &
+     &               filename_base(filename)  // 'failed')
+
+      WRITE (v3fit_context_construct%recout_iou, *) 'V3FITA RUN'
+      WRITE (v3fit_context_construct%recout_iou, *)                            &
+     &   '  Namelist Input from file ',                                        &
+     &   TRIM(filename)
+
       ALLOCATE(v3fit_context_construct)
 
       v3fit_context_construct%cl_parser => cl_parser
@@ -65,6 +86,8 @@
       INTEGER                                            :: i
 
 !  Start of executable code
+      CLOSE(this%recout_iou)
+
       IF (ASSOCIATED(this%cl_parser)) THEN
          CALL commandline_parser_destruct(this%cl_parser)
          this%cl_parser => null()

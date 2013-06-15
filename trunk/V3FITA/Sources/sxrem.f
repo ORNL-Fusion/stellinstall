@@ -141,4 +141,21 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the sxrem type
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: sxrem_get_signal_type
+      TYPE (sxrem_class), INTENT(in)   :: this
+
+!  Start of executable code
+      sxrem_get_signal_type = 'sxrch'
+
+      END FUNCTION
+
       END MODULE

@@ -242,6 +242,22 @@
       pol_function =                                                           &
      &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
 
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the intpol type
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: intpol_get_signal_type
+      TYPE (intpol_class), INTENT(in)  :: this
+
+!  Start of executable code
+      intpol_get_signal_type = 'ipch'
 
       END FUNCTION
 

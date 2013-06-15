@@ -142,6 +142,7 @@
      &                                         '-file'))
       END IF
 
+      WRITE (context%recout_iou,*) '  my_task is ', my_task
       SELECT CASE (my_task)
 
          CASE ('equilibrium')
@@ -233,11 +234,26 @@
 
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
+
+!  FIXME: Rename this. For not keep rectout files identical for testing
+      WRITE (context%recout_iou,*)
+      WRITE (context%recout_iou,*)                                             &
+     &   ' *** START signal_data_ma_write, called with id ='
+      WRITE (context%recout_iou,*)
+      WRITE (context%recout_iou,*)                                             &
+     &   '[diagnostic mddc - Model(2) is plasma signal]'
+      WRITE (context%recout_iou,'(i4,a)') SIZE(context%signals),               &
+     &   ' Signals'
+      WRITE (context%recout_iou,*)
+      WRITE (context%recout_iou,*) '   #          type           ' //          &
+     &   's_name                  Model         Model(2)'
+
       DO i = 1, SIZE(context%signals)
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
-     &                                         context%model,                  &
-     &                                         sigma, .false.)
-         WRITE (*,*) i, context%signals(i)%p%s_name, observed
+     &                                        context%model,                   &
+     &                                        sigma, .false.)
+         CALL signal_write(context%signals(i)%p,                               &
+     &                     context%recout_iou, i)
       END DO
 
       END SUBROUTINE
@@ -304,12 +320,21 @@
       CALL pprofile_construct(sxr, TRIM(pp_sxrem_ptype), pp_sxrem_b,           &
      &                        pp_sxrem_as, pp_sxrem_af)
 
+!  FIXME: Change init_nli to init_equilibrium. For not keep the recout file
+!  identical for testing
+      CALL pprofile_write(ne, 'init_nli pp_ne', context%recout_iou)
+      CALL pprofile_write(sxr, 'init_nli pp_sxrem',                            &
+     &                    context%recout_iou)
+      CALL pprofile_write(te, 'init_nli pp_te', context%recout_iou)
+
       IF (vmec_nli_filename .ne. '') THEN
          context%model => model_construct(                                     &
      &      model_ne_type, model_sxrem_type, model_te_type,                    &
      &      ne_pp_unit, ne_min, e_pressure_fraction,                           &
      &      equilibrium_construct(vmec_construct(vmec_nli_filename,            &
      &                                           ne, te, sxr)))
+
+         CALL model_write(context%model, context%recout_iou)
 
          RETURN ! Only initialize one equilibrium.
       END IF

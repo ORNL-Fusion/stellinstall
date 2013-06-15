@@ -168,4 +168,21 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the thomson type
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: thomson_get_signal_type
+      TYPE (thomson_class), INTENT(in) :: this
+
+!  Start of executable code
+      thomson_get_signal_type = 'thscte'
+
+      END FUNCTION
+
       END MODULE

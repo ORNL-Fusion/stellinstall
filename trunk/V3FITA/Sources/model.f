@@ -80,7 +80,7 @@
          CASE ('pp_ne')
             model_construct%ne_type = model_ne_type
 
-         CASE ('pp_te_vmec_p')
+         CASE ('pp_te_p')
             model_construct%ne_type = model_ne_te_p_type
 
          CASE DEFAULT
@@ -113,6 +113,7 @@
          CASE ('pp_te')
             model_construct%te_type = model_te_type
 
+!  FIXME: Name here shouldn't have vmec in it
          CASE ('pp_ne_vmec_p')
             model_construct%te_type = model_te_ne_p_type
 
@@ -273,5 +274,112 @@
       END SELECT
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model the electron density model type
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ne_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_ne_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%ne_type)
+
+         CASE (model_ne_type)
+            model_get_ne_type = 'pp_ne'
+
+         CASE (model_ne_te_p_type)
+            model_get_ne_type = 'pp_te_p'
+
+         CASE DEFAULT
+            model_get_ne_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model the electron temperature model type
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_te_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_te_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%te_type)
+
+         CASE (model_te_type)
+            model_get_te_type = 'pp_te'
+
+         CASE (model_ne_te_p_type)
+            model_get_te_type = 'pp_ne_vmec_p'
+
+         CASE DEFAULT
+            model_get_te_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model the soft x-ray emissivity model type
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_sxrem_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_sxrem_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%sxrem_type)
+
+      CASE (model_sxrem_type)
+         model_get_sxrem_type = 'pp_sxrem'
+
+      CASE DEFAULT
+         model_get_sxrem_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE model_write(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: iou
+
+!  Start of executable code
+      WRITE (iou,*)
+!  FIXME: Add model_ne_type. Leave commented so that recout files are formatted
+!  exactly the same for testing purposes.
+!      WRITE (iou,*) '  model_ne_type is ',                                    &
+!                    TRIM(model_get_ne_type(this))
+      WRITE (iou,*) '  model_sxrem_type is ',                                  &
+     &              TRIM(model_get_sxrem_type(this))
+      WRITE (iou,*) '  model_te_type is ',                                     &
+     &              TRIM(model_get_te_type(this))
+      WRITE (iou, 1000) '  ne_pp_unit is ', this%ne_unit
+      WRITE (iou, 1000) '  ne_min is ', this%ne_min
+      WRITE (iou, 1000) '  e_pressure_fraction is ',                           &
+     &                  this%pressure_fraction
+1000  FORMAT(a,2x,es12.5)
+
+      END SUBROUTINE
 
       END MODULE
