@@ -49,6 +49,8 @@
 !  Start of executable code
       filename = commandline_parser_get_string(cl_parser, '-file')
 
+      ALLOCATE(v3fit_context_construct)
+
 !  Setup the recout file.
       CALL safe_open(v3fit_context_construct%recout_iou, status,               &
      &               'recout.' // filename_base(filename),                     &
@@ -61,8 +63,6 @@
       WRITE (v3fit_context_construct%recout_iou, *)                            &
      &   '  Namelist Input from file ',                                        &
      &   TRIM(filename)
-
-      ALLOCATE(v3fit_context_construct)
 
       v3fit_context_construct%cl_parser => cl_parser
 
