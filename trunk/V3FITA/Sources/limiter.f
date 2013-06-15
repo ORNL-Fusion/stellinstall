@@ -143,28 +143,6 @@
       END FUNCTION
 
 !*******************************************************************************
-!  UTILITY SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Allocate a uniquie iso_function.
-!
-!  FIXME: This method should be removed and limiter_iso_construct should be
-!  changed to a function returning a pointer. This method is a solution to the
-!  the problem of making sure only unique ios fuctions are allocated.
-!-------------------------------------------------------------------------------
-      FUNCTION limiter_allocate_iso_funct()
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_iso), POINTER :: limiter_allocate_iso_funct
-
-!  Start of executable code
-      ALLOCATE (limiter_allocate_iso_funct)
-
-      END FUNCTION
-
-!*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
@@ -190,10 +168,11 @@
 
 !  Start of executable code
       limiter_get_modeled_iso_signal = 0.0
+      ALLOCATE(r(num_theta), z(num_theta))
 
 !  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
 !  There is no need to allocate and deallocate r and z for each phi angle.
-      DO phi_index = 1, SIZE(this%iso%vgrid, 1)
+      DO phi_index = 1, SIZE(this%iso%vgrid)
          num_theta =                                                           &
      &      equilibrium_get_plasma_edge(a_model%equilibrium,                   &
      &                                  this%iso%vgrid(phi_index),             &
