@@ -137,7 +137,7 @@
 
 !  Start of executable code
       a_model = TRANSFER(context, a_model)
-      sxr_function = model_get_sxrem(a_model, cart_to_cyl(xcart))*dx
+      sxr_function = model_get_sxrem(a_model, xcart)*dx
 
       END FUNCTION
 

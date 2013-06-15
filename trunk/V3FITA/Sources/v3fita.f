@@ -131,8 +131,16 @@
 
 !  Create a context and read in the v3fit namelist input file.
       context => v3fit_context_construct(commandline_parser_construct())
-      CALL v3fit_input_read_namelist(                                          &
-     &        commandline_parser_get_string(context%cl_parser, '-file'))
+
+!  Run unit tests if the -test flag is set.
+      IF (commandline_parser_is_flag_set(context%cl_parser,                    &
+     &                                   '-test')) THEN
+         my_task = 'unit_test'
+      ELSE
+         CALL v3fit_input_read_namelist(                                       &
+     &           commandline_parser_get_string(context%cl_parser,              &
+     &                                         '-file'))
+      END IF
 
       SELECT CASE (my_task)
 
@@ -141,6 +149,9 @@
 
          CASE ('v3post')
             CALL task_v3post(context)
+
+         CASE ('unit_test')
+            CALL task_unit_tests
 
       END SELECT
 
@@ -228,6 +239,38 @@
      &                                         sigma, .false.)
          WRITE (*,*) i, context%signals(i)%p%s_name, observed
       END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Run unit tests
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_unit_tests
+      USE line_segment
+      USE coordinate_utilities
+      USE functions
+      USE integration_path
+
+      IMPLICIT NONE
+
+!  local variables
+      LOGICAL :: test_passed
+
+!  Start of executable code
+      WRITE (*,*) ' *** In task unit_test'
+
+! Line segment tests
+      test_passed = line_seg_test()
+      IF (test_passed) WRITE(*,*) "Line Segment Test Passed"
+! Coordinate tests
+      test_passed = cood_utils_test()
+      IF (test_passed) WRITE(*,*) "Coord Utilites Test Passed"
+! Profile function tests
+      test_passed = function_test()
+      IF (test_passed) WRITE(*,*) "Functions Test Passed"
+! Integration path tests
+      test_passed = path_test()
+      IF (test_passed) WRITE(*,*) "Integration Path Test Passed"
 
       END SUBROUTINE
 
