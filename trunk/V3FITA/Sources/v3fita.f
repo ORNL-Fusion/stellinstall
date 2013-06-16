@@ -151,6 +151,9 @@
          CASE ('v3post')
             CALL task_v3post(context)
 
+         CASE ('reconstruct')
+            CALL task_reconstruct(context)
+
          CASE ('unit_test')
             CALL task_unit_tests
 
@@ -236,12 +239,12 @@
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
 
-!  FIXME: Rename this. For not keep rectout files identical for testing
+!  FIXME: Rename this. For now keep rectout files identical for testing
       WRITE (context%recout_iou,*)
       WRITE (context%recout_iou,*)                                             &
-     &   ' *** START signal_data_ma_write, called with id ='
+     &   '*** START signal_data_ma_write, called with id ='
       WRITE (context%recout_iou,*)
-      WRITE (context%recout_iou,*)                                             &
+      WRITE (context%recout_iou,'(a)')                                         &
      &   '[diagnostic mddc - Model(2) is plasma signal]'
       WRITE (context%recout_iou,'(i4,a)') SIZE(context%signals),               &
      &   ' Signals'
@@ -256,6 +259,27 @@
          CALL signal_write(context%signals(i)%p,                               &
      &                     context%recout_iou, i)
       END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Reconstructs the equilibrium
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_reconstruct(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  Start of executable code
+      WRITE (*,*) ' *** In task reconstruct'
+
+!  Initialize the reconstruction.
+      CALL init_equilibrium(context)
+      CALL init_signals(context)
+      CALL init_parameters(context)
 
       END SUBROUTINE
 
@@ -305,13 +329,35 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing equilibrium model'
+
+      IF (vmec_nli_filename .ne. '') THEN
+         CALL init_vmec_equilibrium(context)
+      END IF
+
+      CALL model_write(context%model, context%recout_iou)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize a vmec equilibrium
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_vmec_equilibrium(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
 !  local variables
       TYPE (pprofile), POINTER                  :: ne => null()
       TYPE (pprofile), POINTER                  :: te => null()
       TYPE (pprofile), POINTER                  :: sxr => null()
 
 !  Start of executable code
-      WRITE (*,*) ' *** Constructing equilibrium model'
+      WRITE (*,*) ' *** Constructing VMEC equilibrium'
 
       ALLOCATE(ne, te, sxr)
       CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
@@ -328,17 +374,10 @@
      &                    context%recout_iou)
       CALL pprofile_write(te, 'init_nli pp_te', context%recout_iou)
 
-      IF (vmec_nli_filename .ne. '') THEN
-         context%model => model_construct(                                     &
-     &      model_ne_type, model_sxrem_type, model_te_type,                    &
-     &      ne_pp_unit, ne_min, e_pressure_fraction,                           &
-     &      equilibrium_construct(vmec_construct(vmec_nli_filename,            &
-     &                                           ne, te, sxr)))
-
-         CALL model_write(context%model, context%recout_iou)
-
-         RETURN ! Only initialize one equilibrium.
-      END IF
+      context%model => model_construct(model_ne_type, model_sxrem_type,        &
+     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
+     &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
+     &                                        ne, te, sxr)))
 
       END SUBROUTINE
 
@@ -705,6 +744,38 @@
      &      sdo_weight_a(signals_created + 1))
 
          signals_created = signals_created + 1
+
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Reconstruction parameters
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_parameters(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: i
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing reconstruction parameters'
+
+      DO i = 1, n_rp
+
+         context%params(i)%p => param_construct(context%model,                 &
+     &                                          rp_type(i),                    &
+     &                                          (/ rp_index(i),                &
+     &                                             rp_index(2) /),             &
+     &                                          rp_vrnc(i),                    &
+     &                                          rp_range_type(i,:),            &
+     &                                          rp_range_index(i,:),           &
+     &                                          rp_range_value(i,:))
 
       END DO
 

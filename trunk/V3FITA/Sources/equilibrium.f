@@ -151,8 +151,8 @@
 
 !  Declare Arguments
       INTEGER :: equilibrium_get_param_id
-      TYPE (equilibrium_class), INTENT(in)         :: this
-      CHARACTER (len=data_name_length), INTENT(in) :: param_name
+      TYPE (equilibrium_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)        :: param_name
 
 !  Start of executable code
       SELECT CASE (this%type)
@@ -169,26 +169,28 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!   Get Scaler Real value for an id number
+!  Get the value of a parameter for an id number
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_scaler_value(this, id)
+      FUNCTION equilibrium_get_param_value(this, id, i_index, j_index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_scaler_value
+      REAL (rprec) :: equilibrium_get_param_value
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
+      INTEGER, INTENT(in)                  :: i_index
+      INTEGER, INTENT(in)                  :: j_index
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_scaler_value =                                     &
-     &         vmec_get_scaler_value(this%vmec, id)
+            equilibrium_get_param_value =                                      &
+     &         vmec_get_param_value(this%vmec, id, i_index, j_index)
 
          CASE DEFAULT
-            equilibrium_get_scaler_value = 0.0
+            equilibrium_get_param_value = 0.0
 
       END SELECT
 
@@ -659,56 +661,6 @@
 
          CASE DEFAULT
             equilibrium_is_2d_array = .false.
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for 3D array
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_3d_array(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_3d_array
-      TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_is_3d_array = vmec_is_3d_array(this%vmec, id)
-
-         CASE DEFAULT
-            equilibrium_is_3d_array = .false.
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for 4D array
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_4d_array(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_4d_array
-      TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_is_4d_array = vmec_is_4d_array(this%vmec, id)
-
-         CASE DEFAULT
-            equilibrium_is_4d_array = .false.
 
       END SELECT
 

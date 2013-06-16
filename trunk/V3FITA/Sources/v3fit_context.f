@@ -10,7 +10,7 @@
 
       MODULE v3fit_context
       USE v3fit_input
-      USE model
+      USE param
       USE commandline_parser
 
 !*******************************************************************************
@@ -27,6 +27,7 @@
          TYPE (model_class), POINTER              :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
+         TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
       END TYPE
 
       CONTAINS
@@ -70,6 +71,8 @@
 !  na_s_desc. na_s_desc will default to the maximum number of signals needed.
       ALLOCATE(v3fit_context_construct%signals(na_s_desc))
 
+      ALLOCATE(v3fit_context_construct%params(n_rp))
+
       END FUNCTION
 
 !*******************************************************************************
@@ -91,12 +94,12 @@
       IF (ASSOCIATED(this%cl_parser)) THEN
          CALL commandline_parser_destruct(this%cl_parser)
          this%cl_parser => null()
-      ENDIF
+      END IF
 
       IF (ASSOCIATED(this%model)) THEN
          CALL model_destruct(this%model)
          this%model => null()
-      ENDIF
+      END IF
 
 !  Deconstruct and deallocate all the signals.
       IF (ASSOCIATED(this%signals)) THEN
@@ -104,11 +107,23 @@
             IF (ASSOCIATED(this%signals(i)%p)) THEN
                CALL signal_destruct(this%signals(i)%p)
                this%signals(i)%p => null()
-            ENDIF
+            END IF
          END DO
          DEALLOCATE(this%signals)
          this%signals => null()
-      ENDIF
+      END IF
+
+!  Deconstruct and deallocate all the parameters.
+      IF (ASSOCIATED(this%params)) THEN
+         DO i = 1, SIZE(this%params)
+            IF (ASSOCIATED(this%params(i)%p)) THEN
+               CALL param_destruct(this%params(i)%p)
+               this%params(i)%p => null()
+            END IF
+         END DO
+        DEALLOCATE(this%params)
+        this%params => null()
+      END IF
 
       DEALLOCATE(this)
 
@@ -141,7 +156,7 @@
             IF (.not.ASSOCIATED(this%signals(i)%p)) THEN
                minsize = i - 1
                EXIT
-            ENDIF
+            END IF
          END DO
 
 !  Reallocate the array if it is smaller
@@ -153,8 +168,8 @@
 
             DEALLOCATE(this%signals)
             this%signals => temp_signal
-         ENDIF
-      ENDIF
+         END IF
+      END IF
 
       END SUBROUTINE
 

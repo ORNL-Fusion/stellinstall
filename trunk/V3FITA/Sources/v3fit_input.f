@@ -123,6 +123,13 @@
 !  rp_index              Array of reconstruction parameter indices
 !  rp_index2             Array of reconstruction parameter 2nd indices
 !  rp_vrnc               Array of reconstruction parameter variances
+!  rp_range_type         2D Array of reconstruction parameter ranges types
+!      'infinity'          Unbounded
+!      'value'             Bounded by the value of rp_range_value
+!      <other>             Bounded by a equilibrium parameter.
+!  rp_range_value        2D Array of values used if rp_range_type = 'value'
+!  rp_range_index        2D Array of values of indicies used if rp_range_type =
+!                        <other>
 !
 !        Signal Data specification
 !  n_sdata_o             Number of signal_data observations
@@ -267,15 +274,21 @@
      &   DIMENSION(v3fit_max_parameters) :: rc_value = 0.0
 
 !  Reconstruction parameters
-      INTEGER                            :: n_rp = 0
+      INTEGER                              :: n_rp = 0
       CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(v3fit_max_parameters) :: rp_type = ''
+     &   DIMENSION(v3fit_max_parameters)   :: rp_type = ''
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters) :: rp_index = 0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_index = 0
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters) :: rp_index2 = 0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_index2 = 0
       REAL (rprec),                                                            &
-     &   DIMENSION(v3fit_max_parameters) :: rp_vrnc = 0.0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_vrnc = 0.0
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_type = 'infinity'
+      REAL (rprec),                                                            &
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_value = 0.0
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_index = 0
 
 !  Signal Data specification
       INTEGER                         :: n_sdata_o = 0
@@ -392,7 +405,8 @@
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Reconstruction parameters
-     &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc,                          &
+     &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc, rp_range_type,           &
+     &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
 !  External current signal specification

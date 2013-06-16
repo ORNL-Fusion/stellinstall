@@ -154,6 +154,9 @@
 !*******************************************************************************
 !  SETTER SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Set reconstruction parameter
+!-------------------------------------------------------------------------------
       SUBROUTINE model_set_param(this, id, i_index, j_index, value)
 
       IMPLICIT NONE
@@ -188,6 +191,73 @@
 !*******************************************************************************
 !  GETTER SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Get the id number for a model parameter
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_param_id(this, param_name)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                        :: model_get_param_id
+      TYPE (model_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)  :: param_name
+
+!  Start of executable code
+      SELECT CASE (TRIM(param_name))
+
+         CASE ('ne_unit')
+            model_get_param_id = model_ne_unit_id
+
+         CASE ('ne_min')
+            model_get_param_id = model_ne_min_id
+
+         CASE ('pressure_fraction')
+            model_get_param_id = model_pressure_fraction_id
+
+         CASE DEFAULT
+            model_get_param_id =                                               &
+     &         equilibrium_get_param_id(this%equilibrium, param_name)
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the value of a parameter for an id number
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_param_value(this, id, i_index, j_index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_param_value
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: id
+      INTEGER, INTENT(in)            :: i_index
+      INTEGER, INTENT(in)            :: j_index
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id)
+            model_get_param_value = this%ne_unit
+
+         CASE (model_ne_min_id)
+            model_get_param_value = this%ne_min
+
+         CASE (model_pressure_fraction_id)
+            model_get_param_value = this%pressure_fraction
+
+         CASE DEFAULT
+            model_get_param_value =                                            &
+     &         equilibrium_get_param_value(this%equilibrium, id,               &
+     &                                     i_index, j_index)
+
+      END SELECT
+
+      END FUNCTION
+
 !-------------------------------------------------------------------------------
 !  Get model electron density at position
 !-------------------------------------------------------------------------------
@@ -348,6 +418,36 @@
 
       CASE DEFAULT
          model_get_sxrem_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  QUERY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Query variable id is a valid reconstruction parameter
+!-------------------------------------------------------------------------------
+      FUNCTION model_is_recon_param(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                        :: model_is_recon_param
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id, model_ne_min_id,                              &
+     &         model_pressure_fraction_id)
+            model_is_recon_param = .true.
+
+         CASE DEFAULT
+            model_is_recon_param =                                             &
+     &         equilibrium_is_recon_param(this%equilibrium, id)
 
       END SELECT
 

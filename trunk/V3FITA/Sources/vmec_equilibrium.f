@@ -50,23 +50,23 @@
       INTEGER, PARAMETER :: vmec_zmns_id        = 22
       INTEGER, PARAMETER :: vmec_lmns_id        = 23
       INTEGER, PARAMETER :: vmec_gmnc_id        = 24
-      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 25
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 26
-      INTEGER, PARAMETER :: vmec_bsupsmns_id    = 27
+      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 25
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 26
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 27
       INTEGER, PARAMETER :: vmec_bsupumnc_id    = 28
       INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 29
       INTEGER, PARAMETER :: vmec_rmns_id        = 30
       INTEGER, PARAMETER :: vmec_zmnc_id        = 31
       INTEGER, PARAMETER :: vmec_lmnc_id        = 32
       INTEGER, PARAMETER :: vmec_gmns_id        = 33
-      INTEGER, PARAMETER :: vmec_bsubumns_id    = 34
-      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 35
-      INTEGER, PARAMETER :: vmec_bsupsmnc_id    = 36
+      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 34
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 35
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 36
       INTEGER, PARAMETER :: vmec_bsupumns_id    = 37
       INTEGER, PARAMETER :: vmec_bsupvmns_id    = 38
       INTEGER, PARAMETER :: vmec_phi_id         = 39
       INTEGER, PARAMETER :: vmec_iotaf_id       = 40
-      INTEGER, PARAMETER :: vmec_rzl_id         = 41
+      INTEGER, PARAMETER :: vmec_iotas_id       = 41
 
 !  Auxiliary Model Parameters
       INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 42
@@ -588,10 +588,10 @@
 !  Declare Arguments
       INTEGER :: vmec_get_param_id
       TYPE (vmec_class), INTENT(in)                :: this
-      CHARACTER (len=data_name_length), INTENT(in) :: param_name
+      CHARACTER (len=*), INTENT(in) :: param_name
 
 !  Start of executable code
-      SELECT CASE (TRIM(ADJUSTL(param_name)))
+      SELECT CASE (TRIM(param_name))
 
          CASE ('ac')
             vmec_get_param_id = vmec_ac_id
@@ -665,8 +665,8 @@
          CASE ('bsubvmnc')
             vmec_get_param_id = vmec_bsubvmnc_id
 
-         CASE ('bsupsmns')
-            vmec_get_param_id = vmec_bsupsmns_id
+         CASE ('bsubsmns')
+            vmec_get_param_id = vmec_bsubsmns_id
 
          CASE ('bsupumnc')
             vmec_get_param_id = vmec_bsupumnc_id
@@ -692,8 +692,8 @@
          CASE ('bsubvmns')
             vmec_get_param_id = vmec_bsubvmns_id
 
-         CASE ('bsupsmnc')
-            vmec_get_param_id = vmec_bsupsmnc_id
+         CASE ('bsubsmnc')
+            vmec_get_param_id = vmec_bsubsmnc_id
 
          CASE ('bsupumns')
             vmec_get_param_id = vmec_bsupumns_id
@@ -707,8 +707,8 @@
          CASE ('iotaf')
             vmec_get_param_id = vmec_iotaf_id
 
-         CASE ('rzl')
-            vmec_get_param_id = vmec_rzl_id
+         CASE ('iotas')
+            vmec_get_param_id = vmec_iotas_id
 
          CASE ('pp_ne_b')
             vmec_get_param_id = vmec_pp_ne_b_id
@@ -738,35 +738,189 @@
             vmec_get_param_id = vmec_pp_te_af_id
 
          CASE DEFAULT
-            WRITE(*,*) TRIM(ADJUSTL(param_name)) //                            &
-     &                 ' is not a valid vmec parameter'
-            STOP
+            vmec_get_param_id = data_no_id
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!   Get Scaler Real value for an id number
+!  Get the value of a parameter for an id number
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_scaler_value(this, id)
-      USE v3_utilities
+      FUNCTION vmec_get_param_value(this, id, i_index, j_index)
+      USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
+     &                      ac, ac_aux_s, ac_aux_f,                            &
+     &                      ai, ai_aux_s, ai_aux_f,                            &
+     &                      am, am_aux_s, am_aux_f,                            &
+     &                      extcur, curtor, phiedge, pres_scale,               &
+     &                      bloat
+      USE read_wout_mod, only: rmnc, zmns, rmns, zmnc, lmns, lmnc,             &
+     &                         gmnc, gmns, bsubumnc, bsubvmnc,                 &
+     &                         bsubsmns, bsupumnc, bsupvmnc,                   &
+     &                         bsubumns, bsubvmns,                             &
+     &                         bsubsmnc, bsupumns, bsupvmns,                   &
+     &                         phi, iotaf, iotas
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: vmec_get_scaler_value
+      REAL (rprec)                  :: vmec_get_param_value
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
+      INTEGER, INTENT(in)           :: i_index
+      INTEGER, INTENT(in)           :: j_index
 
 !  Start of executable code
-      IF (.not. vmec_is_scaler_value(this, id)) THEN
-         WRITE(*,*) vmec_get_param_name(this, id) //                           &
-     &              ' Not scaler type.'
-         STOP
-      END IF
+      SELECT CASE (id)
 
-      vmec_get_scaler_value = 0.0 ! Set to zero for now.
+         CASE (vmec_ac_id)
+            vmec_get_param_value = ac(i_index)
+
+         CASE (vmec_ac_aux_s_id)
+            vmec_get_param_value = ac_aux_s(i_index)
+
+         CASE (vmec_ac_aux_f_id)
+            vmec_get_param_value = ac_aux_f(i_index)
+
+         CASE (vmec_ai_id)
+            vmec_get_param_value = ai(i_index)
+
+         CASE (vmec_ai_aux_s_id)
+            vmec_get_param_value = ai_aux_s(i_index)
+
+         CASE (vmec_ai_aux_f_id)
+            vmec_get_param_value = ai_aux_f(i_index)
+
+         CASE (vmec_am_id)
+            vmec_get_param_value = am(i_index)
+
+         CASE (vmec_am_aux_s_id)
+            vmec_get_param_value = am_aux_s(i_index)
+
+         CASE (vmec_am_aux_f_id)
+            vmec_get_param_value = am_aux_f(i_index)
+
+         CASE (vmec_bloat_id)
+            vmec_get_param_value = bloat
+
+         CASE (vmec_rbc_id)
+            vmec_get_param_value = rbc(i_index, j_index)
+
+         CASE (vmec_zbs_id)
+            vmec_get_param_value = zbs(i_index, j_index)
+
+         CASE (vmec_rbs_id)
+            vmec_get_param_value = rbc(i_index, j_index)
+
+         CASE (vmec_zbc_id)
+            vmec_get_param_value = zbc(i_index, j_index)
+
+         CASE (vmec_extcur_id)
+            vmec_get_param_value = extcur(i_index)
+
+         CASE (vmec_curtor_id)
+            vmec_get_param_value = curtor
+
+         CASE (vmec_phiedge_id)
+            vmec_get_param_value = phiedge
+
+         CASE (vmec_pres_scale_id)
+            vmec_get_param_value = pres_scale
+
+         CASE (vmec_rmnc_id)
+            vmec_get_param_value = rmnc(i_index, j_index)
+
+         CASE (vmec_zmns_id)
+            vmec_get_param_value = zmns(i_index, j_index)
+
+         CASE (vmec_lmns_id)
+            vmec_get_param_value = lmns(i_index, j_index)
+
+         CASE (vmec_gmnc_id)
+            vmec_get_param_value = gmnc(i_index, j_index)
+
+         CASE (vmec_bsubumnc_id)
+            vmec_get_param_value = bsubumnc(i_index, j_index)
+
+         CASE (vmec_bsubvmnc_id)
+            vmec_get_param_value = bsubvmnc(i_index, j_index)
+
+         CASE (vmec_bsubsmns_id)
+            vmec_get_param_value = bsubsmns(i_index, j_index)
+
+         CASE (vmec_bsupumnc_id)
+            vmec_get_param_value = bsupumnc(i_index, j_index)
+
+         CASE (vmec_bsupvmnc_id)
+            vmec_get_param_value = bsupvmnc(i_index, j_index)
+
+         CASE (vmec_rmns_id)
+            vmec_get_param_value = rmns(i_index, j_index)
+
+         CASE (vmec_zmnc_id)
+            vmec_get_param_value = zmnc(i_index, j_index)
+
+         CASE (vmec_lmnc_id)
+            vmec_get_param_value = lmnc(i_index, j_index)
+
+         CASE (vmec_gmns_id)
+            vmec_get_param_value = gmns(i_index, j_index)
+
+         CASE (vmec_bsubumns_id)
+            vmec_get_param_value = bsubumns(i_index, j_index)
+
+         CASE (vmec_bsubvmns_id)
+            vmec_get_param_value = bsubvmns(i_index, j_index)
+
+         CASE (vmec_bsubsmnc_id)
+            vmec_get_param_value = bsubsmnc(i_index, j_index)
+
+         CASE (vmec_bsupumns_id)
+            vmec_get_param_value = bsupumns(i_index, j_index)
+
+         CASE (vmec_bsupvmns_id)
+            vmec_get_param_value = bsupvmns(i_index, j_index)
+
+         CASE (vmec_phi_id)
+            vmec_get_param_value = phi(i_index)
+
+         CASE (vmec_iotaf_id)
+            vmec_get_param_value = iotaf(i_index)
+
+         CASE (vmec_iotas_id)
+            vmec_get_param_value = iotas(i_index)
+
+         CASE (vmec_pp_ne_b_id)
+            vmec_get_param_value = this%ne%b(i_index)
+
+         CASE (vmec_pp_ne_as_id)
+            vmec_get_param_value = this%ne%af(i_index)
+
+         CASE (vmec_pp_ne_af_id)
+            vmec_get_param_value = this%ne%as(i_index)
+
+         CASE (vmec_pp_sxrem_b_id)
+            vmec_get_param_value = this%ne%b(i_index)
+
+         CASE (vmec_pp_sxrem_as_id)
+            vmec_get_param_value = this%ne%as(i_index)
+
+         CASE (vmec_pp_sxrem_af_id)
+            vmec_get_param_value = this%ne%af(i_index)
+
+         CASE (vmec_pp_te_b_id)
+            vmec_get_param_value = this%ne%b(i_index)
+
+         CASE (vmec_pp_te_as_id)
+            vmec_get_param_value = this%ne%as(i_index)
+
+         CASE (vmec_pp_te_af_id)
+            vmec_get_param_value = this%te%af(i_index)
+
+         CASE DEFAULT
+            vmec_get_param_value = 0.0
+
+      END SELECT
 
       END FUNCTION
 
@@ -857,8 +1011,8 @@
          CASE (vmec_bsubvmnc_id)
             vmec_get_param_name = 'bsubvmnc'
 
-         CASE (vmec_bsupsmns_id)
-            vmec_get_param_name = 'bsupsmns'
+         CASE (vmec_bsubsmns_id)
+            vmec_get_param_name = 'bsubsmns'
 
          CASE (vmec_bsupumnc_id)
             vmec_get_param_name = 'bsupumnc'
@@ -884,8 +1038,8 @@
          CASE (vmec_bsubvmns_id)
             vmec_get_param_name = 'bsubvmns'
 
-         CASE (vmec_bsupsmnc_id)
-            vmec_get_param_name = 'bsupsmnc'
+         CASE (vmec_bsubsmnc_id)
+            vmec_get_param_name = 'bsubsmnc'
 
          CASE (vmec_bsupumns_id)
             vmec_get_param_name = 'bsupumns'
@@ -899,8 +1053,8 @@
          CASE (vmec_iotaf_id)
             vmec_get_param_name = 'iotaf'
 
-         CASE (vmec_rzl_id)
-            vmec_get_param_name = 'rzl'
+         CASE (vmec_iotas_id)
+            vmec_get_param_name = 'iotas'
 
          CASE (vmec_pp_ne_b_id)
             vmec_get_param_name = 'pp_ne_b'
@@ -1382,7 +1536,7 @@
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
      &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_phi_id,               &
-     &         vmec_iotaf_id)
+     &         vmec_iotaf_id, vmec_iotas_id)
             vmec_is_1d_array = .true.
 
          CASE DEFAULT
@@ -1410,56 +1564,14 @@
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
      &         vmec_rmnc_id, vmec_zmns_id, vmec_lmns_id, vmec_gmnc_id,         &
      &         vmec_bsubumnc_id, vmec_bsubvmnc_id,                             &
-     &         vmec_bsupsmns_id, vmec_bsupumnc_id, vmec_bsupvmnc_id,           &
+     &         vmec_bsubsmns_id, vmec_bsupumnc_id, vmec_bsupvmnc_id,           &
      &         vmec_rmns_id, vmec_zmnc_id, vmec_lmnc_id, vmec_gmns_id,         &
      &         vmec_bsubumns_id, vmec_bsubvmns_id,                             &
-     &         vmec_bsupsmnc_id, vmec_bsupumns_id, vmec_bsupvmns_id)
+     &         vmec_bsubsmnc_id, vmec_bsupumns_id, vmec_bsupvmns_id)
             vmec_is_2d_array = .true.
 
          CASE DEFAULT
             vmec_is_2d_array = .false.
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for 3D array
-!-------------------------------------------------------------------------------
-      FUNCTION vmec_is_3d_array(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL                       :: vmec_is_3d_array
-      TYPE (vmec_class), INTENT(in) :: this
-      INTEGER, INTENT(in)           :: id
-
-!  Start of executable code
-      vmec_is_3d_array = .false.
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for 4D array
-!-------------------------------------------------------------------------------
-      FUNCTION vmec_is_4d_array(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL                       :: vmec_is_4d_array
-      TYPE (vmec_class), INTENT(in) :: this
-      INTEGER, INTENT(in)           :: id
-
-!  Start of executable code
-      SELECT CASE (id)
-
-         CASE (vmec_rzl_id)
-            vmec_is_4d_array = .true.
-
-         CASE DEFAULT
-            vmec_is_4d_array = .false.
 
       END SELECT
 
