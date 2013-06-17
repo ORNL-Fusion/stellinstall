@@ -482,6 +482,8 @@
      &                  this%pressure_fraction
 1000  FORMAT(1x,a,2x,es12.5)
 
+      CALL equilibrium_write(this%equilibrium, iou)
+
       END SUBROUTINE
 
       END MODULE

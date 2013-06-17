@@ -1771,6 +1771,26 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!  Write the vmec_equilibrium out to disk.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_write(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: iou
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,*) 'Equilibrium Type : VMEC'
+      CALL pprofile_write(this%ne, 'pp_ne', iou)
+      CALL pprofile_write(this%sxrem, 'pp_sxrem', iou)
+      CALL pprofile_write(this%te, 'pp_te', iou)
+
+      END SUBROUTINE
+
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************

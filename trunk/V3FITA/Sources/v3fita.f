@@ -390,13 +390,6 @@
       CALL pprofile_construct(sxr, TRIM(pp_sxrem_ptype), pp_sxrem_b,           &
      &                        pp_sxrem_as, pp_sxrem_af)
 
-!  FIXME: Change init_nli to init_equilibrium. For not keep the recout file
-!  identical for testing
-      CALL pprofile_write(ne, 'init_nli pp_ne', context%recout_iou)
-      CALL pprofile_write(sxr, 'init_nli pp_sxrem',                            &
-     &                    context%recout_iou)
-      CALL pprofile_write(te, 'init_nli pp_te', context%recout_iou)
-
       context%model => model_construct(model_ne_type, model_sxrem_type,        &
      &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &

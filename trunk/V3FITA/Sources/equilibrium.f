@@ -766,4 +766,25 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!  Write the equilibrium out to disk.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: iou
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+      CASE (equilibrium_vmec_type)
+         CALL vmec_write(this%vmec, iou)
+
+      END SELECT
+
+      END SUBROUTINE
+
       END MODULE

@@ -483,7 +483,7 @@
      &                 this%s_name, this%observed, this%observed_sigma,        &
      &                 this%modeled
 
-1000  FORMAT(i4,2(2x,a20),2(2x,es12.5),4(2x,es12.5))
+1000  FORMAT(i4,2x,a23,2x,a20,2(2x,es12.5),4(2x,es12.5))
 
       END SUBROUTINE
 
@@ -502,7 +502,7 @@
       WRITE (iou,*)
       WRITE (iou,1000) signal_get_header(this)
 
-1000  FORMAT(3x,'#',2x,'type',18x,'s_name',16x,'observed',6x,'sigma',          &
+1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'observed',6x,'sigma',          &
      &       9x,'model',7x,2(2x,a12),3(2x,a12))
 
       END SUBROUTINE
