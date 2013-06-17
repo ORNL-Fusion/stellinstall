@@ -372,4 +372,24 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the magnetic header
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   magnetic_get_header
+      TYPE (magnetic_class), INTENT(in) :: this
+
+!  Start of executable code
+      magnetic_get_header(1) = 'plasma only'
+      magnetic_get_header(2) = 'eq currents'
+      magnetic_get_header(3) = 'N/A'
+
+      END FUNCTION
+
       END MODULE

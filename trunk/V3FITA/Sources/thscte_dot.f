@@ -250,7 +250,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_read_new(thscte_file, signals,                     &
      &                               signals_created, observed, sigma,         &
-     &                               weight)
+     &                               weight, first_index)
       USE signal
       USE data_parameters
 
@@ -272,6 +272,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: observed
       REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(inout)                 :: first_index
 
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -323,37 +324,43 @@
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'XYZ', 't',                         &
      &                                     signals, signals_created,           &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
 
             CASE ('thscte_RPhiDegZ','thscte_RPhiDegZ_te')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'RPHiDegZ', 't',                    &
      &                                     signals, signals_created,           &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
 
             CASE ('thscte_XYZ_ne')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'XYZ', 'd',                         &
      &                                     signals, signals_created,           &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
 
             CASE ('thscte_RPhiDegZ_ne')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'RPHiDegZ', 'd',                    &
      &                                     signals, signals_created,           &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
 
             CASE ('thscte_XYZ_pres')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'XYZ', 'p',                         &
      &                                     signals, signals_created,           &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
 
             CASE ('thscte_RPhiDegZ_pres')
                CALL thscte_dot_parse_chord(thscte_dot_file_ref,                &
      &                                     'RPHiDegZ', 'p',                    &
      &                                     signals, signals_created,           &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
 
          END SELECT
 
@@ -435,11 +442,12 @@
 !      thscted_keyword(1) = 'thscte_XYZ' or 'thscte_RPhiDegZ'
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_parse_chord_new(thscte_dot_file_ref,               &
-     &                                     coordinate_type,                    &
-     &                                     point_type,                         &
-     &                                     signals,                            &
-     &                                     signals_created,                    &
-     &                                     observed, sigma, weight)
+     &                                      coordinate_type,                   &
+     &                                      point_type,                        &
+     &                                      signals,                           &
+     &                                      signals_created,                   &
+     &                                      observed, sigma, weight,           &
+     &                                      first_index)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -456,6 +464,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: observed
       REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(inout)                 :: first_index
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -502,6 +511,12 @@
      &   sigma(signals_created + 1), weight(signals_created + 1))
 
       signals_created = signals_created + 1
+
+!  At lease one intpol signal was made. Set the first index. This should only be
+!  run once.
+      IF (first_index .eq. -1) THEN
+         first_index = signals_created
+      END IF
 
       END SUBROUTINE thscte_dot_parse_chord_new
 

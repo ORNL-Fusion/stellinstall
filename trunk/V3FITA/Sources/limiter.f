@@ -142,6 +142,51 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the limiter type
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length)   :: limiter_get_signal_type
+      TYPE (limiter_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (limiter_iso_type)
+            limiter_get_signal_type = 'edge_lim iso'
+
+         CASE (limiter_polygon_type)
+            limiter_get_signal_type = 'edge_lim poly'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the diagnostic header
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   limiter_get_header
+      TYPE (limiter_class), INTENT(in) :: this
+
+!  Start of executable code
+      limiter_get_header(1) = 'r (m)'
+      limiter_get_header(1) = 'phi (m)'
+      limiter_get_header(1) = 'z (m)'
+
+      END FUNCTION
+
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************

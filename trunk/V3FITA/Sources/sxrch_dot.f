@@ -212,7 +212,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrch_dot_read_new(sxrch_file, signals,                       &
      &                              signals_created, observed, sigma,          &
-     &                              weight)
+     &                              weight, first_index)
       USE signal
       USE data_parameters
 
@@ -234,6 +234,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: observed
       REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(inout)                 :: first_index
 
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -278,13 +279,16 @@
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'XYZ', signals,                      &
      &                                    signals_created,                     &
-     &                                    observed, sigma, weight)
+     &                                    observed, sigma, weight,             &
+     &                                    first_index)
 
             CASE ('sxr_chord_RPhiDegZ')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'RPHiDegZ', signals,                 &
      &                                    signals_created,                     &
-     &                                    observed, sigma, weight)
+     &                                    observed, sigma, weight,             &
+     &                                    first_index)
+
 
          END SELECT
 
@@ -367,7 +371,8 @@
      &                                     coordinate_type,                    &
      &                                     signals,                            &
      &                                     signals_created,                    &
-     &                                     observed, sigma, weight)
+     &                                     observed, sigma, weight,            &
+     &                                     first_index)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -377,13 +382,14 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      TYPE(signal_dot_file), INTENT(inout)  :: sxrch_dot_file_ref
-      CHARACTER (len=*), INTENT(in)         :: coordinate_type
+      TYPE (signal_dot_file), INTENT(inout)  :: sxrch_dot_file_ref
+      CHARACTER (len=*), INTENT(in)          :: coordinate_type
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
-      INTEGER, INTENT(inout)                :: signals_created
-      REAL(rprec), DIMENSION(:), INTENT(in) :: observed
-      REAL(rprec), DIMENSION(:), INTENT(in) :: sigma
-      REAL(rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(inout)                 :: signals_created
+      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(inout)                 :: first_index
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -412,6 +418,12 @@
      &   'arb', observed(signals_created + 1),                                 &
      &   sigma(signals_created + 1), weight(signals_created + 1))
       signals_created = signals_created + 1
+
+!  At lease one sxrem signal was made. Set the first index. This should only be
+!  run once.
+      IF (first_index .eq. -1) THEN
+         first_index = signals_created
+      END IF
 
       END SUBROUTINE sxrch_dot_parse_chord_new
 

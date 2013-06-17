@@ -388,6 +388,7 @@
 
 !  Start of executable code
       SELECT CASE(this%type)
+
          CASE (signal_diagnostic_type)
             signal_get_signal_type =                                           &
      &         TRIM(diagnostic_get_signal_type(this%diagnostic))
@@ -399,6 +400,35 @@
          CASE (signal_combination_type)
             signal_get_signal_type =                                           &
      &         TRIM(combination_get_signal_type(this%combination))
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the signal header
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   signal_get_header
+      TYPE (signal_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (signal_diagnostic_type)
+            signal_get_header = diagnostic_get_header(this%diagnostic)
+
+         CASE (signal_geometric_type)
+            signal_get_header = geometric_get_header(this%geometric)
+
+         CASE (signal_combination_type)
+            signal_get_header = combination_get_header(this%combination)
 
       END SELECT
 
@@ -450,9 +480,52 @@
 !  Write out the model 1 and 2 for every signal. Eventually all for should be
 !  written out.
       WRITE (iou,1000) index, signal_get_signal_type(this),                    &
-     &                 this%s_name, this%modeled(1), this%modeled(2)
+     &                 this%s_name, this%observed, this%observed_sigma,        &
+     &                 this%modeled
 
-1000  FORMAT(i4,2(2x,a20),2(2x,es12.5))
+1000  FORMAT(i4,2(2x,a20),2(2x,es12.5),4(2x,es12.5))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write out the signal header
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_write_header(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: iou
+
+!  Start of executable code
+      WRITE (iou,1000) signal_get_header(this)
+
+1000  FORMAT(3x,'#',2x,'type',18x,'s_name',16x,'observed',6x,'sigma',          &
+     &       9x,'model',7x,2(2x,a12),3(2x,a12))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write out the signal auxiliary information.
+!-------------------------------------------------------------------------------
+      SUBROUTINE signals_write_auxiliary(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: iou
+      INTEGER, INTENT(in)             :: index
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (signal_combination_type)
+            CALL combination_write_auxiliary(this%combination,                 &
+     &                                       iou, index)
+
+      END SELECT
 
       END SUBROUTINE
 
@@ -631,8 +704,72 @@
       TYPE (combination_class), INTENT(in) :: this
 
 !  Start of executable code
-      combination_get_signal_type = 'coosig'
+      SELECT CASE (this%type)
+         CASE (combination_sum)
+            combination_get_signal_type = 'coosig sum'
+
+         CASE (combination_max)
+            combination_get_signal_type = 'coosig max'
+
+         CASE (combination_min)
+            combination_get_signal_type = 'coosig min'
+
+      END SELECT
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the combination header
+!-------------------------------------------------------------------------------
+      FUNCTION combination_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   combination_get_header
+      TYPE (combination_class), INTENT(in) :: this
+
+!  Start of executable code
+      combination_get_header(1) = 'model(2)'
+      combination_get_header(2) = 'model(3)'
+      combination_get_header(3) = 'model(4)'
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Write out the combination auxiliary information.
+!-------------------------------------------------------------------------------
+      SUBROUTINE combination_write_auxiliary(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (combination_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: iou
+      INTEGER, INTENT(in)                  :: index
+
+!  local variables
+      INTEGER                              :: i
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,1000) index, combination_get_signal_type(this)
+      WRITE (iou,1001)
+
+      DO i = 1, SIZE(this%signals)
+         WRITE (iou,1002) i, this%signals(i)%p%s_name, this%a(i)
+      END DO
+
+1000  FORMAT('Signal',1x,i4,1x,                                                &
+     &       'is a combination of other signals, type: ',a)
+1001  FORMAT('term #',2x,'s_name',16x,'Coefficient')
+1002  FORMAT(2x,i4,2x,a20,2x,es12.5)
+
+      END SUBROUTINE
 
       END MODULE

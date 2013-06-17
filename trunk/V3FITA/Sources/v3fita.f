@@ -241,23 +241,32 @@
 
 !  FIXME: Rename this. For now keep rectout files identical for testing
       WRITE (context%recout_iou,*)
-      WRITE (context%recout_iou,*)                                             &
-     &   '*** START signal_data_ma_write, called with id ='
-      WRITE (context%recout_iou,*)
-      WRITE (context%recout_iou,'(a)')                                         &
-     &   '[diagnostic mddc - Model(2) is plasma signal]'
-      WRITE (context%recout_iou,'(i4,a)') SIZE(context%signals),               &
-     &   ' Signals'
-      WRITE (context%recout_iou,*)
-      WRITE (context%recout_iou,*) '  #          type           ' //           &
-     &   's_name                  Model         Model(2)'
 
       DO i = 1, SIZE(context%signals)
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
      &                                        context%model,                   &
      &                                        sigma, .false.)
+
+!  Check if the index has reached a new signal type
+         IF ((context%magnetic_index .eq. i) .or.                              &
+     &       (context%sxrem_index .eq. i) .or.                                 &
+     &       (context%intpol_index .eq. i) .or.                                &
+     &       (context%thomson_index .eq. i) .or.                               &
+     &       (context%extcurz_index .eq. i) .or.                               &
+     &       (context%limiter_index .eq. i) .or.                               &
+     &       (context%combination_index .eq. i)) THEN
+
+            CALL signal_write_header(context%signals(i)%p,                     &
+     &                               context%recout_iou)
+         END IF
+
          CALL signal_write(context%signals(i)%p,                               &
      &                     context%recout_iou, i)
+      END DO
+
+      DO i = 1, SIZE(context%signals)
+         CALL signals_write_auxiliary(context%signals(i)%p,                    &
+     &                                context%recout_iou, i)
       END DO
 
       END SUBROUTINE
@@ -273,6 +282,12 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+!  local variables
+      INTEGER                                   :: num_steps = 1
+      LOGICAL                                   :: converged
+      REAL (rprec)                              :: g2 = 0.0
+      INTEGER                                   :: i
+
 !  Start of executable code
       WRITE (*,*) ' *** In task reconstruct'
 
@@ -280,6 +295,17 @@
       CALL init_equilibrium(context)
       CALL init_signals(context)
       CALL init_parameters(context)
+
+!  Solve equilibrium
+      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      converged = equilibrium_converge(context%model%equilibrium,              &
+     &                                 num_steps)
+      CALL assert(converged, 'task_reconstruct no inital convergence')
+
+!  Calculate chi^2
+      DO i = 1, SIZE(context%signals)
+          g2 = g2 + signal_get_g2(context%signals(i)%p, context%model)
+      END DO
 
       END SUBROUTINE
 
@@ -517,6 +543,12 @@
 
          CALL cdf_close(mdsig_iou)
 
+!  At lease one magnetic signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%magnetic_index .eq. -1) THEN
+            context%magnetic_index = signals_created
+         END IF
+
       END DO
 
       END SUBROUTINE
@@ -538,9 +570,10 @@
       WRITE (*,*) ' *** Constructing sxrem signals from ' //                   &
      &            TRIM(sxrch_dot_filename)
 
+!  The setting of the sxrem_index for sxrem happens inside sxrch_dot_parse_chord
       CALL sxrch_dot_read(sxrch_dot_filename, context%signals,                 &
      &                    signals_created, sdo_data_a, sdo_sigma_a,            &
-     &                    sdo_weight_a)
+     &                    sdo_weight_a, context%sxrem_index)
 
       END SUBROUTINE
 
@@ -561,9 +594,10 @@
       WRITE (*,*) ' *** Constructing intpol signals from ' //                  &
      &            TRIM(ipch_dot_filename)
 
+!  The setting of the intpol_index for sxrem happens inside ipch_dot_parse_chord
       CALL ipch_dot_read(ipch_dot_filename, context%signals,                   &
      &                   signals_created, sdo_data_a, sdo_sigma_a,             &
-     &                   sdo_weight_a)
+     &                   sdo_weight_a, context%intpol_index)
 
       END SUBROUTINE
 
@@ -584,9 +618,11 @@
       WRITE (*,*) ' *** Constructing thomson signals from ' //                 &
      &            TRIM(thscte_dot_filename)
 
+!  The setting of the thomson_index for sxrem happens inside
+!  thscte_dot_parse_chord
       CALL thscte_dot_read(thscte_dot_filename, context%signals,               &
      &                     signals_created, sdo_data_a, sdo_sigma_a,           &
-     &                     sdo_weight_a)
+     &                     sdo_weight_a, context%thomson_index)
 
       END SUBROUTINE
 
@@ -620,6 +656,12 @@
      &   sdo_weight_a(signals_created + 1))
 
       signals_created = signals_created + 1
+
+!  At lease one extcurz signal was made. Mark the index of it in the context.
+!  This should only be run once.
+      IF (context%extcurz_index .eq. -1) THEN
+         context%extcurz_index = signals_created
+      END IF
 
       END SUBROUTINE
 
@@ -686,6 +728,12 @@
 
          signals_created = signals_created + 1
 
+!  At lease one limiter signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%limiter_index .eq. -1) THEN
+            context%limiter_index = signals_created
+         END IF
+
       END DO
 
       END SUBROUTINE
@@ -745,6 +793,12 @@
 
          signals_created = signals_created + 1
 
+!  At lease one combination signal was made. Mark the index of it in the
+!  context. This should only be run once.
+      IF (context%combination_index .eq. -1) THEN
+         context%combination_index = signals_created
+      END IF
+
       END DO
 
       END SUBROUTINE
@@ -771,7 +825,7 @@
          context%params(i)%p => param_construct(context%model,                 &
      &                                          rp_type(i),                    &
      &                                          (/ rp_index(i),                &
-     &                                             rp_index(2) /),             &
+     &                                             rp_index2(i) /),            &
      &                                          rp_vrnc(i),                    &
      &                                          rp_range_type(i,:),            &
      &                                          rp_range_index(i,:),           &

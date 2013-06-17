@@ -267,4 +267,30 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the diagnostic header
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   diagnostic_get_header
+      TYPE (diagnostic_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (diagnostic_magnetic_type)
+            diagnostic_get_header = magnetic_get_header(this%magnetic)
+
+         CASE DEFAULT
+            diagnostic_get_header = 'N/A'
+
+      END SELECT
+
+      END FUNCTION
+
       END MODULE

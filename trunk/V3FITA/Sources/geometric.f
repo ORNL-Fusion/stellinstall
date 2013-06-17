@@ -155,7 +155,43 @@
       TYPE (geometric_class), INTENT(in) :: this
 
 !  Start of executable code
-      geometric_get_signal_type = 'geometric'
+      SELECT CASE(this%type)
+
+         CASE (geometric_limiter_type)
+            geometric_get_signal_type = 'geometric ' //                        &
+     &         TRIM(limiter_get_signal_type(this%limiter))
+
+         CASE (geometric_boundary_type)
+            geometric_get_signal_type = 'geometric ' //                        &
+     &         TRIM(boundary_get_signal_type(this%boundary))
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the geometric header
+!-------------------------------------------------------------------------------
+      FUNCTION geometric_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   geometric_get_header
+      TYPE (geometric_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (geometric_limiter_type)
+            geometric_get_header = limiter_get_header(this%limiter)
+
+         CASE DEFAULT
+            geometric_get_header = 'N/A'
+
+      END SELECT
 
       END FUNCTION
 

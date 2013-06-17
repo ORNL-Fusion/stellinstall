@@ -28,6 +28,16 @@
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
          TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
+
+!  The default for the following index is -1 indicating that this signal hasn't
+!  been created.
+         INTEGER :: magnetic_index = -1
+         INTEGER :: sxrem_index = -1
+         INTEGER :: intpol_index = -1
+         INTEGER :: thomson_index = -1
+         INTEGER :: extcurz_index = -1
+         INTEGER :: limiter_index = -1
+         INTEGER :: combination_index = -1
       END TYPE
 
       CONTAINS
@@ -124,6 +134,15 @@
         DEALLOCATE(this%params)
         this%params => null()
       END IF
+
+!  Reset teh signal index
+      this%magnetic_index = -1
+      this%sxrem_index = -1
+      this%intpol_index = -1
+      this%thomson_index = -1
+      this%extcurz_index = -1
+      this%limiter_index = -1
+      this%combination_index = -1
 
       DEALLOCATE(this)
 

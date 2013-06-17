@@ -456,6 +456,9 @@
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Write the model out to disk.
+!-------------------------------------------------------------------------------
       SUBROUTINE model_write(this, iou)
 
       IMPLICIT NONE
@@ -466,19 +469,18 @@
 
 !  Start of executable code
       WRITE (iou,*)
-!  FIXME: Add model_ne_type. Leave commented so that recout files are formatted
-!  exactly the same for testing purposes.
-!      WRITE (iou,*) '  model_ne_type is ',                                    &
-!                    TRIM(model_get_ne_type(this))
-      WRITE (iou,*) '  model_sxrem_type is ',                                  &
+      WRITE (iou,*) 'Model Parameters'
+      WRITE (iou,*) 'model_ne_type is ',                                       &
+     &              TRIM(model_get_ne_type(this))
+      WRITE (iou,*) 'model_sxrem_type is ',                                    &
      &              TRIM(model_get_sxrem_type(this))
-      WRITE (iou,*) '  model_te_type is ',                                     &
+      WRITE (iou,*) 'model_te_type is ',                                       &
      &              TRIM(model_get_te_type(this))
-      WRITE (iou, 1000) '  ne_pp_unit is ', this%ne_unit
-      WRITE (iou, 1000) '  ne_min is ', this%ne_min
-      WRITE (iou, 1000) '  e_pressure_fraction is ',                           &
+      WRITE (iou, 1000) 'ne_pp_unit is ', this%ne_unit
+      WRITE (iou, 1000) 'ne_min is ', this%ne_min
+      WRITE (iou, 1000) 'e_pressure_fraction is ',                             &
      &                  this%pressure_fraction
-1000  FORMAT(a,2x,es12.5)
+1000  FORMAT(1x,a,2x,es12.5)
 
       END SUBROUTINE
 

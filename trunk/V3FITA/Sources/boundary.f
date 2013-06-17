@@ -115,4 +115,21 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the boundary type
+!-------------------------------------------------------------------------------
+      FUNCTION boundary_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length)   :: boundary_get_signal_type
+      TYPE (boundary_class), INTENT(in) :: this
+
+!  Start of executable code
+      boundary_get_signal_type = 'boundary'
+
+      END FUNCTION
+
       END MODULE
