@@ -182,8 +182,8 @@
 
 !  Start of executable code
       limiter_get_header(1) = 'r (m)'
-      limiter_get_header(1) = 'phi (m)'
-      limiter_get_header(1) = 'z (m)'
+      limiter_get_header(2) = 'phi (m)'
+      limiter_get_header(3) = 'z (m)'
 
       END FUNCTION
 

@@ -239,9 +239,6 @@
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
 
-!  FIXME: Rename this. For now keep rectout files identical for testing
-      WRITE (context%recout_iou,*)
-
       DO i = 1, SIZE(context%signals)
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
      &                                        context%model,                   &

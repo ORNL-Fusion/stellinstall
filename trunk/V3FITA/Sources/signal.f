@@ -499,6 +499,7 @@
       INTEGER, INTENT(in)             :: iou
 
 !  Start of executable code
+      WRITE (iou,*)
       WRITE (iou,1000) signal_get_header(this)
 
 1000  FORMAT(3x,'#',2x,'type',18x,'s_name',16x,'observed',6x,'sigma',          &
