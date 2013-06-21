@@ -14,7 +14,7 @@
 !  See Stellarator Symmetry Powerpoint of 6.10.03
       REAL(rprec)                 :: rmin = 0, rmax = 0 
       REAL(rprec)                 :: zmin = 0, zmax = 0
-      REAL(rprec)                 :: len_integrate_ddc = 10.
+      REAL(rprec)                 :: len_integrate_ddc = 0.001
       INTEGER                     :: ir = 101, jz = 101, kp = 1
       INTEGER                     :: kp_store
       LOGICAL                     :: l_read_coils_dot=.true.
