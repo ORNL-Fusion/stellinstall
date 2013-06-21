@@ -12,6 +12,7 @@
       USE v3fit_input
       USE param
       USE commandline_parser
+      USE reconstruction
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -22,12 +23,15 @@
 !  This object holds all the memory for running v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
-         INTEGER                                  :: recout_iou
+         REAL (rprec)                                 :: recon_stop
+
+         INTEGER                                      :: recout_iou
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
-         TYPE (model_class), POINTER              :: model => null()
+         TYPE (model_class), POINTER                  :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
          TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
+         TYPE (reconstruction_class), POINTER         :: recon => null()
 
 !  The default for the following index is -1 indicating that this signal hasn't
 !  been created.
@@ -135,6 +139,11 @@
         this%params => null()
       END IF
 
+      IF (ASSOCIATED(this%recon)) THEN
+         CALL reconstruction_destruct(this%recon)
+         this%recon => null()
+      END IF
+
 !  Reset teh signal index
       this%magnetic_index = -1
       this%sxrem_index = -1
@@ -188,7 +197,61 @@
             DEALLOCATE(this%signals)
             this%signals => temp_signal
          END IF
+
       END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write out the context
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_write(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout)    :: this
+
+!  local variables
+      INTEGER                                      :: i
+
+!  Start of executable code
+      WRITE (*,*) ' *** Writting context to disk'
+
+!  Write out the reconstruction
+      IF (ASSOCIATED(this%recon)) THEN
+         CALL reconstruction_write(this%recon, this%recout_iou)
+      END IF
+
+!  Write out the model.
+      IF (ASSOCIATED(this%model)) THEN
+         CALL model_write(this%model, this%recout_iou)
+      END IF
+
+!  Write out the signals
+      DO i = 1, SIZE(this%signals)
+!  Check if the index has reached a new signal type
+         IF ((this%magnetic_index .eq. i) .or.                                 &
+     &       (this%sxrem_index .eq. i) .or.                                    &
+     &       (this%intpol_index .eq. i) .or.                                   &
+     &       (this%thomson_index .eq. i) .or.                                  &
+     &       (this%extcurz_index .eq. i) .or.                                  &
+     &       (this%limiter_index .eq. i) .or.                                  &
+     &       (this%combination_index .eq. i)) THEN
+
+            CALL signal_write_header(this%signals(i)%p,                        &
+     &                               this%recout_iou)
+         END IF
+
+         CALL signal_write(this%signals(i)%p,                                  &
+     &                     this%recout_iou, i)
+      END DO
+
+!  All the signals should be written out before auxiliary information.
+      DO i = 1, SIZE(this%signals)
+         CALL signals_write_auxiliary(this%signals(i)%p,                      &
+     &                                this%recout_iou, i)
+      END DO
 
       END SUBROUTINE
 

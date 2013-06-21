@@ -370,7 +370,8 @@
      &                                           modeled_sigma, .false.)
       signal_get_g2 =                                                          &
      &   this%weight*((this%observed - modeled_signal(1))                      &
-     &               /(this%observed_sigma - modeled_sigma(1)))**2.0
+     &               /(this%observed_sigma**2.0 +                              &
+     &                 modeled_sigma(1)**2.0))
 
       END FUNCTION
 

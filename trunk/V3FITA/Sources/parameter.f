@@ -39,6 +39,10 @@
          INTEGER, DIMENSION(2)       :: range_id = data_no_id
          INTEGER, DIMENSION(2,2)     :: range_indicies = 0
          REAL (rprec), DIMENSION(2)  :: range_value = 0.0
+
+!  The contraints will change the normalization size of the patarameter when
+!  incrementing it. Store the actual change in parameter here for normalization.
+         REAL (rprec)                :: delta
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -48,14 +52,6 @@
       TYPE param_pointer
          TYPE (param_class), POINTER :: p => null()
       END TYPE
-
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-      INTERFACE param_increment
-         MODULE PROCEDURE param_increment_single,                              &
-     &                    param_increment_size
-      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -163,34 +159,32 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !  Set reconstruction parameter
-!
-!  This function returns the actual value, the range was set to.
 !-------------------------------------------------------------------------------
-      FUNCTION param_set_value(this, value)
+      SUBROUTINE param_set_value(this, value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                      :: param_set_value
       TYPE (param_class), INTENT(inout) :: this
       REAL (rprec), INTENT(in)          :: value
 
 !  Local variables
+      REAL (rprec)                      :: set_value
       REAL (rprec)                      :: upper_value
       REAL (rprec)                      :: lower_value
 
 !  Start of executable code
-      param_set_value = value
+      set_value = value
 
 !  Check if the value is within the lower range. If the value is outside,
 !  truncate the value to the lower range.
       IF (this%range_type(1) .ne. param_range_infinity_type) THEN
          lower_value = param_get_lower_range_value(this)
 
-         IF (param_set_value .lt. lower_value) THEN
+         IF (set_value .lt. lower_value) THEN
             CALL model_set_param(this%eq_model, this%param_id,                 &
      &              this%indicies(1), this%indicies(2), lower_value)
-            param_set_value = lower_value
+            set_value = lower_value
             RETURN
          END IF
       END IF
@@ -200,10 +194,10 @@
       IF (this%range_type(2) .ne. param_range_infinity_type) THEN
          upper_value = param_get_lower_range_value(this)
 
-         IF (param_set_value .gt. upper_value) THEN
+         IF (set_value .gt. upper_value) THEN
             CALL model_set_param(this%eq_model, this%param_id,                 &
-     &             this%indicies(1), this%indicies(2), upper_value)
-            param_set_value = upper_value
+     &              this%indicies(1), this%indicies(2), upper_value)
+            set_value = upper_value
             RETURN
          END IF
       END IF
@@ -211,9 +205,9 @@
 !  The value is in range. Set the value to this.
       CALL model_set_param(this%eq_model, this%param_id,                       &
      &                     this%indicies(1), this%indicies(2),                 &
-     &                     param_set_value)
+     &                     set_value)
 
-      END FUNCTION
+      END SUBROUTINE
 
 !*******************************************************************************
 !  GETTER SUBROUTINES
@@ -339,19 +333,17 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !  Increment the value by the variance.
-!
-!  Returns the actual step taken. Used for partial derivatives
 !-------------------------------------------------------------------------------
-      FUNCTION param_increment_single(this)
+      SUBROUTINE param_increment(this)
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                      :: param_increment_single
       TYPE (param_class), INTENT(inout) :: this
 
 !  local variables
+      REAL (rprec)                      :: new_value
       REAL (rprec)                      :: value
       REAL (rprec)                      :: step
       INTEGER                           :: itry
@@ -359,7 +351,7 @@
 !  Start of executable code
       value = param_get_value(this)
 !  Take the absolute value here to control the direction of the step.
-      step = ABS(value*this%vrnc)
+      step = ABS(this%vrnc)
 
 !  There are 5 attempts to increment the parameter before giving up.
       DO itry = 1, 5
@@ -372,22 +364,24 @@
 
 !  Try a step in the positive direction. If the parameter is still in range set
 !  otherwise.
-         param_increment_single = value + step
-         IF (param_is_in_upper_range(this,                                     &
-     &                               param_increment_single)) THEN
+         new_value = value + step
+         IF (param_is_in_upper_range(this, new_value)) THEN
             CALL model_set_param(this%eq_model, this%param_id,                 &
      &                           this%indicies(1), this%indicies(2),           &
-     &                           param_increment_single)
+     &                           new_value)
+!  Store the actual change in value.
+            this%delta = step
             RETURN
          END IF
 
 !  Try a step in the negative direction.
-         param_increment_single = value - step
-         IF (param_is_in_lower_range(this,                                     &
-     &                              param_increment_single)) THEN
+         new_value = value - step
+         IF (param_is_in_lower_range(this, new_value)) THEN
             CALL model_set_param(this%eq_model, this%param_id,                 &
      &                           this%indicies(1), this%indicies(2),           &
-     &                           param_increment_single)
+     &                           new_value)
+!  Store the actual change in value.
+            this%delta = -step
             RETURN
          END IF
 
@@ -399,32 +393,6 @@
      &               'reconstruction. Try decreaing rp_vrnc or ' //            &
      &               'expanding the range.')
 
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Increment the value by the variance and multiple number of steps.
-!
-!  Returns the actual step taken. USed for taking reconstruction steps.
-!-------------------------------------------------------------------------------
-      FUNCTION param_increment_size(this, step_size)
-      USE v3_utilities, only: err_fatal
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec)                      :: param_increment_size
-      TYPE (param_class), INTENT(inout) :: this
-      REAL (rprec), INTENT(in)          :: step_size
-
-!  local variables
-      REAL (rprec)                      :: value
-
-!  Start of executable code
-      value = param_get_value(this)
-
-      param_increment_size =                                                   &
-     &   param_set_value(this, value + value*this%vrnc*step_size)
-
-      END FUNCTION
+      END SUBROUTINE
 
       END MODULE

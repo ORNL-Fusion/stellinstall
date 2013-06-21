@@ -162,6 +162,8 @@
 !  Clean up memory
       CALL second0(time_end)
 
+      CALL v3fit_context_write(context)
+
       WRITE (context%recout_iou,'(/,a,f10.2)')                                 &
      &   '  *** V3FIT run time (s): ', time_end - time_start
       WRITE (*,'(/,a,f10.2)')                                                  &
@@ -243,27 +245,6 @@
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
      &                                        context%model,                   &
      &                                        sigma, .false.)
-
-!  Check if the index has reached a new signal type
-         IF ((context%magnetic_index .eq. i) .or.                              &
-     &       (context%sxrem_index .eq. i) .or.                                 &
-     &       (context%intpol_index .eq. i) .or.                                &
-     &       (context%thomson_index .eq. i) .or.                               &
-     &       (context%extcurz_index .eq. i) .or.                               &
-     &       (context%limiter_index .eq. i) .or.                               &
-     &       (context%combination_index .eq. i)) THEN
-
-            CALL signal_write_header(context%signals(i)%p,                     &
-     &                               context%recout_iou)
-         END IF
-
-         CALL signal_write(context%signals(i)%p,                               &
-     &                     context%recout_iou, i)
-      END DO
-
-      DO i = 1, SIZE(context%signals)
-         CALL signals_write_auxiliary(context%signals(i)%p,                    &
-     &                                context%recout_iou, i)
       END DO
 
       END SUBROUTINE
@@ -281,9 +262,8 @@
 
 !  local variables
       INTEGER                                   :: num_steps = 1
-      LOGICAL                                   :: converged
-      REAL (rprec)                              :: g2 = 0.0
       INTEGER                                   :: i
+      LOGICAL                                   :: eq_converged
 
 !  Start of executable code
       WRITE (*,*) ' *** In task reconstruct'
@@ -292,17 +272,43 @@
       CALL init_equilibrium(context)
       CALL init_signals(context)
       CALL init_parameters(context)
+      CALL init_reconstruction(context)
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
-      converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps)
-      CALL assert(converged, 'task_reconstruct no inital convergence')
 
-!  Calculate chi^2
-      DO i = 1, SIZE(context%signals)
-          g2 = g2 + signal_get_g2(context%signals(i)%p, context%model)
+      eq_converged = reconstruction_eval_g2(context%recon,                     &
+     &                                      context%signals,                   &
+     &                                      context%model, num_steps)
+      CALL assert(eq_converged,                                                &
+     &            'task_reconstruct no inital convergence')
+
+      DO i = 1, SIZE(context%recon%g2, 1)
+         IF (reconstruction_step(context%recon, context%signals,               &
+     &                           context%model, context%params,                &
+     &                           num_steps)) THEN
+
+!  Test for convergence.
+            IF (reconstruction_get_dg2(context%recon) .lt.                     &
+     &          context%recon_stop) THEN
+               WRITE (*,*)
+               WRITE (*,*) ' *** Equilibrium reconstructed'
+               WRITE (*,1000) context%recon_stop,                              &
+     &                        reconstruction_get_dg2(context%recon)
+               EXIT
+            END IF
+
+            IF (i .eq. SIZE(context%recon%g2, 1)) THEN
+              WRITE (*,*)
+              WRITE (*,1001) i
+            END IF
+         ELSE
+            EXIT
+         END IF
       END DO
+
+1000  FORMAT('dg2_stop = ',es12.5,' change in g^2 = ',es12.5)
+1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
 
       END SUBROUTINE
 
@@ -358,8 +364,6 @@
       IF (vmec_nli_filename .ne. '') THEN
          CALL init_vmec_equilibrium(context)
       END IF
-
-      CALL model_write(context%model, context%recout_iou)
 
       END SUBROUTINE
 
@@ -822,6 +826,29 @@
      &                                          rp_range_value(i,:))
 
       END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Reconstruction
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_reconstruction(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  Start of executable code
+      context%recon_stop = dg2_stop
+      context%recon => reconstruction_construct(nrstep,                        &
+     &                                          SIZE(context%signals),         &
+     &                                          SIZE(context%params),          &
+     &                                          step_type, astep_max,          &
+     &                                          cut_svd, cut_eff,              &
+     &                                          cut_marg_eff,                  &
+     &                                          cut_delta_a, cut_dg2)
 
       END SUBROUTINE
 
