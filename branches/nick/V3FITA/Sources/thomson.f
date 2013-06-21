@@ -37,6 +37,57 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
+!  Construct a thomson measuring temperature.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_construct_te(xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (thomson_class), POINTER          :: thomson_construct_te
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+
+!  Start of executable code
+      thomson_construct_te =>                                                  &
+     &   thomson_construct(thomson_temperature_type, xcart)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a thomson.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_construct_ne(xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (thomson_class), POINTER          :: thomson_construct_ne
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+
+!  Start of executable code
+      thomson_construct_ne => thomson_construct(thomson_density_type,          &
+     &                                          xcart)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Construct a thomson.
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_construct_p(xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (thomson_class), POINTER          :: thomson_construct_p
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
+
+!  Start of executable code
+      thomson_construct_p => thomson_construct(thomson_pressure_type,          &
+     &                                         xcart)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !  Construct a thomson.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct(type, xcart)
@@ -114,6 +165,23 @@
       END SELECT
 
       sigma = 0.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the thomson type
+!-------------------------------------------------------------------------------
+      FUNCTION thomson_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: thomson_get_signal_type
+      TYPE (thomson_class), INTENT(in) :: this
+
+!  Start of executable code
+      thomson_get_signal_type = 'thscte'
 
       END FUNCTION
 

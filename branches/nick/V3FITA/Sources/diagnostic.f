@@ -229,4 +229,68 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the diagnostic type
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: diagnostic_get_signal_type
+      TYPE (diagnostic_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+         CASE (diagnostic_magnetic_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         magnetic_get_signal_type(this%magnetic))
+
+         CASE (diagnostic_sxrem_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         sxrem_get_signal_type(this%sxrem))
+
+         CASE (diagnostic_intpol_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         intpol_get_signal_type(this%intpol))
+
+         CASE (diagnostic_thomson_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         thomson_get_signal_type(this%thomson))
+
+         CASE (diagnostic_extcurz_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         extcurz_get_signal_type(this%extcurz))
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the diagnostic header
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   diagnostic_get_header
+      TYPE (diagnostic_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (diagnostic_magnetic_type)
+            diagnostic_get_header = magnetic_get_header(this%magnetic)
+
+         CASE DEFAULT
+            diagnostic_get_header = 'N/A'
+
+      END SELECT
+
+      END FUNCTION
+
       END MODULE

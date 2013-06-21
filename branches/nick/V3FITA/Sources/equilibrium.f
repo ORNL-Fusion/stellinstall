@@ -151,8 +151,8 @@
 
 !  Declare Arguments
       INTEGER :: equilibrium_get_param_id
-      TYPE (equilibrium_class), INTENT(in)         :: this
-      CHARACTER (len=data_name_length), INTENT(in) :: param_name
+      TYPE (equilibrium_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)        :: param_name
 
 !  Start of executable code
       SELECT CASE (this%type)
@@ -169,26 +169,28 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!   Get Scaler Real value for an id number
+!  Get the value of a parameter for an id number
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_scaler_value(this, id)
+      FUNCTION equilibrium_get_param_value(this, id, i_index, j_index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_scaler_value
+      REAL (rprec) :: equilibrium_get_param_value
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
+      INTEGER, INTENT(in)                  :: i_index
+      INTEGER, INTENT(in)                  :: j_index
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_scaler_value =                                     &
-     &         vmec_get_scaler_value(this%vmec, id)
+            equilibrium_get_param_value =                                      &
+     &         vmec_get_param_value(this%vmec, id, i_index, j_index)
 
          CASE DEFAULT
-            equilibrium_get_scaler_value = 0.0
+            equilibrium_get_param_value = 0.0
 
       END SELECT
 
@@ -403,76 +405,130 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get plasma only magnetic signal.
+!  Get volume magnetic volume integration radial grid points.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_plasma_mag_signal(this,                         &
-     &                                           r_fun, phi_fun, z_fun,        &
-     &                                           r_max, r_min, num_r,          &
-     &                                           z_max, z_min, num_z,          &
-     &                                           is_stell_sym, num_phi)
+      FUNCTION equilibrium_get_magnetic_volume_rgrid(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_plasma_mag_signal
-      TYPE (equilibrium_class), INTENT(in)       :: this
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: r_fun
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: phi_fun
-      REAL (rprec), DIMENSION(:,:,:), INTENT(in) :: z_fun
-      REAL (rprec), INTENT(in)                   :: r_max
-      REAL (rprec), INTENT(in)                   :: r_min
-      INTEGER, INTENT(in)                        :: num_r
-      REAL (rprec), INTENT(in)                   :: z_max
-      REAL (rprec), INTENT(in)                   :: z_min
-      INTEGER, INTENT(in)                        :: num_z
-      LOGICAL, INTENT(in)                        :: is_stell_sym
-      INTEGER, INTENT(in)                        :: num_phi
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_rgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_plasma_mag_signal =                                &
-     &         vmec_get_plasma_mag_signal(this%vmec,                           &
-     &                                    r_fun, phi_fun, z_fun,               &
-     &                                    r_max, r_min, num_r,                 &
-     &                                    z_max, z_min, num_z,                 &
-     &                                    is_stell_sym, num_phi)
+            equilibrium_get_magnetic_volume_rgrid =>                           &
+     &         vmec_get_magnetic_volume_rgrid(this%vmec)
 
          CASE DEFAULT
-            equilibrium_get_plasma_mag_signal = 0.0
+            equilibrium_get_magnetic_volume_rgrid => null()
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get external current magnetic signal.
+!  Get volume magnetic volume integration z grid points.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_ext_mag_signal(this, diag_coils,                &
-     &                                        current_scales,                  &
-     &                                        num_coil_groups)
+      FUNCTION equilibrium_get_magnetic_volume_zgrid(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_ext_mag_signal
-      TYPE (equilibrium_class), INTENT(in)   :: this
-      REAL (rprec), DIMENSION(:), INTENT(in) :: diag_coils
-      REAL (rprec), DIMENSION(:), INTENT(in) :: current_scales
-      INTEGER, INTENT(in)                    :: num_coil_groups
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_zgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_ext_mag_signal =                                   &
-     &         vmec_get_ext_mag_signal(this%vmec, diag_coils,                  &
-     &                                 current_scales,                         &
-     &                                 num_coil_groups)
+            equilibrium_get_magnetic_volume_zgrid =>                           &
+     &         vmec_get_magnetic_volume_zgrid(this%vmec)
 
          CASE DEFAULT
-            equilibrium_get_ext_mag_signal = 0.0
+            equilibrium_get_magnetic_volume_zgrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jr grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_jrgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_jrgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_jrgrid =>                          &
+     &         vmec_get_magnetic_volume_jrgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_jrgrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jphi grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_jphigrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_jphigrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_jphigrid =>                        &
+     &         vmec_get_magnetic_volume_jphigrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_jphigrid => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get volume magnetic volume integration jz grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_magnetic_volume_jzgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:,:), POINTER ::                               &
+     &   equilibrium_get_magnetic_volume_jzgrid
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_magnetic_volume_jzgrid =>                          &
+     &         vmec_get_magnetic_volume_jzgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_magnetic_volume_jzgrid => null()
 
       END SELECT
 
@@ -498,6 +554,34 @@
 
          CASE DEFAULT
             equilibrium_get_volume_int_element = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get external current.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ext_currents(this, scale_currents)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:), POINTER  ::                                  &
+     &   equilibrium_get_ext_currents
+      TYPE (equilibrium_class), INTENT(in) :: this
+      LOGICAL, INTENT(out)                 :: scale_currents
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ext_currents =>                                    &
+     &         vmec_get_ext_currents(this%vmec, scale_currents)
+
+         CASE DEFAULT
+            scale_currents = .false.
+            equilibrium_get_ext_currents => null()
 
       END SELECT
 
@@ -577,56 +661,6 @@
 
          CASE DEFAULT
             equilibrium_is_2d_array = .false.
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for 3D array
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_3d_array(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_3d_array
-      TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_is_3d_array = vmec_is_3d_array(this%vmec, id)
-
-         CASE DEFAULT
-            equilibrium_is_3d_array = .false.
-
-      END SELECT
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Query variable id for 4D array
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_4d_array(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_4d_array
-      TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_is_4d_array = vmec_is_4d_array(this%vmec, id)
-
-         CASE DEFAULT
-            equilibrium_is_4d_array = .false.
 
       END SELECT
 
@@ -727,6 +761,27 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_reset_state(this%vmec)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write the equilibrium out to disk.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: iou
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+      CASE (equilibrium_vmec_type)
+         CALL vmec_write(this%vmec, iou)
 
       END SELECT
 

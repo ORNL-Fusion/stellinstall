@@ -80,13 +80,13 @@
          CASE ('pp_ne')
             model_construct%ne_type = model_ne_type
 
-         CASE ('pp_te_vmec_p')
+         CASE ('pp_te_p')
             model_construct%ne_type = model_ne_te_p_type
 
          CASE DEFAULT
             WRITE (*,*) 'ne type: ' // TRIM(ADJUSTL(ne_type)) //               &
      &                  'setting type to none.'
-            model_construct%ne_type = model_ne_type
+            model_construct%ne_type = model_none_type
 
       END SELECT
 
@@ -96,7 +96,7 @@
             model_construct%sxrem_type = model_none_type
 
          CASE ('pp_sxrem')
-            model_construct%ne_type = model_sxrem_type
+            model_construct%sxrem_type = model_sxrem_type
 
          CASE DEFAULT
             WRITE (*,*) 'sxrem type: ' // TRIM(ADJUSTL(ne_type)) //            &
@@ -108,11 +108,12 @@
       SELECT CASE (TRIM(ADJUSTL(te_type)))
 
          CASE ('none')
-            model_construct%ne_type = model_none_type
+            model_construct%te_type = model_none_type
 
          CASE ('pp_te')
             model_construct%te_type = model_te_type
 
+!  FIXME: Name here shouldn't have vmec in it
          CASE ('pp_ne_vmec_p')
             model_construct%te_type = model_te_ne_p_type
 
@@ -153,6 +154,9 @@
 !*******************************************************************************
 !  SETTER SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Set reconstruction parameter
+!-------------------------------------------------------------------------------
       SUBROUTINE model_set_param(this, id, i_index, j_index, value)
 
       IMPLICIT NONE
@@ -188,6 +192,73 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
+!  Get the id number for a model parameter
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_param_id(this, param_name)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                        :: model_get_param_id
+      TYPE (model_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)  :: param_name
+
+!  Start of executable code
+      SELECT CASE (TRIM(param_name))
+
+         CASE ('ne_unit')
+            model_get_param_id = model_ne_unit_id
+
+         CASE ('ne_min')
+            model_get_param_id = model_ne_min_id
+
+         CASE ('pressure_fraction')
+            model_get_param_id = model_pressure_fraction_id
+
+         CASE DEFAULT
+            model_get_param_id =                                               &
+     &         equilibrium_get_param_id(this%equilibrium, param_name)
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the value of a parameter for an id number
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_param_value(this, id, i_index, j_index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_param_value
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: id
+      INTEGER, INTENT(in)            :: i_index
+      INTEGER, INTENT(in)            :: j_index
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id)
+            model_get_param_value = this%ne_unit
+
+         CASE (model_ne_min_id)
+            model_get_param_value = this%ne_min
+
+         CASE (model_pressure_fraction_id)
+            model_get_param_value = this%pressure_fraction
+
+         CASE DEFAULT
+            model_get_param_value =                                            &
+     &         equilibrium_get_param_value(this%equilibrium, id,               &
+     &                                     i_index, j_index)
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !  Get model electron density at position
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ne(this, x_cart)
@@ -204,6 +275,7 @@
 
          CASE (model_ne_type)
             model_get_ne = equilibrium_get_ne(this%equilibrium, x_cart)
+            model_get_ne = MAX(this%ne_min, this%ne_unit*model_get_ne)
 
          CASE (model_ne_te_p_type)
             model_get_ne = eV_per_Joule*this%pressure_fraction                 &
@@ -272,5 +344,146 @@
       END SELECT
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model the electron density model type
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ne_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_ne_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%ne_type)
+
+         CASE (model_ne_type)
+            model_get_ne_type = 'pp_ne'
+
+         CASE (model_ne_te_p_type)
+            model_get_ne_type = 'pp_te_p'
+
+         CASE DEFAULT
+            model_get_ne_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model the electron temperature model type
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_te_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_te_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%te_type)
+
+         CASE (model_te_type)
+            model_get_te_type = 'pp_te'
+
+         CASE (model_ne_te_p_type)
+            model_get_te_type = 'pp_ne_vmec_p'
+
+         CASE DEFAULT
+            model_get_te_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get model the soft x-ray emissivity model type
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_sxrem_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: model_get_sxrem_type
+      TYPE (model_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%sxrem_type)
+
+      CASE (model_sxrem_type)
+         model_get_sxrem_type = 'pp_sxrem'
+
+      CASE DEFAULT
+         model_get_sxrem_type = 'none'
+
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  QUERY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Query variable id is a valid reconstruction parameter
+!-------------------------------------------------------------------------------
+      FUNCTION model_is_recon_param(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                        :: model_is_recon_param
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id, model_ne_min_id,                              &
+     &         model_pressure_fraction_id)
+            model_is_recon_param = .true.
+
+         CASE DEFAULT
+            model_is_recon_param =                                             &
+     &         equilibrium_is_recon_param(this%equilibrium, id)
+
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Write the model out to disk.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_write(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: iou
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,*) 'Model Parameters'
+      WRITE (iou,*) 'model_ne_type is ',                                       &
+     &              TRIM(model_get_ne_type(this))
+      WRITE (iou,*) 'model_sxrem_type is ',                                    &
+     &              TRIM(model_get_sxrem_type(this))
+      WRITE (iou,*) 'model_te_type is ',                                       &
+     &              TRIM(model_get_te_type(this))
+      WRITE (iou, 1000) 'ne_pp_unit is ', this%ne_unit
+      WRITE (iou, 1000) 'ne_min is ', this%ne_min
+      WRITE (iou, 1000) 'e_pressure_fraction is ',                             &
+     &                  this%pressure_fraction
+1000  FORMAT(1x,a,2x,es12.5)
+
+      CALL equilibrium_write(this%equilibrium, iou)
+
+      END SUBROUTINE
 
       END MODULE

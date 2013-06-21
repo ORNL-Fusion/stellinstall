@@ -52,28 +52,37 @@
 !-------------------------------------------------------------------------------
 !  Construct a interferometer diagnostic
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_construct_int(chord_path)
+      FUNCTION intpol_construct_int(chord_paths)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (intpol_class), POINTER :: intpol_construct_int
-      TYPE (path), INTENT(in)      :: chord_path
+      REAL (rprec), DIMENSION(:,:) :: chord_paths
+
+!  local variables
+      INTEGER                      :: i
 
 !  Start of executable code
+
       ALLOCATE(intpol_construct_int)
+
+      DO i = 1, SIZE(chord_paths, 1)
+         CALL path_append_vertex(intpol_construct_int%chord_path,              &
+     &                           chord_paths(i,1), chord_paths(i,2),           &
+     &                           chord_paths(i,3))
+      END DO
 
       intpol_construct_int%type = intpol_interferometry_type
       intpol_construct_int%wavelength = 0.0
       intpol_construct_int%in_degrees = .false.
-      intpol_construct_int%chord_path = chord_path
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
 !  Construct a polarimetry diagnostic
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_construct_pol(wavelength, in_degrees, chord_path)
+      FUNCTION intpol_construct_pol(wavelength, in_degrees, chord_paths)
 
       IMPLICIT NONE
 
@@ -81,15 +90,23 @@
       TYPE (intpol_class), POINTER :: intpol_construct_pol
       REAL (rprec), INTENT(in)     :: wavelength
       LOGICAL, INTENT(in)          :: in_degrees
-      TYPE (path), INTENT(in)      :: chord_path
+      REAL (rprec), DIMENSION(:,:) :: chord_paths
+
+!  local variables
+      INTEGER                      :: i
 
 !  Start of executable code
       ALLOCATE(intpol_construct_pol)
 
+      DO i = 1, SIZE(chord_paths, 1)
+         CALL path_append_vertex(intpol_construct_pol%chord_path,              &
+     &                           chord_paths(i,1), chord_paths(i,2),           &
+     &                           chord_paths(i,3))
+      END DO
+
       intpol_construct_pol%type = intpol_polarimetry_type
       intpol_construct_pol%wavelength = wavelength
       intpol_construct_pol%in_degrees = in_degrees
-      intpol_construct_pol%chord_path = chord_path
 
       END FUNCTION
 
@@ -225,6 +242,22 @@
       pol_function =                                                           &
      &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
 
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the intpol type
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: intpol_get_signal_type
+      TYPE (intpol_class), INTENT(in)  :: this
+
+!  Start of executable code
+      intpol_get_signal_type = 'ipch'
 
       END FUNCTION
 

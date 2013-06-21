@@ -123,6 +123,13 @@
 !  rp_index              Array of reconstruction parameter indices
 !  rp_index2             Array of reconstruction parameter 2nd indices
 !  rp_vrnc               Array of reconstruction parameter variances
+!  rp_range_type         2D Array of reconstruction parameter ranges types
+!      'infinity'          Unbounded
+!      'value'             Bounded by the value of rp_range_value
+!      <other>             Bounded by a equilibrium parameter.
+!  rp_range_value        2D Array of values used if rp_range_type = 'value'
+!  rp_range_index        2D Array of values of indicies used if rp_range_type =
+!                        <other>
 !
 !        Signal Data specification
 !  n_sdata_o             Number of signal_data observations
@@ -155,7 +162,7 @@
 !       first dimension of arrays is dimensioned na_lif
 !
 !  n_lif                 number of limiter_iso functions
-!  n_phis_lif            array of number of phi values (:)
+!  n_phi_lif             array of number of phi values (:)
 !  lif_arz               array of r-z polynomial coefficients, (:,0:4,0:4)
 !  lif_rc                array of r offset values (:)
 !  lif_zc                array of z offset values (:)
@@ -170,6 +177,7 @@
 !
 !     COOSIG - Combination Of Other SIGnals NLI Variables
 !  n_coosig         Number of new signals of signal_type coosig
+!  n_sig_coosig     Array of number of signals in a combinaton.
 !  coosig_indices   2d Integer Array of indices (to list of signals)
 !                   for combinations. First index is for which new signal,
 !                   second index is for terms in the combination
@@ -228,25 +236,28 @@
 
 !  Model profile specification
 !  Electron Denisty
-      CHARACTER (len=p_type_len)           :: pp_ne_ptype = ''
+      CHARACTER (len=p_type_len)           :: pp_ne_ptype = 'none'
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_ne_b = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_as = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_af = 0.0
 
 !  Soft x-ray emissvity
-      CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = ''
+      CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = 'none'
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_af = 0.0
 
 !  Electron temperature
-      CHARACTER (len=p_type_len)           :: pp_te_ptype = ''
+      CHARACTER (len=p_type_len)           :: pp_te_ptype = 'none'
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_te_b = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_as = 0.0
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
 
 !  Model Specification Variables
-      CHARACTER (len=data_name_length) :: model_ne_type = 'none'
+!  FIXME: New coding contains a model_ne_type that old code did not have. Make
+!  the default value pp_ne for compatibility. Eventially this shoud be set back
+!  to none and users should set model_ne_type in the namelist input.
+      CHARACTER (len=data_name_length) :: model_ne_type = 'pp_ne'
       CHARACTER (len=data_name_length) :: model_sxrem_type = 'none'
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
       REAL (rprec)                     :: ne_pp_unit = 0.0
@@ -263,15 +274,21 @@
      &   DIMENSION(v3fit_max_parameters) :: rc_value = 0.0
 
 !  Reconstruction parameters
-      INTEGER                            :: n_rp = 0
+      INTEGER                              :: n_rp = 0
       CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(v3fit_max_parameters) :: rp_type = ''
+     &   DIMENSION(v3fit_max_parameters)   :: rp_type = ''
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters) :: rp_index = 0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_index = 0
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters) :: rp_index2 = 0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_index2 = 0
       REAL (rprec),                                                            &
-     &   DIMENSION(v3fit_max_parameters) :: rp_vrnc = 0.0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_vrnc = 0.0
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_type = 'infinity'
+      REAL (rprec),                                                            &
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_value = 0.0
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_index = 0
 
 !  Signal Data specification
       INTEGER                         :: n_sdata_o = 0
@@ -286,7 +303,7 @@
 !  External current signal specification
 !  FIXME: The label of s0 and u0 are vmec specific. These should be changed to a
 !  radial coordinate and poloidal angle.
-      REAL (rprec) :: extcurz_s0 = 0.0
+      REAL (rprec) :: extcurz_s0 = -1.0
       REAL (rprec) :: extcurz_u0 = 0.0
 
 !  Signal data sigma specification
@@ -334,6 +351,7 @@
 
 !  Combinations of other signals specification.
       INTEGER :: n_coosig = 0
+      INTEGER, DIMENSION(v3fit_max_cos_size) :: n_sig_coosig = 0
       INTEGER, DIMENSION(v3fit_max_combinations,v3fit_max_cos_size) ::         &
      &   coosig_indices = 0
       REAL (rprec),                                                            &
@@ -387,7 +405,8 @@
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Reconstruction parameters
-     &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc,                          &
+     &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc, rp_range_type,           &
+     &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
 !  External current signal specification
@@ -409,8 +428,8 @@
 !  replaced by priors when they are implemented.
      &   use_boundary,                                                         &
 !  Combinations of other signals specification.
-     &   n_coosig, coosig_indices, coosig_coeff, coosig_type,                  &
-     &   coosig_name, coosig_units,                                            &
+     &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
+     &   coosig_type, coosig_name, coosig_units,                               &
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type,                                        &
@@ -424,6 +443,7 @@
 !*******************************************************************************
       SUBROUTINE v3fit_input_read_namelist(namelist_file)
       USE safe_open_mod
+      USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
 
@@ -468,14 +488,50 @@
                ELSE
                   sdo_sigma_a(i) = SQRT(sdo_s_spec_floor(j)**2.0 +             &
      &               (sdo_s_spec_fraction(j)*sdo_data_a(i))**2.0)
-               ENDIF
-            ENDIF
+               END IF
+            END IF
          END DO
       END DO
 
       IF (main_nli_filename .eq. '') THEN
          main_nli_filename = namelist_file
-      ENDIF
+      END IF
+
+      IF ((r_major_radius .gt. 0.0) .and.                                      &
+     &    (a_minor_radius .gt. 0.0)) THEN
+         IF (n_lif + 1 .le. v3fit_max_geometrics) THEN
+            n_lif = n_lif + 1 ! Add this as a new limiter.
+            lif_arz(n_lif,:,:) = 0.0
+            lif_arz(n_lif,0,0) = -a_minor_radius**2.0
+            lif_arz(n_lif,2,0) = 1.0
+            lif_arz(n_lif,0,2) = 1.0
+            lif_rc(n_lif) = r_major_radius
+            lif_zc(n_lif) = 0.0
+            lif_sigma(n_lif) = 0.001_rprec
+            n_phi_lif(n_lif) = v3fit_max_lif_size
+            DO i = 1, v3fit_max_lif_size
+               lif_phi_degree(n_lif,i) = (i - 1)*360.0                         &
+     &                                 / v3fit_max_lif_size
+            END DO
+            lif_on_edge(n_lif) = .true.
+         ELSE
+            CALL err_fatal('Adding limiter by specifying ' //                  &
+     &                     'major/minor radii causes n_lif to ' //             &
+     &                     'exceed v3fit_max_geometrics')
+         END IF
+      END IF
+
+!  Search for the last index greater than 0 to determine the number of signals
+!  in a combination.
+!  FIXME: Remove this when n_sig_coosig is mandatory.
+      DO i = 1, n_coosig
+         DO j = 1, v3fit_max_cos_size
+            IF (coosig_indices(i,j) .eq. 0) THEN
+               n_sig_coosig(i) = j - 1
+               EXIT ! Exit out of the j loop.
+            END IF
+         END DO
+      END DO
 
       WRITE (*,*) ' *** V3FIT namelist input read from ' //                    &
      &            TRIM(namelist_file)

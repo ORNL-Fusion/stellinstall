@@ -42,7 +42,7 @@
       REAL(rprec), DIMENSION(0:ntord) :: raxis_cc, raxis_cs,
      1                                   zaxis_cc, zaxis_cs
       REAL(rprec), DIMENSION(100) :: ftol_array
-      REAL(rprec), DIMENSION(nigroup) :: extcur
+      REAL(rprec), DIMENSION(nigroup), TARGET :: extcur ! V3FIT needs a pointer to this.
       REAL(rprec), DIMENSION(nmse) :: mseprof
       REAL(rprec), DIMENSION(ntse) :: rthom, datathom, sigma_thom
       REAL(rprec), DIMENSION(nmse) :: rstark, datastark,

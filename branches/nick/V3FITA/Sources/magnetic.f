@@ -167,49 +167,228 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !  Get the modeled signal
+!
+!  The plasma signal is the volume integral of the current denisty dotted with
+!  the diagnostic responce function vector. The responce_function contains a r z
+!  grid of reponce function vectors. These grid points are then interpolated
+!  into the equilibrium grid positions for a single toroidal plane.
+!  Hishman et. al. Phys. Plasmas 11, 595 (2004); doi: 10.1063/1.1637347
+!
+!    phi = Int[dV J_plasma * A_diag]
+!-------------------------------------------------------------------------------
+!  External current contribrutions are included by the dot product of the
+!  external currents with mutual inductance values.
+!-------------------------------------------------------------------------------
+!  The plasma only signal is stored in the 2nd index.
+!  The external current signal is stored in the 3rd index.
+!  Total signal is the sum of plasma signal and external signal.
+!
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
       USE model
-      USE v3_utilities
+      USE bivariate
+      USE v3_utilities, only: err_warn
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal
-      TYPE (magnetic_class), INTENT(in)       :: this
-      TYPE (model_class), INTENT(in)          :: a_model
-      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      TYPE (magnetic_class), INTENT(in)         :: this
+      TYPE (model_class), INTENT(in)            :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out)   :: sigma
+
+!  Local variables
+      INTEGER                                   :: phi, num_phi, r, z
+      INTEGER                                   :: numrvol, numzvol
+      TYPE (bivariate_type)                     :: bivariate_object
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: rgrid
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: zgrid
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: rvolgrid => null()
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: zvolgrid => null()
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jrvolgrid => null()
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jphivolgrid => null()
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jzvolgrid => null()
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_rvol
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_phivol
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_zvol
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sumrz
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sumphi
+
+      LOGICAL                                   :: scale_current
+      INTEGER                                   :: num_currents
+      REAL (rprec), DIMENSION(:), POINTER       :: extcur
 
 !  Start of executable code
       magnetic_get_modeled_signal = 0.0
 
 !  Calculate the plasma only signal from the responce function.
-      magnetic_get_modeled_signal(2) =                                         &
-     &   equilibrium_get_plasma_mag_signal(a_model%equilibrium,                &
-     &      this%responce_function%a_r,                                        &
-     &      this%responce_function%a_f,                                        &
-     &      this%responce_function%a_z,                                        &
-     &      this%responce_function%rmax,                                       &
-     &      this%responce_function%rmin,                                       &
-     &      this%responce_function%ir,                                         &
-     &      this%responce_function%zmax,                                       &
-     &      this%responce_function%zmin,                                       &
-     &      this%responce_function%jz,                                         &
-     &      this%responce_function%lstell_sym,                                 &
-     &      this%responce_function%kp_store)
+!  Get the volume integration grid points.
+!  NOTE: Do nor deallocate any of these arrays. They are owned by the
+!  equilibrium
+      rvolgrid =>                                                              &
+     &   equilibrium_get_magnetic_volume_rgrid(a_model%equilibrium)
+      zvolgrid =>                                                              &
+     &   equilibrium_get_magnetic_volume_zgrid(a_model%equilibrium)
+      jrvolgrid =>                                                             &
+     &   equilibrium_get_magnetic_volume_jrgrid(a_model%equilibrium)
+      jphivolgrid =>                                                           &
+     &   equilibrium_get_magnetic_volume_jphigrid(a_model%equilibrium)
+      jzvolgrid =>                                                             &
+     &   equilibrium_get_magnetic_volume_jzgrid(a_model%equilibrium)
 
+!  Allocate space for the interpolated responce functions. Only need two
+!  dimensions because the interpolation is performed one phi position at a time.
+      numrvol = SIZE(rvolgrid, 1)
+      numzvol = SIZE(rvolgrid, 2)
+      ALLOCATE(responce_rvol(numrvol, numzvol))
+      ALLOCATE(responce_phivol(numrvol, numzvol))
+      ALLOCATE(responce_zvol(numrvol, numzvol))
+
+!  Allocate work arrays to hold the results of the integration.
+      num_phi = this%responce_function%kp_store
+      ALLOCATE(sumrz(numrvol, numzvol))
+      ALLOCATE(sumphi(num_phi))
+
+!  Create the r and z gridpoints for the magnetic responce function.
+!  FIXME: For a single diagnostic these never change. Allocate these once and
+!  cache these in the magnetic_class object.
+      ALLOCATE(rgrid(this%responce_function%ir))
+      DO r = 1, this%responce_function%ir
+         rgrid(r) = this%responce_function%rmin                                &
+     &            + (r - 1)*(this%responce_function%rmax -                     &
+     &                       this%responce_function%rmin)                      &
+     &            / (this%responce_function%ir - 1)
+      END DO
+      ALLOCATE(zgrid(this%responce_function%jz))
+      DO z = 1, this%responce_function%jz
+         zgrid(z) = this%responce_function%zmin                                &
+     &            + (z - 1)*(this%responce_function%zmax -                     &
+     &                       this%responce_function%zmin)                      &
+     &            / (this%responce_function%jz - 1)
+      END DO
+
+!  Create a bivariate object to do the interpolation.
+!  FIXME: The biavariate interpolation is performed one plane at a time. Remove
+!  the torodial array index and make this interpolation 2D.
+      CALL createbivariate(bivariate_object, numrvol, numzvol,                 &
+     &                     SIZE(rvolgrid, 3), 1)
+
+!  Sum over grid points for each toroidal plane
+      DO phi = 1, num_phi
+         CALL setbivariate(bivariate_object, rvolgrid(:,:,phi),                &
+     &                     zvolgrid(:,:,phi), rgrid, zgrid, phi, 1)
+
+!  Interpolat from the diagnotic grid points to the volume grid points.
+         CALL bivariate4pt(bivariate_object,                                   &
+     &                     this%responce_function%a_r(:,:,phi),                &
+     &                     responce_rvol, phi)
+         CALL bivariate4pt(bivariate_object,                                   &
+     &                     this%responce_function%a_f(:,:,phi),                &
+     &                     responce_phivol, phi)
+         CALL bivariate4pt(bivariate_object,                                   &
+     &                     this%responce_function%a_z(:,:,phi),                &
+     &                     responce_zvol, phi)
+
+!  J_plasma * A_diag
+         sumrz = jrvolgrid(:,:,phi)*responce_rvol                              &
+     &         + jphivolgrid(:,:,phi)*responce_phivol                          &
+     &         + jzvolgrid(:,:,phi)*responce_zvol
+         sumphi(phi) = SUM(sumrz(2:numrvol - 1,:))                             &
+     &               + SUM(sumrz(1,:) + sumrz(numrvol,:))/2.0
+      END DO
+
+      CALL clear_bivar(bivariate_object)
+
+!  Correct for stellarator symetry.
+      magnetic_get_modeled_signal(2) = SUM(sumphi)
+      IF (this%responce_function%lstell_sym) THEN
+         magnetic_get_modeled_signal(2) = magnetic_get_modeled_signal(2)       &
+     &      - (sumphi(1) + sumphi(num_phi))/2.0
+      END IF
+
+!  Finish integration with the volume element.
+      magnetic_get_modeled_signal(2) = magnetic_get_modeled_signal(2)          &
+     &   * equilibrium_get_volume_int_element(a_model%equilibrium)
+
+!  Deallocate work arrays.
+!  NOTE: Do not deallocate any of the vol grid arrays that were obtained from
+!  the equilibrium_get_magnetic_volume_*grid routines. These arrays are owned by
+!  by the equilibrium.
+      DEALLOCATE(responce_rvol, responce_phivol, responce_zvol)
+      DEALLOCATE(sumrz, sumphi)
+      DEALLOCATE(rgrid, zgrid)
+
+!-------------------------------------------------------------------------------
 !  Calculate the induced signal from external currents.
-      magnetic_get_modeled_signal(3) =                                         &
-     &   equilibrium_get_ext_mag_signal(a_model%equilibrium,                   &
-     &      this%responce_function%rdiag_coilg_1,                              &
-     &      this%responce_function%extcur_mg,                                  &
-     &      this%responce_function%n_field_cg)
+      extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
+     &                                       scale_current)
+
+!  If there are no external current extcur will be a null pointer
+      IF (ASSOCIATED(extcur)) THEN
+
+!  Make sure we don't go out of bounds on any array.
+         num_currents = MIN(SIZE(extcur),                                      &
+     &                      SIZE(this%responce_function%rdiag_coilg_1))
+         IF (num_currents .lt. this%responce_function%n_field_cg) THEN
+            CALL err_warn('magnetic_get_modeled_signal: ' //                   &
+     &                    'mdsig_file expected more currents')
+         END IF
+
+         IF (scale_current) THEN
+            magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
+     &         this%responce_function%rdiag_coilg_1(1:num_currents),           &
+     &         extcur(1:num_currents)/this%responce_function%extcur_mg)
+         ELSE
+            magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
+     &         this%responce_function%rdiag_coilg_1(1:num_currents),           &
+     &         extcur(1:num_currents))
+         END IF
+      END IF
+
+!-------------------------------------------------------------------------------
 
 !  Add plasma signals and induced signal to create total signal.
       magnetic_get_modeled_signal(1) =                                         &
      &   SUM(magnetic_get_modeled_signal(2:3))
 
       sigma = 0.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the magnetic type
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: magnetic_get_signal_type
+      TYPE (magnetic_class), INTENT(in) :: this
+
+!  Start of executable code
+      magnetic_get_signal_type = 'mddc'
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the magnetic header
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   magnetic_get_header
+      TYPE (magnetic_class), INTENT(in) :: this
+
+!  Start of executable code
+      magnetic_get_header(1) = 'plasma only'
+      magnetic_get_header(2) = 'eq currents'
+      magnetic_get_header(3) = 'N/A'
 
       END FUNCTION
 

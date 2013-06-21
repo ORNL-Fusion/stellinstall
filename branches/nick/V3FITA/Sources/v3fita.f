@@ -131,9 +131,18 @@
 
 !  Create a context and read in the v3fit namelist input file.
       context => v3fit_context_construct(commandline_parser_construct())
-      CALL v3fit_input_read_namelist(                                          &
-     &        commandline_parser_get_string(context%cl_parser, '-file'))
 
+!  Run unit tests if the -test flag is set.
+      IF (commandline_parser_is_flag_set(context%cl_parser,                    &
+     &                                   '-test')) THEN
+         my_task = 'unit_test'
+      ELSE
+         CALL v3fit_input_read_namelist(                                       &
+     &           commandline_parser_get_string(context%cl_parser,              &
+     &                                         '-file'))
+      END IF
+
+      WRITE (context%recout_iou,*) '  my_task is ', my_task
       SELECT CASE (my_task)
 
          CASE ('equilibrium')
@@ -142,16 +151,23 @@
          CASE ('v3post')
             CALL task_v3post(context)
 
+         CASE ('reconstruct')
+            CALL task_reconstruct(context)
+
+         CASE ('unit_test')
+            CALL task_unit_tests
+
       END SELECT
 
 !  Clean up memory
-      CALL v3fit_context_destruct(context)
-      context => null()
-
       CALL second0(time_end)
 
-      WRITE (*,'(/,a,f10.2)') '  *** V3FIT run time (s): ',                    &
-     &                        time_end - time_start
+      WRITE (context%recout_iou,'(/,a,f10.2)')                                 &
+     &   '  *** V3FIT run time (s): ', time_end - time_start
+      WRITE (*,'(/,a,f10.2)')                                                  &
+     &   '  *** V3FIT run time (s): ', time_end - time_start
+
+      CALL v3fit_context_destruct(context)
 
       END PROGRAM
 
@@ -222,12 +238,103 @@
 
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
+
       DO i = 1, SIZE(context%signals)
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
-     &                                         context%model,                  &
-     &                                         sigma, .false.)
-         WRITE (*,*) i, context%signals(i)%p%s_name, observed
+     &                                        context%model,                   &
+     &                                        sigma, .false.)
+
+!  Check if the index has reached a new signal type
+         IF ((context%magnetic_index .eq. i) .or.                              &
+     &       (context%sxrem_index .eq. i) .or.                                 &
+     &       (context%intpol_index .eq. i) .or.                                &
+     &       (context%thomson_index .eq. i) .or.                               &
+     &       (context%extcurz_index .eq. i) .or.                               &
+     &       (context%limiter_index .eq. i) .or.                               &
+     &       (context%combination_index .eq. i)) THEN
+
+            CALL signal_write_header(context%signals(i)%p,                     &
+     &                               context%recout_iou)
+         END IF
+
+         CALL signal_write(context%signals(i)%p,                               &
+     &                     context%recout_iou, i)
       END DO
+
+      DO i = 1, SIZE(context%signals)
+         CALL signals_write_auxiliary(context%signals(i)%p,                    &
+     &                                context%recout_iou, i)
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Reconstructs the equilibrium
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_reconstruct(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: num_steps = 1
+      LOGICAL                                   :: converged
+      REAL (rprec)                              :: g2 = 0.0
+      INTEGER                                   :: i
+
+!  Start of executable code
+      WRITE (*,*) ' *** In task reconstruct'
+
+!  Initialize the reconstruction.
+      CALL init_equilibrium(context)
+      CALL init_signals(context)
+      CALL init_parameters(context)
+
+!  Solve equilibrium
+      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      converged = equilibrium_converge(context%model%equilibrium,              &
+     &                                 num_steps)
+      CALL assert(converged, 'task_reconstruct no inital convergence')
+
+!  Calculate chi^2
+      DO i = 1, SIZE(context%signals)
+          g2 = g2 + signal_get_g2(context%signals(i)%p, context%model)
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Run unit tests
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_unit_tests
+      USE line_segment
+      USE coordinate_utilities
+      USE functions
+      USE integration_path
+
+      IMPLICIT NONE
+
+!  local variables
+      LOGICAL :: test_passed
+
+!  Start of executable code
+      WRITE (*,*) ' *** In task unit_test'
+
+! Line segment tests
+      test_passed = line_seg_test()
+      IF (test_passed) WRITE(*,*) "Line Segment Test Passed"
+! Coordinate tests
+      test_passed = cood_utils_test()
+      IF (test_passed) WRITE(*,*) "Coord Utilites Test Passed"
+! Profile function tests
+      test_passed = function_test()
+      IF (test_passed) WRITE(*,*) "Functions Test Passed"
+! Integration path tests
+      test_passed = path_test()
+      IF (test_passed) WRITE(*,*) "Integration Path Test Passed"
 
       END SUBROUTINE
 
@@ -235,7 +342,7 @@
 !  INITIALIZE SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Initialize Signals
+!  Initialize equilibrium
 !-------------------------------------------------------------------------------
       SUBROUTINE init_equilibrium(context)
       USE v3fit_context
@@ -249,13 +356,44 @@
       WRITE (*,*) ' *** Constructing equilibrium model'
 
       IF (vmec_nli_filename .ne. '') THEN
-         context%model => model_construct(                                     &
-     &      model_ne_type, model_sxrem_type, model_te_type,                    &
-     &      ne_pp_unit, ne_min, e_pressure_fraction,                           &
-     &      equilibrium_construct(vmec_construct(vmec_nli_filename)))
-
-         RETURN ! Only initialize one equilibrium.
+         CALL init_vmec_equilibrium(context)
       END IF
+
+      CALL model_write(context%model, context%recout_iou)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize a vmec equilibrium
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_vmec_equilibrium(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      TYPE (pprofile), POINTER                  :: ne => null()
+      TYPE (pprofile), POINTER                  :: te => null()
+      TYPE (pprofile), POINTER                  :: sxr => null()
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing VMEC equilibrium'
+
+      ALLOCATE(ne, te, sxr)
+      CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
+     &                        pp_ne_as, pp_ne_af)
+      CALL pprofile_construct(te, TRIM(pp_te_ptype), pp_te_b,                  &
+     &                        pp_te_as, pp_te_af)
+      CALL pprofile_construct(sxr, TRIM(pp_sxrem_ptype), pp_sxrem_b,           &
+     &                        pp_sxrem_as, pp_sxrem_af)
+
+      context%model => model_construct(model_ne_type, model_sxrem_type,        &
+     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
+     &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
+     &                                        ne, te, sxr)))
 
       END SUBROUTINE
 
@@ -284,12 +422,34 @@
 
       ALLOCATE(context%signals(na_s_desc))
 
-!  If a mdsig filename is given, construct the diagnostic contain inside it.
+!  If a mdsig filename is given, construct the diagnostics contained inside it.
       IF (mdsig_list_filename .ne. '') THEN
          CALL init_magnetic_signals(context, signals_created)
       END IF
 
-!  TODO: Add in all the rest of the diagnostic signals.
+!  If a sxrem filename is given, construct the diagnostics contained inside it.
+      IF (sxrch_dot_filename .ne. '') THEN
+         CALL init_sxrem_signals(context, signals_created)
+      END IF
+
+!  If a intpol filename is given, construct the diagnostics contained inside it.
+      IF (ipch_dot_filename .ne. '') THEN
+         CALL init_intpol_signals(context, signals_created)
+      END IF
+
+!  If a thscte filename is given, construct the diagnostics contained inside it.
+      IF (thscte_dot_filename .ne. '') THEN
+         CALL init_intpol_signals(context, signals_created)
+      END IF
+
+!  If the radial extcur z position isn't negative, construct an extcurz signal.
+      IF (extcurz_s0 .ge. 0.0) THEN
+         CALL init_extcurz_signals(context, signals_created)
+      END IF
+
+      CALL init_geometric_signals(context, signals_created)
+
+      CALL init_combination_signals(context, signals_created)
 
       CALL v3fit_context_resize(context)
 
@@ -303,7 +463,6 @@
       USE safe_open_mod
       USE v3_utilities
       USE ezcdf
-      USE magnetic
 
       IMPLICIT NONE
 !  Declare Arguments
@@ -374,9 +533,298 @@
 
          CALL cdf_close(mdsig_iou)
 
+!  At lease one magnetic signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%magnetic_index .eq. -1) THEN
+            context%magnetic_index = signals_created
+         END IF
+
       END DO
 
       END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Soft X-Ray Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_sxrem_signals(context, signals_created)
+      USE v3fit_context
+      USE sxrch_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing sxrem signals from ' //                   &
+     &            TRIM(sxrch_dot_filename)
+
+!  The setting of the sxrem_index for sxrem happens inside sxrch_dot_parse_chord
+      CALL sxrch_dot_read(sxrch_dot_filename, context%signals,                 &
+     &                    signals_created, sdo_data_a, sdo_sigma_a,            &
+     &                    sdo_weight_a, context%sxrem_index)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Interferometer/Polarimetry Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_intpol_signals(context, signals_created)
+      USE v3fit_context
+      USE ipch_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing intpol signals from ' //                  &
+     &            TRIM(ipch_dot_filename)
+
+!  The setting of the intpol_index for sxrem happens inside ipch_dot_parse_chord
+      CALL ipch_dot_read(ipch_dot_filename, context%signals,                   &
+     &                   signals_created, sdo_data_a, sdo_sigma_a,             &
+     &                   sdo_weight_a, context%intpol_index)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Thomson Scattering Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_thomson_signals(context, signals_created)
+      USE v3fit_context
+      USE thscte_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing thomson signals from ' //                 &
+     &            TRIM(thscte_dot_filename)
+
+!  The setting of the thomson_index for sxrem happens inside
+!  thscte_dot_parse_chord
+      CALL thscte_dot_read(thscte_dot_filename, context%signals,               &
+     &                     signals_created, sdo_data_a, sdo_sigma_a,           &
+     &                     sdo_weight_a, context%thomson_index)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize External Z current Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_extcurz_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing extcurz signals'
+
+!  Check if there are two many signals.
+      IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
+         CALL err_fatal('init_extcurz_signals: created signals' //             &
+     &                  ' exceeds v3fit_max_diagnostics')
+      END IF
+
+      context%signals(signals_created + 1)%p => signal_construct(              &
+     &   diagnostic_construct(extcurz_construct(extcurz_s0,                    &
+     &                                          extcurz_u0)),                  &
+     &   'extcurz', 'EXTernal CURrent along Z', 'A',                           &
+     &   sdo_data_a(signals_created + 1),                                      &
+     &   sdo_sigma_a(signals_created + 1),                                     &
+     &   sdo_weight_a(signals_created + 1))
+
+      signals_created = signals_created + 1
+
+!  At lease one extcurz signal was made. Mark the index of it in the context.
+!  This should only be run once.
+      IF (context%extcurz_index .eq. -1) THEN
+         context%extcurz_index = signals_created
+      END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Geometric Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_geometric_signals(context, signals_created)
+      USE v3fit_context
+      USE stel_constants, only: degree
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i
+      CHARACTER (len=signal_name_short_length)  :: s_name = ''
+      CHARACTER (len=signal_name_long_length)   :: l_name = ''
+      TYPE (limiter_iso), POINTER               :: iso_funct => null()
+      INTEGER                                   :: num_phi
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing geometric signals'
+
+!  For now, only limiter functions can be created.
+      DO i = 1, n_lif
+!  Check if there are two many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_geometric_signals: created signals' //        &
+     &                     ' exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are two many geometric signals.
+         IF (i .gt. v3fit_max_geometrics) THEN
+            CALL err_fatal('init_geometric_signals: created signals' //        &
+     &                     ' exceeds v3fit_max_geometrics')
+         END IF
+
+         WRITE (s_name,*) TRIM(signal_make_short_name('edge_lim_', i))
+         WRITE (l_name,'(a,i4)') 'edge limiter iso function ', i
+
+         num_phi = MAX(MIN(v3fit_max_lif_size, n_phi_lif(i)), 1)
+!  Do not deallocate the iso_funct. It memory is taken over by the limiter_class
+!  and freed during it's destruction.
+         ALLOCATE(iso_funct)
+!  The conversion from degrees to radians is performed in v3fit_input
+         CALL limiter_iso_construct(iso_funct, lif_arz(i,:,:),                 &
+     &           lif_rc(i), lif_zc(i), 20,                                     &
+     &           lif_phi_degree(i,1:num_phi)*degree)
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      geometric_construct(                                               &
+     &         limiter_construct(iso_funct, lif_on_edge(i),                    &
+     &                           lif_sigma(i))),                               &
+     &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
+
+!  Set the iso_funct to null. This sets the local pointer of iso_funct to null.
+!  The pointer allocated above is now owned by the limiter_class instance.
+         iso_funct => null()
+
+         signals_created = signals_created + 1
+
+!  At lease one limiter signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%limiter_index .eq. -1) THEN
+            context%limiter_index = signals_created
+         END IF
+
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Combination Signals
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_combination_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i, j
+      TYPE (combination_class), POINTER         :: combination_signal
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing combination signals'
+
+      DO i = 1, n_coosig
+!  Check if there are two many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_combination_signals: created ' //             &
+     &                     'signals exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are two many geometric signals.
+         IF (i .gt. v3fit_max_combinations) THEN
+            CALL err_fatal('init_combination_signals: created ' //             &
+     &                     'signals exceeds v3fit_max_combinations')
+         END IF
+
+!  Search for the last index. It would be better if there was a 
+         combination_signal => combination_construct(n_sig_coosig(i),          &
+     &                                               coosig_type(i))
+         DO j = 1, n_sig_coosig(i)
+            IF (coosig_indices(i,j) .gt. signals_created) THEN
+               CALL err_fatal('init_combination_signals: cannot ' //           &
+     &                        'create combination signal with ' //             &
+     &                        'uninitalized signal')
+            END IF
+
+            CALL combination_set_signal(combination_signal,                    &
+     &              context%signals(coosig_indices(i,j))%p,                    &
+     &              coosig_coeff(i,j), j)
+         END DO
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      combination_signal, coosig_name(i), coosig_name(i),                &
+     &      coosig_units(i), sdo_data_a(signals_created + 1),                  &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
+
+         signals_created = signals_created + 1
+
+!  At lease one combination signal was made. Mark the index of it in the
+!  context. This should only be run once.
+      IF (context%combination_index .eq. -1) THEN
+         context%combination_index = signals_created
+      END IF
+
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Reconstruction parameters
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_parameters(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: i
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing reconstruction parameters'
+
+      DO i = 1, n_rp
+
+         context%params(i)%p => param_construct(context%model,                 &
+     &                                          rp_type(i),                    &
+     &                                          (/ rp_index(i),                &
+     &                                             rp_index2(i) /),            &
+     &                                          rp_vrnc(i),                    &
+     &                                          rp_range_type(i,:),            &
+     &                                          rp_range_index(i,:),           &
+     &                                          rp_range_value(i,:))
+
+      END DO
+
+      END SUBROUTINE
+
 #else
 
 !*******************************************************************************

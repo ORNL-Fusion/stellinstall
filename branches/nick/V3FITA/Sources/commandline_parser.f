@@ -212,6 +212,7 @@
       WRITE(*,*) '  -h       N Display this information                '
       WRITE(*,*) '  -d       N Use default namelist input file         '
       WRITE(*,*) '  -file    Y Specify the v3fit namelist input file   '
+      WRITE(*,*) '  -test    N Run unit tests                          '
       WRITE(*,*) '                                                     '
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '

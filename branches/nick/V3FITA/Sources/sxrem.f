@@ -37,18 +37,22 @@
 !-------------------------------------------------------------------------------
 !  Construct a sxrem.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct(chord_path)
+      FUNCTION sxrem_construct(start_path, end_path)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (sxrem_class), POINTER :: sxrem_construct
-      TYPE (path), INTENT(in)     :: chord_path
+      REAL(rprec), DIMENSION(3)   :: start_path
+      REAL(rprec), DIMENSION(3)   :: end_path
 
 !  Start of executable code
       ALLOCATE(sxrem_construct)
 
-      sxrem_construct%chord_path = chord_path
+      CALL path_append_vertex(sxrem_construct%chord_path, start_path(1),       &
+     &                        start_path(2), start_path(3))
+      CALL path_append_vertex(sxrem_construct%chord_path, end_path(1),         &
+     &                        end_path(2), end_path(3))
 
       END FUNCTION
 
@@ -133,7 +137,24 @@
 
 !  Start of executable code
       a_model = TRANSFER(context, a_model)
-      sxr_function = model_get_sxrem(a_model, cart_to_cyl(xcart))*dx
+      sxr_function = model_get_sxrem(a_model, xcart)*dx
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the sxrem type
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: sxrem_get_signal_type
+      TYPE (sxrem_class), INTENT(in)   :: this
+
+!  Start of executable code
+      sxrem_get_signal_type = 'sxrch'
 
       END FUNCTION
 

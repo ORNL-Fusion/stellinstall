@@ -10,7 +10,7 @@
 
       MODULE v3fit_context
       USE v3fit_input
-      USE model
+      USE param
       USE commandline_parser
 
 !*******************************************************************************
@@ -22,10 +22,22 @@
 !  This object holds all the memory for running v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
+         INTEGER                                  :: recout_iou
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
          TYPE (model_class), POINTER              :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
+         TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
+
+!  The default for the following index is -1 indicating that this signal hasn't
+!  been created.
+         INTEGER :: magnetic_index = -1
+         INTEGER :: sxrem_index = -1
+         INTEGER :: intpol_index = -1
+         INTEGER :: thomson_index = -1
+         INTEGER :: extcurz_index = -1
+         INTEGER :: limiter_index = -1
+         INTEGER :: combination_index = -1
       END TYPE
 
       CONTAINS
@@ -33,6 +45,7 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
       FUNCTION v3fit_context_construct(cl_parser)
+      USE safe_open_mod
 
       IMPLICIT NONE
 
@@ -40,14 +53,35 @@
       TYPE (v3fit_context_class), POINTER :: v3fit_context_construct
       TYPE (commandline_parser_class), POINTER :: cl_parser
 
+!  local variables
+      CHARACTER (len=data_filename_length)     :: filename
+      INTEGER                                  :: status
+
 !  Start of executable code
+      filename = commandline_parser_get_string(cl_parser, '-file')
+
       ALLOCATE(v3fit_context_construct)
+
+!  Setup the recout file.
+      CALL safe_open(v3fit_context_construct%recout_iou, status,               &
+     &               'recout.' // filename_base(filename),                     &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of recout. ' //                                &
+     &               filename_base(filename)  // 'failed')
+
+      WRITE (v3fit_context_construct%recout_iou, *) 'V3FITA RUN'
+      WRITE (v3fit_context_construct%recout_iou, *)                            &
+     &   '  Namelist Input from file ',                                        &
+     &   TRIM(filename)
 
       v3fit_context_construct%cl_parser => cl_parser
 
 !  Allocate the number of of signals needed. This is allocated to the size
 !  na_s_desc. na_s_desc will default to the maximum number of signals needed.
       ALLOCATE(v3fit_context_construct%signals(na_s_desc))
+
+      ALLOCATE(v3fit_context_construct%params(n_rp))
 
       END FUNCTION
 
@@ -65,15 +99,17 @@
       INTEGER                                            :: i
 
 !  Start of executable code
+      CLOSE(this%recout_iou)
+
       IF (ASSOCIATED(this%cl_parser)) THEN
          CALL commandline_parser_destruct(this%cl_parser)
          this%cl_parser => null()
-      ENDIF
+      END IF
 
       IF (ASSOCIATED(this%model)) THEN
          CALL model_destruct(this%model)
          this%model => null()
-      ENDIF
+      END IF
 
 !  Deconstruct and deallocate all the signals.
       IF (ASSOCIATED(this%signals)) THEN
@@ -81,11 +117,32 @@
             IF (ASSOCIATED(this%signals(i)%p)) THEN
                CALL signal_destruct(this%signals(i)%p)
                this%signals(i)%p => null()
-            ENDIF
+            END IF
          END DO
          DEALLOCATE(this%signals)
          this%signals => null()
-      ENDIF
+      END IF
+
+!  Deconstruct and deallocate all the parameters.
+      IF (ASSOCIATED(this%params)) THEN
+         DO i = 1, SIZE(this%params)
+            IF (ASSOCIATED(this%params(i)%p)) THEN
+               CALL param_destruct(this%params(i)%p)
+               this%params(i)%p => null()
+            END IF
+         END DO
+        DEALLOCATE(this%params)
+        this%params => null()
+      END IF
+
+!  Reset teh signal index
+      this%magnetic_index = -1
+      this%sxrem_index = -1
+      this%intpol_index = -1
+      this%thomson_index = -1
+      this%extcurz_index = -1
+      this%limiter_index = -1
+      this%combination_index = -1
 
       DEALLOCATE(this)
 
@@ -118,7 +175,7 @@
             IF (.not.ASSOCIATED(this%signals(i)%p)) THEN
                minsize = i - 1
                EXIT
-            ENDIF
+            END IF
          END DO
 
 !  Reallocate the array if it is smaller
@@ -130,8 +187,8 @@
 
             DEALLOCATE(this%signals)
             this%signals => temp_signal
-         ENDIF
-      ENDIF
+         END IF
+      END IF
 
       END SUBROUTINE
 

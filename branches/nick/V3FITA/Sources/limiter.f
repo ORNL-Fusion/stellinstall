@@ -27,8 +27,9 @@
 !*******************************************************************************
 
       TYPE limiter_class
-         INTEGER                     :: type
-         LOGICAL                     :: on_edge
+         INTEGER                     :: type = limiter_no_type
+         LOGICAL                     :: on_edge = .false.
+         REAL (rprec)                :: model_sigma = 0.0
          TYPE (limiter_iso), POINTER :: iso => null()
       END TYPE limiter_class
 
@@ -47,7 +48,7 @@
 !-------------------------------------------------------------------------------
 !  Construct a limiter containing an iso function.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_construct_iso(iso, on_edge)
+      FUNCTION limiter_construct_iso(iso, on_edge, model_sigma)
 
       IMPLICIT NONE
 
@@ -55,12 +56,14 @@
       TYPE (limiter_class), POINTER           :: limiter_construct_iso
       TYPE (limiter_iso), POINTER, INTENT(in) :: iso
       LOGICAL, INTENT(in)                     :: on_edge
+      REAL (rprec), INTENT(in)                :: model_sigma
 
 !  Start of executable code
       ALLOCATE(limiter_construct_iso)
 
       limiter_construct_iso%type = limiter_iso_type
       limiter_construct_iso%on_edge = on_edge
+      limiter_construct_iso%model_sigma = model_sigma
       limiter_construct_iso%iso => iso
 
       END FUNCTION
@@ -139,6 +142,51 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!  Get the limiter type
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length)   :: limiter_get_signal_type
+      TYPE (limiter_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (limiter_iso_type)
+            limiter_get_signal_type = 'edge_lim iso'
+
+         CASE (limiter_polygon_type)
+            limiter_get_signal_type = 'edge_lim poly'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the diagnostic header
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   limiter_get_header
+      TYPE (limiter_class), INTENT(in) :: this
+
+!  Start of executable code
+      limiter_get_header(1) = 'r (m)'
+      limiter_get_header(2) = 'phi (rad)'
+      limiter_get_header(3) = 'z (m)'
+
+      END FUNCTION
+
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
@@ -159,16 +207,19 @@
 !  local variables
       INTEGER                                :: phi_index, theta_index
       INTEGER                                :: num_theta
+!  The r and z arrays will be allocated by the equilibrium.
       REAL(rprec), DIMENSION(:), POINTER     :: r => null(), z => null()
-      REAL(rprec), DIMENSION(3)              :: rphiz_at_max = 0
-      REAL(rprec)                            :: fval_max = -1.0E10, fval
+      REAL(rprec), DIMENSION(3)              :: rphiz_at_max
+      REAL(rprec)                            :: fval_max, fval
 
 !  Start of executable code
       limiter_get_modeled_iso_signal = 0.0
+      rphiz_at_max = 0.0
+      fval_max = -1.0E10
 
 !  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
 !  There is no need to allocate and deallocate r and z for each phi angle.
-      DO phi_index = 1, SIZE(this%iso%vgrid, 1)
+      DO phi_index = 1, SIZE(this%iso%vgrid)
          num_theta =                                                           &
      &      equilibrium_get_plasma_edge(a_model%equilibrium,                   &
      &                                  this%iso%vgrid(phi_index),             &
@@ -202,7 +253,7 @@
       r => null()
       z => null()
 
-      sigma = 1.0E-10
+      sigma = this%model_sigma
 
       END FUNCTION
 

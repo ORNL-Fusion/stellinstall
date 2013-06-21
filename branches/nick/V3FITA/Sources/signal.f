@@ -130,9 +130,9 @@
 !  Declare Arguments
       TYPE (signal_class), POINTER        :: signal_construct_diagnostic
       TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
-      CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
-      CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      CHARACTER(len=signal_units_length), INTENT(in)      :: units
+      CHARACTER(len=*), INTENT(in)        :: s_name
+      CHARACTER(len=*), INTENT(in)        :: l_name
+      CHARACTER(len=*), INTENT(in)        :: units
       REAL(rprec), INTENT(in)             :: observed
       REAL(rprec), INTENT(in)             :: sigma
       REAL(rprec), INTENT(in)             :: weight
@@ -165,9 +165,9 @@
 !  Declare Arguments
       TYPE (signal_class), POINTER       :: signal_construct_geometric
       TYPE (geometric_class), POINTER, INTENT(in) :: geometric_object
-      CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
-      CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      CHARACTER(len=signal_units_length), INTENT(in)      :: units
+      CHARACTER(len=*), INTENT(in)       :: s_name
+      CHARACTER(len=*), INTENT(in)       :: l_name
+      CHARACTER(len=*), INTENT(in)       :: units
       REAL(rprec), INTENT(in)            :: observed
       REAL(rprec), INTENT(in)            :: sigma
       REAL(rprec), INTENT(in)            :: weight
@@ -201,12 +201,12 @@
       TYPE (signal_class), POINTER :: signal_construct_combination
       TYPE (combination_class), POINTER, INTENT(in)                            &
      &                             :: combination_object
-      CHARACTER(len=signal_name_short_length), INTENT(in) :: s_name
-      CHARACTER(len=signal_name_long_length), INTENT(in)  :: l_name
-      CHARACTER(len=signal_units_length), INTENT(in)      :: units
-      REAL(rprec), INTENT(in)              :: observed
-      REAL(rprec), INTENT(in)              :: sigma
-      REAL(rprec), INTENT(in)              :: weight
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
 
 !  Start of executable code
       ALLOCATE(signal_construct_combination)
@@ -307,6 +307,7 @@
       FUNCTION signal_get_modeled_signal(this, a_model, sigma,                 &
      &                                   use_cache)
       USE model
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -352,6 +353,7 @@
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_g2(this, a_model)
       USE model
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -371,6 +373,162 @@
      &               /(this%observed_sigma - modeled_sigma(1)))**2.0
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the signal type
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: signal_get_signal_type
+      TYPE (signal_class), INTENT(in)  :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (signal_diagnostic_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(diagnostic_get_signal_type(this%diagnostic))
+
+         CASE (signal_geometric_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(geometric_get_signal_type(this%geometric))
+
+         CASE (signal_combination_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(combination_get_signal_type(this%combination))
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the signal header
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   signal_get_header
+      TYPE (signal_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (signal_diagnostic_type)
+            signal_get_header = diagnostic_get_header(this%diagnostic)
+
+         CASE (signal_geometric_type)
+            signal_get_header = geometric_get_header(this%geometric)
+
+         CASE (signal_combination_type)
+            signal_get_header = combination_get_header(this%combination)
+
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Generate a short name with an index
+!-------------------------------------------------------------------------------
+      FUNCTION signal_make_short_name(name, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=signal_name_short_length) :: signal_make_short_name
+      CHARACTER (len=*), INTENT(in)            :: name
+      INTEGER, INTENT(in)                      :: index
+
+!  Start of executable code
+!  Find the number of digits in the index
+      IF (index .lt. 10) THEN
+         WRITE(signal_make_short_name,'(a,i1)') TRIM(name), index
+      ELSE IF (index .lt. 100) THEN
+         WRITE(signal_make_short_name,'(a,i2)') TRIM(name), index
+      ELSE IF (index .lt. 1000) THEN
+         WRITE(signal_make_short_name,'(a,i3)') TRIM(name), index
+      ELSE
+         WRITE(signal_make_short_name,'(a,i4)') TRIM(name), index
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Write out the signal
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_write(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: iou
+      INTEGER, INTENT(in)             :: index
+
+!  Start of executable code
+!  FIXME: It is too convoluted to keep the recout identical at this point.
+!  Write out the model 1 and 2 for every signal. Eventually all for should be
+!  written out.
+      WRITE (iou,1000) index, signal_get_signal_type(this),                    &
+     &                 this%s_name, this%observed, this%observed_sigma,        &
+     &                 this%modeled
+
+1000  FORMAT(i4,2x,a23,2x,a20,2(2x,es12.5),4(2x,es12.5))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write out the signal header
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_write_header(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: iou
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,1000) signal_get_header(this)
+
+1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'observed',6x,'sigma',          &
+     &       9x,'model',7x,2(2x,a12),3(2x,a12))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write out the signal auxiliary information.
+!-------------------------------------------------------------------------------
+      SUBROUTINE signals_write_auxiliary(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: iou
+      INTEGER, INTENT(in)             :: index
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (signal_combination_type)
+            CALL combination_write_auxiliary(this%combination,                 &
+     &                                       iou, index)
+
+      END SELECT
+
+      END SUBROUTINE
 
 !*******************************************************************************
 !*******************************************************************************
@@ -435,7 +593,7 @@
 
 !  Null all pointers in the signals array. Do not deallocate the signals in the
 !  array since this object is not the owner.
-      DO i = 1, UBOUND(this%signals, 1)
+      DO i = 1, SIZE(this%signals)
          this%signals(i)%p => null()
       END DO
 
@@ -498,7 +656,7 @@
 
       SELECT CASE(this%type)
          CASE (combination_sum)
-            DO i = 2, UBOUND(this%signals, 1)
+            DO i = 2, SIZE(this%signals)
                combination_get_modeled_signal =                                &
      &            combination_get_modeled_signal +                             &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
@@ -509,7 +667,7 @@
             END DO
 
          CASE (combination_max)
-            DO i = 2, UBOUND(this%signals, 1)
+            DO i = 2, SIZE(this%signals)
                combination_get_modeled_signal = MAX(                           &
      &            combination_get_modeled_signal,                              &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
@@ -520,7 +678,7 @@
             END DO
 
          CASE (combination_min)
-            DO i = 2, UBOUND(this%signals, 1)
+            DO i = 2, SIZE(this%signals)
                combination_get_modeled_signal = MIN(                           &
      &            combination_get_modeled_signal,                              &
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
@@ -533,5 +691,86 @@
       END SELECT
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the combination type
+!-------------------------------------------------------------------------------
+      FUNCTION combination_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: combination_get_signal_type
+      TYPE (combination_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+         CASE (combination_sum)
+            combination_get_signal_type = 'coosig sum'
+
+         CASE (combination_max)
+            combination_get_signal_type = 'coosig max'
+
+         CASE (combination_min)
+            combination_get_signal_type = 'coosig min'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the combination header
+!-------------------------------------------------------------------------------
+      FUNCTION combination_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+     &   combination_get_header
+      TYPE (combination_class), INTENT(in) :: this
+
+!  Start of executable code
+      combination_get_header(1) = 'model(2)'
+      combination_get_header(2) = 'model(3)'
+      combination_get_header(3) = 'model(4)'
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Write out the combination auxiliary information.
+!-------------------------------------------------------------------------------
+      SUBROUTINE combination_write_auxiliary(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (combination_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: iou
+      INTEGER, INTENT(in)                  :: index
+
+!  local variables
+      INTEGER                              :: i
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,1000) index, combination_get_signal_type(this)
+      WRITE (iou,1001)
+
+      DO i = 1, SIZE(this%signals)
+         WRITE (iou,1002) i, this%signals(i)%p%s_name, this%a(i)
+      END DO
+
+1000  FORMAT('Signal',1x,i4,1x,                                                &
+     &       'is a combination of other signals, type: ',a)
+1001  FORMAT('term #',2x,'s_name',16x,'Coefficient')
+1002  FORMAT(2x,i4,2x,a20,2x,es12.5)
+
+      END SUBROUTINE
 
       END MODULE
