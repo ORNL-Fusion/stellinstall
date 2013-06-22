@@ -29,7 +29,6 @@
 !
 !*******************************************************************************
       TYPE param_class
-         TYPE (model_class), POINTER :: eq_model
          INTEGER                     :: param_id = data_no_id
          INTEGER, DIMENSION(2)       :: indicies = 0
          REAL (rprec)                :: vrnc = 0.0
@@ -57,16 +56,15 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
-      FUNCTION param_construct(eq_model, param_name, indicies,                 &
-     &                         vrnc, range_type, range_indicies,               &
-     &                         range_value)
+      FUNCTION param_construct(a_model, param_name, indicies, vrnc,            &
+     &                         range_type, range_indicies, range_value)
       USE v3_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), POINTER                 :: param_construct
-      TYPE (model_class), POINTER, INTENT(in)     :: eq_model
+      TYPE (model_class), INTENT(in)              :: a_model
       CHARACTER (len=*), INTENT(in)               :: param_name
       INTEGER, DIMENSION(2), INTENT(in)           :: indicies
       REAL (rprec), INTENT(in)                    :: vrnc
@@ -78,15 +76,14 @@
       INTEGER                                     :: id
 
 !  Start of executable code
-      id = model_get_param_id(eq_model, TRIM(param_name))
-      IF (.not.model_is_recon_param(eq_model, id)) THEN
+      id = model_get_param_id(a_model, TRIM(param_name))
+      IF (.not.model_is_recon_param(a_model, id)) THEN
          CALL err_fatal('param_construct: invalid ' //                         &
      &                  'reconstruction parameter')
       END IF
 
       ALLOCATE(param_construct)
 
-      param_construct%eq_model => eq_model
       param_construct%param_id = id
       param_construct%indicies = indicies
       param_construct%vrnc = vrnc
@@ -103,7 +100,7 @@
          CASE DEFAULT
             param_construct%range_type(1) = param_range_parameter_type
             param_construct%range_id(1) =                                      &
-     &         model_get_param_id(eq_model, TRIM(range_type(1)))
+     &         model_get_param_id(a_model, TRIM(range_type(1)))
             param_construct%range_indicies(1,:) = range_indicies(1,:)
 
       END SELECT
@@ -120,7 +117,7 @@
          CASE DEFAULT
             param_construct%range_type(2) = param_range_parameter_type
             param_construct%range_id(2) =                                      &
-     &         model_get_param_id(eq_model, TRIM(range_type(2)))
+     &         model_get_param_id(a_model, TRIM(range_type(2)))
             param_construct%range_indicies(2,:) = range_indicies(2,:)
 
       END SELECT
@@ -138,9 +135,6 @@
       TYPE (param_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
-!  Do not call the model destructor here. Parameter only point to a model but
-!  don't own it.
-      this%eq_model => null()
       this%param_id = data_no_id
       this%indicies = 0
       this%vrnc = 0.0
@@ -159,12 +153,13 @@
 !-------------------------------------------------------------------------------
 !  Set reconstruction parameter
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_set_value(this, value)
+      SUBROUTINE param_set_value(this, a_model, value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
       REAL (rprec), INTENT(in)          :: value
 
 !  Local variables
@@ -178,10 +173,10 @@
 !  Check if the value is within the lower range. If the value is outside,
 !  truncate the value to the lower range.
       IF (this%range_type(1) .ne. param_range_infinity_type) THEN
-         lower_value = param_get_lower_range_value(this)
+         lower_value = param_get_lower_range_value(this, a_model)
 
          IF (set_value .lt. lower_value) THEN
-            CALL model_set_param(this%eq_model, this%param_id,                 &
+            CALL model_set_param(a_model, this%param_id,                       &
      &              this%indicies(1), this%indicies(2), lower_value)
             set_value = lower_value
             RETURN
@@ -191,10 +186,10 @@
 !  The value is in the lower range. Check upper range. If the value is outside,
 !  truncate the value to the upper range.
       IF (this%range_type(2) .ne. param_range_infinity_type) THEN
-         upper_value = param_get_lower_range_value(this)
+         upper_value = param_get_lower_range_value(this, a_model)
 
          IF (set_value .gt. upper_value) THEN
-            CALL model_set_param(this%eq_model, this%param_id,                 &
+            CALL model_set_param(a_model, this%param_id,                       &
      &              this%indicies(1), this%indicies(2), upper_value)
             set_value = upper_value
             RETURN
@@ -202,7 +197,7 @@
       END IF
 
 !  The value is in range. Set the value to this.
-      CALL model_set_param(this%eq_model, this%param_id,                       &
+      CALL model_set_param(a_model, this%param_id,                             &
      &                     this%indicies(1), this%indicies(2),                 &
      &                     set_value)
 
@@ -214,16 +209,17 @@
 !-------------------------------------------------------------------------------
 !  Get the value of the parameter
 !-------------------------------------------------------------------------------
-      FUNCTION param_get_value(this)
+      FUNCTION param_get_value(this, a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec)                      :: param_get_value
       TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(in)    :: a_model
 
 !  Start of executable code
-      param_get_value = model_get_param_value(this%eq_model,                   &
+      param_get_value = model_get_param_value(a_model,                         &
      &                                        this%param_id,                   &
      &                                        this%indicies(1),                &
      &                                        this%indicies(2))
@@ -233,13 +229,14 @@
 !-------------------------------------------------------------------------------
 !  Get the value of the lower range
 !-------------------------------------------------------------------------------
-      FUNCTION param_get_lower_range_value(this)
+      FUNCTION param_get_lower_range_value(this, a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec)                   :: param_get_lower_range_value
       TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
 
 !  Start of executable code
       SELECT CASE (this%range_type(1))
@@ -249,7 +246,7 @@
 
          CASE (param_range_parameter_type)
             param_get_lower_range_value =                                      &
-     &         model_get_param_value(this%eq_model, this%range_id(1),          &
+     &         model_get_param_value(a_model, this%range_id(1),                &
      &                               this%range_indicies(1,1),                 &
      &                               this%range_indicies(1,2))
 
@@ -260,13 +257,14 @@
 !-------------------------------------------------------------------------------
 !  Get the value of the upper range
 !-------------------------------------------------------------------------------
-      FUNCTION param_get_upper_range_value(this)
+      FUNCTION param_get_upper_range_value(this, a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec)                   :: param_get_upper_range_value
       TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
 
 !  Start of executable code
       SELECT CASE (this%range_type(2))
@@ -276,7 +274,7 @@
 
          CASE (param_range_parameter_type)
             param_get_upper_range_value =                                      &
-     &         model_get_param_value(this%eq_model, this%range_id(2),          &
+     &         model_get_param_value(a_model, this%range_id(2),                &
      &                               this%range_indicies(2,1),                 &
      &                               this%range_indicies(2,2))
 
@@ -290,19 +288,20 @@
 !-------------------------------------------------------------------------------
 !  Query value is in the lower range.
 !-------------------------------------------------------------------------------
-      FUNCTION param_is_in_lower_range(this, value)
+      FUNCTION param_is_in_lower_range(this, a_model, value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       LOGICAL                        :: param_is_in_lower_range
       TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
       REAL (rprec), INTENT(in)       :: value
 
 !  Start of executable code
       IF (this%range_type(1) .ne. param_range_infinity_type) THEN
          param_is_in_lower_range =                                             &
-     &      value .ge. param_get_lower_range_value(this)
+     &      value .ge. param_get_lower_range_value(this, a_model)
       END IF
 
       END FUNCTION
@@ -310,19 +309,20 @@
 !-------------------------------------------------------------------------------
 !  Query value is in the lower range.
 !-------------------------------------------------------------------------------
-      FUNCTION param_is_in_upper_range(this, value)
+      FUNCTION param_is_in_upper_range(this, a_model, value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       LOGICAL                        :: param_is_in_upper_range
       TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
       REAL (rprec), INTENT(in)       :: value
 
 !  Start of executable code
       IF (this%range_type(2) .ne. param_range_infinity_type) THEN
          param_is_in_upper_range =                                             &
-     &      value .le. param_get_upper_range_value(this)
+     &      value .le. param_get_upper_range_value(this, a_model)
       END IF
 
       END FUNCTION
@@ -333,13 +333,14 @@
 !-------------------------------------------------------------------------------
 !  Increment the value by the variance.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_increment(this)
+      SUBROUTINE param_increment(this, a_model)
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
 
 !  local variables
       REAL (rprec)                      :: new_value
@@ -348,7 +349,7 @@
       INTEGER                           :: itry
 
 !  Start of executable code
-      value = param_get_value(this)
+      value = param_get_value(this, a_model)
 !  Take the absolute value here to control the direction of the step.
       step = ABS(this%vrnc)
 
@@ -364,8 +365,8 @@
 !  Try a step in the positive direction. If the parameter is still in range set
 !  otherwise.
          new_value = value + step
-         IF (param_is_in_upper_range(this, new_value)) THEN
-            CALL model_set_param(this%eq_model, this%param_id,                 &
+         IF (param_is_in_upper_range(this, a_model, new_value)) THEN
+            CALL model_set_param(a_model, this%param_id,                       &
      &                           this%indicies(1), this%indicies(2),           &
      &                           new_value)
 !  Store the actual change in value.
@@ -375,8 +376,8 @@
 
 !  Try a step in the negative direction.
          new_value = value - step
-         IF (param_is_in_lower_range(this, new_value)) THEN
-            CALL model_set_param(this%eq_model, this%param_id,                 &
+         IF (param_is_in_lower_range(this, a_model, new_value)) THEN
+            CALL model_set_param(a_model, this%param_id,                       &
      &                           this%indicies(1), this%indicies(2),           &
      &                           new_value)
 !  Store the actual change in value.

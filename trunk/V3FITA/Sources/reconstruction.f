@@ -444,11 +444,11 @@
 
       DO j = 1, SIZE(params)
 !  Save the initial parameter value and the equilirbium state.
-         param_value = param_get_value(params(j)%p)
+         param_value = param_get_value(params(j)%p, a_model)
 
 !  Increment the parameter. param_increment checks the bounds and adjust the
 !  step size to keep the parameter in range.
-         CALL param_increment(params(j)%p)
+         CALL param_increment(params(j)%p, a_model)
 
          CALL assert(equilibrium_converge(a_model%equilibrium,                 &
      &                                    eq_steps),                           &
@@ -485,7 +485,7 @@
      &                                                params(j)%p%delta)
 
 !  Restore the parameter and the equilibirum to it's initial value.
-         CALL param_set_value(params(j)%p, param_value)
+         CALL param_set_value(params(j)%p, a_model, param_value)
          CALL equilibrium_reset_state(a_model%equilibrium)
 
       END DO
@@ -933,7 +933,7 @@
 
 !  Save the parameter values.
       DO i = 1, SIZE(params)
-         param_value(i) = param_get_value(params(i)%p)
+         param_value(i) = param_get_value(params(i)%p, a_model)
       END DO
 
 !  Set the initial step size.
@@ -961,7 +961,7 @@
 !  factor. This is not vrnc because the increment function can take a non vrnc
 !  step size.
          DO j = 1, SIZE(params)
-            CALL param_set_value(params(j)%p, param_value(j) +                 &
+            CALL param_set_value(params(j)%p, a_model, param_value(j) +        &
      &                           delta_a(j)*ABS(params(j)%p%delta))
          END DO
 
