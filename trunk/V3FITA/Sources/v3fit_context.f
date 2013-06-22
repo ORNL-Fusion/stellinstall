@@ -23,9 +23,9 @@
 !  This object holds all the memory for running v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
-         REAL (rprec)                                 :: recon_stop = 0.0
+         REAL (rprec)                                 :: recon_stop
 
-         INTEGER                                      :: recout_iou = 0
+         INTEGER                                      :: recout_iou
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
          TYPE (model_class), POINTER                  :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
@@ -83,8 +83,6 @@
 !  Allocate the number of of signals needed. This is allocated to the size
 !  na_s_desc. na_s_desc will default to the maximum number of signals needed.
       ALLOCATE(v3fit_context_construct%signals(na_s_desc))
-
-      ALLOCATE(v3fit_context_construct%params(n_rp))
 
       END FUNCTION
 

@@ -775,7 +775,7 @@
       ALLOCATE(f_sqrd(k_use))
 
 !  Put (U^t*e)^2 in the function.
-      f_sqrd = utdote(i:k_use)**2.0
+      f_sqrd = utdote(1:k_use)**2.0
       step_size_sqrd = step_size**2.0
 
       reconstruction_lm_rootfind = lambda_default

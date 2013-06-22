@@ -814,6 +814,7 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing reconstruction parameters'
 
+      ALLOCATE(context%params(n_rp))
       DO i = 1, n_rp
 
          context%params(i)%p => param_construct(context%model,                 &
