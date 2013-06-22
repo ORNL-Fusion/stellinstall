@@ -23,9 +23,9 @@
 !  This object holds all the memory for running v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
-         REAL (rprec)                                 :: recon_stop
+         REAL (rprec)                                 :: recon_stop = 0.0
 
-         INTEGER                                      :: recout_iou
+         INTEGER                                      :: recout_iou = 0
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
          TYPE (model_class), POINTER                  :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
@@ -68,16 +68,15 @@
 
 !  Setup the recout file.
       CALL safe_open(v3fit_context_construct%recout_iou, status,               &
-     &               'recout.' // filename_base(filename),                     &
+     &               TRIM('recout.' // filename_base(filename)),               &
      &               'replace', 'formatted', delim_in='none')
       CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
      &               'Safe_open of recout. ' //                                &
-     &               filename_base(filename)  // 'failed')
+     &               TRIM(filename_base(filename)) // 'failed')
 
       WRITE (v3fit_context_construct%recout_iou, *) 'V3FITA RUN'
       WRITE (v3fit_context_construct%recout_iou, *)                            &
-     &   '  Namelist Input from file ',                                        &
-     &   TRIM(filename)
+     &   '  Namelist Input from file ', TRIM(filename)
 
       v3fit_context_construct%cl_parser => cl_parser
 
