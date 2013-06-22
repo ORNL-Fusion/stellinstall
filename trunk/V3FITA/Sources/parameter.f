@@ -79,8 +79,7 @@
 
 !  Start of executable code
       id = model_get_param_id(eq_model, TRIM(param_name))
-      IF (.not.model_is_recon_param(eq_model,                                  &
-     &                              param_construct%param_id)) THEN
+      IF (.not.model_is_recon_param(eq_model, id)) THEN
          CALL err_fatal('param_construct: invalid ' //                         &
      &                  'reconstruction parameter')
       END IF
