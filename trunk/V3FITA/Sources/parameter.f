@@ -304,6 +304,8 @@
      &      value .ge. param_get_lower_range_value(this, a_model)
       END IF
 
+      param_is_in_lower_range = .true.
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -324,6 +326,8 @@
          param_is_in_upper_range =                                             &
      &      value .le. param_get_upper_range_value(this, a_model)
       END IF
+
+      param_is_in_upper_range = .true.
 
       END FUNCTION
 
@@ -389,7 +393,7 @@
          step = step/10.0
       END DO
 
-      CALL err_fatal('param_increment_single: failed to change ' //            &
+      CALL err_fatal('param_increment: failed to change ' //                   &
      &               'reconstruction. Try decreaing rp_vrnc or ' //            &
      &               'expanding the range.')
 
