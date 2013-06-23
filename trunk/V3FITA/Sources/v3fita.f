@@ -277,13 +277,13 @@
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
 
-      eq_converged = reconstruction_eval_g2(context%recon,                     &
-     &                                      context%signals,                   &
-     &                                      context%model, num_steps)
+      eq_converged = reconstruction_eval_e(context%recon,                      &
+     &                                     context%signals,                    &
+     &                                     context%model, num_steps)
       CALL assert(eq_converged,                                                &
      &            'task_reconstruct no inital convergence')
 
-      DO i = 1, SIZE(context%recon%g2, 1)
+      DO i = 1, SIZE(context%recon%e, 1)
          IF (reconstruction_step(context%recon, context%signals,               &
      &                           context%model, context%params,                &
      &                           num_steps)) THEN
@@ -298,7 +298,7 @@
                EXIT
             END IF
 
-            IF (i .eq. SIZE(context%recon%g2, 1)) THEN
+            IF (i .eq. SIZE(context%recon%e, 1)) THEN
               WRITE (*,*)
               WRITE (*,1001) i
             END IF

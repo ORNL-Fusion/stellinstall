@@ -39,7 +39,7 @@
          REAL (rprec)                          :: step_max
 
          INTEGER                               :: current_step = 0
-         REAL (rprec), DIMENSION(:,:), POINTER :: g2 => null()
+         REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
          REAL (rprec), DIMENSION(:,:), POINTER :: jacobian => null()
          REAL (rprec), DIMENSION(:,:), POINTER :: hessian => null()
          REAL (rprec), DIMENSION(:), POINTER   :: gradient => null()
@@ -114,7 +114,7 @@
 
       num_svd = MIN(num_signals, num_parameters)
 
-      ALLOCATE(reconstruction_construct%g2(0:num_steps + 1,num_signals))
+      ALLOCATE(reconstruction_construct%e(0:num_steps + 1,num_signals))
       ALLOCATE(reconstruction_construct%jacobian(num_signals,                  &
      &                                           num_parameters))
       ALLOCATE(reconstruction_construct%hessian(num_parameters,                &
@@ -128,7 +128,7 @@
       ALLOCATE(reconstruction_construct%j_svd_vt(num_parameters,               &
      &                                           num_parameters))
       ALLOCATE(reconstruction_construct%delta_a_len(0:num_svd))
-      reconstruction_construct%g2 = 0.0
+      reconstruction_construct%e = 0.0
 
       END FUNCTION
 
@@ -153,9 +153,9 @@
 
       this%current_step = 0
 
-      IF (ASSOCIATED(this%g2)) THEN
-         DEALLOCATE(this%g2)
-         this%g2 => null()
+      IF (ASSOCIATED(this%e)) THEN
+         DEALLOCATE(this%e)
+         this%e => null()
       END IF
 
       IF (ASSOCIATED(this%jacobian)) THEN
@@ -230,7 +230,7 @@
       REAL (rprec)                               :: largest_w
 
 !  Start of executable code
-      ALLOCATE(delta_e(SIZE(this%g2, 2)))
+      ALLOCATE(delta_e(SIZE(this%e, 2)))
       ALLOCATE(dg2exp(0:num_sv))
       ALLOCATE(exp_eff(0:num_sv))
       ALLOCATE(marg_exp_eff(0:num_sv))
@@ -239,8 +239,7 @@
       DO k = 0, num_sv
          delta_e = MATMUL(this%jacobian, this%delta_a(k,:))
          dg2exp_lin =                                                          &
-     &      -2.0*DOT_PRODUCT(SQRT(this%g2(this%current_step,:)),               &
-     &                       delta_e)
+     &      -2.0*DOT_PRODUCT(this%e(this%current_step,:), delta_e)
          dg2exp_quad = DOT_PRODUCT(delta_e, delta_e)
          dg2exp(k) = dg2exp_lin + dg2exp_quad
 
@@ -315,17 +314,15 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: delta_e
 
 !  Start of executable code
-      ALLOCATE(delta_e(SIZE(this%g2, 2)))
+      ALLOCATE(delta_e(SIZE(this%e, 2)))
       delta_e = MATMUL(this%jacobian, delta_a)
       dg2exp_lin =                                                             &
-     &   -2.0*DOT_PRODUCT(SQRT(this%g2(this%current_step,:)),                  &
-     &                    delta_e)
+     &   -2.0*DOT_PRODUCT(this%e(this%current_step,:), delta_e)
       dg2exp_quad = DOT_PRODUCT(delta_e, delta_e)
       DEALLOCATE(delta_e)
 
       dg2exp = dg2exp_lin + dg2exp_quad
-      reconstruction_get_exp_g2 = SUM(this%g2(this%current_step,:))             &
-     &                          + dg2exp
+      reconstruction_get_exp_g2 = reconstruction_get_g2(this) + dg2exp
 
       END FUNCTION
 
@@ -341,7 +338,9 @@
       TYPE (reconstruction_class), INTENT(inout) :: this
 
 !  Start of executable code
-      reconstruction_get_g2 = SUM(this%g2(this%current_step, :))
+      reconstruction_get_g2 =                                                  &
+     &   DOT_PRODUCT(this%e(this%current_step, :),                             &
+     &               this%e(this%current_step, :))
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -356,7 +355,9 @@
       TYPE (reconstruction_class), INTENT(inout) :: this
 
 !  Start of executable code
-      reconstruction_get_lastg2 = SUM(this%g2(this%current_step - 1, :))
+      reconstruction_get_lastg2 =                                              &
+     &   DOT_PRODUCT(this%e(this%current_step - 1, :),                             &
+     &               this%e(this%current_step - 1, :))
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -381,14 +382,14 @@
 !-------------------------------------------------------------------------------
 !  Evaluate the chi^2
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_eval_g2(this, signals, a_model, eq_steps)
+      FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps)
       USE signal
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL :: reconstruction_eval_g2
+      LOGICAL :: reconstruction_eval_e
       TYPE (reconstruction_class), INTENT(inout) :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (model_class), INTENT(inout)          :: a_model
@@ -398,16 +399,16 @@
       INTEGER                                    :: i
 
 !  Start of executable code
-!  Converge the equilibrium. this%g2 is initialized to zero in the constructor.
+!  Converge the equilibrium. this%e is initialized to zero in the constructor.
       IF (equilibrium_converge(a_model%equilibrium, eq_steps)) THEN
          DO i = 1, SIZE(signals)
-            this%g2(this%current_step,i) =                                     &
-     &         signal_get_g2(signals(i)%p, a_model)
+            this%e(this%current_step,i) =                                      &
+     &         signal_get_e(signals(i)%p, a_model)
          END DO
          !  Write out the step information.
-         reconstruction_eval_g2 = .true.
+         reconstruction_eval_e = .true.
       ELSE
-         reconstruction_eval_g2 = .false.
+         reconstruction_eval_e = .false.
       END IF
 
       END FUNCTION
@@ -478,8 +479,8 @@
 
          DO i = 1, SIZE(signals)
             this%jacobian(i,j) =                                               &
-     &         (SQRT(signal_get_g2(signals(i)%p, a_model)) -                   &
-     &          SQRT(this%g2(this%current_step,i)))
+     &         -(signal_get_e(signals(i)%p, a_model) -                         &
+     &           this%e(this%current_step,i))
          END DO
          this%jacobian(:,j) = this%jacobian(:,j)*SIGN(1.0_rprec,               &
      &                                                params(j)%p%delta)
@@ -501,7 +502,7 @@
 !
 !    beta = A^T * e
       this%gradient = MATMUL(TRANSPOSE(this%jacobian),                         &
-     &                       this%g2(this%current_step,:))
+     &                       this%e(this%current_step,:))
 
 !  Comute step sized in parameter space.
       this%delta_a(0,:) = this%gradient*DOT_PRODUCT(this%gradient,             &
@@ -544,7 +545,7 @@
 
 !  U^T * e
       temp_work2 = MATMUL(TRANSPOSE(this%j_svd_u),                             &
-     &                    SQRT(this%g2(this%current_step,:)))
+     &                    this%e(this%current_step,:))
 
 !  Peform pseudo-inversion for successive numbers of singular values retained
       DO i = 1, SIZE(this%j_svd_w)
@@ -713,9 +714,8 @@
          lambda =                                                              &
      &      (this%j_svd_w(1)*this%delta_a_len(k_use)/step_size)**2.0
 
-         ALLOCATE(utdote(SIZE(this%g2, 2)))
-         utdote = MATMUL(SQRT(this%g2(this%current_step,:)),                   &
-     &                   this%j_svd_u)
+         ALLOCATE(utdote(SIZE(this%e, 2)))
+         utdote = MATMUL(this%e(this%current_step,:), this%j_svd_u)
 
 !  Find the L-M parameter lambda that corresponds to a step length of step_size.
          lambda = reconstruction_lm_rootfind(this, k_use, lambda,              &
@@ -966,11 +966,11 @@
          END DO
 
 !  Reconverge the equilibrium. Increment the current step so
-!  reconstruction_eval_g2 writes the g2 array to the correct index. If the
+!  reconstruction_eval_e writes the e array to the correct index. If the
 !  reconstruction step should fail for any reason. decrement the step back down.
          this%current_step = this%current_step + 1
-         IF (reconstruction_eval_g2(this, signals, a_model,                    &
-     &                              eq_steps)) THEN
+         IF (reconstruction_eval_e(this, signals, a_model,                     &
+     &                             eq_steps)) THEN
 !  Equilibrium converged
             IF (reconstruction_get_dg2(this) .ge. 0.0) THEN
                reconstruction_step = .true.
@@ -1030,11 +1030,13 @@
 !  Start of executable code
       WRITE (iou,'(a)') 'Reconstruction Steps'
       WRITE (iou,1000)
-      WRITE (iou,1001) 0, SUM(this%g2(0,:))
+      WRITE (iou,1001) 0, DOT_PRODUCT(this%e(0,:), this%e(0,:))
 
-      DO i = 1, SIZE(this%g2) - 1
-         WRITE (iou,1001) i, SUM(this%g2(i,:)),                                &
-     &                    SUM(this%g2(i - 1,:) - this%g2(i,:))
+      DO i = 1, this%current_step
+         WRITE (iou,1001) i, DOT_PRODUCT(this%e(i,:), this%e(i,:)),            &
+     &                    DOT_PRODUCT(this%e(i - 1,:),                         &
+     &                                this%e(i - 1,:)) -                       &
+     &                    DOT_PRODUCT(this%e(i,:), this%e(i,:))
       END DO
 
 1000  FORMAT('irstep',2x,'g^2',11x,'delta g^2')
@@ -1061,7 +1063,7 @@
       WRITE (*,1000) step_type, step_size
       WRITE (*,1001) g2exp
 
-1000  FORMAT(a4,': Step size limiter to ',es12.5)
+1000  FORMAT(a4,': Step size limited to ',es12.5)
 1001  FORMAT('  Expected g^2 = ',es12.5)
 
       END SUBROUTINE

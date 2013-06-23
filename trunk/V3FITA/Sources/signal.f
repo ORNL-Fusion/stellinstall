@@ -362,16 +362,45 @@
       TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Local Variables
+      REAL (rprec)                       :: e
       REAL (rprec), DIMENSION(4)         :: modeled_signal
       REAL (rprec), DIMENSION(4)         :: modeled_sigma
 
 !  Start of executable code
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
      &                                           modeled_sigma, .false.)
-      signal_get_g2 =                                                          &
-     &   this%weight*((this%observed - modeled_signal(1))**2.0                 &
-     &               /(this%observed_sigma**2.0 +                              &
-     &                 modeled_sigma(1)**2.0))
+
+! g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
+      e = signal_get_e(this, a_model)
+      signal_get_g2 = e*e
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the e contribution.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_e(this, a_model)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                       :: signal_get_e
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout)  :: a_model
+
+!  Local Variables
+      REAL (rprec), DIMENSION(4)         :: modeled_signal
+      REAL (rprec), DIMENSION(4)         :: modeled_sigma
+
+!  Start of executable code
+      modeled_signal = signal_get_modeled_signal(this, a_model,                &
+     &                                           modeled_sigma, .false.)
+
+! e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
+      signal_get_e = (this%observed - modeled_signal(1))                       &
+     &             * SQRT(this%weight/(this%observed_sigma**2.0 -              &
+     &                    modeled_signal(1)**2.0))
 
       END FUNCTION
 
