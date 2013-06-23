@@ -301,8 +301,8 @@
 
 !  Declare Arguments
       REAL (rprec) :: reconstruction_get_exp_dg2
-      TYPE (reconstruction_class), INTENT(inout) :: this
-      REAL (rprec), DIMENSION(:), INTENT(out)    :: delta_a
+      TYPE (reconstruction_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
 !  local arguments
       REAL (rprec)                               :: dg2exp_lin
@@ -333,8 +333,8 @@
 
 !  Declare Arguments
       REAL (rprec) :: reconstruction_get_exp_g2
-      TYPE (reconstruction_class), INTENT(inout) :: this
-      REAL (rprec), DIMENSION(:), INTENT(out)    :: delta_a
+      TYPE (reconstruction_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
 !  Start of executable code
       reconstruction_get_exp_g2 = reconstruction_get_g2(this)                  &
@@ -352,7 +352,7 @@
 
 !  Declare Arguments
       REAL (rprec) :: reconstruction_get_g2
-      TYPE (reconstruction_class), INTENT(inout) :: this
+      TYPE (reconstruction_class), INTENT(in) :: this
 
 !  Start of executable code
       reconstruction_get_g2 =                                                  &
@@ -369,7 +369,7 @@
 
 !  Declare Arguments
       REAL (rprec) :: reconstruction_get_lastg2
-      TYPE (reconstruction_class), INTENT(inout) :: this
+      TYPE (reconstruction_class), INTENT(in) :: this
 
 !  Start of executable code
       reconstruction_get_lastg2 =                                              &
@@ -386,7 +386,7 @@
 
 !  Declare Arguments
       REAL (rprec) :: reconstruction_get_dg2
-      TYPE (reconstruction_class), INTENT(inout) :: this
+      TYPE (reconstruction_class), INTENT(in) :: this
 
 !  Start of executable code
       reconstruction_get_dg2 = reconstruction_get_lastg2(this)                 &
@@ -512,6 +512,9 @@
 !  doi:10.1088/0029-5515/49/7/075031
 !
 !    alpha = A^T * A
+!
+!  Numerical Recipes Third edition Equation 15.5.7 . In here, teh second
+!  derivatives are assumed to be small and ignored.
       this%hessian = MATMUL(TRANSPOSE(this%jacobian), this%jacobian)
 
 !  Compute the gradient vector in parameter space. Equation 13 in Hanson at. al.
@@ -609,8 +612,8 @@
          reconstruction_sl_step = this%delta_a_len(k_use)
       END IF
 
-      CALL reconstruction_write_step(this, 'sl', step_size,                    &
-     &        reconstruction_get_exp_g2(this, delta_a))
+      CALL reconstruction_write_step(this, 'sl',                               &
+     &                               reconstruction_sl_step, delta_a)
 
       END FUNCTION
 
@@ -692,8 +695,8 @@
          reconstruction_seg_step = this%delta_a_len(k_use)
       END IF
 
-      CALL reconstruction_write_step(this, 'seg', step_size,                   &
-     &        reconstruction_get_exp_g2(this, delta_a))
+      CALL reconstruction_write_step(this, 'seg',                              &
+     &                               reconstruction_seg_step, delta_a)
 
       END FUNCTION
 
@@ -746,8 +749,8 @@
          reconstruction_lm_step = this%delta_a_len(k_use)
       END IF
 
-      CALL reconstruction_write_step(this, 'lm', step_size,                    &
-     &        reconstruction_get_exp_g2(this, delta_a))
+      CALL reconstruction_write_step(this, 'lm',                               &
+     &                               reconstruction_lm_step, delta_a)
 
       END FUNCTION
 
@@ -1060,7 +1063,7 @@
 !  Write out a reconstruction  step.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_write_step(this, step_type, step_size,         &
-     &                                     g2exp)
+     &                                     delta_a)
 
       IMPLICIT NONE
 
@@ -1068,12 +1071,12 @@
       TYPE (reconstruction_class), INTENT(in) :: this
       CHARACTER(len=*), INTENT(in)            :: step_type
       REAL (rprec), INTENT(in)                :: step_size
-      REAL (rprec), INTENT(in)                :: g2exp
+      REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
 !  Start of executable code
       WRITE (*,*)
       WRITE (*,1000) step_type, step_size
-      WRITE (*,1001) g2exp
+      WRITE (*,1001) reconstruction_get_exp_g2(this, delta_a)
 
 1000  FORMAT(a4,': Step size limited to ',es12.5)
 1001  FORMAT('  Expected g^2 = ',es12.5)
