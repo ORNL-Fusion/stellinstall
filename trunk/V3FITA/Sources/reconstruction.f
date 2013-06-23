@@ -218,9 +218,6 @@
       INTEGER, INTENT(in)                        :: num_sv
 
 !  local variables
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: delta_e
-      REAL (rprec)                               :: dg2exp_lin
-      REAL (rprec)                               :: dg2exp_quad
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: dg2exp
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: exp_eff
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: marg_exp_eff
@@ -230,21 +227,20 @@
       REAL (rprec)                               :: largest_w
 
 !  Start of executable code
-      ALLOCATE(delta_e(SIZE(this%e, 2)))
       ALLOCATE(dg2exp(0:num_sv))
       ALLOCATE(exp_eff(0:num_sv))
       ALLOCATE(marg_exp_eff(0:num_sv))
 
-!  Esstimate the expected changes in g^2
+!  Esstimate the expected changes in g^2. Equation 22 in Hanson at. al.
+!  doi: 10.1088/0029-5515/49/7/075031
       DO k = 0, num_sv
-         delta_e = MATMUL(this%jacobian, this%delta_a(k,:))
-         dg2exp_lin =                                                          &
-     &      -2.0*DOT_PRODUCT(this%e(this%current_step,:), delta_e)
-         dg2exp_quad = DOT_PRODUCT(delta_e, delta_e)
-         dg2exp(k) = dg2exp_lin + dg2exp_quad
+         dg2exp(k) = reconstruction_get_exp_dg2(this,                          &
+     &                                          this%delta_a(k,:))
 
          this%delta_a_len(k) = SQRT(DOT_PRODUCT(this%delta_a(k,:),             &
      &                                          this%delta_a(k,:)))
+
+!  Equation 23 in Hanson at. al. doi: 10.1088/0029-5515/49/7/075031
          exp_eff(k) = ABS(dg2exp(k))/this%delta_a_len(k)
       END DO
 
@@ -287,7 +283,6 @@
          END IF
       END DO
 
-      DEALLOCATE(delta_e)
       DEALLOCATE(dg2exp)
       DEALLOCATE(exp_eff)
       DEALLOCATE(marg_exp_eff)
@@ -296,7 +291,41 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the number expected g^2 size
+!  Get the expected dg^2 size
+!
+!  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!-------------------------------------------------------------------------------
+      FUNCTION reconstruction_get_exp_dg2(this, delta_a)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: reconstruction_get_exp_dg2
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      REAL (rprec), DIMENSION(:), INTENT(out)    :: delta_a
+
+!  local arguments
+      REAL (rprec)                               :: dg2exp_lin
+      REAL (rprec)                               :: dg2exp_quad
+
+!  Start of executable code
+
+!  2e * A * da  
+      dg2exp_lin =                                                             &
+     &   2.0*DOT_PRODUCT(this%e(this%current_step,:),                          &
+     &                   MATMUL(this%jacobian, delta_a))
+
+!  da * A^T * A * da = da * alpha * da where alpha is the hessian matrix.
+!  Equation 14 in Hanson at. al. doi: 10.1088/0029-5515/49/7/075031
+      dg2exp_quad = DOT_PRODUCT(delta_a, MATMUL(this%hessian, delta_a))
+      reconstruction_get_exp_dg2 = dg2exp_lin + dg2exp_quad
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the expected g^2 size
+!
+!  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_exp_g2(this, delta_a)
 
@@ -307,22 +336,10 @@
       TYPE (reconstruction_class), INTENT(inout) :: this
       REAL (rprec), DIMENSION(:), INTENT(out)    :: delta_a
 
-!  local arguments
-      REAL (rprec)                               :: dg2exp_lin
-      REAL (rprec)                               :: dg2exp_quad
-      REAL (rprec)                               :: dg2exp
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: delta_e
-
 !  Start of executable code
-      ALLOCATE(delta_e(SIZE(this%e, 2)))
-      delta_e = MATMUL(this%jacobian, delta_a)
-      dg2exp_lin =                                                             &
-     &   -2.0*DOT_PRODUCT(this%e(this%current_step,:), delta_e)
-      dg2exp_quad = DOT_PRODUCT(delta_e, delta_e)
-      DEALLOCATE(delta_e)
-
-      dg2exp = dg2exp_lin + dg2exp_quad
-      reconstruction_get_exp_g2 = reconstruction_get_g2(this) + dg2exp
+      reconstruction_get_exp_g2 = reconstruction_get_g2(this)                  &
+     &                          - reconstruction_get_exp_dg2(this,             &
+     &                                                       delta_a)
 
       END FUNCTION
 
@@ -356,7 +373,7 @@
 
 !  Start of executable code
       reconstruction_get_lastg2 =                                              &
-     &   DOT_PRODUCT(this%e(this%current_step - 1, :),                             &
+     &   DOT_PRODUCT(this%e(this%current_step - 1, :),                         &
      &               this%e(this%current_step - 1, :))
       END FUNCTION
 
@@ -504,11 +521,11 @@
       this%gradient = MATMUL(TRANSPOSE(this%jacobian),                         &
      &                       this%e(this%current_step,:))
 
-!  Comute step sized in parameter space.
+!  Compute the steepest descent step size in normalized parameter space.
       this%delta_a(0,:) = this%gradient*DOT_PRODUCT(this%gradient,             &
      &                                              this%gradient)             &
      &                  / DOT_PRODUCT(this%gradient,                           &
-     &                                MATMUL(TRANSPOSE(this%hessian),          &
+     &                                MATMUL(this%hessian,                     &
      &                                       this%gradient))
 
 !  Singular value decomposition of the jacobian. Need to allocate a new jacobian
@@ -549,13 +566,8 @@
 
 !  Peform pseudo-inversion for successive numbers of singular values retained
       DO i = 1, SIZE(this%j_svd_w)
-         DO j = 1, SIZE(params)
-             IF (j .le. i) THEN
-                temp_work3(j) = temp_work(j)*temp_work2(j)
-             ELSE
-                temp_work3(j) = 0.0
-             END IF
-         END DO
+         temp_work3(1:i) = temp_work(1:i)*temp_work2(1:i)
+         temp_work3(i + 1:SIZE(params)) = 0.0
          this%delta_a(i,:) = MATMUL(TRANSPOSE(this%j_svd_vt),                  &
      &                              temp_work3)
       END DO
@@ -984,7 +996,7 @@
                EXIT
             ELSE
 !  Equilibrium converged but g^2 increased
-               WRITE (*,*) 'Equilibrium converged bt g2 increased'
+               WRITE (*,*) 'Equilibrium converged but g2 increased'
             END IF
          ELSE
 !  Equilibrium did not converge
