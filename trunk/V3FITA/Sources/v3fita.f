@@ -283,6 +283,9 @@
       CALL assert(eq_converged,                                                &
      &            'task_reconstruct no inital convergence')
 
+      WRITE (*,*)
+      WRITE (*,1002) 0, reconstruction_get_g2(context%recon)
+
       DO i = 1, SIZE(context%recon%e, 1)
          IF (reconstruction_step(context%recon, context%signals,               &
      &                           context%model, context%params,                &
@@ -305,10 +308,14 @@
          ELSE
             EXIT
          END IF
+
+         WRITE (*,*)
+         WRITE (*,1002) i, reconstruction_get_g2(context%recon)
       END DO
 
 1000  FORMAT('dg2_stop = ',es12.5,' change in g^2 = ',es12.5)
 1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
+1002  FORMAT('  *** Reconstruction step ',i4,' g^2 = 'es12.5)
 
       END SUBROUTINE
 
