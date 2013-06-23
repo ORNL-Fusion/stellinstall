@@ -299,12 +299,11 @@
       REAL (rprec), INTENT(in)       :: value
 
 !  Start of executable code
+      param_is_in_lower_range = .true.
       IF (this%range_type(1) .ne. param_range_infinity_type) THEN
          param_is_in_lower_range =                                             &
      &      value .ge. param_get_lower_range_value(this, a_model)
       END IF
-
-      param_is_in_lower_range = .true.
 
       END FUNCTION
 
@@ -322,12 +321,11 @@
       REAL (rprec), INTENT(in)       :: value
 
 !  Start of executable code
+      param_is_in_upper_range = .true.
       IF (this%range_type(2) .ne. param_range_infinity_type) THEN
          param_is_in_upper_range =                                             &
      &      value .le. param_get_upper_range_value(this, a_model)
       END IF
-
-      param_is_in_upper_range = .true.
 
       END FUNCTION
 

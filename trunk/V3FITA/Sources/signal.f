@@ -399,8 +399,8 @@
 
 ! e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
       signal_get_e = (this%observed - modeled_signal(1))                       &
-     &             * SQRT(this%weight/(this%observed_sigma**2.0 -              &
-     &                    modeled_signal(1)**2.0))
+     &             * SQRT(this%weight/(this%observed_sigma**2.0 +              &
+     &                                 modeled_sigma(1)**2.0))
 
       END FUNCTION
 
