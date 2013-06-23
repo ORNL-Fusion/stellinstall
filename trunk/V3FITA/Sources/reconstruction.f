@@ -469,7 +469,7 @@
 !
 !    a'_j = (p_j + pi_j)/|pi_j|                                              (3)
 !
-!  Sub situting equation 2 into 3, reduces to
+!  Subsituting equation 2 into 3, reduces to
 !
 !    d e_i/d a_j = (e'_i - e_i)*|pi_j|/pi_j
 !
@@ -524,7 +524,7 @@
      &            this%j_svd_u, SIZE(signals), this%j_svd_vt,                  &
      &            SIZE(params), temp_work,                                     &
      &            5*MAX(SIZE(signals), SIZE(params)), svd_status)
-      CALL assert_eq(0, svd_status, 'reconstruction_eval_jac: ' //             &
+      CALL assert_eq(0, svd_status, 'reconstruction_eval_step: ' //            &
      &               'dgesvd problem')
 
       DEALLOCATE(temp_work)
