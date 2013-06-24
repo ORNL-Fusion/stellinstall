@@ -993,8 +993,8 @@
                WRITE (*,*) ' *** Step succeeded'
                WRITE (*,*) ' Result of step'
                WRITE (*,1000)
-               WRITE (*,1001) reconstruction_get_g2(this),                     &
-     &                        reconstruction_get_lastg2(this),                 &
+               WRITE (*,1001) reconstruction_get_lastg2(this),                 &
+     &                        reconstruction_get_g2(this),                     &
      &                        reconstruction_get_dg2(this)
                EXIT
             ELSE
@@ -1011,6 +1011,7 @@
 
          IF (i .eq. reconstruction_max_step_try) THEN
             WRITE (*,*) 'Reconstruction step failed.'
+            this%current_step = this%current_step - 1
             EXIT
          END IF
 
