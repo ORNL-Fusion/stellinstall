@@ -273,7 +273,7 @@
      &        (exp_eff(1:num_sv) .ge. this%cut_eff) .and.                      &
      &        (marg_exp_eff(1:num_sv) .ge. this%cut_marg_eff) .and.            &
      &        (this%delta_a_len(1:num_sv) .ge. this%cut_delta_a) .and.         &
-     &        (ABS(dg2exp(1:num_sv)).ge. this%cut_dg2)
+     &        (ABS(dg2exp(1:num_sv)) .ge. this%cut_dg2)
 
 !  Find the largest number of sinular values to use.
       Do k = num_sv, 1, -1

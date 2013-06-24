@@ -284,7 +284,13 @@
      &                      ai, ai_aux_s, ai_aux_f,                            &
      &                      am, am_aux_s, am_aux_f,                            &
      &                      extcur, curtor, phiedge, pres_scale,               &
-     &                      bloat
+     &                      bloat, mgrid_file, nfp, lfreeb
+      USE xstuff, only: xc, xstore, xcdot
+      USE vmec_main, only: irzloff, currv, ivac, fsqr, fsqz
+      USE stel_constants, only: mu0
+      USE mgrid_mod, only: read_mgrid, mgrid_path_old
+      USE vacmod0, only: nv
+
       IMPLICIT NONE
 
 !  Declare Sruments
@@ -295,60 +301,119 @@
       INTEGER, INTENT(in)              :: j_index
       REAL (rprec), INTENT(in)         :: value
 
+!  local variables
+      REAL (rprec)                     :: phiedge_ratio
+      INTEGER                          :: status
+
 !  Start of executable code
+
       SELECT CASE (id)
 
          CASE (vmec_rbc_id)
             vmec_set_param = .true.
             rbc(i_index, j_index) = value
+            IF (.not.lfreeb) THEN
+               CALL vmec_reset_boundary(this)
+               fsqr = 1.0
+               fsqz = 1.0
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+            ELSE
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+            END IF
 
          CASE (vmec_zbs_id)
             vmec_set_param = .true.
             zbs(i_index, j_index) = value
+            IF (.not.lfreeb) THEN
+               CALL vmec_reset_boundary(this)
+               fsqr = 1.0
+               fsqz = 1.0
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+            ELSE
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+            END IF
 
          CASE (vmec_rbs_id)
             vmec_set_param = .true.
             rbs(i_index, j_index) = value
+            IF (.not.lfreeb) THEN
+               CALL vmec_reset_boundary(this)
+               fsqr = 1.0
+               fsqz = 1.0
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+            ELSE
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+            END IF
 
          CASE (vmec_zbc_id)
             vmec_set_param = .true.
             zbc(i_index, j_index) = value
+            IF (.not.lfreeb) THEN
+               CALL vmec_reset_boundary(this)
+               fsqr = 1.0
+               fsqz = 1.0
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+            ELSE
+               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+            END IF
 
          CASE (vmec_ac_id)
             vmec_set_param = .true.
             ac(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_ac_aux_s_id)
             vmec_set_param = .true.
             ac_aux_s(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_ac_aux_f_id)
             vmec_set_param = .true.
             ac_aux_f(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_ai_id)
             vmec_set_param = .true.
             ai(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_ai_aux_s_id)
             vmec_set_param = .true.
             ai_aux_s(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_ai_aux_f_id)
             vmec_set_param = .true.
             ai_aux_f(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_am_id)
             vmec_set_param = .true.
             am(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_am_aux_s_id)
             vmec_set_param = .true.
             am_aux_s(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_am_aux_f_id)
             vmec_set_param = .true.
             am_aux_f(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
@@ -389,22 +454,50 @@
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
             extcur(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            mgrid_path_old = ''
+            CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false.,              &
+     &                      status)
+            CALL assert_eq(0, status, 'vmec_set_param: failed to ' //          &
+     &                     'mgrid_file')
+            ivac = 1
+            fsqr = 1.0
+            fsqz = 1.0
 
          CASE (vmec_curtor_id)
             vmec_set_param = .true.
             curtor = value
+            currv = mu0*curtor
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_phiedge_id)
             vmec_set_param = .true.
+            IF (phiedge .ne. 0.0) THEN
+               phiedge_ratio = value/phiedge
+            ELSE
+               phiedge_ratio = 1.0
+            END IF
             phiedge = value
+            xc(1 + 2*irzloff:3*irzloff) =                                      &
+     &         phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
+            xstore(1 + 2*irzloff:3*irzloff) =                                  &
+     &         phiedge_ratio*xstore(1 + 2*irzloff:3*irzloff)
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pres_scale_id)
             vmec_set_param = .true.
             pres_scale = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_bloat_id)
             vmec_set_param = .true.
             bloat = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE DEFAULT
             vmec_set_param = .true.
@@ -1639,24 +1732,25 @@
 !               recovery.
 !  ictrl_array  Array containing various vmec control parameters.
       REAL(rprec)                      :: delt_local
-      INTEGER, DIMENSION(5)            :: ictrl_array = 0
-      INTEGER                          :: recovery_index = 0
+      INTEGER, DIMENSION(5)            :: ictrl_array
+      INTEGER                          :: recovery_index
       INTEGER                          :: error, num_iter_init
 
 !  Start of executable code
       delt_local = delt
       num_iter_init = iterc
+      recovery_index = 0
 
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
-
+         ictrl_array = 0
          ictrl_array(1) = timestep_flag + output_flag +                        &
      &                    reset_jacdt_flag
          ictrl_array(3) = niter
          ictrl_array(4) = 1
 
 !  Zero the xc arrays.
-         xcdot = zero
+         xcdot = 0.0
          CALL runvmec(ictrl_array, this%vmec_file_name, .false.)
 
 !  Set error flag. (Flags declared in vmec_params.f)
@@ -1794,5 +1888,158 @@
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Reset the fixed boundary coefficients.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_reset_boundary(this)
+      USE vmec_input, only: lasym, rbc, zbs, rbs, zbc, ntor,                   &
+     &                      mfilter_fbdy, nfilter_fbdy, lfreeb
+      USE vmec_dim, only: mpol1, ntor1
+      USE vmec_main, only: rmn_bdy, zmn_bdy, lthreed, lconm1
+      USE vmec_params, only: rcc, rss, rsc, rcs,                               &
+     &                       zsc, zcs, zcc, zss, signgs
+      USE vparams, only: cp5
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in)        :: this
+
+!  local variables
+      REAL (rprec)                            :: delta, sgn
+      INTEGER                                 :: m, n, mj, ni
+      REAL (rprec)                            :: temp
+      REAL (rprec), DIMENSION(:,:), POINTER   :: rbcc, rbss, rbcs, rbsc
+      REAL (rprec), DIMENSION(:,:), POINTER   :: zbcc, zbss, zbcs, zbsc
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: temp_array
+
+!  Start of executable code
+      IF (lasym) THEN
+!  Convert to representation with rbs(m=1) = zbc(m=1)
+         delta = ATAN((rbc(0,1) - zbc(0,1))/                                   &
+     &                (ABS(rbc(0,1) + ABS(zbs(0,1)))))
+         IF (delta .ne. 0.0) THEN
+            DO m = 0, mpol1
+               DO n = -ntor, ntor
+                  temp = rbc(n,m)*COS(m*delta) + rbs(n,m)*SIN(m*delta)
+                  rbs(n,m) = rbs(n,m)*COS(m*delta)                             &
+     &                     - rbc(n,m)*SIN(m*delta)
+                  rbc(n,m) = temp
+                  temp = zbc(n,m)*COS(m*delta) + zbs(n,m)*SIN(m*delta)
+                  zbs(n,m) = zbs(n,m)*COS(m*delta)                             &
+     &                     - zbc(n,m)*SIN(m*delta)
+                  zbc(n,m) = temp
+               END DO
+            END DO
+         END IF
+      END IF
+
+!  Convert to internal representation of modes
+!
+!  r = rbcc*cos(m*u)*cos(n*v) + rbss*sin(m*u)*sin(n*v)
+!    + rbcs*cos(m*u)*sin(n*v) + rbsc*sin(m*u)*cos(n*v)
+!  z = zbcs*cos(m*u)*sin(n*v) + zbsc*sin(m*u)*cos(n*v)
+!    + zbcc*cos(m*u)*cos(n*v) + zbsz*sin(m*u)*sin(n*v)
+
+      rbcc => rmn_bdy(:,:,rcc)
+      zbsc => zmn_bdy(:,:,zsc)
+      IF (lthreed) THEN
+         rbss => rmn_bdy(:,:,rss)
+         zbcs => zmn_bdy(:,:,zcs)
+      END IF
+
+      IF (lasym) THEN
+         rbsc => rmn_bdy(:,:,rsc)
+         zbcc => rmn_bdy(:,:,zcc)
+         IF (lthreed) THEN
+            rbcs => rmn_bdy(:,:,rcs)
+            zbss => rmn_bdy(:,:,zss)
+         END IF
+      END IF
+
+      rmn_bdy = 0
+      zmn_bdy = 0
+
+      IF (.not.(lfreeb .and. (mfilter_fbdy .gt. 1)                             &
+     &                 .and. (nfilter_fbdy .gt. 0))) THEN
+         DO m = 0, mpol1
+            IF (m .gt. mfilter_fbdy) THEN
+               CYCLE
+            END IF
+
+            mj = m + LBOUND(rbcc, 2)
+            DO n = -ntor, ntor
+               IF (ABS(n) .gt. nfilter_fbdy) THEN
+                  CYCLE
+               END IF
+
+               ni = ABS(n) + LBOUND(rbcc, 1)
+
+               IF (n .eq. 0) THEN
+                  sgn = 0.0
+               ELSE IF (n .gt. 0) THEN
+                  sgn = 1.0
+               ELSE
+                  sgn = -1.0
+               END IF
+
+               rbcc(ni,mj) = rbcc(ni,mj) + rbc(n,m)
+               zbsc(ni,mj) = zbsc(ni,mj) + zbs(n,m)
+               IF (m .eq. 0) THEN
+                  zbsc(ni, mj) = 0.0
+               END IF
+
+               IF (lthreed) THEN
+                  rbss(ni,mj) = rbss(ni,mj) + sgn*rbc(n,m)
+                  zbcs(ni,mj) = zbcs(ni,mj) - sgn*zbs(n,m)
+                  IF (m .eq. 0) THEN
+                     rbss(ni,mj) = 0
+                  END IF
+               END IF
+
+               IF (lasym) THEN
+                  rbsc(ni,mj) = rbsc(ni,mj) + rbs(n,m)
+                  zbcc(ni,mj) = zbcc(ni,mj) + zbc(n,m)
+                  IF (m .eq. 0) THEN
+                     rbsc(ni, mj) = 0.0
+                  END IF
+
+                  IF (lthreed) THEN
+                     rbcs(ni,mj) = rbcs(ni,mj) - sgn*rbs(n,m)
+                     zbss(ni,mj) = zbss(ni,mj) + sgn*zbc(n,m)
+                     IF (m .eq. 0) THEN
+                        zbss(ni,mj) = 0
+                     END IF
+                  END IF
+               END IF
+            END DO
+         END DO
+      END IF
+
+!  Check sign of jacobian (should be same as signgs)
+      mj = 1 + LBOUND(rbcc, 2)
+      signgs = 1.0
+      IF (SUM(rbcc(1:ntor1,mj))*SUM(rbsc(1:ntor1,mj)) .gt. 0.0) THEN
+         signgs = -1.0
+      END IF
+
+!  Convert to internal form for (constrained) m=1 modes
+      IF (lconm1 .and. (lthreed .or. lasym)) THEN
+         ALLOCATE(temp_array(SIZE(rbcc, 1)))
+         IF (lthreed) THEN
+            temp_array = rbss(:,mj)
+            rbss(:,mj) = cp5*(temp_array + zbcs(:,mj))
+            zbcs(:,mj) = cp5*(temp_array - zbcs(:,mj))
+         END IF
+
+         IF (lasym) THEN
+            temp_array = rbsc(:,mj)
+            rbsc(:,mj) = cp5*(temp_array + zbcc(:,mj))
+            zbcc(:,mj) = cp5*(temp_array - zbcc(:,mj))
+         END IF
+         DEALLOCATE(temp_array)
+      END IF
+
+      END SUBROUTINE
 
       END MODULE

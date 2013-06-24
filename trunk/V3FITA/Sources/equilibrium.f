@@ -107,9 +107,14 @@
 !  Start of executable code
       SELECT CASE (this%type)
 
+!  Set param needs to come first so that function gets executed. Otherwise, when
+!  this%not_converged was true, the expression will evaluate to false all the
+!  time and not bother calling vmec_set_param.
          CASE (equilibrium_vmec_type)
-            this%not_converged = this%not_converged .or.                       &
-     &         vmec_set_param(this%vmec, id, i_index, j_index, value)
+            this%not_converged = vmec_set_param(this%vmec, id,                 &
+     &                                          i_index, j_index,              &
+     &                                          value)                         &
+     &                         .or. this%not_converged
 
       END SELECT
 
@@ -723,6 +728,9 @@
       ELSE
          equilibrium_converge = .true.
       ENDIF
+
+      WRITE (*,*) 'Equilibrium converged ', equilibrium_converge,              &
+     &            num_iter
 
       END FUNCTION
 
