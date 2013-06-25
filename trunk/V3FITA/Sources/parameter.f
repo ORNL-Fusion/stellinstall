@@ -397,4 +397,44 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!  Write out a reconstruction parameter.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_write(this, iou, index, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: iou
+      INTEGER, INTENT(in)            :: index
+      TYPE (model_class), INTENT(in) :: a_model
+
+!  Start of executable code
+
+      WRITE (iou,1000) index,                                                  &
+     &                 model_get_param_name(a_model, this%param_id),           &
+     &                 this%indicies(1), this%indicies(2),                     &
+     &                 model_get_param_value(a_model, this%param_id,           &
+     &                                       this%indicies(1),                 &
+     &                                       this%indicies(2))
+1000  FORMAT(i3,2x,a18,2(1x,i4),2x,es12.5)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write out a reconstruction parameter.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_write_header(iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER, INTENT(in) :: iou
+
+!  Start of executable code
+      WRITE (iou,1000)
+1000  FORMAT ('irp',2x,'p_type',7x,'inx1',1x,'inx2',2x,'value')
+      END SUBROUTINE
+
       END MODULE

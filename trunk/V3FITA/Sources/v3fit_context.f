@@ -220,6 +220,15 @@
          CALL reconstruction_write(this%recon, this%recout_iou)
       END IF
 
+!  Write out the parameters
+      IF (ASSOCIATED(this%params)) THEN
+         CALL param_write_header(this%recout_iou)
+         DO i = 1, SIZE(this%params)
+            CALL param_write(this%params(i)%p, this%recout_iou, i,             &
+     &                       this%model)
+         END DO
+      END IF
+
 !  Write out the model.
       IF (ASSOCIATED(this%model)) THEN
          CALL model_write(this%model, this%recout_iou)

@@ -48,6 +48,9 @@
          REAL (rprec), DIMENSION(:,:), POINTER :: j_svd_u => null()
          REAL (rprec), DIMENSION(:,:), POINTER :: j_svd_vt => null()
          REAL (rprec), DIMENSION(:), POINTER   :: delta_a_len => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: exp_g2 => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: step_size => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: num_sv => null()
 
 !  Cut off value controls.
          REAL (rprec) :: cut_svd
@@ -114,7 +117,7 @@
 
       num_svd = MIN(num_signals, num_parameters)
 
-      ALLOCATE(reconstruction_construct%e(0:num_steps + 1,num_signals))
+      ALLOCATE(reconstruction_construct%e(0:num_steps,num_signals))
       ALLOCATE(reconstruction_construct%jacobian(num_signals,                  &
      &                                           num_parameters))
       ALLOCATE(reconstruction_construct%hessian(num_parameters,                &
@@ -129,6 +132,10 @@
      &                                           num_parameters))
       ALLOCATE(reconstruction_construct%delta_a_len(0:num_svd))
       reconstruction_construct%e = 0.0
+
+      ALLOCATE(reconstruction_construct%exp_g2(num_steps))
+      ALLOCATE(reconstruction_construct%step_size(num_steps))
+      ALLOCATE(reconstruction_construct%num_sv(num_steps))
 
       END FUNCTION
 
@@ -196,6 +203,21 @@
       IF (ASSOCIATED(this%delta_a_len)) THEN
          DEALLOCATE(this%delta_a_len)
          this%delta_a_len => null()
+      END IF
+
+      IF (ASSOCIATED(this%exp_g2)) THEN
+         DEALLOCATE(this%exp_g2)
+         this%exp_g2 => null()
+      END IF
+
+      IF (ASSOCIATED(this%step_size)) THEN
+         DEALLOCATE(this%step_size)
+         this%step_size => null()
+      END IF
+
+      IF (ASSOCIATED(this%num_sv)) THEN
+         DEALLOCATE(this%num_sv)
+         this%num_sv => null()
       END IF
 
       DEALLOCATE(this)
@@ -612,9 +634,6 @@
          reconstruction_sl_step = this%delta_a_len(k_use)
       END IF
 
-      CALL reconstruction_write_step(this, 'sl',                               &
-     &                               reconstruction_sl_step, delta_a)
-
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -695,9 +714,6 @@
          reconstruction_seg_step = this%delta_a_len(k_use)
       END IF
 
-      CALL reconstruction_write_step(this, 'seg',                              &
-     &                               reconstruction_seg_step, delta_a)
-
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -748,9 +764,6 @@
          delta_a = this%delta_a(k_use,:)
          reconstruction_lm_step = this%delta_a_len(k_use)
       END IF
-
-      CALL reconstruction_write_step(this, 'lm',                               &
-     &                               reconstruction_lm_step, delta_a)
 
       END FUNCTION
 
@@ -961,14 +974,29 @@
             CASE (reconstruction_sl_step_type)
                step_use = reconstruction_sl_step(this, k_use, step_use,        &
      &                                           delta_a)
+               this%exp_g2(this%current_step + 1) =                            &
+     &            reconstruction_get_exp_g2(this, delta_a)
+               this%step_size(this%current_step + 1) = step_use
+               this%num_sv = k_use
+               CALL reconstruction_write_step(this, 'sl')
 
             CASE (reconstruction_lm_step_type)
                step_use = reconstruction_lm_step(this, k_use, step_use,        &
      &                                           delta_a)
+               this%exp_g2(this%current_step + 1) =
+     &            reconstruction_get_exp_g2(this, delta_a)
+               this%step_size(this%current_step + 1) = step_use
+               this%num_sv = k_use
+               CALL reconstruction_write_step(this, 'lm')
 
             CASE (reconstruction_seg_step_type)
                step_use = reconstruction_seg_step(this, k_use, step_use,       &
      &                                            delta_a)
+               this%exp_g2(this%current_step + 1) =
+     &            reconstruction_get_exp_g2(this, delta_a)
+               this%step_size(this%current_step + 1) = step_use
+               this%num_sv = k_use
+               CALL reconstruction_write_step(this, 'seg')
 
          END SELECT
 
@@ -1042,45 +1070,49 @@
 
 !  local arguments
       INTEGER                                          :: i
+      REAL (rprec)                                     :: temp_g2
 
 !  Start of executable code
-      WRITE (iou,'(a)') 'Reconstruction Steps'
+      WRITE (*,*) ' *** Reconstruction Steps'
+      WRITE (iou,*) ' *** Reconstruction Steps'
+      WRITE (*,1000)
       WRITE (iou,1000)
-      WRITE (iou,1001) 0, DOT_PRODUCT(this%e(0,:), this%e(0,:))
+
+      temp_g2 = DOT_PRODUCT(this%e(0,:), this%e(0,:))
+      WRITE (iou,1001) 0, temp_g2
 
       DO i = 1, this%current_step
-         WRITE (iou,1001) i, DOT_PRODUCT(this%e(i,:), this%e(i,:)),            &
-     &                    DOT_PRODUCT(this%e(i - 1,:),                         &
-     &                                this%e(i - 1,:)) -                       &
-     &                    DOT_PRODUCT(this%e(i,:), this%e(i,:))
+         temp_g2 = DOT_PRODUCT(this%e(i,:), this%e(i,:))
+         WRITE (iou,1001) i, temp_g2, this%exp_g2(i), this%num_sv(i),          &
+     &                    this%step_size(i)
       END DO
 
-1000  FORMAT('irstep',2x,'g^2',11x,'delta g^2')
-1001  FORMAT(i6,2(2x,es12.5))
+1000  FORMAT('irstep',2x,'Expected g^2',4x,'sv ',2x,                           &
+     &       'normalized step size')
+1001  FORMAT(i6,2(2x,es12.5),2x,i3,2x,es12.5)
 
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !  Write out a reconstruction  step.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_write_step(this, step_type, step_size,         &
-     &                                     delta_a)
+      SUBROUTINE reconstruction_write_step(this, step_type)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (reconstruction_class), INTENT(in) :: this
       CHARACTER(len=*), INTENT(in)            :: step_type
-      REAL (rprec), INTENT(in)                :: step_size
-      REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
 !  Start of executable code
       WRITE (*,*)
-      WRITE (*,1000) step_type, step_size
-      WRITE (*,1001) reconstruction_get_exp_g2(this, delta_a)
+      WRITE (*,1000) this%num_sv(this%current_step + 1)
+      WRITE (*,1001) step_type, this%step_size(this%current_step + 1)
+      WRITE (*,1002) this%exp_g2(this%current_step + 1)
 
-1000  FORMAT(a4,': Step size limited to ',es12.5)
-1001  FORMAT('  Expected g^2 = ',es12.5)
+1000  FORMAT('Number of signual values used: 'i3)
+1001  FORMAT(a4,': Step size limited to ',es12.5)
+1002  FORMAT('  Expected g^2 = ',es12.5)
 
       END SUBROUTINE
 

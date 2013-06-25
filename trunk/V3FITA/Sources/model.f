@@ -259,6 +259,38 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!  Get parameter name for an id number
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_param_name(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER(len=data_name_length) :: model_get_param_name
+      TYPE (model_class), INTENT(in)  :: this
+      INTEGER, INTENT(in)             :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id)
+            model_get_param_name = 'ne_unit'
+
+         CASE (model_ne_min_id)
+            model_get_param_name = 'ne_min'
+
+         CASE (model_pressure_fraction_id)
+            model_get_param_name = 'pressure_fraction'
+
+         CASE DEFAULT
+            model_get_param_name =                                             &
+     &         equilibrium_get_param_name(this%equilibrium, id)
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !  Get model electron density at position
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ne(this, x_cart)

@@ -712,7 +712,11 @@
       TYPE (equilibrium_class), INTENT(inout) :: this
       INTEGER, INTENT(inout)                  :: num_iter
 
+!  local variables
+      INTEGER                                 :: init_num_iter
+
 !  Start of executable code
+      init_num_iter = num_iter
       IF (this%not_converged) THEN
          SELECT CASE (this%type)
 
@@ -729,8 +733,9 @@
          equilibrium_converge = .true.
       ENDIF
 
-      WRITE (*,*) 'Equilibrium converged ', equilibrium_converge,              &
-     &            num_iter
+      WRITE (*,1000) equilibrium_converge, num_iter,                           &
+     &               num_iter - init_num_iter
+1000  FORMAT('Equilibrium converged ',l,2(2x,i7))
 
       END FUNCTION
 

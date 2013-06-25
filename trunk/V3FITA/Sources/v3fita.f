@@ -284,9 +284,12 @@
      &            'task_reconstruct no inital convergence')
 
       WRITE (*,*)
-      WRITE (*,1002) 0, reconstruction_get_g2(context%recon)
+      WRITE (*,1002) 0
+      WRITE (*,1003) reconstruction_get_g2(context%recon)
 
-      DO i = 1, SIZE(context%recon%e, 1)
+      DO i = 1, SIZE(context%recon%e, 1) - 1
+         WRITE (*,*)
+         WRITE (*,1002) i
          IF (reconstruction_step(context%recon, context%signals,               &
      &                           context%model, context%params,                &
      &                           num_steps)) THEN
@@ -301,21 +304,19 @@
                EXIT
             END IF
 
-            IF (i .eq. SIZE(context%recon%e, 1)) THEN
+            IF (i .eq. SIZE(context%recon%e, 1) - 1) THEN
               WRITE (*,*)
               WRITE (*,1001) i
             END IF
          ELSE
             EXIT
          END IF
-
-         WRITE (*,*)
-         WRITE (*,1002) i, reconstruction_get_g2(context%recon)
       END DO
 
 1000  FORMAT('dg2_stop = ',es12.5,' change in g^2 = ',es12.5)
 1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
-1002  FORMAT('  *** Reconstruction step ',i4,' g^2 = 'es12.5)
+1002  FORMAT('  *** Reconstruction step ',i4)
+1003  FORMAT('Initial g^2 = ',es12.5)
 
       END SUBROUTINE
 
