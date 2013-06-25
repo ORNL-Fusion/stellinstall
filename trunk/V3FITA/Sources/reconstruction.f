@@ -50,7 +50,7 @@
          REAL (rprec), DIMENSION(:), POINTER   :: delta_a_len => null()
          REAL (rprec), DIMENSION(:), POINTER   :: exp_g2 => null()
          REAL (rprec), DIMENSION(:), POINTER   :: step_size => null()
-         REAL (rprec), DIMENSION(:), POINTER   :: num_sv => null()
+         INTEGER, DIMENSION(:), POINTER        :: num_sv => null()
 
 !  Cut off value controls.
          REAL (rprec) :: cut_svd
