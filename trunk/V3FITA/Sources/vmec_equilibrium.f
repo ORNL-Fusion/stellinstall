@@ -312,6 +312,7 @@
          CASE (vmec_rbc_id)
             vmec_set_param = .true.
             rbc(i_index, j_index) = value
+            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
@@ -319,12 +320,13 @@
                CALL profil3d(xc(1), xc(1 + irzloff), .true.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
             END IF
 
          CASE (vmec_zbs_id)
             vmec_set_param = .true.
             zbs(i_index, j_index) = value
+            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
@@ -332,12 +334,13 @@
                CALL profil3d(xc(1), xc(1 + irzloff), .true.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
             END IF
 
          CASE (vmec_rbs_id)
             vmec_set_param = .true.
             rbs(i_index, j_index) = value
+            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
@@ -345,12 +348,13 @@
                CALL profil3d(xc(1), xc(1 + irzloff), .true.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
             END IF
 
          CASE (vmec_zbc_id)
             vmec_set_param = .true.
             zbc(i_index, j_index) = value
+            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
@@ -358,7 +362,7 @@
                CALL profil3d(xc(1), xc(1 + irzloff), .true.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
             END IF
 
          CASE (vmec_ac_id)
@@ -993,19 +997,19 @@
             vmec_get_param_value = this%ne%as(i_index)
 
          CASE (vmec_pp_sxrem_b_id)
-            vmec_get_param_value = this%ne%b(i_index)
+            vmec_get_param_value = this%sxrem%b(i_index)
 
          CASE (vmec_pp_sxrem_as_id)
-            vmec_get_param_value = this%ne%as(i_index)
+            vmec_get_param_value = this%sxrem%as(i_index)
 
          CASE (vmec_pp_sxrem_af_id)
-            vmec_get_param_value = this%ne%af(i_index)
+            vmec_get_param_value = this%sxrem%af(i_index)
 
          CASE (vmec_pp_te_b_id)
-            vmec_get_param_value = this%ne%b(i_index)
+            vmec_get_param_value = this%te%b(i_index)
 
          CASE (vmec_pp_te_as_id)
-            vmec_get_param_value = this%ne%as(i_index)
+            vmec_get_param_value = this%te%as(i_index)
 
          CASE (vmec_pp_te_af_id)
             vmec_get_param_value = this%te%af(i_index)
