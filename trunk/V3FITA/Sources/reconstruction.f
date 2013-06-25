@@ -1073,6 +1073,8 @@
       REAL (rprec)                                     :: temp_g2
 
 !  Start of executable code
+      WRITE (*,*)
+      WRITE (iou,*)
       WRITE (*,*) ' *** Reconstruction Steps'
       WRITE (iou,*) ' *** Reconstruction Steps'
       WRITE (*,1000)
@@ -1083,6 +1085,8 @@
 
       DO i = 1, this%current_step
          temp_g2 = DOT_PRODUCT(this%e(i,:), this%e(i,:))
+         WRITE (*,1001) i, temp_g2, this%exp_g2(i), this%num_sv(i),            &
+     &                  this%step_size(i)
          WRITE (iou,1001) i, temp_g2, this%exp_g2(i), this%num_sv(i),          &
      &                    this%step_size(i)
       END DO

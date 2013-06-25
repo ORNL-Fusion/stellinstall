@@ -433,8 +433,10 @@
       INTEGER, INTENT(in) :: iou
 
 !  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Reconstruction parameters'
       WRITE (iou,1000)
-1000  FORMAT ('irp',2x,'p_type',7x,'inx1',1x,'inx2',2x,'value')
+1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value')
       END SUBROUTINE
 
       END MODULE
