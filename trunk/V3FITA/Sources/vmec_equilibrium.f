@@ -188,7 +188,7 @@
 
 !  Initialize VMEC by taking a single step.
       ictrl_array(1) = restart_flag + readin_flag + timestep_flag
-      ictrl_array(3) = 1
+      ictrl_array(3) = 1 ! Run for one iteration.
       ictrl_array(4) = 1 ! Limit VMEC to single grid.
 
       l_v3fit = .true.
@@ -1737,7 +1737,7 @@
       USE xstuff, only: xcdot
       USE v3f_global, only: iou_runlog
       USE read_wout_mod, only: read_wout_file, LoadRZL
-      USE vmec_main, only: iterc
+      USE vmec_main, only: iterc, iter1, iter2
 
       IMPLICIT NONE
 
@@ -1767,6 +1767,9 @@
      &                    reset_jacdt_flag
          ictrl_array(3) = niter
          ictrl_array(4) = 1
+
+!  Update internal vmec counters. These affect how the minimation occurs.
+         iter1 = iter2
 
 !  Zero the xc arrays.
          xcdot = 0.0
