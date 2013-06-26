@@ -422,56 +422,38 @@
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
             this%ne%b(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_ne_as_id)
             vmec_set_param = .false.
             this%ne%as(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_ne_af_id)
             vmec_set_param = .false.
             this%ne%af(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_te_b_id)
             vmec_set_param = .false.
             this%te%b(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_te_as_id)
             vmec_set_param = .false.
             this%te%as(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_te_af_id)
             vmec_set_param = .false.
             this%te%af(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_sxrem_b_id)
             vmec_set_param = .false.
             this%sxrem%b(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_sxrem_as_id)
             vmec_set_param = .false.
             this%sxrem%as(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_sxrem_af_id)
             vmec_set_param = .false.
             this%sxrem%af(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
@@ -1804,6 +1786,7 @@
          WRITE (*,*) 'Attempting error recovery'
          WRITE (iou_runlog,*) 'Attempting error recovery'
 
+         CALL vmec_reset_state(this)
          recovery_index = recovery_index + 1
       END DO
 

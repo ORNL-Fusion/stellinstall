@@ -1114,7 +1114,7 @@
       WRITE (*,1001) step_type, this%step_size(this%current_step + 1)
       WRITE (*,1002) this%exp_g2(this%current_step + 1)
 
-1000  FORMAT('Number of signual values used: 'i3)
+1000  FORMAT('Number of singular values used: 'i3)
 1001  FORMAT(a4,': Step size limited to ',es12.5)
 1002  FORMAT('  Expected g^2 = ',es12.5)
 
