@@ -422,38 +422,56 @@
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
             this%ne%b(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_ne_as_id)
             vmec_set_param = .false.
             this%ne%as(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_ne_af_id)
             vmec_set_param = .false.
             this%ne%af(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_te_b_id)
             vmec_set_param = .false.
             this%te%b(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_te_as_id)
             vmec_set_param = .false.
             this%te%as(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_te_af_id)
             vmec_set_param = .false.
             this%te%af(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_sxrem_b_id)
             vmec_set_param = .false.
             this%sxrem%b(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_sxrem_as_id)
             vmec_set_param = .false.
             this%sxrem%as(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_pp_sxrem_af_id)
             vmec_set_param = .false.
             this%sxrem%af(i_index) = value
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
@@ -524,9 +542,6 @@
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(in)              :: total_tor_planes
       INTEGER, INTENT(in)              :: tor_planes_used
-
-!  local arguments
-      INTEGER                          :: error
 
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
@@ -1831,15 +1846,15 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%xc)) THEN
-         IF (SIZE(xc, 1) .eq. SIZE(this%xc, 1)) THEN
+         IF (SIZE(xc) .eq. SIZE(this%xc)) THEN
             this%xc = xc
          ELSE
             DEALLOCATE(this%xc)
-            ALLOCATE(this%xc(SIZE(xc, 1)))
+            ALLOCATE(this%xc(SIZE(xc)))
             this%xc = xc
          END IF
       ELSE
-         ALLOCATE(this%xc(SIZE(xc, 1)))
+         ALLOCATE(this%xc(SIZE(xc)))
          this%xc = xc
       END IF
 
@@ -1857,14 +1872,8 @@
       TYPE (vmec_class), INTENT(in) :: this
 
 !  Start of executable code
-      IF (ASSOCIATED(this%xc)) THEN
-         IF (SIZE(xc, 1) .eq. SIZE(this%xc, 1)) THEN
-            xc = this%xc
-         ELSE IF (SIZE(xc, 1) .eq. SIZE(this%xc, 1)) THEN
-            xc(1:SIZE(this%xc, 1)) = this%xc
-         ELSE
-            xc = this%xc(1:SIZE(xc, 1))
-         END IF
+      IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
+         xc = this%xc
       END IF
 
       END SUBROUTINE
