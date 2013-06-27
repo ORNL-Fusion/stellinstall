@@ -1097,8 +1097,8 @@
 
 !  J^T * C^-1 * J
 !  The jacobian is normalized here. Need to unnormalize it.
-      DO j = 0, SIZE(params)
-         DO i = 0, SIZE(params)
+      DO j = 1, SIZE(params)
+         DO i = 1, SIZE(params)
             c_params(i, j) =                                                   &
      &         DOT_PRODUCT(this%jacobian(:,j)/ABS(params(j)%p%delta),          &
      &                     c_dot_j(:,j))
@@ -1131,6 +1131,12 @@
       DO i = 1, SIZE(params)
          params(i)%p%sigma = SQRT(MAX(c_params(i,i), small_num))
       END DO
+
+      DEALLOCATE(c_params)
+      DEALLOCATE(svd_u)
+      DEALLOCATE(svd_w)
+      DEALLOCATE(svd_vt)
+      DEALLOCATE(svd_w)
 
       END SUBROUTINE
 
