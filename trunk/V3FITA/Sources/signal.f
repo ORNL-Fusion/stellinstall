@@ -399,8 +399,27 @@
 
 ! e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
       signal_get_e = (this%observed - modeled_signal(1))                       &
-     &             * SQRT(this%weight/(this%observed_sigma**2.0 +              &
-     &                                 modeled_sigma(1)**2.0))
+     &             * SQRT(this%weight/signal_get_sigma2(this))
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the e contribution.
+!
+!  Note this function assumes that the modeled sigma has already been cached.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_sigma2(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: signal_get_sigma2
+      TYPE (signal_class), INTENT(in) :: this
+
+!  Start of executable code
+!  sigma_o^2 + sigma_m^2)
+      signal_get_sigma2 = this%observed_sigma**2.0                             &
+     &                  + this%modeled_sigma(1)**2.0
 
       END FUNCTION
 

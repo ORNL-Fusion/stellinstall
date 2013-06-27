@@ -1090,7 +1090,7 @@
 !  The jacobian is normalized here. Need to unnormalize it.
       DO j = 1, SIZE(params)
          DO i = 1, SIZE(signals)
-            c_dot_j(i, j) = ((signals(i)%p%observed_sigma)**(-2.0))            &
+            c_dot_j(i, j) = (1.0/signal_get_sigma2(signals(i)%p))              &
      &                    * this%jacobian(i,j)/ABS(params(j)%p%delta)
          END DO
       END DO
