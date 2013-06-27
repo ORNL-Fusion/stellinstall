@@ -1111,7 +1111,7 @@
       ALLOCATE(svd_u(SIZE(params),SIZE(params)))
       ALLOCATE(svd_w(SIZE(params)))
       ALLOCATE(svd_vt(SIZE(params),SIZE(params)))
-      ALLOCATE(svd_w(5*SIZE(params)))
+      ALLOCATE(svd_work(5*SIZE(params)))
 
       CALL dgesvd('All', 'All', SIZE(params), SIZE(params), c_params,          &
      &            SIZE(params), svd_w, svd_u, SIZE(params), svd_vt,            &
@@ -1136,7 +1136,7 @@
       DEALLOCATE(svd_u)
       DEALLOCATE(svd_w)
       DEALLOCATE(svd_vt)
-      DEALLOCATE(svd_w)
+      DEALLOCATE(svd_work)
 
       END SUBROUTINE
 
