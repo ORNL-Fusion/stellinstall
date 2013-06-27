@@ -294,6 +294,9 @@
      &                           context%model, context%params,                &
      &                           num_steps)) THEN
 
+            CALL reconstruction_eval_pos_covar(context%recon,                  &
+     &                                         context%params,                 &
+     &                                         context%signals)
 !  Test for convergence.
             IF (reconstruction_get_dg2(context%recon) .lt.                     &
      &          context%recon_stop) THEN
@@ -392,8 +395,6 @@
       TYPE (pprofile), POINTER                  :: sxr => null()
 
 !  Start of executable code
-      WRITE (*,*) ' *** Constructing VMEC equilibrium'
-
       ALLOCATE(ne, te, sxr)
       CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
      &                        pp_ne_as, pp_ne_af)

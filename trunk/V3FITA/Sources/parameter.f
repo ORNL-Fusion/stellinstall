@@ -42,6 +42,9 @@
 !  The contraints will change the normalization size of the patarameter when
 !  incrementing it. Store the actual change in parameter here for normalization.
          REAL (rprec)                :: delta
+
+!  Results of the reconstruction.
+         REAL (rprec)                :: sigma = 0.0
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -417,8 +420,9 @@
      &                 this%indicies(1), this%indicies(2),                     &
      &                 model_get_param_value(a_model, this%param_id,           &
      &                                       this%indicies(1),                 &
-     &                                       this%indicies(2))
-1000  FORMAT(i3,2x,a18,2(1x,i4),2x,es12.5)
+     &                                       this%indicies(2)),                &
+     &                 this%sigma
+1000  FORMAT(i3,2x,a18,2(1x,i4),2(2x,es12.5))
 
       END SUBROUTINE
 
@@ -436,7 +440,8 @@
       WRITE (iou,*)
       WRITE (iou,*) ' *** Reconstruction parameters'
       WRITE (iou,1000)
-1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value')
+1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
+     &        'sigma')
       END SUBROUTINE
 
       END MODULE
