@@ -1075,7 +1075,7 @@
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: svd_u
       REAL (rprec), DIMENSION(:), ALLOCATABLE           :: svd_w
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: svd_vt
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: svd_work
+      REAL (rprec), DIMENSION(:), ALLOCATABLE           :: svd_work
       INTEGER                                           :: svd_status
       INTEGER                                           :: i, j
 
