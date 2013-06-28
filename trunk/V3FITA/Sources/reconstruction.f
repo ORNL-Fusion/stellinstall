@@ -1079,7 +1079,7 @@
 !  terms.
       DO i = 1, SIZE(params)
          params(i)%p%sigma = params(i)%p%delta*SQRT(SUM(                       &
-     &      this%j_svd_vt(:,i)/MAX(this%j_svd_w, small_num)))
+     &      (this%j_svd_vt(:,i)/MAX(this%j_svd_w, small_num))**2.0))
       END DO
 
       END SUBROUTINE
