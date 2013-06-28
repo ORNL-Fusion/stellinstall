@@ -1060,83 +1060,27 @@
 !-------------------------------------------------------------------------------
 !  Evaluate the parameter covariance
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_eval_pos_covar(this, params, signals)
+      SUBROUTINE reconstruction_eval_pos_covar(this, params)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (reconstruction_class), INTENT(inout)        :: this
       TYPE (param_pointer), DIMENSION(:), INTENT(inout) :: params
-      TYPE (signal_pointer), DIMENSION(:), INTENT(in)   :: signals
 
 !  local arguments
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: c_dot_j
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: c_params
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: svd_u
-      REAL (rprec), DIMENSION(:), ALLOCATABLE           :: svd_w
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE         :: svd_vt
-      REAL (rprec), DIMENSION(:), ALLOCATABLE           :: svd_work
-      INTEGER                                           :: svd_status
-      INTEGER                                           :: i, j
+      INTEGER                                           :: i
 
 !  local parameters
       REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
 
 !  Start of executable code
-      ALLOCATE(c_dot_j(SIZE(signals), SIZE(params)))
-      ALLOCATE(c_params(SIZE(params), SIZE(params)))
-
-!  C^-1 * J
-!  The jacobian is normalized here. Need to unnormalize it.
-      DO j = 1, SIZE(params)
-         DO i = 1, SIZE(signals)
-            c_dot_j(i, j) = (1.0/signal_get_sigma2(signals(i)%p))              &
-     &                    * this%jacobian(i,j)/ABS(params(j)%p%delta)
-         END DO
-      END DO
-
-!  J^T * C^-1 * J
-!  The jacobian is normalized here. Need to unnormalize it.
-      DO j = 1, SIZE(params)
-         DO i = 1, SIZE(params)
-            c_params(i, j) =                                                   &
-     &         DOT_PRODUCT(this%jacobian(:,j)/ABS(params(j)%p%delta),          &
-     &                     c_dot_j(:,j))
-         END DO
-      END DO
-
-      DEALLOCATE(c_dot_j)
-
-!  Invert c_params
-      ALLOCATE(svd_u(SIZE(params),SIZE(params)))
-      ALLOCATE(svd_w(SIZE(params)))
-      ALLOCATE(svd_vt(SIZE(params),SIZE(params)))
-      ALLOCATE(svd_work(5*SIZE(params)))
-
-      CALL dgesvd('All', 'All', SIZE(params), SIZE(params), c_params,          &
-     &            SIZE(params), svd_w, svd_u, SIZE(params), svd_vt,            &
-     &            SIZE(params), svd_work, 5*SIZE(params), svd_status)
-      CALL assert_eq(0, svd_status, 'reconstruction_eval_pos_covar: ' //       &
-     &               'dgesvd problem')
-
-!  c_params is the right size to hold the inverse sinular values and the
-!  parameter covariance matrix. Use it as work memory.
-      c_params = 0.0
+!  On the diagonals is reported. Don't bother calculating the off diagonal
+!  terms.
       DO i = 1, SIZE(params)
-         c_params(i,i) = 1.0/MAX(svd_w(i), small_num)
+         params(i)%p%sigma = params(i)%p%delta*SQRT(SUM(                       &
+     &      this%j_svd_vt(:,i)/MAX(this%j_svd_w, small_num)))
       END DO
-      c_params = MATMUL(TRANSPOSE(svd_vt), MATMUL(c_params,                    &
-     &                                            TRANSPOSE(svd_u)))
-
-      DO i = 1, SIZE(params)
-         params(i)%p%sigma = SQRT(MAX(c_params(i,i), small_num))
-      END DO
-
-      DEALLOCATE(c_params)
-      DEALLOCATE(svd_u)
-      DEALLOCATE(svd_w)
-      DEALLOCATE(svd_vt)
-      DEALLOCATE(svd_work)
 
       END SUBROUTINE
 

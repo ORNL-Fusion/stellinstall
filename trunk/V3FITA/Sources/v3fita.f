@@ -295,8 +295,7 @@
      &                           num_steps)) THEN
 
             CALL reconstruction_eval_pos_covar(context%recon,                  &
-     &                                         context%params,                 &
-     &                                         context%signals)
+     &                                         context%params)
 !  Test for convergence.
             IF (reconstruction_get_dg2(context%recon) .lt.                     &
      &          context%recon_stop) THEN
