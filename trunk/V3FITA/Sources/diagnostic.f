@@ -276,7 +276,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   diagnostic_get_header
       TYPE (diagnostic_class), INTENT(in) :: this
 
@@ -287,7 +287,11 @@
             diagnostic_get_header = magnetic_get_header(this%magnetic)
 
          CASE DEFAULT
-            diagnostic_get_header = 'N/A'
+            diagnostic_get_header(1:3) = 'N/A'
+            diagnostic_get_header(4) = 'model_sig(1)'
+            diagnostic_get_header(5) = 'model_sig(2)'
+            diagnostic_get_header(6) = 'model_sig(3)'
+            diagnostic_get_header(7) = 'model_sig(4)'
 
       END SELECT
 

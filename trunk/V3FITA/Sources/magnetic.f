@@ -381,7 +381,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   magnetic_get_header
       TYPE (magnetic_class), INTENT(in) :: this
 
@@ -389,6 +389,10 @@
       magnetic_get_header(1) = 'plasma only'
       magnetic_get_header(2) = 'eq currents'
       magnetic_get_header(3) = 'N/A'
+      magnetic_get_header(4) = 'model_sig(1)'
+      magnetic_get_header(5) = 'model_sig(2)'
+      magnetic_get_header(6) = 'model_sig(3)'
+      magnetic_get_header(7) = 'model_sig(4)'
 
       END FUNCTION
 

@@ -351,7 +351,7 @@
 !-------------------------------------------------------------------------------
 !  Get the g2 contribution.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_g2(this, a_model)
+      FUNCTION signal_get_g2(this, a_model, use_cache)
       USE model
 
       IMPLICIT NONE
@@ -360,26 +360,20 @@
       REAL (rprec)                       :: signal_get_g2
       TYPE (signal_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout)  :: a_model
+      LOGICAL, INTENT(in)                :: use_cache
 
 !  Local Variables
-      REAL (rprec)                       :: e
-      REAL (rprec), DIMENSION(4)         :: modeled_signal
-      REAL (rprec), DIMENSION(4)         :: modeled_sigma
 
 !  Start of executable code
-      modeled_signal = signal_get_modeled_signal(this, a_model,                &
-     &                                           modeled_sigma, .false.)
-
 ! g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
-      e = signal_get_e(this, a_model)
-      signal_get_g2 = e*e
+      signal_get_g2 = signal_get_e(this, a_model, use_cache)**2.0
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
 !  Get the e contribution.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_e(this, a_model)
+      FUNCTION signal_get_e(this, a_model, use_cache)
       USE model
 
       IMPLICIT NONE
@@ -388,6 +382,7 @@
       REAL (rprec)                       :: signal_get_e
       TYPE (signal_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout)  :: a_model
+      LOGICAL, INTENT(in)                :: use_cache
 
 !  Local Variables
       REAL (rprec), DIMENSION(4)         :: modeled_signal
@@ -395,7 +390,8 @@
 
 !  Start of executable code
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
-     &                                           modeled_sigma, .false.)
+     &                                           modeled_sigma,                &
+     &                                           use_cache)
 
 ! e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
       signal_get_e = (this%observed - modeled_signal(1))                       &
@@ -463,7 +459,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   signal_get_header
       TYPE (signal_class), INTENT(in) :: this
 
@@ -515,24 +511,27 @@
 !-------------------------------------------------------------------------------
 !  Write out the signal
 !-------------------------------------------------------------------------------
-      SUBROUTINE signal_write(this, iou, index)
+      SUBROUTINE signal_write(this, iou, index, a_model)
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), INTENT(in) :: this
-      INTEGER, INTENT(in)             :: iou
-      INTEGER, INTENT(in)             :: index
+      TYPE (signal_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                :: iou
+      INTEGER, INTENT(in)                :: index
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Start of executable code
 !  FIXME: It is too convoluted to keep the recout identical at this point.
 !  Write out the model 1 and 2 for every signal. Eventually all for should be
 !  written out.
-      WRITE (iou,1000) index, signal_get_signal_type(this),                    &
-     &                 this%s_name, this%observed, this%observed_sigma,        &
-     &                 this%modeled
+      WRITE (iou,1000) index, signal_get_signal_type(this), this%s_name,       &
+     &                 signal_get_g2(this, a_model, .true.),                   &
+     &                 this%weight, this%observed, this%observed_sigma,        &
+     &                 this%modeled, this%modeled_sigma
 
-1000  FORMAT(i4,2x,a23,2x,a20,2(2x,es12.5),4(2x,es12.5))
+1000  FORMAT(i4,2x,a23,2x,a20,12(2x,es12.5))
 
       END SUBROUTINE
 
@@ -551,8 +550,8 @@
       WRITE (iou,*)
       WRITE (iou,1000) signal_get_header(this)
 
-1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'observed',6x,'sigma',          &
-     &       9x,'model',7x,2(2x,a12),3(2x,a12))
+1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'g^2',11x,'weight',8x,          &
+     &       'observed',6x,'sigma', 9x,'model',7x,2(2x,a12),7(2x,a12))
 
       END SUBROUTINE
 
@@ -777,7 +776,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   combination_get_header
       TYPE (combination_class), INTENT(in) :: this
 
@@ -785,6 +784,10 @@
       combination_get_header(1) = 'model(2)'
       combination_get_header(2) = 'model(3)'
       combination_get_header(3) = 'model(4)'
+      combination_get_header(1) = 'model_sig(1)'
+      combination_get_header(2) = 'model_sig(2)'
+      combination_get_header(3) = 'model_sig(3)'
+      combination_get_header(1) = 'model_sig(4)'
 
       END FUNCTION
 

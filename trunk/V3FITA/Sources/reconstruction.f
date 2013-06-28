@@ -442,7 +442,7 @@
       IF (equilibrium_converge(a_model%equilibrium, eq_steps)) THEN
          DO i = 1, SIZE(signals)
             this%e(this%current_step,i) =                                      &
-     &         signal_get_e(signals(i)%p, a_model)
+     &         signal_get_e(signals(i)%p, a_model, .false.)
          END DO
          !  Write out the step information.
          reconstruction_eval_e = .true.
@@ -518,7 +518,7 @@
 
          DO i = 1, SIZE(signals)
             this%jacobian(i,j) =                                               &
-     &         -(signal_get_e(signals(i)%p, a_model) -                         &
+     &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
      &           this%e(this%current_step,i))
          END DO
          this%jacobian(:,j) = this%jacobian(:,j)*SIGN(1.0_rprec,               &

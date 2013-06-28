@@ -176,7 +176,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   limiter_get_header
       TYPE (limiter_class), INTENT(in) :: this
 
@@ -184,6 +184,10 @@
       limiter_get_header(1) = 'r (m)'
       limiter_get_header(2) = 'phi (rad)'
       limiter_get_header(3) = 'z (m)'
+      limiter_get_header(4) = 'model_sig(1)'
+      limiter_get_header(5) = 'model_sig(2)'
+      limiter_get_header(6) = 'model_sig(3)'
+      limiter_get_header(7) = 'model_sig(4)'
 
       END FUNCTION
 

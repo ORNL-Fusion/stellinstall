@@ -249,8 +249,8 @@
      &                               this%recout_iou)
          END IF
 
-         CALL signal_write(this%signals(i)%p,                                  &
-     &                     this%recout_iou, i)
+         CALL signal_write(this%signals(i)%p, this%recout_iou, i,              &
+     &                     this%model)
       END DO
 
 !  All the signals should be written out before auxiliary information.

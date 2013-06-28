@@ -178,7 +178,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   geometric_get_header
       TYPE (geometric_class), INTENT(in) :: this
 
