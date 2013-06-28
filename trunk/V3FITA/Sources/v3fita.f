@@ -143,6 +143,7 @@
       END IF
 
       WRITE (context%recout_iou,*) '  my_task is ', my_task
+      WRITE (context%runlog_iou,*) '  my_task is ', my_task
       SELECT CASE (my_task)
 
          CASE ('equilibrium')
@@ -164,10 +165,13 @@
 
       CALL v3fit_context_write(context)
 
+      WRITE (context%runlog_iou,'(/,a,f10.2)')                                 &
+     &   '  *** V3FIT run time (s): ', time_end - time_start
       WRITE (context%recout_iou,'(/,a,f10.2)')                                 &
      &   '  *** V3FIT run time (s): ', time_end - time_start
       WRITE (*,'(/,a,f10.2)')                                                  &
      &   '  *** V3FIT run time (s): ', time_end - time_start
+
 
       CALL v3fit_context_destruct(context)
 
@@ -193,16 +197,17 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** In task equilibrium'
+      WRITE (context%runlog_iou,*) ' *** In task equilibrium'
 
 !  Initialize equilibrium
       CALL init_equilibrium(context)
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+     &                             'equilibrium convergence'
       converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps)
-
-      WRITE (*,*) converged, num_steps
+     &                                 num_steps, context%runlog_iou)
 
       END SUBROUTINE
 
@@ -226,6 +231,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** In task v3post'
+      WRITE (context%runlog_iou,*) ' *** In task v3post'
 
 !  Initialize v3post
       CALL init_equilibrium(context)
@@ -233,13 +239,14 @@
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+     &                             'equilibrium convergence'
       converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps)
-
-      WRITE (*,*) converged, num_steps
+     &                                 num_steps, context%runlog_iou)
 
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
+      WRITE (context%runlog_iou,*) ' *** Calculating modeled signals'
 
       DO i = 1, SIZE(context%signals)
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
@@ -276,10 +283,13 @@
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+     &                             'equilibrium convergence'
 
       eq_converged = reconstruction_eval_e(context%recon,                      &
      &                                     context%signals,                    &
-     &                                     context%model, num_steps)
+     &                                     context%model, num_steps,           &
+     &                                     context%runlog_iou)
       CALL assert(eq_converged,                                                &
      &            'task_reconstruct no inital convergence')
 
@@ -287,12 +297,21 @@
       WRITE (*,1002) 0
       WRITE (*,1003) reconstruction_get_g2(context%recon)
 
+      WRITE (context%runlog_iou,*)
+      WRITE (context%runlog_iou,1002) 0
+      WRITE (context%runlog_iou,1003)                                          &
+     &   reconstruction_get_g2(context%recon)
+
       DO i = 1, SIZE(context%recon%e, 1) - 1
          WRITE (*,*)
          WRITE (*,1002) i
+
+         WRITE (context%runlog_iou,*)
+         WRITE (context%runlog_iou,1002) i
+
          IF (reconstruction_step(context%recon, context%signals,               &
      &                           context%model, context%params,                &
-     &                           num_steps)) THEN
+     &                           num_steps, context%runlog_iou)) THEN
 
             CALL reconstruction_eval_pos_covar(context%recon,                  &
      &                                         context%params)
@@ -303,12 +322,21 @@
                WRITE (*,*) ' *** Equilibrium reconstructed'
                WRITE (*,1000) context%recon_stop,                              &
      &                        reconstruction_get_dg2(context%recon)
+
+               WRITE (context%runlog_iou,*)
+               WRITE (context%runlog_iou,*) ' *** Equilibrium ' //             &
+     &                                      'reconstructed'
+               WRITE (context%runlog_iou,1000) context%recon_stop,             &
+     &                        reconstruction_get_dg2(context%recon)
                EXIT
             END IF
 
             IF (i .eq. SIZE(context%recon%e, 1) - 1) THEN
               WRITE (*,*)
               WRITE (*,1001) i
+
+              WRITE (context%runlog_iou,*)
+              WRITE (context%runlog_iou,1001) i
             END IF
          ELSE
             EXIT
@@ -370,6 +398,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing equilibrium model'
+      WRITE (context%runlog_iou,*) ' *** Constructing equilibrium model'
 
       IF (vmec_nli_filename .ne. '') THEN
          CALL init_vmec_equilibrium(context)
@@ -405,7 +434,8 @@
       context%model => model_construct(model_ne_type, model_sxrem_type,        &
      &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
-     &                                        ne, te, sxr)))
+     &                                        ne, te, sxr,                     &
+     &                                        context%runlog_iou)))
 
       END SUBROUTINE
 
@@ -431,6 +461,7 @@
       END IF
 
       WRITE (*,*) ' *** Constructing signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing signals'
 
       ALLOCATE(context%signals(na_s_desc))
 
@@ -495,6 +526,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing magnetic signals from ' //                &
      &            TRIM(mdsig_list_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing magnetic ' //            &
+     &                             'signals from ' //                          &
+     &                             TRIM(mdsig_list_filename)
 
       CALL safe_open(mdsig_list_iou, status, TRIM(mdsig_list_filename),        &
      &               'old', 'formatted')
@@ -571,6 +605,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing sxrem signals from ' //                   &
      &            TRIM(sxrch_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing sxrem ' //               &
+     &                             'signals from ' //                          &
+     &                             TRIM(sxrch_dot_filename)
 
 !  The setting of the sxrem_index for sxrem happens inside sxrch_dot_parse_chord
       CALL sxrch_dot_read(sxrch_dot_filename, context%signals,                 &
@@ -595,6 +632,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing intpol signals from ' //                  &
      &            TRIM(ipch_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing intpol ' //              &
+     &                             'signals from ' //                          &
+     &                             TRIM(ipch_dot_filename)
 
 !  The setting of the intpol_index for sxrem happens inside ipch_dot_parse_chord
       CALL ipch_dot_read(ipch_dot_filename, context%signals,                   &
@@ -619,6 +659,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing thomson signals from ' //                 &
      &            TRIM(thscte_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing thomson ' //             &
+     &                             'signals from ' //                          &
+     &                             TRIM(thscte_dot_filename)
 
 !  The setting of the thomson_index for sxrem happens inside
 !  thscte_dot_parse_chord
@@ -642,6 +685,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing extcurz signals'
+      WRITE (context%recout_iou,*) ' *** Constructing extcurz signals'
 
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
@@ -689,6 +733,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing geometric signals'
+      WRITE (context%recout_iou,*) ' *** Constructing geometric signals'
 
 !  For now, only limiter functions can be created.
       DO i = 1, n_lif
@@ -758,6 +803,8 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing combination signals'
+      WRITE (context%recout_iou,*) ' *** Constructing ' //                     &
+     &                             'combination signals'
 
       DO i = 1, n_coosig
 !  Check if there are two many signals
@@ -821,6 +868,8 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing reconstruction parameters'
+      WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
+     &                             'reconstruction parameters'
 
       ALLOCATE(context%params(n_rp))
       DO i = 1, n_rp

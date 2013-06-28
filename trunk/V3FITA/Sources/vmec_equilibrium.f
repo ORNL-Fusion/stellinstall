@@ -79,6 +79,10 @@
       INTEGER, PARAMETER :: vmec_pp_te_as_id    = 49
       INTEGER, PARAMETER :: vmec_pp_te_af_id    = 50
 
+!  Derived Parameters
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 51
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 52
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) vmec magnetic cache
@@ -158,7 +162,7 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
-      FUNCTION vmec_construct(file_name, ne, te, sxrem)
+      FUNCTION vmec_construct(file_name, ne, te, sxrem, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -172,6 +176,7 @@
       TYPE (pprofile), POINTER      :: ne
       TYPE (pprofile), POINTER      :: te
       TYPE (pprofile), POINTER      :: sxrem
+      INTEGER, INTENT(in)           :: iou
 
 !  local variables
       INTEGER, DIMENSION(5)         :: ictrl_array = 0
@@ -180,6 +185,8 @@
 !  Start of executable code
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
      &            TRIM(file_name)
+      WRITE (iou,*) ' *** Initializing VMEC equilibrium from file ' //         &
+     &              TRIM(file_name)
 
       ALLOCATE(vmec_construct)
       vmec_construct%ne => ne
@@ -504,6 +511,7 @@
             CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE DEFAULT
+!  FIXME: Consider throwing a fatal error here inside of silently doing nothing.
             vmec_set_param = .true.
 
       END SELECT
@@ -831,6 +839,12 @@
          CASE ('pp_te_af')
             vmec_get_param_id = vmec_pp_te_af_id
 
+         CASE ('vvc_smaleli')
+            vmec_get_param_id = vmec_vvc_smaleli_id
+
+         CASE ('vvc_kappa_p')
+            vmec_get_param_id = vmec_vvc_kappa_p_id
+
          CASE DEFAULT
             vmec_get_param_id = data_no_id
 
@@ -854,6 +868,7 @@
      &                         bsubumns, bsubvmns,                             &
      &                         bsubsmnc, bsupumns, bsupvmns,                   &
      &                         phi, iotaf, iotas
+      USE v3f_vmec_comm
 
       IMPLICIT NONE
 
@@ -1010,6 +1025,12 @@
 
          CASE (vmec_pp_te_af_id)
             vmec_get_param_value = this%te%af(i_index)
+
+         CASE (vmec_vvc_smaleli_id)
+            vmec_get_param_value = vvc_smaleli
+
+         CASE (vmec_vvc_kappa_p_id)
+            vmec_get_param_value = vvc_kappa_p
 
          CASE DEFAULT
             vmec_get_param_value = 0.0
@@ -1176,6 +1197,12 @@
 
          CASE (vmec_pp_te_af_id)
             vmec_get_param_name = 'pp_te_af'
+
+         CASE (vmec_vvc_smaleli_id)
+            vmec_get_param_name = 'vvc_smaleli'
+
+         CASE (vmec_vvc_kappa_p_id)
+            vmec_get_param_name = 'vvc_kappa_p'
 
          CASE DEFAULT
             STOP 'Invalid VMEC parameter id.'
@@ -1598,7 +1625,8 @@
       SELECT CASE (id)
 
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
-     &         vmec_pres_scale_id)
+     &         vmec_pres_scale_id, vmec_vvc_smaleli_id,                        &
+     &         vmec_vvc_kappa_p_id)
             vmec_is_scaler_value = .true.
 
          CASE DEFAULT

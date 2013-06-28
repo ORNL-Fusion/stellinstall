@@ -25,7 +25,10 @@
       TYPE v3fit_context_class
          REAL (rprec)                                 :: recon_stop
 
+         INTEGER                                      :: runlog_iou
          INTEGER                                      :: recout_iou
+         INTEGER                                      :: result_ncid
+
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
          TYPE (model_class), POINTER                  :: model => null()
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
@@ -66,6 +69,14 @@
 
       ALLOCATE(v3fit_context_construct)
 
+!  Setup the runlog file.
+      CALL safe_open(v3fit_context_construct%runlog_iou, status,               &
+     &               TRIM('runlog.' // filename_base(filename)),               &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of runlog. ' //                                &
+     &               TRIM(filename_base(filename)) // 'failed')
+
 !  Setup the recout file.
       CALL safe_open(v3fit_context_construct%recout_iou, status,               &
      &               TRIM('recout.' // filename_base(filename)),               &
@@ -73,6 +84,10 @@
       CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
      &               'Safe_open of recout. ' //                                &
      &               TRIM(filename_base(filename)) // 'failed')
+
+      WRITE (v3fit_context_construct%runlog_iou, *) 'V3FITA RUN'
+      WRITE (v3fit_context_construct%runlog_iou, *)                            &
+     &   '  Namelist Input from file ', TRIM(filename)
 
       WRITE (v3fit_context_construct%recout_iou, *) 'V3FITA RUN'
       WRITE (v3fit_context_construct%recout_iou, *)                            &
@@ -100,6 +115,7 @@
       INTEGER                                            :: i
 
 !  Start of executable code
+      CLOSE(this%runlog_iou)
       CLOSE(this%recout_iou)
 
       IF (ASSOCIATED(this%cl_parser)) THEN
@@ -174,6 +190,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Resizing context arrays'
+      WRITE (this%runlog_iou,*) ' *** Resizing context arrays'
 
 !  Search an array for the first instance of a null pointer.
       IF (ASSOCIATED(this%signals)) THEN
@@ -214,6 +231,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Writting context to disk'
+      WRITE (this%runlog_iou,*) ' *** Writting context to disk'
 
 !  Write out the reconstruction
       IF (ASSOCIATED(this%recon)) THEN

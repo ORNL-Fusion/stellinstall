@@ -223,7 +223,7 @@
 
 !  Calculate the plasma only signal from the responce function.
 !  Get the volume integration grid points.
-!  NOTE: Do nor deallocate any of these arrays. They are owned by the
+!  NOTE: Do not deallocate any of these arrays. They are owned by the
 !  equilibrium
       rvolgrid =>                                                              &
      &   equilibrium_get_magnetic_volume_rgrid(a_model%equilibrium)

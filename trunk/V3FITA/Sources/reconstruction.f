@@ -421,7 +421,8 @@
 !-------------------------------------------------------------------------------
 !  Evaluate the chi^2
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps)
+      FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps,         &
+     &                               iou)
       USE signal
       USE model
 
@@ -433,13 +434,15 @@
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (model_class), INTENT(inout)          :: a_model
       INTEGER, INTENT(inout)                     :: eq_steps
+      INTEGER, INTENT(in)                        :: iou
 
 !  local arguments
       INTEGER                                    :: i
 
 !  Start of executable code
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
-      IF (equilibrium_converge(a_model%equilibrium, eq_steps)) THEN
+      IF (equilibrium_converge(a_model%equilibrium, eq_steps,                  &
+     &                         iou)) THEN
          DO i = 1, SIZE(signals)
             this%e(this%current_step,i) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
@@ -458,7 +461,7 @@
 !  Returns the number of singular values to use.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_step(this, signals, a_model,                &
-     &                                  params, eq_steps)
+     &                                  params, eq_steps, iou)
 
       IMPLICIT NONE
 
@@ -469,6 +472,7 @@
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
+      INTEGER, INTENT(in)                                :: iou
 
 !  local arguments
       INTEGER                                    :: i, j
@@ -491,7 +495,7 @@
          CALL param_increment(params(j)%p, a_model)
 
          CALL assert(equilibrium_converge(a_model%equilibrium,                 &
-     &                                    eq_steps),                           &
+     &                                    eq_steps, iou),                      &
      &               'reconstruction_eval_jac: failed to converge ' //         &
      &               'equilibrium. Try decreasing rp_vrnc')
 
@@ -927,7 +931,7 @@
 !  Step the reconstruction
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, a_model, params,             &
-     &                             eq_steps)
+     &                             eq_steps, iou)
       USE signal
       USE model
       USE param
@@ -941,6 +945,7 @@
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
+      INTEGER, INTENT(in)                                :: iou
 
 !  local variables
       INTEGER                                            :: k_use
@@ -954,7 +959,7 @@
 
 !  Evaluate the quasi-Newton step.
       k_use = reconstruction_eval_step(this, signals, a_model, params,         &
-     &                                 eq_steps)
+     &                                 eq_steps, iou)
 
       ALLOCATE(param_value(SIZE(params)))
       ALLOCATE(delta_a(SIZE(params)))
@@ -978,7 +983,7 @@
      &            reconstruction_get_exp_g2(this, delta_a)
                this%step_size(this%current_step + 1) = step_use
                this%num_sv = k_use
-               CALL reconstruction_write_step(this, 'sl')
+               CALL reconstruction_write_step(this, 'sl', iou)
 
             CASE (reconstruction_lm_step_type)
                step_use = reconstruction_lm_step(this, k_use, step_use,        &
@@ -987,7 +992,7 @@
      &            reconstruction_get_exp_g2(this, delta_a)
                this%step_size(this%current_step + 1) = step_use
                this%num_sv = k_use
-               CALL reconstruction_write_step(this, 'lm')
+               CALL reconstruction_write_step(this, 'lm', iou)
 
             CASE (reconstruction_seg_step_type)
                step_use = reconstruction_seg_step(this, k_use, step_use,       &
@@ -996,7 +1001,7 @@
      &            reconstruction_get_exp_g2(this, delta_a)
                this%step_size(this%current_step + 1) = step_use
                this%num_sv = k_use
-               CALL reconstruction_write_step(this, 'seg')
+               CALL reconstruction_write_step(this, 'seg', iou)
 
          END SELECT
 
@@ -1013,7 +1018,7 @@
 !  reconstruction step should fail for any reason. decrement the step back down.
          this%current_step = this%current_step + 1
          IF (reconstruction_eval_e(this, signals, a_model,                     &
-     &                             eq_steps)) THEN
+     &                             eq_steps, iou)) THEN
 !  Equilibrium converged
             IF (reconstruction_get_dg2(this) .ge. 0.0) THEN
                reconstruction_step = .true.
@@ -1024,14 +1029,24 @@
                WRITE (*,1001) reconstruction_get_lastg2(this),                 &
      &                        reconstruction_get_g2(this),                     &
      &                        reconstruction_get_dg2(this)
+
+               WRITE (iou,*)
+               WRITE (iou,*) ' *** Step succeeded'
+               WRITE (iou,*) ' Result of step'
+               WRITE (iou,1000)
+               WRITE (iou,1001) reconstruction_get_lastg2(this),               &
+     &                          reconstruction_get_g2(this),                   &
+     &                          reconstruction_get_dg2(this)
                EXIT
             ELSE
 !  Equilibrium converged but g^2 increased
                WRITE (*,*) 'Equilibrium converged but g2 increased'
+               WRITE (iou,*) 'Equilibrium converged but g2 increased'
             END IF
          ELSE
 !  Equilibrium did not converge
             WRITE (*,*) 'Equilibrium did not converge'
+            WRITE (iou,*) 'Equilibrium did not converge'
             step_use = step_use/2.0
 
             this%current_step = this%current_step - 1
@@ -1039,6 +1054,7 @@
 
          IF (i .eq. reconstruction_max_step_try) THEN
             WRITE (*,*) 'Reconstruction step failed.'
+            WRITE (iou,*) 'Reconstruction step failed.'
             this%current_step = this%current_step - 1
             EXIT
          END IF
@@ -1046,6 +1062,7 @@
 !  Retry step with a smaller stepsize.
          step_use = step_use/2.0
          WRITE (*,*) 'Changing max step size to ', step_use
+         WRITE (iou,*) 'Changing max step size to ', step_use
          this%current_step = this%current_step - 1
       END DO
 
@@ -1128,19 +1145,25 @@
 !-------------------------------------------------------------------------------
 !  Write out a reconstruction  step.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_write_step(this, step_type)
+      SUBROUTINE reconstruction_write_step(this, step_type, iou)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (reconstruction_class), INTENT(in) :: this
       CHARACTER(len=*), INTENT(in)            :: step_type
+      INTEGER, INTENT(in)                     :: iou
 
 !  Start of executable code
       WRITE (*,*)
       WRITE (*,1000) this%num_sv(this%current_step + 1)
       WRITE (*,1001) step_type, this%step_size(this%current_step + 1)
       WRITE (*,1002) this%exp_g2(this%current_step + 1)
+
+      WRITE (iou,*)
+      WRITE (iou,1000) this%num_sv(this%current_step + 1)
+      WRITE (iou,1001) step_type, this%step_size(this%current_step + 1)
+      WRITE (iou,1002) this%exp_g2(this%current_step + 1)
 
 1000  FORMAT('Number of singular values used: 'i3)
 1001  FORMAT(a4,': Step size limited to ',es12.5)

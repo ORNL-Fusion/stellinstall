@@ -16,8 +16,8 @@
       USE v3f_vmec_comm
 
 !*******************************************************************************
-!  Object representing the results file. This is mean to be an opaque. All 
-!  fields private and can only be accessed from inside this module.
+!  Object representing the results file. This is mean to be an opaque type. All 
+!  fields are private and can only be accessed from inside this module.
 !
 !  NetCDF variables:
 !    ncid    Reference to the netcdf file.
