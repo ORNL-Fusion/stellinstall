@@ -784,10 +784,10 @@
       combination_get_header(1) = 'model(2)'
       combination_get_header(2) = 'model(3)'
       combination_get_header(3) = 'model(4)'
-      combination_get_header(1) = 'model_sig(1)'
-      combination_get_header(2) = 'model_sig(2)'
-      combination_get_header(3) = 'model_sig(3)'
-      combination_get_header(1) = 'model_sig(4)'
+      combination_get_header(4) = 'model_sig(1)'
+      combination_get_header(5) = 'model_sig(2)'
+      combination_get_header(6) = 'model_sig(3)'
+      combination_get_header(7) = 'model_sig(4)'
 
       END FUNCTION
 
