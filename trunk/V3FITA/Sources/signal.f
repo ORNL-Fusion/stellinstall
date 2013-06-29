@@ -579,6 +579,54 @@
       END SUBROUTINE
 
 !*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE signal_write_step_data(this, a_model, result_ncid,            &
+     &                                  current_step, index,                   &
+     &                                  signal_observed_value_id,              &
+     &                                  signal_model_value_id,                 &
+     &                                  signal_sigma_value_id)
+      USE model
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout)  :: a_model
+      INTEGER, INTENT(in)                :: result_ncid
+      INTEGER, INTENT(in)                :: current_step
+      INTEGER, INTENT(in)                :: index
+      INTEGER, INTENT(in)                :: signal_observed_value_id
+      INTEGER, INTENT(in)                :: signal_model_value_id
+      INTEGER, INTENT(in)                :: signal_sigma_value_id
+
+!  local variables
+      INTEGER                            :: status
+      REAL (rprec), DIMENSION(4)         :: modeled_sigma
+      REAL (rprec), DIMENSION(4)         :: modeled_signal
+
+!  Start of executable code
+      status = nf_put_var1_double(result_ncid, signal_observed_value_id,       &
+     &                            (/ index, current_step /),                   &
+     &                            this%observed)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      modeled_signal = signal_get_modeled_signal(this, a_model,                &
+     &                                           modeled_sigma, .true.)
+      status = nf_put_var1_double(result_ncid, signal_model_value_id,          &
+     &                            (/ index, current_step /),                   &
+     &                            modeled_signal(1))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var1_double(result_ncid, signal_sigma_value_id,          &
+     &                            (/ index, current_step /),                   &
+     &                            SQRT(signal_get_sigma2(this)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      END SUBROUTINE
+
+!*******************************************************************************
 !*******************************************************************************
 !*******************************************************************************
 !*******************************************************************************

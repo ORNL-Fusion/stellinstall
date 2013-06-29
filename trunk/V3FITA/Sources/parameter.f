@@ -217,15 +217,32 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                      :: param_get_value
-      TYPE (param_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(in)    :: a_model
+      REAL (rprec)                   :: param_get_value
+      TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
 
 !  Start of executable code
       param_get_value = model_get_param_value(a_model,                         &
      &                                        this%param_id,                   &
      &                                        this%indicies(1),                &
      &                                        this%indicies(2))
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!  Get the name of the parameter
+!-------------------------------------------------------------------------------
+      FUNCTION param_get_name(this, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: param_get_name
+      TYPE (param_class), INTENT(in)   :: this
+      TYPE (model_class), INTENT(in)   :: a_model
+
+!  Start of executable code
+      param_get_name = model_get_param_name(a_model, this%param_id)
 
       END FUNCTION
 
@@ -416,11 +433,9 @@
 !  Start of executable code
 
       WRITE (iou,1000) index,                                                  &
-     &                 model_get_param_name(a_model, this%param_id),           &
+     &                 param_get_name(this, a_model),                          &
      &                 this%indicies(1), this%indicies(2),                     &
-     &                 model_get_param_value(a_model, this%param_id,           &
-     &                                       this%indicies(1),                 &
-     &                                       this%indicies(2)),                &
+     &                 param_get_value(this, a_model),                         &
      &                 this%sigma
 1000  FORMAT(i3,2x,a18,2(1x,i4),2(2x,es12.5))
 
@@ -442,6 +457,41 @@
       WRITE (iou,1000)
 1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
      &        'sigma')
+      END SUBROUTINE
+
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+      SUBROUTINE param_write_step_data(this, a_model, result_ncid,             &
+     &                                 current_step, index,                    &
+     &                                 param_value_id, param_sigma_id)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
+      INTEGER, INTENT(in)            :: result_ncid
+      INTEGER, INTENT(in)            :: current_step
+      INTEGER, INTENT(in)            :: index
+      INTEGER, INTENT(in)            :: param_value_id
+      INTEGER, INTENT(in)            :: param_sigma_id
+
+!  local variables
+      INTEGER                        :: status
+
+!  Start of executable code
+      status = nf_put_var1_double(result_ncid, param_value_id,                 &
+     &                            (/ index, current_step /),                   &
+     &                            param_get_value(this, a_model))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var1_double(result_ncid, param_sigma_id,                 &
+     &                            (/ index, current_step /),                   &
+     &                            this%sigma)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
       END SUBROUTINE
 
       END MODULE

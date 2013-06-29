@@ -135,6 +135,17 @@
          TYPE (vmec_magnetic_cache), POINTER  ::                               &
      &      magnetic_cache => null()
          REAL (rprec), DIMENSION(:), POINTER  :: xc => null()
+
+!  Result file NetCDF variables
+         INTEGER                              :: vmec_extcur_id
+         INTEGER                              :: vmec_curtor_id
+         INTEGER                              :: vmec_pres_scale_id
+         INTEGER                              :: vmec_rbc_id
+         INTEGER                              :: vmec_rbs_id
+         INTEGER                              :: vmec_zbc_id
+         INTEGER                              :: vmec_zbs_id
+         INTEGER                              :: vmec_l_sub_i_id
+         INTEGER                              :: vmec_kappa_p_id
       END TYPE
 
 !*******************************************************************************
@@ -1909,6 +1920,215 @@
       CALL pprofile_write(this%ne, 'pp_ne', iou)
       CALL pprofile_write(this%sxrem, 'pp_sxrem', iou)
       CALL pprofile_write(this%te, 'pp_te', iou)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!
+!  Dimensiona:
+!    vmec_nextcur     Number of vmec external currents.
+!    vmec_boundary_i  Number of ith boundary coefficients.
+!    vmec_boundary_j  Number of jth boundary coefficients.
+!
+!  Variables:
+!    vmec_extcur (vmec_nextcur) External currents.
+!    vmec_curtor                Non-reconstructed plasma current.
+!    vmec_pres_scale            Non-reconstructed plasma pressure.
+!
+!  Multi dimensional arrays need to be transposed so arrays appear in the
+!  correct order in non fortran languages.
+!    vmec_rbc (vmec_boundary_j, R direction cosine coefficients.
+!              vmec_boundary_i,
+!              maxnsetps)
+!    vmec_rbs (vmec_boundary_j, R direction sine coefficients.
+!              vmec_boundary_i,
+!              maxnsetps)
+!    vmec_zbc (vmec_boundary_j, Z direction cosine coefficients.
+!              vmec_boundary_i,
+!              maxnsetps)
+!    vmec_zbs (vmec_boundary_j, Z direction sine coefficients.
+!              vmec_boundary_i,
+!              maxnsetps)
+!    vmec_l_sub_i               Internal inducance.
+!    vmec_kappa_p               Mean elongation.
+!
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Define the netcdf variables and dimensions.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_def_result(this, result_ncid, maxnsetps_dim_id)
+      USE mgrid_mod, only: nextcur
+      USE vmec_dim, only: mpol1, ntor1
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: result_ncid
+      INTEGER, INTENT(in)           :: maxnsetps_dim_id
+
+!  Local variables
+      INTEGER                       :: status
+      INTEGER                       :: vmec_nextcur_dim_id
+      INTEGER                       :: vmec_boundary_i_dim_id
+      INTEGER                       :: vmec_boundary_j_dim_id
+
+!  Start of executable code
+!  Define dimensions.
+      status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,                &
+     &                    vmec_nextcur_dim_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_dim(result_ncid, 'vmec_boundary_i', mpol1 + 1,           &
+     &                    vmec_boundary_i_dim_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_dim(result_ncid, 'vmec_boundary_j', 2*ntor1 + 1,         &
+     &                    vmec_boundary_j_dim_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+!  Define variables.
+      status = nf_def_var(result_ncid, 'vmec_extcur', nf_double, 1,            &
+     &                    (/ vmec_nextcur_dim_id /),                           &
+     &                    this%vmec_extcur_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_curtor', nf_double, 0, 0,         &
+     &                    this%vmec_curtor_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 0,        &
+     &                    0, this%vmec_pres_scale_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_rbc', nf_double, 3,               &
+     &                    (/ vmec_boundary_j_dim_id,                           &
+     &                       vmec_boundary_i_dim_id,                           &
+     &                       maxnsetps_dim_id /),                              &
+     &                       this%vmec_rbc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_rbs', nf_double, 3,               &
+     &                    (/ vmec_boundary_j_dim_id,                           &
+     &                       vmec_boundary_i_dim_id,                           &
+     &                       maxnsetps_dim_id /),                              &
+     &                       this%vmec_rbs_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_zbc', nf_double, 3,               &
+     &                    (/ vmec_boundary_j_dim_id,                           &
+     &                       vmec_boundary_i_dim_id,                           &
+     &                       maxnsetps_dim_id /),                              &
+     &                       this%vmec_zbc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_zbs', nf_double, 3,               &
+     &                    (/ vmec_boundary_j_dim_id,                           &
+     &                       vmec_boundary_i_dim_id,                           &
+     &                       maxnsetps_dim_id /),                              &
+     &                       this%vmec_zbs_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 1,        &
+     &                    (/ maxnsetps_dim_id /), this%vmec_l_sub_i_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 1,        &
+     &                    (/ maxnsetps_dim_id /), this%vmec_kappa_p_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write inital data to the defined variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_write_init_data(this, result_ncid)
+      USE mgrid_mod, only: nextcur
+      USE vmec_input, only: extcur, curtor, pres_scale
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: result_ncid
+
+!  Local variables
+      INTEGER                       :: status
+
+!  Start of executable code
+      status = nf_put_var_double(result_ncid, this%vmec_extcur_id,             &
+     &                           extcur(1:nextcur))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var_double(result_ncid, this%vmec_curtor_id,             &
+     &                           curtor)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var_double(result_ncid, this%vmec_pres_scale_id,         &
+     &                           pres_scale)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL vmec_write_step_data(this, result_ncid, 1)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write step data to the defined variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_write_step_data(this, result_ncid, current_step)
+      USE vmec_input, only: rbc, zbs, rbs, zbc
+      USE vmec_dim, only: mpol1, ntor1
+      USE v3f_vmec_comm
+      USE ezcdf
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: result_ncid
+      INTEGER, INTENT(in)           :: current_step
+
+!  Local variables
+      INTEGER                       :: status
+      INTEGER, DIMENSION(3)         :: boundary_size
+
+!  Start of executable code
+      boundary_size(1) = 2*ntor1 + 1
+      boundary_size(2) = mpol1
+      boundary_size(3) = 1
+
+      status = nf_put_vara_double(result_ncid, this%vmec_rbc_id,               &
+     &                            (/ 1, 1, current_step /),                    &
+     &                            boundary_size,                               &
+     &                            TRANSPOSE(rbc(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, this%vmec_rbs_id,               &
+     &                            (/ 1, 1, current_step /),                    &
+     &                            boundary_size,                               &
+     &                            TRANSPOSE(rbs(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, this%vmec_zbc_id,               &
+     &                            (/ 1, 1, current_step /),                    &
+     &                            boundary_size,                               &
+     &                            TRANSPOSE(zbc(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, this%vmec_zbs_id,               &
+     &                            (/ 1, 1, current_step /),                    &
+     &                            boundary_size,                               &
+     &                            TRANSPOSE(zbs(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var1_double(result_ncid, this%vmec_l_sub_i_id,           &
+     &                            current_step, vvc_smaleli)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var1_double(result_ncid, this%vmec_kappa_p_id,           &
+     &                            current_step, vvc_kappa_p)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       END SUBROUTINE
 

@@ -803,4 +803,76 @@
 
       END SUBROUTINE
 
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Define the netcdf variables and dimensions.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_def_result(this, result_ncid,                     &
+     &                                  maxnsetps_dim_id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+      INTEGER, INTENT(in)                  :: maxnsetps_dim_id
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_def_result(this%vmec, result_ncid,                       &
+     &                           maxnsetps_dim_id)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write inital data to the defined variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write_init_data(this, result_ncid)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_write_init_data(this%vmec, result_ncid)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write step data to the defined variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write_step_data(this, result_ncid,                &
+     &                                       current_step)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+      INTEGER, INTENT(in)                  :: current_step
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_write_step_data(this%vmec, result_ncid,                  &
+     &                                current_step)
+
+      END SELECT
+
+      END SUBROUTINE
+
       END MODULE
