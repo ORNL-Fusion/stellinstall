@@ -2031,11 +2031,11 @@
      &                       this%vmec_zbs_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 1,        &
+      status = nf_def_var(result_ncid, 'vmec_l_sub_i', nf_double, 1,           &
      &                    (/ maxnsetps_dim_id /), this%vmec_l_sub_i_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 1,        &
+      status = nf_def_var(result_ncid, 'vmec_kappa_p', nf_double, 1,           &
      &                    (/ maxnsetps_dim_id /), this%vmec_kappa_p_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 

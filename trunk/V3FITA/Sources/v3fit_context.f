@@ -98,7 +98,7 @@
      &               TRIM(filename_base(filename)) // 'failed')
 
 !  Create a result file.
-      status = nf_create('runlog.' // TRIM(filename_base(filename)) //         &
+      status = nf_create('result.' // TRIM(filename_base(filename)) //         &
      &                   '.nc', nf_clobber,                                    &
      &                   v3fit_context_construct%result_ncid)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -550,7 +550,7 @@
 !  Start of executable code
 !  Update number of steps taken.
       IF (first_step) THEN
-         status = nf_get_var_int(this%result_ncid, this%nsteps_id, 0)
+         status = nf_put_var_int(this%result_ncid, this%nsteps_id, 0)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
          current_step = 1
       ELSE
@@ -561,6 +561,10 @@
          status = nf_put_var_int(this%result_ncid, this%nsteps_id,             &
      &                        current_step)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+!  Use current_step as an array index. The Netcdf arrays start at 1 so this
+!  needs to be incremented to point to the correct index.
+         current_step = current_step + 1
       END IF
 
       IF (ASSOCIATED(this%recon)) THEN
