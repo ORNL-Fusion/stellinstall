@@ -1,10 +1,12 @@
 !*******************************************************************************
-!  File limiter.f
-!  Contains module limiter
-!  Defines the base class of the type limiter:
-!
-!  Super Class: geometric
-!  Sub Classes: None
+!>  @file limiter.f
+!>  @brief Contains module @ref limiter
+!>
+!>  Defines the base class of the type @ref limiter_class.
+!>  @par Super Class:
+!>  @ref geometric
+!>
+!>  @see limiter_iso_T
 !*******************************************************************************
 
       MODULE limiter
@@ -16,8 +18,12 @@
 !*******************************************************************************
 !  geometric module parameters
 !*******************************************************************************
+!>  Type descriptor for limiter no type.
       INTEGER, PARAMETER :: limiter_no_type = -1
+!>  Type descriptor for limiter type defined by an iso function.
       INTEGER, PARAMETER :: limiter_iso_type = 0
+!>  Type descriptor for limiter type defined by polygons.
+!>  @note This limiter type has not be implemented yet.
       INTEGER, PARAMETER :: limiter_polygon_type = 1
 
 !*******************************************************************************
@@ -25,9 +31,20 @@
 !  1) limiter base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a limiter signal.
+!>  @par Super class:
+!>  @ref geometric
+!-------------------------------------------------------------------------------
       TYPE limiter_class
+!>  Type descirptor of the limiter type.
+!>  @par Possible values are:
+!>  @ref limiter_no_type
+!>  @ref limiter_iso_type
+!>  @ref limiter_polygon_type
          INTEGER                     :: type = limiter_no_type
+!>  If true, the reconstruction tries to place the edge on the limiter.
+!>  Otherwise, the plasma edge is kept inside the limiter.
          LOGICAL                     :: on_edge = .false.
          REAL (rprec)                :: model_sigma = 0.0
          TYPE (limiter_iso), POINTER :: iso => null()
@@ -36,6 +53,13 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref limiter_class types either using
+!>  @ref limiter_construct_iso or @ref limiter_construct_polygon
+!
+!>  @note
+!>  @ref limiter_construct_polygon has not been implemented yet.
+!-------------------------------------------------------------------------------
       INTERFACE limiter_construct
          MODULE PROCEDURE limiter_construct_iso,                               &
      &                    limiter_construct_polygon
@@ -46,7 +70,16 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a limiter containing an iso function.
+!>  @brief Construct a limiter containing an iso function.
+!>
+!>  Allocates memory and initializes a @ref limiter_class object.
+!>  @param[in] iso         A contour function to define the limiter.
+!>  @param[in] on_edge     Specifies if the edge should touch the limiter or
+!>                         not. If true, the reconstruction tries to have the
+!>                         limiter touch the limiter. If false, the edge will
+!>                         only just fall inside the limiter.
+!>  @param[in] model_sigma Uncertianty is the modeled signal.
+!>  @returns A pointer to a constructed @ref limiter_class object.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_construct_iso(iso, on_edge, model_sigma)
 
@@ -69,7 +102,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a limiter containing a polygon.
+!>  @brief Construct a limiter containing a polygon.
+!>
+!>  Allocates memory and initializes a @ref limiter_class object.
+!>  @param[in] on_edge     Specifies if the edge should touch the limiter or
+!>                         not. If true, the reconstruction tries to have the
+!>                         limiter touch the limiter. If false, the edge will
+!>                         only just fall inside the limiter.
+!>  @returns A pointer to a constructed @ref limiter_class object.
+!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_construct_polygon(on_edge)
 
@@ -90,6 +131,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref limiter_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref limiter_class object.
+!> 
+!>  @param[inout] this A @ref limiter_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE limiter_destruct(this)
 
       IMPLICIT NONE
@@ -114,7 +162,18 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  If the limiter is defined by an iso function returns the value of
+!>  @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
+!>
+!>  @param[in]    this    A @ref limiter_class instance.
+!>  @param[inout] a_model A @ref model_class to  instance.
+!>  @param[out]   sigma   If the limiter type is defined by an iso function,
+!>                        sigma value of @ref limiter_get_modeled_iso_signal.
+!>  @returns If the limiter type is defined by an iso function, return the value
+!>           of @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
+!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -143,7 +202,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the limiter type
+!>  @brief Gets a discription of the limiter type.
+!>
+!>  Returns a description of the limiter type for use when writting output files.
+!>
+!>  @param[in] this A @ref limiter_class instance.
+!>  @returns A string describing the limiter type.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_signal_type(this)
       USE data_parameters
@@ -168,7 +232,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the diagnostic header
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  Returns a description of the array indices for use when writting output
+!>  files.
+!>
+!>  @param[in] this A @ref limiter_class instance.
+!>  @returns A string describing the model and model sigma array indices.
+!>  @note Polygon limiters have not be implemented yet. This coding may change
+!>  when those are supported.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_header(this)
       USE data_parameters
@@ -195,7 +267,22 @@
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the iso function signal
+!>  @brief Calculates the modeled signal from an iso function.
+!>
+!>  If @ref limiter_class::on_edge or the plasma edge extends beyond the
+!>  limiter, returns the R, Phi and Z posiiton of the maximum of the iso
+!>  function value. Otherwise returns zero.
+!>  @par
+!>  The R and Z positions for a fixed toroidal plane are retrived from the the
+!>  @ref equilibrium method @ref equilibrium_get_plasma_edge
+!>
+!>  @param[in]    this    A @ref limiter_class instance.
+!>  @param[inout] a_model A @ref model_class to  instance.
+!>  @param[out]   sigma   Returns the value of modeled sigma.
+!>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
+!>  the limiter, returns the R, Phi and Z posiiton of the maximum of the iso
+!>  function value. Otherwise returns zero.
+!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_iso_signal(this, a_model, sigma)
       USE model

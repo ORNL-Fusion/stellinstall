@@ -18,6 +18,15 @@ cmake_minimum_required (VERSION 2.8)
 # Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
 project (v3fit_suite Fortran C CXX)
 
+# Add the ability to auto generate API documentation with Doxygen
+find_package(Doxygen)
+if (DOXYGEN_FOUND)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile @ONLY)
+	add_custom_target(doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile 
+			  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build
+			  COMMENT "Generating API documentation with Doxygen" VERBATIM)
+endif ()
+
 # Set a directories to build all binary files.
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
 set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/lib)

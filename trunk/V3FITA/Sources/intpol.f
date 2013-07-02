@@ -1,10 +1,11 @@
 !*******************************************************************************
-!  File magnetic.f
-!  Contains module intpol
-!  Defines the base class of the type intpol:
-!
-!  Super Class: diagnostic
-!  Sub Classes: None
+!>  @file intpol.f
+!>  @brief Contains module @ref intpol.
+!>
+!>  Implements interferometry/polarimetry diagnostic. Defines the base class of
+!>  the type @ref intpol_class.
+!>  @par Super Class:
+!>  @ref diagnostic
 !*******************************************************************************
 
       MODULE intpol
@@ -14,12 +15,14 @@
       USE coordinate_utilities
 
       IMPLICIT NONE
-
 !*******************************************************************************
 !  diagnostic module parameters
 !*******************************************************************************
+!>  Type descriptor for intpol no type.
       INTEGER, PARAMETER :: intpol_no_type = -1
+!>  Type descriptor for intpol type represented a interferometer diagnostic.
       INTEGER, PARAMETER :: intpol_interferometry_type = 0
+!>  Type descriptor for intpol type represented a polarmetry diagnostic.
       INTEGER, PARAMETER :: intpol_polarimetry_type = 1
 
 !*******************************************************************************
@@ -27,8 +30,17 @@
 !  1) intpol base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a intpol signal.
+!>  @par Super Class:
+!>  @ref diagnostic
+!-------------------------------------------------------------------------------
       TYPE intpol_class
+!>  Type descirptor of the intpol type.
+!>  @par Possible values are:
+!>  @ref intpol_no_type
+!>  @ref intpol_interferometry_type
+!>  @ref intpol_polarimetry_type
          INTEGER      :: type
          REAL (rprec) :: wavelength
          LOGICAL      :: in_degrees
@@ -38,6 +50,10 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref intpol_class types using
+!>  @ref intpol_construct_int or @ref intpol_construct_pol
+!-------------------------------------------------------------------------------
       INTERFACE intpol_construct
          MODULE PROCEDURE intpol_construct_int,                                &
      &                    intpol_construct_pol
@@ -50,7 +66,12 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a interferometer diagnostic
+!>  @brief Construct a @ref intpol_class object representing a interferometer
+!>  diagnostic.
+!>
+!>  Allocates memory and initializes a @ref intpol_class object.
+!>  @param[in] chord_paths The nodes of a multi point segment integration path.
+!>  @returns A pointer to a constructed @ref intpol_class object.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_construct_int(chord_paths)
 
@@ -80,7 +101,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a polarimetry diagnostic
+!>  @brief Construct a @ref intpol_class object representing a polarimetry
+!>  diagnostic.
+!>
+!>  Allocates memory and initializes a @ref intpol_class object.
+!>  @param[in] wavelength  Wavelength of the polarimetry beam.
+!>  @param[in] in_degrees  Specifies if the sigals is degrees or radians. True
+!>                         specifies degree while false specifies radians.
+!>  @param[in] chord_paths The nodes of a multi point segment integration path.
+!>  @returns A pointer to a constructed @ref intpol_class object.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_construct_pol(wavelength, in_degrees, chord_paths)
 
@@ -113,6 +142,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref intpol_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref intpol_class object.
+!>
+!>  @param[inout] this A @ref intpol_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE intpol_destruct(this)
 
       IMPLICIT NONE
@@ -134,7 +170,16 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  Calculates the modeled signal by integrating along the chord path. The
+!>  integration function is provided by @ref int_function for interferometer
+!>  diagnostics and @ ref pol_function for polarimetry diagnostics.
+!>
+!>  @param[in]    this    A @ref intpol_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -185,14 +230,49 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the intpol type.
+!>
+!>  Returns a description of the intpol type for use when writting output files.
+!>
+!>  @param[in] this A @ref intpol_class instance.
+!>  @returns A string describing the intpol type.
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: intpol_get_signal_type
+      TYPE (intpol_class), INTENT(in)  :: this
+
+!  Start of executable code
+      intpol_get_signal_type = 'ipch'
+
+      END FUNCTION
+
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Interferometer Integration Function
-!
-!  lineAve = Int[ne*dl]
-!
+!>  @brief Interferometer callback function.
+!>
+!>  Returns the value of the denisty times the change in path length. This
+!>  function is passed to @ref path_integrate to act as a callback. The denisty
+!>  is provided by @ref model_get_ne.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref the model.
+!>  @param[in] xcart   A the integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The ne(x)*dl at point x.
+!>
+!>  @note context in this case if not that same as @ref context. It refers to
+!>  generic passed to the function. This is the fortran eqivalent to a void
+!>  pointer in C.
 !-------------------------------------------------------------------------------
       FUNCTION int_function(context, xcart, dxcart, dx)
       USE model
@@ -215,10 +295,25 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Polarimetry Integration Function
-!
-!  Phi = 2.62E-13*lamba^2*Int[ne*B.dl]
-!
+!>  @brief Polarmetry callback function.
+!>
+!>  Returns the value of the denisty times the dot product of the magnetic
+!>  field vector and the path direction. This function is passed to
+!>  @ref path_integrate to act as a callback. The denisty is provided by
+!>  @ref model_get_ne. The magnetic field vector is proved by
+!>  @ref equilibrium_get_B_vec
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref the model.
+!>  @param[in] xcart   A the integration point.
+!>  @param[in] dxcart  A vector change in path.
+!>  @param[in] dx      A scalar change in path. Not used in this function.
+!>  @returns The ne(x)*dl at point x.
+!>
+!>  @note context in this case if not that same as @ref context. It refers to
+!>  generic passed to the function. This is the fortran eqivalent to a void
+!>  pointer in C.
 !-------------------------------------------------------------------------------
       FUNCTION pol_function(context, xcart, dxcart, dx)
       USE model
@@ -241,23 +336,6 @@
       bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart)
       pol_function =                                                           &
      &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!  Get the intpol type
-!-------------------------------------------------------------------------------
-      FUNCTION intpol_get_signal_type(this)
-      USE data_parameters
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      CHARACTER (len=data_name_length) :: intpol_get_signal_type
-      TYPE (intpol_class), INTENT(in)  :: this
-
-!  Start of executable code
-      intpol_get_signal_type = 'ipch'
 
       END FUNCTION
 

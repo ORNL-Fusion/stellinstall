@@ -1,10 +1,13 @@
 !*******************************************************************************
-!  File geometric.f
-!  Contains module geometric
-!  Defines the base class of the type geometric:
-!
-!  Super Class: signal
-!  Sub Classes: limiter, boundary
+!>  @file geometric.f
+!>  @brief Contains module @ref geometric
+!>
+!>  Defines the base class of the type @ref geometric_class.
+!>  @par Super Class:
+!>  @ref signal
+!>  @par Sub Classes:
+!>  @ref limiter, boundary
+!>  @note boundary will be removed and replaced with priors.
 !*******************************************************************************
 
       MODULE geometric
@@ -17,8 +20,11 @@
 !*******************************************************************************
 !  geometric module parameters
 !*******************************************************************************
+!>  Type descriptor for the @ref geometric_class no sub class.
       INTEGER, PARAMETER :: geometric_no_type = -1
+!>  Type descriptor for the @ref geometric_class sub class @ref limiter
       INTEGER, PARAMETER :: geometric_limiter_type = 0
+!>  @note will be removed.
       INTEGER, PARAMETER :: geometric_boundary_type = 1
 
 !*******************************************************************************
@@ -26,8 +32,20 @@
 !  1) geometric base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a geometric signal.
+!
+!>  @par Super class:
+!>  @ref signal
+!>  @par Sub classes:
+!>  @ref limiter
+!-------------------------------------------------------------------------------
       TYPE geometric_class
+!>  Type descirptor of the geometric subclass type.
+!>  @par Possible values are:
+!>  @ref geometric_no_type, @ref geometric_limiter_type,
+!>  @ref geometric_boundary_type
+!>  @note boundary will be removed and replaced with priors.
          INTEGER                       :: type = geometric_no_type
          TYPE(limiter_class),  POINTER :: limiter => null()
          TYPE(boundary_class), POINTER :: boundary => null()
@@ -36,6 +54,12 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref geometric_class types either using
+!>  @ref geometric_construct_limiter or @ref geometric_construct_boundary
+!
+!>  @note @ref geometric_construct_boundary will be removed.
+!-------------------------------------------------------------------------------
       INTERFACE geometric_construct
       MODULE PROCEDURE geometric_construct_limiter,                            &
      &                 geometric_construct_boundary
@@ -47,7 +71,11 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a geometric containing a limiter.
+!>  @brief Construct a @ref geometric_class containing a @ref limiter object.
+!>
+!>  Allocates memory and initializes a @ref geometric_class object.
+!>  @param[in] limiter_object An instance of a @ref limiter subclass.
+!>  @returns A pointer to a constructed @ref geometric_class object.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_construct_limiter(limiter_object)
 
@@ -66,7 +94,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a geometric containing a boundary.
+!>  @brief Construct a @ref geometric_class containing a @ref boundary object.
+!>
+!>  Allocates memory and initializes a @ref geometric_class object.
+!>  @param[in] boundary_object An instance of a boundary subclass.
+!>  @returns A pointer to a constructed @ref geometric_class object.
+!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_construct_boundary(boundary_object)
 
@@ -85,6 +118,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref geometric_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref geometric_class object.
+!>
+!>  @param[inout] this A @ref geometric_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE geometric_destruct(this)
 
       IMPLICIT NONE
@@ -113,7 +153,19 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_modeled_signal method of the subclass instance
+!>  @ref geometric_class was constructed with.
+!>
+!>  @see limiter::limiter_get_modeled_signal
+!>
+!>  @param[in]    this    A @ref geometric_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
+!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -143,7 +195,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the geometric type
+!>  @brief Gets a discription of the geometric type.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_signal_type method of the subclass instance
+!>  @ref geometric_class was constructed with.
+!>
+!>  @see limiter::limiter_get_signal_type
+!>
+!>  @param[in] this A @ref geometric_class instance.
+!>  @returns A string describing the geometric type.
+!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_signal_type(this)
       USE data_parameters
@@ -170,7 +232,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the geometric header
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_header method of the subclass instance @ref geometric_class
+!>  was constructed with.
+!>
+!>  @see limiter::limiter_get_header
+!>
+!>  @param[in] this A @ref geometric_class instance.
+!>  @returns A string describing the model and model sigma array indices.
+!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_header(this)
       USE data_parameters

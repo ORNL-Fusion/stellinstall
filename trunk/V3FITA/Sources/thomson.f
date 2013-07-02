@@ -1,10 +1,11 @@
 !*******************************************************************************
-!  File magnetic.f
-!  Contains module thomson
-!  Defines the base class of the type thomson:
-!
-!  Super Class: diagnostic
-!  Sub Classes: None
+!>  @file thomson.f
+!>  @brief Contains module @ref thomson.
+!>
+!>  Implements thomson scattering diagnostic. Defines the base class of the type
+!>  @ref thomson_class.
+!>  @par Super Class:
+!>  @ref diagnostic
 !*******************************************************************************
 
       MODULE thomson
@@ -12,13 +13,16 @@
       USE stel_kinds, only: rprec
 
       IMPLICIT NONE
-
 !*******************************************************************************
 !  diagnostic module parameters
 !*******************************************************************************
+!>  Type descriptor for thomson no type.
       INTEGER, PARAMETER :: thomson_no_type = -1
+!>  Type descriptor for thomson type measureing temperature.
       INTEGER, PARAMETER :: thomson_temperature_type = 0
+!>  Type descriptor for intpol type measureing denisty.
       INTEGER, PARAMETER :: thomson_density_type = 1
+!>  Type descriptor for intpol type measureing pressure.
       INTEGER, PARAMETER :: thomson_pressure_type = 2
 
 !*******************************************************************************
@@ -26,8 +30,18 @@
 !  1) thomson base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a thomson scattering signal.
+!>  @par Super Class:
+!>  @ref diagnostic
+!-------------------------------------------------------------------------------
       TYPE thomson_class
+!>  Type descirptor of the thomson type.
+!>  @par Possible values are:
+!>  @ref thomson_no_type
+!>  @ref thomson_temperature_type
+!>  @ref thomson_density_type
+!>  @ref thomson_pressure_type
          INTEGER                    :: type
          REAL (rprec), DIMENSION(3) :: xcart
       END TYPE thomson_class
@@ -37,7 +51,9 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a thomson measuring temperature.
+!>  @brief Construct a @ref thomson_class object measureing temperature.
+!>  @param[in] xcart The measurement point.
+!>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct_te(xcart)
 
@@ -54,7 +70,9 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a thomson.
+!>  @brief Construct a @ref thomson_class object measureing density.
+!>  @param[in] xcart The measurement point.
+!>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct_ne(xcart)
 
@@ -71,7 +89,9 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a thomson.
+!>  @brief Construct a @ref thomson_class object measureing pressure.
+!>  @param[in] xcart The measurement point.
+!>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct_p(xcart)
 
@@ -88,7 +108,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a thomson.
+!>  @brief Construct a @ref thomson_class object.
+!>
+!>  Allocates memory and initializes a @ref thomson_class object.
+!>  @param[in] type  The measurement type. Possible value are
+!>                   @ref thomson_no_type, @ref thomson_temperature_type,
+!>                   @ref thomson_density_type and @ref thomson_pressure_type.
+!>  @param[in] xcart The measurement point.
+!>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_construct(type, xcart)
 
@@ -110,6 +137,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref intpol_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref intpol_class object.
+!>
+!>  @param[inout] this A @ref intpol_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE thomson_destruct(this)
 
       IMPLICIT NONE
@@ -129,7 +163,16 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  Calculates the modeled signal at a point. Temperature is provided by
+!>  @ref model_get_te. Denisty is provided by @ref model_get_ne. Pressure is
+!>  provided by @ ref equilibrium_get_p.
+!>
+!>  @param[in]    this    A @ref thomson_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -156,7 +199,7 @@
 
          CASE (thomson_density_type)
             thomson_get_modeled_signal(1) =                                    &
-     &         model_get_te(a_model, this%xcart)
+     &         model_get_ne(a_model, this%xcart)
 
          CASE (thomson_pressure_type)
             thomson_get_modeled_signal(1) =                                    &
@@ -169,7 +212,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the thomson type
+!>  @brief Gets a discription of the thomson type.
+!>
+!>  Returns a description of the thomson type for use when writting output files.
+!>
+!>  @param[in] this A @ref thomson_class instance.
+!>  @returns A string describing the thomson type.
 !-------------------------------------------------------------------------------
       FUNCTION thomson_get_signal_type(this)
       USE data_parameters
