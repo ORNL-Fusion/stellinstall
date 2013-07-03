@@ -288,6 +288,8 @@
      &   extcur_mgrid,                                                         &
      &   cg_shift_1, cg_shift_2, cg_rot_xcent, cg_rot_theta,                   &
      &   cg_rot_phi, cg_rot_angle, l_rot_coil_center
+     
+      USE sym_check, ONLY: sym_ir, sym_jz, sym_kp, sym_perform_tests
 
       IMPLICIT NONE
 !-----------------------------------------------
@@ -348,7 +350,8 @@
      &    rmin, rmax, zmin, zmax, kp, ir, jz,                                  &
      &    rmajor, aminor, nphi, ntheta, extcur_mgrid,                          &
      &    cg_shift_1, cg_shift_2, cg_rot_xcent, cg_rot_theta,                  &
-     &    cg_rot_phi, cg_rot_angle, l_rot_coil_center
+     &    cg_rot_phi, cg_rot_angle, l_rot_coil_center,                         &
+     &    sym_ir, sym_jz, sym_kp, sym_perform_tests
       
 !-----------------------------------------------
 !  Start of Executable Code
@@ -373,6 +376,10 @@
       nphi=3
       ntheta=3
       extcur_mgrid=1.
+      sym_ir=5
+      sym_jz=5
+      sym_kp=4
+      sym_perform_tests=.FALSE.
       
       cg_shift_1 = zero
       cg_shift_2 = zero
@@ -507,6 +514,8 @@
       USE makegrid_global, only: task
 
       USE safe_open_mod !safe_open()
+      
+      USE sym_check, ONLY: init_symmetry, cleanup_symmetry
 
       IMPLICIT NONE
 !-----------------------------------------------
@@ -644,6 +653,7 @@
       DO k = 1, kmax
          phi_array(k) = (k-1) * delp
       END DO
+      CALL init_symmetry
       DO icoll = 1, SIZE(coil_group)
          CALL coil_group_report(coil_group(icoll),icoll,r_ave,z_ave            &
      &      ,kmax,phi_array(1:kmax))
@@ -653,6 +663,7 @@
 
 !-----------------------------------------------
 !  clean up and finish
+      CALL cleanup_symmetry
       CALL cleanup_biotsavart
 
       DEALLOCATE (br, bp, bz)
@@ -713,6 +724,8 @@
      &   cg_rot_phi, cg_rot_angle, l_rot_coil_center
 
       USE safe_open_mod !safe_open()
+      
+      USE sym_check, ONLY: init_symmetry, cleanup_symmetry
 
       IMPLICIT NONE
 !-----------------------------------------------
@@ -925,6 +938,7 @@
       DO k = 1, kmax
          phi_array(k) = (k-1) * delp
       END DO
+      CALL init_symmetry
       DO icoll = 1, SIZE(coil_group)
          CALL coil_group_report(coil_group(icoll),icoll,r_ave,z_ave            &
      &      ,kmax,phi_array(1:kmax))
@@ -934,6 +948,7 @@
 
 !-----------------------------------------------
 !  Clean up and finish
+      CALL cleanup_symmetry
       CALL cleanup_biotsavart
 
       DEALLOCATE (br, bp, bz)
@@ -1225,7 +1240,9 @@
       USE stel_constants
       
       USE bsc_T
-       !  Access to derived types, magnetic field computation    
+       !  Access to derived types, magnetic field computation 
+       
+      USE sym_check, ONLY: check_symmetry
 
       IMPLICIT NONE
 !-----------------------------------------------
@@ -1382,6 +1399,8 @@
          bz = b(3)
          WRITE(*,6100) phi, br, bphi, bz
       END DO
+      
+      CALL check_symmetry(igroup)
 
 6000  FORMAT(/"Magnetic field with unit current multiplier, at R,Z=",          &
      &   2(2x,es12.5)/t7,"phi",t24,"B . rhat",t38,"B . phihat",                &

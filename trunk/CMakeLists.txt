@@ -18,6 +18,8 @@ cmake_minimum_required (VERSION 2.8)
 # Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
 project (v3fit_suite Fortran C CXX)
 
+enable_testing()
+
 # Add the ability to auto generate API documentation with Doxygen
 find_package(Doxygen)
 if (DOXYGEN_FOUND)
@@ -74,6 +76,7 @@ add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
 add_subdirectory (V3RFUN)
 add_subdirectory (BOOZ_XFORM)
+add_subdirectory (Testing)
 
 # Optional extra builds
 if (BUILD_GTOVMI)
