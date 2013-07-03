@@ -107,9 +107,14 @@
 !  Start of executable code
       SELECT CASE (this%type)
 
+!  Set param needs to come first so that function gets executed. Otherwise, when
+!  this%not_converged was true, the expression will evaluate to false all the
+!  time and not bother calling vmec_set_param.
          CASE (equilibrium_vmec_type)
-            this%not_converged = this%not_converged .or.                       &
-     &         vmec_set_param(this%vmec, id, i_index, j_index, value)
+            this%not_converged = vmec_set_param(this%vmec, id,                 &
+     &                                          i_index, j_index,              &
+     &                                          value)                         &
+     &                         .or. this%not_converged
 
       END SELECT
 
@@ -698,7 +703,7 @@
 !-------------------------------------------------------------------------------
 !  Converge the equilibrium.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_converge(this, num_iter)
+      FUNCTION equilibrium_converge(this, num_iter, iou)
 
       IMPLICIT NONE
 
@@ -706,8 +711,13 @@
       LOGICAL                                 :: equilibrium_converge
       TYPE (equilibrium_class), INTENT(inout) :: this
       INTEGER, INTENT(inout)                  :: num_iter
+      INTEGER, INTENT(in)                     :: iou
+
+!  local variables
+      INTEGER                                 :: init_num_iter
 
 !  Start of executable code
+      init_num_iter = num_iter
       IF (this%not_converged) THEN
          SELECT CASE (this%type)
 
@@ -723,6 +733,12 @@
       ELSE
          equilibrium_converge = .true.
       ENDIF
+
+      WRITE (*,1000) equilibrium_converge, num_iter,                           &
+     &               num_iter - init_num_iter
+      WRITE (iou,1000) equilibrium_converge, num_iter,                         &
+     &                 num_iter - init_num_iter
+1000  FORMAT('Equilibrium converged ',l,2(2x,i7))
 
       END FUNCTION
 
@@ -782,6 +798,78 @@
 
       CASE (equilibrium_vmec_type)
          CALL vmec_write(this%vmec, iou)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!  Define the netcdf variables and dimensions.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_def_result(this, result_ncid,                     &
+     &                                  maxnsetps_dim_id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+      INTEGER, INTENT(in)                  :: maxnsetps_dim_id
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_def_result(this%vmec, result_ncid,                       &
+     &                           maxnsetps_dim_id)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write inital data to the defined variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write_init_data(this, result_ncid)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_write_init_data(this%vmec, result_ncid)
+
+      END SELECT
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Write step data to the defined variables.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write_step_data(this, result_ncid,                &
+     &                                       current_step)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+      INTEGER, INTENT(in)                  :: current_step
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_write_step_data(this%vmec, result_ncid,                  &
+     &                                current_step)
 
       END SELECT
 

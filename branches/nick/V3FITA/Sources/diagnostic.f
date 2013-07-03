@@ -1,10 +1,12 @@
 !*******************************************************************************
-!  File diagnostic.f
-!  Contains module diagnostic
-!  Defines the base class of the type signal:
-!
-!  Super Class: signal
-!  Sub Classes: magnetic, sxrem, intpol, thomson, extcurz
+!>  @file diagnostic.f
+!>  @brief Contains module @ref diagnostic
+!>
+!>  Defines the base class of the type @ref diagnostic_class.
+!>  @par Super Class:
+!>  @ref signal
+!>  @par Sub Classes:
+!>  @ref magnetic, @ref sxrem, @ref intpol, @ref thomson, @ref extcurz
 !*******************************************************************************
 
       MODULE diagnostic
@@ -20,11 +22,17 @@
 !*******************************************************************************
 !  diagnostic module parameters
 !*******************************************************************************
+!>  Type descriptor for the @ref diagnostic_class no sub class.
       INTEGER, PARAMETER :: diagnostic_no_type = -1
+!>  Type descriptor for the @ref diagnostic_class sub class @ref magnetic
       INTEGER, PARAMETER :: diagnostic_magnetic_type = 0
+!>  Type descriptor for the @ref diagnostic_class sub class @ref sxrem
       INTEGER, PARAMETER :: diagnostic_sxrem_type = 1
+!>  Type descriptor for the @ref diagnostic_class sub class @ref intpol
       INTEGER, PARAMETER :: diagnostic_intpol_type = 2
+!>  Type descriptor for the @ref diagnostic_class sub class @ref thomson
       INTEGER, PARAMETER :: diagnostic_thomson_type = 3
+!>  Type descriptor for the @ref diagnostic_class sub class @ref extcurz
       INTEGER, PARAMETER :: diagnostic_extcurz_type = 4
 
 !*******************************************************************************
@@ -32,8 +40,19 @@
 !  1) diagnostic base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a diagnostic signal.
+!>  @par Super Class:
+!>  @ref signal
+!>  @par Sub Classes:
+!>  @ref magnetic, @ref sxrem, @ref intpol, @ref thomson, @ref extcurz
+!-------------------------------------------------------------------------------
       TYPE diagnostic_class
+!>  Type descirptor of the geometric subclass type.
+!>  @par Possible values are:
+!>  @ref diagnostic_no_type, @ref diagnostic_magnetic_type,
+!>  @ref diagnostic_sxrem_type, @ref diagnostic_intpol_type,
+!>  @ref diagnostic_thomson_type, @ref diagnostic_extcurz_type
          INTEGER                       :: type = diagnostic_no_type
          TYPE(magnetic_class), POINTER :: magnetic => null()
          TYPE(sxrem_class), POINTER    :: sxrem => null()
@@ -45,6 +64,12 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref geometric_class types using
+!>  @ref diagnostic_construct_magnetic, @ref diagnostic_construct_sxrem,
+!>  @ref diagnostic_construct_intpol, @ref diagnostic_construct_thomson or
+!>  @ref diagnostic_construct_extcurz
+!-------------------------------------------------------------------------------
       INTERFACE diagnostic_construct
          MODULE PROCEDURE diagnostic_construct_magnetic,                       &
      &                    diagnostic_construct_sxrem,                          &
@@ -59,7 +84,11 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a diagnostic containing a magnetic.
+!>  @brief Construct a @ref diagnostic_class containing a @ref magnetic object.
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>  @param[in] magnetic_object An instance of a @ref magnetic subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_construct_magnetic(magnetic_object)
 
@@ -76,7 +105,11 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a diagnostic containing a sxrem.
+!>  @brief Construct a @ref diagnostic_class containing a @ref sxrem object.
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>  @param[in] sxrem_object An instance of a @ref sxrem subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_construct_sxrem(sxrem_object)
 
@@ -93,7 +126,11 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a diagnostic containing a intpol.
+!>  @brief Construct a @ref diagnostic_class containing a @ref intpol object.
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>  @param[in] intpol_object An instance of a @ref intpol subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_construct_intpol(intpol_object)
 
@@ -110,7 +147,11 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a diagnostic containing a thomson.
+!>  @brief Construct a @ref diagnostic_class containing a @ref thomson object.
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>  @param[in] thomson_object An instance of a @ref thomson subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_construct_thomson(thomson_object)
 
@@ -127,7 +168,11 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a diagnostic containing a extcurz.
+!>  @brief Construct a @ref diagnostic_class containing a @ref extcurz object.
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>  @param[in] extcurz_object An instance of a @ref extcurz subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_construct_extcurz(extcurz_object)
 
@@ -146,6 +191,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref diagnostic_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref diagnostic_class object.
+!>
+!>  @param[inout] this A @ref diagnostic_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE diagnostic_destruct(this)
 
       IMPLICIT NONE
@@ -189,7 +241,22 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_modeled_signal method of the subclass instance
+!>  @ref diagnostic_class was constructed with.
+!>
+!>  @see limiter::magnetic_get_modeled_signal
+!>  @see sxrem::sxrem_get_modeled_signal
+!>  @see intpol::intpol_get_modeled_signal
+!>  @see thomson::thomson_get_modeled_signal
+!>  @see extcurz::extcurz_get_modeled_signal
+!>
+!>  @param[in]    this    A @ref diagnostic_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -230,7 +297,20 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the diagnostic type
+!>  @brief Gets a discription of the diagnostic type.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_signal_type method of the subclass instance
+!>  @ref diagnostic_class was constructed with.
+!>
+!>  @see limiter::magnetic_get_signal_type
+!>  @see sxrem::sxrem_get_signal_type
+!>  @see intpol::intpol_get_signal_type
+!>  @see thomson::thomson_get_signal_type
+!>  @see extcurz::extcurz_get_signal_type
+!>
+!>  @param[in] this A @ref diagnostic_class instance.
+!>  @returns A string describing the diagnostic type.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_get_signal_type(this)
       USE data_parameters
@@ -268,7 +348,16 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the diagnostic header
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  This method is meant to be overwritten by a subclass method if need be. As a
+!>  result, returns the get_header method of the subclass instance
+!>  @ref diagnostic_class was constructed with. Otherwise uses the default.
+!>
+!>  @see magnetic::magnetic_get_header
+!>
+!>  @param[in] this A @ref diagnostic_class instance.
+!>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_get_header(this)
       USE data_parameters
@@ -276,7 +365,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   diagnostic_get_header
       TYPE (diagnostic_class), INTENT(in) :: this
 
@@ -287,7 +376,11 @@
             diagnostic_get_header = magnetic_get_header(this%magnetic)
 
          CASE DEFAULT
-            diagnostic_get_header = 'N/A'
+            diagnostic_get_header(1:3) = 'N/A'
+            diagnostic_get_header(4) = 'model_sig(1)'
+            diagnostic_get_header(5) = 'model_sig(2)'
+            diagnostic_get_header(6) = 'model_sig(3)'
+            diagnostic_get_header(7) = 'model_sig(4)'
 
       END SELECT
 

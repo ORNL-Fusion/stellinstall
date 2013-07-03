@@ -1,10 +1,10 @@
 !*******************************************************************************
-!  File magnetic.f
-!  Contains module magnetic
-!  Defines the base class of the type magnetic:
-!
-!  Super Class: diagnostic
-!  Sub Classes: None
+!>  @file magnetic.f
+!>  @brief Contains module @ref magnetic
+!>
+!>  Defines the base class of the type @ref magnetic_class.
+!>  @par Super Class:
+!>  @ref diagnostic
 !*******************************************************************************
 
       MODULE magnetic
@@ -15,16 +15,15 @@
       IMPLICIT NONE
 
 !*******************************************************************************
-!  magnetic module parameters
-!*******************************************************************************
-      INTEGER, PARAMETER :: magnetic_no_type = -1
-
-!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) magnetic base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a magnetic signal.
+!>  @par Super Class:
+!>  @ref diagnostic
+!-------------------------------------------------------------------------------
       TYPE magnetic_class
          TYPE (mddc_mrf), POINTER :: responce_function => null()
       END TYPE magnetic_class
@@ -32,6 +31,10 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref magnetic_class types using
+!>  @ref magnetic_construct_netcdf or @ref magnetic_construct_responce
+!-------------------------------------------------------------------------------
       INTERFACE magnetic_construct
       MODULE PROCEDURE magnetic_construct_netcdf,                              &
      &                 magnetic_construct_responce
@@ -42,7 +45,12 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a magnetic with a responce function.
+!>  @brief Construct a @ref magnetic_class object containing a @ref mddc_mrf
+!>  object.
+!>
+!>  Allocates memory and initializes a @ref magnetic_class object.
+!>  @param[in] responce_function An instance of a @ref mddc_mrf object.
+!>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_construct_responce(responce_function)
 
@@ -60,7 +68,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a magnetic from a netcdf file .
+!>  @brief Construct a @ref magnetic_class from a mdsig file.
+!>
+!>  Reads the description of a magnetic diagnostic from an mdsig file.
+!>  Constructs an instance of a @ref mddc_mrf and return the constructed
+!>  magnetic_class from @ref magnetic_construct_responce
+!>  @param[in] mdsig_iou An instance of a the netcdf id of the open mdsig file.
+!>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_construct_netcdf(mdsig_iou)
       USE data_parameters
@@ -145,6 +159,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref magnetic_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref magnetic_class object.
+!>
+!>  @param[inout] this A @ref magnetic_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE magnetic_destruct(this)
 
       IMPLICIT NONE
@@ -166,23 +187,33 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
-!
-!  The plasma signal is the volume integral of the current denisty dotted with
-!  the diagnostic responce function vector. The responce_function contains a r z
-!  grid of reponce function vectors. These grid points are then interpolated
-!  into the equilibrium grid positions for a single toroidal plane.
-!  Hishman et. al. Phys. Plasmas 11, 595 (2004); doi: 10.1063/1.1637347
-!
-!    phi = Int[dV J_plasma * A_diag]
+!>  @brief Calculates the modeled signal.
+!>
+!>  The plasma signal is the volume integral of the current denisty dotted with
+!>  the diagnostic responce function vector. The responce_function contains a r z
+!>  grid of reponce function vectors. These grid points are then interpolated
+!>  into the equilibrium grid positions for a single toroidal plane.
+!>  Hishman et. al. Phys. Plasmas 11, 595 (2004); doi: 10.1063/1.1637347
+!>
+!>  phi = Int[dV J_plasma * A_diag]
+!>
+!>  J_plasma and dV are obtained from the @ref equilibrium. A_diag is obtained
+!>  from the @ref mddc_mrf
 !-------------------------------------------------------------------------------
-!  External current contribrutions are included by the dot product of the
-!  external currents with mutual inductance values.
+!>
+!>  External current contribrutions are included by the dot product of the
+!>  external currents with mutual inductance values. These currents are obtained
+!>  from @ref equilibrium if they exist.
 !-------------------------------------------------------------------------------
-!  The plasma only signal is stored in the 2nd index.
-!  The external current signal is stored in the 3rd index.
-!  Total signal is the sum of plasma signal and external signal.
-!
+!>
+!>  The plasma only signal is stored in the 2nd index.
+!>  The external current signal is stored in the 3rd index.
+!>  Total signal is the sum of plasma signal and external signal.
+!>
+!>  @param[in]    this    A @ref magnetic_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -223,7 +254,7 @@
 
 !  Calculate the plasma only signal from the responce function.
 !  Get the volume integration grid points.
-!  NOTE: Do nor deallocate any of these arrays. They are owned by the
+!  NOTE: Do not deallocate any of these arrays. They are owned by the
 !  equilibrium
       rvolgrid =>                                                              &
      &   equilibrium_get_magnetic_volume_rgrid(a_model%equilibrium)
@@ -356,7 +387,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the magnetic type
+!>  @brief Gets a discription of the magnetic type.
+!>
+!>  Returns a description of the magnetic type for use when writting output
+!>  files.
+!>
+!>  @param[in] this A @ref magnetic_class instance.
+!>  @returns A string describing the magnetic type.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_signal_type(this)
       USE data_parameters
@@ -373,7 +410,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the magnetic header
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  Returns a description of the array indices for use when writting output
+!>  files.
+!>
+!>  @param[in] this A @ref magnetic_class instance.
+!>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_header(this)
       USE data_parameters
@@ -381,7 +424,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   magnetic_get_header
       TYPE (magnetic_class), INTENT(in) :: this
 
@@ -389,6 +432,10 @@
       magnetic_get_header(1) = 'plasma only'
       magnetic_get_header(2) = 'eq currents'
       magnetic_get_header(3) = 'N/A'
+      magnetic_get_header(4) = 'model_sig(1)'
+      magnetic_get_header(5) = 'model_sig(2)'
+      magnetic_get_header(6) = 'model_sig(3)'
+      magnetic_get_header(7) = 'model_sig(4)'
 
       END FUNCTION
 

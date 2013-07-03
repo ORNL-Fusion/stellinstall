@@ -1,10 +1,12 @@
 !*******************************************************************************
-!  File magnetic.f
-!  Contains module extcurz
-!  Defines the base class of the type extcurz:
-!
-!  Super Class: diagnostic
-!  Sub Classes: None
+!>  @file extcurz.f
+!>  Contains module @ref extcurz.
+!>
+!>  Represents a signal obtained by integrating around the magnetic field to get
+!>  the current enclosed in the Z direction using Ampere's Law. Defines the base
+!>  class of the type @ref extcurz_class.
+!>  @par Super Class:
+!>  @ref diagnostic
 !*******************************************************************************
 
       MODULE extcurz
@@ -18,7 +20,12 @@
 !  1) extcurz base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a external Z currents enclosed by an inegration
+!>  loop.
+!>  @par Super Class:
+!>  @ref diagnostic
+!-------------------------------------------------------------------------------
       TYPE extcurz_class
          REAL (rprec) :: r
          REAL (rprec) :: theta
@@ -29,7 +36,12 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a magnetic.
+!>  @brief Construct a @ref extcurz_class object measureing temperature.
+!>
+!>  Allocates memory and initializes a @ref extcurz_class object.
+!>  @param[in] r     The radial position to integrate at.
+!>  @param[in] theta The poloidal angle to integrate at.
+!>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_construct(r, theta)
       USE eq_T
@@ -51,6 +63,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref extcurz_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref extcurz_class object.
+!>
+!>  @param[inout] this A @ref extcurz_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE extcurz_destruct(this)
 
       IMPLICIT NONE
@@ -70,7 +89,16 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  Calculates the inclused Z current from Ampere's Law from an loop integration
+!>  of the magnetic field. The loop integrated magnetic field is provided by
+!>  @ref equilibrium_get_Int_B_dphi
+!>
+!>  @param[in]    this    A @ref extcurz_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -96,7 +124,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the extcurz type
+!>  @brief Gets a discription of the extcurz type.
+!>
+!>  Returns a description of the extcurz type for use when writting output files.
+!>
+!>  @param[in] this A @ref extcurz_class instance.
+!>  @returns A string describing the extcurz type.
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_get_signal_type(this)
       USE data_parameters

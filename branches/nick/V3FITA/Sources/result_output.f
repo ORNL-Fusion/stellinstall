@@ -16,8 +16,8 @@
       USE v3f_vmec_comm
 
 !*******************************************************************************
-!  Object representing the results file. This is mean to be an opaque. All 
-!  fields private and can only be accessed from inside this module.
+!  Object representing the results file. This is mean to be an opaque type. All 
+!  fields are private and can only be accessed from inside this module.
 !
 !  NetCDF variables:
 !    ncid    Reference to the netcdf file.
@@ -428,7 +428,7 @@
       CALL result_output_check_error(status)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_rbc_id,             &
      &                      (/ 1, 1, 1 /),                                     &
      &                      (/ boundary_j, boundary_i, 1/),                    &
@@ -444,7 +444,7 @@
       CALL result_output_check_error(status)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbc_id,             &
      &                      (/ 1, 1, 1 /),                                     &
      &                      (/ boundary_j, boundary_i, 1/),                    &
@@ -452,7 +452,7 @@
       CALL result_output_check_error(status)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_output_file_create%ncid,                    &
+     &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbs_id,             &
      &                      (/ 1, 1, 1 /),                                     &
      &                      (/ boundary_j, boundary_i, 1/),                    &
@@ -625,7 +625,7 @@
      &               - model_a%eqstate%varp%rbc_bounds(3)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_rbc_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
      &                      (/ boundary_j, boundary_i, 1/),                    &
@@ -633,7 +633,7 @@
       CALL result_output_check_error(status)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_rbs_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
      &                      (/ boundary_j, boundary_i, 1/),                    &
@@ -641,7 +641,7 @@
       CALL result_output_check_error(status)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbc_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
      &                      (/ boundary_j, boundary_i, 1/),                    &
@@ -649,7 +649,7 @@
       CALL result_output_check_error(status)
 
       status =                                                                 &
-     &   nf_put_var1_double(result_file_ref%ncid,                              &
+     &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbs_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
      &                      (/ boundary_j, boundary_i, 1/),                    &

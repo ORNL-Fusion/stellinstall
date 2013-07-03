@@ -1,25 +1,22 @@
 !*******************************************************************************
-!  File signal.f
-!  Contains module signal
-!  Defines the base class of the type signal:
-!
-!  Super Class: None
-!  Sub Classes: diagnostic, geometric, combination
-!
-!  ---------------------------------------------------------------------------
-!
-!  Defines the base class of the type combination:
-!
-!  Super Class: signal
-!  Sub Classes: None
-!
-!  NOTE: combination is defined in the signal module to avoid a circular
-!  module dependency.
-!
+!>  @file signal.f
+!>  @brief Contains module @ref signal.
+!>
+!>  Defines the base class of the type @ref signal_class and the base class of
+!>  @ref combination_class.
+!>  @par
+!>  signal Sub Classes:
+!>  @ref diagnostic, @ref geometric, @ref combination_class
+!>
+!>  @par
+!>  combination Super Class:
+!>  @ref signal
+!>
+!>  @note
+!>  Combination is defined in the signal module to avoid a circular module
+!>  dependency.
 !*******************************************************************************
-
       MODULE signal
-
       USE stel_kinds, only: rprec
       USE diagnostic
       USE geometric
@@ -29,23 +26,36 @@
 !*******************************************************************************
 !  signal module parameters
 !*******************************************************************************
+!>  Maximum length of the @ref s_name string.
       INTEGER, PARAMETER :: signal_name_short_length = 30
+!>  Maximum length of the @ref l_name string.
       INTEGER, PARAMETER :: signal_name_long_length = 80
+!>  Maximum length of the @ref units string.
       INTEGER, PARAMETER :: signal_units_length = 30
 
+!>  Type descriptor for the @ref signal_class no sub class.
       INTEGER, PARAMETER :: signal_no_type = -1
+!>  Type descriptor for the @ref signal_class sub class @ref diagnostic
       INTEGER, PARAMETER :: signal_diagnostic_type = 0
+!>  Type descriptor for the @ref signal_class sub class @ref geometric
       INTEGER, PARAMETER :: signal_geometric_type = 1
+!>  Type descriptor for the @ref signal_class sub class @ref combination_class
+!  Use combination_class since combination lacks it's own module.
       INTEGER, PARAMETER :: signal_combination_type = 2
 
 !*******************************************************************************
 !  combination module parameters
 !*******************************************************************************
+!>  Maximum length of the combination type descritpion string.
       INTEGER, PARAMETER :: combination_type_length= 3
 
+!>  Type descriptor for combination type no type.
       INTEGER, PARAMETER :: combination_none = -1
+!>  Type descriptor for combination type sum.
       INTEGER, PARAMETER :: combination_sum = 0
+!>  Type descriptor for combination type max.
       INTEGER, PARAMETER :: combination_max = 1
+!>  Type descriptor for combination type min.
       INTEGER, PARAMETER :: combination_min = 2
 
 !*******************************************************************************
@@ -56,25 +66,27 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Signal base class
-!
-!  Superclass:
-!     None
-!
-!  Subclasses:
-!     diagnostic_class
-!     geometric_class
-!     combination_class
+!>  Base class representing a signal.
+!>  @par Sub Classes:
+!>  @ref diagnostic, @ref geometric, @ref combination_class
 !-------------------------------------------------------------------------------
       TYPE signal_class
+!>  Type descirptor of the signal subclass type.
+!>  @par Possible values are:
+!>  @ref signal_no_type, @ref signal_diagnostic_type,
+!>  @ref signal_geometric_type, @ref signal_combination_type
          INTEGER                            :: type = signal_no_type
+!>  Short name of the signal
          CHARACTER (len=signal_name_short_length) :: s_name
+!>  Long name of the signal
          CHARACTER (len=signal_name_long_length)  :: l_name
          CHARACTER (len=signal_units_length)      :: units
          REAL (rprec)                       :: observed
          REAL (rprec)                       :: observed_sigma
          REAL (rprec)                       :: weight
+!> Cached value of the modeled signal.
          REAL (rprec), DIMENSION(4)         :: modeled
+!> Cached value of the modeled sigma.
          REAL (rprec), DIMENSION(4)         :: modeled_sigma
          TYPE (diagnostic_class), POINTER   :: diagnostic => null()
          TYPE (geometric_class), POINTER    :: geometric => null()
@@ -82,31 +94,38 @@
       END TYPE signal_class
 
 !-------------------------------------------------------------------------------
-!  Derived type to hold a pointer to a signal. This is needed because fortran
-!  does not allow arrays of pointers directly.
+!>  Pointer to a signal object. Used for creating arrays of signal pointers.
+!>  This is needed because fortran does not allow arrays of pointers directly.
 !-------------------------------------------------------------------------------
       TYPE signal_pointer
          TYPE (signal_class), POINTER :: p => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
-!  Combination base class
-!
-!  Superclass:
-!     signal_class
-!
-!  Subclasses:
-!     None
+!>  Base class representing a combination signal.
+!>  @par Super Class:
+!>  @ref signal
 !-------------------------------------------------------------------------------
       TYPE combination_class
+!>  Type descirptor of the cobination type.
+!>  @par Possible values are:
+!>  @ref combination_none, @ref combination_sum, @ref combination_max,
+!>  @ref combination_min
          INTEGER :: type = combination_none
+!>  Array of @ref signal_class pointer presenting the sigals to combine.
          TYPE (signal_pointer), DIMENSION(:), POINTER :: signals
+!>  Array of coeffients to for the combined signals.
          REAL(rprec), DIMENSION(:), POINTER           :: a
       END TYPE combination_class
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref signal_construct types using
+!>  @ref signal_construct_diagnostic, @ref signal_construct_geometric,
+!>  @ref signal_construct_combination or @ref signal_construct_diagnostic_netcdf
+!-------------------------------------------------------------------------------
       INTERFACE signal_construct
          MODULE PROCEDURE signal_construct_diagnostic,                         &
      &                    signal_construct_geometric,                          &
@@ -119,7 +138,17 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a signal containing a diagnostic.
+!>  @brief Construct a @ref signal_class containing a @ref diagnostic object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>  @param[in] diagnostic_object An instance of a @ref diagnostic subclass.
+!>  @param[in] s_name            The short name of the signal.
+!>  @param[in] l_name            The short name of the signal.
+!>  @param[in] units             The units of the signal.
+!>  @param[in] observed          Observed value of the signal.
+!>  @param[in] sigma             Observed sigma of the signal.
+!>  @param[in] weight            Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_diagnostic(diagnostic_object, s_name,          &
      &                                     l_name, units, observed,            &
@@ -154,7 +183,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a signal containing a geometric.
+!>  @brief Construct a @ref signal_class containing a @ref geometric object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>  @param[in] geometric_object An instance of a @ref geometric subclass.
+!>  @param[in] s_name           The short name of the signal.
+!>  @param[in] l_name           The short name of the signal.
+!>  @param[in] units            The units of the signal.
+!>  @param[in] observed         Observed value of the signal.
+!>  @param[in] sigma            Observed sigma of the signal.
+!>  @param[in] weight           Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_geometric(geometric_object, s_name,            &
      &                                    l_name, units, observed,             &
@@ -189,7 +228,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a signal containing a combination.
+!>  @brief Construct a @ref signal_class containing a @ref combination object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>  @param[in] combination_object An instance of a @ref combination subclass.
+!>  @param[in] s_name             The short name of the signal.
+!>  @param[in] l_name             The short name of the signal.
+!>  @param[in] units              The units of the signal.
+!>  @param[in] observed           Observed value of the signal.
+!>  @param[in] sigma              Observed sigma of the signal.
+!>  @param[in] weight             Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_combination(combination_object, s_name,        &
      &                                      l_name, units, observed,           &
@@ -225,7 +274,16 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Construct a signal containing a diagnostic from a netcdf file.
+!>  @brief Construct a @ref signal_class containing a @ref diagnostic object.
+!>
+!>  Reads the s_name, l_name and units from a netcdf file. Used for constructing
+!>  the @ref magnetic objects.
+!>  @param[in] diagnostic_object An instance of a @ref diagnostic subclass.
+!>  @param[in] mdsig_iou         NetCDF id of the opened mdsig file.
+!>  @param[in] observed          Observed value of the signal.
+!>  @param[in] sigma             Observed sigma of the signal.
+!>  @param[in] weight            Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_diagnostic_netcdf(diagnostic_object,           &
      &                                            mdsig_iou, observed,         &
@@ -261,6 +319,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref signal_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref signal_class object.
+!>
+!>  @param[inout] this A @ref signal_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE signal_destruct(this)
 
       IMPLICIT NONE
@@ -302,7 +367,25 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_modeled_signal method of the subclass instance
+!>  @ref signal_class was constructed with unless the signal is read from the
+!>  cached value. Read from the cached value when the signal doesn't need to be
+!>  recalulated. If the sigal is to be recalculated, write these to the cache.
+!>
+!>  @see limiter::diagnostic_get_modeled_signal
+!>  @see sxrem::geometric_get_modeled_signal
+!>  @see intpol::combination_get_modeled_signal
+!>
+!>  @param[in]    this      A @ref diagnostic_class instance.
+!>  @param[inout] a_model   A @ref model_class instance.
+!>  @param[out]   sigma     The modeled sigma.
+!>  @param[in]    use_cache If false calculate the signal and sigma and write
+!>                          them to the cache. Otherwise read from the cache
+!>                          without recalculating the signal.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_modeled_signal(this, a_model, sigma,                 &
      &                                   use_cache)
@@ -349,9 +432,18 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the g2 contribution.
+!>  @brief Calculates the g^2 contribution of a signal.
+!>
+!>  Gets the g^2 contribution of an individual signal.
+!>  g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
+!>
+!>  @param[in]    this      A @ref diagnostic_class instance.
+!>  @param[inout] a_model   A @ref model_class instance.
+!>  @param[in]    use_cache If the signals have been already calculated this
+!>                          should be false. Otherwise set to true.
+!>  @returns The g^2 value.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_g2(this, a_model)
+      FUNCTION signal_get_g2(this, a_model, use_cache)
       USE model
 
       IMPLICIT NONE
@@ -360,6 +452,38 @@
       REAL (rprec)                       :: signal_get_g2
       TYPE (signal_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout)  :: a_model
+      LOGICAL, INTENT(in)                :: use_cache
+
+!  Local Variables
+
+!  Start of executable code
+! g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
+      signal_get_g2 = signal_get_e(this, a_model, use_cache)**2.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the e contribution of a signal.
+!>
+!>  Gets the e contribution of an individual signal.
+!>  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
+!>
+!>  @param[in]    this      A @ref diagnostic_class instance.
+!>  @param[inout] a_model   A @ref model_class instance.
+!>  @param[in]    use_cache If the signals have been already calculated this
+!>                          should be false. Otherwise set to true.
+!>  @returns The e value.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_e(this, a_model, use_cache)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                       :: signal_get_e
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout)  :: a_model
+      LOGICAL, INTENT(in)                :: use_cache
 
 !  Local Variables
       REAL (rprec), DIMENSION(4)         :: modeled_signal
@@ -367,15 +491,54 @@
 
 !  Start of executable code
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
-     &                                           modeled_sigma, .false.)
-      signal_get_g2 =                                                          &
-     &   this%weight*((this%observed - modeled_signal(1))                      &
-     &               /(this%observed_sigma - modeled_sigma(1)))**2.0
+     &                                           modeled_sigma,                &
+     &                                           use_cache)
+
+! e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
+      signal_get_e = (this%observed - modeled_signal(1))                       &
+     &             * SQRT(this%weight/signal_get_sigma2(this))
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the signal type
+!>  @brief Calculates the total sigma^2 of a signal.
+!>
+!>  Gets the total sigma^2 of an individual signal.
+!>  sigma^2 = sigma_o^2 + sigma_m^2
+!>
+!>  @param[in]    this      A @ref diagnostic_class instance.
+!>  @returns The e value.
+!>  @note this assumes that modeled sigma value has already been cached by a
+!>  call to @ref signal_get_modeled_signal
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_sigma2(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: signal_get_sigma2
+      TYPE (signal_class), INTENT(in) :: this
+
+!  Start of executable code
+!  sigma_o^2 + sigma_m^2)
+      signal_get_sigma2 = this%observed_sigma**2.0                             &
+     &                  + this%modeled_sigma(1)**2.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the signal type.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_signal_type method of the subclass instance
+!>  @ref signal_class was constructed with.
+!>
+!>  @see diagnostic::diagnostic_get_signal_type
+!>  @see geometric::geometric_get_signal_type
+!>  @see combination_get_signal_type
+!>
+!>  @param[in] this A @ref signal_class instance.
+!>  @returns A string describing the signal type.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_signal_type(this)
       USE data_parameters
@@ -406,7 +569,18 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the signal header
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_header method of the subclass instance
+!>  @ref diagnostic_class was constructed with.
+!>
+!>  @see diagnostic::diagnostic_get_header
+!>  @see geometric::geometric_get_header
+!>  @see combination_get_header
+!>
+!>  @param[in] this A @ref signal_class instance.
+!>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_header(this)
       USE data_parameters
@@ -414,7 +588,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   signal_get_header
       TYPE (signal_class), INTENT(in) :: this
 
@@ -438,7 +612,14 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Generate a short name with an index
+!>  @brief Generate a short name by appending an index.
+!>
+!>  Returns an appended string with no leading spaces. This check the number of
+!>  digits in the index then chooses the appropriate formatting.
+!>
+!>  @param[in] name  A name of a signal to append to.
+!>  @param[in] index A index of a signal to append.
+!>  @returns A string an appended string.
 !-------------------------------------------------------------------------------
       FUNCTION signal_make_short_name(name, index)
 
@@ -464,31 +645,49 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Write out the signal
+!>  @brief Write out the signal information to an output file.
+!>
+!>  Signals information is formated as the index, signal type, s_name, g^2,
+!>  weight, observed value, observed sigma, modeled value and modeled sigma.
+!>
+!>  @param[in] this    A @ref diagnostic_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of a signal.
+!>  @param[in] a_model The equilibrium model.
+!>  @note This assumes that signals have already been calculated. The model
+!>  isn't used by signal_get_g2 since it is reading from the cache but must be
+!>  passed in anyway.
 !-------------------------------------------------------------------------------
-      SUBROUTINE signal_write(this, iou, index)
+      SUBROUTINE signal_write(this, iou, index, a_model)
+      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), INTENT(in) :: this
-      INTEGER, INTENT(in)             :: iou
-      INTEGER, INTENT(in)             :: index
+      TYPE (signal_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                :: iou
+      INTEGER, INTENT(in)                :: index
+      TYPE (model_class), INTENT(inout)  :: a_model
 
 !  Start of executable code
-!  FIXME: It is too convoluted to keep the recout identical at this point.
-!  Write out the model 1 and 2 for every signal. Eventually all for should be
-!  written out.
-      WRITE (iou,1000) index, signal_get_signal_type(this),                    &
-     &                 this%s_name, this%observed, this%observed_sigma,        &
-     &                 this%modeled
+      WRITE (iou,1000) index, signal_get_signal_type(this), this%s_name,       &
+     &                 signal_get_g2(this, a_model, .true.),                   &
+     &                 this%weight, this%observed, this%observed_sigma,        &
+     &                 this%modeled, this%modeled_sigma
 
-1000  FORMAT(i4,2x,a23,2x,a20,2(2x,es12.5),4(2x,es12.5))
+1000  FORMAT(i4,2x,a23,2x,a20,12(2x,es12.5))
 
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write out the signal header
+!>  @brief Write out the signal header information to an output file.
+!>
+!>  Signals information is formated as a the index, signal type, s_name, g^2,
+!>  weight, observed value, observed sigma, modeled value and modeled sigma.
+!>
+!>  @param[in] this    A @ref diagnostic_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @note This should only be called when the type of signal changes.
 !-------------------------------------------------------------------------------
       SUBROUTINE signal_write_header(this, iou)
 
@@ -502,13 +701,24 @@
       WRITE (iou,*)
       WRITE (iou,1000) signal_get_header(this)
 
-1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'observed',6x,'sigma',          &
-     &       9x,'model',7x,2(2x,a12),3(2x,a12))
+1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'g^2',11x,'weight',8x,          &
+     &       'observed',6x,'sigma', 9x,'model',7x,2(2x,a12),7(2x,a12))
 
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write out the signal auxiliary information.
+!>  @brief Write out any auxiliary signal information to an output file.
+!>
+!>  This method is meant to be overwritten by a subclass method if need be. As a
+!>  result, returns the write_auxiliary method of the subclass instance
+!>  @ref signal_class was constructed with. Otherwise uses the default. nothing
+!>  is written.
+!>
+!>  @see combination_write_auxiliary
+!>
+!>  @param[in] this    A @ref signal_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of a signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE signals_write_auxiliary(this, iou, index)
 
@@ -531,6 +741,72 @@
       END SUBROUTINE
 
 !*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Write out the signal data for a step to the result netcdf file.
+!>
+!>  Writes out the observed, modeled and total sigma value of the signal.
+!>
+!>  @param[in] this                     A @ref diagnostic_class instance.
+!>  @param[in] a_model                  The equilibrium model.
+!>  @param[in] result_ncid              A NetCDF id of the result file.
+!>  @param[in] current_step             The surrent reconstruction step.
+!>  @param[in] index                    A index of a signal.
+!>  @param[in] signal_observed_value_id NetCDF variable id of the observed
+!>                                      value.
+!>  @param[in] signal_model_value_id    NetCDF variable id of the model value.
+!>  @param[in] signal_sigma_value_id    NetCDF variable id of the total sigma.
+!>  @note This assumes that signals have already been calculated. The model
+!>  isn't used by signal_get_g2 since it is reading from the cache but must be
+!>  passed in anyway.
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_write_step_data(this, a_model, result_ncid,            &
+     &                                  current_step, index,                   &
+     &                                  signal_observed_value_id,              &
+     &                                  signal_model_value_id,                 &
+     &                                  signal_sigma_value_id)
+      USE model
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout)  :: a_model
+      INTEGER, INTENT(in)                :: result_ncid
+      INTEGER, INTENT(in)                :: current_step
+      INTEGER, INTENT(in)                :: index
+      INTEGER, INTENT(in)                :: signal_observed_value_id
+      INTEGER, INTENT(in)                :: signal_model_value_id
+      INTEGER, INTENT(in)                :: signal_sigma_value_id
+
+!  local variables
+      INTEGER                            :: status
+      REAL (rprec), DIMENSION(4)         :: modeled_sigma
+      REAL (rprec), DIMENSION(4)         :: modeled_signal
+
+!  Start of executable code
+      status = nf_put_var1_double(result_ncid, signal_observed_value_id,       &
+     &                            (/ index, current_step /),                   &
+     &                            this%observed)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      modeled_signal = signal_get_modeled_signal(this, a_model,                &
+     &                                           modeled_sigma, .true.)
+      status = nf_put_var1_double(result_ncid, signal_model_value_id,          &
+     &                            (/ index, current_step /),                   &
+     &                            modeled_signal(1))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_var1_double(result_ncid, signal_sigma_value_id,          &
+     &                            (/ index, current_step /),                   &
+     &                            SQRT(signal_get_sigma2(this)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      END SUBROUTINE
+
+!*******************************************************************************
 !*******************************************************************************
 !*******************************************************************************
 !*******************************************************************************
@@ -541,7 +817,17 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a combination object.
+!>  @brief Construct a @ref combination_class.
+!>
+!>  Allocates memory and initializes a @ref combination_class object. This just
+!>  allocates the @ref combination_class::signals and @ref combination_class::a
+!>  array. The indices of these arrays are set by @ref combination_set_signal
+!>
+!>  @param[in] n_signals        Number of signals in this combination.
+!>  @param[in] combination_type The method to combine the signals. Possible
+!>                              value are @ref combination_sum,
+!>                              @ref combination_max and @ ref combination_min
+!>  @returns A pointer to a constructed @ref combination_class object.
 !-------------------------------------------------------------------------------
       FUNCTION combination_construct(n_signals, combination_type)
 
@@ -579,6 +865,15 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref combination_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref combination_class object.
+!>
+!>  @param[inout] this A @ref combination_class instance.
+!>  @note The destructors of the signals in the signal array are not called her
+!>  because the combination signals do not own the memory for those signals.
+!-------------------------------------------------------------------------------
       SUBROUTINE combination_destruct(this)
 
       IMPLICIT NONE
@@ -607,9 +902,15 @@
 !  SETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Set the signal
-!
-!  Add a pointer to the signal to be used for the combination.
+!>  @brief Set the object and coefficient for an index.
+!>
+!>  @param[inout] this   A @ref combination_class instance.
+!>  @param[in]    signal A @ref signal_class instance.
+!>  @param[in]    a      A coefficient for the signal
+!>  @param[in]    index  The index to place the combined @ref signal.
+!>  @note Only signals that were created before this combination can be added.
+!>  Otherwise there it will creat an infinitely recursive loop in
+!>  @ref combination_get_modeled_signal
 !-------------------------------------------------------------------------------
       SUBROUTINE combination_set_signal(this, signal, a, index)
 
@@ -633,7 +934,15 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the modeled signal
+!>  @brief Calculates the modeled signal.
+!>
+!>  This method combines the signals pointed in the
+!>  @ref combination_class::signals array. 
+!>
+!>  @param[in]    this    A @ref combination_class instance.
+!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -693,7 +1002,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the combination type
+!>  @brief Gets a discription of the combination type.
+!>
+!>  Returns a description of the combination type for use when writting output
+!>  files.
+!>
+!>  @param[in] this A @ref combination_class instance.
+!>  @returns A string describing the magnetic type.
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_signal_type(this)
       USE data_parameters
@@ -720,7 +1035,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the combination header
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  Returns a description of the array indices for use when writting output
+!>  files.
+!>
+!>  @param[in] this A @ref combination_class instance.
+!>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_header(this)
       USE data_parameters
@@ -728,7 +1049,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length), DIMENSION(3) ::                        &
+      CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   combination_get_header
       TYPE (combination_class), INTENT(in) :: this
 
@@ -736,6 +1057,10 @@
       combination_get_header(1) = 'model(2)'
       combination_get_header(2) = 'model(3)'
       combination_get_header(3) = 'model(4)'
+      combination_get_header(4) = 'model_sig(1)'
+      combination_get_header(5) = 'model_sig(2)'
+      combination_get_header(6) = 'model_sig(3)'
+      combination_get_header(7) = 'model_sig(4)'
 
       END FUNCTION
 
@@ -743,7 +1068,13 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Write out the combination auxiliary information.
+!>  @brief Write out auxiliary signal information to an output file.
+!>
+!>  Writes out the s_name and coefficient of the combined signals.
+!>
+!>  @param[in] this    A @ref combination_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of this signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE combination_write_auxiliary(this, iou, index)
 

@@ -143,6 +143,7 @@
       END IF
 
       WRITE (context%recout_iou,*) '  my_task is ', my_task
+      WRITE (context%runlog_iou,*) '  my_task is ', my_task
       SELECT CASE (my_task)
 
          CASE ('equilibrium')
@@ -162,10 +163,15 @@
 !  Clean up memory
       CALL second0(time_end)
 
+      CALL v3fit_context_write(context)
+
+      WRITE (context%runlog_iou,'(/,a,f10.2)')                                 &
+     &   '  *** V3FIT run time (s): ', time_end - time_start
       WRITE (context%recout_iou,'(/,a,f10.2)')                                 &
      &   '  *** V3FIT run time (s): ', time_end - time_start
       WRITE (*,'(/,a,f10.2)')                                                  &
      &   '  *** V3FIT run time (s): ', time_end - time_start
+
 
       CALL v3fit_context_destruct(context)
 
@@ -191,16 +197,19 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** In task equilibrium'
+      WRITE (context%runlog_iou,*) ' *** In task equilibrium'
 
 !  Initialize equilibrium
       CALL init_equilibrium(context)
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+     &                             'equilibrium convergence'
       converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps)
+     &                                 num_steps, context%runlog_iou)
 
-      WRITE (*,*) converged, num_steps
+      CALL v3fit_context_init_data(context)
 
       END SUBROUTINE
 
@@ -224,6 +233,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** In task v3post'
+      WRITE (context%runlog_iou,*) ' *** In task v3post'
 
 !  Initialize v3post
       CALL init_equilibrium(context)
@@ -231,40 +241,22 @@
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+     &                             'equilibrium convergence'
       converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps)
-
-      WRITE (*,*) converged, num_steps
+     &                                 num_steps, context%runlog_iou)
 
 !  Calculate and display the signals.
       WRITE (*,*) ' *** Calculating modeled signals'
+      WRITE (context%runlog_iou,*) ' *** Calculating modeled signals'
 
       DO i = 1, SIZE(context%signals)
          observed = signal_get_modeled_signal(context%signals(i)%p,            &
      &                                        context%model,                   &
      &                                        sigma, .false.)
-
-!  Check if the index has reached a new signal type
-         IF ((context%magnetic_index .eq. i) .or.                              &
-     &       (context%sxrem_index .eq. i) .or.                                 &
-     &       (context%intpol_index .eq. i) .or.                                &
-     &       (context%thomson_index .eq. i) .or.                               &
-     &       (context%extcurz_index .eq. i) .or.                               &
-     &       (context%limiter_index .eq. i) .or.                               &
-     &       (context%combination_index .eq. i)) THEN
-
-            CALL signal_write_header(context%signals(i)%p,                     &
-     &                               context%recout_iou)
-         END IF
-
-         CALL signal_write(context%signals(i)%p,                               &
-     &                     context%recout_iou, i)
       END DO
 
-      DO i = 1, SIZE(context%signals)
-         CALL signals_write_auxiliary(context%signals(i)%p,                    &
-     &                                context%recout_iou, i)
-      END DO
+      CALL v3fit_context_init_data(context)
 
       END SUBROUTINE
 
@@ -281,9 +273,8 @@
 
 !  local variables
       INTEGER                                   :: num_steps = 1
-      LOGICAL                                   :: converged
-      REAL (rprec)                              :: g2 = 0.0
       INTEGER                                   :: i
+      LOGICAL                                   :: eq_converged
 
 !  Start of executable code
       WRITE (*,*) ' *** In task reconstruct'
@@ -292,17 +283,78 @@
       CALL init_equilibrium(context)
       CALL init_signals(context)
       CALL init_parameters(context)
+      CALL init_reconstruction(context)
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
-      converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps)
-      CALL assert(converged, 'task_reconstruct no inital convergence')
+      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+     &                             'equilibrium convergence'
 
-!  Calculate chi^2
-      DO i = 1, SIZE(context%signals)
-          g2 = g2 + signal_get_g2(context%signals(i)%p, context%model)
+      eq_converged = reconstruction_eval_e(context%recon,                      &
+     &                                     context%signals,                    &
+     &                                     context%model, num_steps,           &
+     &                                     context%runlog_iou)
+      CALL assert(eq_converged,                                                &
+     &            'task_reconstruct no inital convergence')
+
+      WRITE (*,*)
+      WRITE (*,1002) 0
+      WRITE (*,1003) reconstruction_get_g2(context%recon)
+
+      WRITE (context%runlog_iou,*)
+      WRITE (context%runlog_iou,1002) 0
+      WRITE (context%runlog_iou,1003)                                          &
+     &   reconstruction_get_g2(context%recon)
+
+      CALL v3fit_context_init_data(context)
+
+      DO i = 1, SIZE(context%recon%e, 1) - 1
+         WRITE (*,*)
+         WRITE (*,1002) i
+
+         WRITE (context%runlog_iou,*)
+         WRITE (context%runlog_iou,1002) i
+
+         IF (reconstruction_step(context%recon, context%signals,               &
+     &                           context%model, context%params,                &
+     &                           num_steps, context%runlog_iou)) THEN
+
+            CALL reconstruction_eval_pos_covar(context%recon,                  &
+     &                                         context%params)
+            CALL v3fit_context_write_step_data(context, .false.)
+
+!  Test for convergence.
+            IF (reconstruction_get_dg2(context%recon) .lt.                     &
+     &          context%recon_stop) THEN
+               WRITE (*,*)
+               WRITE (*,*) ' *** Equilibrium reconstructed'
+               WRITE (*,1000) context%recon_stop,                              &
+     &                        reconstruction_get_dg2(context%recon)
+
+               WRITE (context%runlog_iou,*)
+               WRITE (context%runlog_iou,*) ' *** Equilibrium ' //             &
+     &                                      'reconstructed'
+               WRITE (context%runlog_iou,1000) context%recon_stop,             &
+     &                        reconstruction_get_dg2(context%recon)
+               EXIT
+            END IF
+
+            IF (i .eq. SIZE(context%recon%e, 1) - 1) THEN
+              WRITE (*,*)
+              WRITE (*,1001) i
+
+              WRITE (context%runlog_iou,*)
+              WRITE (context%runlog_iou,1001) i
+            END IF
+         ELSE
+            EXIT
+         END IF
       END DO
+
+1000  FORMAT('dg2_stop = ',es12.5,' change in g^2 = ',es12.5)
+1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
+1002  FORMAT('  *** Reconstruction step ',i4)
+1003  FORMAT('Initial g^2 = ',es12.5)
 
       END SUBROUTINE
 
@@ -354,12 +406,11 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing equilibrium model'
+      WRITE (context%runlog_iou,*) ' *** Constructing equilibrium model'
 
       IF (vmec_nli_filename .ne. '') THEN
          CALL init_vmec_equilibrium(context)
       END IF
-
-      CALL model_write(context%model, context%recout_iou)
 
       END SUBROUTINE
 
@@ -380,8 +431,6 @@
       TYPE (pprofile), POINTER                  :: sxr => null()
 
 !  Start of executable code
-      WRITE (*,*) ' *** Constructing VMEC equilibrium'
-
       ALLOCATE(ne, te, sxr)
       CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
      &                        pp_ne_as, pp_ne_af)
@@ -393,7 +442,8 @@
       context%model => model_construct(model_ne_type, model_sxrem_type,        &
      &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
-     &                                        ne, te, sxr)))
+     &                                        ne, te, sxr,                     &
+     &                                        context%runlog_iou)))
 
       END SUBROUTINE
 
@@ -419,6 +469,7 @@
       END IF
 
       WRITE (*,*) ' *** Constructing signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing signals'
 
       ALLOCATE(context%signals(na_s_desc))
 
@@ -483,6 +534,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing magnetic signals from ' //                &
      &            TRIM(mdsig_list_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing magnetic ' //            &
+     &                             'signals from ' //                          &
+     &                             TRIM(mdsig_list_filename)
 
       CALL safe_open(mdsig_list_iou, status, TRIM(mdsig_list_filename),        &
      &               'old', 'formatted')
@@ -559,6 +613,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing sxrem signals from ' //                   &
      &            TRIM(sxrch_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing sxrem ' //               &
+     &                             'signals from ' //                          &
+     &                             TRIM(sxrch_dot_filename)
 
 !  The setting of the sxrem_index for sxrem happens inside sxrch_dot_parse_chord
       CALL sxrch_dot_read(sxrch_dot_filename, context%signals,                 &
@@ -583,6 +640,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing intpol signals from ' //                  &
      &            TRIM(ipch_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing intpol ' //              &
+     &                             'signals from ' //                          &
+     &                             TRIM(ipch_dot_filename)
 
 !  The setting of the intpol_index for sxrem happens inside ipch_dot_parse_chord
       CALL ipch_dot_read(ipch_dot_filename, context%signals,                   &
@@ -607,6 +667,9 @@
 !  Start of executable code
       WRITE (*,*) ' *** Constructing thomson signals from ' //                 &
      &            TRIM(thscte_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing thomson ' //             &
+     &                             'signals from ' //                          &
+     &                             TRIM(thscte_dot_filename)
 
 !  The setting of the thomson_index for sxrem happens inside
 !  thscte_dot_parse_chord
@@ -630,6 +693,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing extcurz signals'
+      WRITE (context%recout_iou,*) ' *** Constructing extcurz signals'
 
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
@@ -677,6 +741,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing geometric signals'
+      WRITE (context%recout_iou,*) ' *** Constructing geometric signals'
 
 !  For now, only limiter functions can be created.
       DO i = 1, n_lif
@@ -746,6 +811,8 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing combination signals'
+      WRITE (context%recout_iou,*) ' *** Constructing ' //                     &
+     &                             'combination signals'
 
       DO i = 1, n_coosig
 !  Check if there are two many signals
@@ -809,7 +876,10 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing reconstruction parameters'
+      WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
+     &                             'reconstruction parameters'
 
+      ALLOCATE(context%params(n_rp))
       DO i = 1, n_rp
 
          context%params(i)%p => param_construct(context%model,                 &
@@ -822,6 +892,29 @@
      &                                          rp_range_value(i,:))
 
       END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!  Initialize Reconstruction
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_reconstruction(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  Start of executable code
+      context%recon_stop = dg2_stop
+      context%recon => reconstruction_construct(nrstep,                        &
+     &                                          SIZE(context%signals),         &
+     &                                          SIZE(context%params),          &
+     &                                          step_type, astep_max,          &
+     &                                          cut_svd, cut_eff,              &
+     &                                          cut_marg_eff,                  &
+     &                                          cut_delta_a, cut_dg2)
 
       END SUBROUTINE
 
