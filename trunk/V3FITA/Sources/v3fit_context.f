@@ -348,7 +348,7 @@
 !-------------------------------------------------------------------------------
 !  Define and write inital data to the defined variables.
 !-------------------------------------------------------------------------------
-      SUBROUTINE constext_init_data(this)
+      SUBROUTINE v3fit_context_init_data(this)
 
       IMPLICIT NONE
 
@@ -522,7 +522,7 @@
          END DO
       END IF
 
-      CALL constext_write_step_data(this, .true.)
+      CALL v3fit_context_write_step_data(this, .true.)
 
       IF (ASSOCIATED(this%model)) THEN
          CALL equilibrium_write_init_data(this%model%equilibrium,              &
@@ -534,7 +534,7 @@
 !-------------------------------------------------------------------------------
 !  Write step data to the defined variables.
 !-------------------------------------------------------------------------------
-      SUBROUTINE constext_write_step_data(this, first_step)
+      SUBROUTINE v3fit_context_write_step_data(this, first_step)
 
       IMPLICIT NONE
 
@@ -559,7 +559,7 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
          current_step = current_step + 1
          status = nf_put_var_int(this%result_ncid, this%nsteps_id,             &
-     &                        current_step)
+     &                           current_step)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
 !  Use current_step as an array index. The Netcdf arrays start at 1 so this

@@ -209,7 +209,7 @@
       converged = equilibrium_converge(context%model%equilibrium,              &
      &                                 num_steps, context%runlog_iou)
 
-      CALL constext_init_data(context)
+      CALL v3fit_context_init_data(context)
 
       END SUBROUTINE
 
@@ -256,7 +256,7 @@
      &                                        sigma, .false.)
       END DO
 
-      CALL constext_init_data(context)
+      CALL v3fit_context_init_data(context)
 
       END SUBROUTINE
 
@@ -306,7 +306,7 @@
       WRITE (context%runlog_iou,1003)                                          &
      &   reconstruction_get_g2(context%recon)
 
-      CALL constext_init_data(context)
+      CALL v3fit_context_init_data(context)
 
       DO i = 1, SIZE(context%recon%e, 1) - 1
          WRITE (*,*)
@@ -321,7 +321,7 @@
 
             CALL reconstruction_eval_pos_covar(context%recon,                  &
      &                                         context%params)
-            CALL constext_write_step_data(context, .false.)
+            CALL v3fit_context_write_step_data(context, .false.)
 
 !  Test for convergence.
             IF (reconstruction_get_dg2(context%recon) .lt.                     &

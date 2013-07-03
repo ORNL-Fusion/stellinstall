@@ -95,6 +95,7 @@
 
 !-------------------------------------------------------------------------------
 !>  Pointer to a signal object. Used for creating arrays of signal pointers.
+!>  This is needed because fortran does not allow arrays of pointers directly.
 !-------------------------------------------------------------------------------
       TYPE signal_pointer
          TYPE (signal_class), POINTER :: p => null()
