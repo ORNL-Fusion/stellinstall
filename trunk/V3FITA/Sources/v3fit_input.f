@@ -9,7 +9,7 @@
 !>  v3fit namelist input file. The module contained within does not represent an
 !>  object instance. Instead all variables are contained in a global context.
 !>  This is required due to limitations of FORTRAN 95 and namelist inputs. Any
-!>  information needed by a V3FIT task should be copied to a @ref context
+!>  information needed by a V3FIT task should be copied to a @ref v3fit_context
 !>  object. All non-parameters are inputs to the namelist input file.
 !>
 !>  @section namelist_sec Namelist v3fit_main_nli definition

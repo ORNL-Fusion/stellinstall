@@ -51,7 +51,7 @@
 !>  @ref magnetic, @ref sxrem, @ref intpol, @ref thomson, @ref extcurz
 !-------------------------------------------------------------------------------
       TYPE diagnostic_class
-!>  Type descirptor of the geometric subclass type.
+!>  Type descirptor of the diagnostic subclass type.
 !>  @par Possible values are:
 !>  @ref diagnostic_no_type, @ref diagnostic_magnetic_type,
 !>  @ref diagnostic_sxrem_type, @ref diagnostic_intpol_type,
@@ -68,7 +68,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref geometric_class types using
+!>  Interface for the constriction of @ref diagnostic_class types using
 !>  @ref diagnostic_construct_magnetic, @ref diagnostic_construct_sxrem,
 !>  @ref diagnostic_construct_intpol, @ref diagnostic_construct_thomson or
 !>  @ref diagnostic_construct_extcurz
