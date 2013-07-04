@@ -45,7 +45,7 @@ PROJECT_BRIEF          =
 # exceed 55 pixels and the maximum width should not exceed 200 pixels. 
 # Doxygen will copy the logo to the output directory.
 
-PROJECT_LOGO           = 
+PROJECT_LOGO           = @CMAKE_CURRENT_SOURCE_DIR@/Images/v3fit_logo.jpg
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute) 
 # base path where the generated documentation will be put. 
@@ -726,8 +726,12 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is 
 # run.
 
-EXCLUDE                = 
-
+EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/CMakeFiles \
+                         @CMAKE_CURRENT_SOURCE_DIR@/Testing \
+                         @CMAKE_CURRENT_SOURCE_DIR@/Documents \
+                         @CMAKE_CURRENT_SOURCE_DIR@/Build \
+                         @CMAKE_CURRENT_SOURCE_DIR@/Logos
+                         
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or 
 # directories that are symbolic links (a Unix file system feature) are excluded 
 # from the input.
