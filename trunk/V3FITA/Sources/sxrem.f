@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file sxrem.f
 !>  @brief Contains module @ref sxrem.
-!>
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Defines the base class of the type @ref sxrem_class.
 !>  @par Super Class:
 !>  @ref diagnostic

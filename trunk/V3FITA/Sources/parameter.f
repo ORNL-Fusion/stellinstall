@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file parameter.f
-!>  @brief Contains module @ref param
-!>
+!>  @brief Contains module @ref param.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Defines the base class of the type @ref param_class
 !*******************************************************************************
 
@@ -600,7 +603,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Write out the parameter data for a step to the result netcdf file.
 !>
-!>  Writes out the parameter value and sigma.
+!>  Writes out the parameter value and sigma to the result file.
 !>
 !>  @param[in] this           A @ref param_class instance.
 !>  @param[in] a_model        The equilibrium model.
@@ -608,7 +611,9 @@
 !>  @param[in] current_step   The surrent reconstruction step.
 !>  @param[in] index          A index of a parameter.
 !>  @param[in] param_value_id NetCDF variable id of the parameter value.
+!>                            @see v3fit_context
 !>  @param[in] param_sigma_id NetCDF variable id of the parameter sigma.
+!>                            @see v3fit_context
 !>  @note This assumes that the parameter sigma has already been calculated.
 !>  Name and index information is written when the result file is first created
 !>  by @ref v3fit_context::v3fit_context_write_step_data.

@@ -1,11 +1,8 @@
 !*******************************************************************************
-!  File commandline_parser.f
-!  Contains module commandline_parser
-!  Defines the base class of the type commandline_parser_class:
-!
-!  Super Class: None
-!  Sub Classes: None
-!
+!>  @file commandline_parser.f
+!>  @brief Contains module @ref commandline_parser
+!>
+!>  Defines the base class of the type @ref commandline_parser_class.
 !*******************************************************************************
 
       MODULE commandline_parser
@@ -17,8 +14,10 @@
 !*******************************************************************************
 !  commandline parser module parameters
 !*******************************************************************************
-
+!>  Maximum length of the argument including the '-' character.
       INTEGER, PARAMETER, PRIVATE :: max_arg_length = 8
+!>  Maximum length of the complete flag. All command line flags take the form of
+!>  '-flag=value'.
       INTEGER, PARAMETER, PRIVATE :: max_length = data_filename_length         &
      &                                          + max_arg_length + 1
 
@@ -27,9 +26,15 @@
 !  1) commandline parser base class
 !
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Base class containing a parsed commandline.
+!-------------------------------------------------------------------------------
       TYPE commandline_parser_class
+!>  Array of arguments. An argument is the form of -flag
          CHARACTER (len=max_arg_length), DIMENSION(:), POINTER ::              &
      &      arg => null()
+!>  Array of value corresponding to the flag. A value is everything after the
+!>  '=' character. The value maybe blank indicating there was no value provided.
          CHARACTER (len=data_filename_length), DIMENSION(:), POINTER ::        &
      &      value => null()
       END TYPE
@@ -38,6 +43,17 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref commandline_parser_class object.
+!>
+!>  Allocates memory and initializes a @ref commandline_parser_class object. The
+!>  command line is parsed assuming the the flags take the form of -flag=value.
+!>  If the '=' is missing, it is assumed there is no value. If the '-' is
+!>  missing the flag is treated as the value to an implicit -file flag. If -h is
+!>  is found, the help text is printed out and the program terminated.
+!>
+!>  @returns A pointer to a constructed @ref commandline_parser_class object.
+!-------------------------------------------------------------------------------
       FUNCTION commandline_parser_construct()
 
       IMPLICIT NONE
@@ -100,6 +116,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref commandline_parser_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref commandline_parser_class object.
+!>
+!>  @param[inout] this A @ref commandline_parser_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE commandline_parser_destruct(this)
 
       IMPLICIT NONE
@@ -126,7 +149,15 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get a string value for an argument
+!>  @brief Get the value of an argument as a string.
+!>
+!>  Searches the parsed command line flags for a matching command like argument.
+!>  If no matching argument is found or no value was set, a blank string is
+!>  returned. command line arguments take the form of -flag.
+!>
+!>  @param[in] this A @ref commandline_parser_class instance.
+!>  @param[in] arg  A argument string to search for.
+!>  @returns The argument value.
 !-------------------------------------------------------------------------------
       FUNCTION commandline_parser_get_string(this, arg)
 
@@ -160,7 +191,14 @@
 !  QUERY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Query if flag is set.
+!>  @brief Check is a command line argument was set.
+!>
+!>  Searches the parsed command line flags for a matching command like argument.
+!>  If no matching argument is found the flag was not set.
+!>
+!>  @param[in] this A @ref commandline_parser_class instance.
+!>  @param[in] arg  A argument string to search for.
+!>  @returns True if the argument was found, false if it was not found.
 !-------------------------------------------------------------------------------
       FUNCTION commandline_parser_is_flag_set(this, arg)
 
@@ -193,7 +231,12 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Print out the help message. When help is encountered, exit the program.
+!>  @brief Print out help text.
+!>
+!>  Command line help text should take the form of
+!>  '-flag' that is maximum length of @ref max_arg_length followed by a space.
+!>  A Y or N indicating the flag takes a value or not followed by a space.
+!>  A short message describing the flag.
 !-------------------------------------------------------------------------------
       SUBROUTINE commandline_parser_print_help
 

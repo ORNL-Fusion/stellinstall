@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file thomson.f
 !>  @brief Contains module @ref thomson.
-!>
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Implements thomson scattering diagnostic. Defines the base class of the type
 !>  @ref thomson_class.
 !>  @par Super Class:

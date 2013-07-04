@@ -1,10 +1,16 @@
 !*******************************************************************************
-!  File v3fit_input.f
-!  Contains module v3fit_input
+!>  @file v3fit_input.f
+!>  @brief Contains module @ref v3fit_input
 !
-!  This file contains all the variables and maximum sizes of the inputs for a
-!  v3fit namelist input file.
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
+!>  This file contains all the variables and maximum sizes of the inputs for a
+!>  v3fit namelist input file. The module contained within does not represent an
+!>  object instance. Instead all variables are contained in a global context.
+!>  This is required due to limitations of FORTRAN 95 and namelist inputs. Any
+!>  information needed by a V3FIT task should be copied to a @ref context
+!>  object. All non-parameters are inputs to the namelist input file.
 !*******************************************************************************
 
       MODULE v3fit_input
@@ -16,29 +22,41 @@
 !*******************************************************************************
 !  v3fit input module parameters
 !*******************************************************************************
-
+!>  Maximum number of diagnostic signal.
       INTEGER, PARAMETER :: v3fit_max_diagnostics = 1000
+!>  Maximum number of geometric signal.
       INTEGER, PARAMETER :: v3fit_max_geometrics = 1000
+!>  Maximum number of combination signal.
       INTEGER, PARAMETER :: v3fit_max_combinations = 1000
-
+!>  Maximum number of total signal.
       INTEGER, PARAMETER :: v3fit_max_signals = v3fit_max_diagnostics          &
      &                                        + v3fit_max_geometrics           &
      &                                        + v3fit_max_combinations
 
-!  Maximum number of reconstruction parameters
+!>  Maximum number of reconstruction parameters.
       INTEGER, PARAMETER :: v3fit_max_parameters = 100
 
+!>  @deprecated
+!>  Maximum size of the work arrays.
       INTEGER, PARAMETER :: v3fit_work_size = 100
 
+!>  Maximum size of the easy specification arrays.
+!>  @see sdo_s_spec_imin
+!>  @see sdo_s_spec_imax
+!>  @see sdo_s_spec_floor
+!>  @see sdo_s_spec_fraction
+!>  @see sdo_w_spec_imin
+!>  @see sdo_w_spec_imax
+!>  @see sdo_w_spec_weight
       INTEGER, PARAMETER :: v3fit_max_spec_size = 100
 
-!  Maximum number of phi positions for limiters
+!>  Maximum number of phi positions for limiters.
       INTEGER, PARAMETER :: v3fit_max_lif_size = 100
 
-!  Maximum number of signals a combination signal can refer to.
+!>  Maximum number of signals a combination signal can refer to.
       INTEGER, PARAMETER :: v3fit_max_cos_size = 100
 
-!  Reconstruction step name length
+!>  Reconstruction step name length.
       INTEGER, PARAMETER :: v3fit_step_name_length = 4
 
 !*******************************************************************************
@@ -48,16 +66,12 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Derived type to hold all data from the namelist input file. Containing all
-!  all this in a single place will allow memory to be freed after the
-!  reconstruct is setup.
-!-------------------------------------------------------------------------------
 !  Namelist v3fit_main_nli definition
 !
 !          File name variables
 !  main_nli_filename     File name for main namelist input
-!  mdsig_list_filename   File name for list of MDSIG files
 !  vmec_nli_filename     File name for VMEC namelist input
+!  mdsig_list_filename   File name for list of MDSIG files
 !  sxrch_dot_filename	 file holding sxr chord information
 !  thscte_dot_filename	 file holding Thomson Scattering information
 !  ipch_dot_filenam      file holding interferometry-polarimetry information 
@@ -90,8 +104,8 @@
 !  pp_te_af              array of af_coefficients e-temperature splines
 !
 !      Model Specification Variables
-!  model_ne_type     Character variable to specify how the Soft x-ray
-!                       emissivity will be calculated by the model.
+!  model_ne_type        Character variable to specify how the electron density
+!                       will be calculated by the model.
 !      'none'             Not part of the model.
 !      'pp_ne'            Calculated from the parameterized profile pp_ne
 !      'pp_te_vmec_p'     Calculated from the pp_te and the VMEC pressure
@@ -207,174 +221,297 @@
 !    VMEC zero out xcdot control
 !  l_zero_xcdot   reset the xcdot array to zero when converging vmec.
 !-------------------------------------------------------------------------------
-
+!>  File name for main namelist input
       CHARACTER (len=data_filename_length) :: main_nli_filename = ''
 
 !  Equilibrium input files
+!>  File name for VMEC namelist input
       CHARACTER (len=data_filename_length) :: vmec_nli_filename = ''
 
 !  Signal input files
+!>  File name for list of MDSIG files
       CHARACTER (len=data_filename_length) :: mdsig_list_filename = ''
+!>  File holding sxr chord information
       CHARACTER (len=data_filename_length) :: sxrch_dot_filename = ''
+!>  File holding Thomson Scattering information
       CHARACTER (len=data_filename_length) :: ipch_dot_filename = ''
+!>  File holding interferometry-polarimetry information
       CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
 
-!  Allay allocation sizes. These should be set to the maxmium size.
+!  Array allocation sizes. These should be set to the maxmium size.
+!>  @deprecated
+!>  Maximum number of diagnostic to create.
       INTEGER :: na_d_desc = v3fit_max_diagnostics
+!>  @deprecated
+!>  Maximum number of geometrics to create.
       INTEGER :: na_g_desc = v3fit_max_geometrics
+!>  @deprecated
+!>  Maximum number of combinations to create.
       INTEGER :: na_c_desc = v3fit_max_combinations
+!>  Maximum number of signals to create.
+!>  @note this needs to be greater than or equal to total number of signals
+!>  used. The signal arrays are resized to free up memory if this value is
+!>  larger than the number of signals constructed. If this value is equal to the
+!>  number of signals, the resize step can be avoided.
       INTEGER :: na_s_desc = v3fit_max_signals
+!>  @deprecated
+!>  Maximum number of reconstruction parameters.
       INTEGER :: na_rparam = v3fit_max_parameters
 
 !  Task specification and work variables
+!>  The v3fit task.
+!>  @see v3fit
       CHARACTER (len=data_name_length)         :: my_task = ''
-!  FIXME: The following arrays are depricated and will be removed in the future.
+!>  @deprecated
+!>  Work array for integer inputs.
       INTEGER, DIMENSION(v3fit_work_size)      :: i_work = 0
+!>  @deprecated
+!>  Work array for real inputs.
       REAL (rprec), DIMENSION(v3fit_work_size) :: r_work = 0.0
+!>  @deprecated
+!>  Work array for string inputs.
       CHARACTER (len=data_name_length), DIMENSION(v3fit_work_size) ::          &
      &   c_work = ''
 
 !  Model profile specification
 !  Electron Denisty
+!>  Model electron density profile, parameterized profile type.
+!>  @see pprofile_T
       CHARACTER (len=p_type_len)           :: pp_ne_ptype = 'none'
+!>  Array of b_coefficients for the electron density profile
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_ne_b = 0.0
+!>  Array of as_coefficients electron density splines
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_as = 0.0
+!>  Array of af_coefficients electron density splines
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_af = 0.0
 
 !  Soft x-ray emissvity
+!>  Model soft x-ray emissvity profile, parameterized profile type.
+!>  @see pprofile_T
       CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = 'none'
+!>  Array of b_coefficients for the soft x-ray emissvity profile profile
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
+!>  Array of as_coefficients soft x-ray emissvity profile splines
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0
+!>  Array of af_coefficients soft x-ray emissvity profile splines
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_af = 0.0
 
 !  Electron temperature
+!>  Model electron temperature profile, parameterized profile type.
+!>  @see pprofile_T
       CHARACTER (len=p_type_len)           :: pp_te_ptype = 'none'
+!>  Array of b_coefficients for the electron temperature profile
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_te_b = 0.0
+!>  Array of as_coefficients electron temperature splines
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_as = 0.0
+!>  Array of af_coefficients electron temperature splines
+!>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
 
 !  Model Specification Variables
 !  FIXME: New coding contains a model_ne_type that old code did not have. Make
 !  the default value pp_ne for compatibility. Eventially this shoud be set back
 !  to none and users should set model_ne_type in the namelist input.
+!>  Specify how electron density is computed by the model.
+!>  @see model
       CHARACTER (len=data_name_length) :: model_ne_type = 'pp_ne'
+!>  Specify how soft x-ray emissivity is computed by the model.
+!>  @see model
       CHARACTER (len=data_name_length) :: model_sxrem_type = 'none'
+!>  Specify how electron temperature is computed by the model.
+!>  @see model
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
+!>  Normalization factor for the electron density.
       REAL (rprec)                     :: ne_pp_unit = 0.0
+!>  Minimum electron density.
       REAL (rprec)                     :: ne_min = 0.0
+!>  Specifies the fraction of the pressure constributed by the electrons.
       REAL (rprec)                     :: e_pressure_fraction = 0.0
 
 !  Reconstruction constraints
+!>  Not implemented.
       INTEGER                            :: n_rc = 0
+!>  Not implemented.
       CHARACTER (len=data_name_length),                                        &
      &   DIMENSION(v3fit_max_parameters) :: rc_type = ''
+!>  Not implemented.
       INTEGER,                                                                 &
      &   DIMENSION(v3fit_max_parameters) :: rc_index = 0
+!>  Not implemented.
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_parameters) :: rc_value = 0.0
 
 !  Reconstruction parameters
-      INTEGER                              :: n_rp = 0
+!>  Number of reconstruction parameters.
+      INTEGER                                :: n_rp = 0
+!>  Names of reconstruction parameters.
       CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(v3fit_max_parameters)   :: rp_type = ''
+     &   DIMENSION(v3fit_max_parameters)     :: rp_type = ''
+!>  Ith index of reconstruction parameters.
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters)   :: rp_index = 0
+     &   DIMENSION(v3fit_max_parameters)     :: rp_index = 0
+!>  Jth index of reconstruction parameters.
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters)   :: rp_index2 = 0
+     &   DIMENSION(v3fit_max_parameters)     :: rp_index2 = 0
+!>  Maximum reconstruction increment.
       REAL (rprec),                                                            &
-     &   DIMENSION(v3fit_max_parameters)   :: rp_vrnc = 0.0
+     &   DIMENSION(v3fit_max_parameters)     :: rp_vrnc = 0.0
+!>  Parameter range types. The first index is the lower range and second index
+!>  the upper range.
       CHARACTER (len=data_name_length),                                        &
      &   DIMENSION(v3fit_max_parameters,2) :: rp_range_type = 'infinity'
+!>  Parameter range value. The first index is the lower range and second index
+!>  the upper range.
       REAL (rprec),                                                            &
-     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_value = 0.0
+     &   DIMENSION(v3fit_max_parameters,2)   :: rp_range_value = 0.0
+!>  Parameter range indices. The first index is the lower range and second index
+!>  the upper range.
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_index = 0
+     &   DIMENSION(v3fit_max_parameters,2,2) :: rp_range_index = 0
 
-!  Signal Data specification
+!  Signal data
+!>  Number of observed signals.
       INTEGER                         :: n_sdata_o = 0
+!>  Not implemented.
       INTEGER                         :: iw_sdo_verbose = -1
+!>  Observed signals.
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_signals) :: sdo_data_a = 0.0
+!>  Observed sigmas.
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_signals) :: sdo_sigma_a = 0.0
+!>  Observed weights.
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_signals) :: sdo_weight_a = 1.0
 
-!  External current signal specification
-!  FIXME: The label of s0 and u0 are vmec specific. These should be changed to a
-!  radial coordinate and poloidal angle.
-      REAL (rprec) :: extcurz_s0 = -1.0
-      REAL (rprec) :: extcurz_u0 = 0.0
-
 !  Signal data sigma specification
+!>  Sigma specification lower index.
       INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
      &   sdo_s_spec_imin = 0
+!>  Sigma specification upper index.
       INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
      &   sdo_s_spec_imax = 0
+!>  Sigma specification floor.
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sdo_s_spec_floor = 0.0
+!>  Sigma specification fraction.
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sdo_s_spec_fraction = 0.0
 
 !  Signal data weight specification
+!>  Weight specification lower index.
       INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
      &   sdo_w_spec_imin = 0
+!>  Weight specification upper index.
       INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
      &   sdo_w_spec_imax = 0
+!>  Weight specification weight.
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sdo_w_spec_weight = 0.0
 
+!  External current signal specification
+!  FIXME: The label of s0 and u0 are vmec specific. These should be changed to a
+!  radial coordinate and poloidal angle.
+!>  External Z current radial position.
+      REAL (rprec) :: extcurz_s0 = -1.0
+!>  External Z current poloidal angle.
+      REAL (rprec) :: extcurz_u0 = 0.0
+
 !  Geometric information
+!>  Geometric limiter major radius.
       REAL (rprec) :: r_major_radius
+!>  Geometric limiter minor radius.
       REAL (rprec) :: a_minor_radius
 
 !  Limiter iso function specification.
+!>  Number of specified limiter iso functions.
       INTEGER                                       :: n_lif = 0
+!>  Number of phi planes for an iso functions.
       INTEGER, DIMENSION(v3fit_max_geometrics)      :: n_phi_lif = 0
+!>  Array of r-z polynomial coefficients.
       REAL (rprec), DIMENSION(v3fit_max_geometrics,0:4,0:4) ::                 &
      &   lif_arz = 0.0
+!>  Array of r offset values.
       REAL (rprec), DIMENSION(v3fit_max_geometrics) ::                         &
      &   lif_rc = 0.0
+!>  Array of z offset values.
       REAL (rprec), DIMENSION(v3fit_max_geometrics) ::                         &
      &   lif_zc = 0.0
+!>  Array of sigma values.
       REAL (rprec), DIMENSION(v3fit_max_geometrics) ::                         &
      &   lif_sigma = 0.001_dp
+!>  Array of phi values. Number of phi values need to be match @ref n_phi_lif
       REAL (rprec), DIMENSION(v3fit_max_geometrics,v3fit_max_lif_size)         &
      &   :: lif_phi_degree = 0.0
+!>  True specifies that the edge hits the limiter. False specifies that the edge
+!>  is inside the limiter.
       LOGICAL, DIMENSION(v3fit_max_geometrics)      ::                         &
      &   lif_on_edge = .false.
 
 !  Use external boundary as signal
 !  FIXME: The implentation is VMEC specific. This will eventually be removed and
 !  replaced by priors when they are implemented.
+!>  @deprecated
+!>  Not implemented.
       LOGICAL :: use_boundary
 
 !  Combinations of other signals specification.
+!>  Number of combination signals.
       INTEGER :: n_coosig = 0
+!>  Number of signals in a combination signal.
       INTEGER, DIMENSION(v3fit_max_cos_size) :: n_sig_coosig = 0
+!>  Indices of the number signals to combine. Number if indices needs to match
+!>  @ref n_sig_coosig.
       INTEGER, DIMENSION(v3fit_max_combinations,v3fit_max_cos_size) ::         &
      &   coosig_indices = 0
+!>  Coefficients of the signals to combine. Number if indices needs to match
+!>  @ref n_sig_coosig.
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_combinations,v3fit_max_cos_size) ::               &
      &   coosig_coeff = 0.0
+!>  Combination type. @see signal
       CHARACTER(len=combination_type_length),                                  &
      &   DIMENSION(v3fit_max_combinations) :: coosig_type = 'sum'
+!>  Name of the combination.
       CHARACTER (len=data_name_length),                                        &
      &   DIMENSION(v3fit_max_combinations) :: coosig_name = ''
+!>  Units of the combination.
       CHARACTER (len=signal_units_length),                                     &
      &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
 
 !  Reconstruction step control specification.
+!  step_type      character specification of reconstruction step type
+!                   'sl' - straight line
+!                   'seg' - segmented
+!                   'lm' - Levenberg-Marquardt
+!>  Max number of reconstruction steps to perform.
       INTEGER                                :: nrstep = 0
+!>  Stopping criterion on change in g^2.
       REAL (rprec)                           :: dg2_stop = 0.0
+!>  Cutoff value for relative Singular Values.
       REAL (rprec)                           :: cut_svd = 0.0
+!>  Cutoff value for expected step efficiency.
       REAL (rprec)                           :: cut_eff = 0.0
+!>  Cutoff value for expected marginal step efficiency.
       REAL (rprec)                           :: cut_marg_eff = 0.0
+!>  Cutoff value for expected step size.
       REAL (rprec)                           :: cut_delta_a = 0.0
+!>  Cutoff value for expected change in g^2.
       REAL (rprec)                           :: cut_dg2 = 0.0
+!>  Maximum allowable normalized step size.
       REAL (rprec)                           :: astep_max = 0.0
+!>  Reconstruction step type. @see reconstruction
       CHARACTER (len=v3fit_step_name_length) :: step_type = 'sl'
 
+!  FIXME: VMEC specific. Not implemented.
 !  Zero out vmec xcdot array
       LOGICAL :: l_zero_xcdot = .true.
 
@@ -424,8 +561,8 @@
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 &
      &   lif_phi_degree, lif_on_edge,                                          &
 !  Use external boundary as signal
-!  FIXME: The implentation is VMEC specific. This will eventually be removed and
-!  replaced by priors when they are implemented.
+!  FIXME: The implementation is VMEC specific. This will eventually be removed
+!  and will replaced by priors when they are implemented.
      &   use_boundary,                                                         &
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
@@ -433,14 +570,24 @@
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type,                                        &
-!  Zero out vmec xcdot array
+!  FIXME: The implementation is VMEC specific. Zero out vmec xcdot array
      &   l_zero_xcdot
 
       CONTAINS
 
 !*******************************************************************************
-!  CONSTRUCTION SUBROUTINES
+!  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Reads the namelist input file.
+!>
+!>  Reads the namelist input file. Replaces the sigma and weight values with the
+!>  the computed specification. If using the old, major and minor radius, add a
+!>  new limiter to the limiter specification. Determines the number of
+!>  combination signals if the user has not specified @ref n_sig_coosig.
+!>
+!>  @param[in] namelist_file The file name of the namelist input file.
+!-------------------------------------------------------------------------------
       SUBROUTINE v3fit_input_read_namelist(namelist_file)
       USE safe_open_mod
       USE v3_utilities, only: err_fatal

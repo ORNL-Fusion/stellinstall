@@ -888,7 +888,7 @@
      &                                             rp_index2(i) /),            &
      &                                          rp_vrnc(i),                    &
      &                                          rp_range_type(i,:),            &
-     &                                          rp_range_index(i,:),           &
+     &                                          rp_range_index(i,:,:),         &
      &                                          rp_range_value(i,:))
 
       END DO

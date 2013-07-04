@@ -1,11 +1,12 @@
 !*******************************************************************************
-!  File v3fit_context.f
-!  Contains module v3fit_context
-!  Defines the base class of the type v3fit_context_class:
+!>  @file v3fit_context.f
+!>  @brief Contains module @ref v3fit_context.
 !
-!  Super Class: None
-!  Sub Classes: None
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
+!>  Defines a @ref v3fit_context_class object to contain all the memory for
+!>  running v3fit. Contains methods to write memory to disk.
 !*******************************************************************************
 
       MODULE v3fit_context
@@ -21,41 +22,81 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  This object holds all the memory for running v3fit.
+!>  Base class representing a v3fit context. This contains all memory needed to
+!>  operate v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
          REAL (rprec)                                 :: recon_stop
 
+!>  File input output unit for the runlog file. This file is a human readable
+!>  output history of a v3fit run.
          INTEGER                                      :: runlog_iou
+!>  File input output unit for the recout file. This file is a human readable
+!>  output of the final result.
          INTEGER                                      :: recout_iou
 
+!>  The parsed command line options.
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
+!>  The equilibrium model.
          TYPE (model_class), POINTER                  :: model => null()
+!>  Arrays of signals.
+!>  @see signal
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
+!>  Arrays of reconstruction parameters.
+!>  @see param
          TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
          TYPE (reconstruction_class), POINTER         :: recon => null()
 
 !  The default for the following index is -1 indicating that this signal hasn't
 !  been created.
+!>  Index of the first instance of a @ref magnetic signal. The default -1
+!>  represents no @ref magnetic signal created.
          INTEGER :: magnetic_index = -1
+!>  Index of the first instance of a @ref sxrem signal. The default -1
+!>  represents no @ref sxrem signal created.
          INTEGER :: sxrem_index = -1
+!>  Index of the first instance of a @ref intpol signal. The default -1
+!>  represents no @ref intpol signal created.
          INTEGER :: intpol_index = -1
+!>  Index of the first instance of a @ref thomson signal. The default -1
+!>  represents no @ref thomson signal created.
          INTEGER :: thomson_index = -1
+!>  Index of the first instance of a @ref extcurz signal. The default -1
+!>  represents no @ref extcurz signal created.
          INTEGER :: extcurz_index = -1
+!>  Index of the first instance of a @ref limiter signal. The default -1
+!>  represents no @ref limiter signal created.
          INTEGER :: limiter_index = -1
+!>  Index of the first instance of a @ref combination_class signal. The default
+!>  -1 represents no @ref combination_class signal created.
          INTEGER :: combination_index = -1
 
-!  Result file NetCDF variables
+!  Result file NetCDF variables.
+!>  NetCDF result file to write out the results in machine readable form.
          INTEGER :: result_ncid
+!>  NetCDF variable id for the number of current steps taken in the
+!>  reconstruction.
          INTEGER :: nsteps_id
+!>  NetCDF variable id contain the g^2 value for each reconstruction step.
          INTEGER :: g2_id
 
+!>  NetCDF variable id contain the parameter values for each reconstruction
+!>  step.
+!>  @see param
          INTEGER :: param_value_id
+!>  NetCDF variable id contain the parameter sigmas for each reconstruction
+!>  step.
+!>  @see param
          INTEGER :: param_sigma_id
 
-         INTEGER :: signal_observed_value_id
+!>  NetCDF variable id contain the parameter values for each reconstruction
+!>  step.
+!>  @see signal
          INTEGER :: signal_model_value_id
+!>  NetCDF variable id contain the parameter values for each reconstruction
+!>  step.
+!>  @see signal
          INTEGER :: signal_sigma_value_id
       END TYPE
 
@@ -63,18 +104,29 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref v3fit_context_class object.
+!>
+!>  Allocates memory and initializes a @ref v3fit_context_class object with an
+!>  instance of a @ref commandline_parser object. This opens files for the
+!>  recout, runlog, and result files. Over allocates space for the number of
+!>  signals.
+!>
+!>  @param[in] cl_parser An instance of a commandline parser object.
+!>  @returns A pointer to a constructed @ref v3fit_context_class object.
+!-------------------------------------------------------------------------------
       FUNCTION v3fit_context_construct(cl_parser)
       USE safe_open_mod
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (v3fit_context_class), POINTER :: v3fit_context_construct
-      TYPE (commandline_parser_class), POINTER :: cl_parser
+      TYPE (v3fit_context_class), POINTER  :: v3fit_context_construct
+      TYPE (commandline_parser_class), POINTER, INTENT(in) :: cl_parser
 
 !  local variables
-      CHARACTER (len=data_filename_length)     :: filename
-      INTEGER                                  :: status
+      CHARACTER (len=data_filename_length) :: filename
+      INTEGER                              :: status
 
 !  Start of executable code
       filename = commandline_parser_get_string(cl_parser, '-file')
@@ -122,6 +174,14 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref v3fit_context_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref v3fit_context_class object. This
+!>  all the v3fit constructed objects are destroyed here.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_destruct(this)
 
       IMPLICIT NONE
@@ -198,6 +258,14 @@
 !-------------------------------------------------------------------------------
 !  Reduce memory useage by resizing the arrays to the smallest necessary size.
 !-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+!>  @brief Resize the arrays.
+!>
+!>  Resizes the signal arrays to contain only the minimun necessary to hold all
+!>  signals. If no signals were constructed, the signal arrays is not allocated.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_resize(this)
 
       IMPLICIT NONE
@@ -239,17 +307,23 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write out the context
+!>  @brief Write the @ref v3fit_context_class out to disk.
+!>
+!>  Writes out the results of v3fit to the recout file.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!>  @note The 'this' parameter is intent(inout) because @ref signal_write calls
+!>  @ref signal_get_g2 which needs to be intent(inout).
 !-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_write(this)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout)    :: this
+      TYPE (v3fit_context_class), INTENT(inout) :: this
 
 !  local variables
-      INTEGER                                      :: i
+      INTEGER                                   :: i
 
 !  Start of executable code
       WRITE (*,*) ' *** Writting context to disk'
@@ -303,50 +377,50 @@
 
 !*******************************************************************************
 !  NETCDF SUBROUTINES
-!
-!  Dimensions:
-!    maxnsteps    The max number of reconstruction steps.
-!    nparam       Number of reconstruction parameters.
-!    nparamindex  Number of parameter indices.
-!    nsignal      Number of signals.
-!    string_len   Max length of strings.
-!
-!    *** Equilibrium Dimesnions ***
-!    See equilibrium objects.
-!
-!  Multi dimensional arrays need to be transposed so arrays appear in the
-!  correct order in non fortran languages.
-!  Variables:
-!    nsteps                          Actual number of steps taken.
-!    g2 (maxnsteps)                  g^2 value for each reconstruction step.
-!
-!    param_name (string_len,         Name of the reconstruction parameter.
-!                nparam)
-!    param_index (nparamindex,       Indices of the reconstruction parameter.
-!                 nparam)      
-!    param_value (nparam,            Parameter values for each reconstruction step.
-!                 maxnsteps)
-!    param_sigma (nparam,            Parameter sigmas for each reconstruction step.
-!                 maxnsteps)
-!
-!    signal_name (string_len,        s_name of the signal
-!                 nsignal)
-!    signal_type (string_len,        Description of the signal.
-!                 nsignal)
-!    signal_weight (nsignal)         Weight value of the signal.
-!    signal_observed_value (nsignal, Observed value of the signal at each
-!                        maxnsteps)  reconstruction step.
-!    signal_model_value (nsignal,    Modeled value of the signal at each
-!                        maxnsteps)  reconstruction step.
-!    signal_sigma_value (nsignal,    Sigma value of the signal at each
-!                        maxnsteps)  reconstruction step.
-!
-!    *** Equilibrium Variables ***
-!    See equilibrium objects.
-!
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Define and write inital data to the defined variables.
+!>  @brief Initialize the dimensions and variables of the result file.
+!>
+!>  Defines dimensions, variables and writes out the initial step of v3fit to
+!>  result netcdf file.
+!>
+!>  Dimensions:
+!>    * maxnsteps    The max number of reconstruction steps.
+!>    * nparam       Number of reconstruction parameters.
+!>    * nparamindex  Number of parameter indices.
+!>    * nsignal      Number of signals.
+!>    * string_len   Max length of strings.
+!>    *** Equilibrium Dimesnions ***
+!>    * See @ref equilibrium objects.
+!>
+!>  Multi dimensional arrays need to be transposed so arrays appear in the
+!>  correct order in non fortran languages.
+!>  Variables:
+!>    * nsteps         Actual number of steps taken.
+!>    * g2 (maxnsteps) g^2 value for each reconstruction step.
+!>    @ref parameter variables.
+!>    * param_name (string_len, nparam)   Name of the reconstruction parameter.
+!>
+!>    * param_index (nparamindex, nparam) Indices of the reconstruction
+!>                                        parameter.
+!>    * param_value (nparam, maxnsteps)   Parameter values for each
+!>                                        reconstruction step.
+!>    * param_sigma (nparam, maxnsteps)   Parameter sigmas for each
+!>                                        reconstruction step.
+!>    @ref signal variables.
+!>    signal_name (string_len, nsignal)         @ref signa_class::s_name of the
+!>                                              signal.
+!>    * signal_type (string_len, nsignal)       Description of the signal.
+!>    * signal_weight (nsignal)                 Weight value of the signal.
+!>    * signal_observed_value (nsignal)         Observed value of the signal.
+!>    * signal_model_value (nsignal, maxnsteps) Modeled value of the signal at
+!>                                              each reconstruction step.
+!>    * signal_sigma_value (nsignal, maxnsteps) Sigma value of the signal at
+!>                                              each reconstruction step.
+!>    *** Equilibrium Variables ***
+!>    * See @ref equilibrium objects.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_init_data(this)
 
@@ -356,19 +430,19 @@
       TYPE (v3fit_context_class), INTENT(inout) :: this
 
 !  local variables
-      INTEGER                                   :: status
-      INTEGER                                   :: i
-      INTEGER                                   :: maxnsteps_dim_id
-      INTEGER                                   :: nparam_dim_id
-      INTEGER                                   :: nparamindex_dim_id
-      INTEGER                                   :: nsignal_dim_id
-      INTEGER                                   :: string_len_dim_id
-      INTEGER                                   :: param_name_id
-      INTEGER                                   :: param_index_id
-      INTEGER                                   :: signal_name_id
-      INTEGER                                   :: signal_type_id
-      INTEGER                                   :: signal_weight_id
-
+      INTEGER :: status
+      INTEGER :: i
+      INTEGER :: maxnsteps_dim_id
+      INTEGER :: nparam_dim_id
+      INTEGER :: nparamindex_dim_id
+      INTEGER :: nsignal_dim_id
+      INTEGER :: string_len_dim_id
+      INTEGER :: param_name_id
+      INTEGER :: param_index_id
+      INTEGER :: signal_name_id
+      INTEGER :: signal_type_id
+      INTEGER :: signal_weight_id
+      INTEGER :: signal_observed_value_id
 !  Start of executable code
 !  Define dimensions
       IF (ASSOCIATED(this%recon)) THEN
@@ -454,9 +528,8 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_observed_value',        &
-     &                       nf_double, 2, (/ nsignal_dim_id,                  &
-     &                                        maxnsteps_dim_id /),             &
-     &                       this%signal_observed_value_id)
+     &                       nf_double, 1, (/ nsignal_dim_id /),               &
+     &                       signal_observed_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_model_value',           &
@@ -514,10 +587,14 @@
      &                                   this%signals(i)%p))
             CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-            status = nf_put_vara_double(this%result_ncid,                      &
-     &                                  signal_weight_id,                      &
-     &                                  (/ 1, i /), (/ 2, 1 /),                &
+            status = nf_put_var1_double(this%result_ncid,                      &
+     &                                  signal_weight_id, i,                   &
      &                                  this%signals(i)%p%weight)
+            CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+            status = nf_put_var1_double(this%result_ncid,                      &
+     &                                  signal_observed_value_id, i,           &
+     &                                  this%signals(i)%p%observed)
             CALL assert_eq(status, nf_noerr, nf_strerror(status))
          END DO
       END IF
@@ -532,7 +609,17 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write step data to the defined variables.
+!>  @brief Write step data to the defined variables.
+!>
+!>  Writes out the data for a reconstruction step to the result file. If this
+!>  is being called for the first time. Do not read the number of steps.
+!>
+!>  @param[inout] this       A @ref v3fit_context_class instance.
+!>  @param[in]    first_step Flags to determine if this is the first instance
+!>                           this has been called.
+!>  @note The only caller of this subrotine that should set first_step to true
+!>  should be @ref v3fit_context_init_data. All others should callers should set
+!>  first_step to false.
 !-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_write_step_data(this, first_step)
 
@@ -588,7 +675,6 @@
             CALL signal_write_step_data(this%signals(i)%p, this%model,         &
      &                                  this%result_ncid,                      &
      &                                  current_step, i,                       &
-     &                                  this%signal_observed_value_id,         &
      &                                  this%signal_model_value_id,            &
      &                                  this%signal_sigma_value_id)
          END DO

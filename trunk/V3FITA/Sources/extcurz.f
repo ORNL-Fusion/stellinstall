@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file extcurz.f
 !>  Contains module @ref extcurz.
-!>
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Represents a signal obtained by integrating around the magnetic field to get
 !>  the current enclosed in the Z direction using Ampere's Law. Defines the base
 !>  class of the type @ref extcurz_class.

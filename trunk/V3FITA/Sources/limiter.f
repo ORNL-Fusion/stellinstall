@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file limiter.f
 !>  @brief Contains module @ref limiter
-!>
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Defines the base class of the type @ref limiter_class.
 !>  @par Super Class:
 !>  @ref geometric

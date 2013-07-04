@@ -1,7 +1,11 @@
 !*******************************************************************************
-!  File data_parameters.f
+!>  @file data_parameters.f
+!>  @brief Contains module @ref data_parameters.
 !
-!  This modules contains parameters used by equilibrium models.
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This modules contains parameters used by equilibrium models.
 !*******************************************************************************
       MODULE data_parameters
 
@@ -10,15 +14,29 @@
 !*******************************************************************************
 !  signal module parameters
 !*******************************************************************************
+!>  Maximum length of data strings.
       INTEGER, PARAMETER :: data_name_length = 80
+!>  Maximum length of file name. This needs to be large to accommodate the
+!>  path to the file as well.
       INTEGER, PARAMETER :: data_filename_length = 300
 
+!>  Default parameter id specifiying no id.
+!>  @see model
+!>  @see equilibrium
       INTEGER, PARAMETER :: data_no_id = -1
 
       CONTAINS
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Generates a base filename.
+!>
+!>  Parses the filename to generate a base name. Looks for a v3fit. and trims
+!>  off the remainder.
+!>
+!>  @param[in] namelist_file The file name of the input file.
+!-------------------------------------------------------------------------------
       FUNCTION filename_base(filename)
 
       IMPLICIT NONE

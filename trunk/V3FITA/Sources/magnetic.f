@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file magnetic.f
 !>  @brief Contains module @ref magnetic
-!>
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Defines the base class of the type @ref magnetic_class.
 !>  @par Super Class:
 !>  @ref diagnostic
