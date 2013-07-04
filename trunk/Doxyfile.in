@@ -364,7 +364,7 @@ EXTRACT_ALL            = NO
 # If the EXTRACT_PRIVATE tag is set to YES all private members of a class 
 # will be included in the documentation.
 
-EXTRACT_PRIVATE        = NO
+EXTRACT_PRIVATE        = YES
 
 # If the EXTRACT_PACKAGE tag is set to YES all members with package or internal 
 # scope will be included in the documentation.
@@ -730,7 +730,7 @@ EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/CMakeFiles \
                          @CMAKE_CURRENT_SOURCE_DIR@/Testing \
                          @CMAKE_CURRENT_SOURCE_DIR@/Documents \
                          @CMAKE_CURRENT_SOURCE_DIR@/Build \
-                         @CMAKE_CURRENT_SOURCE_DIR@/Logos
+                         @CMAKE_CURRENT_SOURCE_DIR@/Images
                          
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or 
 # directories that are symbolic links (a Unix file system feature) are excluded 
@@ -778,7 +778,7 @@ EXAMPLE_RECURSIVE      = NO
 # directories that contain image that are included in the documentation (see 
 # the \image command).
 
-IMAGE_PATH             = 
+IMAGE_PATH             = @CMAKE_CURRENT_SOURCE_DIR@/Images
 
 # The INPUT_FILTER tag can be used to specify a program that doxygen should 
 # invoke to filter for each input file. Doxygen will invoke the filter program 
