@@ -728,7 +728,6 @@ RECURSIVE              = YES
 
 EXCLUDE                = @CMAKE_CURRENT_SOURCE_DIR@/CMakeFiles \
                          @CMAKE_CURRENT_SOURCE_DIR@/Testing \
-                         @CMAKE_CURRENT_SOURCE_DIR@/Documents \
                          @CMAKE_CURRENT_SOURCE_DIR@/Build \
                          @CMAKE_CURRENT_SOURCE_DIR@/Images
                          
