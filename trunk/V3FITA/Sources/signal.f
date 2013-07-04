@@ -231,10 +231,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref signal_class containing a @ref combination object.
+!>  @brief Construct a @ref signal_class containing a @ref combination_class
+!>  object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
-!>  @param[in] combination_object An instance of a @ref combination subclass.
+!>  @param[in] combination_object An instance of a @ref combination_class
+!>                                subclass.
 !>  @param[in] s_name             The short name of the signal.
 !>  @param[in] l_name             The short name of the signal.
 !>  @param[in] units              The units of the signal.
