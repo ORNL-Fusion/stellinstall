@@ -11,7 +11,168 @@
 !>  This is required due to limitations of FORTRAN 95 and namelist inputs. Any
 !>  information needed by a V3FIT task should be copied to a @ref context
 !>  object. All non-parameters are inputs to the namelist input file.
-!*******************************************************************************
+!>
+!>  @section namelist_sec Namelist v3fit_main_nli definition
+!>
+!>  @subsection filename_sec Filename variables
+!>  * main_nli_filename     File name for main namelist input
+!>  * vmec_nli_filename     File name for VMEC namelist input
+!>  * mdsig_list_filename   File name for list of MDSIG files
+!>  * sxrch_dot_filename	file holding sxr chord information
+!>  * thscte_dot_filename	file holding Thomson Scattering information
+!>  * ipch_dot_filenam      file holding interferometry-polarimetry information
+!>
+!>  @subsection size_sec Array allocation sizes, numbers to allocate
+!>  * na_d_desc             d_desc array, diagnostic_desc (deprecated)
+!>  * na_g_desc             g_desc array, geometric_desc (deprecated)
+!>  * na_c_desc             c_desc array, coosig_desc (deprecated)
+!>  * na_s_desc             s_desc array, signal_desc
+!>  * na_rparam             rparam array, recon_param (deprecated)
+!>
+!>  @subsection work_sec Task specification, work variables
+!>  * my_task               Character: to specify task in MAIN select case
+!>  * i_work                Array of integers, work space (deprecated)
+!>  * r_work                Array of reals, work space (deprecated)
+!>  * c_work                Array of character variables, work space
+!>                          (deprecated)
+!>
+!>  @subsection model_sec Model profile specification
+!>  * pp_ne_ptype           model electron density profile, parameterized
+!>                          profile type
+!>  * pp_ne_b               array of b_coefficients for the electron density
+!>                          profile
+!>  * pp_ne_as              array of as_coefficients electron density splines
+!>  * pp_ne_af              array of af_coefficients electron density splines
+!>  * pp_sxrem_ptype        model soft x-ray emissivity profile, parameterized
+!>                          profile type
+!>  * pp_sxrem_b            array of b_coefficients for the soft x-ray
+!>                          emissivity profile
+!>  * pp_sxrem_as           array of as_coefficients soft x-ray emissivity
+!>                          splines
+!>  * pp_sxrem_af           array of af_coefficients soft x-ray emissivity
+!>                          splines
+!>  * pp_te_ptype           model electron temperature profile, parameterized
+!>                          profile type
+!>  * pp_te_b               array of b_coefficients for the e-temperature
+!>                          profile
+!>  * pp_te_as              array of as_coefficients e-temperature splines
+!>  * pp_te_af              array of af_coefficients e-temperature splines
+!>
+!>  @subsection model_spec_sec Model Specification Variables
+!>  * model_ne_type         Character variable to specify how the electron
+!>                          density will be calculated by the model.
+!>      -# 'none'             Not part of the model.
+!>      -# 'pp_ne'            Calculated from the parameterized profile pp_ne
+!>      -# 'pp_te_vmec_p'     Calculated from the pp_te and the VMEC pressure
+!>  * model_sxrem_type      Character variable to specify how the Soft x-ray
+!>                          emissivity will be calculated by the model.
+!>      -# 'none'             Not part of the model.
+!>      -# 'pp_sxrem'         Calculated from the parameterized profile pp_sxrem
+!>      -# 'pp_ne_vmec_p'     Calculated from the pp_ne and the VMEC pressure
+!>  * model_te_type         Character variable to specify how the e-temperature
+!>                          will be calculated by the model.
+!>      -# 'none'             Not part of the model.
+!>      -# 'pp_te'            Calculated from the parameterized profile pp_te
+!>      -# 'pp_ne_vmec_p'     Calculated from the pp_ne and the VMEC pressure
+!>  * ne_pp_unit            Scaling/conversion factor for the density.
+!>                          ne * ne_pp_unit is assumed to have units of m ** -3.
+!>  * ne_min                Minimum electron density, m ** -3.
+!>  * e_pressure_fraction   Electron pressure fraction of the total pressure
+!>                          Used when model_te_type = 'pp_ne_vmec_p'
+!>
+!>  @subsection recon_con_sec Reconstruction constraints
+!>  * n_rc                  Number of reconstruction constraints
+!>  * rc_type               Array of reconstruction constraint types
+!>  * rc_index              Array of reconstruction constraint indices
+!>  * rc_value              Array of reconstruction constraint values
+!>
+!>  @subsection recon_param_sec Reconstruction parameter specification
+!>  * n_rp                  Number of reconstruction parameters
+!>  * rp_type               Array of reconstruction parameter types
+!>  * rp_index              Array of reconstruction parameter indices
+!>  * rp_index2             Array of reconstruction parameter 2nd indices
+!>  * rp_vrnc               Array of reconstruction parameter variances
+!>  * rp_range_type         2D Array of reconstruction parameter ranges types
+!>      -# 'infinity'          Unbounded
+!>      -# 'value'             Bounded by the value of rp_range_value
+!>      -# \<other\>           Bounded by a equilibrium parameter.
+!>  * rp_range_value        2D Array of values used if rp_range_type = 'value'
+!>  * rp_range_index        2D Array of values of indicies used if rp_range_type
+!>                          = \<other\>
+!>
+!>  @subsection signal_spec_sec Signal Data specification
+!>  * n_sdata_o             Number of signal_data observations
+!>  * iw_sdo_verbose        Integer to control write out of signal_data
+!>                          observations. (-1, no write, otherwise, verbosity)
+!>  * sdo_data_a            Array of data for observed signals
+!>  * sdo_sigma_a           Array of sigmas for observed signals
+!>  * sdo_weight_a          Array of weight for observed signals
+!>        These two are used by the extcurz diagnostic signal.
+!>  * extcurz_s0            S position to integrate about.
+!>  * extcurz_u0            U position to integrate about.
+!>        Signal Data sigma and weight specification
+!>  * sdo_s_spec_imin       Array of minimum index values, for specifying sigmas
+!>  * sdo_s_spec_imax       Array of maximum index values, for specifying sigmas
+!>  * sdo_s_spec_floor      Array of floor values, for specifying sigmas
+!>  * sdo_s_spec_fraction   Array of fractional values, for specifying sigmas
+!>      - floor \> 0, sigma = max(floor,fraction * sdo)
+!>      - floor \< 0, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2)
+!>  * sdo_w_spec_imin       Array of minimum index values, for specifying weights
+!>  * sdo_w_spec_imax       Array of maximum index values, for specifying weights
+!>  * sdo_w_spec_weight     Array of weight values, for specifying weights
+!>
+!>  @subsection geometric_sec Geometric information
+!>  * r_major_radius        For circular torus geometric
+!>  * a_minor_radius        For circular torus geometric
+!>  @subsubsection lif_sec Limiter_Iso Function.
+!>
+!>  First dimension of arrays is dimensioned na_lif
+!>  * n_lif                 number of limiter_iso functions
+!>  * n_phi_lif             array of number of phi values (:)
+!>  * lif_arz               array of r-z polynomial coefficients, (:,0:4,0:4)
+!>  * lif_rc                array of r offset values (:)
+!>  * lif_zc                array of z offset values (:)
+!>  * lif_sigma             array of sigma values (:)
+!>  * lif_phi_degree        array of phi values (:,na_phis_lif)
+!>  * lif_on_edge           array of logical values (:)
+!>      - true  - edge of plasma is on limiter
+!>      - false - edge of plasma is within limiter
+!>
+!>  * use_boundary          Toggle use of the fixed boundary coeffients as a
+!>                          reconstruction signal.
+!>
+!>  @subsection coosig_sec COOSIG - Combination Of Other SIGnals NLI Variables
+!>  * n_coosig         Number of new signals of signal_type coosig
+!>  * n_sig_coosig     Array of number of signals in a combinaton.
+!>  * coosig_indices   2d Integer Array of indices (to list of signals)
+!>                     for combinations. First index is for which new signal,
+!>                     second index is for terms in the combination
+!>  * coosig_coeff     2d real array of coefficients for the combination
+!>                     (a's in the type)
+!>  * coosig_type      Character array of combination types
+!>      -# 'sum'  - linear combination
+!>      -# 'max'  - maximum of wieghted signals
+!>      -# 'min'  - minimum of weighted signals
+!>  * coosig_name      Character array of coosig names
+!>  * coosig_units     Character array of coosig units
+!>
+!>  @subsection recon_sec Reconstruction step control NLI variables
+!>  * nrstep         max number of reconstruction steps to perform
+!>  * dg2_stop       Stopping criterion on change in g^2
+!>  * cut_svd        cutoff value for relative Singular Values
+!>  * cut_eff        cutoff value for expected step efficiency
+!>  * cut_marg_eff   cutoff value for expected marginal step efficiency
+!>  * cut_delta_a    cutoff value for expected step size
+!>  * cut_dg2        cutoff value for expected change in g^2
+!>  * astep_max      maximum allowable normalized step size
+!>  * step_type      character specification of reconstruction step type
+!>      -# 'sl' - straight line
+!>      -# 'seg' - segmented
+!>      -# 'lm' - Levenberg-Marquardt
+!>
+!>  @subsection xcdot_sec VMEC zero out xcdot control
+!>  * l_zero_xcdot   reset the xcdot array to zero when converging vmec.
+!-------------------------------------------------------------------------------
 
       MODULE v3fit_input
       USE stel_kinds
@@ -65,162 +226,6 @@
 !  2) v3fit_context_class
 !
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Namelist v3fit_main_nli definition
-!
-!          File name variables
-!  main_nli_filename     File name for main namelist input
-!  vmec_nli_filename     File name for VMEC namelist input
-!  mdsig_list_filename   File name for list of MDSIG files
-!  sxrch_dot_filename	 file holding sxr chord information
-!  thscte_dot_filename	 file holding Thomson Scattering information
-!  ipch_dot_filenam      file holding interferometry-polarimetry information 
-!
-!       Array allocation sizes, numbers to allocate
-!  na_d_desc             d_desc array, diagnostic_desc
-!  na_g_desc             g_desc array, geometric_desc
-!  na_c_desc             c_desc array, coosig_desc
-!  na_s_desc             s_desc array, signal_desc
-!  na_rparam             rparam array, recon_param
-!
-!       Task specification, work variables
-!  my_task               Character: to specify task in MAIN select case
-!  i_work                Array of integers, work space
-!  r_work                Array of reals, work space
-!  c_work                Array of character variables, work space
-!
-!      Model profile specification
-!  pp_ne_ptype           model electron density profile, parameterized profile type
-!  pp_ne_b               array of b_coefficients for the electron density profile
-!  pp_ne_as              array of as_coefficients electron density splines
-!  pp_ne_af              array of af_coefficients electron density splines
-!  pp_sxrem_ptype        model soft x-ray emissivity profile, parameterized profile type
-!  pp_sxrem_b            array of b_coefficients for the soft x-ray emissivity profile
-!  pp_sxrem_as           array of as_coefficients soft x-ray emissivity splines
-!  pp_sxrem_af           array of af_coefficients soft x-ray emissivity splines
-!  pp_te_ptype           model electron temperature profile, parameterized profile type
-!  pp_te_b               array of b_coefficients for the e-temperature profile
-!  pp_te_as              array of as_coefficients e-temperature splines
-!  pp_te_af              array of af_coefficients e-temperature splines
-!
-!      Model Specification Variables
-!  model_ne_type        Character variable to specify how the electron density
-!                       will be calculated by the model.
-!      'none'             Not part of the model.
-!      'pp_ne'            Calculated from the parameterized profile pp_ne
-!      'pp_te_vmec_p'     Calculated from the pp_te and the VMEC pressure
-!  model_sxrem_type     Character variable to specify how the Soft x-ray
-!                       emissivity will be calculated by the model.
-!      'none'             Not part of the model.
-!      'pp_sxrem'         Calculated from the parameterized profile pp_sxrem
-!      'pp_ne_vmec_p'     Calculated from the pp_ne and the VMEC pressure
-!  model_te_type        Character variable to specify how the e-temperature
-!                       will be calculated by the model.
-!      'none'             Not part of the model.
-!      'pp_te'            Calculated from the parameterized profile pp_te
-!      'pp_ne_vmec_p'     Calculated from the pp_ne and the VMEC pressure
-!  ne_pp_unit           Scaling/conversion factor for the density.
-!                       ne * ne_pp_unit is assumed to have units of m ** -3.
-!  ne_min               Minimum electron density, m ** -3.
-!  e_pressure_fraction  Electron pressure fraction of the total pressure
-!                       Used when model_te_type = 'pp_ne_vmec_p'
-!
-!        Reconstruction constraints
-!  n_rc                  Number of reconstruction constraints
-!  rc_type               Array of reconstruction constraint types
-!  rc_index              Array of reconstruction constraint indices
-!  rc_value              Array of reconstruction constraint values
-!
-!       Reconstruction parameter specification
-!  n_rp                  Number of reconstruction parameters
-!  rp_type               Array of reconstruction parameter types
-!  rp_index              Array of reconstruction parameter indices
-!  rp_index2             Array of reconstruction parameter 2nd indices
-!  rp_vrnc               Array of reconstruction parameter variances
-!  rp_range_type         2D Array of reconstruction parameter ranges types
-!      'infinity'          Unbounded
-!      'value'             Bounded by the value of rp_range_value
-!      <other>             Bounded by a equilibrium parameter.
-!  rp_range_value        2D Array of values used if rp_range_type = 'value'
-!  rp_range_index        2D Array of values of indicies used if rp_range_type =
-!                        <other>
-!
-!        Signal Data specification
-!  n_sdata_o             Number of signal_data observations
-!  iw_sdo_verbose        Integer to control write out of signal_data
-!                           observations. (-1, no write, otherwise, verbosity)
-!  sdo_data_a            Array of data for observed signals
-!  sdo_sigma_a           Array of sigmas for observed signals
-!  sdo_weight_a          Array of weight for observed signals
-!
-! These two are used by the extcurz diagnostic signal.
-!  extcurz_s0            S position to integrate about.
-!  extcurz_u0            U position to integrate about.
-!
-!        Signal Data sigma and weight specification
-!  sdo_s_spec_imin       Array of minimum index values, for specifying sigmas
-!  sdo_s_spec_imax       Array of maximum index values, for specifying sigmas
-!  sdo_s_spec_floor      Array of floor values, for specifying sigmas
-!  sdo_s_spec_fraction   Array of fractional values, for specifying sigmas
-!      floor > 0, sigma = max(floor,fraction * sdo)
-!      floor < 0, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2 )
-!  sdo_w_spec_imin       Array of minimum index values, for specifying weights
-!  sdo_w_spec_imax       Array of maximum index values, for specifying weights
-!  sdo_w_spec_weight     Array of weight values, for specifying weights
-!
-!      Geometric information
-!  r_major_radius        For circular torus geometric
-!  a_minor_radius        For circular torus geometric
-!
-!     lif - Limiter_Iso Function - all declared in v3f_global
-!       first dimension of arrays is dimensioned na_lif
-!
-!  n_lif                 number of limiter_iso functions
-!  n_phi_lif             array of number of phi values (:)
-!  lif_arz               array of r-z polynomial coefficients, (:,0:4,0:4)
-!  lif_rc                array of r offset values (:)
-!  lif_zc                array of z offset values (:)
-!  lif_sigma             array of sigma values (:)
-!  lif_phi_degree        array of phi values (:,na_phis_lif)
-!  lif_on_edge           array of logical values (:)
-!                           true  - edge of plasma is on limiter
-!                           false - edge of plasma is within limiter
-!
-!  use_boundary          Toggle use of the fixed boundary coeffients as a
-!                        reconstruction signal.
-!
-!     COOSIG - Combination Of Other SIGnals NLI Variables
-!  n_coosig         Number of new signals of signal_type coosig
-!  n_sig_coosig     Array of number of signals in a combinaton.
-!  coosig_indices   2d Integer Array of indices (to list of signals)
-!                   for combinations. First index is for which new signal,
-!                   second index is for terms in the combination
-!  coosig_coeff     2d real array of coefficients for the combination
-!                   (a's in the type)
-!  coosig_type      Character array of combination types
-!                     'sum'  - linear combination
-!                     'max'  - maximum of wieghted signals
-!                     'min'  - minimum of weighted signals
-!  coosig_name      Character array of coosig names
-!  coosig_units     Character array of coosig units
-!
-!    Reconstruction step control NLI variables
-!  nrstep         max number of reconstruction steps to perform
-!  dg2_stop       Stopping criterion on change in g^2
-!  cut_svd        cutoff value for relative Singular Values
-!  cut_eff        cutoff value for expected step efficiency
-!  cut_marg_eff   cutoff value for expected marginal step efficiency
-!  cut_delta_a    cutoff value for expected step size
-!  cut_dg2        cutoff value for expected change in g^2
-!  astep_max      maximum allowable normalized step size
-!  step_type      character specification of reconstruction step type
-!                   'sl' - straight line
-!                   'seg' - segmented
-!                   'lm' - Levenberg-Marquardt
-!
-!    VMEC zero out xcdot control
-!  l_zero_xcdot   reset the xcdot array to zero when converging vmec.
-!-------------------------------------------------------------------------------
 !>  File name for main namelist input
       CHARACTER (len=data_filename_length) :: main_nli_filename = ''
 
