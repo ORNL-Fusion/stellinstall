@@ -45,7 +45,6 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/thscte_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3f_global.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fita.f
-	${CMAKE_CURRENT_SOURCE_DIR}/v3read_wout.f
 	${CMAKE_CURRENT_SOURCE_DIR}/data_parameters.f
 	${CMAKE_CURRENT_SOURCE_DIR}/parameter.f
 	${CMAKE_CURRENT_SOURCE_DIR}/model.f
