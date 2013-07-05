@@ -41,9 +41,9 @@
       TYPE intpol_class
 !>  Type descirptor of the intpol type.
 !>  @par Possible values are:
-!>  @ref intpol_no_type
-!>  @ref intpol_interferometry_type
-!>  @ref intpol_polarimetry_type
+!>  * @ref intpol_no_type
+!>  * @ref intpol_interferometry_type
+!>  * @ref intpol_polarimetry_type
          INTEGER      :: type
          REAL (rprec) :: wavelength
          LOGICAL      :: in_degrees

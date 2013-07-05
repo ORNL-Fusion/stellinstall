@@ -42,9 +42,9 @@
       TYPE limiter_class
 !>  Type descirptor of the limiter type.
 !>  @par Possible values are:
-!>  @ref limiter_no_type
-!>  @ref limiter_iso_type
-!>  @ref limiter_polygon_type
+!>  * @ref limiter_no_type
+!>  * @ref limiter_iso_type
+!>  * @ref limiter_polygon_type
          INTEGER                     :: type = limiter_no_type
 !>  If true, the reconstruction tries to place the edge on the limiter.
 !>  Otherwise, the plasma edge is kept inside the limiter.

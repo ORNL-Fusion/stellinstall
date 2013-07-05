@@ -395,6 +395,7 @@
 !>
 !>  Multi dimensional arrays need to be transposed so arrays appear in the
 !>  correct order in non fortran languages.
+!>
 !>  Variables:
 !>    * nsteps         Actual number of steps taken.
 !>    * g2 (maxnsteps) g^2 value for each reconstruction step.

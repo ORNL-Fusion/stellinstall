@@ -1,11 +1,14 @@
 !*******************************************************************************
-!  File vmec_equilibrium.f
-!  Contains module vmec_equilibrium
-!  Defines the base class of the type vmec:
+!>  @file vmec_equilibrium.f
+!>  @brief Contains module @ref vmec_equilibrium
 !
-!  Super Class: equilibrium
-!  Sub Classes: None
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
+!>  Defines the base class of the type @ref vmec_class. This module containes
+!>  all the code necessary to interface V3FIT with VMEC.
+!>  @par Super Class:
+!>  @ref equilibrium
 !*******************************************************************************
 
       MODULE vmec_equilibrium
@@ -18,69 +21,123 @@
 !*******************************************************************************
 !  vmec equilibrium module parameters
 !*******************************************************************************
-      INTEGER, PARAMETER :: vmec_profile_type_length = 30
-
 !  Define id's only for values that can change. All others shouldn't be needed
 !  outside of the vmec interface. Parameter id's start at 3 since 0-2 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  update if any new model parameters are added.
 
 !  Variable Parameters
+!>  1D Array of function current profile parameters. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_ac_id          =  3
+!>  1D Array of segment current profile s poitions. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_ac_aux_s_id    =  4
+!>  1D Array of segment current profile f values. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_ac_aux_f_id    =  5
+!>  1D Array of function iotabar profile parameters. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_ai_id          =  6
+!>  1D Array of segment iotabar profile s poitions. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_ai_aux_s_id    =  7
+!>  1D Array of segment iotabar profile f values. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_ai_aux_f_id    =  8
+!>  1D Array of function pressure profile parameters. Defined in
+!>  @ref vmec_input.
       INTEGER, PARAMETER :: vmec_am_id          =  9
+!>  1D Array of segment pressure profile s poitions. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_am_aux_s_id    = 10
+!>  1D Array of segment pressure profile f values. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_am_aux_f_id    = 11
+!>  Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_bloat_id       = 12
+!>  2D Array of outer boundary R cosine coeffiecents. Defined in
+!>  @ref vmec_input.
       INTEGER, PARAMETER :: vmec_rbc_id         = 13
+!>  2D Array of outer boundary Z sine coeffiecents. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_zbs_id         = 14
+!>  2D Array of outer boundary R sine coeffiecents. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_rbs_id         = 15
+!>  2D Array of outer boundary Z cosine coeffiecents. Defined in
+!>  @ref vmec_input.
       INTEGER, PARAMETER :: vmec_zbc_id         = 16
+!>  1D Array of external currents. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_extcur_id      = 17
+!>  The toroidal current. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_curtor_id      = 18
+!>  The edge magnetic flux. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_phiedge_id     = 19
+!>  The scaling parameter for the pressure. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_pres_scale_id  = 20
 
 !  Auxiliary Parameters
+!>  2D Array of surface R cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_rmnc_id        = 21
+!>  2D Array of surface Z sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_zmns_id        = 22
+!>  2D Array of surface lambda cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_lmns_id        = 23
+!>  2D Array of surface g cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_gmnc_id        = 24
+!>  2D Array of surface B_s sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsubsmns_id    = 25
+!>  2D Array of surface B_u cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsubumnc_id    = 26
+!>  2D Array of surface B_v cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 27
+!>  2D Array of surface B^u cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsupumnc_id    = 28
+!>  2D Array of surface B^v cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 29
+!>  2D Array of surface R sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_rmns_id        = 30
+!>  2D Array of surface Z cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_zmnc_id        = 31
+!>  2D Array of surface lambda sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_lmnc_id        = 32
+!>  2D Array of surface g sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_gmns_id        = 33
+!>  2D Array of surface B_s cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 34
+!>  2D Array of surface B_u sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsubumns_id    = 35
+!>  2D Array of surface B_v sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsubvmns_id    = 36
+!>  2D Array of surface B^u sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsupumns_id    = 37
+!>  2D Array of surface B^v sine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_bsupvmns_id    = 38
+!>  Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_phi_id         = 39
+!>  1D Array of full grid iotabar. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_iotaf_id       = 40
+!>  1D Array of half grid iotabar. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_iotas_id       = 41
 
 !  Auxiliary Model Parameters
+!>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 42
+!>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 43
+!>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 44
+!>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 45
+!>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 46
+!>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 47
+!>  1D Array of function temperature profile parameters. Defined in
+!>  @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_te_b_id     = 48
+!>  1D Array of segment temperature profile s poitions. Defined in
+!>  @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_te_as_id    = 49
+!>  1D Array of segment temperature profile f values. Defined in
+!>  @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_te_af_id    = 50
 
 !  Derived Parameters
+!>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
       INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 51
+!>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
       INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 52
 
 !*******************************************************************************
@@ -90,7 +147,7 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Define an object to cache data needed to compute magnetic signals.
+!>  Object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
 !  Number of toroidal planes.
@@ -112,53 +169,71 @@
       END TYPE
 
 !-------------------------------------------------------------------------------
-!  Define the vmec base class
-!
-!  needs_reconvergence  External vmec only needs to be reconverged after a vmec
-!                       reconstruction parameter has been changed.
-!
-!  ne     Parameterized profile describing a flux surface constant electron
-!         denisty profile.
-!
-!  te     Parameterized profile describing a flux surface constant electron
-!         temperature profile.
-!
-!  sxrem  Parameterized profile describing a flux surface conatsnt soft x-ray
-!         emissivity profile.
+!>  Base class representing a vmec_equilibrium.
+!>  @par Super Class:
+!>  @ref equilibrium
+!>  @todo Add cache for the information obtained in @ref read_wout_mod. This
+!>  could be used in place of reconverging VMEC when a non vmec parameter is
+!>  changed. This would futher ensure that the jacobian calculation is zero for
+!>  signals that do not depend on auxiliary profiles.
 !-------------------------------------------------------------------------------
       TYPE vmec_class
+!>  File name of the output of v3fit.
          CHARACTER (len=data_filename_length) :: wout_file_name
+!>  File name of the v3fit namelist inout file.
          CHARACTER (len=data_filename_length) :: vmec_file_name
+!>  @ref pprofile_T describing a flux surface constant electron denisty profile.
          TYPE (pprofile), POINTER             :: ne => null()
+!>  @ref pprofile_T describing a flux surface constant electron temperature
+!>  profile.
          TYPE (pprofile), POINTER             :: te => null()
+!>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
+!>  profile.
          TYPE (pprofile), POINTER             :: sxrem => null()
+!>  Instance of a @ref vmec_magnetic_cache object.
          TYPE (vmec_magnetic_cache), POINTER  ::                               &
      &      magnetic_cache => null()
+!>  Cache of the vmec internal state xc array.
          REAL (rprec), DIMENSION(:), POINTER  :: xc => null()
 
 !  Result file NetCDF variables
+!>  External current Netcdf variable id.
          INTEGER                              :: vmec_extcur_id
+!>  Toroidal current Netcdf variable id.
          INTEGER                              :: vmec_curtor_id
+!>  Pressure scale Netcdf variable id.
          INTEGER                              :: vmec_pres_scale_id
+!>  Boundary R cosine coeffients Netcdf variable id.
          INTEGER                              :: vmec_rbc_id
+!>  Boundary R sine coeffients Netcdf variable id.
          INTEGER                              :: vmec_rbs_id
+!>  Boundary Z cosine coeffients Netcdf variable id.
          INTEGER                              :: vmec_zbc_id
+!>  Boundary Z sine coeffients Netcdf variable id.
          INTEGER                              :: vmec_zbs_id
+!>  Internal inducance Netcdf variable id.
          INTEGER                              :: vmec_l_sub_i_id
+!>  Mean elongation Netcdf variable id.
          INTEGER                              :: vmec_kappa_p_id
       END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the setting the @ref vmec_magnetic_cache types using
+!>  @ref vmec_set_magnetic_cache_init or @ref vmec_set_magnetic_cache_calc. 
+!-------------------------------------------------------------------------------
       INTERFACE vmec_set_magnetic_cache
          MODULE PROCEDURE vmec_set_magnetic_cache_init,                        &
      &                    vmec_set_magnetic_cache_calc
       END INTERFACE
 
-!  Forward declare the interface for runvmec. This explicitly defined the type
-!  for runvmec to avoid a compiler bugs. If runvmec.f was implimented as a
-!  module this would not be needed.
+!-------------------------------------------------------------------------------
+!>  Forward declare the interface for @ref runvmec.
+!>  @note If @ref runvmec.f was implimented as a module this would not be
+!>  necessary.
+!-------------------------------------------------------------------------------
       INTERFACE
          SUBROUTINE runvmec(control_array, vmec_input_file,                    &
      &                      use_screen, reset_file_name)
@@ -173,6 +248,19 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref vmec_class object.
+!>
+!>  Allocates memory and initializes a @ref equilibrium_class object. Runs vmec
+!>  for one iteration to initialize all the input parameters. Defined in
+!>  @ref vmec_input.
+!>  @param[in] file_name Filename of the vmec namelist input file.
+!>  @param[in] ne        @ref pprofile_T for the electron density.
+!>  @param[in] te        @ref pprofile_T for the electron temperature.
+!>  @param[in] sxrem     @ref pprofile_T for the soft x-ray emissivity.
+!>  @param[in] iou       Input/output unit to log messages to.
+!>  @returns A pointer to a constructed @ref vmec_class object.
+!-------------------------------------------------------------------------------
       FUNCTION vmec_construct(file_name, ne, te, sxrem, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
@@ -182,16 +270,16 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER    :: vmec_construct
-      CHARACTER (len=*), INTENT(in) :: file_name
-      TYPE (pprofile), POINTER      :: ne
-      TYPE (pprofile), POINTER      :: te
-      TYPE (pprofile), POINTER      :: sxrem
-      INTEGER, INTENT(in)           :: iou
+      TYPE (vmec_class), POINTER           :: vmec_construct
+      CHARACTER (len=*), INTENT(in)        :: file_name
+      TYPE (pprofile), POINTER, INTENT(in) :: ne
+      TYPE (pprofile), POINTER, INTENT(in) :: te
+      TYPE (pprofile), POINTER, INTENT(in) :: sxrem
+      INTEGER, INTENT(in)                  :: iou
 
 !  local variables
-      INTEGER, DIMENSION(5)         :: ictrl_array = 0
-      INTEGER                       :: index_dat, index_end
+      INTEGER, DIMENSION(5)                :: ictrl_array = 0
+      INTEGER                              :: index_dat, index_end
 
 !  Start of executable code
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
@@ -240,6 +328,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref vmec_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref vmec_class object.
+!>
+!>  @param[inout] this A @ref vmec_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE vmec_destruct(this)
 
       IMPLICIT NONE
@@ -294,7 +389,18 @@
 !  SETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Set reconstruction parameter
+!>  @brief Sets the value of a reconstruction equilibrium parameter.
+!>
+!>  This method overrides @ref equilibrium_set_param. When a VMEC parameter is
+!>  changed, propagate the changes to the VMEC internal state and inform the
+!>  caller that the equilibrium needs reconvergence.
+!>
+!>  @param[inout] this    A @ref equilibrium_class instance.
+!>  @param[in]    id      ID of the parameter.
+!>  @param[in]    i_index The ith index of the parameter.
+!>  @param[in]    j_index The jth index of the parameter.
+!>  @param[in]    value   The value of the parameter.
+!>  @returns True if VMEC is left in an unconverged state and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_set_param(this, id, i_index, j_index, value)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
@@ -530,7 +636,18 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Set magnetic cache initialy
+!>  @brief Set magnetic cache initialy.
+!>
+!>  This method overrides @ref equilibrium_set_magnetic_cache. This allocates a
+!>  @ref vmec_magnetic_cache structure.
+!>
+!>  @param[inout] this             A @ref equilibrium_class instance.
+!>  @param[in]    total_tor_planes Total number of toroidal planes.
+!>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
+!>                                 planes.
+!>  @note Stellarator symmetry may be exploited speed up computation and reduce
+!>  memory usage. If stellarator symmetry is not used then tor_planes_used
+!>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
      &                                        tor_planes_used)
@@ -570,7 +687,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Set magnetic cache
+!>  @brief Set magnetic cache initialy.
+!>
+!>  After the equilibrium has been converged calculate the r, z, jr, jphi and
+!>  jz on grid of s, u, v points.
+!>
+!>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_calc(this)
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
@@ -692,7 +814,17 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the id number for a vmec parameter
+!>  @brief Get the id for a reconstruction parameter.
+!>
+!>  This method overrides @ref equilibrium_get_param_id.
+!>
+!>  @param[inout] this             A @ref equilibrium_class instance.
+!>  @param[in]    total_tor_planes Total number of toroidal planes.
+!>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
+!>                                 planes.
+!>  @param[in] this       A @ref vmec_class instance.
+!>  @param[in] param_name Name of a reconstruction parameter.
+!>  @returns The id for a reconstruction parameter.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_param_id(this, param_name)
 
@@ -864,7 +996,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the value of a parameter for an id number
+!>  @brief Get the value of a reconstruction VMEC parameter.
+!>
+!>  This method overrides @ref equilibrium_get_param_value.
+!>
+!>  @param[in] this    A @ref vmec_class instance.
+!>  @param[in] id      ID of the parameter.
+!>  @param[in] i_index The ith index of the parameter.
+!>  @param[in] j_index The jth index of the parameter.
+!>  @returns The value of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_param_value(this, id, i_index, j_index)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
@@ -1051,7 +1191,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec parameter name for an id number
+!>  @brief Get the name of a reconstruction VMEC parameter.
+!>
+!>  This method overrides @ref equilibrium_get_param_name.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns The name of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_param_name(this, id)
 
@@ -1223,7 +1369,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec electron density at position
+!>  @brief Gets the electron density at a position.
+!>
+!>  This method overrides @ref equilibrium_get_ne. If no density profile was
+!>  created, return zero.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron density at.
+!>  @returns The electron density at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_ne(this, x_cart)
 
@@ -1245,7 +1398,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec electrocn temperature at position
+!>  @brief Gets the electron temperature at a position.
+!>
+!>  This method overrides @ref equilibrium_get_te. If no temperature profile was
+!>  created, return zero.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @returns The electron temperature at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_te(this, x_cart)
 
@@ -1267,7 +1427,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec soft x-ray emissivity at position
+!>  @brief Gets the soft x-ray emissivity at a position.
+!>
+!>  This method overrides @ref equilibrium_get_sxrem. If no soft x-ray emissivity
+!>  profile was created, return zero.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_sxrem(this, x_cart)
 
@@ -1289,7 +1456,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec plasma pressure at position
+!>  @brief Gets the plasma pressure at a position.
+!>
+!>  This method overrides @ref equilibrium_get_p.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the plasma pressure at.
+!>  @returns The plasma pressure at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_p(this, x_cart)
       USE stel_constants, only: mu0
@@ -1318,7 +1491,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec b field at position
+!>  @brief Gets the magnetic field vector at a position.
+!>
+!>  This method overrides @ref equilibrium_get_B_vec.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
+!>  @returns The magnetic field vector at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_B_vec(this, x_cart)
       USE coordinate_utilities, ONLY : cyl_to_cart_vec, cart_to_cyl
@@ -1346,7 +1525,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec line integrated b at position
+!>  @brief Gets the loop integrated magnetic field at a position.
+!>
+!>  This method overrides @ref equilibrium_get_Int_B_dphi.
+!>
+!>  @param[in] this  A @ref vmec_class instance.
+!>  @param[in] r     S position to integrate about.
+!>  @param[in] theta U angle to integrate about.
+!>  @returns The loop integrated magnetic field at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_Int_B_dphi(this, r, theta)
       USE line_segment, only: line_seg
@@ -1379,7 +1565,10 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get vmec s value at position
+!>  @brief Gets VMEC s value at position.
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the s position at.
+!>  @returns The s position at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_s(this, x_cart)
       USE cyl_flux, only: cyl2flx
@@ -1420,7 +1609,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get plasma edge at phi position
+!>  @brief Gets the r and z positions of the outer surface at a toroidal angle.
+!>
+!>  This method overrides @ref equilibrium_get_plasma_edge.
+!>
+!>  @param[in]  this A @ref vmec_class instance.
+!>  @param[in]  phi  Toroidal angle to determine the outer surface at.
+!>  @param[out] r    The radial postions of the other surface in a single
+!>                   toroidal angle.
+!>  @param[out] z    The Z postions of the other surface in a single toroidal
+!>                   angle.
+!>  @returns The number of elements in the r and z arrays.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_plasma_edge(this, phi, r, z)
       USE vmec_input, only: mpol
@@ -1472,7 +1671,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration radial grid points.
+!>  @brief Get volume magnetic volume integration radial grid points.
+!>
+!>  This method overrides @ref equilibrium_get_magnetic_volume_rgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_magnetic_volume_rgrid(this)
 
@@ -1489,7 +1693,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration z grid points.
+!>  @brief Get volume magnetic volume integration z grid points.
+!>
+!>  This method overrides @ref equilibrium_get_magnetic_volume_zgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_magnetic_volume_zgrid(this)
 
@@ -1506,7 +1715,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration jr grid points.
+!>  @brief Get volume magnetic volume integration jr grid points.
+!>
+!>  This method overrides @ref equilibrium_get_magnetic_volume_jrgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_magnetic_volume_jrgrid(this)
 
@@ -1523,7 +1737,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration jphi grid points.
+!>  @brief Get volume magnetic volume integration jphi grid points.
+!>
+!>  This method overrides @ref equilibrium_get_magnetic_volume_jphigrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_magnetic_volume_jphigrid(this)
 
@@ -1540,7 +1759,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration jz grid points.
+!>  @brief Get volume magnetic volume integration jz grid points.
+!>
+!>  This method overrides @ref equilibrium_get_magnetic_volume_jzgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_magnetic_volume_jzgrid(this)
 
@@ -1557,16 +1781,18 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume integration element.
-!
-!  For vmec this is J*ds*du*dv where J is the jacobian. The jacobian is
-!  integrated into Jr, Jphi and Jz but still need to account for the sign of the
-!  jacobian.
-!
-!  ds = 1/(ns - 1)
-!  du = 2*Pi/number of flux surfaces
-!  dv = 2*Pi/number of field periods/number of toroidal planes
-!
+!>  @brief Get volume integration element.
+!>
+!>  This method overrides @ref equilibrium_get_volume_int_element. For vmec this
+!>  is J*ds*du*dv where J is the jacobian. The jacobian is integrated into Jr,
+!>  Jphi and Jz but still need to account for the sign of the jacobian.
+!>
+!>  * ds = 1/(ns - 1)
+!>  * du = 2*Pi/number of flux surfaces
+!>  * dv = 2*Pi/number of field periods/number of toroidal planes
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The volume integration element.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_volume_int_element(this)
       USE read_wout_mod, only: isigng
@@ -1586,6 +1812,18 @@
 
 !-------------------------------------------------------------------------------
 !  Get external current.
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+!>  @brief Get external current.
+!>
+!>  This method overrides @ref equilibrium_get_ext_currents. The array memory
+!>  containing the external currents is owned by VMEC. Return a pointer to it.
+!>  if VMEC is run in fixed boundary mode, return a null() pointer.
+!>
+!>  @param[in]  this           A @ref vmec_class instance.
+!>  @param[out] scale_currents Informs the caller that currents need to be
+!>                             scaled.
+!>  @returns The external currents.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_ext_currents(this, scale_currents)
       USE vmec_input, only: lfreeb
@@ -1621,7 +1859,13 @@
 !  QUERY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Query variable id for scaler type
+!>  @brief Checks if a parameter id is a scaler value.
+!>
+!>  This method overrides @ref equilibrium_is_scaler_value.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a scaler and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_is_scaler_value(this, id)
 
@@ -1648,7 +1892,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Query variable id for 1D array
+!>  @brief Checks if a parameter id is a 1d array.
+!>
+!>  This method overrides @ref equilibrium_is_1d_array.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a 1d array and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_is_1d_array(this, id)
 
@@ -1680,7 +1930,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Query variable id for 2D array
+!>  @brief Checks if a parameter id is a 2d array.
+!>
+!>  This method overrides @ref equilibrium_is_2d_array.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a 2d array and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_is_2d_array(this, id)
 
@@ -1711,7 +1967,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Query variable id is a valid reconstruction parameter
+!>  @brief Checks if a parameter id is a reconstruction parameter.
+!>
+!>  This method overrides @ref equilibrium_is_recon_param.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a reconstruction parameter and false if
+!>  otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_is_recon_param(this, id)
 
@@ -1747,7 +2010,15 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Converge the equilibrium.
+!>  @brief Solves the VMEC equilibrium.
+!>
+!>  This method overrides @ref equilibrium_converge. Solves the vmec equilibrium
+!>  and loads the resulting wout file in preparation of computeing modeled
+!>  signals.
+!>
+!>  @param[inout] this     A @ref vmec_class instance.
+!>  @param[inout] num_iter Counter to track the number of iterations.
+!>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_converge(this, num_iter)
       USE vmec_input, only: delt, niter
@@ -1859,7 +2130,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Save the internal state of the equilibrium.
+!>  @brief Save the internal state of the equilibrium.
+!>
+!>  Saves the VMEC xc array.
+!>
+!>  @param[inout] this A @ref vmec_class instance.
+!>  @todo Save information obtained in @ref read_wout_mod. This could be used in
+!>  place of reconverging VMEC when a non vmec parameter is changed. This would
+!>  futher ensure that the jacobian calculation is zero for signals that do not
+!>  depend on auxiliary profiles.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_save_state(this)
       USE xstuff, only: xc
@@ -1886,7 +2165,15 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Reset the internal state of the equilibrium.
+!>  @brief Reset the internal state of the equilibrium.
+!>
+!>  Copies the saved VMEC xc array back to VMEC.
+!>
+!>  @param[inout] this A @ref vmec_class instance.
+!>  @todo Reset information obtained in @ref read_wout_mod. This could be used
+!>  in place of reconverging VMEC when a non vmec parameter is changed. This
+!>  would futher ensure that the jacobian calculation is zero for signals that
+!>  do not depend on auxiliary profiles.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_reset_state(this)
       USE xstuff, only: xc
@@ -1904,7 +2191,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write the vmec_equilibrium out to disk.
+!>  @brief Write out the equilibrium to an output file.
+!>
+!>  This method overrides @ref equilibrium_write.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write(this, iou)
 
@@ -1925,37 +2217,40 @@
 
 !*******************************************************************************
 !  NETCDF SUBROUTINES
-!
-!  Dimensiona:
-!    vmec_nextcur     Number of vmec external currents.
-!    vmec_boundary_i  Number of ith boundary coefficients.
-!    vmec_boundary_j  Number of jth boundary coefficients.
-!
-!  Variables:
-!    vmec_extcur (vmec_nextcur) External currents.
-!    vmec_curtor                Non-reconstructed plasma current.
-!    vmec_pres_scale            Non-reconstructed plasma pressure.
-!
-!  Multi dimensional arrays need to be transposed so arrays appear in the
-!  correct order in non fortran languages.
-!    vmec_rbc (vmec_boundary_j, R direction cosine coefficients.
-!              vmec_boundary_i,
-!              maxnsetps)
-!    vmec_rbs (vmec_boundary_j, R direction sine coefficients.
-!              vmec_boundary_i,
-!              maxnsetps)
-!    vmec_zbc (vmec_boundary_j, Z direction cosine coefficients.
-!              vmec_boundary_i,
-!              maxnsetps)
-!    vmec_zbs (vmec_boundary_j, Z direction sine coefficients.
-!              vmec_boundary_i,
-!              maxnsetps)
-!    vmec_l_sub_i               Internal inducance.
-!    vmec_kappa_p               Mean elongation.
-!
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Define the netcdf variables and dimensions.
+!>  @brief Define NetCDF variables for the result file
+!>
+!>  This method overrides @ref equilibrium_def_result. Defines dimensions and
+!>  variables for the VMEC contribution of the result file.
+!>
+!>  Dimensions:
+!>    * vmec_nextcur     Number of vmec external currents.
+!>    * vmec_boundary_i  Number of ith boundary coefficients.
+!>    * vmec_boundary_j  Number of jth boundary coefficients.
+!>
+!>  Variables:
+!>    * vmec_extcur (vmec_nextcur) External currents.
+!>    * vmec_curtor                Non-reconstructed plasma current.
+!>    * vmec_pres_scale            Non-reconstructed plasma pressure.
+!>
+!>  Multi dimensional arrays need to be transposed so arrays appear in the
+!>  correct order in non fortran languages.
+!>    * vmec_rbc (vmec_boundary_j, vmec_boundary_i) R direction cosine
+!>                                                  coefficients.
+!>    * vmec_rbs (vmec_boundary_j, vmec_boundary_i) R direction sine
+!>                                                    coefficients.
+!>    * vmec_zbc (vmec_boundary_j, vmec_boundary_i) Z direction cosine
+!>                                                    coefficients.
+!>    * vmec_zbs (vmec_boundary_j, vmec_boundary_i) Z direction sine
+!>                                                    coefficients.
+!>    * vmec_l_sub_i               Internal inducance.
+!>    * vmec_kappa_p               Mean elongation.
+!>
+!>  @param[in] this             A @ref vmec_class instance.
+!>  @param[in] result_ncid      NetCDF file id of the result file.
+!>  @param[in] maxnsetps_dim_id NetCDF dimension id of the number of steps
+!>                              dimension.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_def_result(this, result_ncid, maxnsetps_dim_id)
       USE mgrid_mod, only: nextcur
@@ -2003,32 +2298,28 @@
      &                    0, this%vmec_pres_scale_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'vmec_rbc', nf_double, 3,               &
+      status = nf_def_var(result_ncid, 'vmec_rbc', nf_double, 2,               &
      &                    (/ vmec_boundary_j_dim_id,                           &
-     &                       vmec_boundary_i_dim_id,                           &
-     &                       maxnsetps_dim_id /),                              &
-     &                       this%vmec_rbc_id)
+     &                       vmec_boundary_i_dim_id /),                        &
+     &                    this%vmec_rbc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'vmec_rbs', nf_double, 3,               &
+      status = nf_def_var(result_ncid, 'vmec_rbs', nf_double, 2,               &
      &                    (/ vmec_boundary_j_dim_id,                           &
-     &                       vmec_boundary_i_dim_id,                           &
-     &                       maxnsetps_dim_id /),                              &
-     &                       this%vmec_rbs_id)
+     &                       vmec_boundary_i_dim_id /),                        &
+     &                    this%vmec_rbs_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'vmec_zbc', nf_double, 3,               &
+      status = nf_def_var(result_ncid, 'vmec_zbc', nf_double, 2,               &
      &                    (/ vmec_boundary_j_dim_id,                           &
-     &                       vmec_boundary_i_dim_id,                           &
-     &                       maxnsetps_dim_id /),                              &
-     &                       this%vmec_zbc_id)
+     &                       vmec_boundary_i_dim_id /),                        &
+     &                    this%vmec_zbc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'vmec_zbs', nf_double, 3,               &
+      status = nf_def_var(result_ncid, 'vmec_zbs', nf_double, 2,               &
      &                    (/ vmec_boundary_j_dim_id,                           &
-     &                       vmec_boundary_i_dim_id,                           &
-     &                       maxnsetps_dim_id /),                              &
-     &                       this%vmec_zbs_id)
+     &                       vmec_boundary_i_dim_id /),                        &
+     &                    this%vmec_zbs_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_l_sub_i', nf_double, 1,           &
@@ -2042,11 +2333,18 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write inital data to the defined variables.
+!>  @brief Write inital data to NetCDF result file
+!>
+!>  This method overrides @ref equilibrium_write_init_data.
+!>
+!>  @param[in] this        A @ref vmec_class instance.
+!>  @param[in] result_ncid NetCDF file id of the result file.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write_init_data(this, result_ncid)
       USE mgrid_mod, only: nextcur
-      USE vmec_input, only: extcur, curtor, pres_scale
+      USE vmec_input, only: extcur, curtor, pres_scale,                        &
+     &                      rbc, zbs, rbs, zbc
+      USE vmec_dim, only: mpol1, ntor1
       USE ezcdf
 
       IMPLICIT NONE
@@ -2057,6 +2355,7 @@
 
 !  Local variables
       INTEGER                       :: status
+      INTEGER, DIMENSION(2)         :: boundary_size
 
 !  Start of executable code
       status = nf_put_var_double(result_ncid, this%vmec_extcur_id,             &
@@ -2071,16 +2370,43 @@
      &                           pres_scale)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      boundary_size(1) = 2*ntor1 + 1
+      boundary_size(2) = mpol1
+
+      status = nf_put_vara_double(result_ncid, this%vmec_rbc_id,               &
+     &                            (/ 1, 1 /), boundary_size,                   &
+     &                            TRANSPOSE(rbc(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, this%vmec_rbs_id,               &
+     &                            (/ 1, 1 /), boundary_size,                   &
+     &                            TRANSPOSE(rbs(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, this%vmec_zbc_id,               &
+     &                            (/ 1, 1 /), boundary_size,                   &
+     &                            TRANSPOSE(zbc(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, this%vmec_zbs_id,               &
+     &                            (/ 1, 1 /), boundary_size,                   &
+     &                            TRANSPOSE(zbs(-ntor1:ntor1,0:mpol1)))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
       CALL vmec_write_step_data(this, result_ncid, 1)
 
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write step data to the defined variables.
+!>  @brief Write step data to NetCDF result file
+!>
+!>  This method overrides @ref equilibrium_write_step_data.
+!>
+!>  @param[in] this         A @ref vmec_class instance.
+!>  @param[in] result_ncid  NetCDF file id of the result file.
+!>  @param[in] current_step Step index to write variables to.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write_step_data(this, result_ncid, current_step)
-      USE vmec_input, only: rbc, zbs, rbs, zbc
-      USE vmec_dim, only: mpol1, ntor1
       USE v3f_vmec_comm
       USE ezcdf
 
@@ -2091,37 +2417,8 @@
 
 !  Local variables
       INTEGER                       :: status
-      INTEGER, DIMENSION(3)         :: boundary_size
 
 !  Start of executable code
-      boundary_size(1) = 2*ntor1 + 1
-      boundary_size(2) = mpol1
-      boundary_size(3) = 1
-
-      status = nf_put_vara_double(result_ncid, this%vmec_rbc_id,               &
-     &                            (/ 1, 1, current_step /),                    &
-     &                            boundary_size,                               &
-     &                            TRANSPOSE(rbc(-ntor1:ntor1,0:mpol1)))
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
-      status = nf_put_vara_double(result_ncid, this%vmec_rbs_id,               &
-     &                            (/ 1, 1, current_step /),                    &
-     &                            boundary_size,                               &
-     &                            TRANSPOSE(rbs(-ntor1:ntor1,0:mpol1)))
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
-      status = nf_put_vara_double(result_ncid, this%vmec_zbc_id,               &
-     &                            (/ 1, 1, current_step /),                    &
-     &                            boundary_size,                               &
-     &                            TRANSPOSE(zbc(-ntor1:ntor1,0:mpol1)))
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
-      status = nf_put_vara_double(result_ncid, this%vmec_zbs_id,               &
-     &                            (/ 1, 1, current_step /),                    &
-     &                            boundary_size,                               &
-     &                            TRANSPOSE(zbs(-ntor1:ntor1,0:mpol1)))
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
       status = nf_put_var1_double(result_ncid, this%vmec_l_sub_i_id,           &
      &                            current_step, vvc_smaleli)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -2136,7 +2433,12 @@
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Reset the fixed boundary coefficients.
+!>  @brief Reset the fixed boundary coefficients.
+!>
+!>  When change the boundary coefficients, there is extra work that must be
+!>  performed to set the VMEC state.
+!>
+!>  @param[in] this A @ref vmec_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_reset_boundary(this)
       USE vmec_input, only: lasym, rbc, zbs, rbs, zbc, ntor,                   &

@@ -25,7 +25,7 @@
 !*******************************************************************************
 !>  Type descriptor for the @ref geometric_class no sub class.
       INTEGER, PARAMETER :: geometric_no_type = -1
-!>  Type descriptor for the @ref geometric_class sub class @ref limiter
+!>  Type descriptor for the @ref geometric_class subclass @ref limiter
       INTEGER, PARAMETER :: geometric_limiter_type = 0
 !>  @note will be removed.
       INTEGER, PARAMETER :: geometric_boundary_type = 1
@@ -37,7 +37,6 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Base class representing a geometric signal.
-!
 !>  @par Super class:
 !>  @ref signal
 !>  @par Sub classes:
@@ -46,8 +45,9 @@
       TYPE geometric_class
 !>  Type descirptor of the geometric subclass type.
 !>  @par Possible values are:
-!>  @ref geometric_no_type, @ref geometric_limiter_type,
-!>  @ref geometric_boundary_type
+!>  * @ref geometric_no_type
+!>  * @ref geometric_limiter_type,
+!>  * @ref geometric_boundary_type
 !>  @note boundary will be removed and replaced with priors.
          INTEGER                       :: type = geometric_no_type
          TYPE(limiter_class),  POINTER :: limiter => null()

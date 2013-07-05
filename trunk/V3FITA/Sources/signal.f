@@ -36,13 +36,13 @@
 !>  Maximum length of the @ref units string.
       INTEGER, PARAMETER :: signal_units_length = 30
 
-!>  Type descriptor for the @ref signal_class no sub class.
+!>  Type descriptor for the @ref signal_class no subclass.
       INTEGER, PARAMETER :: signal_no_type = -1
-!>  Type descriptor for the @ref signal_class sub class @ref diagnostic
+!>  Type descriptor for the @ref signal_class subclass @ref diagnostic
       INTEGER, PARAMETER :: signal_diagnostic_type = 0
-!>  Type descriptor for the @ref signal_class sub class @ref geometric
+!>  Type descriptor for the @ref signal_class subclass @ref geometric
       INTEGER, PARAMETER :: signal_geometric_type = 1
-!>  Type descriptor for the @ref signal_class sub class @ref combination_class
+!>  Type descriptor for the @ref signal_class subclass @ref combination_class
 !  Use combination_class since combination lacks it's own module.
       INTEGER, PARAMETER :: signal_combination_type = 2
 
@@ -76,8 +76,10 @@
       TYPE signal_class
 !>  Type descirptor of the signal subclass type.
 !>  @par Possible values are:
-!>  @ref signal_no_type, @ref signal_diagnostic_type,
-!>  @ref signal_geometric_type, @ref signal_combination_type
+!>  * @ref signal_no_type
+!>  * @ref signal_diagnostic_type,
+!>  * @ref signal_geometric_type
+!>  * @ref signal_combination_type
          INTEGER                            :: type = signal_no_type
 !>  Short name of the signal
          CHARACTER (len=signal_name_short_length) :: s_name
@@ -91,8 +93,11 @@
          REAL (rprec), DIMENSION(4)         :: modeled
 !> Cached value of the modeled sigma.
          REAL (rprec), DIMENSION(4)         :: modeled_sigma
+!>  An instance of a @ref diagnostic object.
          TYPE (diagnostic_class), POINTER   :: diagnostic => null()
+!>  An instance of a @ref geometric object.
          TYPE (geometric_class), POINTER    :: geometric => null()
+!>  An instance of a @ref combination object.
          TYPE (combination_class), POINTER  :: combination => null()
       END TYPE signal_class
 
@@ -112,8 +117,10 @@
       TYPE combination_class
 !>  Type descirptor of the cobination type.
 !>  @par Possible values are:
-!>  @ref combination_none, @ref combination_sum, @ref combination_max,
-!>  @ref combination_min
+!>  * @ref combination_none
+!>  * @ref combination_sum
+!>  * @ref combination_max
+!>  * @ref combination_min
          INTEGER :: type = combination_none
 !>  Array of @ref signal_class pointer presenting the sigals to combine.
          TYPE (signal_pointer), DIMENSION(:), POINTER :: signals
@@ -125,7 +132,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref signal_construct types using
+!>  Interface for the constriction of @ref signal_class types using
 !>  @ref signal_construct_diagnostic, @ref signal_construct_geometric,
 !>  @ref signal_construct_combination or @ref signal_construct_diagnostic_netcdf
 !-------------------------------------------------------------------------------

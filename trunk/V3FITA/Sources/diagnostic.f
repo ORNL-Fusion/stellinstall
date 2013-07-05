@@ -27,15 +27,15 @@
 !*******************************************************************************
 !>  Type descriptor for the @ref diagnostic_class no sub class.
       INTEGER, PARAMETER :: diagnostic_no_type = -1
-!>  Type descriptor for the @ref diagnostic_class sub class @ref magnetic
+!>  Type descriptor for the @ref diagnostic_class subclass @ref magnetic
       INTEGER, PARAMETER :: diagnostic_magnetic_type = 0
-!>  Type descriptor for the @ref diagnostic_class sub class @ref sxrem
+!>  Type descriptor for the @ref diagnostic_class subclass @ref sxrem
       INTEGER, PARAMETER :: diagnostic_sxrem_type = 1
-!>  Type descriptor for the @ref diagnostic_class sub class @ref intpol
+!>  Type descriptor for the @ref diagnostic_class subclass @ref intpol
       INTEGER, PARAMETER :: diagnostic_intpol_type = 2
-!>  Type descriptor for the @ref diagnostic_class sub class @ref thomson
+!>  Type descriptor for the @ref diagnostic_class subclass @ref thomson
       INTEGER, PARAMETER :: diagnostic_thomson_type = 3
-!>  Type descriptor for the @ref diagnostic_class sub class @ref extcurz
+!>  Type descriptor for the @ref diagnostic_class subclass @ref extcurz
       INTEGER, PARAMETER :: diagnostic_extcurz_type = 4
 
 !*******************************************************************************
@@ -53,14 +53,22 @@
       TYPE diagnostic_class
 !>  Type descirptor of the diagnostic subclass type.
 !>  @par Possible values are:
-!>  @ref diagnostic_no_type, @ref diagnostic_magnetic_type,
-!>  @ref diagnostic_sxrem_type, @ref diagnostic_intpol_type,
-!>  @ref diagnostic_thomson_type, @ref diagnostic_extcurz_type
+!>  * @ref diagnostic_no_type
+!>  * @ref diagnostic_magnetic_type,
+!>  * @ref diagnostic_sxrem_type
+!>  * @ref diagnostic_intpol_type,
+!>  * @ref diagnostic_thomson_type
+!>  * @ref diagnostic_extcurz_type
          INTEGER                       :: type = diagnostic_no_type
+!>  An instance of a @ref magnetic object. 
          TYPE(magnetic_class), POINTER :: magnetic => null()
+!>  An instance of a @ref sxrem object.
          TYPE(sxrem_class), POINTER    :: sxrem => null()
+!>  An instance of a @ref intpol object.
          TYPE(intpol_class), POINTER   :: intpol => null()
+!>  An instance of a @ref thomson object.
          TYPE(thomson_class), POINTER  :: thomson => null()
+!>  An instance of a @ref extcurz object.
          TYPE(extcurz_class), POINTER  :: extcurz => null()
       END TYPE diagnostic_class
 

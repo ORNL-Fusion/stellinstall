@@ -50,9 +50,11 @@
 
 !  Parameter ranges
 !>  Type descriptor of the boundry type for the lower(1) and upper(2) ranges.
-!>  @par Possible values are: @ref param_range_no_type,
-!>  @ref param_range_value_type, @ref param_range_infinity_type,
-!>  @ref param_range_parameter_type
+!>  @par Possible values are:
+!>  * @ref param_range_no_type
+!>  * @ref param_range_value_type
+!>  * @ref param_range_infinity_type
+!>  * @ref param_range_parameter_type
          INTEGER, DIMENSION(2) :: range_type = param_range_no_type
 !>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
 !>  holds the parameter id's of the lower(1) and upper(2) boundary. Id's are

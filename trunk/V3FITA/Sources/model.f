@@ -294,6 +294,7 @@
 !>  @param[in] i_index The ith index of the parameter.
 !>  @param[in] j_index The jth index of the parameter.
 !>  @returns The value of the parameter.
+!>  @note Model parameter do not use the indicies. However an equilibrium might.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_param_value(this, id, i_index, j_index)
 
@@ -604,7 +605,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Write out the model to an output file.
 !>
-!>  Write out information about to a model to an output file. This also then
+!>  Write out information about the model to an output file. This also then
 !>  calls the @ref equilibrium_write subroutine to write out the equilibrium
 !>  information aswell.
 !>

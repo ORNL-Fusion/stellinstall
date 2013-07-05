@@ -41,10 +41,10 @@
       TYPE thomson_class
 !>  Type descirptor of the thomson type.
 !>  @par Possible values are:
-!>  @ref thomson_no_type
-!>  @ref thomson_temperature_type
-!>  @ref thomson_density_type
-!>  @ref thomson_pressure_type
+!>  * @ref thomson_no_type
+!>  * @ref thomson_temperature_type
+!>  * @ref thomson_density_type
+!>  * @ref thomson_pressure_type
          INTEGER                    :: type
          REAL (rprec), DIMENSION(3) :: xcart
       END TYPE thomson_class

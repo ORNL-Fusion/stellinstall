@@ -1,11 +1,18 @@
 !*******************************************************************************
-!  File equilibrium.f
-!  Contains module equilibrium
-!  Defines the base class of the type equilibrium:
+!>  @file equilibrium.f
+!>  @brief Contains module @ref equilibrium
 !
-!  Super Class: None
-!  Sub Classes: vmec
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
+!>  Defines the base class of the type @ref equilibrium_class. Equilibrium is
+!>  an abstract interface to the equilibrium solver. Every method is meant to be
+!>  overwritten by a subclass method with a few exceptions. For instance a
+!>  vacuum equilibrium could use the default return values for
+!>  @ref equilibrium_get_ne, equilibrium_get_te and equilibrium_get_sxrem
+!>  methods.
+!>  @par Sub Classes:
+!>  @ref vmec_equilibrium
 !*******************************************************************************
 
       MODULE equilibrium
@@ -16,8 +23,10 @@
 !*******************************************************************************
 !  equilibrium module parameters
 !*******************************************************************************
-
+!>  Type descriptor for the @ref equilibrium_class no subclass.
       INTEGER, PARAMETER :: equilibrium_no_type = -1
+!>  Type descriptor for the @ref equilibrium_class subclass
+!>  @ref vmec_equilibrium.
       INTEGER, PARAMETER :: equilibrium_vmec_type = 0
 
 !*******************************************************************************
@@ -25,16 +34,30 @@
 !  1) equilibrium base class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a equilibrium.
+!>  @par Sub Classes:
+!>  @ref vmec_equilibrium
+!-------------------------------------------------------------------------------
       TYPE equilibrium_class
+!>  Type descirptor of the equilibrium subclass type.
+!>  @par Possible values are:
+!>  * @ref equilibrium_no_type
+!>  * @ref equilibrium_vmec_type
          INTEGER                    :: type = equilibrium_no_type
+!>  Controls if an equilibrium needs to be resolved or not.
          LOGICAL                    :: not_converged
+!>  An instance of a @ref vmec_equilibrium object.
          TYPE (vmec_class), POINTER :: vmec => null()
       END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref equilibrium_class types using
+!>  @ref equilibrium_construct_vmec
+!-------------------------------------------------------------------------------
       INTERFACE equilibrium_construct
          MODULE PROCEDURE equilibrium_construct_vmec
       END INTERFACE
@@ -44,7 +67,12 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct an signal equilibrium with a vmec equilibrium.
+!>  @brief Construct a @ref equilibrium_class containing a @ref vmec_equilibrium
+!>  object.
+!>
+!>  Allocates memory and initializes a @ref equilibrium_class object.
+!>  @param[in] vmec_object An instance of a @ref vmec_equilibrium subclass.
+!>  @returns A pointer to a constructed @ref equilibrium_class object.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_construct_vmec(vmec_object)
 
@@ -66,6 +94,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref equilibrium_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref equilibrium_class object.
+!>
+!>  @param[inout] this A @ref equilibrium_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_destruct(this)
 
       IMPLICIT NONE
@@ -90,7 +125,18 @@
 !  SETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Set reconstruction parameter
+!>  @brief Sets the value of a reconstruction equilibrium parameter.
+!>
+!>  This method is virtual. The actual setting of the parameter should be
+!>  handled by a subclass method. The subclass is responcible for informing the
+!>  equilibirum if the equilibrium needs to be reconverged/resolved.
+!>  @see vmec_set_param
+!>
+!>  @param[inout] this    A @ref equilibrium_class instance.
+!>  @param[in]    id      ID of the parameter.
+!>  @param[in]    i_index The ith index of the parameter.
+!>  @param[in]    j_index The jth index of the parameter.
+!>  @param[in]    value   The value of the parameter.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_param(this, id, i_index, j_index,             &
      &                                 value)
@@ -121,7 +167,23 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Set magnetic cache
+!>  @brief Sets the magnetic cache of the equilibrium.
+!>
+!>  This method is virtual. The actual setting of the magnetic cache should be
+!>  handled a subclass method. The magnetic cache is any pre compuation that
+!>  needs to be performed so that magnetic signals may compute a modeled signal.
+!>  If the equilibrium does not require any information to be cached, this
+!>  method does not need to be overridden. This method is meant to only be
+!>  called once to tell the equilibrium it needs to use a magnetic cache.
+!>  @see vmec_set_magnetic_cache
+!>
+!>  @param[inout] this             A @ref equilibrium_class instance.
+!>  @param[in]    total_tor_planes Total number of toroidal planes.
+!>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
+!>                                 planes.
+!>  @note Stellarator symmetry may be exploited speed up computation and reduce
+!>  memory usage. If stellarator symmetry is not used then tor_planes_used
+!>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
      &                                          tor_planes_used)
@@ -148,7 +210,15 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the id number for a equilibrium parameter
+!>  @brief Get the id for a reconstruction parameter.
+!>
+!>  This method is virtual. The actual getting of the reconstruction parameter
+!>  id should be handled by a subclass method.
+!>  @see vmec_get_param_id
+!>
+!>  @param[in] this       A @ref equilibrium_class instance.
+!>  @param[in] param_name Name of a reconstruction parameter.
+!>  @returns The id for a reconstruction parameter.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_param_id(this, param_name)
 
@@ -174,7 +244,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the value of a parameter for an id number
+!>  @brief Gets the value of a reconstruction equilibrium parameter.
+!>
+!>  This method is virtual. The actual getting of the reconstruction parameter
+!>  value should be handled by a subclass method.
+!>  @see vmec_get_param_value
+!>
+!>  @param[in] this    A @ref equilibrium_class instance.
+!>  @param[in] id      ID of the parameter.
+!>  @param[in] i_index The ith index of the parameter.
+!>  @param[in] j_index The jth index of the parameter.
+!>  @returns The value of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_param_value(this, id, i_index, j_index)
 
@@ -202,7 +282,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium parameter name for an id number
+!>  @brief Gets the name of a reconstruction equilibrium parameter.
+!>
+!>  This method is virtual. The actual getting of the reconstruction parameter
+!>  name should be handled by a subclass method.
+!>  @see vmec_get_param_name
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns The name of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_param_name(this, id)
 
@@ -228,7 +316,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium electron density at position
+!>  @brief Gets the electron density at a position.
+!>
+!>  This method is virtual. The actual getting of the electron density should be
+!>  handled by a subclass method.
+!>  @see vmec_get_ne
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron density at.
+!>  @returns The electron density at x_cart.
+!>  @note Note the electron density is not relevant to all equilibrium types.
+!>  For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_ne(this, x_cart)
 
@@ -253,7 +351,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium electron temperature at position
+!>  @brief Gets the electron temperature at a position.
+!>
+!>  This method is virtual. The actual getting of the electron temperature
+!>  should be handled by a subclass method.
+!>  @see vmec_get_te
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @returns The electron temperature at x_cart.
+!>  @note Note the electron temperature is not relevant to all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_te(this, x_cart)
 
@@ -278,7 +386,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium soft x-ray emissivity at position
+!>  @brief Gets the soft x-ray emissivity at a position.
+!>
+!>  This method is virtual. The actual getting of the electron temperature
+!>  should be handled by a subclass method.
+!>  @see vmec_get_sxrem
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @returns The soft x-ray emissivity at x_cart.
+!>  @note Note the soft x-ray emissivity is not relevant to all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_sxrem(this, x_cart)
 
@@ -303,7 +421,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium plasma pressure at position
+!>  @brief Gets the plasma pressure at a position.
+!>
+!>  This method is virtual. The actual getting of the plasma pressure should be
+!>  handled by a subclass method.
+!>  @see vmec_get_p
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the plasma pressure at.
+!>  @returns The plasma pressure at x_cart.
+!>  @note Note the plasma pressure is not relevant to all equilibrium types. For
+!>  instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_p(this, x_cart)
 
@@ -328,7 +456,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium b field at position
+!>  @brief Gets the magnetic field vector at a position.
+!>
+!>  This method is virtual. The actual getting of the magnetic field vector
+!>  should be handled by a subclass method.
+!>  @see vmec_get_B_vec
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
+!>  @returns The magnetic field vector at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_B_vec(this, x_cart)
 
@@ -353,7 +489,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get equilibrium line integrated b at position
+!>  @brief Gets the loop integrated magnetic field at a position.
+!>
+!>  This method is virtual. The actual getting of the loop integrated magnetic
+!>  field should be handled by a subclass method. Returns the closed loop
+!>  integration of the magnetic field to determine the enclosed current.
+!>  @see vmec_get_Int_B_dphi
+!>
+!>  @param[in] this  A @ref equilibrium_class instance.
+!>  @param[in] r     Radial position to integrate about.
+!>  @param[in] theta Poloidal angle to integrate about.
+!>  @returns The loop integrated magnetic field at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_Int_B_dphi(this, r, theta)
 
@@ -380,7 +526,19 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get plasma edge at phi position
+!>  @brief Gets the r and z positions of the outer surface at a toroidal angle.
+!>
+!>  This method is virtual. The actual getting of the magnetic field vector
+!>  should be handled by a subclass method.
+!>  @see vmec_get_plasma_edge
+!>
+!>  @param[in]  this A @ref equilibrium_class instance.
+!>  @param[in]  phi  Toroidal angle to determine the outer surface at.
+!>  @param[out] r    The radial postions of the other surface in a single
+!>                   toroidal angle.
+!>  @param[out] z    The Z postions of the other surface in a single toroidal
+!>                   angle.
+!>  @returns The number of elements in the r and z arrays.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_plasma_edge(this, phi, r, z)
 
@@ -410,7 +568,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration radial grid points.
+!>  @brief Get volume magnetic volume integration radial grid points.
+!>
+!>  This method is virtual. The actual getting of the radial grid points
+!>  should be handled by a subclass method.
+!>  @see vmec_get_magnetic_volume_rgrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The radial grid points. 
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_magnetic_volume_rgrid(this)
 
@@ -436,7 +601,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration z grid points.
+!>  @brief Get volume magnetic volume integration z grid points.
+!>
+!>  This method is virtual. The actual getting of the z grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_get_magnetic_volume_zgrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The z grid points.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_magnetic_volume_zgrid(this)
 
@@ -462,7 +634,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration jr grid points.
+!>  @brief Get volume magnetic volume integration jr grid points.
+!>
+!>  This method is virtual. The actual getting of the jr grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_get_magnetic_volume_jrgrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The jr grid points.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_magnetic_volume_jrgrid(this)
 
@@ -488,7 +667,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration jphi grid points.
+!>  @brief Get volume magnetic volume integration jphi grid points.
+!>
+!>  This method is virtual. The actual getting of the jphi grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_get_magnetic_volume_jphigrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The jphi grid points.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_magnetic_volume_jphigrid(this)
 
@@ -514,7 +700,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume magnetic volume integration jz grid points.
+!>  @brief Get volume magnetic volume integration jz grid points.
+!>
+!>  This method is virtual. The actual getting of the jz grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_get_magnetic_volume_jzgrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The jz grid points.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_magnetic_volume_jzgrid(this)
 
@@ -540,7 +733,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get volume integration element.
+!>  @brief Get volume integration element.
+!>
+!>  This method is virtual. The actual getting of the volume integration element
+!>  should be handled by a subclass method.
+!>  @see vmec_get_magnetic_volume_int_element
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The volume integration element.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_volume_int_element(this)
 
@@ -565,7 +765,21 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get external current.
+!>  @brief Get external current.
+!>
+!>  This method is virtual. The actual getting of the external current should be
+!>  handled by a subclass method. To void extra memory operations, arrays are
+!>  returned as pointers. The memory management is handled by the equilibrium
+!>  subclass instance. If the equilibrium has no external currents return a
+!>  null() pointer or don't override this method. MAKEGRID has a mode where
+!>  currents maybe scaled. Inform the signal using this to scale the currents
+!>  if need be.
+!>  @see vmec_get_ext_currents
+!>
+!>  @param[in]  this           A @ref equilibrium_class instance.
+!>  @param[out] scale_currents Informs the caller that currents need to be
+!>                             scaled.
+!>  @returns The external currents.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_ext_currents(this, scale_currents)
 
@@ -596,7 +810,15 @@
 !  QUERY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Query variable id for scaler type
+!>  @brief Checks if a parameter id is a scaler value.
+!>
+!>  This method is virtual. The actual check should be handled by a subclass
+!>  method.
+!>  @see vmec_is_scaler_value
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a scaler and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_is_scaler_value(this, id)
 
@@ -622,7 +844,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Query variable id for 1D array
+!>  @brief Checks if a parameter id is a 1d array.
+!>
+!>  This method is virtual. The actual check should be handled by a subclass
+!>  method.
+!>  @see vmec_is_1d_array
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a 1d array and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_is_1d_array(this, id)
 
@@ -647,7 +877,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Query variable id for 2D array
+!>  @brief Checks if a parameter id is a 2d array.
+!>
+!>  This method is virtual. The actual check should be handled by a subclass
+!>  method.
+!>  @see vmec_is_2d_array
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a 2d array and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_is_2d_array(this, id)
 
@@ -672,7 +910,16 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Query variable id is a valid reconstruction parameter
+!>  @brief Checks if a parameter id is a reconstruction parameter.
+!>
+!>  This method is virtual. The actual check should be handled by a subclass
+!>  method.
+!>  @see vmec_is_recon_param
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a reconstruction parameter and false if
+!>  otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_is_recon_param(this, id)
 
@@ -701,7 +948,19 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Converge the equilibrium.
+!>  @brief Solves the equilibrium.
+!>
+!>  This method is virtual. The actual solving of the equilibrium should be
+!>  handled by a subclass method. The equilibrium is only reconverged if it is
+!>  in an unconverged state. If the equilibrium was converged, this sets the
+!>  @ref equilibrium_class::not_converged to false to inform future calls that
+!>  the equilibirum is already in a converged state.
+!>  @see vmec_converge
+!>
+!>  @param[inout] this     A @ref equilibrium_class instance.
+!>  @param[inout] num_iter Counter to track the number of iterations.
+!>  @param[in]    iou      Input/output unit of the file to write logs to.
+!>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_converge(this, num_iter, iou)
 
@@ -743,7 +1002,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Save the internal state of the equilibrium.
+!>  @brief Save the internal state of the equilibrium.
+!>
+!>  This method is virtual. The actual saving of the equilibrium state should be
+!>  handled by a subclass method. 
+!>  @see vmec_converge
+!>
+!>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_save_state(this)
 
@@ -763,7 +1028,13 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Reset the internal state of the equilibrium.
+!>  @brief Reset the internal state of the equilibrium.
+!>
+!>  This method is virtual. The actual reseting of the equilibrium state should
+!>  be handled by a subclass method.
+!>  @see vmec_converge
+!>
+!>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_reset_state(this)
 
@@ -783,7 +1054,13 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write the equilibrium out to disk.
+!>  @brief Write out the equilibrium to an output file.
+!>
+!>  This method is virtual. The actual writing of the equilibrium should be
+!>  handled by a subclass method.
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_write(this, iou)
 
@@ -807,7 +1084,15 @@
 !  NETCDF SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Define the netcdf variables and dimensions.
+!>  @brief Define NetCDF variables for the result file
+!>
+!>  This method is virtual. The actual defining of the equilibrium variables
+!>  should be handled by a subclass method.
+!>
+!>  @param[in] this             A @ref equilibrium_class instance.
+!>  @param[in] result_ncid      NetCDF file id of the result file.
+!>  @param[in] maxnsetps_dim_id NetCDF dimension id of the number of steps
+!>                              dimension.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_def_result(this, result_ncid,                     &
      &                                  maxnsetps_dim_id)
@@ -831,7 +1116,13 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write inital data to the defined variables.
+!>  @brief Write inital data to NetCDF result file
+!>
+!>  This method is virtual. The actual writing of the equilibrium variables
+!>  should be handled by a subclass method.
+!>
+!>  @param[in] this        A @ref equilibrium_class instance.
+!>  @param[in] result_ncid NetCDF file id of the result file.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_write_init_data(this, result_ncid)
 
@@ -852,7 +1143,14 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write step data to the defined variables.
+!>  @brief Write step data to NetCDF result file
+!>
+!>  This method is virtual. The actual writing of the equilibrium variables
+!>  should be handled by a subclass method.
+!>
+!>  @param[in] this         A @ref equilibrium_class instance.
+!>  @param[in] iou          NetCDF file id of the result file.
+!>  @param[in] current_step Step index to write variables to.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_write_step_data(this, result_ncid,                &
      &                                       current_step)
