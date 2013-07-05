@@ -1,11 +1,12 @@
 !*******************************************************************************
-!  File model.f
-!  Contains module model
-!  Defines the base class of the type model:
+!>  @file model.f
+!>  @brief Contains module @ref model.
 !
-!  Super Class: None
-!  Sub Classes: None
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
+!>  Defines the base class of the type @ref model_class. The model contains
+!>  information not specific to the equilibrium.
 !*******************************************************************************
 
       MODULE model
@@ -16,21 +17,31 @@
 !*******************************************************************************
 !  model module parameters
 !*******************************************************************************
+!>  No model.
       INTEGER, PARAMETER, PRIVATE :: model_none_type     = -1
 
-      INTEGER, PARAMETER, PRIVATE :: model_ne_type       =  0 ! Straight ne profile.
-      INTEGER, PARAMETER, PRIVATE :: model_ne_te_p_type  =  1 ! derived from temp/press
+!>  Electron denisty model.
+      INTEGER, PARAMETER, PRIVATE :: model_ne_type       =  0
+!>  Electron denisty model is derived from the temperature and pressure.
+      INTEGER, PARAMETER, PRIVATE :: model_ne_te_p_type  =  1
 
-      INTEGER, PARAMETER, PRIVATE :: model_sxrem_type    =  0 ! Straight sxrem profile.
+!>  Soft X-ray Emissivity.
+      INTEGER, PARAMETER, PRIVATE :: model_sxrem_type    =  0
 
-      INTEGER, PARAMETER, PRIVATE :: model_te_type       =  0 ! Straight te profile.
-      INTEGER, PARAMETER, PRIVATE :: model_te_ne_p_type  =  1 ! derived from dens/press
+!>  Electron temperature model.
+      INTEGER, PARAMETER, PRIVATE :: model_te_type       =  0
+!>  Electron temperature model is derived from the density and pressure.
+      INTEGER, PARAMETER, PRIVATE :: model_te_ne_p_type  =  1
 
 !  Model parameter ids
+!>  Parameter id for the electron density units.
       INTEGER, PARAMETER :: model_ne_unit_id           = 0
+!>  Parameter id for the minimum electron density.
       INTEGER, PARAMETER :: model_ne_min_id            = 1
+!>  Parameter id for the electrion fraction of the pressure.
       INTEGER, PARAMETER :: model_pressure_fraction_id = 2
 
+!>  Conversion from Joules to eV.
       REAL(rprec), PARAMETER :: eV_per_Joule = one/1.602e-19_rprec
 
 !*******************************************************************************
@@ -38,14 +49,26 @@
 !  1) model class
 !
 !*******************************************************************************
-
+!-------------------------------------------------------------------------------
+!>  Base class representing a model.
+!-------------------------------------------------------------------------------
       TYPE model_class
+!>  Type decritption of the electron denisty. Possible values are
+!>  @ref model_none_type, @ref model_ne_type and @ref model_ne_te_p_type.
          INTEGER      :: ne_type = model_none_type
+!>  Type decritption of the soft x-ray emissivity. Possible values are
+!>  @ref model_none_type and @ref model_sxrem_type.
          INTEGER      :: sxrem_type = model_none_type
+!>  Type decritption of the electron temperature. Possible values are
+!>  @ref model_none_type, @ref model_te_type and @ref model_te_ne_p_type.
          INTEGER      :: te_type = model_none_type
+!>  Unit scaling of the electron density.
          REAL (rprec) :: ne_unit = 0.0
+!>  Minimum electron density.
          REAL (rprec) :: ne_min = 0.0
+!>  Electron pressure fraction.
          REAL (rprec) :: pressure_fraction = 0.0
+!>  The @ref equilibrium.
          TYPE (equilibrium_class), POINTER :: equilibrium => null()
       END TYPE
 
@@ -53,6 +76,19 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref model_class containing an @ref equilibrium object.
+!>
+!>  Allocates memory and initializes a @ref model_class object.
+!>  @param[in] ne_type           Model type for the electron density.
+!>  @param[in] sxrem_type        Model type for the soft x-ray emissivity.
+!>  @param[in] te_type           Model type for the electron temperature.
+!>  @param[in] ne_unit           Scaleing of the electron denisty.
+!>  @param[in] ne_min            Minimum electron density.
+!>  @param[in] pressure_fraction Fraction of the pressure provided by electrons.
+!>  @param[in] equilibrium       An instance of an @ref equilibrium.
+!>  @returns A pointer to a constructed @ref model_class object.
+!-------------------------------------------------------------------------------
       FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
      &                         ne_unit, ne_min, pressure_fraction,             &
      &                         equilibrium)
@@ -134,6 +170,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref model_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref model_class object.
+!>
+!>  @param[inout] this A @ref model_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE model_destruct(this)
 
       IMPLICIT NONE
@@ -155,7 +198,17 @@
 !  SETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Set reconstruction parameter
+!>  @brief Sets the value of a reconstruction model parameter.
+!>
+!>  Sets a model reconstruction parameter. If the id is not a model parameter,
+!>  it is defered to the @ref equilibrium.
+!>
+!>  @param[inout] this    A @ref model_class instance.
+!>  @param[in]    id      ID of the parameter.
+!>  @param[in]    i_index The ith index of the parameter.
+!>  @param[in]    j_index The jth index of the parameter.
+!>  @param[in]    value   The value of the parameter.
+!>  @note Model parameter do not use the indicies. However an equilibrium might.
 !-------------------------------------------------------------------------------
       SUBROUTINE model_set_param(this, id, i_index, j_index, value)
 
@@ -192,7 +245,14 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the id number for a model parameter
+!>  @brief Get the id for a reconstruction parameter.
+!>
+!>  Gets a model reconstruction parameter. If the id is not a model parameter,
+!>  it is defered to the @ref equilibrium.
+!>
+!>  @param[in] this       A @ref model_class instance.
+!>  @param[in] param_name Name of a reconstruction parameter.
+!>  @returns The id for a reconstruction parameter.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_param_id(this, param_name)
 
@@ -224,7 +284,16 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the value of a parameter for an id number
+!>  @brief Gets the value of a reconstruction model parameter.
+!>
+!>  Gets a model reconstruction parameter value. If the id is not a model
+!>  parameter, it is defered to the @ref equilibrium.
+!>
+!>  @param[in] this    A @ref model_class instance.
+!>  @param[in] id      ID of the parameter.
+!>  @param[in] i_index The ith index of the parameter.
+!>  @param[in] j_index The jth index of the parameter.
+!>  @returns The value of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_param_value(this, id, i_index, j_index)
 
@@ -259,7 +328,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get parameter name for an id number
+!>  @brief Gets the name of a reconstruction model parameter.
+!>
+!>  Gets a model reconstruction parameter name. If the id is not a model
+!>  parameter, it is defered to the @ref equilibrium.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns The name of the parameter.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_param_name(this, id)
 
@@ -291,7 +367,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get model electron density at position
+!>  @brief Gets the electron density at a position.
+!>
+!>  Gets the electron density at a position. Electron density is computed based
+!>  on the type of @ref model_class::ne_type.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron density at.
+!>  @returns The electron density at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ne(this, x_cart)
 
@@ -322,7 +405,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get model electron temperature at position
+!>  @brief Gets the electron temperature at a position.
+!>
+!>  Gets the electron temperature at a position. Electron temperature is
+!>  computed based on the type of @ref model_class::te_type.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the electron temperature at.
+!>  @returns The electron temperature at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_te(this, x_cart)
 
@@ -352,7 +442,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get model soft x-ray emissivity at position
+!>  @brief Gets the soft x-ray emissivity at a position.
+!>
+!>  Gets the soft x-ray emissivity at a position. Soft x-ray emissivity is
+!>  computed based on the type of @ref model_class::sxrem_type.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_sxrem(this, x_cart)
 
@@ -378,7 +475,10 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get model the electron density model type
+!>  @brief Gets the electron density type as a string.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @returns A string description of the electron density type.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_ne_type(this)
 
@@ -405,7 +505,10 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get model the electron temperature model type
+!>  @brief Gets the electron temperature type as a string.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @returns A string description of the electron temperature type.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_te_type(this)
 
@@ -432,7 +535,10 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get model the soft x-ray emissivity model type
+!>  @brief Gets the soft x-ray emissivity type as a string.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @returns A string description of the soft x-ray emissivity type.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_sxrem_type(this)
 
@@ -459,7 +565,14 @@
 !  QUERY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Query variable id is a valid reconstruction parameter
+!>  @brief Determines if a parameter id is a reconstruction parameter.
+!>
+!>  Determines if a parameter id is a reconstruction parameter. If the parameter
+!>  is not a model parameter, it is defered to the @ref equilibrium.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the id is a reconstruction parameter and false if not.
 !-------------------------------------------------------------------------------
       FUNCTION model_is_recon_param(this, id)
 
@@ -489,7 +602,14 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Write the model out to disk.
+!>  @brief Write out the model to an output file.
+!>
+!>  Write out information about to a model to an output file. This also then
+!>  calls the @ref equilibrium_write subroutine to write out the equilibrium
+!>  information aswell.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
       SUBROUTINE model_write(this, iou)
 
