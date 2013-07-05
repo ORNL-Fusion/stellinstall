@@ -1,7 +1,10 @@
 !*******************************************************************************
 !>  @file commandline_parser.f
 !>  @brief Contains module @ref commandline_parser
-!>
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
 !>  Defines the base class of the type @ref commandline_parser_class.
 !*******************************************************************************
 
