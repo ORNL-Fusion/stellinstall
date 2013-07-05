@@ -180,7 +180,7 @@
 !>  diagnostics and @ ref pol_function for polarimetry diagnostics.
 !>
 !>  @param[in]    this    A @ref intpol_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
@@ -262,8 +262,8 @@
 !>  @brief Interferometer callback function.
 !>
 !>  Returns the value of the denisty times the change in path length. This
-!>  function is passed to @ref path_integrate to act as a callback. The denisty
-!>  is provided by @ref model_get_ne.
+!>  function is passed to @ref integration_path::path_integrate to act as a
+!>  callback. The denisty is provided by @ref model::model_get_ne.
 !>
 !>  @see integration_path
 !>
@@ -302,9 +302,9 @@
 !>
 !>  Returns the value of the denisty times the dot product of the magnetic
 !>  field vector and the path direction. This function is passed to
-!>  @ref path_integrate to act as a callback. The denisty is provided by
-!>  @ref model_get_ne. The magnetic field vector is proved by
-!>  @ref equilibrium_get_B_vec
+!>  @ref integration_path::path_integrate to act as a callback. The denisty is
+!>  provided by @ref model::model_get_ne. The magnetic field vector is proved by
+!>  @ref equilibrium::equilibrium_get_B_vec
 !>
 !>  @see integration_path
 !>

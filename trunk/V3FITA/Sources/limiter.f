@@ -171,7 +171,7 @@
 !>  @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>
 !>  @param[in]    this    A @ref limiter_class instance.
-!>  @param[inout] a_model A @ref model_class to  instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   If the limiter type is defined by an iso function,
 !>                        sigma value of @ref limiter_get_modeled_iso_signal.
 !>  @returns If the limiter type is defined by an iso function, return the value
@@ -280,7 +280,7 @@
 !>  @ref equilibrium method @ref equilibrium_get_plasma_edge
 !>
 !>  @param[in]    this    A @ref limiter_class instance.
-!>  @param[inout] a_model A @ref model_class to  instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   Returns the value of modeled sigma.
 !>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
 !>  the limiter, returns the R, Phi and Z posiiton of the maximum of the iso

@@ -130,7 +130,7 @@
 !>  This method is virtual. The actual setting of the parameter should be
 !>  handled by a subclass method. The subclass is responcible for informing the
 !>  equilibirum if the equilibrium needs to be reconverged/resolved.
-!>  @see vmec_set_param
+!>  @see vmec_equilibrium::vmec_set_param
 !>
 !>  @param[inout] this    A @ref equilibrium_class instance.
 !>  @param[in]    id      ID of the parameter.
@@ -175,7 +175,7 @@
 !>  If the equilibrium does not require any information to be cached, this
 !>  method does not need to be overridden. This method is meant to only be
 !>  called once to tell the equilibrium it needs to use a magnetic cache.
-!>  @see vmec_set_magnetic_cache
+!>  @see vmec_equilibrium::vmec_set_magnetic_cache
 !>
 !>  @param[inout] this             A @ref equilibrium_class instance.
 !>  @param[in]    total_tor_planes Total number of toroidal planes.
@@ -214,7 +214,7 @@
 !>
 !>  This method is virtual. The actual getting of the reconstruction parameter
 !>  id should be handled by a subclass method.
-!>  @see vmec_get_param_id
+!>  @see vmec_equilibrium::vmec_get_param_id
 !>
 !>  @param[in] this       A @ref equilibrium_class instance.
 !>  @param[in] param_name Name of a reconstruction parameter.
@@ -248,7 +248,7 @@
 !>
 !>  This method is virtual. The actual getting of the reconstruction parameter
 !>  value should be handled by a subclass method.
-!>  @see vmec_get_param_value
+!>  @see vmec_equilibrium::vmec_get_param_value
 !>
 !>  @param[in] this    A @ref equilibrium_class instance.
 !>  @param[in] id      ID of the parameter.
@@ -286,7 +286,7 @@
 !>
 !>  This method is virtual. The actual getting of the reconstruction parameter
 !>  name should be handled by a subclass method.
-!>  @see vmec_get_param_name
+!>  @see vmec_equilibrium::vmec_get_param_name
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -320,7 +320,7 @@
 !>
 !>  This method is virtual. The actual getting of the electron density should be
 !>  handled by a subclass method.
-!>  @see vmec_get_ne
+!>  @see vmec_equilibrium::vmec_get_ne
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron density at.
@@ -355,7 +355,7 @@
 !>
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
-!>  @see vmec_get_te
+!>  @see vmec_equilibrium::vmec_get_te
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -390,7 +390,7 @@
 !>
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
-!>  @see vmec_get_sxrem
+!>  @see vmec_equilibrium::vmec_get_sxrem
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
@@ -425,7 +425,7 @@
 !>
 !>  This method is virtual. The actual getting of the plasma pressure should be
 !>  handled by a subclass method.
-!>  @see vmec_get_p
+!>  @see vmec_equilibrium::vmec_get_p
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the plasma pressure at.
@@ -460,7 +460,7 @@
 !>
 !>  This method is virtual. The actual getting of the magnetic field vector
 !>  should be handled by a subclass method.
-!>  @see vmec_get_B_vec
+!>  @see vmec_equilibrium::vmec_get_B_vec
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
@@ -494,7 +494,7 @@
 !>  This method is virtual. The actual getting of the loop integrated magnetic
 !>  field should be handled by a subclass method. Returns the closed loop
 !>  integration of the magnetic field to determine the enclosed current.
-!>  @see vmec_get_Int_B_dphi
+!>  @see vmec_equilibrium::vmec_get_Int_B_dphi
 !>
 !>  @param[in] this  A @ref equilibrium_class instance.
 !>  @param[in] r     Radial position to integrate about.
@@ -530,7 +530,7 @@
 !>
 !>  This method is virtual. The actual getting of the magnetic field vector
 !>  should be handled by a subclass method.
-!>  @see vmec_get_plasma_edge
+!>  @see vmec_equilibrium::vmec_get_plasma_edge
 !>
 !>  @param[in]  this A @ref equilibrium_class instance.
 !>  @param[in]  phi  Toroidal angle to determine the outer surface at.
@@ -572,7 +572,7 @@
 !>
 !>  This method is virtual. The actual getting of the radial grid points
 !>  should be handled by a subclass method.
-!>  @see vmec_get_magnetic_volume_rgrid
+!>  @see vmec_equilibrium::vmec_get_magnetic_volume_rgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The radial grid points. 
@@ -605,7 +605,7 @@
 !>
 !>  This method is virtual. The actual getting of the z grid points should be
 !>  handled by a subclass method.
-!>  @see vmec_get_magnetic_volume_zgrid
+!>  @see vmec_equilibrium::vmec_get_magnetic_volume_zgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The z grid points.
@@ -638,7 +638,7 @@
 !>
 !>  This method is virtual. The actual getting of the jr grid points should be
 !>  handled by a subclass method.
-!>  @see vmec_get_magnetic_volume_jrgrid
+!>  @see vmec_equilibrium::vmec_get_magnetic_volume_jrgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The jr grid points.
@@ -671,7 +671,7 @@
 !>
 !>  This method is virtual. The actual getting of the jphi grid points should be
 !>  handled by a subclass method.
-!>  @see vmec_get_magnetic_volume_jphigrid
+!>  @see vmec_equilibrium::vmec_get_magnetic_volume_jphigrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The jphi grid points.
@@ -704,7 +704,7 @@
 !>
 !>  This method is virtual. The actual getting of the jz grid points should be
 !>  handled by a subclass method.
-!>  @see vmec_get_magnetic_volume_jzgrid
+!>  @see vmec_equilibrium::vmec_get_magnetic_volume_jzgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The jz grid points.
@@ -737,7 +737,7 @@
 !>
 !>  This method is virtual. The actual getting of the volume integration element
 !>  should be handled by a subclass method.
-!>  @see vmec_get_magnetic_volume_int_element
+!>  @see vmec_equilibrium::vmec_get_magnetic_volume_int_element
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The volume integration element.
@@ -774,7 +774,7 @@
 !>  null() pointer or don't override this method. MAKEGRID has a mode where
 !>  currents maybe scaled. Inform the signal using this to scale the currents
 !>  if need be.
-!>  @see vmec_get_ext_currents
+!>  @see vmec_equilibrium::vmec_get_ext_currents
 !>
 !>  @param[in]  this           A @ref equilibrium_class instance.
 !>  @param[out] scale_currents Informs the caller that currents need to be
@@ -814,7 +814,7 @@
 !>
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
-!>  @see vmec_is_scaler_value
+!>  @see vmec_equilibrium::vmec_is_scaler_value
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -848,7 +848,7 @@
 !>
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
-!>  @see vmec_is_1d_array
+!>  @see vmec_equilibrium::vmec_is_1d_array
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -881,7 +881,7 @@
 !>
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
-!>  @see vmec_is_2d_array
+!>  @see vmec_equilibrium::vmec_is_2d_array
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -914,7 +914,7 @@
 !>
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
-!>  @see vmec_is_recon_param
+!>  @see vmec_equilibrium::vmec_is_recon_param
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -955,7 +955,7 @@
 !>  in an unconverged state. If the equilibrium was converged, this sets the
 !>  @ref equilibrium_class::not_converged to false to inform future calls that
 !>  the equilibirum is already in a converged state.
-!>  @see vmec_converge
+!>  @see vmec_equilibrium::vmec_converge
 !>
 !>  @param[inout] this     A @ref equilibrium_class instance.
 !>  @param[inout] num_iter Counter to track the number of iterations.
@@ -1006,7 +1006,7 @@
 !>
 !>  This method is virtual. The actual saving of the equilibrium state should be
 !>  handled by a subclass method. 
-!>  @see vmec_converge
+!>  @see vmec_equilibrium::vmec_converge
 !>
 !>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
@@ -1032,7 +1032,7 @@
 !>
 !>  This method is virtual. The actual reseting of the equilibrium state should
 !>  be handled by a subclass method.
-!>  @see vmec_converge
+!>  @see vmec_equilibrium::vmec_converge
 !>
 !>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------

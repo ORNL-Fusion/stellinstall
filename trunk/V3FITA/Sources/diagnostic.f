@@ -258,14 +258,14 @@
 !>  returns the get_modeled_signal method of the subclass instance
 !>  @ref diagnostic_class was constructed with.
 !>
-!>  @see limiter::magnetic_get_modeled_signal
+!>  @see magnetic::magnetic_get_modeled_signal
 !>  @see sxrem::sxrem_get_modeled_signal
 !>  @see intpol::intpol_get_modeled_signal
 !>  @see thomson::thomson_get_modeled_signal
 !>  @see extcurz::extcurz_get_modeled_signal
 !>
 !>  @param[in]    this    A @ref diagnostic_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
@@ -314,7 +314,7 @@
 !>  returns the get_signal_type method of the subclass instance
 !>  @ref diagnostic_class was constructed with.
 !>
-!>  @see limiter::magnetic_get_signal_type
+!>  @see magnetic::magnetic_get_signal_type
 !>  @see sxrem::sxrem_get_signal_type
 !>  @see intpol::intpol_get_signal_type
 !>  @see thomson::thomson_get_signal_type

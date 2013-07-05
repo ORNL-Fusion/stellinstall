@@ -102,7 +102,7 @@
 !>  path. The emissivity is provided by the @ref sxr_function.
 !>
 !>  @param[in]    this    A @ref sxrem_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
@@ -168,7 +168,7 @@
 !>
 !>  Returns the value of the soft x-ray emissivity times the change in path
 !>  length. This function is passed to @ref path_integrate to act as a callback.
-!>  The soft x-ray emissivity is provided by @ref model_get_sxrem.
+!>  The soft x-ray emissivity is provided by @ref model::model_get_sxrem.
 !>
 !>  @see integration_path
 !>

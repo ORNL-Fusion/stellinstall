@@ -214,7 +214,7 @@
 !>  Total signal is the sum of plasma signal and external signal.
 !>
 !>  @param[in]    this    A @ref magnetic_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------

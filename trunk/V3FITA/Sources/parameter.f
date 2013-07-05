@@ -221,7 +221,7 @@
 !>  the @ref equilibrium.
 !>
 !>  @param[in]    this    A @ref param_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[in]    value   The value to set the parameter to.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_set_value(this, a_model, value)
@@ -284,7 +284,7 @@
 !>  @ref equilibrium.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns The parameter value.
 !-------------------------------------------------------------------------------
       FUNCTION param_get_value(this, a_model)
@@ -311,7 +311,7 @@
 !>  @ref equilibrium.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns The parameter name.
 !-------------------------------------------------------------------------------
       FUNCTION param_get_name(this, a_model)
@@ -335,7 +335,7 @@
 !>  bounding type is @ref param_range_infinity_type or @ref param_range_no_type.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns The lower bounding value.
 !-------------------------------------------------------------------------------
       FUNCTION param_get_lower_range_value(this, a_model)
@@ -370,7 +370,7 @@
 !>  bounding type is @ref param_range_infinity_type or @ref param_range_no_type.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns The upper bounding value.
 !-------------------------------------------------------------------------------
       FUNCTION param_get_upper_range_value(this, a_model)
@@ -408,7 +408,7 @@
 !>  range.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @param[in] value   A parameter value to check.
 !>  @returns True for in range and false for out of range.
 !-------------------------------------------------------------------------------
@@ -438,7 +438,7 @@
 !>  of range.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @param[in] value   A parameter value to check.
 !>  @returns True for in range and false for out of range.
 !-------------------------------------------------------------------------------
@@ -476,7 +476,7 @@
 !>  for normalization purposes.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] a_model A @ref model instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_increment(this, a_model)
       USE v3_utilities, only: err_fatal
@@ -547,9 +547,9 @@
 !>  value and sigma.
 !>
 !>  @param[in] this    A @ref param_class instance.
-!>  @param[in] iou     A input/output representing the file to write to.
-!>  @param[in] index   A index of a parameter.
-!>  @param[in] a_model A @ref model_class instance.
+!>  @param[in] iou     Input/output unit representing the file to write to.
+!>  @param[in] index   The index of a parameter.
+!>  @param[in] a_model A @ref model instance.
 !>  @note Eventually parameter range informarion will be added as well.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_write(this, iou, index, a_model)

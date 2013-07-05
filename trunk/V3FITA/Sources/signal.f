@@ -387,12 +387,12 @@
 !>  cached value. Read from the cached value when the signal doesn't need to be
 !>  recalulated. If the sigal is to be recalculated, write these to the cache.
 !>
-!>  @see limiter::diagnostic_get_modeled_signal
-!>  @see sxrem::geometric_get_modeled_signal
-!>  @see intpol::combination_get_modeled_signal
+!>  @see diagnostic::diagnostic_get_modeled_signal
+!>  @see geometric::geometric_get_modeled_signal
+!>  @see combination_get_modeled_signal
 !>
 !>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model_class instance.
+!>  @param[inout] a_model   A @ref model instance.
 !>  @param[out]   sigma     The modeled sigma.
 !>  @param[in]    use_cache If false calculate the signal and sigma and write
 !>                          them to the cache. Otherwise read from the cache
@@ -450,7 +450,7 @@
 !>  g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
 !>
 !>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model_class instance.
+!>  @param[inout] a_model   A @ref model instance.
 !>  @param[in]    use_cache If the signals have been already calculated this
 !>                          should be false. Otherwise set to true.
 !>  @returns The g^2 value.
@@ -481,7 +481,7 @@
 !>  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
 !>
 !>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model_class instance.
+!>  @param[inout] a_model   A @ref model instance.
 !>  @param[in]    use_cache If the signals have been already calculated this
 !>                          should be false. Otherwise set to true.
 !>  @returns The e value.
@@ -944,7 +944,7 @@
 !>  @ref combination_class::signals array. 
 !>
 !>  @param[in]    this    A @ref combination_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------

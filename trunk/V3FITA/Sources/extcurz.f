@@ -99,7 +99,7 @@
 !>  @ref equilibrium_get_Int_B_dphi
 !>
 !>  @param[in]    this    A @ref extcurz_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------

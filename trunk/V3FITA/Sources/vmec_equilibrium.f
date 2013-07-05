@@ -251,7 +251,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref vmec_class object.
 !>
-!>  Allocates memory and initializes a @ref equilibrium_class object. Runs vmec
+!>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
 !>  for one iteration to initialize all the input parameters. Defined in
 !>  @ref vmec_input.
 !>  @param[in] file_name Filename of the vmec namelist input file.
@@ -391,11 +391,11 @@
 !-------------------------------------------------------------------------------
 !>  @brief Sets the value of a reconstruction equilibrium parameter.
 !>
-!>  This method overrides @ref equilibrium_set_param. When a VMEC parameter is
-!>  changed, propagate the changes to the VMEC internal state and inform the
-!>  caller that the equilibrium needs reconvergence.
+!>  This method overrides @ref equilibrium::equilibrium_set_param. When a VMEC
+!>  parameter is changed, propagate the changes to the VMEC internal state and
+!>  inform the caller that the equilibrium needs reconvergence.
 !>
-!>  @param[inout] this    A @ref equilibrium_class instance.
+!>  @param[inout] this    A @ref vmec_class instance.
 !>  @param[in]    id      ID of the parameter.
 !>  @param[in]    i_index The ith index of the parameter.
 !>  @param[in]    j_index The jth index of the parameter.
@@ -638,10 +638,10 @@
 !-------------------------------------------------------------------------------
 !>  @brief Set magnetic cache initialy.
 !>
-!>  This method overrides @ref equilibrium_set_magnetic_cache. This allocates a
-!>  @ref vmec_magnetic_cache structure.
+!>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
+!>  allocates a @ref vmec_magnetic_cache structure.
 !>
-!>  @param[inout] this             A @ref equilibrium_class instance.
+!>  @param[inout] this             A @ref vmec_class instance.
 !>  @param[in]    total_tor_planes Total number of toroidal planes.
 !>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
 !>                                 planes.
@@ -692,7 +692,7 @@
 !>  After the equilibrium has been converged calculate the r, z, jr, jphi and
 !>  jz on grid of s, u, v points.
 !>
-!>  @param[inout] this A @ref equilibrium_class instance.
+!>  @param[inout] this A @ref vmec_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_calc(this)
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
@@ -816,9 +816,9 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get the id for a reconstruction parameter.
 !>
-!>  This method overrides @ref equilibrium_get_param_id.
+!>  This method overrides @ref equilibrium::equilibrium_get_param_id.
 !>
-!>  @param[inout] this             A @ref equilibrium_class instance.
+!>  @param[inout] this             A @ref vmec_class instance.
 !>  @param[in]    total_tor_planes Total number of toroidal planes.
 !>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
 !>                                 planes.
@@ -998,7 +998,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get the value of a reconstruction VMEC parameter.
 !>
-!>  This method overrides @ref equilibrium_get_param_value.
+!>  This method overrides @ref equilibrium::equilibrium_get_param_value.
 !>
 !>  @param[in] this    A @ref vmec_class instance.
 !>  @param[in] id      ID of the parameter.
@@ -1193,7 +1193,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get the name of a reconstruction VMEC parameter.
 !>
-!>  This method overrides @ref equilibrium_get_param_name.
+!>  This method overrides @ref equilibrium::equilibrium_get_param_name.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -1371,8 +1371,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the electron density at a position.
 !>
-!>  This method overrides @ref equilibrium_get_ne. If no density profile was
-!>  created, return zero.
+!>  This method overrides @ref equilibrium::equilibrium_get_ne. If no density
+!>  profile was created, return zero.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron density at.
@@ -1400,8 +1400,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the electron temperature at a position.
 !>
-!>  This method overrides @ref equilibrium_get_te. If no temperature profile was
-!>  created, return zero.
+!>  This method overrides @ref equilibrium::equilibrium_get_te. If no
+!>  temperature profile was created, return zero.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -1429,8 +1429,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the soft x-ray emissivity at a position.
 !>
-!>  This method overrides @ref equilibrium_get_sxrem. If no soft x-ray emissivity
-!>  profile was created, return zero.
+!>  This method overrides @ref equilibrium::equilibrium_get_sxrem. If no soft
+!>  x-ray emissivity profile was created, return zero.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
@@ -1458,7 +1458,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the plasma pressure at a position.
 !>
-!>  This method overrides @ref equilibrium_get_p.
+!>  This method overrides @ref equilibrium::equilibrium_get_p.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the plasma pressure at.
@@ -1493,7 +1493,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the magnetic field vector at a position.
 !>
-!>  This method overrides @ref equilibrium_get_B_vec.
+!>  This method overrides @ref equilibrium::equilibrium_get_B_vec.
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
@@ -1527,7 +1527,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the loop integrated magnetic field at a position.
 !>
-!>  This method overrides @ref equilibrium_get_Int_B_dphi.
+!>  This method overrides @ref equilibrium::equilibrium_get_Int_B_dphi.
 !>
 !>  @param[in] this  A @ref vmec_class instance.
 !>  @param[in] r     S position to integrate about.
@@ -1611,7 +1611,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the r and z positions of the outer surface at a toroidal angle.
 !>
-!>  This method overrides @ref equilibrium_get_plasma_edge.
+!>  This method overrides @ref equilibrium::equilibrium_get_plasma_edge.
 !>
 !>  @param[in]  this A @ref vmec_class instance.
 !>  @param[in]  phi  Toroidal angle to determine the outer surface at.
@@ -1673,7 +1673,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get volume magnetic volume integration radial grid points.
 !>
-!>  This method overrides @ref equilibrium_get_magnetic_volume_rgrid.
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_magnetic_volume_rgrid.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @returns The radial grid points.
@@ -1695,7 +1696,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get volume magnetic volume integration z grid points.
 !>
-!>  This method overrides @ref equilibrium_get_magnetic_volume_zgrid.
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_magnetic_volume_zgrid.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @returns The radial grid points.
@@ -1717,7 +1719,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get volume magnetic volume integration jr grid points.
 !>
-!>  This method overrides @ref equilibrium_get_magnetic_volume_jrgrid.
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_magnetic_volume_jrgrid.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @returns The radial grid points.
@@ -1739,7 +1742,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get volume magnetic volume integration jphi grid points.
 !>
-!>  This method overrides @ref equilibrium_get_magnetic_volume_jphigrid.
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_magnetic_volume_jphigrid.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @returns The radial grid points.
@@ -1761,7 +1765,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get volume magnetic volume integration jz grid points.
 !>
-!>  This method overrides @ref equilibrium_get_magnetic_volume_jzgrid.
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_magnetic_volume_jzgrid.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @returns The radial grid points.
@@ -1783,9 +1788,10 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get volume integration element.
 !>
-!>  This method overrides @ref equilibrium_get_volume_int_element. For vmec this
-!>  is J*ds*du*dv where J is the jacobian. The jacobian is integrated into Jr,
-!>  Jphi and Jz but still need to account for the sign of the jacobian.
+!>  This method overrides @ref equilibrium::equilibrium_get_volume_int_element.
+!>  For vmec this is J*ds*du*dv where J is the jacobian. The jacobian is
+!>  integrated into Jr, Jphi and Jz but still need to account for the sign of
+!>  the jacobian.
 !>
 !>  * ds = 1/(ns - 1)
 !>  * du = 2*Pi/number of flux surfaces
@@ -1811,14 +1817,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get external current.
-!-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
 !>  @brief Get external current.
 !>
-!>  This method overrides @ref equilibrium_get_ext_currents. The array memory
-!>  containing the external currents is owned by VMEC. Return a pointer to it.
-!>  if VMEC is run in fixed boundary mode, return a null() pointer.
+!>  This method overrides @ref equilibrium::equilibrium_get_ext_currents. The
+!>  array memory containing the external currents is owned by VMEC. Return a
+!>  pointer to it. if VMEC is run in fixed boundary mode, return a null()
+!>  pointer.
 !>
 !>  @param[in]  this           A @ref vmec_class instance.
 !>  @param[out] scale_currents Informs the caller that currents need to be
@@ -1861,7 +1865,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Checks if a parameter id is a scaler value.
 !>
-!>  This method overrides @ref equilibrium_is_scaler_value.
+!>  This method overrides @ref equilibrium::equilibrium_is_scaler_value.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -1894,7 +1898,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Checks if a parameter id is a 1d array.
 !>
-!>  This method overrides @ref equilibrium_is_1d_array.
+!>  This method overrides @ref equilibrium::equilibrium_is_1d_array.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -1932,7 +1936,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Checks if a parameter id is a 2d array.
 !>
-!>  This method overrides @ref equilibrium_is_2d_array.
+!>  This method overrides @ref equilibrium::equilibrium_is_2d_array.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -1969,7 +1973,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Checks if a parameter id is a reconstruction parameter.
 !>
-!>  This method overrides @ref equilibrium_is_recon_param.
+!>  This method overrides @ref equilibrium::equilibrium_is_recon_param.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -2012,9 +2016,9 @@
 !-------------------------------------------------------------------------------
 !>  @brief Solves the VMEC equilibrium.
 !>
-!>  This method overrides @ref equilibrium_converge. Solves the vmec equilibrium
-!>  and loads the resulting wout file in preparation of computeing modeled
-!>  signals.
+!>  This method overrides @ref equilibrium::equilibrium_converge. Solves the
+!>  vmec equilibrium and loads the resulting wout file in preparation of
+!>  computeing modeled signals.
 !>
 !>  @param[inout] this     A @ref vmec_class instance.
 !>  @param[inout] num_iter Counter to track the number of iterations.
@@ -2193,7 +2197,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Write out the equilibrium to an output file.
 !>
-!>  This method overrides @ref equilibrium_write.
+!>  This method overrides @ref equilibrium::equilibrium_write.
 !>
 !>  @param[in] this A @ref vmec_class instance.
 !>  @param[in] iou  Input/output unit of the output file.
@@ -2221,8 +2225,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Define NetCDF variables for the result file
 !>
-!>  This method overrides @ref equilibrium_def_result. Defines dimensions and
-!>  variables for the VMEC contribution of the result file.
+!>  This method overrides @ref equilibrium::equilibrium_def_result. Defines
+!>  dimensions and variables for the VMEC contribution of the result file.
 !>
 !>  Dimensions:
 !>    * vmec_nextcur     Number of vmec external currents.
@@ -2335,7 +2339,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Write inital data to NetCDF result file
 !>
-!>  This method overrides @ref equilibrium_write_init_data.
+!>  This method overrides @ref equilibrium::equilibrium_write_init_data.
 !>
 !>  @param[in] this        A @ref vmec_class instance.
 !>  @param[in] result_ncid NetCDF file id of the result file.
@@ -2400,7 +2404,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Write step data to NetCDF result file
 !>
-!>  This method overrides @ref equilibrium_write_step_data.
+!>  This method overrides @ref equilibrium::equilibrium_write_step_data.
 !>
 !>  @param[in] this         A @ref vmec_class instance.
 !>  @param[in] result_ncid  NetCDF file id of the result file.

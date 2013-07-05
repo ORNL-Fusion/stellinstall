@@ -169,11 +169,11 @@
 !>  @brief Calculates the modeled signal.
 !>
 !>  Calculates the modeled signal at a point. Temperature is provided by
-!>  @ref model_get_te. Denisty is provided by @ref model_get_ne. Pressure is
-!>  provided by @ ref equilibrium_get_p.
+!>  @ref model::model_get_te. Denisty is provided by @ref model::model_get_ne.
+!>  Pressure is provided by @ref equilibrium::equilibrium_get_p.
 !>
 !>  @param[in]    this    A @ref thomson_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------

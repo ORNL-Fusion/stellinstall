@@ -165,7 +165,7 @@
 !>  @see limiter::limiter_get_modeled_signal
 !>
 !>  @param[in]    this    A @ref geometric_class instance.
-!>  @param[inout] a_model A @ref model_class instance.
+!>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !>  @note boundary will be removed and replaced with priors.
