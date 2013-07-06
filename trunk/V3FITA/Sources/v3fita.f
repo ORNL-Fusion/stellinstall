@@ -181,7 +181,12 @@
 !  TASK SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Solves the equilibrium.
+!>  @brief Solves the equilibrium.
+!>
+!>  Task to just solve the equilibrium. This task is choosen by setting
+!>  @ref v3fit_input::my_task to 'equilibrium'.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE task_equilibrium(context)
       USE v3fit_context
@@ -214,7 +219,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Solves the equilibrium and calculates the modeled signals.
+!>  @brief the equilibrium and calculates the modeled signals.
+!>
+!>  Task to just compute modeled signals from an equilibrium. This task is
+!>  choosen by setting @ref v3fit_input::my_task to 'v3post'.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE task_v3post(context)
       USE v3fit_context
@@ -261,7 +271,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Reconstructs the equilibrium
+!>  @brief Reconstructs the equilibrium.
+!>
+!>  Task to perform an equilibrium reconstruction. This task is choosen by
+!>  setting @ref v3fit_input::my_task to 'reconstruct'.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE task_reconstruct(context)
       USE v3fit_context
@@ -359,7 +374,10 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Run unit tests
+!>  @brief Run unit tests
+!>
+!>  This task is choosen by setting @ref v3fit_input::my_task to 'unit_test'. Or
+!>  by using the -test command line flag.
 !-------------------------------------------------------------------------------
       SUBROUTINE task_unit_tests
       USE line_segment
@@ -394,7 +412,12 @@
 !  INITIALIZE SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Initialize equilibrium
+!>  @brief Initialize an equilibrium.
+!>
+!>  This constructs and initializes a equilibrium. Currently only
+!>  @ref vmec_equilibium are supported.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_equilibrium(context)
       USE v3fit_context
@@ -415,7 +438,11 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize a vmec equilibrium
+!>  @brief Initialize a vmec equilibrium.
+!>
+!>  This constructs and initializes a @ref vmec_equilibrium.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_vmec_equilibrium(context)
       USE v3fit_context
@@ -448,7 +475,11 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Signals
+!>  @brief Constructs the @ref signal array.
+!>
+!>  This constructs all @ref v3fit_context::signals.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_signals(context)
       USE v3fit_context
@@ -507,7 +538,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Magnetic Signals
+!>  @brief Constructs @ref magnetic signals.
+!>
+!>  This constructs all @ref magnetic signals from the specified
+!>  @ref v3fit_input::mdsig_list_filename.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_magnetic_signals(context, signals_created)
       USE v3fit_context
@@ -598,7 +634,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Soft X-Ray Signals
+!>  @brief Constructs @ref sxrem signals.
+!>
+!>  This constructs all @ref sxrem signals from the specified
+!>  @ref v3fit_input::sxrch_dot_filename.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_sxrem_signals(context, signals_created)
       USE v3fit_context
@@ -625,7 +666,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Interferometer/Polarimetry Signals
+!>  @brief Constructs @ref intpol signals.
+!>
+!>  This constructs all @ref intpol signals from the specified
+!>  @ref v3fit_input::ipch_dot_filenam.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_intpol_signals(context, signals_created)
       USE v3fit_context
@@ -652,7 +698,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Thomson Scattering Signals
+!>  @brief Constructs @ref thomson signals.
+!>
+!>  This constructs all @ref thomson signals from the specified
+!>  @ref v3fit_input::thscte_dot_filename.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_thomson_signals(context, signals_created)
       USE v3fit_context
@@ -680,7 +731,12 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize External Z current Signals
+!>  @brief Constructs the @ref extcurz signal.
+!>
+!>  This constructs the extcurz signal from @ref v3fit_input::extcurz_s0 and
+!>  @ref v3fit_input::extcurz_u0.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_extcurz_signals(context, signals_created)
       USE v3fit_context
@@ -720,7 +776,11 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Geometric Signals
+!>  @brief Constructs @ref geometric signals.
+!>
+!>  For not only @ref limiter signals are constructed.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_geometric_signals(context, signals_created)
       USE v3fit_context
@@ -794,7 +854,9 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Combination Signals
+!>  @brief Constructs @ref signal::combination_class signals.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_combination_signals(context, signals_created)
       USE v3fit_context
@@ -861,7 +923,11 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Reconstruction parameters
+!>  @brief Constructs the @ref parameter array.
+!>
+!>  This constructs all @ref v3fit_context::params.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_parameters(context)
       USE v3fit_context
@@ -896,7 +962,9 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Initialize Reconstruction
+!>  @brief Initialize Reconstruction
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_reconstruction(context)
       USE v3fit_context
