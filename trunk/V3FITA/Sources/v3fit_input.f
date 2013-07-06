@@ -339,11 +339,11 @@
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
 
 !  Model Specification Variables
-!  FIXME: New coding contains a model_ne_type that old code did not have. Make
-!  the default value pp_ne for compatibility. Eventially this shoud be set back
-!  to none and users should set model_ne_type in the namelist input.
 !>  Specify how electron density is computed by the model.
 !>  @see model
+!>  @todo FIXME: New coding contains a model_ne_type that old code did not have.
+!>  Make the default value pp_ne for compatibility. Eventially this shoud be set
+!>  back to none and users should set model_ne_type in the namelist input.
       CHARACTER (len=data_name_length) :: model_ne_type = 'pp_ne'
 !>  Specify how soft x-ray emissivity is computed by the model.
 !>  @see model
@@ -440,9 +440,9 @@
      &   sdo_w_spec_weight = 0.0
 
 !  External current signal specification
-!  FIXME: The label of s0 and u0 are vmec specific. These should be changed to a
-!  radial coordinate and poloidal angle.
 !>  External Z current radial position.
+!>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
+!>  changed to a radial coordinate and poloidal angle.
       REAL (rprec) :: extcurz_s0 = -1.0
 !>  External Z current poloidal angle.
       REAL (rprec) :: extcurz_u0 = 0.0
@@ -479,10 +479,8 @@
      &   lif_on_edge = .false.
 
 !  Use external boundary as signal
-!  FIXME: The implentation is VMEC specific. This will eventually be removed and
-!  replaced by priors when they are implemented.
-!>  @deprecated
-!>  Not implemented.
+!>  @deprecated The implentation is VMEC specific. This will eventually be
+!>  removed and replaced by priors when they are implemented.
       LOGICAL :: use_boundary
 
 !  Combinations of other signals specification.
@@ -534,8 +532,8 @@
 !>  @see reconstruction
       CHARACTER (len=v3fit_step_name_length) :: step_type = 'sl'
 
-!  FIXME: VMEC specific. Not implemented.
-!  Zero out vmec xcdot array
+!>  Zero out vmec xcdot array
+!>  @todo FIXME: VMEC specific. Not implemented.
       LOGICAL :: l_zero_xcdot = .true.
 
 !  Declare Namelist
@@ -550,7 +548,8 @@
      &   na_d_desc, na_g_desc, na_c_desc, na_s_desc, na_rparam,                &
 !  Task specification and work variables
      &   my_task,                                                              &
-!  FIXME: The following arrays are depricated and will be removed in the future.
+!>  @deprecated The following arrays will be removed in the future. Users should
+!>  use the reconstruction step control specifications instead.
      &   i_work, c_work, r_work,                                               &
 !  Model profile specification
 !  Electron Denisty
@@ -570,8 +569,8 @@
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
 !  External current signal specification
-!  FIXME: The label of s0 and u0 are vmec specific. These should be changed to a
-!  radial coordinate and poloidal angle.
+!>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
+!>  changed to a radial coordinate and poloidal angle.
      &   extcurz_s0, extcurz_u0,                                               &
 !  Signal data sigma specification
      &   sdo_s_spec_imin, sdo_s_spec_imax, sdo_s_spec_floor,                   &
@@ -584,8 +583,8 @@
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 &
      &   lif_phi_degree, lif_on_edge,                                          &
 !  Use external boundary as signal
-!  FIXME: The implementation is VMEC specific. This will eventually be removed
-!  and will replaced by priors when they are implemented.
+!>  @deprecated The implementation is VMEC specific. This will eventually be
+!>  removed and will replaced by priors when they are implemented.
      &   use_boundary,                                                         &
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
@@ -593,7 +592,7 @@
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type,                                        &
-!  FIXME: The implementation is VMEC specific. Zero out vmec xcdot array
+!>  @todo FIXME: The implementation is VMEC specific.
      &   l_zero_xcdot
 
       CONTAINS
@@ -693,7 +692,7 @@
 
 !  Search for the last index greater than 0 to determine the number of signals
 !  in a combination.
-!  FIXME: Remove this when n_sig_coosig is mandatory.
+!>  @todo FIXME: Remove this when n_sig_coosig is mandatory.
       DO i = 1, n_coosig
          DO j = 1, v3fit_max_cos_size
             IF (coosig_indices(i,j) .eq. 0) THEN

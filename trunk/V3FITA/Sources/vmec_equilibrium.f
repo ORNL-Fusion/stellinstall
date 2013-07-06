@@ -628,7 +628,8 @@
             CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
          CASE DEFAULT
-!  FIXME: Consider throwing a fatal error here inside of silently doing nothing.
+!>  @todo FIXME: Consider throwing a fatal error here inside of silently doing
+!>  nothing.
             vmec_set_param = .true.
 
       END SELECT
@@ -728,9 +729,9 @@
      &         sinv_nyq(mnmax_nyq, this%magnetic_cache%kv))
 
 !  U grid is square with the s grid.
-!  FIXME: There is no reason to recalulate the sin and cosin arrays every time.
-!  Instead cache these in magnetic cache and calculate them once in
-!  vmec_set_magnetic_cache_init
+!>  @todo FIXME: There is no reason to recalulate the sin and cosin arrays every
+!>  time. Instead cache these in the @ref vmec_magnetic_cache and calculate them
+!>  once @ref vmec_set_magnetic_cache_init
       DO u = 1, ns
          cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
          sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
@@ -2121,8 +2122,8 @@
             END IF
 
          CASE DEFAULT
-!  FIXME: Put in error reporting here. For now leave this blank until I can
-!  figure how v3fit decides if vmec has converged.
+!>  @todo FIXME: Put in error reporting here. For now leave this blank until I
+!>  can figure how v3fit decides if vmec has converged.
 
       END SELECT
 

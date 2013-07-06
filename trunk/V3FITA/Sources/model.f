@@ -149,7 +149,7 @@
          CASE ('pp_te')
             model_construct%te_type = model_te_type
 
-!  FIXME: Name here shouldn't have vmec in it
+!>  @todo FIXME: Name here shouldn't have vmec in it
          CASE ('pp_ne_vmec_p')
             model_construct%te_type = model_te_ne_p_type
 

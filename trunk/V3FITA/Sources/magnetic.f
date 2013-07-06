@@ -284,8 +284,8 @@
       ALLOCATE(sumphi(num_phi))
 
 !  Create the r and z gridpoints for the magnetic responce function.
-!  FIXME: For a single diagnostic these never change. Allocate these once and
-!  cache these in the magnetic_class object.
+!>  @todo FIXME: For a single diagnostic these never change. Allocate these once
+!>  and cache these in the @ref magnetic_class object.
       ALLOCATE(rgrid(this%responce_function%ir))
       DO r = 1, this%responce_function%ir
          rgrid(r) = this%responce_function%rmin                                &
@@ -302,8 +302,8 @@
       END DO
 
 !  Create a bivariate object to do the interpolation.
-!  FIXME: The biavariate interpolation is performed one plane at a time. Remove
-!  the torodial array index and make this interpolation 2D.
+!>  @todo FIXME: The biavariate interpolation is performed one plane at a time.
+!>  Remove the torodial array index and make this interpolation 2D.
       CALL createbivariate(bivariate_object, numrvol, numzvol,                 &
      &                     SIZE(rvolgrid, 3), 1)
 
