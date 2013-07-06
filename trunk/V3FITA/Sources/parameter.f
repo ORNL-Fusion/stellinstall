@@ -36,6 +36,7 @@
 !-------------------------------------------------------------------------------
 !>  Base class representing a reconstructed parameter. An upper and lower bound
 !>  may be set for the parameter value.
+!>  @todo Add signal effectiveness.
 !-------------------------------------------------------------------------------
       TYPE param_class
 !>  Id number of the parameter. Id's are provided by either the @ref model or
@@ -45,7 +46,7 @@
 !>  is the element of an array.
          INTEGER, DIMENSION(2)       :: indicies = 0
 !>  The maximum increment size of the parameter for calculating the jacobian.
-!>  @see param::param_increment
+!>  @see param_increment
          REAL (rprec)                :: vrnc = 0.0
 
 !  Parameter ranges
@@ -69,11 +70,12 @@
 
 !>  The contraints can change the normalization size of the patarameter when
 !>  incrementing it. Store the actual change in parameter here for
-!>  normalization. This value is set by @ref param::param_increment.
+!>  normalization. This value is set by @ref param_increment.
          REAL (rprec)                :: delta
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
-!>  step. This value is calculated by @ref reconstruction_eval_pos_covar.
+!>  step. This value is calculated by
+!>  @ref reconstruction::reconstruction_eval_pos_covar.
          REAL (rprec)                :: sigma = 0.0
       END TYPE
 

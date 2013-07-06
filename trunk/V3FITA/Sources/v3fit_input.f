@@ -180,9 +180,9 @@
 !>  * @ref cut_dg2          cutoff value for expected change in g^2
 !>  * @ref astep_max        maximum allowable normalized step size
 !>  * @ref step_type        character specification of reconstruction step type
-!>      -# 'sl' - straight line
+!>      -# 'sl'  - straight line
 !>      -# 'seg' - segmented
-!>      -# 'lm' - Levenberg-Marquardt
+!>      -# 'lm'  - Levenberg-Marquardt
 !>
 !>  @subsection xcdot_sec VMEC zero out xcdot control
 !>  * @ref l_zero_xcdot   reset the xcdot array to zero when converging vmec.
@@ -510,10 +510,6 @@
      &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
 
 !  Reconstruction step control specification.
-!  step_type      character specification of reconstruction step type
-!                   'sl' - straight line
-!                   'seg' - segmented
-!                   'lm' - Levenberg-Marquardt
 !>  Max number of reconstruction steps to perform.
       INTEGER                                :: nrstep = 0
 !>  Stopping criterion on change in g^2.
@@ -530,7 +526,12 @@
       REAL (rprec)                           :: cut_dg2 = 0.0
 !>  Maximum allowable normalized step size.
       REAL (rprec)                           :: astep_max = 0.0
-!>  Reconstruction step type. @see reconstruction
+!>  Reconstruction step type.
+!>  Possible values are:
+!>    * 'sl'  straight line
+!>    * 'lm'  Levenberg-Marquardt
+!>    * 'seg' segmented
+!>  @see reconstruction
       CHARACTER (len=v3fit_step_name_length) :: step_type = 'sl'
 
 !  FIXME: VMEC specific. Not implemented.

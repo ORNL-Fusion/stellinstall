@@ -1,11 +1,13 @@
 !*******************************************************************************
-!  File reconstruction.f
-!  Contains module reconstruction
-!  Defines the base class of the type reconstruction:
+!>  @file reconstruction.f
+!>  @brief Contains module @ref reconstruction.
 !
-!  Super Class: None
-!  Sub Classes: None
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
+!>  Defines the base class of the type @ref reconstruction_class. This class
+!>  contains the minimization algorithm.
+!>  @todo Add signal effectiveness.
 !*******************************************************************************
 
       MODULE reconstruction
@@ -18,12 +20,16 @@
 !*******************************************************************************
 !  reconstruction module parameters
 !*******************************************************************************
-
+!>  No reconstruction step type.
       INTEGER, PARAMETER :: reconstruction_no_step_type = -1
+!>  Straight line reconstruction step type.
       INTEGER, PARAMETER :: reconstruction_sl_step_type = 0
+!>  Levenberg-Marquardt reconstruction step type.
       INTEGER, PARAMETER :: reconstruction_lm_step_type = 1
+!>  Segmented path reconstruction step type.
       INTEGER, PARAMETER :: reconstruction_seg_step_type = 2
 
+!>  Maximum number of reconstruction step attemps.
       INTEGER, PARAMETER :: reconstruction_max_step_try = 5
 
 !*******************************************************************************
@@ -32,31 +38,65 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Define an object data needed to reconstruct the equilibirum.
+!>  Base class representing containing all the data needed to reconstruct a
+!>  model.
 !-------------------------------------------------------------------------------
       TYPE reconstruction_class
+!>  Type descriptor of the boundry type for the lower(1) and upper(2) ranges.
+!>  @par Possible values are:
+!>  * @ref reconstruction_no_step_type
+!>  * @ref reconstruction_sl_step_type
+!>  * @ref reconstruction_lm_step_type
+!>  * @ref reconstruction_seg_step_type
          INTEGER :: step_type = reconstruction_no_step_type
+!>  Maximum number of reconstruction step.
+!>  @see v3fit_input::nrstep
          REAL (rprec)                          :: step_max
 
+!>  Counter to track the step number.
          INTEGER                               :: current_step = 0
+!>  Array of all e vectors for each reconstruction step.
+!>  @see signal::signal_get_e
          REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
+!>  The normalized jacobian for the current step.
          REAL (rprec), DIMENSION(:,:), POINTER :: jacobian => null()
+!>  The normalized hessian for the current step.
          REAL (rprec), DIMENSION(:,:), POINTER :: hessian => null()
+!>  The normalized gradient for the current step.
          REAL (rprec), DIMENSION(:), POINTER   :: gradient => null()
+!>  The normalized parameter step for each sigular value.
          REAL (rprec), DIMENSION(:,:), POINTER :: delta_a => null()
+!>  The matrix of singular value decomposition singular values.
          REAL (rprec), DIMENSION(:), POINTER   :: j_svd_w => null()
+!>  The U matrix of singular value decomposition.
          REAL (rprec), DIMENSION(:,:), POINTER :: j_svd_u => null()
+!>  The tansposed V matrix of singular value decomposition.
          REAL (rprec), DIMENSION(:,:), POINTER :: j_svd_vt => null()
+!>  The normalized step length for each sigular value.
          REAL (rprec), DIMENSION(:), POINTER   :: delta_a_len => null()
+
+!>  The expected g^2 for each reconstruction step.
          REAL (rprec), DIMENSION(:), POINTER   :: exp_g2 => null()
+!>  The normalized step size for each reconstruction step.
          REAL (rprec), DIMENSION(:), POINTER   :: step_size => null()
+!>  The number of sigular values used for each reconstruction step.
          INTEGER, DIMENSION(:), POINTER        :: num_sv => null()
 
 !  Cut off value controls.
+!>  Cutoff value for relative singular values.
+!>  @see v3fit_input::cut_svd
          REAL (rprec) :: cut_svd
+!>  Cutoff value for expected step efficiency.
+!>  @see v3fit_input::cut_eff
          REAL (rprec) :: cut_eff
+!>  Cutoff value for expected marginal step efficiency.
+!>  @see v3fit_input::cut_marg_eff
          REAL (rprec) :: cut_marg_eff
+!>  Cutoff value for expected step size.
+!>  @see v3fit_input::cut_delta_a
          REAL (rprec) :: cut_delta_a
+!>  Cutoff value for expected change in g^2.
+!>  @see v3fit_input::cut_dg2
          REAL (rprec) :: cut_dg2
       END TYPE
 
@@ -64,6 +104,29 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref reconstruction_class object.
+!>
+!>  Allocates memory and initializes a @ref param_class object.
+!>
+!>  @param[in] num_steps      Number of reconstruction steps.
+!>                            @ref signal::signal_get_e
+!>  @param[in] num_signals    Number of signals.
+!>  @param[in] num_parameters Number of reconstruction parameters.
+!>  @param[in] step_type      Reconstruction step type. @ref signal::step_type
+!>  @param[in] step_max       Reconstruction step size. @ref signal::astep_max
+!>  @param[in] cut_svd        Cutoff value for relative singular values.
+!>                            @ref v3fit_input::cut_svd
+!>  @param[in] cut_eff        Cutoff value for expected step efficiency.
+!>                            @ref v3fit_input::cut_eff
+!>  @param[in] cut_marg_eff   Cutoff value for expected marginal step efficiency.
+!>                            @ref v3fit_input::cut_marg_eff
+!>  @param[in] cut_delta_a    Cutoff value for expected step size.
+!>                            @ref v3fit_input::cut_delta_a
+!>  @param[in] cut_dg2        Cutoff value for expected change in g^2.
+!>                            @ref v3fit_input::cut_dg2
+!>  @returns A pointer to a constructed @ref reconstruction_class object.
+!-------------------------------------------------------------------------------
       FUNCTION reconstruction_construct(num_steps, num_signals,                &
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
@@ -142,6 +205,13 @@
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref reconstruction_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref reconstruction_class object.
+!>
+!>  @param[inout] this A @ref reconstruction_class instance.
+!-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_destruct(this)
 
       IMPLICIT NONE
@@ -228,7 +298,13 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get the number of singular values to use.
+!>  @brief Get the number of singular values to use.
+!>
+!>  Number of sigular values to uses is determined by the various cutoffs.
+!>
+!>  @param[inout] this   A @ref reconstruction_class instance.
+!>  @param[in]    num_sv Total number of sigular values.
+!>  @returns The number of sigular values to use.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_k_use(this, num_sv)
 
@@ -313,9 +389,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the expected dg^2 size
-!
-!  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!>  @brief Get the expected dg^2 size
+!>
+!>  Estimates the change in g^2.
+!>  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!>
+!>  @param[in] this    A @ref reconstruction_class instance.
+!>  @param[in] delta_a The normalized parameter step.
+!>  @returns Change expected change in g^2.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_exp_dg2(this, delta_a)
 
@@ -345,9 +426,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the expected g^2 size
-!
-!  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!>  @brief Get the expected g^2 size
+!>
+!>  Estimates the g^2.
+!>  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!>
+!>  @param[in] this    A @ref reconstruction_class instance.
+!>  @param[in] delta_a The normalized parameter step.
+!>  @returns Expected g^2.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_exp_g2(this, delta_a)
 
@@ -366,7 +452,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the current g^2
+!>  @brief Get the current g^2
+!>
+!>  Gets the g^2 value for the current reconstruction step.
+!>
+!>  @param[in] this A @ref reconstruction_class instance.
+!>  @returns Current g^2.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_g2(this)
 
@@ -383,7 +474,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the last g^2
+!>  @brief Get the last g^2
+!>
+!>  Gets the g^2 value for the last reconstruction step.
+!>
+!>  @param[in] this A @ref reconstruction_class instance.
+!>  @returns The last g^2.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_lastg2(this)
 
@@ -400,7 +496,13 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Get the change in g^2
+!>  @brief Get the change in g^2
+!>
+!>  Gets the change in g^2 from the last reconstruction step to the current
+!>  step.
+!>
+!>  @param[in] this A @ref reconstruction_class instance.
+!>  @returns The last g^2.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_get_dg2(this)
 
@@ -419,7 +521,17 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Evaluate the chi^2
+!>  @brief Evaluate the e vector for a reconstruction step.
+!>
+!>  Evaluates the e vector after soving the equilibrium.
+!>  @see signal::signal_get_e
+!>
+!>  @param[inout] this     A @ref reconstruction_class instance.
+!>  @param[inout] signals  Array of @ref signal objects.
+!>  @param[inout] a_model  A @ref model instance.
+!>  @param[inout] eq_steps Number of steps for the equilibrium to take.
+!>  @param[in]    iou      Input/output file to write log messages to.
+!>  @returns True if the equilibrium converged and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps,         &
      &                               iou)
@@ -456,9 +568,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Evaluate the proper quasi-Newton step.
-!
-!  Returns the number of singular values to use.
+!>  @brief Evaluate the proper quasi-Newton step.
+!>
+!>  Evaluates the jacobian, performs the SVD and computes the quasi-Newton step.
+!>
+!>  @param[inout] this     A @ref reconstruction_class instance.
+!>  @param[inout] signals  Array of @ref signal objects.
+!>  @param[inout] a_model  A @ref model instance.
+!>  @param[inout] params   Array of @ref parameter objects.
+!>  @param[inout] eq_steps Number of steps for the equilibrium to take.
+!>  @param[in]    iou      Input/output file to write log messages to.
+!>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_step(this, signals, a_model,                &
      &                                  params, eq_steps, iou)
@@ -611,9 +731,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Take a straight line step.
-!
-!  Returns the step size used and the normalized change in parameters.
+!>  @brief Take a straight line step.
+!>
+!>  Determines the normalized change in parameters for a straight line step.
+!>
+!>  @param[inout] this      A @ref reconstruction_class instance.
+!>  @param[in]    k_use     Number of singular values to use.
+!>  @param[in]    step_size Current step size limit.
+!>  @param[out]   delta_a   Normalized change in parameter.
+!>  @returns The step size used.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_sl_step(this, k_use, step_size, delta_a)
 
@@ -641,9 +767,15 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Take a segmented path step.
-!
-!  Returns the step size used and the normalized change in parameters.
+!>  @brief Take a segmented path step.
+!>
+!>  Determines the normalized change in parameters for a segmented path step.
+!>
+!>  @param[inout] this      A @ref reconstruction_class instance.
+!>  @param[in]    k_use     Number of singular values to use.
+!>  @param[in]    step_size Current step size limit.
+!>  @param[out]   delta_a   Normalized change in parameter.
+!>  @returns The step size used.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_seg_step(this, k_use, step_size, delta_a)
 
@@ -721,9 +853,16 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Take a Levenberg-Marquardt step.
-!
-!  Returns the step size used and the normalized change in parameters.
+!>  @brief Take a Levenberg-Marquardt step.
+!>
+!>  Determines the normalized change in parameters for a Levenberg-Marquardt
+!>  step.
+!>
+!>  @param[inout] this      A @ref reconstruction_class instance.
+!>  @param[in]    k_use     Number of singular values to use.
+!>  @param[in]    step_size Current step size limit.
+!>  @param[out]   delta_a   Normalized change in parameter.
+!>  @returns The step size used.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_lm_step(this, k_use, step_size, delta_a)
 
@@ -772,7 +911,17 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Root find for Levenberg-Marquardt step.
+!>  @brief Root find for Levenberg-Marquardt step.
+!>
+!>  Find the root of the @ref reconstruction_lm_function for a
+!>  Levenberg-Marquardt step.
+!>
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[in]    k_use          Number of singular values to use.
+!>  @param[in]    lambda_default The default lambda.
+!>  @param[in]    step_size      Current step size limit.
+!>  @param[in]    utdote         Vector of U^T * e
+!>  @returns The root lambda.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_lm_rootfind(this, k_use, lambda_default,         &
      &                                    step_size, utdote)
@@ -897,7 +1046,16 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Root find for Levenberg-Marquardt step.
+!>  @brief Levenberg-Marquardt function.
+!>
+!>  Function used by @ref reconstruction_lm_rootfind for a
+!>  Levenberg-Marquardt step.
+!>
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[in]    f_sqrd         f^2
+!>  @param[in]    step_size_sqrd Square of the current step size.
+!>  @param[in]    lambda         Lambda value.
+!>  @returns F(lambda)
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_lm_function(this, f_sqrd, step_size_sqrd,        &
      &                                    lambda)
@@ -928,7 +1086,18 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Step the reconstruction
+!>  @brief Step the reconstruction.
+!>
+!>  Advance the reconstruction by a single step. This is the main V3FIT
+!>  algorithm.
+!>
+!>  @param[inout] this     A @ref reconstruction_class instance.
+!>  @param[inout] signals  Array of @ref signal objects.
+!>  @param[inout] a_model  A @ref model instance.
+!>  @param[inout] params   Array of @ref parameter objects.
+!>  @param[inout] eq_steps Number of steps for the equilibrium to take.
+!>  @param[in]    iou      Input/output file to write log messages to.
+!>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, a_model, params,             &
      &                             eq_steps, iou)
@@ -1075,7 +1244,14 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!  Evaluate the parameter covariance
+!>  @brief Evaluate the parameter covariance.
+!>
+!>  Uses the jacobian to map the uncertainty is signal space to the uncertainty
+!>  in parameter space. This value is stored in
+!>  @ref parameter::param_class::sigma.
+!>
+!>  @param[inout] this   A @ref reconstruction_class instance.
+!>  @param[inout] params Array of @ref parameter objects.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_pos_covar(this, params)
 
@@ -1102,7 +1278,14 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write out a reconstruction.
+!>  @brief Write out a reconstruction.
+!>
+!>  Write out the final information about a reconstruction. This writes out a
+!>  table of the g^2, expected g^2, number of sigular values used and the
+!>  normalized step size used.
+!>
+!>  @param[in] this A @ref reconstruction_class instance.
+!>  @param[in] iou  Input/output file to write final result to.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_write(this, iou)
 
@@ -1136,14 +1319,22 @@
      &                    this%step_size(i)
       END DO
 
-1000  FORMAT('irstep',2x,'Expected g^2',4x,'sv ',2x,                           &
+1000  FORMAT('irstep',2x,'g^2',11x,'Expected g^2',4x,'sv ',2x,                 &
      &       'normalized step size')
 1001  FORMAT(i6,2(2x,es12.5),2x,i3,2x,es12.5)
 
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!  Write out a reconstruction  step.
+!>  @brief Write out a reconstruction step.
+!>
+!>  Write out information about a reconstruction step. This writes the number of
+!>  singular values use, the step type, the normalized step size and the
+!>  expected g^2.
+!>
+!>  @param[in] this      A @ref reconstruction_class instance.
+!>  @param[in] step_type The step type used.
+!>  @param[in] iou       Input/output file to write final result to.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_write_step(this, step_type, iou)
 
