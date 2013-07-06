@@ -6,8 +6,10 @@
 !>  @section filename_sec Filename variables
 !>  * main_nli_filename     File name for main namelist input
 !>                          @ref v3fit_input::main_nli_filename
+!>  @subsection eq_filename_sec Equilibrium Filename variables
 !>  * vmec_nli_filename     File name for VMEC namelist input
 !>                          @ref v3fit_input::vmec_nli_filename
+!>  @subsection signal_filename_sec Singnal Filename variables
 !>  * mdsig_list_filename   File name for list of MDSIG files
 !>                          @ref v3fit_input::mdsig_list_filename
 !>  * sxrch_dot_filename	file holding sxr chord information
