@@ -1,5 +1,6 @@
 /*!
 @mainpage
+@tableofcontents
 @section introduction Introduction
 @section user User manuals
 * @ref namelist_sec "V3FIT namelist input file" User manual for the V3FIT namelist input file.

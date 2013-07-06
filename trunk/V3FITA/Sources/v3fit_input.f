@@ -2,7 +2,7 @@
 !>  @page namelist_sec Namelist v3fit_main_nli definition
 !>
 !>  The V3FIT namelist input file is defined in the @ref v3fit_input module.
-!>
+!>  @tableofcontents
 !>  @section filename_sec Filename variables
 !>  * main_nli_filename     File name for main namelist input
 !>                          @ref v3fit_input::main_nli_filename
