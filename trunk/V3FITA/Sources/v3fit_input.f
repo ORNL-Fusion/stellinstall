@@ -1,261 +1,176 @@
 !-------------------------------------------------------------------------------
+!  The @header, @table_section, @table_subsection and @item commands are
+!  custom defined commands in Doxygen.in. They are defined under ALIASES. For
+!  the page created here, the 8 column limit is exceeded. Arguments of aliases
+!  are separated by ','. You intended ',' to be a string you must use an escaped
+!  comma '\,'.
+!
 !>  @page namelist_sec Namelist v3fit_main_nli definition
 !>
 !>  The V3FIT namelist input file is defined in the @ref v3fit_input module.
 !>  @tableofcontents
-!>  @section filename_sec Filename variables
-!>  * main_nli_filename     File name for main namelist input
-!>                          @ref v3fit_input::main_nli_filename
-!>  @subsection eq_filename_sec Equilibrium Filename variables
-!>  * vmec_nli_filename     File name for VMEC namelist input
-!>                          @ref v3fit_input::vmec_nli_filename
-!>  @subsection signal_filename_sec Singnal Filename variables
-!>  * mdsig_list_filename   File name for list of MDSIG files
-!>                          @ref v3fit_input::mdsig_list_filename
-!>  * sxrch_dot_filename	file holding sxr chord information
-!>                          @ref v3fit_input::sxrch_dot_filename
-!>  * thscte_dot_filename	file holding Thomson Scattering information
-!>                          @ref v3fit_input::thscte_dot_filename
-!>  * ipch_dot_filename     file holding interferometry-polarimetry
-!>                          information
-!>                          @ref v3fit_input::ipch_dot_filename
 !>
-!>  @section size_sec Array allocation sizes, numbers to allocate
-!>  * na_d_desc             d_desc array, diagnostic_desc (deprecated)
-!>                          @ref v3fit_input::na_d_desc
-!>  * na_g_desc             g_desc array, geometric_desc (deprecated)
-!>                          @ref v3fit_input::na_g_desc
-!>  * na_c_desc             c_desc array, coosig_desc (deprecated)
-!>                          @ref v3fit_input::na_c_desc
-!>  * na_s_desc             s_desc array, signal_desc
-!>                          @ref v3fit_input::na_s_desc
-!>  * na_rparam             rparam array, recon_param (deprecated)
-!>                          @ref v3fit_input::na_rparam
+!>  @header{Input variable, Description, Code Reference}
 !>
-!>  @section work_sec Task specification, work variables
-!>  * my_task               Character: to specify task in MAIN select case
-!>                          @ref v3fit_input::my_task
-!>  * i_work                Array of integers, work space (deprecated)
-!>                          @ref v3fit_input::i_work
-!>  * r_work                Array of reals, work space (deprecated)
-!>                          @ref v3fit_input::r_work
-!>  * c_work                Array of character variables, work space
-!>                          (deprecated)
-!>                          @ref v3fit_input::c_work
+!>  @table_section{filename_sec, Filename variables}
+!>     @item{main_nli_filename,      File name for main namelist input.,                   v3fit_input::main_nli_filename}
+!>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
+!>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                   v3fit_input::vmec_nli_filename}
+!>     @table_subsection{signal_filename_sec, Singnal Filename variables}
+!>        @item{mdsig_list_filename, File name for list of MDSIG files.,                   v3fit_input::mdsig_list_filename}
+!>        @item{sxrch_dot_filename,  file holding sxr chord information.,                  v3fit_input::sxrch_dot_filename}
+!>        @item{thscte_dot_filename, file holding Thomson Scattering information.,         v3fit_input::thscte_dot_filename}
+!>        @item{ipch_dot_filename,   file holding interferometry-polarimetry information., v3fit_input::ipch_dot_filename}
+!>  @end_table
 !>
-!>  @section model_sec Model profile specification
-!>  * pp_ne_ptype           model electron density profile, parameterized
-!>                          profile type
-!>                          @ref v3fit_input::pp_ne_ptype
-!>  * pp_ne_b               array of b_coefficients for the electron density
-!>                          profile
-!>                          @ref v3fit_input::pp_ne_b
-!>  * pp_ne_as              array of as_coefficients electron density splines
-!>                          @ref v3fit_input::pp_ne_as
-!>  * pp_ne_af              array of af_coefficients electron density splines
-!>                          @ref v3fit_input::pp_ne_af
-!>  * pp_sxrem_ptype        model soft x-ray emissivity profile, parameterized
-!>                          profile type
-!>                          @ref v3fit_input::pp_sxrem_ptype
-!>  * pp_sxrem_b            array of b_coefficients for the soft x-ray
-!>                          emissivity profile
-!>                          @ref v3fit_input::pp_sxrem_b
-!>  * pp_sxrem_as           array of as_coefficients soft x-ray emissivity
-!>                          splines
-!>                          @ref v3fit_input::pp_sxrem_as
-!>  * pp_sxrem_af           array of af_coefficients soft x-ray emissivity
-!>                          splines
-!>                          @ref v3fit_input::pp_sxrem_af
-!>  * pp_te_ptype           model electron temperature profile, parameterized
-!>                          profile type
-!>                          @ref v3fit_input::pp_te_ptype
-!>  * pp_te_b               array of b_coefficients for the e-temperature
-!>                          profile
-!>                          @ref v3fit_input::pp_te_b
-!>  * pp_te_as              array of as_coefficients e-temperature splines
-!>                          @ref v3fit_input::pp_te_as
-!>  * pp_te_af              array of af_coefficients e-temperature splines
-!>                          @ref v3fit_input::pp_te_af
+!>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
+!>     @item{na_d_desc, d_desc array\, diagnostic_desc (deprecated), v3fit_input::na_d_desc}
+!>     @item{na_g_desc, g_desc array\, geometric_desc (deprecated),  v3fit_input::na_g_desc}
+!>     @item{na_c_desc, c_desc array\, coosig_desc (deprecated),     v3fit_input::na_c_desc}
+!>     @item{na_s_desc, s_desc array\, signal_desc,                  v3fit_input::na_s_desc}
+!>     @item{na_rparam, rparam array\, recon_param (deprecated),     v3fit_input::na_rparam}
+!>  @end_table
 !>
-!>  @section model_spec_sec Model Specification Variables
-!>  * model_ne_type         Character variable to specify how the electron
-!>                          density will be calculated by the model.
-!>                          @ref v3fit_input::model_ne_type
-!>      -# 'none'             Not part of the model.
-!>      -# 'pp_ne'            Calculated from the parameterized profile pp_ne
-!>      -# 'pp_te_vmec_p'     Calculated from the pp_te and the VMEC pressure
-!>  * model_te_type      Character variable to specify how the Soft x-ray
-!>                          emissivity will be calculated by the model.
-!>                          @ref v3fit_input::model_te_type
-!>      -# 'none'             Not part of the model.
-!>      -# 'pp_sxrem'         Calculated from the parameterized profile pp_sxrem
-!>  * model_te_type         Character variable to specify how the
-!>                          e-temperature will be calculated by the model.
-!>                          @ref v3fit_input::model_te_type
-!>      -# 'none'             Not part of the model.
-!>      -# 'pp_te'            Calculated from the parameterized profile pp_te
-!>      -# 'pp_ne_vmec_p'     Calculated from the pp_ne and the VMEC pressure
-!>  * ne_pp_unit            Scaling/conversion factor for the density.
-!>                          ne * ne_pp_unit is assumed to have units of
-!>                          m^-3.
-!>                          @ref v3fit_input::ne_pp_unit
-!>  * ne_min                Minimum electron density, m^-3.
-!>                          @ref v3fit_input::ne_min
-!>  * e_pressure_fraction   Electron pressure fraction of the total
-!>                          pressure. Used when model_te_type = 'pp_ne_vmec_p'
-!>                          or model_ne_type = 'pp_te_vmec_p'
-!>                          @ref v3fit_input::e_pressure_fraction
+!>  @table_section{work_sec, Task specification\, work variables}
+!>     @item{my_task, Character: to specify task in MAIN select case,         v3fit_input::my_task}
+!>     @item{i_work,  Array of integers\, work space (deprecated),            v3fit_input::i_work}
+!>     @item{r_work,  Array of reals\, work space (deprecated),               v3fit_input::r_work}
+!>     @item{c_work,  Array of character variables\, work space (deprecated), v3fit_input::c_work}
+!>  @end_table
 !>
-!>  @section recon_con_sec Reconstruction constraints
-!>  * n_rc                  Number of reconstruction constraints
-!>                          @ref v3fit_input::n_rc
-!>  * rc_type               Array of reconstruction constraint types
-!>                          @ref v3fit_input::rc_type
-!>  * rc_index              Array of reconstruction constraint indices
-!>                          @ref v3fit_input::rc_index
-!>  * rc_value              Array of reconstruction constraint values
-!>                          @ref v3fit_input::rc_value
+!>  @table_section{model_sec, Model profile specification}
+!>     @item{pp_ne_ptype,    model electron density profile\, parameterized profile type,      v3fit_input::pp_ne_ptype}
+!>     @item{pp_ne_b,        array of b_coefficients for the electron density profile,         v3fit_input::pp_ne_b}
+!>     @item{pp_ne_as,       array of as_coefficients electron density splines,                v3fit_input::pp_ne_as}
+!>     @item{pp_ne_af,       array of af_coefficients electron density splines,                v3fit_input::pp_ne_af}
+!>     @item{pp_sxrem_ptype, model soft x-ray emissivity profile\, parameterized profile type, v3fit_input::pp_sxrem_ptype}
+!>     @item{pp_sxrem_b,     array of b_coefficients for the soft x-ray emissivity profile,    v3fit_input::pp_sxrem_b}
+!>     @item{pp_sxrem_as,    array of as_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_as}
+!>     @item{pp_sxrem_af,    array of af_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_af}
+!>     @item{pp_te_ptype,    model electron temperature profile\, parameterized profile type,  v3fit_input::pp_te_ptype}
+!>     @item{pp_te_b,        array of b_coefficients for the e-temperature profile,            v3fit_input::pp_te_b}
+!>     @item{pp_te_as,       array of as_coefficients e-temperature splines,                   v3fit_input::pp_te_as}
+!>     @item{pp_te_af,       array of af_coefficients e-temperature splines,                   v3fit_input::pp_te_af}
+!>  @end_table
 !>
-!>  @section recon_param_sec Reconstruction parameter specification
-!>  * n_rp                  Number of reconstruction parameters
-!>                          @ref v3fit_input::n_rp
-!>  * rp_type               Array of reconstruction parameter types
-!>                          @ref v3fit_input::rp_type
-!>  * rp_index              Array of reconstruction parameter indices
-!>                          @ref v3fit_input::rp_index
-!>  * rp_index2             Array of reconstruction parameter 2nd indices
-!>                          @ref v3fit_input::rp_index2
-!>  * rp_vrnc               Array of reconstruction parameter variances
-!>                          @ref v3fit_input::rp_vrnc
-!>  * rp_range_type         2D Array of reconstruction parameter range types
-!>                          @ref v3fit_input::rp_range_type
-!>      -# 'infinity'          Unbounded
-!>      -# 'value'             Bounded by the value of rp_range_value
-!>      -# \<other\>           Bounded by a equilibrium parameter.
-!>  * rp_range_value        2D Array of values used if rp_range_type = 'value'
-!>                          @ref v3fit_input::rp_range_value
-!>  * rp_range_index        2D Array of values of indicies used if
-!>                          rp_range_type = \<other\>
-!>                          @ref v3fit_input::rp_range_index
+!>  @table_section{model_spec_sec, Model Specification Variables}
+!>     @item{model_ne_type, Character variable to specify how the electron density will be calculated by the model.
+!>        -# 'none'         Not part of the model.
+!>        -# 'pp_ne'        Calculated from the parameterized profile pp_ne
+!>        -# 'pp_te_vmec_p' Calculated from the pp_te and the VMEC pressure,
+!>        v3fit_input::model_ne_type}
+!>     @item{model_sxrem_type, Character variable to specify how the Soft x-ray emissivity will be calculated by the model.
+!>        -# 'none'     Not part of the model.
+!>        -# 'pp_sxrem' Calculated from the parameterized profile pp_sxrem,
+!>        v3fit_input::model_sxrem_type}
+!>     @item{model_te_type, Character variable to specify how the e-temperature will be calculated by the model.
+!>        -# 'none'         Not part of the model.
+!>        -# 'pp_te'        Calculated from the parameterized profile pp_te
+!>        -# 'pp_ne_vmec_p' Calculated from the pp_ne and the VMEC pressure,
+!>        v3fit_input::model_te_type}
+!>     @item{ne_pp_unit,          Scaling/conversion factor for the density. ne * ne_pp_unit is assumed to have units of m^-3.,                                 v3fit_input::ne_pp_unit}
+!>     @item{ne_min,              Minimum electron density\, m^-3.,                                                                                             v3fit_input::ne_min}
+!>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p', v3fit_input::e_pressure_fraction}
+!>  @end_table
 !>
-!>  @section signal_spec_sec Signal Data specification
-!>  * n_sdata_o             Number of signal_data observations
-!>                          @ref v3fit_input::n_sdata_o
-!>  * iw_sdo_verbose        Integer to control write out of signal_data
-!>                          observations. (-1, no write, otherwise, verbosity)
-!>                          @ref v3fit_input::iw_sdo_verbose
-!>  * sdo_data_a            Array of data for observed signals
-!>                          @ref v3fit_input::sdo_data_a
-!>  * sdo_sigma_a           Array of sigmas for observed signals
-!>                          @ref v3fit_input::sdo_sigma_a
-!>  * sdo_weight_a          Array of weight for observed signals
-!>                          @ref v3fit_input::sdo_weight_a
-!>        These two are used by the extcurz diagnostic signal.
-!>  * extcurz_s0            S position to integrate about.
-!>                          @ref v3fit_input::extcurz_s0
-!>  * extcurz_u0            U position to integrate about.
-!>                          @ref v3fit_input::extcurz_u0
-!>        Signal Data sigma and weight specification
-!>  * sdo_s_spec_imin       Array of minimum index values, for specifying
-!>                          sigmas
-!>                          @ref v3fit_input::sdo_s_spec_imin
-!>  * sdo_s_spec_imax       Array of maximum index values, for specifying
-!>                          sigmas
-!>                          @ref v3fit_input::sdo_s_spec_imax
-!>  * sdo_s_spec_floor      Array of floor values, for specifying sigmas
-!>                          @ref v3fit_input::sdo_s_spec_floor
-!>  * sdo_s_spec_fraction   Array of fractional values, for specifying sigmas
-!>                          @ref v3fit_input::sdo_s_spec_fraction
-!>      - floor \> 0, sigma = max(floor,fraction * sdo)
-!>      - floor \< 0, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2)
-!>  * sdo_w_spec_imin       Array of minimum index values, for specifying
-!>                          weights
-!>                          @ref v3fit_input::sdo_w_spec_imin
-!>  * sdo_w_spec_imax       Array of maximum index values, for specifying
-!>                          weights
-!>                          @ref v3fit_input::sdo_w_spec_imax
-!>  * sdo_w_spec_weight     Array of weight values, for specifying weights
-!>                          @ref v3fit_input::sdo_w_spec_weight
+!>  @table_section{recon_con_sec, Reconstruction constraints}
+!>     @item{n_rc,     Number of reconstruction constraints,       v3fit_input::n_rc}
+!>     @item{rc_type,  Array of reconstruction constraint types,   v3fit_input::rc_type}
+!>     @item{rc_index, Array of reconstruction constraint indices, v3fit_input::rc_index}
+!>     @item{rc_value, Array of reconstruction constraint values,  v3fit_input::rc_value}
+!>  @end_table
 !>
-!>  @section geometric_sec Geometric information
-!>  * r_major_radius        For circular torus geometric
-!>                          @ref v3fit_input::r_major_radius
-!>  * a_minor_radius        For circular torus geometric
-!>                          @ref v3fit_input::a_minor_radius
-!>  @subsection lif_sec Limiter_Iso Function.
+!>  @table_section{recon_param_sec, Reconstruction parameter specification}
+!>     @item{n_rp,           Number of reconstruction parameters,                                v3fit_input::n_rp}
+!>     @item{rp_type,        Array of reconstruction parameter types,                            v3fit_input::rp_type}
+!>     @item{rp_index,       Array of reconstruction parameter indices,                          v3fit_input::rp_index}
+!>     @item{rp_index2,      Array of reconstruction parameter 2nd indices,                      v3fit_input::rp_index2}
+!>     @item{rp_vrnc,        Array of reconstruction parameter variances,                        v3fit_input::rp_vrnc}
+!>     @item{rp_range_type,  2D Array of reconstruction parameter range types
+!>        -# 'infinity'          Unbounded
+!>        -# 'value'             Bounded by the value of rp_range_value
+!>        -# \<other\>           Bounded by a equilibrium parameter.,
+!>        v3fit_input::rp_range_type}
+!>     @item{rp_range_value, 2D Array of values used if rp_range_type = 'value',                 v3fit_input::rp_range_value}
+!>     @item{rp_range_index, 2D Array of values of indicies used if\, rp_range_type = \<other\>, v3fit_input::rp_range_index}
+!>  @end_table
 !>
-!>  First dimension of arrays is dimensioned na_lif
-!>  * n_lif                 number of limiter_iso functions
-!>                          @ref v3fit_input::n_lif
-!>  * n_phi_lif             array of number of phi values (:)
-!>                          @ref v3fit_input::n_phi_lif
-!>  * lif_arz               array of r-z polynomial coefficients, (:,0:4,0:4)
-!>                          @ref v3fit_input::lif_arz
-!>  * lif_rc                array of r offset values (:)
-!>                          @ref v3fit_input::lif_rc
-!>  * lif_zc                array of z offset values (:)
-!>                          @ref v3fit_input::lif_zc
-!>  * lif_sigma             array of sigma values (:)
-!>                          @ref v3fit_input::lif_sigma
-!>  * lif_phi_degree        array of phi values (:,na_phis_lif)
-!>                          @ref v3fit_input::lif_phi_degree
-!>  * lif_on_edge           array of logical values (:)
-!>                          @ref v3fit_input::lif_on_edge
-!>      - true  - edge of plasma is on limiter
-!>      - false - edge of plasma is within limiter
+!>  @table_section{signal_spec_sec, Signal Data specification}
+!>     @item{n_sdata_o,              Number of signal_data observations,                                                                v3fit_input::n_sdata_o}
+!>     @item{iw_sdo_verbose,         Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity), v3fit_input::iw_sdo_verbose}
+!>     @item{sdo_data_a,             Array of data for observed signals,                                                                v3fit_input::sdo_data_a}
+!>     @item{sdo_sigma_a,            Array of sigmas for observed signals,                                                              v3fit_input::sdo_sigma_a}
+!>     @item{sdo_weight_a,           Array of weight for observed signals,                                                              v3fit_input::sdo_weight_a}
+!>     @table_subsection{sigma_spec_sec, Signal Data sigma specification}
+!>        @item{sdo_s_spec_imin,     Array of minimum index values for specifying sigmas,                                               v3fit_input::sdo_s_spec_imin}
+!>        @item{sdo_s_spec_imax,     Array of maximum index values for specifying sigmas,                                               v3fit_input::sdo_s_spec_imax}
+!>        @item{sdo_s_spec_floor,    Array of floor values for specifying sigmas,                                                       v3fit_input::sdo_s_spec_floor}
+!>        @item{sdo_s_spec_fraction, Array of fractional values for specifying sigmas
+!>            - floor \> 0\, sigma = max(floor\,fraction * sdo)
+!>            - floor \< 0\, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2),
+!>            v3fit_input::sdo_s_spec_fraction}
+!>     @table_subsection{weight_spec_sec, Signal Data weight specification}
+!>        @item{sdo_w_spec_imin,     Array of minimum index values for specifying weights,                                              v3fit_input::sdo_w_spec_imin}
+!>        @item{sdo_w_spec_imax,     Array of maximum index values for specifying weights,                                              v3fit_input::sdo_w_spec_imax}
+!>        @item{sdo_w_spec_weight,   Array of weight values for specifying weights,                                                     v3fit_input::sdo_w_spec_weight}
+!>  @end_table
 !>
-!>  * use_boundary          Toggle use of the fixed boundary coeffients as a
-!>                          reconstruction signal. (deprecated)
-!>                          @ref v3fit_input::lif_on_edge
+!>  @todo FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle.
+!>  @table_section{extcurz_sec, These two are used by the extcurz diagnostic signal.}
+!>     @item{extcurz_s0, S position to integrate about., v3fit_input::extcurz_s0}
+!>     @item{extcurz_u0, U position to integrate about., v3fit_input::extcurz_u0}
+!>  @end_table
 !>
-!>  @section coosig_sec COOSIG - Combination Of Other SIGnals NLI Variables
-!>  * n_coosig              Number of new signals of signal_type coosig
-!>                          @ref v3fit_input::n_coosig
-!>  * n_sig_coosig          Array of number of signals in a combinaton.
-!>                          @ref v3fit_input::n_sig_coosig
-!>  * coosig_indices        2d Integer Array of indices (to list of signals)
-!>                          for combinations. First index is for which new
-!>                          signal, second index is for terms in the combination
-!>                          @ref v3fit_input::coosig_indices
-!>  * coosig_coeff          2d real array of coefficients for the combination
-!>                          (a's in the type)
-!>                          @ref v3fit_input::coosig_coeff
-!>  * coosig_type           Character array of combination types
-!>                          @ref v3fit_input::coosig_type
-!>      -# 'sum'  - linear combination
-!>      -# 'max'  - maximum of wieghted signals
-!>      -# 'min'  - minimum of weighted signals
-!>  * coosig_name           Character array of coosig names
-!>                          @ref v3fit_input::coosig_name
-!>  * coosig_units          Character array of coosig units
-!>                          @ref v3fit_input::coosig_units
+!>  @table_section{geometric_sec, Geometric information}
+!>     @item{r_major_radius,    For circular torus geometric,                       v3fit_input::r_major_radius}
+!>     @item{a_minor_radius,    For circular torus geometric,                       v3fit_input::a_minor_radius}
+!>     @table_subsection{lif_sec, Limiter_Iso Function.
+!>                                First dimension of arrays is dimensioned na_lif}
+!>        @item{n_lif,          number of limiter_iso functions,                    v3fit_input::n_lif}
+!>        @item{n_phi_lif,      array of number of phi values (:),                  v3fit_input::n_phi_lif}
+!>        @item{lif_arz,        array of r-z polynomial coefficients (:\,0:4\,0:4), v3fit_input::lif_arz}
+!>        @item{lif_rc,         array of r offset values (:),                       v3fit_input::lif_rc}
+!>        @item{lif_zc,         array of z offset values (:),                       v3fit_input::lif_zc}
+!>        @item{lif_sigma,      array of sigma values (:),                          v3fit_input::lif_sigma}
+!>        @item{lif_phi_degree, array of phi values (:\,na_phis_lif),               v3fit_input::lif_phi_degree}
+!>        @item{lif_on_edge,    array of logical values (:)
+!>           - true  - edge of plasma is on limiter
+!>           - false - edge of plasma is within limiter,
+!>           v3fit_input::lif_on_edge}
+!>  @end_table
 !>
-!>  @section recon_sec Reconstruction step control NLI variables
-!>  * nrstep                max number of reconstruction steps to perform
-!>                          @ref v3fit_input::nrstep
-!>  * dg2_stop              Stopping criterion on change in g^2
-!>                          @ref v3fit_input::dg2_stop
-!>  * cut_svd               cutoff value for relative Singular Values
-!>                          @ref v3fit_input::cut_svd
-!>  * cut_eff               cutoff value for expected step efficiency
-!>                          @ref v3fit_input::cut_eff
-!>  * cut_marg_eff          cutoff value for expected marginal step efficiency
-!>                          @ref v3fit_input::coosig_units
-!>  * cut_delta_a           cutoff value for expected step size
-!>                          @ref v3fit_input::cut_delta_a
-!>  * cut_dg2               cutoff value for expected change in g^2
-!>                          @ref v3fit_input::cut_dg2
-!>  * astep_max             maximum allowable normalized step size
-!>                          @ref v3fit_input::astep_max
-!>  * step_type             character specification of reconstruction step type
-!>                          @ref v3fit_input::step_type
-!>      -# 'sl'  - straight line
-!>      -# 'seg' - segmented
-!>      -# 'lm'  - Levenberg-Marquardt
+!>  @table_section{coosig_sec, COOSIG - Combination Of Other SIGnals NLI Variables}
+!>     @item{n_coosig,       Number of new signals of signal_type coosig,                                                                                                           v3fit_input::n_coosig}
+!>     @item{n_sig_coosig,   Array of number of signals in a combinaton.,                                                                                                           v3fit_input::n_sig_coosig}
+!>     @item{coosig_indices, 2d Integer Array of indices (to list of signals) for combinations. First index is for which new signal\, second index is for terms in the combination, v3fit_input::coosig_indices}
+!>     @item{coosig_coeff,   2d real array of coefficients for the combination (a's in the type),                                                                                   v3fit_input::coosig_coeff}
+!>     @item{coosig_type,    Character array of combination types
+!>        -# 'sum'  - linear combination
+!>        -# 'max'  - maximum of wieghted signals
+!>        -# 'min'  - minimum of weighted signals,
+!>        v3fit_input::coosig_type}
+!>     @item{coosig_name,    Character array of coosig names,                                                                                                                      v3fit_input::coosig_name}
+!>     @item{coosig_units,   Character array of coosig units,                                                                                                                      v3fit_input::coosig_units}
+!>  @end_table
 !>
-!>  @section xcdot_sec VMEC zero out xcdot control
-!>  * l_zero_xcdot          reset the xcdot array to zero when converging vmec.
-!>                          @ref v3fit_input::l_zero_xcdot
+!>  @table_section{recon_sec, Reconstruction step control NLI variables}
+!>     @item{nrstep,       max number of reconstruction steps to perform,      v3fit_input::nrstep}
+!>     @item{dg2_stop,     Stopping criterion on change in g^2,                v3fit_input::dg2_stop}
+!>     @item{cut_svd,      cutoff value for relative Singular Values,          v3fit_input::cut_svd}
+!>     @item{cut_eff,      cutoff value for expected step efficiency,          v3fit_input::cut_eff}
+!>     @item{cut_marg_eff, cutoff value for expected marginal step efficiency, v3fit_input::coosig_units}
+!>     @item{cut_delta_a,  cutoff value for expected step size,                v3fit_input::cut_delta_a}
+!>     @item{cut_dg2,      cutoff value for expected change in g^2,            v3fit_input::cut_dg2}
+!>     @item{astep_max,    maximum allowable normalized step size,             v3fit_input::astep_max}
+!>     @item{step_type,    character specification of reconstruction step type
+!>        -# 'sl'  - straight line
+!>        -# 'seg' - segmented
+!>        -# 'lm'  - Levenberg-Marquardt,
+!>        v3fit_input::step_type}
+!>  @end_table
+!>
+!>  @table_section{xcdot_sec, VMEC zero out xcdot control}
+!>     @item{l_zero_xcdot, reset the xcdot array to zero when converging vmec., v3fit_input::l_zero_xcdot}
 !-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file v3fit_input.f
