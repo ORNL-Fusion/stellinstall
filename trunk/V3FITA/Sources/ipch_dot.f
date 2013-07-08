@@ -1,104 +1,135 @@
+!-------------------------------------------------------------------------------
+!  The @fixed_width, @begin_table, @item2 and @end_table commands are custom
+!  defined commands in Doxygen.in. They are defined under ALIASES. For the page
+!  created here, the 8 column limit is exceeded. Arguments of aliases are
+!  separated by ','. You intended ',' to be a string you must use an escaped
+!  comma '\,'.
+!
+!>  @page intpol_dot_sec Inteferometry/Polarimetry Diagnostic Dot File
+!>
+!>  @tableofcontents
+!>  @section intpol_dot_intro_sec Introduction
+!>  Diagnostic dot files specify geometric and auxiliary information about each
+!>  diagnostic. Parsing of a diagnostic dot file begins with the by searching
+!>  for a valid keyword. All lines before a valid keyword is reached are ignored
+!>  allowing for comments and other information to be inserted in the file. Once
+!>  a keyword is reached, the parsing becomes strict. The diagnostic description
+!>  format is dependant on the specific keyword. All diagnostic dot files must
+!>  end with an @fixed_width{end_of_file} keyword.
+!>
+!>  This document contains information about the interferometry/polarimetry
+!>  chord specifications. Chords are specified in a structured text file. This
+!>  file is read in by the @ref v3fit_input::ipch_dot_filename variable of the
+!>  name list input file. Chords are specified as two verticies in either meters
+!>  or radians. For polarimetry, wavelengths are specified in meters.
+!>
+!>  @section intpol_dot_key_sec Keywords
+!>  @begin_table
+!>  @item2{@fixed_width{ip_chord_XYZ}\n @fixed_width{ip_chord_XYZ_int},
+!>  An interferometer chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{ip_chord_RPhiDegZ}\n @fixed_width{ip_chord_RPhiDegZ_int},
+!>  An interferometer chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{ip_chord_XYZ_pol_rad},
+!>  An polarimetry chord specified in Cartesian coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{ip_chord_RPhiDegZ_pol_rad},
+!>  An polarimetry chord specified in Cylindrical coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{ip_chord_XYZ_pol_deg},
+!>  An polarimetry chord specified in Cartesian coordinates outputting the signal in degress.}
+!>  @item2{@fixed_width{ip_chord_RPhiDegZ_pol_deg},
+!>  An polarimetry chord specified in Cylindrical coordinates outputting the signal in degress.}
+!>  @end_table
+!>
+!>  @section intpol_dot_chord_spec_sec Choord Specification
+!>  All interferometry chords are specified in the following manner.
+!>
+!>  @fixed_width{key_word\n}
+!>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
+!>  @fixed_width{x1(REAL) y1(REAL) z1(REAL)\n}
+!>  @fixed_width{x2(REAL) y2(REAL) z2(REAL)\n}
+!>
+!>  All Polarimetry chords are specified in the following manner with the wave
+!>  length .
+!>
+!>  @fixed_width{key_word\n}
+!>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
+!>  @fixed_width{x1(REAL) y1(REAL) z1(REAL)\n}
+!>  @fixed_width{x2(REAL) y2(REAL) z2(REAL)\n}
+!>  @fixed_width{wavelength(REAL)\n}
+!>
+!>  @section intpol_dot_exam_sec Example File
+!>  @code
+!>  !  An interferometer chord specified in cartesian coordinates.
+!>  ip_chord_XYZ_int
+!>  int001
+!>  1.0 0.0 0.0
+!>  0.5 0.0 0.0
+!>
+!>  !  An interferometer chord specified in Cylindrical coordinates.
+!>  ip_chord_RPhiDegZ_int
+!>  int002
+!>  1.0 0.0 0.0
+!>  0.5 0.0 0.0
+!>
+!>  !  A polarimetry chord specified in cartesian coordinates.
+!>  ip_chord_XYZ_pol_deg
+!>  pol001
+!>  1.0 0.0 0.0
+!>  0.5 0.0 0.0
+!>  1.0E-5
+!>
+!>  !  A polarimetry chord specified in Cylindrical coordinates.
+!>  ip_chord_RPhiDegZ_pol_deg
+!>  int002
+!>  1.0 0.0 0.0
+!>  0.5 0.0 0.0
+!>  1.0E-5
+!>
+!>  !  All files must end with
+!>  end_of_file
+!>  @endcode
+!>
+!>  @section intpol_dot_prog_ref_sec Programmers Reference
+!>  Reference material for the doing to parse these files can be found in the
+!>  @ref signal_dot and @ref ipch_dot modules.
+!-------------------------------------------------------------------------------
 !*******************************************************************************
-!  File ipch_dot.f
-!  Contains module ipch_dot
-!    Module for opening and reading a 'ipch.' file, and then placing the
-!     interferometry-polarimetry chord information into an array of ipch_desc
-!!  
-!-------------------------------------------------------------------------------
-!   DEPENDENCIES
-!-------------------------------------------------------------------------------
+!>  @file ipch_dot.f
+!>  @brief Contains module @ref ipch_dot
 !
-!    This module uses the following modules:
-!       stel_kinds
-!       stel_constants
-!       ipch_T
-!       safe_open_mod
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
-!-------------------------------------------------------------------------------
-!   CHANGE HISTORY
-!-------------------------------------------------------------------------------
-!
-!  Based on module sxrch_dot
-!  First version JDH 2012-03-15
-!
-!-------------------------------------------------------------------------------
-!   USAGE
-!-------------------------------------------------------------------------------
-!     Usage: Here is a sample of code that shows how to use this module
-!
-!      USE ipch_T
-!      USE ipch_dot
-!      TYPE(ipch_desc), DIMENSION(1000) :: ipch_descriptions_a
-! ...
-! !  Read in interferometry-polarimetry chords
-!      CALL ipch_dot_read(file_name_ipch_dot,ipch_descriptions_a)
-!
-!-------------------------------------------------------------------------------
-!   FILE STRUCTURE - ipch. file
-!-------------------------------------------------------------------------------
-!
-!  ipch. File Structure:
-! line 1: Character - identifier
-!
-!      (0 or more lines, no keyword present. All ignored by parser.)
-!    keyword
-!      lines containing data - number depends on keyword
-!
-!      (0 or more lines, no keyword present. All ignored by parser.)
-!    keyword
-!      lines containing data - number depends on keyword
-!
-!    ...
-!
-!    end
-!      (0 or more lines, ignored by parser.)!    
-!    
-!-------------------------------------------------------------------------------
-!   COMMENTS
-!-------------------------------------------------------------------------------
-!
-! 1)  Defined keywords are:
-!       ipchd_keyword(1) = 'ip_chord_XYZ'
-!       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
-!       ipchd_keyword(3) = 'ip_chord_XYZ_int'
-!       ipchd_keyword(4) = 'ip_chord_RPhiDegZ_int'
-!       ipchd_keyword(5) = 'ip_chord_XYZ_pol_rad'
-!       ipchd_keyword(6) = 'ip_chord_RPhiDegZ_pol_rad'
-!       ipchd_keyword(7) = 'ip_chord_XYZ_pol_deg'
-!       ipchd_keyword(8) = 'ip_chord_RPhiDegZ_pol_deg'
-!       ipchd_keyword(9) = 'end_of_file' 
-!
+!>  Module for opening and reading a 'ipch.' file. The file format for these
+!>  files are documented in @ref intpol_dot_sec.
 !*******************************************************************************
 
-!*******************************************************************************
-!  MODULE ipch_dot
-!    
-! SECTION I. VARIABLE DECLARATIONS
-! SECTION II. INTERFACE BLOCKS
-! SECTION III. PUBLICLY ACCESSIBLE SUBROUTINES
-! SECTION IV. PARSING SUBROUTINES
-! SECTION V. AUXILIARY SUBROUTINES
-!*******************************************************************************
       MODULE ipch_dot
-
-!*******************************************************************************
-! SECTION I. VARIABLE DECLARATIONS
-!*******************************************************************************
 
       USE stel_kinds
       USE stel_constants
       USE ipch_T
       USE signal_dot
+
       IMPLICIT NONE
           
 !*******************************************************************************
-! SECTION II. INTERFACE BLOCKS
+!  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for reading the interferometry-polarimetry diagnostic dot file
+!>  using @ref ipch_dot_read_old or @ref ipch_dot_read_new.
+!>  @todo. FIXME:  Remove inteface when old ocding is removed.
+!-------------------------------------------------------------------------------
       INTERFACE ipch_dot_read
          MODULE PROCEDURE ipch_dot_read_old,                                   &
      &                    ipch_dot_read_new
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for parsing a interferometry-polarimetry chord using
+!>  @ref ipch_dot_read_old or @ref ipch_dot_read_new.
+!>  @todo. FIXME:  Remove inteface when old ocding is removed.
+!-------------------------------------------------------------------------------
       INTERFACE ipch_dot_parse_chord
          MODULE PROCEDURE ipch_dot_parse_chord_old,                            &
      &                    ipch_dot_parse_chord_new
@@ -106,10 +137,11 @@
 
       CONTAINS
 !*******************************************************************************
-! SECTION III. PUBLICLY ACCESSIBLE SUBROUTINES
+!  UTILITY SUBROUTINES
 !*******************************************************************************
 !  Subroutine to parse the large structure of the ipch_dot_file
 !  Individual ip chords are parsed by the ipch_dot_parse_xxxx subroutines
+!>  @todo Remove when removing old coding.
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_read_old (ipch_file,ipch_desc_arr,n_chords)
 
@@ -137,7 +169,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                  &
+      CHARACTER(len=data_name_length), DIMENSION(1:n_ipchd_keyword) ::         &
      &   ipchd_keyword
 
       INTEGER               :: icount_chords
@@ -243,8 +275,21 @@
       END SUBROUTINE ipch_dot_read_old
 
 !-------------------------------------------------------------------------------
-!  Subroutine to parse the large structure of the ipch_dot_file
-!  Individual ip chords are parsed by the ipch_dot_parse_xxxx subroutines
+!>  @brief Read an interferometry/polarimetry diagnostic dot file.
+!>
+!>  Parses the structure of a dignostic dot file and constructs a @ref intpol
+!>  object. Each chord is parsed by @ref ipch_dot_parse_chord.
+!>
+!>  @param[in]    ipch_file       Name of the ipch. file.
+!>  @param[inout] signals         Array of pointers to the a signal
+!>  @param[inout] signals_created Number valid signals in the array, or index of
+!>                                the last signal created.
+!>  @param[in]    observed        Array of observed values.
+!>  @param[in]    sigma           Array of observed sigma values
+!>  @param[in]    weight          Array of signal weight values
+!>  @param[inout] first_index     Index of the first instance of an intpol
+!>                                signal.
+!>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_read_new(ipch_file, signals,                         &
      &                             signals_created, observed, sigma,           &
@@ -254,42 +299,26 @@
 
       IMPLICIT NONE
 
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-!  ipch_file        Name of the ipch. file.
-!  signals          Array of pointers to the a signal
-!  signals_created  Number valid signals in the array, or index of the last
-!                   created.
-!  observed         Array of observed values.
-!  sigma            Array of observed sigma values
-!  weight           Array of signal weight values
+!  Declare Arguments
       CHARACTER (len=data_filename_length), INTENT(in)   :: ipch_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created
-      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
-      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
-      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
-      INTEGER, INTENT(inout)                 :: first_index
+      REAL (rprec), DIMENSION(:), INTENT(in)             :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in)             :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in)             :: weight
+      INTEGER, INTENT(inout)                             :: first_index
 
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
+!  local parameters
 !  n_ipchd_keyword        integer - number of ipchd_keyword s.
       INTEGER, PARAMETER :: n_ipchd_keyword = 9
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
+!  local variables
 !  ipchd_keyword    character array - keywords for various ipch input types
-      CHARACTER(len=len_key), DIMENSION(1:n_ipchd_keyword) ::                  &
+      CHARACTER(len=data_name_length), DIMENSION(1:n_ipchd_keyword) ::         &
      &   ipchd_keyword
       TYPE(signal_dot_file) :: ipch_dot_file_ref
 
-!-----------------------------------------------
-!  Start of Executable Code
-!-----------------------------------------------
-
+!  Start of executable code
 !  Initialize the keywords and keyword lengths
       ipchd_keyword(1) = 'ip_chord_XYZ'
       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
@@ -375,9 +404,8 @@
       END SUBROUTINE ipch_dot_read_new
 
 !*******************************************************************************
-! SECTION IV. PARSING SUBROUTINES
+! PARSING SUBROUTINES
 !*******************************************************************************
-
 !-------------------------------------------------------------------------------
 !     Expected behaviour for the parsing routines:
 !  On entry:
@@ -420,9 +448,9 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(3)  :: xcart_i, xcart_f
-      CHARACTER (len=c_name_len) :: chord_name                               
-      REAL(rprec)                :: wavelength = 0.0
+      REAL(rprec), DIMENSION(3)        :: xcart_i, xcart_f
+      CHARACTER (len=data_name_length) :: chord_name
+      REAL(rprec)                      :: wavelength = 0.0
 !-----------------------------------------------
 !  Start of Executable Code
 !-----------------------------------------------
@@ -449,8 +477,27 @@
       END SUBROUTINE ipch_dot_parse_chord_old
 
 !-------------------------------------------------------------------------------
-!  Subroutine to parse an ipch chord (redundant chord there)
-!      ipchd_keyword(1) = 'ip_chord_XYZ' or 'ip_chord_RPhiDegZ'
+!>  @brief Parse interferometry/polarimetry diagnostic chord.
+!>
+!>  Parses a signle chord. Chords are laid out as,
+!>
+!>  * chord_name
+!>  * Starting point as three reals.
+!>  * Ending point as three reals.
+!>
+!>  If the signal is a polarimetry chord, then also read a single real for the
+!>  wavelength.
+!>
+!>  @param[in]    ipch_file       Name of the ipch. file.
+!>  @param[inout] signals         Array of pointers to the a signal
+!>  @param[inout] signals_created Number valid signals in the array, or index of
+!>                                the last signal created.
+!>  @param[in]    observed        Array of observed values.
+!>  @param[in]    sigma           Array of observed sigma values
+!>  @param[in]    weight          Array of signal weight values
+!>  @param[inout] first_index     Index of the first instance of an intpol
+!>                                signal.
+!>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_parse_chord_new(ipch_dot_file_ref,                   &
      &                                    coordinate_type,                     &
@@ -465,9 +512,7 @@
       USE v3_utilities, only: err_fatal
       IMPLICIT NONE
 
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
+!  Declare Arguments
       TYPE (signal_dot_file), INTENT(inout)  :: ipch_dot_file_ref
       CHARACTER (len=*), INTENT(in)          :: coordinate_type
       CHARACTER (len=1), INTENT(in)          :: coord_type
@@ -479,16 +524,12 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
       INTEGER, INTENT(inout)                 :: first_index
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL (rprec), DIMENSION(2,3) :: xcart
-      CHARACTER (len=c_name_len)   :: chord_name
-      REAL (rprec)                 :: wavelength = 0.0
+!  local variables
+      REAL (rprec), DIMENSION(2,3)     :: xcart
+      CHARACTER (len=data_name_length) :: chord_name
+      REAL (rprec)                     :: wavelength = 0.0
 
-!-----------------------------------------------
-!  Start of Executable Code
-!-----------------------------------------------
+!  Start of executable code
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
          CALL err_fatal('ipch_dot_parse_chord_new: created signals' //         &
@@ -527,9 +568,5 @@
       END IF
 
       END SUBROUTINE ipch_dot_parse_chord_new
-
-!*******************************************************************************
-! SECTION V. AUXILIARY SUBROUTINES
-!*******************************************************************************
 
       END MODULE ipch_dot

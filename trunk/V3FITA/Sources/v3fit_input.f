@@ -1,9 +1,9 @@
 !-------------------------------------------------------------------------------
-!  The @header, @table_section, @table_subsection and @item commands are
-!  custom defined commands in Doxygen.in. They are defined under ALIASES. For
-!  the page created here, the 8 column limit is exceeded. Arguments of aliases
-!  are separated by ','. You intended ',' to be a string you must use an escaped
-!  comma '\,'.
+!  The @header, @table_section, @table_subsection, @item and @end_table commands
+!  are custom defined commands in Doxygen.in. They are defined under ALIASES.
+!  For the page created here, the 8 column limit is exceeded. Arguments of
+!  aliases are separated by ','. You intended ',' to be a string you must use an
+!  escaped comma '\,'.
 !
 !>  @page namelist_sec Namelist v3fit_main_nli definition
 !>
@@ -504,7 +504,7 @@
       CHARACTER (len=data_name_length),                                        &
      &   DIMENSION(v3fit_max_combinations) :: coosig_name = ''
 !>  Units of the combination.
-      CHARACTER (len=signal_units_length),                                     &
+      CHARACTER (len=data_short_name_length),                                  &
      &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
 
 !  Reconstruction step control specification.

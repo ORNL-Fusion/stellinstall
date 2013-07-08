@@ -14,6 +14,8 @@
 !*******************************************************************************
 !  signal module parameters
 !*******************************************************************************
+!>  Maximum length of short data strings.
+      INTEGER, PARAMETER :: data_short_name_length = 30
 !>  Maximum length of data strings.
       INTEGER, PARAMETER :: data_name_length = 80
 !>  Maximum length of file name. This needs to be large to accommodate the

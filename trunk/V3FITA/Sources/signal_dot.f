@@ -1,155 +1,179 @@
 !*******************************************************************************
-!  File signal_dot.f
-!  Contains module signal_dot
-!    Module containing common code used in parsing diagnostic dot file.
+!>  @file signal_dot.f
+!>  @brief Contains module @ref signal_dot
 !
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Defines the base class of type @ref signal_dot_file. This module contains
+!>  common code used in parsing diagnostic dot files. The actual parsing of the
+!>  diagnostic dot file is handled by @ref ipch_dot, @ref thscte_dot and
+!>  @ref sxrch_dot.
 !*******************************************************************************
 
       MODULE signal_dot
       USE stel_kinds
       USE stel_constants
+      USE data_parameters
+
       IMPLICIT NONE
 
+!*******************************************************************************
+!  signal_dot module parameters
+!*******************************************************************************
+!>  Maximum line length.
+      INTEGER, PARAMETER :: signal_dot_line_len = 200
+
+!*******************************************************************************
+!  DERIVED-TYPE DECLARATIONS
+!  1) signal_dot_file base class
+!
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Base class representing a diagnostic dot file. This is an opaqe class.
+!-------------------------------------------------------------------------------
       TYPE signal_dot_file
          PRIVATE
+!>  Input/output unit of the file.
          INTEGER :: iou
+!>  Current line being parsed.
          INTEGER :: i_line
+!>  Identify specifying the signal being parsed.
          CHARACTER (len=6) :: signal_id
       END TYPE
 
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
       PUBLIC  :: signal_dot_open, signal_dot_close,                            &
      &           signal_dot_parse_chord, signal_dot_read_keyword,              &
      &           signal_dot_parse_real
       PRIVATE :: signal_dot_check_status, signal_dot_read_line
 
-!-------------------------------------------------------------------------------
-!  Module Parameters
-!-------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: len_key = 30, c_name_len = 30
-      INTEGER, PARAMETER :: line_len = 200
-
       CONTAINS
-
 !*******************************************************************************
-!  Public Functions and Subroutines.
+!  UTILITY SUBROUTINES
 !*******************************************************************************
-!*******************************************************************************
-!  Open diagnostic dot file.
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Open a diagnostic dot file.
+!>
+!>  Opens a diagnostic dot file for reading.
+!>
+!>  @param[in] file      Filename of the diagnostic dot file.
+!>  @param[in] signal_id Description of the diagnostic dot file.
+!>  @returns A constructed @ref signal_dot_file instance.
+!-------------------------------------------------------------------------------
       FUNCTION signal_dot_open(file, signal_id)
       USE safe_open_mod
+
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
-      CHARACTER*(*), INTENT(in)     :: file
-      CHARACTER (len=*), INTENT(in) :: signal_id
+!  Declare Arguments
       TYPE(signal_dot_file)         :: signal_dot_open
+      CHARACTER (len=*), INTENT(in) :: file
+      CHARACTER (len=*), INTENT(in) :: signal_id
 
-!-------------------------------------------------------------------------------
-!   Local Variables
-!-------------------------------------------------------------------------------
-      INTEGER :: istat
+!  local variables
+      INTEGER                       :: status
 
-!-------------------------------------------------------------------------------
-!  Local Parameters
-!-------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: iou_0=32
+!  local parameters
+      INTEGER, PARAMETER            :: iou_0 = 32
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
+!  Start of executable code
 !  Open up the file
       signal_dot_open%iou       = iou_0
       signal_dot_open%signal_id = signal_id
-      CALL safe_open(signal_dot_open%iou,istat,file,'old','formatted')
-      CALL signal_dot_check_status(istat, signal_dot_open,                     &
-     &                             "Error opening ",                           &
-     &                             " file.")
+      CALL safe_open(signal_dot_open%iou, status, file, 'old',                 &
+     &               'formatted')
+      CALL signal_dot_check_status(status, signal_dot_open,                    &
+     &                             'Error opening ', ' file.')
 
       END FUNCTION
 
-!*******************************************************************************
-!  Close diagnostic dot file.
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Close a diagnostic dot file.
+!>
+!>  Closes a diagnostic dot file.
+!>
+!>  @param[in] signal_dot_file_ref An instance of a @ref signal_dot_file object.
+!-------------------------------------------------------------------------------
       SUBROUTINE signal_dot_close(signal_dot_file_ref)
+
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
-      TYPE(signal_dot_file) :: signal_dot_file_ref
+!  local variables
+      TYPE(signal_dot_file), INTENT(in) :: signal_dot_file_ref
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
+!  Start of executable code
 !  Close the file
       CLOSE(signal_dot_file_ref%iou)
 
       END SUBROUTINE
 
-!*******************************************************************************
-!  Parse a chord from a diagnostic dot file.
-!
-!  Chords start with the first line as the chord name. The it is followed by one
-!  or two lines of 3 coordinates.
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Parse a chord from a diagnostic dot file.
+!>
+!>  Chords start with the first line as the chord name. The it is followed by
+!>  one or two lines of 3 coordinates. All coodinates for the cord are returned
+!>  in carteasian coordinates.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    coordinate_type     Specifies if the coordinate is cartesian
+!>                                    or cylindrical.
+!>  @param[out]   chord_name          The name of the chord.
+!>  @param[out]   xcart_i             The initial position of the chord in
+!>                                    cartesian coordinates.
+!>  @param[out]   xcart_f             The final position of the chord in
+!>                                    cartesian coordinates.
+!-------------------------------------------------------------------------------
       SUBROUTINE signal_dot_parse_chord(signal_dot_file_ref,                   &
      &                                  coordinate_type,                       &
      &                                  chord_name,                            &
      &                                  xcart_i, xcart_f)
       USE coordinate_utilities
+
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
+!  Declare Arguments
       TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
-      CHARACTER (len=*), INTENT (in) :: coordinate_type
-      CHARACTER (len=c_name_len), INTENT(out)          :: chord_name
-      REAL(rprec), DIMENSION(3), INTENT(out)           :: xcart_i
-      REAL(rprec), DIMENSION(3), OPTIONAL, INTENT(out) :: xcart_f
+      CHARACTER (len=*), INTENT(in)        :: coordinate_type
+      CHARACTER (len=data_short_name_length), INTENT(out) :: chord_name
+      REAL(rprec), DIMENSION(3), INTENT(out)              :: xcart_i
+      REAL(rprec), DIMENSION(3), OPTIONAL, INTENT(out)    :: xcart_f
 
-!-------------------------------------------------------------------------------
-!   Local Variables
-!-------------------------------------------------------------------------------
-      REAL(rprec), DIMENSION(3) :: x_start, x_end
-      INTEGER                   :: istat
-      CHARACTER (len=line_len)  :: line
+!  local variables
+      REAL(rprec), DIMENSION(3)            :: x_start, x_end
+      INTEGER                              :: status
+      CHARACTER (len=signal_dot_line_len)  :: line
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
-! Read the chord identification.
+!  Start of executable code
+!  Read the chord identification.
       line = signal_dot_read_line(signal_dot_file_ref,                         &
-     &                            "Error reading ID for ",                     &
-     &                            " chord.")
+     &                            'Error reading ID for ', ' chord.')
       chord_name = TRIM(line)
 
-! Read the start position.
+!  Read the start position.
       line = signal_dot_read_line(signal_dot_file_ref,                         &
-     &                            "Error reading start position for ",         &
-     &                            " chord.")
-! Reread the line, looking for three reals
-      READ(line, *, iostat=istat) x_start(1:3)
-      CALL signal_dot_check_status(istat, signal_dot_file_ref,                 &
-     &                             "Error ",                                   &
-     &                             " chord start position.")
+     &                            'Error reading start position for ',         &
+     &                            ' chord.')
+!  Reread the line, looking for three reals
+      READ(line, *, iostat=status) x_start(1:3)
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
+     &                             'Error ', ' chord start position.')
 
       IF (PRESENT(xcart_f)) THEN
-! Read the end position.
+!  Read the end position.
          line = signal_dot_read_line(signal_dot_file_ref,                      &
-     &                               "Error reading end position for ",        &
-     &                               " chord.")
-! Reread the line, looking for three reals
-         READ(line, *, iostat=istat) x_end(1:3)
-         CALL signal_dot_check_status(istat, signal_dot_file_ref,              &
-     &                                "Error ",                                &
-     &                                " chord end position.")
+     &                               'Error reading end position for ',        &
+     &                               ' chord.')
+!  Reread the line, looking for three reals
+         READ(line, *, iostat=status) x_end(1:3)
+         CALL signal_dot_check_status(status, signal_dot_file_ref,             &
+     &                                'Error ', ' chord end position.')
       ENDIF
 
-! Done reading information for this chord. Generate the chord
+!  Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
          x_start(2) = x_start(2)*degree ! Convert from degrees to radians.
          xcart_i = cyl_to_cart(x_start)
@@ -167,74 +191,72 @@
 
       END SUBROUTINE
 
-!*******************************************************************************
-!  Parse a single real from a diagnostic dot file.
-!
-!  Reads a single real from the diagnostic dot file. This is used to tobeable to
-!  extra information about a diagnostic in the diagnostic dot file.
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Parse a single real from a diagnostic dot file.
+!>
+!>  Reads a single real from the diagnostic dot file. This is used to be able to
+!>  get extra information about a diagnostic in the diagnostic dot file.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message             Error message to report back if there was
+!>                                    a problem.
+!>  @returns The parsed real value.
+!-------------------------------------------------------------------------------
       FUNCTION signal_dot_parse_real(signal_dot_file_ref, message)
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
+!  Declare Arguments
+      REAL(rprec)                          :: signal_dot_parse_real
       TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
       CHARACTER (len=*), INTENT(in)        :: message
-      REAL(rprec)                          :: signal_dot_parse_real
 
-!-------------------------------------------------------------------------------
-!   Local Variables
-!-------------------------------------------------------------------------------
-      INTEGER                   :: istat
-      CHARACTER (len=line_len)  :: line
+!  local variables
+      INTEGER                              :: status
+      CHARACTER (len=signal_dot_line_len)  :: line
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
-! Read the start position.
+!  Start of executable code
+!  Read the start position.
       line = signal_dot_read_line(signal_dot_file_ref,                         &
-     &                            "Error ",                                    &
-     &                            message)
-! Reread the line, looking for a single real
-      READ(line, *, iostat=istat) signal_dot_parse_real
-      CALL signal_dot_check_status(istat, signal_dot_file_ref,                 &
-     &                             "Error ",                                   &
-     &                             message)
+     &                            'Error ', message)
+!  Reread the line, looking for a single real
+      READ(line, *, iostat=status) signal_dot_parse_real
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
+     &                             'Error ', message)
 
       END FUNCTION
 
-!*******************************************************************************
-!  Read a keyword from the diagnostic dot file.
-!
-!  Read lines until a valid keyword is reached ot the end of the file is
-!  reached.
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Read a keyword from the diagnostic dot file.
+!>
+!>  Read lines until a valid keyword is reached ot the end of the file is
+!>  reached.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    keywords            List of keywords to search for.
+!>  @returns The found keyword.
+!-------------------------------------------------------------------------------
       FUNCTION signal_dot_read_keyword(signal_dot_file_ref, keywords)
+
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
-      CHARACTER (len=len_key), DIMENSION(:), INTENT(in) :: keywords
-      CHARACTER (len=len_key) :: signal_dot_read_keyword
+!  Declare Arguments
+      CHARACTER (len=data_name_length)     :: signal_dot_read_keyword
       TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), DIMENSION(:), INTENT(in) :: keywords
 
-!-------------------------------------------------------------------------------
-!   Local Variables
-!-------------------------------------------------------------------------------
-      INTEGER                  :: i
-      CHARACTER (len=line_len) :: line
+!  local variables
+      INTEGER                              :: i
+      CHARACTER (len=signal_dot_line_len)  :: line
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
-! Contine looping until a vaild keyword is read. If the end of the file is
-! reached an error will kill the program.
+!  Start of executable code
+!  Contine looping until a vaild keyword is read. If the end of the file is
+!  reached an error will kill the program.
       DO
          line = signal_dot_read_line(signal_dot_file_ref,                      &
-     &                               "Failed to read ",                        &
-     &                               " keyword before end of file.")
+     &                               'Failed to read ',                        &
+     &                               ' keyword before end of file.')
          DO i = 1, SIZE(keywords)
              IF (TRIM(ADJUSTL(line)) .eq. TRIM(keywords(i))) THEN
                 signal_dot_read_keyword = keywords(i)
@@ -248,58 +270,73 @@
 !*******************************************************************************
 !  Private Functions and Subroutines.
 !*******************************************************************************
-!*******************************************************************************
-!  Read line from diagnostic dot file.
-!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Read line from diagnostic dot file.
+!>
+!>  Reads single line from the diagnostic dot file.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    pre_message         Prefix message incase of error.
+!>  @param[in]    post_message        Post message incase of error.
+!>  @returns The line that was read.
+!-------------------------------------------------------------------------------
       FUNCTION signal_dot_read_line(signal_dot_file_ref,                       &
      &                              pre_message,                               &
      &                              post_message)
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
-      CHARACTER (len=*), INTENT(in) :: pre_message, post_message
-      CHARACTER (len=line_len) :: signal_dot_read_line
+!  Declare Arguments
+      CHARACTER (len=signal_dot_line_len)  :: signal_dot_read_line
       TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)        :: pre_message
+      CHARACTER (len=*), INTENT(in)        :: post_message
 
-!-------------------------------------------------------------------------------
-!   Local Variables
-!-------------------------------------------------------------------------------
-      INTEGER :: istat
+!  local variables
+      INTEGER                              :: status
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
-      READ (signal_dot_file_ref%iou, '(a)', iostat=istat)                      &
+!  Start of executable code
+      READ (signal_dot_file_ref%iou, '(a)', iostat=status)                     &
      &   signal_dot_read_line
       signal_dot_file_ref%i_line = signal_dot_file_ref%i_line + 1
-      CALL signal_dot_check_status(istat, signal_dot_file_ref,                 &
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
      &                             pre_message, post_message)
 
       END FUNCTION
 
-!*******************************************************************************
-!  Check and handle errors.
-!*******************************************************************************
-      SUBROUTINE signal_dot_check_status(istat,                                &
+!-------------------------------------------------------------------------------
+!>  @brief Check and handle errors.
+!>
+!>  Checks the staus for an error condition. If there was a error, report it.
+!>  Error messages are formatted as:
+!>
+!>  pre_message @ref signal_dot_file::signal_id post message
+!>  @ref signal_dot_file::i_line
+!>
+!>  @param[in]    status              The error code to check.
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    pre_message         Prefix message incase of error.
+!>  @param[in]    post_message        Post message incase of error.
+!>  @returns The line that was read.
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_dot_check_status(status,                               &
      &                                   signal_dot_file_ref,                  &
      &                                   pre_message,                          &
      &                                   post_message)
       IMPLICIT NONE
-!-------------------------------------------------------------------------------
-!  Variable declarations.
-!-------------------------------------------------------------------------------
-      INTEGER, INTENT(in)           :: istat
-      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
-      CHARACTER (len=*), INTENT(in) :: pre_message, post_message
 
-!-------------------------------------------------------------------------------
-!  Start of Executable Code
-!-------------------------------------------------------------------------------
-      IF (istat .ne. 0) THEN
-         WRITE(*,*) pre_message//TRIM(signal_dot_file_ref%signal_id)//         &
-     &              post_message//" line ",signal_dot_file_ref%i_line
+!  Declare Arguments
+      INTEGER, INTENT(in)                  :: status
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)        :: pre_message
+      CHARACTER (len=*), INTENT(in)        :: post_message
+
+!  Start of executable code
+      IF (status .ne. 0) THEN
+         WRITE(*,*) pre_message // TRIM(signal_dot_file_ref%signal_id)         &
+     &              // post_message // ' line ',                               &
+     &              signal_dot_file_ref%i_line
          STOP
       END IF
 

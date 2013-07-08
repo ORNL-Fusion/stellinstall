@@ -23,19 +23,13 @@
       USE stel_kinds, only: rprec
       USE diagnostic
       USE geometric
+      USE data_parameters
 
       IMPLICIT NONE
 
 !*******************************************************************************
 !  signal module parameters
 !*******************************************************************************
-!>  Maximum length of the @ref s_name string.
-      INTEGER, PARAMETER :: signal_name_short_length = 30
-!>  Maximum length of the @ref l_name string.
-      INTEGER, PARAMETER :: signal_name_long_length = 80
-!>  Maximum length of the @ref units string.
-      INTEGER, PARAMETER :: signal_units_length = 30
-
 !>  Type descriptor for the @ref signal_class no subclass.
       INTEGER, PARAMETER :: signal_no_type = -1
 !>  Type descriptor for the @ref signal_class subclass @ref diagnostic
@@ -82,10 +76,10 @@
 !>  * @ref signal_combination_type
          INTEGER                            :: type = signal_no_type
 !>  Short name of the signal
-         CHARACTER (len=signal_name_short_length) :: s_name
+         CHARACTER (len=data_short_name_length) :: s_name
 !>  Long name of the signal
-         CHARACTER (len=signal_name_long_length)  :: l_name
-         CHARACTER (len=signal_units_length)      :: units
+         CHARACTER (len=data_name_length)       :: l_name
+         CHARACTER (len=data_short_name_length) :: units
          REAL (rprec)                       :: observed
          REAL (rprec)                       :: observed_sigma
          REAL (rprec)                       :: weight
@@ -313,9 +307,9 @@
       REAL(rprec), INTENT(in)                  :: weight
 
 !  local variables
-      CHARACTER (len=signal_name_short_length) :: s_name
-      CHARACTER (len=signal_name_long_length)  :: l_name
-      CHARACTER (len=signal_units_length)      :: units
+      CHARACTER (len=data_short_name_length)   :: s_name
+      CHARACTER (len=data_name_length)         :: l_name
+      CHARACTER (len=data_short_name_length)   :: units
 
 !  Start of executable code
       CALL cdf_read(mdsig_iou, 'diagnostic_desc_s_name', s_name)
@@ -553,7 +547,6 @@
 !>  @returns A string describing the signal type.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_signal_type(this)
-      USE data_parameters
 
       IMPLICIT NONE
 
@@ -595,7 +588,6 @@
 !>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_header(this)
-      USE data_parameters
 
       IMPLICIT NONE
 
@@ -638,9 +630,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=signal_name_short_length) :: signal_make_short_name
-      CHARACTER (len=*), INTENT(in)            :: name
-      INTEGER, INTENT(in)                      :: index
+      CHARACTER (len=data_short_name_length) :: signal_make_short_name
+      CHARACTER (len=*), INTENT(in)          :: name
+      INTEGER, INTENT(in)                    :: index
 
 !  Start of executable code
 !  Find the number of digits in the index
@@ -1015,7 +1007,6 @@
 !>  @returns A string describing the magnetic type.
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_signal_type(this)
-      USE data_parameters
 
       IMPLICIT NONE
 
@@ -1048,7 +1039,6 @@
 !>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_header(this)
-      USE data_parameters
 
       IMPLICIT NONE
 

@@ -3,6 +3,7 @@
 @tableofcontents
 @section introduction Introduction
 @section user User manuals
-* @ref namelist_sec "V3FIT namelist input file" User manual for the V3FIT namelist input file.
+* * @ref namelist_sec "V3FIT namelist input file" User manual for the V3FIT namelist input file.
+* * @ref intpol_dot_sec "Inteferometry/Polarimetry Diagnostic Dot File" User manual for the inteferometry/polarimetry diagnostic dot file.
 @section programmer Programmer Manuals
  */

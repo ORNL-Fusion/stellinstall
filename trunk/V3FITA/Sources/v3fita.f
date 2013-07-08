@@ -794,8 +794,8 @@
 
 !  local variables
       INTEGER                                   :: i
-      CHARACTER (len=signal_name_short_length)  :: s_name = ''
-      CHARACTER (len=signal_name_long_length)   :: l_name = ''
+      CHARACTER (len=data_short_name_length)    :: s_name = ''
+      CHARACTER (len=data_name_length)          :: l_name = ''
       TYPE (limiter_iso), POINTER               :: iso_funct => null()
       INTEGER                                   :: num_phi
 

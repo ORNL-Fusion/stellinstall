@@ -134,7 +134,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      CHARACTER(len=len_key), DIMENSION(1:n_sxrchd_keyword) ::                 &
+      CHARACTER(len=data_name_length), DIMENSION(1:n_sxrchd_keyword) ::        &
      &   sxrchd_keyword
 
       INTEGER               :: icount_chords
@@ -246,7 +246,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
 !  sxrchd_keyword    character array - keywords for various sxrch input types
-      CHARACTER(len=len_key), DIMENSION(1:n_sxrchd_keyword) ::                 &
+      CHARACTER(len=data_name_length), DIMENSION(1:n_sxrchd_keyword) ::        &
      &   sxrchd_keyword
       TYPE(signal_dot_file)                 :: sxrch_dot_file_ref
 
