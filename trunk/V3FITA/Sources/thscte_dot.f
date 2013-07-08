@@ -138,14 +138,14 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      CHARACTER(len=len_key), DIMENSION(1:n_thscted_keyword) ::                &
-     &   thscted_keyword
+      CHARACTER(len=data_name_length),                                         &
+     &   DIMENSION(1:n_thscted_keyword) :: thscted_keyword
 
-      INTEGER               :: icount_points
-      INTEGER               :: n_thscte_desc_arr
-      CHARACTER (len=30)    :: s_name                                 
-      CHARACTER (len=80)    :: l_name
-      CHARACTER (len=len_key) :: this_keyword
+      INTEGER                          :: icount_points
+      INTEGER                          :: n_thscte_desc_arr
+      CHARACTER (len=30)               :: s_name                                 
+      CHARACTER (len=80)               :: l_name
+      CHARACTER (len=data_name_length) :: this_keyword
 
       TYPE(signal_dot_file) :: thscte_dot_file_ref
 !  Make sure that len for this_keyword is the same as len for thscted_keyword.
@@ -284,8 +284,8 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
 !  thscted_keyword   character array - keywords for various thscte input types
-      CHARACTER(len=len_key), DIMENSION(1:n_thscted_keyword) ::                &
-     &   thscted_keyword
+      CHARACTER(len=data_name_length),                                         &
+     &   DIMENSION(1:n_thscted_keyword) :: thscted_keyword
       TYPE(signal_dot_file) :: thscte_dot_file_ref
 
 !-----------------------------------------------
@@ -405,18 +405,18 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(inout) :: icount_points
-      INTEGER, INTENT(in)    :: n_thscte_desc_arr
+      INTEGER, INTENT(inout)                 :: icount_points
+      INTEGER, INTENT(in)                    :: n_thscte_desc_arr
       TYPE(thscte_desc), DIMENSION(:), INTENT(inout) :: thscte_desc_arr
-      CHARACTER (len=*) :: coordinate_type
-      CHARACTER (len=1) :: point_type
-      TYPE(signal_dot_file), INTENT(inout) :: thscte_dot_file_ref
+      CHARACTER (len=*)                      :: coordinate_type
+      CHARACTER (len=1)                      :: point_type
+      TYPE(signal_dot_file), INTENT(inout)   :: thscte_dot_file_ref
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(3)  :: xcart
-      CHARACTER (len=c_name_len) :: chord_name
+      REAL(rprec), DIMENSION(3)              :: xcart
+      CHARACTER (len=data_short_name_length) :: chord_name
       
 !-----------------------------------------------
 !  Start of Executable Code
@@ -470,9 +470,9 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       REAL (rprec), DIMENSION(3)             :: xcart
-      CHARACTER (len=c_name_len)             :: point_name
+      CHARACTER (len=data_short_name_length) :: point_name
       TYPE (thomson_class), POINTER          :: thomson_obj => null()
-      CHARACTER (len=signal_units_length)    :: units = ''
+      CHARACTER (len=data_short_name_length) :: units = ''
 
 !-----------------------------------------------
 !  Start of Executable Code
