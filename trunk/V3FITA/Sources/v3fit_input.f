@@ -7,9 +7,12 @@
 !
 !>  @page namelist_sec Namelist v3fit_main_nli definition
 !>
-!>  The V3FIT namelist input file is defined in the @ref v3fit_input module.
 !>  @tableofcontents
+!>  @section namelist_intro_sec Introduction
+!>  This page documents the contents of a namelist input file. V3FIT namelist
+!>  variables are defined in the @fixed_width{v3fit_main_nli} common block.
 !>
+!>  @section namelist_var_sec Namelist Variables
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{filename_sec, Filename variables}
@@ -171,6 +174,195 @@
 !>
 !>  @table_section{xcdot_sec, VMEC zero out xcdot control}
 !>     @item{l_zero_xcdot, reset the xcdot array to zero when converging vmec., v3fit_input::l_zero_xcdot}
+!>
+!>  @section namelist_exam_sec Example Files
+!>  @subsection namelist_exam_v3post_sec V3POST Example.
+!>  @code
+!>  ! Example V3POST input file.
+!>  &v3fit_main_nli
+!>
+!>  ! Equilibrium to use.
+!>  vmec_nli_filename = 'input.example.vmec'
+!>
+!>  ! Diagnostic inout files.
+!>  mdsig_list_file = 'diagnostic.example_mdsig.LIST'
+!>
+!>  my_task = 'v3post'
+!>  /
+!>  @endcode
+!>  @subsection namelist_exam_v3post_sec Reconstruction Example.
+!>  @code
+!>  ! Example Reconstruction input file.
+!>  &v3fit_main_nli
+!>
+!>  ! Equilibrium to use.
+!>  vmec_nli_filename = 'input.example.vmec'
+!>
+!>  ! Diagnostic inout files.
+!>  mdsig_list_file = 'diagnostic.example_mdsig.LIST'
+!>  sxrch_dot_filename = 'sxrch.example'
+!>  thscte_dot_filename = 'thscte.example'
+!>
+!>  my_task = 'reconstruct'
+!>
+!>  ! Model Specification
+!>
+!>  ! Electron Density
+!>  pp_ne_ptype = 'two_power'
+!>
+!>  ! b(0) + b(1)*[1 - s^b(2)]^b(3)
+!>  pp_ne_b(0:3) = 0.0, 1.0, 5.0, 10.0
+!>  ne_pp_unit = 1.0E18
+!>  e_pressure_fraction=0.75
+!>  
+!>  ! Soft X-ray emissivity
+!>  model_sxrem_type = 'pp_sxrem'
+!>  pp_sxrem_ptype = 'two_power'
+!>
+!>  !>  ! b(0) + b(1)*[1 - s^b(2)]^b(3)
+!>  pp_ne_b(0:3) = 0.0, 1.0, 3.0, 10.0
+!>
+!>  ! Electron Temperature
+!>  model_te_type = 'pp_ne_vmec_p'
+!>
+!>  ! Reconstruction control parameters.
+!>  nrstep = 20
+!>  dg2_stop = 0.1
+!>  cut_svd = 0.002
+!>  cut_eff = 0.1
+!>  cut_marg_eff = 0.0
+!>  cut_delta_a = 0.0
+!>  cut_dg2 = 0.0
+!>  astep_max = 100.0
+!>  step_type = 'lm'
+!>
+!>  ! Reconstruction parameters
+!>  n_rp = 5
+!>
+!>  rp_type(1) = 'phiedge'
+!>  rp_vrnc(1) = 1.E-04
+!>
+!>  rp_type(2) = 'ac'
+!>  rp_index(2) = 1
+!>  rp_vrnc(2) = 0.01
+!>
+!>  rp_type(3) = 'pres_scale'
+!>  rp_vrnc(3) = 50.
+!>
+!>  rp_type(4)='pp_ne_b'
+!>  rp_index(4)=1
+!>  rp_vrnc(4)=0.2
+!>
+!>  rp_type(5)='pp_ne_b'
+!>  rp_index(5)=2
+!>  rp_vrnc(5)=0.04
+!>
+!>  rp_type(5)='pp_sxrem_b'
+!>  rp_index(5)=1
+!>  rp_vrnc(5)=0.1
+!>
+!>  rp_type(6)='pp_sxrem_b'
+!>  rp_index(6)=2
+!>  rp_vrnc(6)=0.1
+!>
+!>  rp_type(7)='pp_sxrem_b'
+!>  rp_index(7)=3
+!>  rp_vrnc(7)=0.1
+!>  
+!>  ! Limiter_iso Functions
+!>  n_lif = 2
+!>  
+!>  n_phi_lif(1) = 1
+!>  lif_rc(1) = 0.7493
+!>  lif_on_edge(1) = T
+!>  lif_sigma(1) = 0.001
+!>  lif_arz(1,0,0) = -0.06002,
+!>  lif_arz(1,2,0) = 1.0,
+!>  lif_arz(1,0,2) = 1.0,
+!>  lif_phi_degree(1,1) = 12.0,
+!>  
+!>  n_phi_lif(2) = 1
+!>  lif_rc(2) = 0.7493
+!>  lif_on_edge(2) = T
+!>  lif_arz(2,0,0) = -0.0618,
+!>  lif_arz(2,2,0) = 1.0,
+!>  lif_arz(2,0,2) = 1.0,
+!>  lif_phi_degree(2,1) = 60.0,
+!>  
+!>  ! Signal Weight specification - set weights for coosig parts to zero
+!>  sdo_w_spec_imin = 12 16 173 174
+!>  sdo_w_spec_imax = 12 16 173 174
+!>  sdo_w_spec_weight = 0. 0. 0. 0.
+!>  
+!>  ! Combination Of Other SIGnals (COOSIG)
+!>  n_coosig = 2
+!>  
+!>  coosig_type(1) = 'sum'     ! Linear combination, to simulate a compensated diamagnetic loop
+!>  coosig_indices(1,1)=12     !  Here I use the two bad signals, that already have their
+!>  coosig_indices(1,2)=16     !  weights set to zero
+!>  coosig_coeff(1,1)=.389976  !  Set to make zero signal, using *e model values
+!>  coosig_coeff(1,2)=-.850293
+!>  coosig_name(1) = 'simCompDiaLoop'
+!>  coosig_units(1) = '?'
+!>  
+!>  coosig_type(2) = 'max'     ! Maximum, for use with edge limits
+!>  coosig_indices(2,1)=173     ! Signal numbers for the two edge limits
+!>  coosig_indices(2,2)=174
+!>  coosig_coeff(2,1)=1        ! No scaling of the relative signals before the max
+!>  coosig_coeff(2,2)=1
+!>  coosig_name(2) = 'OneLimiter'
+!>  coosig_units(2) = 'm'
+!>  
+!>  ! Observed Data - magnetic diagnostics
+!>  n_sdata_o = 25
+!>  sdo_data_a(1)= 0.099877    sdo_sigma_a(1)=0.00177   !  First Magnetic Diagnostics
+!>  sdo_data_a(2)= 0.170352    sdo_sigma_a(2)=0.00177
+!>  snip - boring observations
+!>  sdo_data_a(25)= 0.031115   sdo_sigma_a(25)=0.00007   ! Last Magnetic Diagnostic
+!>  
+!>  ! Observed data for the soft x-ray chords
+!>  ! Simulated data, see Excel "Simulated Observations 2011-10-26"
+!>  n_sdata_o = 125
+!>  sdo_s_spec_imin(1) = 26
+!>  sdo_s_spec_imax(1) = 125
+!>  sdo_s_spec_floor(1) = 1.
+!>  sdo_s_spec_fraction(1) = 0.05
+!>  
+!>  sdo_data_a(26) = 6.09338E+01      ! sxr  1
+!>  snip - boring simulated obserations
+!>  sdo_data_a(125) =7.88700E+00       ! sxr100
+!>  
+!>  ! Observed data for the Thomson Scattering points
+!>  ! Simulated data, see Excel "Simulated Observations 2011-10-26"
+!>  n_sdata_o = 174
+!>  sdo_s_spec_imin(2) = 126
+!>  sdo_s_spec_imax(2) = 172
+!>  sdo_s_spec_floor(2) = 1.
+!>  sdo_s_spec_fraction(2) = 0.05
+!>  sdo_w_spec_imin(5) = 126
+!>  sdo_w_spec_imax(5) = 172
+!>  sdo_w_spec_weight(5) = 0.
+!>  
+!>  sdo_data_a(126) = 6.82686E+00    ! thscte
+!>  snip - boring simulated observations
+!>  sdo_data_a(170) = 1.10650E+00    ! thscte
+!>  sdo_data_a(171) = 2.26904E+00    ! thscte
+!>  sdo_data_a(172) = 3.86471E+00    ! thscte
+!>  sdo_data_a(173)= 0.000000   sdo_sigma_a(173)=0.00100  !  Limiter
+!>  sdo_data_a(174)= 0.000000   sdo_sigma_a(174)=0.00100
+!>  
+!>  !  Add on observations for the COOSIGs
+!>  n_sdata_o = 176
+!>  sdo_data_a(175) = 0.        !  'simCompDiaLoop', coosig_coeff set to make signal zero
+!>  sdo_sigma_a(175) = 1.5E-03
+!>  sdo_data_a(176) = 0.        !  'OneLimiter', signal should be zero
+!>  sdo_sigma_a(176) = 0.001    !   1 mm
+!>  /
+!>  @endcode
+!>
+!>  @section namelist_prog_ref_sec Programmers Reference
+!>  Reference material for the coding to implement this namelist is found in the
+!>  @ref v3fit_input module.
 !-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file v3fit_input.f
@@ -243,7 +435,8 @@
 !  2) v3fit_context_class
 !
 !*******************************************************************************
-!>  File name for main namelist input
+!>  File name for main namelist input.
+!>  @ref namelist_sec
       CHARACTER (len=data_filename_length) :: main_nli_filename = ''
 
 !  Equilibrium input files
@@ -255,9 +448,10 @@
       CHARACTER (len=data_filename_length) :: mdsig_list_filename = ''
 !>  File holding sxr chord information
       CHARACTER (len=data_filename_length) :: sxrch_dot_filename = ''
-!>  File holding Thomson Scattering information
+!>  File holding interferometry-polarimetry information.
+!>  @ref intpol_dot_sec
       CHARACTER (len=data_filename_length) :: ipch_dot_filename = ''
-!>  File holding interferometry-polarimetry information
+!>  File holding Thomson Scattering information
       CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.

@@ -1,104 +1,108 @@
+!-------------------------------------------------------------------------------
+!  The @fixed_width, @begin_table, @item2 and @end_table commands are custom
+!  defined commands in Doxygen.in. They are defined under ALIASES. For the page
+!  created here, the 8 column limit is exceeded. Arguments of aliases are
+!  separated by ','. You intended ',' to be a string you must use an escaped
+!  comma '\,'.
+!
+!>  @page thomson_dot_sec Soft X-ray Diagnostic Dot File
+!>
+!>  @tableofcontents
+!>  @section thomson_dot_intro_sec Introduction
+!>  Diagnostic dot files specify geometric and auxiliary information about each
+!>  diagnostic. Parsing of a diagnostic dot file begins by searching for a valid
+!>  keyword. All lines before a valid keyword is reached are ignored allowing
+!>  for comments and other information to be inserted in the file. Once a
+!>  keyword is reached, the parsing becomes strict. The diagnostic description
+!>  format is dependant on the specific keyword. All diagnostic dot files must
+!>  end with an @fixed_width{end_of_file} keyword.
+!>
+!>  This document contains information about the thomson scattering point
+!>  specifications. Points are specified in a structured text file. This file
+!>  is read in by the @ref v3fit_input::thscte_dot_filename variable of the name
+!>  list input file. Points are specified as a verticies in either meters or
+!>  radians.
+!>
+!>  @section thomson_dot_key_sec Keywords
+!>  @begin_table
+!>  @item2{@fixed_width{thscte_XYZ}\n @fixed_width{thscte_XYZ_te},
+!>  A thomson scattering point specified in Cartesian coordinates measuring electron temperature.}
+!>  @item2{@fixed_width{thscte_RPhiDegZ}\n @fixed_width{thscte_RPhiDegZ_te},
+!>  A thomson scattering point specified in Cylindrical coordinates measuring electron temperature.}
+!>  @item2{@fixed_width{thscte_XYZ_ne},
+!>  A thomson scattering point specified in Cartesian coordinates measuring electron denisty.}
+!>  @item2{@fixed_width{thscte_RPhiDegZ_ne},
+!>  A thomson scattering point specified in Cylindrical coordinates measuring electron denisty.}
+!>  @item2{@fixed_width{thscte_XYZ_pres},
+!>  A thomson scattering point specified in Cartesian coordinates measuring plasma pressure.}
+!>  @item2{@fixed_width{thscte_RPhiDegZ_pres},
+!>  A thomson scattering point specified in Cylindrical coordinates measuring plasma pressure.}
+!>  @end_table
+!>
+!>  @section thomson_dot_chord_spec_sec Chord Specification
+!>  All thomson scattering points are specified in the following manner.
+!>
+!>  @fixed_width{key_word\n}
+!>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
+!>  @fixed_width{x1(REAL) y1(REAL) z1(REAL)\n}
+!>
+!>  @section thomson_dot_exam_sec Example File
+!>  @code
+!>  !  A thomson scattering point specified in Cartesian coordinates measuring electron temperature.
+!>  thscte_XYZ_te
+!>  sxr001
+!>  1.0 0.0 0.0
+!>
+!>  !  A soft x-ray chord specified in Cylindrical coordinates measuring electron denisty.
+!>  thscte_RPhiDegZ_ne
+!>  sxr002
+!>  1.0 0.0 0.0
+!>
+!>  !  All files must end with
+!>  end_of_file
+!>  @endcode
+!>
+!>  @section thomson_dot_prog_ref_sec Programmers Reference
+!>  Reference material for the coding to parse these files can be found in the
+!>  @ref signal_dot and @ref thscte_dot modules.
+!-------------------------------------------------------------------------------
 !*******************************************************************************
-!  File thscte_dot.f
-!  Contains module thscte_dot
-!    Module for opening and reading a 'thscte.' file, and then placing the
-!     Thomson Scattering information into an array of thscte_desc
+!>  @file thscte_dot.f
+!>  @brief Contains module @ref thscte_dot
 !
-!  Based on module sxrch_dot
-!  First version JDH 2011-10-24
-!  
-!-------------------------------------------------------------------------------
-!   DEPENDENCIES
-!-------------------------------------------------------------------------------
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
-!    This module uses the following modules:
-!       stel_kinds
-!       stel_constants
-!       thscte_T
-!       safe_open_mod
-!
-!-------------------------------------------------------------------------------
-!   CHANGE HISTORY
-!-------------------------------------------------------------------------------
-!
-!-------------------------------------------------------------------------------
-!   USAGE
-!-------------------------------------------------------------------------------
-!     Usage: Here is a sample of code that shows how to use this module
-!
-!      USE thscte_T
-!      USE thscte_dot
-!      TYPE(thscte_desc), DIMENSION(1000) :: thscte_descriptions_a
-! ...
-! !  Read in Thomson scattering information
-!      CALL thscte_dot_read(file_name_thscte_dot,thscte_descriptions_a)
-!
-!-------------------------------------------------------------------------------
-!   FILE STRUCTURE - thscte. file
-!-------------------------------------------------------------------------------
-!
-!  thscte. File Structure:
-! line 1: Character - identifier
-!
-!      (0 or more lines, no keyword present. All ignored by parser.)
-!    keyword
-!      lines containing data - number depends on keyword
-!
-!      (0 or more lines, no keyword present. All ignored by parser.)
-!    keyword
-!      lines containing data - number depends on keyword
-!
-!    ...
-!
-!    end
-!      (0 or more lines, ignored by parser.)!    
-!    
-!-------------------------------------------------------------------------------
-!   COMMENTS
-!-------------------------------------------------------------------------------
-!
-! 1)  Defined keywords are:
-!       thscted_keyword(1) = 'thscte_XYZ'
-!       thscted_keyword(2) = 'thscte_RPhiDegZ'
-!       thscted_keyword(3) = 'thscte_XYZ_te'
-!       thscted_keyword(4) = 'thscte_RPhiDegZ_te'
-!       thscted_keyword(5) = 'thscte_XYZ_ne'
-!       thscted_keyword(6) = 'thscte_RPhiDegZ_ne'
-!       thscted_keyword(7) = 'thscte_XYZ_pres'
-!       thscted_keyword(8) = 'thscte_RPhiDegZ_pres'
-!       thscted_keyword(9) = 'end_of_file'
-!
-!*******************************************************************************
-
-!*******************************************************************************
-!  MODULE thscte_dot
-!    
-! SECTION I. VARIABLE DECLARATIONS
-! SECTION II. INTERFACE BLOCKS
-! SECTION III. PUBLICLY ACCESSIBLE SUBROUTINES
-! SECTION IV. PARSING SUBROUTINES
-! SECTION V. AUXILIARY SUBROUTINES
+!>  Module for opening and reading a 'thscte.' file. The file format for these
+!>  files are documented in @ref thomson_dot_sec.
 !*******************************************************************************
       MODULE thscte_dot
-
-!*******************************************************************************
-! SECTION I. VARIABLE DECLARATIONS
-!*******************************************************************************
 
       USE stel_kinds
       USE stel_constants
       USE thscte_T
       USE signal_dot
+
       IMPLICIT NONE
           
 !*******************************************************************************
-! SECTION II. INTERFACE BLOCKS
+!  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for reading the thomson scattering diagnostic dot file using
+!>  @ref thscte_dot_read_old or @ref thscte_dot_read_new.
+!>  @todo. FIXME:  Remove inteface when old coding is removed.
+!-------------------------------------------------------------------------------
       INTERFACE thscte_dot_read
          MODULE PROCEDURE thscte_dot_read_old,                                 &
      &                    thscte_dot_read_new
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for parsing a thomson scattering point using
+!>  @ref thscte_dot_parse_chord_old or @ref thscte_dot_parse_chord_new.
+!>  @todo. FIXME:  Remove inteface when old coding is removed.
+!-------------------------------------------------------------------------------
       INTERFACE thscte_dot_parse_chord
          MODULE PROCEDURE thscte_dot_parse_chord_old,                          &
      &                    thscte_dot_parse_chord_new
@@ -106,10 +110,11 @@
 
       CONTAINS
 !*******************************************************************************
-! SECTION III. PUBLICLY ACCESSIBLE SUBROUTINES
+!  UTILITY SUBROUTINES
 !*******************************************************************************
 !  Subroutine to parse the large structure of the thscte_dot_file
 !  Individual sxr chords are parsed by the thscte_dot_parse_xxxx subroutines
+!>  @todo Remove when removing old coding.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_read_old(thscte_file,thscte_desc_arr,              &
      &                               n_points)
@@ -245,8 +250,21 @@
       END SUBROUTINE thscte_dot_read_old
 
 !-------------------------------------------------------------------------------
-!  Subroutine to parse the large structure of the thscte_dot_file
-!  Individual sxr chords are parsed by the thscte_dot_parse_xxxx subroutines
+!>  @brief Read an thomson scattering diagnostic dot file.
+!>
+!>  Parses the structure of a dignostic dot file and constructs a @ref sxrem
+!>  object. Each chord is parsed by @ref sxrch_dot_parse_chord.
+!>
+!>  @param[in]    thscte_file     Name of the thscte. file.
+!>  @param[inout] signals         Array of pointers to the a signal
+!>  @param[inout] signals_created Number valid signals in the array, or index of
+!>                                the last signal created.
+!>  @param[in]    observed        Array of observed values.
+!>  @param[in]    sigma           Array of observed sigma values
+!>  @param[in]    weight          Array of signal weight values
+!>  @param[inout] first_index     Index of the first instance of an intpol
+!>                                signal.
+!>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_read_new(thscte_file, signals,                     &
      &                               signals_created, observed, sigma,         &
@@ -256,42 +274,26 @@
 
       IMPLICIT NONE
 
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-!  thscte_file      Name of the thscte. file.
-!  signals          Array of pointers to the a signal
-!  signals_created  Number valid signals in the array, or index of the last
-!                   created.
-!  observed         Array of observed values.
-!  sigma            Array of observed sigma values
-!  weight           Array of signal weight values
+!  Declare Arguments
       CHARACTER (len=data_filename_length), INTENT(in)   :: thscte_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created
-      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
-      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
-      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
-      INTEGER, INTENT(inout)                 :: first_index
+      REAL (rprec), DIMENSION(:), INTENT(in)             :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in)             :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in)             :: weight
+      INTEGER, INTENT(inout)                             :: first_index
 
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
+!  local parameters
 !  n_thscted_keyword    integer - number of thscted_keyword s.
       INTEGER, PARAMETER :: n_thscted_keyword = 9
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
+!  local variables
 !  thscted_keyword   character array - keywords for various thscte input types
       CHARACTER(len=data_name_length),                                         &
      &   DIMENSION(1:n_thscted_keyword) :: thscted_keyword
       TYPE(signal_dot_file) :: thscte_dot_file_ref
 
-!-----------------------------------------------
-!  Start of Executable Code
-!-----------------------------------------------
-
+!  Start of executable code
 !  Initialize the keywords and keyword lengths
       thscted_keyword(1) = 'thscte_XYZ'
       thscted_keyword(2) = 'thscte_RPhiDegZ'
@@ -372,9 +374,8 @@
       END SUBROUTINE thscte_dot_read_new
 
 !*******************************************************************************
-! SECTION IV. PARSING SUBROUTINES
+!  PARSING SUBROUTINES
 !*******************************************************************************
-
 !-------------------------------------------------------------------------------
 !     Expected behaviour for the parsing routines:
 !  On entry:
@@ -393,6 +394,7 @@
 !-------------------------------------------------------------------------------
 !  Subroutine to parse an thscte chord (redundant chord there)
 !      thscted_keyword(1) = 'thscte_XYZ' or 'thscte_RPhiDegZ'
+!>  @todo Remove when removing old coding.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_parse_chord_old(thscte_dot_file_ref,               &
      &                                     coordinate_type,                    &
@@ -438,8 +440,28 @@
       END SUBROUTINE thscte_dot_parse_chord_old
 
 !-------------------------------------------------------------------------------
-!  Subroutine to parse an thscte chord (redundant chord there)
-!      thscted_keyword(1) = 'thscte_XYZ' or 'thscte_RPhiDegZ'
+!>  @brief Parse soft x-ray diagnostic chord.
+!>
+!>  Parses a signle chord. Chords are laid out as,
+!>
+!>  * chord_name
+!>  * Starting point as three reals.
+!>  * Ending point as three reals.
+!>
+!>  @param[in]    sxrch_file      Name of the sxrch. file.
+!>  @param[in]    coordinate_type Specifies the cartesian or cylindrical
+!>                                coordinate type.
+!>  @param[in]    point_type      Specifies a 't'emperature, 'd'ensity or
+!>                                'p'ressure point.
+!>  @param[inout] signals         Array of pointers to the a signal
+!>  @param[inout] signals_created Number valid signals in the array, or index of
+!>                                the last signal created.
+!>  @param[in]    observed        Array of observed values.
+!>  @param[in]    sigma           Array of observed sigma values
+!>  @param[in]    weight          Array of signal weight values
+!>  @param[inout] first_index     Index of the first instance of an intpol
+!>                                signal.
+!>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_parse_chord_new(thscte_dot_file_ref,               &
      &                                      coordinate_type,                   &
@@ -453,9 +475,7 @@
       USE v3_utilities, only: err_fatal
       IMPLICIT NONE
 
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
+!  Declare Arguments
       TYPE(signal_dot_file), INTENT(inout)   :: thscte_dot_file_ref
       CHARACTER (len=*)                      :: coordinate_type
       CHARACTER (len=1)                      :: point_type
@@ -466,17 +486,13 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
       INTEGER, INTENT(inout)                 :: first_index
 
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
+!  local variables
       REAL (rprec), DIMENSION(3)             :: xcart
       CHARACTER (len=data_short_name_length) :: point_name
       TYPE (thomson_class), POINTER          :: thomson_obj => null()
       CHARACTER (len=data_short_name_length) :: units = ''
 
-!-----------------------------------------------
-!  Start of Executable Code
-!-----------------------------------------------
+!  Start of executable code
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
          CALL err_fatal('ipch_dot_parse_chord_new: created signals' //         &
@@ -518,10 +534,6 @@
          first_index = signals_created
       END IF
 
-      END SUBROUTINE thscte_dot_parse_chord_new
-
-!*******************************************************************************
-! SECTION V. AUXILIARY SUBROUTINES
-!*******************************************************************************
+      END SUBROUTINE thscte_dot_parse_chord_new 
 
       END MODULE thscte_dot

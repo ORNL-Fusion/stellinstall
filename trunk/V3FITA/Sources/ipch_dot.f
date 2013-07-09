@@ -10,10 +10,10 @@
 !>  @tableofcontents
 !>  @section intpol_dot_intro_sec Introduction
 !>  Diagnostic dot files specify geometric and auxiliary information about each
-!>  diagnostic. Parsing of a diagnostic dot file begins with the by searching
-!>  for a valid keyword. All lines before a valid keyword is reached are ignored
-!>  allowing for comments and other information to be inserted in the file. Once
-!>  a keyword is reached, the parsing becomes strict. The diagnostic description
+!>  diagnostic. Parsing of a diagnostic dot file begins by searching for a valid
+!>  keyword. All lines before a valid keyword is reached are ignored allowing
+!>  for comments and other information to be inserted in the file. Once a
+!>  keyword is reached, the parsing becomes strict. The diagnostic description
 !>  format is dependant on the specific keyword. All diagnostic dot files must
 !>  end with an @fixed_width{end_of_file} keyword.
 !>
@@ -39,7 +39,7 @@
 !>  An polarimetry chord specified in Cylindrical coordinates outputting the signal in degress.}
 !>  @end_table
 !>
-!>  @section intpol_dot_chord_spec_sec Choord Specification
+!>  @section intpol_dot_chord_spec_sec Chord Specification
 !>  All interferometry chords are specified in the following manner.
 !>
 !>  @fixed_width{key_word\n}
@@ -58,7 +58,7 @@
 !>
 !>  @section intpol_dot_exam_sec Example File
 !>  @code
-!>  !  An interferometer chord specified in cartesian coordinates.
+!>  !  An interferometer chord specified in Cartesian coordinates.
 !>  ip_chord_XYZ_int
 !>  int001
 !>  1.0 0.0 0.0
@@ -70,7 +70,7 @@
 !>  1.0 0.0 0.0
 !>  0.5 0.0 0.0
 !>
-!>  !  A polarimetry chord specified in cartesian coordinates.
+!>  !  A polarimetry chord specified in Cartesian coordinates.
 !>  ip_chord_XYZ_pol_deg
 !>  pol001
 !>  1.0 0.0 0.0
@@ -89,7 +89,7 @@
 !>  @endcode
 !>
 !>  @section intpol_dot_prog_ref_sec Programmers Reference
-!>  Reference material for the doing to parse these files can be found in the
+!>  Reference material for the coding to parse these files can be found in the
 !>  @ref signal_dot and @ref ipch_dot modules.
 !-------------------------------------------------------------------------------
 !*******************************************************************************
@@ -118,7 +118,7 @@
 !-------------------------------------------------------------------------------
 !>  Interface for reading the interferometry-polarimetry diagnostic dot file
 !>  using @ref ipch_dot_read_old or @ref ipch_dot_read_new.
-!>  @todo. FIXME:  Remove inteface when old ocding is removed.
+!>  @todo. FIXME:  Remove inteface when old coding is removed.
 !-------------------------------------------------------------------------------
       INTERFACE ipch_dot_read
          MODULE PROCEDURE ipch_dot_read_old,                                   &
@@ -404,7 +404,7 @@
       END SUBROUTINE ipch_dot_read_new
 
 !*******************************************************************************
-! PARSING SUBROUTINES
+!  PARSING SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !     Expected behaviour for the parsing routines:
@@ -424,10 +424,11 @@
 !-------------------------------------------------------------------------------
 !  Subroutine to parse an ipch chord (redundant chord there)
 !      ipchd_keyword(1) = 'ip_chord_XYZ' or 'ip_chord_RPhiDegZ'
+!>  @todo Remove when removing old coding.
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_parse_chord_old(ipch_dot_file_ref,                   &
      &                                    coordinate_type,                     &
-     &                                    coord_type,                          &
+     &                                    chord_type,                          &
      &                                    inDegrees,                           &
      &                                    icount_chords,                       &
      &                                    n_ipch_desc_arr,                     &
@@ -441,7 +442,7 @@
       INTEGER, INTENT(in)                          :: n_ipch_desc_arr
       TYPE(ipch_desc), DIMENSION(:), INTENT(inout) :: ipch_desc_arr
       CHARACTER (len=*) :: coordinate_type
-      CHARACTER (len=1) :: coord_type
+      CHARACTER (len=1) :: chord_type
       LOGICAL, INTENT(in) :: inDegrees
       TYPE(signal_dot_file), INTENT(inout) :: ipch_dot_file_ref
 
@@ -460,7 +461,7 @@
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
 
-      IF (coord_type .eq. 'p') THEN
+      IF (chord_type .eq. 'p') THEN
          wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
      &                   "Expected wavelength for polarimetry chord")
       END IF
@@ -471,7 +472,7 @@
       ELSE
          CALL ipch_desc_construct(ipch_desc_arr(icount_chords),                &
      &                            chord_name, xcart_i, xcart_f,                &
-     &                            coord_type, wavelength, inDegrees)
+     &                            chord_type, wavelength, inDegrees)
       ENDIF
 
       END SUBROUTINE ipch_dot_parse_chord_old
@@ -489,6 +490,12 @@
 !>  wavelength.
 !>
 !>  @param[in]    ipch_file       Name of the ipch. file.
+!>  @param[in]    coordinate_type Specifies the cartesian or cylindrical
+!>                                coordinate type.
+!>  @param[in]    chord_type      Specifies if the cord is a 'i'nterferometer or
+!>                                'p'olarimetry.
+!>  @param[in]    inDegrees       Specifies if signal measures degrees or
+!>                                radians.
 !>  @param[inout] signals         Array of pointers to the a signal
 !>  @param[inout] signals_created Number valid signals in the array, or index of
 !>                                the last signal created.
@@ -501,7 +508,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_parse_chord_new(ipch_dot_file_ref,                   &
      &                                    coordinate_type,                     &
-     &                                    coord_type,                          &
+     &                                    chord_type,                          &
      &                                    inDegrees,                           &
      &                                    signals,                             &
      &                                    signals_created,                     &
@@ -515,7 +522,7 @@
 !  Declare Arguments
       TYPE (signal_dot_file), INTENT(inout)  :: ipch_dot_file_ref
       CHARACTER (len=*), INTENT(in)          :: coordinate_type
-      CHARACTER (len=1), INTENT(in)          :: coord_type
+      CHARACTER (len=1), INTENT(in)          :: chord_type
       LOGICAL, INTENT(in)                    :: inDegrees
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout)                 :: signals_created
@@ -542,7 +549,7 @@
      &                            chord_name,                                  &
      &                            xcart(1,:), xcart(2,:))
 
-      IF (coord_type .eq. 'p') THEN
+      IF (chord_type .eq. 'p') THEN
          wavelength = signal_dot_parse_real(ipch_dot_file_ref,                 &
      &                   "Expected wavelength for polarimetry chord")
          signals(signals_created + 1)%p => signal_construct(                   &

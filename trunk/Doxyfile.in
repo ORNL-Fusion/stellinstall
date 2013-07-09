@@ -205,13 +205,13 @@ TAB_SIZE               = 4
 # will result in a user-defined paragraph with heading "Side Effects:". 
 # You can put \n's in the value part of an alias to insert newlines.
 
-ALIASES                = item{3}="<tr><td width=20%>\1</td><td width=60%>\2</td><td width=20%>\ref \3</td></tr>"
+ALIASES                = item{3}="<tr><td width=20%>\fixed_width{\1}</td><td width=60%>\2</td><td width=20%>\ref \3</td></tr>"
 ALIASES                += item2{2}="<tr><td width=30%>\1</td><td width=70%>\2</td></tr>"
-ALIASES                += table_section{2}="\section \1 \2\n<table border=1px width=80%>"
+ALIASES                += table_section{2}="\subsection \1 \2\n<table border=1px width=80%>"
 ALIASES                += begin_table="<table border=1px width=80%>"
 ALIASES                += end_table="</table>"
-ALIASES                += table_subsection{2}="</table>\subsection \1 \2\n<table border=1px width=80%>"
-ALIASES                += header{3}="<table border=1px width=80%><tr><td width=20%>\1</td><td width=60%>\2</td><td width=20%>\3</td></tr></table>"
+ALIASES                += table_subsection{2}="</table>\subsubsection \1 \2\n<table border=1px width=80%>"
+ALIASES                += header{3}="<table border=1px width=80%><tr><td width=20%>\fixed_width{\1}</td><td width=60%>\2</td><td width=20%>\3</td></tr></table>"
 ALIASES                += fixed_width{1}="<tt>\1</tt>"
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only). 
