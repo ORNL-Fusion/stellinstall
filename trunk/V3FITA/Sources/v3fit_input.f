@@ -16,14 +16,14 @@
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{filename_sec, Filename variables}
-!>     @item{main_nli_filename,      File name for main namelist input.,                   v3fit_input::main_nli_filename}
+!>     @item{main_nli_filename,      File name for main namelist input., v3fit_input::main_nli_filename}
 !>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
-!>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                   v3fit_input::vmec_nli_filename}
+!>        @item{vmec_nli_filename,   File name for VMEC namelist input., v3fit_input::vmec_nli_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
-!>        @item{mdsig_list_filename, File name for list of MDSIG files.,                   v3fit_input::mdsig_list_filename}
-!>        @item{sxrch_dot_filename,  file holding sxr chord information.,                  v3fit_input::sxrch_dot_filename}
-!>        @item{thscte_dot_filename, file holding Thomson Scattering information.,         v3fit_input::thscte_dot_filename}
-!>        @item{ipch_dot_filename,   file holding interferometry-polarimetry information., v3fit_input::ipch_dot_filename}
+!>        @item{mdsig_list_filename, File name for list of MDSIG files., v3fit_input::mdsig_list_filename}
+!>        @item{sxrch_dot_filename,  File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
+!>        @item{thscte_dot_filename, File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
+!>        @item{ipch_dot_filename,   File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
 !>  @end_table
 !>
 !>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
