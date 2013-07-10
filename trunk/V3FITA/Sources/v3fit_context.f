@@ -349,29 +349,31 @@
       END IF
 
 !  Write out the signals
-      DO i = 1, SIZE(this%signals)
+      IF (ASSOCIATED(this%signals) THEN
+         DO i = 1, SIZE(this%signals)
 !  Check if the index has reached a new signal type
-         IF ((this%magnetic_index .eq. i) .or.                                 &
-     &       (this%sxrem_index .eq. i) .or.                                    &
-     &       (this%intpol_index .eq. i) .or.                                   &
-     &       (this%thomson_index .eq. i) .or.                                  &
-     &       (this%extcurz_index .eq. i) .or.                                  &
-     &       (this%limiter_index .eq. i) .or.                                  &
-     &       (this%combination_index .eq. i)) THEN
+            IF ((this%magnetic_index .eq. i) .or.                              &
+     &          (this%sxrem_index .eq. i) .or.                                 &
+     &          (this%intpol_index .eq. i) .or.                                &
+     &          (this%thomson_index .eq. i) .or.                               &
+     &          (this%extcurz_index .eq. i) .or.                               &
+     &          (this%limiter_index .eq. i) .or.                               &
+     &          (this%combination_index .eq. i)) THEN
 
-            CALL signal_write_header(this%signals(i)%p,                        &
-     &                               this%recout_iou)
-         END IF
+               CALL signal_write_header(this%signals(i)%p,                     &
+     &                                  this%recout_iou)
+            END IF
 
-         CALL signal_write(this%signals(i)%p, this%recout_iou, i,              &
-     &                     this%model)
-      END DO
+            CALL signal_write(this%signals(i)%p, this%recout_iou, i,           &
+     &                        this%model)
+         END DO
 
 !  All the signals should be written out before auxiliary information.
-      DO i = 1, SIZE(this%signals)
-         CALL signals_write_auxiliary(this%signals(i)%p,                      &
-     &                                this%recout_iou, i)
-      END DO
+         DO i = 1, SIZE(this%signals)
+            CALL signals_write_auxiliary(this%signals(i)%p,                    &
+     &                                   this%recout_iou, i)
+         END DO
+      END IF
 
       END SUBROUTINE
 
