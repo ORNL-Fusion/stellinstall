@@ -238,8 +238,7 @@
       INTEGER                                   :: num_steps = 1
       LOGICAL                                   :: converged
       INTEGER                                   :: i
-      REAL (rprec), DIMENSION(4)                :: sigma
-      REAL (rprec), DIMENSION(4)                :: observed
+      REAL (rprec)                              :: g2
 
 !  Start of executable code
       WRITE (*,*) ' *** In task v3post'
@@ -260,13 +259,18 @@
       WRITE (*,*) ' *** Calculating modeled signals'
       WRITE (context%runlog_iou,*) ' *** Calculating modeled signals'
 
+      g2 = 0.0
       DO i = 1, SIZE(context%signals)
-         observed = signal_get_modeled_signal(context%signals(i)%p,            &
-     &                                        context%model,                   &
-     &                                        sigma, .false.)
+         g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
+     &                           context%model, .false.)
       END DO
 
+      WRITE (*,1000) g2
+      WRITE (context%runlog_iou,1000) g2
+
       CALL v3fit_context_init_data(context)
+
+1000  FORMAT('g^2 = ',es12.5)
 
       END SUBROUTINE
 

@@ -1614,12 +1614,12 @@
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_plasma_edge.
 !>
-!>  @param[in]  this A @ref vmec_class instance.
-!>  @param[in]  phi  Toroidal angle to determine the outer surface at.
-!>  @param[out] r    The radial postions of the other surface in a single
-!>                   toroidal angle.
-!>  @param[out] z    The Z postions of the other surface in a single toroidal
-!>                   angle.
+!>  @param[in]    this A @ref vmec_class instance.
+!>  @param[in]    phi  Toroidal angle to determine the outer surface at.
+!>  @param[inout] r    The radial postions of the other surface in a single
+!>                     toroidal angle.
+!>  @param[inout] z    The Z postions of the other surface in a single toroidal
+!>                     angle.
 !>  @returns The number of elements in the r and z arrays.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_plasma_edge(this, phi, r, z)
@@ -1631,10 +1631,10 @@
 
 !  Declare Arguments
       INTEGER :: vmec_get_plasma_edge
-      TYPE (vmec_class), INTENT(in)                    :: this
-      REAL (rprec), INTENT (in)                        :: phi
-      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: r
-      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: z
+      TYPE (vmec_class), INTENT(in)                      :: this
+      REAL (rprec), INTENT (in)                          :: phi
+      REAL (rprec), DIMENSION(:), POINTER, INTENT(inout) :: r
+      REAL (rprec), DIMENSION(:), POINTER, INTENT(inout) :: z
 
 !  local variables
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosv, sinv
@@ -1642,7 +1642,7 @@
       INTEGER                                 :: i
 
 !  Start of executable code
-      vmec_get_plasma_edge = 2*mpol + 6
+      vmec_get_plasma_edge = MAX(ns, 2*mpol + 6)
 
       IF (.not.ASSOCIATED(r)) THEN
          ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
