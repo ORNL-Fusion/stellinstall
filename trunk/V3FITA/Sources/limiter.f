@@ -347,7 +347,9 @@
       r => null()
       z => null()
 
-      sigma = this%model_sigma
+!>  @todo resolve why this doesn't use the sigma default in the old coding.
+!      sigma = this%model_sigma
+      sigma = 1.0E-10_rprec
 
       END FUNCTION
 
