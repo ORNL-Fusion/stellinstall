@@ -427,12 +427,18 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+!  local variables
+      LOGICAL                                   :: force_solve
+
 !  Start of executable code
       WRITE (*,*) ' *** Constructing equilibrium model'
       WRITE (context%runlog_iou,*) ' *** Constructing equilibrium model'
 
+      force_solve =                                                            &
+     &   commandline_parser_is_flag_set(context%cl_parser, '-force')
+
       IF (vmec_nli_filename .ne. '') THEN
-         CALL init_vmec_equilibrium(context)
+         CALL init_vmec_equilibrium(context, force_solve)
       END IF
 
       END SUBROUTINE
@@ -442,15 +448,18 @@
 !>
 !>  This constructs and initializes a @ref vmec_equilibrium.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context     An instance of a @ref v3fit_context object.
+!>  @param[in]    force_solve If true, forces the equilbirum to resolve every
+!>                            time.
 !-------------------------------------------------------------------------------
-      SUBROUTINE init_vmec_equilibrium(context)
+      SUBROUTINE init_vmec_equilibrium(context, force_solve)
       USE v3fit_context
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
+      LOGICAL, INTENT(in)                       :: force_solve
 
 !  local variables
       TYPE (pprofile), POINTER                  :: ne => null()
@@ -470,7 +479,8 @@
      &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
      &                                        ne, te, sxr,                     &
-     &                                        context%runlog_iou)))
+     &                                        context%runlog_iou),             &
+     &                         force_solve))
 
       END SUBROUTINE
 

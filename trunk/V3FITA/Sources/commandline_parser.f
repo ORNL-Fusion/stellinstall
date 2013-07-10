@@ -259,6 +259,8 @@
       WRITE(*,*) '  -d       N Use default namelist input file         '
       WRITE(*,*) '  -file    Y Specify the v3fit namelist input file   '
       WRITE(*,*) '  -test    N Run unit tests                          '
+      WRITE(*,*) '  -force   N Forces the equilibrium to resolve on    '
+      WRITE(*,*) '             every reconstruction parameter.         '
       WRITE(*,*) '                                                     '
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '

@@ -47,6 +47,8 @@
          INTEGER                    :: type = equilibrium_no_type
 !>  Controls if an equilibrium needs to be resolved or not.
          LOGICAL                    :: not_converged
+!>  Controls if an equilibrium is forces to be resolved or not.
+         LOGICAL                    :: force_solve
 !>  An instance of a @ref vmec_equilibrium object.
          TYPE (vmec_class), POINTER :: vmec => null()
       END TYPE
@@ -72,15 +74,17 @@
 !>
 !>  Allocates memory and initializes a @ref equilibrium_class object.
 !>  @param[in] vmec_object An instance of a @ref vmec_equilibrium subclass.
+!>  @param[in] force_solve If true, forces the equilbirum to resolve every time.
 !>  @returns A pointer to a constructed @ref equilibrium_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_construct_vmec(vmec_object)
+      FUNCTION equilibrium_construct_vmec(vmec_object, force_solve)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (equilibrium_class), POINTER :: equilibrium_construct_vmec
       TYPE (vmec_class), POINTER, INTENT(in) :: vmec_object
+      LOGICAL, INTENT(in)                    :: force_solve
 
 !  Start of executable code
       ALLOCATE(equilibrium_construct_vmec)
@@ -88,6 +92,7 @@
       equilibrium_construct_vmec%type = equilibrium_vmec_type
       equilibrium_construct_vmec%vmec => vmec_object
       equilibrium_construct_vmec%not_converged = .true.
+      equilibrium_construct_vmec%force_solve = force_solve
 
       END FUNCTION
 
@@ -116,6 +121,7 @@
 
       this%type = equilibrium_no_type
       this%not_converged = .true.
+      this%force_solve = .false.
 
       DEALLOCATE(this)
 
@@ -977,7 +983,7 @@
 
 !  Start of executable code
       init_num_iter = num_iter
-      IF (this%not_converged) THEN
+      IF (this%not_converged .or. this%force_solve) THEN
          SELECT CASE (this%type)
 
             CASE (equilibrium_vmec_type)

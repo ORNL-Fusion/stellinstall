@@ -1,7 +1,7 @@
 !-------------------------------------------------------------------------------
 !  The @fixed_width, @begin_table, @item2 and @end_table commands are custom
 !  defined commands in Doxygen.in. They are defined under ALIASES. For the page
-!  created here, the 8 column limit is exceeded. Arguments of aliases are
+!  created here, the 80 column limit is exceeded. Arguments of aliases are
 !  separated by ','. You intended ',' to be a string you must use an escaped
 !  comma '\,'.
 !
@@ -50,12 +50,12 @@
 !>  @code
 !>  !  A thomson scattering point specified in Cartesian coordinates measuring electron temperature.
 !>  thscte_XYZ_te
-!>  sxr001
+!>  tsc001
 !>  1.0 0.0 0.0
 !>
 !>  !  A soft x-ray chord specified in Cylindrical coordinates measuring electron denisty.
 !>  thscte_RPhiDegZ_ne
-!>  sxr002
+!>  tsc002
 !>  1.0 0.0 0.0
 !>
 !>  !  All files must end with
