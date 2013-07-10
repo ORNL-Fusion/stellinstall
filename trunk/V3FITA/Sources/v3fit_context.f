@@ -349,7 +349,7 @@
       END IF
 
 !  Write out the signals
-      IF (ASSOCIATED(this%signals) THEN
+      IF (ASSOCIATED(this%signals)) THEN
          DO i = 1, SIZE(this%signals)
 !  Check if the index has reached a new signal type
             IF ((this%magnetic_index .eq. i) .or.                              &
