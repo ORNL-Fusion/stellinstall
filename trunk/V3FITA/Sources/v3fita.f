@@ -3279,13 +3279,16 @@
      &   t24,'expected',t35,'used',t43,'(normalized)')
 2100  FORMAT(2x,i3,2x,es11.4,2x,es11.4,3x,i3,3x,es11.4)
 
+!  Don't write out gsq info if there was zero reconstruction steps.
+      IF (nrs .ne. 0) THEN
 !  Write out the confidence limit information
 !      CALL gsq_write_conf(rp_new,'end reconstruct_a1',6)
-      CALL gsq_write_conf(rp_new,'end reconstruct_a1',iou_recout)
+         CALL gsq_write_conf(rp_new,'end reconstruct_a1',iou_recout)
 
 !  Write out the weighted and non weighted segments of g^2.
-      CALL gsq_write_g2_comp(sd_model,sd_observe(1:n_s_desc),                  &
-     &                       iou_recout)
+         CALL gsq_write_g2_comp(sd_model,sd_observe(1:n_s_desc),               &
+     &                          iou_recout)
+      END IF
 
 !  Write out the most redundant parameters
 !  Commented out JDH 2010-06-10. Not very useful.
