@@ -3280,7 +3280,7 @@
 2100  FORMAT(2x,i3,2x,es11.4,2x,es11.4,3x,i3,3x,es11.4)
 
 !  Don't write out gsq info if there was zero reconstruction steps.
-      IF (nrs .lt. 0) THEN
+      IF (nrs .gt. 0) THEN
 !  Write out the confidence limit information
 !      CALL gsq_write_conf(rp_new,'end reconstruct_a1',6)
          CALL gsq_write_conf(rp_new,'end reconstruct_a1',iou_recout)
