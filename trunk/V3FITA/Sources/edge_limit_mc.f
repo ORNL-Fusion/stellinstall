@@ -172,7 +172,7 @@
             arr_data(1) = MAX(fval_max,zero)
          ENDIF
          arr_data(2:4) = rpz_at_max
-         arr_sigma(1:4) = 1.E-10
+         arr_sigma(1:4) = 0.0
 
       CASE ('polygon')
          CALL err_fatal(sub_name // 'This type NYI: ',                         &

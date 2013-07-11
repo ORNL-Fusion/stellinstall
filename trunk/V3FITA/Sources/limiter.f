@@ -49,7 +49,6 @@
 !>  If true, the reconstruction tries to place the edge on the limiter.
 !>  Otherwise, the plasma edge is kept inside the limiter.
          LOGICAL                     :: on_edge = .false.
-         REAL (rprec)                :: model_sigma = 0.0
          TYPE (limiter_iso), POINTER :: iso => null()
       END TYPE limiter_class
 
@@ -81,10 +80,9 @@
 !>                         not. If true, the reconstruction tries to have the
 !>                         limiter touch the limiter. If false, the edge will
 !>                         only just fall inside the limiter.
-!>  @param[in] model_sigma Uncertianty is the modeled signal.
 !>  @returns A pointer to a constructed @ref limiter_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_construct_iso(iso, on_edge, model_sigma)
+      FUNCTION limiter_construct_iso(iso, on_edge)
 
       IMPLICIT NONE
 
@@ -92,14 +90,12 @@
       TYPE (limiter_class), POINTER           :: limiter_construct_iso
       TYPE (limiter_iso), POINTER, INTENT(in) :: iso
       LOGICAL, INTENT(in)                     :: on_edge
-      REAL (rprec), INTENT(in)                :: model_sigma
 
 !  Start of executable code
       ALLOCATE(limiter_construct_iso)
 
       limiter_construct_iso%type = limiter_iso_type
       limiter_construct_iso%on_edge = on_edge
-      limiter_construct_iso%model_sigma = model_sigma
       limiter_construct_iso%iso => iso
 
       END FUNCTION
@@ -347,9 +343,7 @@
       r => null()
       z => null()
 
-!>  @todo resolve why this doesn't use the sigma default in the old coding.
-!      sigma = this%model_sigma
-      sigma = 1.0E-10_rprec
+      sigma = 0.0
 
       END FUNCTION
 

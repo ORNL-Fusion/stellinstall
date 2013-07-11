@@ -763,7 +763,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing extcurz signals'
-      WRITE (context%recout_iou,*) ' *** Constructing extcurz signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing extcurz signals'
 
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
@@ -815,7 +815,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing geometric signals'
-      WRITE (context%recout_iou,*) ' *** Constructing geometric signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing geometric signals'
 
 !  For now, only limiter functions can be created.
       DO i = 1, n_lif
@@ -843,10 +843,14 @@
      &           lif_rc(i), lif_zc(i), 20,                                     &
      &           lif_phi_degree(i,1:num_phi)*degree)
 
+!  Check if the sdo_sigma is zero and replace it lif_sigma instead.
+         IF (sdo_sigma_a(signals_created + 1) .eq. 0.0) THEN
+            sdo_sigma_a(signals_created + 1) = lif_sigma(i)
+         END IF
+
          context%signals(signals_created + 1)%p => signal_construct(           &
      &      geometric_construct(                                               &
-     &         limiter_construct(iso_funct, lif_on_edge(i),                    &
-     &                           lif_sigma(i))),                               &
+     &         limiter_construct(iso_funct, lif_on_edge(i))),                               &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1))
@@ -887,7 +891,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** Constructing combination signals'
-      WRITE (context%recout_iou,*) ' *** Constructing ' //                     &
+      WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
      &                             'combination signals'
 
       DO i = 1, n_coosig
@@ -2575,6 +2579,11 @@
          g_sigma_default = el_sigma_default
          CALL geometric_construct(g_desc(i),'edge_limit',g_name,               &
      &      g_units,g_sigma_default,el_desc_local)
+
+!  Check if the sdo_sigma is zero and replace it lif_sigma instead.
+         IF (sdo_sigma_a(n_s_desc + i) .eq. 0.0) THEN
+            sdo_sigma_a(n_s_desc + i) = lif_sigma(i)
+         END IF
       END DO
       n_g_desc = n_lif
 
