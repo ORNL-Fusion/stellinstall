@@ -450,7 +450,7 @@
 !  Define dimensions
       IF (ASSOCIATED(this%recon)) THEN
          status = nf_def_dim(this%result_ncid, 'maxnsteps',                    &
-     &                       SIZE(this%recon%e), maxnsteps_dim_id)
+     &                       SIZE(this%recon%e, 1), maxnsteps_dim_id)
       ELSE
          status = nf_def_dim(this%result_ncid, 'maxnsteps',                    &
      &                       1, maxnsteps_dim_id)
