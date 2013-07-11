@@ -1,3 +1,42 @@
+!-------------------------------------------------------------------------------
+!  The @header2, @begin_table, @item3 and @end_table commands are custom defined
+!  commands in Doxygen.in. They are defined under ALIASES. For the page created
+!  here, the 80 column limit is exceeded. Arguments of aliases are separated by
+!  ','. You intended ',' to be a string you must use an escaped comma '\,'.
+!
+!>  @page cl_parsing_sec Command Line Arguments
+!>
+!>  @tableofcontents
+!>
+!>  @section cl_parsing_intro Introduction.
+!>  This contains a description of the command line arguments. All arguments
+!>  take the form of
+!>
+!>  @fixed_width{-arg=value}
+!>
+!>  If no @fixed_width{-arg=} is found, then the @fixed_width{-file} is implied.
+!>  In other words, a command line of
+!>
+!>  @fixed_width{xv3fit input.file}
+!>
+!>  is the same as
+!>
+!>  @fixed_width{xv3fit -file=input.file}
+!>
+!>  @section cl_parsing_arg_sec Command Line Arguments
+!>  @header2{Argument, Takes Value, Discription}
+!>  @begin_table
+!>  @item3{@fixed_width{-h}, N, Display the help text and exits the program.}
+!>  @item3{@fixed_width{-d}, N, Use the default namelist input file. The default input filename is @fixed_width{v3fit.in}.}
+!>  @item3{@fixed_width{-file}, Y, Specify the v3fit namelist input file.}
+!>  @item3{@fixed_width{-test}, N, Overwrites the @ref v3fit_input::my_task variable and runs the internal unit tests instead.}
+!>  @item3{@fixed_width{-force}, N, Forces the equilibrium to re-solve on every reconstruction parameter}
+!>  @end_table
+!>
+!>  @section cl_pasring_prog_ref_secProgrammers Reference
+!>  Reference material for the coding to implement command line parsing is found
+!>  in the @ref commandline_parser module.
+!-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file commandline_parser.f
 !>  @brief Contains module @ref commandline_parser
@@ -239,7 +278,8 @@
 !>  Command line help text should take the form of
 !>  '-flag' that is maximum length of @ref max_arg_length followed by a space.
 !>  A Y or N indicating the flag takes a value or not followed by a space.
-!>  A short message describing the flag.
+!>  A short message describing the flag. A reference for all the command line
+!>  arguments can be found at @ref cl_parsing_sec.
 !-------------------------------------------------------------------------------
       SUBROUTINE commandline_parser_print_help
 
