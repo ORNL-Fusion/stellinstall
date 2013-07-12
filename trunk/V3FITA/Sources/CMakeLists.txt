@@ -3,7 +3,6 @@ cmake_minimum_required (VERSION 2.8)
 # Append all source files to variable stell_sources. As new files are added this must be updated.
 list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
-	${CMAKE_CURRENT_SOURCE_DIR}/boundary.f
         ${CMAKE_CURRENT_SOURCE_DIR}/boundary_mc.f
 	${CMAKE_CURRENT_SOURCE_DIR}/coosig_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/diagnostic.f
@@ -27,7 +26,6 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/model_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/pprofile_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/prior.f
-	${CMAKE_CURRENT_SOURCE_DIR}/prior_range.f
 	${CMAKE_CURRENT_SOURCE_DIR}/prior_gaussian.f
 	${CMAKE_CURRENT_SOURCE_DIR}/recon_param_model.f
 	${CMAKE_CURRENT_SOURCE_DIR}/recon_param_T.f
