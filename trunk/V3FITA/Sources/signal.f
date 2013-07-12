@@ -9,7 +9,7 @@
 !>  @ref combination_class.
 !>  @par
 !>  signal Sub Classes:
-!>  @ref diagnostic, @ref geometric, @ref combination_class
+!>  @ref diagnostic, @ref geometric, @ref prior, @ref combination_class
 !>
 !>  @par
 !>  combination Super Class:
@@ -23,6 +23,7 @@
       USE stel_kinds, only: rprec
       USE diagnostic
       USE geometric
+      USE prior
       USE data_parameters
 
       IMPLICIT NONE
@@ -36,9 +37,11 @@
       INTEGER, PARAMETER :: signal_diagnostic_type = 0
 !>  Type descriptor for the @ref signal_class subclass @ref geometric
       INTEGER, PARAMETER :: signal_geometric_type = 1
+!>  Type descriptor for the @ref signal_class subclass @ref prior
+      INTEGER, PARAMETER :: signal_prior_type = 2
 !>  Type descriptor for the @ref signal_class subclass @ref combination_class
 !  Use combination_class since combination lacks it's own module.
-      INTEGER, PARAMETER :: signal_combination_type = 2
+      INTEGER, PARAMETER :: signal_combination_type = 3
 
 !*******************************************************************************
 !  combination module parameters
@@ -65,7 +68,7 @@
 !-------------------------------------------------------------------------------
 !>  Base class representing a signal.
 !>  @par Sub Classes:
-!>  @ref diagnostic, @ref geometric, @ref combination_class
+!>  @ref diagnostic, @ref geometric, @ref prior, @ref combination_class
 !-------------------------------------------------------------------------------
       TYPE signal_class
 !>  Type descirptor of the signal subclass type.
@@ -91,6 +94,8 @@
          TYPE (diagnostic_class), POINTER   :: diagnostic => null()
 !>  An instance of a @ref geometric object.
          TYPE (geometric_class), POINTER    :: geometric => null()
+!>  An instance of a @ref prior object.
+         TYPE (prior_class), POINTER        :: prior => null()
 !>  An instance of a @ref combination object.
          TYPE (combination_class), POINTER  :: combination => null()
       END TYPE signal_class
@@ -133,6 +138,7 @@
       INTERFACE signal_construct
          MODULE PROCEDURE signal_construct_diagnostic,                         &
      &                    signal_construct_geometric,                          &
+     &                    signal_construct_prior,                              &
      &                    signal_construct_combination,                        &
      &                    signal_construct_diagnostic_netcdf
       END INTERFACE
@@ -228,6 +234,50 @@
       signal_construct_geometric%geometric => geometric_object
       signal_construct_geometric%modeled = 0.0
       signal_construct_geometric%modeled_sigma = 0.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref prior object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>  @param[in] prior_object An instance of a @ref prior subclass.
+!>  @param[in] s_name       The short name of the signal.
+!>  @param[in] l_name       The short name of the signal.
+!>  @param[in] units        The units of the signal.
+!>  @param[in] observed     Observed value of the signal.
+!>  @param[in] sigma        Observed sigma of the signal.
+!>  @param[in] weight       Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_prior(prior_object, s_name, l_name,            &
+     &                                units, observed, sigma, weight)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER       :: signal_construct_prior
+      TYPE (prior_class), POINTER, INTENT(in) :: prior_object
+      CHARACTER(len=*), INTENT(in)       :: s_name
+      CHARACTER(len=*), INTENT(in)       :: l_name
+      CHARACTER(len=*), INTENT(in)       :: units
+      REAL(rprec), INTENT(in)            :: observed
+      REAL(rprec), INTENT(in)            :: sigma
+      REAL(rprec), INTENT(in)            :: weight
+
+!  Start of executable code
+      ALLOCATE(signal_construct_prior)
+
+      signal_construct_prior%type = signal_prior_type
+      signal_construct_prior%s_name = s_name
+      signal_construct_prior%l_name = l_name
+      signal_construct_prior%units = units
+      signal_construct_prior%observed = observed
+      signal_construct_prior%observed_sigma = sigma
+      signal_construct_prior%weight = weight
+      signal_construct_prior%prior => prior_object
+      signal_construct_prior%modeled = 0.0
+      signal_construct_prior%modeled_sigma = 0.0
 
       END FUNCTION
 
@@ -350,6 +400,11 @@
          this%geometric => null()
       END IF
 
+      IF (ASSOCIATED(this%prior)) THEN
+         CALL prior_destruct(this%prior)
+         this%prior => null()
+      END IF
+
       IF (ASSOCIATED(this%combination)) THEN
          CALL combination_destruct(this%combination)
          this%combination => null()
@@ -383,6 +438,7 @@
 !>
 !>  @see diagnostic::diagnostic_get_modeled_signal
 !>  @see geometric::geometric_get_modeled_signal
+!>  @see prior::prior_get_modeled_signal
 !>  @see combination_get_modeled_signal
 !>
 !>  @param[in]    this      A @ref diagnostic_class instance.
@@ -422,6 +478,10 @@
                signal_get_modeled_signal =                                     &
      &            geometric_get_modeled_signal(this%geometric,                 &
      &                                         a_model, sigma)
+
+            CASE (signal_prior_type)
+               signal_get_modeled_signal =                                     &
+     &            prior_get_modeled_signal(this%prior, a_model, sigma)
 
             CASE (signal_combination_type)
                signal_get_modeled_signal =                                     &
@@ -541,6 +601,7 @@
 !>
 !>  @see diagnostic::diagnostic_get_signal_type
 !>  @see geometric::geometric_get_signal_type
+!>  @see prior::prior_get_signal_type
 !>  @see combination_get_signal_type
 !>
 !>  @param[in] this A @ref signal_class instance.
@@ -565,6 +626,10 @@
             signal_get_signal_type =                                           &
      &         TRIM(geometric_get_signal_type(this%geometric))
 
+         CASE (signal_prior_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(prior_get_signal_type(this%prior))
+
          CASE (signal_combination_type)
             signal_get_signal_type =                                           &
      &         TRIM(combination_get_signal_type(this%combination))
@@ -582,6 +647,7 @@
 !>
 !>  @see diagnostic::diagnostic_get_header
 !>  @see geometric::geometric_get_header
+!>  @see prior::prior_get_header
 !>  @see combination_get_header
 !>
 !>  @param[in] this A @ref signal_class instance.
@@ -604,6 +670,9 @@
 
          CASE (signal_geometric_type)
             signal_get_header = geometric_get_header(this%geometric)
+
+         CASE (signal_prior_type)
+            signal_get_header = prior_get_header(this%prior)
 
          CASE (signal_combination_type)
             signal_get_header = combination_get_header(this%combination)

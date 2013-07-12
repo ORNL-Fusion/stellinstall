@@ -334,6 +334,7 @@
 
 !  Start of executable code
       SELECT CASE(this%type)
+
          CASE (diagnostic_magnetic_type)
             diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
      &         magnetic_get_signal_type(this%magnetic))

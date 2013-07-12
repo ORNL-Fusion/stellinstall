@@ -9,14 +9,12 @@
 !>  @par Super Class:
 !>  @ref signal
 !>  @par Sub Classes:
-!>  @ref limiter, boundary
-!>  @note boundary will be removed and replaced with priors.
+!>  @ref limiter
 !*******************************************************************************
 
       MODULE geometric
 
       USE limiter
-      USE boundary
 
       IMPLICIT NONE
 
@@ -27,8 +25,6 @@
       INTEGER, PARAMETER :: geometric_no_type = -1
 !>  Type descriptor for the @ref geometric_class subclass @ref limiter
       INTEGER, PARAMETER :: geometric_limiter_type = 0
-!>  @note will be removed.
-      INTEGER, PARAMETER :: geometric_boundary_type = 1
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -47,11 +43,8 @@
 !>  @par Possible values are:
 !>  * @ref geometric_no_type
 !>  * @ref geometric_limiter_type,
-!>  * @ref geometric_boundary_type
-!>  @note boundary will be removed and replaced with priors.
-         INTEGER                       :: type = geometric_no_type
-         TYPE(limiter_class),  POINTER :: limiter => null()
-         TYPE(boundary_class), POINTER :: boundary => null()
+         INTEGER                        :: type = geometric_no_type
+         TYPE (limiter_class),  POINTER :: limiter => null()
       END TYPE geometric_class
 
 !*******************************************************************************
@@ -59,13 +52,10 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the constriction of @ref geometric_class types either using
-!>  @ref geometric_construct_limiter or @ref geometric_construct_boundary
-!
-!>  @note @ref geometric_construct_boundary will be removed.
+!>  @ref geometric_construct_limiter
 !-------------------------------------------------------------------------------
       INTERFACE geometric_construct
-      MODULE PROCEDURE geometric_construct_limiter,                            &
-     &                 geometric_construct_boundary
+      MODULE PROCEDURE geometric_construct_limiter
       END INTERFACE
 
       CONTAINS
@@ -96,28 +86,6 @@
 
       END FUNCTION
 
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref geometric_class containing a @ref boundary object.
-!>
-!>  Allocates memory and initializes a @ref geometric_class object.
-!>  @param[in] boundary_object An instance of a boundary subclass.
-!>  @returns A pointer to a constructed @ref geometric_class object.
-!>  @note boundary will be removed and replaced with priors.
-!-------------------------------------------------------------------------------
-      FUNCTION geometric_construct_boundary(boundary_object)
-
-      IMPLICIT NONE
-      TYPE (geometric_class), POINTER :: geometric_construct_boundary
-      TYPE (boundary_class), POINTER, INTENT(in) :: boundary_object
-
-!  Start of executable code
-      ALLOCATE(geometric_construct_boundary)
-
-      geometric_construct_boundary%type = geometric_boundary_type
-      geometric_construct_boundary%boundary => boundary_object
-
-      END FUNCTION
-
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -139,11 +107,6 @@
       IF (ASSOCIATED(this%limiter)) THEN
          CALL limiter_destruct(this%limiter)
          this%limiter => null()
-      END IF
-
-      IF (ASSOCIATED(this%boundary)) THEN
-         CALL boundary_destruct(this%boundary)
-         this%boundary => null()
       END IF
 
       this%type = geometric_no_type
@@ -168,7 +131,6 @@
 !>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
-!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -188,11 +150,6 @@
      &         limiter_get_modeled_signal(this%limiter, a_model,               &
      &                                    sigma)
 
-         CASE (geometric_boundary_type)
-            geometric_get_modeled_signal =                                     &
-     &         boundary_get_modeled_signal(this%boundary, a_model,             &
-     &                                     sigma)
-
       END SELECT
 
       END FUNCTION
@@ -208,7 +165,6 @@
 !>
 !>  @param[in] this A @ref geometric_class instance.
 !>  @returns A string describing the geometric type.
-!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_signal_type(this)
       USE data_parameters
@@ -226,10 +182,6 @@
             geometric_get_signal_type = 'geometric ' //                        &
      &         TRIM(limiter_get_signal_type(this%limiter))
 
-         CASE (geometric_boundary_type)
-            geometric_get_signal_type = 'geometric ' //                        &
-     &         TRIM(boundary_get_signal_type(this%boundary))
-
       END SELECT
 
       END FUNCTION
@@ -245,7 +197,6 @@
 !>
 !>  @param[in] this A @ref geometric_class instance.
 !>  @returns A string describing the model and model sigma array indices.
-!>  @note boundary will be removed and replaced with priors.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_header(this)
       USE data_parameters

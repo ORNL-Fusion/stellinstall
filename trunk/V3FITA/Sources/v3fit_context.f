@@ -68,6 +68,9 @@
 !>  Index of the first instance of a @ref limiter signal. The default -1
 !>  represents no @ref limiter signal created.
          INTEGER :: limiter_index = -1
+!>  Index of the first instance of a @ref prior_guassian signal. The default -1
+!>  represents no @ref prior_guassian signal created.
+         INTEGER :: prior_guassian_index = -1
 !>  Index of the first instance of a @ref combination_class signal. The default
 !>  -1 represents no @ref combination_class signal created.
          INTEGER :: combination_index = -1
@@ -246,6 +249,7 @@
       this%thomson_index = -1
       this%extcurz_index = -1
       this%limiter_index = -1
+      this%prior_guassian_index = -1
       this%combination_index = -1
 
       DEALLOCATE(this)
@@ -358,6 +362,7 @@
      &          (this%thomson_index .eq. i) .or.                               &
      &          (this%extcurz_index .eq. i) .or.                               &
      &          (this%limiter_index .eq. i) .or.                               &
+     &          (this%prior_guassian_index .eq. i) .or.                        &
      &          (this%combination_index .eq. i)) THEN
 
                CALL signal_write_header(this%signals(i)%p,                     &

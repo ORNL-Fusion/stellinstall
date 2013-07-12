@@ -142,6 +142,14 @@
 !>           v3fit_input::lif_on_edge}
 !>  @end_table
 !>
+!>  @table_section{geometric_sec, Prior information}
+!>     @item{n_prior,          Number of specified priors.,             v3fit_input::n_prior}
+!>     @item{prior_name,       Name of the specified priors.,           v3fit_input::prior_name}
+!>     @item{prior_param_name, Name of the prior parameter.,            v3fit_input::prior_param_name}
+!>     @item{prior_indices,    The ith and jth index of the parameter., v3fit_input::prior_indicies}
+!>     @item{prior_units,      The units of the prior signal          , v3fit_input::prior_units}
+!>  @end_table
+!>
 !>  @table_section{coosig_sec, COOSIG - Combination Of Other SIGnals NLI Variables}
 !>     @item{n_coosig,       Number of new signals of signal_type coosig,                                                                                                           v3fit_input::n_coosig}
 !>     @item{n_sig_coosig,   Array of number of signals in a combinaton.,                                                                                                           v3fit_input::n_sig_coosig}
@@ -392,15 +400,18 @@
 !*******************************************************************************
 !  v3fit input module parameters
 !*******************************************************************************
-!>  Maximum number of diagnostic signal.
+!>  Maximum number of diagnostic signals.
       INTEGER, PARAMETER :: v3fit_max_diagnostics = 1000
-!>  Maximum number of geometric signal.
+!>  Maximum number of geometric signals.
       INTEGER, PARAMETER :: v3fit_max_geometrics = 1000
-!>  Maximum number of combination signal.
+!>  Maximum number of prior signals.
+      INTEGER, PARAMETER :: v3fit_max_priors = 1000
+!>  Maximum number of combination signals.
       INTEGER, PARAMETER :: v3fit_max_combinations = 1000
-!>  Maximum number of total signal.
+!>  Maximum number of total signals.
       INTEGER, PARAMETER :: v3fit_max_signals = v3fit_max_diagnostics          &
      &                                        + v3fit_max_geometrics           &
+     &                                        + v3fit_max_priors               &
      &                                        + v3fit_max_combinations
 
 !>  Maximum number of reconstruction parameters.
@@ -672,10 +683,20 @@
       LOGICAL, DIMENSION(v3fit_max_geometrics)      ::                         &
      &   lif_on_edge = .false.
 
-!  Use external boundary as signal
-!>  @deprecated The implentation is VMEC specific. This will eventually be
-!>  removed and replaced by priors when they are implemented.
-      LOGICAL :: use_boundary
+!  Prior signal specification.
+!>  Number of specified priors.
+      INTEGER                                       :: n_prior = 0
+!>  Prior names.
+      CHARACTER (len=data_name_length), DIMENSION(v3fit_max_priors)            &
+     &   :: prior_name = ''
+!>  Prior parameter names.
+      CHARACTER (len=data_name_length), DIMENSION(v3fit_max_priors)            &
+     &   :: prior_param_name = ''
+!>  Prior parameter indicies.
+      INTEGER, DIMENSION(v3fit_max_priors,2) :: prior_indices = 0
+!>  Prior Units
+      CHARACTER (len=data_short_name_length),                                  &
+     &   DIMENSION(v3fit_max_priors) :: prior_units = ''
 
 !  Combinations of other signals specification.
 !>  Number of combination signals.
@@ -777,10 +798,9 @@
 !  Limiter iso function specification.
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 &
      &   lif_phi_degree, lif_on_edge,                                          &
-!  Use external boundary as signal
-!>  @deprecated The implementation is VMEC specific. This will eventually be
-!>  removed and will replaced by priors when they are implemented.
-     &   use_boundary,                                                         &
+!  Prior signal specification.
+     &   n_prior, prior_name, prior_param_name, prior_indices,                 &
+     &   prior_units,                                                          &
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
      &   coosig_type, coosig_name, coosig_units,                               &

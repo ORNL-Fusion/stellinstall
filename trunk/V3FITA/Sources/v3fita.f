@@ -545,6 +545,8 @@
 
       CALL init_geometric_signals(context, signals_created)
 
+      CALL init_prior_signals(context, signals_created)
+
       CALL init_combination_signals(context, signals_created)
 
       CALL v3fit_context_resize(context)
@@ -557,7 +559,9 @@
 !>  This constructs all @ref magnetic signals from the specified
 !>  @ref v3fit_input::mdsig_list_filename.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_magnetic_signals(context, signals_created)
       USE v3fit_context
@@ -653,7 +657,9 @@
 !>  This constructs all @ref sxrem signals from the specified
 !>  @ref v3fit_input::sxrch_dot_filename.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_sxrem_signals(context, signals_created)
       USE v3fit_context
@@ -685,7 +691,9 @@
 !>  This constructs all @ref intpol signals from the specified
 !>  @ref v3fit_input::ipch_dot_filenam.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_intpol_signals(context, signals_created)
       USE v3fit_context
@@ -717,7 +725,9 @@
 !>  This constructs all @ref thomson signals from the specified
 !>  @ref v3fit_input::thscte_dot_filename.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_thomson_signals(context, signals_created)
       USE v3fit_context
@@ -750,7 +760,9 @@
 !>  This constructs the extcurz signal from @ref v3fit_input::extcurz_s0 and
 !>  @ref v3fit_input::extcurz_u0.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_extcurz_signals(context, signals_created)
       USE v3fit_context
@@ -794,7 +806,9 @@
 !>
 !>  For not only @ref limiter signals are constructed.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_geometric_signals(context, signals_created)
       USE v3fit_context
@@ -831,7 +845,7 @@
      &                     ' exceeds v3fit_max_geometrics')
          END IF
 
-         WRITE (s_name,*) TRIM(signal_make_short_name('edge_lim_', i))
+         s_name = TRIM(signal_make_short_name('edge_lim_', i))
          WRITE (l_name,'(a,i4)') 'edge limiter iso function ', i
 
          num_phi = MAX(MIN(v3fit_max_lif_size, n_phi_lif(i)), 1)
@@ -872,9 +886,72 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
+!>  @brief Constructs @ref prior signals.
+!>
+!>  For not only @ref prior_guassian signals are constructed.
+!>
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_prior_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i
+
+!  Start of executable code
+      WRITE (*,*) ' *** Constructing prior signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing prior signals'
+
+!  For now, only limiter functions can be created.
+      DO i = 1, n_prior
+!  Check if there are two many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_prior_signals: created signals' //            &
+     &                     ' exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are two many geometric signals.
+         IF (i .gt. v3fit_max_priors) THEN
+            CALL err_fatal('init_prior_signals: created signals' //            &
+     &                     ' exceeds v3fit_max_priors')
+         END IF
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      prior_construct(                                                   &
+     &         prior_gaussian_construct(context%model,                         &
+     &                                  prior_param_name(i),                   &
+     &                                  prior_indices(i,:))),                  &
+     &      TRIM(signal_make_short_name('prior_', i)), prior_name(i),          &
+     &      prior_units(i), sdo_data_a(signals_created + 1),                   &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
+
+         signals_created = signals_created + 1
+
+!  At lease one prior signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%prior_guassian_index .eq. -1) THEN
+            context%prior_guassian_index = signals_created
+         END IF
+
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Constructs @ref signal::combination_class signals.
 !>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE init_combination_signals(context, signals_created)
       USE v3fit_context
