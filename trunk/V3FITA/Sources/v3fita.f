@@ -340,6 +340,8 @@
 
             CALL reconstruction_eval_pos_covar(context%recon,                  &
      &                                         context%params)
+            CALL reconstruction_eval_sem(context%recon, context%params,        &
+     &                                   context%signals)
             CALL v3fit_context_write_step_data(context, .false.)
 
 !  Test for convergence.
@@ -1050,7 +1052,8 @@
      &                                          rp_vrnc(i),                    &
      &                                          rp_range_type(i,:),            &
      &                                          rp_range_index(i,:,:),         &
-     &                                          rp_range_value(i,:))
+     &                                          rp_range_value(i,:),           &
+     &                                          SIZE(context%signals))
 
       END DO
 

@@ -92,6 +92,10 @@
 !>  step.
 !>  @see param
          INTEGER :: param_sigma_id
+!>  NetCDF variable id contain the signal effectiveness matrix for each for each
+!>  reconstruction step.
+!>  @see param
+         INTEGER :: param_sem_id
 
 !>  NetCDF variable id contain the parameter values for each reconstruction
 !>  step.
@@ -415,6 +419,8 @@
 !>                                        reconstruction step.
 !>    * param_sigma (nparam, maxnsteps)   Parameter sigmas for each
 !>                                        reconstruction step.
+!>    * param_sem   (nparam, maxnsteps)   Signal effectiveness for each
+!>                                        reconstruction step.
 !>    @ref signal variables.
 !>    signal_name (string_len, nsignal)         @ref signa_class::s_name of the
 !>                                              signal.
@@ -517,6 +523,11 @@
      &                             maxnsteps_dim_id /),                        &
      &                       this%param_sigma_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_def_var(this%result_ncid, 'param_sem', nf_double,         &
+     &                       3, (/ nsignal_dim_id, nparam_dim_id,              &
+     &                             maxnsteps_dim_id /),                        &
+     &                       this%param_sem_id)
       END IF
 
       IF (ASSOCIATED(this%signals)) THEN
@@ -674,7 +685,8 @@
             CALL param_write_step_data(this%params(i)%p, this%model,           &
      &                                 this%result_ncid, current_step,         &
      &                                 i, this%param_value_id,                 &
-     &                                 this%param_sigma_id)
+     &                                 this%param_sigma_id,                    &
+     &                                 this%param_sem_id)
          END DO
       END IF
 

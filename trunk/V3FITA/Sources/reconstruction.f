@@ -1272,8 +1272,87 @@
 !  terms.
       DO i = 1, SIZE(params)
          params(i)%p%sigma = params(i)%p%delta*SQRT(SUM(                       &
-     &      (this%j_svd_vt(:,i)/MAX(this%j_svd_w, small_num))**2.0))
+     &      (this%j_svd_vt(1:i,i)/MAX(this%j_svd_w(1:i),                       &
+     &                                small_num))**2.0))
       END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the parameter covariance.
+!>
+!>  Calculates the signal effectiveness matrix. This value is stored in
+!>  @ref parameter::param_class::sem.
+!>
+!>  @param[inout] this   A @ref reconstruction_class instance.
+!>  @param[inout] params Array of @ref parameter objects.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_eval_sem(this, params, signals)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout)         :: this
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+
+!  local arguments
+      INTEGER                                            :: j
+      INTEGER                                            :: status
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: cs
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: cp
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: svd_vt
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: svd_u
+      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: svd_w
+      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: svd_work
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
+
+!  local parameters
+      REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
+
+!  Start of executable code
+      ALLOCATE(cs(SIZE(signals),SIZE(signals)))
+
+      cs = 0.0
+      DO j = 1, SIZE(signals)
+         cs(j,j) = 1.0/signal_get_sigma2(signals(j)%p)
+      END DO
+
+      ALLOCATE(cp(SIZE(params),SIZE(params)))
+
+!  J^T * C_s^-1 * J
+      cp = MATMUL(TRANSPOSE(this%jacobian), MATMUL(cs, this%jacobian))
+      DEALLOCATE(cs)
+
+!  Singular value decomposition of cpinv to invert this matrix.
+      ALLOCATE(svd_vt(SIZE(params),SIZE(params)))
+      ALLOCATE(svd_u(SIZE(params),SIZE(params)))
+      ALLOCATE(svd_w(SIZE(params)))
+      ALLOCATE(svd_work(5*Size(params)))
+
+      CALL dgesvd('All', 'All', SIZE(params), SIZE(params), cp,                &
+     &            SIZE(params), svd_w, svd_u, SIZE(params), svd_vt,            &
+     &            SIZE(params), svd_work, 5*SIZE(params), status)
+      CALL assert_eq(0, status, 'reconstruction_eval_sem: dgesvd ' //          &
+     &               'problem')
+      DEALLOCATE(svd_work)
+
+!  Invert cp
+      cp = 0.0
+      DO j = 1, SIZE(params)
+         cp(j,j) = 1.0/MAX(svd_w(j), small_num)
+      END DO
+      cp = MATMUL(TRANSPOSE(svd_vt),MATMUL(cp, TRANSPOSE(svd_u)))
+      DEALLOCATE(svd_u, svd_vt, svd_w)
+
+!  Compute signal effectiveness.
+      ALLOCATE(j_dot_cp(SIZE(signals),SIZE(params)))
+      j_dot_cp = MATMUL(this%jacobian, cp)
+      DO j = 1, SIZE(params)
+         params(j)%p%sem(:) = j_dot_cp(:,j)
+      END DO
+
+      DEALLOCATE(j_dot_cp)
 
       END SUBROUTINE
 

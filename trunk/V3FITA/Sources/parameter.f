@@ -60,23 +60,25 @@
 !>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
 !>  holds the parameter id's of the lower(1) and upper(2) boundary. Id's are
 !>  provided by either the @ref model or the @ref equilibrium.
-         INTEGER, DIMENSION(2)       :: range_id = data_no_id
+         INTEGER, DIMENSION(2)               :: range_id = data_no_id
 !>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
 !>  holds the parameter indices of the lower(1,:) and upper(2,:) boundary.
-         INTEGER, DIMENSION(2,2)     :: range_indicies = 0
+         INTEGER, DIMENSION(2,2)             :: range_indicies = 0
 !>  If the @ref param_class::range_type is @ref param_range_value_type, this
 !>  holds the value of the lower(1) and upper(2) boundary.
-         REAL (rprec), DIMENSION(2)  :: range_value = 0.0
+         REAL (rprec), DIMENSION(2)          :: range_value = 0.0
 
 !>  The contraints can change the normalization size of the patarameter when
 !>  incrementing it. Store the actual change in parameter here for
 !>  normalization. This value is set by @ref param_increment.
-         REAL (rprec)                :: delta
+         REAL (rprec)                        :: delta
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
 !>  step. This value is calculated by
 !>  @ref reconstruction::reconstruction_eval_pos_covar.
-         REAL (rprec)                :: sigma = 0.0
+         REAL (rprec)                        :: sigma = 0.0
+!>  Stored row of the signal effectiveness matrix.
+         REAL (rprec), DIMENSION(:), POINTER :: sem => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -111,10 +113,13 @@
 !>                            'infinity', 'value' or the name of a parameter.
 !>  @param[in] range_indicies The array indices of the boundary parameter.
 !>  @param[in] range_value    Value of a boundary.
+!>  @param[in] num_signals    Number of signals. Used to determine the size of
+!>                            the @ref param_class::sem arrays.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
       FUNCTION param_construct(a_model, param_name, indicies, vrnc,            &
-     &                         range_type, range_indicies, range_value)
+     &                         range_type, range_indicies, range_value,        &
+     &                         num_signals)
       USE v3_utilities
 
       IMPLICIT NONE
@@ -128,6 +133,7 @@
       CHARACTER (len=*), DIMENSION(2), INTENT(in) :: range_type
       INTEGER, DIMENSION(2,2), INTENT(in)         :: range_indicies
       REAL (rprec), DIMENSION(2), INTENT(in)      :: range_value
+      INTEGER, INTENT(in)                         :: num_signals
 
 !  local variables
       INTEGER                                     :: id
@@ -179,6 +185,9 @@
 
       END SELECT
 
+      ALLOCATE(param_construct%sem(num_signals))
+      param_construct%sem = 0.0
+
       END FUNCTION
 
 !*******************************************************************************
@@ -206,6 +215,9 @@
       this%range_id = data_no_id
       this%range_indicies = 0
       this%range_value = 0.0
+
+      DEALLOCATE(this%sem)
+      this%sem => null()
 
       DEALLOCATE(this)
 
@@ -618,13 +630,16 @@
 !>                            @see v3fit_context
 !>  @param[in] param_sigma_id NetCDF variable id of the parameter sigma.
 !>                            @see v3fit_context
+!>  @param[in] param_sem_id   NetCDF variable id of the parameter signal
+!>                            effectiveness.
 !>  @note This assumes that the parameter sigma has already been calculated.
 !>  Name and index information is written when the result file is first created
 !>  by @ref v3fit_context::v3fit_context_write_step_data.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_write_step_data(this, a_model, result_ncid,             &
      &                                 current_step, index,                    &
-     &                                 param_value_id, param_sigma_id)
+     &                                 param_value_id, param_sigma_id,         &
+     &                                 param_sem_id)
       USE ezcdf
 
       IMPLICIT NONE
@@ -637,6 +652,7 @@
       INTEGER, INTENT(in)            :: index
       INTEGER, INTENT(in)            :: param_value_id
       INTEGER, INTENT(in)            :: param_sigma_id
+      INTEGER, INTENT(in)            :: param_sem_id
 
 !  local variables
       INTEGER                        :: status
@@ -651,6 +667,11 @@
      &                            (/ index, current_step /),                   &
      &                            this%sigma)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, param_sem_id,                   &
+     &                            (/ 1, index, current_step /),                &
+     &                            (/ SIZE(this%sem), 1, 1 /),                  &
+     &                            this%sem)
 
       END SUBROUTINE
 
