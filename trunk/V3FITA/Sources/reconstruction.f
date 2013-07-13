@@ -1268,12 +1268,12 @@
       REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
 
 !  Start of executable code
-!  On the diagonals is reported. Don't bother calculating the off diagonal
-!  terms.
+!  Only the diagonals is reported. This doesn't compute the parameter covariance
+!  matrix directly but the only the diagonal terms by summing over all the
+!  singular values.
       DO i = 1, SIZE(params)
          params(i)%p%sigma = params(i)%p%delta*SQRT(SUM(                       &
-     &      (this%j_svd_vt(1:i,i)/MAX(this%j_svd_w(1:i),                       &
-     &                                small_num))**2.0))
+     &      (this%j_svd_vt(:,i)/MAX(this%j_svd_w, small_num))**2.0))
       END DO
 
       END SUBROUTINE
