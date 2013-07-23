@@ -338,8 +338,7 @@
      &                           context%model, context%params,                &
      &                           num_steps, context%runlog_iou)) THEN
 
-            CALL reconstruction_eval_pos_covar(context%recon,                  &
-     &                                         context%params)
+!  Step was successful. Post process the result.
             CALL reconstruction_eval_sem(context%recon, context%params,        &
      &                                   context%signals)
             CALL v3fit_context_write_step_data(context, .false.)

@@ -619,7 +619,7 @@
      &               'reconstruction_eval_jac: failed to converge ' //         &
      &               'equilibrium. Try decreasing rp_vrnc')
 
-!  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson at. al.
+!  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
 !    a_j = p_j/|pi_j|                                                        (1)
@@ -1244,45 +1244,11 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Evaluate the parameter covariance.
-!>
-!>  Uses the jacobian to map the uncertainty is signal space to the uncertainty
-!>  in parameter space. This value is stored in
-!>  @ref parameter::param_class::sigma.
-!>
-!>  @param[inout] this   A @ref reconstruction_class instance.
-!>  @param[inout] params Array of @ref parameter objects.
-!-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_eval_pos_covar(this, params)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (reconstruction_class), INTENT(inout)        :: this
-      TYPE (param_pointer), DIMENSION(:), INTENT(inout) :: params
-
-!  local arguments
-      INTEGER                                           :: i
-
-!  local parameters
-      REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
-
-!  Start of executable code
-!  Only the diagonals is reported. This doesn't compute the parameter covariance
-!  matrix directly but the only the diagonal terms by summing over all the
-!  singular values.
-      DO i = 1, SIZE(params)
-         params(i)%p%sigma = params(i)%p%delta*SQRT(SUM(                       &
-     &      (this%j_svd_vt(:,i)/MAX(this%j_svd_w, small_num))**2.0))
-      END DO
-
-      END SUBROUTINE
-
-!-------------------------------------------------------------------------------
-!>  @brief Evaluate the parameter covariance.
+!>  @brief Evaluate the parameter covariance and signal effectiveness.
 !>
 !>  Calculates the signal effectiveness matrix. This value is stored in
-!>  @ref parameter::param_class::sem.
+!>  @ref parameter::param_class::sem. To fine the signal effectiveness, an
+!>  intermediate step compute the parameter covariance.
 !>
 !>  @param[inout] this   A @ref reconstruction_class instance.
 !>  @param[inout] params Array of @ref parameter objects.
@@ -1299,7 +1265,6 @@
 !  local arguments
       INTEGER                                            :: j
       INTEGER                                            :: status
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: cs
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: cp
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: svd_vt
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: svd_u
@@ -1311,18 +1276,15 @@
       REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
 
 !  Start of executable code
-      ALLOCATE(cs(SIZE(signals),SIZE(signals)))
-
-      cs = 0.0
-      DO j = 1, SIZE(signals)
-         cs(j,j) = 1.0/signal_get_sigma2(signals(j)%p)
-      END DO
-
+!  Since the jacobian that will be used is normalized, the signal covaiance
+!  must be normalized as well. This results in an idenity matrix of
+!  SIZE(signals) X SIZE(signals).
+!
+!  J^T * C_s^-1 * J = J^T * I * J = J^T * J
+!
+!  Equation 3 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
       ALLOCATE(cp(SIZE(params),SIZE(params)))
-
-!  J^T * C_s^-1 * J
-      cp = MATMUL(TRANSPOSE(this%jacobian), MATMUL(cs, this%jacobian))
-      DEALLOCATE(cs)
+      cp = MATMUL(TRANSPOSE(this%jacobian), this%jacobian)
 
 !  Singular value decomposition of cpinv to invert this matrix.
       ALLOCATE(svd_vt(SIZE(params),SIZE(params)))
@@ -1342,17 +1304,36 @@
       DO j = 1, SIZE(params)
          cp(j,j) = 1.0/MAX(svd_w(j), small_num)
       END DO
-      cp = MATMUL(TRANSPOSE(svd_vt),MATMUL(cp, TRANSPOSE(svd_u)))
+      cp = MATMUL(TRANSPOSE(svd_vt), MATMUL(cp, TRANSPOSE(svd_u)))
       DEALLOCATE(svd_u, svd_vt, svd_w)
+
+!  Store the parameter covariance. Since the normalized signal covariance matrix
+!  was used, the parameter covariance needs to be denormalized.
+      DO j = 1, SIZE(params)
+         params(j)%p%sigma = SQRT(cp(j,j)*params(j)%p%delta**2.0)
+      END DO
 
 !  Compute signal effectiveness.
       ALLOCATE(j_dot_cp(SIZE(signals),SIZE(params)))
       j_dot_cp = MATMUL(this%jacobian, cp)
+
+!  The signal effectiveness for each parameter is stored in the parameter
+!  itself. Equation 6 in Hanson et. al. doi:10.1002/ctpp.200900059
+!
+!  (J * cp)^2 / (sigma_p^2 * sigma_s^2)                                      (1)
+!
+!  Due to use of the normalized jacobian and normalized parameter covariance
+!  matrix, the 1/sigma_s^2 term is found in the J^2 term. An extra Pi term bust
+!  be multiplied out. In terms of the normalized quantities, becomes
+!
+!  (J_n * cp_n)^2 * pi^2 / sigma_p^2
       DO j = 1, SIZE(params)
-         params(j)%p%sem(:) = j_dot_cp(:,j)
+         params(j)%p%sem = (j_dot_cp(:,j)**2.0)                                &
+     &                   * params(j)%p%delta**2.0                              &
+     &                   / params(j)%p%sigma**2.0
       END DO
 
-      DEALLOCATE(j_dot_cp)
+      DEALLOCATE(j_dot_cp, cp)
 
       END SUBROUTINE
 
