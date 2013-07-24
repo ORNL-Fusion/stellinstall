@@ -560,7 +560,7 @@
      &                                           modeled_sigma,                &
      &                                           use_cache)
 
-! e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
+!  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
       signal_get_e = (this%observed - modeled_signal(1))                       &
      &             * SQRT(this%weight/signal_get_sigma2(this))
 
@@ -572,7 +572,7 @@
 !>  Gets the total sigma^2 of an individual signal.
 !>  sigma^2 = sigma_o^2 + sigma_m^2
 !>
-!>  @param[in]    this      A @ref diagnostic_class instance.
+!>  @param[in] this A @ref diagnostic_class instance.
 !>  @returns The e value.
 !>  @note this assumes that modeled sigma value has already been cached by a
 !>  call to @ref signal_get_modeled_signal
@@ -758,8 +758,8 @@
 !>  Signals information is formated as a the index, signal type, s_name, g^2,
 !>  weight, observed value, observed sigma, modeled value and modeled sigma.
 !>
-!>  @param[in] this    A @ref diagnostic_class instance.
-!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] this A @ref diagnostic_class instance.
+!>  @param[in] iou  A input/output representing the file to write to.
 !>  @note This should only be called when the type of signal changes.
 !-------------------------------------------------------------------------------
       SUBROUTINE signal_write_header(this, iou)
@@ -789,9 +789,9 @@
 !>
 !>  @see combination_write_auxiliary
 !>
-!>  @param[in] this    A @ref signal_class instance.
-!>  @param[in] iou     A input/output representing the file to write to.
-!>  @param[in] index   A index of a signal.
+!>  @param[in] this  A @ref signal_class instance.
+!>  @param[in] iou   A input/output representing the file to write to.
+!>  @param[in] index A index of a signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE signals_write_auxiliary(this, iou, index)
 
@@ -821,13 +821,13 @@
 !>
 !>  Writes out the observed, modeled and total sigma value of the signal.
 !>
-!>  @param[in] this                     A @ref diagnostic_class instance.
-!>  @param[in] a_model                  The equilibrium model.
-!>  @param[in] result_ncid              A NetCDF id of the result file.
-!>  @param[in] current_step             The surrent reconstruction step.
-!>  @param[in] index                    A index of a signal.
-!>  @param[in] signal_model_value_id    NetCDF variable id of the model value.
-!>  @param[in] signal_sigma_value_id    NetCDF variable id of the total sigma.
+!>  @param[in] this                  A @ref diagnostic_class instance.
+!>  @param[in] a_model               The equilibrium model.
+!>  @param[in] result_ncid           A NetCDF id of the result file.
+!>  @param[in] current_step          The surrent reconstruction step.
+!>  @param[in] index                 A index of a signal.
+!>  @param[in] signal_model_value_id NetCDF variable id of the model value.
+!>  @param[in] signal_sigma_value_id NetCDF variable id of the total sigma.
 !>  @note This assumes that signals have already been calculated. The model
 !>  isn't used by signal_get_g2 since it is reading from the cache but must be
 !>  passed in anyway.
@@ -1135,9 +1135,9 @@
 !>
 !>  Writes out the s_name and coefficient of the combined signals.
 !>
-!>  @param[in] this    A @ref combination_class instance.
-!>  @param[in] iou     A input/output representing the file to write to.
-!>  @param[in] index   A index of this signal.
+!>  @param[in] this  A @ref combination_class instance.
+!>  @param[in] iou   A input/output representing the file to write to.
+!>  @param[in] index A index of this signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE combination_write_auxiliary(this, iou, index)
 

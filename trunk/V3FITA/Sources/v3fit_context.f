@@ -331,7 +331,13 @@
       TYPE (v3fit_context_class), INTENT(inout) :: this
 
 !  local variables
-      INTEGER                                   :: i
+      INTEGER                                   :: i, j
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sem_row
+      INTEGER                                   :: sem_offset
+!  Fortran 95 doesn't allow allocatable strings. Need to allocate a string large
+!  enough to hold every possible parameter.
+      CHARACTER (len=26 + 14*v3fit_max_parameters), ALLOCATABLE ::             &
+     &   sem_header
 
 !  Start of executable code
       WRITE (*,*) ' *** Writting context to disk'
@@ -349,6 +355,72 @@
             CALL param_write(this%params(i)%p, this%recout_iou, i,             &
      &                       this%model)
          END DO
+
+!  Write out the signal effectiveness matrix. This matrix will be written out
+!  so that each parameter is one a column and each row is a a signal. Start by
+!  generating the header. The header is formatted as
+!
+!     #  signal_name         (param_name[12]) ...
+!
+!  Start my allocating a string large enough to hold the entire header. The
+!  length of this string needs to be 26 for the base an additional 14 for each
+!  parameter.
+         WRITE (this%recout_iou, *)
+         WRITE (this%recout_iou, *) ' *** Signal Effectiveness Matrix'
+         ALLOCATE(sem_header)
+
+         WRITE (sem_header, 1000)
+         sem_offset = 26
+         DO i = 1, SIZE(this%params)
+            WRITE (sem_header, 1001) sem_header(1:sem_offset),                 &
+     &                               param_get_name(this%params(i)%p,          &
+     &                                              this%model)
+            sem_offset = sem_offset + 14
+         END DO
+
+!  Write out the header.
+         WRITE (this%recout_iou, 1002)                                         &
+     &      sem_header(1:26 + 14*SIZE(this%params))
+
+         DEALLOCATE(sem_header)
+1000  FORMAT (3x,'#',2x,'s_name',14x)
+1001  FORMAT (a,2x,a12)
+1002  FORMAT (a)
+
+!  Write out each row of the sem matrix.
+!  Reuse the sem_header string to generate the format string. The format string
+!  will be
+!
+!  i4,2x,a20,<num_params>(2x,es12.5)
+         IF (ASSOCIATED(this%signals)) THEN
+            ALLOCATE(sem_row(SIZE(this%params)))
+            ALLOCATE(sem_header)
+            WRITE (sem_header, 1003) SIZE(this%params)
+
+            DO i = 1, SIZE(this%signals)
+               DO j = 1, SIZE(this%params)
+                  sem_row(j) = this%params(j)%p%sem(i)
+               END DO
+
+               WRITE (this%recout_iou, sem_header(1:26))                       &
+     &            i, this%signals(i)%p%s_name, sem_row
+            END DO
+
+!  Write out the total for each column. Sum over all the signals for a single
+!  parameter. This should be 1.0.
+            WRITE (sem_header, 1004) SIZE(this%params)
+            DO j = 1, SIZE(this%params)
+               sem_row(j) = SUM(this%params(j)%p%sem)
+            END DO
+
+            WRITE (this%recout_iou, *)
+            WRITE (this%recout_iou, sem_header) sem_row
+
+            DEALLOCATE(sem_header)
+            DEALLOCATE(sem_row)
+         END IF
+1003  FORMAT ('(i4,2x,a20,',i3,'(2x,es12.5))')
+1004  FORMAT ('(20x,''Total:''',i3,'(2x,es12.5))')
       END IF
 
 !  Write out the model.
@@ -358,6 +430,9 @@
 
 !  Write out the signals
       IF (ASSOCIATED(this%signals)) THEN
+         WRITE (this%recout_iou, *)
+         WRITE (this%recout_iou, *) ' *** Signals'
+
          DO i = 1, SIZE(this%signals)
 !  Check if the index has reached a new signal type
             IF ((this%magnetic_index .eq. i) .or.                              &

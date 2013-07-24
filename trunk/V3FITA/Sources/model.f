@@ -622,7 +622,7 @@
 
 !  Start of executable code
       WRITE (iou,*)
-      WRITE (iou,*) 'Model Parameters'
+      WRITE (iou,*) ' *** Model Parameters'
       WRITE (iou,*) 'model_ne_type is ',                                       &
      &              TRIM(model_get_ne_type(this))
       WRITE (iou,*) 'model_sxrem_type is ',                                    &

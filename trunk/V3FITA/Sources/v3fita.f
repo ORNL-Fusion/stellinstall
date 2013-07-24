@@ -158,6 +158,9 @@
          CASE ('unit_test')
             CALL task_unit_tests
 
+         CASE DEFAULT
+            CALL err_fatal('Unkown task type ' // TRIM(my_task))
+
       END SELECT
 
 !  Clean up memory

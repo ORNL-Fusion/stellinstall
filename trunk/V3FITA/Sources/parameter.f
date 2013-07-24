@@ -412,6 +412,76 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Gets the lower boundary type description.
+!>
+!>  Gets lower boundary type description.
+!>
+!>  @param[in] this A @ref param_class instance.
+!>  @returns A string description of the lower boundary type.
+!-------------------------------------------------------------------------------
+      FUNCTION param_get_lower_range_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: param_get_lower_range_type
+      TYPE (param_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%range_type(1))
+
+         CASE DEFAULT
+            param_get_lower_range_type = 'No Type'
+
+         CASE (param_range_value_type)
+            param_get_lower_range_type = 'value'
+
+         CASE (param_range_infinity_type)
+            param_get_lower_range_type = 'infinity'
+
+         CASE (param_range_parameter_type)
+            param_get_lower_range_type = 'parameter'
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the upper boundary type description.
+!>
+!>  Gets upper boundary type description.
+!>
+!>  @param[in] this A @ref param_class instance.
+!>  @returns A string description of the upper boundary type.
+!-------------------------------------------------------------------------------
+      FUNCTION param_get_upper_range_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: param_get_upper_range_type
+      TYPE (param_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE (this%range_type(2))
+
+         CASE DEFAULT
+            param_get_upper_range_type = 'No Type'
+
+         CASE (param_range_value_type)
+            param_get_upper_range_type = 'value'
+
+         CASE (param_range_infinity_type)
+            param_get_upper_range_type = 'infinity'
+
+         CASE (param_range_parameter_type)
+            param_get_upper_range_type = 'parameter'
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
@@ -582,8 +652,15 @@
      &                 param_get_name(this, a_model),                          &
      &                 this%indicies(1), this%indicies(2),                     &
      &                 param_get_value(this, a_model),                         &
-     &                 this%sigma
-1000  FORMAT(i3,2x,a18,2(1x,i4),2(2x,es12.5))
+     &                 this%sigma, this%vrnc,                                  &
+     &                 param_get_upper_range_type(this),                       &
+     &                 param_get_lower_range_type(this),                       &
+     &                 param_get_upper_range_value(this, a_model),             &
+     &                 param_get_lower_range_value(this, a_model),             &
+     &                 this%range_indicies(1,:),                               &
+     &                 this%range_indicies(2,:)
+1000  FORMAT(i3,2x,a18,2(1x,i4),3(2x,es12.5),2(2x,a12),2(2x,es12.5),           &
+     &       2(2x,i8,1x,i8))
 
       END SUBROUTINE
 
@@ -610,7 +687,9 @@
       WRITE (iou,*) ' *** Reconstruction parameters'
       WRITE (iou,1000)
 1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
-     &        'sigma')
+     &        'sigma',9x,'vrnc',10x,'range_type_h',2x,'range_type_l',2x,       &
+     &        'r_value_h',5x,'r_value_l',5x,                                   &
+     &        'r_inx1_h',1x,'r_inx2_h',2x,'r_inx1_l',1x,'r_inx2_l')
       END SUBROUTINE
 
 !*******************************************************************************
