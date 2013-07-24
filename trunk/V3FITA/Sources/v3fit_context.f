@@ -469,50 +469,55 @@
 !*******************************************************************************
 !  NETCDF SUBROUTINES
 !*******************************************************************************
+!>  @page result_file_main Result File
+!>
+!>  @tableofcontents
+!>  @section result_file_main_intro_sec Introduction
+!>  This page doctuments the contents of a result NetCDF file.
+!>
+!>  @section result_file_main_dim_sec Dimensions
+!>  @header{Dimension, Description, Code Reference}
+!>  @begin_table
+!>     @item{maxnsteps,   The max number of reconstruction steps., v3fit_input::nrstep}
+!>     @item{nparam,      Number of reconstruction parameters.,    v3fit_input::n_rp}
+!>     @item{nparamindex, Number of parameter indices.,            data_parameters::data_max_indicies}
+!>     @item{nsignal,     Number of constructed signals.,          v3fit_context::v3fit_context_class::signals}
+!>     @item{string_len,  Max lenth of strings.,                   data_parameters::data_name_length}
+!>  @end_table
+!>  @subsection result_file_main_eq_dim_sec Equilibrium Dimensions
+!>  Equilibrium dimensions change depending on the equilibrium used.
+!>  * VMEC @ref result_file_vmec_dim_sec
+!>
+!>  @section result_file_main_var_sec Variables
+!>  @header{Variable(Dimensions), Description, Code Reference}
+!>  @begin_table
+!>     @item{nsteps,         Actual number of steps taken.,           reconstruction::reconstruction_class::current_step}
+!>     @item{g2 (maxnsteps), g^2 value for each reconstruction step., reconstruction::reconstruction_get_g2}
+!>  @end_table
+!>  @table_section{result_file_main_param_var_sec, Parameter Variables}
+!>     @item{param_name (string_len\, nparam),         Name of the reconstruction parameter.,              param::param_get_name}
+!>     @item{param_index (nparamindex\, nparam),       Indices of the reconstruction parameter.,           param::param_class::indicies}
+!>     @item{param_value (nparam\, maxnsteps),         Parameter values for each reconstruction step.,     param::param_get_value}
+!>     @item{param_sigma (nparam\, maxnsteps),         Parameter sigmas for each reconstruction step.,     param::param_class::sigma}
+!>     @item{param_sem (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step., param::param_class::sem}
+!>  @end_table
+!>  @table_section{result_file_main_sig_var_sec, Signal Variables}
+!>     @item{signal_name (string_len\, nsignal),       Short name of the signal.,                                signal::signal_class::s_name}
+!>     @item{signal_type (string_len\, nsignal),       Description of the signal.,                               signal::signal_get_signal_type}
+!>     @item{signal_weight (nsignal),                  Weight value of the signal.,                              signal::signal_class::weight}
+!>     @item{signal_observed_value (nsignal),          Observed value of the signal.,                            signal::signal_class::observed}
+!>     @item{signal_model_value (nsignal\, maxnsteps), Modeled value of the signal at each reconstruction step., signal::signal_get_modeled_signal}
+!>     @item{signal_sigma_value (nsignal\, maxnsteps), Sigma value of the signal at each reconstruction step.,   signal::signal_get_g2}
+!>  @end_table
+!>  @subsection result_file_main_eq_var_sec Equilibrium Variables
+!>  Equilibrium variables change depending on the equilibrium used.
+!>  * VMEC @ref result_file_vmec_var_sec
 !-------------------------------------------------------------------------------
 !>  @brief Initialize the dimensions and variables of the result file.
 !>
 !>  Defines dimensions, variables and writes out the initial step of v3fit to
-!>  result netcdf file.
-!>
-!>  Dimensions:
-!>    * maxnsteps    The max number of reconstruction steps.
-!>    * nparam       Number of reconstruction parameters.
-!>    * nparamindex  Number of parameter indices.
-!>    * nsignal      Number of signals.
-!>    * string_len   Max length of strings.
-!>    *** Equilibrium Dimesnions ***
-!>    * See @ref equilibrium objects.
-!>
-!>  Multi dimensional arrays need to be transposed so arrays appear in the
-!>  correct order in non fortran languages.
-!>
-!>  Variables:
-!>    * nsteps         Actual number of steps taken.
-!>    * g2 (maxnsteps) g^2 value for each reconstruction step.
-!>    @ref parameter variables.
-!>    * param_name (string_len, nparam)   Name of the reconstruction parameter.
-!>
-!>    * param_index (nparamindex, nparam) Indices of the reconstruction
-!>                                        parameter.
-!>    * param_value (nparam, maxnsteps)   Parameter values for each
-!>                                        reconstruction step.
-!>    * param_sigma (nparam, maxnsteps)   Parameter sigmas for each
-!>                                        reconstruction step.
-!>    * param_sem   (nparam, maxnsteps)   Signal effectiveness for each
-!>                                        reconstruction step.
-!>    @ref signal variables.
-!>    signal_name (string_len, nsignal)         @ref signa_class::s_name of the
-!>                                              signal.
-!>    * signal_type (string_len, nsignal)       Description of the signal.
-!>    * signal_weight (nsignal)                 Weight value of the signal.
-!>    * signal_observed_value (nsignal)         Observed value of the signal.
-!>    * signal_model_value (nsignal, maxnsteps) Modeled value of the signal at
-!>                                              each reconstruction step.
-!>    * signal_sigma_value (nsignal, maxnsteps) Sigma value of the signal at
-!>                                              each reconstruction step.
-!>    *** Equilibrium Variables ***
-!>    * See @ref equilibrium objects.
+!>  result netcdf file. Multi dimensional arrays need to be transposed so arrays
+!>  appear in the correct order in non fortran languages.
 !>
 !>  @param[inout] this A @ref v3fit_context_class instance.
 !-------------------------------------------------------------------------------
@@ -581,6 +586,7 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
+!  Define parameter variables.
       IF (ASSOCIATED(this%params)) THEN
          status = nf_def_var(this%result_ncid, 'param_name', nf_char,          &
      &                       2, (/ string_len_dim_id,                          &
@@ -610,6 +616,7 @@
      &                       this%param_sem_id)
       END IF
 
+!  Define signal variables.
       IF (ASSOCIATED(this%signals)) THEN
          status = nf_def_var(this%result_ncid, 'signal_name', nf_char,         &
      &                       2, (/ string_len_dim_id,                          &

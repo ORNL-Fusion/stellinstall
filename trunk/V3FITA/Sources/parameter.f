@@ -41,13 +41,13 @@
       TYPE param_class
 !>  Id number of the parameter. Id's are provided by either the @ref model or
 !>  the @ref equilibrium.
-         INTEGER                     :: param_id = data_no_id
+         INTEGER                               :: param_id = data_no_id
 !>  The i and j indices of the parameter. These are only used if the parameter
 !>  is the element of an array.
-         INTEGER, DIMENSION(2)       :: indicies = 0
+         INTEGER, DIMENSION(data_max_indicies) :: indicies = 0
 !>  The maximum increment size of the parameter for calculating the jacobian.
 !>  @see param_increment
-         REAL (rprec)                :: vrnc = 0.0
+         REAL (rprec)                          :: vrnc = 0.0
 
 !  Parameter ranges
 !>  Type descriptor of the boundry type for the lower(1) and upper(2) ranges.
@@ -60,18 +60,18 @@
 !>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
 !>  holds the parameter id's of the lower(1) and upper(2) boundary. Id's are
 !>  provided by either the @ref model or the @ref equilibrium.
-         INTEGER, DIMENSION(2)               :: range_id = data_no_id
+         INTEGER, DIMENSION(2) :: range_id = data_no_id
 !>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
 !>  holds the parameter indices of the lower(1,:) and upper(2,:) boundary.
-         INTEGER, DIMENSION(2,2)             :: range_indicies = 0
+         INTEGER, DIMENSION(2,data_max_indicies) :: range_indicies = 0
 !>  If the @ref param_class::range_type is @ref param_range_value_type, this
 !>  holds the value of the lower(1) and upper(2) boundary.
-         REAL (rprec), DIMENSION(2)          :: range_value = 0.0
+         REAL (rprec), DIMENSION(2) :: range_value = 0.0
 
 !>  The contraints can change the normalization size of the patarameter when
 !>  incrementing it. Store the actual change in parameter here for
 !>  normalization. This value is set by @ref param_increment.
-         REAL (rprec)                        :: delta
+         REAL (rprec)                            :: delta
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
 !>  step. This value is calculated by
@@ -628,7 +628,7 @@
 !>  @brief Writes out a parameter to an output file.
 !>
 !>  Parameter information is formated as a the index, name, index 1, index2,
-!>  value and sigma.
+!>  value, sigma, vrnc, upper and lower range types, values, and range indicies.
 !>
 !>  @param[in] this    A @ref param_class instance.
 !>  @param[in] iou     Input/output unit representing the file to write to.
@@ -668,9 +668,9 @@
 !>  @brief Writes out parameter header information to an output file.
 !>
 !>  Parameter information is formated as a the index, name, index 1, index2,
-!>  value and sigma. This is implmented as a static method and does not require
-!>  a parameter instance. This should only be called once to produce a single
-!>  header.
+!>  value, sigma, vrnc, upper and lower range types, values, and range indicies.
+!>  This is implmented as a static method and does not require a parameter
+!>  instance. This should only be called once to produce a single header.
 !>
 !>  @param[in] iou A input/output representing the file to write to.
 !>  @note Eventually parameter range informarion will be added as well.

@@ -2223,34 +2223,38 @@
 !*******************************************************************************
 !  NETCDF SUBROUTINES
 !*******************************************************************************
+!>  @page result_file_vmec VMEC Result File
+!>
+!>  @tableofcontents
+!>  @section result_file_vmec_intro_sec Introduction
+!>  This page documents the contents of a result NetCDF file contributed by the
+!>  VMEC equilibrium. The remaining parts of the result file are documented in
+!>  the @ref result_file_main page.
+!>
+!>  @section result_file_vmec_dim_sec Dimensions
+!>  @header{Dimension, Description, Code Reference}
+!>  @begin_table
+!>     @item{vmec_nextcur,    Number of vmec external currents.,    mgrid_mod::nextcur}
+!>     @item{vmec_boundary_i, Number of ith boundary coefficients., vmec_dim::mpol1}
+!>     @item{vmec_boundary_j, Number of jth boundary coefficients., vmec_dim::ntor1}
+!>  @end_table
+!>  @section result_file_vmec_var_sec Variables
+!>  @header{Variable(Dimensions), Description, Code Reference}
+!>  @begin_table
+!>     @item{vmec_rbc (vmec_boundary_j\, vmec_boundary_i), R direction cosine boundary coefficients., vmec_input::rbc}
+!>     @item{vmec_rbs (vmec_boundary_j\, vmec_boundary_i), R direction sine boundary coefficients.,   vmec_input::rbs}
+!>     @item{vmec_zbc (vmec_boundary_j\, vmec_boundary_i), Z direction cosine boundary coefficients., vmec_input::zbc}
+!>     @item{vmec_zbs (vmec_boundary_j\, vmec_boundary_i), Z direction sine boundary coefficients.,   vmec_input::zbs}
+!>     @item{vmec_l_sub_i,                                 Internal inducance.,                       v3f_vmec_comm::vvc_smaleli}
+!>     @item{vmec_kappa_p,                                 Mean elongation.,                          v3f_vmec_comm::vvc_kappa_p}
+!>  @end_table
 !-------------------------------------------------------------------------------
 !>  @brief Define NetCDF variables for the result file
 !>
 !>  This method overrides @ref equilibrium::equilibrium_def_result. Defines
-!>  dimensions and variables for the VMEC contribution of the result file.
-!>
-!>  Dimensions:
-!>    * vmec_nextcur     Number of vmec external currents.
-!>    * vmec_boundary_i  Number of ith boundary coefficients.
-!>    * vmec_boundary_j  Number of jth boundary coefficients.
-!>
-!>  Variables:
-!>    * vmec_extcur (vmec_nextcur) External currents.
-!>    * vmec_curtor                Non-reconstructed plasma current.
-!>    * vmec_pres_scale            Non-reconstructed plasma pressure.
-!>
-!>  Multi dimensional arrays need to be transposed so arrays appear in the
-!>  correct order in non fortran languages.
-!>    * vmec_rbc (vmec_boundary_j, vmec_boundary_i) R direction cosine
-!>                                                  coefficients.
-!>    * vmec_rbs (vmec_boundary_j, vmec_boundary_i) R direction sine
-!>                                                    coefficients.
-!>    * vmec_zbc (vmec_boundary_j, vmec_boundary_i) Z direction cosine
-!>                                                    coefficients.
-!>    * vmec_zbs (vmec_boundary_j, vmec_boundary_i) Z direction sine
-!>                                                    coefficients.
-!>    * vmec_l_sub_i               Internal inducance.
-!>    * vmec_kappa_p               Mean elongation.
+!>  dimensions and variables for the VMEC contribution of the result file. Multi
+!>  dimensional arrays need to be transposed so arrays appear in the correct
+!>  order in non fortran languages.
 !>
 !>  @param[in] this             A @ref vmec_class instance.
 !>  @param[in] result_ncid      NetCDF file id of the result file.

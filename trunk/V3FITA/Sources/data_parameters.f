@@ -27,6 +27,9 @@
 !>  @see equilibrium
       INTEGER, PARAMETER :: data_no_id = -1
 
+!>  Max number of parameter indicies.
+      INTEGER, PARAMETER :: data_max_indicies = 2
+
       CONTAINS
 !*******************************************************************************
 !  UTILITY SUBROUTINES

@@ -601,8 +601,8 @@
      &   DIMENSION(v3fit_max_parameters,2)   :: rp_range_value = 0.0
 !>  Parameter range indices. The first index is the lower range and second index
 !>  the upper range.
-      INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters,2,2) :: rp_range_index = 0
+      INTEGER, DIMENSION(v3fit_max_parameters,2,data_max_indicies) ::          &
+     &   rp_range_index = 0
 
 !  Signal data
 !>  Number of observed signals.

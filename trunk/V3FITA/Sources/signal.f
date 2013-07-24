@@ -83,8 +83,11 @@
 !>  Long name of the signal
          CHARACTER (len=data_name_length)       :: l_name
          CHARACTER (len=data_short_name_length) :: units
+!>  Eperimentally measured signal value.
          REAL (rprec)                       :: observed
+!>  Eperimentally measured signal uncertainty.
          REAL (rprec)                       :: observed_sigma
+!>  Weighting parameter of the signal.
          REAL (rprec)                       :: weight
 !> Cached value of the modeled signal.
          REAL (rprec), DIMENSION(4)         :: modeled
