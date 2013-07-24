@@ -335,13 +335,18 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sem_row
       INTEGER                                   :: sem_offset
 !  Fortran 95 doesn't allow allocatable strings. Need to allocate a string large
-!  enough to hold every possible parameter.
-      CHARACTER (len=26 + 14*v3fit_max_parameters), ALLOCATABLE ::             &
+!  enough to hold every possible parameter. Fortran 95 doesn't allow allocatable
+!  scalar types so make this a pointer. This large string needs to be allocated
+!  to avoid a stack overflow.
+      CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER ::                 &
      &   sem_header
 
 !  Start of executable code
       WRITE (*,*) ' *** Writting context to disk'
       WRITE (this%runlog_iou,*) ' *** Writting context to disk'
+
+!  Make the sem_header null so it may be allocated and deallocated.
+      sem_header => null()
 
 !  Write out the reconstruction
       IF (ASSOCIATED(this%recon)) THEN
