@@ -657,8 +657,8 @@
      &                 param_get_lower_range_type(this),                       &
      &                 param_get_upper_range_value(this, a_model),             &
      &                 param_get_lower_range_value(this, a_model),             &
-     &                 this%range_indicies(1,:),                               &
-     &                 this%range_indicies(2,:)
+     &                 this%range_indicies(2,:),                               &
+     &                 this%range_indicies(1,:)
 1000  FORMAT(i3,2x,a18,2(1x,i4),3(2x,es12.5),2(2x,a12),2(2x,es12.5),           &
      &       2(2x,i8,1x,i8))
 
