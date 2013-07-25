@@ -1037,7 +1037,8 @@
 !>  @brief Reset the internal state of the equilibrium.
 !>
 !>  This method is virtual. The actual reseting of the equilibrium state should
-!>  be handled by a subclass method.
+!>  be handled by a subclass method. Sub classes need to make sure that the
+!>  equilibrium is reset to a converged state.
 !>  @see vmec_equilibrium::vmec_converge
 !>
 !>  @param[inout] this A @ref equilibrium_class instance.
@@ -1056,6 +1057,9 @@
             CALL vmec_reset_state(this%vmec)
 
       END SELECT
+
+!  Reseting should set the equilibrium to a converged state.
+      this%not_converged = .false.
 
       END SUBROUTINE
 

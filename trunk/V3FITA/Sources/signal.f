@@ -89,9 +89,9 @@
          REAL (rprec)                       :: observed_sigma
 !>  Weighting parameter of the signal.
          REAL (rprec)                       :: weight
-!> Cached value of the modeled signal.
+!>  Cached value of the modeled signal.
          REAL (rprec), DIMENSION(4)         :: modeled
-!> Cached value of the modeled sigma.
+!>  Cached value of the modeled sigma.
          REAL (rprec), DIMENSION(4)         :: modeled_sigma
 !>  An instance of a @ref diagnostic object.
          TYPE (diagnostic_class), POINTER   :: diagnostic => null()

@@ -15,6 +15,7 @@
       USE stel_kinds
       USE data_parameters
       USE pprofile_T
+      USE wout_file_cache
 
       IMPLICIT NONE
 
@@ -179,42 +180,44 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
 !>  File name of the output of v3fit.
-         CHARACTER (len=data_filename_length) :: wout_file_name
+         CHARACTER (len=data_filename_length)  :: wout_file_name
 !>  File name of the v3fit namelist inout file.
-         CHARACTER (len=data_filename_length) :: vmec_file_name
+         CHARACTER (len=data_filename_length)  :: vmec_file_name
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
-         TYPE (pprofile), POINTER             :: ne => null()
+         TYPE (pprofile), POINTER              :: ne => null()
 !>  @ref pprofile_T describing a flux surface constant electron temperature
 !>  profile.
-         TYPE (pprofile), POINTER             :: te => null()
+         TYPE (pprofile), POINTER              :: te => null()
 !>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
 !>  profile.
-         TYPE (pprofile), POINTER             :: sxrem => null()
+         TYPE (pprofile), POINTER              :: sxrem => null()
 !>  Instance of a @ref vmec_magnetic_cache object.
-         TYPE (vmec_magnetic_cache), POINTER  ::                               &
+         TYPE (vmec_magnetic_cache), POINTER   ::                              &
      &      magnetic_cache => null()
 !>  Cache of the vmec internal state xc array.
-         REAL (rprec), DIMENSION(:), POINTER  :: xc => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: xc => null()
+!>  Cache of the wout file state.
+         TYPE (wout_file_cache_class), POINTER :: wout_file => null()
 
 !  Result file NetCDF variables
 !>  External current Netcdf variable id.
-         INTEGER                              :: vmec_extcur_id
+         INTEGER                               :: vmec_extcur_id
 !>  Toroidal current Netcdf variable id.
-         INTEGER                              :: vmec_curtor_id
+         INTEGER                               :: vmec_curtor_id
 !>  Pressure scale Netcdf variable id.
-         INTEGER                              :: vmec_pres_scale_id
+         INTEGER                               :: vmec_pres_scale_id
 !>  Boundary R cosine coeffients Netcdf variable id.
-         INTEGER                              :: vmec_rbc_id
+         INTEGER                               :: vmec_rbc_id
 !>  Boundary R sine coeffients Netcdf variable id.
-         INTEGER                              :: vmec_rbs_id
+         INTEGER                               :: vmec_rbs_id
 !>  Boundary Z cosine coeffients Netcdf variable id.
-         INTEGER                              :: vmec_zbc_id
+         INTEGER                               :: vmec_zbc_id
 !>  Boundary Z sine coeffients Netcdf variable id.
-         INTEGER                              :: vmec_zbs_id
+         INTEGER                               :: vmec_zbs_id
 !>  Internal inducance Netcdf variable id.
-         INTEGER                              :: vmec_l_sub_i_id
+         INTEGER                               :: vmec_l_sub_i_id
 !>  Mean elongation Netcdf variable id.
-         INTEGER                              :: vmec_kappa_p_id
+         INTEGER                               :: vmec_kappa_p_id
       END TYPE
 
 !*******************************************************************************
@@ -374,6 +377,11 @@
 
          DEALLOCATE(this%magnetic_cache)
          this%magnetic_cache => null()
+      END IF
+
+      IF (ASSOCIATED(this%wout_file)) THEN
+         CALL wout_file_cache_destruct(this%wout_file)
+         this%wout_file => null()
       END IF
 
       IF (ASSOCIATED(this%xc)) THEN
@@ -2137,13 +2145,9 @@
 !-------------------------------------------------------------------------------
 !>  @brief Save the internal state of the equilibrium.
 !>
-!>  Saves the VMEC xc array.
+!>  Saves the VMEC xc array and the wout file.
 !>
 !>  @param[inout] this A @ref vmec_class instance.
-!>  @todo Save information obtained in @ref read_wout_mod. This could be used in
-!>  place of reconverging VMEC when a non vmec parameter is changed. This would
-!>  futher ensure that the jacobian calculation is zero for signals that do not
-!>  depend on auxiliary profiles.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_save_state(this)
       USE xstuff, only: xc
@@ -2167,6 +2171,12 @@
          this%xc = xc
       END IF
 
+      IF(ASSOCIATED(this%wout_file)) THEN
+         CALL wout_file_cache_save_state(this%wout_file)
+      ELSE
+         this%wout_file => wout_file_cache_construct()
+      END IF
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2175,10 +2185,6 @@
 !>  Copies the saved VMEC xc array back to VMEC.
 !>
 !>  @param[inout] this A @ref vmec_class instance.
-!>  @todo Reset information obtained in @ref read_wout_mod. This could be used
-!>  in place of reconverging VMEC when a non vmec parameter is changed. This
-!>  would futher ensure that the jacobian calculation is zero for signals that
-!>  do not depend on auxiliary profiles.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_reset_state(this)
       USE xstuff, only: xc
@@ -2186,11 +2192,17 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), INTENT(in) :: this
+      TYPE (vmec_class), INTENT(inout) :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
          xc = this%xc
+      END IF
+
+!  Reset the wout file.
+      CALL wout_file_cache_reset_state(this%wout_file)
+      IF (ASSOCIATED(this%magnetic_cache)) THEN
+         CALL vmec_set_magnetic_cache_calc(this)
       END IF
 
       END SUBROUTINE

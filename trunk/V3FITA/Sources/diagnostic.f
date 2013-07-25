@@ -104,6 +104,8 @@
       FUNCTION diagnostic_construct_magnetic(magnetic_object)
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (diagnostic_class), POINTER  :: diagnostic_construct_magnetic
       TYPE (magnetic_class), POINTER, INTENT(in) :: magnetic_object
 
@@ -125,6 +127,8 @@
       FUNCTION diagnostic_construct_sxrem(sxrem_object)
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_sxrem
       TYPE (sxrem_class), POINTER, INTENT(in)   :: sxrem_object
 
@@ -146,6 +150,8 @@
       FUNCTION diagnostic_construct_intpol(intpol_object)
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_intpol
       TYPE (intpol_class), POINTER, INTENT(in) :: intpol_object
 
@@ -167,6 +173,8 @@
       FUNCTION diagnostic_construct_thomson(thomson_object)
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_thomson
       TYPE (thomson_class), POINTER, INTENT(in) :: thomson_object
 
@@ -188,6 +196,8 @@
       FUNCTION diagnostic_construct_extcurz(extcurz_object)
 
       IMPLICIT NONE
+
+!  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_extcurz
       TYPE (extcurz_class), POINTER, INTENT(in) :: extcurz_object
 
