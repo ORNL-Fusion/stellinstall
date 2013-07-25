@@ -423,8 +423,23 @@
          bsupvmns = this%bsupvmns
       END IF
 
-!  Restore currents and RZL arrays.
+!  Restore currents and RZL arrays. Compute_Currents allocates the arrays
+!  without checking if they are already allocated.
+      IF (ALLOCATED(currumnc)) THEN
+         DEALLOCATE(currumnc)
+      END IF
+      IF (ALLOCATED(currvmnc)) THEN
+         DEALLOCATE(currvmnc)
+      END IF
+      IF (ALLOCATED(currumns)) THEN
+         DEALLOCATE(currumns)
+      END IF
+      IF (ALLOCATED(currvmns)) THEN
+         DEALLOCATE(currvmns)
+      END IF
       CALL Compute_Currents(status)
+!  The rzl_local array will not be updated if the array is allocated.
+      DEALLOCATE(rzl_local)
       CALL LoadRZL
 
       END SUBROUTINE
