@@ -1594,12 +1594,17 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
-      REAL (rprec), DIMENSION(3)             :: s_flux = 0.0
-      REAL (rprec)                           :: fmin = 0.0
-      INTEGER                                :: info = 0
-      INTEGER                                :: nfe = 0
+      REAL (rprec), DIMENSION(3)             :: s_flux
+      REAL (rprec)                           :: fmin
+      INTEGER                                :: info
+      INTEGER                                :: nfe
 
 !  Start of executable code
+      s_flux = 0.0
+      fmin = 0.0
+      info = 0
+      nfe = 0
+
       r_cyl = cart_to_cyl(x_cart)
       r_cyl(2) = nfp*r_cyl(2)
 

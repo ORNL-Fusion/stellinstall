@@ -1280,11 +1280,13 @@
 !  must be normalized as well. This results in an idenity matrix of
 !  SIZE(signals) X SIZE(signals).
 !
-!  J^T * C_s^-1 * J = J^T * I * J = J^T * J
+!  J^T * C_s^-1 * J -> A^T * I * A = A^T * A
 !
 !  Equation 3 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
+!  Note: This is the same as the hessian that was computed for the
+!  reconstruction. Use that value to avoid a matric multiplication.
       ALLOCATE(cp(SIZE(params),SIZE(params)))
-      cp = MATMUL(TRANSPOSE(this%jacobian), this%jacobian)
+      cp = this%hessian
 
 !  Singular value decomposition of cpinv to invert this matrix.
       ALLOCATE(svd_vt(SIZE(params),SIZE(params)))
@@ -1326,7 +1328,7 @@
 !  matrix, the 1/sigma_s^2 term is found in the J^2 term. An extra Pi term bust
 !  be multiplied out. In terms of the normalized quantities, becomes
 !
-!  (J_n * cp_n)^2 * pi^2 / sigma_p^2
+!  (A * cp_n)^2 * pi^2 / sigma_p^2
       DO j = 1, SIZE(params)
          params(j)%p%sem = (j_dot_cp(:,j)**2.0)                                &
      &                   * params(j)%p%delta**2.0                              &
@@ -1402,8 +1404,12 @@
 
 !  Declare Arguments
       TYPE (reconstruction_class), INTENT(in) :: this
-      CHARACTER(len=*), INTENT(in)            :: step_type
+      CHARACTER (len=*), INTENT(in)           :: step_type
       INTEGER, INTENT(in)                     :: iou
+
+!  local variables.
+      CHARACTER (len=21)                      :: jac_format
+      INTEGER                                 :: i
 
 !  Start of executable code
       WRITE (*,*)
@@ -1416,9 +1422,17 @@
       WRITE (iou,1001) step_type, this%step_size(this%current_step + 1)
       WRITE (iou,1002) this%exp_g2(this%current_step + 1)
 
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Jacobian'
+      WRITE (jac_format,1003) SIZE(this%jacobian, 2)
+      DO i = 1, SIZE(this%jacobian, 1)
+         WRITE(iou,jac_format) i, this%jacobian(i,:)
+      END DO
+
 1000  FORMAT('Number of singular values used: 'i3)
 1001  FORMAT(a4,': Step size limited to ',es12.5)
 1002  FORMAT('  Expected g^2 = ',es12.5)
+1003  FORMAT('(i4,',i3,'(2x,es12.5))')
 
       END SUBROUTINE
 
