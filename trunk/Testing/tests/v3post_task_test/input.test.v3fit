@@ -1,0 +1,8 @@
+&v3fit_main_nli
+my_task = 'v3post',
+vmec_nli_filename = 'input.test.vmec',
+
+sxrch_dot_filename = 'sxrem.dot',
+ipch_dot_filename = 'intpol.dot',
+thscte_dot_filename = 'thomson.dot',
+&END
