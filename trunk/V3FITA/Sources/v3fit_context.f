@@ -172,10 +172,6 @@
 
       v3fit_context_construct%cl_parser => cl_parser
 
-!  Allocate the number of of signals needed. This is allocated to the size
-!  na_s_desc. na_s_desc will default to the maximum number of signals needed.
-      ALLOCATE(v3fit_context_construct%signals(na_s_desc))
-
       END FUNCTION
 
 !*******************************************************************************
@@ -264,9 +260,6 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Reduce memory useage by resizing the arrays to the smallest necessary size.
-!-------------------------------------------------------------------------------
-!-------------------------------------------------------------------------------
 !>  @brief Resize the arrays.
 !>
 !>  Resizes the signal arrays to contain only the minimun necessary to hold all
@@ -299,8 +292,13 @@
             END IF
          END DO
 
-!  Reallocate the array if it is smaller
-         IF (minsize .lt. SIZE(this%signals)) THEN
+!  Deallocate the array is no signals are used. Reallocate the array if it is
+!  smaller.
+         IF (minsize .eq. 0) THEN
+            DEALLOCATE(this%signals)
+            this%signals => null()
+            RETURN
+         ELSE IF (minsize .lt. SIZE(this%signals)) THEN
             ALLOCATE(temp_signal(minsize))
             DO i = 1, minsize
                 temp_signal(i)%p => this%signals(i)%p

@@ -396,23 +396,44 @@
       IMPLICIT NONE
 
 !  local variables
-      LOGICAL :: test_passed
+      LOGICAL :: tests_failed
 
 !  Start of executable code
       WRITE (*,*) ' *** In task unit_test'
 
 ! Line segment tests
-      test_passed = line_seg_test()
-      IF (test_passed) WRITE(*,*) "Line Segment Test Passed"
+      IF (line_seg_test()) THEN
+         WRITE(*,*) "Line Segment Test Passed"
+      ELSE
+         tests_failed = .true.
+      END IF
+
 ! Coordinate tests
-      test_passed = cood_utils_test()
-      IF (test_passed) WRITE(*,*) "Coord Utilites Test Passed"
+      IF (cood_utils_test()) THEN
+         WRITE(*,*) "Coord Utilites Test Passed"
+      ELSE
+         tests_failed = .true.
+      END IF
+
 ! Profile function tests
-      test_passed = function_test()
-      IF (test_passed) WRITE(*,*) "Functions Test Passed"
+      IF (function_test()) THEN
+         WRITE(*,*) "Functions Test Passed"
+      ELSE
+         tests_failed = .true.
+      END IF
+
 ! Integration path tests
-      test_passed = path_test()
-      IF (test_passed) WRITE(*,*) "Integration Path Test Passed"
+      IF (path_test()) THEN
+         WRITE(*,*) "Integration Path Test Passed"
+      ELSE
+         tests_failed = .true.
+      END IF
+
+!  The CTest unit test frame work chooses a pass fail based on the exit code of
+!  the program.
+      IF (tests_failed) THEN
+         CALL EXIT(1)
+      END IF
 
       END SUBROUTINE
 
