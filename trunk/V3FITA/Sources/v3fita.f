@@ -560,7 +560,7 @@
 
 !  If a thscte filename is given, construct the diagnostics contained inside it.
       IF (thscte_dot_filename .ne. '') THEN
-         CALL init_intpol_signals(context, signals_created)
+         CALL init_thomson_signals(context, signals_created)
       END IF
 
 !  If the radial extcur z position isn't negative, construct an extcurz signal.
