@@ -76,7 +76,7 @@ add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
 add_subdirectory (V3RFUN)
 add_subdirectory (BOOZ_XFORM)
-add_subdirectory (Testing)
+#add_subdirectory (Testing)
 
 # Optional extra builds
 if (BUILD_GTOVMI)

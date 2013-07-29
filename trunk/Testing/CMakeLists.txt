@@ -1,4 +1,4 @@
-enable_testing ()
+#enable_testing ()
 
 #  Run the built in unit test task of v3fit.
 add_test (NAME              unit_tests
