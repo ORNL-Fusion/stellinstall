@@ -250,8 +250,10 @@ CDESCUR  j=1,itht1 points g2%rs(j,1),float(ij),g2%zs(j,1)
      .	TRIM(geqdskfile), 200*sum(abs(yin-yfit))/sum(abs(yin+yfit))/nfit
       CALL graf2pt
      &	(xpl,xpl,ypl,ypl2,m,xlabel,ylabel,' ',mlabel,slabel)
-      formatstring='(''  AI = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
-      WRITE(67,fmt=formatstring)b4
+!      formatstring='(''  ai_aux_f = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
+!      WRITE(67,fmt=formatstring)yin
+!      formatstring='(''  ai_aux_s = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
+!      WRITE(67,fmt=formatstring)s
       formats=
      .'("	AI=	$",/,"	["'
       formats=trim(formats)//',5(1pe11.4,",")," $",/,"	"'
@@ -285,9 +287,12 @@ CDESCUR  j=1,itht1 points g2%rs(j,1),float(ij),g2%zs(j,1)
       CALL pgsci(2)
       CALL pgpt1(0.1,real(maxval(yin))/4,4)
       CALL pgtext (0.18, real(maxval(yin))/4, "polynomial fit")
-      formatstring = '(''  AC = '',es14.7,2(/,2x,5(x,es14.7)))'
-      WRITE(67,FMT=formatstring)b4
-      formats = 
+      WRITE(67,*) '  pmcurr_type = line_segment_I'
+      formatstring='(''  ac_aux_f = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
+      WRITE(67,fmt=formatstring)g2%curint(1:513:6)
+      formatstring='(''  ac_aux_s = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
+      WRITE(67,fmt=formatstring)s(1:513:6)
+      formats =
      .'("	AC=	$",/,"	["'
       formats=trim(formats)//',5(1pe11.4,",")," $",/,"	"'
       formats=trim(formats)//'5(1pe11.4,",")'
@@ -347,10 +352,13 @@ CDESCUR  j=1,itht1 points g2%rs(j,1),float(ij),g2%zs(j,1)
       CALL pgsci(2)
       CALL pgpt1(0.1,real(maxval(yin))/4,4)
       CALL pgtext (0.18, real(maxval(yin))/4, "polynomial fit")
-      formatstring = '(''  AM = '',es14.7,2(/,2x,5(x,es14.7)))'
-      WRITE(67,FMT=formatstring)b4
+      WRITE(67,*) '  pmass_type = line_segment'
+      formatstring='(''  am_aux_f = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
+      WRITE(67,fmt=formatstring)g2%pressure(1:513:6)
+      formatstring='(''  am_aux_s = '',1pe14.6,2(/,2x,5(x,1pe14.6)))'
+      WRITE(67,fmt=formatstring)s(1:513:6)
 
-      formats = 
+      formats =
      .'("	AM=	$",/,"	["'
       formats = TRIM(formats)//',5(1pe11.4,",")," $",/,"	"'
       formats = TRIM(formats)//'5(1pe11.4,",")'

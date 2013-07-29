@@ -557,7 +557,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      TYPE (mddc_mrf), INTENT (inout)          :: this
+      TYPE (mddc_mrf), INTENT (inout)            :: this
       INTEGER, INTENT (in)                       :: iou
       CHARACTER (len=*), INTENT (in), OPTIONAL   :: prefix
 

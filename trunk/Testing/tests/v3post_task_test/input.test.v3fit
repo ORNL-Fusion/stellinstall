@@ -5,4 +5,22 @@ vmec_nli_filename = 'input.test.vmec',
 sxrch_dot_filename = 'sxrem.dot',
 ipch_dot_filename = 'intpol.dot',
 thscte_dot_filename = 'thomson.dot',
+
+model_ne_type = 'pp_ne',
+ne_pp_unit = 1.0E18,
+ne_min = 0,
+pp_ne_ptype = 'line_segment',
+pp_ne_as = 0.0, 0.5, 1.0,
+pp_ne_af = 1.0, 1.0, 1.0
+
+model_sxrem_type = 'pp_sxrem'
+pp_sxrem_ptype = 'line_segment'
+pp_sxrem_as = 0.0, 0.5, 1.0,
+pp_sxrem_af = 1.0, 1.0, 1.0
+
+model_te_type = 'pp_te'
+pp_te_ptype = 'line_segment'
+pp_te_as = 0.0, 0.5, 1.0,
+pp_te_af = 15.0, 15.0, 15.0
+
 &END

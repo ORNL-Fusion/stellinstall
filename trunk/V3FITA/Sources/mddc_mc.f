@@ -245,7 +245,7 @@
             END IF
 !            IF (.not.(lsurf)) THEN
                CALL bivariate4pt (bivariate_object,                            &
-     &                            pl_response, pl_respsuv(1,1,mc), k)
+     &                            pl_response, pl_respsuv(:,:,mc), k)
 !            ELSE
 !               CALL bivariate4pt (pl_response, pl_respns(1), k)
 !               pl_respsuv(ns,:,mc) = pl_respns(:)
