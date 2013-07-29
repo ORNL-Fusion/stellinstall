@@ -10,7 +10,7 @@ thscte_XYZ_te
 thm003
 0.0, 0.75, 0.0
 
-thscte_XYZ_te
+thscte_RPhiDegZ_te
 thm004
 0.75, 90.0, 0.0
 
@@ -26,7 +26,7 @@ thscte_XYZ_ne
 thm007
 0.0, 0.75, 0.0
 
-thscte_XYZ_ne
+thscte_RPhiDegZ_ne
 thm008
 0.75, 90.0, 0.0
 
@@ -42,7 +42,7 @@ thscte_XYZ_pres
 thm011
 0.0, 0.75, 0.0
 
-thscte_XYZ_pres
+thscte_RPhiDegZ_pres
 thm012
 0.75, 90.0, 0.0
 

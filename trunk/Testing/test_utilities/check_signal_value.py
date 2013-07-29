@@ -18,7 +18,7 @@ s_index = -1
 index = -1
 for line in recout_file.readlines():
 	split_str = line.split()
-        for i, string in enumerate(split_str):
+	for i, string in enumerate(split_str):
 		if string == "s_name":
 			s_index = i
 		if string == option.attribute:
