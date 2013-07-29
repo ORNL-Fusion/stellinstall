@@ -1163,10 +1163,10 @@
             vmec_get_param_value = this%ne%b(i_index)
 
          CASE (vmec_pp_ne_as_id)
-            vmec_get_param_value = this%ne%af(i_index)
+            vmec_get_param_value = this%ne%as(i_index)
 
          CASE (vmec_pp_ne_af_id)
-            vmec_get_param_value = this%ne%as(i_index)
+            vmec_get_param_value = this%ne%af(i_index)
 
          CASE (vmec_pp_sxrem_b_id)
             vmec_get_param_value = this%sxrem%b(i_index)
