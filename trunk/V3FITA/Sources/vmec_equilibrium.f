@@ -1524,6 +1524,7 @@
 
 !  Start of executable code
       r_cyl = cart_to_cyl(x_cart)
+      vmec_get_B_vec = 0.0
 
       CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                          &
      &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &

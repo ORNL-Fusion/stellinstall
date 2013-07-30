@@ -17,7 +17,6 @@ ip_chord_RPhiDegZ_int
 int004
 1.0 90.0 0.0
 0.5 90.0 0.0
-2.0E-5
 
 ip_chord_XYZ_pol_rad
 int005
@@ -31,25 +30,25 @@ int006
 0.5 0.0 0.0
 2.0E-5
 
-ip_chord_XYZ_pol_deg
+ip_chord_XYZ_pol_rad
 int007
 0.0 1.0 0.0
 0.0 0.5 0.0
 2.0E-5
 
-ip_chord_RPhiDegZ_pol_deg
+ip_chord_RPhiDegZ_pol_rad
 int008
 1.0 90.0 0.0
 0.5 90.0 0.0
 2.0E-5
 
-ip_chord_XYZ_pol_rad
+ip_chord_XYZ_pol_deg
 int009
 1.0 0.0 0.1
 0.5 0.0 0.1
 2.0E-5
 
-ip_chord_RPhiDegZ_pol_rad
+ip_chord_RPhiDegZ_pol_deg
 int010
 1.0 0.0 0.1
 0.5 0.0 0.1
