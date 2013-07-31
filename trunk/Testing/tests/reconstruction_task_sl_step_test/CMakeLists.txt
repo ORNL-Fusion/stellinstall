@@ -15,3 +15,17 @@ add_test (NAME    reconstruction_task_sl_step_test_pp_sxrem_af
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af --value=1.0 --range=0.1 --index1=1)
 add_test (NAME    reconstruction_task_sl_step_test_sem_totals
           COMMAND ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit)
+add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:1-1
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:3-3
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_5-16:3-4
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_17-20:1-1
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_17-20:4-4
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_21-28:3-4
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_25-28:1-1
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)

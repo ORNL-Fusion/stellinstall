@@ -1428,6 +1428,7 @@
       DO i = 1, SIZE(this%jacobian, 1)
          WRITE(iou,jac_format) i, this%jacobian(i,:)
       END DO
+      WRITE (iou,*)
 
 1000  FORMAT('Number of singular values used: 'i3)
 1001  FORMAT(a4,': Step size limited to ',es12.5)
