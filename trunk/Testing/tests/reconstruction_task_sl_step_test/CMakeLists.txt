@@ -29,3 +29,15 @@ add_test (NAME    reconstruction_task_sl_step_test_jac_21-28:3-4
           COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_25-28:1-1
           COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_1
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_2-1
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_2-2
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-1
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-2
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_4
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)

@@ -142,11 +142,11 @@
 !>           v3fit_input::lif_on_edge}
 !>  @end_table
 !>
-!>  @table_section{geometric_sec, Prior information}
+!>  @table_section{prior_sec, Prior information}
 !>     @item{n_prior,          Number of specified priors.,             v3fit_input::n_prior}
 !>     @item{prior_name,       Name of the specified priors.,           v3fit_input::prior_name}
 !>     @item{prior_param_name, Name of the prior parameter.,            v3fit_input::prior_param_name}
-!>     @item{prior_indices,    The ith and jth index of the parameter., v3fit_input::prior_indicies}
+!>     @item{prior_indices,    The ith and jth index of the parameter., v3fit_input::prior_indices}
 !>     @item{prior_units,      The units of the prior signal          , v3fit_input::prior_units}
 !>  @end_table
 !>

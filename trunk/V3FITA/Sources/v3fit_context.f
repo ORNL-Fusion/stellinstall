@@ -458,7 +458,8 @@
 !  All the signals should be written out before auxiliary information.
          DO i = 1, SIZE(this%signals)
             CALL signals_write_auxiliary(this%signals(i)%p,                    &
-     &                                   this%recout_iou, i)
+     &                                   this%recout_iou, i,                   &
+     &                                   this%model)
          END DO
       END IF
 

@@ -792,11 +792,12 @@
 !>
 !>  @see combination_write_auxiliary
 !>
-!>  @param[in] this  A @ref signal_class instance.
-!>  @param[in] iou   A input/output representing the file to write to.
-!>  @param[in] index A index of a signal.
+!>  @param[in] this    A @ref signal_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of a signal.
+!>  @param[in] a_model The equilibrium model.
 !-------------------------------------------------------------------------------
-      SUBROUTINE signals_write_auxiliary(this, iou, index)
+      SUBROUTINE signals_write_auxiliary(this, iou, index, a_model)
 
       IMPLICIT NONE
 
@@ -804,9 +805,14 @@
       TYPE (signal_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: iou
       INTEGER, INTENT(in)             :: index
+      TYPE (model_class), INTENT(in)  :: a_model
 
 !  Start of executable code
       SELECT CASE (this%type)
+
+         CASE (signal_prior_type)
+            CALL prior_write_auxiliary(this%prior, iou, index,                 &
+     &                                 a_model)
 
          CASE (signal_combination_type)
             CALL combination_write_auxiliary(this%combination,                 &

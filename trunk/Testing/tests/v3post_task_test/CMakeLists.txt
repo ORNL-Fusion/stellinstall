@@ -53,3 +53,11 @@ add_test (NAME    v3post_task_check_model_thm011
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=thm011 --attribute=model --value=400 --range=1.0)
 add_test (NAME    v3post_task_check_model_thm012
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=thm012 --attribute=model --value=400 --range=1.0)
+add_test (NAME    v3post_task_check_model_prior_1
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_1 --attribute=model --value=1 --range=1.0E-10)
+add_test (NAME    v3post_task_check_model_prior_2
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=model --value=1 --range=1.0)
+add_test (NAME    v3post_task_check_model_prior_3
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=model --value=15 --range=1.0)
+add_test (NAME    v3post_task_check_model_prior_4
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=model --value=1 --range=1.0)

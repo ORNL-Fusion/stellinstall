@@ -138,7 +138,7 @@
 !>
 !>  @see prior_gaussian::prior_gaussia_get_signal_type
 !>
-!>  @param[in] this A @ref prior_class instance.
+!>  @param[in] this A @ref prior_gaussian_class instance.
 !>  @returns A string describing the prior type.
 !-------------------------------------------------------------------------------
       FUNCTION prior_gaussian_get_signal_type(this)
@@ -153,5 +153,37 @@
       prior_gaussian_get_signal_type = 'guassian'
 
       END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Write out auxiliary signal information to an output file.
+!>
+!>  Writes out the s_name and coefficient of the combined signals.
+!>
+!>  @param[in] this    A @ref prior_gaussian_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of this signal.
+!>  @param[in] a_model The equilibrium model.
+!-------------------------------------------------------------------------------
+      SUBROUTINE prior_gaussian_write_auxiliary(this, iou, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_gaussian_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                     :: iou
+      TYPE (model_class), INTENT(in)          :: a_model
+
+!  Start of executable code
+      WRITE (iou,1000)
+      WRITE (iou,1001) model_get_param_name(a_model, this%param_id),           &
+     &                 this%indices
+
+1000  FORMAT('parameter name',8x,'inx1',2x,'inx2')
+1001  FORMAT(a20,2(2x,i4))
+
+      END SUBROUTINE
 
       END MODULE

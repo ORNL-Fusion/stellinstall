@@ -224,4 +224,69 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the prior type.
+!>
+!>  Returns a string describing the prior subclass.
+!>
+!>  @param[in] this A @ref prior_class instance.
+!>  @returns A string describing the prior subclass.
+!-------------------------------------------------------------------------------
+      FUNCTION prior_get_prior_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: prior_get_prior_type
+      TYPE (prior_class), INTENT(in)   :: this
+
+!  Start of executable code
+      SELECT CASE(this%type)
+
+         CASE (prior_gaussian_type)
+            prior_get_prior_type = 'gaussian'
+      END SELECT
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Write out auxiliary signal information to an output file.
+!>
+!>  Writes out the s_name and coefficient of the combined signals.
+!>
+!>  @param[in] this    A @ref prior_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of this signal.
+!>  @param[in] a_model The equilibrium model.
+!-------------------------------------------------------------------------------
+      SUBROUTINE prior_write_auxiliary(this, iou, index, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: iou
+      INTEGER, INTENT(in)            :: index
+      TYPE (model_class), INTENT(in) :: a_model
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,1000) index, prior_get_prior_type(this)
+
+      SELECT CASE(this%type)
+
+         CASE (prior_gaussian_type)
+            CALL prior_gaussian_write_auxiliary(this%gaussian, iou,            &
+     &                                          a_model)
+
+      END SELECT
+
+1000  FORMAT('Signal',1x,i4,1x,                                                &
+     &       'is a prior signal, type: ',a)
+
+      END SUBROUTINE
+
       END MODULE
