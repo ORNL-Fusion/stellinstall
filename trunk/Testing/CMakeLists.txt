@@ -40,4 +40,8 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/reconstruction_task_sl_step_test)
 
+#  Copy common files to the parameter constraints test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/param_constraints_test)
+
 add_subdirectory (tests)

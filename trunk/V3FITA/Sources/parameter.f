@@ -271,7 +271,7 @@
 !  The value is in the lower range. Check upper range. If the value is outside,
 !  truncate the value to the upper range.
       IF (this%range_type(2) .ne. param_range_infinity_type) THEN
-         upper_value = param_get_lower_range_value(this, a_model)
+         upper_value = param_get_upper_range_value(this, a_model)
 
          IF (set_value .gt. upper_value) THEN
             CALL model_set_param(a_model, this%param_id,                       &
@@ -417,15 +417,17 @@
 !>
 !>  Gets lower boundary type description.
 !>
-!>  @param[in] this A @ref param_class instance.
+!>  @param[in] this    A @ref param_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns A string description of the lower boundary type.
 !-------------------------------------------------------------------------------
-      FUNCTION param_get_lower_range_type(this)
+      FUNCTION param_get_lower_range_type(this, a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       CHARACTER (len=data_name_length) :: param_get_lower_range_type
+      TYPE (model_class), INTENT(in)   :: a_model
       TYPE (param_class), INTENT(in)   :: this
 
 !  Start of executable code
@@ -441,7 +443,8 @@
             param_get_lower_range_type = 'infinity'
 
          CASE (param_range_parameter_type)
-            param_get_lower_range_type = 'parameter'
+            param_get_lower_range_type =                                       &
+     &         model_get_param_name(a_model, this%range_id(1))
 
       END SELECT
 
@@ -452,15 +455,17 @@
 !>
 !>  Gets upper boundary type description.
 !>
-!>  @param[in] this A @ref param_class instance.
+!>  @param[in] this    A @ref param_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns A string description of the upper boundary type.
 !-------------------------------------------------------------------------------
-      FUNCTION param_get_upper_range_type(this)
+      FUNCTION param_get_upper_range_type(this, a_model)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       CHARACTER (len=data_name_length) :: param_get_upper_range_type
+      TYPE (model_class), INTENT(in)   :: a_model
       TYPE (param_class), INTENT(in)   :: this
 
 !  Start of executable code
@@ -476,7 +481,8 @@
             param_get_upper_range_type = 'infinity'
 
          CASE (param_range_parameter_type)
-            param_get_upper_range_type = 'parameter'
+            param_get_upper_range_type =                                       &
+     &         model_get_param_name(a_model, this%range_id(2))
 
       END SELECT
 
@@ -653,8 +659,8 @@
      &                 this%indicies(1), this%indicies(2),                     &
      &                 param_get_value(this, a_model),                         &
      &                 this%sigma, this%vrnc,                                  &
-     &                 param_get_upper_range_type(this),                       &
-     &                 param_get_lower_range_type(this),                       &
+     &                 param_get_upper_range_type(this, a_model),              &
+     &                 param_get_lower_range_type(this, a_model),              &
      &                 param_get_upper_range_value(this, a_model),             &
      &                 param_get_lower_range_value(this, a_model),             &
      &                 this%range_indicies(2,:),                               &

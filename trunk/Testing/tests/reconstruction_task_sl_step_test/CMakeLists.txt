@@ -177,3 +177,13 @@ add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_3
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=sigma --value=1.50000E-01 --range=1.0)
 add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_4
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=sigma --value=1.00000E-02 --range=1.0)
+
+#  Check parameter constraint types for the correct values.
+add_test (NAME    reconstruction_task_sl_step_test_check_pp_ne_af_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_ne_af --index1=2 --range_l=value)
+add_test (NAME    reconstruction_task_sl_step_test_check_am_aux_f_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=am_aux_f --index1=2 --range_l=value)
+add_test (NAME    reconstruction_task_sl_step_test_check_pp_te_af_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_af --index1=2 --range_l=value)
+add_test (NAME    reconstruction_task_sl_step_test_check_pp_sxrem_af_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af --index1=1 --range_l=value)
