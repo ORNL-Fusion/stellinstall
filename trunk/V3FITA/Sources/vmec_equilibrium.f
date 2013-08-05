@@ -2206,7 +2206,9 @@
       END IF
 
 !  Reset the wout file.
-      CALL wout_file_cache_reset_state(this%wout_file)
+      IF (ASSOCIATED(this%wout_file) THEN
+         CALL wout_file_cache_reset_state(this%wout_file)
+      END IF
       IF (ASSOCIATED(this%magnetic_cache)) THEN
          CALL vmec_set_magnetic_cache_calc(this)
       END IF
