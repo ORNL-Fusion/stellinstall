@@ -2045,7 +2045,7 @@
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE xstuff, only: xcdot
+      USE xstuff, only: xcdot, xc
       USE v3f_global, only: iou_runlog
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE vmec_main, only: iterc, iter1, iter2
@@ -2115,7 +2115,13 @@
          WRITE (*,*) 'Attempting error recovery'
          WRITE (iou_runlog,*) 'Attempting error recovery'
 
-         CALL vmec_reset_state(this)
+!  Only the xc arrays need to be reset. The vmec_reset_state routine was
+!  assuming that a wout file had been written. This isn't the case when error
+!  recovery happens in the inital convergence.
+         IF (ASSOCIATED(this%xc) .and.                                         &
+     &       (SIZE(xc) .eq. SIZE(this%xc))) THEN
+            xc = this%xc
+         END IF
          recovery_index = recovery_index + 1
       END DO
 
