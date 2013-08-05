@@ -2206,7 +2206,7 @@
       END IF
 
 !  Reset the wout file.
-      IF (ASSOCIATED(this%wout_file) THEN
+      IF (ASSOCIATED(this%wout_file)) THEN
          CALL wout_file_cache_reset_state(this%wout_file)
       END IF
       IF (ASSOCIATED(this%magnetic_cache)) THEN
