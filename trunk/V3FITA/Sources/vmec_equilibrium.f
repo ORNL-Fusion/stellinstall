@@ -269,6 +269,7 @@
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
       USE vmec_input, only: l_v3fit
+      USE xstuff, only: xc
 
       IMPLICIT NONE
 
@@ -281,7 +282,7 @@
       INTEGER, INTENT(in)                  :: iou
 
 !  local variables
-      INTEGER, DIMENSION(5)                :: ictrl_array = 0
+      INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
 
 !  Start of executable code
@@ -296,6 +297,7 @@
       vmec_construct%sxrem => sxrem
 
 !  Initialize VMEC by taking a single step.
+      ictrl_array = 0
       ictrl_array(1) = restart_flag + readin_flag + timestep_flag
       ictrl_array(3) = 1 ! Run for one iteration.
       ictrl_array(4) = 1 ! Limit VMEC to single grid.
@@ -325,6 +327,13 @@
      &                     int = ictrl_array(2))
 
       END SELECT
+
+!  Store the inital xc array here. This is needed to reset the xc array for
+!  error recovery in the initial equilibirum convergence. The vmec_save_state
+!  and vmec_reset_state routines cannot be used here since those assume a wout
+!  file was written.
+      ALLOCATE(vmec_construct%xc(SIZE(xc)))
+      vmec_construct%xc = xc
 
       END FUNCTION
 
