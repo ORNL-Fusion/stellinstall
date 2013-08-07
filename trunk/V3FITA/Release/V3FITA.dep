@@ -95,7 +95,9 @@ ipch_dot.o : \
       ../../LIBSTELL/Release/ipch_T.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
-      signal_dot.o 
+      signal_dot.o \
+      data_parameters.o \
+      signal.o
       
 
 ipch_mc.o : \
@@ -188,7 +190,8 @@ signal_dot.o : \
       ../../LIBSTELL/Release/coordinate_utilities.o \
       ../../LIBSTELL/Release/safe_open_mod.o \
       ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/stel_kinds.o 
+      ../../LIBSTELL/Release/stel_kinds.o \
+      data_parameters.o
       
 
 signal_mc.o : \
@@ -218,7 +221,9 @@ sxrch_dot.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/sxrch_T.o \
-      signal_dot.o 
+      signal_dot.o \
+      data_parameters.o \
+      signal.o
       
 
 sxrch_mc.o : \
@@ -235,7 +240,9 @@ thscte_dot.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/thscte_T.o \
-      signal_dot.o 
+      signal_dot.o \
+      data_parameters.o \
+      signal.o
       
 
 thscte_mc.o : \
@@ -292,7 +299,9 @@ v3fita.o : \
       signal_T.o \
       sxrch_dot.o \
       thscte_dot.o \
-      v3f_global.o 
+      v3f_global.o \
+      commandline_parser.o \
+      v3fit_context.o
       
 
 v3read_wout.o : \
