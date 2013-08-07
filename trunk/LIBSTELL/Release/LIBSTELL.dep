@@ -701,7 +701,8 @@ ipch_T.o : \
 
 math_utilities.o : \
       stel_constants.o \
-      stel_kinds.o 
+      stel_kinds.o \
+      integration_path.o
       
 
 mddc_cdf.o : \

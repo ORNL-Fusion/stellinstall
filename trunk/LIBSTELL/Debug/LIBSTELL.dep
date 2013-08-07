@@ -696,7 +696,8 @@ gade_mod.o : \
 ipch_T.o : \
       safe_open_mod.o \
       stel_constants.o \
-      stel_kinds.o 
+      stel_kinds.o \
+      integration_path.o
       
 
 math_utilities.o : \
