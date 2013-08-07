@@ -306,3 +306,158 @@ v3read_wout.o : \
       eq_T.o \
       v3f_global.o 
       
+      
+signal.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/ezcdf.o \
+      model.o \
+      data_parameters.o \
+      diagnostic.o \
+      geometric.o \
+      prior.o
+      
+
+diagnostic.o : \
+      data_parameters.o \
+      model.o \
+      magnetic.o \
+      sxrem.o \
+      intpol.o \
+      thomson.o \
+      extcurz.o
+      
+
+magnetic.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/mddc_T.o \
+      ../../LIBSTELL/Debug/ezcdf.o \
+      ../../LIBSTELL/Debug/v3_utilities.o \
+      data_parameters.o \
+      model.o \
+      bivariate.o
+
+
+sxrem.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/integration_path.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
+      data_parameters.o \
+      model.o
+
+
+intpol.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/integration_path.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
+      data_parameters.o \
+      model.o
+
+
+thomson.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/coordinate_utilities.o \
+      data_parameters.o \
+      model.o
+      
+
+extcurz.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/stel_constants.o \
+      data_parameters.o \
+      model.o
+      
+
+geometric.o : \
+      limiter.o \
+      data_parameters.o \
+      model.o
+
+
+limiter.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      limiter_iso_T.o \
+      data_parameters.o \
+      model.o
+      
+      
+prior.o : \
+      data_parameters.o \
+      prior_gaussian.o
+      
+      
+prior_gaussian.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      data_parameters.o \
+      model.o
+
+
+parameter.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/v3_utilities.o \
+      ../../LIBSTELL/Debug/ezcdf.o \
+      data_parameters.o \
+      model.o
+      
+
+model.o : \
+      equilibrium.o
+      
+
+equilibrium.o : \
+      vmec_equilibrium.o
+      
+      
+vmec_equilibrium.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/stel_constants.o \
+      ../../LIBSTELL/Debug/mgrid_mod.o \
+      ../../LIBSTELL/Debug/vmec_input.o \
+      ../../LIBSTELL/Debug/read_wout_mod.o \
+      ../../LIBSTELL/Debug/v3f_vmec_comm.o \
+      ../../LIBSTELL/Debug/line_segment.o \
+      ../../LIBSTELL/Debug/cyl_flux.o \
+      ../../LIBSTELL/Debug/ezcdf.o \
+      ../../VMEC2000/Debug/vmec_params.o \
+      ../../VMEC2000/Debug/xstuff.o \
+      ../../VMEC2000/Debug/vmec_main.o \
+      ../../VMEC2000/Debug/vacmod0.o \
+      ../../VMEC2000/Debug/vmec_dim.o \
+      data_parameters.o \
+      pprofile_T.o \
+      wout_file_cache.o
+
+
+wout_file_cache.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/read_wout_mod.o
+      
+
+v3fit_input.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/v3_utilities.o \
+      ../../LIBSTELL/Debug/safe_open_mod.o \
+      data_parameters.o \
+      signal.o \
+      pp_profile_T.o
+      
+
+v3fit_context.o : \
+      ../../LIBSTELL/Debug/ezcdf.o \
+      ../../LIBSTELL/Debug/safe_open_mod.o \
+      parameter.o \
+      commandline_parser.o \
+      reconstruction.o \
+      v3fit_input.o
+      
+
+commandline_parser.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      data_parameters.o
+      
+
+reconstruction.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      parameter.o \
+      signal.o \
+      model.o
+      
