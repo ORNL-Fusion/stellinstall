@@ -237,6 +237,11 @@ legendre_to_power.o : \
       stel_kinds.o 
       
 
+line_segment.o : \
+      stel_constants.o \
+      stel_kinds.o 
+      
+
 multxy.o : \
       stel_kinds.o 
       
@@ -625,6 +630,11 @@ coilsnamin.o : \
       vf_coils.o 
       
 
+coordinate_utilities.o : \
+      stel_constants.o \
+      stel_kinds.o 
+      
+
 cyl_flux.o : \
       stel_constants.o \
       stel_kinds.o 
@@ -643,8 +653,6 @@ de_mod.o : \
 diagnostic_cdf.o : \
       diagnostic_T.o \
       ezcdf.o \
-      ipsl_cdf.o \
-      ipsl_T.o \
       mddc_cdf.o \
       mddc_T.o \
       stel_constants.o \
@@ -653,8 +661,8 @@ diagnostic_cdf.o : \
       
 
 diagnostic_T.o : \
+      extcurz_T.o \
       ipch_T.o \
-      ipsl_T.o \
       mddc_T.o \
       stel_constants.o \
       stel_kinds.o \
@@ -663,7 +671,17 @@ diagnostic_T.o : \
       v3_utilities.o 
       
 
+extcurz_T.o : \
+      safe_open_mod.o \
+      stel_constants.o \
+      stel_kinds.o \
+
+
 fftpack.o : \
+      stel_kinds.o 
+      
+
+functions.o : \
       stel_kinds.o 
       
 
@@ -675,42 +693,10 @@ gade_mod.o : \
       stel_kinds.o 
       
 
-intpol_cdf.o : \
-      ezcdf.o \
-      ip_beamline.o \
-      stel_constants.o \
-      stel_kinds.o \
-      v3_utilities.o 
-      
-
-ip_beamline.o : \
-      math_utilities.o \
-      stel_constants.o \
-      stel_kinds.o \
-      v3_utilities.o 
-      
-
 ipch_T.o : \
       safe_open_mod.o \
       stel_constants.o \
       stel_kinds.o 
-      
-
-ipsl_cdf.o : \
-      ezcdf.o \
-      intpol_cdf.o \
-      ip_beamline.o \
-      ipsl_T.o \
-      stel_constants.o \
-      stel_kinds.o \
-      v3_utilities.o 
-      
-
-ipsl_T.o : \
-      ip_beamline.o \
-      stel_constants.o \
-      stel_kinds.o \
-      v3_utilities.o 
       
 
 math_utilities.o : \
@@ -826,6 +812,10 @@ thscte_T.o : \
       
 
 v3_utilities.o : \
+      stel_kinds.o 
+      
+
+v3f_vmec_comm.o : \
       stel_kinds.o 
       
 
@@ -956,28 +946,4 @@ li_gefa.o : \
 
 li_gesl.o : \
       liprec.o 
-      
-      
-line_segment_mod.o : \
-      stel_constants.o \
-      stel_kinds.o
-      
-
-functions.o : \
-      stel_kinds.o
-      
-      
-coordinate_utilities.o : \
-      stel_constants.o \
-      stel_kinds.o
-
-
-v3f_vmec_comm.o : \
-      stel_kinds.o
-
-
-extcurz_T.o : \
-      stel_constants.o \
-      stel_kinds.o \
-      safe_open_mod.o
       

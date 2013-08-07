@@ -1,50 +1,10 @@
 # Microsoft Developer Studio Generated Dependency File, included by V3FITA.mak
 
-b_transform_mod.o : \
-      ../../LIBSTELL/Release/math_utilities.o \
-      ../../LIBSTELL/Release/read_wout_mod.o \
-      ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/track_mod.o \
-      ../../LIBSTELL/Release/v3_utilities.o \
-      b_transform_vmec.o \
-      eq_T.o \
-      v3read_wout.o 
-      
-
-b_transform_vmec.o : \
-      ../../LIBSTELL/Release/read_wout_mod.o \
-      ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      eq_T.o 
-      
-
-bfield_grid_mod.o : \
-      ../../LIBSTELL/Release/ajax_mod.o \
-      ../../LIBSTELL/Release/ezcdf.o \
-      ../../LIBSTELL/Release/math_utilities.o \
-      ../../LIBSTELL/Release/read_wout_mod.o \
-      ../../LIBSTELL/Release/safe_open_mod.o \
-      ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o \
-      b_transform_mod.o \
-      b_transform_vmec.o \
-      faraday_mod.o \
-      v3read_wout.o 
-      
-
 bivariate.o : \
       ../../LIBSTELL/Release/stel_kinds.o 
       
 
 coosig_T.o : \
-      ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o 
-      
-
-density_T.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/v3_utilities.o 
@@ -90,31 +50,24 @@ eq_interface.o : \
       
 
 eq_T.o : \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
       ../../LIBSTELL/Release/cyl_flux.o \
       ../../LIBSTELL/Release/mgrid_mod.o \
       ../../LIBSTELL/Release/read_wout_mod.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o 
+      ../../LIBSTELL/Release/v3_utilities.o \
+      ../../LIBSTELL/Release/vmec_utils.o \
+      ../../LIBSTELL/Release/vparams.o 
       
 
-faraday_mod.o : \
-      ../../LIBSTELL/Release/ajax_mod.o \
-      ../../LIBSTELL/Release/ezcdf.o \
-      ../../LIBSTELL/Release/intpol_cdf.o \
-      ../../LIBSTELL/Release/ip_beamline.o \
-      ../../LIBSTELL/Release/ipsl_cdf.o \
-      ../../LIBSTELL/Release/ipsl_T.o \
-      ../../LIBSTELL/Release/math_utilities.o \
-      ../../LIBSTELL/Release/safe_open_mod.o \
-      ../../LIBSTELL/Release/spec_kind_mod.o \
+extcurz_mc.o : \
+      ../../LIBSTELL/Release/extcurz_T.o \
+      ../../LIBSTELL/Release/line_segment.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/track_mod.o \
-      b_transform_mod.o \
-      b_transform_vmec.o \
-      eq_T.o \
-      ip_global.o \
+      ../../LIBSTELL/Release/v3_utilities.o \
+      model_T.o \
       v3f_global.o 
       
 
@@ -138,24 +91,22 @@ gsq_mod.o : \
       v3f_global.o 
       
 
-ip_global.o : \
-      ../../LIBSTELL/Release/diagnostic_T.o \
-      ../../LIBSTELL/Release/ip_beamline.o \
+ipch_dot.o : \
+      ../../LIBSTELL/Release/ipch_T.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o \
-      plasma_edge.o \
-      signal_T.o 
+      signal_dot.o 
       
 
-ipsl_mc.o : \
-      ../../LIBSTELL/Release/ipsl_T.o \
+ipch_mc.o : \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
+      ../../LIBSTELL/Release/ipch_T.o \
+      ../../LIBSTELL/Release/read_wout_mod.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o \
-      faraday_mod.o \
-      ip_global.o \
-      model_T.o 
+      ../../LIBSTELL/Release/vmec_utils.o \
+      model_T.o \
+      v3f_global.o 
       
 
 limiter_iso_T.o : \
@@ -189,15 +140,11 @@ plasma_edge.o : \
       
 
 pprofile_T.o : \
+      ../../LIBSTELL/Release/functions.o \
+      ../../LIBSTELL/Release/line_segment.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o \
-      ../../LIBSTELL/Release/line_segment_mod.o \
-      ../../LIBSTELL/Release/functions.o
-      
-
-ptr_links.o : \
-      ../../LIBSTELL/Release/ip_beamline.o 
+      ../../LIBSTELL/Release/v3_utilities.o 
       
 
 recon_param_model.o : \
@@ -215,6 +162,17 @@ recon_param_T.o : \
       ../../LIBSTELL/Release/v3_utilities.o 
       
 
+result_output.o : \
+      ../../LIBSTELL/Release/ezcdf.o \
+      ../../LIBSTELL/Release/stel_kinds.o \
+      ../../LIBSTELL/Release/v3_utilities.o \
+      ../../LIBSTELL/Release/v3f_vmec_comm.o \
+      gsq_mod.o \
+      recon_param_T.o \
+      signal_T.o \
+      v3f_global.o 
+      
+
 signal_cdf.o : \
       ../../LIBSTELL/Release/bsc_T.o \
       ../../LIBSTELL/Release/diagnostic_cdf.o \
@@ -226,21 +184,25 @@ signal_cdf.o : \
       signal_T.o 
       
 
+signal_dot.o : \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
+      ../../LIBSTELL/Release/safe_open_mod.o \
+      ../../LIBSTELL/Release/stel_constants.o \
+      ../../LIBSTELL/Release/stel_kinds.o 
+      
+
 signal_mc.o : \
-      ../../LIBSTELL/Release/read_wout_mod.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/v3_utilities.o \
-      b_transform_vmec.o \
       edge_limit_mc.o \
-      ipsl_mc.o \
+      extcurz_mc.o \
+      ipch_mc.o \
       mddc_mc.o \
       model_T.o \
       signal_T.o \
       sxrch_mc.o \
-      ipch_mc.o \
-      thscte_mc.o \
-      extcurz_mc.o
+      thscte_mc.o 
       
 
 signal_T.o : \
@@ -256,32 +218,15 @@ sxrch_dot.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/sxrch_T.o \
-      signal_dot.o
-      
-
-ipch_dot.o : \
-      ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/ipch_T.o \
-      signal_dot.o
+      signal_dot.o 
       
 
 sxrch_mc.o : \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
       ../../LIBSTELL/Release/read_wout_mod.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/sxrch_T.o \
       ../../LIBSTELL/Release/vmec_utils.o \
-      ../../LIBSTELL/Release/coordinate_utilities.o \
-      model_T.o \
-      v3f_global.o 
-      
-
-ipch_mc.o : \
-      ../../LIBSTELL/Release/read_wout_mod.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/ipch_T.o \
-      ../../LIBSTELL/Release/vmec_utils.o \
-      ../../LIBSTELL/Release/coordinate_utilities.o \
       model_T.o \
       v3f_global.o 
       
@@ -290,15 +235,15 @@ thscte_dot.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/thscte_T.o \
-      signal_dot.o
+      signal_dot.o 
       
 
 thscte_mc.o : \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
       ../../LIBSTELL/Release/read_wout_mod.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/thscte_T.o \
       ../../LIBSTELL/Release/vmec_utils.o \
-      ../../LIBSTELL/Release/coordinate_utilities.o \
       model_T.o \
       v3f_global.o 
       
@@ -314,45 +259,40 @@ v3f_global.o : \
       recon_param_T.o \
       signal_T.o 
       
-      
+
 v3fita.o : \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
       ../../LIBSTELL/Release/diagnostic_cdf.o \
       ../../LIBSTELL/Release/diagnostic_T.o \
-      ../../LIBSTELL/Release/ip_beamline.o \
+      ../../LIBSTELL/Release/extcurz_T.o \
+      ../../LIBSTELL/Release/functions.o \
+      ../../LIBSTELL/Release/ipch_T.o \
+      ../../LIBSTELL/Release/line_segment.o \
       ../../LIBSTELL/Release/safe_open_mod.o \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/sxrch_T.o \
-      ../../LIBSTELL/Release/ipch_T.o \
       ../../LIBSTELL/Release/thscte_T.o \
       ../../LIBSTELL/Release/v3_utilities.o \
-      ../../LIBSTELL/Release/line_segment_mod.o \
-      ../../LIBSTELL/Release/functions.o \
-      ../../LIBSTELL/Release/coordinate_utilities.o \
-      bfield_grid_mod.o \
       coosig_T.o \
       edge_limit_T.o \
       eq_interface.o \
-      eq_T.o \
-      faraday_mod.o \
       geometric_T.o \
       gsq_mod.o \
-      ip_global.o \
+      ipch_dot.o \
       limiter_iso_T.o \
       mmaw.o \
       model_T.o \
       pprofile_T.o \
       recon_param_model.o \
       recon_param_T.o \
+      result_output.o \
       signal_cdf.o \
       signal_mc.o \
       signal_T.o \
       sxrch_dot.o \
-      ipch_dot.o \
       thscte_dot.o \
-      v3f_global.o \
-      v3read_wout.o \
-      result_output_mod.o
+      v3f_global.o 
       
 
 v3read_wout.o : \
@@ -364,30 +304,5 @@ v3read_wout.o : \
       ../../LIBSTELL/Release/track_mod.o \
       ../../LIBSTELL/Release/write_mod.o \
       eq_T.o \
-      v3f_global.o
+      v3f_global.o 
       
-      
-result_output_mod.o : \
-      ../../LIBSTELL/Release/ezcdf.o \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/v3_utilities.o \
-      ../../LIBSTELL/Release/v3f_vmec_comm.o \
-      gsq_mod.o \
-      signal_T.o \
-      recon_param_T.o \
-      v3f_global.o
-      
-
-signal_dot.o : \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/stel_constants.o \
-      ../../LIBSTELL/Release/safe_open_mod.o \
-      ../../LIBSTELL/Release/coordinate_utilities.o
-      
-    
-extcurz_mc.o : \
-      ../../LIBSTELL/Release/stel_kinds.o \
-      ../../LIBSTELL/Release/extcurz_T.o \
-      model_T.o \
-      v3f_global.o
-

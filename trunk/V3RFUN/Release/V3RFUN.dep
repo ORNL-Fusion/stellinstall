@@ -18,6 +18,7 @@ v3rfun.o : \
       ../../LIBSTELL/Release/stel_constants.o \
       ../../LIBSTELL/Release/stel_kinds.o \
       ../../LIBSTELL/Release/v3_utilities.o \
+      ../../LIBSTELL/Release/coordinate_utilities.o \
       diagnostic_dot.o \
       v3rfun_data.o 
 

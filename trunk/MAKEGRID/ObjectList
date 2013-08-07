@@ -1,4 +1,4 @@
 ObjectFiles = \
-makegrid.o \
 makegrid_global_mod.o \
-write_mgrid.o 
+write_mgrid.o \
+makegrid.o 
