@@ -447,7 +447,7 @@ v3fit_input.o : \
       ../../LIBSTELL/Release/safe_open_mod.o \
       data_parameters.o \
       signal.o \
-      pp_profile_T.o
+      pprofile_T.o
       
 
 v3fit_context.o : \
