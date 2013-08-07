@@ -700,6 +700,10 @@ ipch_T.o : \
       integration_path.o
       
 
+integration_path.o : \
+      stel_kinds.o
+
+
 math_utilities.o : \
       stel_constants.o \
       stel_kinds.o 
