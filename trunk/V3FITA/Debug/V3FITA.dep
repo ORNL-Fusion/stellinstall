@@ -75,7 +75,8 @@ geometric_T.o : \
       ../../LIBSTELL/Debug/stel_constants.o \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/v3_utilities.o \
-      edge_limit_T.o 
+      ../../LIBSTELL/Release/boundary_T.o \
+      edge_limit_T.o
       
 
 gsq_mod.o : \
@@ -205,8 +206,14 @@ signal_mc.o : \
       model_T.o \
       signal_T.o \
       sxrch_mc.o \
-      thscte_mc.o 
+      thscte_mc.o \
+      boundary_mc.o
       
+      
+boundary_mc.o : \
+      ../../LIBSTELL/Debug/boundary_T.o \
+      v3f_global.o 
+
 
 signal_T.o : \
       ../../LIBSTELL/Debug/diagnostic_T.o \
@@ -214,7 +221,7 @@ signal_T.o : \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/v3_utilities.o \
       coosig_T.o \
-      geometric_T.o 
+      geometric_T.o
       
 
 sxrch_dot.o : \

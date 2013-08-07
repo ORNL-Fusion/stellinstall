@@ -50,4 +50,5 @@ data_parameters.o \
 v3fit_input.o \
 v3fit_context.o \
 commandline_parser.o \
-reconstruction.o
+reconstruction.o \
+boundary_mc.o
