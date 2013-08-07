@@ -987,7 +987,8 @@
          SELECT CASE (this%type)
 
             CASE (equilibrium_vmec_type)
-               equilibrium_converge = vmec_converge(this%vmec, num_iter)
+               equilibrium_converge = vmec_converge(this%vmec, num_iter,       &
+     &                                              iou)
                this%not_converged = .not.equilibrium_converge
 
             CASE DEFAULT

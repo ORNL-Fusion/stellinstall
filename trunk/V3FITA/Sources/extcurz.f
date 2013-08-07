@@ -47,7 +47,6 @@
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_construct(r, theta)
-      USE eq_T
 
       IMPLICIT NONE
 

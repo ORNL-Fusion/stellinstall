@@ -2046,16 +2046,16 @@
 !>
 !>  @param[inout] this     A @ref vmec_class instance.
 !>  @param[inout] num_iter Counter to track the number of iterations.
+!>  @param[in]    iou      Input/Output unit of the runlog file.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_converge(this, num_iter)
+      FUNCTION vmec_converge(this, num_iter, iou)
       USE vmec_input, only: delt, niter
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
       USE xstuff, only: xcdot, xc
-      USE v3f_global, only: iou_runlog
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE vmec_main, only: iterc, iter1, iter2
 
@@ -2065,6 +2065,7 @@
       LOGICAL                          :: vmec_converge
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(inout)           :: num_iter
+      INTEGER, INTENT(in)              :: iou
 
 !  local variables
 !  delt_local   Value of delt on entry. Store, for restoration after error
@@ -2107,10 +2108,8 @@
                IF (recovery_index .le. 2) THEN
                   WRITE (*,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
                   WRITE (*,*) 'delt chnage: old, new:', delt, delt/2.0
-                  WRITE (iou_runlog,*)                                         &
-     &               'VMEC CONVERGENCE ERROR: jac75_flag'
-                  WRITE (iou_runlog,*)                                         &
-     &               'delt chnage: old, new:', delt, delt/2.0
+                  WRITE (iou,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
+                  WRITE (iou,*) 'delt chnage: old, new:', delt, delt/2.0
                   delt = delt/2.0
                ELSE
                   EXIT
@@ -2122,7 +2121,7 @@
          END SELECT
 
          WRITE (*,*) 'Attempting error recovery'
-         WRITE (iou_runlog,*) 'Attempting error recovery'
+         WRITE (iou,*) 'Attempting error recovery'
 
 !  Only the xc arrays need to be reset. The vmec_reset_state routine was
 !  assuming that a wout file had been written. This isn't the case when error
