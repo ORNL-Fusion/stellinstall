@@ -2,12 +2,24 @@
 
 makegrid.o : \
       ../../LIBSTELL/Debug/safe_open_mod.o \
-      write_mgrid.o 
-      
+      write_mgrid.o \
+      makegrid_global_mod.o
+
 
 write_mgrid.o : \
       ../../LIBSTELL/Debug/biotsavart.o \
       ../../LIBSTELL/Debug/ezcdf.o \
       ../../LIBSTELL/Debug/mgrid_mod.o \
       ../../LIBSTELL/Debug/safe_open_mod.o 
+      
+
+symcheck.o : \
+      ../../LIBSTELL/Debug/biotsavart.o \
+      write_mgrid.o \
+      makegrid_global_mod.o
+
+
+makegrid_global_mod.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o
+      
       
