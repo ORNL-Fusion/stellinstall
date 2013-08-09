@@ -91,8 +91,8 @@
 !    nparam     Number of parameters.
 !    nsignal    Number of signals.
 !    string_len Max length of strings. Set to 80.
-!    boundary_i Number of ith boundary coefficients.
-!    boundary_j Number of jth boundary coefficients.
+!    boundary_m Number of poloidal boundary coefficients.
+!    boundary_n Number of toroidal boundary coefficients.
 !
 !  Variables:
 !    nsteps (INT) Actual number of reconstruction steps. This starts from zero.
@@ -149,7 +149,7 @@
 ! Netcdf ids that are not needed after this subroutine is finished.
 ! Dimension IDs
       INTEGER :: string_len_id, nextcur_dim_id,                                &
-     &           boundary_i_dim_id, boundary_j_dim_id
+     &           boundary_m_dim_id, boundary_n_dim_id
 ! Variable IDs
       INTEGER :: vmec_extcur_id, vmec_curtor_id, vmec_pres_scale_id
       INTEGER :: param_name_id, param_index_id
@@ -158,7 +158,9 @@
 ! Working variables
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: sem_a
       INTEGER                                  :: err
-      INTEGER                                  :: boundary_i, boundary_j
+      INTEGER                                  :: boundary_m, boundary_n
+      INTEGER                                  :: m_low, m_high
+      INTEGER                                  :: n_low, n_high
       CHARACTER(len=*), PARAMETER              :: sub_name =                   &
      &  'result_output_file_create: '
 
@@ -212,18 +214,21 @@
      &                    string_len_id)
       CALL result_output_check_error(status)
 
-      boundary_i = 1 + model_a%eqstate%varp%rbc_bounds(2)                      &
-     &               - model_a%eqstate%varp%rbc_bounds(1)
+      boundary_n = 2*model_a%eqstate%fixp%ntor + 1
+      boundary_m = model_a%eqstate%fixp%mpol
+      n_low = -model_a%eqstate%fixp%ntor
+      n_high = model_a%eqstate%fixp%ntor
+      m_low = 0
+      m_high = model_a%eqstate%fixp%mpol - 1
+
       status =                                                                 &
-     &   nf_def_dim(result_output_file_create%ncid, "boundary_i",              &
-     &              boundary_i, boundary_i_dim_id)
+     &   nf_def_dim(result_output_file_create%ncid, "boundary_m",              &
+     &              boundary_m, boundary_m_dim_id)
       CALL result_output_check_error(status)
 
-      boundary_j = 1 + model_a%eqstate%varp%rbc_bounds(4)                      &
-     &               - model_a%eqstate%varp%rbc_bounds(3)
       status =                                                                 &
-     &   nf_def_dim(result_output_file_create%ncid, "boundary_j",              &
-     &              boundary_j, boundary_j_dim_id)
+     &   nf_def_dim(result_output_file_create%ncid, "boundary_n",              &
+     &              boundary_n, boundary_n_dim_id)
       CALL result_output_check_error(status)
 
 ! Define variables for data.
@@ -258,7 +263,7 @@
       status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
      &              "vmec_rbc", nf_double, 3,                                  &
-     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &              (/ boundary_n_dim_id, boundary_m_dim_id,                   &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%vmec_rbc_id)
       CALL result_output_check_error(status)
@@ -266,7 +271,7 @@
       status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
      &              "vmec_rbs", nf_double, 3,                                  &
-     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &              (/ boundary_n_dim_id, boundary_m_dim_id,                   &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%vmec_rbs_id)
       CALL result_output_check_error(status)
@@ -274,7 +279,7 @@
       status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
      &              "vmec_zbc", nf_double, 3,                                  &
-     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &              (/ boundary_n_dim_id, boundary_m_dim_id,                   &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%vmec_zbc_id)
       CALL result_output_check_error(status)
@@ -282,7 +287,7 @@
       status =                                                                 &
      &   nf_def_var(result_output_file_create%ncid,                            &
      &              "vmec_zbs", nf_double, 3,                                  &
-     &              (/ boundary_j_dim_id, boundary_i_dim_id,                   &
+     &              (/ boundary_n_dim_id, boundary_m_dim_id,                   &
      &                 result_output_file_create%maxnsteps_dim_id /),          &
      &              result_output_file_create%vmec_zbs_id)
       CALL result_output_check_error(status)
@@ -431,32 +436,36 @@
      &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_rbc_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%rbc))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%rbc(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
      &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_rbs_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%rbs))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%rbs(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
      &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbc_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%zbc))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%zbc(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
      &   nf_put_vara_double(result_output_file_create%ncid,                    &
      &                      result_output_file_create%vmec_zbs_id,             &
      &                      (/ 1, 1, 1 /),                                     &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%zbs))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%zbs(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
@@ -591,7 +600,9 @@
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: gsq_1pcl, sem_a
       REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: psigma_v
       INTEGER                                  :: err
-      INTEGER                                  :: boundary_i, boundary_j
+      INTEGER                                  :: boundary_n, boundary_m
+      INTEGER                                  :: m_low, m_high
+      INTEGER                                  :: n_low, n_high
       CHARACTER(len=*), PARAMETER              :: sub_name =                   &
      &  'result_output_file_write_step: '
 
@@ -619,41 +630,47 @@
       CALL result_output_check_error(status)
 
 ! Fill in vmec parameters.
-      boundary_i = 1 + model_a%eqstate%varp%rbc_bounds(2)                      &
-     &               - model_a%eqstate%varp%rbc_bounds(1)
-      boundary_j = 1 + model_a%eqstate%varp%rbc_bounds(4)                      &
-     &               - model_a%eqstate%varp%rbc_bounds(3)
+      boundary_n = 2*model_a%eqstate%fixp%ntor + 1
+      boundary_m = model_a%eqstate%fixp%mpol
+      n_low = -model_a%eqstate%fixp%ntor
+      n_high = model_a%eqstate%fixp%ntor
+      m_low = 0
+      m_high = model_a%eqstate%fixp%mpol - 1
 
       status =                                                                 &
      &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_rbc_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%rbc))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%rbc(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
      &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_rbs_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%rbs))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%rbs(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
      &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbc_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%zbc))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%zbs(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status =                                                                 &
      &   nf_put_vara_double(result_file_ref%ncid,                              &
      &                      result_file_ref%vmec_zbs_id,                       &
      &                      (/ 1, 1, nsteps /),                                &
-     &                      (/ boundary_j, boundary_i, 1/),                    &
-     &                      TRANSPOSE(model_a%eqstate%varp%zbs))
+     &                      (/ boundary_n, boundary_m, 1/),                    &
+     &                      model_a%eqstate%varp%zbs(n_low:n_high,             &
+     &                                               m_low:m_high))
       CALL result_output_check_error(status)
 
       status = nf_put_var1_double(result_file_ref%ncid,                        &
