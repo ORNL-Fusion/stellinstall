@@ -16,6 +16,7 @@
       USE data_parameters
       USE pprofile_T
       USE wout_file_cache
+      USE threed1_file_cache
 
       IMPLICIT NONE
 
@@ -198,6 +199,9 @@
          REAL (rprec), DIMENSION(:), POINTER   :: xc => null()
 !>  Cache of the wout file state.
          TYPE (wout_file_cache_class), POINTER :: wout_file => null()
+!>  Cache of the wout file state.
+         TYPE (threed1_file_cache_class), POINTER ::                           &
+     &      threed1_file => null()
 
 !  Result file NetCDF variables
 !>  External current Netcdf variable id.
@@ -391,6 +395,11 @@
       IF (ASSOCIATED(this%wout_file)) THEN
          CALL wout_file_cache_destruct(this%wout_file)
          this%wout_file => null()
+      END IF
+
+      IF (ASSOCIATED(this%threed1_file)) THEN
+         CALL threed1_file_cache_destruct(this%threed1_file)
+         this%threed1_file => null()
       END IF
 
       IF (ASSOCIATED(this%xc)) THEN
@@ -2197,6 +2206,12 @@
          this%wout_file => wout_file_cache_construct()
       END IF
 
+      IF(ASSOCIATED(this%threed1_file)) THEN
+         CALL threed1_file_cache_save_state(this%threed1_file)
+      ELSE
+         this%threed1_file => threed1_file_cache_construct()
+      END IF
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2225,6 +2240,10 @@
       END IF
       IF (ASSOCIATED(this%magnetic_cache)) THEN
          CALL vmec_set_magnetic_cache_calc(this)
+      END IF
+!  Reset the threed1 file.
+      IF (ASSOCIATED(this%threed1_file)) THEN
+         CALL threed1_file_cache_reset_state(this%threed1_file)
       END IF
 
       END SUBROUTINE

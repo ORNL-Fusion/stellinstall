@@ -443,13 +443,19 @@ vmec_equilibrium.o : \
       ../../VMEC2000/Debug/vmec_dim.o \
       data_parameters.o \
       pprofile_T.o \
-      wout_file_cache.o
+      wout_file_cache.o \
+      threed1_file_cache.o
 
 
 wout_file_cache.o : \
       ../../LIBSTELL/Debug/stel_kinds.o \
       ../../LIBSTELL/Debug/read_wout_mod.o
       
+
+threed1_file_cache.o : \
+      ../../LIBSTELL/Debug/stel_kinds.o \
+      ../../LIBSTELL/Debug/v3f_vmec_comm.o
+
 
 v3fit_input.o : \
       ../../LIBSTELL/Debug/stel_kinds.o \

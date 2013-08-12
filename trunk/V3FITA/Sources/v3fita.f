@@ -149,10 +149,10 @@
          CASE ('equilibrium')
             CALL task_equilibrium(context)
 
-         CASE ('v3post')
+         CASE ('v3post', 'vmec_v3post')
             CALL task_v3post(context)
 
-         CASE ('reconstruct')
+         CASE ('reconstruct', 'reconstruct_a1')
             CALL task_reconstruct(context)
 
          CASE ('unit_test')

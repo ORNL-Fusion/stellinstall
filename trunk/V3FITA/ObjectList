@@ -46,6 +46,7 @@ model.o \
 equilibrium.o \
 vmec_equilibrium.o \
 wout_file_cache.o \
+threed1_file_cache.o \
 data_parameters.o \
 v3fit_input.o \
 v3fit_context.o \
