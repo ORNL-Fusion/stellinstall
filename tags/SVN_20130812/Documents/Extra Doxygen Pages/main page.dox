@@ -1,0 +1,14 @@
+/*!
+ * @mainpage
+ * @tableofcontents
+ * @section introduction Introduction
+ * @section user User manuals
+ * * @ref cl_parsing_sec "Command Line Arguments" Descritptions of the command line arguments.
+ * * @ref namelist_sec "V3FIT namelist input file" User manual for the V3FIT namelist input file.
+ * * @ref result_file_main "Result output file." User manual for the result NetCDF file.
+ * @subsection user_diagnostic Diagnostic input files.
+ * * @ref sxrem_dot_sec "Soft X-ray Diagnostic Dot File" User manual for the soft x-ray diagnostic dot file.
+ * * @ref intpol_dot_sec "Inteferometry/Polarimetry Diagnostic Dot File" User manual for the inteferometry/polarimetry diagnostic dot file.
+ * * @ref thomson_dot_sec "Thomson Scattering Diagnostic Dot File" User manual for the Thomson scattering diagnostic dot file.
+ * @section programmer Programmer Manuals
+ */
