@@ -1,11 +1,11 @@
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
-!>  @brief Contains module @ref vmec_equilibrium
+!>  @brief Contains module @ref vmec_equilibrium.
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  Defines the base class of the type @ref vmec_class. This module containes
+!>  Defines the base class of the type @ref vmec_class. This module contains
 !>  all the code necessary to interface V3FIT with VMEC.
 !>  @par Super Class:
 !>  @ref equilibrium
@@ -26,7 +26,7 @@
 !  Define id's only for values that can change. All others shouldn't be needed
 !  outside of the vmec interface. Parameter id's start at 3 since 0-2 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
-!  update if any new model parameters are added.
+!  updated if any new model parameters are added.
 
 !  Variable Parameters
 !>  1D Array of function current profile parameters. Defined in @ref vmec_input.
@@ -174,10 +174,6 @@
 !>  Base class representing a vmec_equilibrium.
 !>  @par Super Class:
 !>  @ref equilibrium
-!>  @todo Add cache for the information obtained in @ref read_wout_mod. This
-!>  could be used in place of reconverging VMEC when a non vmec parameter is
-!>  changed. This would futher ensure that the jacobian calculation is zero for
-!>  signals that do not depend on auxiliary profiles.
 !-------------------------------------------------------------------------------
       TYPE vmec_class
 !>  File name of the output of v3fit.
@@ -443,7 +439,7 @@
 
       IMPLICIT NONE
 
-!  Declare Sruments
+!  Declare Arguments
       LOGICAL                          :: vmec_set_param
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(in)              :: id
@@ -845,10 +841,6 @@
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_param_id.
 !>
-!>  @param[inout] this             A @ref vmec_class instance.
-!>  @param[in]    total_tor_planes Total number of toroidal planes.
-!>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
-!>                                 planes.
 !>  @param[in] this       A @ref vmec_class instance.
 !>  @param[in] param_name Name of a reconstruction parameter.
 !>  @returns The id for a reconstruction parameter.
@@ -858,8 +850,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER :: vmec_get_param_id
-      TYPE (vmec_class), INTENT(in)                :: this
+      INTEGER                       :: vmec_get_param_id
+      TYPE (vmec_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in) :: param_name
 
 !  Start of executable code
@@ -1555,7 +1547,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets the loop integrated magnetic field at a position.
 !>
-!>  This method overrides @ref equilibrium::equilibrium_get_Int_B_dphi.
+!>  This method overrides @ref equilibrium::equilibrium_get_Int_B_dphi. This
+!>  computes Int[B*dl]
 !>
 !>  @param[in] this  A @ref vmec_class instance.
 !>  @param[in] r     S position to integrate about.

@@ -16,9 +16,10 @@
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{filename_sec, Filename variables}
-!>     @item{main_nli_filename,      File name for main namelist input., v3fit_input::main_nli_filename}
+!>     @item{main_nli_filename,      File name for main namelist input.,                                                                                        v3fit_input::main_nli_filename}
 !>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
-!>        @item{vmec_nli_filename,   File name for VMEC namelist input., v3fit_input::vmec_nli_filename}
+!>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                                                                                        v3fit_input::vmec_nli_filename}
+!>        @item{vacuum_nli_filename, File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,               v3fit_input::vacuum_nli_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
 !>        @item{mdsig_list_filename, File name for list of MDSIG files., v3fit_input::mdsig_list_filename}
 !>        @item{sxrch_dot_filename,  File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
@@ -374,7 +375,7 @@
 !-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file v3fit_input.f
-!>  @brief Contains module @ref v3fit_input
+!>  @brief Contains module @ref v3fit_input.
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
@@ -453,6 +454,8 @@
 !  Equilibrium input files
 !>  File name for VMEC namelist input
       CHARACTER (len=data_filename_length) :: vmec_nli_filename = ''
+!>  File name for a vacuum namelist input
+      CHARACTER (len=data_filename_length) :: vacuum_nli_filename = ''
 
 !  Signal input files
 !>  File name for list of MDSIG files
@@ -755,7 +758,7 @@
       NAMELIST/v3fit_main_nli/                                                 &
      &   main_nli_filename,                                                    &
 !  Equilibrium input files
-     &   vmec_nli_filename,                                                    &
+     &   vmec_nli_filename, vacuum_nli_filename,                               &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename,                                                    &
@@ -832,7 +835,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER(len=data_filename_length), INTENT(in) :: namelist_file
+      CHARACTER (len=*), INTENT(in) :: namelist_file
 
 !  local variables
       INTEGER :: iou_mnli, status, j, i, imin, imax

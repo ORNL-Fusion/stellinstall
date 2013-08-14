@@ -468,6 +468,12 @@
 
       IF (vmec_nli_filename .ne. '') THEN
          CALL init_vmec_equilibrium(context, force_solve)
+         RETURN
+      END IF
+
+      IF (vacuum_nli_filename .ne. '') THEN
+         CALL init_vacuum_equilibrium(context, force_solve)
+         RETURN
       END IF
 
       END SUBROUTINE
@@ -509,6 +515,34 @@
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
      &                                        ne, te, sxr,                     &
      &                                        context%runlog_iou),             &
+     &                         force_solve))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Initialize a vacuum equilibrium.
+!>
+!>  This constructs and initializes a @ref vacuum_equilibrium.
+!>
+!>  @param[inout] context     An instance of a @ref v3fit_context object.
+!>  @param[in]    force_solve If true, forces the equilbirum to resolve every
+!>                            time.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_vacuum_equilibrium(context, force_solve)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      LOGICAL, INTENT(in)                       :: force_solve
+
+!  Start of executable code
+
+      context%model => model_construct(model_ne_type, model_sxrem_type,        &
+     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
+     &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
+     &                                          context%runlog_iou),           &
      &                         force_solve))
 
       END SUBROUTINE

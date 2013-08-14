@@ -17,6 +17,7 @@
 
       MODULE equilibrium
       USE vmec_equilibrium
+      USE vacuum_equilibrium
 
       IMPLICIT NONE
 
@@ -24,10 +25,13 @@
 !  equilibrium module parameters
 !*******************************************************************************
 !>  Type descriptor for the @ref equilibrium_class no subclass.
-      INTEGER, PARAMETER :: equilibrium_no_type = -1
+      INTEGER, PARAMETER :: equilibrium_no_type     = -1
 !>  Type descriptor for the @ref equilibrium_class subclass
 !>  @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: equilibrium_vmec_type = 0
+      INTEGER, PARAMETER :: equilibrium_vmec_type   = 0
+!>  Type descriptor for the @ref equilibrium_class subclass
+!>  @ref vacuum_equilibrium.
+      INTEGER, PARAMETER :: equilibrium_vacuum_type = 1
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -44,13 +48,15 @@
 !>  @par Possible values are:
 !>  * @ref equilibrium_no_type
 !>  * @ref equilibrium_vmec_type
-         INTEGER                    :: type = equilibrium_no_type
+         INTEGER                      :: type = equilibrium_no_type
 !>  Controls if an equilibrium needs to be resolved or not.
-         LOGICAL                    :: not_converged
+         LOGICAL                      :: not_converged
 !>  Controls if an equilibrium is forces to be resolved or not.
-         LOGICAL                    :: force_solve
+         LOGICAL                      :: force_solve
 !>  An instance of a @ref vmec_equilibrium object.
-         TYPE (vmec_class), POINTER :: vmec => null()
+         TYPE (vmec_class), POINTER   :: vmec => null()
+!>  An instance of a @ref vacuum_equilibrium object.
+         TYPE (vacuum_class), POINTER :: vacuum => null()
       END TYPE
 
 !*******************************************************************************
@@ -61,7 +67,8 @@
 !>  @ref equilibrium_construct_vmec
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_construct
-         MODULE PROCEDURE equilibrium_construct_vmec
+         MODULE PROCEDURE equilibrium_construct_vmec,                          &
+     &                    equilibrium_construct_vacuum
       END INTERFACE
 
       CONTAINS
@@ -96,6 +103,36 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref equilibrium_class containing a
+!>  @ref vacuum_equilibrium object.
+!>
+!>  Allocates memory and initializes a @ref equilibrium_class object.
+!>
+!>  @param[in] vacuum_object An instance of a @ref vacuum_equilibrium subclass.
+!>  @param[in] force_solve   If true, forces the equilbirum to resolve every
+!>                           time.
+!>  @returns A pointer to a constructed @ref equilibrium_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_construct_vacuum(vacuum_object, force_solve)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), POINTER :: equilibrium_construct_vacuum
+      TYPE (vacuum_class), POINTER, INTENT(in) :: vacuum_object
+      LOGICAL, INTENT(in)                      :: force_solve
+
+!  Start of executable code
+      ALLOCATE(equilibrium_construct_vacuum)
+
+      equilibrium_construct_vacuum%type = equilibrium_vacuum_type
+      equilibrium_construct_vacuum%vacuum => vacuum_object
+      equilibrium_construct_vacuum%not_converged = .false.
+      equilibrium_construct_vacuum%force_solve = force_solve
+
+      END FUNCTION
+
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -119,6 +156,11 @@
          this%vmec => null()
       END IF
 
+      IF (ASSOCIATED(this%vacuum)) THEN
+         CALL vacuum_destruct(this%vacuum)
+         this%vacuum => null()
+      END IF
+
       this%type = equilibrium_no_type
       this%not_converged = .true.
       this%force_solve = .false.
@@ -137,6 +179,7 @@
 !>  handled by a subclass method. The subclass is responcible for informing the
 !>  equilibirum if the equilibrium needs to be reconverged/resolved.
 !>  @see vmec_equilibrium::vmec_set_param
+!>  @see vacuum_equilibrium::vacuum_set_param
 !>
 !>  @param[inout] this    A @ref equilibrium_class instance.
 !>  @param[in]    id      ID of the parameter.
@@ -166,6 +209,12 @@
             this%not_converged = vmec_set_param(this%vmec, id,                 &
      &                                          i_index, j_index,              &
      &                                          value)                         &
+     &                         .or. this%not_converged
+
+         CASE (equilibrium_vacuum_type)
+            this%not_converged = vacuum_set_param(this%vacuum, id,             &
+     &                                            i_index, j_index,            &
+     &                                            value)                       &
      &                         .or. this%not_converged
 
       END SELECT
@@ -221,6 +270,7 @@
 !>  This method is virtual. The actual getting of the reconstruction parameter
 !>  id should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_param_id
+!>  @see vacuum_equilibrium::vacuum_get_param_id
 !>
 !>  @param[in] this       A @ref equilibrium_class instance.
 !>  @param[in] param_name Name of a reconstruction parameter.
@@ -242,6 +292,10 @@
             equilibrium_get_param_id =                                         &
      &         vmec_get_param_id(this%vmec, param_name)
 
+         CASE (equilibrium_vacuum_type)
+            equilibrium_get_param_id =                                         &
+     &         vacuum_get_param_id(this%vacuum, param_name)
+
          CASE DEFAULT
             equilibrium_get_param_id = data_no_id
 
@@ -255,6 +309,7 @@
 !>  This method is virtual. The actual getting of the reconstruction parameter
 !>  value should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_param_value
+!>  @see vacuum_equilibrium::vacuum_get_param_value
 !>
 !>  @param[in] this    A @ref equilibrium_class instance.
 !>  @param[in] id      ID of the parameter.
@@ -280,6 +335,10 @@
             equilibrium_get_param_value =                                      &
      &         vmec_get_param_value(this%vmec, id, i_index, j_index)
 
+         CASE (equilibrium_vacuum_type)
+            equilibrium_get_param_value =                                      &
+     &         vacuum_get_param_value(this%vacuum, id, i_index, j_index)
+
          CASE DEFAULT
             equilibrium_get_param_value = 0.0
 
@@ -293,6 +352,7 @@
 !>  This method is virtual. The actual getting of the reconstruction parameter
 !>  name should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_param_name
+!>  @see vacuum_equilibrium::vacuum_get_param_name
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -313,6 +373,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_param_name =                                       &
      &         vmec_get_param_name(this%vmec, id)
+
+         CASE (equilibrium_vacuum_type)
+            equilibrium_get_param_name =                                       &
+     &         vacuum_get_param_name(this%vacuum, id)
 
          CASE DEFAULT
             equilibrium_get_param_name = ''
@@ -467,6 +531,7 @@
 !>  This method is virtual. The actual getting of the magnetic field vector
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_B_vec
+!>  @see vacuum_equilibrium::vacuum_get_B_vec
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
@@ -487,6 +552,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_B_vec = vmec_get_B_vec(this%vmec, x_cart)
 
+         CASE (equilibrium_vacuum_type)
+            equilibrium_get_B_vec = vacuum_get_B_vec(this%vacuum,              &
+     &                                               x_cart)
+
          CASE DEFAULT
             equilibrium_get_B_vec = 0.0
 
@@ -501,6 +570,7 @@
 !>  field should be handled by a subclass method. Returns the closed loop
 !>  integration of the magnetic field to determine the enclosed current.
 !>  @see vmec_equilibrium::vmec_get_Int_B_dphi
+!>  @see vacuum_equilibrium::vacuum_get_Int_B_dphi
 !>
 !>  @param[in] this  A @ref equilibrium_class instance.
 !>  @param[in] r     Radial position to integrate about.
@@ -524,6 +594,10 @@
             equilibrium_get_Int_B_dphi =                                       &
      &         vmec_get_Int_B_dphi(this%vmec, r, theta)
 
+         CASE (equilibrium_vacuum_type)
+            equilibrium_get_Int_B_dphi =                                       &
+     &         vacuum_get_Int_B_dphi(this%vacuum, r, theta)
+
          CASE DEFAULT
             equilibrium_get_Int_B_dphi = 0.0
 
@@ -545,6 +619,12 @@
 !>  @param[out] z    The Z postions of the other surface in a single toroidal
 !>                   angle.
 !>  @returns The number of elements in the r and z arrays.
+!>
+!>  @todo An "edge" could be defined as a the last field line that intersects a
+!>  limiter for the vacuum case. By defineing a r_last parameter, a feild line
+!>  can be followed around the machine. When that field line intersecs the
+!>  desired phi plane, record the r and z positions. Field line following will
+!>  also need to be performed for siesta.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_get_plasma_edge(this, phi, r, z)
 
@@ -781,6 +861,7 @@
 !>  currents maybe scaled. Inform the signal using this to scale the currents
 !>  if need be.
 !>  @see vmec_equilibrium::vmec_get_ext_currents
+!>  @see vacuum_equilibrium::vacuum_get_ext_currents
 !>
 !>  @param[in]  this           A @ref equilibrium_class instance.
 !>  @param[out] scale_currents Informs the caller that currents need to be
@@ -803,6 +884,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_ext_currents =>                                    &
      &         vmec_get_ext_currents(this%vmec, scale_currents)
+
+         CASE (equilibrium_vacuum_type)
+            equilibrium_get_ext_currents =>                                    &
+     &         vacuum_get_ext_currents(this%vacuum, scale_currents)
 
          CASE DEFAULT
             scale_currents = .false.
@@ -855,6 +940,7 @@
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_1d_array
+!>  @see vacuum_equilibrium::vacuum_is_1d_array
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -874,6 +960,10 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_is_1d_array = vmec_is_1d_array(this%vmec, id)
+
+         CASE (equilibrium_vacuum_type)
+            equilibrium_is_1d_array = vacuum_is_1d_array(this%vacuum,          &
+     &                                                   id)
 
          CASE DEFAULT
             equilibrium_is_1d_array = .false.
@@ -921,6 +1011,7 @@
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_recon_param
+!>  @see vacuum_equilibrium::vacuum_is_recon_param
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -942,6 +1033,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_is_recon_param =                                       &
      &         vmec_is_recon_param(this%vmec, id)
+
+         CASE (equilibrium_vacuum_type)
+            equilibrium_is_recon_param =                                       &
+     &         vacuum_is_recon_param(this%vacuum, id)
 
          CASE DEFAULT
             equilibrium_is_recon_param = .false.
@@ -990,6 +1085,10 @@
                equilibrium_converge = vmec_converge(this%vmec, num_iter,       &
      &                                              iou)
                this%not_converged = .not.equilibrium_converge
+
+            CASE (equilibrium_vacuum_type)
+               equilibrium_converge = .true.
+               this%not_converged = .false.
 
             CASE DEFAULT
                equilibrium_converge = .false.
@@ -1069,6 +1168,8 @@
 !>
 !>  This method is virtual. The actual writing of the equilibrium should be
 !>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_write
+!>  @see vacuum_equilibrium::vacuum_write
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] iou  Input/output unit of the output file.
@@ -1087,6 +1188,9 @@
       CASE (equilibrium_vmec_type)
          CALL vmec_write(this%vmec, iou)
 
+      CASE (equilibrium_vacuum_type)
+         CALL vacuum_write(this%vacuum, iou)
+
       END SELECT
 
       END SUBROUTINE
@@ -1099,6 +1203,7 @@
 !>
 !>  This method is virtual. The actual defining of the equilibrium variables
 !>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_def_result
 !>
 !>  @param[in] this             A @ref equilibrium_class instance.
 !>  @param[in] result_ncid      NetCDF file id of the result file.
@@ -1131,6 +1236,7 @@
 !>
 !>  This method is virtual. The actual writing of the equilibrium variables
 !>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_write_init_data
 !>
 !>  @param[in] this        A @ref equilibrium_class instance.
 !>  @param[in] result_ncid NetCDF file id of the result file.
@@ -1158,6 +1264,7 @@
 !>
 !>  This method is virtual. The actual writing of the equilibrium variables
 !>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_write_step_data
 !>
 !>  @param[in] this         A @ref equilibrium_class instance.
 !>  @param[in] iou          NetCDF file id of the result file.
