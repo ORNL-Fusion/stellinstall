@@ -1,3 +1,91 @@
+!-------------------------------------------------------------------------------
+!  The @header, @table_section, @table_subsection, @item and @end_table commands
+!  are custom defined commands in Doxygen.in. They are defined under ALIASES.
+!  For the page created here, the 80 column limit is exceeded. Arguments of
+!  aliases are separated by ','. You intended ',' to be a string you must use an
+!  escaped comma '\,'.
+!
+!>  @page vmec_equilibrium_sec VMEC Equilibrium Manual
+!>
+!>  @tableofcontents
+!>  @section vmec_equilibrium_intro_sec Introduction
+!>  This page documents the V3FIT interface to the VMEC equilibrium solver. This
+!>  lists all the parameters associated with a VMEC equilibrium. These
+!>  parameters parameters are divided input two types, reconstruction parameters
+!>  and derived parameters. All parameters are documented in a table of the
+!>  following form.
+!>  @header{Input variable, Description, Code Reference}
+!>
+!>  @section vmec_equilibrium_recon_param_sec VMEC Reconstruction Parameters
+!>  Reconstruction parameters are divided into two types, VMEC reconstruction
+!>  parameters and auxillary parameters.
+!>  @subsection vmec_equilibrium_vmec_recon_param_sec VMEC Equilibrium Reconstruction Parameters
+!>  VMEC Equilibrium reconstruction parameters are parameters that maybe
+!>  reconstructed that change the equilibirum. These parameters require
+!>  the eqilibrium to reconverge.
+!>  @begin_table
+!>     @item{ac,          1D Array of function current profile parameters.,     @ref vmec_input::ac}
+!>     @item{ac_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::ac_aux_s}
+!>     @item{ac_aux_f,    1D Array of segment current profile f values.,        @ref vmec_input::ac_aux_f}
+!>     @item{ai,          1D Array of function current profile parameters.,     @ref vmec_input::ai}
+!>     @item{ai_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::ai_aux_s}
+!>     @item{ai_aux_f,    1D Array of segment current profile f values.,        @ref vmec_input::ai_aux_f}
+!>     @item{am,          1D Array of function current profile parameters.,     @ref vmec_input::am}
+!>     @item{am_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::am_aux_s}
+!>     @item{am_aux_f,    1D Array of segment current profile f values.,        @ref vmec_input::am_aux_f}
+!>     @item{bloat,       Extends the field into the vacuum region.,            @ref vmec_input::bloat}
+!>     @item{rbc,         2D Array of outer boundary R cosine coeffiecents.,    @ref vmec_input::rbc}
+!>     @item{zbs,         2D Array of outer boundary Z sine coeffiecents.,      @ref vmec_input::zbs}
+!>     @item{rbs,         2D Array of outer boundary R sine coeffiecents.,      @ref vmec_input::rbs}
+!>     @item{zbc,         2D Array of outer boundary Z cosine coeffiecents.,    @ref vmec_input::zbc}
+!>     @item{extcur,      1D Array of external currents.,                       @ref vmec_input::extcur}
+!>     @item{phiedge,     The edge magnetic flux.,                              @ref vmec_input::phiedge}
+!>     @item{pres_scale,  The scaling parameter for the pressure.,              @ref vmec_input::pres_scale}
+!>  @end_table
+!>  @subsection vmec_equilibrium_aux_recon_param_sec VMEC Auxiliary Reconstruction Parameters
+!>  VMEC Auxiliary reconstruction parameters are parameters that maybe
+!>  reconstructed that do not change the equilibirum. These parameters do not
+!>  require the eqilibrium to reconverge.
+!>  @begin_table
+!>     @item{pp_ne_b,     1D Array of function density profile parameters.,     @ref vmec_class::ne::b}
+!>     @item{pp_ne_as,    1D Array of segment density profile s poitions.,      @ref vmec_class::ne::as}
+!>     @item{pp_ne_af,    1D Array of segment density profile f values.,        @ref vmec_class::ne::af}
+!>     @item{pp_sxrem_b,  1D Array of function sxrem profile parameters.,       @ref vmec_class::sxrem::b}
+!>     @item{pp_sxrem_as, 1D Array of segment sxrem profile s poitions.,        @ref vmec_class::sxrem::as}
+!>     @item{pp_sxrem_af, 1D Array of segment sxrem profile f values.,          @ref vmec_class::sxrem::af}
+!>     @item{pp_te_b,     1D Array of function temperature profile parameters., @ref vmec_class::te::b}
+!>     @item{pp_te_as,    1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
+!>     @item{pp_te_af,    1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
+!>  @end_table
+!>
+!>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
+!>  Derived parameters are parameters that come from the equilibrium but are not
+!>  reconstructable.
+!>  @begin_table
+!>     @item{rmnc,        2D Array of surface R cosine coeffiecents.,      @ref read_wout_mod::rmnc}
+!>     @item{zmns,        2D Array of surface Z sine coeffiecents.,        @ref read_wout_mod::zmns}
+!>     @item{lmns,        2D Array of surface lambda cosine coeffiecents., @ref read_wout_mod::lmns}
+!>     @item{gmnc,        2D Array of surface g cosine coeffiecents.,      @ref read_wout_mod::gmnc}
+!>     @item{bsubsmns,    2D Array of surface B_s sine coeffiecents.,      @ref read_wout_mod::bsubsmns}
+!>     @item{bsubumnc,    2D Array of surface B_u cosine coeffiecents.,    @ref read_wout_mod::bsubumnc}
+!>     @item{bsubvmnc,    2D Array of surface B_v cosine coeffiecents.,    @ref read_wout_mod::bsubvmnc}
+!>     @item{bsupumnc,    2D Array of surface B^u cosine coeffiecents.,    @ref read_wout_mod::bsupumnc}
+!>     @item{bsupvmnc,    2D Array of surface B^v cosine coeffiecents.,    @ref read_wout_mod::bsupvmnc}
+!>     @item{rmns,        2D Array of surface R sine coeffiecents.,        @ref read_wout_mod::rmns}
+!>     @item{zmnc,        2D Array of surface Z cosine coeffiecents.,      @ref read_wout_mod::zmnc}
+!>     @item{lmnc,        2D Array of surface lambda cosine coeffiecents., @ref read_wout_mod::lmnc}
+!>     @item{gmns,        2D Array of surface g sine coeffiecents.,        @ref read_wout_mod::gmns}
+!>     @item{bsubsmnc,    2D Array of surface B_s cosine coeffiecents.,    @ref read_wout_mod::bsubsmnc}
+!>     @item{bsubumns,    2D Array of surface B_u sine coeffiecents.,      @ref read_wout_mod::bsubumns}
+!>     @item{bsubvmns,    2D Array of surface B_v sine coeffiecents.,      @ref read_wout_mod::bsubvmns}
+!>     @item{bsupumns,    2D Array of surface B^u sine coeffiecents.,      @ref read_wout_mod::bsupumns}
+!>     @item{bsupvmns,    2D Array of surface B^v sine coeffiecents.,      @ref read_wout_mod::bsupvmns}
+!>     @item{phi,         Toroidal flux.,                                  @ref read_wout_mod::phi}
+!>     @item{iotaf,       1D Array of full grid iotabar.,                  @ref read_wout_mod::iotaf}
+!>     @item{iotas,       1D Array of half grid iotabar.,                  @ref read_wout_mod::iotas}
+!>     @item{vvc_smaleli, Internal inducance. Computed in @ref eqfor.,     @ref v3f_vmec_comm::vvc_smaleli}
+!>     @item{vvc_kappa,   Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa}
+!>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
 !>  @brief Contains module @ref vmec_equilibrium.

@@ -1,3 +1,23 @@
+!-------------------------------------------------------------------------------
+!  The @header, @table_section, @table_subsection, @item and @end_table commands
+!  are custom defined commands in Doxygen.in. They are defined under ALIASES.
+!  For the page created here, the 80 column limit is exceeded. Arguments of
+!  aliases are separated by ','. You intended ',' to be a string you must use an
+!  escaped comma '\,'.
+!
+!>  @page vacuum_equilibrium_sec Vacuum Equilibrium Manual
+!>
+!>  @tableofcontents
+!>  @section model_intro_sec Introduction
+!>  This page documents the V3FIT interface to the vacuum equilibrium. This
+!>  lists all the parameters associated with a vacuum equilibrium. All
+!>  parameters are documented in a table of the following form.
+!>  @header{Input variable, Description, Code Reference}
+!>
+!>  @section vacuum_equilibrium_recon_param_sec Vacuum Reconstruction Parameters
+!>  @begin_table
+!>     @item{extcur, 1D Array of external currents., @ref vacuum_equilibrium::vacuum_class::extcur}
+!>  @end_table
 !*******************************************************************************
 !>  @file vacuum_equilibrium.f
 !>  @brief Contains module @ref vacuum_equilibrium.

@@ -16,10 +16,10 @@
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{filename_sec, Filename variables}
-!>     @item{main_nli_filename,      File name for main namelist input.,                                                                                        v3fit_input::main_nli_filename}
+!>     @item{main_nli_filename,      File name for main namelist input.,                                                                                         v3fit_input::main_nli_filename}
 !>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
-!>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                                                                                        v3fit_input::vmec_nli_filename}
-!>        @item{vacuum_nli_filename, File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,               v3fit_input::vacuum_nli_filename}
+!>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                                                                                         v3fit_input::vmec_nli_filename}
+!>        @item{vacuum_nli_filename, File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
 !>        @item{mdsig_list_filename, File name for list of MDSIG files., v3fit_input::mdsig_list_filename}
 !>        @item{sxrch_dot_filename,  File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
@@ -42,7 +42,7 @@
 !>     @item{c_work,  Array of character variables\, work space (deprecated), v3fit_input::c_work}
 !>  @end_table
 !>
-!>  @table_section{model_sec, Model profile specification}
+!>  @table_section{model_profile_sec, Model profile specification}
 !>     @item{pp_ne_ptype,    model electron density profile\, parameterized profile type,      v3fit_input::pp_ne_ptype}
 !>     @item{pp_ne_b,        array of b_coefficients for the electron density profile,         v3fit_input::pp_ne_b}
 !>     @item{pp_ne_as,       array of as_coefficients electron density splines,                v3fit_input::pp_ne_as}
@@ -86,15 +86,23 @@
 !>
 !>  @table_section{recon_param_sec, Reconstruction parameter specification}
 !>     @item{n_rp,           Number of reconstruction parameters,                                v3fit_input::n_rp}
-!>     @item{rp_type,        Array of reconstruction parameter types,                            v3fit_input::rp_type}
+!>     @item{rp_type,        Array of reconstruction parameter types. Valid reconstruction
+!>                           are defined by the @ref model or the @ref equilibirum.
+!>                           * @ref model_recon_param_sec
+!>                           * @ref vmec_equilibrium_recon_param_sec
+!>                           * @ref vacuum_equilibrium_recon_param_sec,                          v3fit_input::rp_type}
 !>     @item{rp_index,       Array of reconstruction parameter indices,                          v3fit_input::rp_index}
 !>     @item{rp_index2,      Array of reconstruction parameter 2nd indices,                      v3fit_input::rp_index2}
 !>     @item{rp_vrnc,        Array of reconstruction parameter variances,                        v3fit_input::rp_vrnc}
 !>     @item{rp_range_type,  2D Array of reconstruction parameter range types
-!>        -# 'infinity'          Unbounded
-!>        -# 'value'             Bounded by the value of rp_range_value
-!>        -# \<other\>           Bounded by a equilibrium parameter.,
-!>        v3fit_input::rp_range_type}
+!>                           -# 'infinity'          Unbounded
+!>                           -# 'value'             Bounded by the value of rp_range_value
+!>                           -# \<other\>           Bounded by a equilibrium parameter.
+!>
+!>                           Any parameter maybe used as a contraint.
+!>                           * @ref model_sec
+!>                           * @ref vmec_equilibrium_sec
+!>                           * @ref vacuum_equilibrium_sec,                                      v3fit_input::rp_range_type}
 !>     @item{rp_range_value, 2D Array of values used if rp_range_type = 'value',                 v3fit_input::rp_range_value}
 !>     @item{rp_range_index, 2D Array of values of indicies used if\, rp_range_type = \<other\>, v3fit_input::rp_range_index}
 !>  @end_table
@@ -146,7 +154,12 @@
 !>  @table_section{prior_sec, Prior information}
 !>     @item{n_prior,          Number of specified priors.,             v3fit_input::n_prior}
 !>     @item{prior_name,       Name of the specified priors.,           v3fit_input::prior_name}
-!>     @item{prior_param_name, Name of the prior parameter.,            v3fit_input::prior_param_name}
+!>     @item{prior_param_name, Name of the prior parameter. Any model
+!>                             or equilirbium parameter maybe used as
+!>                             a prior.
+!>                             * @ref model_sec
+!>                             * @ref vmec_equilibrium_sec
+!>                             * @ref vacuum_equilibrium_sec,           v3fit_input::prior_param_name}
 !>     @item{prior_indices,    The ith and jth index of the parameter., v3fit_input::prior_indices}
 !>     @item{prior_units,      The units of the prior signal          , v3fit_input::prior_units}
 !>  @end_table

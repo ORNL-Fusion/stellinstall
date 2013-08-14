@@ -1,3 +1,26 @@
+!-------------------------------------------------------------------------------
+!  The @header, @table_section, @table_subsection, @item and @end_table commands
+!  are custom defined commands in Doxygen.in. They are defined under ALIASES.
+!  For the page created here, the 80 column limit is exceeded. Arguments of
+!  aliases are separated by ','. You intended ',' to be a string you must use an
+!  escaped comma '\,'.
+!
+!>  @page model_sec Model Manual
+!>
+!>  @tableofcontents
+!>  @section model_intro_sec Introduction
+!>  This page documents the V3FIT interface to the model. This lists all the
+!>  parameters associated with a model. Model parameters are common for all
+!>  equilibrium types. All parameters are documented in a table of the following
+!>  form.
+!>  @header{Input variable, Description, Code Reference}
+!>
+!>  @section model_recon_param_sec Model Reconstruction Parameters
+!>  @begin_table
+!>     @item{ne_unit,           Electron density scaling.,                                @ref model::model_class::ne_unit}
+!>     @item{ne_min,            Minimum electron density.,                                @ref model::model_class::ne_min}
+!>     @item{pressure_fraction, Fractional portion of the pressure due to the electrons., @ref model::model_class::pressure_fraction}
+!>  @end_table
 !*******************************************************************************
 !>  @file model.f
 !>  @brief Contains module @ref model.
