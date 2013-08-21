@@ -1,4 +1,11 @@
 /*!
-@page architecture V3FIT Architecture
-@brief Overview of the architecture of V3FIT.
+ * @page architecture V3FIT Architecture
+ * @brief Overview of the architecture of V3FIT.
+ *
+ * @section architecture_intro Introducion
+ *
+ * @section architecture_class_objects Class Objects
+ * @subsection architecture_class_objects_model Model
+ * @subsection architecture_class_objects_equilibrium Equilibrium
+ * @subsection architecture_class_objects_signal Signal
  */

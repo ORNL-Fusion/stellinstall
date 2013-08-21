@@ -1,4 +1,31 @@
 /*!
-@page class_anatomy Class Anatomy
-@brief Overview of the design of an object for V3FIT.
+ * @page class_anatomy Class Anatomy
+ * @brief Overview of the design of an object for V3FIT.
+ *
+ * @section class_anatomy_intro Introduction
+ *
+ * @section class_anatomy_subclassing Subclassing
+ *
+ * @section class_anatomy_methods Methods
+ *
+ * @subsection class_anatomy_constructers Constructors
+ * The job of a constructor is to allocate memory for a class object instance
+ * and initalize the members for the class. To allow the memory allocation to 
+ * be encapsilated inside the constructor method, constructors are implemented
+ * as a function returning a pointer to the allocated and initalized object
+ * instance.
+ * @code
+ *       FUNCTION example_class_construct()
+ *
+ *       IMPLICIT NONE
+ *
+ * !  Declare Arguments
+ *       TYPE (example_class), POINTER :: example_class_construct
+ *
+ * !  Start of executable code
+ *       ALLOCATE(example_class_construct)
+ *       END FUNCTION
+ * @endcode
+ *
+ * @subsection class_anatomy_destructers Destructors
  */
