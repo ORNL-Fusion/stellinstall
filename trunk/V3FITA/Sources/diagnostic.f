@@ -61,15 +61,15 @@
 !>  * @ref diagnostic_extcurz_type
          INTEGER                       :: type = diagnostic_no_type
 !>  An instance of a @ref magnetic object. 
-         TYPE(magnetic_class), POINTER :: magnetic => null()
+         TYPE (magnetic_class), POINTER :: magnetic => null()
 !>  An instance of a @ref sxrem object.
-         TYPE(sxrem_class), POINTER    :: sxrem => null()
+         TYPE (sxrem_class), POINTER    :: sxrem => null()
 !>  An instance of a @ref intpol object.
-         TYPE(intpol_class), POINTER   :: intpol => null()
+         TYPE (intpol_class), POINTER   :: intpol => null()
 !>  An instance of a @ref thomson object.
-         TYPE(thomson_class), POINTER  :: thomson => null()
+         TYPE (thomson_class), POINTER  :: thomson => null()
 !>  An instance of a @ref extcurz object.
-         TYPE(extcurz_class), POINTER  :: extcurz => null()
+         TYPE (extcurz_class), POINTER  :: extcurz => null()
       END TYPE diagnostic_class
 
 !*******************************************************************************

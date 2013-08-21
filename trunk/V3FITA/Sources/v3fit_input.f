@@ -77,7 +77,7 @@
 !>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p', v3fit_input::e_pressure_fraction}
 !>  @end_table
 !>
-!>  @table_section{recon_con_sec, Reconstruction constraints}
+!>  @table_section{recon_con_sec, Reconstruction constraints (DEPRICATED)}
 !>     @item{n_rc,     Number of reconstruction constraints,       v3fit_input::n_rc}
 !>     @item{rc_type,  Array of reconstruction constraint types,   v3fit_input::rc_type}
 !>     @item{rc_index, Array of reconstruction constraint indices, v3fit_input::rc_index}
@@ -87,7 +87,7 @@
 !>  @table_section{recon_param_sec, Reconstruction parameter specification}
 !>     @item{n_rp,           Number of reconstruction parameters,                                v3fit_input::n_rp}
 !>     @item{rp_type,        Array of reconstruction parameter types. Valid reconstruction
-!>                           are defined by the @ref model or the @ref equilibirum.
+!>                           parameters are defined by the @ref model or the @ref equilibirum.
 !>                           * @ref model_recon_param_sec
 !>                           * @ref vmec_equilibrium_recon_param_sec
 !>                           * @ref vacuum_equilibrium_recon_param_sec,                          v3fit_input::rp_type}
