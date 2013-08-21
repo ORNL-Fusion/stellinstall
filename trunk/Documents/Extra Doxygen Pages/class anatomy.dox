@@ -29,7 +29,7 @@
  * !  1) diagnostic base class
  * !
  * !*******************************************************************************
- *       TYPE (example_class)
+ *       TYPE example_class
  *       END TYPE
  * @endcode
  *
@@ -37,7 +37,8 @@
  * derived type containing a pointer. Again, these class object pointers are 
  * defined as a type using the module name
  * @code{.f}
- *       TYPE (example_pointer)
+ * !-------------------------------------------------------------------------------
+ *       TYPE example_pointer
  *          TYPE (example_class), POINTER :: p => null()
  *       END TYPE
  * @endcode
@@ -71,7 +72,7 @@
  * !  1) diagnostic base class
  * !
  * !*******************************************************************************
- *       TYPE (example_class)
+ *       TYPE example_class
  *          INTEGER                           :: type = example_no_type
  *          TYPE (example_sub_class), POINTER :: subclass => null()
  *       END TYPE
