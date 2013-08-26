@@ -17,7 +17,7 @@
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{vacuum_filename_sec, Filename variables}
-!>     @item{mgrid_nil_filename, File name for the mgrid namelist input file., vacuum_input::coils_dot_file}
+!>     @item{coils_dot_file, File name for the mgrid namelist input file., vacuum_input::coils_dot_file}
 !>  @end_table
 !>
 !>  @table_section{vacuum_size_sec, Array allocation sizes.}
