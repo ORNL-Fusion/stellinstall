@@ -78,6 +78,8 @@
  * @code
  make doc
  @endcode
+ * More on the Doxygen generated documentation is avalable on the @ref doxygen
+ * page.
  *
  * @section build_system_testing Testing
  * Using CMake a testing frame work has been implmented. Tests maybe run by 
