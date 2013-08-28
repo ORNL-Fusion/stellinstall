@@ -39,5 +39,6 @@
  * * @ref build_system "Build System" Programming manual for the build system using CMake.
  * * @ref doxygen "Doxygen" Manual for the generation of documentation.
  * * @ref architecture "V3FIT Architecture" Programming manual overviewing the design of v3fit.
- * * @ref class_anatomy "V3FIT Class Anatomy" Progarmming manual describing the structure of class objects.
+ * * @ref class_anatomy "V3FIT Class Anatomy" Programming manual describing the structure of class objects.
+ * * @ref testing "Testing" Programming manual describing the testing framework.
  */
