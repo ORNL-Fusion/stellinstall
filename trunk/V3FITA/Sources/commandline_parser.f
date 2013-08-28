@@ -26,11 +26,11 @@
 !>  @section cl_parsing_arg_sec Command Line Arguments
 !>  @header2{Argument, Takes Value, Discription}
 !>  @begin_table
-!>  @item3{@fixed_width{-h}, N, Display the help text and exits the program.}
-!>  @item3{@fixed_width{-d}, N, Use the default namelist input file. The default input filename is @fixed_width{v3fit.in}.}
-!>  @item3{@fixed_width{-file}, Y, Specify the v3fit namelist input file.}
-!>  @item3{@fixed_width{-test}, N, Overwrites the @ref v3fit_input::my_task variable and runs the internal unit tests instead.}
-!>  @item3{@fixed_width{-force}, N, Forces the equilibrium to re-solve on every reconstruction parameter}
+!>     @item3{@fixed_width{-h},     N, Display the help text and exits the program.}
+!>     @item3{@fixed_width{-d},     N, Use the default namelist input file. The default input filename is @fixed_width{v3fit.in}.}
+!>     @item3{@fixed_width{-file},  Y, Specify the v3fit namelist input file.}
+!>     @item3{@fixed_width{-test},  N, Overwrites the @ref v3fit_input::my_task variable and runs the internal unit tests instead.}
+!>     @item3{@fixed_width{-force}, N, Forces the equilibrium to re-solve on every reconstruction parameter}
 !>  @end_table
 !>
 !>  @section cl_pasring_prog_ref_secProgrammers Reference
