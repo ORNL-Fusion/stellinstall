@@ -70,7 +70,7 @@
 !>  an object instance. Instead all variables are contained in a global context.
 !>  This is required due to limitations of FORTRAN 95 and namelist inputs. Any
 !>  information needed by a vacuum equilibrium should be copied to a
-!>  @ref vacuum_equilibrium bject. All non-parameters are inputs to the namelist
+!>  @ref vacuum_equilibrium object. All non-parameters are inputs to the namelist
 !>  input file.
 !>
 !>  @ref vacuum_namelist_sec "Namelist vacuum_main_nli definition"
