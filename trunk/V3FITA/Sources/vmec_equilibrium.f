@@ -2161,15 +2161,22 @@
 !  delt_local   Value of delt on entry. Store, for restoration after error
 !               recovery.
 !  ictrl_array  Array containing various vmec control parameters.
-      REAL(rprec)                      :: delt_local
+      REAL (rprec)                     :: delt_local
       INTEGER, DIMENSION(5)            :: ictrl_array
       INTEGER                          :: recovery_index
       INTEGER                          :: error, num_iter_init
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: xc_saved
 
 !  Start of executable code
       delt_local = delt
       num_iter_init = iterc
       recovery_index = 0
+
+!  Store the value of the xc array. This xc array is different than the one
+!  stored in save/reset state methods. This xc array needs to be stored so that
+!  error recovery store the state to before runvmec was run.
+      ALLOCATE(xc_saved(SIZE(xc)))
+      xc_saved = xc
 
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
@@ -2182,7 +2189,7 @@
 !  Update internal vmec counters. These affect how the minimation occurs.
          iter1 = iter2
 
-!  Zero the xc arrays.
+!  Zero the xcdot array.
          xcdot = 0.0
          CALL runvmec(ictrl_array, this%vmec_file_name, .false.)
 
@@ -2213,15 +2220,14 @@
          WRITE (*,*) 'Attempting error recovery'
          WRITE (iou,*) 'Attempting error recovery'
 
-!  Only the xc arrays need to be reset. The vmec_reset_state routine was
-!  assuming that a wout file had been written. This isn't the case when error
-!  recovery happens in the inital convergence.
-         IF (ASSOCIATED(this%xc) .and.                                         &
-     &       (SIZE(xc) .eq. SIZE(this%xc))) THEN
-            xc = this%xc
-         END IF
+!  Restore the xc array to the state it was before runvmec was called.
+         xc = xc_saved
+
          recovery_index = recovery_index + 1
       END DO
+
+!  No longer need the xc_saved array.
+      DEALLOCATE(xc_saved)
 
 !  Check for errors, if vmec was successful, load vmec data for use with the
 !  signals. Other wise report the error.
@@ -2609,7 +2615,7 @@
 !  Start of executable code
       IF (lasym) THEN
 !  Convert to representation with rbs(m=1) = zbc(m=1)
-         delta = ATAN((rbc(0,1) - zbc(0,1))/                                   &
+         delta = ATAN((rbs(0,1) - zbc(0,1))/                                   &
      &                (ABS(rbc(0,1) + ABS(zbs(0,1)))))
          IF (delta .ne. 0.0) THEN
             DO m = 0, mpol1
@@ -2650,19 +2656,19 @@
          END IF
       END IF
 
-      rmn_bdy = 0
-      zmn_bdy = 0
+      rmn_bdy = 0.0
+      zmn_bdy = 0.0
 
-      IF (.not.(lfreeb .and. (mfilter_fbdy .gt. 1)                             &
-     &                 .and. (nfilter_fbdy .gt. 0))) THEN
+      IF (.not.lfreeb) THEN
          DO m = 0, mpol1
-            IF (m .gt. mfilter_fbdy) THEN
-               CYCLE
+            IF ((mfilter_fbdy .gt. 1) .and. (m .gt. mfilter_fbdy)) THEN
+               EXIT
             END IF
 
             mj = m + LBOUND(rbcc, 2)
             DO n = -ntor, ntor
-               IF (ABS(n) .gt. nfilter_fbdy) THEN
+               IF ((nfilter_fbdy .gt. 0) .and.                                 &
+     &             (ABS(n) .gt. nfilter_fbdy)) THEN
                   CYCLE
                END IF
 
@@ -2677,31 +2683,27 @@
                END IF
 
                rbcc(ni,mj) = rbcc(ni,mj) + rbc(n,m)
-               zbsc(ni,mj) = zbsc(ni,mj) + zbs(n,m)
-               IF (m .eq. 0) THEN
-                  zbsc(ni, mj) = 0.0
+               IF (m .gt. 0) THEN
+                  zbsc(ni,mj) = zbsc(ni,mj) + zbs(n,m)
                END IF
 
                IF (lthreed) THEN
-                  rbss(ni,mj) = rbss(ni,mj) + sgn*rbc(n,m)
                   zbcs(ni,mj) = zbcs(ni,mj) - sgn*zbs(n,m)
-                  IF (m .eq. 0) THEN
-                     rbss(ni,mj) = 0
+                  IF (m .gt. 0) THEN
+                     rbss(ni,mj) = rbss(ni,mj) + sgn*rbc(n,m)
                   END IF
                END IF
 
                IF (lasym) THEN
-                  rbsc(ni,mj) = rbsc(ni,mj) + rbs(n,m)
                   zbcc(ni,mj) = zbcc(ni,mj) + zbc(n,m)
-                  IF (m .eq. 0) THEN
-                     rbsc(ni, mj) = 0.0
+                  IF (m .gt. 0) THEN
+                     rbsc(ni,mj) = rbsc(ni,mj) + rbs(n,m)
                   END IF
 
                   IF (lthreed) THEN
                      rbcs(ni,mj) = rbcs(ni,mj) - sgn*rbs(n,m)
-                     zbss(ni,mj) = zbss(ni,mj) + sgn*zbc(n,m)
-                     IF (m .eq. 0) THEN
-                        zbss(ni,mj) = 0
+                     IF (m .gt. 0) THEN
+                        zbss(ni,mj) = zbss(ni,mj) + sgn*zbc(n,m)
                      END IF
                   END IF
                END IF
@@ -2712,7 +2714,7 @@
 !  Check sign of jacobian (should be same as signgs)
       mj = 1 + LBOUND(rbcc, 2)
       signgs = 1.0
-      IF (SUM(rbcc(1:ntor1,mj))*SUM(rbsc(1:ntor1,mj)) .gt. 0.0) THEN
+      IF (SUM(rbcc(1:ntor1,mj))*SUM(zbsc(1:ntor1,mj)) .gt. 0.0) THEN
          signgs = -1.0
       END IF
 
