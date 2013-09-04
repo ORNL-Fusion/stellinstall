@@ -108,6 +108,11 @@
       ALLOCATE(mod_signal(1),mod_sigma(1),stat=istat1)
       CALL assert_eq(0,istat1,sub_name // 'mod_signal, sigma alloc')
 
+!  Load up the wout file
+      IF (.not. a_model%eqstate%l_def_aux1) THEN
+         CALL eq_aux_1_define(a_model%eqstate)
+      END IF
+
 !  Compute the line soft xray emissivity
       context_length = SIZE(TRANSFER(a_model, context))
       ALLOCATE(context(context_length))

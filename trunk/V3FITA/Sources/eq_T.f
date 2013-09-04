@@ -2269,6 +2269,7 @@
 !----------------------------------------------------------------------
 
 ! Get Cylindrical components of the magnetic field.
+      b_cyl = 0.0
       CALL GetBcyl_WOUT(x_cylin(1), x_cylin(2), x_cylin(3),                    &
      &                  b_cyl(1),   b_cyl(2),   b_cyl(3))
 
