@@ -443,7 +443,7 @@
 !>  @see sdo_w_spec_imin
 !>  @see sdo_w_spec_imax
 !>  @see sdo_w_spec_weight
-      INTEGER, PARAMETER :: v3fit_max_spec_size = 100
+      INTEGER, PARAMETER :: v3fit_max_spec_size = 150
 
 !>  Maximum number of phi positions for limiters.
       INTEGER, PARAMETER :: v3fit_max_lif_size = 100
