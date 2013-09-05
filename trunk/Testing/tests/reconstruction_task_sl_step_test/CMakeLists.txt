@@ -15,10 +15,18 @@ add_test (NAME    reconstruction_task_sl_step_test_pp_te_af
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_af --value=15.0 --range=0.1 --index1=2)
 add_test (NAME    reconstruction_task_sl_step_test_pp_sxrem_af
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af --value=1.0 --range=0.1 --index1=1)
+add_test (NAME    reconstruction_task_sl_step_test_rbc00
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --value=0.75 --range=0.1 --index1=0 --index2=0)
+add_test (NAME    reconstruction_task_sl_step_test_rbc01
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --value=0.25 --range=0.1 --index1=0 --index2=1)
+add_test (NAME    reconstruction_task_sl_step_test_zbs01
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=zbs --value=0.25 --range=0.1 --index1=0 --index2=1)
+
+#  Check that the signal effectiveness total.
 add_test (NAME    reconstruction_task_sl_step_test_sem_totals
           COMMAND ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit)
 
-#  Check that jacobians for the the correct values.
+#  Check the jacobians for the the correct values.
 add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:1-1
           COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_1-4:3-3
@@ -45,6 +53,14 @@ add_test (NAME    reconstruction_task_sl_step_test_jac_prior_3-2
           COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
 add_test (NAME    reconstruction_task_sl_step_test_jac_prior_4
           COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_5:6-7
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_6:5
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_6:7
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
+add_test (NAME    reconstruction_task_sl_step_test_jac_prior_7:5-6
+          COMMAND ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
 
 #  Check that the observed signal was written correctly.
 add_test (NAME    reconstruction_task_sl_step_test_check_observed_sxr001
@@ -106,11 +122,17 @@ add_test (NAME    reconstruction_task_sl_step_test_check_observed_thm012
 add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_1
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_1 --attribute=observed --value=1 --range=1.0E-10)
 add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_2
-          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=observed --value=1 --range=1.0)
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=observed --value=1 --range=1.0E-10)
 add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_3
-          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=observed --value=15 --range=1.0)
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=observed --value=15 --range=1.0E-10)
 add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_4
-          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=observed --value=1 --range=1.0)
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=observed --value=1 --range=1.0E-10)
+add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_5
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_5 --attribute=observed --value=0.75 --range=1.0E-10)
+add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_6
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_6 --attribute=observed --value=0.25 --range=1.0E-10)
+add_test (NAME    reconstruction_task_sl_step_test_check_observed_prior_7
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_7 --attribute=observed --value=0.25 --range=1.0E-10)
 
 #  Check that the observed sigma was written correctly.
 add_test (NAME    reconstruction_task_sl_step_test_check_sigma_sxr001
@@ -172,11 +194,17 @@ add_test (NAME    reconstruction_task_sl_step_test_check_sigma_thm012
 add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_1
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_1 --attribute=sigma --value=1.00000E-02 --range=1.0E-10)
 add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_2
-          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=sigma --value=1.00000E-02 --range=1.0)
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=sigma --value=1.00000E-02 --range=1.0E-10)
 add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_3
-          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=sigma --value=1.50000E-01 --range=1.0)
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=sigma --value=1.50000E-01 --range=1.0E-10)
 add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_4
-          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=sigma --value=1.00000E-02 --range=1.0)
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=sigma --value=1.00000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_5
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_5 --attribute=sigma --value=0.0001 --range=1.0E-10)
+add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_6
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_6 --attribute=sigma --value=0.0001 --range=1.0E-10)
+add_test (NAME    reconstruction_task_sl_step_test_check_sigma_prior_7
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=prior_7 --attribute=sigma --value=0.0001 --range=1.0E-10)
 
 #  Check parameter constraint types for the correct values.
 add_test (NAME    reconstruction_task_sl_step_test_check_pp_ne_af_constraint_type
@@ -187,3 +215,9 @@ add_test (NAME    reconstruction_task_sl_step_test_check_pp_te_af_constraint_typ
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_af --index1=2 --range_l=value)
 add_test (NAME    reconstruction_task_sl_step_test_check_pp_sxrem_af_constraint_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af --index1=1 --range_l=value)
+add_test (NAME    reconstruction_task_sl_step_test_check_rbc00_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --index1=0 --index2=0 --range_l=value --range_h=value)
+add_test (NAME    reconstruction_task_sl_step_test_check_rbc01_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --index1=0 --index2=1 --range_l=value)
+add_test (NAME    reconstruction_task_sl_step_test_check_zbs01_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=zbs --index1=0 --index2=1 --range_l=value)
