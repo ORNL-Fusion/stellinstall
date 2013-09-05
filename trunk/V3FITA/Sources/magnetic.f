@@ -270,87 +270,95 @@
       jzvolgrid =>                                                             &
      &   equilibrium_get_magnetic_volume_jzgrid(a_model%equilibrium)
 
+!  The equilibrium may return null pointers indicating the lack of a plasma.
+      IF (ASSOCIATED(rvolgrid) .and. ASSOCIATED(zvolgrid) .and.                &
+     &    ASSOCIATED(jrvolgrid) .and. ASSOCIATED(jphivolgrid) .and.            &
+     &    ASSOCIATED(jzvolgrid)) THEN
+
 !  Allocate space for the interpolated responce functions. Only need two
 !  dimensions because the interpolation is performed one phi position at a time.
-      numrvol = SIZE(rvolgrid, 1)
-      numzvol = SIZE(rvolgrid, 2)
-      ALLOCATE(responce_rvol(numrvol, numzvol))
-      ALLOCATE(responce_phivol(numrvol, numzvol))
-      ALLOCATE(responce_zvol(numrvol, numzvol))
+         numrvol = SIZE(rvolgrid, 1)
+         numzvol = SIZE(rvolgrid, 2)
+         ALLOCATE(responce_rvol(numrvol, numzvol))
+         ALLOCATE(responce_phivol(numrvol, numzvol))
+         ALLOCATE(responce_zvol(numrvol, numzvol))
 
 !  Allocate work arrays to hold the results of the integration.
-      num_phi = this%responce_function%kp_store
-      ALLOCATE(sumrz(numrvol, numzvol))
-      ALLOCATE(sumphi(num_phi))
+         num_phi = this%responce_function%kp_store
+         ALLOCATE(sumrz(numrvol, numzvol))
+         ALLOCATE(sumphi(num_phi))
 
 !  Create the r and z gridpoints for the magnetic responce function.
 !>  @todo FIXME: For a single diagnostic these never change. Allocate these once
 !>  and cache these in the @ref magnetic_class object.
-      ALLOCATE(rgrid(this%responce_function%ir))
-      DO r = 1, this%responce_function%ir
-         rgrid(r) = this%responce_function%rmin                                &
-     &            + (r - 1)*(this%responce_function%rmax -                     &
-     &                       this%responce_function%rmin)                      &
-     &            / (this%responce_function%ir - 1)
-      END DO
-      ALLOCATE(zgrid(this%responce_function%jz))
-      DO z = 1, this%responce_function%jz
-         zgrid(z) = this%responce_function%zmin                                &
-     &            + (z - 1)*(this%responce_function%zmax -                     &
-     &                       this%responce_function%zmin)                      &
-     &            / (this%responce_function%jz - 1)
+         ALLOCATE(rgrid(this%responce_function%ir))
+         DO r = 1, this%responce_function%ir
+            rgrid(r) = this%responce_function%rmin                             &
+     &               + (r - 1)*(this%responce_function%rmax -                  &
+     &                          this%responce_function%rmin)                   &
+     &               / (this%responce_function%ir - 1)
+         END DO
+         ALLOCATE(zgrid(this%responce_function%jz))
+         DO z = 1, this%responce_function%jz
+            zgrid(z) = this%responce_function%zmin                             &
+     &               + (z - 1)*(this%responce_function%zmax -                  &
+     &                          this%responce_function%zmin)                   &
+     &               / (this%responce_function%jz - 1)
       END DO
 
 !  Create a bivariate object to do the interpolation.
 !>  @todo FIXME: The biavariate interpolation is performed one plane at a time.
 !>  Remove the torodial array index and make this interpolation 2D.
-      CALL createbivariate(bivariate_object, numrvol, numzvol,                 &
-     &                     SIZE(rvolgrid, 3), 1)
+         CALL createbivariate(bivariate_object, numrvol, numzvol,              &
+     &                        SIZE(rvolgrid, 3), 1)
 
 !  Sum over grid points for each toroidal plane
-      DO phi = 1, num_phi
-         CALL setbivariate(bivariate_object, rvolgrid(:,:,phi),                &
-     &                     zvolgrid(:,:,phi), rgrid, zgrid, phi, 1)
+         DO phi = 1, num_phi
+            CALL setbivariate(bivariate_object, rvolgrid(:,:,phi),             &
+     &                        zvolgrid(:,:,phi), rgrid, zgrid, phi, 1)
 
 !  Interpolat from the diagnotic grid points to the volume grid points.
-         CALL bivariate4pt(bivariate_object,                                   &
-     &                     this%responce_function%a_r(:,:,phi),                &
-     &                     responce_rvol, phi)
-         CALL bivariate4pt(bivariate_object,                                   &
-     &                     this%responce_function%a_f(:,:,phi),                &
-     &                     responce_phivol, phi)
-         CALL bivariate4pt(bivariate_object,                                   &
-     &                     this%responce_function%a_z(:,:,phi),                &
-     &                     responce_zvol, phi)
+            CALL bivariate4pt(bivariate_object,                                &
+     &                        this%responce_function%a_r(:,:,phi),             &
+     &                        responce_rvol, phi)
+            CALL bivariate4pt(bivariate_object,                                &
+     &                        this%responce_function%a_f(:,:,phi),             &
+     &                        responce_phivol, phi)
+            CALL bivariate4pt(bivariate_object,                                &
+     &                        this%responce_function%a_z(:,:,phi),             &
+     &                        responce_zvol, phi)
 
 !  J_plasma * A_diag
-         sumrz = jrvolgrid(:,:,phi)*responce_rvol                              &
-     &         + jphivolgrid(:,:,phi)*responce_phivol                          &
-     &         + jzvolgrid(:,:,phi)*responce_zvol
-         sumphi(phi) = SUM(sumrz(2:numrvol - 1,:))                             &
-     &               + SUM(sumrz(1,:) + sumrz(numrvol,:))/2.0
-      END DO
+            sumrz = jrvolgrid(:,:,phi)*responce_rvol                           &
+     &            + jphivolgrid(:,:,phi)*responce_phivol                       &
+     &            + jzvolgrid(:,:,phi)*responce_zvol
+            sumphi(phi) = SUM(sumrz(2:numrvol - 1,:))                          &
+     &                  + SUM(sumrz(1,:) + sumrz(numrvol,:))/2.0
+         END DO
 
-      CALL clear_bivar(bivariate_object)
+         CALL clear_bivar(bivariate_object)
 
 !  Correct for stellarator symetry.
-      magnetic_get_modeled_signal(2) = SUM(sumphi)
-      IF (this%responce_function%lstell_sym) THEN
-         magnetic_get_modeled_signal(2) = magnetic_get_modeled_signal(2)       &
-     &      - (sumphi(1) + sumphi(num_phi))/2.0
-      END IF
+         magnetic_get_modeled_signal(2) = SUM(sumphi)
+         IF (this%responce_function%lstell_sym) THEN
+            magnetic_get_modeled_signal(2)                                     &
+     &         = magnetic_get_modeled_signal(2)                                & 
+     &         - (sumphi(1) + sumphi(num_phi))/2.0
+         END IF
 
 !  Finish integration with the volume element.
-      magnetic_get_modeled_signal(2) = magnetic_get_modeled_signal(2)          &
-     &   * equilibrium_get_volume_int_element(a_model%equilibrium)
+         magnetic_get_modeled_signal(2) = magnetic_get_modeled_signal(2)       &
+     &      * equilibrium_get_volume_int_element(a_model%equilibrium)
 
 !  Deallocate work arrays.
 !  NOTE: Do not deallocate any of the vol grid arrays that were obtained from
 !  the equilibrium_get_magnetic_volume_*grid routines. These arrays are owned by
 !  by the equilibrium.
-      DEALLOCATE(responce_rvol, responce_phivol, responce_zvol)
-      DEALLOCATE(sumrz, sumphi)
-      DEALLOCATE(rgrid, zgrid)
+         DEALLOCATE(responce_rvol, responce_phivol, responce_zvol)
+         DEALLOCATE(sumrz, sumphi)
+         DEALLOCATE(rgrid, zgrid)
+
+      END IF
 
 !-------------------------------------------------------------------------------
 !  Calculate the induced signal from external currents.
