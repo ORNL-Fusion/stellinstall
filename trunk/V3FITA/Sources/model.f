@@ -448,7 +448,7 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
 !  Start of executable code
-      SELECT CASE (this%ne_type)
+      SELECT CASE (this%te_type)
 
          CASE (model_te_type)
             model_get_te = equilibrium_get_te(this%equilibrium, x_cart)

@@ -59,9 +59,9 @@
 !>
 !>  @table_section{model_spec_sec, Model Specification Variables}
 !>     @item{model_ne_type, Character variable to specify how the electron density will be calculated by the model.
-!>        -# 'none'         Not part of the model.
-!>        -# 'pp_ne'        Calculated from the parameterized profile pp_ne
-!>        -# 'pp_te_vmec_p' Calculated from the pp_te and the VMEC pressure,
+!>        -# 'none'    Not part of the model.
+!>        -# 'pp_ne'   Calculated from the parameterized profile pp_ne
+!>        -# 'pp_te_p' Calculated from the pp_te and the VMEC pressure,
 !>        v3fit_input::model_ne_type}
 !>     @item{model_sxrem_type, Character variable to specify how the Soft x-ray emissivity will be calculated by the model.
 !>        -# 'none'     Not part of the model.
