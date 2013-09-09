@@ -494,11 +494,11 @@
 !>     @item{g2 (maxnsteps), g^2 value for each reconstruction step., reconstruction::reconstruction_get_g2}
 !>  @end_table
 !>  @table_section{result_file_main_param_var_sec, Parameter Variables}
-!>     @item{param_name (string_len\, nparam),         Name of the reconstruction parameter.,              param::param_get_name}
-!>     @item{param_index (nparamindex\, nparam),       Indices of the reconstruction parameter.,           param::param_class::indicies}
-!>     @item{param_value (nparam\, maxnsteps),         Parameter values for each reconstruction step.,     param::param_get_value}
-!>     @item{param_sigma (nparam\, maxnsteps),         Parameter sigmas for each reconstruction step.,     param::param_class::sigma}
-!>     @item{param_sem (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step., param::param_class::sem}
+!>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,              param::param_get_name}
+!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,           param::param_class::indicies}
+!>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,     param::param_get_value}
+!>     @item{param_sigma (nparam\, maxnsteps),                 Parameter sigmas for each reconstruction step.,     param::param_class::sigma}
+!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step., param::param_class::sem}
 !>  @end_table
 !>  @table_section{result_file_main_sig_var_sec, Signal Variables}
 !>     @item{signal_name (string_len\, nsignal),       Short name of the signal.,                                signal::signal_class::s_name}
@@ -609,9 +609,10 @@
      &                       this%param_sigma_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-         status = nf_def_var(this%result_ncid, 'param_sem', nf_double,         &
-     &                       3, (/ nsignal_dim_id, nparam_dim_id,              &
-     &                             maxnsteps_dim_id /),                        &
+         status = nf_def_var(this%result_ncid, 'signal_eff_matrix',            &
+     &                       nf_double, 3, (/ nsignal_dim_id,                  &
+     &                                        nparam_dim_id,                   &
+     &                                        maxnsteps_dim_id /),             &
      &                       this%param_sem_id)
       END IF
 
