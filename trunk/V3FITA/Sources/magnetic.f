@@ -139,21 +139,31 @@
       CALL cdf_read(mdsig_iou, 'mddc_mrf_lstell_sym', lstell_sym)
 
       CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_r', dim_lengths)
-      ALLOCATE(a_r(dim_lengths(1),dim_lengths(2),dim_lengths(3)))
+      ALLOCATE(a_r(dim_lengths(1), dim_lengths(2), dim_lengths(3)))
       CALL cdf_read(mdsig_iou, 'mddc_mrf_a_r', a_r)
 
       CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_f', dim_lengths)
-      ALLOCATE(a_f(dim_lengths(1),dim_lengths(2),dim_lengths(3)))
+      ALLOCATE(a_f(dim_lengths(1), dim_lengths(2), dim_lengths(3)))
       CALL cdf_read(mdsig_iou, 'mddc_mrf_a_f', a_f)
 
       CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_z', dim_lengths)
-      ALLOCATE(a_z(dim_lengths(1),dim_lengths(2),dim_lengths(3)))
+      ALLOCATE(a_z(dim_lengths(1), dim_lengths(2), dim_lengths(3)))
       CALL cdf_read(mdsig_iou, 'mddc_mrf_a_z', a_z)
 
       CALL mddc_construct(responce_function, code_name, code_version,          &
      &                    date_run, field_coils_id, rdiag_coilg_1,             &
      &                    extcur_mg, kp, rmin, rmax, zmin, zmax,               &
      &                    n_field_periods, lstell_sym, a_r, a_f, a_z)
+
+!  mddc_construct make a copy of the a_* arrays. These need to be deallocated to
+!  avoid a memory leak.
+      DEALLOCATE(rdiag_coilg_1, extcur_mg)
+      rdiag_coilg_1 => null()
+      extcur_mg => null()
+      DEALLOCATE(a_r, a_f, a_z)
+      a_r => null()
+      a_f => null()
+      a_z => null()
 
       magnetic_construct_netcdf => magnetic_construct(responce_function)
 
