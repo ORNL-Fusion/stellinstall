@@ -760,6 +760,9 @@
          current_step = current_step + 1
       END IF
 
+      CALL equilibrium_write_step_data(this%model%equilibrium,                 &
+     &                                 this%result_ncid, current_step)
+
       IF (ASSOCIATED(this%recon)) THEN
          status = nf_put_var1_double(this%result_ncid, this%g2_id,             &
      &                               current_step,                             &
