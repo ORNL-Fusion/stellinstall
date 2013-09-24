@@ -144,7 +144,7 @@
 
          CASE DEFAULT
             WRITE (*,*) 'ne type: ' // TRIM(ADJUSTL(ne_type)) //               &
-     &                  'setting type to none.'
+     &                  ' setting type to none.'
             model_construct%ne_type = model_none_type
 
       END SELECT
@@ -158,8 +158,8 @@
             model_construct%sxrem_type = model_sxrem_type
 
          CASE DEFAULT
-            WRITE (*,*) 'sxrem type: ' // TRIM(ADJUSTL(ne_type)) //            &
-     &                  'setting type to none.'
+            WRITE (*,*) 'sxrem type: ' // TRIM(ADJUSTL(sxrem_type)) //         &
+     &                  ' setting type to none.'
             model_construct%sxrem_type = model_none_type
 
       END SELECT
@@ -178,7 +178,7 @@
 
          CASE DEFAULT
             WRITE (*,*) 'te type: ' // TRIM(ADJUSTL(te_type)) //               &
-     &                  'setting type to none.'
+     &                  ' setting type to none.'
             model_construct%ne_type = model_none_type
 
       END SELECT
