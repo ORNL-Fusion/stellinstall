@@ -6,7 +6,7 @@
  * single reference.
  *
  * @section user User manuals
- * These manual cover topics for end users on how to operate V3FIT.
+ * These manuals cover topics for end users on how to operate V3FIT.
  * * @ref cl_parsing_sec "Command Line Arguments" Descritptions of the command line arguments.
  * * @ref namelist_sec "V3FIT namelist input file" User manual for the V3FIT namelist input file.
  * * @ref result_file_main "Result output file." User manual for the result NetCDF file.
@@ -15,7 +15,7 @@
  * * @ref model_sec "Model Manual" User manual for the V3FIT model.
  *
  * @subsection user_equilibirum Equilibrium manuals.
- * V3FIT is designed to support many difference equilibrium solvers. Currently
+ * V3FIT is designed to support many different equilibrium solvers. Currently
  * implemented are two. The VMEC solver and a Vacuum solver.
  *
  * @subsubsection user_vmec_equilibirum VMEC Equilibrium manuals.
