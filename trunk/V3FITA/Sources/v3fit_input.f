@@ -577,7 +577,7 @@
 !>  Minimum electron density.
       REAL (rprec)                     :: ne_min = 0.0
 !>  Specifies the fraction of the pressure constributed by the electrons.
-      REAL (rprec)                     :: e_pressure_fraction = 0.0
+      REAL (rprec)                     :: e_pressure_fraction = 0.5
 
 !  Reconstruction constraints
 !>  Not implemented.
