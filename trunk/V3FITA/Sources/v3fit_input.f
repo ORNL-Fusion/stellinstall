@@ -851,9 +851,14 @@
       CHARACTER (len=*), INTENT(in) :: namelist_file
 
 !  local variables
-      INTEGER :: iou_mnli, status, j, i, imin, imax
+      INTEGER                       :: iou_mnli, status,
+      INTEGER                       :: j, i,
+      INTEGER                       :: imin, imax
 
 !  Start of executable code
+
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      iou_mnli = 0
       CALL safe_open(iou_mnli, status, TRIM(namelist_file),                    &
      &               'old', 'formatted')
       CALL assert_eq(0, status, 'v3fit_input_read_namelist' //                 &

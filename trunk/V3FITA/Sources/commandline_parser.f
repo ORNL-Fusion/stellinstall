@@ -106,10 +106,12 @@
 
 !  local variables
       CHARACTER (len=max_length) :: temp
-      INTEGER                    :: num_args = 0, i, value_index = 0
+      INTEGER                    :: num_args, i, value_index
 
 !  Start of executable code
       temp = ''
+      num_args = 0
+      value_index = 0
       ALLOCATE(commandline_parser_construct)
 
 !  Read the zeroith arg to get the number of arguments.
@@ -206,13 +208,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_filename_length) ::                                   &
+      CHARACTER (len=data_filename_length) ::                                  &
      &   commandline_parser_get_string
       TYPE (commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)  :: arg
+      CHARACTER (len=*), INTENT(in)               :: arg
 
 !  Local arguments
-      INTEGER i
+      INTEGER                                     :: i
 
 !  Start of executable code
 !  Loop through the arguments until the correct arg is found.
@@ -233,7 +235,7 @@
 !  QUERY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Check is a command line argument was set.
+!>  @brief Check if a command line argument was set.
 !>
 !>  Searches the parsed command line flags for a matching command like argument.
 !>  If no matching argument is found the flag was not set.
@@ -249,10 +251,10 @@
 !  Declare Arguments
       LOGICAL :: commandline_parser_is_flag_set
       TYPE (commandline_parser_class), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in)  :: arg
+      CHARACTER (len=*), INTENT(in)               :: arg
 
 !  Local arguments
-      INTEGER i
+      INTEGER                                     :: i
 
 !  Start of executable code
 !  Loop through the arguments until the correct arg is found.

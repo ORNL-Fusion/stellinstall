@@ -86,11 +86,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), POINTER  :: magnetic_construct_netcdf
-      INTEGER, INTENT(in)             :: mdsig_iou
+      TYPE (magnetic_class), POINTER   :: magnetic_construct_netcdf
+      INTEGER, INTENT(in)              :: mdsig_iou
 
 !  local variables
-      TYPE (mddc_mrf), POINTER        :: responce_function
+      TYPE (mddc_mrf), POINTER         :: responce_function
 
       CHARACTER (len=data_name_length) :: code_name
       CHARACTER (len=data_name_length) :: code_version

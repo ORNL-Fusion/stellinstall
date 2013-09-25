@@ -141,6 +141,8 @@
       ALLOCATE(v3fit_context_construct)
 
 !  Setup the runlog file.
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      v3fit_context_construct%runlog_iou = 0
       CALL safe_open(v3fit_context_construct%runlog_iou, status,               &
      &               TRIM('runlog.' // filename_base(filename)),               &
      &               'replace', 'formatted', delim_in='none')
@@ -149,6 +151,8 @@
      &               TRIM(filename_base(filename)) // 'failed')
 
 !  Setup the recout file.
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      v3fit_context_construct%recout_iou = 0
       CALL safe_open(v3fit_context_construct%recout_iou, status,               &
      &               TRIM('recout.' // filename_base(filename)),               &
      &               'replace', 'formatted', delim_in='none')
