@@ -573,7 +573,7 @@
 !>  @see model
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
 !>  Normalization factor for the electron density.
-      REAL (rprec)                     :: ne_pp_unit = 0.0
+      REAL (rprec)                     :: ne_pp_unit = 1.0E18
 !>  Minimum electron density.
       REAL (rprec)                     :: ne_min = 0.0
 !>  Specifies the fraction of the pressure constributed by the electrons.
