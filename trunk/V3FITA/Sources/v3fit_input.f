@@ -851,8 +851,8 @@
       CHARACTER (len=*), INTENT(in) :: namelist_file
 
 !  local variables
-      INTEGER                       :: iou_mnli, status,
-      INTEGER                       :: j, i,
+      INTEGER                       :: iou_mnli, status
+      INTEGER                       :: j, i
       INTEGER                       :: imin, imax
 
 !  Start of executable code
