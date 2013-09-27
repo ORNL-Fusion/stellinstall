@@ -68,9 +68,9 @@
 !>        -# 'pp_sxrem' Calculated from the parameterized profile pp_sxrem,
 !>        v3fit_input::model_sxrem_type}
 !>     @item{model_te_type, Character variable to specify how the e-temperature will be calculated by the model.
-!>        -# 'none'         Not part of the model.
-!>        -# 'pp_te'        Calculated from the parameterized profile pp_te
-!>        -# 'pp_ne_vmec_p' Calculated from the pp_ne and the VMEC pressure,
+!>        -# 'none'                    Not part of the model.
+!>        -# 'pp_te'                   Calculated from the parameterized profile pp_te
+!>        -# 'pp_ne_vmec_p'\,'pp_ne_p' Calculated from the pp_ne and the VMEC pressure,
 !>        v3fit_input::model_te_type}
 !>     @item{ne_pp_unit,          Scaling/conversion factor for the density. ne * ne_pp_unit is assumed to have units of m^-3.,                                 v3fit_input::ne_pp_unit}
 !>     @item{ne_min,              Minimum electron density\, m^-3.,                                                                                             v3fit_input::ne_min}

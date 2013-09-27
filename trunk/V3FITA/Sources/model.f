@@ -173,15 +173,23 @@
             model_construct%te_type = model_te_type
 
 !>  @todo FIXME: Name here shouldn't have vmec in it
-         CASE ('pp_ne_vmec_p')
+         CASE ('pp_ne_vmec_p', 'pp_ne_p')
             model_construct%te_type = model_te_ne_p_type
 
          CASE DEFAULT
             WRITE (*,*) 'te type: ' // TRIM(ADJUSTL(te_type)) //               &
      &                  ' setting type to none.'
-            model_construct%ne_type = model_none_type
+            model_construct%te_type = model_none_type
 
       END SELECT
+
+!  Cannot use have the temperature derived from the denisty at the same time the
+!  density is derived from the temperature.
+      CALL assert(.not.(                                                       &
+     &        (model_construct%te_type .eq. model_te_ne_p_type) .and.          &
+     &        (model_construct%ne_type .eq. model_ne_te_p_type)),              &
+     &        'Cannot derive both the denisty and temperature' //              &
+     &        ' from pressure in the same model.')
 
       model_construct%ne_unit = ne_unit
       model_construct%ne_min = ne_min
@@ -419,7 +427,7 @@
          CASE (model_ne_te_p_type)
             model_get_ne = eV_per_Joule*this%pressure_fraction                 &
      &                   * equilibrium_get_p(this%equilibrium, x_cart)         &
-     &                   / equilibrium_get_te(this%equilibrium, x_cart)
+     &                   / model_get_te(this, x_cart)
 
          CASE DEFAULT
              model_get_ne = -2.0E49_rprec
@@ -456,7 +464,7 @@
          CASE (model_te_ne_p_type)
             model_get_te = eV_per_Joule*this%pressure_fraction                 &
      &                   * equilibrium_get_p(this%equilibrium, x_cart)         &
-     &                   / equilibrium_get_ne(this%equilibrium, x_cart)
+     &                   / model_get_ne(this, x_cart)
 
          CASE DEFAULT
             model_get_te = -2.0E49_rprec
