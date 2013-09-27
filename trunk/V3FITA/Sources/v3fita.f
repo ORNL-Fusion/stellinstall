@@ -636,7 +636,7 @@
 !  local variables
       INTEGER                                   :: mdsig_list_iou
       INTEGER                                   :: mdsig_iou
-      INTEGER                                   :: status = 0
+      INTEGER                                   :: status
       INTEGER                                   :: mdsig_index
       CHARACTER (len=data_filename_length)      :: mdsig_path
       CHARACTER (len=data_filename_length)      :: mdsig_filename
@@ -645,6 +645,9 @@
       LOGICAL                        :: first_run = .true.
 
 !  Start of executable code
+      status = 0
+      mdsig_list_iou = 0
+
       WRITE (*,*) ' *** Constructing magnetic signals from ' //                &
      &            TRIM(mdsig_list_filename)
       WRITE (context%runlog_iou,*) ' *** Constructing magnetic ' //            &
