@@ -32,6 +32,26 @@ echo
 if [ "$MACHINE_ID" == "blast1" ] || [ "$MACHINE_ID" == "blast2" ] || [ "$MACHINE_ID" == "blast3" ] || [ "$MACHINE_ID" == "blast4" ] || [ "$MACHINE_ID" == "recon" ] || [ "$MACHINE_ID" == "recon2" ]
 then
 	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=gfortran -DNETCDF_INC_PATH=/usr/include/ -DNETCDF_LIB_PATH=/usr/lib -DCMAKE_Fortran_FLAGS=-DNEW_CODE -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+
+elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
+
+	# the machine is hosted on RFX's network:
+	# for technical reasons, force compiling on ra22 only.
+
+	if [ "${MACHINE_ID%%.*}" != "ra22" ]; then
+	   echo " `basename $0`: you should compile on ra22!" && exit 1
+	fi
+
+	echo " `basename $0`: running cmake."
+	cmake -DCMAKE_FORTRAN_FLAGS=-DNEW_CODE             \
+	      -DEXTRA_RELEASE_FLAGS="-fp-model precise"    \
+	      -DEXTRA_FLAGS=-openmp                        \
+	      -DNETCDF_INC_PATH=/usr/local/netcdf/include/ \
+	      -DNETCDF_LIB_PATH=/usr/local/netcdf/lib/     \
+	      -DCMAKE_BUILD_TYPE=$BUILD_TYPE               \
+	&&   echo " `basename $0`: cmake succeeded."       \
+	|| ( echo " `basename $0`: cmake failed." && exit 2 )
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.
