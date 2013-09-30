@@ -44,4 +44,16 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/input.test.vmec
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/param_constraints_test)
 
+#  Copy common files to the te pressure test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/te_pressure_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/te_pressure_test)
+
+#  Copy common files to the ne pressure test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/ne_pressure_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/ne_pressure_test)
+
 add_subdirectory (tests)
