@@ -16,17 +16,22 @@ recout_file = open(option.filename, "r")
 test_passed = False
 s_index = -1
 index = -1
+signals_found = False
+temp = 1
 for line in recout_file.readlines():
 	split_str = line.split()
-	for i, string in enumerate(split_str):
-		if string == "s_name":
-			s_index = i
-		if string == option.attribute:
-			index = i
-	if index != -1 and s_index != -1:
-		for j, string in enumerate(split_str):
-			if string == option.s_name:
-				test_passed = (float(split_str[index + j - s_index]) <= (float(option.value) + float(option.range))) and (float(split_str[index + j - s_index]) >= (float(option.value) - float(option.range)))
+	if (signals_found == False) and (len(split_str) == 2) and (split_str[1] == "Signals"):
+		signals_found = True
+	if signals_found == True:
+		for i, string in enumerate(split_str):
+			if string == "s_name":
+				s_index = i
+			if string == option.attribute:
+				index = i
+		if index != -1 and s_index != -1:
+			for j, string in enumerate(split_str):
+				if string == option.s_name:
+					test_passed = (float(split_str[index + j - s_index]) <= (float(option.value) + float(option.range))) and (float(split_str[index + j - s_index]) >= (float(option.value) - float(option.range)))
 
 recout_file.close
 

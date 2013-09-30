@@ -342,6 +342,7 @@
 !  to avoid a stack overflow.
       CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER ::                 &
      &   sem_header
+      INTEGER, DIMENSION(:), ALLOCATABLE        :: indices
 
 !  Start of executable code
       WRITE (*,*) ' *** Writting context to disk'
@@ -358,10 +359,13 @@
 !  Write out the parameters
       IF (ASSOCIATED(this%params)) THEN
          CALL param_write_header(this%recout_iou)
-         DO i = 1, SIZE(this%params)
-            CALL param_write(this%params(i)%p, this%recout_iou, i,             &
+         DO j = 1, SIZE(this%params)
+            CALL param_write(this%params(j)%p, this%recout_iou, j,             &
      &                       this%model)
          END DO
+
+!  Only need to write out the signal effectiveness matrix if signals exist.
+         IF (ASSOCIATED(this%signals)) THEN
 
 !  Write out the signal effectiveness matrix. This matrix will be written out
 !  so that each parameter is one a column and each row is a a signal. Start by
@@ -372,24 +376,25 @@
 !  Start my allocating a string large enough to hold the entire header. The
 !  length of this string needs to be 26 for the base an additional 14 for each
 !  parameter.
-         WRITE (this%recout_iou, *)
-         WRITE (this%recout_iou, *) ' *** Signal Effectiveness Matrix'
-         ALLOCATE(sem_header)
+            WRITE (this%recout_iou, *)
+            WRITE (this%recout_iou, *)                                         &
+     &         ' *** Signal Effectiveness Matrix'
+            ALLOCATE(sem_header)
 
-         WRITE (sem_header, 1000)
-         sem_offset = 26
-         DO i = 1, SIZE(this%params)
-            WRITE (sem_header, 1001) sem_header(1:sem_offset),                 &
-     &                               param_get_name(this%params(i)%p,          &
-     &                                              this%model)
-            sem_offset = sem_offset + 14
-         END DO
+            WRITE (sem_header, 1000)
+            sem_offset = 26
+            DO j = 1, SIZE(this%params)
+               WRITE (sem_header, 1001) sem_header(1:sem_offset),              &
+     &                                  param_get_name(this%params(j)%p,       &
+     &                                                 this%model)
+               sem_offset = sem_offset + 14
+            END DO
 
 !  Write out the header.
-         WRITE (this%recout_iou, 1002)                                         &
-     &      sem_header(1:26 + 14*SIZE(this%params))
+            WRITE (this%recout_iou, 1002)                                      &
+     &         sem_header(1:26 + 14*SIZE(this%params))
 
-         DEALLOCATE(sem_header)
+            DEALLOCATE(sem_header)
 1000  FORMAT (3x,'#',2x,'s_name',14x)
 1001  FORMAT (a,2x,a12)
 1002  FORMAT (a)
@@ -399,7 +404,6 @@
 !  will be
 !
 !  i4,2x,a20,<num_params>(2x,es12.5)
-         IF (ASSOCIATED(this%signals)) THEN
             ALLOCATE(sem_row(SIZE(this%params)))
             ALLOCATE(sem_header)
             WRITE (sem_header, 1003) SIZE(this%params)
@@ -423,11 +427,39 @@
             WRITE (this%recout_iou, *)
             WRITE (this%recout_iou, sem_header) sem_row
 
+1003  FORMAT ('(i4,2x,a20,',i3,'(2x,es12.5))')
+1004  FORMAT ('(20x,''Total:''',i3,'(2x,es12.5))')
+
+!  Write out the most effective signal.
+            ALLOCATE(indices(SIZE(this%params)))
+
+            WRITE (sem_header, 1002) '    Most Effective Signal:'
+            sem_offset = 26
+            DO j = 1, SIZE(this%params)
+               indices(j) = MAXLOC(this%params(j)%p%sem, 1)
+               sem_row(j) = this%params(j)%p%sem(indices(j))
+
+               WRITE (sem_header, 1001)                                        &
+     &            sem_header(1:sem_offset),                                    &
+     &            TRIM(this%signals(indices(j))%p%s_name)
+               sem_offset = sem_offset + 14
+            END DO
+            WRITE (this%recout_iou, 1002)                                      &
+     &         sem_header(1:26 + 14*SIZE(this%params))
+
+            WRITE (sem_header, 1005) SIZE(this%params)
+            WRITE (this%recout_iou, sem_header) indices
+
+            WRITE (sem_header, 1006) SIZE(this%params)
+            WRITE (this%recout_iou, sem_header) sem_row
+
+            DEALLOCATE(indices)
             DEALLOCATE(sem_header)
             DEALLOCATE(sem_row)
          END IF
-1003  FORMAT ('(i4,2x,a20,',i3,'(2x,es12.5))')
-1004  FORMAT ('(20x,''Total:''',i3,'(2x,es12.5))')
+
+1005  FORMAT ('(13x,''Signal Index:''',i3,'(2x,i12))')
+1006  FORMAT ('(16x,''Max Value:''',i3,'(2x,es12.5))')
       END IF
 
 !  Write out the model.
