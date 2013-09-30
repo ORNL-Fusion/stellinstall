@@ -158,6 +158,9 @@
       INTEGER                       :: iou_vacnli, status
 
 !  Start of executable code
+      iou_vacnli = 0
+      status = 0
+
       CALL safe_open(iou_vacnli, status, TRIM(namelist_file),                  &
      &               'old', 'formatted')
       CALL assert_eq(0, status, 'vacuum_input_read_namelist' //                &

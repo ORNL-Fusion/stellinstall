@@ -246,7 +246,7 @@
          this%recon => null()
       END IF
 
-!  Reset teh signal index
+!  Reset the signal index
       this%magnetic_index = -1
       this%sxrem_index = -1
       this%intpol_index = -1
