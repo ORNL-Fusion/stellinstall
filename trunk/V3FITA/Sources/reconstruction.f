@@ -329,7 +329,7 @@
       ALLOCATE(exp_eff(0:num_sv))
       ALLOCATE(marg_exp_eff(0:num_sv))
 
-!  Esstimate the expected changes in g^2. Equation 22 in Hanson at. al.
+!  Esstimate the expected changes in g^2. Equation 22 in Hanson et. al.
 !  doi: 10.1088/0029-5515/49/7/075031
       DO k = 0, num_sv
          dg2exp(k) = reconstruction_get_exp_dg2(this,                          &
@@ -338,7 +338,7 @@
          this%delta_a_len(k) = SQRT(DOT_PRODUCT(this%delta_a(k,:),             &
      &                                          this%delta_a(k,:)))
 
-!  Equation 23 in Hanson at. al. doi: 10.1088/0029-5515/49/7/075031
+!  Equation 23 in Hanson et. al. doi: 10.1088/0029-5515/49/7/075031
          exp_eff(k) = ABS(dg2exp(k))/this%delta_a_len(k)
       END DO
 
@@ -360,9 +360,9 @@
 
 !  Check for cutoffs.
       IF (this%j_svd_w(1) .le. 0.0) THEN
-         largest_w = this%j_svd_w(1)
-      ELSE
          largest_w = 1.0
+      ELSE
+         largest_w = this%j_svd_w(1)
       END IF
 
       ALLOCATE(l_all(num_sv))
@@ -374,7 +374,7 @@
      &        (ABS(dg2exp(1:num_sv)) .ge. this%cut_dg2)
 
 !  Find the largest number of sinular values to use.
-      Do k = num_sv, 1, -1
+      DO k = num_sv, 1, -1
          IF (l_all(k)) THEN
             reconstruction_get_k_use = k
             EXIT
@@ -392,7 +392,9 @@
 !>  @brief Get the expected dg^2 size
 !>
 !>  Estimates the change in g^2.
-!>  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!>  Equation 22 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
+!>  Note: there is a type in equation 22. The - sign in the last term should be
+!>  a plus sign.
 !>
 !>  @param[in] this    A @ref reconstruction_class instance.
 !>  @param[in] delta_a The normalized parameter step.
@@ -419,9 +421,9 @@
      &                   MATMUL(this%jacobian, delta_a))
 
 !  da * A^T * A * da = da * alpha * da where alpha is the hessian matrix.
-!  Equation 14 in Hanson at. al. doi: 10.1088/0029-5515/49/7/075031
+!  Equation 14 in Hanson et. al. doi: 10.1088/0029-5515/49/7/075031
       dg2exp_quad = DOT_PRODUCT(delta_a, MATMUL(this%hessian, delta_a))
-      reconstruction_get_exp_dg2 = dg2exp_lin + dg2exp_quad
+      reconstruction_get_exp_dg2 = dg2exp_lin - dg2exp_quad
 
       END FUNCTION
 
@@ -429,7 +431,7 @@
 !>  @brief Get the expected g^2 size
 !>
 !>  Estimates the g^2.
-!>  Equation 22 in Hanson at. al. doi:10.1088/0029-5515/49/7/075031
+!>  Equation 22 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
 !>
 !>  @param[in] this    A @ref reconstruction_class instance.
 !>  @param[in] delta_a The normalized parameter step.
@@ -469,8 +471,8 @@
 
 !  Start of executable code
       reconstruction_get_g2 =                                                  &
-     &   DOT_PRODUCT(this%e(this%current_step, :),                             &
-     &               this%e(this%current_step, :))
+     &   DOT_PRODUCT(this%e(this%current_step,:),                              &
+     &               this%e(this%current_step,:))
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -491,8 +493,8 @@
 
 !  Start of executable code
       reconstruction_get_lastg2 =                                              &
-     &   DOT_PRODUCT(this%e(this%current_step - 1, :),                         &
-     &               this%e(this%current_step - 1, :))
+     &   DOT_PRODUCT(this%e(this%current_step - 1,:),                          &
+     &               this%e(this%current_step - 1,:))
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -654,16 +656,16 @@
 
       END DO
 
-!  Compute the positive definite Hessian, matrix. Equation 14 in Hanson at. al.
+!  Compute the positive definite Hessian, matrix. Equation 14 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
 !    alpha = A^T * A
 !
-!  Numerical Recipes Third edition Equation 15.5.7 . In here, teh second
+!  Numerical Recipes Third edition Equation 15.5.7 . In here, the second
 !  derivatives are assumed to be small and ignored.
       this%hessian = MATMUL(TRANSPOSE(this%jacobian), this%jacobian)
 
-!  Compute the gradient vector in parameter space. Equation 13 in Hanson at. al.
+!  Compute the gradient vector in parameter space. Equation 13 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
 !    beta = A^T * e
