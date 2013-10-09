@@ -840,10 +840,9 @@
             xx = 0.0
          END IF
 
-         delta_a = this%delta_a(k_min,:)*(1.0 - xx)                            &
-     &           + xx*this%delta_a(k_min + 1,:)
-         IF (k_min .eq. 0) THEN
-            delta_a = xx*this%delta_a(k_min,:)
+         delta_a = xx*this%delta_a(k_min + 1,:)
+         IF (k_min .ne. 0) THEN
+            delta_a = this%delta_a(k_min,:)*(1.0 - xx) + delta_a
          END IF
 
          reconstruction_seg_step = SQRT(DOT_PRODUCT(delta_a, delta_a))
