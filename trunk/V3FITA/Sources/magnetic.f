@@ -314,7 +314,7 @@
      &               + (z - 1)*(this%responce_function%zmax -                  &
      &                          this%responce_function%zmin)                   &
      &               / (this%responce_function%jz - 1)
-      END DO
+         END DO
 
 !  Create a bivariate object to do the interpolation.
 !>  @todo FIXME: The biavariate interpolation is performed one plane at a time.

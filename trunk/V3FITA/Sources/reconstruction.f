@@ -833,7 +833,7 @@
          IF (discriminant .le. 0.0) THEN
             xx = 0.0
          ELSE
-            xx = (-bb + SQRT(bb*2.0 - 4.0*aa*cc))/(2.0*aa)
+            xx = (-bb + SQRT(discriminant))/(2.0*aa)
          END IF
 
          IF ((xx .lt. 0.0) .or. (xx .gt. 1.0)) THEN
@@ -1153,7 +1153,7 @@
                this%exp_g2(this%current_step + 1) =                            &
      &            reconstruction_get_exp_g2(this, delta_a)
                this%step_size(this%current_step + 1) = step_use
-               this%num_sv = k_use
+               this%num_sv(this%current_step + 1) = k_use
                CALL reconstruction_write_step(this, 'sl', iou)
 
             CASE (reconstruction_lm_step_type)
@@ -1162,7 +1162,7 @@
                this%exp_g2(this%current_step + 1) =
      &            reconstruction_get_exp_g2(this, delta_a)
                this%step_size(this%current_step + 1) = step_use
-               this%num_sv = k_use
+               this%num_sv(this%current_step + 1) = k_use
                CALL reconstruction_write_step(this, 'lm', iou)
 
             CASE (reconstruction_seg_step_type)
@@ -1171,7 +1171,7 @@
                this%exp_g2(this%current_step + 1) =
      &            reconstruction_get_exp_g2(this, delta_a)
                this%step_size(this%current_step + 1) = step_use
-               this%num_sv = k_use
+               this%num_sv(this%current_step + 1) = k_use
                CALL reconstruction_write_step(this, 'seg', iou)
 
          END SELECT
@@ -1286,7 +1286,7 @@
 !
 !  Equation 3 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
 !  Note: This is the same as the hessian that was computed for the
-!  reconstruction. Use that value to avoid a matric multiplication.
+!  reconstruction. Use that value to avoid a matrix multiplication.
       ALLOCATE(cp(SIZE(params),SIZE(params)))
       cp = this%hessian
 
@@ -1327,7 +1327,7 @@
 !  (J * cp)^2 / (sigma_p^2 * sigma_s^2)                                      (1)
 !
 !  Due to use of the normalized jacobian and normalized parameter covariance
-!  matrix, the 1/sigma_s^2 term is found in the J^2 term. An extra Pi term bust
+!  matrix, the 1/sigma_s^2 term is found in the J^2 term. An extra Pi term must
 !  be multiplied out. In terms of the normalized quantities, becomes
 !
 !  (A * cp_n)^2 * pi^2 / sigma_p^2
