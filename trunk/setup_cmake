@@ -31,7 +31,15 @@ fi
 echo
 if [ "$MACHINE_ID" == "blast1" ] || [ "$MACHINE_ID" == "blast2" ] || [ "$MACHINE_ID" == "blast3" ] || [ "$MACHINE_ID" == "blast4" ] || [ "$MACHINE_ID" == "recon" ] || [ "$MACHINE_ID" == "recon2" ]
 then
-	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE -DCMAKE_Fortran_COMPILER=gfortran -DNETCDF_INC_PATH=/usr/include/ -DNETCDF_LIB_PATH=/usr/lib -DCMAKE_Fortran_FLAGS=-DNEW_CODE -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+	# These for machines are hosted on the Auburn network.
+
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
+	      -DCMAKE_Fortran_COMPILER=gfortran     \
+	      -DNETCDF_INC_PATH=/usr/include/       \
+	      -DNETCDF_LIB_PATH=/usr/lib            \
+	      -DCMAKE_Fortran_FLAGS=-DNEW_CODE      \
+	      -DEXTRA_FLAGS=-fopenmp                \
+	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
 elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
 
