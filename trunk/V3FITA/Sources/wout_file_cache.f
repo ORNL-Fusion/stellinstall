@@ -246,86 +246,107 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%rmnc)) THEN
+         DEALLOCATE(this%rmnc)
          this%rmnc => null()
       END IF
 
       IF (ASSOCIATED(this%rmns)) THEN
+         DEALLOCATE(this%rmns)
          this%rmns => null()
       END IF
 
       IF (ASSOCIATED(this%zmnc)) THEN
+         DEALLOCATE(this%zmnc)
          this%zmnc => null()
       END IF
 
       IF (ASSOCIATED(this%zmns)) THEN
+         DEALLOCATE(this%zmns)
          this%zmns => null()
       END IF
 
       IF (ASSOCIATED(this%lmns)) THEN
+         DEALLOCATE(this%lmns)
          this%lmns => null()
       END IF
 
       IF (ASSOCIATED(this%lmnc)) THEN
+         DEALLOCATE(this%lmnc)
          this%lmnc => null()
       END IF
 
       IF (ASSOCIATED(this%gmnc)) THEN
+         DEALLOCATE(this%gmnc)
          this%gmnc => null()
       END IF
 
       IF (ASSOCIATED(this%gmns)) THEN
+         DEALLOCATE(this%gmns)
          this%gmns => null()
       END IF
 
       IF (ASSOCIATED(this%bsubumnc)) THEN
+         DEALLOCATE(this%bsubumnc)
          this%bsubumnc => null()
       END IF
 
       IF (ASSOCIATED(this%bsubvmnc)) THEN
+         DEALLOCATE(this%bsubvmnc)
          this%bsubvmnc => null()
       END IF
 
       IF (ASSOCIATED(this%bsubsmns)) THEN
+         DEALLOCATE(this%bsubsmns)
          this%bsubsmns => null()
       END IF
 
       IF (ASSOCIATED(this%bsupumnc)) THEN
+         DEALLOCATE(this%bsupumnc)
          this%bsupumnc => null()
       END IF
 
       IF (ASSOCIATED(this%bsupvmnc)) THEN
+         DEALLOCATE(this%bsupvmnc)
          this%bsupvmnc => null()
       END IF
 
       IF (ASSOCIATED(this%bsubumns)) THEN
+         DEALLOCATE(this%bsubumns)
          this%bsubumns => null()
       END IF
 
       IF (ASSOCIATED(this%bsubvmns)) THEN
+         DEALLOCATE(this%bsubvmns)
          this%bsubvmns => null()
       END IF
 
       IF (ASSOCIATED(this%bsubsmnc)) THEN
+         DEALLOCATE(this%bsubsmnc)
          this%bsubsmnc => null()
       END IF
 
       IF (ASSOCIATED(this%bsupumns)) THEN
+         DEALLOCATE(this%bsupumns)
          this%bsupumns => null()
       END IF
 
       IF (ASSOCIATED(this%bsupvmns)) THEN
+         DEALLOCATE(this%bsupvmns)
          this%bsupvmns => null()
       END IF
 
       IF (ASSOCIATED(this%phi)) THEN
+         DEALLOCATE(this%phi)
          this%phi => null()
       END IF
 
       IF (ASSOCIATED(this%iotaf)) THEN
+         DEALLOCATE(this%iotaf)
          this%iotaf => null()
       END IF
 
       IF (ASSOCIATED(this%iotas)) THEN
+         DEALLOCATE(this%iotas)
          this%iotas => null()
       END IF
 

@@ -436,6 +436,7 @@
 !>  @param[inout] this A @ref vmec_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_destruct(this)
+      USE read_wout_mod, only: read_wout_deallocate
 
       IMPLICIT NONE
 
@@ -445,16 +446,19 @@
 !  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
          CALL pprofile_destroy(this%ne)
+         DEALLOCATE(this%ne)
          this%ne => null()
       END IF
 
       IF (ASSOCIATED(this%te)) THEN
          CALL pprofile_destroy(this%te)
+         DEALLOCATE(this%te)
          this%te => null()
       END IF
 
       IF (ASSOCIATED(this%sxrem)) THEN
          CALL pprofile_destroy(this%sxrem)
+         DEALLOCATE(this%sxrem)
          this%sxrem => null()
       END IF
 
@@ -490,6 +494,12 @@
          DEALLOCATE(this%xc)
          this%xc => null()
       END IF
+
+!  Deallocate VMEC allocated memory.
+      CALL read_wout_deallocate
+      CALL free_mem_ns(.true.)
+      CALL free_mem_funct3d
+      CALL free_mem_nunv
 
       DEALLOCATE(this)
 
