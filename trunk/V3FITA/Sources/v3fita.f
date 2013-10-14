@@ -312,7 +312,7 @@
 !  performing the SVD.
       CALL assert_eq(SIZE(context%signals), n_sdata_o,                         &
      &               'task_reconstruct: number of observed signals' //         &
-     &               'does not match the number of signals created')
+     &               ' does not match the number of signals created')
 
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'

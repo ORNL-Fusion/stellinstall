@@ -2212,6 +2212,10 @@
 !  If vmec terminated sucessfully continue.
          SELECT CASE (ictrl_array(2))
             CASE (jac75_flag)
+
+!  Restore the xc array to the state it was before runvmec was called.
+               xc = xc_saved
+
                IF (recovery_index .le. 2) THEN
                   WRITE (*,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
                   WRITE (*,*) 'delt chnage: old, new:', delt, delt/2.0
@@ -2229,9 +2233,6 @@
 
          WRITE (*,*) 'Attempting error recovery'
          WRITE (iou,*) 'Attempting error recovery'
-
-!  Restore the xc array to the state it was before runvmec was called.
-         xc = xc_saved
 
          recovery_index = recovery_index + 1
       END DO

@@ -969,6 +969,7 @@
      &                                 0.0_rprec)
       IF (f_0 .lt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: f_0 < 0.0')
+         DEALLOCATE(f_sqrd)
          RETURN
       END IF
       lambda_0 = 0.0
@@ -989,12 +990,14 @@
       END DO
       IF (f_2 .gt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: f_2 > 0.0')
+         DEALLOCATE(f_sqrd)
          RETURN
       END IF
 
 !  Check that f_0 and f_2 actually bracket.
       IF (f_0*f_2 .gt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: fail to bracket')
+         DEALLOCATE(f_sqrd)
          RETURN
       END IF
 
@@ -1043,6 +1046,8 @@
             EXIT
          END IF
       END DO
+
+      DEALLOCATE(f_sqrd)
 
       END FUNCTION
 
@@ -1217,15 +1222,14 @@
 !  Equilibrium did not converge
             WRITE (*,*) 'Equilibrium did not converge'
             WRITE (iou,*) 'Equilibrium did not converge'
-            step_use = step_use/2.0
-
-            this%current_step = this%current_step - 1
          END IF
 
+!  If this section was reached, the reconstruction step failed. Reset the
+!  current step to the last good step.
+         this%current_step = this%current_step - 1
          IF (i .eq. reconstruction_max_step_try) THEN
             WRITE (*,*) 'Reconstruction step failed.'
             WRITE (iou,*) 'Reconstruction step failed.'
-            this%current_step = this%current_step - 1
             EXIT
          END IF
 
@@ -1233,7 +1237,10 @@
          step_use = step_use/2.0
          WRITE (*,*) 'Changing max step size to ', step_use
          WRITE (iou,*) 'Changing max step size to ', step_use
-         this%current_step = this%current_step - 1
+
+!  Reset the equilibrium state back to the last step. The state of the last step
+!  was saved before the jacobian was computed.
+         CALL equilibrium_reset_state(a_model%equilibrium)
       END DO
 
       DEALLOCATE(param_value)
