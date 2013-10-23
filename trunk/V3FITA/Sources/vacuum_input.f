@@ -170,7 +170,7 @@
       READ (iou_vacnli, nml=vacuum_main_nli)
       CLOSE (iou_vacnli, iostat=status)
       CALL assert_eq(0, status, 'vacuum_input_read_namelist' //                &
-     &   ': Error losing ' // TRIM(namelist_file) // ' failed')
+     &   ': Error closing ' // TRIM(namelist_file) // ' failed')
 
       END SUBROUTINE
 

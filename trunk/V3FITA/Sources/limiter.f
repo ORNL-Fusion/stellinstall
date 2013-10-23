@@ -339,7 +339,12 @@
       limiter_get_modeled_iso_signal(2:4) = rphiz_at_max
 
 !  Dealloctae r and z since they are no longer needed.
-      DEALLOCATE(r, z)
+      IF (ASSOCIATED(r)) THEN
+         DEALLOCATE(r)
+      END IF
+      IF (ASSOCIATED(z)) THEN
+         DEALLOCATE(z)
+      END IF
       r => null()
       z => null()
 
