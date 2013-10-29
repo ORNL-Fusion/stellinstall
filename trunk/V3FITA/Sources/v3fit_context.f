@@ -741,12 +741,12 @@
          END DO
       END IF
 
-      CALL v3fit_context_write_step_data(this, .true.)
-
       IF (ASSOCIATED(this%model)) THEN
          CALL equilibrium_write_init_data(this%model%equilibrium,              &
      &                                    this%result_ncid)
       END IF
+
+      CALL v3fit_context_write_step_data(this, .true.)
 
       END SUBROUTINE
 
@@ -825,6 +825,11 @@
      &                                  this%signal_sigma_value_id)
          END DO
       END IF
+
+!  Flush the step data to disk. This ensures that data is recorded in the event
+!  of a fatal error that stops v3fit execution.
+      status = nf_sync(this%result_ncid)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       END SUBROUTINE
 
