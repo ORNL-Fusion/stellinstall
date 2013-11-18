@@ -56,6 +56,7 @@
 !>     @item{pp_te_b,     1D Array of function temperature profile parameters., @ref vmec_class::te::b}
 !>     @item{pp_te_as,    1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
 !>     @item{pp_te_af,    1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
+!>     @item{phi_offset,  Phi angle offset in radians,                          @ref vmec_class::phi_offset}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
@@ -230,6 +231,10 @@
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
       INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 52
 
+!>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
+!>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 53
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) vmec magnetic cache
@@ -306,6 +311,10 @@
          INTEGER                               :: vmec_l_sub_i_id
 !>  Mean elongation Netcdf variable id.
          INTEGER                               :: vmec_kappa_p_id
+
+!  Extra reconstriction parameters
+!>  Plasma phi offset.
+         REAL (rprec)                          :: phi_offset = 0
       END TYPE
 
 !*******************************************************************************
@@ -747,6 +756,10 @@
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
+         CASE (vmec_phi_offset_id)
+            vmec_set_param = .false.
+            this%phi_offset = value
+
          CASE DEFAULT
 !>  @todo FIXME: Consider throwing a fatal error here inside of silently doing
 !>  nothing.
@@ -836,6 +849,7 @@
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu_nyq, sinv_nyq
       REAL (rprec)                              :: ru, rv, zu, zv
       REAL (rprec)                              :: ju, jv
+      REAL (rprec)                              :: phi
 
 !  Start of executable code.
       ALLOCATE(cosz(mnmax), sinz(mnmax))
@@ -859,10 +873,11 @@
          sinu_nyq(:,u) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
       END DO
       DO v = 1, this%magnetic_cache%kv
-         cosv(:,v) = COS(xn*(v - 1)*this%magnetic_cache%dv)
-         sinv(:,v) = SIN(xn*(v - 1)*this%magnetic_cache%dv)
-         cosv_nyq(:,v) = COS(xn_nyq*(v - 1)*this%magnetic_cache%dv)
-         sinv_nyq(:,v) = SIN(xn_nyq*(v - 1)*this%magnetic_cache%dv)
+         phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
+         cosv(:,v) = COS(xn*phi)
+         sinv(:,v) = SIN(xn*phi)
+         cosv_nyq(:,v) = COS(xn_nyq*phi)
+         sinv_nyq(:,v) = SIN(xn_nyq*phi)
       END DO
 
 !  Set the suv grids
@@ -1105,6 +1120,9 @@
          CASE ('vvc_kappa_p')
             vmec_get_param_id = vmec_vvc_kappa_p_id
 
+         CASE ('phi_offset')
+            vmec_get_param_id = vmec_phi_offset_id
+
          CASE DEFAULT
             vmec_get_param_id = data_no_id
 
@@ -1300,6 +1318,9 @@
          CASE (vmec_vvc_kappa_p_id)
             vmec_get_param_value = vvc_kappa_p
 
+         CASE (vmec_phi_offset_id)
+            vmec_get_param_value = this%phi_offset
+
          CASE DEFAULT
             vmec_get_param_value = 0.0
 
@@ -1478,6 +1499,9 @@
          CASE (vmec_vvc_kappa_p_id)
             vmec_get_param_name = 'vvc_kappa_p'
 
+         CASE (vmec_phi_offset_id)
+            vmec_get_param_name = 'phi_offset'
+
          CASE DEFAULT
             STOP 'Invalid VMEC parameter id.'
 
@@ -1633,6 +1657,7 @@
 !  Start of executable code
       r_cyl = cart_to_cyl(x_cart)
       vmec_get_B_vec = 0.0
+      r_cyl(2) = r_cyl(2) + this%phi_offset
 
       CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                          &
      &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
@@ -1716,7 +1741,10 @@
       nfe = 0
 
       r_cyl = cart_to_cyl(x_cart)
-      r_cyl(2) = nfp*r_cyl(2)
+!  CHECK_ME: Not sure if this should be
+!     r_cyl(2) = nfp*r_cyl(2) + this%phi_offset
+!  or
+      r_cyl(2) = nfp*(r_cyl(2) + this%phi_offset)
 
       CALL cyl2flx(rzl_local, r_cyl, s_flux, ns, ntor, mpol, ntmax,            &
      &             lthreed, lasym, info, nfe, fmin)
@@ -1773,8 +1801,8 @@
       ALLOCATE(cosv(SIZE(xn, 1)), sinv(SIZE(xn, 1)))
       ALLOCATE(cosu(SIZE(xm, 1)), sinu(SIZE(xm, 1)))
 
-      cosv(:) = COS(xn*phi)
-      sinv(:) = SIN(xn*phi)
+      cosv(:) = COS(xn*(phi + this%phi_offset))
+      sinv(:) = SIN(xn*(phi + this%phi_offset))
       DO i = 1, vmec_get_plasma_edge
          cosu(:) = COS(xm*(i - 1)*twopi/vmec_get_plasma_edge)
          sinu(:) = SIN(xm*(i - 1)*twopi/vmec_get_plasma_edge)
@@ -2009,7 +2037,7 @@
 
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
      &         vmec_pres_scale_id, vmec_vvc_smaleli_id,                        &
-     &         vmec_vvc_kappa_p_id)
+     &         vmec_vvc_kappa_p_id, vmec_phi_offset_id)
             vmec_is_scaler_value = .true.
 
          CASE DEFAULT
@@ -2124,7 +2152,8 @@
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
      &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_curtor_id,            &
-     &         vmec_phiedge_id, vmec_pres_scale_id, vmec_bloat_id)
+     &         vmec_phiedge_id, vmec_pres_scale_id, vmec_bloat_id,             &
+     &         vmec_phi_offset_id)
             vmec_is_recon_param = .true.
 
          CASE DEFAULT

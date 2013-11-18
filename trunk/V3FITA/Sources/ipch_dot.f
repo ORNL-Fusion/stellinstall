@@ -25,18 +25,12 @@
 !>
 !>  @section intpol_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{ip_chord_XYZ}\n @fixed_width{ip_chord_XYZ_int},
-!>  An interferometer chord specified in Cartesian coordinates.}
-!>  @item2{@fixed_width{ip_chord_RPhiDegZ}\n @fixed_width{ip_chord_RPhiDegZ_int},
-!>  An interferometer chord specified in Cylindrical coordinates.}
-!>  @item2{@fixed_width{ip_chord_XYZ_pol_rad},
-!>  An polarimetry chord specified in Cartesian coordinates outputting the signal in radians.}
-!>  @item2{@fixed_width{ip_chord_RPhiDegZ_pol_rad},
-!>  An polarimetry chord specified in Cylindrical coordinates outputting the signal in radians.}
-!>  @item2{@fixed_width{ip_chord_XYZ_pol_deg},
-!>  An polarimetry chord specified in Cartesian coordinates outputting the signal in degress.}
-!>  @item2{@fixed_width{ip_chord_RPhiDegZ_pol_deg},
-!>  An polarimetry chord specified in Cylindrical coordinates outputting the signal in degress.}
+!>  @item2{@fixed_width{ip_chord_XYZ}\n @fixed_width{ip_chord_XYZ_int},           An interferometer chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{ip_chord_RPhiDegZ}\n @fixed_width{ip_chord_RPhiDegZ_int}, An interferometer chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{ip_chord_XYZ_pol_rad},                                    An polarimetry chord specified in Cartesian coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{ip_chord_RPhiDegZ_pol_rad},                               An polarimetry chord specified in Cylindrical coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{ip_chord_XYZ_pol_deg},                                    An polarimetry chord specified in Cartesian coordinates outputting the signal in degress.}
+!>  @item2{@fixed_width{ip_chord_RPhiDegZ_pol_deg},                               An polarimetry chord specified in Cylindrical coordinates outputting the signal in degress.}
 !>  @end_table
 !>
 !>  @section intpol_dot_chord_spec_sec Chord Specification

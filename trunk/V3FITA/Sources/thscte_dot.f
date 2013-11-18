@@ -25,18 +25,12 @@
 !>
 !>  @section thomson_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{thscte_XYZ}\n @fixed_width{thscte_XYZ_te},
-!>  A thomson scattering point specified in Cartesian coordinates measuring electron temperature.}
-!>  @item2{@fixed_width{thscte_RPhiDegZ}\n @fixed_width{thscte_RPhiDegZ_te},
-!>  A thomson scattering point specified in Cylindrical coordinates measuring electron temperature.}
-!>  @item2{@fixed_width{thscte_XYZ_ne},
-!>  A thomson scattering point specified in Cartesian coordinates measuring electron denisty.}
-!>  @item2{@fixed_width{thscte_RPhiDegZ_ne},
-!>  A thomson scattering point specified in Cylindrical coordinates measuring electron denisty.}
-!>  @item2{@fixed_width{thscte_XYZ_pres},
-!>  A thomson scattering point specified in Cartesian coordinates measuring plasma pressure.}
-!>  @item2{@fixed_width{thscte_RPhiDegZ_pres},
-!>  A thomson scattering point specified in Cylindrical coordinates measuring plasma pressure.}
+!>  @item2{@fixed_width{thscte_XYZ}\n @fixed_width{thscte_XYZ_te},           A thomson scattering point specified in Cartesian coordinates measuring electron temperature.}
+!>  @item2{@fixed_width{thscte_RPhiDegZ}\n @fixed_width{thscte_RPhiDegZ_te}, A thomson scattering point specified in Cylindrical coordinates measuring electron temperature.}
+!>  @item2{@fixed_width{thscte_XYZ_ne},                                      A thomson scattering point specified in Cartesian coordinates measuring electron denisty.}
+!>  @item2{@fixed_width{thscte_RPhiDegZ_ne},                                 A thomson scattering point specified in Cylindrical coordinates measuring electron denisty.}
+!>  @item2{@fixed_width{thscte_XYZ_pres},                                    A thomson scattering point specified in Cartesian coordinates measuring plasma pressure.}
+!>  @item2{@fixed_width{thscte_RPhiDegZ_pres},                               A thomson scattering point specified in Cylindrical coordinates measuring plasma pressure.}
 !>  @end_table
 !>
 !>  @section thomson_dot_chord_spec_sec Chord Specification

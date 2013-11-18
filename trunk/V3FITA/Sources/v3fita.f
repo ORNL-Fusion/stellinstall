@@ -407,6 +407,7 @@
 
 !  Start of executable code
       WRITE (*,*) ' *** In task unit_test'
+      tests_failed = .false.
 
 ! Line segment tests
       IF (line_seg_test()) THEN

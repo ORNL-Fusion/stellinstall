@@ -25,10 +25,8 @@
 !>
 !>  @section sxrem_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{sxr_chord_XYZ},
-!>  A soft x-ray chord specified in Cartesian coordinates.}
-!>  @item2{@fixed_width{sxr_chord_RPhiDegZ},
-!>  A soft x-ray chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{sxr_chord_XYZ},      A soft x-ray chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ}, A soft x-ray chord specified in Cylindrical coordinates.}
 !>  @end_table
 !>
 !>  @section sxrem_dot_chord_spec_sec Chord Specification
