@@ -13,10 +13,10 @@ pp_ne_ptype = 'line_segment',
 pp_ne_as = 0.0, 0.5, 1.0,
 pp_ne_af = 1.0, 1.0, 1.0
 
-model_sxrem_type = 'pp_sxrem'
-pp_sxrem_ptype = 'line_segment'
-pp_sxrem_as = 0.0, 0.5, 1.0,
-pp_sxrem_af = 1.0, 1.0, 1.0
+model_sxrem_type(1) = 'pp_sxrem'
+pp_sxrem_ptype(1) = 'line_segment'
+pp_sxrem_as(1,:) = 0.0, 0.5, 1.0,
+pp_sxrem_af(1,:) = 1.0, 1.0, 1.0
 
 model_te_type = 'pp_te'
 pp_te_ptype = 'line_segment'

@@ -468,7 +468,7 @@
 !>  @note Note the soft x-ray emissivity is not relevant to all equilibrium
 !>  types. For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_sxrem(this, x_cart)
+      FUNCTION equilibrium_get_sxrem(this, x_cart, index)
 
       IMPLICIT NONE
 
@@ -476,12 +476,14 @@
       REAL (rprec) :: equilibrium_get_sxrem
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: index
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_sxrem = vmec_get_sxrem(this%vmec, x_cart)
+            equilibrium_get_sxrem = vmec_get_sxrem(this%vmec, x_cart,          &
+     &                                             index)
 
          CASE DEFAULT
             equilibrium_get_sxrem = 0.0

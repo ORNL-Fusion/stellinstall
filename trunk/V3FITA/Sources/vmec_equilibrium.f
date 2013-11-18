@@ -270,24 +270,25 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
 !>  File name of the output of v3fit.
-         CHARACTER (len=data_filename_length)  :: wout_file_name
+         CHARACTER (len=data_filename_length)   :: wout_file_name
 !>  File name of the v3fit namelist inout file.
-         CHARACTER (len=data_filename_length)  :: vmec_file_name
+         CHARACTER (len=data_filename_length)   :: vmec_file_name
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
-         TYPE (pprofile), POINTER              :: ne => null()
+         TYPE (pprofile), POINTER               :: ne => null()
 !>  @ref pprofile_T describing a flux surface constant electron temperature
 !>  profile.
-         TYPE (pprofile), POINTER              :: te => null()
+         TYPE (pprofile), POINTER               :: te => null()
 !>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
 !>  profile.
-         TYPE (pprofile), POINTER              :: sxrem => null()
+         TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
+     &      sxrem => null()
 !>  Instance of a @ref vmec_magnetic_cache object.
-         TYPE (vmec_magnetic_cache), POINTER   ::                              &
+         TYPE (vmec_magnetic_cache), POINTER    ::                             &
      &      magnetic_cache => null()
 !>  Cache of the vmec internal state xc array.
-         REAL (rprec), DIMENSION(:), POINTER   :: xc => null()
+         REAL (rprec), DIMENSION(:), POINTER    :: xc => null()
 !>  Cache of the wout file state.
-         TYPE (wout_file_cache_class), POINTER :: wout_file => null()
+         TYPE (wout_file_cache_class), POINTER  :: wout_file => null()
 !>  Cache of the wout file state.
          TYPE (threed1_file_cache_class), POINTER ::                           &
      &      threed1_file => null()
@@ -375,7 +376,8 @@
       CHARACTER (len=*), INTENT(in)        :: file_name
       TYPE (pprofile), POINTER, INTENT(in) :: ne
       TYPE (pprofile), POINTER, INTENT(in) :: te
-      TYPE (pprofile), POINTER, INTENT(in) :: sxrem
+      TYPE (pprofile_pointer), DIMENSION(:), POINTER, INTENT(in) ::            &
+     &   sxrem
       INTEGER, INTENT(in)                  :: iou
 
 !  local variables
@@ -452,6 +454,9 @@
 !  Declare Arguments
       TYPE (vmec_class), POINTER, INTENT(inout) :: this
 
+!  local variables
+      INTEGER                                   :: i
+
 !  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
          CALL pprofile_destroy(this%ne)
@@ -466,7 +471,13 @@
       END IF
 
       IF (ASSOCIATED(this%sxrem)) THEN
-         CALL pprofile_destroy(this%sxrem)
+         DO i = 1, SIZE(this%sxrem)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_destroy(this%sxrem(i)%p)
+               DEALLOCATE(this%sxrem(i)%p)
+               this%sxrem(i)%p => null()
+            END IF
+         END DO
          DEALLOCATE(this%sxrem)
          this%sxrem => null()
       END IF
@@ -698,15 +709,15 @@
 
          CASE (vmec_pp_sxrem_b_id)
             vmec_set_param = .false.
-            this%sxrem%b(i_index) = value
+            this%sxrem(i_index)%p%b(j_index) = value
 
          CASE (vmec_pp_sxrem_as_id)
             vmec_set_param = .false.
-            this%sxrem%as(i_index) = value
+            this%sxrem(i_index)%p%as(j_index) = value
 
          CASE (vmec_pp_sxrem_af_id)
             vmec_set_param = .false.
-            this%sxrem%af(i_index) = value
+            this%sxrem(i_index)%p%af(j_index) = value
 
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
@@ -1295,13 +1306,13 @@
             vmec_get_param_value = this%ne%af(i_index)
 
          CASE (vmec_pp_sxrem_b_id)
-            vmec_get_param_value = this%sxrem%b(i_index)
+            vmec_get_param_value = this%sxrem(i_index)%p%b(j_index)
 
          CASE (vmec_pp_sxrem_as_id)
-            vmec_get_param_value = this%sxrem%as(i_index)
+            vmec_get_param_value = this%sxrem(i_index)%p%as(j_index)
 
          CASE (vmec_pp_sxrem_af_id)
-            vmec_get_param_value = this%sxrem%af(i_index)
+            vmec_get_param_value = this%sxrem(i_index)%p%af(j_index)
 
          CASE (vmec_pp_te_b_id)
             vmec_get_param_value = this%te%b(i_index)
@@ -1577,7 +1588,7 @@
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_sxrem(this, x_cart)
+      FUNCTION vmec_get_sxrem(this, x_cart, index)
 
       IMPLICIT NONE
 
@@ -1585,10 +1596,11 @@
       REAL (rprec)                           :: vmec_get_sxrem
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: index
 
 !  Start of executable code
       IF (ASSOCIATED(this%sxrem)) THEN
-         vmec_get_sxrem = pprofile_evaluate(this%sxrem,                        &
+         vmec_get_sxrem = pprofile_evaluate(this%sxrem(index)%p,               &
      &                                      vmec_get_s(this, x_cart))
       ELSE
          vmec_get_sxrem = 0.0
@@ -2073,9 +2085,8 @@
      &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
      &         vmec_pp_ne_b_id, vmec_pp_ne_as_id, vmec_pp_ne_af_id,            &
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
-     &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
-     &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_phi_id,               &
-     &         vmec_iotaf_id, vmec_iotas_id)
+     &         vmec_extcur_id, vmec_phi_id, vmec_iotaf_id,                     &
+     &         vmec_iotas_id)
             vmec_is_1d_array = .true.
 
          CASE DEFAULT
@@ -2112,7 +2123,9 @@
      &         vmec_bsubsmns_id, vmec_bsupumnc_id, vmec_bsupvmnc_id,           &
      &         vmec_rmns_id, vmec_zmnc_id, vmec_lmnc_id, vmec_gmns_id,         &
      &         vmec_bsubumns_id, vmec_bsubvmns_id,                             &
-     &         vmec_bsubsmnc_id, vmec_bsupumns_id, vmec_bsupvmns_id)
+     &         vmec_bsubsmnc_id, vmec_bsupumns_id, vmec_bsupvmns_id,           &
+     &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
+     &         vmec_pp_sxrem_af_id)
             vmec_is_2d_array = .true.
 
          CASE DEFAULT
@@ -2391,11 +2404,18 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: iou
 
+!  local variables
+      INTEGER                       :: i
+
 !  Start of executable code
       WRITE (iou,*)
       WRITE (iou,*) 'Equilibrium Type : VMEC'
       CALL pprofile_write(this%ne, 'pp_ne', iou)
-      CALL pprofile_write(this%sxrem, 'pp_sxrem', iou)
+
+      DO i = 1, SIZE(this%sxrem)
+         CALL pprofile_write(this%sxrem(i)%p, 'pp_sxrem', iou)
+      END DO
+
       CALL pprofile_write(this%te, 'pp_te', iou)
 
       END SUBROUTINE

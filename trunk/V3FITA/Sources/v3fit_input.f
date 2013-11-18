@@ -454,6 +454,9 @@
 !>  Reconstruction step name length.
       INTEGER, PARAMETER :: v3fit_step_name_length = 4
 
+!>  Maximum number of sxrem profiles.
+      INTEGER, PARAMETER :: v3fit_max_sxrem_profiles = 10
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) v3fit_namelist_class
@@ -532,18 +535,24 @@
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_af = 0.0
 
 !  Soft x-ray emissvity
+!>  Number of sxrem profiles.
+      INTEGER                              :: num_sxrem_p = 1
 !>  Model soft x-ray emissvity profile, parameterized profile type.
 !>  @see pprofile_T
-      CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = 'none'
+      CHARACTER (len=p_type_len), DIMENSION(v3fit_max_sxrem_profiles)          &
+     &   :: pp_sxrem_ptype = 'none'
 !>  Array of b_coefficients for the soft x-ray emissvity profile profile
 !>  @see pprofile_T
-      REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
+      REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,ilb_b:iub_b)            &
+     &   :: pp_sxrem_b = 0.0
 !>  Array of as_coefficients soft x-ray emissvity profile splines
 !>  @see pprofile_T
-      REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0
+      REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,iub_asf)                &
+     &   :: pp_sxrem_as = 0.0
 !>  Array of af_coefficients soft x-ray emissvity profile splines
 !>  @see pprofile_T
-      REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_af = 0.0
+      REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,iub_asf)                &
+     &   :: pp_sxrem_af = 0.0
 
 !  Electron temperature
 !>  Model electron temperature profile, parameterized profile type.
@@ -568,7 +577,9 @@
       CHARACTER (len=data_name_length) :: model_ne_type = 'pp_ne'
 !>  Specify how soft x-ray emissivity is computed by the model.
 !>  @see model
-      CHARACTER (len=data_name_length) :: model_sxrem_type = 'none'
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_sxrem_profiles) ::                                &
+     &      model_sxrem_type = 'none'
 !>  Specify how electron temperature is computed by the model.
 !>  @see model
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
@@ -787,7 +798,8 @@
 !  Electron Denisty
      &   pp_ne_ptype, pp_ne_b, pp_ne_as, pp_ne_af,                             &
 !  Soft x-ray emissvity
-     &   pp_sxrem_ptype, pp_sxrem_b, pp_sxrem_as, pp_sxrem_af,                 &
+     &   num_sxrem_p, pp_sxrem_ptype, pp_sxrem_b, pp_sxrem_as,                 &
+     &   pp_sxrem_af,                                                          &
 !  Electron temperature
      &   pp_te_ptype, pp_te_b, pp_te_as, pp_te_af,                             &
 !  Model Specification Variables

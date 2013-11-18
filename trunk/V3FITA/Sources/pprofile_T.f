@@ -102,6 +102,14 @@
          INTEGER                             :: maxSplineIndex = 1
       END TYPE pprofile
 
+!-------------------------------------------------------------------------------
+!>  Pointer to a pprofile object. Used for creating arrays of pprofile pointers.
+!>  This is needed because fortran does not allow arrays of pointers directly.
+!-------------------------------------------------------------------------------
+      TYPE pprofile_pointer
+         TYPE (pprofile), POINTER :: p => null()
+      END TYPE
+
 !*******************************************************************************
 ! SECTION III. INTERFACE BLOCKS
 !*******************************************************************************

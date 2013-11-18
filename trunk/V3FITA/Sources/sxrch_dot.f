@@ -27,6 +27,7 @@
 !>  @begin_table
 !>  @item2{@fixed_width{sxr_chord_XYZ},      A soft x-ray chord specified in Cartesian coordinates.}
 !>  @item2{@fixed_width{sxr_chord_RPhiDegZ}, A soft x-ray chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{sxr_new_profile},    Mark the start of chords that begin the next profile.}
 !>  @end_table
 !>
 !>  @section sxrem_dot_chord_spec_sec Chord Specification
@@ -243,22 +244,27 @@
 
 !  local parameters
 !  n_sxrchd_keyword        integer - number of sxrchd_keyword s.
-      INTEGER, PARAMETER :: n_sxrchd_keyword = 3
+      INTEGER, PARAMETER :: n_sxrchd_keyword = 4
 
 !  local variables
 !  sxrchd_keyword    character array - keywords for various sxrch input types
       CHARACTER(len=data_name_length), DIMENSION(1:n_sxrchd_keyword) ::        &
      &   sxrchd_keyword
       TYPE(signal_dot_file)                 :: sxrch_dot_file_ref
+      INTEGER                               :: current_profile
 
 !  Start of executable code
 !  Initialize the keywords
       sxrchd_keyword(1) = 'sxr_chord_XYZ'
       sxrchd_keyword(2) = 'sxr_chord_RPhiDegZ'
-      sxrchd_keyword(3) = 'end_of_file'
+      sxrchd_keyword(3) = 'sxr_new_profile'
+      sxrchd_keyword(4) = 'end_of_file'
 
 !  Open up the 'sxrch.' file
       sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file),"sxrch")
+
+!  Start with the first profile
+      current_profile = 1
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
@@ -278,15 +284,17 @@
      &                                    'XYZ', signals,                      &
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
-     &                                    first_index)
+     &                                    current_profile, first_index)
 
             CASE ('sxr_chord_RPhiDegZ')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'RPHiDegZ', signals,                 &
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
-     &                                    first_index)
+     &                                    current_profile, first_index)
 
+            CASE ('sxr_new_profile')
+               current_profile = current_profile + 1
 
          END SELECT
 
@@ -388,7 +396,7 @@
      &                                     signals,                            &
      &                                     signals_created,                    &
      &                                     observed, sigma, weight,            &
-     &                                     first_index)
+     &                                     current_profile, first_index)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -403,6 +411,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: observed
       REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(in)                    :: current_profile
       INTEGER, INTENT(inout)                 :: first_index
 
 !  local variables
@@ -424,8 +433,8 @@
 
       signals(signals_created + 1)%p => signal_construct(                      &
      &   diagnostic_construct(                                                 &
-     &      sxrem_construct(xcart_i, xcart_f)), chord_name, chord_name,        &
-     &   'arb', observed(signals_created + 1),                                 &
+     &      sxrem_construct(xcart_i, xcart_f, current_profile)),               &
+     &   chord_name, chord_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1))
       signals_created = signals_created + 1
 

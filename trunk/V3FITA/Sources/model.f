@@ -81,7 +81,7 @@
          INTEGER      :: ne_type = model_none_type
 !>  Type decritption of the soft x-ray emissivity. Possible values are
 !>  @ref model_none_type and @ref model_sxrem_type.
-         INTEGER      :: sxrem_type = model_none_type
+         INTEGER, DIMENSION(:), POINTER :: sxrem_type => null()
 !>  Type decritption of the electron temperature. Possible values are
 !>  @ref model_none_type, @ref model_te_type and @ref model_te_ne_p_type.
          INTEGER      :: te_type = model_none_type
@@ -121,12 +121,16 @@
 !  Declare Arguments
       TYPE (model_class), POINTER                   :: model_construct
       CHARACTER (len=data_name_length), INTENT(in)  :: ne_type
-      CHARACTER (len=data_name_length), INTENT(in)  :: sxrem_type
+      CHARACTER (len=data_name_length), DIMENSION(:), INTENT(in) ::            &
+     &   sxrem_type
       CHARACTER (len=data_name_length), INTENT(in)  :: te_type
       REAL (rprec), INTENT(in)                      :: ne_unit
       REAL (rprec), INTENT(in)                      :: ne_min
       REAL (rprec), INTENT(in)                      :: pressure_fraction
       TYPE (equilibrium_class), POINTER, INTENT(in) :: equilibrium
+
+!  local variables
+      INTEGER                                       :: i
 
 !  Start of executable code
       ALLOCATE(model_construct)
@@ -149,20 +153,26 @@
 
       END SELECT
 
-      SELECT CASE (TRIM(ADJUSTL(sxrem_type)))
+      ALLOCATE(model_construct%sxrem_type(SIZE(sxrem_type)))
+      DO i = 1, SIZE(sxrem_type)
 
-         CASE ('none')
-            model_construct%sxrem_type = model_none_type
+         SELECT CASE (TRIM(ADJUSTL(sxrem_type(i))))
 
-         CASE ('pp_sxrem')
-            model_construct%sxrem_type = model_sxrem_type
+            CASE ('none')
+               model_construct%sxrem_type(i) = model_none_type
 
-         CASE DEFAULT
-            WRITE (*,*) 'sxrem type: ' // TRIM(ADJUSTL(sxrem_type)) //         &
-     &                  ' setting type to none.'
-            model_construct%sxrem_type = model_none_type
+            CASE ('pp_sxrem')
+               model_construct%sxrem_type(i) = model_sxrem_type
 
-      END SELECT
+            CASE DEFAULT
+               WRITE (*,*)                                                     &
+     &            'sxrem type: ' // TRIM(ADJUSTL(sxrem_type(i))) //            &
+     &            ' setting type to none.'
+               model_construct%sxrem_type(i) = model_none_type
+
+         END SELECT
+
+      END DO
 
       SELECT CASE (TRIM(ADJUSTL(te_type)))
 
@@ -216,6 +226,11 @@
       TYPE (model_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
+      IF (ASSOCIATED(this%sxrem_type)) THEN
+         DEALLOCATE(this%sxrem_type)
+         this%sxrem_type => null()
+      END IF
+
       IF (ASSOCIATED(this%equilibrium)) THEN
          CALL equilibrium_destruct(this%equilibrium)
          this%equilibrium => null()
@@ -483,7 +498,7 @@
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem(this, x_cart)
+      FUNCTION model_get_sxrem(this, x_cart, index)
 
       IMPLICIT NONE
 
@@ -491,13 +506,14 @@
       REAL (rprec)                           :: model_get_sxrem
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      INTEGER, INTENT(in)                    :: index
 
 !  Start of executable code
-      SELECT CASE (this%sxrem_type)
+      SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
             model_get_sxrem =                                                  &
-     &         equilibrium_get_sxrem(this%equilibrium, x_cart)
+     &         equilibrium_get_sxrem(this%equilibrium, x_cart, index)
 
          CASE DEFAULT
             model_get_sxrem = -2.0E49_rprec
@@ -572,22 +588,23 @@
 !>  @param[in] this   A @ref model_class instance.
 !>  @returns A string description of the soft x-ray emissivity type.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem_type(this)
+      FUNCTION model_get_sxrem_type(this, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       CHARACTER (len=data_name_length) :: model_get_sxrem_type
       TYPE (model_class), INTENT(in)   :: this
+      INTEGER, INTENT(in)              :: index
 
 !  Start of executable code
-      SELECT CASE (this%sxrem_type)
+      SELECT CASE (this%sxrem_type(index))
 
-      CASE (model_sxrem_type)
-         model_get_sxrem_type = 'pp_sxrem'
+         CASE (model_sxrem_type)
+            model_get_sxrem_type = 'pp_sxrem'
 
-      CASE DEFAULT
-         model_get_sxrem_type = 'none'
+         CASE DEFAULT
+            model_get_sxrem_type = 'none'
 
       END SELECT
 
@@ -651,13 +668,20 @@
       TYPE (model_class), INTENT(in) :: this
       INTEGER, INTENT(in)            :: iou
 
+!  local variables
+      INTEGER                        :: i
+
 !  Start of executable code
       WRITE (iou,*)
       WRITE (iou,*) ' *** Model Parameters'
       WRITE (iou,*) 'model_ne_type is ',                                       &
      &              TRIM(model_get_ne_type(this))
-      WRITE (iou,*) 'model_sxrem_type is ',                                    &
-     &              TRIM(model_get_sxrem_type(this))
+
+      DO i = 1, SIZE(this%sxrem_type)
+         WRITE (iou,*) 'model_sxrem_type is ',                                 &
+     &                 TRIM(model_get_sxrem_type(this, i))
+      END DO
+
       WRITE (iou,*) 'model_te_type is ',                                       &
      &              TRIM(model_get_te_type(this))
       WRITE (iou, 1000) 'ne_pp_unit is ', this%ne_unit

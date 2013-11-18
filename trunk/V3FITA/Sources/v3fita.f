@@ -501,22 +501,29 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: context
-      LOGICAL, INTENT(in)                       :: force_solve
+      TYPE (v3fit_context_class), INTENT(inout)      :: context
+      LOGICAL, INTENT(in)                            :: force_solve
 
 !  local variables
-      TYPE (pprofile), POINTER                  :: ne => null()
-      TYPE (pprofile), POINTER                  :: te => null()
-      TYPE (pprofile), POINTER                  :: sxr => null()
+      TYPE (pprofile), POINTER                       :: ne => null()
+      TYPE (pprofile), POINTER                       :: te => null()
+      TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
+      INTEGER                                        :: i
 
 !  Start of executable code
-      ALLOCATE(ne, te, sxr)
+      ALLOCATE(ne, te)
       CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
      &                        pp_ne_as, pp_ne_af)
       CALL pprofile_construct(te, TRIM(pp_te_ptype), pp_te_b,                  &
      &                        pp_te_as, pp_te_af)
-      CALL pprofile_construct(sxr, TRIM(pp_sxrem_ptype), pp_sxrem_b,           &
-     &                        pp_sxrem_as, pp_sxrem_af)
+
+      ALLOCATE(sxr(num_sxrem_p))
+      DO i = 1, num_sxrem_p
+         ALLOCATE(sxr(i)%p)
+         CALL pprofile_construct(sxr(i)%p, TRIM(pp_sxrem_ptype(i)),            &
+     &                           pp_sxrem_b(i,:), pp_sxrem_as(i,:),            &
+     &                           pp_sxrem_af(i,:))
+      END DO
 
       context%model => model_construct(model_ne_type, model_sxrem_type,        &
      &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &

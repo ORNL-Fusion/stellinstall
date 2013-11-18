@@ -14,6 +14,7 @@
 
       USE stel_kinds, only: rprec
       USE integration_path
+      USE model
 
       IMPLICIT NONE
 
@@ -29,7 +30,17 @@
 !-------------------------------------------------------------------------------
       TYPE sxrem_class
          TYPE (path) :: chord_path
+!>  Index of the soft x-ray emissivity profile for this chord.
+         INTEGER     :: profile_number
       END TYPE sxrem_class
+
+!-------------------------------------------------------------------------------
+!> Structure to hold all memory needed to be sent to the callback function.
+!-------------------------------------------------------------------------------
+      TYPE sxrem_context
+         INTEGER                     :: profile_number
+         TYPE (model_class), POINTER :: model => null()
+      END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
@@ -49,7 +60,7 @@
 !>  @param[in] end_path Ending point of a sxrem chord.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct(start_path, end_path)
+      FUNCTION sxrem_construct(start_path, end_path, profile_number)
 
       IMPLICIT NONE
 
@@ -57,6 +68,7 @@
       TYPE (sxrem_class), POINTER :: sxrem_construct
       REAL(rprec), DIMENSION(3)   :: start_path
       REAL(rprec), DIMENSION(3)   :: end_path
+      INTEGER                     :: profile_number
 
 !  Start of executable code
       ALLOCATE(sxrem_construct)
@@ -65,6 +77,8 @@
      &                        start_path(2), start_path(3))
       CALL path_append_vertex(sxrem_construct%chord_path, end_path(1),         &
      &                        end_path(2), end_path(3))
+
+      sxrem_construct%profile_number = profile_number
 
       END FUNCTION
 
@@ -87,6 +101,7 @@
 
 !  Start of executable code
       CALL path_destroy(this%chord_path)
+      this%profile_number = 0
 
       DEALLOCATE(this)
 
@@ -107,28 +122,32 @@
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_get_modeled_signal(this, a_model, sigma)
-      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: sxrem_get_modeled_signal
       TYPE (sxrem_class), INTENT(inout)       :: this
-      TYPE (model_class), INTENT(in)          :: a_model
+      TYPE (model_class), TARGET, INTENT(in)  :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE  :: context(:)
       INTEGER                        :: context_length
+      TYPE (sxrem_context)           :: sxr_context
 
 !  Start of executable code
       sxrem_get_modeled_signal = 0.0
 
+!  The relevant data for the soft x-ray context.
+      sxr_context%profile_number = this%profile_number
+      sxr_context%model => a_model
+
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
-      context_length = SIZE(TRANSFER(a_model, context))
+      context_length = SIZE(TRANSFER(sxr_context, context))
       ALLOCATE(context(context_length))
-      context = TRANSFER(a_model, context)
+      context = TRANSFER(sxr_context, context)
       sxrem_get_modeled_signal(1) = path_integrate(this%chord_Path,            &
      &                                             sxr_function,               &
      &                                             context)
@@ -156,7 +175,9 @@
       TYPE (sxrem_class), INTENT(in)   :: this
 
 !  Start of executable code
-      sxrem_get_signal_type = 'sxrch'
+      WRITE (sxrem_get_signal_type, 1000) this%profile_number
+
+1000  FORMAT('sxrch(',i2,')')
 
       END FUNCTION
 
@@ -183,7 +204,6 @@
 !>  pointer in C. 
 !-------------------------------------------------------------------------------
       FUNCTION sxr_function(context, xcart, dxcart, dx)
-      USE model
       USE coordinate_utilities
 
       IMPLICIT NONE
@@ -195,11 +215,12 @@
       REAL(rprec)                           :: sxr_function
 
 ! local variables
-      TYPE(model_class)                     :: a_model
+      TYPE(sxrem_context)                   :: sxr_context
 
 !  Start of executable code
-      a_model = TRANSFER(context, a_model)
-      sxr_function = model_get_sxrem(a_model, xcart)*dx
+      sxr_context = TRANSFER(context, sxr_context)
+      sxr_function = model_get_sxrem(sxr_context%model, xcart,                 &
+     &                               sxr_context%profile_number)*dx
 
       END FUNCTION
 

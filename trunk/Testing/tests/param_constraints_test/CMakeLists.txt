@@ -12,9 +12,9 @@ add_test (NAME    param_constraints_test_pp_ne_af
 add_test (NAME    param_constraints_test_pp_te_as
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_as --value=1.0 --index1=2)
 add_test (NAME    param_constraints_test_pp_sxrem_as_1
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --value=0.7 --index1=2)
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --value=0.7 --index1=1 --index2=2)
 add_test (NAME    param_constraints_test_pp_sxrem_as_2
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --value=0.7 --index1=3)
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --value=0.7 --index1=1 --index2=3)
 
 #  Check that the signal effectiveness total.
 add_test (NAME    param_constraints_test_sem_totals
@@ -40,6 +40,6 @@ add_test (NAME    param_constraints_test_type_pp_ne_af_type
 add_test (NAME    param_constraints_test_type_pp_te_as_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_as --index1=2 --range_h=pp_te_as --range_l=pp_te_as --indexh1=3 --indexl1=1)
 add_test (NAME    param_constraints_test_type_pp_sxrem_as_1_type
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --index1=2 --range_h=pp_sxrem_as --range_l=pp_sxrem_as --indexh1=3 --indexl1=1)
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --index1=1 --index2=2 --range_h=pp_sxrem_as --range_l=pp_sxrem_as --indexh1=1 --indexh2=3 --indexl1=1 --indexl2=1)
 add_test (NAME    param_constraints_test_type_pp_sxrem_as_2_type
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --index1=3 --range_h=pp_sxrem_as --range_l=pp_sxrem_as --indexh1=4 --indexl1=2)
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as --index1=1 --index2=3 --range_h=pp_sxrem_as --range_l=pp_sxrem_as --indexh1=1 --indexh2=4 --indexl1=1 --indexl2=2)
