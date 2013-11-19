@@ -13,8 +13,8 @@ add_test (NAME    reconstruction_task_seg_step_test_am_aux_f
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=am_aux_f --value=1.0 --range=0.1 --index1=2)
 add_test (NAME    reconstruction_task_seg_step_test_pp_te_af
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_af --value=15.0 --range=0.1 --index1=2)
-add_test (NAME    reconstruction_task_seg_step_test_pp_sxrem_af
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af --value=1.0 --range=0.1 --index1=1)
+add_test (NAME    reconstruction_task_seg_step_test_pp_sxrem_af_a
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af_a --value=1.0 --range=0.1 --index1=1 --index2=1)
 add_test (NAME    reconstruction_task_seg_step_test_rbc00
           COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --value=0.75 --range=0.1 --index1=0 --index2=0)
 add_test (NAME    reconstruction_task_seg_step_test_rbc01
@@ -213,8 +213,8 @@ add_test (NAME    reconstruction_task_seg_step_test_check_am_aux_f_constraint_ty
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=am_aux_f --index1=2 --range_l=value)
 add_test (NAME    reconstruction_task_seg_step_test_check_pp_te_af_constraint_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_te_af --index1=2 --range_l=value)
-add_test (NAME    reconstruction_task_seg_step_test_check_pp_sxrem_af_constraint_type
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af --index1=1 --range_l=value)
+add_test (NAME    reconstruction_task_seg_step_test_check_pp_sxrem_af_a_constraint_type
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af_a --index1=1 --index2=1 --range_l=value)
 add_test (NAME    reconstruction_task_seg_step_test_check_rbc00_constraint_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --index1=0 --index2=0 --range_l=value --range_h=value)
 add_test (NAME    reconstruction_task_seg_step_test_check_rbc01_constraint_type

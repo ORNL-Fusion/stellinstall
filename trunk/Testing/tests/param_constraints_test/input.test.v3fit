@@ -9,10 +9,10 @@ pp_ne_ptype = 'line_segment',
 pp_ne_as = 0.0, 0.5, 1.0,
 pp_ne_af = 1.0, 1.0, 1.0,
 
-model_sxrem_type(1) = 'pp_sxrem'
-pp_sxrem_ptype(1) = 'line_segment'
-pp_sxrem_as(1,:) = 0.0, 0.3, 0.6, 1.0,
-pp_sxrem_af(1,:) = 1.0,  1.0,  1.0, 1.0,
+model_sxrem_type_a(1) = 'pp_sxrem'
+pp_sxrem_ptype_a(1) = 'line_segment'
+pp_sxrem_as_a(1,:) = 0.0, 0.3, 0.6, 1.0,
+pp_sxrem_af_a(1,:) = 1.0,  1.0,  1.0, 1.0,
 
 model_te_type = 'pp_te'
 pp_te_ptype = 'line_segment'
@@ -45,22 +45,22 @@ rp_range_index(2,1,:) = 1,
 rp_range_type(2,2) = 'pp_te_as',
 rp_range_index(2,2,1) = 3,
 
-rp_type(3) = 'pp_sxrem_as',
+rp_type(3) = 'pp_sxrem_as_a',
 rp_vrnc(3) = 0.01,
 rp_index(3) = 1,
 rp_index2(3) = 2,
-rp_range_type(3,1) = 'pp_sxrem_as',
+rp_range_type(3,1) = 'pp_sxrem_as_a',
 rp_range_index(3,1,:) = 1, 1,
-rp_range_type(3,2) = 'pp_sxrem_as',
+rp_range_type(3,2) = 'pp_sxrem_as_a',
 rp_range_index(3,2,:) = 1, 3,
 
-rp_type(4) = 'pp_sxrem_as',
+rp_type(4) = 'pp_sxrem_as_a',
 rp_vrnc(4) = 0.01,
 rp_index(4) = 1,
 rp_index2(4) = 3,
-rp_range_type(4,1) = 'pp_sxrem_as',
+rp_range_type(4,1) = 'pp_sxrem_as_a',
 rp_range_index(4,1,:) = 1, 2,
-rp_range_type(4,2) = 'pp_sxrem_as',
+rp_range_type(4,2) = 'pp_sxrem_as_a',
 rp_range_index(4,2,:) = 1, 4,
 
 n_prior = 4,
@@ -85,7 +85,7 @@ sdo_s_spec_fraction(2) = 0.01,
 
 sdo_data_a(3) = 0.8,
 prior_name(3) = 'pp_sxrem_prior1',
-prior_param_name(3) = 'pp_sxrem_as',
+prior_param_name(3) = 'pp_sxrem_as_a',
 prior_indices(3,:) = 1, 2,
 sdo_s_spec_imin(3) = 3,
 sdo_s_spec_imax(3) = 3,
@@ -94,7 +94,7 @@ sdo_s_spec_fraction(3) = 0.01,
 
 sdo_data_a(4) = 0.7,
 prior_name(4) = 'pp_sxrem_prior2',
-prior_param_name(4) = 'pp_sxrem_as',
+prior_param_name(4) = 'pp_sxrem_as_a',
 prior_indices(4,:) = 1, 3,
 sdo_s_spec_imin(4) = 4,
 sdo_s_spec_imax(4) = 4,

@@ -43,18 +43,22 @@
 !>  @end_table
 !>
 !>  @table_section{model_profile_sec, Model profile specification}
-!>     @item{pp_ne_ptype,    model electron density profile\, parameterized profile type,      v3fit_input::pp_ne_ptype}
-!>     @item{pp_ne_b,        array of b_coefficients for the electron density profile,         v3fit_input::pp_ne_b}
-!>     @item{pp_ne_as,       array of as_coefficients electron density splines,                v3fit_input::pp_ne_as}
-!>     @item{pp_ne_af,       array of af_coefficients electron density splines,                v3fit_input::pp_ne_af}
-!>     @item{pp_sxrem_ptype, model soft x-ray emissivity profile\, parameterized profile type, v3fit_input::pp_sxrem_ptype}
-!>     @item{pp_sxrem_b,     array of b_coefficients for the soft x-ray emissivity profile,    v3fit_input::pp_sxrem_b}
-!>     @item{pp_sxrem_as,    array of as_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_as}
-!>     @item{pp_sxrem_af,    array of af_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_af}
-!>     @item{pp_te_ptype,    model electron temperature profile\, parameterized profile type,  v3fit_input::pp_te_ptype}
-!>     @item{pp_te_b,        array of b_coefficients for the e-temperature profile,            v3fit_input::pp_te_b}
-!>     @item{pp_te_as,       array of as_coefficients e-temperature splines,                   v3fit_input::pp_te_as}
-!>     @item{pp_te_af,       array of af_coefficients e-temperature splines,                   v3fit_input::pp_te_af}
+!>     @item{pp_ne_ptype,      model electron density profile\, parameterized profile type,      v3fit_input::pp_ne_ptype}
+!>     @item{pp_ne_b,          array of b_coefficients for the electron density profile,         v3fit_input::pp_ne_b}
+!>     @item{pp_ne_as,         array of as_coefficients electron density splines,                v3fit_input::pp_ne_as}
+!>     @item{pp_ne_af,         array of af_coefficients electron density splines,                v3fit_input::pp_ne_af}
+!>     @item{pp_sxrem_ptype,   model soft x-ray emissivity profile\, parameterized profile type, v3fit_input::pp_sxrem_ptype}
+!>     @item{pp_sxrem_b,       array of b_coefficients for the soft x-ray emissivity profile,    v3fit_input::pp_sxrem_b}
+!>     @item{pp_sxrem_as,      array of as_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_as}
+!>     @item{pp_sxrem_af,      array of af_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_af}
+!>     @item{pp_sxrem_ptype_a, model soft x-ray emissivity profile\, parameterized profile type, v3fit_input::pp_sxrem_ptype}
+!>     @item{pp_sxrem_b_a,     array of b_coefficients for the soft x-ray emissivity profile,    v3fit_input::pp_sxrem_b}
+!>     @item{pp_sxrem_as_a,    array of as_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_as}
+!>     @item{pp_sxrem_af_a,    array of af_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_af}
+!>     @item{pp_te_ptype,      model electron temperature profile\, parameterized profile type,  v3fit_input::pp_te_ptype}
+!>     @item{pp_te_b,          array of b_coefficients for the e-temperature profile,            v3fit_input::pp_te_b}
+!>     @item{pp_te_as,         array of as_coefficients e-temperature splines,                   v3fit_input::pp_te_as}
+!>     @item{pp_te_af,         array of af_coefficients e-temperature splines,                   v3fit_input::pp_te_af}
 !>  @end_table
 !>
 !>  @table_section{model_spec_sec, Model Specification Variables}
@@ -535,24 +539,42 @@
       REAL (rprec), DIMENSION(iub_asf)     :: pp_ne_af = 0.0
 
 !  Soft x-ray emissvity
+!>  @deprecated
+!>  Model soft x-ray emissvity profile, parameterized profile type.
+!>  @see pprofile_T
+      CHARACTER (len=p_type_len)           :: pp_sxrem_ptype = 'none'
+!>  @deprecated
+!>  Array of b_coefficients for the soft x-ray emissvity profile profile
+!>  @see pprofile_T
+      REAL (rprec), DIMENSION(ilb_b:iub_b) :: pp_sxrem_b = 0.0
+!>  @deprecated
+!>  Array of as_coefficients soft x-ray emissvity profile splines
+!>  @see pprofile_T
+      REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_as = 0.0
+!>  @deprecated
+!>  Array of af_coefficients soft x-ray emissvity profile splines
+!>  @see pprofile_T
+      REAL (rprec), DIMENSION(iub_asf)     :: pp_sxrem_af = 0.0
+
+!  Multi profile specification.
 !>  Number of sxrem profiles.
       INTEGER                              :: num_sxrem_p = 1
 !>  Model soft x-ray emissvity profile, parameterized profile type.
 !>  @see pprofile_T
       CHARACTER (len=p_type_len), DIMENSION(v3fit_max_sxrem_profiles)          &
-     &   :: pp_sxrem_ptype = 'none'
+     &   :: pp_sxrem_ptype_a = 'none'
 !>  Array of b_coefficients for the soft x-ray emissvity profile profile
 !>  @see pprofile_T
       REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,ilb_b:iub_b)            &
-     &   :: pp_sxrem_b = 0.0
+     &   :: pp_sxrem_b_a = 0.0
 !>  Array of as_coefficients soft x-ray emissvity profile splines
 !>  @see pprofile_T
       REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,iub_asf)                &
-     &   :: pp_sxrem_as = 0.0
+     &   :: pp_sxrem_as_a = 0.0
 !>  Array of af_coefficients soft x-ray emissvity profile splines
 !>  @see pprofile_T
       REAL (rprec), DIMENSION(v3fit_max_sxrem_profiles,iub_asf)                &
-     &   :: pp_sxrem_af = 0.0
+     &   :: pp_sxrem_af_a = 0.0
 
 !  Electron temperature
 !>  Model electron temperature profile, parameterized profile type.
@@ -575,11 +597,15 @@
 !>  Make the default value pp_ne for compatibility. Eventially this shoud be set
 !>  back to none and users should set model_ne_type in the namelist input.
       CHARACTER (len=data_name_length) :: model_ne_type = 'pp_ne'
+!>  @deprecated
+!>  Specify how soft x-ray emissivity is computed by the model.
+!>  @see model
+      CHARACTER (len=data_name_length) :: model_sxrem_type = 'none'
 !>  Specify how soft x-ray emissivity is computed by the model.
 !>  @see model
       CHARACTER (len=data_name_length),                                        &
      &   DIMENSION(v3fit_max_sxrem_profiles) ::                                &
-     &      model_sxrem_type = 'none'
+     &      model_sxrem_type_a = 'none'
 !>  Specify how electron temperature is computed by the model.
 !>  @see model
       CHARACTER (len=data_name_length) :: model_te_type = 'none'
@@ -798,13 +824,14 @@
 !  Electron Denisty
      &   pp_ne_ptype, pp_ne_b, pp_ne_as, pp_ne_af,                             &
 !  Soft x-ray emissvity
-     &   num_sxrem_p, pp_sxrem_ptype, pp_sxrem_b, pp_sxrem_as,                 &
-     &   pp_sxrem_af,                                                          &
+     &   pp_sxrem_ptype, pp_sxrem_b, pp_sxrem_as, pp_sxrem_af,                 &
+     &   num_sxrem_p, pp_sxrem_ptype_a, pp_sxrem_b_a, pp_sxrem_as_a,           &
+     &   pp_sxrem_af_a,                                                        &
 !  Electron temperature
      &   pp_te_ptype, pp_te_b, pp_te_as, pp_te_af,                             &
 !  Model Specification Variables
-     &   model_ne_type, model_sxrem_type, model_te_type, ne_pp_unit,           &
-     &   ne_min, e_pressure_fraction,                                          &
+     &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
+     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Reconstruction parameters
@@ -949,6 +976,130 @@
             END IF
          END DO
       END DO
+
+
+!-------------------------------------------------------------------------------
+!  All the coding between these boxes can be removed once the non _a sxrem
+!  values are removed. ***
+!-------------------------------------------------------------------------------
+!  Check the non _a sxrem profile variables. If pp_sxrem_ptype does not equal
+!  'none' then over write the the first elements of the _a versions.
+      SELECT CASE (TRIM(model_sxrem_type))
+
+         CASE ('none') ! Do nothing
+
+         CASE DEFAULT
+            WRITE (*,*) ' *** Overwiting the sxrem profile first ' //          &
+     &                  'element.'
+            WRITE (*,*) '     Non array soft xray profiles have ' //           &
+     &                  'been depricated'
+            model_sxrem_type_a(1) = model_sxrem_type
+            pp_sxrem_ptype_a(1) = pp_sxrem_ptype
+            pp_sxrem_b_a(1,:) = pp_sxrem_b
+            pp_sxrem_as_a(1,:) = pp_sxrem_as
+            pp_sxrem_af_a(1,:) = pp_sxrem_af
+
+!  We'll assume that any reconstuction parameters that refer to the non _a also
+!  are the first element.
+            DO i = 1, n_rp
+               SELECT CASE(TRIM(rp_type(i)))
+
+                  CASE ('pp_sxrem_b')
+                     WRITE (*,1000) 'pp_sxrem_b', 'pp_sxrem_b_a'
+                     rp_type(i) = 'pp_sxrem_b_a'
+                     rp_index2 = rp_index
+                     rp_index = 1
+
+                  CASE ('pp_sxrem_as')
+                     WRITE (*,1000) 'pp_sxrem_as', 'pp_sxrem_as_a'
+                     rp_type(i) = 'pp_sxrem_as_a'
+                     rp_index2 = rp_index
+                     rp_index = 1
+
+                  CASE ('pp_sxrem_af')
+                     WRITE (*,1000) 'pp_sxrem_af', 'pp_sxrem_af_a'
+                     rp_type(i) = 'pp_sxrem_af_a'
+                     rp_index2 = rp_index
+                     rp_index = 1
+
+               END SELECT
+
+!  Need to update ranges as well starting with the lower range.
+               SELECT CASE(TRIM(rp_range_type(i,1)))
+
+                  CASE ('pp_sxrem_b')
+                     WRITE (*,1001) 'pp_sxrem_b', 'pp_sxrem_b_a'
+                     rp_range_type(i,1) = 'pp_sxrem_b_a'
+                     rp_range_index(i,1,2) = rp_range_index(i,1,1)
+                     rp_range_index(i,1,1) = 1
+
+                  CASE ('pp_sxrem_as')
+                     WRITE (*,1001) 'pp_sxrem_as', 'pp_sxrem_as_a'
+                     rp_range_type(i,1) = 'pp_sxrem_as_a'
+                     rp_range_index(i,1,2) = rp_range_index(i,1,1)
+                     rp_range_index(i,1,1) = 1
+
+                  CASE ('pp_sxrem_af')
+                     WRITE (*,1001) 'pp_sxrem_af', 'pp_sxrem_af_a'
+                     rp_range_type(i,1) = 'pp_sxrem_af_a'
+                     rp_range_index(i,1,2) = rp_range_index(i,1,1)
+                     rp_range_index(i,1,1) = 1
+
+               END SELECT
+
+!  Update the lower ranges.
+               SELECT CASE(TRIM(rp_range_type(i,2)))
+
+                  CASE ('pp_sxrem_b')
+                     WRITE (*,1002) 'pp_sxrem_b', 'pp_sxrem_b_a'
+                     rp_range_type(i,2) = 'pp_sxrem_b_a'
+                     rp_range_index(i,2,2) = rp_range_index(i,2,1)
+                     rp_range_index(i,2,1) = 1
+
+                  CASE ('pp_sxrem_as')
+                     WRITE (*,1002) 'pp_sxrem_as', 'pp_sxrem_as_a'
+                     rp_range_type(i,2) = 'pp_sxrem_as_a'
+                     rp_range_index(i,2,2) = rp_range_index(i,2,1)
+                     rp_range_index(i,2,1) = 1
+
+                  CASE ('pp_sxrem_af')
+                     WRITE (*,1002) 'pp_sxrem_af', 'pp_sxrem_af_a'
+                     rp_range_type(i,2) = 'pp_sxrem_af_a'
+                     rp_range_index(i,2,2) = rp_range_index(i,2,1)
+                     rp_range_index(i,2,1) = 1
+
+               END SELECT
+            END DO
+
+!  Update priors to use _a arrays.
+            DO i = 1, n_prior
+               SELECT CASE(TRIM(prior_name(i)))
+                  CASE ('pp_sxrem_b')
+                     WRITE (*,1003) 'pp_sxrem_b', 'pp_sxrem_b_a'
+                     prior_name(i) = 'pp_sxrem_b_a'
+                     prior_indices(i,2) = prior_indices(i,1)
+
+                  CASE ('pp_sxrem_as')
+                     WRITE (*,1003) 'pp_sxrem_as', 'pp_sxrem_as_a'
+                     prior_name(i) = 'pp_sxrem_as_a'
+                     prior_indices(i,2) = prior_indices(i,1)
+
+                  CASE ('pp_sxrem_af')
+                     WRITE (*,1003) 'pp_sxrem_af', 'pp_sxrem_af_a'
+                     prior_name(i) = 'pp_sxrem_af_a'
+                     prior_indices(i,2) = prior_indices(i,1)
+               END SELECT
+            END DO
+      END SELECT
+
+1000  FORMAT('Changing reconstruction parameter ',a,' to ', a)
+1001  FORMAT('Changing lower parameter constraint ',a,' to ', a)
+1002  FORMAT('Changing upper parameter constraint ',a,' to ', a)
+1003  FORMAT('Changing prior signal ',a,' to ', a)
+!-------------------------------------------------------------------------------
+!  All the coding between these boxes can be removed once the non _a sxrem
+!  values are removed. ***
+!-------------------------------------------------------------------------------
 
       WRITE (*,*) ' *** V3FIT namelist input read from ' //                    &
      &            TRIM(namelist_file)

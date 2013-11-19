@@ -47,16 +47,28 @@
 !>  reconstructed that do not change the equilibirum. These parameters do not
 !>  require the eqilibrium to reconverge.
 !>  @begin_table
-!>     @item{pp_ne_b,     1D Array of function density profile parameters.,     @ref vmec_class::ne::b}
-!>     @item{pp_ne_as,    1D Array of segment density profile s poitions.,      @ref vmec_class::ne::as}
-!>     @item{pp_ne_af,    1D Array of segment density profile f values.,        @ref vmec_class::ne::af}
-!>     @item{pp_sxrem_b,  1D Array of function sxrem profile parameters.,       @ref vmec_class::sxrem::b}
-!>     @item{pp_sxrem_as, 1D Array of segment sxrem profile s poitions.,        @ref vmec_class::sxrem::as}
-!>     @item{pp_sxrem_af, 1D Array of segment sxrem profile f values.,          @ref vmec_class::sxrem::af}
-!>     @item{pp_te_b,     1D Array of function temperature profile parameters., @ref vmec_class::te::b}
-!>     @item{pp_te_as,    1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
-!>     @item{pp_te_af,    1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
-!>     @item{phi_offset,  Phi angle offset in radians,                          @ref vmec_class::phi_offset}
+!>     @item{pp_ne_b,       1D Array of function density profile parameters.,     @ref vmec_class::ne::b}
+!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,      @ref vmec_class::ne::as}
+!>     @item{pp_ne_af,      1D Array of segment density profile f values.,        @ref vmec_class::ne::af}
+!>     @item{pp_sxrem_b,    1D Array of function sxrem profile parameters.
+!>                          DEPREICATED only use id when using the old profile
+!>                          specification.,                                       @ref vmec_class::sxrem::b}
+!>     @item{pp_sxrem_as,   1D Array of segment sxrem profile s poitions.
+!>                          DEPREICATED only use id when using the old profile
+!>                          specification.,                                       @ref vmec_class::sxrem::as}
+!>     @item{pp_sxrem_af,   1D Array of segment sxrem profile f values.
+!>                          DEPREICATED only use id when using the old profile
+!>                          specification.,                                       @ref vmec_class::sxrem::af}
+!>     @item{pp_sxrem_b_a,  2D Array of function sxrem profile parameters.
+!>                          First index is the profile number.,                   @ref vmec_class::sxrem::b}
+!>     @item{pp_sxrem_as_a, 2D Array of segment sxrem profile s poitions.
+!>                          First index is the profile number.,                   @ref vmec_class::sxrem::as}
+!>     @item{pp_sxrem_af_a, 2D Array of segment sxrem profile f values.
+!>                          First index is the profile number.,                   @ref vmec_class::sxrem::af}
+!>     @item{pp_te_b,       1D Array of function temperature profile parameters., @ref vmec_class::te::b}
+!>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
+!>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
+!>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_class::phi_offset}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
@@ -1107,13 +1119,13 @@
          CASE ('pp_ne_af')
             vmec_get_param_id = vmec_pp_ne_af_id
 
-         CASE ('pp_sxrem_b')
+         CASE ('pp_sxrem_b_a')
             vmec_get_param_id = vmec_pp_sxrem_b_id
 
-         CASE ('pp_sxrem_as')
+         CASE ('pp_sxrem_as_a')
             vmec_get_param_id = vmec_pp_sxrem_as_id
 
-         CASE ('pp_sxrem_af')
+         CASE ('pp_sxrem_af_a')
             vmec_get_param_id = vmec_pp_sxrem_af_id
 
          CASE ('pp_te_b')
@@ -1487,13 +1499,13 @@
             vmec_get_param_name = 'pp_ne_af'
 
          CASE (vmec_pp_sxrem_b_id)
-            vmec_get_param_name = 'pp_sxrem_b'
+            vmec_get_param_name = 'pp_sxrem_b_a'
 
          CASE (vmec_pp_sxrem_as_id)
-            vmec_get_param_name = 'pp_sxrem_as'
+            vmec_get_param_name = 'pp_sxrem_as_a'
 
          CASE (vmec_pp_sxrem_af_id)
-            vmec_get_param_name = 'pp_sxrem_af'
+            vmec_get_param_name = 'pp_sxrem_af_a'
 
          CASE (vmec_pp_te_b_id)
             vmec_get_param_name = 'pp_te_b'

@@ -665,7 +665,7 @@
      &                 param_get_lower_range_value(this, a_model),             &
      &                 this%range_indicies(2,:),                               &
      &                 this%range_indicies(1,:)
-1000  FORMAT(i3,2x,a18,2(1x,i4),3(2x,es12.5),2(2x,a12),2(2x,es12.5),           &
+1000  FORMAT(i3,2x,a18,2(1x,i4),3(2x,es12.5),2(2x,a13),2(2x,es12.5),           &
      &       2(2x,i8,1x,i8))
 
       END SUBROUTINE
@@ -693,7 +693,7 @@
       WRITE (iou,*) ' *** Reconstruction parameters'
       WRITE (iou,1000)
 1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
-     &        'sigma',9x,'vrnc',10x,'range_type_h',2x,'range_type_l',2x,       &
+     &        'sigma',9x,'vrnc',10x,'range_type_h',3x,'range_type_l',3x,       &
      &        'r_value_h',5x,'r_value_l',5x,                                   &
      &        'r_inx1_h',1x,'r_inx2_h',2x,'r_inx1_l',1x,'r_inx2_l')
       END SUBROUTINE

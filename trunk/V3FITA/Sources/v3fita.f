@@ -520,13 +520,14 @@
       ALLOCATE(sxr(num_sxrem_p))
       DO i = 1, num_sxrem_p
          ALLOCATE(sxr(i)%p)
-         CALL pprofile_construct(sxr(i)%p, TRIM(pp_sxrem_ptype(i)),            &
-     &                           pp_sxrem_b(i,:), pp_sxrem_as(i,:),            &
-     &                           pp_sxrem_af(i,:))
+         CALL pprofile_construct(sxr(i)%p, TRIM(pp_sxrem_ptype_a(i)),          &
+     &                           pp_sxrem_b_a(i,:), pp_sxrem_as_a(i,:),        &
+     &                           pp_sxrem_af_a(i,:))
       END DO
 
-      context%model => model_construct(model_ne_type, model_sxrem_type,        &
-     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
+      context%model => model_construct(model_ne_type,                          &
+     &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
+     &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
      &                                        ne, te, sxr,                     &
      &                                        context%runlog_iou),             &
@@ -554,8 +555,9 @@
 
 !  Start of executable code
 
-      context%model => model_construct(model_ne_type, model_sxrem_type,        &
-     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
+      context%model => model_construct(model_ne_type,                          &
+     &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
+     &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve))
