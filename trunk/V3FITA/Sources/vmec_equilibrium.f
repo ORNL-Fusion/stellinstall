@@ -68,7 +68,7 @@
 !>     @item{pp_te_b,       1D Array of function temperature profile parameters., @ref vmec_class::te::b}
 !>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
 !>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
-!>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_class::phi_offset}
+!>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_equilibrium::vmec_class::phi_offset}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters

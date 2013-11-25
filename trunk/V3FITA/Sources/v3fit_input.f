@@ -28,53 +28,63 @@
 !>  @end_table
 !>
 !>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
-!>     @item{na_d_desc, d_desc array\, diagnostic_desc (deprecated), v3fit_input::na_d_desc}
-!>     @item{na_g_desc, g_desc array\, geometric_desc (deprecated),  v3fit_input::na_g_desc}
-!>     @item{na_c_desc, c_desc array\, coosig_desc (deprecated),     v3fit_input::na_c_desc}
-!>     @item{na_s_desc, s_desc array\, signal_desc,                  v3fit_input::na_s_desc}
-!>     @item{na_rparam, rparam array\, recon_param (deprecated),     v3fit_input::na_rparam}
+!>     @item{na_d_desc, d_desc array\, diagnostic_desc @b DEPRICATED @b, v3fit_input::na_d_desc}
+!>     @item{na_g_desc, g_desc array\, geometric_desc @b DEPRICATED @b,  v3fit_input::na_g_desc}
+!>     @item{na_c_desc, c_desc array\, coosig_desc @b DEPRICATED @b,     v3fit_input::na_c_desc}
+!>     @item{na_s_desc, s_desc array\, signal_desc,                      v3fit_input::na_s_desc}
+!>     @item{na_rparam, rparam array\, recon_param @b DEPRICATED @b,     v3fit_input::na_rparam}
 !>  @end_table
 !>
 !>  @table_section{work_sec, Task specification\, work variables}
-!>     @item{my_task, Character: to specify task in MAIN select case,         v3fit_input::my_task}
-!>     @item{i_work,  Array of integers\, work space (deprecated),            v3fit_input::i_work}
-!>     @item{r_work,  Array of reals\, work space (deprecated),               v3fit_input::r_work}
-!>     @item{c_work,  Array of character variables\, work space (deprecated), v3fit_input::c_work}
+!>     @item{my_task, Character: to specify task in MAIN select case,             v3fit_input::my_task}
+!>     @item{i_work,  Array of integers\, work space @b DEPRICATED @b,            v3fit_input::i_work}
+!>     @item{r_work,  Array of reals\, work space @b DEPRICATED @b,               v3fit_input::r_work}
+!>     @item{c_work,  Array of character variables\, work space @b DEPRICATED @b, v3fit_input::c_work}
 !>  @end_table
 !>
 !>  @table_section{model_profile_sec, Model profile specification}
-!>     @item{pp_ne_ptype,      model electron density profile\, parameterized profile type,      v3fit_input::pp_ne_ptype}
-!>     @item{pp_ne_b,          array of b_coefficients for the electron density profile,         v3fit_input::pp_ne_b}
-!>     @item{pp_ne_as,         array of as_coefficients electron density splines,                v3fit_input::pp_ne_as}
-!>     @item{pp_ne_af,         array of af_coefficients electron density splines,                v3fit_input::pp_ne_af}
-!>     @item{pp_sxrem_ptype,   model soft x-ray emissivity profile\, parameterized profile type, v3fit_input::pp_sxrem_ptype}
-!>     @item{pp_sxrem_b,       array of b_coefficients for the soft x-ray emissivity profile,    v3fit_input::pp_sxrem_b}
-!>     @item{pp_sxrem_as,      array of as_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_as}
-!>     @item{pp_sxrem_af,      array of af_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_af}
-!>     @item{pp_sxrem_ptype_a, model soft x-ray emissivity profile\, parameterized profile type, v3fit_input::pp_sxrem_ptype}
-!>     @item{pp_sxrem_b_a,     array of b_coefficients for the soft x-ray emissivity profile,    v3fit_input::pp_sxrem_b}
-!>     @item{pp_sxrem_as_a,    array of as_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_as}
-!>     @item{pp_sxrem_af_a,    array of af_coefficients soft x-ray emissivity splines,           v3fit_input::pp_sxrem_af}
-!>     @item{pp_te_ptype,      model electron temperature profile\, parameterized profile type,  v3fit_input::pp_te_ptype}
-!>     @item{pp_te_b,          array of b_coefficients for the e-temperature profile,            v3fit_input::pp_te_b}
-!>     @item{pp_te_as,         array of as_coefficients e-temperature splines,                   v3fit_input::pp_te_as}
-!>     @item{pp_te_af,         array of af_coefficients e-temperature splines,                   v3fit_input::pp_te_af}
+!>     @item{pp_ne_ptype,      Model electron density profile\, parameterized profile type.,      v3fit_input::pp_ne_ptype}
+!>     @item{pp_ne_b,          Array of b_coefficients for the electron density profile.,         v3fit_input::pp_ne_b}
+!>     @item{pp_ne_as,         Array of as_coefficients electron density splines.,                v3fit_input::pp_ne_as}
+!>     @item{pp_ne_af,         Array of af_coefficients electron density splines.,                v3fit_input::pp_ne_af}
+!>     @item{pp_sxrem_ptype,   Model soft x-ray emissivity profile\, parameterized profile type., v3fit_input::pp_sxrem_ptype}
+!>     @item{pp_sxrem_b,       Array of b_coefficients for the soft x-ray emissivity profile.
+!>                             @b DEPRICATED @b,                                                  v3fit_input::pp_sxrem_b}
+!>     @item{pp_sxrem_as,      Array of as_coefficients soft x-ray emissivity splines.
+!>                             @b DEPRICATED @b,                                                  v3fit_input::pp_sxrem_as}
+!>     @item{pp_sxrem_af,      Array of af_coefficients soft x-ray emissivity splines.
+!>                             @b DEPRICATED @b,                                                  v3fit_input::pp_sxrem_af}
+!>     @item{num_sxrem_p,      Number of soft x-ray emissivity profiles.,                         v3fit_input::num_sxrem_p}
+!>     @item{pp_sxrem_ptype_a, Model soft x-ray emissivity profile\, parameterized profile type., v3fit_input::pp_sxrem_ptype_a}
+!>     @item{pp_sxrem_b_a,     Array of b_coefficients for the soft x-ray emissivity profile.,    v3fit_input::pp_sxrem_b_a}
+!>     @item{pp_sxrem_as_a,    Array of as_coefficients soft x-ray emissivity splines.,           v3fit_input::pp_sxrem_as_a}
+!>     @item{pp_sxrem_af_a,    Array of af_coefficients soft x-ray emissivity splines.,           v3fit_input::pp_sxrem_af_a}
+!>     @item{pp_te_ptype,      Model electron temperature profile\, parameterized profile type.,  v3fit_input::pp_te_ptype}
+!>     @item{pp_te_b,          Array of b_coefficients for the e-temperature profile.,            v3fit_input::pp_te_b}
+!>     @item{pp_te_as,         Array of as_coefficients e-temperature splines.,                   v3fit_input::pp_te_as}
+!>     @item{pp_te_af,         Array of af_coefficients e-temperature splines.,                   v3fit_input::pp_te_af}
 !>  @end_table
 !>
 !>  @table_section{model_spec_sec, Model Specification Variables}
 !>     @item{model_ne_type, Character variable to specify how the electron density will be calculated by the model.
 !>        -# 'none'    Not part of the model.
-!>        -# 'pp_ne'   Calculated from the parameterized profile pp_ne
+!>        -# 'pp_ne'   Calculated from the parameterized profile pp_ne.
 !>        -# 'pp_te_p' Calculated from the pp_te and the VMEC pressure,
 !>        v3fit_input::model_ne_type}
 !>     @item{model_sxrem_type, Character variable to specify how the Soft x-ray emissivity will be calculated by the model.
 !>        -# 'none'     Not part of the model.
-!>        -# 'pp_sxrem' Calculated from the parameterized profile pp_sxrem,
+!>        -# 'pp_sxrem' Calculated from the parameterized profile pp_sxrem.
+!>
+!>        @b DEPRICATED @b,
 !>        v3fit_input::model_sxrem_type}
+!>     @item{model_sxrem_type_a, Character array to specify how the Soft x-ray emissivity will be calculated by the model.
+!>        -# 'none'     Not part of the model.
+!>        -# 'pp_sxrem' Calculated from the parameterized profile pp_sxrem.,
+!>        v3fit_input::model_sxrem_type_a}
 !>     @item{model_te_type, Character variable to specify how the e-temperature will be calculated by the model.
 !>        -# 'none'                    Not part of the model.
-!>        -# 'pp_te'                   Calculated from the parameterized profile pp_te
-!>        -# 'pp_ne_vmec_p'\,'pp_ne_p' Calculated from the pp_ne and the VMEC pressure,
+!>        -# 'pp_te'                   Calculated from the parameterized profile pp_te.
+!>        -# 'pp_ne_vmec_p'\,'pp_ne_p' Calculated from the pp_ne and the VMEC pressure.,
 !>        v3fit_input::model_te_type}
 !>     @item{ne_pp_unit,          Scaling/conversion factor for the density. ne * ne_pp_unit is assumed to have units of m^-3.,                                 v3fit_input::ne_pp_unit}
 !>     @item{ne_min,              Minimum electron density\, m^-3.,                                                                                             v3fit_input::ne_min}
@@ -101,14 +111,21 @@
 !>     @item{rp_range_type,  2D Array of reconstruction parameter range types
 !>                           -# 'infinity'          Unbounded
 !>                           -# 'value'             Bounded by the value of rp_range_value
-!>                           -# \<other\>           Bounded by a equilibrium parameter.
+!>                           -# \<other\>           Bounded by an equilibrium parameter.
 !>
 !>                           Any parameter maybe used as a contraint.
 !>                           * @ref model_sec
 !>                           * @ref vmec_equilibrium_sec
-!>                           * @ref vacuum_equilibrium_sec,                                      v3fit_input::rp_range_type}
-!>     @item{rp_range_value, 2D Array of values used if rp_range_type = 'value',                 v3fit_input::rp_range_value}
-!>     @item{rp_range_index, 2D Array of values of indicies used if\, rp_range_type = \<other\>, v3fit_input::rp_range_index}
+!>                           * @ref vacuum_equilibrium_sec
+!>
+!>                           The second index contains the low and high range types
+!>                           respectively.,                                                      v3fit_input::rp_range_type}
+!>     @item{rp_range_value, 2D Array of values used if rp_range_type = 'value'.
+!>                           The second index contains the low and high values repectively.,     v3fit_input::rp_range_value}
+!>     @item{rp_range_index, 3D Array of values of indicies used if\, rp_range_type = \<other\>.
+!>                           The second index specifies the low and high ranges repectively.
+!>                           The third index contains the first and second index of the
+!>                           inequality constraint parameter.,                                   v3fit_input::rp_range_index}
 !>  @end_table
 !>
 !>  @table_section{signal_spec_sec, Signal Data specification}
@@ -164,8 +181,11 @@
 !>                             * @ref model_sec
 !>                             * @ref vmec_equilibrium_sec
 !>                             * @ref vacuum_equilibrium_sec,           v3fit_input::prior_param_name}
-!>     @item{prior_indices,    The ith and jth index of the parameter., v3fit_input::prior_indices}
-!>     @item{prior_units,      The units of the prior signal          , v3fit_input::prior_units}
+!>     @item{prior_indices,    2D array of the ith and jth index of
+!>                             the parameter. The second index
+!>                             contains the first and second indicies
+!>                             repectively.,                            v3fit_input::prior_indices}
+!>     @item{prior_units,      The units of the prior signal.,          v3fit_input::prior_units}
 !>  @end_table
 !>
 !>  @table_section{coosig_sec, COOSIG - Combination Of Other SIGnals NLI Variables}
@@ -202,7 +222,7 @@
 !>     @item{l_zero_xcdot, reset the xcdot array to zero when converging vmec., v3fit_input::l_zero_xcdot}
 !>
 !>  @section namelist_exam_sec Example Files
-!>  @subsection namelist_exam_v3post_sec V3POST Example.
+!>  @subsection namelist_exam_v3post_sec V3POST Example
 !>  @code
 !>  ! Example V3POST input file.
 !>  &v3fit_main_nli
@@ -216,7 +236,7 @@
 !>  my_task = 'v3post'
 !>  /
 !>  @endcode
-!>  @subsection namelist_exam_v3post_sec Reconstruction Example.
+!>  @subsection namelist_exam_reconstruction_sec Reconstruction Example
 !>  @code
 !>  ! Example Reconstruction input file.
 !>  &v3fit_main_nli
@@ -242,11 +262,12 @@
 !>  e_pressure_fraction=0.75
 !>  
 !>  ! Soft X-ray emissivity
-!>  model_sxrem_type = 'pp_sxrem'
-!>  pp_sxrem_ptype = 'two_power'
+!>  num_sxrem_p = 1
+!>  model_sxrem_type_a(1) = 'pp_sxrem'
+!>  pp_sxrem_ptype_a(1) = 'two_power'
 !>
 !>  !>  ! b(0) + b(1)*[1 - s^b(2)]^b(3)
-!>  pp_ne_b(0:3) = 0.0, 1.0, 3.0, 10.0
+!>  pp_sxrem_b_a(1,0:3) = 0.0, 1.0, 3.0, 10.0
 !>
 !>  ! Electron Temperature
 !>  model_te_type = 'pp_ne_vmec_p'

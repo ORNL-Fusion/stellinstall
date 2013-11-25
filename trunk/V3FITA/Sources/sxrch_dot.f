@@ -56,6 +56,26 @@
 !>  end_of_file
 !>  @endcode
 !>
+!>  @subsection sxrem_dot_exam_two_color_sec Two Color Example File
+!>  @code
+!>  !  A soft x-ray chord specified in Cartesian coordinates.
+!>  sxr_chord_XYZ
+!>  sxr001
+!>  1.0 0.0 0.0
+!>  0.5 0.0 0.0
+!>
+!>  sxr_new_profile
+!>
+!>  !  A soft x-ray chord specified in Cylindrical coordinates.
+!>  sxr_chord_RPhiDegZ
+!>  sxr002
+!>  1.0 0.0 0.0
+!>  0.5 0.0 0.0
+!>
+!>  !  All files must end with
+!>  end_of_file
+!>  @endcode
+!>
 !>  @section sxrem_dot_prog_ref_sec Programmers Reference
 !>  Reference material for the coding to parse these files can be found in the
 !>  @ref signal_dot and @ref sxrch_dot modules.
@@ -72,7 +92,6 @@
 !*******************************************************************************
 
       MODULE sxrch_dot
-
 
       USE stel_kinds
       USE stel_constants
