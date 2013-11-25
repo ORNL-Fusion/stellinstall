@@ -1,6 +1,8 @@
 #  Run the reconstruction task. This just tests if the reconstruction executes correctly. 
 #  Subsequent tests will examine the results of the reconstruction for correct 
-#  results.
+#  results. First the mdsig files must be made.
+add_test (NAME    diagnostic_rotation_test_mdsig
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3rfun v3rfun.in)
 add_test (NAME    diagnostic_rotation_test
           COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit)
 
