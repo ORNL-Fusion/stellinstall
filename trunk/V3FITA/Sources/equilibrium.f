@@ -236,12 +236,14 @@
 !>  @param[in]    total_tor_planes Total number of toroidal planes.
 !>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
 !>                                 planes.
+!>  @param[in]    nfp              Number of field period the diagnostics were
+!>                                 generated with.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
-     &                                          tor_planes_used)
+     &                                          tor_planes_used, nfp)
 
       IMPLICIT NONE
 
@@ -249,13 +251,14 @@
       TYPE (equilibrium_class), INTENT(inout) :: this
       INTEGER, INTENT(in)                     :: total_tor_planes
       INTEGER, INTENT(in)                     :: tor_planes_used
+      INTEGER, INTENT(in)                     :: nfp
 
 !  Start of executable code
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
             CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
-     &                                   tor_planes_used)
+     &                                   tor_planes_used, nfp)
 
       END SELECT
 

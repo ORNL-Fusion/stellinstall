@@ -802,13 +802,15 @@
 !>  @param[in]    total_tor_planes Total number of toroidal planes.
 !>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
 !>                                 planes.
+!>  @param[in]    nfp              Number of field period the diagnostics were
+!>                                 generated with.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
-     &                                        tor_planes_used)
-      USE vmec_input, only: nfp, ns_array
+     &                                        tor_planes_used, nfp)
+      USE vmec_input, only: ns_array
       USE stel_constants, only: twopi
 
       IMPLICIT NONE
@@ -817,6 +819,7 @@
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(in)              :: total_tor_planes
       INTEGER, INTENT(in)              :: tor_planes_used
+      INTEGER, INTENT(in)              :: nfp
 
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
