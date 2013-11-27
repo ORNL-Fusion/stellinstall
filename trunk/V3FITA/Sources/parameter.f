@@ -89,6 +89,18 @@
          TYPE (param_class), POINTER :: p => null()
       END TYPE
 
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the constriction of @ref param_class types using
+!>  @ref param_construct_basic or @ref param_construct_recon
+!-------------------------------------------------------------------------------
+      INTERFACE param_construct
+         MODULE PROCEDURE param_construct_basic,                               &
+     &                    param_construct_recon
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -98,7 +110,41 @@
 !>
 !>  Allocates memory and initializes a @ref param_class object. Parameters are
 !>  converted from strings to and internal id prepresentation by either the
-!>  @ref model or the @ref equilibrium.
+!>  @ref model or the @ref equilibrium. This version is used to construct
+!>  basic parameters.
+!>
+!>  @param[in] a_model        An instance of a @ref model object.
+!>  @param[in] param_name     The name of the parameter.
+!>  @param[in] indicies       The array indices of the parameter.
+!>  @returns A pointer to a constructed @ref param_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION param_construct_basic(a_model, param_name, indicies)
+      USE v3_utilities
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), POINTER :: param_construct_basic
+      TYPE (model_class), INTENT(in)    :: a_model
+      CHARACTER (len=*), INTENT(in)     :: param_name
+      INTEGER, DIMENSION(2), INTENT(in) :: indicies
+
+!  Start of executable code
+      ALLOCATE(param_construct_basic)
+
+      param_construct_basic%param_id =                                         &
+     &   model_get_param_id(a_model, TRIM(param_name))
+      param_construct_basic%indicies = indicies
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref param_class object.
+!>
+!>  Allocates memory and initializes a @ref param_class object. Parameters are
+!>  converted from strings to and internal id prepresentation by either the
+!>  @ref model or the @ref equilibrium. This version is used to construct
+!>  reconstruction parameters.
 !>
 !>  Parameter boundaries are specified by a range type. This range type may be
 !>  one of three types. 'infinity' represents an unbounded case. 'value'
@@ -106,7 +152,7 @@
 !>  the boundary will be bounded by a fixed or varying parameter. The bounding
 !>  parameter string is converted into an internal id representation.
 !>  @param[in] a_model        An instance of a @ref model object.
-!>  @param[in] param_name     The name the parameter.
+!>  @param[in] param_name     The name of the parameter.
 !>  @param[in] indicies       The array indices of the parameter.
 !>  @param[in] vrnc           The maximum incremental step size.
 !>  @param[in] range_type     Range type of the bounds. Values can be
@@ -117,15 +163,15 @@
 !>                            the @ref param_class::sem arrays.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION param_construct(a_model, param_name, indicies, vrnc,            &
-     &                         range_type, range_indicies, range_value,        &
-     &                         num_signals)
+      FUNCTION param_construct_recon(a_model, param_name, indicies,            &
+     &                               vrnc, range_type, range_indicies,         &
+     &                               range_value, num_signals)
       USE v3_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (param_class), POINTER                 :: param_construct
+      TYPE (param_class), POINTER :: param_construct_recon
       TYPE (model_class), INTENT(in)              :: a_model
       CHARACTER (len=*), INTENT(in)               :: param_name
       INTEGER, DIMENSION(2), INTENT(in)           :: indicies
@@ -135,58 +181,62 @@
       REAL (rprec), DIMENSION(2), INTENT(in)      :: range_value
       INTEGER, INTENT(in)                         :: num_signals
 
-!  local variables
-      INTEGER                                     :: id
-
 !  Start of executable code
-      id = model_get_param_id(a_model, TRIM(param_name))
-      IF (.not.model_is_recon_param(a_model, id)) THEN
-         CALL err_fatal('param_construct: invalid ' //                         &
-     &                  'reconstruction parameter')
+      param_construct_recon => param_construct(a_model, param_name,            &
+     &                                         indicies)
+
+      IF (.not.model_is_recon_param(a_model,                                   &
+     &            param_construct_recon%param_id)) THEN
+         CALL err_fatal('param_construct: ' // param_name // ' is ' //         &
+     &                  'a valid reconstruction reconstruction ' //            &
+     &                  'parameter')
       END IF
 
-      ALLOCATE(param_construct)
-
-      param_construct%param_id = id
-      param_construct%indicies = indicies
-      param_construct%vrnc = vrnc
+      param_construct_recon%vrnc = vrnc
 
       SELECT CASE (TRIM(range_type(1)))
 
          CASE ('value')
-            param_construct%range_type(1) = param_range_value_type
-            param_construct%range_value(1) = range_value(1)
+            param_construct_recon%range_type(1) = param_range_value_type
+            param_construct_recon%range_value(1) =                             &
+     &         range_value(1)
         
          CASE ('infinity')
-            param_construct%range_type(1) = param_range_infinity_type
+            param_construct_recon%range_type(1) =                              &
+     &         param_range_infinity_type
 
          CASE DEFAULT
-            param_construct%range_type(1) = param_range_parameter_type
-            param_construct%range_id(1) =                                      &
+            param_construct_recon%range_type(1) =                              &
+     &         param_range_parameter_type
+            param_construct_recon%range_id(1) =                                &
      &         model_get_param_id(a_model, TRIM(range_type(1)))
-            param_construct%range_indicies(1,:) = range_indicies(1,:)
+            param_construct_recon%range_indicies(1,:) =                        &
+     &         range_indicies(1,:)
 
       END SELECT
 
       SELECT CASE (TRIM(range_type(2)))
 
          CASE ('value')
-            param_construct%range_type(2) = param_range_value_type
-            param_construct%range_value(2) = range_value(2)
+            param_construct_recon%range_type(2) = param_range_value_type
+            param_construct_recon%range_value(2) = range_value(2)
 
          CASE ('infinity')
-            param_construct%range_type(2) = param_range_infinity_type
+            param_construct_recon%range_type(2) =                              &
+     &         param_range_infinity_type
 
          CASE DEFAULT
-            param_construct%range_type(2) = param_range_parameter_type
-            param_construct%range_id(2) =                                      &
+            param_construct_recon%range_type(2) =                              &
+     &         param_range_parameter_type
+            param_construct_recon%range_id(2) =                                &
      &         model_get_param_id(a_model, TRIM(range_type(2)))
-            param_construct%range_indicies(2,:) = range_indicies(2,:)
+            param_construct_recon%range_indicies(2,:) =                        &
+     &         range_indicies(2,:)
 
       END SELECT
 
-      ALLOCATE(param_construct%sem(num_signals))
-      param_construct%sem = 0.0
+      ALLOCATE(param_construct_recon%sem(num_signals))
+      param_construct_recon%sem = 0.0
 
       END FUNCTION
 
@@ -216,8 +266,10 @@
       this%range_indicies = 0
       this%range_value = 0.0
 
-      DEALLOCATE(this%sem)
-      this%sem => null()
+      IF (ASSOCIATED(this%sem)) THEN
+         DEALLOCATE(this%sem)
+         this%sem => null()
+      END IF
 
       DEALLOCATE(this)
 
@@ -671,6 +723,38 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
+!>  @brief Writes out a parameter to an output file.
+!>
+!>  Parameter information is formated as a the index, name, index 1, index2,
+!>  value and sigma.
+!>
+!>  @param[in] this    A @ref param_class instance.
+!>  @param[in] iou     Input/output unit representing the file to write to.
+!>  @param[in] index   The index of a parameter.
+!>  @param[in] a_model A @ref model instance.
+!>  @note Eventually parameter range informarion will be added as well.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_write_short(this, iou, index, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: iou
+      INTEGER, INTENT(in)            :: index
+      TYPE (model_class), INTENT(in) :: a_model
+
+!  Start of executable code
+
+      WRITE (iou,1000) index,                                                  &
+     &                 param_get_name(this, a_model),                          &
+     &                 this%indicies(1), this%indicies(2),                     &
+     &                 param_get_value(this, a_model), this%sigma
+1000  FORMAT(i3,2x,a18,2(1x,i4),2(2x,es12.5))
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Writes out parameter header information to an output file.
 !>
 !>  Parameter information is formated as a the index, name, index 1, index2,
@@ -696,6 +780,32 @@
      &        'sigma',9x,'vrnc',10x,'range_type_h',3x,'range_type_l',3x,       &
      &        'r_value_h',5x,'r_value_l',5x,                                   &
      &        'r_inx1_h',1x,'r_inx2_h',2x,'r_inx1_l',1x,'r_inx2_l')
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Writes out parameter header information to an output file.
+!>
+!>  Parameter information is formated as a the index, name, index 1, index2,
+!>  value and sigma. This is implmented as a static method and does not require
+!>  a parameter instance. This should only be called once to produce a single
+!>  header.
+!>
+!>  @param[in] iou A input/output representing the file to write to.
+!>  @note Eventually parameter range informarion will be added as well.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_write_header_short(iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER, INTENT(in) :: iou
+
+!  Start of executable code
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Derived parameters'
+      WRITE (iou,1000)
+1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
+     &        'sigma')
       END SUBROUTINE
 
 !*******************************************************************************

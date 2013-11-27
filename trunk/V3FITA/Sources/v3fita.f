@@ -325,6 +325,8 @@
      &                                     context%runlog_iou)
       CALL assert(eq_converged,                                                &
      &            'task_reconstruct no inital convergence')
+      CALL reconstruction_eval_f(context%recon, context%derived_params,        &
+     &                           context%model)
 
       WRITE (*,*)
       WRITE (*,1002) 0
@@ -345,12 +347,15 @@
          WRITE (context%runlog_iou,1002) i
 
          IF (reconstruction_step(context%recon, context%signals,               &
+     &                           context%derived_params,
      &                           context%model, context%params,                &
      &                           num_steps, context%runlog_iou)) THEN
 
 !  Step was successful. Post process the result.
-            CALL reconstruction_eval_sem(context%recon, context%params,        &
-     &                                   context%signals)
+            CALL reconstruction_eval_sem(context%recon,                        &
+     &                                   context%params,                       &
+     &                                   context%signals,                      &
+     &                                   context%derived_params)
             CALL v3fit_context_write_step_data(context, .false.)
 
 !  Test for convergence.
@@ -1120,9 +1125,9 @@
       WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
      &                             'reconstruction parameters'
 
+!  Initialize the reconstruction parameters.
       ALLOCATE(context%params(n_rp))
       DO i = 1, n_rp
-
          context%params(i)%p => param_construct(context%model,                 &
      &                                          rp_type(i),                    &
      &                                          (/ rp_index(i),                &
@@ -1132,6 +1137,19 @@
      &                                          rp_range_index(i,:,:),         &
      &                                          rp_range_value(i,:),           &
      &                                          SIZE(context%signals))
+
+      END DO
+
+!  Initalize the derived parameters.
+      IF (n_rp .lt. n_dp) THEN
+         CALL err_fatal('n_rp cannot be less than n_dp')
+      END IF
+
+      ALLOCATE(context%derived_params(n_dp))
+      DO i = 1, n_dp
+         context%derived_params(i)%p => param_construct(context%model,         &
+     &                                                  dp_type(i),            &
+     &                                                  dp_index(i,:))
 
       END DO
 
@@ -1153,12 +1171,11 @@
 !  Start of executable code
       context%recon_stop = dg2_stop
       context%recon => reconstruction_construct(nrstep,                        &
-     &                                          SIZE(context%signals),         &
-     &                                          SIZE(context%params),          &
-     &                                          step_type, astep_max,          &
-     &                                          cut_svd, cut_eff,              &
-     &                                          cut_marg_eff,                  &
-     &                                          cut_delta_a, cut_dg2)
+     &                    SIZE(context%signals),                               &
+     &                    SIZE(context%derived_params),                        &
+     &                    SIZE(context%params),                                &
+     &                    step_type, astep_max, cut_svd, cut_eff,              &
+     &                    cut_marg_eff, cut_delta_a, cut_dg2)
 
       END SUBROUTINE
 

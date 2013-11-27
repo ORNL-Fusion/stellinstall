@@ -39,10 +39,14 @@
          TYPE (commandline_parser_class), POINTER :: cl_parser => null()
 !>  The equilibrium model.
          TYPE (model_class), POINTER                  :: model => null()
-!>  Arrays of signals.
+!>  Array of signals.
 !>  @see signal
          TYPE (signal_pointer), DIMENSION(:), POINTER ::                       &
      &      signals => null()
+!>  Array of derived parameters.
+!>  @see param
+         TYPE (param_pointer), DIMENSION(:), POINTER  ::                       &
+     &      derived_params => null()
 !>  Arrays of reconstruction parameters.
 !>  @see param
          TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
@@ -229,6 +233,18 @@
          this%signals => null()
       END IF
 
+!  Deconstruct and deallocate all the derived parameters.
+      IF (ASSOCIATED(this%derived_params)) THEN
+         DO i = 1, SIZE(this%derived_params)
+            IF (ASSOCIATED(this%derived_params(i)%p)) THEN
+               CALL param_destruct(this%derived_params(i)%p)
+               this%derived_params(i)%p => null()
+            END IF
+         END DO
+         DEALLOCATE(this%derived_params)
+         this%derived_params => null()
+      END IF
+
 !  Deconstruct and deallocate all the parameters.
       IF (ASSOCIATED(this%params)) THEN
          DO i = 1, SIZE(this%params)
@@ -237,8 +253,8 @@
                this%params(i)%p => null()
             END IF
          END DO
-        DEALLOCATE(this%params)
-        this%params => null()
+         DEALLOCATE(this%params)
+         this%params => null()
       END IF
 
       IF (ASSOCIATED(this%recon)) THEN
@@ -354,6 +370,15 @@
 !  Write out the reconstruction
       IF (ASSOCIATED(this%recon)) THEN
          CALL reconstruction_write(this%recon, this%recout_iou)
+      END IF
+
+!  Write out the derived parameters
+      IF (ASSOCIATED(this%derived_params)) THEN
+         CALL param_write_header_short(this%recout_iou)
+         DO j = 1, SIZE(this%derived_params)
+            CALL param_write_short(this%derived_params(j)%p,                   &
+     &                             this%recout_iou, j, this%model)
+         END DO
       END IF
 
 !  Write out the parameters

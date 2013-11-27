@@ -98,6 +98,15 @@
 !>     @item{rc_value, Array of reconstruction constraint values,  v3fit_input::rc_value}
 !>  @end_table
 !>
+!>  @table_section{recon_param_sec, Derived parameter specification}
+!>     @item{n_dp,           Number of Derived parameters,                                     v3fit_input::n_dp}
+!>     @item{dp_type,        Array of derived parameter types. Any parameter can be a 
+!>                           * @ref model_recon_param_sec
+!>                           * @ref vmec_equilibrium_recon_param_sec
+!>                           * @ref vacuum_equilibrium_recon_param_sec,                        v3fit_input::dp_type}
+!>     @item{dp_index,       Array of reconstruction parameter indices,                        v3fit_input::dp_index}
+!>  @end_table
+!>
 !>  @table_section{recon_param_sec, Reconstruction parameter specification}
 !>     @item{n_rp,           Number of reconstruction parameters,                                v3fit_input::n_rp}
 !>     @item{rp_type,        Array of reconstruction parameter types. Valid reconstruction
@@ -650,21 +659,31 @@
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_parameters) :: rc_value = 0.0
 
+!  Derived parameters
+!>  Number of derived parameters.
+      INTEGER                              :: n_dp = 0
+!>  Names of derived parameters.
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_parameters)   :: dp_type = ''
+!>  Indices of derived parameters.
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters,2) :: dp_index = 0
+
 !  Reconstruction parameters
 !>  Number of reconstruction parameters.
-      INTEGER                                :: n_rp = 0
+      INTEGER                              :: n_rp = 0
 !>  Names of reconstruction parameters.
       CHARACTER (len=data_name_length),                                        &
-     &   DIMENSION(v3fit_max_parameters)     :: rp_type = ''
+     &   DIMENSION(v3fit_max_parameters)   :: rp_type = ''
 !>  Ith index of reconstruction parameters.
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters)     :: rp_index = 0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_index = 0
 !>  Jth index of reconstruction parameters.
       INTEGER,                                                                 &
-     &   DIMENSION(v3fit_max_parameters)     :: rp_index2 = 0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_index2 = 0
 !>  Maximum reconstruction increment.
       REAL (rprec),                                                            &
-     &   DIMENSION(v3fit_max_parameters)     :: rp_vrnc = 0.0
+     &   DIMENSION(v3fit_max_parameters)   :: rp_vrnc = 0.0
 !>  Parameter range types. The first index is the lower range and second index
 !>  the upper range.
       CHARACTER (len=data_name_length),                                        &
@@ -672,7 +691,7 @@
 !>  Parameter range value. The first index is the lower range and second index
 !>  the upper range.
       REAL (rprec),                                                            &
-     &   DIMENSION(v3fit_max_parameters,2)   :: rp_range_value = 0.0
+     &   DIMENSION(v3fit_max_parameters,2) :: rp_range_value = 0.0
 !>  Parameter range indices. The first index is the lower range and second index
 !>  the upper range.
       INTEGER, DIMENSION(v3fit_max_parameters,2,data_max_indicies) ::          &
@@ -855,6 +874,8 @@
      &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
+!  Derived parameters
+     &   n_dp, dp_type, dp_index,                                              &
 !  Reconstruction parameters
      &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc, rp_range_type,           &
      &   rp_range_value, rp_range_index,                                       &

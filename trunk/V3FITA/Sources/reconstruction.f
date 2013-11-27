@@ -58,8 +58,14 @@
 !>  Array of all e vectors for each reconstruction step.
 !>  @see signal::signal_get_e
          REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
+!>  Array of all f vectors for each reconstruction step. The f vector contains
+!>  the initial value of the derived parameter.
+         REAL (rprec), DIMENSION(:,:), POINTER :: f => null()
 !>  The normalized jacobian for the current step.
          REAL (rprec), DIMENSION(:,:), POINTER :: jacobian => null()
+!>  The normalized derived jacobian for the current step.
+         REAL (rprec), DIMENSION(:,:), POINTER ::                              &
+     &      derived_jacobian => null()
 !>  The normalized hessian for the current step.
          REAL (rprec), DIMENSION(:,:), POINTER :: hessian => null()
 !>  The normalized gradient for the current step.
@@ -109,25 +115,29 @@
 !>
 !>  Allocates memory and initializes a @ref param_class object.
 !>
-!>  @param[in] num_steps      Number of reconstruction steps.
-!>                            @ref signal::signal_get_e
-!>  @param[in] num_signals    Number of signals.
-!>  @param[in] num_parameters Number of reconstruction parameters.
-!>  @param[in] step_type      Reconstruction step type. @ref signal::step_type
-!>  @param[in] step_max       Reconstruction step size. @ref signal::astep_max
-!>  @param[in] cut_svd        Cutoff value for relative singular values.
-!>                            @ref v3fit_input::cut_svd
-!>  @param[in] cut_eff        Cutoff value for expected step efficiency.
-!>                            @ref v3fit_input::cut_eff
-!>  @param[in] cut_marg_eff   Cutoff value for expected marginal step efficiency.
-!>                            @ref v3fit_input::cut_marg_eff
-!>  @param[in] cut_delta_a    Cutoff value for expected step size.
-!>                            @ref v3fit_input::cut_delta_a
-!>  @param[in] cut_dg2        Cutoff value for expected change in g^2.
-!>                            @ref v3fit_input::cut_dg2
+!>  @param[in] num_steps              Number of reconstruction steps.
+!>                                    @ref signal::signal_get_e
+!>  @param[in] num_signals            Number of signals.
+!>  @param[in] num_derived_parameters Number of drived parameters.
+!>  @param[in] num_parameters         Number of reconstruction parameters.
+!>  @param[in] step_type              Reconstruction step type.
+!>                                    @ref signal::step_type
+!>  @param[in] step_max               Reconstruction step size.
+!>                                    @ref signal::astep_max
+!>  @param[in] cut_svd                Cutoff value for relative singular values.
+!>                                    @ref v3fit_input::cut_svd
+!>  @param[in] cut_eff                Cutoff value for expected step efficiency.
+!>                                    @ref v3fit_input::cut_eff
+!>  @param[in] cut_marg_eff           Cutoff value for expected marginal step
+!>                                    efficiency. @ref v3fit_input::cut_marg_eff
+!>  @param[in] cut_delta_a            Cutoff value for expected step size.
+!>                                    @ref v3fit_input::cut_delta_a
+!>  @param[in] cut_dg2                Cutoff value for expected change in g^2.
+!>                                    @ref v3fit_input::cut_dg2
 !>  @returns A pointer to a constructed @ref reconstruction_class object.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_construct(num_steps, num_signals,                &
+     &                                  num_derived_parameters,                &
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
@@ -139,6 +149,7 @@
       TYPE (reconstruction_class), POINTER :: reconstruction_construct
       INTEGER, INTENT(in)                  :: num_steps
       INTEGER, INTENT(in)                  :: num_signals
+      INTEGER, INTENT(in)                  :: num_derived_parameters
       INTEGER, INTENT(in)                  :: num_parameters
       CHARACTER (len=*), INTENT(in)        :: step_type
       REAL (rprec), INTENT(in)             :: step_max
@@ -181,8 +192,12 @@
       num_svd = MIN(num_signals, num_parameters)
 
       ALLOCATE(reconstruction_construct%e(0:num_steps,num_signals))
+      ALLOCATE(reconstruction_construct%f(0:num_steps,                         &
+     &                                    num_derived_parameters))
       ALLOCATE(reconstruction_construct%jacobian(num_signals,                  &
      &                                           num_parameters))
+      ALLOCATE(reconstruction_construct%derived_jacobian(                      &
+     &            num_derived_parameters,num_parameters))
       ALLOCATE(reconstruction_construct%hessian(num_parameters,                &
      &                                          num_parameters))
       ALLOCATE(reconstruction_construct%gradient(num_parameters))
@@ -235,9 +250,19 @@
          this%e => null()
       END IF
 
+      IF (ASSOCIATED(this%f)) THEN
+         DEALLOCATE(this%f)
+         this%f => null()
+      END IF
+
       IF (ASSOCIATED(this%jacobian)) THEN
          DEALLOCATE(this%jacobian)
          this%jacobian => null()
+      END IF
+
+      IF (ASSOCIATED(this%derived_jacobian)) THEN
+         DEALLOCATE(this%derived_jacobian)
+         this%derived_jacobian => null()
       END IF
 
       IF (ASSOCIATED(this%hessian)) THEN
@@ -570,20 +595,53 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Evaluate the f vector for a reconstruction step.
+!>
+!>  Evaluates the f vector after soving the equilibrium.
+!>  @see param::param_get_value
+!>
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[in]    derived_params Array of @ref param objects.
+!>  @param[inout] a_model        A @ref model instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_eval_f(this, derived_params, a_model)
+      USE param
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout)     :: this
+      TYPE (param_pointer), DIMENSION(:), INTENT(in) :: derived_params
+      TYPE (model_class), INTENT(inout)              :: a_model
+
+!  local arguments
+      INTEGER                                        :: i
+
+!  Start of executable code
+      DO i = 1, SIZE(derived_params)
+         this%f(this%current_step,i) =                                         &
+     &      param_get_value(derived_params(i)%p, a_model)
+      END DO
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Evaluate the proper quasi-Newton step.
 !>
 !>  Evaluates the jacobian, performs the SVD and computes the quasi-Newton step.
 !>
-!>  @param[inout] this     A @ref reconstruction_class instance.
-!>  @param[inout] signals  Array of @ref signal objects.
-!>  @param[inout] a_model  A @ref model instance.
-!>  @param[inout] params   Array of @ref parameter objects.
-!>  @param[inout] eq_steps Number of steps for the equilibrium to take.
-!>  @param[in]    iou      Input/output file to write log messages to.
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[inout] signals        Array of @ref signal objects.
+!>  @param[in]    derived_params Array of derived @ref param objects.
+!>  @param[inout] a_model        A @ref model instance.
+!>  @param[inout] params         Array of @ref parameter objects.
+!>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
+!>  @param[in]    iou            Input/output file to write log messages to.
 !>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_eval_step(this, signals, a_model,                &
-     &                                  params, eq_steps, iou)
+      FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
+     &                                  a_model, params, eq_steps, iou)
 
       IMPLICIT NONE
 
@@ -591,6 +649,8 @@
       INTEGER :: reconstruction_eval_step
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
+     &   derived_params
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
@@ -647,8 +707,23 @@
      &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
      &           this%e(this%current_step,i))
          END DO
-         this%jacobian(:,j) = this%jacobian(:,j)*SIGN(1.0_rprec,               &
-     &                                                params(j)%p%delta)
+         this%jacobian(:,j) = this%jacobian(:,j)                               &
+     &                      * SIGN(1.0_rprec, params(j)%p%delta)
+
+!  Compute the derived parameter jacobian. d f_i/d a_j . This will parallel the
+!  signal jacobian with the exception that the parameters aren't normalized.
+!  Using equation (3) above the derived jacobian becomes
+!
+!    d f_i/d a_j = (f'_i - f_i)*|pi_j|/pi_j
+!
+!  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
+         DO i = 1, SIZE(derived_params)
+            this%derived_jacobian(i,j) =                                       &
+     &         -(param_get_value(derived_params(i)%p, a_model) -               &
+     &           this%f(this%current_step,i))
+         END DO
+         this%derived_jacobian(:,j) = this%derived_jacobian(:,j)               &
+     &                              * SIGN(1.0_rprec, params(j)%p%delta)
 
 !  Restore the parameter and the equilibirum to it's initial value.
          CALL param_set_value(params(j)%p, a_model, param_value)
@@ -691,8 +766,7 @@
       CALL dgesvd('All', 'All', SIZE(signals), SIZE(params),                   &
      &            temp_jacobian, SIZE(signals), this%j_svd_w,                  &
      &            this%j_svd_u, SIZE(signals), this%j_svd_vt,                  &
-     &            SIZE(params), temp_work,                                     &
-     &            5*MAX(SIZE(signals), SIZE(params)), svd_status)
+     &            SIZE(params), temp_work, SIZE(temp_work), svd_status)
       CALL assert_eq(0, svd_status, 'reconstruction_eval_step: ' //            &
      &               'dgesvd problem')
 
@@ -1105,8 +1179,8 @@
 !>  @param[in]    iou      Input/output file to write log messages to.
 !>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_step(this, signals, a_model, params,             &
-     &                             eq_steps, iou)
+      FUNCTION reconstruction_step(this, signals, derived_params,              &
+     &                             a_model, params, eq_steps, iou)
       USE signal
       USE model
       USE param
@@ -1117,6 +1191,8 @@
       LOGICAL :: reconstruction_step
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
+     &   derived_params
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
@@ -1133,8 +1209,8 @@
       reconstruction_step = .false.
 
 !  Evaluate the quasi-Newton step.
-      k_use = reconstruction_eval_step(this, signals, a_model, params,         &
-     &                                 eq_steps, iou)
+      k_use = reconstruction_eval_step(this, signals, derived_params,          &
+     &                                 a_model, params, eq_steps, iou)
 
       ALLOCATE(param_value(SIZE(params)))
       ALLOCATE(delta_a(SIZE(params)))
@@ -1195,6 +1271,8 @@
          IF (reconstruction_eval_e(this, signals, a_model,                     &
      &                             eq_steps, iou)) THEN
 !  Equilibrium converged
+            CALL reconstruction_eval_f(this, derived_params, a_model)
+
             IF (reconstruction_get_dg2(this) .ge. 0.0) THEN
                reconstruction_step = .true.
                WRITE (*,*)
@@ -1258,10 +1336,13 @@
 !>  @ref parameter::param_class::sem. To fine the signal effectiveness, an
 !>  intermediate step compute the parameter covariance.
 !>
-!>  @param[inout] this   A @ref reconstruction_class instance.
-!>  @param[inout] params Array of @ref parameter objects.
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[inout] params         Array of @ref parameter objects.
+!>  @param[inout] signals        Array of @ref signal objects.
+!>  @param[inout] derived_params Array of @ref parameter objects.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_eval_sem(this, params, signals)
+      SUBROUTINE reconstruction_eval_sem(this, params, signals,                &
+     &                                   derived_params)
 
       IMPLICIT NONE
 
@@ -1269,53 +1350,67 @@
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout)  ::                    &
+     &   derived_params
 
 !  local arguments
       INTEGER                                            :: j
-      INTEGER                                            :: status
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: cp
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: svd_vt
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: svd_u
-      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: svd_w
-      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: svd_work
+      REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
+      REAL (rprec), DIMENSION(:,:), POINTER              :: jd, jdt
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: left, right
 
 !  local parameters
-      REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   sub_name = 'reconstruction_eval_sem'
 
 !  Start of executable code
 !  Since the jacobian that will be used is normalized, the signal covaiance
 !  must be normalized as well. This results in an idenity matrix of
 !  SIZE(signals) X SIZE(signals).
 !
-!  J^T * C_s^-1 * J -> A^T * I * A = A^T * A
+!    C_p^-1 = J^T * C_s^-1 * J -> A^T * I * A = A^T * A                      (1)
 !
 !  Equation 3 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
 !  Note: This is the same as the hessian that was computed for the
 !  reconstruction. Use that value to avoid a matrix multiplication.
+!
+!  From the inverted normalized parameter covariance matrix an uncertainty on
+!  the derived parameters may be mapped from the derived jacobian. Assume there
+!  is a mapping from the drived parameter uncertainty to the parameter
+!  covariance matrix.
+!
+!    C_p^-1 = J'^T * C_d^-1 * J'                                             (2)
+      IF (SIZE(derived_params) .gt. 0) THEN
+         ALLOCATE(jd(SIZE(derived_params),SIZE(params)))
+         ALLOCATE(jdt(SIZE(params),SIZE(derived_params)))
+
+!  Invert the jacobian matrices.
+         jd = this%derived_jacobian
+         jdt = TRANSPOSE(this%derived_jacobian)
+
+         CALL reconstruction_invert_matrix(jd, sub_name, 'J''')
+         CALL reconstruction_invert_matrix(jdt, sub_name, 'J''^T')
+
+!  Invert C_d^-1 to get the derived covariance matrix. Since the J' matrix isn't
+!  normalized for the change in derived parameter, there is no normalization
+!  factor needed here.
+         ALLOCATE(cd(SIZE(derived_params), SIZE(derived_params)))
+         cd = MATMUL(jdt, MATMUL(this%hessian, jd))
+
+         CALL reconstruction_invert_matrix(cd, sub_name, 'C_d^-1')
+         DO j = 1, SIZE(derived_params)
+            derived_params(j)%p%sigma = SQRT(cd(j,j))
+         END DO
+
+         DEALLOCATE(cd, jd, jdt)
+      END IF
+
+!  Invert C_p^-1 to get the parameter covariance matrix.
       ALLOCATE(cp(SIZE(params),SIZE(params)))
       cp = this%hessian
 
-!  Singular value decomposition of cpinv to invert this matrix.
-      ALLOCATE(svd_vt(SIZE(params),SIZE(params)))
-      ALLOCATE(svd_u(SIZE(params),SIZE(params)))
-      ALLOCATE(svd_w(SIZE(params)))
-      ALLOCATE(svd_work(5*Size(params)))
-
-      CALL dgesvd('All', 'All', SIZE(params), SIZE(params), cp,                &
-     &            SIZE(params), svd_w, svd_u, SIZE(params), svd_vt,            &
-     &            SIZE(params), svd_work, 5*SIZE(params), status)
-      CALL assert_eq(0, status, 'reconstruction_eval_sem: dgesvd ' //          &
-     &               'problem')
-      DEALLOCATE(svd_work)
-
-!  Invert cp
-      cp = 0.0
-      DO j = 1, SIZE(params)
-         cp(j,j) = 1.0/MAX(svd_w(j), small_num)
-      END DO
-      cp = MATMUL(TRANSPOSE(svd_vt), MATMUL(cp, TRANSPOSE(svd_u)))
-      DEALLOCATE(svd_u, svd_vt, svd_w)
+      CALL reconstruction_invert_matrix(cp, sub_name, 'C_p^-1')
 
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
@@ -1330,13 +1425,13 @@
 !  The signal effectiveness for each parameter is stored in the parameter
 !  itself. Equation 6 in Hanson et. al. doi:10.1002/ctpp.200900059
 !
-!  (J * cp)^2 / (sigma_p^2 * sigma_s^2)                                      (1)
+!    (J * cp)^2 / (sigma_p^2 * sigma_s^2)                                    (4)
 !
 !  Due to use of the normalized jacobian and normalized parameter covariance
 !  matrix, the 1/sigma_s^2 term is found in the J^2 term. An extra Pi term must
 !  be multiplied out. In terms of the normalized quantities, becomes
 !
-!  (A * cp_n)^2 * pi^2 / sigma_p^2
+!    (A * cp_n)^2 * pi^2 / sigma_p^2                                         (5)
       DO j = 1, SIZE(params)
          params(j)%p%sem = (j_dot_cp(:,j)**2.0)                                &
      &                   * params(j)%p%delta**2.0                              &
@@ -1344,6 +1439,75 @@
       END DO
 
       DEALLOCATE(j_dot_cp, cp)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Invert an M x N matrix.
+!>
+!>  Performa a pseudo-inversion using a singular value decomposition.
+!>
+!>  @param[inout] matrix The matrix to invert.
+!>  @param[in]    sub    The subroutine of the matrix this was called from.
+!>  @param[in]    name   The name of the matrix to be inverted.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_invert_matrix(matrix, sub, name)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:) ,INTENT(inout), POINTER :: matrix
+      CHARACTER (len=*), INTENT(in)               :: sub
+      CHARACTER (len=*), INTENT(in)               :: name
+
+!  local arguments
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: svd_vt
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: svd_u
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: svd_w
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: svd_work
+      INTEGER                                     :: num_svd
+      INTEGER                                     :: work_size
+      INTEGER                                     :: i, status
+      INTEGER                                     :: m, n
+
+!  local parameters
+      REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
+
+!  Start of executable code
+      m = SIZE(matrix, 1)
+      n = SIZE(matrix, 2)
+
+      num_svd = MIN(m, n)
+      work_size = 5*MAX(m, n)
+
+      IF (num_svd .gt. 0) THEN
+
+         ALLOCATE(svd_vt(n,n))
+         ALLOCATE(svd_u(m,m))
+         ALLOCATE(svd_w(num_svd))
+         ALLOCATE(svd_work(work_size))
+
+!  Factor the matrix to M = U * W * V^T
+         CALL dgesvd('All', 'All', m, n, matrix, m, svd_w, svd_u,              &
+     &               m, svd_vt, n, svd_work, work_size, status)
+         CALL assert_eq(0, status, sub // ': dgesvd problem when ' //          &
+     &                  'inverting ' // name)
+
+!  If the matrix is rectangular the matrix will be inverse matrix transposed.
+         DEALLOCATE(matrix)
+         ALLOCATE(matrix(n,m))
+
+!  Adjust the small singular value so avoid a divide by zero.
+         matrix = 0
+         DO i = 1, num_svd
+            matrix(i,i) = 1.0/MAX(svd_w(i), small_num)
+         END DO
+
+!  Invert the matric M^-1 = V * W^-1 * U^T
+         matrix = MATMUL(TRANSPOSE(svd_vt),                                    &
+     &                   MATMUL(matrix, TRANSPOSE(svd_u)))
+         DEALLOCATE(svd_vt, svd_u, svd_w, svd_work)
+      END IF
 
       END SUBROUTINE
 
