@@ -355,8 +355,7 @@
             CALL reconstruction_eval_sem(context%recon,                        &
      &                                   context%params,                       &
      &                                   context%signals,                      &
-     &                                   context%derived_params,               &
-     &                                   context%num_eq_params)
+     &                                   context%derived_params)
             CALL v3fit_context_write_step_data(context, .false.)
 
 !  Test for convergence.
@@ -1127,7 +1126,6 @@
      &                             'reconstruction parameters'
 
 !  Initialize the reconstruction parameters.
-      context%num_eq_params = 0
       ALLOCATE(context%params(n_rp))
       DO i = 1, n_rp
          context%params(i)%p => param_construct(context%model,                 &
@@ -1139,11 +1137,6 @@
      &                                          rp_range_index(i,:,:),         &
      &                                          rp_range_value(i,:),           &
      &                                          SIZE(context%signals))
-
-         IF (param_is_eq_param(context%params(i)%p, context%model)) THEN
-            context%num_eq_params = context%num_eq_params + 1
-         END IF
-
       END DO
 
       ALLOCATE(context%derived_params(n_dp))

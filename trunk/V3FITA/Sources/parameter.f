@@ -101,6 +101,15 @@
      &                    param_construct_recon
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for the writting of @ref param_class data to the result file using
+!>  @ref param_write_step_data_1 or @ref param_write_step_data_2
+!-------------------------------------------------------------------------------
+      INTERFACE param_write_step_data
+         MODULE PROCEDURE param_write_step_data_1,                             &
+     &                    param_write_step_data_2
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -603,30 +612,6 @@
 
       END FUNCTION
 
-!-------------------------------------------------------------------------------
-!>  @brief Checks if the parameter is an equilibrium reconstruction parameter.
-!>
-!>  Computing the derived parameter uncertainty requires knowing to number of
-!>  equilibrium reconstruction parameters.
-!>
-!>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model instance.
-!>  @returns True if the parameter is a equilibrium reconstruction parameter.
-!-------------------------------------------------------------------------------
-      FUNCTION param_is_eq_param(this, a_model)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL                        :: param_is_eq_param
-      TYPE (param_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(in) :: a_model
-
-!  Start of executable code
-      param_is_eq_param = model_is_eq_param(a_model, this%param_id)
-
-      END FUNCTION
-
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
@@ -838,7 +823,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Write out the parameter data for a step to the result netcdf file.
 !>
-!>  Writes out the parameter value and sigma to the result file.
+!>  Writes out the parameter value, sigma and signal effectiveness matrix to the
+!>  result file.
 !>
 !>  @param[in] this           A @ref param_class instance.
 !>  @param[in] a_model        The equilibrium model.
@@ -855,10 +841,10 @@
 !>  Name and index information is written when the result file is first created
 !>  by @ref v3fit_context::v3fit_context_write_step_data.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_write_step_data(this, a_model, result_ncid,             &
-     &                                 current_step, index,                    &
-     &                                 param_value_id, param_sigma_id,         &
-     &                                 param_sem_id)
+      SUBROUTINE param_write_step_data_1(this, a_model, result_ncid,           &
+     &                                   current_step, index,                  &
+     &                                   param_value_id, param_sigma_id,       &
+     &                                   param_sem_id)
       USE ezcdf
 
       IMPLICIT NONE
@@ -877,6 +863,55 @@
       INTEGER                        :: status
 
 !  Start of executable code
+      CALL param_write_step_data(this, a_model, result_ncid,                   &
+     &                           current_step, index,                          &
+     &                           param_value_id, param_sigma_id)
+
+      status = nf_put_vara_double(result_ncid, param_sem_id,                   &
+     &                            (/ 1, index, current_step /),                &
+     &                            (/ SIZE(this%sem), 1, 1 /),                  &
+     &                            this%sem)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write out the parameter data for a step to the result netcdf file.
+!>
+!>  Writes out the parameter value and sigma to the result file.
+!>
+!>  @param[in] this           A @ref param_class instance.
+!>  @param[in] a_model        The equilibrium model.
+!>  @param[in] result_ncid    A NetCDF id of the result file.
+!>  @param[in] current_step   The surrent reconstruction step.
+!>  @param[in] index          A index of a parameter.
+!>  @param[in] param_value_id NetCDF variable id of the parameter value.
+!>                            @see v3fit_context
+!>  @param[in] param_sigma_id NetCDF variable id of the parameter sigma.
+!>                            @see v3fit_context
+!>  @note This assumes that the parameter sigma has already been calculated.
+!>  Name and index information is written when the result file is first created
+!>  by @ref v3fit_context::v3fit_context_write_step_data.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_write_step_data_2(this, a_model, result_ncid,           &
+     &                                   current_step, index,                  &
+     &                                   param_value_id, param_sigma_id)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
+      INTEGER, INTENT(in)            :: result_ncid
+      INTEGER, INTENT(in)            :: current_step
+      INTEGER, INTENT(in)            :: index
+      INTEGER, INTENT(in)            :: param_value_id
+      INTEGER, INTENT(in)            :: param_sigma_id
+
+!  local variables
+      INTEGER                        :: status
+
+!  Start of executable code
       status = nf_put_var1_double(result_ncid, param_value_id,                 &
      &                            (/ index, current_step /),                   &
      &                            param_get_value(this, a_model))
@@ -886,11 +921,6 @@
      &                            (/ index, current_step /),                   &
      &                            this%sigma)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
-      status = nf_put_vara_double(result_ncid, param_sem_id,                   &
-     &                            (/ 1, index, current_step /),                &
-     &                            (/ SIZE(this%sem), 1, 1 /),                  &
-     &                            this%sem)
 
       END SUBROUTINE
 

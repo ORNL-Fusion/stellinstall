@@ -79,9 +79,6 @@
 !>  -1 represents no @ref combination_class signal created.
          INTEGER :: combination_index = -1
 
-!>  Number of equilibrium reconstruction parameters.
-         INTEGER :: num_eq_params = 0
-
 !  Result file NetCDF variables.
 !>  NetCDF result file to write out the results in machine readable form.
          INTEGER :: result_ncid
@@ -91,6 +88,14 @@
 !>  NetCDF variable id contain the g^2 value for each reconstruction step.
          INTEGER :: g2_id
 
+!>  NetCDF variable id contain the derived parameter values for each
+!>  reconstruction step.
+!>  @see param
+         INTEGER :: derived_param_value_id
+!>  NetCDF variable id contain the derived parameter sigmas for each
+!>  reconstruction step.
+!>  @see param
+         INTEGER :: derived_param_sigma_id
 !>  NetCDF variable id contain the parameter values for each reconstruction
 !>  step.
 !>  @see param
@@ -542,6 +547,7 @@
 !>  @header{Dimension, Description, Code Reference}
 !>  @begin_table
 !>     @item{maxnsteps,   The max number of reconstruction steps., v3fit_input::nrstep}
+!>     @item{ndparam,     Number of derived parameters.,           v3fit_input::n_dp}
 !>     @item{nparam,      Number of reconstruction parameters.,    v3fit_input::n_rp}
 !>     @item{nparamindex, Number of parameter indices.,            data_parameters::data_max_indicies}
 !>     @item{nsignal,     Number of constructed signals.,          v3fit_context::v3fit_context_class::signals}
@@ -557,7 +563,13 @@
 !>     @item{nsteps,         Actual number of steps taken.,           reconstruction::reconstruction_class::current_step}
 !>     @item{g2 (maxnsteps), g^2 value for each reconstruction step., reconstruction::reconstruction_get_g2}
 !>  @end_table
-!>  @table_section{result_file_main_param_var_sec, Parameter Variables}
+!>  @table_section{result_file_main_dir_param_var_sec, Derived Parameter Variables}
+!>     @item{derived_param_name (string_len\, ndparam),   Name of the derived parameter.,          param::param_get_name}
+!>     @item{derived_param_index (nparamindex\, ndparam), Indices of the derived parameter.,       param::param_class::indicies}
+!>     @item{derived_param_value (ndparam\, maxnsteps),   Parameter values for each derived step., param::param_get_value}
+!>     @item{derived_param_sigma (ndparam\, maxnsteps),   Parameter sigmas for each derived step., param::param_class::sigma}
+!>  @end_table
+!>  @table_section{result_file_main_param_var_sec, Reconstruction Parameter Variables}
 !>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,              param::param_get_name}
 !>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,           param::param_class::indicies}
 !>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,     param::param_get_value}
@@ -595,10 +607,13 @@
       INTEGER :: status
       INTEGER :: i
       INTEGER :: maxnsteps_dim_id
+      INTEGER :: ndparam_dim_id
       INTEGER :: nparam_dim_id
       INTEGER :: nparamindex_dim_id
       INTEGER :: nsignal_dim_id
       INTEGER :: string_len_dim_id
+      INTEGER :: derived_param_name_id
+      INTEGER :: derived_param_index_id
       INTEGER :: param_name_id
       INTEGER :: param_index_id
       INTEGER :: signal_name_id
@@ -619,6 +634,14 @@
       IF (ASSOCIATED(this%params) .or. ASSOCIATED(this%signals)) THEN
          status = nf_def_dim(this%result_ncid, 'string_len',                   &
      &                       data_name_length, string_len_dim_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%derived_params) .and.                                &
+     &    SIZE(this%derived_params) .gt. 0) THEN
+         status = nf_def_dim(this%result_ncid, 'ndparam',                      &
+     &                       SIZE(this%derived_params),                        &
+     &                       ndparam_dim_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -649,7 +672,35 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
-!  Define parameter variables.
+!  Define derived parameter variables.
+      IF (ASSOCIATED(this%derived_params) .and.                                &
+     &    SIZE(this%derived_params) .gt. 0) THEN
+         status = nf_def_var(this%result_ncid, 'derived_param_name',           &
+     &                       nf_char, 2, (/ string_len_dim_id,                 &
+     &                                      ndparam_dim_id /),                 &
+     &                       derived_param_name_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_def_var(this%result_ncid, 'derived_param_index',          &
+     &                       nf_int, 2, (/ nparamindex_dim_id,                 &
+     &                                     ndparam_dim_id /),                  &
+     &                       derived_param_index_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_def_var(this%result_ncid, 'derived_param_value',          &
+     &                       nf_double, 2, (/ ndparam_dim_id,                  &
+     &                                        maxnsteps_dim_id /),             &
+     &                       this%derived_param_value_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_def_var(this%result_ncid, 'derived_param_sigma',          &
+     &                       nf_double, 2, (/ ndparam_dim_id,                  &
+     &                                        maxnsteps_dim_id /),             &
+     &                       this%derived_param_sigma_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+!  Define reconstruction parameter variables.
       IF (ASSOCIATED(this%params)) THEN
          status = nf_def_var(this%result_ncid, 'param_name', nf_char,          &
      &                       2, (/ string_len_dim_id,                          &
@@ -678,6 +729,7 @@
      &                                        nparam_dim_id,                   &
      &                                        maxnsteps_dim_id /),             &
      &                       this%param_sem_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
 !  Define signal variables.
@@ -724,6 +776,23 @@
 ! Finished defining netcdf file. Exit out of define mode.
       status = nf_enddef(this%result_ncid)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      IF (ASSOCIATED(this%derived_params)) THEN
+         DO i = 1, SIZE(this%derived_params)
+            status = nf_put_vara_text(this%result_ncid,                        &
+     &                  derived_param_name_id, (/ 1, i /),                     &
+     &                  (/ data_name_length, 1 /),                             &
+     &                  param_get_name(this%derived_params(i)%p,               &
+     &                                 this%model))
+            CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+            status = nf_put_vara_int(this%result_ncid,                         &
+     &                               derived_param_index_id,                   &
+     &                               (/ 1, i /), (/ 2, 1 /),                   &
+     &                               this%derived_params(i)%p%indicies)
+            CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         END DO
+      END IF
 
       IF (ASSOCIATED(this%params)) THEN
          DO i = 1, SIZE(this%params)
@@ -832,6 +901,16 @@
      &                               current_step,                             &
      &                               reconstruction_get_g2(this%recon))
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%derived_params)) THEN
+         DO i = 1, SIZE(this%derived_params)
+            CALL param_write_step_data(this%derived_params(i)%p,               &
+     &                                 this%model, this%result_ncid,           &
+     &                                 current_step, i,                        &
+     &                                 this%derived_param_value_id,            &
+     &                                 this%derived_param_sigma_id)
+         END DO
       END IF
 
       IF (ASSOCIATED(this%params)) THEN

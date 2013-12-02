@@ -1050,41 +1050,6 @@
 
       END FUNCTION
 
-!-------------------------------------------------------------------------------
-!>  @brief Determines if a parameter id is a equilibrium reconstruction
-!>  parameter.
-!>
-!>  Computing the derived parameter uncertainty requires knowing to number of
-!>  equilibrium reconstruction parameters. Currently only the VMEC equilibrium
-!>  has equilibrium reconstruction parameters.
-!>  @see vmec_equilibrium::vmec_is_eq_param
-!>
-!>  @param[in] this A @ref equilibrium_class instance.
-!>  @param[in] id   ID of the parameter.
-!>  @returns True if the parameter is a equilibrium reconstruction parameter.
-!-------------------------------------------------------------------------------
-      FUNCTION equilibrium_is_eq_param(this, id)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL :: equilibrium_is_eq_param
-      TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                  :: id
-
-!  Start of executable code
-      SELECT CASE (this%type)
-
-         CASE (equilibrium_vmec_type)
-            equilibrium_is_eq_param = vmec_is_eq_param(this%vmec, id)
-
-         CASE DEFAULT
-            equilibrium_is_eq_param = .false.
-
-      END SELECT
-
-      END FUNCTION
-
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************

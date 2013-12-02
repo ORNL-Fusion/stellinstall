@@ -1340,11 +1340,9 @@
 !>  @param[inout] params         Array of @ref parameter objects.
 !>  @param[inout] signals        Array of @ref signal objects.
 !>  @param[inout] derived_params Array of @ref parameter objects.
-!>  @param[in]    num_eq_params  Number of equilibrium reconstruction
-!>                               parameters.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_sem(this, params, signals,                &
-     &                                   derived_params, num_eq_params)
+     &                                   derived_params)
 
       IMPLICIT NONE
 
@@ -1354,15 +1352,11 @@
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  ::                    &
      &   derived_params
-      INTEGER, INTENT(in)                                ::                    &
-     &   num_eq_params
 
 !  local arguments
       INTEGER                                            :: j
       REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
-      REAL (rprec), DIMENSION(:,:), POINTER              :: jd, jdt
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: left, right
 
 !  local parameters
       CHARACTER (len=*), PARAMETER ::                                          &
@@ -1378,47 +1372,27 @@
 !  Equation 3 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
 !  Note: This is the same as the hessian that was computed for the
 !  reconstruction. Use that value to avoid a matrix multiplication.
+      ALLOCATE(cp(SIZE(params),SIZE(params)))
+      cp = this%hessian
+
+!  Invert C_p^-1 to get the parameter covariance matrix.
+      CALL reconstruction_invert_matrix(cp, sub_name, 'C_p^-1')
+
+!  From the parameter covariance matrix, map the reconstructed uncertainty to
+!  the derived parameters by the derived jacobian.
 !
-!  From the inverted normalized parameter covariance matrix an uncertainty on
-!  the derived parameters may be mapped from the derived jacobian. Assume there
-!  is a mapping from the drived parameter uncertainty to the parameter
-!  covariance matrix.
-!
-!    C_p^-1 = J'^T * C_d^-1 * J'                                             (2)
+!    C_d = J' * C_d * J'^T                                                   (2)
       IF (SIZE(derived_params) .gt. 0) THEN
-         ALLOCATE(jd(SIZE(derived_params),SIZE(params)))
-         ALLOCATE(jdt(SIZE(params),SIZE(derived_params)))
-
-!  Invert the jacobian matrices.
-         jd = this%derived_jacobian
-         jdt = TRANSPOSE(this%derived_jacobian)
-
-         CALL reconstruction_invert_matrix(jd, sub_name, 'J''',                &
-     &                                     num_eq_params)
-         CALL reconstruction_invert_matrix(jdt, sub_name, 'J''^T',             &
-     &                                     num_eq_params)
-
-!  Invert C_d^-1 to get the derived covariance matrix. Since the J' matrix isn't
-!  normalized for the change in derived parameter, there is no normalization
-!  factor needed here.
          ALLOCATE(cd(SIZE(derived_params), SIZE(derived_params)))
-         cd = MATMUL(jdt, MATMUL(this%hessian, jd))
+         cd = MATMUL(this%derived_jacobian,                                    &
+     &               MATMUL(cp, TRANSPOSE(this%derived_jacobian)))
 
-         CALL reconstruction_invert_matrix(cd, sub_name, 'C_d^-1',             &
-     &                                     num_eq_params)
          DO j = 1, SIZE(derived_params)
             derived_params(j)%p%sigma = SQRT(cd(j,j))
          END DO
 
-         DEALLOCATE(cd, jd, jdt)
+         DEALLOCATE(cd)
       END IF
-
-!  Invert C_p^-1 to get the parameter covariance matrix.
-      ALLOCATE(cp(SIZE(params),SIZE(params)))
-      cp = this%hessian
-
-      CALL reconstruction_invert_matrix(cp, sub_name, 'C_p^-1',                &
-     &                                  SIZE(params))
 
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
@@ -1433,13 +1407,13 @@
 !  The signal effectiveness for each parameter is stored in the parameter
 !  itself. Equation 6 in Hanson et. al. doi:10.1002/ctpp.200900059
 !
-!    (J * cp)^2 / (sigma_p^2 * sigma_s^2)                                    (4)
+!    (J * cp)^2 / (sigma_p^2 * sigma_s^2)                                    (3)
 !
 !  Due to use of the normalized jacobian and normalized parameter covariance
 !  matrix, the 1/sigma_s^2 term is found in the J^2 term. An extra Pi term must
 !  be multiplied out. In terms of the normalized quantities, becomes
 !
-!    (A * cp_n)^2 * pi^2 / sigma_p^2                                         (5)
+!    (A * cp_n)^2 * pi^2 / sigma_p^2                                         (4)
       DO j = 1, SIZE(params)
          params(j)%p%sem = (j_dot_cp(:,j)**2.0)                                &
      &                   * params(j)%p%delta**2.0                              &
@@ -1458,10 +1432,8 @@
 !>  @param[inout] matrix The matrix to invert.
 !>  @param[in]    sub    The subroutine of the matrix this was called from.
 !>  @param[in]    name   The name of the matrix to be inverted.
-!>  @param[in]    w_use  The number of singular values to keep.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_invert_matrix(matrix, sub, name,               &
-     &                                        w_use)
+      SUBROUTINE reconstruction_invert_matrix(matrix, sub, name)
 
       IMPLICIT NONE
 
@@ -1469,7 +1441,6 @@
       REAL (rprec), DIMENSION(:,:) ,INTENT(inout), POINTER :: matrix
       CHARACTER (len=*), INTENT(in)               :: sub
       CHARACTER (len=*), INTENT(in)               :: name
-      INTEGER, INTENT(in)                         :: w_use
 
 !  local arguments
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: svd_vt
@@ -1516,9 +1487,9 @@
          DEALLOCATE(matrix)
          ALLOCATE(matrix(n,m))
 
-!  Adjust the small singular value so avoid a divide by zero.
+!  Invert the nonzero elements of the W matrix.
          matrix = 0
-         DO i = 1, MIN(w_use, num_svd)
+         DO i = 1, num_svd
             IF (svd_w(i) .gt. 0.0) THEN
                matrix(i,i) = 1.0/svd_w(i)
             END IF
