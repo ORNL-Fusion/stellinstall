@@ -1340,9 +1340,11 @@
 !>  @param[inout] params         Array of @ref parameter objects.
 !>  @param[inout] signals        Array of @ref signal objects.
 !>  @param[inout] derived_params Array of @ref parameter objects.
+!>  @param[in]    num_eq_params  Number of equilibrium reconstruction
+!>                               parameters.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_sem(this, params, signals,                &
-     &                                   derived_params)
+     &                                   derived_params, num_eq_params)
 
       IMPLICIT NONE
 
@@ -1352,6 +1354,8 @@
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  ::                    &
      &   derived_params
+      INTEGER, INTENT(in)                                ::                    &
+     &   num_eq_params
 
 !  local arguments
       INTEGER                                            :: j
@@ -1389,8 +1393,10 @@
          jd = this%derived_jacobian
          jdt = TRANSPOSE(this%derived_jacobian)
 
-         CALL reconstruction_invert_matrix(jd, sub_name, 'J''')
-         CALL reconstruction_invert_matrix(jdt, sub_name, 'J''^T')
+         CALL reconstruction_invert_matrix(jd, sub_name, 'J''',                &
+     &                                     num_eq_params)
+         CALL reconstruction_invert_matrix(jdt, sub_name, 'J''^T',             &
+     &                                     num_eq_params)
 
 !  Invert C_d^-1 to get the derived covariance matrix. Since the J' matrix isn't
 !  normalized for the change in derived parameter, there is no normalization
@@ -1398,7 +1404,8 @@
          ALLOCATE(cd(SIZE(derived_params), SIZE(derived_params)))
          cd = MATMUL(jdt, MATMUL(this%hessian, jd))
 
-         CALL reconstruction_invert_matrix(cd, sub_name, 'C_d^-1')
+         CALL reconstruction_invert_matrix(cd, sub_name, 'C_d^-1',             &
+     &                                     num_eq_params)
          DO j = 1, SIZE(derived_params)
             derived_params(j)%p%sigma = SQRT(cd(j,j))
          END DO
@@ -1410,7 +1417,8 @@
       ALLOCATE(cp(SIZE(params),SIZE(params)))
       cp = this%hessian
 
-      CALL reconstruction_invert_matrix(cp, sub_name, 'C_p^-1')
+      CALL reconstruction_invert_matrix(cp, sub_name, 'C_p^-1',                &
+     &                                  SIZE(params))
 
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
@@ -1450,8 +1458,10 @@
 !>  @param[inout] matrix The matrix to invert.
 !>  @param[in]    sub    The subroutine of the matrix this was called from.
 !>  @param[in]    name   The name of the matrix to be inverted.
+!>  @param[in]    w_use  The number of singular values to keep.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_invert_matrix(matrix, sub, name)
+      SUBROUTINE reconstruction_invert_matrix(matrix, sub, name,               &
+     &                                        w_use)
 
       IMPLICIT NONE
 
@@ -1459,6 +1469,7 @@
       REAL (rprec), DIMENSION(:,:) ,INTENT(inout), POINTER :: matrix
       CHARACTER (len=*), INTENT(in)               :: sub
       CHARACTER (len=*), INTENT(in)               :: name
+      INTEGER, INTENT(in)                         :: w_use
 
 !  local arguments
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: svd_vt
@@ -1470,21 +1481,29 @@
       INTEGER                                     :: i, status
       INTEGER                                     :: m, n
 
-!  local parameters
-      REAL (rprec), PARAMETER :: small_num = 10.0*TINY(1.0_rprec)
-
 !  Start of executable code
       m = SIZE(matrix, 1)
       n = SIZE(matrix, 2)
 
       num_svd = MIN(m, n)
-      work_size = 5*MAX(m, n)
 
       IF (num_svd .gt. 0) THEN
 
          ALLOCATE(svd_vt(n,n))
          ALLOCATE(svd_u(m,m))
          ALLOCATE(svd_w(num_svd))
+         ALLOCATE(svd_work(1))
+
+         svd_vt = 0.0
+         svd_u = 0.0
+         svd_w = 0.0
+         svd_work = 0.0
+
+!  Find the optimal work size.
+         CALL dgesvd('All', 'All', m, n, matrix, m, svd_w, svd_u,              &
+     &               m, svd_vt, n, svd_work, -1, status)
+         work_size = INT(svd_work(1))
+         DEALLOCATE(svd_work)
          ALLOCATE(svd_work(work_size))
 
 !  Factor the matrix to M = U * W * V^T
@@ -1493,14 +1512,16 @@
          CALL assert_eq(0, status, sub // ': dgesvd problem when ' //          &
      &                  'inverting ' // name)
 
-!  If the matrix is rectangular the matrix will be inverse matrix transposed.
+!  If the matrix is rectangular the inverse matrix will be transposed.
          DEALLOCATE(matrix)
          ALLOCATE(matrix(n,m))
 
 !  Adjust the small singular value so avoid a divide by zero.
          matrix = 0
-         DO i = 1, num_svd
-            matrix(i,i) = 1.0/MAX(svd_w(i), small_num)
+         DO i = 1, MIN(w_use, num_svd)
+            IF (svd_w(i) .gt. 0.0) THEN
+               matrix(i,i) = 1.0/svd_w(i)
+            END IF
          END DO
 
 !  Invert the matric M^-1 = V * W^-1 * U^T

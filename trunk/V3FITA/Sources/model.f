@@ -647,6 +647,41 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Determines if a parameter id is a equilibrium reconstruction
+!>  parameter.
+!>
+!>  Computing the derived parameter uncertainty requires knowing to number of
+!>  equilibrium reconstruction parameters.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a equilibrium reconstruction parameter.
+!-------------------------------------------------------------------------------
+      FUNCTION model_is_eq_param(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                        :: model_is_eq_param
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (model_ne_unit_id, model_ne_min_id,                              &
+     &         model_pressure_fraction_id)
+            model_is_eq_param = .false.
+
+         CASE DEFAULT
+            model_is_eq_param =                                                &
+     &         equilibrium_is_eq_param(this%equilibrium, id)
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************

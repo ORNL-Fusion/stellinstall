@@ -79,6 +79,9 @@
 !>  -1 represents no @ref combination_class signal created.
          INTEGER :: combination_index = -1
 
+!>  Number of equilibrium reconstruction parameters.
+         INTEGER :: num_eq_params = 0
+
 !  Result file NetCDF variables.
 !>  NetCDF result file to write out the results in machine readable form.
          INTEGER :: result_ncid

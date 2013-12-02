@@ -603,6 +603,30 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Checks if the parameter is an equilibrium reconstruction parameter.
+!>
+!>  Computing the derived parameter uncertainty requires knowing to number of
+!>  equilibrium reconstruction parameters.
+!>
+!>  @param[in] this    A @ref param_class instance.
+!>  @param[in] a_model A @ref model instance.
+!>  @returns True if the parameter is a equilibrium reconstruction parameter.
+!-------------------------------------------------------------------------------
+      FUNCTION param_is_eq_param(this, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                        :: param_is_eq_param
+      TYPE (param_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in) :: a_model
+
+!  Start of executable code
+      param_is_eq_param = model_is_eq_param(a_model, this%param_id)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************

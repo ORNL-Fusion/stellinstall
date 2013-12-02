@@ -2191,6 +2191,47 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Determines if a parameter id is a equilibrium reconstruction
+!>  parameter.
+!>
+!>  Computing the derived parameter uncertainty requires knowing to number of
+!>  equilibrium reconstruction parameters. These parameter causes changes in the
+!>  derived parameters when they are changed.  This method overrides
+!>  @ref equilibrium::equilibrium_is_eq_param.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] id   ID of the parameter.
+!>  @returns True if the parameter is a reconstruction parameter and false if
+!>  otherwise.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_eq_param(this, id)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_eq_param
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: id
+
+!  Start of executable code
+      SELECT CASE (id)
+
+         CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
+     &         vmec_ac_id, vmec_ac_aux_s_id, vmec_ac_aux_f_id,                 &
+     &         vmec_ai_id, vmec_ai_aux_s_id, vmec_ai_aux_f_id,                 &
+     &         vmec_am_id, vmec_am_aux_s_id, vmec_am_aux_f_id,                 &
+     &         vmec_extcur_id, vmec_curtor_id, vmec_phiedge_id,                &
+     &         vmec_pres_scale_id, vmec_bloat_id)
+            vmec_is_eq_param = .true.
+
+         CASE DEFAULT
+            vmec_is_eq_param = .false.
+
+      END SELECT
+
+      END FUNCTION
+
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
