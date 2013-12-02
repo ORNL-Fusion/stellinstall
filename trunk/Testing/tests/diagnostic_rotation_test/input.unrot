@@ -20,10 +20,6 @@ DELT = 0.5,
 NITER = 20000,
 NSTEP =  200,
 
-! Preconditioning Parameters
-! PRECON_TYPE = ''
-! PREC2D_THRESHOLD = 1.E-14
-
 !  Current / Iota profile
 NCURR = 0,
 PIOTA_TYPE = 'cubic_spline'
