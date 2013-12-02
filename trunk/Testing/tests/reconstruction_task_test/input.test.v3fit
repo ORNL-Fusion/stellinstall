@@ -33,6 +33,58 @@ cut_dg2 = 0.0,
 astep_max = 100.0,
 step_type = 'lm',
 
+n_dp = 17,
+
+dp_type(1) = 'iotaf'
+dp_index(1,1) = 1
+
+dp_type(2) = 'iotaf'
+dp_index(2,1) = 2
+
+dp_type(3) = 'iotaf'
+dp_index(3,1) = 3
+
+dp_type(4) = 'iotaf'
+dp_index(4,1) = 4
+
+dp_type(5) = 'iotaf'
+dp_index(5,1) = 5
+
+dp_type(6) = 'iotaf'
+dp_index(6,1) = 6
+
+dp_type(7) = 'iotaf'
+dp_index(7,1) = 7
+
+dp_type(8) = 'iotaf'
+dp_index(8,1) = 8
+
+dp_type(9) = 'iotaf'
+dp_index(9,1) = 9
+
+dp_type(10) = 'iotaf'
+dp_index(10,1) = 10
+
+dp_type(11) = 'iotaf'
+dp_index(11,1) = 11
+
+dp_type(12) = 'iotaf'
+dp_index(12,1) = 12
+
+dp_type(13) = 'iotaf'
+dp_index(13,1) = 13
+
+dp_type(14) = 'iotaf'
+dp_index(14,1) = 14
+
+dp_type(15) = 'iotaf'
+dp_index(15,1) = 15
+
+dp_type(16) = 'vvc_smaleli',
+
+dp_type(17) = 'rmnc'
+dp_index(17,:) = 1, 1,
+
 n_rp = 7,
 
 rp_type(1) = 'pp_ne_af',
