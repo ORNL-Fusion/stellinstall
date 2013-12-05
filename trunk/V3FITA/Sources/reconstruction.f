@@ -7,7 +7,6 @@
 !
 !>  Defines the base class of the type @ref reconstruction_class. This class
 !>  contains the minimization algorithm.
-!>  @todo Add signal effectiveness.
 !*******************************************************************************
 
       MODULE reconstruction
@@ -697,7 +696,7 @@
 !
 !  Subsituting equation 2 into 3, reduces to
 !
-!    d e_i/d a_j = (e'_i - e_i)*|pi_j|/pi_j
+!    d e_i/d a_j = (e'_i - e_i)*|pi_j|/pi_j                                  (4)
 !
 !  In this coding e_i = Sqrt(signal_get_g2)
 !  and |pi_j|/pi_j = SIGN(1,delta_param)
@@ -714,7 +713,7 @@
 !  signal jacobian with the exception that the parameters aren't normalized.
 !  Using equation (3) above the derived jacobian becomes
 !
-!    d f_i/d a_j = (f'_i - f_i)*|pi_j|/pi_j
+!    d f_i/d a_j = (f'_i - f_i)*|pi_j|/pi_j                                  (5)
 !
 !  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
          DO i = 1, SIZE(derived_params)
@@ -734,7 +733,7 @@
 !  Compute the positive definite Hessian, matrix. Equation 14 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
-!    alpha = A^T * A
+!    alpha = A^T * A                                                         (6)
 !
 !  Numerical Recipes Third edition Equation 15.5.7 . In here, the second
 !  derivatives are assumed to be small and ignored.
@@ -743,11 +742,13 @@
 !  Compute the gradient vector in parameter space. Equation 13 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
-!    beta = A^T * e
+!    beta = A^T * e                                                          (7)
       this%gradient = MATMUL(TRANSPOSE(this%jacobian),                         &
      &                       this%e(this%current_step,:))
 
 !  Compute the steepest descent step size in normalized parameter space.
+!
+!    da = beta * beta * beta / (beta * alpha * beta)                         (8)
       this%delta_a(0,:) = this%gradient*DOT_PRODUCT(this%gradient,             &
      &                                              this%gradient)             &
      &                  / DOT_PRODUCT(this%gradient,                           &
@@ -1381,7 +1382,7 @@
 !  From the parameter covariance matrix, map the reconstructed uncertainty to
 !  the derived parameters by the derived jacobian.
 !
-!    C_d = J' * C_d * J'^T                                                   (2)
+!    C_d = J' * C_p * J'^T                                                   (2)
       IF (SIZE(derived_params) .gt. 0) THEN
          ALLOCATE(cd(SIZE(derived_params), SIZE(derived_params)))
          cd = MATMUL(this%derived_jacobian,                                    &
@@ -1427,7 +1428,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Invert an M x N matrix.
 !>
-!>  Performa a pseudo-inversion using a singular value decomposition.
+!>  Perform a pseudo-inversion using a singular value decomposition.
 !>
 !>  @param[inout] matrix The matrix to invert.
 !>  @param[in]    sub    The subroutine of the matrix this was called from.

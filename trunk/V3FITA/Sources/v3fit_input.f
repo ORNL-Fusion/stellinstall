@@ -211,6 +211,11 @@
 !>     @item{coosig_units,   Character array of coosig units,                                                                                                                      v3fit_input::coosig_units}
 !>  @end_table
 !>
+!>  @table_section{phi_off_sec, Phi Offset Section}
+!>     @item{phi_offset, Initial phi offset value to rotate the plasma relative
+!>                       to the diagnostics. This value is in radians.,         v3fit_input::phi_offset}
+!>  @end_table
+!>
 !>  @table_section{recon_sec, Reconstruction step control NLI variables}
 !>     @item{nrstep,       max number of reconstruction steps to perform,      v3fit_input::nrstep}
 !>     @item{dg2_stop,     Stopping criterion on change in g^2,                v3fit_input::dg2_stop}
@@ -815,6 +820,10 @@
       CHARACTER (len=data_short_name_length),                                  &
      &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
 
+!  Initial Phi Offset
+!>  Offset of plasma relative to the diagnostics.
+      REAL (rprec) :: phi_offset = 0
+
 !  Reconstruction step control specification.
 !>  Max number of reconstruction steps to perform.
       INTEGER                                :: nrstep = 0
@@ -901,6 +910,8 @@
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
      &   coosig_type, coosig_name, coosig_units,                               &
+!  Initial Phi Offset
+     &   phi_offset,                                                           &
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type,                                        &
