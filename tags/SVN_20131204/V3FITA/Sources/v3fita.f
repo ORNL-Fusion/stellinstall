@@ -534,7 +534,7 @@
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
-     &                                        ne, te, sxr,                     &
+     &                                        ne, te, sxr, phi_offset,         &
      &                                        context%runlog_iou),             &
      &                         force_solve))
 

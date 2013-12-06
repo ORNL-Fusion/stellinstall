@@ -97,7 +97,7 @@
 !>     @item{iotaf,       1D Array of full grid iotabar.,                  @ref read_wout_mod::iotaf}
 !>     @item{iotas,       1D Array of half grid iotabar.,                  @ref read_wout_mod::iotas}
 !>     @item{vvc_smaleli, Internal inducance. Computed in @ref eqfor.,     @ref v3f_vmec_comm::vvc_smaleli}
-!>     @item{vvc_kappa,   Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa}
+!>     @item{vvc_kappa_p,   Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa_p}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
@@ -367,14 +367,17 @@
 !>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
 !>  for one iteration to initialize all the input parameters. Defined in
 !>  @ref vmec_input.
-!>  @param[in] file_name Filename of the vmec namelist input file.
-!>  @param[in] ne        @ref pprofile_T for the electron density.
-!>  @param[in] te        @ref pprofile_T for the electron temperature.
-!>  @param[in] sxrem     @ref pprofile_T for the soft x-ray emissivity.
-!>  @param[in] iou       Input/output unit to log messages to.
+!>  @param[in] file_name  Filename of the vmec namelist input file.
+!>  @param[in] ne         @ref pprofile_T for the electron density.
+!>  @param[in] te         @ref pprofile_T for the electron temperature.
+!>  @param[in] sxrem      @ref pprofile_T for the soft x-ray emissivity.
+!>  @param[in] phi_offset Initial phi offset of the plasma relative to the
+!>                        diagnostics in radians.
+!>  @param[in] iou        Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, ne, te, sxrem, iou)
+      FUNCTION vmec_construct(file_name, ne, te, sxrem, phi_offset,            &
+     &                        iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -390,6 +393,7 @@
       TYPE (pprofile), POINTER, INTENT(in) :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER, INTENT(in) ::            &
      &   sxrem
+      REAL (rprec), INTENT(in)             :: phi_offset
       INTEGER, INTENT(in)                  :: iou
 
 !  local variables
@@ -406,6 +410,8 @@
       vmec_construct%ne => ne
       vmec_construct%te => te
       vmec_construct%sxrem => sxrem
+
+      vmec_construct%phi_offset = phi_offset
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
