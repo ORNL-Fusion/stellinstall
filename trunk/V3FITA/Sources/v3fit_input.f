@@ -1060,20 +1060,20 @@
                   CASE ('pp_sxrem_b')
                      WRITE (*,1000) 'pp_sxrem_b', 'pp_sxrem_b_a'
                      rp_type(i) = 'pp_sxrem_b_a'
-                     rp_index2 = rp_index
-                     rp_index = 1
+                     rp_index2(i) = rp_index(i)
+                     rp_index(i) = 1
 
                   CASE ('pp_sxrem_as')
                      WRITE (*,1000) 'pp_sxrem_as', 'pp_sxrem_as_a'
                      rp_type(i) = 'pp_sxrem_as_a'
-                     rp_index2 = rp_index
-                     rp_index = 1
+                     rp_index2(i) = rp_index(i)
+                     rp_index(i) = 1
 
                   CASE ('pp_sxrem_af')
                      WRITE (*,1000) 'pp_sxrem_af', 'pp_sxrem_af_a'
                      rp_type(i) = 'pp_sxrem_af_a'
-                     rp_index2 = rp_index
-                     rp_index = 1
+                     rp_index2(i) = rp_index(i)
+                     rp_index(i) = 1
 
                END SELECT
 

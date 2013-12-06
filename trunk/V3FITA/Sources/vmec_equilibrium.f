@@ -97,7 +97,7 @@
 !>     @item{iotaf,       1D Array of full grid iotabar.,                  @ref read_wout_mod::iotaf}
 !>     @item{iotas,       1D Array of half grid iotabar.,                  @ref read_wout_mod::iotas}
 !>     @item{vvc_smaleli, Internal inducance. Computed in @ref eqfor.,     @ref v3f_vmec_comm::vvc_smaleli}
-!>     @item{vvc_kappa,   Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa}
+!>     @item{vvc_kappa_p,   Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa_p}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
