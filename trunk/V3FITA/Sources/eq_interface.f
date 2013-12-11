@@ -695,9 +695,12 @@
       ALLOCATE(l_extcur_mask(ilb1:iub1),STAT=ier1)
       CALL assert_eq(0,ier1,sub_name // 'alloc l_bextcur_mask')
 
-      l_extcur_mask = extcur .ne. state % varp % extcur
-      lextcur_diff = any(l_extcur_mask)
-      IF (lextcur_diff) extcur = state % varp % extcur
+      l_extcur_mask = extcur .ne. state%varp%extcur
+      lextcur_diff = ANY (l_extcur_mask)
+      WHERE (l_extcur_mask)
+         extcur = state%varp%extcur
+      END WHERE
+
 
 !  See if boundary coefficients have changed, set lrbc_diff, etc.
       ilb1 = LBOUND(rbc,1)

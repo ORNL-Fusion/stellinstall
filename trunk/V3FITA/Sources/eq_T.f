@@ -56,6 +56,7 @@
 !  Use vmec_input ndatafmax for auxiliary arrays (J Geiger, 20120203)
 !-------------------------------------------------------------------------------
       USE vparams, ONLY: ndatafmax
+      USE vsvd0, ONLY: nigroup
       
       IMPLICIT NONE
 
@@ -293,7 +294,7 @@
          REAL(rprec), DIMENSION(:,:), POINTER :: zbs => null()
          REAL(rprec), DIMENSION(:,:), POINTER :: zbc => null()
          REAL(rprec), DIMENSION(:,:), POINTER :: rbs => null()
-         REAL(rprec), DIMENSION(100) :: extcur
+         REAL(rprec), DIMENSION(nigroup) :: extcur
          REAL(rprec) :: curtor
          REAL(rprec) :: phiedge
          REAL(rprec) :: pres_scale

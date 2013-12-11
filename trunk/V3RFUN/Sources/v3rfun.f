@@ -116,6 +116,7 @@
       USE v3rfun_data
       USE safe_open_mod
       USE v3_utilities
+      USE vsvd0, ONLY: nigroup
 
       IMPLICIT NONE
 
@@ -287,6 +288,13 @@
 !  Coils are stored in array of bsc_coilcoll named coil_group, 
 !  declared in module biotsavart
 !  Loop over coil groups
+
+      IF (n_field_cg .gt. nigroup) THEN
+         CALL err_fatal('Number of coils groups exceeds max size ' //          &
+     &                  'of coil groups. Increase size of nigroup ' //         &
+     &                  'in LIBSTELL/Sources/Modules/vsvd0.f')
+      END IF
+
       WRITE(*,*)
       WRITE(*,*) ' Rotate and Shift of the Coil Groups'
       DO iextcur = 1,n_field_cg

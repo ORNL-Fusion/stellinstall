@@ -1,5 +1,6 @@
       MODULE v3rfun_data
 
+      USE vsvd0, ONLY: nigroup
       USE stel_kinds
       USE bsc_T
       USE diagnostic_T
@@ -120,7 +121,7 @@
 !    cg_shift_2(:,3)        Vector to shift all the coils. (After rotation)    
 !    
 !---------------------------------------------------------------------------
-      INTEGER, PARAMETER :: nextcur_dim = 100
+      INTEGER, PARAMETER :: nextcur_dim = nigroup
       REAL(rprec), DIMENSION(nextcur_dim,3) ::  cg_shift_1,                    &
      &   cg_shift_2, cg_rot_xcent
       REAL(rprec), DIMENSION(nextcur_dim) :: cg_rot_theta,                     &
