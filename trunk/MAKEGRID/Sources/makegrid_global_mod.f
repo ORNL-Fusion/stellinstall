@@ -7,6 +7,7 @@
 !  (subroutines are followed by parentheses)
 !---------------------------------------------------------------------------
       USE stel_kinds  ! rprec
+      USE vsvd0, ONLY: nigroup
       
       IMPLICIT NONE
       
@@ -16,7 +17,7 @@
 !  Will need some arrays sized for the coil groups
 !  Define a parameter that should be large enough.
 !---------------------------------------------------------------------------
-      INTEGER, PARAMETER :: nextcur_dim = 100
+      INTEGER, PARAMETER :: nextcur_dim = nigroup
 
 !---------------------------------------------------------------------------
 !  Variables A and B on the surface of a circular torus
