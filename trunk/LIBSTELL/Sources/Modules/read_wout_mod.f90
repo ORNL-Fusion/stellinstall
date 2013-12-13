@@ -1094,6 +1094,301 @@
       END SUBROUTINE read_wout_nc
 #endif
 
+      SUBROUTINE write_wout_text(filename, ierr)
+      USE v3_utilities
+      USE vsvd0, ONLY: nparts
+      USE safe_open_mod
+      USE stel_constants, ONLY: mu0
+
+      IMPLICIT NONE
+!------------------------------------------------
+!   D u m m y   A r g u m e n t s
+!------------------------------------------------
+      CHARACTER (len=*)    :: filename
+      INTEGER, INTENT(out) :: ierr
+!------------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!------------------------------------------------
+      REAL(rprec), PARAMETER :: eps_w = 1.e-4_dp
+!------------------------------------------------
+!   L o c a l   V a r i a b l e s
+!------------------------------------------------
+      INTEGER              :: iounit, js, mn, i, j, k, m, n, iasymm
+      LOGICAL              :: lcurr
+!------------------------------------------------
+!
+!     THIS SUBROUTINE WRITES A TEXT FILE WOUT CREATED BY STORED THE INFORMATION 
+!     IN THE read_WOUT MODULE. This routine needs to be called onky if the wout
+!     has already been read in.
+
+      iounit = 0
+      ierr = 0
+      CALL safe_open(iounit, ierr,                                             &
+     &               'wout_' // TRIM(filename) // '.txt',                      &
+     &               'replace', 'formatted')
+
+      CALL assert_eq(0, ierr, 'Error opening text wout file in ' //            &
+     &               'write_wout_text of read_wout_mod.')
+
+
+!  Write version info
+      WRITE (iounit, '(a15,f4.2)') 'VMEC VERSION = ', version_
+
+!  Check version numbers since values change.
+      IF (lasym) THEN
+         iasymm = 1
+      ELSE
+         iasym = 0
+      END IF
+
+      IF (version_ .le. (5.10 + eps_w)) THEN
+         WRITE (iounit, *) wb, wp, gamma, pfac, nfp, ns, mpol, ntor,           &
+     &      mnmax, itfsq, niter, iasymm, ireconstruct
+      ELSE
+         IF (version_ .lt. 6.54) THEN
+            WRITE (iounit, *) wb, wp, gamma, pfac, rmax_surf, rmin_surf
+         ELSE
+            WRITE (iounit, *) wb, wp, gamma, pfac, rmax_surf, rmin_surf,       &
+     &                        zmax_surf
+         END IF
+         IF (version_ .le. (8.0 + eps_w)) THEN
+            WRITE (iounit, *) nfp, ns, mpol, ntor, mnmax, itfsq, niter,        &
+     &                        iasym, ireconstruct, ierr_vmec
+         ELSE
+            WRITE (iounit, *) nfp, ns, mpol, ntor, mnmax, mnmax_nyq,           &
+     &                        itfsq, niter, iasym, ireconstruct,               &
+     &                        ierr_vmec
+         END IF
+      END IF
+
+      IF (version_ .gt. (6.20 + eps_w)) THEN
+         WRITE (iounit, *) imse, itse, nbsets, nobd, nextcur, nstore_seq
+      ELSE
+         WRITE (iounit, *) imse, itse, nbsets, nobd, nextcur
+      END IF
+
+      IF (ierr_vmec .ne. norm_term_flag .and.                                  &
+     &    ierr_vmec .ne. more_iter_flag) THEN
+         GOTO 1000
+      END IF
+
+      IF (nbsets .gt. 0) THEN
+         WRITE (iounit, *) nbfld(1:nbsets)
+      END IF
+      WRITE (iounit, *) TRIM(mgrid_file)
+
+      DO js = 1, ns
+         DO mn = 1, mnmax
+            IF (js .eq. 1) THEN
+               WRITE (iounit, *) NINT(xm(mn)), NINT(xn(mn)/nfp)
+            END IF
+            IF (version_ .le. (6.20 + eps_w)) THEN
+               WRITE (iounit, 730) rmnc(mn,js), zmns(mn,js),                   &
+     &                             lmns(mn,js), bmnc(mn,js),                   &
+     &                             gmnc(mn,js), bsubumnc(mn,js),               &
+     &                             bsubvmnc(mn,js), bsubsmns(mn,js),           &
+     &                             bsupumnc(mn,js), bsupvmnc(mn,js),           &
+     &                             currvmnc(mn,js)
+            ELSE IF (version_ .le. (8.0 + eps_w)) THEN
+               WRITE (iounit, *) rmnc(mn,js), zmns(mn,js), lmns(mn,js),        &
+     &                           bmnc(mn,js), gmnc(mn,js),                     &
+     &                           bsubumnc(mn,js), bsubvmnc(mn,js),             &
+     &                           bsubsmns(mn,js), bsupumnc(mn,js),             &
+     &                           bsupvmnc(mn,js), currvmnc(mn,js)
+            ELSE
+               WRITE (iounit, *) rmnc(mn,js), zmns(mn,js), lmns(mn,js)
+            END IF
+
+!  Write asymmetric components.
+            IF (lasym) THEN
+               IF (version_ .le. (8.0 + eps_w)) THEN
+                  WRITE (iounit, *) rmns(mn,js), zmnc(mn,js),                  &
+     &                              lmnc(mn,js), bmns(mn,js),                  &
+     &                              gmns(mn,js), bsubumns(mn,js),              &
+     &                              bsubvmns(mn,js), bsubsmnc(mn,js),          &
+     &                              bsupumns(mn,js), bsubvmns(mn,js)
+               ELSE
+                  WRITE (iounit, *) rmns(mn,js), zmnc(mn,js),                  &
+     &                              lmnc(mn,js)
+               END IF
+            END IF
+         END DO
+
+         IF (version_ .le. (8.0 + eps_w)) THEN
+            CYCLE
+         END IF
+
+         DO mn = 1, mnmax_nyq
+            IF (js .eq. 1) THEN
+               WRITE (iounit, *) NINT(xm_nyq(mn)),                             &
+     &                           NINT(xn_nyq(mn)/nfp)
+            END IF
+            WRITE (iounit, *) bmnc(mn,js), gmnc(mn,js),                        &
+     &                        bsubumnc(mn,js), bsubvmnc(mn,js),                &
+     &                        bsubsmns(mn,js), bsupumnc(mn,js),                &
+     &                        bsupvmnc(mn,js)
+            IF (lasym) THEN
+               WRITE (iounit, *) bmns(mn,js), gmns(mn,js),                     &
+     &                           bsubumns(mn,js), bsubvmns(mn,js),             &
+     &                           bsubsmnc(mn,js), bsupumns(mn,js),             &
+     &                           bsupvmns(mn,js)
+            END IF
+         END DO
+      END DO
+
+!
+!     Write FULL AND HALF-MESH QUANTITIES
+!
+!     NOTE: In version_ <= 6.00, mass, press were written out in INTERNAL (VMEC) units
+!     and are therefore multiplied here by 1/mu0 to transform to pascals. Same is true
+!     for ALL the currents (jcuru, jcurv, jdotb). Also, in version_ = 6.10 and
+!     above, PHI is the true (physical) toroidal flux (has the sign of jacobian correctly
+!     built into it)
+!
+
+      IF (version_ .le. (6.05 + eps_w)) THEN
+         WRITE (iounit, 730) (iotas(js), mass(js)*mu0, pres(js)*mu0,           &
+     &                        phip(js), buco(js), bvco(js), -phi(js),          &
+     &                        vp(js), overr(js), jcuru(js)*mu0,                &
+     &                        jcurv(js)*mu0, specw(js), js=2, ns)
+         WRITE (iounit, 730) aspect, betatot, betapol, betaxis, b0
+      ELSE IF (version_ .le. (6.20 + eps_w)) THEN
+         WRITE (iounit, 730) (iotas(js), mass(js), pres(js),                   &
+     &                        beta_vol(js), phip(js), buco(js),                &
+     &                        bvco(js), phi(js), vp(js), overr(js),            &
+     &                        jcuru(js), jcurv(js), specw(js),                 &
+     &                        js=2, ns)
+         WRITE (iounit, 730) aspect, betatot, betapol, betaxis, b0
+      ELSE IF (version_ .le. (6.95 + eps_w)) THEN
+         WRITE (iounit, *) (iotas(js), mass(js), pres(js),                     &
+     &                      beta_vol(js), phip(js), buco(js),                  &
+     &                      bvco(js), phi(js), vp(js), overr(js),              &
+     &                      jcuru(js), jcurv(js), specw(js),                   &
+     &                      js=2, ns)
+         WRITE (iounit, *) aspect, betatot, betapol, betaxis, b0
+      ELSE
+         WRITE (iounit, *) (iotaf(js), presf(js), phipf(js), phi(js),          &
+     &                       jcuru(js), jcurv(js), js=1, ns)
+         WRITE (iounit, *) (iotas(js), mass(js), pres(js),                     &
+     &                      beta_vol(js), phip(js), buco(js),                  &
+     &                      bvco(js), vp(js), overr(js), specw(js),            &
+     &                      js = 2, ns)
+         WRITE (iounit, *) aspect, betatot, betapol, betaxis, b0
+      END IF
+
+      IF (version_ .gt. (6.10 + eps_w)) THEN
+         WRITE (iounit, *) isigng
+         WRITE (iounit, *) TRIM(input_extension)
+         WRITE (iounit, *) IonLarmor, VolAvgB, RBtor0, RBtor, Itor,            &
+     &                     Aminor, Rmajor, Volume
+      END IF
+
+!-----------------------------------------------
+!     MERCIER CRITERION
+!-----------------------------------------------
+      IF (version_ .gt. (5.10 + eps_w) .and.                                   &
+     &    version_ .lt. (6.20 - eps_w)) THEN
+         WRITE (iounit, 730) (Dmerc(js), Dshear(js), Dwell(js),                &
+     &                        Dcurr(js), Dgeod(js), equif(js),                 &
+     &                        js=2, ns - 1)
+      ELSE IF (version_ .ge. (6.20 - eps_w)) THEN
+         WRITE (iounit, *) (Dmerc(js), Dshear(js), Dwell(js),                  &
+     &                      Dcurr(js), Dgeod(js), equif(js),                   &
+     &                      js=2, ns - 1)
+      END IF
+
+      IF (nextcur .gt. 0) THEN
+         IF (version_ .le. (6.20 + eps_w)) THEN
+            WRITE (iounit, 730) (extcur(js), js=1, nextcur)
+         ELSE
+            WRITE (iounit, *) (extcur(js), js=1, nextcur)
+         END IF
+
+         lcurr = LEN_TRIM(curlabel(1)) .gt. 0
+         WRITE (iounit, *) lcurr
+         IF (lcurr) THEN
+            WRITE (iounit, *) (TRIM(curlabel(js)), js=1, nextcur)
+         END IF
+      END IF
+
+      IF (version_ .le. (6.20 + eps_w)) THEN
+         WRITE (iounit, 730) (fsqt(js), wdot(js), js = 1, nstore_seq)
+      ELSE
+         WRITE (iounit, *) (fsqt(js), wdot(js), js = 1, nstore_seq)
+      END IF
+
+      IF (version_ .ge. (6.20 - eps_w) .and.                                   &
+     &    version_ .lt. (6.50 - eps_w)) THEN
+         WRITE (iounit, 730) (jdotb(js), bdotgradv(js), js=1, ns)
+      ELSE IF (version_ .ge. (6.50 - eps_w)) THEN
+         WRITE (iounit, *) (jdotb(js), bdotgradv(js), js=1, ns)
+      END IF
+
+!-----------------------------------------------
+!     DATA AND MSE FITS
+!-----------------------------------------------
+      IF (ireconstruct .gt. 0) THEN
+         IF (imse .ge. 2 .or. itse .gt. 0) THEN
+            WRITE (iounit, *) tswgt, msewgt
+            WRITE (iounit, *) isnodes, (sknots(js), ystark(js),                &
+     &                                  y2stark(js), js=1, isnodes)
+            WRITE (iounit, *) ipnodes, (pknots(js), ythom(js),                 &
+     &                                  y2thom(js), js=1, ipnodes)
+            WRITE (iounit, *) (anglemse(js), rmid(js), qmid(js),               &
+     &                         shear(js), presmid(js), alfa(js),               &
+     &                         curmid(js), js=1, 2*ns - 1)
+            WRITE (iounit, *) (rstark(js), datastark(js), qmeas(js),           &
+     &                         js=1, imse)
+            WRITE (iounit, *) (rthom(js), datathom(i), js=1, itse)
+         END IF
+
+         IF (nobd .gt. 0) THEN
+            WRITE (iounit, *) (dsiext(js), plflux(js), dsiobt(js),             &
+     &                         js=1, nobd)
+            WRITE (iounit, *) flmwgt
+         END IF
+
+         IF (nbfldn .gt. 0) THEN
+            DO n = 1, nbsets
+               READ (iounit, *) (bcoil(i,n), plbfld(i,n), bbc(i,n),            &
+     &                           i=1,nbfld(n))
+            END DO
+            WRITE (iounit, *) bcwgt
+         END IF
+
+         WRITE (iounit, *) phidiam, delphid
+!
+!     READ Limiter & Prout plotting specs
+!
+         WRITE (iounit, *) nsets, nparts, nlim
+
+         WRITE (iounit, *) (nsetsn(js), js=1, nsets)
+
+         WRITE (iounit, *) (((pfcspec(i,j,k), i=1, nparts),                    &
+     &                       j=1, nsetsn(k)), k=1, nsets)
+
+         WRITE (iounit, *) (limitr(i), i=1, nlim)
+
+         WRITE (iounit, *) ((rlim(i,j), zlim(i,j), i=1, limitr(j)),            &
+     &                      j=1, nlim)
+         WRITE (iounit, *) nrgrid, nzgrid
+         WRITE (iounit, *) tokid
+         WRITE (iounit, *) rx1, rx2, zy1, zy2, condif
+         WRITE (iounit, *) imatch_phiedge
+      END IF
+
+1000  CONTINUE
+
+      WRITE (iounit, *) mgrid_mode
+
+  730 FORMAT(5e20.13)
+
+      CLOSE (iounit, iostat = ierr)
+      CALL assert_eq(0, ierr, 'Error closing text wout file in ' //            &
+     &               'write_wout_text of read_wout_mod.')
+
+      END SUBROUTINE
+
       SUBROUTINE Compute_Currents(ierror)
       USE stel_constants, ONLY: mu0
       IMPLICIT NONE
