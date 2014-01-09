@@ -52,7 +52,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref prior_class types using
+!>  Interface for the construction of @ref prior_class types using
 !>  @ref prior_construct_gaussian
 !-------------------------------------------------------------------------------
       INTERFACE prior_construct
@@ -67,6 +67,7 @@
 !>  @brief Construct a @ref prior_class containing a @ref prior_guassian object.
 !>
 !>  Allocates memory and initializes a @ref prior_class object.
+!>
 !>  @param[in] gaussian_object An instance of a @ref prior_guassian subclass.
 !>  @returns A pointer to a constructed @ref prior_class object.
 !-------------------------------------------------------------------------------

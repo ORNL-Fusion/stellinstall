@@ -2,8 +2,8 @@
 !  The @header, @table_section, @table_subsection, @item and @end_table commands
 !  are custom defined commands in Doxygen.in. They are defined under ALIASES.
 !  For the page created here, the 80 column limit is exceeded. Arguments of
-!  aliases are separated by ','. You intended ',' to be a string you must use an
-!  escaped comma '\,'.
+!  aliases are separated by ','. If you intended ',' to be a string you must use
+!  an escaped comma '\,'.
 !
 !>  @page vmec_equilibrium_sec VMEC Equilibrium Manual
 !>
@@ -11,8 +11,8 @@
 !>  @section vmec_equilibrium_intro_sec Introduction
 !>  This page documents the V3FIT interface to the VMEC equilibrium solver. This
 !>  lists all the parameters associated with a VMEC equilibrium. These
-!>  parameters parameters are divided input two types, reconstruction parameters
-!>  and derived parameters. All parameters are documented in a table of the
+!>  parameters are divided input two types, reconstruction parameters and
+!>  derived parameters. All parameters are documented in a table of the
 !>  following form.
 !>  @header{Input variable, Description, Code Reference}
 !>
@@ -22,7 +22,7 @@
 !>  @subsection vmec_equilibrium_vmec_recon_param_sec VMEC Equilibrium Reconstruction Parameters
 !>  VMEC Equilibrium reconstruction parameters are parameters that maybe
 !>  reconstructed that change the equilibirum. These parameters require
-!>  the eqilibrium to reconverge.
+!>  the equilibrium to reconverge.
 !>  @begin_table
 !>     @item{ac,          1D Array of function current profile parameters.,     @ref vmec_input::ac}
 !>     @item{ac_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::ac_aux_s}
@@ -45,7 +45,7 @@
 !>  @subsection vmec_equilibrium_aux_recon_param_sec VMEC Auxiliary Reconstruction Parameters
 !>  VMEC Auxiliary reconstruction parameters are parameters that maybe
 !>  reconstructed that do not change the equilibirum. These parameters do not
-!>  require the eqilibrium to reconverge.
+!>  require the equilibrium to reconverge.
 !>  @begin_table
 !>     @item{pp_ne_b,       1D Array of function density profile parameters.,     @ref vmec_class::ne::b}
 !>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,      @ref vmec_class::ne::as}
@@ -77,7 +77,7 @@
 !>  @begin_table
 !>     @item{rmnc,        2D Array of surface R cosine coeffiecents.,      @ref read_wout_mod::rmnc}
 !>     @item{zmns,        2D Array of surface Z sine coeffiecents.,        @ref read_wout_mod::zmns}
-!>     @item{lmns,        2D Array of surface lambda cosine coeffiecents., @ref read_wout_mod::lmns}
+!>     @item{lmns,        2D Array of surface lambda sine coeffiecents.,   @ref read_wout_mod::lmns}
 !>     @item{gmnc,        2D Array of surface g cosine coeffiecents.,      @ref read_wout_mod::gmnc}
 !>     @item{bsubsmns,    2D Array of surface B_s sine coeffiecents.,      @ref read_wout_mod::bsubsmns}
 !>     @item{bsubumnc,    2D Array of surface B_u cosine coeffiecents.,    @ref read_wout_mod::bsubumnc}
@@ -93,11 +93,11 @@
 !>     @item{bsubvmns,    2D Array of surface B_v sine coeffiecents.,      @ref read_wout_mod::bsubvmns}
 !>     @item{bsupumns,    2D Array of surface B^u sine coeffiecents.,      @ref read_wout_mod::bsupumns}
 !>     @item{bsupvmns,    2D Array of surface B^v sine coeffiecents.,      @ref read_wout_mod::bsupvmns}
-!>     @item{phi,         Toroidal flux.,                                  @ref read_wout_mod::phi}
+!>     @item{phi,         1D Array of Toroidal flux.,                      @ref read_wout_mod::phi}
 !>     @item{iotaf,       1D Array of full grid iotabar.,                  @ref read_wout_mod::iotaf}
 !>     @item{iotas,       1D Array of half grid iotabar.,                  @ref read_wout_mod::iotas}
 !>     @item{vvc_smaleli, Internal inducance. Computed in @ref eqfor.,     @ref v3f_vmec_comm::vvc_smaleli}
-!>     @item{vvc_kappa_p,   Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa_p}
+!>     @item{vvc_kappa_p, Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa_p}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
@@ -170,7 +170,7 @@
 !>  The scaling parameter for the pressure. Defined in @ref vmec_input.
       INTEGER, PARAMETER :: vmec_pres_scale_id  = 20
 
-!  Auxiliary Parameters
+!  Derived Parameters
 !>  2D Array of surface R cosine coeffiecents. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_rmnc_id        = 21
 !>  2D Array of surface Z sine coeffiecents. Defined in read_wout_mod.
@@ -325,7 +325,7 @@
 !>  Mean elongation Netcdf variable id.
          INTEGER                               :: vmec_kappa_p_id
 
-!  Extra reconstriction parameters
+!  Extra reconstruction parameters
 !>  Plasma phi offset.
          REAL (rprec)                          :: phi_offset = 0
       END TYPE
@@ -367,6 +367,7 @@
 !>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
 !>  for one iteration to initialize all the input parameters. Defined in
 !>  @ref vmec_input.
+!>
 !>  @param[in] file_name  Filename of the vmec namelist input file.
 !>  @param[in] ne         @ref pprofile_T for the electron density.
 !>  @param[in] te         @ref pprofile_T for the electron temperature.
@@ -808,7 +809,7 @@
 !>  @param[in]    total_tor_planes Total number of toroidal planes.
 !>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
 !>                                 planes.
-!>  @param[in]    nfp              Number of field period the diagnostics were
+!>  @param[in]    nfp              Number of field periods the diagnostics were
 !>                                 generated with.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
@@ -895,9 +896,11 @@
      &         sinv_nyq(mnmax_nyq, this%magnetic_cache%kv))
 
 !  U grid is square with the s grid.
-!>  @todo FIXME: There is no reason to recalulate the sin and cosin arrays every
-!>  time. Instead cache these in the @ref vmec_magnetic_cache and calculate them
-!>  once @ref vmec_set_magnetic_cache_init
+!>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
+!>  componentarrays every time. The v components can change if phi_offset is
+!>  being reconstructed. The u components can be cached in the
+!>  @ref vmec_magnetic_cache and calculated once in
+!>  @ref vmec_set_magnetic_cache_init.
       DO u = 1, ns
          cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
          sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
@@ -1607,6 +1610,7 @@
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @param[in] index  Index of the soft x-ray emissivity profile.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_sxrem(this, x_cart, index)
@@ -1743,6 +1747,9 @@
 
 !-------------------------------------------------------------------------------
 !>  @brief Gets VMEC s value at position.
+!>
+!>  Converts from cartesian coordinates to VMEC's flux coordinates.
+!>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the s position at.
 !>  @returns The s position at x_cart.
@@ -1774,9 +1781,6 @@
       nfe = 0
 
       r_cyl = cart_to_cyl(x_cart)
-!  CHECK_ME: Not sure if this should be
-!     r_cyl(2) = nfp*r_cyl(2) + this%phi_offset
-!  or
       r_cyl(2) = nfp*(r_cyl(2) + this%phi_offset)
 
       CALL cyl2flx(rzl_local, r_cyl, s_flux, ns, ntor, mpol, ntmax,            &
@@ -2205,7 +2209,7 @@
 !>
 !>  This method overrides @ref equilibrium::equilibrium_converge. Solves the
 !>  vmec equilibrium and loads the resulting wout file in preparation of
-!>  computeing modeled signals.
+!>  computing modeled signals.
 !>
 !>  @param[inout] this     A @ref vmec_class instance.
 !>  @param[inout] num_iter Counter to track the number of iterations.
@@ -2666,7 +2670,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Reset the fixed boundary coefficients.
 !>
-!>  When change the boundary coefficients, there is extra work that must be
+!>  When changing the boundary coefficients, there is extra work that must be
 !>  performed to set the VMEC state.
 !>
 !>  @param[in] this A @ref vmec_class instance.

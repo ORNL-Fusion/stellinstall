@@ -42,6 +42,7 @@
 !>  @brief Construct a @ref extcurz_class object measureing temperature.
 !>
 !>  Allocates memory and initializes a @ref extcurz_class object.
+!>
 !>  @param[in] r     The radial position to integrate at.
 !>  @param[in] theta The poloidal angle to integrate at.
 !>  @returns A pointer to a constructed @ref thomson_class object.

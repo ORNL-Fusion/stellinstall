@@ -76,6 +76,7 @@ add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
 add_subdirectory (V3RFUN)
 add_subdirectory (BOOZ_XFORM)
+add_subdirectory (WOUT_CONVERTER)
 add_subdirectory (Testing)
 
 # Optional extra builds

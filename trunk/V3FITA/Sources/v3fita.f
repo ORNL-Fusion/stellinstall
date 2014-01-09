@@ -222,7 +222,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief the equilibrium and calculates the modeled signals.
+!>  @brief Solves the equilibrium and calculates the modeled signals.
 !>
 !>  Task to just compute modeled signals from an equilibrium. This task is
 !>  choosen by setting @ref v3fit_input::my_task to 'v3post'.
@@ -456,8 +456,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Initialize an equilibrium.
 !>
-!>  This constructs and initializes a equilibrium. Currently only
-!>  @ref vmec_equilibium are supported.
+!>  This constructs and initializes an equilibrium. Currently only
+!>  @ref vmec_equilibium and @ref vacuum_equilibium are supported.
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
@@ -889,7 +889,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Constructs @ref geometric signals.
 !>
-!>  For not only @ref limiter signals are constructed.
+!>  For now only @ref limiter signals are constructed.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
 !>  @param[inout] signals_created Count of the current number of signals
@@ -973,7 +973,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Constructs @ref prior signals.
 !>
-!>  For not only @ref prior_guassian signals are constructed.
+!>  For now only @ref prior_guassian signals are constructed.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
 !>  @param[inout] signals_created Count of the current number of signals
@@ -1105,7 +1105,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Constructs the @ref parameter array.
 !>
-!>  This constructs all @ref v3fit_context::params.
+!>  This constructs all reconstruction @ref v3fit_context::params and derived
+!>  @ref v3fit_context::params .
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------

@@ -2,8 +2,8 @@
 !  The @header, @table_section, @table_subsection, @item and @end_table commands
 !  are custom defined commands in Doxygen.in. They are defined under ALIASES.
 !  For the page created here, the 80 column limit is exceeded. Arguments of
-!  aliases are separated by ','. You intended ',' to be a string you must use an
-!  escaped comma '\,'.
+!  aliases are separated by ','. If you intended ',' to be a string you must use
+!  an escaped comma '\,'.
 !
 !>  @page vacuum_equilibrium_sec Vacuum Equilibrium Manual
 !>

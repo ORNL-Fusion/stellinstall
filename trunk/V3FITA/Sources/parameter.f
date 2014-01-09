@@ -93,7 +93,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref param_class types using
+!>  Interface for the construction of @ref param_class types using
 !>  @ref param_construct_basic or @ref param_construct_recon
 !-------------------------------------------------------------------------------
       INTERFACE param_construct
@@ -118,7 +118,7 @@
 !>  @brief Construct a @ref param_class object.
 !>
 !>  Allocates memory and initializes a @ref param_class object. Parameters are
-!>  converted from strings to and internal id prepresentation by either the
+!>  converted from strings to an internal id representation by either the
 !>  @ref model or the @ref equilibrium. This version is used to construct
 !>  basic parameters.
 !>
@@ -151,7 +151,7 @@
 !>  @brief Construct a @ref param_class object.
 !>
 !>  Allocates memory and initializes a @ref param_class object. Parameters are
-!>  converted from strings to and internal id prepresentation by either the
+!>  converted from strings to an internal id representation by either the
 !>  @ref model or the @ref equilibrium. This version is used to construct
 !>  reconstruction parameters.
 !>
@@ -160,6 +160,7 @@
 !>  represents a bounds by a fixed value. By specifying another parameter name,
 !>  the boundary will be bounded by a fixed or varying parameter. The bounding
 !>  parameter string is converted into an internal id representation.
+!>
 !>  @param[in] a_model        An instance of a @ref model object.
 !>  @param[in] param_name     The name of the parameter.
 !>  @param[in] indicies       The array indices of the parameter.
@@ -290,8 +291,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Sets the parameter value.
 !>
-!>  Sets the value of a reconstruction parameter. If the parameter is out side
-!>  one of the bounding parameters, the value if clamped to the bounding value.
+!>  Sets the value of a reconstruction parameter. If the parameter is outside
+!>  one of the bounding parameters, the value is clamped to the bounding value.
 !>  The resulting bounded parameter value is set by ethier the @ref model or
 !>  the @ref equilibrium.
 !>
@@ -694,7 +695,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Writes out a parameter to an output file.
 !>
-!>  Parameter information is formated as a the index, name, index 1, index2,
+!>  Parameter information is formated as the index, name, index 1, index2,
 !>  value, sigma, vrnc, upper and lower range types, values, and range indicies.
 !>
 !>  @param[in] this    A @ref param_class instance.
@@ -734,8 +735,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Writes out a parameter to an output file.
 !>
-!>  Parameter information is formated as a the index, name, index 1, index2,
-!>  value and sigma.
+!>  Parameter information is formated as the index, name, index 1, index2, value
+!>  and sigma.
 !>
 !>  @param[in] this    A @ref param_class instance.
 !>  @param[in] iou     Input/output unit representing the file to write to.
@@ -766,13 +767,12 @@
 !-------------------------------------------------------------------------------
 !>  @brief Writes out parameter header information to an output file.
 !>
-!>  Parameter information is formated as a the index, name, index 1, index2,
+!>  Parameter information is formated as the index, name, index 1, index2,
 !>  value, sigma, vrnc, upper and lower range types, values, and range indicies.
 !>  This is implmented as a static method and does not require a parameter
 !>  instance. This should only be called once to produce a single header.
 !>
 !>  @param[in] iou A input/output representing the file to write to.
-!>  @note Eventually parameter range informarion will be added as well.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_write_header(iou)
 
@@ -794,13 +794,12 @@
 !-------------------------------------------------------------------------------
 !>  @brief Writes out parameter header information to an output file.
 !>
-!>  Parameter information is formated as a the index, name, index 1, index2,
-!>  value and sigma. This is implmented as a static method and does not require
-!>  a parameter instance. This should only be called once to produce a single
+!>  Parameter information is formated as the index, name, index 1, index2, value
+!>  and sigma. This is implmented as a static method and does not require a
+!>  parameter instance. This should only be called once to produce a single
 !>  header.
 !>
 !>  @param[in] iou A input/output representing the file to write to.
-!>  @note Eventually parameter range informarion will be added as well.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_write_header_short(iou)
 

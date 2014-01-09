@@ -6,7 +6,7 @@
 !  found in the Module not the file.
 !
 !>  Defines the base class of the type @ref threed1_file_cache. This caches
-!>  the data in from the threed1 file.
+!>  the data from the threed1 file.
 !*******************************************************************************
 
       MODULE threed1_file_cache
@@ -35,7 +35,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref threed1_file_cache_class types using
+!>  Interface for the construction of @ref threed1_file_cache_class types using
 !>  @ref threed1_file_cache_construct_new or                                   &
 !>  @ref threed1_file_cache_construct_copy
 !-------------------------------------------------------------------------------
@@ -53,6 +53,7 @@
 !>  @brief Construct a new @ref threed1_file_cache_class object.
 !>
 !>  Allocates memory and initializes a @ref threed1_file_cache_class object.
+!>
 !>  @returns A pointer to a constructed @ref threed1_file_cache_class object.
 !-------------------------------------------------------------------------------
       FUNCTION threed1_file_cache_construct_new()
@@ -76,6 +77,9 @@
 !>  old one.
 !>
 !>  Allocates memory and initializes a @ref threed1_file_cache_class object.
+!>  This newly created object is a copy of the old one.
+!>
+!>  @param[in] cache_object @ref threed1_file_cache_class object to copy.
 !>  @returns A pointer to a constructed @ref threed1_file_cache_class object.
 !-------------------------------------------------------------------------------
       FUNCTION threed1_file_cache_construct_copy(cache_object)

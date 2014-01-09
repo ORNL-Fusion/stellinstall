@@ -56,6 +56,7 @@
 !>  @brief Construct a @ref sxrem_class object.
 !>
 !>  Allocates memory and initializes a @ref sxrem_class object.
+!>
 !>  @param[in] start_path Starting point of a sxrem chord.
 !>  @param[in] end_path Ending point of a sxrem chord.
 !>  @returns A pointer to a constructed @ref sxrem_class object.

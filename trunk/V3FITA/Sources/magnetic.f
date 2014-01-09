@@ -35,7 +35,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref magnetic_class types using
+!>  Interface for the construction of @ref magnetic_class types using
 !>  @ref magnetic_construct_netcdf or @ref magnetic_construct_responce
 !-------------------------------------------------------------------------------
       INTERFACE magnetic_construct
@@ -52,6 +52,7 @@
 !>  object.
 !>
 !>  Allocates memory and initializes a @ref magnetic_class object.
+!>
 !>  @param[in] responce_function An instance of a @ref mddc_mrf object.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------

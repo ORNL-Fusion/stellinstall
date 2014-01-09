@@ -55,6 +55,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref thomson_class object measureing temperature.
+!>
 !>  @param[in] xcart The measurement point.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
@@ -74,6 +75,7 @@
 
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref thomson_class object measureing density.
+!>
 !>  @param[in] xcart The measurement point.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
@@ -93,6 +95,7 @@
 
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref thomson_class object measureing pressure.
+!>
 !>  @param[in] xcart The measurement point.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
@@ -114,6 +117,7 @@
 !>  @brief Construct a @ref thomson_class object.
 !>
 !>  Allocates memory and initializes a @ref thomson_class object.
+!>
 !>  @param[in] type  The measurement type. Possible value are
 !>                   @ref thomson_no_type, @ref thomson_temperature_type,
 !>                   @ref thomson_density_type and @ref thomson_pressure_type.

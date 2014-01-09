@@ -51,7 +51,7 @@
          INTEGER                      :: type = equilibrium_no_type
 !>  Controls if an equilibrium needs to be resolved or not.
          LOGICAL                      :: not_converged
-!>  Controls if an equilibrium is forces to be resolved or not.
+!>  Controls if an equilibrium is forced to be resolved or not.
          LOGICAL                      :: force_solve
 !>  An instance of a @ref vmec_equilibrium object.
          TYPE (vmec_class), POINTER   :: vmec => null()
@@ -63,7 +63,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref equilibrium_class types using
+!>  Interface for the construction of @ref equilibrium_class types using
 !>  @ref equilibrium_construct_vmec
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_construct
@@ -80,6 +80,7 @@
 !>  object.
 !>
 !>  Allocates memory and initializes a @ref equilibrium_class object.
+!>
 !>  @param[in] vmec_object An instance of a @ref vmec_equilibrium subclass.
 !>  @param[in] force_solve If true, forces the equilbirum to resolve every time.
 !>  @returns A pointer to a constructed @ref equilibrium_class object.
@@ -176,7 +177,7 @@
 !>  @brief Sets the value of a reconstruction equilibrium parameter.
 !>
 !>  This method is virtual. The actual setting of the parameter should be
-!>  handled by a subclass method. The subclass is responcible for informing the
+!>  handled by a subclass method. The subclass is responsible for informing the
 !>  equilibirum if the equilibrium needs to be reconverged/resolved.
 !>  @see vmec_equilibrium::vmec_set_param
 !>  @see vacuum_equilibrium::vacuum_set_param
@@ -238,9 +239,9 @@
 !>                                 planes.
 !>  @param[in]    nfp              Number of field period the diagnostics were
 !>                                 generated with.
-!>  @note Stellarator symmetry may be exploited speed up computation and reduce
-!>  memory usage. If stellarator symmetry is not used then tor_planes_used
-!>  should match total_tor_planes.
+!>  @note Stellarator symmetry may be exploited to speed up computation and
+!>  reduce memory usage. If stellarator symmetry is not used then
+!>  tor_planes_used should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
      &                                          tor_planes_used, nfp)
@@ -467,6 +468,7 @@
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @param[in] index  Index of the soft x-ray emissivity profile to use.
 !>  @returns The soft x-ray emissivity at x_cart.
 !>  @note Note the soft x-ray emissivity is not relevant to all equilibrium
 !>  types. For instance, vacuum equilibrium should not override this method.

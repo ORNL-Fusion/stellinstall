@@ -54,7 +54,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref intpol_class types using
+!>  Interface for the construction of @ref intpol_class types using
 !>  @ref intpol_construct_int or @ref intpol_construct_pol
 !-------------------------------------------------------------------------------
       INTERFACE intpol_construct
@@ -108,6 +108,7 @@
 !>  diagnostic.
 !>
 !>  Allocates memory and initializes a @ref intpol_class object.
+!>
 !>  @param[in] wavelength  Wavelength of the polarimetry beam.
 !>  @param[in] in_degrees  Specifies if the sigals is degrees or radians. True
 !>                         specifies degree while false specifies radians.

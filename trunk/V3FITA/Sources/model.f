@@ -2,8 +2,8 @@
 !  The @header, @table_section, @table_subsection, @item and @end_table commands
 !  are custom defined commands in Doxygen.in. They are defined under ALIASES.
 !  For the page created here, the 80 column limit is exceeded. Arguments of
-!  aliases are separated by ','. You intended ',' to be a string you must use an
-!  escaped comma '\,'.
+!  aliases are separated by ','. If you intended ',' to be a string you must use
+!  an escaped comma '\,'.
 !
 !>  @page model_sec Model Manual
 !>
@@ -193,7 +193,7 @@
 
       END SELECT
 
-!  Cannot use have the temperature derived from the denisty at the same time the
+!  Cannot have the temperature derived from the denisty at the same time the
 !  density is derived from the temperature.
       CALL assert(.not.(                                                       &
      &        (model_construct%te_type .eq. model_te_ne_p_type) .and.          &
@@ -247,7 +247,7 @@
 !>  @brief Sets the value of a reconstruction model parameter.
 !>
 !>  Sets a model reconstruction parameter. If the id is not a model parameter,
-!>  it is defered to the @ref equilibrium.
+!>  it is deferred to the @ref equilibrium.
 !>
 !>  @param[inout] this    A @ref model_class instance.
 !>  @param[in]    id      ID of the parameter.
@@ -294,7 +294,7 @@
 !>  @brief Get the id for a reconstruction parameter.
 !>
 !>  Gets a model reconstruction parameter. If the id is not a model parameter,
-!>  it is defered to the @ref equilibrium.
+!>  it is deferred to the @ref equilibrium.
 !>
 !>  @param[in] this       A @ref model_class instance.
 !>  @param[in] param_name Name of a reconstruction parameter.
@@ -333,7 +333,7 @@
 !>  @brief Gets the value of a reconstruction model parameter.
 !>
 !>  Gets a model reconstruction parameter value. If the id is not a model
-!>  parameter, it is defered to the @ref equilibrium.
+!>  parameter, it is deferred to the @ref equilibrium.
 !>
 !>  @param[in] this    A @ref model_class instance.
 !>  @param[in] id      ID of the parameter.
@@ -378,7 +378,7 @@
 !>  @brief Gets the name of a reconstruction model parameter.
 !>
 !>  Gets a model reconstruction parameter name. If the id is not a model
-!>  parameter, it is defered to the @ref equilibrium.
+!>  parameter, it is deferred to the @ref equilibrium.
 !>
 !>  @param[in] this A @ref model_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -496,6 +496,7 @@
 !>
 !>  @param[in] this   A @ref model_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @param[in] index  Index of the soft x-ray emissivity model.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_sxrem(this, x_cart, index)
@@ -586,6 +587,7 @@
 !>  @brief Gets the soft x-ray emissivity type as a string.
 !>
 !>  @param[in] this   A @ref model_class instance.
+!>  @param[in] index  Index of the soft x-ray emissivity model.
 !>  @returns A string description of the soft x-ray emissivity type.
 !-------------------------------------------------------------------------------
       FUNCTION model_get_sxrem_type(this, index)
@@ -617,7 +619,7 @@
 !>  @brief Determines if a parameter id is a reconstruction parameter.
 !>
 !>  Determines if a parameter id is a reconstruction parameter. If the parameter
-!>  is not a model parameter, it is defered to the @ref equilibrium.
+!>  is not a model parameter, it is deferred to the @ref equilibrium.
 !>
 !>  @param[in] this A @ref model_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -655,7 +657,7 @@
 !>
 !>  Write out information about the model to an output file. This also then
 !>  calls the @ref equilibrium_write subroutine to write out the equilibrium
-!>  information aswell.
+!>  information as well.
 !>
 !>  @param[in] this A @ref model_class instance.
 !>  @param[in] iou  Input/output unit of the output file.

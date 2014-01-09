@@ -76,7 +76,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref diagnostic_class types using
+!>  Interface for the construction of @ref diagnostic_class types using
 !>  @ref diagnostic_construct_magnetic, @ref diagnostic_construct_sxrem,
 !>  @ref diagnostic_construct_intpol, @ref diagnostic_construct_thomson or
 !>  @ref diagnostic_construct_extcurz
@@ -98,6 +98,7 @@
 !>  @brief Construct a @ref diagnostic_class containing a @ref magnetic object.
 !>
 !>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
 !>  @param[in] magnetic_object An instance of a @ref magnetic subclass.
 !>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
@@ -121,6 +122,7 @@
 !>  @brief Construct a @ref diagnostic_class containing a @ref sxrem object.
 !>
 !>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
 !>  @param[in] sxrem_object An instance of a @ref sxrem subclass.
 !>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
@@ -144,6 +146,7 @@
 !>  @brief Construct a @ref diagnostic_class containing a @ref intpol object.
 !>
 !>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
 !>  @param[in] intpol_object An instance of a @ref intpol subclass.
 !>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
@@ -167,6 +170,7 @@
 !>  @brief Construct a @ref diagnostic_class containing a @ref thomson object.
 !>
 !>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
 !>  @param[in] thomson_object An instance of a @ref thomson subclass.
 !>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
@@ -190,6 +194,7 @@
 !>  @brief Construct a @ref diagnostic_class containing a @ref extcurz object.
 !>
 !>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
 !>  @param[in] extcurz_object An instance of a @ref extcurz subclass.
 !>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------

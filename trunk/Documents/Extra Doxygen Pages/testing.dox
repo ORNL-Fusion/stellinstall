@@ -38,7 +38,7 @@
  * the execution time of V3FIT. This time will change depending a variy of 
  * factors.
  *
- * @section testing_cmake Cmake Test Framework
+ * @section testing_cmake_framework Cmake Test Framework
  * In the @ref build_system, a task is setup in the make file to configure and
  * run the tests. All tests can be found in the testing directory. In the 
  * testing directory there are a series of sub directories. The test_files 
@@ -53,15 +53,15 @@
  * needs a unique name and a command. The test is deamed to pass if the exit 
  * code returned is zero.
  *
- * @section testing_cmake Running Tests
+ * @section testing_cmake_running Running Tests
  * Tests are run from the Cmake generated make file (see 
  * @ref build_system_testing).
  *
  * @subsection testing_cmake_results Test Results
  * Test results are immidately displayed showing the result of the number of 
  * failed tests out of the total number of tests. Once tests have completed 
- * running, a directory called Temporary in the Testing directory. Inside this
- * directory is a file listing the last tests that failed and the current log 
- * file for each test. When a test fails, it is encouraged to either check the 
- * log file for the reason the test crashed or run the test manually.
+ * running, a directory called Temporary in the Testing directory is created.
+ * Inside this directory is a file listing the last tests that failed and the 
+ * current log file for each test. When a test fails, it is encouraged to either 
+ * check the log file for the reason the test crashed or run the test manually.
  */

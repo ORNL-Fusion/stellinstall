@@ -2,7 +2,7 @@
 !  The @header2, @begin_table, @item3 and @end_table commands are custom defined
 !  commands in Doxygen.in. They are defined under ALIASES. For the page created
 !  here, the 80 column limit is exceeded. Arguments of aliases are separated by
-!  ','. You intended ',' to be a string you must use an escaped comma '\,'.
+!  ','. If you intended ',' to be a string you must use an escaped comma '\,'.
 !
 !>  @page cl_parsing_sec Command Line Arguments
 !>
@@ -237,7 +237,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Check if a command line argument was set.
 !>
-!>  Searches the parsed command line flags for a matching command like argument.
+!>  Searches the parsed command line flags for a matching command line argument.
 !>  If no matching argument is found the flag was not set.
 !>
 !>  @param[in] this A @ref commandline_parser_class instance.
@@ -277,11 +277,11 @@
 !-------------------------------------------------------------------------------
 !>  @brief Print out help text.
 !>
-!>  Command line help text should take the form of
-!>  '-flag' that is maximum length of @ref max_arg_length followed by a space.
-!>  A Y or N indicating the flag takes a value or not followed by a space.
-!>  A short message describing the flag. A reference for all the command line
-!>  arguments can be found at @ref cl_parsing_sec.
+!>  Command line help text should take the form of '-flag' that is maximum
+!>  length of @ref max_arg_length followed by a space. A Y or N indicating the
+!>  flag takes a value or not followed by a space. A short message describing
+!>  the flag. A reference for all the command line arguments can be found at
+!>  @ref cl_parsing_sec.
 !-------------------------------------------------------------------------------
       SUBROUTINE commandline_parser_print_help
 

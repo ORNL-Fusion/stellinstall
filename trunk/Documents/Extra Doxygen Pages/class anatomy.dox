@@ -313,6 +313,48 @@
  * @endcode
  *
  * @subsection class_anatomy_setters Setters
+ * Setters are used to set the value of a variable. A setter should be named
+ * @fixed_width{_set_variable} where variable is the name of the class variable
+ * to be set. Since setters typically do not return anything, these methods are 
+ * implemented as subroutines.
+ * @code{.f}
+ * !*******************************************************************************
+ * !  SETTER SUBROUTINES
+ * !*******************************************************************************
+ *       SUBROUTINE example_class_set_variable(this, value)
+ *
+ *       IMPLICIT NONE
+ *
+ * !  Declare Arguments
+ *       TYPE (example_class), POINTER, INTENT(inout) :: this
+ *       INTEGER, INTENT(in)                          :: value
+ *
+ * !  Start of executable code
+ *       this%variable = value
+ *
+ *       END SUBROUTINE       
+ * @endcode
  *
  * @subsection class_anatomy_getters Getters
+ * Getters are use to retrieve the value of a variable. A getter should be named
+ * @fixed_width{_get_variable} where variable is the name of the class variable
+ * to be retrieved. Since getters typically return values, these methods are
+ * implemented as functions.
+ * @code{.f}
+ * !*******************************************************************************
+ * !  GETTER SUBROUTINES
+ * !*******************************************************************************
+ *       FUNCTION example_class_get_variable(this)
+ *
+ *       IMPLICIT NONE
+ *
+ * !  Declare Arguments
+ *       INTEGER :: example_class_get_variable
+ *       TYPE (example_class), POINTER, INTENT(in) :: this
+ *
+ * !  Start of executable code
+ *       example_class_get_variable = this%variable
+ *
+ *       END FUNCTION       
+ * @endcode
  */

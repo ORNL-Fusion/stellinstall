@@ -49,6 +49,7 @@
 !>  @brief Construct a @ref prior_gaussian_class object.
 !>
 !>  Allocates memory and initializes a @ref prior_class object.
+!>
 !>  @param[in] a_model    An instance of a @ref model object.
 !>  @param[in] param_name The name the parameter.
 !>  @param[in] indices    Indicies of the parameter.

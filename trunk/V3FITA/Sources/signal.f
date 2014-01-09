@@ -134,7 +134,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref signal_class types using
+!>  Interface for the construction of @ref signal_class types using
 !>  @ref signal_construct_diagnostic, @ref signal_construct_geometric,
 !>  @ref signal_construct_combination or @ref signal_construct_diagnostic_netcdf
 !-------------------------------------------------------------------------------
@@ -154,6 +154,7 @@
 !>  @brief Construct a @ref signal_class containing a @ref diagnostic object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
+!>
 !>  @param[in] diagnostic_object An instance of a @ref diagnostic subclass.
 !>  @param[in] s_name            The short name of the signal.
 !>  @param[in] l_name            The short name of the signal.
@@ -199,6 +200,7 @@
 !>  @brief Construct a @ref signal_class containing a @ref geometric object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
+!>
 !>  @param[in] geometric_object An instance of a @ref geometric subclass.
 !>  @param[in] s_name           The short name of the signal.
 !>  @param[in] l_name           The short name of the signal.
@@ -244,6 +246,7 @@
 !>  @brief Construct a @ref signal_class containing a @ref prior object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
+!>
 !>  @param[in] prior_object An instance of a @ref prior subclass.
 !>  @param[in] s_name       The short name of the signal.
 !>  @param[in] l_name       The short name of the signal.
@@ -289,6 +292,7 @@
 !>  object.
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
+!>
 !>  @param[in] combination_object An instance of a @ref combination_class
 !>                                subclass.
 !>  @param[in] s_name             The short name of the signal.
@@ -337,6 +341,7 @@
 !>
 !>  Reads the s_name, l_name and units from a netcdf file. Used for constructing
 !>  the @ref magnetic objects.
+!>
 !>  @param[in] diagnostic_object An instance of a @ref diagnostic subclass.
 !>  @param[in] mdsig_iou         NetCDF id of the opened mdsig file.
 !>  @param[in] observed          Observed value of the signal.

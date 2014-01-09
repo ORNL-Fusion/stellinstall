@@ -37,8 +37,7 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Base class representing containing all the data needed to reconstruct a
-!>  model.
+!>  Base class containing all the data needed to reconstruct a model.
 !-------------------------------------------------------------------------------
       TYPE reconstruction_class
 !>  Type descriptor of the boundry type for the lower(1) and upper(2) ranges.
@@ -48,7 +47,7 @@
 !>  * @ref reconstruction_lm_step_type
 !>  * @ref reconstruction_seg_step_type
          INTEGER :: step_type = reconstruction_no_step_type
-!>  Maximum number of reconstruction step.
+!>  Maximum number of reconstruction steps.
 !>  @see v3fit_input::nrstep
          REAL (rprec)                          :: step_max
 
@@ -87,7 +86,7 @@
 !>  The number of sigular values used for each reconstruction step.
          INTEGER, DIMENSION(:), POINTER        :: num_sv => null()
 
-!  Cut off value controls.
+!  Cutoff value controls.
 !>  Cutoff value for relative singular values.
 !>  @see v3fit_input::cut_svd
          REAL (rprec) :: cut_svd
@@ -112,12 +111,12 @@
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref reconstruction_class object.
 !>
-!>  Allocates memory and initializes a @ref param_class object.
+!>  Allocates memory and initializes a @ref reconstruction_class object.
 !>
 !>  @param[in] num_steps              Number of reconstruction steps.
 !>                                    @ref signal::signal_get_e
 !>  @param[in] num_signals            Number of signals.
-!>  @param[in] num_derived_parameters Number of drived parameters.
+!>  @param[in] num_derived_parameters Number of derived parameters.
 !>  @param[in] num_parameters         Number of reconstruction parameters.
 !>  @param[in] step_type              Reconstruction step type.
 !>                                    @ref signal::step_type
@@ -417,7 +416,7 @@
 !>
 !>  Estimates the change in g^2.
 !>  Equation 22 in Hanson et. al. doi:10.1088/0029-5515/49/7/075031
-!>  Note: there is a type in equation 22. The - sign in the last term should be
+!>  Note: there is a typo in equation 22. The - sign in the last term should be
 !>  a plus sign.
 !>
 !>  @param[in] this    A @ref reconstruction_class instance.
@@ -1334,8 +1333,9 @@
 !>  @brief Evaluate the parameter covariance and signal effectiveness.
 !>
 !>  Calculates the signal effectiveness matrix. This value is stored in
-!>  @ref parameter::param_class::sem. To fine the signal effectiveness, an
-!>  intermediate step compute the parameter covariance.
+!>  @ref parameter::param_class::sem. To find the signal effectiveness, an
+!>  intermediate step computes the parameter covariance. Computes the derived
+!>  parameter covariance matrix also.
 !>
 !>  @param[inout] this           A @ref reconstruction_class instance.
 !>  @param[inout] params         Array of @ref parameter objects.
@@ -1428,7 +1428,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Invert an M x N matrix.
 !>
-!>  Perform a pseudo-inversion using a singular value decomposition.
+!>  Perform a pseudo-inversion using a singular value decomposition. This
+!>  subroutine destroys the original matrix.
 !>
 !>  @param[inout] matrix The matrix to invert.
 !>  @param[in]    sub    The subroutine of the matrix this was called from.

@@ -56,7 +56,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref limiter_class types either using
+!>  Interface for the construction of @ref limiter_class types either using
 !>  @ref limiter_construct_iso or @ref limiter_construct_polygon
 !
 !>  @note
@@ -75,6 +75,7 @@
 !>  @brief Construct a limiter containing an iso function.
 !>
 !>  Allocates memory and initializes a @ref limiter_class object.
+!>
 !>  @param[in] iso         A contour function to define the limiter.
 !>  @param[in] on_edge     Specifies if the edge should touch the limiter or
 !>                         not. If true, the reconstruction tries to have the
@@ -104,6 +105,7 @@
 !>  @brief Construct a limiter containing a polygon.
 !>
 !>  Allocates memory and initializes a @ref limiter_class object.
+!>
 !>  @param[in] on_edge     Specifies if the edge should touch the limiter or
 !>                         not. If true, the reconstruction tries to have the
 !>                         limiter touch the limiter. If false, the edge will

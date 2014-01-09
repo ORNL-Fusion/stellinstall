@@ -16,6 +16,8 @@
       USE reconstruction
       USE ezcdf
 
+      IMPLICIT NONE
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) v3fit context
@@ -50,6 +52,7 @@
 !>  Arrays of reconstruction parameters.
 !>  @see param
          TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
+!>  The reconstruction algorithm object.
          TYPE (reconstruction_class), POINTER         :: recon => null()
 
 !  The default for the following index is -1 indicating that this signal hasn't
@@ -291,7 +294,7 @@
 !>  @brief Resize the arrays.
 !>
 !>  Resizes the signal arrays to contain only the minimun necessary to hold all
-!>  signals. If no signals were constructed, the signal arrays is not allocated.
+!>  signals. If no signals were constructed, the signal array is not allocated.
 !>
 !>  @param[inout] this A @ref v3fit_context_class instance.
 !-------------------------------------------------------------------------------
@@ -320,7 +323,7 @@
             END IF
          END DO
 
-!  Deallocate the array is no signals are used. Reallocate the array if it is
+!  Deallocate the array if no signals are used. Reallocate the array if it is
 !  smaller.
          IF (minsize .eq. 0) THEN
             DEALLOCATE(this%signals)
@@ -541,7 +544,7 @@
 !>
 !>  @tableofcontents
 !>  @section result_file_main_intro_sec Introduction
-!>  This page doctuments the contents of a result NetCDF file.
+!>  This page documents the contents of a result NetCDF file.
 !>
 !>  @section result_file_main_dim_sec Dimensions
 !>  @header{Dimension, Description, Code Reference}
@@ -620,6 +623,7 @@
       INTEGER :: signal_type_id
       INTEGER :: signal_weight_id
       INTEGER :: signal_observed_value_id
+
 !  Start of executable code
 !  Define dimensions
       IF (ASSOCIATED(this%recon)) THEN

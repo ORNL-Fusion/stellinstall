@@ -51,7 +51,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref geometric_class types either using
+!>  Interface for the construction of @ref geometric_class types either using
 !>  @ref geometric_construct_limiter
 !-------------------------------------------------------------------------------
       INTERFACE geometric_construct
@@ -67,6 +67,7 @@
 !>  @brief Construct a @ref geometric_class containing a @ref limiter object.
 !>
 !>  Allocates memory and initializes a @ref geometric_class object.
+!>
 !>  @param[in] limiter_object An instance of a @ref limiter subclass.
 !>  @returns A pointer to a constructed @ref geometric_class object.
 !-------------------------------------------------------------------------------

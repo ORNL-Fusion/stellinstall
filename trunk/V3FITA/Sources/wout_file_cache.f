@@ -75,7 +75,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the constriction of @ref wout_file_cache_class types using
+!>  Interface for the construction of @ref wout_file_cache_class types using
 !>  @ref wout_file_cache_construct_new or @ref wout_file_cache_construct_copy
 !-------------------------------------------------------------------------------
       INTERFACE wout_file_cache_construct
@@ -92,6 +92,7 @@
 !>  @brief Construct a new @ref wout_file_cache_class object.
 !>
 !>  Allocates memory and initializes a @ref wout_file_cache_class object.
+!>
 !>  @returns A pointer to a constructed @ref wout_file_cache_class object.
 !-------------------------------------------------------------------------------
       FUNCTION wout_file_cache_construct_new()
@@ -161,6 +162,8 @@
 !>  one.
 !>
 !>  Allocates memory and initializes a @ref wout_file_cache_class object.
+!>
+!>  @param[in] cache_object @ref wout_file_cache_class object to be copied.
 !>  @returns A pointer to a constructed @ref wout_file_cache_class object.
 !-------------------------------------------------------------------------------
       FUNCTION wout_file_cache_construct_copy(cache_object)

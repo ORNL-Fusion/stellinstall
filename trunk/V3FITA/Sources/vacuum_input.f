@@ -2,7 +2,7 @@
 !  The @header, @table_section, @table_subsection, @item and @end_table commands
 !  are custom defined commands in Doxygen.in. They are defined under ALIASES.
 !  For the page created here, the 80 column limit is exceeded. Arguments of
-!  aliases are separated by ','. You intended ',' to be a string you must use an
+!  aliases are separated by ','. If you intended ',' to be a string you must use an
 !  escaped comma '\,'.
 !
 !>  @page vacuum_namelist_sec Namelist vacuum_main_nli definition
@@ -70,14 +70,16 @@
 !>  an object instance. Instead all variables are contained in a global context.
 !>  This is required due to limitations of FORTRAN 95 and namelist inputs. Any
 !>  information needed by a vacuum equilibrium should be copied to a
-!>  @ref vacuum_equilibrium object. All non-parameters are inputs to the namelist
-!>  input file.
+!>  @ref vacuum_equilibrium object. All non-parameters are inputs to the
+!>  namelist input file.
 !>
 !>  @ref vacuum_namelist_sec "Namelist vacuum_main_nli definition"
 !*******************************************************************************
       MODULE vacuum_input
       USE stel_kinds
       USE data_parameters
+
+      IMPLICIT NONE
 
 !*******************************************************************************
 !  v3fit input module parameters
