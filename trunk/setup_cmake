@@ -60,6 +60,23 @@ elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
 	&&   echo " `basename $0`: cmake succeeded."       \
 	|| ( echo " `basename $0`: cmake failed." && exit 2 )
 
+elif [ $MACHINE_ID == "r2d2.gat.com" ]
+then
+
+        # r2d2 at General Atomics has the LAPACK and BLAS libraries 
+        # in a non standard location. Variables for these will need 
+        # to be set manually.
+
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                         \
+              -DCMAKE_Fortran_COMPILER=gfortran                                             \
+              -DNETCDF_INC_PATH=/usr/include/                                               \
+              -DNETCDF_LIB_PATH=/usr/lib                                                    \
+              -DCMAKE_Fortran_FLAGS=-DNEW_CODE                                              \
+              -DEXTRA_FLAGS=-fopenmp                                                        \
+              -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3" \
+              -DBLAS_blas_LIBRARY:FILEPATH="/usr/local/lapack-3.4.2/librefblas.a"           \
+              -DLAPACK_lapack_LIBRARY="/usr/local/lapack-3.4.2/liblapack.a"
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.
