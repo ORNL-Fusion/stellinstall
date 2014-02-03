@@ -718,9 +718,9 @@
          IF (first_run) THEN
             CALL equilibrium_set_magnetic_cache(                               &
      &              context%model%equilibrium,                                 &
-     &              magnetic_object%responce_function%kp,                      &
-     &              magnetic_object%responce_function%kp_store,                &
-     &              magnetic_object%responce_function%n_field_periods)
+     &              magnetic_object%response_function%kp,                      &
+     &              magnetic_object%response_function%kp_store,                &
+     &              magnetic_object%response_function%n_field_periods)
             first_run = .false.
          END IF
 

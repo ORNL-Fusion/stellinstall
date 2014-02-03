@@ -28,7 +28,7 @@
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
-         TYPE (mddc_mrf), POINTER :: responce_function => null()
+         TYPE (mddc_mrf), POINTER :: response_function => null()
       END TYPE magnetic_class
 
 !*******************************************************************************
@@ -36,11 +36,11 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref magnetic_class types using
-!>  @ref magnetic_construct_netcdf or @ref magnetic_construct_responce
+!>  @ref magnetic_construct_netcdf or @ref magnetic_construct_response
 !-------------------------------------------------------------------------------
       INTERFACE magnetic_construct
       MODULE PROCEDURE magnetic_construct_netcdf,                              &
-     &                 magnetic_construct_responce
+     &                 magnetic_construct_response
       END INTERFACE
 
       CONTAINS
@@ -53,21 +53,21 @@
 !>
 !>  Allocates memory and initializes a @ref magnetic_class object.
 !>
-!>  @param[in] responce_function An instance of a @ref mddc_mrf object.
+!>  @param[in] response_function An instance of a @ref mddc_mrf object.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_responce(responce_function)
+      FUNCTION magnetic_construct_response(response_function)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), POINTER :: magnetic_construct_responce
-      TYPE (mddc_mrf), POINTER, INTENT(in) :: responce_function
+      TYPE (magnetic_class), POINTER :: magnetic_construct_response
+      TYPE (mddc_mrf), POINTER, INTENT(in) :: response_function
 
 !  Start of executable code
-      ALLOCATE(magnetic_construct_responce)
+      ALLOCATE(magnetic_construct_response)
 
-      magnetic_construct_responce%responce_function => responce_function
+      magnetic_construct_response%response_function => response_function
 
       END FUNCTION
 
@@ -76,7 +76,7 @@
 !>
 !>  Reads the description of a magnetic diagnostic from an mdsig file.
 !>  Constructs an instance of a @ref mddc_mrf and return the constructed
-!>  magnetic_class from @ref magnetic_construct_responce
+!>  magnetic_class from @ref magnetic_construct_response
 !>  @param[in] mdsig_iou An instance of a the netcdf id of the open mdsig file.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
@@ -91,7 +91,7 @@
       INTEGER, INTENT(in)              :: mdsig_iou
 
 !  local variables
-      TYPE (mddc_mrf), POINTER         :: responce_function
+      TYPE (mddc_mrf), POINTER         :: response_function
 
       CHARACTER (len=data_name_length) :: code_name
       CHARACTER (len=data_name_length) :: code_version
@@ -113,7 +113,7 @@
       REAL (rprec), DIMENSION(:,:,:), POINTER :: a_z
 
 !  Start of executable code
-      ALLOCATE(responce_function)
+      ALLOCATE(response_function)
 
       CALL cdf_read(mdsig_iou,                                                 &
      &              'mddc_mrf_code_name', code_name)
@@ -151,7 +151,7 @@
       ALLOCATE(a_z(dim_lengths(1), dim_lengths(2), dim_lengths(3)))
       CALL cdf_read(mdsig_iou, 'mddc_mrf_a_z', a_z)
 
-      CALL mddc_construct(responce_function, code_name, code_version,          &
+      CALL mddc_construct(response_function, code_name, code_version,          &
      &                    date_run, field_coils_id, rdiag_coilg_1,             &
      &                    extcur_mg, kp, rmin, rmax, zmin, zmax,               &
      &                    n_field_periods, lstell_sym, a_r, a_f, a_z)
@@ -166,7 +166,7 @@
       a_f => null()
       a_z => null()
 
-      magnetic_construct_netcdf => magnetic_construct(responce_function)
+      magnetic_construct_netcdf => magnetic_construct(response_function)
 
       END FUNCTION
 
@@ -188,9 +188,9 @@
       TYPE (magnetic_class), POINTER, INTENT(inout) :: this
 
 !  Start of executable code
-      IF (ASSOCIATED(this%responce_function)) THEN
-         CALL mddc_mrf_destroy(this%responce_function)
-         this%responce_function => null()
+      IF (ASSOCIATED(this%response_function)) THEN
+         CALL mddc_mrf_destroy(this%response_function)
+         this%response_function => null()
       END IF
 
       DEALLOCATE(this)
@@ -204,7 +204,7 @@
 !>  @brief Calculates the modeled signal.
 !>
 !>  The plasma signal is the volume integral of the current denisty dotted with
-!>  the diagnostic responce function vector. The responce_function contains a r z
+!>  the diagnostic response function vector. The response_function contains a r z
 !>  grid of reponce function vectors. These grid points are then interpolated
 !>  into the equilibrium grid positions for a single toroidal plane.
 !>  Hishman et. al. Phys. Plasmas 11, 595 (2004); doi: 10.1063/1.1637347
@@ -253,9 +253,9 @@
       REAL (rprec), DIMENSION(:,:,:), POINTER   :: jrvolgrid => null()
       REAL (rprec), DIMENSION(:,:,:), POINTER   :: jphivolgrid => null()
       REAL (rprec), DIMENSION(:,:,:), POINTER   :: jzvolgrid => null()
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_rvol
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_phivol
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: responce_zvol
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_rvol
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_phivol
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_zvol
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sumrz
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sumphi
 
@@ -266,7 +266,7 @@
 !  Start of executable code
       magnetic_get_modeled_signal = 0.0
 
-!  Calculate the plasma only signal from the responce function.
+!  Calculate the plasma only signal from the response function.
 !  Get the volume integration grid points.
 !  NOTE: Do not deallocate any of these arrays. They are owned by the
 !  equilibrium
@@ -286,35 +286,35 @@
      &    ASSOCIATED(jrvolgrid) .and. ASSOCIATED(jphivolgrid) .and.            &
      &    ASSOCIATED(jzvolgrid)) THEN
 
-!  Allocate space for the interpolated responce functions. Only need two
+!  Allocate space for the interpolated response functions. Only need two
 !  dimensions because the interpolation is performed one phi position at a time.
          numrvol = SIZE(rvolgrid, 1)
          numzvol = SIZE(rvolgrid, 2)
-         ALLOCATE(responce_rvol(numrvol, numzvol))
-         ALLOCATE(responce_phivol(numrvol, numzvol))
-         ALLOCATE(responce_zvol(numrvol, numzvol))
+         ALLOCATE(response_rvol(numrvol, numzvol))
+         ALLOCATE(response_phivol(numrvol, numzvol))
+         ALLOCATE(response_zvol(numrvol, numzvol))
 
 !  Allocate work arrays to hold the results of the integration.
-         num_phi = this%responce_function%kp_store
+         num_phi = this%response_function%kp_store
          ALLOCATE(sumrz(numrvol, numzvol))
          ALLOCATE(sumphi(num_phi))
 
-!  Create the r and z gridpoints for the magnetic responce function.
+!  Create the r and z gridpoints for the magnetic response function.
 !>  @todo FIXME: For a single diagnostic these never change. Allocate these once
 !>  and cache these in the @ref magnetic_class object.
-         ALLOCATE(rgrid(this%responce_function%ir))
-         DO r = 1, this%responce_function%ir
-            rgrid(r) = this%responce_function%rmin                             &
-     &               + (r - 1)*(this%responce_function%rmax -                  &
-     &                          this%responce_function%rmin)                   &
-     &               / (this%responce_function%ir - 1)
+         ALLOCATE(rgrid(this%response_function%ir))
+         DO r = 1, this%response_function%ir
+            rgrid(r) = this%response_function%rmin                             &
+     &               + (r - 1)*(this%response_function%rmax -                  &
+     &                          this%response_function%rmin)                   &
+     &               / (this%response_function%ir - 1)
          END DO
-         ALLOCATE(zgrid(this%responce_function%jz))
-         DO z = 1, this%responce_function%jz
-            zgrid(z) = this%responce_function%zmin                             &
-     &               + (z - 1)*(this%responce_function%zmax -                  &
-     &                          this%responce_function%zmin)                   &
-     &               / (this%responce_function%jz - 1)
+         ALLOCATE(zgrid(this%response_function%jz))
+         DO z = 1, this%response_function%jz
+            zgrid(z) = this%response_function%zmin                             &
+     &               + (z - 1)*(this%response_function%zmax -                  &
+     &                          this%response_function%zmin)                   &
+     &               / (this%response_function%jz - 1)
          END DO
 
 !  Create a bivariate object to do the interpolation.
@@ -330,19 +330,19 @@
 
 !  Interpolat from the diagnotic grid points to the volume grid points.
             CALL bivariate4pt(bivariate_object,                                &
-     &                        this%responce_function%a_r(:,:,phi),             &
-     &                        responce_rvol, phi)
+     &                        this%response_function%a_r(:,:,phi),             &
+     &                        response_rvol, phi)
             CALL bivariate4pt(bivariate_object,                                &
-     &                        this%responce_function%a_f(:,:,phi),             &
-     &                        responce_phivol, phi)
+     &                        this%response_function%a_f(:,:,phi),             &
+     &                        response_phivol, phi)
             CALL bivariate4pt(bivariate_object,                                &
-     &                        this%responce_function%a_z(:,:,phi),             &
-     &                        responce_zvol, phi)
+     &                        this%response_function%a_z(:,:,phi),             &
+     &                        response_zvol, phi)
 
 !  J_plasma * A_diag
-            sumrz = jrvolgrid(:,:,phi)*responce_rvol                           &
-     &            + jphivolgrid(:,:,phi)*responce_phivol                       &
-     &            + jzvolgrid(:,:,phi)*responce_zvol
+            sumrz = jrvolgrid(:,:,phi)*response_rvol                           &
+     &            + jphivolgrid(:,:,phi)*response_phivol                       &
+     &            + jzvolgrid(:,:,phi)*response_zvol
             sumphi(phi) = SUM(sumrz(2:numrvol - 1,:))                          &
      &                  + SUM(sumrz(1,:) + sumrz(numrvol,:))/2.0
          END DO
@@ -351,7 +351,7 @@
 
 !  Correct for stellarator symetry.
          magnetic_get_modeled_signal(2) = SUM(sumphi)
-         IF (this%responce_function%lstell_sym) THEN
+         IF (this%response_function%lstell_sym) THEN
             magnetic_get_modeled_signal(2)                                     &
      &         = magnetic_get_modeled_signal(2)                                & 
      &         - (sumphi(1) + sumphi(num_phi))/2.0
@@ -365,7 +365,7 @@
 !  NOTE: Do not deallocate any of the vol grid arrays that were obtained from
 !  the equilibrium_get_magnetic_volume_*grid routines. These arrays are owned by
 !  by the equilibrium.
-         DEALLOCATE(responce_rvol, responce_phivol, responce_zvol)
+         DEALLOCATE(response_rvol, response_phivol, response_zvol)
          DEALLOCATE(sumrz, sumphi)
          DEALLOCATE(rgrid, zgrid)
 
@@ -381,19 +381,19 @@
 
 !  Make sure we don't go out of bounds on any array.
          num_currents = MIN(SIZE(extcur),                                      &
-     &                      SIZE(this%responce_function%rdiag_coilg_1))
-         IF (num_currents .lt. this%responce_function%n_field_cg) THEN
+     &                      SIZE(this%response_function%rdiag_coilg_1))
+         IF (num_currents .lt. this%response_function%n_field_cg) THEN
             CALL err_warn('magnetic_get_modeled_signal: ' //                   &
      &                    'mdsig_file expected more currents')
          END IF
 
          IF (scale_current) THEN
             magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
-     &         this%responce_function%rdiag_coilg_1(1:num_currents),           &
-     &         extcur(1:num_currents)/this%responce_function%extcur_mg)
+     &         this%response_function%rdiag_coilg_1(1:num_currents),           &
+     &         extcur(1:num_currents)/this%response_function%extcur_mg)
          ELSE
             magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
-     &         this%responce_function%rdiag_coilg_1(1:num_currents),           &
+     &         this%response_function%rdiag_coilg_1(1:num_currents),           &
      &         extcur(1:num_currents))
          END IF
       END IF

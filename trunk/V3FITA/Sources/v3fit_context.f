@@ -372,8 +372,8 @@
       INTEGER, DIMENSION(:), ALLOCATABLE        :: indices
 
 !  Start of executable code
-      WRITE (*,*) ' *** Writting context to disk'
-      WRITE (this%runlog_iou,*) ' *** Writting context to disk'
+      WRITE (*,*) ' *** Writing context to disk'
+      WRITE (this%runlog_iou,*) ' *** Writing context to disk'
 
 !  Make the sem_header null so it may be allocated and deallocated.
       sem_header => null()

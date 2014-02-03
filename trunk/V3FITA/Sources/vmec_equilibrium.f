@@ -124,6 +124,10 @@
 !*******************************************************************************
 !  vmec equilibrium module parameters
 !*******************************************************************************
+
+!>  Ratio of the number of poloidal grid points to radial grid points.
+      INTEGER, PARAMETER :: vmec_pol_ratio = 6
+
 !  Define id's only for values that can change. All others shouldn't be needed
 !  outside of the vmec interface. Parameter id's start at 3 since 0-2 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
@@ -257,19 +261,16 @@
 !>  Object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
-!  Number of toroidal planes.
-         INTEGER                                 :: kv
-
-!  Volume differential elements
+!>  Volume differential elements
          REAL (rprec)                            :: ds
          REAL (rprec)                            :: du
          REAL (rprec)                            :: dv
 
-!  R and Z positions on the suv gird points.
+!>  R and Z positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
          REAL (rprec), DIMENSION(:,:,:), POINTER :: zsuv => null()
 
-!  The following have a 1/Sqrt(g) factor embeded.
+!>  The following have a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jrsuv => null()
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jphisuv => null()
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jzsuv => null()
@@ -513,7 +514,6 @@
          this%magnetic_cache%jrsuv => null()
          this%magnetic_cache%jphisuv => null()
          this%magnetic_cache%jzsuv => null()
-         this%magnetic_cache%kv = 0
 
          DEALLOCATE(this%magnetic_cache)
          this%magnetic_cache => null()
@@ -786,12 +786,19 @@
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false.)
 
+!  For the phi_offset, the magnetic cache needs to be updated. Since the phi
+!  offset doesn't alter the equilibrium, the magnetics were not getting updated
+!  since the equilibrium was not reconverged. Call vmec_set_magnetic_cache_calc
+!  to update the magnetic cache without reconverging VMEC.
          CASE (vmec_phi_offset_id)
             vmec_set_param = .false.
             this%phi_offset = value
+            IF (ASSOCIATED(this%magnetic_cache)) THEN
+               CALL vmec_set_magnetic_cache(this)
+            END IF
 
          CASE DEFAULT
-!>  @todo FIXME: Consider throwing a fatal error here inside of silently doing
+!>  @todo FIXME: Consider throwing a fatal error here instead of silently doing
 !>  nothing.
             vmec_set_param = .true.
 
@@ -814,6 +821,11 @@
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
+!>
+!>  @todo This method explicity uses only the first element of the ns_array.
+!>  In effect, this excludes support for multigrid VMEC. To support multi grid,
+!>  the vmec_set_magnetic_cache_init will need to be reset every time the grid
+!>  size changes. Currently the grid are allocated once and never changed.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
      &                                        tor_planes_used, nfp)
@@ -828,27 +840,30 @@
       INTEGER, INTENT(in)              :: tor_planes_used
       INTEGER, INTENT(in)              :: nfp
 
+!  local variables
+      INTEGER                          :: numU
+
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
+      numU = vmec_pol_ratio*ns_array(1)
+
 !  Set the differental volume elements.
       this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)
-      this%magnetic_cache%du = twopi/ns_array(1)
+      this%magnetic_cache%du = twopi/numU
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      this%magnetic_cache%kv = tor_planes_used
-
-      ALLOCATE(this%magnetic_cache%rsuv(ns_array(1), ns_array(1),              &
+      ALLOCATE(this%magnetic_cache%rsuv(ns_array(1), numU,                     &
      &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns_array(1), ns_array(1),              &
+      ALLOCATE(this%magnetic_cache%zsuv(ns_array(1), numU,                     &
      &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns_array(1), ns_array(1),             &
+      ALLOCATE(this%magnetic_cache%jrsuv(ns_array(1), numU,                    &
      &                                   tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns_array(1), ns_array(1),           &
+      ALLOCATE(this%magnetic_cache%jphisuv(ns_array(1), numU,                  &
      &                                     tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns_array(1), ns_array(1),             &
+      ALLOCATE(this%magnetic_cache%jzsuv(ns_array(1), numU,                    &
      &                                   tor_planes_used))
 
       END SUBROUTINE
@@ -864,8 +879,7 @@
       SUBROUTINE vmec_set_magnetic_cache_calc(this)
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
-     &                         currumnc, currvmnc, currumns, currvmns,         &
-     &                         ns
+     &                         currumnc, currvmnc, currumns, currvmns
 
       IMPLICIT NONE
 
@@ -874,6 +888,7 @@
 
 !  local variables
       INTEGER                                   :: s, u, v
+      INTEGER                                   :: numS, numU, numV
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, cosv
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu, sinv
@@ -885,15 +900,18 @@
       REAL (rprec)                              :: phi
 
 !  Start of executable code.
+!  Get the size of the SUV grid.
+      numS = SIZE(this%magnetic_cache%rsuv, 1)
+      numU = SIZE(this%magnetic_cache%rsuv, 2)
+      numV = SIZE(this%magnetic_cache%rsuv, 3)
+
       ALLOCATE(cosz(mnmax), sinz(mnmax))
-      ALLOCATE(cosu(mnmax, ns), sinu(mnmax, ns),                               &
-     &         cosv(mnmax, this%magnetic_cache%kv),                            &
-     &         sinv(mnmax, this%magnetic_cache%kv))
+      ALLOCATE(cosu(mnmax, numU), sinu(mnmax, numU),                           &
+     &         cosv(mnmax, numV), sinv(mnmax, numV))
 
       ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
-      ALLOCATE(cosu_nyq(mnmax_nyq, ns), sinu_nyq(mnmax_nyq, ns),               &
-     &         cosv_nyq(mnmax_nyq, this%magnetic_cache%kv),                    &
-     &         sinv_nyq(mnmax_nyq, this%magnetic_cache%kv))
+      ALLOCATE(cosu_nyq(mnmax_nyq, numU), sinu_nyq(mnmax_nyq, numU),           &
+     &         cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
 
 !  U grid is square with the s grid.
 !>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
@@ -901,13 +919,13 @@
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
 !>  @ref vmec_set_magnetic_cache_init.
-      DO u = 1, ns
+      DO u = 1, numU
          cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
          sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
          cosu_nyq(:,u) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
          sinu_nyq(:,u) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
       END DO
-      DO v = 1, this%magnetic_cache%kv
+      DO v = 1, numV
          phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
          cosv(:,v) = COS(xn*phi)
          sinv(:,v) = SIN(xn*phi)
@@ -926,9 +944,9 @@
 !  jr = ju*ru + jv*rv
 !  jphi = jv*R
 !  jz = ju*zu + jv*zv
-      DO u = 1, ns
+      DO u = 1, numU
 
-         DO v = 1, this%magnetic_cache%kv
+         DO v = 1, numV
 
             cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
             sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
@@ -938,7 +956,7 @@
             sinz_nyq = sinu_nyq(:,u)*cosv_nyq(:,v)                             &
      &               - cosu_nyq(:,u)*sinv_nyq(:,v)
 
-            DO s = 1, ns
+            DO s = 1, numS
 
                this%magnetic_cache%rsuv(s,u,v) = SUM(rmnc(:,s)*cosz)
                this%magnetic_cache%zsuv(s,u,v) = SUM(zmns(:,s)*sinz)
