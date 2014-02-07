@@ -124,10 +124,6 @@
 !*******************************************************************************
 !  vmec equilibrium module parameters
 !*******************************************************************************
-
-!>  Ratio of the number of poloidal grid points to radial grid points.
-      INTEGER, PARAMETER :: vmec_pol_ratio = 6
-
 !  Define id's only for values that can change. All others shouldn't be needed
 !  outside of the vmec interface. Parameter id's start at 3 since 0-2 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
@@ -295,6 +291,8 @@
 !>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
      &      sxrem => null()
+!>  Ratio of the poloidal grid points to the poloidal grid points.
+         INTEGER                                :: pol_rad_ratio
 !>  Instance of a @ref vmec_magnetic_cache object.
          TYPE (vmec_magnetic_cache), POINTER    ::                             &
      &      magnetic_cache => null()
@@ -379,7 +377,7 @@
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct(file_name, ne, te, sxrem, phi_offset,            &
-     &                        iou)
+     &                        pol_rad_ratio, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -396,6 +394,7 @@
       TYPE (pprofile_pointer), DIMENSION(:), POINTER, INTENT(in) ::            &
      &   sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
+      INTEGER, INTENT(in)                  :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
 
 !  local variables
@@ -414,6 +413,7 @@
       vmec_construct%sxrem => sxrem
 
       vmec_construct%phi_offset = phi_offset
+      vmec_construct%pol_rad_ratio = pol_rad_ratio
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
@@ -846,7 +846,7 @@
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-      numU = vmec_pol_ratio*ns_array(1)
+      numU = this%pol_rad_ratio*ns_array(1)
 
 !  Set the differental volume elements.
       this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)

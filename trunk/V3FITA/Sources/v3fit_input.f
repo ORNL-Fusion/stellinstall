@@ -161,6 +161,10 @@
 !>        @item{sdo_w_spec_weight,   Array of weight values for specifying weights,                                                     v3fit_input::sdo_w_spec_weight}
 !>  @end_table
 !>
+!>  @table_section{magnetic_sec, Magnetic signal parameters}
+!>     @item{pol_rad_ratio, Ratio of the radial grid points to the poloidal grid points, v3fit_input::pol_rad_ratio}
+!>  @end_table
+!>
 !>  @todo FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle.
 !>  @table_section{extcurz_sec, These two are used by the extcurz diagnostic signal.}
 !>     @item{extcurz_s0, S position to integrate about., v3fit_input::extcurz_s0}
@@ -764,6 +768,10 @@
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sdo_w_spec_weight = 0.0
 
+!  Magnetic integration parameters
+!>  Ratio of the number of poloidal grid points to radial grid points.
+      INTEGER :: pol_rad_ratio = 6
+
 !  External current signal specification
 !>  External Z current radial position.
 !>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
@@ -912,6 +920,8 @@
      &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
+!  Magnetic integration parameters
+     &   pol_rad_ratio,                                                        &
 !  External current signal specification
 !>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
 !>  changed to a radial coordinate and poloidal angle.

@@ -535,6 +535,7 @@
      &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
      &                                        ne, te, sxr, phi_offset,         &
+     &                                        pol_rad_ratio,                   &
      &                                        context%runlog_iou),             &
      &                         force_solve))
 
