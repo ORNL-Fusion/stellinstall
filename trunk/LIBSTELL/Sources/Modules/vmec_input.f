@@ -59,6 +59,8 @@
      A         , lspectrum_dump, loptim           !!Obsolete
       LOGICAL :: lgiveup                  ! inserted M.Drevlak
       REAL(rprec) :: fgiveup              ! inserted M.Drevlak, giveup-factor for ftolv
+      LOGICAL :: lbsubs = .false.         ! J Hanson See jxbforce coding
+
       CHARACTER(len=200) :: mgrid_file
       CHARACTER(len=10)  :: precon_type
       CHARACTER(len=120) :: arg1
@@ -83,7 +85,8 @@
      A   bbc, sigma_b, lpofr, lforbal, lfreeb, lmove_axis, lrecon, lmac, 
      B   lasym, ledge_dump, lspectrum_dump, loptim, lrfp,
      C   loldout, lwouttxt, ldiagno, lfull3d1out, max_main_iterations,     ! J Geiger 2010-05-04
-     D   lgiveup,fgiveup                                                   ! M.Drevlak 2012-05-10
+     D   lgiveup,fgiveup,                                                  ! M.Drevlak 2012-05-10
+     E   lbsubs                                                            ! 2014-01-12 See jxbforce
 
       NAMELIST /mseprofile/ mseprof
 
@@ -133,6 +136,7 @@
       ldiagno = .false.
       lgiveup = .false.        ! inserted M.Drevlak
       fgiveup = 3.E+01_dp      ! inserted M.Drevlak
+      lbsubs = .false.         ! J Hanson. See jxbforce coding
       lfull3d1out = .false.
       lmoreiter = .false.      ! default value if no max_main_iterations given.
       max_main_iterations = 1  ! to keep a presumably expected standard behavior.

@@ -42,8 +42,11 @@
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
 !RESET lbsubs DEFAULT FLAG TO FALSE TO CAPTURE CURRENT SHEETS!
-      LOGICAL, PARAMETER :: lbsubs = .false.      !!False to use (correct)  bsubs calculation (from metrics)
+!      LOGICAL, PARAMETER :: lbsubs = .false.      !!False to use (correct)  bsubs calculation (from metrics)
                                                   !!True  to use (modified) bsubs calculation (from mag. diff. eq.)
+!  J Hanson 2014-01-12. Commented out above line. Variable is now declared
+!    in module vmec_input, available here through module vmec_main.
+!    lbsubs is now a namelist input variable, so user can change.
       LOGICAL, PARAMETER :: lprint = .false.      !!Prints out bsubs spectrum to fort.33
       REAL(rprec), PARAMETER :: two=2, p5=0.5_dp, c1p5=1.5_dp
       INTEGER, PARAMETER :: ns_skip = 1, nu_skip = 1, nv_skip = 1
