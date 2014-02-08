@@ -4,6 +4,7 @@
       USE vacmod
       USE vparams, ONLY: nthreed, zero, one, mu0
       USE vmec_params, ONLY: norm_term_flag, phiedge_error_flag
+      USE vmec_input, ONLY: lrfp         ! JDH Added 2013-11-25, to test for RFP
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -149,9 +150,29 @@ C-----------------------------------------------
  1000    FORMAT(2x,'2*pi * a * -BPOL(vac) = ',1p,e10.2,
      1      ' TOROIDAL CURRENT = ',e10.2,/,2x,'R * BTOR(vac) = ',
      2      e10.2,' R * BTOR(plasma) = ',e10.2)
-         IF (rbtor*bsubvvac .lt. zero) ier_flag = phiedge_error_flag
-         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp)
-     1      ier_flag = 10
+!  JDH Add test for RFP. 2013-11-25
+!         IF (rbtor*bsubvvac .lt. zero) ier_flag = phiedge_error_flag
+!         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp)
+!     1      ier_flag = 10
+         IF (rbtor*bsubvvac .lt. zero) THEN
+            IF (lrfp) THEN
+1100  FORMAT('lrfp is TRUE. Ignore phiedge sign problem')
+               IF (lscreen) WRITE(*,1100) 
+               WRITE(nthreed,1100) 
+            ELSE
+               ier_flag = phiedge_error_flag
+            ENDIF
+         ENDIF
+         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp) THEN
+            IF (lrfp) THEN
+1200  FORMAT('lrfp is TRUE. Proceed with convergence')
+               IF (lscreen) WRITE(*,1200) 
+               WRITE(nthreed,1200) 
+            ELSE
+               ier_flag = 10
+            ENDIF
+         ENDIF
+!  END JDH Add test for RFP. 2013-11-25
       ENDIF
 
       IF (ALLOCATED(bexu))
