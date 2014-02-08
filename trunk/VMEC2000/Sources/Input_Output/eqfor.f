@@ -16,6 +16,7 @@
       USE mgrid_mod
       USE fbal
       USE v3f_vmec_comm
+      USE stel_constants, ONLY: pi
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -60,6 +61,7 @@ C-----------------------------------------------
      D   tol, toroidal_flux, vnorm, vprime, wght0, xmax,
      E   xmida, xmidb, xmin, rzmax, rzmin, zxmax, zxmin, zaxis0,
      F   zmax, zmin, yr1u, yz1u, waist(2), height(2)
+      REAL(rprec) d_of_kappa
 C-----------------------------------------------
 C   E x t e r n a l   F u n c t i o n s
 C-----------------------------------------------
@@ -247,17 +249,32 @@ C-----------------------------------------------
       aspect = aspectratio()
 
 !     Also, estimate mean elongation of plasma from the following relations
+!     for an axisymmetric torus with elliptical cross section and semi-axes
+!     a and a * kappa (kappa >= 1)
 !     
-!     surf_area_p = 2*pi*R * 2*pi*a sqrt(1+kappa_p**2)
-!     volume_p    = 2*pi*R * pi*a**2 * kappa_p
-!     cross_area_p=   pi*a**2 * kappa_p
+!     surf_area _p = 2*pi*R * 2*pi*a ctwiddle(kappa_p)
+!     volume_p    = 2*pi*R * pi*a ** 2 * kappa_p
+!     cross_area _p =   pi*a ** 2 * kappa_p
 !
+!     The cirumference of an ellipse of semi-axes a and a * kappa_p is 
+!        2 * pi * a ctwiddle(kappa_p)
+!     The exact form for ctwiddle is 4 E(1 - kappa_p^2) / (2 pi), where
+!      E is the complete elliptic integral of the second kind 
+!     (with parameter argument m, not modulus argument k)
+!
+!  The coding below implements an approximate inverse of the function
+!  d(kappa) = ctwiddle(kappa) / sqrt(kappa)
+!  The approximate inverse is
+!	   kappa = 1 + (pi^2/8) * (d^2+sqrt(d^4-1)-1)
+!  Note that the variable aminor_p, for an elliptic cross section, 
+!  would be a * sqrt(kappa)
+!
+      d_of_kappa = surf_area_p * aminor_p / ( 2 * volume_p)
+      kappa_p = 1 + (pi * pi / 8) * (d_of_kappa ** 2 + SQRT                    &
+     &      (ABS(d_of_kappa ** 4 - 1)) -1)
+      vvc_kappa_p = kappa_p ! Save result for v3fit.
 
       aminr1 = 2*volume_p/surf_area_p
-      er = aminr1/aminor_p
-      er = one/er**2
-      kappa_p = er + SQRT(ABS(er*er - 1))
-      vvc_kappa_p = kappa_p ! Save result for v3fit.
 
 !
 !
