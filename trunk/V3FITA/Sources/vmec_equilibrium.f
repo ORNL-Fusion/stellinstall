@@ -292,7 +292,7 @@
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
      &      sxrem => null()
 !>  Ratio of the poloidal grid points to the poloidal grid points.
-         INTEGER                                :: pol_rad_ratio
+         REAL (rprec)                           :: pol_rad_ratio
 !>  Instance of a @ref vmec_magnetic_cache object.
          TYPE (vmec_magnetic_cache), POINTER    ::                             &
      &      magnetic_cache => null()
@@ -394,7 +394,7 @@
       TYPE (pprofile_pointer), DIMENSION(:), POINTER, INTENT(in) ::            &
      &   sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
-      INTEGER, INTENT(in)                  :: pol_rad_ratio
+      REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
 
 !  local variables
@@ -846,7 +846,7 @@
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-      numU = this%pol_rad_ratio*ns_array(1)
+      numU = MAX(INT(this%pol_rad_ratio*ns_array(1)), 1)
 
 !  Set the differental volume elements.
       this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)

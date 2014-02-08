@@ -770,7 +770,7 @@
 
 !  Magnetic integration parameters
 !>  Ratio of the number of poloidal grid points to radial grid points.
-      INTEGER :: pol_rad_ratio = 6
+      REAL (rprec) :: pol_rad_ratio = 1.0
 
 !  External current signal specification
 !>  External Z current radial position.
