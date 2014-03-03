@@ -371,6 +371,9 @@
      &   sem_header
       INTEGER, DIMENSION(:), ALLOCATABLE        :: indices
 
+!  local parameters
+      CHARACTER (len=12), PARAMETER :: prefix = '            '
+
 !  Start of executable code
       WRITE (*,*) ' *** Writing context to disk'
       WRITE (this%runlog_iou,*) ' *** Writing context to disk'
@@ -390,6 +393,23 @@
             CALL param_write_short(this%derived_params(j)%p,                   &
      &                             this%recout_iou, j, this%model)
          END DO
+
+!  Write out the derived parameter correlation matrix.
+         IF (SIZE(this%derived_params) .gt. 0 .and.                            &
+     &       ASSOCIATED(this%derived_params(1)%p%correlation)) THEN
+            CALL v3fit_context_write_param_header(this,                        &
+     &                                            this%derived_params,         &
+     &                                            prefix,                      &
+     &                                            ' *** Derived ' //           &
+     &                                            'parameter ' //              &
+     &                                            'covariance ' //             &
+     &                                            'matrix')
+
+            DO j = 1, SIZE(this%derived_params)
+               CALL param_write_correlation(this%derived_params(j)%p,          &
+     &                                      this%recout_iou, this%model)
+            END DO
+         END IF
       END IF
 
 !  Write out the parameters
@@ -400,40 +420,34 @@
      &                       this%model)
          END DO
 
+!  Write out the reconstruction parameter correlation matrix.
+         IF (SIZE(this%params) .gt. 0 .and.                                    &
+     &       ASSOCIATED(this%params(1)%p%correlation)) THEN
+            CALL v3fit_context_write_param_header(this, this%params,           &
+     &                                            prefix,                      &
+     &                                            ' *** Reconstruction '       &
+     &                                            // 'parameter ' //           &
+     &                                            'covariance ' //             &
+     &                                            'matrix')
+
+            DO j = 1, SIZE(this%params)
+               CALL param_write_correlation(this%params(j)%p,                  &
+     &                                      this%recout_iou, this%model)
+            END DO
+         END IF
+
 !  Only need to write out the signal effectiveness matrix if signals exist.
          IF (ASSOCIATED(this%signals)) THEN
 
 !  Write out the signal effectiveness matrix. This matrix will be written out
 !  so that each parameter is one a column and each row is a a signal. Start by
-!  generating the header. The header is formatted as
-!
-!     #  signal_name         (param_name[12]) ...
-!
-!  Start my allocating a string large enough to hold the entire header. The
-!  length of this string needs to be 26 for the base an additional 14 for each
-!  parameter.
-            WRITE (this%recout_iou, *)
-            WRITE (this%recout_iou, *)                                         &
-     &         ' *** Signal Effectiveness Matrix'
-            ALLOCATE(sem_header)
-
-            WRITE (sem_header, 1000)
-            sem_offset = 26
-            DO j = 1, SIZE(this%params)
-               WRITE (sem_header, 1001) sem_header(1:sem_offset),              &
-     &                                  param_get_name(this%params(j)%p,       &
-     &                                                 this%model)
-               sem_offset = sem_offset + 14
-            END DO
-
-!  Write out the header.
-            WRITE (this%recout_iou, 1002)                                      &
-     &         sem_header(1:26 + 14*SIZE(this%params))
-
-            DEALLOCATE(sem_header)
-1000  FORMAT (3x,'#',2x,'s_name',14x)
-1001  FORMAT (a,2x,a12)
-1002  FORMAT (a)
+!  generating the header.
+            CALL v3fit_context_write_param_header(this, this%params,           &
+     &                                            '   #  s_name     ' //       &
+     &                                            '         ',                 &
+     &                                            ' *** Signal ' //            &
+     &                                            'Effectiveness ' //          &
+     &                                            'Matrix')
 
 !  Write out each row of the sem matrix.
 !  Reuse the sem_header string to generate the format string. The format string
@@ -442,7 +456,7 @@
 !  i4,2x,a20,<num_params>(2x,es12.5)
             ALLOCATE(sem_row(SIZE(this%params)))
             ALLOCATE(sem_header)
-            WRITE (sem_header, 1003) SIZE(this%params)
+            WRITE (sem_header, 1002) SIZE(this%params)
 
             DO i = 1, SIZE(this%signals)
                DO j = 1, SIZE(this%params)
@@ -455,7 +469,7 @@
 
 !  Write out the total for each column. Sum over all the signals for a single
 !  parameter. This should be 1.0.
-            WRITE (sem_header, 1004) SIZE(this%params)
+            WRITE (sem_header, 1003) SIZE(this%params)
             DO j = 1, SIZE(this%params)
                sem_row(j) = SUM(this%params(j)%p%sem)
             END DO
@@ -463,24 +477,21 @@
             WRITE (this%recout_iou, *)
             WRITE (this%recout_iou, sem_header) sem_row
 
-1003  FORMAT ('(i4,2x,a20,',i3,'(2x,es12.5))')
-1004  FORMAT ('(20x,''Total:''',i3,'(2x,es12.5))')
-
 !  Write out the most effective signal.
             ALLOCATE(indices(SIZE(this%params)))
 
-            WRITE (sem_header, 1002) '    Most Effective Signal:'
+            WRITE (sem_header, 1001) '    Most Effective Signal:'
             sem_offset = 26
             DO j = 1, SIZE(this%params)
                indices(j) = MAXLOC(this%params(j)%p%sem, 1)
                sem_row(j) = this%params(j)%p%sem(indices(j))
 
-               WRITE (sem_header, 1001)                                        &
+               WRITE (sem_header, 1000)                                        &
      &            sem_header(1:sem_offset),                                    &
      &            TRIM(this%signals(indices(j))%p%s_name)
                sem_offset = sem_offset + 14
             END DO
-            WRITE (this%recout_iou, 1002)                                      &
+            WRITE (this%recout_iou, 1001)                                      &
      &         sem_header(1:26 + 14*SIZE(this%params))
 
             WRITE (sem_header, 1005) SIZE(this%params)
@@ -494,6 +505,10 @@
             DEALLOCATE(sem_row)
          END IF
 
+1000  FORMAT (a,2x,a12)
+1001  FORMAT (a)
+1002  FORMAT ('(i4,2x,a20,',i3,'(2x,es12.5))')
+1003  FORMAT ('(20x,''Total:''',i3,'(2x,es12.5))')
 1005  FORMAT ('(13x,''Signal Index:''',i3,'(2x,i12))')
 1006  FORMAT ('(16x,''Max Value:''',i3,'(2x,es12.5))')
       END IF
@@ -534,6 +549,73 @@
      &                                   this%model)
          END DO
       END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write the @ref param_class::correlation header out to disk.
+!>
+!>  Writes out the results of header for a correlation matric. This header is
+!>  formatted by a an inital col left blank followed by eack parameter name
+!>  spaced 14 spaced apart from each other.
+!>
+!>  @param[inout] this      A @ref v3fit_context_class instance.
+!>  @param[in]    params    Array of parameter objects.
+!>  @param[in]    prefix    Prefix string to format the header.
+!>  @param[in]    type_name Type name of the parameters.
+!>  @note The 'this' parameter is intent(inout) because @ref signal_write calls
+!>  @node The 'prefix' parameter must be an exact length string with all white
+!>        space predefined.
+!>  @ref signal_get_g2 which needs to be intent(inout).
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_write_param_header(this, params, prefix,        &
+     &                                            type_name)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+      TYPE (param_pointer), DIMENSION(:)        :: params
+      CHARACTER (len=*)                         :: prefix
+      CHARACTER (len=*)                         :: type_name
+
+!  local variables
+!  Fortran 95 doesn't allow allocatable strings. Need to allocate a string large
+!  enough to hold every possible parameter. Fortran 95 doesn't allow allocatable
+!  scalar types so make this a pointer. This large string needs to be allocated
+!  to avoid a stack overflow. The longest header generate will be the signal
+!  effectiveness matrix. Make the start of this string at least 26 characters.
+      CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER :: header
+      INTEGER                                   :: offset, j
+
+!  Start of executable code
+      WRITE (this%recout_iou, *)
+      WRITE (this%recout_iou, *) type_name
+
+! The header is formatted as
+!
+!  <prefix> (param_name[12]) ...
+!
+!  Start by allocating a string large enough to hold the entire header. The
+!  length of this string needs to be the size of the prefix plus an additional
+!  14 for each parameter. The prefix string must be an exact length.
+      header => null()
+      ALLOCATE(header)
+
+      WRITE (header, 1000) prefix
+      offset = LEN(prefix)
+      DO j = 1, SIZE(params)
+         WRITE (header, 1001) header(1:offset),                                &
+     &                        param_get_name(params(j)%p, this%model)
+         offset = offset + 14
+      END DO
+
+      WRITE (this%recout_iou, 1000) header(1:offset)
+
+      DEALLOCATE(header)
+
+1000  FORMAT (a)
+1001  FORMAT (a,2x,a12)
 
       END SUBROUTINE
 

@@ -1355,7 +1355,7 @@
      &   derived_params
 
 !  local arguments
-      INTEGER                                            :: j
+      INTEGER                                            :: j, i
       REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
 
@@ -1390,15 +1390,38 @@
 
          DO j = 1, SIZE(derived_params)
             derived_params(j)%p%sigma = SQRT(cd(j,j))
+            derived_params(j)%p%correlation = cd(j,:)
          END DO
 
          DEALLOCATE(cd)
       END IF
 
+!  Normalize derived parameter correlation matrix.
+      DO j = 1, SIZE(derived_params)
+         DO i = 1, SIZE(derived_params)
+            derived_params(j)%p%correlation(i)                                 &
+     &         = derived_params(j)%p%correlation(i)                            &
+     &         / (derived_params(j)%p%sigma*derived_params(i)%p%sigma)
+         END DO
+      END DO
+
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
       DO j = 1, SIZE(params)
          params(j)%p%sigma = SQRT(cp(j,j)*params(j)%p%delta**2.0)
+         DO i = 1, SIZE(params)
+            params(j)%p%correlation(i) = cp(j,i)*params(j)%p%delta             &
+     &                                 * params(i)%p%delta
+         END DO
+      END DO
+
+!  Normalize reconstruction parameter correlation matrix.
+      DO j = 1, SIZE(params)
+         DO i = 1, SIZE(params)
+            params(j)%p%correlation(i)                                         &
+     &         = params(j)%p%correlation(i)                                    &
+     &         / (params(j)%p%sigma*params(i)%p%sigma)
+         END DO
       END DO
 
 !  Compute signal effectiveness.

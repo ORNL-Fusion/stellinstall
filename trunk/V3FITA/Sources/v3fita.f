@@ -1138,14 +1138,16 @@
      &                                          rp_range_type(i,:),            &
      &                                          rp_range_index(i,:,:),         &
      &                                          rp_range_value(i,:),           &
-     &                                          SIZE(context%signals))
+     &                                          SIZE(context%signals),         &
+     &                                          n_rp)
       END DO
 
       ALLOCATE(context%derived_params(n_dp))
       DO i = 1, n_dp
          context%derived_params(i)%p => param_construct(context%model,         &
      &                                                  dp_type(i),            &
-     &                                                  dp_index(i,:))
+     &                                                  dp_index(i,:),         &
+     &                                                  n_dp)
 
       END DO
 

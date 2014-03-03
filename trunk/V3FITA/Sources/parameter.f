@@ -79,6 +79,8 @@
          REAL (rprec)                        :: sigma = 0.0
 !>  Stored row of the signal effectiveness matrix.
          REAL (rprec), DIMENSION(:), POINTER :: sem => null()
+!>  Stored row of the correlation matrix.
+         REAL (rprec), DIMENSION(:), POINTER :: correlation => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -122,12 +124,15 @@
 !>  @ref model or the @ref equilibrium. This version is used to construct
 !>  basic parameters.
 !>
-!>  @param[in] a_model        An instance of a @ref model object.
-!>  @param[in] param_name     The name of the parameter.
-!>  @param[in] indicies       The array indices of the parameter.
+!>  @param[in] a_model    An instance of a @ref model object.
+!>  @param[in] param_name The name of the parameter.
+!>  @param[in] indicies   The array indices of the parameter.
+!>  @param[in] num_params Number of parameters. USed to determine the size of
+!>                        the @ref param_class::correlation arrays.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION param_construct_basic(a_model, param_name, indicies)
+      FUNCTION param_construct_basic(a_model, param_name, indicies,            &
+     &                               num_params)
       USE v3_utilities
 
       IMPLICIT NONE
@@ -137,12 +142,17 @@
       TYPE (model_class), INTENT(in)    :: a_model
       CHARACTER (len=*), INTENT(in)     :: param_name
       INTEGER, DIMENSION(2), INTENT(in) :: indicies
+      INTEGER, INTENT(in)               :: num_params
 
 !  Start of executable code
       ALLOCATE(param_construct_basic)
 
       param_construct_basic%param_id =                                         &
      &   model_get_param_id(a_model, TRIM(param_name))
+
+      ALLOCATE(param_construct_basic%correlation(num_params))
+      param_construct_basic%correlation = 0.0
+
       param_construct_basic%indicies = indicies
 
       END FUNCTION
@@ -171,11 +181,14 @@
 !>  @param[in] range_value    Value of a boundary.
 !>  @param[in] num_signals    Number of signals. Used to determine the size of
 !>                            the @ref param_class::sem arrays.
+!>  @param[in] num_params     Number of parameters. USed to determine the size
+!>                            of the @ref param_class::correlation arrays.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
       FUNCTION param_construct_recon(a_model, param_name, indicies,            &
      &                               vrnc, range_type, range_indicies,         &
-     &                               range_value, num_signals)
+     &                               range_value, num_signals,                 &
+     &                               num_params)
       USE v3_utilities
 
       IMPLICIT NONE
@@ -190,10 +203,11 @@
       INTEGER, DIMENSION(2,2), INTENT(in)         :: range_indicies
       REAL (rprec), DIMENSION(2), INTENT(in)      :: range_value
       INTEGER, INTENT(in)                         :: num_signals
+      INTEGER, INTENT(in)                         :: num_params
 
 !  Start of executable code
       param_construct_recon => param_construct(a_model, param_name,            &
-     &                                         indicies)
+     &                                         indicies, num_params)
 
       IF (.not.model_is_recon_param(a_model,                                   &
      &            param_construct_recon%param_id)) THEN
@@ -279,6 +293,11 @@
       IF (ASSOCIATED(this%sem)) THEN
          DEALLOCATE(this%sem)
          this%sem => null()
+      END IF
+
+      IF (ASSOCIATED(this%correlation)) THEN
+         DEALLOCATE(this%correlation)
+         this%correlation => null()
       END IF
 
       DEALLOCATE(this)
@@ -742,7 +761,6 @@
 !>  @param[in] iou     Input/output unit representing the file to write to.
 !>  @param[in] index   The index of a parameter.
 !>  @param[in] a_model A @ref model instance.
-!>  @note Eventually parameter range informarion will be added as well.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_write_short(this, iou, index, a_model)
 
@@ -814,6 +832,38 @@
       WRITE (iou,1000)
 1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
      &        'sigma')
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Writes out a parameter covariance matrix row.
+!>
+!>  Each parameter contains the row for it's covariance matrix. This write it
+!>  out formatted as the name of the parameter up to 12 characters. This
+!>  followed by each value spearated by 2 spaces and a 12 character number.
+!>
+!>  @param[in] this    A @ref param_class instance.
+!>  @param[in] iou     Input/output unit representing the file to write to.
+!>  @param[in] a_model A @ref model instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_write_correlation(this, iou, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: iou
+      TYPE (model_class), INTENT(in) :: a_model
+
+!  local variables
+      CHARACTER (len=20)             :: row_format
+
+!  Start of executable code
+      WRITE (row_format,1000) SIZE(this%correlation)
+      WRITE (iou,row_format) param_get_name(this, a_model),                    &
+     &                       this%correlation
+
+1000  FORMAT ('(a12,',i3,'(2x,es12.5))')
+
       END SUBROUTINE
 
 !*******************************************************************************

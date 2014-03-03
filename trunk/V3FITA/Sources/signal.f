@@ -531,7 +531,7 @@
 !  Local Variables
 
 !  Start of executable code
-! g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
+!  g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
       signal_get_g2 = signal_get_e(this, a_model, use_cache)**2.0
 
       END FUNCTION
