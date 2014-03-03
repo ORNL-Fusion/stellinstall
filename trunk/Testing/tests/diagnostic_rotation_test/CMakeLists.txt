@@ -16,3 +16,6 @@ add_test (NAME    diagnostic_rotation_test_phi_offset
 add_test (NAME    diagnostic_rotation_test_sem_totals
           COMMAND ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit)
 
+#  Check correlation matrix values.
+add_test (NAME diagnostic_rotation_test_check_reconstruction_correlation_matrix
+          COMMAND ${TEST_SCRIPT_DIR}/check_correlation_matrix --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)

@@ -1397,13 +1397,7 @@
       END IF
 
 !  Normalize derived parameter correlation matrix.
-      DO j = 1, SIZE(derived_params)
-         DO i = 1, SIZE(derived_params)
-            derived_params(j)%p%correlation(i)                                 &
-     &         = derived_params(j)%p%correlation(i)                            &
-     &         / (derived_params(j)%p%sigma*derived_params(i)%p%sigma)
-         END DO
-      END DO
+      CALL reconstruction_normalize_correlations(derived_params)
 
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
@@ -1416,13 +1410,7 @@
       END DO
 
 !  Normalize reconstruction parameter correlation matrix.
-      DO j = 1, SIZE(params)
-         DO i = 1, SIZE(params)
-            params(j)%p%correlation(i)                                         &
-     &         = params(j)%p%correlation(i)                                    &
-     &         / (params(j)%p%sigma*params(i)%p%sigma)
-         END DO
-      END DO
+      CALL reconstruction_normalize_correlations(params)
 
 !  Compute signal effectiveness.
       ALLOCATE(j_dot_cp(SIZE(signals),SIZE(params)))
@@ -1452,7 +1440,8 @@
 !>  @brief Invert an M x N matrix.
 !>
 !>  Perform a pseudo-inversion using a singular value decomposition. This
-!>  subroutine destroys the original matrix.
+!>  subroutine destroys the original matrix. Since this method is static, it
+!>  does not require the 'this' parameter.
 !>
 !>  @param[inout] matrix The matrix to invert.
 !>  @param[in]    sub    The subroutine of the matrix this was called from.
@@ -1525,6 +1514,36 @@
      &                   MATMUL(matrix, TRANSPOSE(svd_u)))
          DEALLOCATE(svd_vt, svd_u, svd_w, svd_work)
       END IF
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Normalize a correlation matrix.
+!>
+!>  Normalizes a correlation matrix by dividing by the sigmas for that element.
+!>  This method is static so it doesn't require a this parameter.
+!>
+!>  @param[inout] params Array of parameter to normalize the correlations of.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_normalize_correlations(params)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout) :: params
+
+!  local arguments
+      INTEGER                                           :: j, i
+
+!  Start of executable code
+      DO j = 1, SIZE(params)
+         params(j)%p%correlation = params(j)%p%correlation                     &
+     &                           / params(j)%p%sigma
+         DO i = 1, SIZE(params)
+            params(j)%p%correlation(i)                                         &
+     &         = params(j)%p%correlation(i)/params(i)%p%sigma
+         END DO
+      END DO
 
       END SUBROUTINE
 

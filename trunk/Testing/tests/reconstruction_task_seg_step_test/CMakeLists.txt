@@ -221,3 +221,7 @@ add_test (NAME    reconstruction_task_seg_step_test_check_rbc01_constraint_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=rbc --index1=0 --index2=1 --range_l=value)
 add_test (NAME    reconstruction_task_seg_step_test_check_zbs01_constraint_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=zbs --index1=0 --index2=1 --range_l=value)
+          
+#  Check correlation matrix values.
+add_test (NAME reconstruction_task_seg_step_test_check_reconstruction_correlation_matrix
+          COMMAND ${TEST_SCRIPT_DIR}/check_correlation_matrix --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)

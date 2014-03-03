@@ -43,3 +43,7 @@ add_test (NAME    param_constraints_test_type_pp_sxrem_as_a_1_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as_a --index1=1 --index2=2 --range_h=pp_sxrem_as_a --range_l=pp_sxrem_as_a --indexh1=1 --indexh2=3 --indexl1=1 --indexl2=1)
 add_test (NAME    param_constraints_test_type_pp_sxrem_as_a_2_type
           COMMAND ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_as_a --index1=1 --index2=3 --range_h=pp_sxrem_as_a --range_l=pp_sxrem_as_a --indexh1=1 --indexh2=4 --indexl1=1 --indexl2=2)
+          
+#  Check correlation matrix values.
+add_test (NAME param_constraints_test_check_reconstruction_correlation_matrix
+          COMMAND ${TEST_SCRIPT_DIR}/check_correlation_matrix --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)
