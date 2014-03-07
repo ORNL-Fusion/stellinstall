@@ -1403,10 +1403,10 @@
             vmec_get_param_value = betapol
 
          CASE (vmec_betator_id)
-            vmec_get_param_value = vmec_betator_id
+            vmec_get_param_value = betator
 
          CASE (vmec_betaxis_id)
-            vmec_get_param_value = vmec_betaxis_id
+            vmec_get_param_value = betaxis
 
          CASE (vmec_phi_offset_id)
             vmec_get_param_value = this%phi_offset
