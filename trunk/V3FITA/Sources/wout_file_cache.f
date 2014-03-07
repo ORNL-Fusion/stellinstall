@@ -69,6 +69,14 @@
          REAL (rprec), DIMENSION(:), POINTER   :: iotaf => null()
 !>  Rotational transform on half mesh.
          REAL (rprec), DIMENSION(:), POINTER   :: iotas => null()
+!>  Total Beta
+         REAL (rprec)                          :: betatot
+!>  Polidal Beta
+         REAL (rprec)                          :: betapol
+!>  Toroidal Beta
+         REAL (rprec)                          :: betator
+!>  Beta on Axis
+         REAL (rprec)                          :: betaxis
       END TYPE
 
 !*******************************************************************************
@@ -155,6 +163,11 @@
          wout_file_cache_construct_new%bsupvmns = bsupvmns
       END IF
 
+      wout_file_cache_construct_new%betatot = betatot
+      wout_file_cache_construct_new%betapol = betapol
+      wout_file_cache_construct_new%betator = betator
+      wout_file_cache_construct_new%betaxis = betaxis
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -226,6 +239,11 @@
          wout_file_cache_construct_copy%bsupumns = cache_object%bsupumns
          wout_file_cache_construct_copy%bsupvmns = cache_object%bsupvmns
       END IF
+
+      wout_file_cache_construct_copy%betatot = cache_object%betatot
+      wout_file_cache_construct_copy%betapol = cache_object%betapol
+      wout_file_cache_construct_copy%betator = cache_object%betator
+      wout_file_cache_construct_copy%betaxis = cache_object%betaxis
 
       END FUNCTION
 
@@ -353,6 +371,11 @@
          this%iotas => null()
       END IF
 
+      this%betatot = 0.0
+      this%betapol = 0.0
+      this%betator = 0.0
+      this%betaxis = 0.0
+
       DEALLOCATE(this)
 
       END SUBROUTINE
@@ -401,6 +424,11 @@
          this%bsupvmns = bsupvmns
       END IF
 
+      this%betatot = betatot
+      this%betapol = betapol
+      this%betator = betator
+      this%betaxis = betaxis
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -446,6 +474,11 @@
          bsupumns = this%bsupumns
          bsupvmns = this%bsupvmns
       END IF
+
+      betatot = this%betatot
+      betapol = this%betapol
+      betator = this%betator
+      betaxis = this%betaxis
 
 !  Restore currents and RZL arrays. Compute_Currents allocates the arrays
 !  without checking if they are already allocated.

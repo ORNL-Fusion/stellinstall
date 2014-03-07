@@ -98,6 +98,10 @@
 !>     @item{iotas,       1D Array of half grid iotabar.,                  @ref read_wout_mod::iotas}
 !>     @item{vvc_smaleli, Internal inducance. Computed in @ref eqfor.,     @ref v3f_vmec_comm::vvc_smaleli}
 !>     @item{vvc_kappa_p, Mean elongation. Computed in @ref eqfor.,        @ref v3f_vmec_comm::vvc_kappa_p}
+!>     @item{betatot,     Total beta.,                                     @ref read_wout_mod::betatot}
+!>     @item{betapol,     Poloidal beta.,                                  @ref read_wout_mod::betapol}
+!>     @item{betator,     Toroidal beta.,                                  @ref read_wout_mod::betator}
+!>     @item{betaxis,     Beta on axis.,                                   @ref read_wout_mod::betaxis}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
@@ -242,10 +246,18 @@
       INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 51
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
       INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 52
+!>  Total Beta. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_betatot_id     = 53
+!>  Poloidal Beta. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_betapol_id     = 54
+!>  Toroidal Beta. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_betator_id     = 55
+!>  Beta on axis. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 56
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 53
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 57
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -1173,6 +1185,18 @@
          CASE ('vvc_kappa_p')
             vmec_get_param_id = vmec_vvc_kappa_p_id
 
+         CASE ('betatot')
+            vmec_get_param_id = vmec_betatot_id
+
+         CASE ('betapol')
+            vmec_get_param_id = vmec_betapol_id
+
+         CASE ('betator')
+            vmec_get_param_id = vmec_betator_id
+
+         CASE ('betaxis')
+            vmec_get_param_id = vmec_betaxis_id
+
          CASE ('phi_offset')
             vmec_get_param_id = vmec_phi_offset_id
 
@@ -1206,7 +1230,8 @@
      &                         bsubsmns, bsupumnc, bsupvmnc,                   &
      &                         bsubumns, bsubvmns,                             &
      &                         bsubsmnc, bsupumns, bsupvmns,                   &
-     &                         phi, iotaf, iotas
+     &                         phi, iotaf, iotas,                              &
+     &                         betatot, betapol, betator, betaxis
       USE v3f_vmec_comm
 
       IMPLICIT NONE
@@ -1370,6 +1395,18 @@
 
          CASE (vmec_vvc_kappa_p_id)
             vmec_get_param_value = vvc_kappa_p
+
+         CASE (vmec_betatot_id)
+            vmec_get_param_value = betatot
+
+         CASE (vmec_betapol_id)
+            vmec_get_param_value = betapol
+
+         CASE (vmec_betator_id)
+            vmec_get_param_value = vmec_betator_id
+
+         CASE (vmec_betaxis_id)
+            vmec_get_param_value = vmec_betaxis_id
 
          CASE (vmec_phi_offset_id)
             vmec_get_param_value = this%phi_offset
@@ -1551,6 +1588,18 @@
 
          CASE (vmec_vvc_kappa_p_id)
             vmec_get_param_name = 'vvc_kappa_p'
+
+         CASE (vmec_betatot_id)
+            vmec_get_param_name = 'betatot'
+
+         CASE (vmec_betapol_id)
+            vmec_get_param_name = 'betapol'
+
+         CASE (vmec_betator_id)
+            vmec_get_param_name = 'betator'
+
+         CASE (vmec_betaxis_id)
+            vmec_get_param_name = 'betaxis'
 
          CASE (vmec_phi_offset_id)
             vmec_get_param_name = 'phi_offset'
@@ -2092,7 +2141,8 @@
 
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
      &         vmec_pres_scale_id, vmec_vvc_smaleli_id,                        &
-     &         vmec_vvc_kappa_p_id, vmec_phi_offset_id)
+     &         vmec_vvc_kappa_p_id, vmec_betatot_id, vmec_betapol_id,          &
+     &         vmec_betator_id, vmec_betaxis_id, vmec_phi_offset_id)
             vmec_is_scaler_value = .true.
 
          CASE DEFAULT
