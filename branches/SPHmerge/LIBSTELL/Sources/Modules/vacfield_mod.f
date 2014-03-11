@@ -1,9 +1,7 @@
       MODULE vacfield_mod
       USE stel_kinds
-      USE vsvd0, ONLY: nigroup
-
       IMPLICIT NONE
-      INTEGER, PARAMETER :: ncur = nigroup, msmax = 64, nresmax = 10
+      INTEGER, PARAMETER :: ncur = 100, msmax = 64, nresmax = 10
       INTEGER, PARAMETER :: iout = 10, jout = 11, kout = 12, lout = 13
       INTEGER :: nfp, ngroups, ntmax, npmax, lopt, nres, numres
       INTEGER, DIMENSION(0:nresmax) :: mres, nimax, nrp

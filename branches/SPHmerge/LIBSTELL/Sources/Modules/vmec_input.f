@@ -59,7 +59,7 @@
      A         , lspectrum_dump, loptim           !!Obsolete
       LOGICAL :: lgiveup                  ! inserted M.Drevlak
       REAL(rprec) :: fgiveup              ! inserted M.Drevlak, giveup-factor for ftolv
-      LOGICAL :: lbsubs = .false.         ! J Hanson See jxbforce coding
+      LOGICAL :: lbsubs                   ! J Hanson See jxbforce coding
 
       CHARACTER(len=200) :: mgrid_file
       CHARACTER(len=10)  :: precon_type

@@ -191,21 +191,21 @@ C-----------------------------------------------
       END SUBROUTINE levmarq_param_mp
 
       SUBROUTINE levmarq_param(x, wa1, wa2, wa3, wa4,
-     1     time, nfev, m1, n1, iflag, fcn)
-      USE fdjac_mod, mp => m, np => n
+     1     time, nfev, m, n, iflag, fcn)
+      USE fdjac_mod
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER :: nfev, n1, m1, iflag
+      INTEGER :: nfev, n, m, iflag
       REAL(rprec) :: time
-      REAL(rprec), TARGET :: x(n1), wa1(n1), wa2(n1), wa3(n1), wa4(m1)
+      REAL(rprec), TARGET :: x(n), wa1(n), wa2(n), wa3(n), wa4(m)
       EXTERNAL fcn
 #if !defined(MPI_OPT)
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero = 0
+      REAL(rprec), PARAMETER :: zero=0
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -227,9 +227,9 @@ C-----------------------------------------------
       wa2p => wa2
       wa3p => wa3
       wa4p => wa4
-      np = n1
-      mp = m1
-      ncnt = nfev
+      np = n
+      mp = m
+      ncntp = nfev
 
       CALL SYSTEM_CLOCK(ic1, irate)
 
@@ -258,27 +258,27 @@ C-----------------------------------------------
            iflag = -15
         END IF
 
-        IF (iflag .ne. 0) RETURN
+        IF (iflag .NE. 0) RETURN
 
-        IF (j .eq. 1) fnorm1 = fnorm_min(j)
-        IF (fnorm_min(j) .le. fnorm1) THEN
+        IF (j .EQ. 1) fnorm1 = fnorm_min(j)
+        IF (fnorm_min(j) .LE. fnorm1) THEN
            jmin = j
            fnorm1 = fnorm_min(jmin)
            pnorm  = pnorm_min(jmin)
            par    = par_min(jmin)
            delta  = delta_min(jmin)
 #if defined(CRAY)
-           DO k = 1, n1
+           DO k = 1, n
               READ (j+1000) wa1(k), wa2(k)
-              DO istat = 1, n1
+              DO istat = 1, n
                  READ (j+1000) fjac(k, istat)
               END DO
            END DO
-           DO k = 1, m1
+           DO k = 1, m
               READ (j+1000) wa4(k)
            END DO
 #else
-           READ (j+1000) wa1, wa2, wa4, fjac(1:n1, 1:n1)
+           READ (j+1000) wa1, wa2, wa4, fjac(1:n, 1:n)
 #endif
 
         END IF
@@ -292,7 +292,7 @@ C-----------------------------------------------
          low_mark = ' '
          IF (j .eq. 1) ext = '*'
          IF (j .eq. jmin) low_mark = '*'
-         WRITE (6, '(2x,i6,4x,2(3x,1es12.4,a),3x,1es12.4)') j+ncnt,
+         WRITE (6, '(2x,i6,4x,2(3x,1es12.4,a),3x,1es12.4)') j+ncntp,
      1         fnorm_min(j)**2, low_mark, par_min(j), ext, delta_min(j)
       END DO
 
@@ -300,7 +300,7 @@ C-----------------------------------------------
 !     Do any special cleanup now for IFLAG = flag_cleanup. WA4 LEFT UNCHANGED
 !
       iflag = flag_cleanup
-      CALL fcn(m1, n1, x, wa4, iflag, ncnt)
+      CALL fcn(m, n, x, wa4, iflag, ncntp)
 
       time = time + REAL(ic2 - ic1)/REAL(irate)                !!Time in multi-process CALL
 #endif

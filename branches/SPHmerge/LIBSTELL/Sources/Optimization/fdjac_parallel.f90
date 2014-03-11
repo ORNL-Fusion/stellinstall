@@ -1,5 +1,5 @@
       SUBROUTINE fdjac_parallel(j, fcn)
-      USE fdjac_mod
+      USE fdjac_mod, m=>mp, n=>np, ncnt=>ncntp
 #if !defined(MPI_OPT)
       IMPLICIT NONE
 !-----------------------------------------------
@@ -9,7 +9,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero = 0
+      REAL(rprec), PARAMETER :: zero=0
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -23,6 +23,8 @@
 !
 !     THIS ROUTINE IS PASSED TO THE MULTI-PROCESSOR HANDLING
 !     ROUTINE
+
+      IF (eps .EQ. zero) STOP 'EPS = 0 in fdjac_parallel!'
 
       temp = xp(j)
       h = eps*ABS(temp)

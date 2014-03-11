@@ -17,8 +17,8 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: j, jp1, k, kmax, MINmn
-      REAL(rprec) :: ajnorm, epsmch, SUM0, temp, enorm, dpmpar
+      INTEGER :: j, jp1, k, kmax, minmn
+      REAL(rprec) :: ajnorm, epsmch, sum0, temp, enorm, dpmpar
       REAL(rprec) , ALLOCATABLE :: temp1u(:)
 C-----------------------------------------------
 C   E x t e r n a l   F u n c t i o n s
@@ -115,10 +115,10 @@ c
 c
 c     reduce a to r with householder transformations.
 c
-      MINmn = MIN(m,n)
+      minmn = MIN(m,n)
       ALLOCATE (temp1u(m))
 
-      DO j = 1, MINmn
+      DO j = 1, minmn
          IF (pivot) THEN
 c
 c        bring the column of largest norm into the pivot position.
@@ -154,8 +154,8 @@ c
             jp1 = j + 1
             IF (n .ge. jp1) THEN
                DO k = jp1, n
-                  SUM0 = SUM(a(j:m,j)*a(j:m,k))
-                  temp = SUM0/a(j,j)
+                  sum0 = SUM(a(j:m,j)*a(j:m,k))
+                  temp = sum0/a(j,j)
                   a(j:m,k) = a(j:m,k) - temp*a(j:m,j)
                   IF (pivot .and. rdiag(k).ne.zero) THEN
                      temp = a(j,k)/rdiag(k)

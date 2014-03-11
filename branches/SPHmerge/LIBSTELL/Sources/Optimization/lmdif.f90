@@ -260,7 +260,7 @@
 !
 
       ALLOCATE (x_min(n), fvec_min(m), flip(n), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error in lmdif'
+      IF (istat .NE. 0) STOP 'Allocation error in lmdif'
 
 !
 !     epsmch is the machine precision.
@@ -289,7 +289,7 @@
          GOTO 400
       END IF
 
-      IF (mode .eq. 2) THEN
+      IF (mode .EQ. 2) THEN
          DO j = 1, n
             IF (diag(j) .le. zero) GOTO 300
          END DO
@@ -311,7 +311,7 @@
                           MPI_COMM_WORKERS, ierr_mpi)
       IF (ierr_mpi .ne. 0) STOP 'MPI_COMM_SPLIT error in lsfun1'
 #endif
-      IF (myid .eq. master) THEN
+      IF (myid .EQ. master) THEN
          iflag = flag_singletask
          CALL fcn (m, n, x, fvec, iflag, nfev)
 #if defined(MPI_OPT)
@@ -323,17 +323,17 @@
 #if defined(MPI_OPT)
       CALL MPI_BCAST(iflag,1, MPI_INTEGER, master,                      &
                      MPI_COMM_WORLD, ierr_mpi)
-      IF (ierr_mpi .ne. 0) GOTO 3000
+      IF (ierr_mpi .NE. 0) GOTO 3000
       IF (iflag .ge. 0) CALL                                            &
            MPI_BCAST(fvec, m, MPI_REAL8, master,                        &
-           MPI_COMM_WORLD, ierr_mpi)
-      IF (ierr_mpi .ne. 0) GOTO 3000
+                     MPI_COMM_WORLD, ierr_mpi)
+      IF (ierr_mpi .NE. 0) GOTO 3000
 #endif
 
-      IF (iflag .lt. 0) GOTO 300
+      IF (iflag .LT. 0) GOTO 300
       fnorm = enorm(m,fvec)
-      IF (nfev.ge.maxfev .or. maxfev.eq.1) info = 5
-      IF (info .ne. 0) GOTO 300
+      IF (nfev.GE.maxfev .OR. maxfev.EQ.1) info = 5
+      IF (info .NE. 0) GOTO 300
 !
 !     initialize levenberg-marquardt parameter (par) and iteration counter.
 !
@@ -341,7 +341,7 @@
       iter = 1
       lfirst_lm = .true.
 #if defined(MPI_OPT)
-      IF (myid .eq. master) WRITE (6, 1000) numprocs
+      IF (myid .EQ. master) WRITE (6, 1000) numprocs
  1000 FORMAT (/,' Beginning Levenberg-Marquardt Iterations',/,          &
               ' Number of Processors: ',i4,//,                          &
 !     1        ' Number of Processors: ',i4,' (1 controller proc)',//,
@@ -370,7 +370,7 @@
                      epsfcn, wa4, wall_time, fnorm_min, x_min, fvec_min)
 #endif
          nfev = nfev + n
-         IF (iflag .lt. 0) EXIT outerloop
+         IF (iflag .LT. 0) EXIT outerloop
 
 !
 !        compute the qr factorization of the jacobian.
@@ -382,7 +382,7 @@
 !        on the first iteration and if mode is 1, scale according
 !        to the norms of the columns of the initial jacobian.
 !
-         IF (iter .eq. 1) THEN
+         IF (iter .EQ. 1) THEN
             IF (mode .ne. 2) THEN
                diag = wa2
                WHERE (wa2 .eq. zero) diag = one
@@ -429,8 +429,8 @@
 !
 !        test for convergence of the gradient norm.
 !
-         IF (gnorm .le. gtol) info = 4
-         IF (info .ne. 0) EXIT outerloop
+         IF (gnorm .LE. gtol) info = 4
+         IF (info .NE. 0) EXIT outerloop
 
 !
 !        rescale if necessary.
@@ -444,7 +444,7 @@
          ratio = 0
 
          ALLOCATE (fjac_save(n,n), stat=istat)
-         IF (istat .ne. 0) STOP 'Fjac_save allocation error'
+         IF (istat .NE. 0) STOP 'Fjac_save allocation error'
 
          fjac_save(:n,:n) = fjac(:n,:n)
 
@@ -455,7 +455,7 @@
            spread_ratio = epsfcn/delta/10
 
 !
-!        Determine the levenberg-marquardt PARAMETER.
+!        Determine the levenberg-marquardt parameter.
 !
 #if defined(MPI_OPT)
 !        for parallel processing, scan a range of values for this
@@ -467,18 +467,18 @@
            CALL levmarq_param(x, wa1, wa2, wa3, wa4,                    &
                 wall_time_lev, nfev, m, n, iflag, fcn)
 #endif
-           IF (iflag .lt. 0) EXIT
+           IF (iflag .LT. 0) EXIT
 
 !
 !        on the first iteration, adjust the initial step bound.
 !
-           IF (iter .eq. 1) delta = MIN(delta, pnorm)
+           IF (iter .EQ. 1) delta = MIN(delta, pnorm)
 
 !
 !        compute the scaled actual reduction.
 !
            actred = -one
-           IF (p1*fnorm1 .lt. fnorm) actred = one - (fnorm1/fnorm)**2
+           IF (p1*fnorm1 .LT. fnorm) actred = one - (fnorm1/fnorm)**2
 
 !
 !        compute the scaled predicted reduction (prered) and
@@ -500,14 +500,14 @@
 !        compute the ratio of the actual to the predicted reduction.
 !
            ratio = zero
-           IF (prered .ne. zero) ratio = actred/prered
+           IF (prered .NE. zero) ratio = actred/prered
 
 !
 !        test if Jacobian calculation gave best improvement
 !        (added by MZ and SH)
 !
-           IF (fnorm_min < MIN(fnorm,fnorm1)) THEN
-              IF (myid .eq. master) WRITE (6, *)                        &
+           IF (fnorm_min .LT. MIN(fnorm,fnorm1)) THEN
+              IF (myid .EQ. master) WRITE (6, *)                        &
                  ' Using minimum state from Jacobian evaluation'
               wa2 = x_min
               wa4 = fvec_min
@@ -537,14 +537,14 @@
 !        test for successful iteration.
 !        update x, fvec, and their norms.
 !
-           IF (ratio .ge. p0001) THEN
+           IF (ratio .GE. p0001) THEN
               x = wa2
               wa2 = diag*x
               fvec = wa4
               xnorm = enorm(n,wa2)
               fnorm = fnorm1
               iter = iter + 1
-              IF (myid .eq. master) WRITE(6,'(/,3(2x,a,1es10.3)/)')     &
+              IF (myid .EQ. master) WRITE(6,'(/,3(2x,a,1es10.3)/)')     &
                 'new minimum = ', fnorm**2,'lm-par = ', par,            &
                 'delta-tol = ', delta
            END IF
@@ -554,18 +554,18 @@
 !
 !        tests for convergence.
 !
-           IF (ABS(actred).le.ftol .and. prered.le.ftol                 &
-              .and. p5*ratio.le.one) info = 1
+           IF (ABS(actred).LE.ftol .AND. prered.LE.ftol                 &
+              .AND. p5*ratio.LE.one) info = 1
 !
 !        next test made more stringent to avoid premature declaration of
 !        completion observed on some problems.
 !
-           IF (delta.le.xtol*xnorm .and. cycle_count>2) info = 2
+           IF (delta.LE.xtol*xnorm .AND. cycle_count.GT.2) info = 2
 !          IF (delta .le. xtol*xnorm) info = 2
 
-           IF (ABS(actred).le.ftol .and. prered.le.ftol                 &
-              .and. p5*ratio.le.one .and. info.eq.2) info = 3
-           IF (info .ne. 0) EXIT levmarqloop
+           IF (ABS(actred).LE.ftol .AND. prered.LE.ftol                 &
+              .AND. p5*ratio.LE.one .AND. info.EQ.2) info = 3
+           IF (info .NE. 0) EXIT levmarqloop
 
 !
 !        tests for termination and stringent tolerances.
@@ -590,11 +590,11 @@
 
  300  CONTINUE
 
-      IF (info.eq.0 .and. iflag.ne.0) info = 10
+      IF (info.EQ.0 .AND. iflag.NE.0) info = 10
 
  400  CONTINUE
 
-      IF (myid .eq. master) THEN                                         ! MPI
+      IF (myid .EQ. master) THEN
          IF (info.ge.LBOUND(info_array,1) .and.                         &
              info.le.UBOUND(info_array,1)) THEN
             WRITE (6, '(2(/,1x,a))')                                    &
@@ -606,9 +606,9 @@
 
       IF (ALLOCATED(x_min)) DEALLOCATE (x_min, fvec_min, flip)
 
-      IF (iflag .lt. 0) info = iflag
+      IF (iflag .LT. 0) info = iflag
 
-      IF (nfev.le.1 .and. info.ne.11) THEN
+      IF (nfev.LE.1 .and. info.NE.11) THEN
          nfev = 1
          iflag = flag_cleanup                        !!Clean-up last time through for master
          CALL fcn (m, n, x, fvec, iflag, nfev)
