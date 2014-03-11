@@ -19,6 +19,7 @@ list (APPEND vmec_sources
     ${CMAKE_CURRENT_SOURCE_DIR}/getthom.f
     ${CMAKE_CURRENT_SOURCE_DIR}/grnbfld.f
     ${CMAKE_CURRENT_SOURCE_DIR}/grnflx.f
+    ${CMAKE_CURRENT_SOURCE_DIR}/lamfull.f
     ${CMAKE_CURRENT_SOURCE_DIR}/movephi1.f
     ${CMAKE_CURRENT_SOURCE_DIR}/newphi.f
     ${CMAKE_CURRENT_SOURCE_DIR}/newprofil.f
