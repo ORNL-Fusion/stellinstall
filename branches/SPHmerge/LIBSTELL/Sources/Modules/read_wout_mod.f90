@@ -35,6 +35,7 @@
         vn_radnod = 'ns', vn_polmod = 'mpol', vn_tormod = 'ntor',       &
         vn_maxmod = 'mnmax', vn_maxit = 'niter', vn_actit = 'itfsq',    &
         vn_asym = 'lasym', vn_recon = 'lrecon',                         &
+
         vn_free = 'lfreeb', vn_moveaxis = 'lmove_axis',                 &
         vn_error = 'ier_flag', vn_aspect = 'aspect', vn_rfp = 'lrfp',   &
         vn_maxmod_nyq = 'mnmax_nyq',                                    &
@@ -55,6 +56,8 @@
         vn_tmod_nyq = 'xn_nyq',                                         &
         vn_racc = 'raxis_cc', vn_zacs = 'zaxis_cs',                     &
         vn_racs = 'raxis_cs', vn_zacc = 'zaxis_cc', vn_iotaf = 'iotaf', &
+
+        vn_qfact='q-factor', vn_chi='chi', vn_chipf='chipf',            &
         vn_presf = 'presf', vn_phi = 'phi', vn_phipf = 'phipf',         &
         vn_jcuru = 'jcuru', vn_jcurv = 'jcurv', vn_iotah = 'iotas',     &
         vn_mass = 'mass', vn_presh = 'pres', vn_betah = 'beta_vol',     &
@@ -118,9 +121,15 @@
         ln_racc = 'raxis (cosnv)', ln_racs = 'raxis (sinnv)',           &
         ln_zacs = 'zaxis (sinnv)', ln_zacc = 'zaxis (cosnv)',           &
         ln_iotaf = 'iota on full mesh',                                 &
+        ln_qfact = 'q-factor on full mesh',                             &
+
         ln_presf = 'pressure on full mesh',                             &
         ln_phi = 'Toroidal flux on full mesh',                          &
         ln_phipf = 'd(phi)/ds: Toroidal flux deriv on full mesh',       &
+        ln_chi = 'Poloidal flux on full mesh',                          &
+
+        ln_chipf = 'd(chi)/ds: Poroidal flux deriv on full mesh',       &
+
         ln_jcuru = 'j dot gradu full',                                  &
         ln_jcurv = 'j dot gradv full', ln_iotah = 'iota half',          &
         ln_mass = 'mass half', ln_presh = 'pressure half',              &
@@ -188,7 +197,9 @@
           bsupumns, bsupvmns, currumns, currvmns 
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::                         &
          iotas, iotaf, presf, phipf, mass, pres, beta_vol, xm, xn,      &
-         xm_nyq, xn_nyq, phip, buco, bvco, phi, vp, overr, jcuru, jcurv,& 
+
+         qfact, chipf, phi, chi,                                        &
+         xm_nyq, xn_nyq, phip, buco, bvco, vp, overr, jcuru, jcurv,& 
          specw, jdotb, bdotgradv, fsqt, wdot, am, ac, ai,               & 
          am_aux_s, am_aux_f, ac_aux_s, ac_aux_f, ai_aux_s, ai_aux_f,    &
          Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, extcur,             &
@@ -765,6 +776,7 @@
       IF (lrecon) ireconstruct = 1
       CALL cdf_read(nwout, vn_free, lfreeb)
       CALL cdf_read(nwout, vn_moveaxis, lmove_axis)
+
       CALL cdf_read(nwout, vn_rfp, lrfp)
       CALL cdf_read(nwout, vn_aspect, aspect)
       CALL cdf_read(nwout, vn_beta, betatot)
@@ -855,12 +867,24 @@
       
       CALL cdf_inquire(nwout, vn_iotaf, dimlens)
       ALLOCATE (iotaf(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_qfact, dimlens)
+
+      ALLOCATE (qfact(dimlens(1)), stat = ierror)
+
       CALL cdf_inquire(nwout, vn_presf, dimlens) 
       ALLOCATE (presf(dimlens(1)), stat = ierror)
       CALL cdf_inquire(nwout, vn_phi, dimlens)
       ALLOCATE (phi(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_chi, dimlens)
+
+      ALLOCATE (chi(dimlens(1)), stat = ierror)
+
       CALL cdf_inquire(nwout, vn_phipf, dimlens)
       ALLOCATE (phipf(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_chipf, dimlens)
+
+      ALLOCATE (chipf(dimlens(1)), stat = ierror)
+
       CALL cdf_inquire(nwout, vn_jcuru, dimlens)
       ALLOCATE (jcuru(dimlens(1)), stat = ierror)
       CALL cdf_inquire(nwout, vn_jcurv, dimlens)
@@ -1034,9 +1058,15 @@
       CALL cdf_read(nwout, vn_ai_aux_f, ai_aux_f)
 
       CALL cdf_read(nwout, vn_iotaf, iotaf) 
+      CALL cdf_read(nwout, vn_qfact, qfact) 
+
       CALL cdf_read(nwout, vn_presf, presf) 
       CALL cdf_read(nwout, vn_phi, phi) 
       CALL cdf_read(nwout, vn_phipf, phipf)
+      CALL cdf_read(nwout, vn_chi, chi) 
+
+      CALL cdf_read(nwout, vn_chipf, chipf)
+
       CALL cdf_read(nwout, vn_jcuru, jcuru)
       CALL cdf_read(nwout, vn_jcurv, jcurv)
  
@@ -1402,8 +1432,12 @@
 !
 !     Computes current harmonics for currXmn == sqrt(g)*JsupX, X = u,v
 !     [Corrected above "JsubX" to "JsupX", JDH 2010-08-16]
+
+!     NOTE: bsubu,vmn are on HALF radial grid; bsubsmn are on FULL radial grid
+
+!
       ohs = (ns-1)
-      ALLOCATE (currumnc(mnmax_nyq,ns), currvmnc(mnmax_nyq,ns),          &
+      ALLOCATE (currumnc(mnmax_nyq,ns), currvmnc(mnmax_nyq,ns),         &
                 stat=ierror)
       IF (ierror .ne. 0) RETURN
       
@@ -1432,9 +1466,9 @@
                 stat=ierror)
 
       DO js = 2, ns-1
-         currumns(:,js) = -xn_nyq(:)*bsubsmnc(:,js)                     &
-               -  ohs*(bsubvmns(:,js+1) - bsubvmns(:,js))
-         currvmns(:,js) = -xm_nyq(:)*bsubsmnc(:,js)                     &
+         currumns(:,js) =  xn_nyq(:)*bsubsmnc(:,js)                     &
+                - ohs*(bsubvmns(:,js+1) - bsubvmns(:,js))
+         currvmns(:,js) =  xm_nyq(:)*bsubsmnc(:,js)                     &
                 + ohs*(bsubumns(:,js+1) - bsubumns(:,js))
       END DO         
 
@@ -1458,8 +1492,8 @@
 !-----------------------------------------------
       INTEGER :: istat(10)
 !-----------------------------------------------
-      istat = 0
-      lwout_opened = .false.
+      istat=0
+      lwout_opened=.false.
 
       IF (ALLOCATED(extcur)) DEALLOCATE (extcur, curlabel,              &
               stat = istat(1))
@@ -1470,7 +1504,11 @@
         bsubvmnc, bsubsmns, bsupumnc, bsupvmnc, currvmnc, iotas, mass,  &
         pres, beta_vol, phip, buco, bvco, phi, vp, jcuru, am, ac, ai,   &
         jcurv, specw, Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, jdotb, &
-        bdotgradv, raxis, zaxis, fsqt, wdot, stat = istat(3))
+        bdotgradv, raxis, zaxis, fsqt, wdot, stat=istat(3))
+
+
+
+      IF (ALLOCATED(chipf)) DEALLOCATE (chipf, chi)
 
       IF (ALLOCATED(am_aux_s)) DEALLOCATE (am_aux_s, am_aux_f,          &
           ac_aux_s, ac_aux_f, ai_aux_s, ai_aux_f, stat=istat(6)) 
