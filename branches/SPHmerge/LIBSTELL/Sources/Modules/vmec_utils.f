@@ -94,8 +94,7 @@ C-----------------------------------------------
       c_flx(1) = 0;   c_flx(2) = 0;        c_flx(3) = r_cyl(2)
       IF (PRESENT(sflx)) c_flx(1) = sflx
       IF (PRESENT(uflx)) c_flx(2) = uflx
-      Ru1 = 0; Rv1 = 0; Zu1 = 0; Zv1 = 0;
-      CALL cyl2flx(rzl_local, r_cyl, c_flx, ns_w, ntor_w, mpol_w,
+      CALL cyl2flx(rzl_local, r_cyl, c_flx, ns_w, ntor_w, mpol_w, 
      1     ntmax_w, lthreed_w, lasym_w, info_loc, nfe, fmin, 
      2     RU=Ru1, ZU=Zu1, RV=Rv1, ZV=Zv1)
       Rv1 = nfp*Rv1;  Zv1 = nfp*Zv1
