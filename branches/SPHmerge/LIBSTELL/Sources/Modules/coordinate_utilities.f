@@ -203,22 +203,31 @@
 !*******************************************************************************
 !  Check Test result
 !*******************************************************************************
-      FUNCTION check(expected, recieved, testNum, name)
+      FUNCTION check(expected, received, testNum, name)
+
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       LOGICAL :: check
-      REAL(rprec), INTENT(in) :: expected, recieved
+      REAL(rprec), INTENT(in) :: expected, received
       INTEGER, INTENT(in) :: testNum
       CHARACTER (LEN=*), INTENT(in) :: name
+
+!-------------------------------------------------------------------------------
+!  Parameter declarations.
+!-------------------------------------------------------------------------------
+      REAL(rprec), PARAMETER :: range = 1.0E-15_dp
+
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      check = expected .eq. recieved
+      check = (expected .eq. received) .or.                                    &
+     &        ((expected .lt. received + range) .and.                          &
+     &         (expected .gt. received - range))
       IF (.not.check) THEN
          write(*,*) "coordinate_utilities.f: ", name, " test", testNum,        &
      &              "failed."
-         write(*,*) "Expected", expected, "Recieved", recieved
+         write(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION
