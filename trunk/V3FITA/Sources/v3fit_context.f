@@ -91,32 +91,40 @@
 !>  NetCDF variable id contain the g^2 value for each reconstruction step.
          INTEGER :: g2_id
 
-!>  NetCDF variable id contain the derived parameter values for each
+!>  NetCDF variable id containing the derived parameter values for each
 !>  reconstruction step.
 !>  @see param
          INTEGER :: derived_param_value_id
-!>  NetCDF variable id contain the derived parameter sigmas for each
+!>  NetCDF variable id containing the derived parameter sigmas for each
 !>  reconstruction step.
 !>  @see param
          INTEGER :: derived_param_sigma_id
-!>  NetCDF variable id contain the parameter values for each reconstruction
+!>  NetCDF variable id containing the derived parameter correlations for each
+!>  reconstruction step.
+!>  @see param
+         INTEGER :: derived_param_corr_id
+!>  NetCDF variable id containing the parameter values for each reconstruction
 !>  step.
 !>  @see param
          INTEGER :: param_value_id
-!>  NetCDF variable id contain the parameter sigmas for each reconstruction
+!>  NetCDF variable id containing the parameter sigmas for each reconstruction
 !>  step.
 !>  @see param
          INTEGER :: param_sigma_id
-!>  NetCDF variable id contain the signal effectiveness matrix for each for each
+!>  NetCDF variable id containing the parameter correlations for each
+!>  reconstruction step.
+!>  @see param
+         INTEGER :: param_corr_id
+!>  NetCDF variable id containing the signal effectiveness matrix for each for each
 !>  reconstruction step.
 !>  @see param
          INTEGER :: param_sem_id
 
-!>  NetCDF variable id contain the parameter values for each reconstruction
+!>  NetCDF variable id containing the parameter values for each reconstruction
 !>  step.
 !>  @see signal
          INTEGER :: signal_model_value_id
-!>  NetCDF variable id contain the parameter values for each reconstruction
+!>  NetCDF variable id containing the parameter values for each reconstruction
 !>  step.
 !>  @see signal
          INTEGER :: signal_sigma_value_id
@@ -649,17 +657,19 @@
 !>     @item{g2 (maxnsteps), g^2 value for each reconstruction step., reconstruction::reconstruction_get_g2}
 !>  @end_table
 !>  @table_section{result_file_main_dir_param_var_sec, Derived Parameter Variables}
-!>     @item{derived_param_name (string_len\, ndparam),   Name of the derived parameter.,          param::param_get_name}
-!>     @item{derived_param_index (nparamindex\, ndparam), Indices of the derived parameter.,       param::param_class::indicies}
-!>     @item{derived_param_value (ndparam\, maxnsteps),   Parameter values for each derived step., param::param_get_value}
-!>     @item{derived_param_sigma (ndparam\, maxnsteps),   Parameter sigmas for each derived step., param::param_class::sigma}
+!>     @item{derived_param_name (string_len\, ndparam),           Name of the derived parameter.,               param::param_get_name}
+!>     @item{derived_param_index (nparamindex\, ndparam),         Indices of the derived parameter.,            param::param_class::indicies}
+!>     @item{derived_param_value (ndparam\, maxnsteps),           Parameter values for each derived step.,      param::param_get_value}
+!>     @item{derived_param_sigma (ndparam\, maxnsteps),           Parameter sigmas for each derived step.,      param::param_class::sigma}
+!>     @item{derived_param_corr  (ndparam\, ndparam\, maxnsteps), Correlation matrix of the derived parameters, param::param_class::correlation}
 !>  @end_table
 !>  @table_section{result_file_main_param_var_sec, Reconstruction Parameter Variables}
-!>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,              param::param_get_name}
-!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,           param::param_class::indicies}
-!>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,     param::param_get_value}
-!>     @item{param_sigma (nparam\, maxnsteps),                 Parameter sigmas for each reconstruction step.,     param::param_class::sigma}
-!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step., param::param_class::sem}
+!>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,               param::param_get_name}
+!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,            param::param_class::indicies}
+!>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,      param::param_get_value}
+!>     @item{param_sigma (nparam\, maxnsteps),                 Parameter sigmas for each reconstruction step.,      param::param_class::sigma}
+!>     @item{param_corr  (nparam\, nparam\, maxnsteps),        Correlation matrix of the reconstruction parameters, param::param_class::correlation}
+!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step.,  param::param_class::sem}
 !>  @end_table
 !>  @table_section{result_file_main_sig_var_sec, Signal Variables}
 !>     @item{signal_name (string_len\, nsignal),       Short name of the signal.,                                signal::signal_class::s_name}
@@ -784,6 +794,13 @@
      &                                        maxnsteps_dim_id /),             &
      &                       this%derived_param_sigma_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_def_var(this%result_ncid, 'derived_param_corr',           &
+     &                       nf_double, 3, (/ ndparam_dim_id,                  &
+     &                                        ndparam_dim_id,                  &
+     &                                        maxnsteps_dim_id /),             &
+     &                       this%derived_param_corr_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
 !  Define reconstruction parameter variables.
@@ -808,6 +825,13 @@
      &                       2, (/ nparam_dim_id,                              &
      &                             maxnsteps_dim_id /),                        &
      &                       this%param_sigma_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_def_var(this%result_ncid, 'param_corr',                   &
+     &                       nf_double, 3, (/ nparam_dim_id,                   &
+     &                                        nparam_dim_id,                   &
+     &                                        maxnsteps_dim_id /),             &
+     &                       this%param_corr_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_eff_matrix',            &
@@ -995,7 +1019,8 @@
      &                                 this%model, this%result_ncid,           &
      &                                 current_step, i,                        &
      &                                 this%derived_param_value_id,            &
-     &                                 this%derived_param_sigma_id)
+     &                                 this%derived_param_sigma_id,            &
+     &                                 this%derived_param_corr_id)
          END DO
       END IF
 
@@ -1005,6 +1030,7 @@
      &                                 this%result_ncid, current_step,         &
      &                                 i, this%param_value_id,                 &
      &                                 this%param_sigma_id,                    &
+     &                                 this%param_corr_id,                     &
      &                                 this%param_sem_id)
          END DO
       END IF
