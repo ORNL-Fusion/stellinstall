@@ -884,6 +884,8 @@
 !>                            @see v3fit_context
 !>  @param[in] param_sigma_id NetCDF variable id of the parameter sigma.
 !>                            @see v3fit_context
+!>  @param[in] param_corr_id  NetCDF variable id of the parameter correlation.
+!>                            @see v3fit_context
 !>  @param[in] param_sem_id   NetCDF variable id of the parameter signal
 !>                            effectiveness.
 !>  @note This assumes that the parameter sigma has already been calculated.
@@ -893,7 +895,7 @@
       SUBROUTINE param_write_step_data_1(this, a_model, result_ncid,           &
      &                                   current_step, index,                  &
      &                                   param_value_id, param_sigma_id,       &
-     &                                   param_sem_id)
+     &                                   param_corr_id, param_sem_id)
       USE ezcdf
 
       IMPLICIT NONE
@@ -906,6 +908,7 @@
       INTEGER, INTENT(in)            :: index
       INTEGER, INTENT(in)            :: param_value_id
       INTEGER, INTENT(in)            :: param_sigma_id
+      INTEGER, INTENT(in)            :: param_corr_id
       INTEGER, INTENT(in)            :: param_sem_id
 
 !  local variables
@@ -914,7 +917,8 @@
 !  Start of executable code
       CALL param_write_step_data(this, a_model, result_ncid,                   &
      &                           current_step, index,                          &
-     &                           param_value_id, param_sigma_id)
+     &                           param_value_id, param_sigma_id,               &
+     &                           param_corr_id)
 
       status = nf_put_vara_double(result_ncid, param_sem_id,                   &
      &                            (/ 1, index, current_step /),                &
@@ -937,13 +941,16 @@
 !>                            @see v3fit_context
 !>  @param[in] param_sigma_id NetCDF variable id of the parameter sigma.
 !>                            @see v3fit_context
+!>  @param[in] param_corr_id  NetCDF variable id of the parameter correlation.
+!>                            @see v3fit_context
 !>  @note This assumes that the parameter sigma has already been calculated.
 !>  Name and index information is written when the result file is first created
 !>  by @ref v3fit_context::v3fit_context_write_step_data.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_write_step_data_2(this, a_model, result_ncid,           &
      &                                   current_step, index,                  &
-     &                                   param_value_id, param_sigma_id)
+     &                                   param_value_id, param_sigma_id,       &
+     &                                   param_corr_id)
       USE ezcdf
 
       IMPLICIT NONE
@@ -956,6 +963,7 @@
       INTEGER, INTENT(in)            :: index
       INTEGER, INTENT(in)            :: param_value_id
       INTEGER, INTENT(in)            :: param_sigma_id
+      INTEGER, INTENT(in)            :: param_corr_id
 
 !  local variables
       INTEGER                        :: status
@@ -970,6 +978,11 @@
      &                            (/ index, current_step /),                   &
      &                            this%sigma)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, param_corr_id,                  &
+     &                            (/ 1, index, current_step /),                &
+     &                            (/ SIZE(this%correlation), 1, 1 /),          &
+     &                            this%correlation)
 
       END SUBROUTINE
 
