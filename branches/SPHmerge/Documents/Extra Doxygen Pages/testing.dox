@@ -55,7 +55,13 @@
  *
  * @section testing_cmake_running Running Tests
  * Tests are run from the Cmake generated make file (see 
- * @ref build_system_testing).
+ * @ref build_system_testing) or by using the @fixed_width{ctest} command.
+ * Individual or ranges of tests maybe run by using the 
+ * @fixed_width{ctest -R <regex>} command. As an example to run all the tests 
+ * for diagnostic rotation use the command 
+ * @code
+ ctest -R ^diagnostic_rotation
+ @endcode
  *
  * @subsection testing_cmake_results Test Results
  * Test results are immidately displayed showing the result of the number of 
