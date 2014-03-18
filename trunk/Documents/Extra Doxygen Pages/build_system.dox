@@ -86,6 +86,17 @@
  * @code
  make test
  @endcode
+ * or by running
+ * @code
+ ctest
+ @endcode
+ * Individual or ranges of tests maybe run by using the 
+ * @fixed_width{ctest -R <regex>} command. As an example to run all the tests 
+ * for diagnostic rotation use the command 
+ * @code
+ ctest -R ^diagnostic_rotation
+ @endcode
+ *
  * Note that the executables need to be generated already and tests need to be 
  * configured. Typically tests should be run using the sequence of commands
  * @code
