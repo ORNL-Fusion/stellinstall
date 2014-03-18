@@ -75,22 +75,25 @@ C-----------------------------------------------
          IF (lfirst .or. l_comp_prec2D) THEN
             IF (l_v3fit) WRITE(*,*) 'VMEC Evolve:compute_blocks'
             CALL compute_blocks (xc,xcdot,gc)
+            CALL funct3d(lscreen, ier_flag)
          ENDIF
          IF(l_v3fit) WRITE(*,*) 'VMEC Evolve:prec2d_On iter2 =', iter2
          l_comp_prec2D = .FALSE.
          ictrl_prec2d = 1
-         time_step = 0.50_dp
          iter1 = iter2-1; fsq = fsqr1 + fsqz1 + fsql1
-         xstore = xc
+         xc = xstore
+         IF (ANY(xstore .NE. xc)) 
+     1      STOP 'XSTORE != XC AFTER COMPUTE_BLOCKS!'
+         time_step = 0.50_dp
          xcdot = 0
       END IF
-
 !
 !     COMPUTE MHD FORCES
 !     MUST CALL funct3d EVEN WHEN IN 2D PRECONDITIONING MODE, SINCE
 !     INITIAL RESIDUALS MUST BE KNOWN WHEN CALLING gmres_fun, etc.
 !
       CALL funct3d (lscreen, ier_flag)
+
 !
 !     COMPUTE ABSOLUTE STOPPING CRITERION
       IF (iter2.eq.1 .and. irst.eq.2) THEN
@@ -114,7 +117,7 @@ C-----------------------------------------------
       ENDIF
 
       IF (ier_flag.ne.norm_term_flag .or. .not.liter_flag) RETURN
-
+      
       IF (lqmr) THEN
          IF (irst .eq. 2) THEN
 !           TRAP IRST=2, CHANGE IN GSQRT SIGN, IF INITIAL PERT TOO LARGE

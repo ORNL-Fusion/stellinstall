@@ -45,13 +45,15 @@ C-----------------------------------------------
 !        chips    poloidal flux (same as chip), one-dimensional array
 !        presf    pressure profile on full-grid, mass/phip**gamma
 !        spres_ped value of s beyond which pressure profile is flat (pedestal)
-
+!
 !
 !     COMPUTE PHIP, IOTA PROFILES ON FULL-GRID
 !     COMPUTE MASS PROFILE ON HALF-GRID
 !     BY READING INPUT COEFFICIENTS. PRESSURE CONVERTED TO
 !     INTERNAL UNITS BY MULTIPLICATION BY mu0 = 4*pi*10**-7
 !
+      IF (ncurr.EQ.1 .AND. lRFP)STOP 'ncurr=1 inconsistent with lRFP=T!'
+
       torflux_edge = signgs * phifac * phiedge / twopi
       si = torflux(one)
       IF (si .ne. zero) torflux_edge = torflux_edge/si
@@ -77,8 +79,8 @@ C-----------------------------------------------
 !     Compute lamscale factor for "normalizing" lambda (needed for scaling hessian)
 !
       lamscale = SQRT(hs*SUM(phips(2:ns)**2))
-!      lamscale = 1
-      PRINT *,' LAMSCALE = ', lamscale
+      phips(ns+1) = 2*phips(ns)-phips(ns-1)
+      IF (lamscale .EQ. 0) STOP 'PHIP == 0: ERROR!'
 
       IF (lflip) THEN
          iotas = -iotas
@@ -125,7 +127,6 @@ C-----------------------------------------------
 !             si = torflux(si)
              pedge = pmass(si)
           END IF
-          pedge = pedge
           mass(i) = pedge*(ABS(vpnorm)*r00)**gamma
 #ifdef _ANIMEC
 !         ANISOTROPIC PRESSURE, Tper/T|| RATIOS

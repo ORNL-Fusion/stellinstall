@@ -2,6 +2,9 @@
       USE vmec_main, p5 => cp5
       USE vmec_params, ONLY: jmin2, mscale, nscale, 
      1                       mnyq, nnyq, signgs
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: init_multipliers
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -36,6 +39,7 @@ C-----------------------------------------------
       ALLOCATE(cosmu(ntheta3,0:mnyq),  sinmu(ntheta3,0:mnyq),
      1         cosmum(ntheta3,0:mnyq), sinmum(ntheta3,0:mnyq),
      2         cosmui(ntheta3,0:mnyq), cosmumi(ntheta3,0:mnyq),
+     2         cosmui3(ntheta3,0:mnyq),cosmumi3(ntheta3,0:mnyq),
      3         sinmui(ntheta3,0:mnyq), sinmumi(ntheta3,0:mnyq),
      4         cosnv(nzeta,0:nnyq),    sinnv(nzeta,0:nnyq),
      5         cosnvn(nzeta,0:nnyq),   sinnvn(nzeta,0:nnyq),
@@ -47,7 +51,8 @@ C-----------------------------------------------
       IF (istat1.ne.0) STOP 'allocation error in fixaray: istat1'
       IF (istat2.ne.0) STOP 'allocation error in fixaray: istat2'
 
-      dnorm = one/(nzeta*(ntheta2-1))
+      dnorm = one/(nzeta*(ntheta2-1))            
+      IF (lasym) dnorm = one/(nzeta*ntheta3)     !Fix, SPH012314
 
       mscale(0) = 1;  nscale(0) = 1                      
 !     mscale(0) = osqrt2;  nscale(0) = osqrt2    !versions < 6.9, incorrectly used osqrt2
@@ -66,11 +71,15 @@ C-----------------------------------------------
             cosmu(i,m) = COS(arg)*mscale(m)
             sinmu(i,m) = SIN(arg)*mscale(m)
             cosmui(i,m) = dnorm*cosmu(i,m)
+            cosmui3(i,m) = cosmui(i,m)          !Use this if integration over FULL 1,ntheta3 interval 
             sinmui(i,m) = dnorm*sinmu(i,m)
-            IF (i.eq.1 .or. i.eq.ntheta2) cosmui(i,m)=cosmui(i,m)/2
+            IF (i.EQ.1 .OR. i.EQ.ntheta2)       
+     1         cosmui(i,m)=cosmui(i,m)/2
+            IF (ntheta2 .EQ. ntheta3) cosmui3(i,m) = cosmui(i,m)
             cosmum(i,m) = cosmu(i,m)*(m)
             sinmum(i,m) =-sinmu(i,m)*(m)
             cosmumi(i,m)= cosmui(i,m)*(m)
+            cosmumi3(i,m) = cosmui3(i,m)*m
             sinmumi(i,m)=-sinmui(i,m)*(m)
          END DO
       END DO
@@ -144,6 +153,10 @@ C-----------------------------------------------
       faccon(0) = zero
       faccon(mpol1) = zero
       faccon(1:mpol1-1) = -0.25_dp*signgs/xmpq(2:mpol1,1)**2
+
+#ifdef _HBANGLE
+      CALL init_multipliers
+#endif
 
       IF (lrecon) CALL getgreen
 

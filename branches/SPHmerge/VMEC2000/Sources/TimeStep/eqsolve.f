@@ -4,7 +4,6 @@
      1                       bad_jacobian_flag, more_iter_flag,
      2                       successful_term_flag
       USE precon2d, ONLY: ScratchFile, lswap2disk, ictrl_prec2d
-
       USE directaccess, ONLY: DeleteDAFile
 
       USE realspace
@@ -68,12 +67,11 @@ C-----------------------------------------------
 !     RECOMPUTE INITIAL PROFILE, BUT WITH IMPROVED AXIS/OR RESTART 
 !     FROM INITIAL PROFILE, BUT WITH A SMALLER TIME-STEP
 !
-      IF (irst .eq. 2) THEN
+      IF (irst .EQ. 2) THEN
          xc = 0
-         CALL profil3d (xc(1), xc(1+irzloff), lreset_internal)
+         CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, .FALSE.)
          irst = 1
       END IF
-
       if (liter_flag) CALL restart_iter(delt0)
       ier_flag = norm_term_flag
 
@@ -146,7 +144,7 @@ C-----------------------------------------------
 !
 !       TIME STEP CONTROL
 !
-         IF (iter2 .eq. iter1 .or. res0.eq.-1) res0 = fsq
+         IF (iter2.eq.iter1 .or. res0.eq.-1) res0 = fsq
          res0 = MIN(res0,fsq)
 !       Store current state (irst=1)
          IF (fsq.le.res0 .and. iter2-iter1.gt.10) THEN
@@ -228,11 +226,11 @@ C-----------------------------------------------
 
 
 
-      WRITE (nthreed, 60) wdota, r0dot, w0*twopi**2
+      WRITE (nthreed, 60) w0*twopi**2, wdota, r0dot
       IF (lrecon) WRITE (nthreed, 70) r00*fsqsum0/wb
 
-   60 FORMAT(/,' d(ln W)/dt = ',1p,e14.3,' d(ln R0)/dt = ',e14.3,/,
-     1         ' MHD Energy = ',e14.6)
+   60 FORMAT(/,' MHD Energy = ',1p,e12.6,3x, 'd(ln W)/dt = ',1p,e9.3,
+     1         3x,'d(ln R0)/dt = ',e9.3)
    70 FORMAT(' Average radial force balance: Int[FR(m=0)]',
      1   '/Int(B**2/R) = ',1p,e12.5,' (should tend to zero)'/)
   110 FORMAT(/,2x,'VACUUM PRESSURE TURNED ON AT ',i4,' ITERATIONS'/)

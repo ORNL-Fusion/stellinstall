@@ -3,24 +3,25 @@
       USE read_wout_mod, ONLY: rmnc, zmns, lmns, rmns, zmnc, lmnc,
      1    xm, xn, ntor, ns,
      2    nfp, mnmax, read_wout_file, read_wout_deallocate
-      USE vmec_params, ONLY: mscale, nscale, ntmax,
+      USE vmec_params, ONLY: mscale, nscale, ntmax, lamscale,
      1                       rcc, rss, rsc, rcs, zsc, zcs, zcc, zss
       USE vmec_dim, ONLY: mpol1
       USE vparams, ONLY: one, zero, rprec
       USE vmec_input, ONLY: lasym
-      USE vmec_main, ONLY: lthreed, p5 => cp5, sp, sm, phipf
+      USE vmec_main, ONLY: lthreed, p5 => cp5, sp, sm, phipf, lconm1
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER :: ns_in, mpol1_in, ntor_in
+      INTEGER, INTENT(IN) :: ns_in, mpol1_in, ntor_in
       REAL(rprec), DIMENSION(ns_in,0:ntor_in,0:mpol1_in,ntmax),
-     1   INTENT(out) :: rmn, zmn, lmn
-      LOGICAL, INTENT(out) :: lreset
+     1   INTENT(OUT) :: rmn, zmn, lmn
+      LOGICAL, INTENT(OUT) :: lreset
       CHARACTER(LEN=*) :: reset_file
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
+      INTEGER, PARAMETER :: m1=1
       INTEGER :: ierr, mn, m, n, n1, js
       REAL(rprec) :: t1, t2
       REAL(rprec), ALLOCATABLE :: temp(:,:)
@@ -98,22 +99,23 @@ C-----------------------------------------------
 
 !
 !     CONVERT TO INTERNAL FORM FOR (CONSTRAINED) m=1 MODES
+!     (INVERSE OF convert_sym, convert_asym ROUTINES)
 !
-
+      IF (lconm1) THEN
       IF (lthreed .or. lasym) ALLOCATE (temp(ns_in,0:ntor_in))
       IF (lthreed) THEN
-         temp = rmn(:,:,1,rss)
-         rmn(:,:,1,rss) = p5*(temp + zmn(:,:,1,zcs))
-         zmn(:,:,1,zcs) = p5*(temp - zmn(:,:,1,zcs))
+         temp = rmn(:,:,m1,rss)
+         rmn(:,:,m1,rss) = p5*(temp + zmn(:,:,m1,zcs))
+         zmn(:,:,m1,zcs) = p5*(temp - zmn(:,:,m1,zcs))
       END IF
       IF (lasym) THEN
-         temp = rmn(:,:,1,rsc)
-         rmn(:,:,1,rsc) = p5*(temp + zmn(:,:,1,zcc))
-         zmn(:,:,1,zcc) = p5*(temp - zmn(:,:,1,zcc))
+         temp = rmn(:,:,m1,rsc)
+         rmn(:,:,m1,rsc) = p5*(temp + zmn(:,:,m1,zcc))
+         zmn(:,:,m1,zcc) = p5*(temp - zmn(:,:,m1,zcc))
       END IF
 
       IF (ALLOCATED(temp)) DEALLOCATE (temp)
-
+      END IF
 !
 !     CONVERT lambda TO INTERNAL FULL MESH REPRESENTATION
 !
@@ -136,8 +138,12 @@ C-----------------------------------------------
          END DO
       END DO
 
+!v8.50 add lamscale factor (profil1d called first)
+      t1 = lamscale
+      IF (t1 .EQ. zero) t1 = one
+
       DO js = 2, ns
-         lmn(js,:,:,:) = phipf(js)*lmn(js,:,:,:)
+         lmn(js,:,:,:) = phipf(js)*lmn(js,:,:,:) / t1
       END DO
 
       CALL read_wout_deallocate

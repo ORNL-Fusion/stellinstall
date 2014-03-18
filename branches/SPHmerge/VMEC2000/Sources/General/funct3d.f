@@ -1,7 +1,7 @@
       SUBROUTINE funct3d (lscreen, ier_flag)
       USE vmec_main
       USE vacmod, ONLY: bsqvac, raxis_nestor, zaxis_nestor
-      USE vmec_params, ONLY: bad_jacobian_flag, zsc, lamscale
+      USE vmec_params, ONLY: bad_jacobian_flag, zsc
       USE realspace
       USE vforces
       USE vsvd, ONLY: router, rinner, gphifac, grmse
@@ -12,6 +12,9 @@
       USE vparams, ONLY: twopi
       USE totzsp_mod
       USE tomnsp_mod
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: getrz, getfrho, xtempa
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -23,11 +26,11 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l0pi, l, lk, ivacskip
       INTEGER :: nvskip0 = 0
-      REAL(rprec), DIMENSION(mnmax) ::
+      REAL(dp), DIMENSION(mnmax) ::
      1   rmnc, zmns, lmns, rmns, zmnc, lmnc
-      REAL(rprec), DIMENSION(:), POINTER :: lu, lv
-      REAL(rprec) :: presf_ns, delr_mse, delt0
-      REAL(rprec), EXTERNAL :: pmass
+      REAL(dp), DIMENSION(:), POINTER :: lu, lv
+      REAL(dp) :: presf_ns, delr_mse, delt0
+      REAL(dp), EXTERNAL :: pmass
 C-----------------------------------------------
 !
 !     POINTER ALIASES
@@ -41,6 +44,11 @@ C-----------------------------------------------
 
 !     CONVERT ODD M TO 1/SQRT(S) INTERNAL REPRESENTATION
 !
+#ifdef _HBANGLE
+!Overwrites rzl_array, but that is OK since gc = rzl_array in CALL, xc preserved
+      xtempa = xc
+      CALL getrz(xc)
+#endif       
       gc(:neqs2) = xc(:neqs2)*scalxc(:neqs2)
 
 !
@@ -77,13 +85,15 @@ C-----------------------------------------------
       ENDIF
 
       CALL second0 (tfftoff)
-      IF (ictrl_prec2d .le. 1) timer(tfft) = 
+      IF (ictrl_prec2d .LE. 1) timer(tfft) = 
      1                         timer(tfft) + (tfftoff - tffton)
-
 !
 !     IN HESSIAN LOOP, ONLY COMPUTE PERTURBATIONS TO R, Z, AND L FOR A SINGLE (m,n,ntype)
 !
-      IF (ictrl_prec2d .ge. 2) THEN
+      IF (ictrl_prec2d .GE. 2) THEN
+#ifdef _HBANGLE
+         CALL getrz(xcdot)
+#endif       
          xcdot(:neqs2) = xcdot(:neqs2)*scalxc(:neqs2)
          CALL totzsps_hess (xcdot, r1, ru, rv, z1, zu, zv, lu, lv, 
      1                      rcon, zcon)
@@ -106,8 +116,10 @@ C-----------------------------------------------
 !     COMPUTE CONSTRAINT RCON, ZCON
 !
       DO l = 1,nrzt
+#ifndef _HBANGLE
          rcon(l,0) = rcon(l,0) + rcon(l,1)*sqrts(l)
          zcon(l,0) = zcon(l,0) + zcon(l,1)*sqrts(l)
+#endif
          ru0(l) = ru(l,0) + ru(l,1)*sqrts(l)
          zu0(l) = zu(l,0) + zu(l,1)*sqrts(l)
       END DO
@@ -121,6 +133,7 @@ C-----------------------------------------------
 !     BOUNDARY, WE SET RCON0,ZCON0 THE SAME INITIALLY, BUT TURN THEM OFF
 !     SLOWLY IN FREE-BOUNDARY VACUUM LOOP (BELOW)
 !
+#ifndef _HBANGLE
       IF (iter2.eq.iter1 .and. ivac.le.0) THEN
 !!         rcon0(1:nrzt) = rcon(1:nrzt,0)
 !!         zcon0(1:nrzt) = zcon(1:nrzt,0)
@@ -129,7 +142,7 @@ C-----------------------------------------------
             zcon0(l:nrzt:ns) = zcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
          END DO
       ENDIF
-
+#endif
 !
 !     COMPUTE S AND THETA DERIVATIVE OF R AND Z AND JACOBIAN ON HALF-GRID
 !
@@ -141,7 +154,8 @@ C-----------------------------------------------
 !     PRESSURE, AND METRIC ELEMENTS ON HALF-GRID
 !
       CALL second0 (tbcovon)
-      CALL bcovar (lu, lv, xc(1+2*irzloff+mns*(zsc-1)))
+      CALL bcovar (lu, lv, xc(1+2*irzloff+mns*(zsc-1)))    !FIX THIS: last arg used elsewhere!
+
       CALL second0 (tbcovoff)
       IF (ictrl_prec2d .le. 1) timer(tbcov) = timer(tbcov) 
      1                                      + (tbcovoff - tbcovon)
@@ -205,13 +219,19 @@ C-----------------------------------------------
             CALL vacuum (rmnc, rmns, zmns, zmnc, xm, xn, 
      1                   ctor, rbtor, wint, ns, ivacskip, ivac, mnmax,
      2                   ier_flag, lscreen)
-            IF (ier_flag .ne. 0) RETURN
+            IF (ier_flag .ne. 0) GOTO 100
 !
 !           RESET FIRST TIME FOR SOFT START
 !
             IF (ivac .eq. 1) THEN
                irst = 2;  delt0 = delt
+#ifdef _HBANGLE
+               gc = xc; xc = xtempa
+#endif
                CALL restart_iter(delt0)
+#ifdef _HBANGLE
+               xc = gc
+#endif
                irst = 1
             END IF
 
@@ -263,21 +283,34 @@ C-----------------------------------------------
 !
 !     COMPUTE CONSTRAINT FORCE
 !
-      IF (iequi .ne. 1) THEN
-         extra1(:nrzt,1) = (rcon(:nrzt,0) - rcon0(:nrzt))*ru0(:nrzt)
+#ifdef _HBANGLE
+      gcon = 0
+      IF (iequi .EQ. 1) GOTO 100
+#else
+      IF (iequi .NE. 1) THEN
+         extra1(:nrzt,0) = (rcon(:nrzt,0) - rcon0(:nrzt))*ru0(:nrzt)
      1                   + (zcon(:nrzt,0) - zcon0(:nrzt))*zu0(:nrzt)
-         CALL alias (gcon, extra1(:,0), extra1(:,1), gc, gc(1+mns),
-     1               gc(1+2*mns))
+         CALL alias (gcon, extra1(:,0), gc, gc(1+mns), gc(1+2*mns), 
+     1               extra1(:,1))
       ELSE 
          IF (lrecon) xc(:ns) = xc(:ns) + delr_mse
          GOTO 100
       END IF
-
+#endif
 !
 !     COMPUTE MHD FORCES ON INTEGER-MESH
 !
       CALL second0 (tforon)
       CALL forces
+
+!
+!     FFT TEST
+!
+!      xc = xc*scalxc
+!      CALL tomnsps_t (gc, xc, r1, ru, rv, z1, zu, zv)
+!      IF (lasym) CALL tomnspa_t (gc, xc, r1, ru, rv, z1, zu, zv)
+!      STOP
+
 !
 !     SYMMETRIZE FORCES (in u-v space)
 !
@@ -297,6 +330,7 @@ C-----------------------------------------------
 
       IF (lasym) CALL tomnspa (gc, r1, ru, rv, z1, zu, zv,
      1                         extra3, extra4, extra1, extra2)
+
       CALL second0 (tfftoff)
       IF (ictrl_prec2d .le. 1) timer(tffi) = timer(tffi) 
      1                                     + (tfftoff - tffton)
@@ -308,8 +342,10 @@ C-----------------------------------------------
 !================================================================
       CALL second0 (treson)
 
-      gc = gc * scalxc
-
+      gc = gc * scalxc    !!IS THIS CORRECT: SPH010214?
+#ifdef _HBANGLE
+      CALL getfrho(gc)
+#endif
       CALL residue (gc, gc(1+irzloff), gc(1+2*irzloff))
 !     Force new initial axis guess IF ALLOWED (l_moveaxis=T)
       IF (lmove_axis .and. iter2.eq.1 .and. (fsqr+fsqz+fsql).gt.1.E2_dp)
@@ -324,6 +360,9 @@ C-----------------------------------------------
 
  100  CONTINUE
 
+#ifdef _HBANGLE
+      xc = xtempa
+#endif
       CALL second0 (tfunoff)
       IF (ictrl_prec2d .le. 1) timer(tfun) = timer(tfun) 
      1                                     + (tfunoff - tfunon)

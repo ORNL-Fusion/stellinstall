@@ -10,8 +10,9 @@
       USE xstuff, ONLY: xc, gc, xsave, scalxc
       USE precon2d, ONLY: ictrl_prec2d
       USE timer_sub
-!      USE dump_output
-
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: free_multipliers, getrz
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -84,8 +85,12 @@ C-----------------------------------------------
 
          CALL second0 (teqfon)
          ALLOCATE(br_out(nrzt), bz_out(nrzt), stat=istat)
+         gc = xc
+#ifdef _HBANGLE
+         CALL getrz(gc)
+#endif
          CALL eqfor (br_out, bz_out, clmn, blmn, rcon(1,1), 
-     1               xc, ier_flag)
+     1               gc, ier_flag)
          CALL second0 (teqfoff)
          timer(teqf) = timer(teqf) + teqfoff - teqfon
       END IF
@@ -164,9 +169,12 @@ C-----------------------------------------------
 
       IF (ALLOCATED(cosmu))
      1  DEALLOCATE(cosmu, sinmu, cosmum, sinmum, cosmui, cosmumi,
-     2  sinmui, sinmumi, cosnv, sinnv, cosnvn, sinnvn, 
-     3  cos01, sin01, stat=istat1)
+     2  sinmui, sinmumi, cosnv, sinnv, cosnvn, sinnvn, cosmui3,
+     3  cosmumi3, cos01, sin01, stat=istat1)
       IF (istat1 .ne. 0) PRINT *, Warning // "#1"
+#ifdef _HBANGLE
+        CALL free_multipliers
+#endif
 
       IF (ALLOCATED(xm)) DEALLOCATE (xm, xn, ixm, xm_nyq, xn_nyq, 
      1   jmin3, mscale, nscale, uminus, stat=istat1)

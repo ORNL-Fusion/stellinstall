@@ -11,6 +11,10 @@
       USE xstuff, ONLY: xc
       USE precon2d, ONLY: ictrl_prec2d, lHess_exact,
      1                    ctor_prec2d
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: precondn_rho, ard2, arm2,            
+     1                             azd2, azm2, brd2, brm2, bzd2, bzm2
+#endif
       USE fbal
       IMPLICIT NONE
 !-----------------------------------------------
@@ -29,7 +33,7 @@
 !-----------------------------------------------
       INTEGER :: l, js, ndim
       REAL(rprec) :: r2
-      REAL(rprec) :: arnorm, aznorm, dnorm1, volume, tcon_mul
+      REAL(rprec) :: arnorm, aznorm, volume, tcon_mul
       REAL(rprec), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
       REAL(rprec) :: curpol_temp
       REAL(rprec), DIMENSION(:), POINTER :: bsupu, bsubuh, 
@@ -133,7 +137,7 @@
 !     NOTE: LU = LAMU == d(LAM)/du, LV = -LAMV == -d(LAM)/dv COMING INTO THIS ROUTINE
 !     WILL ADD CHIP IN CALL TO ADD_FLUXES. THE NET BSUPU, BSUPV ARE (PHIPOG=1/GSQRT AS NOTED ABOVE):
 !
-!          BSUPU = PHIPOG*(chip + LAMV*LAMSCALE),
+!          BSUPU = PHIPOG*(chip - LAMV*LAMSCALE),
 !          BSUPV = PHIPOG*(phip + LAMU*LAMSCALE)
 !
       lu = lu*lamscale
@@ -303,22 +307,34 @@
          phipog(:nrzt) = phipog(:nrzt)*wint(:nrzt)
          CALL lamcal(phipog, guu, guv, gvv)
          CALL precondn(bsupv,bsq,gsqrt,r12,zs,zu12,zu,zu(1,1),
-     1                 z1(1,1),arm,ard,brm,brd,crd,rzu_fac,cos01)
+     1                 z1(1,1),arm,ard,brm,brd,
+#ifdef _HBANGLE
+     2                 arm2, ard2, brm2, brd2,
+#endif
+     3                 crd,rzu_fac,cos01)
          CALL precondn(bsupv,bsq,gsqrt,r12,rs,ru12,ru,ru(1,1),
-     1                 r1(1,1),azm,azd,bzm,bzd,crd,rru_fac,sin01)
+     1                 r1(1,1),azm,azd,bzm,bzd,
+#ifdef _HBANGLE
+     2                 azm2, azd2, bzm2, bzd2,
+#endif
+     3                 crd,rru_fac,sin01)
 
          rzu_fac(2:ns-1) = sqrts(2:ns-1)*rzu_fac(2:ns-1)
          rru_fac(2:ns-1) = sqrts(2:ns-1)*rru_fac(2:ns-1)
          frcc_fac(2:ns-1) = one/rzu_fac(2:ns-1);  rzu_fac = rzu_fac/2
          fzsc_fac(2:ns-1) =-one/rru_fac(2:ns-1);  rru_fac = rru_fac/2
+#ifdef _HBANGLE
+         CALL precondn_rho
+#endif
 
-         guu(:nrzt) = guu(:nrzt)*r12(:nrzt)**2
+
          volume = hs*SUM(vp(2:ns))
          r2 = MAX(wb,wp)/volume
-         fnorm = one/(SUM(guu(1:nrzt)*wint(1:nrzt))*(r2*r2))
-!         fnorm1 = one/SUM(xc(1+ns:2*irzloff)**2)                   !Norm for preconditioned R,Z forces
-         dnorm1 = one/(nzeta*(ntheta2-1))
-         fnormL = one/(dnorm1*SUM(bsubuh**2 + bsubvh**2)*lamscale**2)
+         guu(:nrzt) = guu(:nrzt)*r12(:nrzt)**2                     !R12 from RP in force
+         fnorm = one/(SUM(guu(1:nrzt)*wint(1:nrzt))*(r2*r2))       !Norm, unpreconditioned R,Z forces
+         fnorm1 = one/SUM(xc(1+ns:2*irzloff)**2)                   !Norm for preconditioned R,Z forces
+         fnormL = one/(SUM((bsubuh(1:nrzt)**2 + bsubvh(1:nrzt)**2)
+     1            *wint(1:nrzt))*lamscale**2)                                     !Norm for unpreconditioned Lambda force
 !         r3 = one/(2*r0scale)**2
 !         fnorm2 = one/MAX(SUM(xc(2*irzloff+1:3*irzloff)**2),r3/4) !Norm for preconditioned Lambda force
 
@@ -326,6 +342,7 @@
 !        COMPUTE CONSTRAINT FORCE SCALING FACTOR (TCON)
 !        OVERRIDE USER INPUT VALUE HERE
 !
+#ifndef _HBANGLE
          r2 = ns
          tcon0 = MIN(ABS(tcon0), one)                              !!ignore large tcon0 from old-style files
          tcon_mul = tcon0*(1 + r2*(one/60 + r2/(200*120)))
@@ -343,6 +360,8 @@
      1                    ABS(azd(js,1)/aznorm)) * tcon_mul*(32*hs)**2
          END DO
          tcon(ns) = p5*tcon(ns-1)
+         IF (lasym) tcon = p5*tcon
+#endif
       ENDIF
 
 !

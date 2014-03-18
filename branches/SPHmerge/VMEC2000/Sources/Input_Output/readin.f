@@ -7,6 +7,9 @@
       USE timer_sub
       USE mgrid_mod, ONLY: nextcur, curlabel, nfper0, read_mgrid
       USE init_geometry
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: HB_EXP=>pexp
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -341,7 +344,11 @@ C-----------------------------------------------
 !      am = am*delta**2
 
       WRITE (nthreed,100)
+#ifdef _HBANGLE
+     1  ns_array(multi_ns_grid),ntheta1,nzeta,mpol,ntor,HB_EXP,nfp,
+#else
      1  ns_array(multi_ns_grid),ntheta1,nzeta,mpol,ntor,nfp,
+#endif
 #ifdef _ANIMEC
      2  gamma,spres_ped,phiedge,curtor,bcrit,lRFP
 #else
@@ -349,8 +356,12 @@ C-----------------------------------------------
 #endif
  100  FORMAT(/,' COMPUTATION PARAMETERS: (u = theta, v = zeta)'/,
      1  1x,45('-'),/,
-     2  '     ns     nu     nv     mu     mv',/,
-     3  5i7,//,' CONFIGURATION PARAMETERS:',/,1x,39('-'),/,
+#ifdef _HBANGLE
+     2  '     ns     nu     nv     mu     mv     HB_EXP',/,5i7,i11//,
+#else
+     2  '     ns     nu     nv     mu     mv',/,5i7//,
+#endif
+     3  ' CONFIGURATION PARAMETERS:',/,1x,39('-'),/,
      4  '    nfp      gamma      spres_ped    phiedge(wb)'
 #ifdef _ANIMEC
      5  '     curtor(A)      BCrit(T)        lRFP',
@@ -621,10 +632,11 @@ C-----------------------------------------------
 !     CONVERT TO INTERNAL FORM FOR (CONSTRAINED) m=1 MODES
 !     INTERNALLY, FOR m=1: XC(rss) = .5(RSS+ZCS), XC(zcs) = .5(RSS-ZCS)
 !     WITH XC(zcs) -> 0 FOR POLAR CONSTRAINT 
+!     FOR ASYMMETRIC CASE, XC(rsc) = .5(RSC+ZCC), XC(zcc) = .5(RSC-ZCC)
+!     WITH XC(zss) -> 0 FOR POLAR CONSTRAINT
 !     (see convert_sym, convert_asym in totzsp_mod file)
 !
-
-      IF (lconm1 .and. (lthreed .or. lasym)) THEN
+      IF (lconm1 .AND. (lthreed.OR.lasym)) THEN 
          ALLOCATE (temp(SIZE(rbcc,1)))
          IF (lthreed) THEN
             mj = 1+joff
@@ -638,7 +650,7 @@ C-----------------------------------------------
             rbsc(:,mj) = p5*(temp(:) + zbcc(:,mj))
             zbcc(:,mj) = p5*(temp(:) - zbcc(:,mj))
          END IF
-         IF (ALLOCATED(temp)) DEALLOCATE (temp)
+         DEALLOCATE (temp)
       END IF
       
 !

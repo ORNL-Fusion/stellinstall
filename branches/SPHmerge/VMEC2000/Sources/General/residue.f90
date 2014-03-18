@@ -6,6 +6,9 @@
       USE vsvd
       USE xstuff
       USE precon2d
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: scalfor_rho
+#endif
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -15,36 +18,80 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: n0 = 0, m0 = 0, m1 = 1
-      INTEGER, PARAMETER :: n3d = 0, nasym = 1
+      INTEGER, PARAMETER :: n0=0, m0=0, m1=1
+      INTEGER, PARAMETER :: n3d=0, nasym=1
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: nsfix, iflag, jedge, delIter
-      REAL(rprec) :: r1, tnorm
+      INTEGER :: nsfix, jedge, delIter
+      REAL(rprec) :: r1, tnorm, fac
 !-----------------------------------------------
 !
 !     IMPOSE M=1 MODE CONSTRAINT TO MAKE THETA ANGLE
 !     INVARIANT TO PHI-SHIFTS (AND THETA SHIFTS FOR ASYMMETRIC CASE)
-!     ( ZCS = RSS, ZCC = RSC ARE THE CORRECT POLAR RELATIONS)
+!     (ZCS = RSS, ZSS = RCS ARE THE CORRECT POLAR RELATIONS)
+!
+#ifdef _HBANGLE
+!
+!     UNIQUE ANGLE REQUIRES CONSTRAINT BETWEEN RHO(m=1) AND R(m=0)
+!     FRHO(m=1) = 0 OR FR(m=0) = 0 WILL WORK
+!
+!      ONE OF THESE REMOVED ZERO EIGENVALUE
+      fac = (fsqr+fsqz)*1.E8
+
+      IF (ICTRL_PREC2D .GT. 0) THEN
+!         gcr(:,:,m1,:) = 0
+!         gcz(:,:,m0,:) = 0
+      ELSE IF (fac .LT. one) THEN
+!         fac = SQRT(MAX(1.E-6_dp,fac))
+!         gcr(:,:,m1,:) = fac*gcr(:,:,m1,:)
+!         gcz(:,:,m0,:) = fac*gcz(:,:,m0,:)
+      END IF
+      IF (lthreed) THEN
+         IF (ANY(gcr(:,:,m0,rss).NE.zero)) STOP 'GCR(m0,rss) != 0'
+      END IF
+      IF (lasym) THEN
+         IF (ANY(gcr(:,:,m0,rsc).NE.zero)) STOP 'GCR(m=0,rsc) != 0'
+      END IF
+!FREE-BDY RFP MAY NEED THIS TO IMPROVE CONVERGENCE (SPH 022514)
+      IF (lfreeb .AND. lrfp) THEN
+!      IF (lfreeb .AND. lrfp .AND. iter2 .gt. 2000) THEN
+         fac = 0
+         IF (ictrl_prec2d .EQ. 0) fac = 1.E-1_dp
+         gcz(ns,0,m0,:) = fac*gcz(ns,0,m0,:)
+      END IF
+
+#else
 !
 !     SYMMETRIC PERTURBATIONS (BASED ON POLAR RELATIONS):
 !        RSS(n) = ZCS(n), n != 0
 !     ASYMMETRIC PERTURBATIONS:
-!        RSC(n) = ZCC(n), all n 
+!        RSC(n) = ZCC(n), ALL n
 !
 !     INTERNALLY:
-!        XC(rss) = .5*(Rss + Zcs), XC(zcs) = .5*(Rss - Zcs)
-!        XC(rsc) = .5*(Rsc + Zcc), XC(zcc) = .5*(Rsc - Zcc)
+!        XC(rss) = .5*(Rss + Zcs), XC(zcs) = .5*(Rss - Zcs) -> 0
+!        XC(rsc) = .5*(Rsc + Zcc), XC(zcc) = .5*(Rsc - Zcc) -> 0
 !     THIS IMPLIES THE CONSTRAINT
 !        3D ONLY : GC(zcs) = 0;  
-!        3D, ASYM: GC(zcc) = 0
+!        ASYM:     GC(zcc) = 0
 !
-      IF (lthreed) CALL constrain_m1(gcr(:,:,1,rss), gcz(:,:,1,zcs))
-      IF (lasym)   CALL constrain_m1(gcr(:,:,1,rsc), gcz(:,:,1,zcc))
+      IF (lthreed) CALL constrain_m1(gcr(:,:,m1,rss), gcz(:,:,m1,zcs))
+      IF (lasym)   CALL constrain_m1(gcr(:,:,m1,rsc), gcz(:,:,m1,zcc))
+
+!FREE-BDY RFP MAY NEED THIS TO IMPROVE CONVERGENCE (SPH 022514)
+      IF (lfreeb .AND. lrfp) THEN
+!      IF (lfreeb .AND. lrfp .AND. iter2 .gt. 2000) THEN
+         fac = 0
+         IF (ictrl_prec2d .EQ. 0) fac = 1.E-1_dp
+         gcr(ns,0,m0,:) = fac*gcr(ns,0,m0,:)
+         gcz(ns,0,m0,:) = fac*gcz(ns,0,m0,:)
+      END IF
+#endif
+
+
 
 !     PRECONDITIONER MUST BE CALCULATED USING RAW (UNPRECONDITIONED) FORCES
-      IF (ictrl_prec2d .ge. 2) RETURN
+      IF (ictrl_prec2d .GE. 2) RETURN
 
 !
 !     PUT FORCES INTO PHIFSAVE UNITS USED BY PRECONDITIONERS, FNORM
@@ -107,7 +154,7 @@
 !
 !     PERFORM PRECONDITIONING AND COMPUTE RESIDUES
 !
-      IF (ictrl_prec2d .eq. 1) THEN
+      IF (ictrl_prec2d .EQ. 1) THEN
 
          CALL block_precond(gc)
 
@@ -127,27 +174,34 @@
          fsql1 = SUM(gcl*gcl)
 
       ELSE
+#ifdef _HBANGLE
+         CALL scalfor_rho(gcr, gcz)
+#else
 !        m = 1 constraint scaling
          IF (lthreed) CALL scale_m1(gcr(:,:,1,rss), gcz(:,:,1,zcs))
          IF (lasym)   CALL scale_m1(gcr(:,:,1,rsc), gcz(:,:,1,zcc))
+         jedge = 0
+         CALL scalfor (gcr, arm, brm, ard, brd, crd, jedge)
+         jedge = 1
+         CALL scalfor (gcz, azm, bzm, azd, bzd, crd, jedge)
+#endif
 
-         iflag = 0
-         CALL scalfor (gcr, arm, brm, ard, brd, crd, iflag)
-         iflag = 1
-         CALL scalfor (gcz, azm, bzm, azd, bzd, crd, iflag)
-
-         CALL getfsq (gcr, gcz, fsqr1, fsqz1, fnorm1, m1)
-!OLD         CALL getfsq (gcr, gcz, fsqr1, fsqz1, one, m1)
-
+!SPH: add fnorm1 ~ 1/R**2, since preconditioned forces gcr,gcz ~ Rmn or Zmn
+         CALL getfsq (gcr, gcz, fsqr1, fsqz1, fnorm1/4, m1)
+#ifdef _HBANGLE
+!
+!     TO IMPROVE CONVERGENCE, REDUCE FORCES INITIALLY IF THEY ARE TOO LARGE
+!
+         fac = .5_dp
+         IF ((iter2-iter1).LT.25 .AND. (fsqr+fsqz).GT.1.E-2_dp)         &
+         fac = fac / SQRT(1.E2_dp*(fsqr+fsqz))
+         gcr = fac*gcr; gcz = fac*gcz 
+#endif
+!SPH: THIS IS NO INVARIANT UNDER PHIP->A*PHIP, AM->A**2*AM IN PROFIL1D
+!     (EXTCUR -> A*EXTCUR for FREE BOUNDARY)
          gcl = faclam*gcl
          fsql1 = hs*SUM(gcl*gcl)
-
-!
-!     SOFT-STARTUP AVOIDS SOME "HANG-UPS" FOR LARGE RESIDUALS (04/2002)
-!
-!         fac = one / (one+fsqr+fsqz+fsql)
-!         gcr = fac*gcr
-!         gcz = fac*gcz
+!030514      fsql1 = hs*lamscale**2*SUM(gcl*gcl)
 
       ENDIF
 
@@ -159,12 +213,12 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(ns,0:ntor), INTENT(inout) :: gcr, gcz
+      REAL(dp), DIMENSION(ns,0:ntor), INTENT(inout) :: gcr, gcz
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      REAL, PARAMETER :: FThreshold = 1.E-6_dp
-      REAL(rprec) :: temp(ns,0:ntor)
+      REAL(dp), PARAMETER :: FThreshold = 1.E-6_dp
+      REAL(dp) :: temp(ns,0:ntor)
 !-----------------------------------------------
 !
 !     COMPUTE INTERNAL gr, gz
@@ -174,12 +228,11 @@
       IF (lconm1) THEN
          temp = gcr
          gcr = osqrt2*(gcr + gcz)
-         gcz = osqrt2*(temp- gcz)
-      ELSE
-         gcz = 0
+         gcz = osqrt2*(temp - gcz)
       END IF
 
-      IF (fsqz.lt.FThreshold) gcz = 0
+!v8.50: ADD iter2<2 so reset=<WOUT_FILE> works
+      IF (fsqz.LT.FThreshold .OR. iter2.LT.2) gcz = 0
  
       END SUBROUTINE constrain_m1
 
@@ -193,19 +246,50 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
+      INTEGER, PARAMETER :: nodd=2
       INTEGER :: n
       REAL(rprec) :: fac(ns)
 !-----------------------------------------------
       IF (.not.lconm1) RETURN
 
-      fac = osqrt2*ard(:ns,2)/(ard(:ns,2) + azd(:ns,2))
+      fac = (ard(:,nodd)+brd(:,nodd))/                                        &
+            (ard(:,nodd)+brd(:,nodd)+azd(:,nodd)+bzd(:,nodd))
       DO n = 0, ntor
          gcr(:,n) = fac*gcr(:,n)
       END DO
 
-      fac = osqrt2*azd(:ns,2)/(ard(:ns,2) + azd(:ns,2))
+      fac = (azd(:,nodd)+bzd(:,nodd))/                                        &
+            (ard(:,nodd)+brd(:,nodd)+azd(:,nodd)+bzd(:,nodd))
+      DO n = 0, ntor
+         gcz(:,n) = fac*gcz(:,n)
+      END DO
+ 
+      END SUBROUTINE scale_m1
+
+      SUBROUTINE scale_m1_new(gcr, gcz)
+      USE vmec_main
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(rprec), DIMENSION(ns,0:ntor), INTENT(inout) :: gcr, gcz
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+      INTEGER, PARAMETER :: nodd=2
+      INTEGER :: n
+      REAL(rprec) :: fac(ns)
+!-----------------------------------------------
+      IF (.NOT.lconm1) RETURN
+
+      fac = osqrt2*ard(:ns,nodd)/(ard(:ns,nodd) + azd(:ns,nodd))
+      DO n = 0, ntor
+         gcr(:,n) = fac*gcr(:,n)
+      END DO
+
+      fac = osqrt2*azd(:ns,nodd)/(ard(:ns,nodd) + azd(:ns,nodd))
       DO n = 0, ntor
          gcz(:,n) = fac*gcz(:,n)
       END DO
   
-      END SUBROUTINE scale_m1
+      END SUBROUTINE scale_m1_new

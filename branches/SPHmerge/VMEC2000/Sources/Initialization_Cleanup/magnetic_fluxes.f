@@ -1,7 +1,7 @@
       FUNCTION torflux_deriv (x)
       USE stel_kinds
-      USE vmec_input, ONLY: lRFP
-      USE vmec_input, ONLY: tf => aphi
+      USE vmec_main, ONLY: zero
+      USE vmec_input, ONLY: lRFP, tf => aphi
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
@@ -11,6 +11,7 @@ C-----------------------------------------------
 C-----------------------------------------------
       IF (lRFP) THEN
 !        RFP/TOKAMAK
+         IF (piota(x) .eq. zero) STOP 'piota(x) = 0!'
          torflux_deriv = polflux_deriv(x)/piota(x)
 
       ELSE

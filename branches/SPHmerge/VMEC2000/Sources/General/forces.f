@@ -6,7 +6,7 @@
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: p25 = p5*p5, dphids=p25
+      REAL(rprec), PARAMETER :: p25 = p5*p5, dshalfds=p25
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -57,7 +57,7 @@ C-----------------------------------------------
       azmn_e  =-ohs*azmn_e * lu_e
       brmn_e  = brmn_e * lu_e
       bzmn_e  =-bzmn_e * lu_e
-      bsqr    = dphids*lu_e/shalf
+      bsqr    = dshalfds*lu_e/shalf
 
       armn_o(1:ndim)  = armn_e(1:ndim) *shalf
       azmn_o(1:ndim)  = azmn_e(1:ndim) *shalf
@@ -91,7 +91,7 @@ C-----------------------------------------------
       bzmn_e(:nrzt) = bzmn_e(:nrzt) - (bsqr(:nrzt)*r1(:nrzt,1)
      1              + guus(:nrzt)*zu(:nrzt,1) + guu(:nrzt)*zu(:nrzt,0))
       lv_e(1:ndim) = lv_e(1:ndim)*shalf(1:ndim)
-      lu_o(1:ndim) = dphids*lu_e(1:ndim)
+      lu_o(1:ndim) = dshalfds*lu_e(1:ndim)
 
 !DIR$ IVDEP
       DO l = 1, nrzt
@@ -163,6 +163,7 @@ C-----------------------------------------------
 !
 !     COMPUTE CONSTRAINT FORCE KERNELS
 !
+#ifndef _HBANGLE
       rcon(:nrzt,0) = (rcon(:nrzt,0) - rcon0(:nrzt)) * gcon(:nrzt)
       zcon(:nrzt,0) = (zcon(:nrzt,0) - zcon0(:nrzt)) * gcon(:nrzt)
       brmn_e(:nrzt) = brmn_e(:nrzt) + rcon(:nrzt,0)
@@ -173,5 +174,5 @@ C-----------------------------------------------
       zcon(:nrzt,0) =  zu0(:nrzt) * gcon(:nrzt)
       rcon(:nrzt,1) = rcon(:nrzt,0) * sqrts(:nrzt)
       zcon(:nrzt,1) = zcon(:nrzt,0) * sqrts(:nrzt)
-
+#endif
       END SUBROUTINE forces

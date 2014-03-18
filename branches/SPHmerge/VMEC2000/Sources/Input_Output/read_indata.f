@@ -77,7 +77,7 @@ C-----------------------------------------------
       rcc = 1;  zsc = 1
       rss = 0;  rsc = 0;  rcs = 0
       zcc = 0;  zss = 0;  zcs = 0     
-      IF (.not.lasym) THEN
+      IF (.NOT.lasym) THEN
          ntheta3 = ntheta2
          mnpd2 = mnpd
          IF (lthreed) THEN

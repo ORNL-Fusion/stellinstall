@@ -1,4 +1,4 @@
-      SUBROUTINE lamcal(phipog, guu, guv, gvv)
+      SUBROUTINE lamcal(overg, guu, guv, gvv)
       USE vmec_main
       USE vmec_params, ONLY: ntmax, jlam, lamscale
       USE realspace, ONLY: sqrts, phip
@@ -7,11 +7,11 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       REAL(rprec), DIMENSION(ns,nznt), INTENT(in) ::                    &
-         phipog, guu, guv, gvv
+         overg, guu, guv, gvv
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: damping_fac = 2
+      REAL(rprec), PARAMETER :: damping_fac=2
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -19,9 +19,9 @@
       REAL(rprec) :: tnn, tnm, tmm, power, pfactor0, pfactor
 !-----------------------------------------------
 
-      blam(:ns) = SUM(guu*phipog, dim=2)
-      clam(:ns) = SUM(gvv*phipog, dim=2)
-      dlam(:ns) = SUM(guv*phipog, dim=2)
+      blam(:ns) = SUM(guu*overg, dim=2)
+      clam(:ns) = SUM(gvv*overg, dim=2)
+      dlam(:ns) = SUM(guv*overg, dim=2)
       blam(1) = blam(2)
       clam(1) = clam(2)
       dlam(1) = dlam(2)
@@ -70,4 +70,3 @@
       END DO
 
       END SUBROUTINE lamcal
-

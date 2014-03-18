@@ -10,7 +10,7 @@ add_test (NAME    diagnostic_rotation_test
 
 #  Check that the reconstruction parameter reconstructed to the correct values.
 add_test (NAME    diagnostic_rotation_test_phi_offset
-          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=phi_offset --value=0.157 --range=0.0001)
+          COMMAND ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --p_type=phi_offset --value=0.157 --range=0.0002)
 
 #  Check that the signal effectiveness total.
 add_test (NAME    diagnostic_rotation_test_sem_totals

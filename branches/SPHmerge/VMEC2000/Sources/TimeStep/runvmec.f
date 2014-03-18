@@ -174,7 +174,7 @@ C-----------------------------------------------
 
       ns_min = 3
 
-      DO igrid = igrid0-jacob_off, multi_ns_grid
+      ITERATIONS: DO igrid = igrid0-jacob_off, multi_ns_grid
          IF (igrid .lt. igrid0) THEN
 !           TRY TO GET NON-SINGULAR JACOBIAN ON A 3 PT RADIAL MESH
             nsval = 3; ivac = -1
@@ -244,7 +244,7 @@ C-----------------------------------------------
             EXIT
          ENDIF
 
-      END DO
+      END DO ITERATIONS
 
   100 CONTINUE
 
