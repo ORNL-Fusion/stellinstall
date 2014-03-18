@@ -1148,8 +1148,8 @@
 !------------------------------------------------
 !
 !     THIS SUBROUTINE WRITES A TEXT FILE WOUT CREATED BY STORED THE INFORMATION 
-!     IN THE read_WOUT MODULE. This routine needs to be called onky if the wout
-!     has already been read in.
+!     IN THE read_WOUT MODULE. This routine can only be called if the wout has 
+!     already been read in.
 
       iounit = 0
       ierr = 0
