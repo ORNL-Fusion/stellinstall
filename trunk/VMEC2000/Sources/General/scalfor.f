@@ -1,7 +1,7 @@
       SUBROUTINE scalfor(gcx, axm, bxm, axd, bxd, cx, iflag)
       USE vmec_main
       USE vmec_params
-      USE vmec_dim, ONLY: ns, nrzt
+      USE vmec_dim, ONLY: ns 
       USE realspace, ONLY: wint, ru0
       IMPLICIT NONE
 C-----------------------------------------------
@@ -47,11 +47,11 @@ C-----------------------------------------------
 
             IF (m .eq. 1) THEN
                dx(2,n,m) = dx(2,n,m) + bx(2,n,m)
-               DO js = jmin2(m), jmax
-                   ax(js,n,m) = c1p5*ax(js,n,m)    
-                   bx(js,n,m) = c1p5*bx(js,n,m)
-                   dx(js,n,m) = c1p5*dx(js,n,m)
-               END DO
+!OFF 050311        DO js = jmin2(m), jmax
+!OFF 050311        ax(js,n,m) = c1p5*ax(js,n,m)
+!OFF 050311        bx(js,n,m) = c1p5*bx(js,n,m)
+!OFF 050311        dx(js,n,m) = c1p5*dx(js,n,m)
+!OFF 050311        END DO
             END IF
          END DO
       END DO
@@ -102,8 +102,10 @@ C-----------------------------------------------
 !     MAGNETIC AXIS IS FIXED SO JMIN3(0) => 2 FOR M=0,N=0
 
       jmin4 = jmin3
-      IF (iresidue.ge.0 .and. iresidue.lt.3) jmin4(0) = 2
+      IF (iresidue.GE.0 .and. iresidue.LT.3) jmin4(0) = 2
 
+!     SOLVES BX(I)*X(I-1)+DX(I)*X(I)+AX(I)*X(I+1)=GCX(I), I=JMIN4,JMAX
+!     AND RETURNS ANSWER IN GCX(I)
       CALL tridslv (ax, dx, bx, gcx, jmin4, jmax, mnsize-1, ns, ntmax)
 
       DEALLOCATE (ax, bx, dx)

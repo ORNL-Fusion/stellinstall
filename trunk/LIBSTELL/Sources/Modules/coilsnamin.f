@@ -44,16 +44,10 @@
 !        niter_opt - max. number of function evaluations
 !        nstep 
 !        i_pol - total poloidal current per fp
-!        numsurf  - number of winding surface modes, modular rep.
-!        m_num - vector of poloidal mode numbers, modular rep.
-!        n_num  - vector of toroidal mode numbers, modular rep.
 !        num_vf  - no. of vf coil pairs
 !        nsad_u  - no. of u-coefficients (Fourier or spline) in saddle rep. 
 !        nsad_v  - no. of v-coefficients (Fourier or spline) in saddle rep.
 !        nfils - no. of filaments per modular/saddle coil (1, 3, or 5)
-!        numsurf_sad  - no. of winding surface modes, saddle rep.
-!        m_sad  - vector of poloidal mode numbers, saddle rep.
-!        n_sad  - vector of toroidal mode numbers, saddle rep.
 !        n_access  - number of access zone constraints
 !        deln  -  dist. from coil centerline to filament, normal to winding surface
 !        delt  - dist. from coil centerline to filament, tangent to winding surface
@@ -100,15 +94,18 @@
 !        lctrlpt = T for control point spline representation (also need lspline=T)
 !        laxis = T to include magnetic axis in coils.ext file
 !       
-!        COIL FOURIER ARRAYS FOR MODULAR REPRESENTATION
+!        COILS FOR MODULAR REPRESENTATION
 !       
-!        rhoc
-!        rhos
-!        phic = coeffs. of cosine terms in modular representation
-!        phis = coeffs. of sine terms in modular representation
-!        curmod = coil currents for modular representation
+!        rhoc = coeffs. of cosine terms in modular representation of poloidal angle (u)
+!        rhos = coeffs. of sine terms in modular representation of poloidal angle (u)
+!        phic = coeffs. of cosine terms in modular representation of toroidal angle (v)
+!        phis = coeffs. of sine terms in modular representation of of toroidal angle (v)
+!        curmod = coil currents for modulars
+!        numsurf  - number of winding surface modes, modular rep.
+!        m_num - vector of poloidal mode numbers, modular rep.
+!        n_num  - vector of toroidal mode numbers, modular rep.
 !       
-!        COIL FOURIER/SPLINE ARRAYS FOR SADDLE REPRESENTATION
+!        COILS FOR SADDLE REPRESENTATION
 !
 !        sad_v_c = coeffs. of cosine terms for v-coordinate, saddle representation
 !        sad_v_s  = coeffs. of sine terms for v-coordinate, saddle representation
@@ -116,6 +113,10 @@
 !        sad_u_s  = coeffs. of sine terms for u-coordinate, saddle representation
 !        sad_v0 = const. term used in original b-spline (non-control-pt.) repr.
 !        sad_u0 = const. term used in original b-spline (non-control-pt.) repr.
+!        cursad = coil currents for saddles
+!        numsurf_sad  - no. of winding surface modes, saddle rep.
+!        m_sad  - vector of poloidal mode numbers, saddle rep.
+!        n_sad  - vector of toroidal mode numbers, saddle rep.
 !       
 !        SURFACE ARRAYS
 !
@@ -181,7 +182,6 @@
 !        zc_vf
 !        cc_vf 
 !        i_tfc 
-!        cursad 
 !        x0_access = coordinates of endpoints for lines defining access zones
 !        y0_access  = 
 !        z0_access = 

@@ -15,13 +15,15 @@
       USE vspline
       USE xstuff
       USE vmec_io
-      USE realspace, ONLY: phip, gsqrta=>z1, z1=>z1
+      USE realspace, ONLY: phip, chip, gsqrta=>z1, z1=>z1
       USE totzsp_mod
       USE vforces, ONLY: bsupua=>brmn_e, bsupva=>czmn_o, bsqa=>bzmn_e, 
      1                   bsubsa=>armn_e, bsubua=>azmn_e, bsubva=>armn_o 
       USE vacmod, ONLY: potvac, mnpd    !added for diagno, J.Geiger
-!     ADD (ELIMINATE FIRST LEADING '!') FOLLOWING LINE IF TXT FILE OUTPUT IS DESIRED
-!#undef NETCDF
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: getrz
+#endif
+!!undef NETCDF IF TXT DESIRED
 #ifdef NETCDF      
       USE ezcdf
       USE read_wout_mod, ONLY: vn_version, vn_extension, vn_mgrid,
@@ -36,8 +38,9 @@
      6  vn_ai_aux_s, vn_ai_aux_f, 
      6  vn_ftolv, vn_fsqr, vn_fsqz, vn_fsql,
      7  vn_pmod, vn_tmod, vn_pmod_nyq, vn_tmod_nyq,
-     7  vn_racc, vn_zacs, vn_racs, vn_zacc, vn_iotaf,
+     7  vn_racc, vn_zacs, vn_racs, vn_zacc, vn_iotaf, vn_qfact,
      8  vn_presf, vn_phi, vn_phipf, vn_jcuru, vn_jcurv, vn_iotah,
+     8  vn_chi, vn_chipf, 
      9  vn_mass, vn_presh, vn_betah, vn_buco, vn_bvco, vn_vp, vn_specw, 
      A  vn_phip, vn_jdotb, vn_overr, vn_bgrv, vn_merc, vn_mshear,
      B  vn_mwell, vn_mcurr, vn_mgeo, vn_equif, vn_fsq, vn_wdot, 
@@ -54,10 +57,10 @@
      5  ln_rbt1, ln_sgs, ln_lar, ln_modB, ln_ctor, ln_amin, ln_Rmaj, 
      6  ln_mse, ln_thom, ln_flp, ln_nobd, ln_nbset, ln_next, ln_nbfld,
      7  ln_pmod, ln_tmod, ln_pmod_nyq, ln_tmod_nyq, ln_racc, ln_zacs, 
-     7  ln_racs, ln_zacc, ln_iotaf, ln_am, ln_ac, ln_ai,
+     7  ln_racs, ln_zacc, ln_iotaf, ln_qfact, ln_am, ln_ac, ln_ai,
      7  ln_pmass_type, ln_pcurr_type, ln_piota_type,
      7  ln_am_aux_s, ln_am_aux_f, ln_ac_aux_s, ln_ac_aux_f, 
-     7  ln_ai_aux_s, ln_ai_aux_f, 
+     7  ln_ai_aux_s, ln_ai_aux_f, ln_chi, ln_chipf, 
      8  ln_presf, ln_phi, ln_phipf, ln_jcuru, ln_jcurv, ln_iotah,
      9  ln_mass, ln_presh, ln_betah, ln_buco, ln_bvco, ln_vp, ln_specw, 
      A  ln_vol, ln_phip, ln_jdotb, ln_bgrv, ln_merc, ln_mshear,
@@ -85,6 +88,7 @@
       REAL(rprec), DIMENSION(ns,nznt), INTENT(out) ::
      1   densit, pbprim, ppprim
 #endif
+      REAL(rprec) :: qfact(ns)
       LOGICAL :: lwrite
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
@@ -146,7 +150,6 @@
 !
 !  Pointer assignments for storage arrays
 !
-
       n1 = MAX(1,ntmax/2)
       rmnc => rzl_array(:,:,1)            !!store COS(mu-nv) components
       zmns => rzl_array(:,:,1+n1)         !!store SIN(mu-nv)
@@ -272,7 +275,7 @@
       CALL cdf_define(nwout, vn_tormod, ntor)
       CALL cdf_define(nwout, vn_maxmod, mnmax)
       CALL cdf_define(nwout, vn_maxmod_nyq, mnmax_nyq0)
-      CALL cdf_define(nwout, vn_maxit, niter)
+      CALL cdf_define(nwout, vn_maxit, iter2)
       CALL cdf_define(nwout, vn_actit, itfsq)
       CALL cdf_define(nwout, vn_asym, lasym)
       CALL cdf_define(nwout, vn_recon, lrecon)
@@ -330,17 +333,17 @@
       CALL cdf_setatt(nwout, vn_tmod_nyq, ln_tmod_nyq)
 
       CALL cdf_define(nwout, vn_racc, raxis_cc(0:ntor), 
-     1                dimname=(/'n-tor'/))
+     1                dimname=(/'n_tor'/))
       CALL cdf_setatt(nwout, vn_racc, ln_racc)
       CALL cdf_define(nwout, vn_zacs, zaxis_cs(0:ntor), 
-     1                dimname=(/'n-tor'/))
+     1                dimname=(/'n_tor'/))
       CALL cdf_setatt(nwout, vn_zacs, ln_zacs)
       IF (lasym) THEN
          CALL cdf_define(nwout, vn_racs, raxis_cs(0:ntor), 
-     1                dimname=(/'n-tor'/))
+     1                dimname=(/'n_tor'/))
          CALL cdf_setatt(nwout, vn_racs, ln_racs)
          CALL cdf_define(nwout, vn_zacc, zaxis_cc(0:ntor), 
-     1                dimname=(/'n-tor'/))
+     1                dimname=(/'n_tor'/))
          CALL cdf_setatt(nwout, vn_zacc, ln_zacc)
       END IF
 
@@ -377,6 +380,13 @@
       CALL cdf_define(nwout, vn_iotaf, iotaf(1:ns), 
      1                dimname=r1dim)
       CALL cdf_setatt(nwout, vn_iotaf, ln_iotaf)
+
+      qfact=HUGE(qfact)
+      WHERE (iotaf .NE. zero) qfact=one/iotaf
+
+      CALL cdf_define(nwout, vn_qfact, qfact(1:ns), 
+     1                dimname=r1dim)
+      CALL cdf_setatt(nwout, vn_iotaf, ln_qfact)
       CALL cdf_define(nwout, vn_presf, presf, 
      1                dimname=r1dim)
       CALL cdf_setatt(nwout, vn_presf, ln_presf, units='Pa')
@@ -386,6 +396,12 @@
       CALL cdf_define(nwout, vn_phipf, 
      1                phipf, dimname=r1dim)
       CALL cdf_setatt(nwout, vn_phipf, ln_phipf)
+      CALL cdf_define(nwout, vn_chi, chi, 
+     1                dimname=r1dim)
+      CALL cdf_setatt(nwout, vn_chi, ln_chi, units='wb')
+      CALL cdf_define(nwout, vn_chipf, 
+     1                phipf, dimname=r1dim)
+      CALL cdf_setatt(nwout, vn_chipf, ln_chipf)
       CALL cdf_define(nwout, vn_jcuru, 
      1                jcuru, dimname=r1dim)
       CALL cdf_define(nwout, vn_jcurv, 
@@ -527,7 +543,7 @@
       CALL cdf_write(nwout, vn_tormod, ntor)
       CALL cdf_write(nwout, vn_maxmod, mnmax)
       CALL cdf_write(nwout, vn_maxmod_nyq, mnmax_nyq0)
-      CALL cdf_write(nwout, vn_maxit, niter)
+      CALL cdf_write(nwout, vn_maxit, iter2)
       CALL cdf_write(nwout, vn_actit, itfsq)
       CALL cdf_write(nwout, vn_asym, lasym)
       CALL cdf_write(nwout, vn_recon, lrecon)
@@ -609,7 +625,15 @@
 !     Insert version information into wout file. This will be parsed in
 !     read_wout_file to return the real value version_ to check the version number.
 !
+#if defined(_ANIMEC)
+         WRITE (nwout2, '(a15,a,a)') 'VMEC VERSION = ', version_,
+     1                               '_ANIMEC'
+#elif defined(_FLOW)
+         WRITE (nwout2, '(a15,a,a)') 'VMEC VERSION = ', version_,'_FLOW'
+#else
          WRITE (nwout2, '(a15,a)') 'VMEC VERSION = ', version_
+#endif
+
 #ifdef _ANIMEC
          WRITE (nwout2, *) wb, wpar, gamma, pfac,
 #else
@@ -618,7 +642,7 @@
      1    rmax_surf, rmin_surf, zmax_surf
 
          WRITE (nwout2, *) nfp, ns, mpol, ntor, mnmax, mnmax_nyq0,
-     1     itfsq, niter, iasym, ireconstruct, ier_flag
+     1     itfsq, iter2, iasym, ireconstruct, ier_flag
 
          WRITE (nwout2, *) imse2 - 1, itse, nbsets, nobd, nextcur,
      1     nstore_seq
@@ -631,12 +655,14 @@
       END IF
 !---------------------DEC$ ENDIF
 
-      if(.not. lwrite) GOTO 970   ! J Geiger: in case lwouttxt is not true
-                                  !           jump to close nc-file
+      IF (.not. lwrite) GOTO 970   ! J Geiger: in case lwouttxt is not true
+                                   !           jump to close nc-file
       ALLOCATE (xfinal(neqs2), stat=js)
       IF (js .ne. 0) STOP 'Allocation error for xfinal in WROUT!'
       xfinal = xc
-
+#ifdef _HBANGLE
+      CALL getrz(xfinal)
+#else
 !
 !     MUST CONVERT m=1 MODES... FROM INTERNAL TO PHYSICAL FORM
 !     Extrapolation of m=0 Lambda (cs) modes, which are not evolved at j=1, done in CONVERT
@@ -646,7 +672,7 @@
      1                                xfinal(1+irzloff+mns*(zcs-1)))
       IF (lasym)   CALL convert_asym (xfinal(1+mns*(rsc-1)), 
      1                                xfinal(1+irzloff+mns*(zcc-1)))
-
+#endif
 !
 !     CONVERT TO rmnc, zmns, lmns, etc EXTERNAL representation (without internal mscale, nscale)
 !     IF B^v ~ phip + lamu, MUST DIVIDE BY phipf(js) below to maintain old-style format
@@ -868,6 +894,7 @@
       pbprmnc(:,1)  = 0;  ppprmnc(:,1)  = 0
       sigmnc(:,1)   = 0;  taumnc(:,1)   = 0   
 #endif
+
       IF (.not.lasym) GO TO 200
 
       RADIUS3: DO js = 2, ns
@@ -996,10 +1023,13 @@
       j = SIZE(ai_aux_f)
       CALL cdf_write(nwout, vn_ai_aux_f, ai_aux_f(1:j))
 
-      CALL cdf_write(nwout, vn_iotaf, iotaf(1:ns)) 
+      CALL cdf_write(nwout, vn_iotaf, iotaf(1:ns))
+      CALL cdf_write(nwout, vn_qfact, qfact(1:ns))
       CALL cdf_write(nwout, vn_presf, presf/mu0) 
       CALL cdf_write(nwout, vn_phi, phi) 
       CALL cdf_write(nwout, vn_phipf, twopi*signgs*phipf)
+      CALL cdf_write(nwout, vn_chi, chi) 
+      CALL cdf_write(nwout, vn_chipf, twopi*signgs*chipf)
       CALL cdf_write(nwout, vn_jcuru, jcuru/mu0)
       CALL cdf_write(nwout, vn_jcurv, jcurv/mu0)
       CALL cdf_write(nwout, vn_jdotb, jdotb)
@@ -1133,7 +1163,7 @@
 !-----------------------------------------------
       IF (loldout) THEN
          WRITE (nfort8, '(f10.3,7i6)')
-     1      gamma, nfp, ns, mpol, ntor, mnmax, itfsq, niter/100+1
+     1      gamma, nfp, ns, mpol, ntor, mnmax, itfsq, iter2/100+1
          DO js = 1, ns
             mn = 0
             DO m = 0, mpol1
@@ -1203,7 +1233,6 @@
             write(21,'(a)') "vmec2000_B"
             write(21,*) "nfp  mpol  ntor"
             write(21,*) nfp, mpol, ntor
-!           CALL convert (rmnc, zmns, lmns, rmns, zmnc, lmnc, xc, ns)
             write(21,*) "rmnc"
             write(21,'(1p,e24.16)') (rmnc(mn,ns),mn=1,mnmax)
             write(21,*) "zmns"
@@ -1274,7 +1303,6 @@
 
             write(21,*) "plasma current"
             write(21,*) ctor
-!           CALL convert (rmnc, zmns, lmns, rmns, zmnc, lmnc, xc,1)
             write(21,*) "plasma current filament fc R"
             write(21,*) rmnc(1:ntor+1,1)
             write(21,*) "plasma current filament fc z"

@@ -21,7 +21,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero = 0, factor = 10
+      REAL(rprec), PARAMETER :: zero=0, factor=10
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -95,7 +95,7 @@
 !
 !       x is an array of length n. on input x must contain
 !         an initial estimate of the solution vector. on output x
-!         CONTAINS the final estimate of the solution vector.
+!         contains the final estimate of the solution vector.
 !
 !       fvec is an output array of length m which CONTAINS
 !         the functions evaluated at the output x.
@@ -134,8 +134,10 @@
 !
 !     CALL lmdif.
 !
-      ALLOCATE (wa(lwa), iwa(n), stat = info)
-      IF (info .ne. 0) STOP 'Allocation error in lmdif1!'
+      IF (lwa .lt. m*n+5*n+m) STOP 'lwa too small'
+
+      ALLOCATE (wa(lwa), iwa(n), stat=info)
+      IF (info .NE. 0) STOP 'Allocation error in lmdif1!'
 
 #if !defined(MPI_OPT)
 !
@@ -158,9 +160,9 @@
       mp5n = m + 5*n
       fvec = 0
       CALL lmdif (fcn, m, n, x, fvec, ftol, xtol, gtol, maxfev,         &
-           epsfcn, diag, mode, factor, nprint, info, nfev,              &
-           wa(mp5n+1), m, iwa, wa(n+1), wa(2*n+1), wa(3*n+1),           &
-           wa(4*n+1), wa(5*n+1))
+                  epsfcn, diag, mode, factor, nprint, info, nfev,       &
+                  wa(mp5n+1), m, iwa, wa(n+1), wa(2*n+1), wa(3*n+1),    &
+                  wa(4*n+1), wa(5*n+1))
 
 #if !defined(MPI_OPT)
       IF (info .eq. 8) info = 4

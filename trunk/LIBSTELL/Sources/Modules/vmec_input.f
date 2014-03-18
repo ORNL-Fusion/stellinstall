@@ -59,7 +59,7 @@
      A         , lspectrum_dump, loptim           !!Obsolete
       LOGICAL :: lgiveup                  ! inserted M.Drevlak
       REAL(rprec) :: fgiveup              ! inserted M.Drevlak, giveup-factor for ftolv
-      LOGICAL :: lbsubs = .false.         ! J Hanson See jxbforce coding
+      LOGICAL :: lbsubs                   ! J Hanson See jxbforce coding
 
       CHARACTER(len=200) :: mgrid_file
       CHARACTER(len=10)  :: precon_type
@@ -159,13 +159,35 @@
 !
 !     BACKWARDS COMPATIBILITY
 !
-      raxis = 0;  zaxis = 0
+      raxis = 0.0_dp;  zaxis = 0.0_dp
       
       READ (iunit, nml=indata, iostat=istat)
 
       IF (ALL(niter_array == -1)) niter_array = niter
-      WHERE (raxis .ne. 0._dp) raxis_cc = raxis
-      WHERE (zaxis .ne. 0._dp) zaxis_cs = zaxis
+
+!  Work around a bug in gfortran. When performing an optimized build, the WHERE
+!  statement would produce incorrect results. Work around this bug by expanding
+!  the full WHERE statment. This should have no adverse effects on any other
+!  compiler since these statements are equivalent to the older code statement.
+!
+!     WHERE (raxis .ne. 0.0_dp) raxis_cc = raxis
+!     WHERE (zaxis .ne. 0.0_dp) zaxis_cs = zaxis
+!
+!  The effect of this bug optimized to code to effectively ignore the WHERE
+!  statement and assign all value values of the r/zaxis to the r/zaxis_cc/s
+!  arrays. Explicitly adding the r/zaxis .eq. 0.0_dp section prevents this. This
+!  bug is known to exist in gfortran 4.9. It may manifest in other versions.
+      WHERE (raxis .ne. 0.0_dp)
+         raxis_cc = raxis
+      ELSEWHERE
+         raxis_cc = raxis_cc
+      ENDWHERE
+      WHERE (zaxis .ne. 0.0_dp)
+         zaxis_cs = zaxis
+      ELSEWHERE
+         zaxis_cs = zaxis_cs
+      ENDWHERE
+
       IF(max_main_iterations .gt. 1) lmoreiter=.true.  !J Geiger: if more iterations are requested.
 
       END SUBROUTINE read_indata_namelist

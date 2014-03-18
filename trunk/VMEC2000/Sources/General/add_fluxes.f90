@@ -1,7 +1,6 @@
       SUBROUTINE add_fluxes(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
       USE realspace, ONLY: wint, guu, guv, chip, phip
-      USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -41,10 +40,10 @@
  100  CONTINUE
 
 !     CHANGE THIS FOR lRFP = T  (solve for phips?)
-      IF (ncurr .eq. 0) THEN
+      IF (ncurr .EQ. 0) THEN
          chips = iotas*phips
-      ELSE IF (.not.lcurrent) THEN
-         WHERE (phips .ne. zero) iotas = chips/phips
+      ELSE IF (.NOT.lcurrent) THEN
+         WHERE (phips .NE. zero) iotas = chips/phips
       END IF
 !!      IF (.not.lcurrent) chips = iotas*phips
 

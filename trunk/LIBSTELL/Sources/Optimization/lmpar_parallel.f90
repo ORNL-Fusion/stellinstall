@@ -1,5 +1,6 @@
       SUBROUTINE lmpar_parallel(j, fcn)
-      USE fdjac_mod, wa1p => wap
+      USE fdjac_mod, ONLY: wa1p => wap, m=>mp, n=>np,                   &
+         num_lm_params, xp, ncnt=>ncntp
       USE lmpar_mod
       IMPLICIT NONE
 !-----------------------------------------------
@@ -63,7 +64,7 @@
 !
       parin = par
 
-      CALL lmpar (n, fjac, ldfjac, ipvt, diag, qtf, deltain, parin,     &
+      CALL lmpar (n, fjac, ldfjac, ipvt, diag, qtf, deltain, parin,    &
                   wa1p, wa2p, wa3p, wa4p)
 
 !

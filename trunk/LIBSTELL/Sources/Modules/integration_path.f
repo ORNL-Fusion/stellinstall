@@ -363,25 +363,25 @@
 !*******************************************************************************
 !  Check Test result logical
 !*******************************************************************************
-      FUNCTION check_log(expected, recieved, testNum, name)
+      FUNCTION check_log(expected, received, testNum, name)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       LOGICAL :: check_log
-      LOGICAL, INTENT(in) :: expected, recieved
+      LOGICAL, INTENT(in) :: expected, received
       INTEGER, INTENT(in) :: testNum
       CHARACTER (LEN=*), INTENT(in) :: name
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      check_log = expected .eqv. recieved
+      check_log = expected .eqv. received
       IF (.not.check_log) THEN
          write(*,*) "integration_path.f: ", name, " test", testNum,            &
      &              "failed."
-         write(*,*) "Expected", expected, "Recieved", recieved
+         write(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION
@@ -389,25 +389,25 @@
 !*******************************************************************************
 !  Check Test result real
 !*******************************************************************************
-      FUNCTION check_real(expected, recieved, testNum, name)
+      FUNCTION check_real(expected, received, testNum, name)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       LOGICAL :: check_real
-      REAL(rprec), INTENT(in) :: expected, recieved
+      REAL(rprec), INTENT(in) :: expected, received
       INTEGER, INTENT(in) :: testNum
       CHARACTER (LEN=*), INTENT(in) :: name
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      check_real = expected .eq. recieved
+      check_real = expected .eq. received
       IF (.not.check_real) THEN
          write(*,*) "integration_path.f: ", name, " test", testNum,            &
      &              "failed."
-         write(*,*) "Expected", expected, "Recieved", recieved
+         write(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION
@@ -415,24 +415,24 @@
 !*******************************************************************************
 !  Check Test result Integer
 !*******************************************************************************
-      FUNCTION check_int(expected, recieved, testNum, name)
+      FUNCTION check_int(expected, received, testNum, name)
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
 !  Variable declarations.
 !-------------------------------------------------------------------------------
       LOGICAL :: check_int
-      INTEGER, INTENT(in) :: expected, recieved, testNum
+      INTEGER, INTENT(in) :: expected, received, testNum
       CHARACTER (LEN=*), INTENT(in) :: name
 
 !-------------------------------------------------------------------------------
 !  Start of executable code
 !-------------------------------------------------------------------------------
-      check_int = expected .eq. recieved
+      check_int = expected .eq. received
       IF (.not.check_int) THEN
          write(*,*) "integration_path.f: ", name, " test", testNum,            &
      &              "failed."
-         write(*,*) "Expected", expected, "Recieved", recieved
+         write(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION

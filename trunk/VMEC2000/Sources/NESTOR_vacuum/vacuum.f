@@ -156,7 +156,7 @@ C-----------------------------------------------
 !     1      ier_flag = 10
          IF (rbtor*bsubvvac .lt. zero) THEN
             IF (lrfp) THEN
-1100  FORMAT('lrfp is TRUE. Ignore phiedge sign problem')
+ 1100    FORMAT(2x,'lrfp is TRUE. Ignore phiedge sign problem')
                IF (lscreen) WRITE(*,1100) 
                WRITE(nthreed,1100) 
             ELSE
@@ -165,7 +165,7 @@ C-----------------------------------------------
          ENDIF
          IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp) THEN
             IF (lrfp) THEN
-1200  FORMAT('lrfp is TRUE. Proceed with convergence')
+1200     FORMAT(2x,'lrfp is TRUE. Proceed with convergence')
                IF (lscreen) WRITE(*,1200) 
                WRITE(nthreed,1200) 
             ELSE

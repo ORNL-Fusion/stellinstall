@@ -1121,8 +1121,8 @@
        if ((iOrthog.eq.0).or.(iOrthog.eq.1)) then
          dVi     = dot(1)
          H(j,jH) = H(j,jH) + dVi
-         dloo    = dloo + abs(dVi)**2
-         aux = -ONE*dVi
+         dloo    = dloo + dVi**2
+         aux = -dVi
          call daxpy(n,aux,V(1,j),1,w,1)
          j = j + 1
          if (j.le.jH) goto 23
@@ -1165,7 +1165,7 @@
 !*IMGS / CGS orthogonalisation
          dloo = sqrt(dloo)
 !*check the orthogonalization quality
-         if (((2.0*dnormw).le.dloo).and.(nOrtho.lt.3)) then
+         if (((2*dnormw).le.dloo).and.(nOrtho.lt.3)) then
            goto 19
          endif
        endif

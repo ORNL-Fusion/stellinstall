@@ -26,7 +26,7 @@ C-----------------------------------------------
      2                      cleanup_flag=16, reset_jacdt_flag=32
     
       REAL(rprec), PARAMETER :: pdamp = 0.05_dp  
-      CHARACTER(LEN=*), PARAMETER :: version_ = '8.50'
+      CHARACTER(LEN=*), PARAMETER :: version_ = '8.51'
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -34,7 +34,7 @@ C-----------------------------------------------
       INTEGER :: mnyq, nnyq
       INTEGER, ALLOCATABLE :: uminus(:)
       REAL(rprec), ALLOCATABLE :: mscale(:), nscale(:)
-      REAL(rprec) :: signgs, lamscale
+      REAL(rprec) :: signgs, lamscale=1
 !-----------------------------------------------
 !
 !     VERSION INFORMATION HISTORY
@@ -133,7 +133,10 @@ C-----------------------------------------------
 !
 !     8.50   (Jan, 2013)
 !          a) Improved scaling of lambda forces with respect to lamscale
-!          b) Fixed fnorm1 scaling (remove hs dependence)
+!          b) Fixed fnorm1 scaling (removed hs dependence)
 !          c) Added lgiveup logical (M. Drevlak/J. Geiger)
+!
+!     8.51   (Sept, 2013
+!          a) Restored hs-dependence of fnorm1 scaling (incorrectly) removed in 8.50
 !-----------------------------------------------
       END MODULE vmec_params

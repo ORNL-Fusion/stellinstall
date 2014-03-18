@@ -2,29 +2,29 @@
       USE vmec_main
       USE vmec_params
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER js
       REAL(rprec), DIMENSION(mnmax), INTENT(out) ::
      1    rmnc, zmns, lmns, rmns, zmnc, lmnc
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,3*ntmax),
      1    INTENT(in) :: rzl_array
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       REAL(rprec), PARAMETER :: p5 = 0.5_dp
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: rmncc, rmnss, rmncs, rmnsc, zmncs, zmnsc, 
      1           zmncc, zmnss, lmncs, lmnsc, lmncc, lmnss
       INTEGER :: mn, m, n, n1
-      REAL(rprec) :: t1, sign0, mul1
-C-----------------------------------------------
+      REAL(rprec) :: t1, sign0 
+!-----------------------------------------------
 !
 !     CONVERTS INTERNAL MODE REPRESENTATION TO STANDARD
-!     FORM FOR OUTPUT (COEFFICIENTS OF COS(mu-nv), SIN(mu-nv) WITHOUT mscale,nscale norms)
+!     FORM FOR OUTPUT (COEFFICIENTS OF COS(mu-nv), SIN(mu-nv) WITHOUT internal mscale,nscale norms)
 !
       rmncc = rcc
       rmnss = rss
@@ -111,8 +111,6 @@ C-----------------------------------------------
          rmns(mn) =-t1*rzl_array(js,n,m,rmncs)                           !ers-fixed sign
       END DO
 
-      mul1 = 1
-      IF (.not.lthreed) mul1 = 0
       DO m = 1, mpol1
          DO n = -ntor, ntor
             n1 = ABS(n)
@@ -124,11 +122,11 @@ C-----------------------------------------------
                lmnc(mn) = t1*rzl_array(js,n,m,lmncc)
             ELSE IF (js .gt. 1) THEN
                sign0 = n/n1
-               rmns(mn) = p5*t1*(mul1*rzl_array(js,n1,m,rmnsc)-sign0*    !ers-corrected rmnsc <-> rmncs 
+               rmns(mn) = p5*t1*(rzl_array(js,n1,m,rmnsc)-sign0*    !ers-corrected rmnsc <-> rmncs 
      1            rzl_array(js,n1,m,rmncs))
-               zmnc(mn) = p5*t1*(mul1*rzl_array(js,n1,m,zmncc)+sign0*
+               zmnc(mn) = p5*t1*(rzl_array(js,n1,m,zmncc)+sign0*
      1            rzl_array(js,n1,m,zmnss))
-               lmnc(mn) = p5*t1*(mul1*rzl_array(js,n1,m,lmncc)+sign0*
+               lmnc(mn) = p5*t1*(rzl_array(js,n1,m,lmncc)+sign0*
      1            rzl_array(js,n1,m,lmnss))
             ELSE IF (js .eq. 1) THEN
                rmns(mn) = 0

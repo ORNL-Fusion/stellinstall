@@ -4,6 +4,7 @@ cmake_minimum_required (VERSION 2.8)
 list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/add_fluxes.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/alias.f
+	${CMAKE_CURRENT_SOURCE_DIR}/angle_constraints.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/aspectratio.f
 	${CMAKE_CURRENT_SOURCE_DIR}/bcovar.f
 	${CMAKE_CURRENT_SOURCE_DIR}/convert.f
@@ -15,7 +16,6 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/getfsq.f
 	${CMAKE_CURRENT_SOURCE_DIR}/jacobian.f
 	${CMAKE_CURRENT_SOURCE_DIR}/lamcal.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/lamfull.f
 	${CMAKE_CURRENT_SOURCE_DIR}/precondn.f
 	${CMAKE_CURRENT_SOURCE_DIR}/realspace.f
 	${CMAKE_CURRENT_SOURCE_DIR}/residue.f90

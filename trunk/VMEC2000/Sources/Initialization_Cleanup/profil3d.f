@@ -1,25 +1,28 @@
-      SUBROUTINE profil3d(rmn, zmn, lreset)
+      SUBROUTINE profil3d(rmn, zmn, lreset, linterp)
       USE vmec_main
       USE vmec_params
       USE vsvd
       USE vspline, ONLY: sknots, pknots, hstark, hthom
       USE realspace
       USE xstuff
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: store_init_array
+#endif
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,ntmax),
      1    INTENT(inout) ::  rmn, zmn
-      LOGICAL, INTENT(in) :: lreset
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+      LOGICAL, INTENT(in) :: lreset, linterp
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: js, l, lk, lt, lz, ntype, m, n, mn
       REAL(rprec), DIMENSION(0:ntor,ntmax) :: rold, zold
       REAL(rprec) :: sm0, t1, facj, si, rax1, zax1
       INTEGER :: jcount, jk, k
-C-----------------------------------------------
+!-----------------------------------------------
 
 !
 !                INDEX OF LOCAL VARIABLES
@@ -38,27 +41,18 @@ C-----------------------------------------------
 
       phip(nrzt+1) = 0
       faclam = 0
-#ifdef _ANIMEC
-!INITIALIZE sigma FOR ANISOTROPIC PLASMA
-      sigma_an = 1
-#endif
+      sigma_an = 1         !INITIALIZE sigma FOR ANISOTROPIC PLASMA
+      wint(1:nrzt:ns) = 0
+
       lk = 0
       DO lt = 1, ntheta3
          DO lz = 1, nzeta
             lk = lk + 1
-            IF (lasym) THEN
-               DO js = 2, ns
-                  wint(js+ns*(lk-1)) = one/(nzeta*ntheta1)
-               END DO
-            ELSE
-               DO js = 2, ns
-                  wint(js+ns*(lk-1)) = cosmui(lt,0)/mscale(0)
-               END DO
-            END IF
+            DO js=2,ns
+               wint(js+ns*(lk-1)) = cosmui3(lt,0)/mscale(0)
+            END DO
          END DO
       END DO
-
-      wint(1:nrzt:ns) = 0
 
 !
 !     COMPUTE ARRAY FOR REFLECTING v = -v (ONLY needed for lasym)
@@ -157,6 +151,10 @@ C-----------------------------------------------
       xc(neqs1) = phifac;  xc(neqs2) = 0
       scalxc(neqs1) = 1
       scalxc(neqs2) = 1
+
+#ifdef _HBANGLE
+      IF (.NOT.linterp) CALL store_init_array(xc)
+#endif
 
       IF (lrecon) THEN
 !

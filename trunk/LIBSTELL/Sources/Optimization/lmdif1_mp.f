@@ -8,8 +8,8 @@
 !!!   MODULE reference.
 !!    diag and mode were added as arguments, so that different choices
 !!    for these can be tried in the future (as suggested by L. A. Berry)
-!!    Currently mode is set = 1 in the calling routine (stellopt) so that
-!!    diag is internally generated.  See definitions of mode and diag below.
+!!    Currently mode = 1 is used in the calling routine (stellopt) so that
+!!    diag is internally generated.  See definitions of mode and diag in LMDIF1.
 !!
       USE stel_kinds
       IMPLICIT NONE
@@ -27,6 +27,6 @@ C-----------------------------------------------
       EXTERNAL fcn
 C-----------------------------------------------
       CALL lmdif1(fcn, m, n, x, fvec, tol, epsfcn, nfev_end,
-     1           diag, mode, info, lwa, 0, 0)
+     1            diag, mode, info, lwa, 0, 0)
 
       END SUBROUTINE lmdif1_mp

@@ -43,7 +43,7 @@
  
       iretpid = 0; ierror = 0
 
-      IF (maxprocess .gt. 1) THEN
+      IF (maxprocess .GT. 1) THEN
 
          WRITE(6,*)
          WRITE(6,*) ' Begin multi-processing: request ', numprocess,    &

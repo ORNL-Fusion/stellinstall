@@ -5,6 +5,9 @@
       USE realspace
       USE vsvd
       USE xstuff
+#ifdef _HBANGLE
+      USE angle_constraints, ONLY: getrz, store_init_array
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -73,9 +76,14 @@ C-----------------------------------------------
 !
 !     SAVE THIS FOR INTERPOLATION
 !
-      IF (neqs2_old.gt.0 .and. linterp) gc(1:neqs2_old) =
-     1    scalxc(1:neqs2_old)*xstore(1:neqs2_old)
-
+      IF (neqs2_old.gt.0 .and. linterp) THEN
+#ifdef _HBANGLE
+         ns = ns_old
+         CALL getrz(xstore)
+         ns = ns1+1
+#endif
+         gc(1:neqs2_old)=scalxc(1:neqs2_old)*xstore(1:neqs2_old)
+      END IF
 !
 !     COMPUTE INITIAL R, Z AND MAGNETIC FLUX PROFILES
 !
@@ -86,7 +94,7 @@ C-----------------------------------------------
      2      xc(1+2*irzloff), lreset_internal, ntor, mpol1, ns, 
      3      reset_file_name)
       END IF
-      CALL profil3d (xc(1), xc(1+irzloff), lreset_internal)
+      CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, linterp)
 
       irst = 1
       CALL restart_iter(delt)
@@ -94,7 +102,12 @@ C-----------------------------------------------
 !
 !     INTERPOLATE FROM COARSE (ns_old) TO NEXT FINER (ns) RADIAL GRID
 !
-      IF (linterp) CALL interp (xc, gc, scalxc, ns, ns_old)
+      IF (linterp) THEN
+         CALL interp (xc, gc, scalxc, ns, ns_old)
+#ifdef _HBANGLE
+         CALL store_init_array(xc)
+#endif
+      END IF
       ns_old = ns
       neqs2_old = neqs2
 

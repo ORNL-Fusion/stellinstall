@@ -55,9 +55,9 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      CHARACTER(LEN=*), PARAMETER :: cdelim = "apostrophe", 
-     1     cform="formatted", cunform="unformatted", 
-     2     cscratch="scratch", cseq="sequential"
+      CHARACTER(LEN=*), PARAMETER :: cdelim = "apostrophe",             &
+           cform="formatted", cunform="unformatted",                    &
+           cscratch="scratch", cseq="sequential"                        
       CHARACTER(LEN=10) :: acc_type
       CHARACTER(LEN=10) :: delim_type
       LOGICAL :: lopen, lexist, linvalid
@@ -139,22 +139,22 @@
          IF (PRESENT(record_in)) THEN
             IF (lexist) THEN       ! formatted, record length specified, scratch 
                OPEN(unit=iunit, form=cform, status=cscratch,                   &
-     &              delim=TRIM(delim_type), recl=record_in,                    &
-     &              access=acc_type, iostat=istat)
+                    delim=TRIM(delim_type), recl=record_in,                    &
+                    access=acc_type, iostat=istat)
             ELSE               ! formatted, record length specified, non-scratch 
                OPEN(unit=iunit, file=TRIM(filename), form=cform,               &
-     &              status=TRIM(filestat), delim=TRIM(delim_type),             &
-     &              recl=record_in, access=acc_type, iostat=istat)
+                    status=TRIM(filestat), delim=TRIM(delim_type),             &
+                    recl=record_in, access=acc_type, iostat=istat)
             END IF
          ELSE
             IF (lexist) THEN     ! formatted, record length unspecified, scratch 
                OPEN(unit=iunit, form=cform, status=cscratch,                   &
-     &              delim=TRIM(delim_type), access=acc_type,                   &
-     &              iostat=istat)
+                    delim=TRIM(delim_type), access=acc_type,                   &
+                    iostat=istat)
             ELSE             ! formatted, record length unspecified, non-scratch 
                OPEN(unit=iunit, file=TRIM(filename), form=cform,               &
-     &             status=TRIM(filestat), delim=TRIM(delim_type),              &
-     &             access=acc_type, iostat=istat)
+                   status=TRIM(filestat), delim=TRIM(delim_type),              &
+                   access=acc_type, iostat=istat)
             END IF
          END IF
 

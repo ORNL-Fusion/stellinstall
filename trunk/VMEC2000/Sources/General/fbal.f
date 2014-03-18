@@ -26,7 +26,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: js, lk
+      INTEGER  :: js
 #ifdef _ANIMEC
       REAL(dp) :: t4, t5
 #endif
@@ -195,18 +195,18 @@ c
 c
       whpar = wpar - wp
       whper = wper - wp
-         bhotmx = -HUGE(bhotmx)
-         taumin =  HUGE(taumin)
-         sigmin =  HUGE(sigmin)
+      bhotmx = -HUGE(bhotmx)
+      taumin =  HUGE(taumin)
+      sigmin =  HUGE(sigmin)
 
-         DO 57 js = 2,ns
-            DO 55 lk = 1,nznt
-              l = (lk-1) * ns + js
-              taumir(l) = one + (pperp(l) - pres(js)) / bsq(l)* 
-     &         (one - tpotb(js)) / (one - tpotb(js) * onembc(l))
+      DO 57 js = 2,ns
+         DO 55 lk = 1,nznt
+           l = (lk-1) * ns + js
+           taumir(l) = one + (pperp(l) - pres(js)) / bsq(l)* 
+     &      (one - tpotb(js)) / (one - tpotb(js) * onembc(l))
 !              taut = taumir(l) + pperp(l)/bsq(l) *0.25*tpotb(js)
-              if(onembc(l) .gt. zero)
-     &         taumir(l) = taumir(l) 
+           if(onembc(l) .gt. zero)
+     &        taumir(l) = taumir(l) 
      &         + (pperp(l) - pres(js)) / bsq(l) * 0.25_dp*tpotb(js)
      &         * (one-onembc(l))*sqrt(tpotb(js)*onembc(l))
      &         / (one + tpotb(js) * onembc(l))
@@ -216,19 +216,19 @@ c
      &         / ((one + tpotb(js)*onembc(l))**2
      &         - (tpotb(js)*onembc(l))**1.5_dp * (5
      &         - (tpotb(js)*onembc(l))**2))
- 55         end do
- 57       end do
-        do 62 js = 2,ns
-          do 60 lk = 1,nznt
+ 55       end do
+ 57    end do
+      do 62 js = 2,ns
+        do 60 lk = 1,nznt
             l = (lk-1) * ns + js
             taumin = MIN(taumir(l),taumin)
             sigmin = MIN(sigma_an(l),sigmin)
             bhotc = (2*pperp(l)+ppar(l)-3*pres(js))/bsq(l)
             bhotmx = MAX(bhotc,bhotmx)
- 60       end do
- 62     end do
-        betprx = HUGE(betprx)
-        do 64 js=2,ns
+ 60     end do
+ 62   end do
+      betprx = HUGE(betprx)
+      do 64 js=2,ns
           betprc = 0.76786580_dp - 0.29708540_dp * tpotb(js)
      &      + 0.054249860_dp * tpotb(js)**2 
      &      - 0.0054254849_dp * tpotb(js)**3
@@ -237,41 +237,41 @@ c
      &      + 1.3844199e-7_dp * tpotb(js)**6 
      &      - 1.4328673e-11_dp * (one + tpotb(js))*tpotb(js)**7
           betprx=min(betprx,betprc)
- 64     end do
-        bhotmx = bhotmx/3
-        write (nthreed,101) taumin, sigmin, bhotmx
- 101    format(" taumin=",1pe15.6," sigmin=",1pe15.6,
-     &         "  peak hot beta=",1pe15.6)
-        betath = wp/wb
-        betaht = (2*whper+whpar)/(3*wb)
-        betato = (2*wper+wpar)/(3*wb)
-        betapa = whpar/wb
-        betape = whper/wb
-        betadi = betath + betape
-        betaew = betath + 0.5*(betapa+betape)
-        write (nthreed,102) betath,betaht,betato
- 102    format(" thermal beta =",1pe13.4," beta-hot =",1pe13.4,
-     &  " total beta =",1pe13.4)
-        write (nthreed,103) betapa,betape,betaew-betath
- 103     format(' hot parallel beta =',1pe13.4,
+ 64   end do
+      bhotmx = bhotmx/3
+      write (nthreed,101) taumin, sigmin, bhotmx
+ 101  format(" taumin=",1pe15.6," sigmin=",1pe15.6,
+     &       "  peak hot beta=",1pe15.6)
+      betath = wp/wb
+      betaht = (2*whper+whpar)/(3*wb)
+      betato = (2*wper+wpar)/(3*wb)
+      betapa = whpar/wb
+      betape = whper/wb
+      betadi = betath + betape
+      betaew = betath + 0.5*(betapa+betape)
+      write (nthreed,102) betath,betaht,betato
+ 102  format(" thermal beta =",1pe13.4," beta-hot =",1pe13.4,
+     &       " total beta =",1pe13.4)
+      write (nthreed,103) betapa,betape,betaew-betath
+ 103  format(' hot parallel beta =',1pe13.4,
      &  ' hot perpendicular beta =',1pe13.4,' beta-hot(EW) =',1pe13.4)
-        write (nthreed,104) betadi,betaew,betprx
- 104    format(' diamagnetic beta =',1pe13.4,' beta(equal weighting) ='
+      write (nthreed,104) betadi,betaew,betprx
+ 104  format(' diamagnetic beta =',1pe13.4,' beta(equal weighting) ='
      &     , 1pe13.4,' maximum hot perp. beta_c =',1pe10.3)
-c
-        write (nthreed,105)
- 105    format(/,' js',8x,'s',9x,'th. press',2x,'paral pres',2x,
-     &           'perp. pres')
-         DO 79 js = 2,ns
-            es = REAL(js - 1.5,dp) / (ns-1)
-            ppprht = pppr(js) - pres(js)
-            parpht = papr(js) - pres(js)
-            WRITE (nthreed,106) js, es, pres(js), parpht, ppprht
- 79      END DO
- 106     format (i3,1p,1e15.6,1p,3e12.3)
 
-         RETURN
-      
+      IF (betaht .NE. zero) THEN
+      write (nthreed,105)
+ 105  format(/,' js',8x,'s',9x,'th. press',3x,'par. pres',2x,
+     &         'perp. pres')
+      DO 79 js = 2,ns
+         es = REAL(js - 1.5,dp) / (ns-1)
+         ppprht = pppr(js) - pres(js)
+         parpht = papr(js) - pres(js)
+         WRITE (nthreed,106) js, es, pres(js), parpht, ppprht
+ 79   END DO
+      END IF
+ 106  format (i3,1p,1e15.6,1p,3e12.3)
+
       END SUBROUTINE mirror_crit
 #endif
       END MODULE fbal

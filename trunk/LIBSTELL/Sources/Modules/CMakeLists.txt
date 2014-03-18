@@ -38,7 +38,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/read_wout_mod.f90
         ${CMAKE_CURRENT_SOURCE_DIR}/saddle_coils.f
         ${CMAKE_CURRENT_SOURCE_DIR}/saddle_surface.f
-        ${CMAKE_CURRENT_SOURCE_DIR}/safe_open_mod.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/safe_open_mod.f90
         ${CMAKE_CURRENT_SOURCE_DIR}/stel_constants.f
         ${CMAKE_CURRENT_SOURCE_DIR}/stel_kinds.f
         ${CMAKE_CURRENT_SOURCE_DIR}/sxrch_T.f

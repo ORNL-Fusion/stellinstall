@@ -2,11 +2,10 @@
       USE stel_kinds
 
       INTEGER, PARAMETER :: flag_singletask = -1, flag_cleanup = -100
-
-      INTEGER :: m, n, ncnt, max_processors, num_lm_params
+      INTEGER :: mp, np, ncntp, max_processors, num_lm_params
       REAL(rprec), DIMENSION(:), POINTER :: xp, wap
-      LOGICAL, DIMENSION(:), ALLOCATABLE :: flip
       REAL(rprec) :: eps
+      LOGICAL, DIMENSION(:), ALLOCATABLE :: flip
 
       CONTAINS
  
@@ -35,7 +34,7 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i, j, iproc_min, num_split, joff
       INTEGER :: iflag_array(1)
-      REAL(rprec) :: eps, epsmch, dpmpar, temp, enorm, cur_norm
+      REAL(rprec) :: epsmch, dpmpar, temp, enorm, cur_norm
       REAL(rprec), PARAMETER :: one = 1, zero = 0
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: buffer, h,
      1     fnorm_array                                       !mpi stuff
@@ -52,7 +51,7 @@ c
 c     SUBROUTINE fdjac2
 c
 c     this SUBROUTINE computes a forward-difference approximation
-c     to the m by n jacobian matrix ASSOCIATED with a specified
+c     to the m by n jacobian matrix associated with a specified
 c     problem of m functions in n variables.
 c
 c     the SUBROUTINE statement is
@@ -296,7 +295,7 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i, j, iproc_min
       INTEGER :: iflag_array(1)
-      REAL(rprec) :: eps, epsmch, dpmpar, temp, enorm, cur_norm
+      REAL(rprec) :: epsmch, dpmpar, temp, enorm, cur_norm
       REAL(rprec), PARAMETER :: one = 1, zero = 0
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: buffer, h,
      1     fnorm_array                                       !mpi stuff
@@ -414,8 +413,6 @@ c     modifications were made by D.A. Spong 8/23/2000.
 c
 c     ****Master portion of the code****
 c
-
-
       IF (myid .eq. master) THEN
          numsent = 0    !numsent is a counter used to track how many
                         !jobs have been sent to workers
@@ -603,15 +600,15 @@ c      END DO
       END SUBROUTINE fdjac2_mp_queue
 
 
-      SUBROUTINE fdjac2(fcn, m1, n1, x, fvec, fjac, ldfjac, iflag,
-     1    ncnt1, epsfcn, wa, time, fnorm_min, x_min, fvec_min)
+      SUBROUTINE fdjac2(fcn, m, n, x, fvec, fjac, ldfjac, iflag, ncnt, 
+     1                  epsfcn, wa, time, fnorm_min, x_min, fvec_min)
       USE stel_kinds
 #if !defined(MPI_OPT)
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(in) :: m1, n1, ldfjac, ncnt1
+      INTEGER, INTENT(in) :: m, n, ldfjac, ncnt
       INTEGER, TARGET :: iflag
       REAL(rprec) ::  epsfcn, time
       REAL(rprec), TARGET :: x(n), wa(m)
@@ -626,7 +623,7 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: j, istat, iread, ic1, ic2, irate, count_max
-      REAL(rprec) :: eps, epsmch, h, dpmpar, temp, cur_norm
+      REAL(rprec) :: epsmch, h, dpmpar, temp, cur_norm
 C-----------------------------------------------
 C   E x t e r n a l   F u n c t i o n s
 C-----------------------------------------------
@@ -699,9 +696,9 @@ c
 !     Load fdjac_mod values. pointers will automatically update targets...
 !     Prepare for multi-processing...
 !
-      m = m1
-      n = n1
-      ncnt = ncnt1
+      mp = m
+      np = n
+      ncntp = ncnt
       xp => x
       wap => wa
 
