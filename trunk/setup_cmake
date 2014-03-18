@@ -19,14 +19,22 @@ fi
 echo cmake configured to generate a $BUILD_TYPE build.
 if [ "$BUILD_TYPE" == Debug ]
 then
-	echo cmake may be reconfigured to generate a Debug build by running this script with no arguments or using the commmand	
+	echo "    cmake may be reconfigured to generate a Release build by running this script with no arguments or using the commmand"	
 	echo
-	echo cmake -DCMAKE_BUILD_TYPE=Release
+	echo "    cmake -DCMAKE_BUILD_TYPE=Release"
 else
-	echo cmake may be reconfigured to generate a Debug build by running this script with a Debug argument or using the commmand
+	echo "    cmake may be reconfigured to generate a Debug build by running this script with a Debug argument or using the commmand"
 	echo
-	echo cmake -DCMAKE_BUILD_TYPE=Debug
+	echo "    cmake -DCMAKE_BUILD_TYPE=Debug"
 fi
+
+# CMake doesn't like being reconfigured completely. To avoid problems this
+# script will delete the CMakeCache.txt file allowing this script to start 
+# from a clean slate. Use the -f option on rm to silence any errors from
+# rm. This makes will cause rm to ignore the error to occur if 
+# CMakeCache.txt doesn't exist.
+
+rm -f CMakeCache.txt
 
 echo
 if [ "$MACHINE_ID" == "blast1" ] || [ "$MACHINE_ID" == "blast2" ] || [ "$MACHINE_ID" == "blast3" ] || [ "$MACHINE_ID" == "blast4" ] || [ "$MACHINE_ID" == "recon" ] || [ "$MACHINE_ID" == "recon2" ]
