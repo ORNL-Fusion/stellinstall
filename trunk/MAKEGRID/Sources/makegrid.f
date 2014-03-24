@@ -168,8 +168,8 @@
      &   '     zmin                                                ',
      &   '     zmax                                                ',
      &   '     kp                                                  ',
-     &   '     ir                                                  ',
-     &   '     jz                                                  ',
+     &   '     ir  (optional,default=121)                          ',
+     &   '     jz  (optional,default=121)                          ',
      &   '  0:                                                     ',
      &   '   Get command line input interactively (only for task   ',
      &   '   MGRID)                                                ',
@@ -199,7 +199,7 @@
 !  Only used for task 'MGRID'
          CALL interactive_input() !sets task='MGRID'
 
-      CASE(10)
+      CASE(8:10)
 !  Only used for task 'MGRID'
          arg1 = ADJUSTL(arg1)
          mgrid_ext = TRIM(arg1)
@@ -220,12 +220,16 @@
          READ (arg1, *) zmax
          CALL getcarg(8, arg1, numargs)
          READ (arg1, *) kp
-         CALL getcarg(9, arg1, numargs)
-         READ (arg1, *) ir
-         CALL getcarg(10, arg1, numargs)
-         READ (arg1, *) jz
+         IF (numargs .GE. 9) THEN
+            CALL getcarg(9, arg1, numargs)
+            READ (arg1, *) ir
+         END IF
+         IF (numargs .EQ. 10) THEN
+            CALL getcarg(10, arg1, numargs)
+            READ (arg1, *) jz
+         END IF
          task='MGRID'
-      
+
       CASE DEFAULT
          STOP 'Unknown number of arguments, type "xgrid -h" for help.'
       
@@ -391,7 +395,7 @@
              
       WRITE(*,*) ' Running makegrid using NLI file ',
      1           arg1
-      OPEN(iou_nli, FILE=TRIM(ADjUSTL(arg1)),STATUS='OLD',IOSTAT=ferror)
+      OPEN(iou_nli, FILE=TRIM(ADJUSTL(arg1)),STATUS='OLD',IOSTAT=ferror)
       IF(ferror .NE. 0) THEN
          WRITE(*,*) 'Could not open NLI file ', arg1
          WRITE(*,*) 'Open failed with error status ', ferror

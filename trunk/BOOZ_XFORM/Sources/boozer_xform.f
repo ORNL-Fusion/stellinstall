@@ -5,7 +5,7 @@
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: istat, jrad, iread, numargs
+      INTEGER :: istat, jrad, iread, numargs, jsurf
       REAL(rprec) :: t1, t2
       CHARACTER(LEN=50) :: arg1, arg2
       CHARACTER(LEN=120) :: extension
@@ -87,8 +87,12 @@ C-----------------------------------------------
 
 ! CRCook for debugging purposes
       OPEN(UNIT = 16, FILE = 'sum_gmncb.txt')
+      jsurf=0
       DO jrad = 1, ns
-        WRITE(16,*) jrad, SUM(gmncb(:,jrad))
+        IF (lsurf_boz(jrad)) THEN
+           jsurf=jsurf+1
+           WRITE(16,*) jrad, SUM(gmncb(:,jsurf))
+        END IF
       ENDDO
       CLOSE(16)
 

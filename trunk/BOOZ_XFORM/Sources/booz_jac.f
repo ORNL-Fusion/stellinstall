@@ -60,7 +60,7 @@ C-----------------------------------------------
          file_name = "RZ_BOOZER_VPLANE"
       END IF
 
-      WRITE (file_name,'(a,i3,a,i3,a)') TRIM(file_name), nvplane,
+      WRITE (file_name,'(a,i3.3,a,i3.3,a)') TRIM(file_name), nvplane,
      1                                  "X",js,".txt"
 
       OPEN(unit=33,FILE=file_name,STATUS='REPLACE')
