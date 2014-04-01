@@ -158,7 +158,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (intpol_class), POINTER, INTENT(inout) :: this
+      TYPE (intpol_class), POINTER :: this
 
 !  Start of executable code
       this%type = intpol_no_type

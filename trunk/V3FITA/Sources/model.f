@@ -127,7 +127,7 @@
       REAL (rprec), INTENT(in)                      :: ne_unit
       REAL (rprec), INTENT(in)                      :: ne_min
       REAL (rprec), INTENT(in)                      :: pressure_fraction
-      TYPE (equilibrium_class), POINTER, INTENT(in) :: equilibrium
+      TYPE (equilibrium_class), POINTER             :: equilibrium
 
 !  local variables
       INTEGER                                       :: i
@@ -223,7 +223,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (model_class), POINTER, INTENT(inout) :: this
+      TYPE (model_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%sxrem_type)) THEN

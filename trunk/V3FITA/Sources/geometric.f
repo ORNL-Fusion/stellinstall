@@ -76,8 +76,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-	  TYPE (geometric_class), POINTER :: geometric_construct_limiter
-      TYPE (limiter_class), POINTER, INTENT(in) :: limiter_object
+	TYPE (geometric_class), POINTER :: geometric_construct_limiter
+      TYPE (limiter_class), POINTER   :: limiter_object
 
 !  Start of executable code
       ALLOCATE(geometric_construct_limiter)
@@ -102,7 +102,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (geometric_class), POINTER, INTENT(inout) :: this
+      TYPE (geometric_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%limiter)) THEN

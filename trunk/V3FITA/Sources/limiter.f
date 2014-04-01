@@ -89,7 +89,7 @@
 
 !  Declare Arguments
       TYPE (limiter_class), POINTER           :: limiter_construct_iso
-      TYPE (limiter_iso), POINTER, INTENT(in) :: iso
+      TYPE (limiter_iso), POINTER             :: iso
       LOGICAL, INTENT(in)                     :: on_edge
 
 !  Start of executable code
@@ -119,7 +119,7 @@
 
 !  Declare Arguments
       TYPE (limiter_class), POINTER :: limiter_construct_polygon
-      LOGICAL, POINTER, INTENT(in)  :: on_edge
+      LOGICAL, POINTER              :: on_edge
 
 !  Start of executable code
       ALLOCATE(limiter_construct_polygon)
@@ -144,7 +144,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_class), POINTER, INTENT(inout) :: this
+      TYPE (limiter_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%iso)) THEN

@@ -263,7 +263,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (wout_file_cache_class), POINTER, INTENT(inout) :: this
+      TYPE (wout_file_cache_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%rmnc)) THEN

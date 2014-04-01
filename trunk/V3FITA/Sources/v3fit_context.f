@@ -11,7 +11,7 @@
 
       MODULE v3fit_context
       USE v3fit_input
-      USE param
+      USE v3fit_params
       USE commandline_parser
       USE reconstruction
       USE ezcdf
@@ -152,7 +152,7 @@
 
 !  Declare Arguments
       TYPE (v3fit_context_class), POINTER  :: v3fit_context_construct
-      TYPE (commandline_parser_class), POINTER, INTENT(in) :: cl_parser
+      TYPE (commandline_parser_class), POINTER :: cl_parser
 
 !  local variables
       CHARACTER (len=data_filename_length) :: filename
@@ -217,7 +217,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (v3fit_context_class), POINTER, INTENT(inout) :: this
+      TYPE (v3fit_context_class), POINTER :: this
 
 !  local variables
       INTEGER                                            :: i

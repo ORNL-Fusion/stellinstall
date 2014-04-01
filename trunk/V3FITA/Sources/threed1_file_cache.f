@@ -116,7 +116,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (threed1_file_cache_class), POINTER, INTENT(inout) :: this
+      TYPE (threed1_file_cache_class), POINTER :: this
 
 !  Start of executable code
       DEALLOCATE(this)

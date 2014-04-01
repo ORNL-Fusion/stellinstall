@@ -157,7 +157,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vacuum_class), POINTER, INTENT(inout) :: this
+      TYPE (vacuum_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%extcur)) THEN

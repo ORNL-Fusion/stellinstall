@@ -98,7 +98,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), POINTER, INTENT(inout) :: this
+      TYPE (sxrem_class), POINTER :: this
 
 !  Start of executable code
       CALL path_destroy(this%chord_path)

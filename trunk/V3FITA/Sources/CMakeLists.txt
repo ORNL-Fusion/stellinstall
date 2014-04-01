@@ -44,7 +44,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/v3f_global.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fita.f
 	${CMAKE_CURRENT_SOURCE_DIR}/data_parameters.f
-	${CMAKE_CURRENT_SOURCE_DIR}/parameter.f
+	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_params.f
 	${CMAKE_CURRENT_SOURCE_DIR}/model.f
 	${CMAKE_CURRENT_SOURCE_DIR}/equilibrium.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_equilibrium.f
