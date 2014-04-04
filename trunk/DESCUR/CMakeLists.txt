@@ -25,3 +25,6 @@ if (NOT (${NETCDF_F} STREQUAL "NETCDF_F-NOTFOUND"))
     target_link_libraries (xdescur ${NETCDF_F})
 endif ()
 
+if (LAPACK_FOUND)
+	target_link_libraries (xdescur ${LAPACK_LIBRARIES})
+endif ()
