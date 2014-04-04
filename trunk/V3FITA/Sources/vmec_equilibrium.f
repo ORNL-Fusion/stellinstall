@@ -612,8 +612,8 @@
                fsqr = 1.0
                fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true., 
-     1                       .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -627,8 +627,8 @@
                fsqr = 1.0
                fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true., 
-     1                       .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -642,8 +642,8 @@
                fsqr = 1.0
                fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true., 
-     1                       .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -657,8 +657,8 @@
                fsqr = 1.0
                fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,
-     1                       .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
