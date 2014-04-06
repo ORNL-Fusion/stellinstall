@@ -13,7 +13,7 @@ set_target_properties (vmec PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_
 
 # HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set_target_properties (vmec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+	set_target_properties (vmec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
 endif()
 
 
@@ -25,22 +25,16 @@ set_target_properties (xvmec PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_MOD
 
 # HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set_target_properties (xvmec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell -I${CMAKE_Fortran_MODULE_DIRECTORY}/vmec")
+	set_target_properties (xvmec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell -I${CMAKE_Fortran_MODULE_DIRECTORY}/vmec")
 endif()
 
-
-if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
-    target_link_libraries (xvmec ${NETCDF_C})
-endif ()
-if (NOT (${NETCDF_F} STREQUAL "NETCDF_F-NOTFOUND"))
-    target_link_libraries (xvmec ${NETCDF_F})
-endif ()
+target_link_libraries (xvmec ${NETCDF_LIBRARIES})
 
 if (BLAS_FOUND)
-    target_link_libraries (xvmec ${BLAS_LIBRARIES})
+	target_link_libraries (xvmec ${BLAS_LIBRARIES})
 endif ()
 if (LAPACK_FOUND)
-    target_link_libraries (xvmec ${LAPACK_LIBRARIES})
+	target_link_libraries (xvmec ${LAPACK_LIBRARIES})
 endif ()
 
 # build anmec
@@ -52,7 +46,7 @@ set_target_properties (animec PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortra
 
 # HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set_target_properties (animec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+	set_target_properties (animec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
 endif()
 
 # Define an executable and link all libraries.
@@ -63,20 +57,15 @@ set_target_properties (xanimec PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_M
 
 # HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set_target_properties (xanimec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell -I${CMAKE_Fortran_MODULE_DIRECTORY}/animec")
+	set_target_properties (xanimec PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell -I${CMAKE_Fortran_MODULE_DIRECTORY}/animec")
 endif()
 
 
-if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
-    target_link_libraries (xanimec ${NETCDF_C})
-endif ()
-if (NOT (${NETCDF_F} STREQUAL "NETCDF_F-NOTFOUND"))
-    target_link_libraries (xanimec ${NETCDF_F})
-endif ()
+target_link_libraries (xanimec ${NETCDF_LIBRARIES})
 
 if (BLAS_FOUND)
-    target_link_libraries (xanimec ${BLAS_LIBRARIES})
+	target_link_libraries (xanimec ${BLAS_LIBRARIES})
 endif ()
 if (LAPACK_FOUND)
-    target_link_libraries (xanimec ${LAPACK_LIBRARIES})
+	target_link_libraries (xanimec ${LAPACK_LIBRARIES})
 endif ()
