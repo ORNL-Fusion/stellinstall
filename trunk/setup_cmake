@@ -35,6 +35,7 @@ fi
 # CMakeCache.txt doesn't exist.
 
 rm -f CMakeCache.txt
+rm -rf CMakeFiles
 
 echo
 if [ "$MACHINE_ID" == "blast1" ] || [ "$MACHINE_ID" == "blast2" ] || [ "$MACHINE_ID" == "blast3" ] || [ "$MACHINE_ID" == "blast4" ] || [ "$MACHINE_ID" == "recon" ] || [ "$MACHINE_ID" == "recon2" ]
