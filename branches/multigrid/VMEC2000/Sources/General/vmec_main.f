@@ -2,7 +2,7 @@
       USE vmec_dim
       USE vmec_input
       USE vmec_persistent
-      USE vmec_params, ONLY: ndamp
+      USE vmec_params, ONLY: ndamp, all_clear
       USE vparams
       IMPLICIT NONE
 C-----------------------------------------------
@@ -54,5 +54,9 @@ C-----------------------------------------------
       INTEGER :: multi_ns_grid, iequi, itype_precon, irst,
      1    iter1, iter2, iterc=1, ijacob, itfsq, iresidue, neqs, neqs1,
      2    neqs2, irzloff, ivac, ndatap, ndatai
+
+!  MRC: Flag any changes in initial parameters of VMEC. Used by V3FIT to trigger
+!       resetting the internal state when parameters are changed.
+      INTEGER :: internal_state = all_clear
 C-----------------------------------------------
       END MODULE vmec_main

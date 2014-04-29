@@ -27,6 +27,14 @@ C-----------------------------------------------
     
       REAL(rprec), PARAMETER :: pdamp = 0.05_dp  
       CHARACTER(LEN=*), PARAMETER :: version_ = '8.51'
+
+!  Internal state change flags.
+      INTEGER, PARAMETER :: all_clear = 0 ! No state changes
+!  The following are bit positions for the state change flags.
+      INTEGER, PARAMETER :: general_change  = 0, ! Any non specific state change.
+     1                      boundary_change = 1, ! Boundary state change.
+     2                      extcur_change   = 2  ! Change in external currents.
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------

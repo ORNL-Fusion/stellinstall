@@ -580,7 +580,10 @@
      &                      extcur, curtor, phiedge, pres_scale,               &
      &                      bloat, mgrid_file, nfp, lfreeb
       USE xstuff, only: xc, xstore, xcdot
-      USE vmec_main, only: irzloff, currv, ivac, fsqr, fsqz
+      USE vmec_main, only: irzloff, currv, ivac, fsqr, fsqz,                   &
+     &                     internal_state
+      USE vmec_params, only: general_change, boundary_change,                  &
+     &                       extcur_change
       USE stel_constants, only: mu0
       USE mgrid_mod, only: read_mgrid, mgrid_path_old
       USE vacmod0, only: nv
@@ -604,118 +607,89 @@
       SELECT CASE (id)
 
          CASE (vmec_rbc_id)
+            internal_state = IBSET(internal_state, boundary_change)
             vmec_set_param = .true.
             rbc(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
-            ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_zbs_id)
+            internal_state = IBSET(internal_state, boundary_change)
             vmec_set_param = .true.
             zbs(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
-            ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_rbs_id)
+            internal_state = IBSET(internal_state, boundary_change)
             vmec_set_param = .true.
             rbs(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
-            ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_zbc_id)
+            internal_state = IBSET(internal_state, boundary_change)
             vmec_set_param = .true.
             zbc(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
-            ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_ac_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             ac(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ac_aux_s_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             ac_aux_s(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ac_aux_f_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             ac_aux_f(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             ai(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_aux_s_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             ai_aux_s(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_aux_f_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             ai_aux_f(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             am(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_aux_s_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             am_aux_s(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_aux_f_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             am_aux_f(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
@@ -754,10 +728,9 @@
             this%sxrem(i_index)%p%af(j_index) = value
 
          CASE (vmec_extcur_id)
+            internal_state = IBSET(internal_state, extcur_change)
             vmec_set_param = .true.
             extcur(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             mgrid_path_old = ''
             CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false.,              &
      &                      status)
@@ -768,13 +741,13 @@
             fsqz = 1.0
 
          CASE (vmec_curtor_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             curtor = value
             currv = mu0*curtor
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_phiedge_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             IF (phiedge .ne. 0.0) THEN
                phiedge_ratio = value/phiedge
@@ -786,20 +759,16 @@
      &         phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
             xstore(1 + 2*irzloff:3*irzloff) =                                  &
      &         phiedge_ratio*xstore(1 + 2*irzloff:3*irzloff)
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             pres_scale = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_bloat_id)
+            internal_state = IBSET(internal_state, general_change)
             vmec_set_param = .true.
             bloat = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
 !  For the phi_offset, the magnetic cache needs to be updated. Since the phi
 !  offset doesn't alter the equilibrium, the magnetics were not getting updated
@@ -857,29 +826,26 @@
 
 !  local variables
       INTEGER                          :: numU
+      INTEGER                          :: ns
 
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-      numU = MAX(INT(this%pol_rad_ratio*ns_array(1)), 1)
+      ns = MAXVAL(ns_array)
+      numU = MAX(INT(this%pol_rad_ratio*ns), 1)
 
 !  Set the differental volume elements.
-      this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)
+      this%magnetic_cache%ds = 1.0/(ns - 1.0)
       this%magnetic_cache%du = twopi/numU
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns_array(1), numU,                     &
-     &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns_array(1), numU,                     &
-     &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns_array(1), numU,                    &
-     &                                   tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns_array(1), numU,                  &
-     &                                     tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns_array(1), numU,                    &
-     &                                   tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns, numU, tor_planes_used))
 
       END SUBROUTINE
 
@@ -2331,8 +2297,6 @@
          ictrl_array = 0
          ictrl_array(1) = timestep_flag + output_flag +                        &
      &                    reset_jacdt_flag
-         ictrl_array(3) = niter
-         ictrl_array(4) = 1
 
 !  Update internal vmec counters. These affect how the minimation occurs.
          iter1 = iter2
