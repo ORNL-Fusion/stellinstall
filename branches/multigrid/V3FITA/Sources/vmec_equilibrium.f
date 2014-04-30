@@ -339,6 +339,9 @@
 !  Extra reconstruction parameters
 !>  Plasma phi offset.
          REAL (rprec)                          :: phi_offset = 0
+
+!>  Index of the largest ns value.
+         INTEGER                               :: ns_index
       END TYPE
 
 !*******************************************************************************
@@ -388,12 +391,13 @@
 !>  @param[in] iou        Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, ne, te, sxrem, phi_offset,            &
+      FUNCTION vmec_construct(file_name, wout_file_name,                       &
+     &                        ne, te, sxrem, phi_offset,                       &
      &                        pol_rad_ratio, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit
+      USE vmec_input, only: l_v3fit, ns_array
       USE xstuff, only: xc
 
       IMPLICIT NONE
@@ -401,6 +405,7 @@
 !  Declare Arguments
       TYPE (vmec_class), POINTER           :: vmec_construct
       CHARACTER (len=*), INTENT(in)        :: file_name
+      CHARACTER (len=*), INTENT(in)        :: wout_file_name
       TYPE (pprofile), POINTER             :: ne
       TYPE (pprofile), POINTER             :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
@@ -437,7 +442,12 @@
       l_v3fit = .true.
 
       vmec_construct%vmec_file_name = TRIM(file_name)
-      CALL runvmec(ictrl_array, file_name, .false.)
+
+      IF (wout_file_name .ne. '') THEN
+         CALL runvmec(ictrl_array, file_name, .false.)
+      ELSE
+         CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+      END IF
 
 !  Check for errors in runvmec.
       SELECT CASE (ictrl_array(2))
@@ -459,6 +469,8 @@
      &                     int = ictrl_array(2))
 
       END SELECT
+
+      vmec_construct%ns_index = MAXLOC(ns_array, 1)
 
 !  Store the inital xc array here. This is needed to reset the xc array for
 !  error recovery in the initial equilibirum convergence. The vmec_save_state
@@ -864,7 +876,7 @@
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-      ns = MAXVAL(ns_array)
+      ns = ns_array(this%ns_index)
       numU = MAX(INT(this%pol_rad_ratio*ns), 1)
 
 !  Set the differental volume elements.
@@ -2331,6 +2343,8 @@
          ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
          ictrl_array(1) = IOR(ictrl_array(1), output_flag)
          ictrl_array(1) = IOR(ictrl_array(1), reset_jacdt_flag)
+         ictrl_array(3) = niter
+         ictrl_array(4) = this%ns_index
 
 !  Update internal vmec counters. These affect how the minimation occurs.
          iter1 = iter2

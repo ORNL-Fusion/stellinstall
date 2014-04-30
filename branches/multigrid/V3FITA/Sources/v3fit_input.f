@@ -19,6 +19,7 @@
 !>     @item{main_nli_filename,      File name for main namelist input.,                                                                                         v3fit_input::main_nli_filename}
 !>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
 !>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                                                                                         v3fit_input::vmec_nli_filename}
+!>        @item{vmec_wout_input,     File name for the VMEC wout file to start from.,                                                                            v3fit_input::vmec_wout_input}
 !>        @item{vacuum_nli_filename, File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
 !>        @item{mdsig_list_filename, File name for list of MDSIG files., v3fit_input::mdsig_list_filename}
@@ -519,6 +520,8 @@
 !  Equilibrium input files
 !>  File name for VMEC namelist input
       CHARACTER (len=data_filename_length) :: vmec_nli_filename = ''
+!>  File name for the VMEC wout input.
+      CHARACTER (len=data_filename_length) :: vmec_wout_input = ''
 !>  File name for a vacuum namelist input
       CHARACTER (len=data_filename_length) :: vacuum_nli_filename = ''
 
@@ -887,7 +890,7 @@
       NAMELIST/v3fit_main_nli/                                                 &
      &   main_nli_filename,                                                    &
 !  Equilibrium input files
-     &   vmec_nli_filename, vacuum_nli_filename,                               &
+     &   vmec_nli_filename, vmec_wout_input, vacuum_nli_filename,              &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename,                                                    &
