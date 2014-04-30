@@ -5,7 +5,7 @@
      1                       norm_term_flag, successful_term_flag,
      2                       restart_flag, readin_flag,
      3                       timestep_flag, ns_error_flag, 
-     4                       reset_jacdt_flag, all_clear
+     4                       reset_jacdt_flag
       USE vsvd
       USE timer_sub
       IMPLICIT NONE
@@ -200,15 +200,14 @@ C-----------------------------------------------
 !  JDH 2012-06-20. V3FIT fix, inserted with change from VMEC 8.48 -> 8.49
 !    (Not sure just what in initialize_radial messes up convergence - happens slowly)
 !  Logical l_v3fit is declared in vmec_input, available via vmec_main
-         IF (l_v3fit) THEN                            ! V3FIT is running here
-            IF (ns_old .ne. nsval .or.                                         &
-     &          internal_state .ne. all_clear) THEN
+         IF (l_v3fit) THEN                            ! V3FIT is running here 
+            IF (ns_old .ne. nsval) THEN
                CALL initialize_radial(nsval, ns_old, delt0,                    &
      &            lscreen, reset_file_name)
-            END IF
+            ENDIF
          ELSE                                         ! V3FIT not running here
             IF (ns_old .le. nsval)
-     1         CALL initialize_radial(nsval, ns_old, delt0,
+     1         CALL initialize_radial(nsval, ns_old, delt0, 
      2                          lscreen, reset_file_name)
          ENDIF
 

@@ -1,7 +1,7 @@
       SUBROUTINE initialize_radial(nsval, ns_old, delt0,
      1                             lscreen, reset_file_name)
       USE vmec_main
-      USE vmec_params, ONLY: ntmax, all_clear, boundary_change
+      USE vmec_params, ONLY: ntmax 
       USE realspace
       USE vsvd
       USE xstuff
@@ -68,19 +68,10 @@ C-----------------------------------------------
 !
 !     ALLOCATE NS-DEPENDENT ARRAYS
 !
-
-!     If the internal state changed do not reset the internal xc arrays.
-      lreset_internal = internal_state .eq. all_clear
-
+      lreset_internal = .true.
       linterp = (ns_old.lt.ns .and. ns_old.ne.0)
-      IF (ns_old .eq. ns) THEN
-
-!        v3fit changed the internal state need to update profil1d and profil3d.
-         IF (internal_state .eq. all_clear) RETURN
-      ELSE
-         lreset_internal = .true.
-         CALL allocate_ns(linterp, neqs2_old)
-      END IF
+      IF (ns_old .eq. ns) RETURN
+      CALL allocate_ns(linterp, neqs2_old)
 
 !
 !     SAVE THIS FOR INTERPOLATION
@@ -103,14 +94,6 @@ C-----------------------------------------------
      2      xc(1+2*irzloff), lreset_internal, ntor, mpol1, ns, 
      3      reset_file_name)
       END IF
-
-!     If the boundary changed in fixed boundary mode. The internal arrays need
-!     to be reset.
-      IF (BTEST(internal_state, boundary_change) .and. .not.lfreeb) THEN
-         lreset_internal = .true.
-         fsqr = 1.0
-         fsqz = 1.0
-      END IF
       CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, linterp)
 
       irst = 1
@@ -127,8 +110,5 @@ C-----------------------------------------------
       END IF
       ns_old = ns
       neqs2_old = neqs2
-
-!     Reset internal state.
-      internal_state = all_clear
 
       END SUBROUTINE initialize_radial
