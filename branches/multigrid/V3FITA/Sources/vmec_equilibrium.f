@@ -444,9 +444,9 @@
       vmec_construct%vmec_file_name = TRIM(file_name)
 
       IF (wout_file_name .ne. '') THEN
-         CALL runvmec(ictrl_array, file_name, .false.)
-      ELSE
          CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+      ELSE
+         CALL runvmec(ictrl_array, file_name, .false.)
       END IF
 
 !  Check for errors in runvmec.
