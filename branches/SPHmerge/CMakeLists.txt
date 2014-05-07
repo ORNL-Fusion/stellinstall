@@ -56,17 +56,30 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif ()
 
 # Use netcdf if libraries are found. The values of NETCDF_LIB_PATH and NETCDF_INC_PATH should be set from the command line or Cmake GUI. Convert path from native format to cmake internal format.
-if (${NETCDF_LIB_PATH})
+if (NETCDF_INC_PATH)
 	file (TO_NATIVE_PATH ${NETCDF_INC_PATH} NETCDF_INC_PATH)
-	file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
+	find_file (NETCDF_I netcdf.inc ${NETCDF_INC_PATH} NO_DEFAULT_PATH)
 endif ()
-find_library (NETCDF_C NAMES netcdf PATHS ${NETCDF_LIB_PATH})
-find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH})
-find_file (NETCDF_I netcdf.inc ${NETCDF_INC_PATH})
-if ((NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND")) AND (NOT (${NETCDF_I} STREQUAL "NETCDF_I-NOTFOUND")))
+
+if (NETCDF_LIB_PATH)
+	file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
+        find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+        find_library (NETCDF_C NAMES netcdf PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+endif ()
+
+if (NETCDF_I AND (NETCDF_F OR NETCDF_C))
 	message (STATUS "Using netcdf")
-	add_definitions(-DNETCDF)
-	include_directories(${NETCDF_INC_PATH})
+	add_definitions (-DNETCDF)
+	include_directories (${NETCDF_INC_PATH})
+
+	if (NETCDF_F)
+		list (APPEND NETCDF_LIBRARIES ${NETCDF_F})
+	endif ()
+	if (NETCDF_C)
+		list (APPEND NETCDF_LIBRARIES ${NETCDF_C})
+	endif ()
+else ()
+	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
 endif ()
 
 # List all the subdirectories these are in library dependancy order.
@@ -77,6 +90,8 @@ add_subdirectory (MAKEGRID)
 add_subdirectory (V3RFUN)
 add_subdirectory (BOOZ_XFORM)
 add_subdirectory (WOUT_CONVERTER)
+add_subdirectory (BOOTSJ)
+add_subdirectory (DESCUR)
 add_subdirectory (Testing)
 
 # Optional extra builds

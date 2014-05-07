@@ -8,7 +8,7 @@
 !>  Defines the base class of the type @ref param_class
 !*******************************************************************************
 
-      MODULE param
+      MODULE v3fit_params
 
       USE stel_kinds, only: rprec
       USE data_parameters
@@ -279,7 +279,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (param_class), POINTER, INTENT(inout) :: this
+      TYPE (param_class), POINTER :: this
 
 !  Start of executable code
       this%param_id = data_no_id
@@ -986,4 +986,4 @@
 
       END SUBROUTINE
 
-      END MODULE
+      END MODULE v3fit_params

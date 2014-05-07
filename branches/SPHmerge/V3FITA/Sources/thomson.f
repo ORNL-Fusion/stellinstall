@@ -156,7 +156,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (thomson_class), POINTER, INTENT(inout) :: this
+      TYPE (thomson_class), POINTER :: this
 
 !  Start of executable code
       this%type = thomson_no_type

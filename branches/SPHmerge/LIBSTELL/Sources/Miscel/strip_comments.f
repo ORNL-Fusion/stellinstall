@@ -16,7 +16,7 @@ C-----------------------------------------------
       INTEGER :: istat, iustrip, iunew
       CHARACTER(LEN=500) :: line
       LOGICAL :: lex
-      INTEGER, EXTERNAL :: getcwd
+      INTEGER :: getcwd
 C-----------------------------------------------
       INQUIRE (file=input_file, exist=lex, iostat=istat)
       IF (istat.ne.0 .or. .not. lex) THEN

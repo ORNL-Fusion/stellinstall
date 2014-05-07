@@ -76,10 +76,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_class), POINTER                      ::                      &
-     &   prior_construct_gaussian
-      TYPE (prior_gaussian_class), POINTER, INTENT(in) ::                      &
-     &   gaussian_object
+      TYPE (prior_class), POINTER          :: prior_construct_gaussian
+      TYPE (prior_gaussian_class), POINTER :: gaussian_object
 
 !  Start of executable code
       ALLOCATE(prior_construct_gaussian)
@@ -104,7 +102,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_class), POINTER, INTENT(inout) :: this
+      TYPE (prior_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%gaussian)) THEN

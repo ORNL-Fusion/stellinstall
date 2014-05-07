@@ -15,19 +15,14 @@ set_target_properties (xbooz_xform PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_Fortra
 
 # HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set_target_properties (xbooz_xform PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+	set_target_properties (xbooz_xform PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
 endif()
 
-if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
-    target_link_libraries (xbooz_xform ${NETCDF_C})
-endif ()
-if (NOT (${NETCDF_F} STREQUAL "NETCDF_F-NOTFOUND"))
-    target_link_libraries (xbooz_xform ${NETCDF_F})
-endif ()
+target_link_libraries (xbooz_xform ${NETCDF_LIBRARIES})
 
 if (BLAS_FOUND)
-    target_link_libraries (xbooz_xform ${BLAS_LIBRARIES})
+	target_link_libraries (xbooz_xform ${BLAS_LIBRARIES})
 endif ()
 if (LAPACK_FOUND)
-    target_link_libraries (xbooz_xform ${LAPACK_LIBRARIES})
+	target_link_libraries (xbooz_xform ${LAPACK_LIBRARIES})
 endif ()

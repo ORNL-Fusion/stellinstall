@@ -62,7 +62,7 @@
 
 !  Declare Arguments
       TYPE (magnetic_class), POINTER :: magnetic_construct_response
-      TYPE (mddc_mrf), POINTER, INTENT(in) :: response_function
+      TYPE (mddc_mrf), POINTER       :: response_function
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_response)
@@ -185,7 +185,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_class), POINTER, INTENT(inout) :: this
+      TYPE (magnetic_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%response_function)) THEN

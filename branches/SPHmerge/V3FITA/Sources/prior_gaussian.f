@@ -89,7 +89,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (prior_gaussian_class), POINTER, INTENT(inout) :: this
+      TYPE (prior_gaussian_class), POINTER :: this
 
 !  Start of executable code
       this%param_id = data_no_id

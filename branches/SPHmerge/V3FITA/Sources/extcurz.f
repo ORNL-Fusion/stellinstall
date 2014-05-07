@@ -78,7 +78,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (extcurz_class), POINTER, INTENT(inout) :: this
+      TYPE (extcurz_class), POINTER :: this
 
 !  Start of executable code
       this%r = 0.0

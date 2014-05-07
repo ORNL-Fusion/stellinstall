@@ -401,10 +401,9 @@
 !  Declare Arguments
       TYPE (vmec_class), POINTER           :: vmec_construct
       CHARACTER (len=*), INTENT(in)        :: file_name
-      TYPE (pprofile), POINTER, INTENT(in) :: ne
-      TYPE (pprofile), POINTER, INTENT(in) :: te
-      TYPE (pprofile_pointer), DIMENSION(:), POINTER, INTENT(in) ::            &
-     &   sxrem
+      TYPE (pprofile), POINTER             :: ne
+      TYPE (pprofile), POINTER             :: te
+      TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
       REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
@@ -484,7 +483,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER, INTENT(inout) :: this
+      TYPE (vmec_class), POINTER                :: this
 
 !  local variables
       INTEGER                                   :: i
@@ -612,10 +611,11 @@
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
                fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_zbs_id)
@@ -626,10 +626,11 @@
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
                fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_rbs_id)
@@ -640,10 +641,11 @@
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
                fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_zbc_id)
@@ -654,65 +656,66 @@
                CALL vmec_reset_boundary(this)
                fsqr = 1.0
                fsqz = 1.0
-               CALL profil3d(xc(1), xc(1 + irzloff), .true.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
+     &                       .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_ac_id)
             vmec_set_param = .true.
             ac(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ac_aux_s_id)
             vmec_set_param = .true.
             ac_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ac_aux_f_id)
             vmec_set_param = .true.
             ac_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_id)
             vmec_set_param = .true.
             ai(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_aux_s_id)
             vmec_set_param = .true.
             ai_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_aux_f_id)
             vmec_set_param = .true.
             ai_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_id)
             vmec_set_param = .true.
             am(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_aux_s_id)
             vmec_set_param = .true.
             am_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_aux_f_id)
             vmec_set_param = .true.
             am_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
@@ -754,7 +757,7 @@
             vmec_set_param = .true.
             extcur(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             mgrid_path_old = ''
             CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false.,              &
      &                      status)
@@ -769,7 +772,7 @@
             curtor = value
             currv = mu0*curtor
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_phiedge_id)
             vmec_set_param = .true.
@@ -784,19 +787,19 @@
             xstore(1 + 2*irzloff:3*irzloff) =                                  &
      &         phiedge_ratio*xstore(1 + 2*irzloff:3*irzloff)
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
             vmec_set_param = .true.
             pres_scale = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_bloat_id)
             vmec_set_param = .true.
             bloat = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
 !  For the phi_offset, the magnetic cache needs to be updated. Since the phi
 !  offset doesn't alter the equilibrium, the magnetics were not getting updated
@@ -1888,8 +1891,8 @@
       INTEGER :: vmec_get_plasma_edge
       TYPE (vmec_class), INTENT(in)                      :: this
       REAL (rprec), INTENT (in)                          :: phi
-      REAL (rprec), DIMENSION(:), POINTER, INTENT(inout) :: r
-      REAL (rprec), DIMENSION(:), POINTER, INTENT(inout) :: z
+      REAL (rprec), DIMENSION(:), POINTER                :: r
+      REAL (rprec), DIMENSION(:), POINTER                :: z
 
 !  local variables
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosv, sinv

@@ -172,7 +172,7 @@
 
 !  Declare Arguments
       TYPE (signal_class), POINTER        :: signal_construct_diagnostic
-      TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
+      TYPE (diagnostic_class), POINTER    :: diagnostic_object
       CHARACTER(len=*), INTENT(in)        :: s_name
       CHARACTER(len=*), INTENT(in)        :: l_name
       CHARACTER(len=*), INTENT(in)        :: units
@@ -218,7 +218,7 @@
 
 !  Declare Arguments
       TYPE (signal_class), POINTER       :: signal_construct_geometric
-      TYPE (geometric_class), POINTER, INTENT(in) :: geometric_object
+      TYPE (geometric_class), POINTER    :: geometric_object
       CHARACTER(len=*), INTENT(in)       :: s_name
       CHARACTER(len=*), INTENT(in)       :: l_name
       CHARACTER(len=*), INTENT(in)       :: units
@@ -263,7 +263,7 @@
 
 !  Declare Arguments
       TYPE (signal_class), POINTER       :: signal_construct_prior
-      TYPE (prior_class), POINTER, INTENT(in) :: prior_object
+      TYPE (prior_class), POINTER        :: prior_object
       CHARACTER(len=*), INTENT(in)       :: s_name
       CHARACTER(len=*), INTENT(in)       :: l_name
       CHARACTER(len=*), INTENT(in)       :: units
@@ -311,8 +311,7 @@
 
 !  Declare Arguments
       TYPE (signal_class), POINTER :: signal_construct_combination
-      TYPE (combination_class), POINTER, INTENT(in)                            &
-     &                             :: combination_object
+      TYPE (combination_class), POINTER :: combination_object
       CHARACTER(len=*), INTENT(in) :: s_name
       CHARACTER(len=*), INTENT(in) :: l_name
       CHARACTER(len=*), INTENT(in) :: units
@@ -358,7 +357,7 @@
 
 !  Declare Arguments
       TYPE (signal_class), POINTER :: signal_construct_diagnostic_netcdf
-      TYPE (diagnostic_class), POINTER, INTENT(in) :: diagnostic_object
+      TYPE (diagnostic_class), POINTER :: diagnostic_object
       INTEGER, INTENT(in)                      :: mdsig_iou
       REAL(rprec), INTENT(in)                  :: observed
       REAL(rprec), INTENT(in)                  :: sigma
@@ -395,7 +394,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER, INTENT(inout) :: this
+      TYPE (signal_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%diagnostic)) THEN
@@ -958,7 +957,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (combination_class), POINTER, INTENT(inout) :: this
+      TYPE (combination_class), POINTER :: this
 
 !  Local Variables
       INTEGER                                          :: i
@@ -997,7 +996,7 @@
 
 !  Declare Arguments
       TYPE (combination_class), INTENT(inout)  :: this
-      TYPE (signal_class), INTENT(in), POINTER :: signal
+      TYPE (signal_class), POINTER             :: signal
       INTEGER, INTENT(in)                      :: index
       REAL (rprec), INTENT(in)                 :: a
 

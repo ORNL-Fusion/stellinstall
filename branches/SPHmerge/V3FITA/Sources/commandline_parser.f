@@ -172,7 +172,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (commandline_parser_class), POINTER, INTENT(inout) :: this
+      TYPE (commandline_parser_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%arg)) THEN

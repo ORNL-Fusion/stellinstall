@@ -11,7 +11,7 @@
 
       MODULE reconstruction
       USE stel_kinds
-      USE param
+      USE v3fit_params
       USE signal
 
       IMPLICIT NONE
@@ -230,7 +230,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (reconstruction_class), POINTER, INTENT(inout) :: this
+      TYPE (reconstruction_class), POINTER :: this
 
 !  Start of executable code
       this%step_type = reconstruction_no_step_type
@@ -603,7 +603,7 @@
 !>  @param[inout] a_model        A @ref model instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_f(this, derived_params, a_model)
-      USE param
+      USE v3fit_params
       USE model
 
       IMPLICIT NONE
@@ -1183,7 +1183,7 @@
      &                             a_model, params, eq_steps, iou)
       USE signal
       USE model
-      USE param
+      USE v3fit_params
 
       IMPLICIT NONE
 
@@ -1452,7 +1452,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(:,:) ,INTENT(inout), POINTER :: matrix
+      REAL (rprec), DIMENSION(:,:), POINTER       :: matrix
       CHARACTER (len=*), INTENT(in)               :: sub
       CHARACTER (len=*), INTENT(in)               :: name
 
@@ -1562,12 +1562,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (reconstruction_class), POINTER, INTENT(in) :: this
-      INTEGER, INTENT(in)                              :: iou
+      TYPE (reconstruction_class), POINTER :: this
+      INTEGER, INTENT(in)                  :: iou
 
 !  local arguments
-      INTEGER                                          :: i
-      REAL (rprec)                                     :: temp_g2
+      INTEGER                              :: i
+      REAL (rprec)                         :: temp_g2
 
 !  Start of executable code
       WRITE (*,*)

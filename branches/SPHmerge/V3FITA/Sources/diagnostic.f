@@ -108,7 +108,7 @@
 
 !  Declare Arguments
       TYPE (diagnostic_class), POINTER  :: diagnostic_construct_magnetic
-      TYPE (magnetic_class), POINTER, INTENT(in) :: magnetic_object
+      TYPE (magnetic_class), POINTER    :: magnetic_object
 
 !  Start of executable code
       ALLOCATE(diagnostic_construct_magnetic)
@@ -132,7 +132,7 @@
 
 !  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_sxrem
-      TYPE (sxrem_class), POINTER, INTENT(in)   :: sxrem_object
+      TYPE (sxrem_class), POINTER      :: sxrem_object
 
 !  Start of executable code
       ALLOCATE(diagnostic_construct_sxrem)
@@ -156,7 +156,7 @@
 
 !  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_intpol
-      TYPE (intpol_class), POINTER, INTENT(in) :: intpol_object
+      TYPE (intpol_class), POINTER     :: intpol_object
 
 !  Start of executable code
       ALLOCATE(diagnostic_construct_intpol)
@@ -180,7 +180,7 @@
 
 !  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_thomson
-      TYPE (thomson_class), POINTER, INTENT(in) :: thomson_object
+      TYPE (thomson_class), POINTER    :: thomson_object
 
 !  Start of executable code
       ALLOCATE(diagnostic_construct_thomson)
@@ -204,7 +204,7 @@
 
 !  Declare Arguments
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_extcurz
-      TYPE (extcurz_class), POINTER, INTENT(in) :: extcurz_object
+      TYPE (extcurz_class), POINTER    :: extcurz_object
 
 !  Start of executable code
       ALLOCATE(diagnostic_construct_extcurz)
@@ -229,7 +229,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (diagnostic_class), POINTER, INTENT(inout) :: this
+      TYPE (diagnostic_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%magnetic)) THEN

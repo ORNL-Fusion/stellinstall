@@ -15,15 +15,10 @@ set_target_properties (xv3rfun PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_Fortran_MO
 
 # HACK: Work around build failures on Linux. The set_target_properties INCLUDE_DIRECTORIES command is getting ignored.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set_target_properties (xv3rfun PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+	set_target_properties (xv3rfun PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
 endif()
 
-if (NOT (${NETCDF_C} STREQUAL "NETCDF_C-NOTFOUND"))
-    target_link_libraries (xv3rfun ${NETCDF_C})
-endif ()
-if (NOT (${NETCDF_F} STREQUAL "NETCDF_F-NOTFOUND"))
-    target_link_libraries (xv3rfun ${NETCDF_F})
-endif ()
+target_link_libraries (xv3rfun ${NETCDF_LIBRARIES})
 
 if (LAPACK_FOUND)
     target_link_libraries (xv3rfun ${LAPACK_LIBRARIES})

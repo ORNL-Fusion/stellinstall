@@ -762,13 +762,13 @@
          fsqz = one
          l_reset_xc_3d = .true.
          CALL profil3d(xc_vmec_3(1), xc_vmec_3(1+irzloff),                     &
-     &      l_reset_xc_3d)
+     &      l_reset_xc_3d, .FALSE.)
          CALL profil3d(xstore_vmec_3(1), xstore_vmec_3(1+irzloff),             &
-     &      l_reset_xc_3d)
+     &      l_reset_xc_3d, .FALSE.)
       ELSE
          l_reset_xc_3d = .false.
          CALL profil3d(xc_vmec_3(1), xc_vmec_3(1+irzloff),                     &
-     &      l_reset_xc_3d)
+     &      l_reset_xc_3d, .FALSE.)
       ENDIF
 
 !  Have to reread the mgrid file if the external currents have been changed

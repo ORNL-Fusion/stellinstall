@@ -91,8 +91,8 @@
 
 !  Declare Arguments
       TYPE (equilibrium_class), POINTER :: equilibrium_construct_vmec
-      TYPE (vmec_class), POINTER, INTENT(in) :: vmec_object
-      LOGICAL, INTENT(in)                    :: force_solve
+      TYPE (vmec_class), POINTER        :: vmec_object
+      LOGICAL, INTENT(in)               :: force_solve
 
 !  Start of executable code
       ALLOCATE(equilibrium_construct_vmec)
@@ -121,8 +121,8 @@
 
 !  Declare Arguments
       TYPE (equilibrium_class), POINTER :: equilibrium_construct_vacuum
-      TYPE (vacuum_class), POINTER, INTENT(in) :: vacuum_object
-      LOGICAL, INTENT(in)                      :: force_solve
+      TYPE (vacuum_class), POINTER      :: vacuum_object
+      LOGICAL, INTENT(in)               :: force_solve
 
 !  Start of executable code
       ALLOCATE(equilibrium_construct_vacuum)
@@ -149,7 +149,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (equilibrium_class), POINTER, INTENT(inout) :: this
+      TYPE (equilibrium_class), POINTER :: this
 
 !  Start of executable code
       IF (ASSOCIATED(this%vmec)) THEN
@@ -641,8 +641,8 @@
       INTEGER :: equilibrium_get_plasma_edge
       TYPE (equilibrium_class), INTENT(in)             :: this
       REAL (rprec), INTENT (in)                        :: phi
-      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: r
-      REAL (rprec), DIMENSION(:), POINTER, INTENT(out) :: z
+      REAL (rprec), DIMENSION(:), POINTER              :: r
+      REAL (rprec), DIMENSION(:), POINTER              :: z
 
 !  Start of executable code
       SELECT CASE (this%type)
