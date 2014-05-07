@@ -29,6 +29,14 @@ add_test (NAME    v3post_task_check_model_int007
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=int007 --attribute=model --value=0 --range=1.0E-10)
 add_test (NAME    v3post_task_check_model_int008
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=int008 --attribute=model --value=0 --range=1.0E-10)
+add_test (NAME    v3post_task_check_model_int009
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=int009 --attribute=model --value=-5.5E-5 --range=5.0E-7)
+add_test (NAME    v3post_task_check_model_int010
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=int010 --attribute=model --value=-5.5E-5 --range=5.0E-7)
+add_test (NAME    v3post_task_check_model_int011
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=int011 --attribute=model --value=-5.5E-5 --range=5.0E-7)
+add_test (NAME    v3post_task_check_model_int012
+          COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=int012 --attribute=model --value=-5.5E-5 --range=5.0E-7)
 add_test (NAME    v3post_task_check_model_thm001
           COMMAND ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=thm001 --attribute=model --value=15 --range=1.0E-10)
 add_test (NAME    v3post_task_check_model_thm002
