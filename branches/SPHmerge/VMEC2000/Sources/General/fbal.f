@@ -28,6 +28,7 @@
 !-----------------------------------------------
       INTEGER  :: js
 #ifdef _ANIMEC
+      INTEGER  :: lk
       REAL(dp) :: t4, t5
 #endif
 !-----------------------------------------------
@@ -259,7 +260,7 @@ c
  104  format(' diamagnetic beta =',1pe13.4,' beta(equal weighting) ='
      &     , 1pe13.4,' maximum hot perp. beta_c =',1pe10.3)
 
-      IF (betaht .NE. zero) THEN
+      IF (ABS(betaht) .GT. 1.E-12_dp) THEN
       write (nthreed,105)
  105  format(/,' js',8x,'s',9x,'th. press',3x,'par. pres',2x,
      &         'perp. pres')

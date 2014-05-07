@@ -53,8 +53,8 @@
       END IF
 
 !v8.50: Norm for preconditioned R,Z forces: scale to boundary value only
-!v8.51  Restore hs dependence (in bcovar)
-!     fnorm1 = one/SUM(rzl_array(ns,:,:,:)**2)    
+!v8.51  Restore hs dependence (1:ns, not just ns)
+!     fnorm1 = one/SUM(rzl_array(1:ns,:,m1:,1:2*ntmax)**2)    
 
 !
 !     ORIGIN EXTRAPOLATION (JS=1) FOR M=1 MODES

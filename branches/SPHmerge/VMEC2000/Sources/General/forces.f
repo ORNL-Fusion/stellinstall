@@ -1,7 +1,10 @@
       SUBROUTINE forces
       USE vmec_main, p5 => cp5
       USE realspace
-      USE vforces
+      USE vforces, ru12 => azmn_e, zu12 => armn_e, 
+     1             azmn_e => azmn_e, armn_e => armn_e,
+     2             lv_e => crmn_e, lu_e => czmn_e, lu_o => czmn_o,
+     3             crmn_e => crmn_e, czmn_e => czmn_e, czmn_o => czmn_o
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -11,16 +14,13 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l, ndim
-      REAL(rprec), DIMENSION(:), POINTER :: lv_e, lu_e, lu_o,
+      REAL(rprec), DIMENSION(:), POINTER :: 
      1    bsqr, gvvs, guvs, guus
 C-----------------------------------------------
       ndim = 1+nrzt
 !
 !     POINTER ALIASES
 !
-!      gcon => z1(:,0)
-      lv_e => crmn_e; lu_e => czmn_e; lu_o => czmn_o
-
       bsqr => extra1(:,1);  gvvs => extra2(:,1)
       guvs => extra3(:,1);  guus => extra4(:,1)
 
@@ -40,8 +40,7 @@ C-----------------------------------------------
 !
 !     ORIGIN OF VARIOUS TERMS
 !
-!     LU :  VARIATION OF DOMINANT .5*(RU-odd*Zodd - ZU-odd*Rodd) TERM
-!           IN JACOBIAN
+!     LU :  VARIATION OF DOMINANT RADIAL-DERIVATIVE TERMS IN JACOBIAN
 !
 !     LV :  VARIATION OF R-TERM IN JACOBIAN
 !
@@ -53,8 +52,8 @@ C-----------------------------------------------
       guu(1:ndim:ns)  = 0; guv(1:ndim:ns)  = 0; gvv(1:ndim:ns) = 0
       guus = guu*shalf;    guvs = guv*shalf;    gvvs = gvv*shalf
 
-      armn_e  = ohs*armn_e * lu_e
-      azmn_e  =-ohs*azmn_e * lu_e
+      armn_e  = ohs*zu12 * lu_e
+      azmn_e  =-ohs*ru12 * lu_e
       brmn_e  = brmn_e * lu_e
       bzmn_e  =-bzmn_e * lu_e
       bsqr    = dshalfds*lu_e/shalf

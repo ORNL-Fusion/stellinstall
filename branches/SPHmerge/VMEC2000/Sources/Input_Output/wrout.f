@@ -796,7 +796,8 @@
       tmult = p5/r0scale**2
 !SPH: FIXED THIS 03-05-07 TO CALL symmetrization routine
       IF (lasym) THEN
-!        tmult = tmult*p5
+!Changed integration norm in fixaray, SPH012314
+         tmult = 2*tmult
          bsubs(1,:) = 0
          CALL symoutput (bsq,   gsqrt,  bsubu,  bsubv,  bsupu,  
      1                   bsupv,  bsubs, 
@@ -889,6 +890,7 @@
       bsubvmnc(:,1) = 0
       bsubsmns(:,1) = 2*bsubsmns(:,2) - bsubsmns(:,3)
       bsupumnc(:,1) = 0;  bsupvmnc(:,1) = 0
+
 #ifdef _ANIMEC
       hotdmnc(:,1)  = 0;  pparmnc(:,1)  = 0;  ppermnc(:,1) = 0
       pbprmnc(:,1)  = 0;  ppprmnc(:,1)  = 0
@@ -981,6 +983,37 @@
 #endif
  200  CONTINUE
 
+#ifdef _DEBUG
+      WRITE (333, *) '    JS     M*B_S     GRAD(B_U)    J^V'
+      DO mn = 1, mnmax_nyq0
+         WRITE (333,'(2(a,i4))') 'm=',  INT(xm_nyq0(mn)),
+     1                           ' n=', INT(xn_nyq0(mn))/nfp
+         DO js = 2,ns-1
+            tmult=-xm_nyq0(mn)*bsubsmns(mn,js) +
+     1                    ohs*(bsubumnc(mn,js+1)-bsubumnc(mn,js))
+            WRITE (333,'(i6,1p,3e12.4)') js, 
+     1                  bsubsmns(mn,js)*xm_nyq0(mn),
+     2             ohs*(bsubumnc(mn,js+1)-bsubumnc(mn,js)),
+     3             tmult
+         END DO
+      END DO
+#endif
+!!#ifdef _DEBUG
+      WRITE(333,*)' VMEC2000 V8.51'
+      WRITE(333,*)'    MN       GMNC         GMNS           BMNC' //
+     1            '          BMNS'
+      IF (.NOT.lasym) THEN
+      DO mn = 1, mnmax_nyq0 
+         WRITE (333,'(i6,1p,4e14.4)') mn, gmnc(mn,ns/2), 0., 
+     1                                    bmnc(mn,ns/2), 0.
+      END DO
+      ELSE
+      DO mn = 1, mnmax_nyq0 
+         WRITE (333,'(i6,1p,4e14.4)') mn, gmnc(mn,ns/2), gmns(mn,ns/2),
+     1                                bmnc(mn,ns/2), bmns(mn,ns/2)
+      END DO
+      END IF
+!!#endif
 !
 !     WRITE OUT ARRAYS
 !
