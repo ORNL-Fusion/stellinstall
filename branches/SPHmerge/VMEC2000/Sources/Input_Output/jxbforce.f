@@ -229,6 +229,7 @@
                IF (n.eq.nnyq .and. n.ne.0) dnorm1 = p5*dnorm1
                bsubsmn1 = 0;  bsubsmn2 = 0
                IF (lasym) THEN
+                  dnorm1 = 2*dnorm1              !SPH012314 in FixAray
                   bsubsmn3 = 0;  bsubsmn4 = 0
                END IF
                bsubumn1 = 0;  bsubumn2 = 0;  bsubvmn1 = 0;  bsubvmn2 = 0
