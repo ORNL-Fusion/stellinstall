@@ -158,7 +158,7 @@
       IF (lforbal) THEN
          mj = 1 + joff
          ni = 0 + ioff
-         t1 = nscale(0)*r0scale/4
+         t1 = nscale(0)*r0scale    !/4
          DO jl = 2, ns-1
             work1(jl,1) = frcc_fac(jl)*frcc(jl,ni,mj)
      1                  + fzsc_fac(jl)*fzsc(jl,ni,mj)

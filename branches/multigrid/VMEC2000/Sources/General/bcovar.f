@@ -32,10 +32,11 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: l, js, ndim
-      REAL(rprec) :: r2
-      REAL(rprec) :: arnorm, aznorm, volume, tcon_mul
+      REAL(rprec) :: r2, volume, curpol_temp
+#ifndef _HBANGLE
+      REAL(rprec) :: arnorm, aznorm, tcon_mul
+#endif
       REAL(rprec), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
-      REAL(rprec) :: curpol_temp
       REAL(rprec), DIMENSION(:), POINTER :: bsupu, bsubuh, 
      1                                      bsupv, bsubvh, r12sq
       LOGICAL :: lctor

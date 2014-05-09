@@ -6,16 +6,14 @@
       INTEGER, PARAMETER :: pexp=4, m0=0, m1=1, m2=2, m3=3
       LOGICAL, PARAMETER :: lorigin=.FALSE.
       INTEGER            :: mrho, m, istat
-      REAL, PARAMETER    :: p5=0.5_dp
+      REAL, PARAMETER    :: p5=0.5_dp, zero=0
       REAL(dp), ALLOCATABLE :: t1m(:), t2m(:), cos_HB(:), sin_HB(:)
       REAL(dp), ALLOCATABLE :: rz_array0(:,:,:), xtempa(:)
       REAL(dp), DIMENSION(:,:), ALLOCATABLE :: arhod, arhom, brhod, brhom,   &
          ard2, arm2, azd2, azm2, arhod2, arhom2,                             &
-         brd2, brm2, bzd2, bzm2, brhod2, brhom2,                             &
-         tau12, rs12, ru12, zs12, zu12   !,rho1
-      REAL(dp), DIMENSION(:), ALLOCATABLE   :: crhod, sin2u, cos2u
+         brd2, brm2, bzd2, bzm2, brhod2, brhom2
+      REAL(dp), DIMENSION(:), ALLOCATABLE   :: crhod, sin2u, cos2u, sfact
       REAL(dp) :: sqp5
-      LOGICAL :: lreset=.TRUE.
 #ifdef _HBANGLE
       CONTAINS
 
@@ -29,7 +27,7 @@
       IF (ALLOCATED(t1m)) RETURN
 
       sqp5 = SQRT(p5)
-      mrho = mpol1       !ZERO-EIGENVALUE? SPH011414
+      mrho = mpol1      
 !HB Angle constraint      
 !      mrho = mpol1-1
 
@@ -62,6 +60,7 @@
 
       DO m = 1, mrho   
          dnorm = SQRT(t1m(m+1)**2 + t2m(m-1)**2)
+         IF (dnorm .EQ. zero) CYCLE
          cos_HB(m) = t1m(m+1)/dnorm
          sin_HB(m) = t2m(m-1)/dnorm
       END DO
@@ -69,6 +68,9 @@
       IF (mrho .NE. mpol1) THEN
          cos_HB(mpol1) = 0;  sin_HB(mpol1) = 1
       END IF
+
+!DOESN'T CONVERGE IF THIS GOES BEFORE cos,sin_HB calculations (F_0 too larger???)  
+!      t2m(m0) = t1m(m2)
 
       END SUBROUTINE init_multipliers
 
@@ -80,25 +82,26 @@
                                        ard2, arm2, azd2, azm2, arhod2, arhom2, &
                                        brd2, brm2, bzd2, bzm2, brhod2, brhom2)
       IF (ALLOCATED(cos2u)) DEALLOCATE(cos2u, sin2u)
-!      IF (ALLOCATED(rho1)) DEALLOCATE(rho1)
-      IF (ALLOCATED(tau12)) DEALLOCATE(tau12, rs12, ru12, zs12, zu12)
+      IF (ALLOCATED(sfact)) DEALLOCATE(sfact)
+
       END SUBROUTINE free_multipliers
 
       SUBROUTINE store_init_array(rzl_array)
       USE vmec_main, ONLY: neqs2, nznt, nzeta, cosmui, sinmui, cosmu, sinmu,   &
-                           nzeta, ntheta2, ntheta3
+                           nzeta, ntheta2, ntheta3, hs
       REAL(dp), DIMENSION(ns*(1+ntor),0:mpol1,3*ntmax), INTENT(inout) :: rzl_array
-      INTEGER :: nsp1, l, nsnz
+      INTEGER :: nsp1, l, js
       
       IF (ALLOCATED(rz_array0)) DEALLOCATE (rz_array0)
       ALLOCATE(rz_array0(ns*(1+ntor),0:mpol1,2*ntmax))
       rz_array0 = rzl_array(:,:,1:2*ntmax)
       rzl_array(:,:,1:2*ntmax) = 0
 
+      CALL init_multipliers
       CALL get_rep_mismatch(rz_array0, rzl_array)
 
       IF (ALLOCATED(xtempa)) DEALLOCATE (xtempa)
-      ALLOCATE (xtempa(neqs2))
+      ALLOCATE (xtempa(neqs2))            !Used as temp storage of xc in funct3d
 
       nsp1=ns+1
       IF (ALLOCATED(arhod)) DEALLOCATE(arhod, arhom, brhod, brhom, crhod,      &
@@ -116,11 +119,12 @@
          sin2u(l:nznt:nzeta) = sinmui(:,m2)
       END DO
 
-      nsnz = ns*nzeta
-      IF (ALLOCATED(tau12)) DEALLOCATE(tau12, rs12, ru12, zs12, zu12)
-      ALLOCATE(tau12(nsnz,ntheta3), rs12(nsnz,ntheta3), zs12(nsnz,ntheta3),   &
-               ru12(nsnz,ntheta3), zu12(nsnz,ntheta3))
-     
+      IF (ALLOCATED(sfact)) DEALLOCATE(sfact)
+      ALLOCATE(sfact(ns))
+      DO js=1,ns
+         sfact(js) = hs*(js-1)
+      END DO
+
       END SUBROUTINE store_init_array
 
       SUBROUTINE getrz (rz_array)
@@ -152,7 +156,7 @@
 
 !     Enforce asymptotic behavior near axis (HB paper after Eq (34))
       IF (lorigin) THEN
-         rz_array(2:nsnt:ns,m0:m2:2,1:ntmax) = sqp5*rz_array(3:nsnt:ns,m0:m2:2,1:ntmax)
+         rz_array(2:nsnt:ns,m2,1:ntmax) = sqp5*rz_array(3:nsnt:ns,m2,1:ntmax)
          IF (mpol1 .GE. m3) THEN
             rz_array(2:nsnt:ns,m1:m3:2,1:ntmax) = p5*rz_array(3:nsnt:ns,m1:m3:2,1:ntmax)
             rz_array(2:nsnt:ns,m3+1:,1:ntmax) = 0
@@ -171,21 +175,6 @@
          rhoss(:,m0) = 0
          rhoss(:,mrho1) = 0; rhoss(:,0) = 0
          z0s = rz_array(:,m0,zcs+ntmax)
-      END IF
-
-      IF (ictrl_prec2d .EQ. 2 .AND. lreset) THEN
-!          t2m(m0) = t1m(m2)
-!          dnorm = SQRT(t1m(m1+1)**2 + t2m(m1-1)**2)
-!          cos_HB(m1) = t1m(m1+1)/dnorm
-!          sin_HB(m1) = t2m(m1-1)/dnorm
-!          r0c = r0c-t2m(m0)*rhocc(:,m1)
-!          rz_array(:,m0,zsc+ntmax) = r0c
-!          IF (lthreed) THEN
-!             z0s = z0s+t2m(m0)*rhoss(:,m1)*signgs
-!             rz_array(:,m0,zcs+ntmax) = z0s
-!          END IF
-          lreset=.FALSE.
-          xstore=xc
       END IF
 
       MODES: DO m = 0, mpol1
@@ -251,13 +240,12 @@
       END SUBROUTINE getrz
 
       SUBROUTINE getfrho (frho_array)
-      USE vmec_main, ONLY: iter2, fnorm
+      USE vmec_main, ONLY: iter2, fnorm, hs
       REAL(dp), DIMENSION(ns*(1+ntor),0:mpol1,2*ntmax), INTENT(inout) ::   &
                 frho_array
       REAL(dp), DIMENSION(:,:), ALLOCATABLE :: frcc, frss, fzcs, fzsc,     &
                                                frsc, frcs, fzcc, fzss
-      REAL(dp), DIMENSION(:), ALLOCATABLE   :: fr0c, fr0s, fz0c, fz0s
-      INTEGER :: nsnt, mrho1, istat
+      INTEGER  :: nsnt, mrho1, istat
 
 !     INPUT:  Frho contains cylindrical components of FR, FZ
 !     OUTPUT: Frho(1:ntmax) contains Quasi-polar components the MHD forces
@@ -266,13 +254,11 @@
       mrho1 = mrho+1
 
       ALLOCATE (frcc(nsnt,0:mrho1), frss(nsnt,0:mrho1),                 &
-                fzsc(nsnt,0:mrho1), fzcs(nsnt,0:mrho1),                 &
-                fr0c(nsnt), fz0s(nsnt), stat=istat)
+                fzsc(nsnt,0:mrho1), fzcs(nsnt,0:mrho1), stat=istat)
       IF (istat .NE. 0) STOP 'Allocation error #1 in getfrho!'
       
       frcc(:,0:mrho) = frho_array(:,0:mrho,rcc);   frcc(:,mrho1)=0
       frho_array(:,:,rcc)=0
-      fr0c = frcc(:,m0) 
 
       fzsc(:,0:mrho) = frho_array(:,0:mrho,zsc+ntmax);  fzsc(:,mrho1) = 0
       frho_array(:,:,zsc+ntmax)=0
@@ -281,16 +267,15 @@
          frss(:,0:mrho) = frho_array(:,0:mrho,rss); frss(:,mrho1) = 0
          frho_array(:,:,rss)=0
          fzcs(:,0:mrho) = frho_array(:,0:mrho,zcs+ntmax); fzcs(:,mrho1) = 0
-         fz0s = fzcs(:,m0)
          frho_array(:,:,zcs+ntmax)=0
       END IF
 
       MODES: DO m = 0, mrho
       IF (m .EQ. m0) THEN
-         frho_array(:,m0,zsc+ntmax) = fr0c        !storage
+         frho_array(:,m0,zsc+ntmax) = frcc(:,m0)        !storage
          frho_array(:,m0,rcc)       = cos_HB(m0)*(frcc(:,m1) - signgs*fzsc(:,m1))
          IF (.NOT.lthreed) CYCLE
-         frho_array(:,m0,zcs+ntmax)  = fz0s
+         frho_array(:,m0,zcs+ntmax)  = fzcs(:,m0)
       ELSE 
          frho_array(:,m,rcc)       =  cos_HB(m)*(frcc(:,m+1) - signgs*fzsc(:,m+1))    &
                                    +  sin_HB(m)*(frcc(:,m-1) + signgs*fzsc(:,m-1))
@@ -300,33 +285,33 @@
       ENDIF
       END DO MODES
 
-      DEALLOCATE (frcc, frss, fzsc, fzcs, fr0c, fz0s)
+      DEALLOCATE (frcc, frss, fzsc, fzcs)
+      IF (lthreed) THEN
+         IF (ANY(frho_array(:,m0,rss) .NE. zero)) STOP 'FRHO(m0,rss) != 0'
+      END IF
 
       IF (.NOT. lasym) GOTO 1000
 
       ALLOCATE (frsc(nsnt,0:mrho1), frcs(nsnt,0:mrho1),  &
-                fzcc(nsnt,0:mrho1), fzss(nsnt,0:mrho1),  &
-                fr0s(nsnt), fz0c(nsnt), stat=istat)
+                fzcc(nsnt,0:mrho1), fzss(nsnt,0:mrho1),  stat=istat)
       IF (istat .NE. 0) STOP 'Allocation error #2 in getfrho!'
 
       frsc(:,0:mrho) = frho_array(:,0:mrho,rsc);  frsc(:,mrho1) = 0
       frho_array(:,:,rsc) = 0
       fzcc(:,0:mrho) = frho_array(:,0:mrho,zcc+ntmax);  fzcc(:,mrho1) = 0
       frho_array(:,:,zcc+ntmax) = 0
-      fz0c = fzcc(:,m0)
       IF (lthreed) THEN
          frcs(:,0:mrho) = frho_array(:,0:mrho,rcs); frcs(:,mrho1) = 0
          frho_array(:,:,rcs)=0
-         fr0s = frcs(:,m0)
          fzss(:,0:mrho) = frho_array(:,0:mrho,zss+ntmax); fzss(:,mrho1) = 0 
          frho_array(:,:,zss+ntmax)=0
       END IF
 
       MODEA: DO m = 0, mrho
       IF (m .EQ. m0) THEN
-         frho_array(:,m0,zcc+ntmax) = fz0c
+         frho_array(:,m0,zcc+ntmax) = fzcc(:,m0)
          IF (.NOT.lthreed) CYCLE
-         frho_array(:,m0,zss+ntmax) = fr0s
+         frho_array(:,m0,zss+ntmax) = frcs(:,m0)
          frho_array(:,m0,rcs)       =cos_HB(m0)*(frcs(:,m1) - signgs*fzss(:,m1))
       ELSE 
          frho_array(:,m,rsc)       = cos_HB(m)*(frsc(:,m+1) + signgs*fzcc(:,m+1))    &
@@ -337,22 +322,24 @@
       ENDIF
       END DO MODEA
 
-      DEALLOCATE (frsc, frcs, fzcc, fzss, fr0s, fz0c)
+      DEALLOCATE (frsc, frcs, fzcc, fzss)
 
- 1000 CONTINUE
-!     Use asymptotic behavior near axis, rather than evolution (SPH010214)
-      IF (lorigin) THEN
-!         frho_array(2:nsnt:ns,m0:m2:2,1:ntmax) = 0
-!         IF (mpol1 .GE. m3)frho_array(2:nsnt:ns,m1:m3:2,1:ntmax) = 0
-         frho_array(2:nsnt:ns,:,1:ntmax) = 0
+      IF (lasym) THEN
+         IF (ANY(frho_array(:,m0,rsc) .NE. zero)) STOP 'FRHO(m=0,rsc) != 0'
       END IF
 
-!      frho_array(:,m1,1:ntmax) = frho_array(:,m1,1:ntmax)              &
-!                               + 1.E1*(rho_array(:,m1,1:ntmax)-rho1(:,:))
-!      IF (MOD(ITER2,100).EQ.0 .AND. ITER2.LE.500 .AND. ICTRL_PREC2D.EQ.0)   &
-!            rho1 = rho_array(:,m1,1:ntmax)
+ 1000 CONTINUE
+
+!     Use asymptotic behavior near axis, rather than evolution (SPH010214)
+      IF (lorigin) THEN
+         frho_array(2:nsnt:ns,m1:,1:ntmax) = 0
+      END IF
+
+!ADD UNIQUE POLAR AXIS "CONSTRAINT"
+      frho_array(:,m1,1:ntmax) = 0                    !Unique angle
 
       END SUBROUTINE getfrho
+
 
       SUBROUTINE scalfor_rho(gcr, gcz)
       USE vmec_main
@@ -371,6 +358,7 @@
                                                  arho2,brho2,drho2
       REAL(dp), DIMENSION(:,:),   ALLOCATABLE :: acen, bcen, dcen
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: gcen
+      REAL(dp) :: tar, taz, tc, tc1
 !-----------------------------------------------
       jmax = ns
       IF (ivac .lt. 1) jmax = ns1
@@ -401,7 +389,7 @@
 !
 !     RESTORE SCALED CENTROID VALUES
 !
-      gcz(:,:,m0,zsc) = gcen(:,:,1)        !R0n-cc
+      gcz(:,:,m0,zsc) = gcen(:,:,1)                !R0n-cc
       IF (lasym) gcz(:,:,m0,zcc) = gcen(:,:,3)     !Z0n-cc
       IF (lthreed) THEN
          gcz(:,:,m0,zcs) = gcen(:,:,2)             !Z0n-cs
@@ -473,7 +461,7 @@
       jmin4 = jmin3
       IF (iresidue.GE.0 .AND. iresidue.LT.3) jmin4(0)=2
 
-      CALL tridslv (acen,dcen,bcen,gcen,jmin4,jmax, mnsize0-1,ns,1)
+      CALL tridslv(acen,dcen,bcen,gcen,jmin4,jmax,mnsize0-1,ns,1)
 
       END SUBROUTINE scalaxis
 
@@ -491,11 +479,9 @@
          ax1(:,m) = cos_HB(m)*(t1m(m+1)*ax(:,m+1)+t2m(m-1)*ax2(:,m-1))   &
                   + sin_HB(m)*(t2m(m-1)*ax(:,m-1)+t1m(m+1)*ax2(:,m+1))
       END DO
-      ax1(:,m2) = ax1(:,m2)+sin_HB(m2)*t2m(m1)*ax2(:,m2-1)
+!      ax1(:,m2) = ax1(:,m2)+sin_HB(m2)*t2m(m1)*ax2(:,m2-1)
       ax1(:,mpol1) = sin_HB(mpol1)*t2m(mpol1-1)*ax(:,mpol1-1)            &
                    + cos_HB(mpol1)*t2m(mpol1-1)*ax2(:,mpol1-1)
-!      ax1(:,mpol1) = ax(:,mpol1-1)
-
       ax = ax1
 
       DEALLOCATE (ax1)
@@ -547,7 +533,7 @@
       END IF
 
       DO m = 0, mrho
-         IF (m .lt. mpol1-1) THEN
+         IF (m .LT. mpol1-1) THEN
             t1 = (rz0_array(:,m+1,rcc) - signgs*rz0_array(:,m+1,zsc+ntmax))/t1m(m+1)
             IF (m .LE. 1) THEN
                t2 = t1
@@ -557,8 +543,6 @@
          ELSE IF (m .GT. 1) THEN
             t2 = (rz0_array(:,m-1,rcc) + signgs*rz0_array(:,m-1,zsc+ntmax))/t2m(m-1)
             t1 = t2
-         ELSE
-            CYCLE
          END IF
          rho_array(:,m,rcc)  = p25*(t1 + t2)
          temp1 = temp1 + (t1 - t2)**2
@@ -566,7 +550,7 @@
 
          IF (.NOT.lthreed) CYCLE
 
-         IF (m .lt. mpol1-1) THEN
+         IF (m .LT. mpol1-1) THEN
             t1 = (rz0_array(:,m+1,rss) + signgs*rz0_array(:,m+1,zcs+ntmax))/t1m(m+1)
             IF (m .LE. 1) THEN
                t2 = t1
@@ -598,7 +582,7 @@
       END IF
 
       DO m = 0, mrho
-         IF (m .lt. mpol1-1) THEN
+         IF (m .LT. mpol1-1) THEN
             t1 = (rz0_array(:,m+1,rsc) + signgs*rz0_array(:,m+1,zcc+ntmax))/t1m(m+1)
             IF (m .LE. 1) THEN
                t2 = t1
@@ -615,7 +599,7 @@
          
          IF (.not.lthreed) CYCLE
 
-         IF (m .lt. mpol1-1) THEN
+         IF (m .LT. mpol1-1) THEN
             t1 = (rz0_array(:,m+1,rcs) - signgs*rz0_array(:,m+1,zss+ntmax))/t1m(m+1)
             IF (m .LE. 1) THEN
                t2 = t1
