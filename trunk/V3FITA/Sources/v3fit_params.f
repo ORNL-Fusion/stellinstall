@@ -1,5 +1,5 @@
 !*******************************************************************************
-!>  @file parameter.f
+!>  @file v3fit_params.f
 !>  @brief Contains module @ref param.
 !
 !  Note separating the Doxygen comment block here so detailed decription is
