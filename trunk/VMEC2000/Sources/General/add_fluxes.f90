@@ -1,6 +1,7 @@
       SUBROUTINE add_fluxes(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
-      USE realspace, ONLY: wint, guu, guv, chip, phip
+      USE realspace, ONLY: wint, guu, guv, chip, phip, sigma_an 
+      USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -29,10 +30,17 @@
       DO js = 2, ns
          top = icurv(js)
          bot = 0
+#ifdef _ANIMEC
+         DO l = js, nrzt, ns
+         top = top-wint(l)*(guu(l)*bsupu(l)+guv(l)*bsupv(l))*sigma_an(l)
+            bot = bot + wint(l)*sigma_an(l)*overg(l)*guu(l)
+         END DO
+#else
          DO l = js, nrzt, ns
             top = top - wint(l)*(guu(l)*bsupu(l) + guv(l)*bsupv(l))
             bot = bot + wint(l)*overg(l)*guu(l)
          END DO
+#endif
          IF (bot .ne. zero) chips(js) = top/bot
          IF (phips(js) .ne. zero) iotas(js) = chips(js)/phips(js)
       END DO
@@ -40,10 +48,10 @@
  100  CONTINUE
 
 !     CHANGE THIS FOR lRFP = T  (solve for phips?)
-      IF (ncurr .EQ. 0) THEN
+      IF (ncurr .eq. 0) THEN
          chips = iotas*phips
-      ELSE IF (.NOT.lcurrent) THEN
-         WHERE (phips .NE. zero) iotas = chips/phips
+      ELSE IF (.not.lcurrent) THEN
+         WHERE (phips .ne. zero) iotas = chips/phips
       END IF
 !!      IF (.not.lcurrent) chips = iotas*phips
 

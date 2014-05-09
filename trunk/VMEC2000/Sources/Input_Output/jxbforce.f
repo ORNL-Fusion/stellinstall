@@ -14,7 +14,7 @@
      2                      ,pp3 
       USE fbal, ONLY: bimax_ppargrad
 #endif
-!!#undef NETCDF     !!undefine NETCDF if text output desired
+! #undef NETCDF
 #ifdef NETCDF
       USE ezcdf
 #endif
@@ -27,12 +27,11 @@
 #ifdef _ANIMEC
      2 ,ppar, onembc
 #endif
-!ONLY CHANGE COMPONENT 1 (MUST KEEP COMPONENT 0 UNCHANGED FOR USE IN WROUT!)
-      REAL(rprec), DIMENSION(ns,nznt,0:1), INTENT(inout), TARGET ::
+      REAL(rprec), DIMENSION(ns,nznt,0:1), TARGET, INTENT(inout) ::
      1  bsubu, bsubv
       REAL(rprec), DIMENSION(ns,nznt), INTENT(inout), TARGET :: bsubs
-      REAL(rprec), DIMENSION(ns,nznt), INTENT(out) :: 
-     1  itheta, izeta, brho 
+      REAL(rprec), DIMENSION(ns,nznt), INTENT(out) ::
+     1  itheta, brho, izeta
 #ifdef _ANIMEC
      1 ,pp1, pp2
 #endif
@@ -47,14 +46,16 @@
 !  J Hanson 2014-01-12. Commented out above line. Variable is now declared
 !    in module vmec_input, available here through module vmec_main.
 !    lbsubs is now a namelist input variable, so user can change.
+!      LOGICAL, PARAMETER :: lbsubs = .true.       !!True  to use NEW bsubs calculation (from mag. diff. eq.)
+!                                                  !!False to use OLD bsubs calculation (from metrics)
       LOGICAL, PARAMETER :: lprint = .false.      !!Prints out bsubs spectrum to fort.33
       REAL(rprec), PARAMETER :: two=2, p5=0.5_dp, c1p5=1.5_dp
-      INTEGER, PARAMETER :: ns_skip = 1, nu_skip = 1, nv_skip = 1
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER lk, lz, lt, k, m, js, j, n, injxbout, mparity, nznt1
-      INTEGER :: njxbout=jxbout0, nmin, info
+      INTEGER :: njxbout = jxbout0, nmin, info 
+      INTEGER, PARAMETER :: ns_skip = 1, nu_skip = 1, nv_skip = 1
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::
      1    bdotk, bsubuv, bsubvu
       REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: bsubsmn
@@ -73,28 +74,41 @@
      3    tcosm1, tcosm2, tcosn1, tcosn2, tsinm1, tsinm2, tsin1, tsin2,
      4    tsinn1, tsinn2, tjnorm, ovp, pnorm, brho00(ns)
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::
-     1    bsubs_s, bsubs_a, bsubu_s, bsubu_a, bsubv_s, bsubv_a
-
+     1    bsubu_s, bsubu_a, bsubv_s, bsubv_a
+      REAL(rprec), DIMENSION(:), ALLOCATABLE ::
+     1    bsubs_s, bsubs_a
       CHARACTER(LEN=100) :: jxbout_file
       CHARACTER(LEN=100) :: legend(13)
       LOGICAL :: lprint_flag
 !-----------------------------------------------
 #ifdef NETCDF
       CHARACTER(LEN=*), PARAMETER ::
-     1  vn_legend = 'legend', vn_radial_surfaces = 'radial_surfaces',
-     2  vn_poloidal_grid_points = 'poloidal_grid_points',
-     3  vn_toroidal_grid_points = 'toroidal_grid_points',
-     4  vn_mpol = 'mpol', vn_ntor = 'ntor', vn_phin = 'phin',
-     5  vn_toroidal_angle = 'toroidal_angle',
-     6  vn_avforce = 'avforce', vn_jdotb = 'surf_av_jdotb',
-     7  vn_sqg_bdotj = 'sqrt(g)*jdotb', vn_sqrtg = 'sqrt(g)',
-     8  vn_bdotgradv = 'bdotgradv', vn_amaxfor = 'amaxfor',
-     9  vn_aminfor = 'aminfor', vn_pprime = 'pprime',
-     A  vn_jsupu = 'jsupu', vn_jsupv = 'jsupv',
-     B  vn_jsups = 'jsups', vn_bsupu = 'bsupu',
-     C  vn_bsupv = 'bsupv', vn_jcrossb = 'jcrossb',
-     D  vn_jxb_gradp = 'jxb_gradp', vn_bsubu = 'bsubu',
-     E  vn_bsubv = 'bsubv', vn_bsubs = 'bsubs'
+     1  vn_legend = 'legend',
+     1  vn_radial_surfaces = 'radial_surfaces',
+     1  vn_poloidal_grid_points = 'poloidal_grid_points',
+     1  vn_toroidal_grid_points = 'toroidal_grid_points',
+     1  vn_mpol = 'mpol',
+     1  vn_ntor = 'ntor',
+     1  vn_phin = 'phin',
+     1  vn_toroidal_angle = 'toroidal_angle',
+     1  vn_avforce = 'avforce',
+     1  vn_jdotb = 'surf_av_jdotb',
+     1  vn_sqg_bdotk = 'sqrt(g)*bdotk',
+     1  vn_sqrtg = 'sqrt(g)',
+     1  vn_bdotgradv = 'bdotgradv',
+     1  vn_amaxfor = 'amaxfor',
+     1  vn_aminfor = 'aminfor',
+     1  vn_pprime = 'pprime',
+     1  vn_jsupu = 'jsupu',
+     1  vn_jsupv = 'jsupv',
+     1  vn_jsups = 'jsups',
+     1  vn_bsupu = 'bsupu',
+     1  vn_bsupv = 'bsupv',
+     1  vn_jcrossb = 'jcrossb',
+     1  vn_jxb_gradp = 'jxb_gradp',
+     1  vn_bsubu = 'bsubu',
+     1  vn_bsubv = 'bsubv',
+     1  vn_bsubs = 'bsubs'
 !-----------------------------------------------
 #endif
       lprint_flag = (ier_flag.eq.successful_term_flag)
@@ -104,16 +118,18 @@
 
       CALL cdf_open(njxbout,jxbout_file,'w',injxbout)
 #else
-      jxbout_file = 'jxbout_'//TRIM(input_extension)//'.txt'
+      jxbout_file = 'jxbout.'//TRIM(input_extension)//'.txt'
       CALL safe_open(njxbout, injxbout, jxbout_file, 'replace',
      1    'formatted')
+#endif
+#if !defined(_ANIMEC)
+      IF (ANY(sigma_an .NE. one)) STOP 'SIGMA_AN != 1'
 #endif
       IF (injxbout .ne. 0) THEN
          PRINT *,' Error opening JXBOUT file in jxbforce'
          RETURN
       END IF
 
-!
 !     PROGRAM FOR COMPUTING LOCAL KXB = grad-p FORCE BALANCE
 !
 !     sigma_an = one + (pperp-ppar)/(2*bsq(1:nrzt))   (=1 for isotropic pressure)
@@ -123,9 +139,9 @@
       legend(1) = " S = normalized toroidal flux (0 - 1)"
       IF (lasym) THEN
          legend(2) = " U = VMEC poloidal angle (0 - 2*pi, FULL period)"
-      ELSE
+	ELSE
          legend(2) = " U = VMEC poloidal angle (0 - pi, HALF a period)"
-      END IF
+	END IF
       legend(3) = " V = VMEC (geometric) toroidal angle (0 - 2*pi)"
       legend(4) = " SQRT(g') = |SQRT(g-VMEC)| / VOL':" //
      1  " Cylindrical-to-s,u,v Jacobian normed to volume derivative"
@@ -142,10 +158,10 @@
       legend(11)= " K * B = K DOT B * SQRT(g')"
       legend(12)= " p' = dp/d(VOL): pressure gradient (based on" //
      1  " volume radial coordinate)"
-      legend(13)= " <KSUP{U,V}> = Int_u Int_v [KSUP{U,V}]"
+      legend(13)= " <KSUP{U,V}> = Int_u Int_v [KSUP{U,V}]/dV/ds"
 
-#ifndef NETCDF
-      WRITE (njxbout,5) (ns1-1)/ns_skip, ntheta2/nu_skip, nzeta/nv_skip,
+#if !defined(NETCDF)
+      WRITE (njxbout,5) (ns1-1)/ns_skip, ntheta3/nu_skip, nzeta/nv_skip,
      1    mpol, ntor, phiedge
  5    FORMAT(/,' Radial surfaces = ',i3, ' Poloidal grid points = ',i3,
      1         ' Toroidal grid points = ',i3,/,
@@ -157,24 +173,25 @@
 #endif
       ENDIF
 
-      lz = nzeta*ntheta2
+      nznt1 = nzeta*ntheta2
       ALLOCATE (avforce(ns),aminfor(ns),amaxfor(ns))
       ALLOCATE (bdotk(ns,nznt), bsubuv(ns,nznt),
      1          bsubvu(ns,nznt), kperpu(nznt), kperpv(nznt), 
      2          sqgb2(nznt), brhomn(0:mnyq,-nnyq:nnyq,0:1),kp2(nznt),
-     3          jxb(nznt), 
-     4          jxb2(nznt), bsupu1(nznt), bsupv1(nznt), bsubu1(nznt), 
-     5          bsubv1(nznt), bsubsmn(ns,0:mnyq,-nnyq:nnyq,0:1),
-     6          bsubs_s(lz,0:1), bsubs_a(lz,0:1), sqrtg(nznt),
-     7          bsubu_s(lz,0:1), bsubu_a(lz,0:1),
-     8          bsubv_s(lz,0:1), bsubv_a(lz,0:1), stat=j)
+     3          jxb(nznt), jxb2(nznt), bsupu1(nznt), 
+     3          bsubua(nznt1,0:1), bsubva(nznt1,0:1), 
+     4          bsupv1(nznt), bsubu1(nznt), bsubv1(nznt),
+     5          bsubsmn(ns,0:mnyq,-nnyq:nnyq,0:1),
+     6          bsubs_s(nznt), bsubs_a(nznt), sqrtg(nznt),
+     7          bsubu_s(nznt1,0:1), bsubu_a(nznt1,0:1),
+     8          bsubv_s(nznt1,0:1), bsubv_a(nznt1,0:1), stat=j)
       IF (j .ne. 0) STOP 'Allocation error in jxbforce'
 
 !
 !     NOTE: bsubuv, bsubvu are used to compute the radial current (should be zero)
 !
       bsubsu = 0; bsubsv = 0; bsubuv = 0; bsubvu = 0; bdotk  = 0
-      bsubs(1,:) = 0
+      bsubs(1,:) = 0; bsubsmn = 0
 
       radial: DO js = 1, ns
 !
@@ -186,28 +203,39 @@
 
          bsubu(js,:,1) = bsubu(js,:,1)/shalf(js)
          bsubv(js,:,1) = bsubv(js,:,1)/shalf(js)
+         bsubua = 0;   bsubva = 0
 
-!        _s: symmetric in u,v  _a: antisymmetric in u,v
+!        _s: symmetric in u,v  _a: antisymmetric in u,v on half (ntheta2) interval
          IF (lasym)  THEN
-            CALL fsym_fft (bsubs(js,:), bsubu(js,:,:), bsubv(js,:,:),
-     1             bsubs_s, bsubu_s, bsubv_s, bsubs_a, bsubu_a, bsubv_a)
+            bs1=>bsubs(js,:); bu1=>bsubu(js,:,:); bv1=>bsubv(js,:,:)
+            CALL fsym_fft (bs1, bu1, bv1, bsubs_s, bsubu_s, bsubv_s, 
+     1                     bsubs_a, bsubu_a, bsubv_a)
          ELSE
-            bsubs_s(:,0) = bsubs(js,:); bsubu_s = bsubu(js,:,:)
-            bsubv_s = bsubv(js,:,:)
+            bsubs_s(:) = bsubs(js,:)
+            bsubu_s = bsubu(js,:,:); bsubv_s = bsubv(js,:,:)
          END IF
 
-         DO m = 0, mnyq
+!
+!        FOURIER LOW-PASS FILTER bsubX
+
+         DO m = 0, mpol1
             mparity = MOD(m, 2)
-            DO n = 0, nnyq
+            DO n = 0, ntor
+!
+!        FOURIER TRANSFORM
+!
                dnorm1 = one/r0scale**2
                IF (m .eq. mnyq) dnorm1 = p5*dnorm1
                IF (n.eq.nnyq .and. n.ne.0) dnorm1 = p5*dnorm1
                bsubsmn1 = 0;  bsubsmn2 = 0
-               IF (lasym) bsubsmn3 = 0;  bsubsmn4 = 0
-!               IF (m.gt.mpol1 .or. n.gt.ntor) GOTO 222
+               IF (lasym) THEN
+                  dnorm1 = 2*dnorm1              !SPH012314 in FixAray
+                  bsubsmn3 = 0;  bsubsmn4 = 0
+               END IF
                bsubumn1 = 0;  bsubumn2 = 0;  bsubvmn1 = 0;  bsubvmn2 = 0
-               IF (lasym)
-     1         bsubumn3 = 0;  bsubumn4 = 0;  bsubvmn3 = 0;  bsubvmn4 = 0
+               IF (lasym) THEN
+                  bsubumn3 = 0; bsubumn4 = 0; bsubvmn3 = 0; bsubvmn4 = 0
+               END IF
 
                DO k = 1, nzeta
                   lk = k
@@ -216,16 +244,16 @@
                      tsini2 = cosmui(j,m)*sinnv(k,n)*dnorm1
                      tcosi1 = cosmui(j,m)*cosnv(k,n)*dnorm1
                      tcosi2 = sinmui(j,m)*sinnv(k,n)*dnorm1
-                     bsubsmn1 = bsubsmn1 + tsini1*bsubs_s(lk,0)
-                     bsubsmn2 = bsubsmn2 + tsini2*bsubs_s(lk,0)
+                     bsubsmn1 = bsubsmn1 + tsini1*bsubs_s(lk)
+                     bsubsmn2 = bsubsmn2 + tsini2*bsubs_s(lk)
                      bsubvmn1 = bsubvmn1 + tcosi1*bsubv_s(lk, mparity)
                      bsubvmn2 = bsubvmn2 + tcosi2*bsubv_s(lk, mparity)
                      bsubumn1 = bsubumn1 + tcosi1*bsubu_s(lk, mparity)
                      bsubumn2 = bsubumn2 + tcosi2*bsubu_s(lk, mparity)
 
                      IF (lasym) THEN
-                     bsubsmn3 = bsubsmn3 + tcosi1*bsubs_a(lk,0)
-                     bsubsmn4 = bsubsmn4 + tcosi2*bsubs_a(lk,0)
+                     bsubsmn3 = bsubsmn3 + tcosi1*bsubs_a(lk)
+                     bsubsmn4 = bsubsmn4 + tcosi2*bsubs_a(lk)
                      bsubvmn3 = bsubvmn3 + tsini1*bsubv_a(lk, mparity)
                      bsubvmn4 = bsubvmn4 + tsini2*bsubv_a(lk, mparity)
                      bsubumn3 = bsubumn3 + tsini1*bsubu_a(lk, mparity)
@@ -233,15 +261,24 @@
                      END IF
 
                      lk = lk + nzeta
+
                   END DO
                END DO
 
 !
+!              FOURIER INVERSE TRANSFORM
 !              Compute on u-v grid (must add symmetric, antisymmetric parts for lasym=T)
 ! 
                DO k = 1, nzeta
                   lk = k
                   DO j = 1, ntheta2
+                     tcos1 = cosmu(j,m)*cosnv(k,n)
+                     tcos2 = sinmu(j,m)*sinnv(k,n)
+                     bsubua(lk,0) = bsubua(lk,0) + tcos1*bsubumn1 +
+     1                  tcos2*bsubumn2
+                     bsubva(lk,0) = bsubva(lk,0) + tcos1*bsubvmn1 +
+     1                  tcos2*bsubvmn2
+
                      tcosm1 = cosmum(j,m)*cosnv(k,n)
                      tcosm2 = sinmum(j,m)*sinnv(k,n)
                      bsubsu(js,lk,0) = bsubsu(js,lk,0) +
@@ -250,14 +287,21 @@
                      tcosn2 = cosmu(j,m)*cosnvn(k,n)
                      bsubsv(js,lk,0) = bsubsv(js,lk,0) +
      1                  tcosn1*bsubsmn1 + tcosn2*bsubsmn2
-                     bsubvu(js,lk) = bsubvu(js,lk) + (
+                     bsubvu(js,lk) = bsubvu(js,lk) + 
      1                               sinmum(j,m)*cosnv(k,n)*bsubvmn1 +
-     2                               cosmum(j,m)*sinnv(k,n)*bsubvmn2)
-                     bsubuv(js,lk) = bsubuv(js,lk) + (
+     2                               cosmum(j,m)*sinnv(k,n)*bsubvmn2
+                     bsubuv(js,lk) = bsubuv(js,lk) + 
      1                               cosmu(j,m)*sinnvn(k,n)*bsubumn1 +
-     2                               sinmu(j,m)*cosnvn(k,n)*bsubumn2)
+     2                               sinmu(j,m)*cosnvn(k,n)*bsubumn2
 
                      IF (lasym) THEN
+                     tsin1 = sinmu(j,m)*cosnv(k,n)
+                     tsin2 = cosmu(j,m)*sinnv(k,n)
+                     bsubua(lk,1) = bsubua(lk,1) + tsin1*bsubumn3 +
+     1                  tsin2*bsubumn4
+                     bsubva(lk,1) = bsubva(lk,1) + tsin1*bsubvmn3 +
+     1                  tsin2*bsubvmn4
+
                      tsinm1 = sinmum(j,m)*cosnv(k,n)
                      tsinm2 = cosmum(j,m)*sinnv(k,n)
                      bsubsu(js,lk,1) = bsubsu(js,lk,1) +
@@ -266,76 +310,87 @@
                      tsinn2 = sinmu(j,m)*cosnvn(k,n)
                      bsubsv(js,lk,1) = bsubsv(js,lk,1) +
      1                   tsinn1*bsubsmn3 + tsinn2*bsubsmn4
+                     bsubvu(js,lk) = bsubvu(js,lk) + 
+     1                               cosmum(j,m)*cosnv(k,n)*bsubvmn3 +
+     2                               sinmum(j,m)*sinnv(k,n)*bsubvmn4
+                     bsubuv(js,lk) = bsubuv(js,lk) + 
+     1                               sinmu(j,m)*sinnvn(k,n)*bsubumn3 +
+     2                               cosmu(j,m)*cosnvn(k,n)*bsubumn4
                      END IF
+
                      lk = lk + nzeta
+
                   END DO
                END DO
 
- 222           CONTINUE
+!
+!              bsubsmn: coefficients of sin(mu)cos(nv), n>=0, cos(mu)sin(nv), n<0 (type=0)
+!                                       cos(mu)cos(nv), n>=0, sin(mu)sin(nv), n<0 (type=1, nonzero only for lasym=T)
+!
+               IF (.not.lprint) CYCLE          !Don't need these except for comparison
 
-!
-!              bsubsmn: coefficients of sin(mu-nv), (type=0)
-!                                       cos(mu-nv), (type=1, nonzero only for lasym=T)
-!
-               IF (m .eq. 0) THEN
-                  bsubsmn(js,m,n,0) =-bsubsmn2
-                  IF (n .ne. 0) bsubsmn(js,m,-n,0)= 0
-               ELSE IF (n .eq. 0) THEN
-                  bsubsmn(js,m,n,0) = bsubsmn1
-               ELSE
-                  bsubsmn(js,m,n,0)  = p5*(bsubsmn1 - bsubsmn2)
-                  bsubsmn(js,m,-n,0) = p5*(bsubsmn1 + bsubsmn2)
-               END IF
+               bsubsmn(js,m,n,0) = bsubsmn1
+               IF (n .gt. 0) bsubsmn(js,m,-n,0) = bsubsmn2
              
                IF (.not.lasym) CYCLE
 
-               IF (m .eq. 0) THEN
-                  bsubsmn(js,m,n,1) = bsubsmn3
-                  IF (n .ne. 0) bsubsmn(js,m,-n,1)= 0
-               ELSE IF (n .eq. 0) THEN
-                  bsubsmn(js,m,n,1) = bsubsmn3
-               ELSE
-                  bsubsmn(js,m,n,1)  = p5*(bsubsmn3 + bsubsmn4)
-                  bsubsmn(js,m,-n,1) = p5*(bsubsmn3 - bsubsmn4)
-               END IF
+               bsubsmn(js,m,n,1) = bsubsmn3
+               IF (n .gt. 0) bsubsmn(js,m,-n,0) = bsubsmn4
 
             END DO
          END DO
 
+         IF (lasym) THEN
+!           EXTEND FILTERED bsubu, bsubv TO NTHETA3 MESH
+!           NOTE: INDEX 0 - COS(mu-nv) SYMMETRY; 1 - SIN(mu-nv) SYMMETRY
+            CALL fext_fft (bsubu(js,:,0), bsubua(:,0), bsubua(:,1))
+            CALL fext_fft (bsubv(js,:,0), bsubva(:,0), bsubva(:,1))
+         ELSE
+            bsubu(js,:,0) = bsubua(:,0)
+            bsubv(js,:,0) = bsubva(:,0)
+         END IF
+
       END DO radial
 
+      DEALLOCATE (bsubua, bsubva)
+
+!     EXTEND bsubsu, bsubsv TO NTHETA3 MESH
       IF (lasym) CALL fsym_invfft (bsubsu, bsubsv)
 
-!     skip Bsubs correction - uses Bsubs from metric elements
+#ifdef _ANIMEC
+      CALL bimax_ppargrad(pp1, pp2, gsqrt, ppar, onembc, pres, 
+     1                    phot,tpotb)
+#endif
+
+!     SKIPS Bsubs Correction - uses Bsubs from metric elements
       IF (.not.lbsubs) GOTO 1500          
 
-!***********************************************************************!
+!
 !     Compute corrected Bsubs coefficients (brhomn) (impacts currents)
 !     by solving es dot (KXB - gradp_parallel) = 0 equation for brhomn in REAL SPACE
 !     Can be written Bsupu d(bs)/du + Bsupv d(bs)/dv = RHS (jxb below), bs==bsubs
 !     brho==sigma B_s, pp1 and pp2 are the Jacobian times the hot particle parallel
 !     pressure radial gradient Amplitudes on the full integer mesh
-!***********************************************************************
 !
-#ifdef _ANIMEC
-      CALL bimax_ppargrad(pp1, pp2, gsqrt, ppar, onembc, pres, 
-     1                    phot,tpotb)
-#endif
       correct_bsubs: DO js = 2, ns-1
          jxb(:) = p5*(gsqrt(js,:) + gsqrt(js+1,:))
-         bsupu1(:) = p5*(bsupu(js  ,:)*gsqrt(js  ,:) 
-     1    +              bsupu(js+1,:)*gsqrt(js+1,:) )
-         bsupv1(:) = p5*(bsupv(js,  :)*gsqrt(js,  :) 
-     1    +              bsupv(js+1,:)*gsqrt(js+1,:) )
+         bsupu1(:) = p5*(bsupu(js,:)*gsqrt(js,:)
+     1    + bsupu(js+1,:)*gsqrt(js+1,:))
+         bsupv1(:) = p5*(bsupv(js,:)*gsqrt(js,:)
+     1    + bsupv(js+1,:)*gsqrt(js+1,:))
          brho(js,:) = ohs*
      1   ( bsupu1(:)*(bsubu(js+1,:,0) - bsubu(js,:,0))
      2   + bsupv1(:)*(bsubv(js+1,:,0) - bsubv(js,:,0)))
-     3   + ohs*(pres(js+1)          - pres(js))*jxb(:)  
+     3   + (pres(js+1) - pres(js))*ohs*jxb(:)
 #ifdef _ANIMEC
 !WAC Last two lines of brho contain hot particle parallel pressure gradients
      4   + ohs*((pres(js+1)*phot(js+1) - pres(js)*phot(js)) * pp2(js,:)
      5   +      (tpotb(js+1)           - tpotb(js)      ) * pp1(js,:))
 #endif
+!
+!     SUBTRACT FLUX-SURFACE AVERAGE FORCE BALANCE FROM brho, OTHERWISE
+!     LOCAL FORCE BALANCE EQUATION B dot grad(Bs) = brho CAN'T BE SOLVED
+!
          brho00(js) = SUM(brho(js,:)*wint(js:nrzt:ns))
          brho(js,:) = brho(js,:) - signgs*jxb(:)*brho00(js)/
      1      (p5*(vp(js) + vp(js+1)))
@@ -343,16 +398,18 @@
          jxb(:) = brho(js,:)
          CALL getbsubs (brhomn, jxb, bsupu1, bsupv1, mnyq, nnyq, info)
          IF (info .ne. 0) THEN
-            PRINT *, 'Error in GETBRHO: info= ',info
-            EXIT
-         END IF
-         IF (lprint) THEN
+            PRINT *, 'Error in GETBRHO: info= ',info, ' js= ',js
+         ELSE IF (lprint) THEN
             WRITE (33, *) ' JS = ', js
+            IF (lasym) THEN
+            WRITE (33, '(a)') 
+     1      '   M    N        BSUBS(old)        BSUBS(new)' //
+     2      '        BSUBS(old)        BSUBS(new)'
+            ELSE
             WRITE (33, *) '  M    N        BSUBS(old)        BSUBS(new)'
-            DO m = 0, mnyq
-               nmin = -nnyq
-               IF (m .eq. 0) nmin = 0
-               DO n = nmin, nnyq
+            END IF
+            DO m = 0, mpol1
+               DO n = -ntor, ntor
                   IF (lasym) THEN
                   WRITE(33,1223) m, n, bsubsmn(js,m,n,0), brhomn(m,n,0),
      1                                 bsubsmn(js,m,n,1), brhomn(m,n,1)
@@ -371,36 +428,37 @@
 !
          itheta(js,:) = bsubsu(js,:,0);  izeta (js,:) = bsubsv(js,:,0)
 
-         IF (info .ne. 0) GOTO 1500
-         bsubsu(js,:,:) = 0;   bsubsv(js,:,:) = 0;  bsubs_s = 0;
+         IF (info .ne. 0) CYCLE
+         bsubsu(js,:,:) = 0;   bsubsv(js,:,:) = 0;  bsubs_s = 0
          IF (lasym) bsubs_a = 0;
 
-!DOES NOT WORK YET FOR lasym = T
          DO m = 0, mnyq
             DO n = 0, nnyq
                IF (n .eq. 0) THEN
-                  bsubsmn1 = brhomn(m,n,0)
+                  bsubsmn1 = brhomn(m,0,0)
                   bsubsmn2 = 0
                ELSE
-                  bsubsmn1 = brhomn(m,n,0) + brhomn(m,-n,0)
-                  bsubsmn2 =-brhomn(m,n,0) + brhomn(m,-n,0)
+                  bsubsmn1 = brhomn(m,n,0)
+                  bsubsmn2 = brhomn(m,-n,0)
                END IF
+
                IF (lasym) THEN
-               IF (n .eq. 0) THEN
-                  bsubsmn3 = brhomn(m,n,1)
-                  bsubsmn4 = 0
-               ELSE
-                  bsubsmn3 = brhomn(m,n,1) + brhomn(m,-n,1)
-                  bsubsmn4 = brhomn(m,n,1) - brhomn(m,-n,1)
+                  IF (n .eq. 0) THEN
+                     bsubsmn3 = brhomn(m,0,1)
+                     bsubsmn4 = 0
+                  ELSE
+                     bsubsmn3 = brhomn(m,n,1)
+                     bsubsmn4 = brhomn(m,-n,1)
+                  END IF
                END IF
-               END IF
+
                DO k = 1, nzeta
                   lk = k
                   DO j = 1, ntheta2
                      tsin1 = sinmu(j,m)*cosnv(k,n)
                      tsin2 = cosmu(j,m)*sinnv(k,n)
-                     bsubs_s(lk,0) = bsubs_s(lk,0) + tsin1*bsubsmn1
-     1                                             + tsin2*bsubsmn2
+                     bsubs_s(lk) = bsubs_s(lk) + tsin1*bsubsmn1
+     1                                         + tsin2*bsubsmn2
                      tcosm1 = cosmum(j,m)*cosnv(k,n)
                      tcosm2 = sinmum(j,m)*sinnv(k,n)
                      bsubsu(js,lk,0) = bsubsu(js,lk,0) +
@@ -411,11 +469,10 @@
      1                  tcosn1*bsubsmn1 + tcosn2*bsubsmn2
                      
                      IF (lasym) THEN
-                 
                      tcos1 = cosmu(j,m)*cosnv(k,n)
                      tcos2 = sinmu(j,m)*sinnv(k,n)
-                     bsubs_a(lk,0) = bsubs_a(lk,0) + tcos1*bsubsmn3
-     1                                             + tcos2*bsubsmn4
+                     bsubs_a(lk) = bsubs_a(lk) + tcos1*bsubsmn3
+     1                                         + tcos2*bsubsmn4
                      tsinm1 = sinmum(j,m)*cosnv(k,n)
                      tsinm2 = cosmum(j,m)*sinnv(k,n)
                      bsubsu(js,lk,1) = bsubsu(js,lk,1) +
@@ -423,7 +480,7 @@
                      tsinn1 = cosmu(j,m)*sinnvn(k,n)
                      tsinn2 = sinmu(j,m)*cosnvn(k,n)
                      bsubsv(js,lk,1) = bsubsv(js,lk,1) +
-     1                  tsinn1*bsubsmn2 + tcosn2*bsubsmn3
+     1                  tsinn1*bsubsmn3 + tsinn2*bsubsmn4
 
                      END IF
  
@@ -435,15 +492,16 @@
          END DO
 
          IF (lasym) THEN
-            CALL fext_fft (bsubs(js,:), bsubs_s, bsubs_a)
+!           EXTEND TO FULL (ntheta3) u-GRID
+            bs1 => bsubs(js,:)
+            CALL fext_fft (bs1, bsubs_a, bsubs_s)
          ELSE
-            bsubs(js,:) = bsubs_s(:,0)
+            bsubs(js,:) = bsubs_s(:)
          END IF
-
 
       END DO correct_bsubs
 
-
+!     EXTEND bsubsu, bsubsv TO NTHETA3 MESH
       IF (lasym) CALL fsym_invfft (bsubsu, bsubsv)
 
 !
@@ -454,11 +512,10 @@
       WRITE (33, '(/,2a,/)') 'ANGLE INDEX       B*grad(Bs)      Frhs',
      1              '          Fold'
       check_fb: DO js = 2, ns-1
-         bsupu1(:) = p5*(bsupu(js  ,:)*gsqrt(js  ,:) 
-     1    +              bsupu(js+1,:)*gsqrt(js+1,:) )
-         bsupv1(:) = p5*(bsupv(js,  :)*gsqrt(js,  :) 
-     1    +              bsupv(js+1,:)*gsqrt(js+1,:) )
-!
+         bsupu1(:) = p5*(bsupu(js,:)*gsqrt(js,:)
+     1             +     bsupu(js+1,:)*gsqrt(js+1,:))
+         bsupv1(:) = p5*(bsupv(js,:)*gsqrt(js,:)
+     1             + bsupv(js+1,:)*gsqrt(js+1,:))
          kp2(:) = bsupu1(:)*bsubsu(js,:,0) + bsupv1(:)*bsubsv(js,:,0)
          jxb(:) = bsupu1(:)*itheta(js,:) + bsupv1(:)*izeta(js,:)
 
@@ -470,7 +527,6 @@
       END DO check_fb
 
  1230 FORMAT (i9,5x, 1p,3e14.4)
-
 
  1500 CONTINUE
 
@@ -494,7 +550,7 @@
 !     kperpx = (B X gradp) dot grad(x) / |B|**2       x=(u,v)
 !     sqgb2  = sigma*sqrt(g)*|B|**2
 !     sqrtg  = sqrt(g)
-!     pprime = delta(p_parallel)/delta(V) at fixed B
+!     pprime = d(p||)/dV
 !
 !     kp2   == |k-perp|**2 = kperpu**2 * guu + 2*kperpu*kperpv*guv + kperpv**2 * gvv
 !     This was compared to the alternative expression (agreed very well):
@@ -503,43 +559,55 @@
 !     Note: Multiply currents, pressure by 1/mu0 to get in mks units!
 !           TWOPI*TWOPI factor incorporated in vp (thru ovp factor below), so V' = (2pi)**2*vp
 !
+#ifdef NETCDF
       ALLOCATE(
-     1     bsubs3(ns,nzeta,ntheta2), bsubv3(ns,nzeta,ntheta2), 
-     2     bsubu3(ns,nzeta,ntheta2), jxb_gradp(ns,nzeta,ntheta2), 
-     3     jcrossb(ns,nzeta,ntheta2), bsupv3(ns,nzeta,ntheta2), 
-     4     bsupu3(ns,nzeta,ntheta2), jsups3(ns,nzeta,ntheta2), 
-     5     jsupv3(ns,nzeta,ntheta2), jsupu3(ns,nzeta,ntheta2),
-     6     jdotb_sqrtg(ns,nzeta,ntheta2),phin(ns),toroidal_angle(nzeta)
-     7     ,pprim(ns), pprime(nznt) )
+     1     bsubs3(ns,nzeta,ntheta3), bsubv3(ns,nzeta,ntheta3), 
+     2     bsubu3(ns,nzeta,ntheta3), jxb_gradp(ns,nzeta,ntheta3), 
+     3     jcrossb(ns,nzeta,ntheta3), bsupv3(ns,nzeta,ntheta3), 
+     4     bsupu3(ns,nzeta,ntheta3), jsups3(ns,nzeta,ntheta3), 
+     5     jsupv3(ns,nzeta,ntheta3), jsupu3(ns,nzeta,ntheta3),
+     6     jdotb_sqrtg(ns,nzeta,ntheta3), sqrtg3(ns,nzeta,ntheta3), 
+     7     phin(ns), toroidal_angle(nzeta), stat=j)
 
       bsubs3=0; bsubv3=0; bsubu3=0; jxb_gradp=0
       jcrossb=0 ; bsupv3=0; bsupu3=0; jsups3=0
       jsupv3=0; jsupu3=0; phin=0; phin(ns)=1
-      jdotb_sqrtg=0; pprim=0; pprime=0
+      jdotb_sqrtg=0; sqrtg3=0 
+#endif
+ 
+      ALLOCATE (pprime(nznt), pprim(ns),stat=j)
+      pprim=0
+
       avforce=0; aminfor=0; amaxfor=0
       dnorm1 = twopi*twopi
-!***********************************************************************
-!     EVALUATION OF partial p_parallel/partial s AT FIXED B.
-!     Compute hot particle parallel pressure gradient at fixed B based
-!     on a Bi-Maxwellian distribution function to model fast particles
-!********0!********0!********0!********0!********0!********0!********0*|
-!
-#ifdef _ANIMEC
-      pp3(:nrzt) = one
-      CALL bimax_ppargrad(pp1, pp2, pp3, ppar, onembc, pres, 
-     1                    phot, tpotb)
-#endif
-      evaluate currents:     DO js = 2, ns1
+
+      DO js = 2, ns1
          ovp = two/(vp(js+1) + vp(js))/dnorm1
          tjnorm = ovp*signgs
+         sqgb2(:nznt) = sigma_an(js+1,:)*gsqrt(js+1,:)*
+     1                  (bsq(js+1,:)- pres(js+1))
+     2                + sigma_an(js,:)*gsqrt(js,:)    *
+     3                  (bsq(js,:) - pres(js))
+#ifdef _ANIMEC
          sqgb2(:nznt) = sigma_an(js+1,:nznt)*gsqrt(js+1,:nznt)
      1                * bsq(js+1,:nznt)
      2                + sigma_an(js  ,:nznt)*gsqrt(js  ,:nznt)
      3                * bsq(js  ,:nznt)
+#elif defined _FLOW
+!         sqgb2(:nznt) = sigma_an(js+1,:nznt)*gsqrt(js+1,:nznt)
+!     1                * (bsq(js+1,:nznt)-prot(js+1,:nznt))
+!     2                + sigma_an(js  ,:nznt)*gsqrt(js  ,:nznt)
+!     3                * (bsq(js  ,:nznt)-prot(js  ,:nznt))
+#else
+         sqgb2(:nznt) = sigma_an(js+1,:nznt)*gsqrt(js+1,:nznt)
+     1                * (bsq(js+1,:nznt)-pres(js+1))
+     2                + sigma_an(js  ,:nznt)*gsqrt(js  ,:nznt)
+     3                * (bsq(js  ,:nznt)-pres(js  ))
+#endif
 !        TAKE THIS OUT: MAY BE POORLY CONVERGED AT THIS POINT....
 !         IF (ANY(sqgb2(:nznt)*signgs .le. zero)) 
 !     1       STOP ' SQGB2 <= 0 in JXBFORCE'
-         pprime(:nznt) = ohs*(pres(js+1)-pres(js))/mu0               !dp/ds here
+         pprime(:) = ohs*(pres(js+1)-pres(js))/mu0              !dp/ds here
 #ifdef _ANIMEC
 !WAC  Last two lines of 'pprime' contain the hot particle parallel pressure
      1 + ohs*((pres(js+1)*phot(js+1) - pres(js)*phot(js))*pp2(js,:nznt) 
@@ -547,9 +615,9 @@
      3  / mu0
 #endif
          kperpu(:nznt) = p5*(bsubv(js+1,:nznt,0) + bsubv(js,:nznt,0))*
-     1                       pprime(:nznt)/sqgb2(:nznt)
+     1                       pprime(:)/sqgb2
          kperpv(:nznt) =-p5*(bsubu(js+1,:nznt,0) + bsubu(js,:nznt,0))*
-     1                       pprime(:nznt)/sqgb2(:nznt)
+     1                       pprime(:)/sqgb2
          kp2(:nznt)=p5*(kperpu**2*(guu(js+1:nrzt:ns) + guu(js:nrzt:ns))
      1          + 2*kperpu*kperpv*(guv(js+1:nrzt:ns) + guv(js:nrzt:ns))
      2          +       kperpv**2*(gvv(js+1:nrzt:ns) + gvv(js:nrzt:ns)))
@@ -561,10 +629,9 @@
          izeta(js,:nznt)  = izeta(js,:nznt)/mu0
          sqrtg(:) = p5*(gsqrt(js,:) + gsqrt(js+1,:))
          bsupu1(:nznt) = p5*(bsupu(js+1,:nznt)*gsqrt(js+1,:)
-     1                 +     bsupu(js  ,:nznt)*gsqrt(js,  :)) / sqrtg(:)
+     1                 +     bsupu(js,:nznt)  *gsqrt(js,:)) / sqrtg(:)
          bsupv1(:nznt) = p5*(bsupv(js+1,:nznt)*gsqrt(js+1,:)
-     1                 +     bsupv(js,:nznt)  *gsqrt(js,  :)) / sqrtg(:)
-!
+     1                 +     bsupv(js,:nznt)  *gsqrt(js,:)) / sqrtg(:)
          bsubu1(:nznt) = p5*(bsubu(js+1,:nznt,0) + bsubu(js,:nznt,0))
          bsubv1(:nznt) = p5*(bsubv(js+1,:nznt,0) + bsubv(js,:nznt,0))
          jxb(:nznt) = ovp*(itheta(js,:nznt) * bsupv1(:nznt)
@@ -573,27 +640,24 @@
      1                     izeta (js,:nznt) * bsubv1(:nznt)
          pprime(:nznt) = ovp*pprime(:nznt)
          pnorm = one/(ABS(pprime(1)) + EPSILON(pprime(1)))
-         amaxfor(js) = MAXVAL(jxb(1:nznt)-pprime(1:nznt))*pnorm
-         aminfor(js) = MINVAL(jxb(1:nznt)-pprime(1:nznt))*pnorm
-         avforce(js) = SUM(wint(2:nrzt:ns)*(jxb(:nznt) - pprime(:nznt)))
+         amaxfor(js) = MAXVAL(jxb(:nznt)-pprime(:))*pnorm
+         aminfor(js) = MINVAL(jxb(:nznt)-pprime(:))*pnorm
+         avforce(js) = SUM(wint(2:nrzt:ns)*(jxb(:nznt) - pprime(:)))
          amaxfor(js) = 100*MIN(amaxfor(js),9.999_dp)
          aminfor(js) = 100*MAX(aminfor(js),-9.999_dp)
-!        pprim(js) = pprime
-         pprim(js) = SUM(wint(2:nrzt:ns)*pprime(:nznt))
+         pprim(js) = SUM(wint(js:nrzt:ns)*pprime(:))
 !        Compute <K dot B>, <B sup v> = signgs*phip
-!        jpar2 = <K||**2>, jperp2 = <K-perp**2>,  with <...> = flux surface average
+!        jpar2 = <j||**2>, jperp2 = <j-perp**2>,  with <...> = flux surface average
 
          jdotb(js) = dnorm1*tjnorm*SUM(bdotk(js,:nznt)*wint(2:nrzt:ns)
-     1                             / sigma_an(js,:nznt))
+     1                               / sigma_an(js,:nznt))
          bdotb(js) = dnorm1*tjnorm*SUM(sqgb2(:nznt)*wint(2:nrzt:ns)
-     1                             / sigma_an(js,:nznt))
+     1                               / sigma_an(js,:nznt))
               
          bdotgradv(js) = p5*dnorm1*tjnorm*(phip(js) + phip(js+1))
          jpar2(js) = dnorm1*tjnorm*
-     1         SUM(bdotk(js,:nznt)**2*wint(2:nrzt:ns)
-     2                               /(sigma_an(js,:nznt)*sqgb2(:nznt)))
-!     1         SUM(bdotk(js,:nznt)**2*sigma_an(js,:nznt)*wint(2:nrzt:ns)
-!     2               /sqgb2(:nznt))
+     1            SUM(bdotk(js,:nznt)**2*wint(2:nrzt:ns)
+     2              /(sigma_an(js,:nznt)*sqgb2(:nznt)))
          jperp2(js)= dnorm1*tjnorm*
      1            SUM(kp2(:nznt)*wint(2:nrzt:ns)*sqrtg(:nznt))
 
@@ -602,18 +666,19 @@
             phin(js) = phi(js)/phi(ns)
             DO lz = 1, nzeta
                toroidal_angle(lz)=REAL(360*(lz-1),rprec)/nzeta
-               DO lt = 1, ntheta2
+               DO lt = 1, ntheta3
                   lk = lz + nzeta*(lt-1)
-!                 lu (js,lz,lt ) =  lt
-                  jsupu3 (js,lz,lt) =  ovp*itheta(js,lk)
-                  jsupv3 (js,lz,lt) =   ovp*izeta(js,lk) 
-                  jsups3 (js,lz,lt) =  ovp*(bsubuv(js,lk) 
-     `                              - bsubvu(js,lk))/mu0
+C                 lu (js,lz,lt ) =  lt
+                  jsupu3 (js,lz,lt) = ovp*itheta(js,lk)
+                  jsupv3 (js,lz,lt) = ovp*izeta(js,lk) 
+                  jsups3 (js,lz,lt) = ovp*(bsubuv(js,lk)
+     1					          -      bsubvu(js,lk))/mu0
                   bsupu3 (js,lz,lt) = bsupu1(lk)
                   bsupv3 (js,lz,lt) = bsupv1(lk)
                   jcrossb (js,lz,lt) = jxb(lk)
                   jxb_gradp (js,lz,lt) = (jxb(lk) - pprime(lk))
                   jdotb_sqrtg (js,lz,lt) = ovp*bdotk(js,lk) 
+                  sqrtg3(js,lz,lt) = sqrtg(lk)*ovp
                   bsubu3(js,lz,lt) = bsubu(js,lk,0)
                   bsubv3(js,lz,lt) = bsubv(js,lk,0)
                   bsubs3(js,lz,lt) = bsubs(js,lk)
@@ -621,14 +686,14 @@
             END DO
 #else
             WRITE (njxbout, 200) phi(js), avforce(js), jdotb(js),
-     1         bdotgradv(js), pprim(js), one/ovp, 
-     2         dnorm1*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
-     3         dnorm1*tjnorm*SUM(izeta (js,:)*wint(js:nrzt:ns)),
+     1         bdotgradv(js), pprime(1), one/ovp, 
+     2         (twopi**2)*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
+     3         (twopi**2)*tjnorm*SUM(izeta (js,:)*wint(js:nrzt:ns)),
      4         amaxfor(js), aminfor(js)
             WRITE (njxbout, 90)
             DO lz = 1, nzeta, nv_skip
                WRITE (njxbout, 100) REAL(360*(lz-1),rprec)/nzeta, lz
-               DO lt = 1, ntheta2, nu_skip
+               DO lt = 1, ntheta3, nu_skip
                   lk = lz + nzeta*(lt - 1)
                   WRITE (njxbout, 110) lt, tjnorm*itheta(js,lk),
      1              tjnorm*izeta(js,lk), ovp*(bsubuv(js,lk) -
@@ -640,7 +705,7 @@
             END DO
 #endif
          ENDIF
-      END DO  evaluate currents
+      END DO
 
       izeta(1,:nznt) = two*izeta(2,:nznt) - izeta(3,:nznt)           !!Need in wrout
       izeta(ns,:nznt)= two*izeta(ns-1,:nznt) - izeta(ns-2,:nznt)     !!Need in wrout
@@ -661,10 +726,14 @@
       CALL cdf_define(njxbout,vn_ntor,ntor)
       CALL cdf_define(njxbout,vn_phin,phin)
       CALL cdf_define(njxbout,vn_radial_surfaces,ns)
-      CALL cdf_define(njxbout,vn_poloidal_grid_points,ntheta2)
+      CALL cdf_define(njxbout,vn_poloidal_grid_points,ntheta3)
       CALL cdf_define(njxbout,vn_toroidal_grid_points,nzeta)
       CALL cdf_define(njxbout,vn_avforce,avforce)
       CALL cdf_define(njxbout,vn_jdotb,jdotb)
+ 
+      CALL cdf_define(njxbout,vn_sqg_bdotk,jdotb_sqrtg)
+      CALL cdf_define(njxbout,vn_sqrtg,sqrtg3)
+
       CALL cdf_define(njxbout,vn_bdotgradv,bdotgradv)
       CALL cdf_define(njxbout,vn_pprime,pprim)
       CALL cdf_define(njxbout,vn_aminfor,aminfor)
@@ -685,10 +754,14 @@
       CALL cdf_write(njxbout,vn_ntor,ntor)
       CALL cdf_write(njxbout,vn_phin,phin)
       CALL cdf_write(njxbout,vn_radial_surfaces,ns)
-      CALL cdf_write(njxbout,vn_poloidal_grid_points,ntheta2)
+      CALL cdf_write(njxbout,vn_poloidal_grid_points,ntheta3)
       CALL cdf_write(njxbout,vn_toroidal_grid_points,nzeta)
       CALL cdf_write(njxbout,vn_avforce,avforce)
       CALL cdf_write(njxbout,vn_jdotb,jdotb)
+
+      CALL cdf_write(njxbout,vn_sqg_bdotk,jdotb_sqrtg)
+      CALL cdf_write(njxbout,vn_sqrtg,sqrtg3)
+
       CALL cdf_write(njxbout,vn_bdotgradv,bdotgradv)
       CALL cdf_write(njxbout,vn_pprime,pprim)
       CALL cdf_write(njxbout,vn_aminfor,aminfor)
@@ -705,6 +778,12 @@
       CALL cdf_write(njxbout,vn_bsubs,bsubs3)
  
       CALL cdf_close(njxbout)
+
+      DEALLOCATE(
+     1     bsubs3, bsubv3, bsubu3, jxb_gradp, jcrossb, bsupv3, 
+     2     bsupu3, jsups3, jsupv3, jsupu3, jdotb_sqrtg, phin, 
+     3     toroidal_angle, sqrtg3, stat=j)
+
 #else
       CLOSE (njxbout)
 
@@ -726,18 +805,15 @@
       END IF
       
       DEALLOCATE (kperpu, kperpv, sqgb2, sqrtg, kp2, brhomn, bsubsmn, 
-     1    jxb, jxb2, bsupu1, bsupv1, bsubu1, bsubv1, pprime)
-      DEALLOCATE (bsubs3, bsubv3, bsubu3, jxb_gradp, jcrossb, 
-     1     bsupv3, bsupu3, jsups3, jsupv3, jsupu3,
-     2     avforce, aminfor, amaxfor, phin, pprim, toroidal_angle)
+     1    jxb, jxb2, bsupu1, bsupv1, bsubu1, bsubv1, avforce, aminfor, 
+     2    amaxfor, pprim, stat=j)
 !
 !     COMPUTE MERCIER CRITERION
 !
       bdotk = mu0*bdotk
-!      IF (ALL(ph <= 1.0e-6_dp))
       CALL Mercier(gsqrt,bsq,bdotk,iotas,wint,r1,ru,rv,zu,zv,bsubu,
      1             vp,phips,pres,ns,nznt)
 
-      DEALLOCATE (bdotk, bsubuv, bsubvu, stat = j)
+      DEALLOCATE (bdotk, bsubuv, bsubvu, pprime, stat=j)
 
       END SUBROUTINE jxbforce

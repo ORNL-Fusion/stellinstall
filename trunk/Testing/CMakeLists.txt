@@ -56,4 +56,12 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/input.test.vmec
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/ne_pressure_test)
 
+#  Copy common files to the v3post lasym test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/sxrem.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/v3post_lasym_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/v3post_lasym_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/v3post_lasym_test)
+
 add_subdirectory (tests)

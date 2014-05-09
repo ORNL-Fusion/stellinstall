@@ -154,10 +154,6 @@ C-----------------------------------------------
       faccon(mpol1) = zero
       faccon(1:mpol1-1) = -0.25_dp*signgs/xmpq(2:mpol1,1)**2
 
-#ifdef _HBANGLE
-      CALL init_multipliers
-#endif
-
       IF (lrecon) CALL getgreen
 
       END SUBROUTINE fixaray

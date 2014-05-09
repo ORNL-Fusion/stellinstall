@@ -497,13 +497,13 @@ C-----------------------------------------------
       DEALLOCATE (r3v)
 
 !     nphi-plane, noff = 1,....,nzeta
-      DO nplanes = 1, 2
+      PLANES: DO nplanes = 1, 2
          IF (nplanes .eq. 1) THEN
-            noff = 1
+            noff = 1                                         !nphi=0
          ELSE
             IF (nzeta .eq. 1) EXIT
             WRITE (nthreed, 95)
-            noff = 1 + nzeta/2
+            noff = 1+nzeta/2                                 !nphi=180
          END IF
           
          ygeo(1) = zero
@@ -518,7 +518,7 @@ C-----------------------------------------------
             DO icount = 1,2
                n1 = noff                                      !nphi-plane, n1 = noff,...,nzeta
                IF (icount .eq. 2)
-     1         n1 = MOD(nzeta + 1 - noff,nzeta) + 1           !(twopi-v), reflected plane
+     1         n1 = MOD(nzeta+1-noff,nzeta)+1                 !(twopi-v), reflected plane
                loff = js + ns*(n1-1)
                t1 = one
                IF (icount .eq. 2) t1 = -one
@@ -545,8 +545,8 @@ C-----------------------------------------------
             END DO
 
 
-            lpi = ns*((noff-1) + nzeta*(ntheta2 - 1))
-            lt  = ns*((noff-1))
+            lpi = ns*((noff-1) + nzeta*(ntheta2-1))   !theta=180
+            lt  = ns*(noff-1)                         !theta=0
             xmida = r1(js+lpi,0) + sqrts(js)*r1(js+lpi,1)
             xmidb = r1(js+lt,0)  + sqrts(js)*r1(js+lt,1)
 
@@ -556,8 +556,8 @@ C-----------------------------------------------
             yinden(js) = (xmida - xmin)/(xmax - xmin) !Geometric indentation
             yellip(js) = (zmax - zmin)/(xmax - xmin)  !Geometric ellipticity
    
-            ytrian(js) = (rgeo - rzmax)/(xmax - xmin) !Geometric triangularity
-            yshift(js) = (r1(1+lt,0)-rgeo)/(xmax - xmin) !Geometric shift
+            ytrian(js) = (rgeo - rzmax)/(xmax - xmin)    !Geometric triangularity
+            yshift(js) = (r1(1+lt,0)-rgeo)/(xmax - xmin) !Geometric shift measured from magnetic axis
 
             IF (jperp2(js) .eq. zero) jperp2(js) = EPSILON(jperp2(js))
             jpar_perp = jpar2(js)/jperp2(js)
@@ -575,9 +575,8 @@ C-----------------------------------------------
                WRITE (nthreed, 120) js, psi(js), ygeo(js), yellip(js),
      1            yinden(js), ytrian(js), yshift(js)
             END IF
-
          END DO
-      END DO
+      END DO PLANES
 
    95 FORMAT(/,71('-'),/,' Toroidal Plane: Phi = 180/Nfp',/,71('-'),/)
   120 FORMAT(1x,i5,6f14.5,1p,3e14.2)

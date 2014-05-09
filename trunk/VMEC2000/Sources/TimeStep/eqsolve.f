@@ -5,7 +5,6 @@
      2                       successful_term_flag
       USE precon2d, ONLY: ScratchFile, lswap2disk, ictrl_prec2d
       USE directaccess, ONLY: DeleteDAFile
-
       USE realspace
       USE vsvd
       USE xstuff
@@ -37,7 +36,6 @@ C-----------------------------------------------
 !                Lambda when jacobian changes sign and decreases time step
 !        signgs  sign of Jacobian : must be =1 (right-handed) or =-1 (left-handed)
 
-!        lflip   = F if input signgs < 0; = T if input signgs > 0 and needs to be (internally) flipped
 !        iterj   stores position in main iteration loop (j=1,2)
 !        itfsq   counter for storing FSQ into FSQT for plotting
 !        ivac    counts number of free-boundary iterations
@@ -71,14 +69,15 @@ C-----------------------------------------------
          xc = 0
          CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, .FALSE.)
          irst = 1
+         IF (liter_flag) CALL restart_iter(delt0)
       END IF
-      if (liter_flag) CALL restart_iter(delt0)
+!      IF (liter_flag) CALL restart_iter(delt0)
+      liter_flag = .true.
       ier_flag = norm_term_flag
 
 !
 !     FORCE ITERATION LOOP
 !
-      liter_flag = .true.
 
       iter_loop: DO WHILE (liter_flag)
 !
@@ -207,24 +206,14 @@ C-----------------------------------------------
 !JDH 2011-09-14. Correct logic error.
 
 !         IF (ictrl_prec2d .eq. 0) THEN
-
 !            lqmr = (itype_precon .ge. 2)
-
 !         ELSE
-
          IF (ictrl_prec2d .gt. 0) THEN
-
             CALL restart_iter(delt0)
-
          END IF
-
       END IF
 
-
-
       IF (lSwap2Disk) CALL DeleteDAFile(ScratchFile)
-
-
 
       WRITE (nthreed, 60) w0*twopi**2, wdota, r0dot
       IF (lrecon) WRITE (nthreed, 70) r00*fsqsum0/wb

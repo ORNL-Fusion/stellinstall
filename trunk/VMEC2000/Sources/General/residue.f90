@@ -32,35 +32,12 @@
 !     (ZCS = RSS, ZSS = RCS ARE THE CORRECT POLAR RELATIONS)
 !
 #ifdef _HBANGLE
-!
-!     UNIQUE ANGLE REQUIRES CONSTRAINT BETWEEN RHO(m=1) AND R(m=0)
-!     FRHO(m=1) = 0 OR FR(m=0) = 0 WILL WORK
-!
-!      ONE OF THESE REMOVED ZERO EIGENVALUE
-      fac = (fsqr+fsqz)*1.E8
-
-      IF (ICTRL_PREC2D .GT. 0) THEN
-!         gcr(:,:,m1,:) = 0
-!         gcz(:,:,m0,:) = 0
-      ELSE IF (fac .LT. one) THEN
-!         fac = SQRT(MAX(1.E-6_dp,fac))
-!         gcr(:,:,m1,:) = fac*gcr(:,:,m1,:)
-!         gcz(:,:,m0,:) = fac*gcz(:,:,m0,:)
-      END IF
-      IF (lthreed) THEN
-         IF (ANY(gcr(:,:,m0,rss).NE.zero)) STOP 'GCR(m0,rss) != 0'
-      END IF
-      IF (lasym) THEN
-         IF (ANY(gcr(:,:,m0,rsc).NE.zero)) STOP 'GCR(m=0,rsc) != 0'
-      END IF
 !FREE-BDY RFP MAY NEED THIS TO IMPROVE CONVERGENCE (SPH 022514)
       IF (lfreeb .AND. lrfp) THEN
-!      IF (lfreeb .AND. lrfp .AND. iter2 .gt. 2000) THEN
          fac = 0
          IF (ictrl_prec2d .EQ. 0) fac = 1.E-1_dp
          gcz(ns,0,m0,:) = fac*gcz(ns,0,m0,:)
       END IF
-
 #else
 !
 !     SYMMETRIC PERTURBATIONS (BASED ON POLAR RELATIONS):
@@ -187,7 +164,7 @@
 #endif
 
 !SPH: add fnorm1 ~ 1/R**2, since preconditioned forces gcr,gcz ~ Rmn or Zmn
-         CALL getfsq (gcr, gcz, fsqr1, fsqz1, fnorm1/4, m1)
+         CALL getfsq (gcr, gcz, fsqr1, fsqz1, fnorm1, m1)
 #ifdef _HBANGLE
 !
 !     TO IMPROVE CONVERGENCE, REDUCE FORCES INITIALLY IF THEY ARE TOO LARGE
@@ -197,7 +174,7 @@
          fac = fac / SQRT(1.E2_dp*(fsqr+fsqz))
          gcr = fac*gcr; gcz = fac*gcz 
 #endif
-!SPH: THIS IS NO INVARIANT UNDER PHIP->A*PHIP, AM->A**2*AM IN PROFIL1D
+!SPH: THIS IS NOT INVARIANT UNDER PHIP->A*PHIP, AM->A**2*AM IN PROFIL1D
 !     (EXTCUR -> A*EXTCUR for FREE BOUNDARY)
          gcl = faclam*gcl
          fsql1 = hs*SUM(gcl*gcl)
@@ -266,30 +243,3 @@
  
       END SUBROUTINE scale_m1
 
-      SUBROUTINE scale_m1_new(gcr, gcz)
-      USE vmec_main
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(rprec), DIMENSION(ns,0:ntor), INTENT(inout) :: gcr, gcz
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
-      INTEGER, PARAMETER :: nodd=2
-      INTEGER :: n
-      REAL(rprec) :: fac(ns)
-!-----------------------------------------------
-      IF (.NOT.lconm1) RETURN
-
-      fac = osqrt2*ard(:ns,nodd)/(ard(:ns,nodd) + azd(:ns,nodd))
-      DO n = 0, ntor
-         gcr(:,n) = fac*gcr(:,n)
-      END DO
-
-      fac = osqrt2*azd(:ns,nodd)/(ard(:ns,nodd) + azd(:ns,nodd))
-      DO n = 0, ntor
-         gcz(:,n) = fac*gcz(:,n)
-      END DO
-  
-      END SUBROUTINE scale_m1_new

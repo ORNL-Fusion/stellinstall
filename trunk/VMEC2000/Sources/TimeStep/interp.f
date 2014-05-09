@@ -15,8 +15,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: p5 = 0.5_dp, two = 2,
-     1   zero = 0, one = 1
+      REAL(rprec), PARAMETER :: zero=0, one=1
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -36,7 +35,7 @@ C-----------------------------------------------
       DO ntype = 1, 3*ntmax
 
          WHERE (MOD(ixm(:mnsize),2) .eq. 1) xold(1,:,ntype) =
-     1       two*xold(2,:,ntype) - xold(3,:,ntype)
+     1       2*xold(2,:,ntype) - xold(3,:,ntype)
 
          DO js = 1, nsnew
             sj = REAL(js - 1,rprec)/(nsnew - 1)
