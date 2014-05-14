@@ -265,6 +265,11 @@
             CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
      &                                   tor_planes_used, nfp)
 
+!  If the equilibrium is already converged, compute the magnetic cache as well.
+            IF (.not.this%not_converged) THEN
+               CALL vmec_set_magnetic_cache(this%vmec)
+            END IF
+
       END SELECT
 
       END SUBROUTINE
