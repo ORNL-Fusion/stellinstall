@@ -399,6 +399,7 @@
      &                       more_iter_flag
       USE vmec_input, only: l_v3fit, ns_array
       USE xstuff, only: xc
+      USE read_wout_mod, only: read_wout_file, LoadRZL
 
       IMPLICIT NONE
 
@@ -416,6 +417,7 @@
 !  local variables
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
+      INTEGER                              :: error
 
 !  Start of executable code
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
@@ -444,6 +446,12 @@
       vmec_construct%vmec_file_name = TRIM(file_name)
 
       IF (wout_file_name .ne. '') THEN
+!  An initial wout was specifiec. Load data from the wout file first incase
+!  read_wout_file deletes it.
+         CALL read_wout_file(wout_file_name, error)
+         IF (error .eq. 0) THEN
+            CALL LoadRZL
+         END IF
          CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
       ELSE
          CALL runvmec(ictrl_array, file_name, .false.)
