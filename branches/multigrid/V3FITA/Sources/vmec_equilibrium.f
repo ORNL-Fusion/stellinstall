@@ -446,13 +446,16 @@
       vmec_construct%vmec_file_name = TRIM(file_name)
 
       IF (wout_file_name .ne. '') THEN
-!  An initial wout was specifiec. Load data from the wout file first incase
-!  read_wout_file deletes it.
-         CALL read_wout_file(wout_file_name, error)
+!  runvmec deletes the string holding the wout file to read. As a result save
+!  the wout filename before using it.
+         vmec_construct%wout_file_name = wout_file_name
+         CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+         CALL read_wout_file(vmec_construct%wout_file_name, error)
          IF (error .eq. 0) THEN
             CALL LoadRZL
+         ELSE
+            STOP 'Error loading initialized wout file.'
          END IF
-         CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
       ELSE
          CALL runvmec(ictrl_array, file_name, .false.)
       END IF
