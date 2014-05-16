@@ -535,7 +535,7 @@
      &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
      &                                        ne, te, sxr, phi_offset,         &
-     &                                        pol_rad_ratio,                   &
+     &                                        z_offset, pol_rad_ratio,         &
      &                                        context%runlog_iou),             &
      &                         force_solve))
 
@@ -1966,7 +1966,7 @@
 !----------------------------------------------------------------------
 
 !----------------------------------------------------------------------
-!--  END Diagnostics Section  –  START Geometric Section             --
+!--  END Diagnostics Section  -  START Geometric Section             --
 !----------------------------------------------------------------------
 
       CALL init_signal_geometric
@@ -1986,7 +1986,7 @@
 !----------------------------------------------------------------------
 
 !----------------------------------------------------------------------
-!-–  START Coosig (Combination Of Other Signals) Section             --
+!--  START Coosig (Combination Of Other Signals) Section             --
 !----------------------------------------------------------------------
 
       CALL init_signal_coosig
