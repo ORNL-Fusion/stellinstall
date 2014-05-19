@@ -83,9 +83,12 @@
 !>
 !>  @param[in] vmec_object An instance of a @ref vmec_equilibrium subclass.
 !>  @param[in] force_solve If true, forces the equilbirum to resolve every time.
+!>  @param[in] converged   If true the equilibrium was constructed in a
+!>                         converged state.
 !>  @returns A pointer to a constructed @ref equilibrium_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_construct_vmec(vmec_object, force_solve)
+      FUNCTION equilibrium_construct_vmec(vmec_object, force_solve,            &
+     &                                    not_converged)
 
       IMPLICIT NONE
 
@@ -93,13 +96,14 @@
       TYPE (equilibrium_class), POINTER :: equilibrium_construct_vmec
       TYPE (vmec_class), POINTER        :: vmec_object
       LOGICAL, INTENT(in)               :: force_solve
+      LOGICAL, INTENT(in)               :: not_converged
 
 !  Start of executable code
       ALLOCATE(equilibrium_construct_vmec)
 
       equilibrium_construct_vmec%type = equilibrium_vmec_type
       equilibrium_construct_vmec%vmec => vmec_object
-      equilibrium_construct_vmec%not_converged = .true.
+      equilibrium_construct_vmec%not_converged = not_converged
       equilibrium_construct_vmec%force_solve = force_solve
 
       END FUNCTION
@@ -260,6 +264,11 @@
          CASE (equilibrium_vmec_type)
             CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
      &                                   tor_planes_used, nfp)
+
+!  If the equilibrium is already converged, compute the magnetic cache as well.
+            IF (.not.this%not_converged) THEN
+               CALL vmec_set_magnetic_cache(this%vmec)
+            END IF
 
       END SELECT
 
