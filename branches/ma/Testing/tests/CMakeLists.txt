@@ -9,4 +9,5 @@ add_subdirectory (reconstruction_task_sl_step_test)
 add_subdirectory (param_constraints_test)
 add_subdirectory (diagnostic_rotation_test)
 add_subdirectory (v3post_lasym_test)
+add_subdirectory (z_offset_test)
 

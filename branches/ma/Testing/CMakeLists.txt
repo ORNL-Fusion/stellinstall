@@ -64,4 +64,12 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/v3post_lasym_test)
 
+#  Copy common files to the reconstruction test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/sxrem.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/z_offset_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/z_offset_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/z_offset_test)
+
 add_subdirectory (tests)
