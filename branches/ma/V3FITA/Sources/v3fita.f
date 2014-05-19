@@ -514,6 +514,7 @@
       TYPE (pprofile), POINTER                       :: te => null()
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
       INTEGER                                        :: i
+      LOGICAL                                        :: not_converged
 
 !  Start of executable code
       ALLOCATE(ne, te)
@@ -530,14 +531,19 @@
      &                           pp_sxrem_af_a(i,:))
       END DO
 
+!  If the woutfile in the v3fit namelist input file is specifed, assume that the
+!  equilibrium is converged.
+      not_converged = TRIM(vmec_wout_input) .eq. ''
+
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
      &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
+     &                                        vmec_wout_input,                 &
      &                                        ne, te, sxr, phi_offset,         &
      &                                        z_offset, pol_rad_ratio,         &
      &                                        context%runlog_iou),             &
-     &                         force_solve))
+     &                         force_solve, not_converged))
 
       END SUBROUTINE
 

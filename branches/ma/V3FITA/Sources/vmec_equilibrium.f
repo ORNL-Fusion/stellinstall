@@ -345,6 +345,10 @@
          REAL (rprec)                          :: phi_offset = 0
 !>  Plasma z offset.
          REAL (rprec)                          :: z_offset = 0
+
+!>  Index of the largest ns value.
+         INTEGER                               :: ns_index
+
       END TYPE
 
 !*******************************************************************************
@@ -396,19 +400,22 @@
 !>  @param[in] iou        Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, ne, te, sxrem, phi_offset,            &
+      FUNCTION vmec_construct(file_name, wout_file_name,                       &
+     &                        ne, te, sxrem, phi_offset,                       &
      &                        z_offset, pol_rad_ratio, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit
+      USE vmec_input, only: l_v3fit, ns_array
       USE xstuff, only: xc
+      USE read_wout_mod, only: read_wout_file, LoadRZL
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (vmec_class), POINTER           :: vmec_construct
       CHARACTER (len=*), INTENT(in)        :: file_name
+      CHARACTER (len=*), INTENT(in)        :: wout_file_name
       TYPE (pprofile), POINTER             :: ne
       TYPE (pprofile), POINTER             :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
@@ -420,6 +427,7 @@
 !  local variables
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
+      INTEGER                              :: error
 
 !  Start of executable code
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
@@ -439,14 +447,30 @@
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
-      ictrl_array(1) = restart_flag + readin_flag + timestep_flag
+      ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), readin_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
       ictrl_array(3) = 1 ! Run for one iteration.
       ictrl_array(4) = 1 ! Limit VMEC to single grid.
 
       l_v3fit = .true.
 
       vmec_construct%vmec_file_name = TRIM(file_name)
-      CALL runvmec(ictrl_array, file_name, .false.)
+
+      IF (wout_file_name .ne. '') THEN
+!  runvmec deletes the string holding the wout file to read. As a result save
+!  the wout filename before using it.
+         vmec_construct%wout_file_name = wout_file_name
+         CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+         CALL read_wout_file(vmec_construct%wout_file_name, error)
+         IF (error .eq. 0) THEN
+            CALL LoadRZL
+         ELSE
+            STOP 'Error loading initialized wout file.'
+         END IF
+      ELSE
+         CALL runvmec(ictrl_array, file_name, .false.)
+      END IF
 
 !  Check for errors in runvmec.
       SELECT CASE (ictrl_array(2))
@@ -468,6 +492,8 @@
      &                     int = ictrl_array(2))
 
       END SELECT
+
+      vmec_construct%ns_index = MAXLOC(ns_array, 1)
 
 !  Store the inital xc array here. This is needed to reset the xc array for
 !  error recovery in the initial equilibirum convergence. The vmec_save_state
@@ -875,29 +901,26 @@
 
 !  local variables
       INTEGER                          :: numU
+      INTEGER                          :: ns
 
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-      numU = MAX(INT(this%pol_rad_ratio*ns_array(1)), 1)
+      ns = ns_array(this%ns_index)
+      numU = MAX(INT(this%pol_rad_ratio*ns), 1)
 
 !  Set the differental volume elements.
-      this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)
+      this%magnetic_cache%ds = 1.0/(ns - 1.0)
       this%magnetic_cache%du = twopi/numU
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns_array(1), numU,                     &
-     &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns_array(1), numU,                     &
-     &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns_array(1), numU,                    &
-     &                                   tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns_array(1), numU,                  &
-     &                                     tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns_array(1), numU,                    &
-     &                                   tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns, numU, tor_planes_used))
 
       END SUBROUTINE
 
@@ -2362,10 +2385,11 @@
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
          ictrl_array = 0
-         ictrl_array(1) = timestep_flag + output_flag +                        &
-     &                    reset_jacdt_flag
+         ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
+         ictrl_array(1) = IOR(ictrl_array(1), output_flag)
+         ictrl_array(1) = IOR(ictrl_array(1), reset_jacdt_flag)
          ictrl_array(3) = niter
-         ictrl_array(4) = 1
+         ictrl_array(4) = this%ns_index
 
 !  Update internal vmec counters. These affect how the minimation occurs.
          iter1 = iter2
