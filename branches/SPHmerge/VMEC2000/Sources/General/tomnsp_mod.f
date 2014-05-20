@@ -158,7 +158,7 @@
       IF (lforbal) THEN
          mj = 1 + joff
          ni = 0 + ioff
-         t1 = nscale(0)*r0scale    !/4
+         t1 = nscale(0)*r0scale/4
          DO jl = 2, ns-1
             work1(jl,1) = frcc_fac(jl)*frcc(jl,ni,mj)
      1                  + fzsc_fac(jl)*fzsc(jl,ni,mj)
@@ -413,10 +413,6 @@
             END DO
          END DO
       END DO
-
-!     IF THE SYMMETRIZED MODE USED, NEED EXTRA FACTOR OF 2 
-!     IF ntheta3 USED INSTEAD OF ntheta3, DO NOT NEED THIS FACTOR
-      frzl_array = 2*frzl_array
 
       DEALLOCATE (work1)
 

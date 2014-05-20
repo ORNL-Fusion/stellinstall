@@ -28,7 +28,7 @@
 !    -dynamic and automatic alocation of variables
 !    -array syntax for vector operations
 !-------------------------------------------------------------------------------
-      USE SPEC_KIND_MOD
+      USE spec_kind_mod
       IMPLICIT NONE
 
 !-------------------------------------------------------------------------------

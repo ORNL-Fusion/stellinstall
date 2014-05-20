@@ -69,6 +69,7 @@
 !>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
 !>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
 !>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_equilibrium::vmec_class::phi_offset}
+!>     @item{z_offset,      Z offset in meters,                                   @ref vnec_equilibrium::vmec_class::z_offset}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
@@ -258,6 +259,9 @@
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
       INTEGER, PARAMETER :: vmec_phi_offset_id  = 57
+!>  Plasma z offset. This is a parameter to allow changing the vertical shift of
+!>  the plasma
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 58
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -339,6 +343,12 @@
 !  Extra reconstruction parameters
 !>  Plasma phi offset.
          REAL (rprec)                          :: phi_offset = 0
+!>  Plasma z offset.
+         REAL (rprec)                          :: z_offset = 0
+
+!>  Index of the largest ns value.
+         INTEGER                               :: ns_index
+
       END TYPE
 
 !*******************************************************************************
@@ -385,32 +395,39 @@
 !>  @param[in] sxrem      @ref pprofile_T for the soft x-ray emissivity.
 !>  @param[in] phi_offset Initial phi offset of the plasma relative to the
 !>                        diagnostics in radians.
+!>  @param[in] z_offset   Initial Z offset of the plasma relative to the
+!>                        machine center.
 !>  @param[in] iou        Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, ne, te, sxrem, phi_offset,            &
-     &                        pol_rad_ratio, iou)
+      FUNCTION vmec_construct(file_name, wout_file_name,                       &
+     &                        ne, te, sxrem, phi_offset,                       &
+     &                        z_offset, pol_rad_ratio, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit
+      USE vmec_input, only: l_v3fit, ns_array
       USE xstuff, only: xc
+      USE read_wout_mod, only: read_wout_file, LoadRZL
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (vmec_class), POINTER           :: vmec_construct
       CHARACTER (len=*), INTENT(in)        :: file_name
+      CHARACTER (len=*), INTENT(in)        :: wout_file_name
       TYPE (pprofile), POINTER             :: ne
       TYPE (pprofile), POINTER             :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
+      REAL (rprec), INTENT(in)             :: z_offset
       REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
 
 !  local variables
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
+      INTEGER                              :: error
 
 !  Start of executable code
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
@@ -424,18 +441,36 @@
       vmec_construct%sxrem => sxrem
 
       vmec_construct%phi_offset = phi_offset
+      vmec_construct%z_offset = z_offset
+
       vmec_construct%pol_rad_ratio = pol_rad_ratio
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
-      ictrl_array(1) = restart_flag + readin_flag + timestep_flag
+      ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), readin_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
       ictrl_array(3) = 1 ! Run for one iteration.
       ictrl_array(4) = 1 ! Limit VMEC to single grid.
 
       l_v3fit = .true.
 
       vmec_construct%vmec_file_name = TRIM(file_name)
-      CALL runvmec(ictrl_array, file_name, .false.)
+
+      IF (wout_file_name .ne. '') THEN
+!  runvmec deletes the string holding the wout file to read. As a result save
+!  the wout filename before using it.
+         vmec_construct%wout_file_name = wout_file_name
+         CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+         CALL read_wout_file(vmec_construct%wout_file_name, error)
+         IF (error .eq. 0) THEN
+            CALL LoadRZL
+         ELSE
+            STOP 'Error loading initialized wout file.'
+         END IF
+      ELSE
+         CALL runvmec(ictrl_array, file_name, .false.)
+      END IF
 
 !  Check for errors in runvmec.
       SELECT CASE (ictrl_array(2))
@@ -457,6 +492,8 @@
      &                     int = ictrl_array(2))
 
       END SELECT
+
+      vmec_construct%ns_index = MAXLOC(ns_array, 1)
 
 !  Store the inital xc array here. This is needed to reset the xc array for
 !  error recovery in the initial equilibirum convergence. The vmec_save_state
@@ -812,6 +849,13 @@
                CALL vmec_set_magnetic_cache(this)
             END IF
 
+         CASE (vmec_z_offset_id)
+            vmec_set_param = .false.
+            this%z_offset = value
+            IF (ASSOCIATED(this%magnetic_cache)) THEN
+               CALL vmec_set_magnetic_cache(this)
+            END IF
+
          CASE DEFAULT
 !>  @todo FIXME: Consider throwing a fatal error here instead of silently doing
 !>  nothing.
@@ -857,29 +901,26 @@
 
 !  local variables
       INTEGER                          :: numU
+      INTEGER                          :: ns
 
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
-      numU = MAX(INT(this%pol_rad_ratio*ns_array(1)), 1)
+      ns = ns_array(this%ns_index)
+      numU = MAX(INT(this%pol_rad_ratio*ns), 1)
 
 !  Set the differental volume elements.
-      this%magnetic_cache%ds = 1.0/(ns_array(1) - 1.0)
+      this%magnetic_cache%ds = 1.0/(ns - 1.0)
       this%magnetic_cache%du = twopi/numU
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns_array(1), numU,                     &
-     &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns_array(1), numU,                     &
-     &                                  tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns_array(1), numU,                    &
-     &                                   tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns_array(1), numU,                  &
-     &                                     tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns_array(1), numU,                    &
-     &                                   tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns, numU, tor_planes_used))
 
       END SUBROUTINE
 
@@ -1006,6 +1047,9 @@
             END DO
          END DO
       END DO
+
+      this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                      &
+     &                         + this%z_offset
 
       DEALLOCATE(cosz, sinz)
       DEALLOCATE(cosu, sinu, cosv, sinv)
@@ -1202,6 +1246,9 @@
 
          CASE ('phi_offset')
             vmec_get_param_id = vmec_phi_offset_id
+
+         CASE ('z_offset')
+            vmec_get_param_id = vmec_z_offset_id
 
          CASE DEFAULT
             vmec_get_param_id = data_no_id
@@ -1414,6 +1461,9 @@
          CASE (vmec_phi_offset_id)
             vmec_get_param_value = this%phi_offset
 
+         CASE (vmec_z_offset_id)
+            vmec_get_param_value = this%z_offset
+
          CASE DEFAULT
             vmec_get_param_value = 0.0
 
@@ -1607,6 +1657,9 @@
          CASE (vmec_phi_offset_id)
             vmec_get_param_name = 'phi_offset'
 
+         CASE (vmec_z_offset_id)
+            vmec_get_param_name = 'z_offset'
+
          CASE DEFAULT
             STOP 'Invalid VMEC parameter id.'
 
@@ -1765,6 +1818,7 @@
       r_cyl = cart_to_cyl(x_cart)
       vmec_get_B_vec = 0.0
       r_cyl(2) = r_cyl(2) + this%phi_offset
+      r_cyl(3) = r_cyl(3) - this%z_offset
 
       CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                          &
      &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
@@ -1852,6 +1906,7 @@
 
       r_cyl = cart_to_cyl(x_cart)
       r_cyl(2) = nfp*(r_cyl(2) + this%phi_offset)
+      r_cyl(3) = r_cyl(3) - this%z_offset
 
       CALL cyl2flx(rzl_local, r_cyl, s_flux, ns, ntor, mpol, ntmax,            &
      &             lthreed, lasym, info, nfe, fmin)
@@ -1924,7 +1979,7 @@
      &             SUM(zmnc(:, ns)*(cosu(:)*cosv(:) + sinu(:)*sinv(:)))
          END IF
       END DO
-
+      z = z + this%z_offset
       DEALLOCATE(cosu, cosv, sinu, sinv)
 
       END FUNCTION
@@ -2145,7 +2200,8 @@
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
      &         vmec_pres_scale_id, vmec_vvc_smaleli_id,                        &
      &         vmec_vvc_kappa_p_id, vmec_betatot_id, vmec_betapol_id,          &
-     &         vmec_betator_id, vmec_betaxis_id, vmec_phi_offset_id)
+     &         vmec_betator_id, vmec_betaxis_id, vmec_phi_offset_id,           &
+     &         vmec_z_offset_id)
             vmec_is_scaler_value = .true.
 
          CASE DEFAULT
@@ -2262,7 +2318,7 @@
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
      &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_curtor_id,            &
      &         vmec_phiedge_id, vmec_pres_scale_id, vmec_bloat_id,             &
-     &         vmec_phi_offset_id)
+     &         vmec_phi_offset_id, vmec_z_offset_id)
             vmec_is_recon_param = .true.
 
          CASE DEFAULT
@@ -2329,10 +2385,11 @@
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
          ictrl_array = 0
-         ictrl_array(1) = timestep_flag + output_flag +                        &
-     &                    reset_jacdt_flag
+         ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
+         ictrl_array(1) = IOR(ictrl_array(1), output_flag)
+         ictrl_array(1) = IOR(ictrl_array(1), reset_jacdt_flag)
          ictrl_array(3) = niter
-         ictrl_array(4) = 1
+         ictrl_array(4) = this%ns_index
 
 !  Update internal vmec counters. These affect how the minimation occurs.
          iter1 = iter2

@@ -83,9 +83,9 @@ MODULE AJAX_MOD
 !    -dynamic and automatic alocation of variables
 !    -array syntax for vector operations
 !-------------------------------------------------------------------------------
-USE SPEC_KIND_MOD
-USE LINEAR1_MOD
-USE SPLINE1_MOD
+USE spec_kind_mod
+USE linear1_mod
+USE spline1_mod
 IMPLICIT NONE
 
 !-------------------------------------------------------------------------------

@@ -60,14 +60,14 @@ MODULE TRACK_MOD
 !    -dynamic and automatic alocation of variables
 !    -array syntax for vector operations
 !-------------------------------------------------------------------------------
-USE SPEC_KIND_MOD
+USE spec_kind_mod
 
 !Uncomment the appropriate MHD equilibrium interface, comment out the other
 !For XPLASMA use mapping from XPLASMA to AJAX calls
 !USE AJAX_XPLASMA_MOD
 
 !For AJAX use direct calls
-USE AJAX_MOD
+USE ajax_mod
 
 IMPLICIT NONE
 

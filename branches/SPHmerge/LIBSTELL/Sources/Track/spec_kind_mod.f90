@@ -1,4 +1,4 @@
-MODULE SPEC_KIND_MOD
+MODULE spec_kind_mod
 !-------------------------------------------------------------------------------
 !For REAL variables:
 !  Use p=6, r=35   for single precision on 32 bit machine
@@ -12,4 +12,4 @@ INTEGER, PARAMETER :: &
   rspec = SELECTED_REAL_KIND(p=12,r=100), &
   ispec = SELECTED_INT_KIND(r=8)
 
-END MODULE SPEC_KIND_MOD
+END MODULE spec_kind_mod

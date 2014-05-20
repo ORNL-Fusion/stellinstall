@@ -200,8 +200,8 @@
       INTEGER               :: istat
       INTEGER, DIMENSION(1) :: loc_of_max
       INTEGER        :: i, icount_coils
-      CHARACTER (len=30)    :: s_name                                 
-      CHARACTER (len=80)    :: l_name
+!      CHARACTER (len=30)    :: s_name
+!      CHARACTER (len=80)    :: l_name
       CHARACTER (len=len_key) :: this_keyword
 !  Make sure that len for this_keyword is the same as len for dd_keyword.
 
@@ -803,7 +803,7 @@
 !-----------------------------------------------
       INTEGER            :: istat
       INTEGER     :: inode, nnode
-      REAL(rprec)        :: avelsq, closelsq
+!      REAL(rprec)        :: avelsq, closelsq
       CHARACTER (len=30) :: s_name                                 
       CHARACTER (len=80) :: l_name
       REAL(rprec)        :: anturns, xsarea

@@ -19,9 +19,10 @@
 !>     @item{main_nli_filename,      File name for main namelist input.,                                                                                         v3fit_input::main_nli_filename}
 !>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
 !>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                                                                                         v3fit_input::vmec_nli_filename}
+!>        @item{vmec_wout_input,     File name for the VMEC wout file to start from.,                                                                            v3fit_input::vmec_wout_input}
 !>        @item{vacuum_nli_filename, File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
-!>        @item{mdsig_list_filename, File name for list of MDSIG files., v3fit_input::mdsig_list_filename}
+!>        @item{mdsig_list_filename, File name for list of MDSIG files.,                                                                                         v3fit_input::mdsig_list_filename}
 !>        @item{sxrch_dot_filename,  File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
 !>        @item{thscte_dot_filename, File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
 !>        @item{ipch_dot_filename,   File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
@@ -219,9 +220,11 @@
 !>     @item{coosig_units,   Character array of coosig units,                                                                                                                      v3fit_input::coosig_units}
 !>  @end_table
 !>
-!>  @table_section{phi_off_sec, Phi Offset Section}
+!>  @table_section{plasma_off_sec, Plasma Offset Section}
 !>     @item{phi_offset, Initial phi offset value to rotate the plasma relative
-!>                       to the diagnostics. This value is in radians.,         v3fit_input::phi_offset}
+!>                       to the diagnostics. This value is in radians.,           v3fit_input::phi_offset}
+!>     @item{z_offset,   Initial z offset value to vertical shift plasma relative
+!>                       to the center. This value is in meters.,                 v3fit_input::z_offset}
 !>  @end_table
 !>
 !>  @table_section{recon_sec, Reconstruction step control NLI variables}
@@ -519,6 +522,8 @@
 !  Equilibrium input files
 !>  File name for VMEC namelist input
       CHARACTER (len=data_filename_length) :: vmec_nli_filename = ''
+!>  File name for the VMEC wout input.
+      CHARACTER (len=data_filename_length) :: vmec_wout_input = ''
 !>  File name for a vacuum namelist input
       CHARACTER (len=data_filename_length) :: vacuum_nli_filename = ''
 
@@ -850,9 +855,11 @@
       CHARACTER (len=data_short_name_length),                                  &
      &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
 
-!  Initial Phi Offset
+!  Initial Plasma Offsets
 !>  Offset of plasma relative to the diagnostics.
       REAL (rprec) :: phi_offset = 0
+!>  Vertical shift of plasma relative to the center.
+      REAL (rprec) :: z_offset = 0
 
 !  Reconstruction step control specification.
 !>  Max number of reconstruction steps to perform.
@@ -887,7 +894,7 @@
       NAMELIST/v3fit_main_nli/                                                 &
      &   main_nli_filename,                                                    &
 !  Equilibrium input files
-     &   vmec_nli_filename, vacuum_nli_filename,                               &
+     &   vmec_nli_filename, vmec_wout_input, vacuum_nli_filename,              &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename,                                                    &
@@ -942,8 +949,8 @@
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
      &   coosig_type, coosig_name, coosig_units,                               &
-!  Initial Phi Offset
-     &   phi_offset,                                                           &
+!  Initial PLasma Offsets
+     &   phi_offset, z_offset,                                                 &
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type,                                        &

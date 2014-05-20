@@ -306,17 +306,22 @@ C-----------------------------------------------
 !
 !     FFT TEST
 !
+#ifdef _TEST_FOURIER
 !      xc = xc*scalxc
 !      CALL tomnsps_t (gc, xc, r1, ru, rv, z1, zu, zv)
 !      IF (lasym) CALL tomnspa_t (gc, xc, r1, ru, rv, z1, zu, zv)
 !      STOP
-
+#endif
 !
-!     SYMMETRIZE FORCES (in u-v space)
+!     SYMMETRIZE FORCES (in u-v space): NOTE - gc IS SMALL BY FACTOR 2
+!     IF lasym=T
 !
-      IF (lasym) CALL symforce (armn, brmn, crmn, azmn, bzmn,
+      IF (lasym) THEN
+         CALL symforce (armn, brmn, crmn, azmn, bzmn,
      1     czmn, blmn, clmn, rcon, zcon, r1, ru, rv, z1, zu, zv,
      2     extra3, extra4, extra1, extra2)
+!NOT NECESSARY (EVEN THOUGH CORRECT)         gc = 2*gc
+      END IF
 
       CALL second0 (tforoff)
       IF (ictrl_prec2d .le. 1) timer(tfor) = timer(tfor) 
