@@ -26,7 +26,7 @@ C-----------------------------------------------
      2                      cleanup_flag=16, reset_jacdt_flag=32
     
       REAL(rprec), PARAMETER :: pdamp = 0.05_dp  
-      CHARACTER(LEN=*), PARAMETER :: version_ = '8.51'
+      CHARACTER(LEN=*), PARAMETER :: version_ = '8.52'
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -136,7 +136,17 @@ C-----------------------------------------------
 !          b) Fixed fnorm1 scaling (removed hs dependence)
 !          c) Added lgiveup logical (M. Drevlak/J. Geiger)
 !
-!     8.51   (Sept, 2013
+!     8.51   (Sept, 2013)
 !          a) Restored hs-dependence of fnorm1 scaling (incorrectly) removed in 8.50
+!
+!     8.52   (May, 2014)
+!          a) Fixed factor of 2 in integration factors tmult (WROUT) and dmult1 (JXBFORCE) for lasym=T,
+!             introduced when dnorm was changed in FIXARAY to include FULL theta range (1/23/14)
+!          b) In eqsolve (revert to v8.48), keep 
+!                IF (liter_flag) CALL restart_iter(delt0)
+!             INSIDE IF (irst .eq. 2) TEST BLOCK
+!          c) Change default lforbal to FALSE in LIBSTELL, VMEC_INPUT (improves convergence, 
+!             user can override in input file)
+!   
 !-----------------------------------------------
       END MODULE vmec_params

@@ -52,7 +52,7 @@ C-----------------------------------------------
       ax = 0;  bx = 0;  cx = 0
       temp = 0
 !      pfactor = -2*r0scale**2       !v8.50
-      pfactor = -4*r0scale**2
+      pfactor = -4*r0scale**2        !restored in v8.51
 #ifdef _HBANGLE
       ALLOCATE (ax2(ns+1,4), bx2(ns+1,4))
       ax2 = 0; bx2 = 0

@@ -23,7 +23,7 @@ C-----------------------------------------------
       gcs(:,:ntor,:mpol1) = 0;  gsc(:,:ntor,:mpol1) = 0
       gcc(:,:ntor,:mpol1) = 0;  gss(:,:ntor,:mpol1) = 0
 
-      DO m = 1, mpol1 - 1
+      DO m = 1, mpol1-1
          work = 0
          DO i = 1, ntheta2
             DO jk = 1, ns*nzeta

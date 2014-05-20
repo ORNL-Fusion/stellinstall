@@ -129,7 +129,7 @@
       lfreeb = .true.
       lmove_axis = .true.
       lmac = .false.
-      lforbal = .true.
+      lforbal = .false.        ! SPH: changed 05-14-14
       lasym = .false.
       lrfp = .false.
       loldout = .false.        ! J Geiger 2010-05-04 start

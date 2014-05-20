@@ -1,4 +1,4 @@
-MODULE LINEAR1_MOD
+MODULE linear1_mod
 !-------------------------------------------------------------------------------
 !LINEAR1-LINEAR interpolation in 1d
 !
@@ -27,7 +27,7 @@ MODULE LINEAR1_MOD
 !    -dynamic and automatic alocation of variables
 !    -array syntax for vector operations
 !-------------------------------------------------------------------------------
-USE SPEC_KIND_MOD
+USE spec_kind_mod
 IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -318,4 +318,4 @@ ENDDO !Over target nodes
 
 END SUBROUTINE LINEAR1_INTEG
 
-END MODULE LINEAR1_MOD
+END MODULE linear1_mod

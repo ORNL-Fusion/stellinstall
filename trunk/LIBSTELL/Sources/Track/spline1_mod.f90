@@ -1,4 +1,4 @@
-MODULE SPLINE1_MOD
+MODULE spline1_mod
 !-------------------------------------------------------------------------------
 !SPLINE1-SPLINE interpolation in 1d
 !
@@ -34,7 +34,7 @@ MODULE SPLINE1_MOD
 !    -dynamic and automatic alocation of variables
 !    -array syntax for vector operations
 !-------------------------------------------------------------------------------
-USE SPEC_KIND_MOD
+USE spec_kind_mod
 IMPLICIT NONE
 
 !-------------------------------------------------------------------------------
@@ -1049,4 +1049,4 @@ ENDIF
 
 END SUBROUTINE SPLINE1_SEARCH
 
-END MODULE SPLINE1_MOD
+END MODULE spline1_mod
