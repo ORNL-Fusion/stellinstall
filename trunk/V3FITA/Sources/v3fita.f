@@ -956,7 +956,7 @@
 
          context%signals(signals_created + 1)%p => signal_construct(           &
      &      geometric_construct(                                               &
-     &         limiter_construct(iso_funct, lif_on_edge(i))),                               &
+     &         limiter_construct(iso_funct, lif_on_edge(i))),                  &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1))

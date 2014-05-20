@@ -135,7 +135,7 @@
      &   name_diagnostic_dot,                                                  &
      &   lstell_sym, rmin, rmax, zmin, zmax, ir, jz, kp,                       &
      &   len_integrate_ddc,                                                    &
-     &   l_write_crf_bin, l_read_coils_dot, n_field_periods_nli,               &
+     &   l_read_coils_dot, n_field_periods_nli,                                &
      &   cg_shift_1, cg_shift_2, cg_rot_xcent, cg_rot_theta,                   &
      &   cg_rot_phi, cg_rot_angle, l_rot_coil_center
 
