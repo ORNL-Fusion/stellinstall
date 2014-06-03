@@ -676,7 +676,7 @@
 
          CALL assert(equilibrium_converge(a_model%equilibrium,                 &
      &                                    eq_steps, iou),                      &
-     &               'reconstruction_eval_jac: failed to converge ' //         &
+     &               'reconstruction_eval_step: failed to converge ' //        &
      &               'equilibrium. Try decreasing rp_vrnc')
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.

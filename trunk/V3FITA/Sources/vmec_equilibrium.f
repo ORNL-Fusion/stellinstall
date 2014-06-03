@@ -314,9 +314,7 @@
      &      magnetic_cache => null()
 !>  Cache of the vmec internal state xc array.
          REAL (rprec), DIMENSION(:), POINTER    :: xc => null()
-!>  Cache of the wout file state.
-         TYPE (wout_file_cache_class), POINTER  :: wout_file => null()
-!>  Cache of the wout file state.
+!>  Cache of the threed1 file state.
          TYPE (threed1_file_cache_class), POINTER ::                           &
      &      threed1_file => null()
 
@@ -523,7 +521,7 @@
       TYPE (vmec_class), POINTER                :: this
 
 !  local variables
-      INTEGER                                   :: i
+      INTEGER                                   :: i, error
 
 !  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
@@ -567,10 +565,8 @@
          this%magnetic_cache => null()
       END IF
 
-      IF (ASSOCIATED(this%wout_file)) THEN
-         CALL wout_file_cache_destruct(this%wout_file)
-         this%wout_file => null()
-      END IF
+!  Delete the cached wout file. Errors here can safely be ignored.
+       CALL delete_file(TRIM(this%wout_file_name) // '_cache', error)
 
       IF (ASSOCIATED(this%threed1_file)) THEN
          CALL threed1_file_cache_destruct(this%threed1_file)
@@ -888,7 +884,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
      &                                        tor_planes_used, nfp)
-      USE vmec_input, only: ns_array
+      USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
 
       IMPLICIT NONE
@@ -906,8 +902,10 @@
 !  Start of executable code.
       ALLOCATE(this%magnetic_cache)
 
+!  In order to sample the fields on a grid, the sampling frequency of the grid
+!  must be at least twice the frequency of the highest mode.
       ns = ns_array(this%ns_index)
-      numU = MAX(INT(this%pol_rad_ratio*ns), 1)
+      numU = MAX(INT(this%pol_rad_ratio*ns), 2*mpol)
 
 !  Set the differental volume elements.
       this%magnetic_cache%ds = 1.0/(ns - 1.0)
@@ -971,7 +969,7 @@
 
 !  U grid is square with the s grid.
 !>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
-!>  componentarrays every time. The v components can change if phi_offset is
+!>  component arrays every time. The v components can change if phi_offset is
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
 !>  @ref vmec_set_magnetic_cache_init.
@@ -2479,6 +2477,9 @@
 !  Declare Arguments
       TYPE (vmec_class), INTENT(inout) :: this
 
+!  local variables
+      INTEGER                          :: error
+
 !  Start of executable code
       IF (ASSOCIATED(this%xc)) THEN
          IF (SIZE(xc) .eq. SIZE(this%xc)) THEN
@@ -2493,11 +2494,12 @@
          this%xc = xc
       END IF
 
-      IF(ASSOCIATED(this%wout_file)) THEN
-         CALL wout_file_cache_save_state(this%wout_file)
-      ELSE
-         this%wout_file => wout_file_cache_construct()
-      END IF
+!  Cache the wout file by appending _cache to a copy. Use copy here to keep the
+!  the orginal file intact.
+      CALL copy_file(this%wout_file_name,                                      &
+     &               TRIM(this%wout_file_name) // '_cache',                    &
+     &               error)
+      CALL assert_eq(error, 0, 'Error copying wout file.')
 
       IF(ASSOCIATED(this%threed1_file)) THEN
          CALL threed1_file_cache_save_state(this%threed1_file)
@@ -2516,11 +2518,15 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_reset_state(this)
       USE xstuff, only: xc
+      USE read_wout_mod, only: read_wout_file, LoadRZL
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (vmec_class), INTENT(inout) :: this
+
+!  local variables
+      INTEGER                          :: error
 
 !  Start of executable code
       IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
@@ -2528,9 +2534,20 @@
       END IF
 
 !  Reset the wout file.
-      IF (ASSOCIATED(this%wout_file)) THEN
-         CALL wout_file_cache_reset_state(this%wout_file)
+      CALL copy_file(TRIM(this%wout_file_name) // '_cache',                    &
+     &               this%wout_file_name,                                      &
+     &               error)
+      CALL assert_eq(error, 0, 'Error moving wout file.')
+
+      CALL read_wout_file(this%wout_file_name, error)
+      IF (error .eq. 0) THEN
+         CALL LoadRZL
+
+         IF (ASSOCIATED(this%magnetic_cache)) THEN
+            CALL vmec_set_magnetic_cache(this)
+         END IF
       END IF
+
       IF (ASSOCIATED(this%magnetic_cache)) THEN
          CALL vmec_set_magnetic_cache_calc(this)
       END IF

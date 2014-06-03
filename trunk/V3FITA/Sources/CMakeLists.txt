@@ -48,7 +48,6 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/model.f
 	${CMAKE_CURRENT_SOURCE_DIR}/equilibrium.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_equilibrium.f
-	${CMAKE_CURRENT_SOURCE_DIR}/wout_file_cache.f
 	${CMAKE_CURRENT_SOURCE_DIR}/threed1_file_cache.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vacuum_equilibrium.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vacuum_input.f
