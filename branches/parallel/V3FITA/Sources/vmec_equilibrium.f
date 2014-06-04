@@ -121,7 +121,6 @@
       USE stel_kinds
       USE data_parameters
       USE pprofile_T
-      USE wout_file_cache
       USE threed1_file_cache
 
       IMPLICIT NONE
