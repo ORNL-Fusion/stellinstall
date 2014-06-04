@@ -144,23 +144,23 @@
 !>  @end_table
 !>
 !>  @table_section{signal_spec_sec, Signal Data specification}
-!>     @item{n_sdata_o,              Number of signal_data observations,                                                                v3fit_input::n_sdata_o}
-!>     @item{iw_sdo_verbose,         Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity), v3fit_input::iw_sdo_verbose}
-!>     @item{sdo_data_a,             Array of data for observed signals,                                                                v3fit_input::sdo_data_a}
-!>     @item{sdo_sigma_a,            Array of sigmas for observed signals,                                                              v3fit_input::sdo_sigma_a}
-!>     @item{sdo_weight_a,           Array of weight for observed signals,                                                              v3fit_input::sdo_weight_a}
+!>     @item{n_sdata_o,              Number of signal_data observations,                                                                   v3fit_input::n_sdata_o}
+!>     @item{iw_sdo_verbose,         Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity),    v3fit_input::iw_sdo_verbose}
+!>     @item{sdo_data_a,             Array of data for observed signals,                                                                   v3fit_input::sdo_data_a}
+!>     @item{sdo_sigma_a,            Array of sigmas for observed signals,                                                                 v3fit_input::sdo_sigma_a}
+!>     @item{sdo_weight_a,           Array of weight for observed signals,                                                                 v3fit_input::sdo_weight_a}
+!>     @item{sdo_spec_can_overwrite, Logical controlling if the sdo_w_spec_ overwrites values in the sdo_sigma_a array. Defaults to true., v3fit_input::sdo_spec_can_overwrite}
 !>     @table_subsection{sigma_spec_sec, Signal Data sigma specification}
-!>        @item{sdo_s_spec_imin,     Array of minimum index values for specifying sigmas,                                               v3fit_input::sdo_s_spec_imin}
-!>        @item{sdo_s_spec_imax,     Array of maximum index values for specifying sigmas,                                               v3fit_input::sdo_s_spec_imax}
-!>        @item{sdo_s_spec_floor,    Array of floor values for specifying sigmas,                                                       v3fit_input::sdo_s_spec_floor}
+!>        @item{sdo_s_spec_imin,     Array of minimum index values for specifying sigmas,                                                  v3fit_input::sdo_s_spec_imin}
+!>        @item{sdo_s_spec_imax,     Array of maximum index values for specifying sigmas,                                                  v3fit_input::sdo_s_spec_imax}
+!>        @item{sdo_s_spec_floor,    Array of floor values for specifying sigmas,                                                          v3fit_input::sdo_s_spec_floor}
 !>        @item{sdo_s_spec_fraction, Array of fractional values for specifying sigmas
 !>            - floor \> 0\, sigma = max(floor\,fraction * sdo)
-!>            - floor \< 0\, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2),
-!>            v3fit_input::sdo_s_spec_fraction}
+!>            - floor \< 0\, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2),                                                             v3fit_input::sdo_s_spec_fraction}
 !>     @table_subsection{weight_spec_sec, Signal Data weight specification}
-!>        @item{sdo_w_spec_imin,     Array of minimum index values for specifying weights,                                              v3fit_input::sdo_w_spec_imin}
-!>        @item{sdo_w_spec_imax,     Array of maximum index values for specifying weights,                                              v3fit_input::sdo_w_spec_imax}
-!>        @item{sdo_w_spec_weight,   Array of weight values for specifying weights,                                                     v3fit_input::sdo_w_spec_weight}
+!>        @item{sdo_w_spec_imin,     Array of minimum index values for specifying weights,                                                 v3fit_input::sdo_w_spec_imin}
+!>        @item{sdo_w_spec_imax,     Array of maximum index values for specifying weights,                                                 v3fit_input::sdo_w_spec_imax}
+!>        @item{sdo_w_spec_weight,   Array of weight values for specifying weights,                                                        v3fit_input::sdo_w_spec_weight}
 !>  @end_table
 !>
 !>  @table_section{magnetic_sec, Magnetic signal parameters}
@@ -748,6 +748,8 @@
 !>  Observed weights.
       REAL (rprec),                                                            &
      &   DIMENSION(v3fit_max_signals) :: sdo_weight_a = 1.0
+!>  Allow the sigma spec to overwrite the sigma array.
+      LOGICAL                         :: sdo_spec_can_overwrite = .true.
 
 !  Signal data sigma specification
 !>  Sigma specification lower index.
@@ -1018,7 +1020,8 @@
          imin = MAX(MIN(sdo_s_spec_imin(j), n_sdata_o), 1)
          imax = MIN(MAX(sdo_s_spec_imax(j), imin), n_sdata_o)
          DO i = imin, imax
-            IF (sdo_sigma_a(i) .eq. 0) THEN
+            IF ((sdo_sigma_a(i) .eq. 0) .or.                                   &
+     &          sdo_spec_can_overwrite) THEN
                IF (sdo_s_spec_floor(j) .ge. 0) THEN
                   sdo_sigma_a(i) = MAX(sdo_s_spec_floor(j),                    &
      &               ABS(sdo_s_spec_fraction(j)*sdo_data_a(i)))
