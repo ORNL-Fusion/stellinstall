@@ -130,138 +130,138 @@
 !  vmec equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface. Parameter id's start at 3 since 0-2 are
+!  outside of the vmec interface. Parameter id's start at 6 since 0-5 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added.
 
 !  Variable Parameters
 !>  1D Array of function current profile parameters. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_id          =  3
+      INTEGER, PARAMETER :: vmec_ac_id          = 6
 !>  1D Array of segment current profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_aux_s_id    =  4
+      INTEGER, PARAMETER :: vmec_ac_aux_s_id    = 7
 !>  1D Array of segment current profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_aux_f_id    =  5
+      INTEGER, PARAMETER :: vmec_ac_aux_f_id    = 8
 !>  1D Array of function iotabar profile parameters. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_id          =  6
+      INTEGER, PARAMETER :: vmec_ai_id          = 9
 !>  1D Array of segment iotabar profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_aux_s_id    =  7
+      INTEGER, PARAMETER :: vmec_ai_aux_s_id    = 10
 !>  1D Array of segment iotabar profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_aux_f_id    =  8
+      INTEGER, PARAMETER :: vmec_ai_aux_f_id    = 11
 !>  1D Array of function pressure profile parameters. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_id          =  9
+      INTEGER, PARAMETER :: vmec_am_id          = 12
 !>  1D Array of segment pressure profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 10
+      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 13
 !>  1D Array of segment pressure profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 11
+      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 14
 !>  Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_bloat_id       = 12
+      INTEGER, PARAMETER :: vmec_bloat_id       = 15
 !>  2D Array of outer boundary R cosine coeffiecents. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_rbc_id         = 13
+      INTEGER, PARAMETER :: vmec_rbc_id         = 16
 !>  2D Array of outer boundary Z sine coeffiecents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_zbs_id         = 14
+      INTEGER, PARAMETER :: vmec_zbs_id         = 17
 !>  2D Array of outer boundary R sine coeffiecents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_rbs_id         = 15
+      INTEGER, PARAMETER :: vmec_rbs_id         = 18
 !>  2D Array of outer boundary Z cosine coeffiecents. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_zbc_id         = 16
+      INTEGER, PARAMETER :: vmec_zbc_id         = 19
 !>  1D Array of external currents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_extcur_id      = 17
+      INTEGER, PARAMETER :: vmec_extcur_id      = 20
 !>  The toroidal current. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_curtor_id      = 18
+      INTEGER, PARAMETER :: vmec_curtor_id      = 21
 !>  The edge magnetic flux. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_phiedge_id     = 19
+      INTEGER, PARAMETER :: vmec_phiedge_id     = 22
 !>  The scaling parameter for the pressure. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_pres_scale_id  = 20
+      INTEGER, PARAMETER :: vmec_pres_scale_id  = 23
 
 !  Derived Parameters
 !>  2D Array of surface R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmnc_id        = 21
+      INTEGER, PARAMETER :: vmec_rmnc_id        = 24
 !>  2D Array of surface Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmns_id        = 22
+      INTEGER, PARAMETER :: vmec_zmns_id        = 25
 !>  2D Array of surface lambda cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmns_id        = 23
+      INTEGER, PARAMETER :: vmec_lmns_id        = 26
 !>  2D Array of surface g cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmnc_id        = 24
+      INTEGER, PARAMETER :: vmec_gmnc_id        = 27
 !>  2D Array of surface B_s sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 25
+      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 28
 !>  2D Array of surface B_u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 26
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 29
 !>  2D Array of surface B_v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 27
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 30
 !>  2D Array of surface B^u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 28
+      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 31
 !>  2D Array of surface B^v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 29
+      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 32
 !>  2D Array of surface R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmns_id        = 30
+      INTEGER, PARAMETER :: vmec_rmns_id        = 33
 !>  2D Array of surface Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmnc_id        = 31
+      INTEGER, PARAMETER :: vmec_zmnc_id        = 34
 !>  2D Array of surface lambda sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmnc_id        = 32
+      INTEGER, PARAMETER :: vmec_lmnc_id        = 35
 !>  2D Array of surface g sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmns_id        = 33
+      INTEGER, PARAMETER :: vmec_gmns_id        = 36
 !>  2D Array of surface B_s cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 34
+      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 37
 !>  2D Array of surface B_u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumns_id    = 35
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 38
 !>  2D Array of surface B_v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 36
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 39
 !>  2D Array of surface B^u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumns_id    = 37
+      INTEGER, PARAMETER :: vmec_bsupumns_id    = 40
 !>  2D Array of surface B^v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 38
+      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 41
 !>  Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_phi_id         = 39
+      INTEGER, PARAMETER :: vmec_phi_id         = 42
 !>  1D Array of full grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotaf_id       = 40
+      INTEGER, PARAMETER :: vmec_iotaf_id       = 43
 !>  1D Array of half grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotas_id       = 41
+      INTEGER, PARAMETER :: vmec_iotas_id       = 44
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 42
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 45
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 43
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 46
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 44
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 47
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 45
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 48
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 46
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 49
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 47
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 50
 !>  1D Array of function temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 48
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 51
 !>  1D Array of segment temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 49
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 52
 !>  1D Array of segment temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 50
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 53
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 51
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 54
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 52
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 55
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 53
+      INTEGER, PARAMETER :: vmec_betatot_id     = 56
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 54
+      INTEGER, PARAMETER :: vmec_betapol_id     = 57
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 55
+      INTEGER, PARAMETER :: vmec_betator_id     = 58
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 56
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 59
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 57
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 60
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 58
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 61
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -318,26 +318,6 @@
          TYPE (threed1_file_cache_class), POINTER ::                           &
      &      threed1_file => null()
 
-!  Result file NetCDF variables
-!>  External current Netcdf variable id.
-         INTEGER                               :: vmec_extcur_id
-!>  Toroidal current Netcdf variable id.
-         INTEGER                               :: vmec_curtor_id
-!>  Pressure scale Netcdf variable id.
-         INTEGER                               :: vmec_pres_scale_id
-!>  Boundary R cosine coeffients Netcdf variable id.
-         INTEGER                               :: vmec_rbc_id
-!>  Boundary R sine coeffients Netcdf variable id.
-         INTEGER                               :: vmec_rbs_id
-!>  Boundary Z cosine coeffients Netcdf variable id.
-         INTEGER                               :: vmec_zbc_id
-!>  Boundary Z sine coeffients Netcdf variable id.
-         INTEGER                               :: vmec_zbs_id
-!>  Internal inducance Netcdf variable id.
-         INTEGER                               :: vmec_l_sub_i_id
-!>  Mean elongation Netcdf variable id.
-         INTEGER                               :: vmec_kappa_p_id
-
 !  Extra reconstruction parameters
 !>  Plasma phi offset.
          REAL (rprec)                          :: phi_offset = 0
@@ -375,6 +355,39 @@
          CHARACTER(LEN=*), OPTIONAL     :: reset_file_name
          END SUBROUTINE
       END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the vmec density profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_ne
+         MODULE PROCEDURE vmec_get_ne_cart,                                    &
+     &                    vmec_get_ne_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the vmec temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_te
+         MODULE PROCEDURE vmec_get_te_cart,                                    &
+     &                    vmec_get_te_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the vmec soft x-ray emissivity profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_sxrem
+         MODULE PROCEDURE vmec_get_sxrem_cart,                                 &
+     &                    vmec_get_sxrem_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the vmec pressure profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_p
+         MODULE PROCEDURE vmec_get_p_cart,                                     &
+     &                    vmec_get_p_radial
+      END INTERFACE
+
 
       CONTAINS
 !*******************************************************************************
@@ -1666,7 +1679,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the electron density at a position.
+!>  @brief Gets the electron density at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_ne. If no density
 !>  profile was created, return zero.
@@ -1675,27 +1688,50 @@
 !>  @param[in] x_cart Cartesian position to get the electron density at.
 !>  @returns The electron density at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_ne(this, x_cart)
+      FUNCTION vmec_get_ne_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: vmec_get_ne
+      REAL (rprec)                           :: vmec_get_ne_cart
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
 !  Start of executable code
+      vmec_get_ne_cart = vmec_get_ne(this, vmec_get_s(this, x_cart))
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the electron density at a s position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ne. If no density
+!>  profile was created, return zero.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] s    Radial position to get the electron density at.
+!>  @returns The electron density at s.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_ne_radial(this, s)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_ne_radial
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: s
+
+!  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
-         vmec_get_ne = pprofile_evaluate(this%ne,                              &
-     &                                   vmec_get_s(this, x_cart))
+         vmec_get_ne_radial = pprofile_evaluate(this%ne, s)
       ELSE
-         vmec_get_ne = 0.0
+         vmec_get_ne_radial = 0.0
       END IF
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the electron temperature at a position.
+!>  @brief Gets the electron temperature at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_te. If no
 !>  temperature profile was created, return zero.
@@ -1704,27 +1740,50 @@
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
 !>  @returns The electron temperature at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_te(this, x_cart)
+      FUNCTION vmec_get_te_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: vmec_get_te
+      REAL (rprec)                           :: vmec_get_te_cart
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
 !  Start of executable code
+      vmec_get_te_cart = vmec_get_te(this, vmec_get_s(this, x_cart))
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the electron temperature at a s position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_te. If no
+!>  temperature profile was created, return zero.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] s    Radial position to get the electron temperature at.
+!>  @returns The electron temperature at s.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_te_radial(this, s)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_te_radial
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: s
+
+!  Start of executable code
       IF (ASSOCIATED(this%te)) THEN
-         vmec_get_te = pprofile_evaluate(this%te,                              &
-     &                                   vmec_get_s(this, x_cart))
+         vmec_get_te_radial = pprofile_evaluate(this%te, s)
       ELSE
-         vmec_get_te = 0.0
+         vmec_get_te_radial = 0.0
       END IF
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the soft x-ray emissivity at a position.
+!>  @brief Gets the soft x-ray emissivity at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_sxrem. If no soft
 !>  x-ray emissivity profile was created, return zero.
@@ -1734,28 +1793,56 @@
 !>  @param[in] index  Index of the soft x-ray emissivity profile.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_sxrem(this, x_cart, index)
+      FUNCTION vmec_get_sxrem_cart(this, x_cart, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: vmec_get_sxrem
+      REAL (rprec)                           :: vmec_get_sxrem_cart
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
 
 !  Start of executable code
+      vmec_get_sxrem_cart = vmec_get_sxrem(this,                               &
+     &                                     vmec_get_s(this, x_cart),           &
+     &                                     index)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity at a s position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_sxrem. If no soft
+!>  x-ray emissivity profile was created, return zero.
+!>
+!>  @param[in] this  A @ref vmec_class instance.
+!>  @param[in] s     Radial position to get the soft x-ray emissivity at.
+!>  @param[in] index Index of the soft x-ray emissivity profile.
+!>  @returns The soft x-ray emissivity at s.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_sxrem_radial(this, s, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_sxrem_radial
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: s
+      INTEGER, INTENT(in)           :: index
+
+!  Start of executable code
       IF (ASSOCIATED(this%sxrem)) THEN
-         vmec_get_sxrem = pprofile_evaluate(this%sxrem(index)%p,               &
-     &                                      vmec_get_s(this, x_cart))
+         vmec_get_sxrem_radial =                                               &
+     &      pprofile_evaluate(this%sxrem(index)%p, s)
       ELSE
-         vmec_get_sxrem = 0.0
+         vmec_get_sxrem_radial = 0.0
       END IF
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the plasma pressure at a position.
+!>  @brief Gets the plasma pressure at a cartesian position.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_p.
 !>
@@ -1763,15 +1850,38 @@
 !>  @param[in] x_cart Cartesian position to get the plasma pressure at.
 !>  @returns The plasma pressure at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_p(this, x_cart)
+      FUNCTION vmec_get_p_cart(this, x_cart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_p_cart
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  Start of executable code
+      vmec_get_p_cart = vmec_get_p(this, vmec_get_s(this, x_cart))
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the plasma pressure at a s position.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_p.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] s    Radial position to get the plasma pressure at.
+!>  @returns The plasma pressure at s.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_p_radial(this, s)
       USE stel_constants, only: mu0
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: vmec_get_p
-      TYPE (vmec_class), INTENT(in)          :: this
-      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec)                  :: vmec_get_p_radial
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: s
 
 !  Forward declare the interface for pmass. This explicitly defined the type for
 !  pmass to avoid a compiler error. If profile_functions.f was implimented as a
@@ -1785,7 +1895,7 @@
       END INTERFACE
 
 !  Start of executable code
-      vmec_get_p = pmass(vmec_get_s(this, x_cart))/mu0
+      vmec_get_p_radial = pmass(s)/mu0
 
       END FUNCTION
 
@@ -2168,6 +2278,70 @@
       ELSE
          vmec_get_ext_currents => null()
       END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get radial grid size.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_grid_size.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Size of the radial grid.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_grid_size(this)
+      USE vmec_input, only: ns_array
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                       :: vmec_get_grid_size
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      vmec_get_grid_size = ns_array(this%ns_index)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get start of the radial grid.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_grid_start.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Start of the radial grid.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_grid_start(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAl (rprec)                  :: vmec_get_grid_start
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      vmec_get_grid_start = 0.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get radial grid size.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_grid_size.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns Size of the radial grid.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_grid_stop(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAl (rprec)                  :: vmec_get_grid_stop
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  Start of executable code
+      vmec_get_grid_stop = 1.0
 
       END FUNCTION
 
@@ -2608,6 +2782,7 @@
 !>     @item{vmec_boundary_m, Number of poloidal boundary coefficients., vmec_dim::mpol1}
 !>     @item{vmec_boundary_n, Number of toroidal boundary coefficients., vmec_input::ntor}
 !>  @end_table
+!>
 !>  @section result_file_vmec_var_sec Variables
 !>  @header{Variable(Dimensions), Description, Code Reference}
 !>  @begin_table
@@ -2649,6 +2824,16 @@
       INTEGER                       :: vmec_nextcur_dim_id
       INTEGER                       :: vmec_boundary_m_dim_id
       INTEGER                       :: vmec_boundary_n_dim_id
+      INTEGER                       :: vmec_extcur_id
+      INTEGER                       :: vmec_curtor_id
+      INTEGER                       :: vmec_pres_scale_id
+      INTEGER                       :: vmec_rbc_id
+      INTEGER                       :: vmec_rbs_id
+      INTEGER                       :: vmec_zbc_id
+      INTEGER                       :: vmec_zbs_id
+      INTEGER                       :: vmec_l_sub_i_id
+      INTEGER                       :: vmec_kappa_p_id
+
 
 !  Start of executable code
 !  Define dimensions.
@@ -2666,48 +2851,43 @@
 
 !  Define variables.
       status = nf_def_var(result_ncid, 'vmec_extcur', nf_double, 1,            &
-     &                    (/ vmec_nextcur_dim_id /),                           &
-     &                    this%vmec_extcur_id)
+     &                    (/ vmec_nextcur_dim_id /), vmec_extcur_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_curtor', nf_double, 0, 0,         &
-     &                    this%vmec_curtor_id)
+     &                    vmec_curtor_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_pres_scale', nf_double, 0,        &
-     &                    0, this%vmec_pres_scale_id)
+     &                    0, vmec_pres_scale_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_rbc', nf_double, 2,               &
      &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /),                        &
-     &                    this%vmec_rbc_id)
+     &                       vmec_boundary_m_dim_id /), vmec_rbc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_rbs', nf_double, 2,               &
      &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /),                        &
-     &                    this%vmec_rbs_id)
+     &                       vmec_boundary_m_dim_id /), vmec_rbs_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_zbc', nf_double, 2,               &
      &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /),                        &
-     &                    this%vmec_zbc_id)
+     &                       vmec_boundary_m_dim_id /), vmec_zbc_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_zbs', nf_double, 2,               &
      &                    (/ vmec_boundary_n_dim_id,                           &
-     &                       vmec_boundary_m_dim_id /),                        &
-     &                    this%vmec_zbs_id)
+     &                       vmec_boundary_m_dim_id /), vmec_zbs_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_l_sub_i', nf_double, 1,           &
-     &                    (/ maxnsetps_dim_id /), this%vmec_l_sub_i_id)
+     &                    (/ maxnsetps_dim_id /), vmec_l_sub_i_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'vmec_kappa_p', nf_double, 1,           &
-     &                    (/ maxnsetps_dim_id /), this%vmec_kappa_p_id)
+     &                    (/ maxnsetps_dim_id /), vmec_kappa_p_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       END SUBROUTINE
@@ -2736,39 +2916,61 @@
 !  Local variables
       INTEGER                       :: status
       INTEGER, DIMENSION(2)         :: boundary_size
+      INTEGER                       :: vmec_extcur_id
+      INTEGER                       :: vmec_curtor_id
+      INTEGER                       :: vmec_pres_scale_id
+      INTEGER                       :: vmec_rbc_id
+      INTEGER                       :: vmec_rbs_id
+      INTEGER                       :: vmec_zbc_id
+      INTEGER                       :: vmec_zbs_id
 
 !  Start of executable code
-      status = nf_put_var_double(result_ncid, this%vmec_extcur_id,             &
+      status = nf_inq_varid(result_ncid, 'vmec_extcur', vmec_extcur_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_double(result_ncid, vmec_extcur_id,                  &
      &                           extcur(1:nextcur))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_put_var_double(result_ncid, this%vmec_curtor_id,             &
+      status = nf_inq_varid(result_ncid, 'vmec_curtor', vmec_curtor_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_double(result_ncid, vmec_curtor_id,                  &
      &                           curtor)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_put_var_double(result_ncid, this%vmec_pres_scale_id,         &
+      status = nf_inq_varid(result_ncid, 'vmec_pres_scale',                    &
+     &                      vmec_pres_scale_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_double(result_ncid, vmec_pres_scale_id,              &
      &                           pres_scale)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       boundary_size(1) = 2*ntor + 1
       boundary_size(2) = mpol1 + 1
 
-      status = nf_put_vara_double(result_ncid, this%vmec_rbc_id,               &
+      status = nf_inq_varid(result_ncid, 'vmec_rbc', vmec_rbc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_vara_double(result_ncid, vmec_rbc_id,                    &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            rbc(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_put_vara_double(result_ncid, this%vmec_rbs_id,               &
+      status = nf_inq_varid(result_ncid, 'vmec_rbs', vmec_rbs_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_vara_double(result_ncid, vmec_rbs_id,                    &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            rbs(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_put_vara_double(result_ncid, this%vmec_zbc_id,               &
+      status = nf_inq_varid(result_ncid, 'vmec_zbc', vmec_zbc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_vara_double(result_ncid, vmec_zbc_id,                    &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            zbc(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_put_vara_double(result_ncid, this%vmec_zbs_id,               &
+      status = nf_inq_varid(result_ncid, 'vmec_zbs', vmec_zbs_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_vara_double(result_ncid, vmec_zbs_id,                    &
      &                            (/ 1, 1 /), boundary_size,                   &
      &                            zbs(-ntor:ntor,0:mpol1))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -2797,13 +2999,21 @@
 
 !  Local variables
       INTEGER                       :: status
+      INTEGER                       :: vmec_l_sub_i_id
+      INTEGER                       :: vmec_kappa_p_id
 
 !  Start of executable code
-      status = nf_put_var1_double(result_ncid, this%vmec_l_sub_i_id,           &
+      status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
+     &                      vmec_l_sub_i_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, vmec_l_sub_i_id,                &
      &                            current_step, vvc_smaleli)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_put_var1_double(result_ncid, this%vmec_kappa_p_id,           &
+      status = nf_inq_varid(result_ncid, 'vmec_kappa_p',                       &
+     &                      vmec_kappa_p_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, vmec_kappa_p_id,                &
      &                            current_step, vvc_kappa_p)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 

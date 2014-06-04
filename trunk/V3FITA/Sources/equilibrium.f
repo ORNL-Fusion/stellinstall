@@ -71,6 +71,38 @@
      &                    equilibrium_construct_vacuum
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for the equilibrium density profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_ne
+         MODULE PROCEDURE equilibrium_get_ne_cart,                             &
+     &                    equilibrium_get_ne_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the equilibrium temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_te
+         MODULE PROCEDURE equilibrium_get_te_cart,                             &
+     &                    equilibrium_get_te_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the equilibrium soft x-ray emissivity profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_sxrem
+         MODULE PROCEDURE equilibrium_get_sxrem_cart,                          &
+     &                    equilibrium_get_sxrem_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the equilibrium pressure profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_p
+         MODULE PROCEDURE equilibrium_get_p_cart,                              &
+     &                    equilibrium_get_p_radial
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -399,7 +431,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the electron density at a position.
+!>  @brief Gets the electron density at a cartesian position.
 !>
 !>  This method is virtual. The actual getting of the electron density should be
 !>  handled by a subclass method.
@@ -411,12 +443,12 @@
 !>  @note Note the electron density is not relevant to all equilibrium types.
 !>  For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_ne(this, x_cart)
+      FUNCTION equilibrium_get_ne_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_ne
+      REAL (rprec) :: equilibrium_get_ne_cart
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
@@ -424,17 +456,52 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_ne = vmec_get_ne(this%vmec, x_cart)
+            equilibrium_get_ne_cart = vmec_get_ne(this%vmec, x_cart)
 
          CASE DEFAULT
-            equilibrium_get_ne = 0.0
+            equilibrium_get_ne_cart = 0.0
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the electron temperature at a position.
+!>  @brief Gets the electron density at a radial position.
+!>
+!>  This method is virtual. The actual getting of the electron density should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_ne
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] r    Radial position to get the electron density at.
+!>  @returns The electron density at r.
+!>  @note Note the electron density is not relevant to all equilibrium types.
+!>  For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ne_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_ne_radial
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ne_radial = vmec_get_ne(this%vmec, r)
+
+         CASE DEFAULT
+            equilibrium_get_ne_radial = 0.0
+
+         END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the electron temperature at a cartesian position.
 !>
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
@@ -446,12 +513,12 @@
 !>  @note Note the electron temperature is not relevant to all equilibrium
 !>  types. For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_te(this, x_cart)
+      FUNCTION equilibrium_get_te_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_te
+      REAL (rprec) :: equilibrium_get_te_cart
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
@@ -459,17 +526,52 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_te = vmec_get_te(this%vmec, x_cart)
+            equilibrium_get_te_cart = vmec_get_te(this%vmec, x_cart)
 
          CASE DEFAULT
-            equilibrium_get_te = 0.0
+            equilibrium_get_te_cart = 0.0
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the soft x-ray emissivity at a position.
+!>  @brief Gets the electron temperature at a radial position.
+!>
+!>  This method is virtual. The actual getting of the electron temperature
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_te
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] r    Cartesian position to get the electron temperature at.
+!>  @returns The electron temperature at r.
+!>  @note Note the electron temperature is not relevant to all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_te_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_te_radial
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_te_radial = vmec_get_te(this%vmec, r)
+
+         CASE DEFAULT
+            equilibrium_get_te_radial = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity at a cartesian position.
 !>
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
@@ -482,12 +584,12 @@
 !>  @note Note the soft x-ray emissivity is not relevant to all equilibrium
 !>  types. For instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_sxrem(this, x_cart, index)
+      FUNCTION equilibrium_get_sxrem_cart(this, x_cart, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_sxrem
+      REAL (rprec) :: equilibrium_get_sxrem_cart
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
@@ -496,18 +598,56 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_sxrem = vmec_get_sxrem(this%vmec, x_cart,          &
-     &                                             index)
+            equilibrium_get_sxrem_cart = vmec_get_sxrem(this%vmec,             &
+     &                                                  x_cart, index)
 
          CASE DEFAULT
-            equilibrium_get_sxrem = 0.0
+            equilibrium_get_sxrem_cart = 0.0
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the plasma pressure at a position.
+!>  @brief Gets the soft x-ray emissivity at a radial position.
+!>
+!>  This method is virtual. The actual getting of the electron temperature
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_sxrem
+!>
+!>  @param[in] this  A @ref equilibrium_class instance.
+!>  @param[in] r     Cartesian position to get the soft x-ray emissivity at.
+!>  @param[in] index Index of the soft x-ray emissivity profile to use.
+!>  @returns The soft x-ray emissivity at x_cart.
+!>  @note Note the soft x-ray emissivity is not relevant to all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_sxrem_radial(this, r, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_sxrem_radial
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r
+      INTEGER, INTENT(in)                  :: index
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_sxrem_radial = vmec_get_sxrem(this%vmec,           &
+     &                                                    r, index)
+
+         CASE DEFAULT
+            equilibrium_get_sxrem_radial = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the plasma pressure at a cartesian position.
 !>
 !>  This method is virtual. The actual getting of the plasma pressure should be
 !>  handled by a subclass method.
@@ -519,12 +659,12 @@
 !>  @note Note the plasma pressure is not relevant to all equilibrium types. For
 !>  instance, vacuum equilibrium should not override this method.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_p(this, x_cart)
+      FUNCTION equilibrium_get_p_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: equilibrium_get_p
+      REAL (rprec) :: equilibrium_get_p_cart
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
@@ -532,10 +672,45 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_p = vmec_get_p(this%vmec, x_cart)
+            equilibrium_get_p_cart = vmec_get_p(this%vmec, x_cart)
 
          CASE DEFAULT
-            equilibrium_get_p = 0.0
+            equilibrium_get_p_cart = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the plasma pressure at a radial position.
+!>
+!>  This method is virtual. The actual getting of the plasma pressure should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_p
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @param[in] r    Cartesian position to get the plasma pressure at.
+!>  @returns The plasma pressure at r.
+!>  @note Note the plasma pressure is not relevant to all equilibrium types. For
+!>  instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_p_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_p_radial
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_p_radial = vmec_get_p(this%vmec, r)
+
+         CASE DEFAULT
+            equilibrium_get_p_radial = 0.0
 
       END SELECT
 
@@ -908,6 +1083,99 @@
          CASE DEFAULT
             scale_currents = .false.
             equilibrium_get_ext_currents => null()
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get radial grid size.
+!>
+!>  This method is virtual. The actual getting of the radial grid size should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_grid_size
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Size of the radial grid.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_grid_size(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: equilibrium_get_grid_size
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_grid_size = vmec_get_grid_size(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_grid_size = 0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get start of the radial grid.
+!>
+!>  This method is virtual. The actual getting of the radial grid start should
+!>  be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_grid_start
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Start of the radial grid.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_grid_start(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAl (rprec) :: equilibrium_get_grid_start
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_grid_start = vmec_get_grid_start(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_grid_start = 0.0
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get stop of the radial grid.
+!>
+!>  This method is virtual. The actual getting of the radial grid stop should
+!>  be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_grid_stop
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns Stop of the radial grid.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_grid_stop(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAl (rprec) :: equilibrium_get_grid_stop
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  Start of executable code
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_grid_stop = vmec_get_grid_stop(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_grid_stop = 0.0
 
       END SELECT
 

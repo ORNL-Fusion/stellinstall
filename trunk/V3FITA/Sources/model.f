@@ -21,6 +21,15 @@
 !>     @item{ne_min,            Minimum electron density.,                                @ref model::model_class::ne_min}
 !>     @item{pressure_fraction, Fractional portion of the pressure due to the electrons., @ref model::model_class::pressure_fraction}
 !>  @end_table
+!>
+!>  @section model_derived_param_sec Model Derived Parameters
+!>  The following derived parameters are defined on a grid. The size of that
+!>  grid will depend on equilibrium used.
+!>  @begin_table
+!>     @item{ne_grid,    Electron density grid.,      @ref model::model_class::ne_grid}
+!>     @item{te_grid,    Electron temperature grid.,  @ref model::model_class::te_grid}
+!>     @item{sxrem_grid, Soft X-ray emissivity grid., @ref model::model_class::sxrem_grid}
+!>  @end_table
 !*******************************************************************************
 !>  @file model.f
 !>  @brief Contains module @ref model.
@@ -64,6 +73,14 @@
 !>  Parameter id for the electrion fraction of the pressure.
       INTEGER, PARAMETER :: model_pressure_fraction_id = 2
 
+!  Derived Parameters
+!>  Parameter id for the electrion density grid.
+      INTEGER, PARAMETER :: model_ne_grid_id           = 3
+!>  Parameter id for the electrion temperature grid.
+      INTEGER, PARAMETER :: model_te_grid_id           = 4
+!>  Parameter id for the soft x-ray emissivity grid.
+      INTEGER, PARAMETER :: model_sxrem_grid_id        = 5
+
 !>  Conversion from Joules to eV.
       REAL(rprec), PARAMETER :: eV_per_Joule = one/1.602e-19_rprec
 
@@ -93,7 +110,45 @@
          REAL (rprec) :: pressure_fraction = 0.0
 !>  The @ref equilibrium.
          TYPE (equilibrium_class), POINTER :: equilibrium => null()
+
+!>  Grid start
+         REAL (rprec)                          :: grid_start
+!>  Grid stop
+         REAL (rprec)                          :: grid_step
+!>  Girded electron density profile.
+         REAL (rprec), DIMENSION(:), POINTER   :: ne_grid => null()
+!>  Grided electron soft x-ray profile.
+         REAL (rprec), DIMENSION(:,:), POINTER :: sxrem_grid => null()
+!>  Grided electron temperature profile.
+         REAL (rprec), DIMENSION(:), POINTER   :: te_grid => null()
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the model density profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_ne
+         MODULE PROCEDURE model_get_ne_cart,                                   &
+     &                    model_get_ne_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the model temperature profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_te
+         MODULE PROCEDURE model_get_te_cart,                                   &
+     &                    model_get_te_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
+!>  Interface for the model soft x-ray emissivity profile values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_sxrem
+         MODULE PROCEDURE model_get_sxrem_cart,                                &
+     &                    model_get_sxrem_radial
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -130,7 +185,8 @@
       TYPE (equilibrium_class), POINTER             :: equilibrium
 
 !  local variables
-      INTEGER                                       :: i
+      INTEGER                                       :: i, grid_size
+      REAL (rprec)                                  :: grid_stop
 
 !  Start of executable code
       ALLOCATE(model_construct)
@@ -206,6 +262,22 @@
       model_construct%pressure_fraction = pressure_fraction
       model_construct%equilibrium => equilibrium
 
+      grid_size = equilibrium_get_grid_size(equilibrium)
+
+      IF (grid_size .gt. 0) THEN
+         model_construct%grid_start =                                          &
+     &      equilibrium_get_grid_start(equilibrium)
+         grid_stop = equilibrium_get_grid_stop(equilibrium)
+
+         model_construct%grid_step =                                           &
+     &      (grid_stop - model_construct%grid_start)/grid_size
+
+         ALLOCATE(model_construct%ne_grid(grid_size))
+         ALLOCATE(model_construct%sxrem_grid(SIZE(sxrem_type),                 &
+     &                                       grid_size))
+         ALLOCATE(model_construct%te_grid(grid_size))
+      END IF
+
       END FUNCTION
 
 !*******************************************************************************
@@ -234,6 +306,21 @@
       IF (ASSOCIATED(this%equilibrium)) THEN
          CALL equilibrium_destruct(this%equilibrium)
          this%equilibrium => null()
+      END IF
+
+      IF (ASSOCIATED(this%ne_grid)) THEN
+         DEALLOCATE(this%ne_grid)
+         this%ne_grid => null()
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_grid)) THEN
+         DEALLOCATE(this%sxrem_grid)
+         this%sxrem_grid => null()
+      END IF
+
+      IF (ASSOCIATED(this%te_grid)) THEN
+         DEALLOCATE(this%te_grid)
+         this%te_grid => null()
       END IF
 
       DEALLOCATE(this)
@@ -291,7 +378,7 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Get the id for a reconstruction parameter.
+!>  @brief Get the id for a parameter.
 !>
 !>  Gets a model reconstruction parameter. If the id is not a model parameter,
 !>  it is deferred to the @ref equilibrium.
@@ -321,6 +408,15 @@
          CASE ('pressure_fraction')
             model_get_param_id = model_pressure_fraction_id
 
+         CASE ('ne_grid')
+            model_get_param_id = model_ne_grid_id
+
+         CASE ('te_grid')
+            model_get_param_id = model_te_grid_id
+
+         CASE ('sxrem_grid')
+            model_get_param_id = model_sxrem_grid_id
+
          CASE DEFAULT
             model_get_param_id =                                               &
      &         equilibrium_get_param_id(this%equilibrium, param_name)
@@ -330,7 +426,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the value of a reconstruction model parameter.
+!>  @brief Gets the value of a model parameter.
 !>
 !>  Gets a model reconstruction parameter value. If the id is not a model
 !>  parameter, it is deferred to the @ref equilibrium.
@@ -365,6 +461,29 @@
          CASE (model_pressure_fraction_id)
             model_get_param_value = this%pressure_fraction
 
+!  Not every equilibrium will provide grid for these profiles.
+         CASE (model_ne_grid_id)
+            IF (ASSOCIATED(this%ne_grid)) THEN
+               model_get_param_value = this%ne_grid(i_index)
+            ELSE
+               model_get_param_value = 0.0
+            END IF
+
+         CASE (model_te_grid_id)
+            IF (ASSOCIATED(this%te_grid)) THEN
+               model_get_param_value = this%te_grid(i_index)
+            ELSE
+               model_get_param_value = 0.0
+            END IF
+
+         CASE (model_sxrem_grid_id)
+            IF (ASSOCIATED(this%sxrem_grid)) THEN
+               model_get_param_value = this%sxrem_grid(i_index,                &
+     &                                                 j_index)
+            ELSE
+               model_get_param_value = 0.0
+            END IF
+
          CASE DEFAULT
             model_get_param_value =                                            &
      &         equilibrium_get_param_value(this%equilibrium, id,               &
@@ -375,7 +494,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the name of a reconstruction model parameter.
+!>  @brief Gets the name of a model parameter.
 !>
 !>  Gets a model reconstruction parameter name. If the id is not a model
 !>  parameter, it is deferred to the @ref equilibrium.
@@ -405,6 +524,15 @@
          CASE (model_pressure_fraction_id)
             model_get_param_name = 'pressure_fraction'
 
+         CASE (model_ne_grid_id)
+            model_get_param_name = 'ne_grid'
+
+         CASE (model_te_grid_id)
+            model_get_param_name = 'te_grid'
+
+         CASE (model_sxrem_grid_id)
+            model_get_param_name = 'sxrem_grid'
+
          CASE DEFAULT
             model_get_param_name =                                             &
      &         equilibrium_get_param_name(this%equilibrium, id)
@@ -414,21 +542,21 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the electron density at a position.
+!>  @brief Gets the electron density at a cartesian position.
 !>
-!>  Gets the electron density at a position. Electron density is computed based
-!>  on the type of @ref model_class::ne_type.
+!>  Gets the electron density at a cartesian position. Electron density is
+!>  computed based on the type of @ref model_class::ne_type.
 !>
 !>  @param[in] this   A @ref model_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron density at.
 !>  @returns The electron density at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_ne(this, x_cart)
+      FUNCTION model_get_ne_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: model_get_ne
+      REAL (rprec)                           :: model_get_ne_cart
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
@@ -436,37 +564,81 @@
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
-            model_get_ne = equilibrium_get_ne(this%equilibrium, x_cart)
-            model_get_ne = MAX(this%ne_min, this%ne_unit*model_get_ne)
+            model_get_ne_cart = equilibrium_get_ne(this%equilibrium,           &
+     &                                             x_cart)
+            model_get_ne_cart = MAX(this%ne_min,                               &
+     &                              this%ne_unit*model_get_ne_cart)
 
          CASE (model_ne_te_p_type)
-            model_get_ne = eV_per_Joule*this%pressure_fraction                 &
-     &                   * equilibrium_get_p(this%equilibrium, x_cart)         &
-     &                   / model_get_te(this, x_cart)
+            model_get_ne_cart = eV_per_Joule*this%pressure_fraction            &
+     &                        * equilibrium_get_p(this%equilibrium,            &
+     &                                            x_cart)                      &
+     &                        / model_get_te(this, x_cart)
 
          CASE DEFAULT
-             model_get_ne = -2.0E49_rprec
+             model_get_ne_cart = -2.0E49_rprec
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the electron temperature at a position.
+!>  @brief Gets the electron density at a radial position.
 !>
-!>  Gets the electron temperature at a position. Electron temperature is
-!>  computed based on the type of @ref model_class::te_type.
+!>  Gets the electron density at a radial position. Electron density is computed
+!>  based on the type of @ref model_class::ne_type.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] r    Radial position to get the electron density at.
+!>  @returns The electron density at r.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_ne_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_ne_radial
+      TYPE (model_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)       :: r
+
+!  Start of executable code
+      SELECT CASE (this%ne_type)
+
+         CASE (model_ne_type)
+            model_get_ne_radial = equilibrium_get_ne(this%equilibrium,         &
+     &                                               r)
+            model_get_ne_radial = MAX(this%ne_min,                             &
+     &                                this%ne_unit*model_get_ne_radial)
+
+         CASE (model_ne_te_p_type)
+            model_get_ne_radial = eV_per_Joule*this%pressure_fraction          &
+     &                          * equilibrium_get_p(this%equilibrium,          &
+     &                                              r)                         &
+     &                          / model_get_te(this, r)
+
+         CASE DEFAULT
+            model_get_ne_radial = -2.0E49_rprec
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the electron temperature at a cartesian position.
+!>
+!>  Gets the electron temperature at a cartesian position. Electron temperature
+!>  is computed based on the type of @ref model_class::te_type.
 !>
 !>  @param[in] this   A @ref model_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
 !>  @returns The electron temperature at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_te(this, x_cart)
+      FUNCTION model_get_te_cart(this, x_cart)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: model_get_te
+      REAL (rprec)                           :: model_get_te_cart
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
@@ -474,37 +646,78 @@
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
-            model_get_te = equilibrium_get_te(this%equilibrium, x_cart)
+            model_get_te_cart = equilibrium_get_te(this%equilibrium,           &
+     &                                             x_cart)
 
          CASE (model_te_ne_p_type)
-            model_get_te = eV_per_Joule*this%pressure_fraction                 &
-     &                   * equilibrium_get_p(this%equilibrium, x_cart)         &
-     &                   / model_get_ne(this, x_cart)
+            model_get_te_cart = eV_per_Joule*this%pressure_fraction            &
+     &                        * equilibrium_get_p(this%equilibrium,            &
+     &                                            x_cart)                      &
+     &                        / model_get_ne(this, x_cart)
 
          CASE DEFAULT
-            model_get_te = -2.0E49_rprec
+            model_get_te_cart = -2.0E49_rprec
 
       END SELECT
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets the soft x-ray emissivity at a position.
+!>  @brief Gets the electron temperature at a radial position.
 !>
-!>  Gets the soft x-ray emissivity at a position. Soft x-ray emissivity is
-!>  computed based on the type of @ref model_class::sxrem_type.
+!>  Gets the electron temperature at a radial position. Electron temperature is
+!>  computed based on the type of @ref model_class::te_type.
+!>
+!>  @param[in] this A @ref model_class instance.
+!>  @param[in] r    Radial position to get the electron temperature at.
+!>  @returns The electron temperature at r.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_te_radial(this, r)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_te_radial
+      TYPE (model_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)       :: r
+
+!  Start of executable code
+      SELECT CASE (this%te_type)
+
+         CASE (model_te_type)
+            model_get_te_radial = equilibrium_get_te(this%equilibrium,         &
+     &                                               r)
+
+         CASE (model_te_ne_p_type)
+            model_get_te_radial = eV_per_Joule*this%pressure_fraction          &
+     &                          * equilibrium_get_p(this%equilibrium,          &
+     &                                              r)                         &
+     &                          / model_get_ne(this, r)
+
+         CASE DEFAULT
+            model_get_te_radial = -2.0E49_rprec
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity at a cartesian position.
+!>
+!>  Gets the soft x-ray emissivity at a cartesian position. Soft x-ray
+!>  emissivity is computed based on the type of @ref model_class::sxrem_type.
 !>
 !>  @param[in] this   A @ref model_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
 !>  @param[in] index  Index of the soft x-ray emissivity model.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem(this, x_cart, index)
+      FUNCTION model_get_sxrem_cart(this, x_cart, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                           :: model_get_sxrem
+      REAL (rprec)                           :: model_get_sxrem_cart
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
@@ -513,11 +726,46 @@
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
-            model_get_sxrem =                                                  &
+            model_get_sxrem_cart =                                             &
      &         equilibrium_get_sxrem(this%equilibrium, x_cart, index)
 
          CASE DEFAULT
-            model_get_sxrem = -2.0E49_rprec
+            model_get_sxrem_cart = -2.0E49_rprec
+
+      END SELECT
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity at a radial position.
+!>
+!>  Gets the soft x-ray emissivity at a radial position. Soft x-ray emissivity
+!>  is computed based on the type of @ref model_class::sxrem_type.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] r     Radial position to get the soft x-ray emissivity at.
+!>  @param[in] index Index of the soft x-ray emissivity model.
+!>  @returns The soft x-ray emissivity at r.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_sxrem_radial(this, r, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_sxrem_radial
+      TYPE (model_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)       :: r
+      INTEGER, INTENT(in)            :: index
+
+!  Start of executable code
+      SELECT CASE (this%sxrem_type(index))
+
+         CASE (model_sxrem_type)
+            model_get_sxrem_radial =                                           &
+     &         equilibrium_get_sxrem(this%equilibrium, r, index)
+
+         CASE DEFAULT
+            model_get_sxrem_radial = -2.0E49_rprec
 
       END SELECT
 
@@ -574,7 +822,7 @@
             model_get_te_type = 'pp_te'
 
          CASE (model_ne_te_p_type)
-            model_get_te_type = 'pp_ne_vmec_p'
+            model_get_te_type = 'pp_ne_p'
 
          CASE DEFAULT
             model_get_te_type = 'none'
@@ -653,6 +901,64 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
+!>  @brief Solves the model.
+!>
+!>  This solves the equilibirum model and computes modeled values. The modeled
+!>  values computed are the grided model values.
+!>
+!>  @param[inout] this     A @ref model_class instance.
+!>  @param[inout] num_iter Counter to track the number of iterations.
+!>  @param[in]    iou      Input/output unit of the file to write logs to.
+!>  @returns True if the convergece was sucessful and false otherwise.
+!-------------------------------------------------------------------------------
+      FUNCTION model_converge(this, num_iter, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                           :: model_converge
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(inout)            :: num_iter
+      INTEGER, INTENT(in)               :: iou
+
+!  local variables
+      REAL (rprec)                      :: r, dr
+      INTEGER                           :: i, j
+
+!  Start of executable code
+      model_converge = equilibrium_converge(this%equilibrium, num_iter,        &
+     &                                      iou)
+
+      IF (model_converge) THEN
+
+         IF (ASSOCIATED(this%ne_grid)) THEN
+            DO i = 1, SIZE(this%ne_grid)
+               r = (i - 1)*this%grid_step + this%grid_start
+               this%ne_grid(i) = model_get_ne(this, r)
+            END DO
+         END IF
+
+         IF (ASSOCIATED(this%sxrem_grid)) THEN
+            DO i = 1, SIZE(this%sxrem_grid, 2)
+               r = (i - 1)*this%grid_step + this%grid_start
+               DO j = 1, SIZE(this%sxrem_grid, 1)
+                   this%sxrem_grid(j,i) = model_get_sxrem(this, r, j)
+               END DO
+            END DO
+         END IF
+
+         IF (ASSOCIATED(this%te_grid)) THEN
+            DO i = 1, SIZE(this%te_grid)
+               r = (i - 1)*this%grid_step + this%grid_start
+               this%te_grid(i) = model_get_te(this, r)
+            END DO
+         END IF
+
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Write out the model to an output file.
 !>
 !>  Write out information about the model to an output file. This also then
@@ -693,6 +999,287 @@
 1000  FORMAT(1x,a,2x,es12.5)
 
       CALL equilibrium_write(this%equilibrium, iou)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+!>  @page result_file_model Model Result File
+!>
+!>  @tableofcontents
+!>  @section result_file_model_intro_sec Introduction
+!>  This page documents the contents of a result NetCDF file contributed by the
+!>  model. The remaining parts of the result file are documented in
+!>  the @ref result_file_main page.
+!>
+!>  @section result_file_model_dim_sec Dimensions
+!>  @header{Dimension, Description, Code Reference}
+!>  @begin_table
+!>     @item{model_grid_size, Size of the radial profile grids,          equilibrium::equilibrium_get_grid_size}
+!>     @item{model_num_sxrem, Number of soft x-ray emissivity profiles., v3fit_input::v3fit_max_sxrem_profiles}
+!>  @end_table
+!>
+!>  @section result_file_model_var_sec Variables
+!>  @header{Variable(Dimensions), Description, Code Reference}
+!>  @begin_table
+!>      @item{model_ne_type (string_len),                      Discription of the electron density model.,      model::model_class::ne_type}
+!>      @item{model_te_type (string_len),                      Discription of the electron temperature model.,  model::model_class::te_type}
+!>      @item{model_sxrem_type (string_len\, model_num_sxrem), Discription of the soft x-ray emissivity model., model::model_class::sxrem_type}
+!>      @item{ne_unit (maxnsteps),                             Electron density unit scaling,                   model::model_class::ne_unit}
+!>      @item{ne_min (maxnsteps),                              Minimum electron density,                        model::model_class::ne_min}
+!>      @item{pressure_fraction (maxnsteps),                   Fractional Pressure,                             model::model_class::pressure_fraction}
+!>  @end_table
+!>  @table_section{result_file_model_grid_sec, Model Profiles}
+!>      @item{ne_grid (model_grid_size\, maxnsteps),                      Radial profile of the electron density,          model::model_class::ne_grid}
+!>      @item{te_grid (model_grid_size\, maxnsteps),                      Radial profile of the electron temperature,      model::model_class::te_grid}
+!>      @item{sxrem_grid (model_grid_size\, model_num_sxrem\, maxnsteps), Radial profile of the soft x-ray emissivity,     model::model_class::sxrem_grid}
+!>  @end_table
+!-------------------------------------------------------------------------------
+!>  @brief Define NetCDF variables for the result file
+!>
+!>  Defines dimensions and variables for the model contribution of the result
+!>  file. Multi dimensional arrays need to be transposed so arrays appear in the
+!>  correct order in non fortran languages.
+!>
+!>  @param[in] this             A @ref model_class instance.
+!>  @param[in] result_ncid      NetCDF file id of the result file.
+!>  @param[in] maxnsetps_dim_id NetCDF dimension id of the number of steps
+!>                              dimension.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_def_result(this, result_ncid, maxnsteps_dim_id,         &
+     &                            string_len_dim_id)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: result_ncid
+      INTEGER, INTENT(in)            :: maxnsteps_dim_id
+      INTEGER, INTENT(in)            :: string_len_dim_id
+
+!  local variables
+      INTEGER                        :: status
+      INTEGER                        :: model_grid_size_dim_id
+      INTEGER                        :: model_num_sxrem_dim_id
+      INTEGER                        :: ne_type_var_id
+      INTEGER                        :: te_type_var_id
+      INTEGER                        :: sxrem_type_var_id
+      INTEGER                        :: ne_unit_var_id
+      INTEGER                        :: ne_min_var_id
+      INTEGER                        :: pressure_fraction_var_id
+      INTEGER                        :: ne_grid_var_id
+      INTEGER                        :: te_grid_var_id
+      INTEGER                        :: sxrem_grid_var_id
+
+!  Start of executable code
+!  Define dimensions
+      IF (ASSOCIATED(this%ne_grid) .or.                                        &
+     &    ASSOCIATED(this%te_grid) .or.                                        &
+     &    ASSOCIATED(this%sxrem_grid)) THEN
+         status = nf_def_dim(result_ncid, 'model_grid_size',                   &
+     &                       SIZE(this%ne_grid),                               &
+     &                       model_grid_size_dim_id)
+      ELSE
+         status = nf_def_dim(result_ncid, 'model_grid_size', 1,                &
+     &                       model_grid_size_dim_id)
+      END IF
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      IF (ASSOCIATED(this%sxrem_grid)) THEN
+         status = nf_def_dim(result_ncid, 'model_num_sxrem',                   &
+     &                       SIZE(this%sxrem_grid, 1),                         &
+     &                       model_num_sxrem_dim_id)
+      END IF
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+!  Define variables
+      status = nf_def_var(result_ncid, 'model_ne_type', nf_char, 1,            &
+     &                    (/ string_len_dim_id /), ne_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'model_te_type', nf_char, 1,            &
+     &                    (/ string_len_dim_id /), te_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'model_sxrem_type', nf_char, 2,         &
+     &                    (/ string_len_dim_id,                                &
+     &                       model_num_sxrem_dim_id /),                        &
+     &                    sxrem_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'ne_unit', nf_double, 1,                &
+     &                    (/ maxnsteps_dim_id /), ne_unit_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'ne_min', nf_double, 1,                 &
+     &                    (/ maxnsteps_dim_id /), ne_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'pressure_fraction', nf_double,         &
+     &                    1, (/ maxnsteps_dim_id /),                           &
+     &                    pressure_fraction_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      IF (ASSOCIATED(this%ne_grid)) THEN
+         status = nf_def_var(result_ncid, 'ne_grid', nf_double, 2,             &
+     &                       (/ model_grid_size_dim_id,                        &
+     &                          maxnsteps_dim_id /), ne_grid_var_id)
+      END IF
+
+      IF (ASSOCIATED(this%te_grid)) THEN
+         status = nf_def_var(result_ncid, 'te_grid', nf_double, 2,             &
+     &                       (/ model_grid_size_dim_id,                        &
+     &                          maxnsteps_dim_id /), te_grid_var_id)
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_grid)) THEN
+         status = nf_def_var(result_ncid, 'sxrem_grid', nf_double, 3,          &
+     &                       (/ model_grid_size_dim_id,                        &
+     &                          model_num_sxrem_dim_id,                        &
+     &                          maxnsteps_dim_id /), sxrem_grid_var_id)
+      END IF
+
+      CALL equilibrium_def_result(this%equilibrium, result_ncid,               &
+     &                            maxnsteps_dim_id)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write inital data to NetCDF result file
+!>
+!>  This write the data that doesn't change.
+!>
+!>  @param[in] this        A @ref model_class instance.
+!>  @param[in] result_ncid NetCDF file id of the result file.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_write_init_data(this, result_ncid)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: result_ncid
+
+!  Local variables
+      INTEGER                        :: i, status
+      INTEGER                        :: ne_type_var_id
+      INTEGER                        :: te_type_var_id
+      INTEGER                        :: sxrem_type_var_id
+
+!  Start of executable code
+      status = nf_inq_varid(result_ncid, 'model_ne_type',                      &
+     &                      ne_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_text(result_ncid, ne_type_var_id,                    &
+     &                         model_get_ne_type(this))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'model_te_type',                      &
+     &                      te_type_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_text(result_ncid, te_type_var_id,                    &
+     &                         model_get_te_type(this))
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      IF (ASSOCIATED(this%sxrem_type)) THEN
+         status = nf_inq_varid(result_ncid, 'model_sxrem_type',                &
+     &                         sxrem_type_var_id)
+         DO i = 1, SIZE(this%sxrem_type)
+            status = nf_put_vara_text(result_ncid, sxrem_type_var_id,          &
+     &                                (/ 1, i /),                              &
+     &                                (/ data_name_length, 1 /),               &
+     &                                model_get_sxrem_type(this, i))
+            CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         END DO
+      END IF
+
+      CALL equilibrium_write_init_data(this%equilibrium, result_ncid)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write step data to NetCDF result file
+!>
+!>  This write the data that can change each reconstruction step.
+!>
+!>  @param[in] this         A @ref model_class instance.
+!>  @param[in] result_ncid  NetCDF file id of the result file.
+!>  @param[in] current_step Step index to write variables to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_write_step_data(this, result_ncid, current_step)
+      USE ezcdf
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: result_ncid
+      INTEGER, INTENT(in)            :: current_step
+
+!  Local variables
+      INTEGER                        :: i, status
+      INTEGER                        :: ne_unit_var_id
+      INTEGER                        :: ne_min_var_id
+      INTEGER                        :: pressure_fraction_var_id
+      INTEGER                        :: ne_grid_var_id
+      INTEGER                        :: te_grid_var_id
+      INTEGER                        :: sxrem_grid_var_id
+
+!  Start of executable code
+      status = nf_inq_varid(result_ncid, 'ne_unit', ne_unit_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, ne_unit_var_id,                 &
+     &                            current_step, this%ne_unit)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'ne_min', ne_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, ne_min_var_id,                  &
+     &                            current_step, this%ne_min)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'pressure_fraction',                  &
+     &                      pressure_fraction_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, pressure_fraction_var_id,       &
+     &                            current_step, this%pressure_fraction)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      IF (ASSOCIATED(this%ne_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'ne_grid', ne_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_vara_double(result_ncid, ne_grid_var_id,              &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%ne_grid), 1 /),              &
+     &                               this%ne_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%te_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'te_grid', te_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_vara_double(result_ncid, te_grid_var_id,              &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%te_grid), 1 /),              &
+     &                               this%te_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'sxrem_grid',                      &
+     &                         sxrem_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_vara_double(result_ncid, sxrem_grid_var_id,           &
+     &                               (/ 1, 1, current_step /),                 &
+     &                               (/ SIZE(this%sxrem_grid, 2),              &
+     &                                  SIZE(this%sxrem_grid, 1), 1 /),        &
+     &                               this%sxrem_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      CALL equilibrium_write_step_data(this%equilibrium, result_ncid,          &
+     &                                 current_step)
 
       END SUBROUTINE
 

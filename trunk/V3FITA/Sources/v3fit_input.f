@@ -104,11 +104,12 @@
 !>     @item{rc_value, Array of reconstruction constraint values,  v3fit_input::rc_value}
 !>  @end_table
 !>
-!>  @table_section{recon_param_sec, Derived parameter specification}
-!>     @item{n_dp,     Number of Derived parameters,                            v3fit_input::n_dp}
+!>  @table_section{derived_param_sec, Derived parameter specification}
+!>     @item{n_dp,     Number of derived parameters,                            v3fit_input::n_dp}
 !>     @item{dp_type,  Array of derived parameter types. Any parameter can be a
-!>                     * @ref vmec_equilibrium_derive_param_sec,                v3fit_input::dp_type}
-!>     @item{dp_index, Array of reconstruction parameter indices,               v3fit_input::dp_index}
+!>                     * @ref vmec_equilibrium_derive_param_sec
+!>                     * @ref model_derived_param_sec,                          v3fit_input::dp_type}
+!>     @item{dp_index, Array of derived parameter indices,                      v3fit_input::dp_index}
 !>  @end_table
 !>
 !>  @table_section{recon_param_sec, Reconstruction parameter specification}

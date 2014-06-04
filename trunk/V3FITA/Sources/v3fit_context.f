@@ -82,52 +82,8 @@
 !>  -1 represents no @ref combination_class signal created.
          INTEGER :: combination_index = -1
 
-!  Result file NetCDF variables.
 !>  NetCDF result file to write out the results in machine readable form.
          INTEGER :: result_ncid
-!>  NetCDF variable id for the number of current steps taken in the
-!>  reconstruction.
-         INTEGER :: nsteps_id
-!>  NetCDF variable id contain the g^2 value for each reconstruction step.
-         INTEGER :: g2_id
-
-!>  NetCDF variable id containing the derived parameter values for each
-!>  reconstruction step.
-!>  @see param
-         INTEGER :: derived_param_value_id
-!>  NetCDF variable id containing the derived parameter sigmas for each
-!>  reconstruction step.
-!>  @see param
-         INTEGER :: derived_param_sigma_id
-!>  NetCDF variable id containing the derived parameter correlations for each
-!>  reconstruction step.
-!>  @see param
-         INTEGER :: derived_param_corr_id
-!>  NetCDF variable id containing the parameter values for each reconstruction
-!>  step.
-!>  @see param
-         INTEGER :: param_value_id
-!>  NetCDF variable id containing the parameter sigmas for each reconstruction
-!>  step.
-!>  @see param
-         INTEGER :: param_sigma_id
-!>  NetCDF variable id containing the parameter correlations for each
-!>  reconstruction step.
-!>  @see param
-         INTEGER :: param_corr_id
-!>  NetCDF variable id containing the signal effectiveness matrix for each for each
-!>  reconstruction step.
-!>  @see param
-         INTEGER :: param_sem_id
-
-!>  NetCDF variable id containing the parameter values for each reconstruction
-!>  step.
-!>  @see signal
-         INTEGER :: signal_model_value_id
-!>  NetCDF variable id containing the parameter values for each reconstruction
-!>  step.
-!>  @see signal
-         INTEGER :: signal_sigma_value_id
       END TYPE
 
       CONTAINS
@@ -681,6 +637,7 @@
 !>  @end_table
 !>  @subsection result_file_main_eq_var_sec Equilibrium Variables
 !>  Equilibrium variables change depending on the equilibrium used.
+!>  * VMEC @ref result_file_model_var_sec
 !>  * VMEC @ref result_file_vmec_var_sec
 !-------------------------------------------------------------------------------
 !>  @brief Initialize the dimensions and variables of the result file.
@@ -699,22 +656,32 @@
       TYPE (v3fit_context_class), INTENT(inout) :: this
 
 !  local variables
-      INTEGER :: status
-      INTEGER :: i
+      INTEGER :: i, status
       INTEGER :: maxnsteps_dim_id
       INTEGER :: ndparam_dim_id
       INTEGER :: nparam_dim_id
       INTEGER :: nparamindex_dim_id
       INTEGER :: nsignal_dim_id
       INTEGER :: string_len_dim_id
+      INTEGER :: nsteps_id
+      INTEGER :: g2_id
       INTEGER :: derived_param_name_id
       INTEGER :: derived_param_index_id
+      INTEGER :: derived_param_value_id
+      INTEGER :: derived_param_sigma_id
+      INTEGER :: derived_param_corr_id
       INTEGER :: param_name_id
       INTEGER :: param_index_id
+      INTEGER :: param_value_id
+      INTEGER :: param_sigma_id
+      INTEGER :: param_corr_id
+      INTEGER :: param_sem_id
       INTEGER :: signal_name_id
       INTEGER :: signal_type_id
       INTEGER :: signal_weight_id
       INTEGER :: signal_observed_value_id
+      INTEGER :: signal_model_value_id
+      INTEGER :: signal_sigma_value_id
 
 !  Start of executable code
 !  Define dimensions
@@ -759,12 +726,12 @@
 
 !  Define variables
       status = nf_def_var(this%result_ncid, 'nsteps', nf_int, 0, 0,            &
-     &                    this%nsteps_id)
+     &                    nsteps_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       IF (ASSOCIATED(this%recon)) THEN
          status = nf_def_var(this%result_ncid, 'g2', nf_double, 1,             &
-     &                       (/ maxnsteps_dim_id /), this%g2_id)
+     &                       (/ maxnsteps_dim_id /), g2_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -786,20 +753,20 @@
          status = nf_def_var(this%result_ncid, 'derived_param_value',          &
      &                       nf_double, 2, (/ ndparam_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%derived_param_value_id)
+     &                       derived_param_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'derived_param_sigma',          &
      &                       nf_double, 2, (/ ndparam_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%derived_param_sigma_id)
+     &                       derived_param_sigma_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'derived_param_corr',           &
      &                       nf_double, 3, (/ ndparam_dim_id,                  &
      &                                        ndparam_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%derived_param_corr_id)
+     &                       derived_param_corr_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -818,27 +785,27 @@
          status = nf_def_var(this%result_ncid, 'param_value', nf_double,       &
      &                       2, (/ nparam_dim_id,                              &
      &                             maxnsteps_dim_id /),                        &
-     &                       this%param_value_id)
+     &                       param_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'param_sigma', nf_double,       &
      &                       2, (/ nparam_dim_id,                              &
      &                             maxnsteps_dim_id /),                        &
-     &                       this%param_sigma_id)
+     &                       param_sigma_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'param_corr',                   &
      &                       nf_double, 3, (/ nparam_dim_id,                   &
      &                                        nparam_dim_id,                   &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%param_corr_id)
+     &                       param_corr_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_eff_matrix',            &
      &                       nf_double, 3, (/ nsignal_dim_id,                  &
      &                                        nparam_dim_id,                   &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%param_sem_id)
+     &                       param_sem_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -867,20 +834,19 @@
          status = nf_def_var(this%result_ncid, 'signal_model_value',           &
      &                       nf_double, 2, (/ nsignal_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%signal_model_value_id)
+     &                       signal_model_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_sigma',                 &
      &                       nf_double, 2, (/ nsignal_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
-     &                       this%signal_sigma_value_id)
+     &                       signal_sigma_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
       IF (ASSOCIATED(this%model)) THEN
-         CALL equilibrium_def_result(this%model%equilibrium,                   &
-     &                               this%result_ncid,                         &
-     &                               maxnsteps_dim_id)
+         CALL model_def_result(this%model, this%result_ncid,                   &
+     &                         maxnsteps_dim_id, string_len_dim_id)
       END IF
 
 ! Finished defining netcdf file. Exit out of define mode.
@@ -949,8 +915,7 @@
       END IF
 
       IF (ASSOCIATED(this%model)) THEN
-         CALL equilibrium_write_init_data(this%model%equilibrium,              &
-     &                                    this%result_ncid)
+         CALL model_write_init_data(this%model, this%result_ncid)
       END IF
 
       CALL v3fit_context_write_step_data(this, .true.)
@@ -979,22 +944,34 @@
       LOGICAL, INTENT(in)                       :: first_step
 
 !  local variables
-      INTEGER                                   :: status
-      INTEGER                                   :: i
-      INTEGER                                   :: current_step
+      INTEGER :: i, status
+      INTEGER :: current_step
+      INTEGER :: nsteps_id
+      INTEGER :: g2_id
+      INTEGER :: derived_param_value_id
+      INTEGER :: derived_param_sigma_id
+      INTEGER :: derived_param_corr_id
+      INTEGER :: param_value_id
+      INTEGER :: param_sigma_id
+      INTEGER :: param_corr_id
+      INTEGER :: param_sem_id
+      INTEGER :: signal_model_value_id
+      INTEGER :: signal_sigma_value_id
 
 !  Start of executable code
 !  Update number of steps taken.
+      status = nf_inq_varid(this%result_ncid, 'nsteps', nsteps_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
       IF (first_step) THEN
-         status = nf_put_var_int(this%result_ncid, this%nsteps_id, 0)
+         status = nf_put_var_int(this%result_ncid, nsteps_id, 0)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
          current_step = 1
       ELSE
-         status = nf_get_var_int(this%result_ncid, this%nsteps_id,             &
+         status = nf_get_var_int(this%result_ncid, nsteps_id,                  &
      &                           current_step)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
          current_step = current_step + 1
-         status = nf_put_var_int(this%result_ncid, this%nsteps_id,             &
+         status = nf_put_var_int(this%result_ncid, nsteps_id,                  &
      &                           current_step)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
@@ -1003,45 +980,87 @@
          current_step = current_step + 1
       END IF
 
-      CALL equilibrium_write_step_data(this%model%equilibrium,                 &
-     &                                 this%result_ncid, current_step)
+      CALL model_write_step_data(this%model, this%result_ncid,                 &
+     &                           current_step)
 
       IF (ASSOCIATED(this%recon)) THEN
-         status = nf_put_var1_double(this%result_ncid, this%g2_id,             &
+         status = nf_inq_varid(this%result_ncid, 'g2', g2_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_var1_double(this%result_ncid, g2_id,                  &
      &                               current_step,                             &
      &                               reconstruction_get_g2(this%recon))
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
-      IF (ASSOCIATED(this%derived_params)) THEN
+      IF (ASSOCIATED(this%derived_params) .and.                                &
+     &    SIZE(this%derived_params) .gt. 0) THEN
+         status = nf_inq_varid(this%result_ncid,                               &
+     &                         'derived_param_value',                          &
+     &                         derived_param_value_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid,                               &
+     &                         'derived_param_sigma',                          &
+     &                         derived_param_sigma_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid,                               &
+     &                         'derived_param_corr',                           &
+     &                         derived_param_corr_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
          DO i = 1, SIZE(this%derived_params)
             CALL param_write_step_data(this%derived_params(i)%p,               &
      &                                 this%model, this%result_ncid,           &
      &                                 current_step, i,                        &
-     &                                 this%derived_param_value_id,            &
-     &                                 this%derived_param_sigma_id,            &
-     &                                 this%derived_param_corr_id)
+     &                                 derived_param_value_id,                 &
+     &                                 derived_param_sigma_id,                 &
+     &                                 derived_param_corr_id)
          END DO
       END IF
 
       IF (ASSOCIATED(this%params)) THEN
+         status = nf_inq_varid(this%result_ncid, 'param_value',                &
+     &                         param_value_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid, 'param_sigma',                &
+     &                         param_sigma_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid, 'param_corr',                 &
+     &                         param_corr_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid, 'signal_eff_matrix',          &
+     &                         param_sem_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
          DO i = 1, SIZE(this%params)
             CALL param_write_step_data(this%params(i)%p, this%model,           &
      &                                 this%result_ncid, current_step,         &
-     &                                 i, this%param_value_id,                 &
-     &                                 this%param_sigma_id,                    &
-     &                                 this%param_corr_id,                     &
-     &                                 this%param_sem_id)
+     &                                 i, param_value_id,                      &
+     &                                 param_sigma_id,                         &
+     &                                 param_corr_id,                          &
+     &                                 param_sem_id)
          END DO
       END IF
 
       IF (ASSOCIATED(this%signals)) THEN
+         status = nf_inq_varid(this%result_ncid, 'signal_model_value',         &
+     &                         signal_model_value_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid, 'signal_sigma',               &
+     &                         signal_sigma_value_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
          DO i = 1, SIZE(this%signals)
             CALL signal_write_step_data(this%signals(i)%p, this%model,         &
      &                                  this%result_ncid,                      &
      &                                  current_step, i,                       &
-     &                                  this%signal_model_value_id,            &
-     &                                  this%signal_sigma_value_id)
+     &                                  signal_model_value_id,                 &
+     &                                  signal_sigma_value_id)
          END DO
       END IF
 

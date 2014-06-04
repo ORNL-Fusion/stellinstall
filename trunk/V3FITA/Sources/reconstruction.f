@@ -578,8 +578,7 @@
 
 !  Start of executable code
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
-      IF (equilibrium_converge(a_model%equilibrium, eq_steps,                  &
-     &                         iou)) THEN
+      IF (model_converge(a_model, eq_steps, iou)) THEN
          DO i = 1, SIZE(signals)
             this%e(this%current_step,i) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
@@ -674,8 +673,7 @@
 !  step size to keep the parameter in range.
          CALL param_increment(params(j)%p, a_model)
 
-         CALL assert(equilibrium_converge(a_model%equilibrium,                 &
-     &                                    eq_steps, iou),                      &
+         CALL assert(model_converge(a_model, eq_steps, iou),                   &
      &               'reconstruction_eval_step: failed to converge ' //        &
      &               'equilibrium. Try decreasing rp_vrnc')
 
@@ -723,7 +721,7 @@
          this%derived_jacobian(:,j) = this%derived_jacobian(:,j)               &
      &                              * SIGN(1.0_rprec, params(j)%p%delta)
 
-!  Restore the parameter and the equilibirum to it's initial value.
+!  Restore the parameter and the equilibrium to it's initial value.
          CALL param_set_value(params(j)%p, a_model, param_value)
          CALL equilibrium_reset_state(a_model%equilibrium)
 
