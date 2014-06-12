@@ -472,12 +472,11 @@
 !  the wout filename before using it.
          vmec_construct%wout_file_name = wout_file_name
          CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+
          CALL read_wout_file(vmec_construct%wout_file_name, error)
-         IF (error .eq. 0) THEN
-            CALL LoadRZL
-         ELSE
-            STOP 'Error loading initialized wout file.'
-         END IF
+         CALL assert_eq(error, 0, 'Error loading initialized ' //              &
+     &                            'wout file.')
+         CALL LoadRZL
       ELSE
          CALL runvmec(ictrl_array, file_name, .false.)
       END IF
@@ -2613,13 +2612,12 @@
 
          CASE (successful_term_flag, norm_term_flag, more_iter_flag)
             CALL read_wout_file(this%wout_file_name, error)
-            IF (error .eq. 0) THEN
-               CALL LoadRZL
-               vmec_converge = .true.
+            CALL assert_eq(error, 0, "Error reading wout file.")
+            CALL LoadRZL
 
-               IF (ASSOCIATED(this%magnetic_cache)) THEN
-                  CALL vmec_set_magnetic_cache(this)
-               END IF
+            vmec_converge = .true.
+            IF (ASSOCIATED(this%magnetic_cache)) THEN
+               CALL vmec_set_magnetic_cache(this)
             END IF
 
          CASE DEFAULT
@@ -2713,17 +2711,13 @@
       CALL assert_eq(error, 0, 'Error moving wout file.')
 
       CALL read_wout_file(this%wout_file_name, error)
-      IF (error .eq. 0) THEN
-         CALL LoadRZL
-
-         IF (ASSOCIATED(this%magnetic_cache)) THEN
-            CALL vmec_set_magnetic_cache(this)
-         END IF
-      END IF
+      CALL assert_eq(error, 0, 'Error moving reading reset wout file.')
+      CALL LoadRZL
 
       IF (ASSOCIATED(this%magnetic_cache)) THEN
-         CALL vmec_set_magnetic_cache_calc(this)
+         CALL vmec_set_magnetic_cache(this)
       END IF
+
 !  Reset the threed1 file.
       IF (ASSOCIATED(this%threed1_file)) THEN
          CALL threed1_file_cache_reset_state(this%threed1_file)
