@@ -31,7 +31,7 @@ endif ()
 
 # Configure MPI
 find_package(MPI)
-if (MPI_FOUND)
+if (MPI_Fortran_FOUND)
 	add_definitions(-DMPI_OPT)
         set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_COMPILE_FLAGS}")
         set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_LINK_FLAGS}")

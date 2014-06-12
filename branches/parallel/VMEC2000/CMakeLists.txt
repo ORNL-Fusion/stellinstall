@@ -30,7 +30,7 @@ endif()
 
 target_link_libraries (xvmec ${NETCDF_LIBRARIES})
 
-if (MPI_FOUND)
+if (MPI_Fortran_FOUND)
         target_link_libraries (xvmec ${MPI_Fortran_LIBRARIES})
 endif ()
 if (BLAS_FOUND)
@@ -66,7 +66,7 @@ endif()
 
 target_link_libraries (xanimec ${NETCDF_LIBRARIES})
 
-if (MPI_FOUND)
+if (MPI_Fortran_FOUND)
         target_link_libraries (xanimec ${MPI_Fortran_LIBRARIES})
 endif ()
 if (BLAS_FOUND)

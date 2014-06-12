@@ -20,7 +20,7 @@ endif()
 
 target_link_libraries (xbooz_xform ${NETCDF_LIBRARIES})
 
-if (MPI_FOUND)
+if (MPI_Fortran_FOUND)
         target_link_libraries (xbooz_xform ${MPI_Fortran_LIBRARIES})
 endif ()
 if (BLAS_FOUND)

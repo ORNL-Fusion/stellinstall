@@ -20,7 +20,7 @@ endif()
 
 target_link_libraries (xdescur ${NETCDF_LIBRARIES})
 
-if (MPI_FOUND)
+if (MPI_Fortran_FOUND)
         target_link_libraries (xdescur ${MPI_Fortran_LIBRARIES})
 endif ()
 if (LAPACK_FOUND)
