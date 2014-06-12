@@ -19,3 +19,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif()
 
 target_link_libraries (mgrid ${NETCDF_LIBRARIES})
+
+if (MPI_FOUND)
+        target_link_libraries (mgrid ${MPI_Fortran_LIBRARIES})
+endif ()

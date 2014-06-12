@@ -20,6 +20,9 @@ endif()
 
 target_link_libraries (xv3fit ${NETCDF_LIBRARIES})
 
+if (MPI_FOUND)
+        target_link_libraries (xv3fit ${MPI_Fortran_LIBRARIES})
+endif ()
 if (BLAS_FOUND)
 	target_link_libraries (xv3fit ${BLAS_LIBRARIES})
 endif ()

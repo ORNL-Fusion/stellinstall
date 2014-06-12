@@ -29,6 +29,15 @@ if (DOXYGEN_FOUND)
 			  COMMENT "Generating API documentation with Doxygen" VERBATIM)
 endif ()
 
+# Configure MPI
+find_package(MPI)
+if (MPI_FOUND)
+	add_definitions(-DMPI_OPT)
+        set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_COMPILE_FLAGS}")
+        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_LINK_FLAGS}")
+        include_directories(${MPI_INCLUDE_PATH})
+endif ()
+
 # Set a directories to build all binary files.
 set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
 set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/lib)
