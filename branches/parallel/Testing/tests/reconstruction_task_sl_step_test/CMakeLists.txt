@@ -2,7 +2,7 @@
 #  Subsequent tests will examine the results of the reconstruction for correct 
 #  results.
 add_test (NAME              reconstruction_task_sl_step_test
-          COMMAND           ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit)
+          COMMAND           ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
 
 #  Since the reconstruction task test was run, Check the output files for correct values.
 

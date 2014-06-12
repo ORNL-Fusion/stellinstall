@@ -131,6 +131,9 @@
 !  Create a context and read in the v3fit namelist input file.
       context => v3fit_context_construct(commandline_parser_construct())
 
+!  Configure parallel computation.
+      CALL config_parallelism(context)
+
 !  Run unit tests if the -test flag is set.
       IF (commandline_parser_is_flag_set(context%cl_parser,                    &
      &                                   '-test')) THEN
@@ -239,7 +242,7 @@
 !  local variables
       INTEGER                                   :: num_steps = 1
       LOGICAL                                   :: converged
-      INTEGER                                   :: i
+      INTEGER                                   :: i, last_para_signal
       REAL (rprec)                              :: g2
 
 !  Start of executable code
@@ -262,7 +265,28 @@
       WRITE (context%runlog_iou,*) ' *** Calculating modeled signals'
 
       g2 = 0.0
-      DO i = 1, SIZE(context%signals)
+
+!  The combination signals cannot be computed in parallel since the depend on
+!  other signals previously computed. If combinations are used, the signals need
+!  to be split into two loops.
+      IF (context%combination_index .eq. -1) THEN
+         last_para_signal = SIZE(context%signals)
+      ELSE
+         last_para_signal = context%combination_index - 1
+      END IF
+
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+!$OMP& REDUCTION(+:g2)
+      DO i = 1, last_para_signal
+         g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
+     &                           context%model, .false.)
+      END DO
+!$OMP END PARALLEL DO
+
+      DO i = last_para_signal + 1, SIZE(context%signals)
          g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
      &                           context%model, .false.)
       END DO
@@ -1171,13 +1195,71 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+!  local variables
+      INTEGER                                   :: last_para_signal
+
 !  Start of executable code
+!  The combination signals cannot be computed in parallel since the depend on
+!  other signals previously computed. If combinations are used, the signals need
+!  to be split into two loops.
+      IF (context%combination_index .eq. -1) THEN
+         last_para_signal = SIZE(context%signals)
+      ELSE
+         last_para_signal = context%combination_index - 1
+      END IF
+
       context%recon_stop = dg2_stop
       context%recon => reconstruction_construct(nrstep,                        &
      &                    SIZE(context%signals),                               &
      &                    SIZE(context%derived_params),                        &
      &                    SIZE(context%params),                                &
      &                    step_type, astep_max, cut_svd, cut_eff,              &
-     &                    cut_marg_eff, cut_delta_a, cut_dg2)
+     &                    cut_marg_eff, cut_delta_a, cut_dg2,                  &
+     &                    last_para_signal)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Configure Parallelism
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
+!-------------------------------------------------------------------------------
+!  When using openmp the !$ allows conditional computation based on if openmp is
+!  used or not.
+      SUBROUTINE config_parallelism(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: num_threads
+
+!  Forward declare the interface for OMP_GET_MAX_THREADS. This explicitly
+!  defined the type for OMP_GET_MAX_THREADS to avoid a compiler error.
+!$    INTERFACE
+!$       FUNCTION OMP_GET_MAX_THREADS()
+!$       INTEGER :: OMP_GET_MAX_THREADS
+!$       END FUNCTION
+!$    END INTERFACE
+
+!  Start of executable code
+      WRITE (*,*) ' *** Configuring parallelizm.'
+
+!  Configure the number of threeds to use.
+      num_threads = commandline_parser_get_integer(context%cl_parser,          &
+     &                                             '-para', 1)
+
+      IF (num_threads .gt. 0) THEN
+!$       CALL OMP_SET_NUM_THREADS(num_threads)
+!$OMP PARALLEL
+!$       num_threads = OMP_GET_MAX_THREADS()
+!$OMP END PARALLEL
+         WRITE (*,1000) num_threads
+      END IF
+
+1000  FORMAT('Using ',i4,' threads.')
 
       END SUBROUTINE

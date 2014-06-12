@@ -2,7 +2,7 @@
 #  Subsequent tests will examine the results of the v3post for correct 
 #  results.
 add_test (NAME              v3post_task_test
-          COMMAND           ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit)
+          COMMAND           ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
 
 #  Since the v3post task test was run, Check the recout file for correct values.
 add_test (NAME    v3post_task_check_model_sxr001

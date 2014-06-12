@@ -53,6 +53,8 @@
 
 !>  Counter to track the step number.
          INTEGER                               :: current_step = 0
+!>  Index of the last parallelable signal.
+         INTEGER                               :: last_para_signal = 0
 !>  Array of all e vectors for each reconstruction step.
 !>  @see signal::signal_get_e
          REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
@@ -132,6 +134,8 @@
 !>                                    @ref v3fit_input::cut_delta_a
 !>  @param[in] cut_dg2                Cutoff value for expected change in g^2.
 !>                                    @ref v3fit_input::cut_dg2
+!>  @param[in] last_para_signal       Index of the last signal that can be
+!>                                    parallelized.
 !>  @returns A pointer to a constructed @ref reconstruction_class object.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_construct(num_steps, num_signals,                &
@@ -139,7 +143,7 @@
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
-     &                                  cut_dg2)
+     &                                  cut_dg2, last_para_signal)
 
       IMPLICIT NONE
 
@@ -156,6 +160,7 @@
       REAL (rprec), INTENT(in)             :: cut_marg_eff
       REAL (rprec), INTENT(in)             :: cut_delta_a
       REAL (rprec), INTENT(in)             :: cut_dg2
+      INTEGER, INTENT(in)                  :: last_para_signal
 
 !  local variables
       INTEGER                              :: num_svd
@@ -186,6 +191,8 @@
       reconstruction_construct%cut_marg_eff = cut_marg_eff
       reconstruction_construct%cut_delta_a = cut_delta_a
       reconstruction_construct%cut_dg2 = cut_dg2
+
+      reconstruction_construct%last_para_signal = last_para_signal
 
       num_svd = MIN(num_signals, num_parameters)
 
@@ -579,10 +586,24 @@
 !  Start of executable code
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
       IF (model_converge(a_model, eq_steps, iou)) THEN
-         DO i = 1, SIZE(signals)
+
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+         DO i = 1, this%last_para_signal
             this%e(this%current_step,i) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
          END DO
+!$OMP END PARALLEL DO
+
+         DO i = this%last_para_signal + 1, SIZE(signals)
+            this%e(this%current_step,i) =                                      &
+     &         signal_get_e(signals(i)%p, a_model, .false.)
+         END DO
+
          !  Write out the step information.
          reconstruction_eval_e = .true.
       ELSE
@@ -616,10 +637,17 @@
       INTEGER                                        :: i
 
 !  Start of executable code
+
+!  All derived parameter values can be computed in parallel.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
       DO i = 1, SIZE(derived_params)
          this%f(this%current_step,i) =                                         &
      &      param_get_value(derived_params(i)%p, a_model)
       END DO
+!$OMP END PARALLEL DO
 
       END SUBROUTINE
 

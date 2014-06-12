@@ -63,6 +63,12 @@
       INTEGER, PARAMETER, PRIVATE :: max_length = data_filename_length         &
      &                                          + max_arg_length + 1
 
+!  Commandline parser error codes.
+!>  Commandline argument not found.
+      INTEGER, PARAMETER :: commandline_parser_no_error      = 0
+!>  Commandline argument not found.
+      INTEGER, PARAMETER :: commandline_parser_arg_not_found = -1
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) commandline parser base class
@@ -231,6 +237,52 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Get the value of an argument as an integer.
+!>
+!>  Searches the parsed command line flags for a matching command like argument.
+!>  If no matching argument is found, no value was set or the value cannot be
+!>  converted to an integer, the default value is returned. Command line
+!>  arguments take the form of -flag.
+!>
+!>  @param[in] this          A @ref commandline_parser_class instance.
+!>  @param[in] arg           A argument string to search for.
+!>  @param[in] default_value Default value in case flag is not set.
+!>  @returns The argument value.
+!-------------------------------------------------------------------------------
+      FUNCTION commandline_parser_get_integer(this, arg,                       &
+     &                                        default_value)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: commandline_parser_get_integer
+      TYPE (commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)               :: arg
+      INTEGER, INTENT(in)                         :: default_value
+
+!  Local arguments
+      CHARACTER (len=data_filename_length)        :: value
+      INTEGER                                     :: status
+
+!  Start of executable code
+      value = commandline_parser_get_string(this, arg)
+
+      IF (TRIM(value) .eq. '') THEN
+         commandline_parser_get_integer = default_value
+         RETURN
+      END IF
+
+      READ (value,1000,iostat=status) commandline_parser_get_integer
+
+      IF (status .ne. 0) THEN
+         commandline_parser_get_integer = default_value
+      END IF
+
+1000  FORMAT(i20)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
@@ -303,6 +355,9 @@
       WRITE(*,*) '  -test    N Run unit tests                          '
       WRITE(*,*) '  -force   N Forces the equilibrium to resolve on    '
       WRITE(*,*) '             every reconstruction parameter.         '
+      WRITE(*,*) '  -para    Y Determines number of parallel insatnces '
+      WRITE(*,*) '             to run with. A value of -1 means use the'
+      WRITE(*,*) '             default number of threads.              '
       WRITE(*,*) '                                                     '
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '
