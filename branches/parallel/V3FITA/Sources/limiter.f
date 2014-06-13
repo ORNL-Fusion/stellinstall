@@ -300,11 +300,14 @@
       INTEGER                                :: phi_index, theta_index
       INTEGER                                :: num_theta
 !  The r and z arrays will be allocated by the equilibrium.
-      REAL(rprec), DIMENSION(:), POINTER     :: r => null(), z => null()
+      REAL(rprec), DIMENSION(:), POINTER     :: r, z
       REAL(rprec), DIMENSION(3)              :: rphiz_at_max
       REAL(rprec)                            :: fval_max, fval
 
 !  Start of executable code
+      r => null()
+      z => null()
+
       limiter_get_modeled_iso_signal = 0.0
       rphiz_at_max = 0.0
       fval_max = -1.0E10

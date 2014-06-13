@@ -2063,9 +2063,8 @@
 !  Start of executable code
       vmec_get_plasma_edge = MAX(ns, 2*mpol + 6)
 
-      IF (.not.ASSOCIATED(r)) THEN
-         ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
-      END IF
+      ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
+
       ALLOCATE(cosv(SIZE(xn, 1)), sinv(SIZE(xn, 1)))
       ALLOCATE(cosu(SIZE(xm, 1)), sinu(SIZE(xm, 1)))
 

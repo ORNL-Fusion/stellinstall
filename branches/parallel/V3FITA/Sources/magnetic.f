@@ -248,11 +248,11 @@
       TYPE (bivariate_type)                     :: bivariate_object
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: rgrid
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: zgrid
-      REAL (rprec), DIMENSION(:,:,:), POINTER   :: rvolgrid => null()
-      REAL (rprec), DIMENSION(:,:,:), POINTER   :: zvolgrid => null()
-      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jrvolgrid => null()
-      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jphivolgrid => null()
-      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jzvolgrid => null()
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: rvolgrid
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: zvolgrid
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jrvolgrid
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jphivolgrid
+      REAL (rprec), DIMENSION(:,:,:), POINTER   :: jzvolgrid
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_rvol
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_phivol
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_zvol

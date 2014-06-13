@@ -1246,7 +1246,7 @@
 !$    END INTERFACE
 
 !  Start of executable code
-      WRITE (*,*) ' *** Configuring parallelizm.'
+      WRITE (*,*) ' *** Configuring parallelism.'
 
 !  Configure the number of threeds to use.
       num_threads = commandline_parser_get_integer(context%cl_parser,          &
