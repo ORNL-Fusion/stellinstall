@@ -726,7 +726,20 @@
 !  In this coding e_i = Sqrt(signal_get_g2)
 !  and |pi_j|/pi_j = SIGN(1,delta_param)
 
-         DO i = 1, SIZE(signals)
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+         DO i = 1, this%last_para_signal
+            this%jacobian(i,j) =                                               &
+     &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
+     &           this%e(this%current_step,i))
+         END DO
+!$OMP END PARALLEL DO
+
+         DO i = this%last_para_signal + 1, SIZE(signals)
             this%jacobian(i,j) =                                               &
      &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
      &           this%e(this%current_step,i))
@@ -741,11 +754,19 @@
 !    d f_i/d a_j = (f'_i - f_i)*|pi_j|/pi_j                                  (5)
 !
 !  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
+
+!  All derived parameter values can be computed in parallel.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
          DO i = 1, SIZE(derived_params)
             this%derived_jacobian(i,j) =                                       &
      &         -(param_get_value(derived_params(i)%p, a_model) -               &
      &           this%f(this%current_step,i))
          END DO
+!$OMP END PARALLEL DO
+
          this%derived_jacobian(:,j) = this%derived_jacobian(:,j)               &
      &                              * SIGN(1.0_rprec, params(j)%p%delta)
 
