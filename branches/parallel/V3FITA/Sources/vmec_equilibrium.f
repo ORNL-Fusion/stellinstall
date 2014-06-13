@@ -984,12 +984,20 @@
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
 !>  @ref vmec_set_magnetic_cache_init.
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(u,v,phi)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
       DO u = 1, numU
          cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
          sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
          cosu_nyq(:,u) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
          sinu_nyq(:,u) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
       END DO
+!$OMP END DO
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
       DO v = 1, numV
          phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
          cosv(:,v) = COS(xn*phi)
@@ -997,6 +1005,8 @@
          cosv_nyq(:,v) = COS(xn_nyq*phi)
          sinv_nyq(:,v) = SIN(xn_nyq*phi)
       END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
 !  Set the suv grids
 !
@@ -1009,6 +1019,11 @@
 !  jr = ju*ru + jv*rv
 !  jphi = jv*R
 !  jz = ju*zu + jv*zv
+
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(STATIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(s,u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,ju,jv)
       DO u = 1, numU
 
          DO v = 1, numV
@@ -1056,6 +1071,7 @@
             END DO
          END DO
       END DO
+!$OMP END PARALLEL DO
 
       this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                      &
      &                         + this%z_offset

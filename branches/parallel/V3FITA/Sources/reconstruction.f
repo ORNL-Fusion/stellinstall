@@ -640,7 +640,7 @@
 
 !  All derived parameter values can be computed in parallel.
 !$OMP PARALLEL DO
-!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& SCHEDULE(STATIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
       DO i = 1, SIZE(derived_params)
@@ -757,7 +757,7 @@
 
 !  All derived parameter values can be computed in parallel.
 !$OMP PARALLEL DO
-!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& SCHEDULE(STATIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
          DO i = 1, SIZE(derived_params)
