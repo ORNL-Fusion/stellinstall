@@ -361,6 +361,11 @@
 
 !  Esstimate the expected changes in g^2. Equation 22 in Hanson et. al.
 !  doi: 10.1088/0029-5515/49/7/075031
+
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(STATIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(k)
       DO k = 0, num_sv
          dg2exp(k) = reconstruction_get_exp_dg2(this,                          &
      &                                          this%delta_a(k,:))
@@ -371,11 +376,17 @@
 !  Equation 23 in Hanson et. al. doi: 10.1088/0029-5515/49/7/075031
          exp_eff(k) = ABS(dg2exp(k))/this%delta_a_len(k)
       END DO
+!$OMP END PARALLEL DO
 
 !  Although marginal efficiencies are not strictly defined for the Steepest
 !  Descent (index 0) and just one singular value cases, for convenience define
 !  them here.
       marg_exp_eff(0:1) = exp_eff(0:1)
+
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(STATIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(k,denom)
       DO k = 2, num_sv
          denom = this%delta_a_len(k) - this%delta_a_len(k - 1)
          IF (denom .eq. 0.0) THEN
@@ -387,6 +398,7 @@
          END IF
          marg_exp_eff(k) = ABS(dg2exp(k)) - ABS(dg2exp(k - 1))/denom
       END DO
+!$OMP END PARALLEL DO
 
 !  Check for cutoffs.
       IF (this%j_svd_w(1) .le. 0.0) THEN
@@ -837,12 +849,17 @@
      &                    this%e(this%current_step,:))
 
 !  Peform pseudo-inversion for successive numbers of singular values retained
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(STATIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(temp_work3,i)
       DO i = 1, SIZE(this%j_svd_w)
          temp_work3(1:i) = temp_work(1:i)*temp_work2(1:i)
          temp_work3(i + 1:SIZE(params)) = 0.0
          this%delta_a(i,:) = MATMUL(TRANSPOSE(this%j_svd_vt),                  &
      &                              temp_work3)
       END DO
+!$OMP END PARALLEL DO
 
       DEALLOCATE(temp_work)
       DEALLOCATE(temp_work2)

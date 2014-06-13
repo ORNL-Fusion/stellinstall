@@ -1254,11 +1254,11 @@
 
       IF (num_threads .gt. 0) THEN
 !$       CALL OMP_SET_NUM_THREADS(num_threads)
-!$OMP PARALLEL
-!$       num_threads = OMP_GET_MAX_THREADS()
-!$OMP END PARALLEL
-         WRITE (*,1000) num_threads
       END IF
+!$OMP PARALLEL
+!$    num_threads = OMP_GET_MAX_THREADS()
+!$OMP END PARALLEL
+      WRITE (*,1000) num_threads
 
 1000  FORMAT('Using ',i4,' threads.')
 
