@@ -31,6 +31,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/mpi_params.f
         ${CMAKE_CURRENT_SOURCE_DIR}/optim_params.f
         ${CMAKE_CURRENT_SOURCE_DIR}/packafile.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/profiler.f
         ${CMAKE_CURRENT_SOURCE_DIR}/read_boozer_mod.f90
         ${CMAKE_CURRENT_SOURCE_DIR}/read_response_nompi.f
         ${CMAKE_CURRENT_SOURCE_DIR}/read_response.f

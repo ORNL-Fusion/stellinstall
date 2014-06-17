@@ -118,6 +118,7 @@
 !*******************************************************************************
       PROGRAM v3fit
       USE v3fit_context
+      USE profiler
 
       IMPLICIT NONE
 
@@ -127,6 +128,7 @@
 
 !  Start of executable code
       CALL second0(time_start)
+      CALL profiler_construct
 
 !  Create a context and read in the v3fit namelist input file.
       context => v3fit_context_construct(commandline_parser_construct())
@@ -177,6 +179,8 @@
       WRITE (*,'(/,a,f10.2)')                                                  &
      &   '  *** V3FIT run time (s): ', time_end - time_start
 
+      CALL profiler_write(context%recout_iou)
+      CALL profiler_destruct
 
       CALL v3fit_context_destruct(context)
 
@@ -370,7 +374,7 @@
          WRITE (context%runlog_iou,1002) i
 
          IF (reconstruction_step(context%recon, context%signals,               &
-     &                           context%derived_params,
+     &                           context%derived_params,                       &
      &                           context%model, context%params,                &
      &                           num_steps, context%runlog_iou)) THEN
 
