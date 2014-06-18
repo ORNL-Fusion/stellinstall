@@ -49,10 +49,10 @@
 !*******************************************************************************
 #if PROFILE_ON
 !>  OpenMP lock variable.
-!$    INTEGER :: lock
+!$    INTEGER (kind=8) :: lock
 !>  Array of buckets to hold the values.
-      TYPE (profiler_bucket), DIMENSION(profiler_bucket_size) ::               &
-     &      buckets
+      TYPE (profiler_bucket), DIMENSION(profiler_bucket_size), SAVE            &
+     &   :: buckets
 #endif
 
       CONTAINS
@@ -224,6 +224,7 @@
       TYPE (profiler_bucket), DIMENSION(:), ALLOCATABLE :: temp_buckets
 
 !  Start of executable code
+#if PROFILE_ON
       IF (high_index - low_index .lt. 2) THEN
 !  Since the table has been reduced to two elements, sort the sub table.
          IF (buckets(high_index)%average_time .gt.                             &
@@ -276,7 +277,7 @@
       buckets(low_index:high_index) = temp_buckets(low_index:high_index)
 
       DEALLOCATE(temp_buckets)
-
+#endif
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -302,7 +303,7 @@
       CHARACTER (len=*), INTENT(in) :: symbol_name
 
 !  local variables
-      INTEGER(KIND=8)               :: hash
+      INTEGER (kind=8)              :: hash
       INTEGER                       :: i
 
 !  Start of executable code
