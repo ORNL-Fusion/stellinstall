@@ -34,6 +34,8 @@
 !>  Full table of profiled functions.
 !-------------------------------------------------------------------------------
       TYPE profiler_bucket
+!>  OpenMP lock variable.
+!$       INTEGER (kind=8)                     :: lock
 !>  Number of calls to a function.
          INTEGER                              :: number_of_calls = 0
 !>  Total time spent in that function.
@@ -48,8 +50,6 @@
 !  profiler module variables
 !*******************************************************************************
 #if PROFILE_ON
-!>  OpenMP lock variable.
-!$    INTEGER (kind=8) :: lock
 !>  Array of buckets to hold the values.
       TYPE (profiler_bucket), DIMENSION(profiler_bucket_size), SAVE            &
      &   :: buckets
@@ -70,9 +70,14 @@
 
       IMPLICIT NONE
 
+!  local variables
+!$    INTEGER :: i
+
 !  Start of executable code
 #if PROFILE_ON
-!$    CALL OMP_INIT_LOCK(lock)
+!$    DO i = 1, profiler_bucket_size
+!$       CALL OMP_INIT_LOCK(buckets(i)%lock)
+!$    END DO
 #endif
       END SUBROUTINE
 
@@ -90,9 +95,14 @@
 
       IMPLICIT NONE
 
+!  local variables
+!$    INTEGER :: i
+
 !  Start of executable code
 #if PROFILE_ON
-!$    CALL OMP_DESTROY_LOCK(lock)
+!$    DO i = 1, profiler_bucket_size
+!$       CALL OMP_DESTROY_LOCK(buckets(i)%lock)
+!$    END DO
 #endif
       END SUBROUTINE
 
@@ -127,46 +137,48 @@
        time = time - start_time
        index = profiler_hash_function(symbol_name)
 
-!$     CALL OMP_SET_LOCK(lock)
        DO i = index, profiler_bucket_size
+!$        CALL OMP_SET_LOCK(buckets(i)%lock)
           IF (buckets(i)%symbol_name .eq. '') THEN
              buckets(i)%symbol_name = symbol_name
              buckets(i)%number_of_calls = 1
              buckets(i)%total_time = time
              buckets(i)%average_time = time
-!$           CALL OMP_UNSET_LOCK(lock)
+!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
              RETURN
           ELSE IF (buckets(i)%symbol_name .eq. symbol_name) THEN
              buckets(i)%number_of_calls = buckets(i)%number_of_calls + 1
              buckets(i)%total_time = buckets(i)%total_time + time
              buckets(i)%average_time = buckets(i)%total_time                   &
      &                               / buckets(i)%number_of_calls
-!$           CALL OMP_UNSET_LOCK(lock)
+!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
              RETURN
           END IF
+!$        CALL OMP_UNSET_LOCK(buckets(i)%lock)
        END DO
 
        DO i = 1, index - 1
+!$        CALL OMP_SET_LOCK(buckets(i)%lock)
           IF (buckets(i)%symbol_name .eq. '') THEN
              buckets(i)%symbol_name = symbol_name
              buckets(i)%number_of_calls = 1
              buckets(i)%total_time = time
              buckets(i)%average_time = time
-!$           CALL OMP_UNSET_LOCK(lock)
+!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
              RETURN
           ELSE IF (buckets(i)%symbol_name .eq. symbol_name) THEN
              buckets(i)%number_of_calls = buckets(i)%number_of_calls + 1
              buckets(i)%total_time = buckets(i)%total_time + time
              buckets(i)%average_time = buckets(i)%total_time                   &
      &                               / buckets(i)%number_of_calls
-!$           CALL OMP_UNSET_LOCK(lock)
+!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
              RETURN
           END IF
+!$        CALL OMP_UNSET_LOCK(buckets(i)%lock)
        END DO
 
        WRITE (*,*) 'Profile table full: ' // TRIM(symbol_name) //              &
      &             ' could not be profiled.'
-!$     CALL OMP_UNSET_LOCK(lock)
 #endif
 
        END SUBROUTINE
