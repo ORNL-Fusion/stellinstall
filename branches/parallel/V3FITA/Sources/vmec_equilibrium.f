@@ -122,6 +122,7 @@
       USE data_parameters
       USE pprofile_T
       USE threed1_file_cache
+      USE profiler
 
       IMPLICIT NONE
 
@@ -438,8 +439,11 @@
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
       INTEGER                              :: error
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
      &            TRIM(file_name)
       WRITE (iou,*) ' *** Initializing VMEC equilibrium from file ' //         &
@@ -511,6 +515,7 @@
       ALLOCATE(vmec_construct%xc(SIZE(xc)))
       vmec_construct%xc = xc
 
+      CALL profiler_set_stop_time('vmec_construct', start_time)
       END FUNCTION
 
 !*******************************************************************************
@@ -529,10 +534,10 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER                :: this
+      TYPE (vmec_class), POINTER :: this
 
 !  local variables
-      INTEGER                                   :: i, error
+      INTEGER                    :: i, error
 
 !  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
@@ -642,8 +647,10 @@
 !  local variables
       REAL (rprec)                     :: phiedge_ratio
       INTEGER                          :: status
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       SELECT CASE (id)
 
@@ -870,6 +877,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_set_param', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -909,8 +918,11 @@
 !  local variables
       INTEGER                          :: numU
       INTEGER                          :: ns
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code.
+      start_time = profiler_get_start_time()
+
       ALLOCATE(this%magnetic_cache)
 
 !  In order to sample the fields on a grid, the sampling frequency of the grid
@@ -930,6 +942,9 @@
       ALLOCATE(this%magnetic_cache%jrsuv(ns, numU, tor_planes_used))
       ALLOCATE(this%magnetic_cache%jphisuv(ns, numU, tor_planes_used))
       ALLOCATE(this%magnetic_cache%jzsuv(ns, numU, tor_planes_used))
+
+      CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -963,8 +978,11 @@
       REAL (rprec)                              :: ru, rv, zu, zv
       REAL (rprec)                              :: ju, jv
       REAL (rprec)                              :: phi
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code.
+      start_time = profiler_get_start_time()
+
 !  Get the size of the SUV grid.
       numS = SIZE(this%magnetic_cache%rsuv, 1)
       numU = SIZE(this%magnetic_cache%rsuv, 2)
@@ -1081,6 +1099,9 @@
       DEALLOCATE(cosz_nyq, sinz_nyq)
       DEALLOCATE(cosu_nyq, sinu_nyq, cosv_nyq, sinv_nyq)
 
+      CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
+     &                            start_time)
+
       END SUBROUTINE
 
 !*******************************************************************************
@@ -1104,7 +1125,12 @@
       TYPE (vmec_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in) :: param_name
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (TRIM(param_name))
 
          CASE ('ac')
@@ -1280,6 +1306,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_get_param_id', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1318,7 +1346,12 @@
       INTEGER, INTENT(in)           :: i_index
       INTEGER, INTENT(in)           :: j_index
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vmec_ac_id)
@@ -1494,6 +1527,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_get_param_value', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1514,7 +1549,12 @@
       TYPE (vmec_class), INTENT(in)   :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vmec_ac_id)
@@ -1690,6 +1730,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_get_param_name', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1711,8 +1753,14 @@
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_ne_cart = vmec_get_ne(this, vmec_get_s(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_ne_cart', start_time)
 
       END FUNCTION
 
@@ -1735,12 +1783,19 @@
       TYPE (vmec_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)      :: s
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (ASSOCIATED(this%ne)) THEN
          vmec_get_ne_radial = pprofile_evaluate(this%ne, s)
       ELSE
          vmec_get_ne_radial = 0.0
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_ne_radial', start_time)
 
       END FUNCTION
 
@@ -1763,8 +1818,14 @@
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_te_cart = vmec_get_te(this, vmec_get_s(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_te_cart', start_time)
 
       END FUNCTION
 
@@ -1787,12 +1848,18 @@
       TYPE (vmec_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)      :: s
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%te)) THEN
          vmec_get_te_radial = pprofile_evaluate(this%te, s)
       ELSE
          vmec_get_te_radial = 0.0
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_te_radial', start_time)
 
       END FUNCTION
 
@@ -1817,10 +1884,16 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_sxrem_cart = vmec_get_sxrem(this,                               &
      &                                     vmec_get_s(this, x_cart),           &
      &                                     index)
+
+      CALL profiler_set_stop_time('vmec_get_sxrem_cart', start_time)
 
       END FUNCTION
 
@@ -1845,13 +1918,20 @@
       REAL (rprec), INTENT(in)      :: s
       INTEGER, INTENT(in)           :: index
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (ASSOCIATED(this%sxrem)) THEN
          vmec_get_sxrem_radial =                                               &
      &      pprofile_evaluate(this%sxrem(index)%p, s)
       ELSE
          vmec_get_sxrem_radial = 0.0
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_sxrem_radial', start_time)
 
       END FUNCTION
 
@@ -1873,8 +1953,14 @@
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_p_cart = vmec_get_p(this, vmec_get_s(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_p_cart', start_time)
 
       END FUNCTION
 
@@ -1897,6 +1983,9 @@
       TYPE (vmec_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)      :: s
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Forward declare the interface for pmass. This explicitly defined the type for
 !  pmass to avoid a compiler error. If profile_functions.f was implimented as a
 !  module this would not be needed.
@@ -1909,7 +1998,10 @@
       END INTERFACE
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_p_radial = pmass(s)/mu0
+
+      CALL profiler_set_stop_time('vmec_get_p_cart', start_time)
 
       END FUNCTION
 
@@ -1935,8 +2027,10 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       r_cyl = cart_to_cyl(x_cart)
       vmec_get_B_vec = 0.0
       r_cyl(2) = r_cyl(2) + this%phi_offset
@@ -1947,6 +2041,8 @@
      &                  vmec_get_B_vec(3))
 
       vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+
+      CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 
       END FUNCTION
 
@@ -1978,8 +2074,10 @@
       REAL (rprec)                  :: bsubv00c, ds
       INTEGER                       :: i
       REAL (rprec), DIMENSION(ns)   :: s
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       ds = 1.0/(ns - 1)
       DO i = 0, ns - 1
          s(i + 1) = i*ds
@@ -1988,6 +2086,8 @@
       CALL line_seg(r, bsubv00c, s, bsubvmnc(1,:), ns)
 
       vmec_get_Int_B_dphi = twopi*bsubv00c
+
+      CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 
       END FUNCTION
 
@@ -2019,8 +2119,11 @@
       REAL (rprec)                           :: fmin
       INTEGER                                :: info
       INTEGER                                :: nfe
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       s_flux = 0.0
       fmin = 0.0
       info = 0
@@ -2041,6 +2144,8 @@
             WRITE(*,*) info, fmin, vmec_get_s
          END IF
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_s', start_time)
 
       END FUNCTION
 
@@ -2075,8 +2180,11 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosv, sinv
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosu, sinu
       INTEGER                                 :: i
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       vmec_get_plasma_edge = MAX(ns, 2*mpol + 6)
 
       ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
@@ -2103,6 +2211,8 @@
       z = z + this%z_offset
       DEALLOCATE(cosu, cosv, sinu, sinv)
 
+      CALL profiler_set_stop_time('vmec_get_plasma_edge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -2123,8 +2233,15 @@
      &   vmec_get_magnetic_volume_rgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_rgrid => this%magnetic_cache%rsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_rgrid',            &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2146,8 +2263,15 @@
      &   vmec_get_magnetic_volume_zgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_zgrid => this%magnetic_cache%zsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_zgrid',            &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2169,8 +2293,15 @@
      &   vmec_get_magnetic_volume_jrgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_jrgrid => this%magnetic_cache%jrsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_jrgrid',           &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2192,8 +2323,15 @@
      &   vmec_get_magnetic_volume_jphigrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_jphigrid => this%magnetic_cache%jphisuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_jphigrid',         &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2215,8 +2353,15 @@
      &   vmec_get_magnetic_volume_jzgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_jzgrid => this%magnetic_cache%jzsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_jzgrid',           &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2244,10 +2389,17 @@
       REAL (rprec) :: vmec_get_volume_int_element
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_volume_int_element = isigng*this%magnetic_cache%ds              &
      &                            * this%magnetic_cache%du                     &
      &                            * this%magnetic_cache%dv
+
+      CALL profiler_set_stop_time('vmec_get_volume_int_element',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2276,7 +2428,12 @@
       TYPE (vmec_class), INTENT(in)       :: this
       LOGICAL, INTENT(out)                :: scale_currents
 
+!  local variables
+      REAL (rprec)                        :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (lfreeb) THEN
          SELECT CASE (mgrid_mode)
 
@@ -2291,6 +2448,8 @@
       ELSE
          vmec_get_ext_currents => null()
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_ext_currents', start_time)
 
       END FUNCTION
 
@@ -2311,8 +2470,13 @@
       INTEGER                       :: vmec_get_grid_size
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_grid_size = ns_array(this%ns_index)
+      CALL profiler_set_stop_time('vmec_get_grid_size', start_time)
 
       END FUNCTION
 
@@ -2332,8 +2496,13 @@
       REAl (rprec)                  :: vmec_get_grid_start
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_grid_start = 0.0
+      CALL profiler_set_stop_time('vmec_get_grid_start', start_time)
 
       END FUNCTION
 
@@ -2353,8 +2522,13 @@
       REAl (rprec)                  :: vmec_get_grid_stop
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_grid_stop = 1.0
+      CALL profiler_set_stop_time('vmec_get_grid_stop', start_time)
 
       END FUNCTION
 
@@ -2379,7 +2553,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
@@ -2393,6 +2571,8 @@
             vmec_is_scaler_value = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_scaler_value', start_time)
 
       END FUNCTION
 
@@ -2414,7 +2594,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_ac_id, vmec_ac_aux_s_id, vmec_ac_aux_f_id,                 &
@@ -2430,6 +2614,8 @@
             vmec_is_1d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_1d_array', start_time)
 
       END FUNCTION
 
@@ -2451,7 +2637,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
@@ -2469,6 +2659,8 @@
             vmec_is_2d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_2d_array', start_time)
 
       END FUNCTION
 
@@ -2491,7 +2683,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
@@ -2510,6 +2706,8 @@
             vmec_is_recon_param = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_recon_param', start_time)
 
       END FUNCTION
 
@@ -2555,8 +2753,11 @@
       INTEGER                          :: recovery_index
       INTEGER                          :: error, num_iter_init
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: xc_saved
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       delt_local = delt
       num_iter_init = iterc
       recovery_index = 0
@@ -2646,6 +2847,8 @@
       num_iter = num_iter + iterc - num_iter_init
       delt = delt_local
 
+      CALL profiler_set_stop_time('vmec_converge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -2665,8 +2868,10 @@
 
 !  local variables
       INTEGER                          :: error
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%xc)) THEN
          IF (SIZE(xc) .eq. SIZE(this%xc)) THEN
             this%xc = xc
@@ -2693,6 +2898,8 @@
          this%threed1_file => threed1_file_cache_construct()
       END IF
 
+      CALL profiler_set_stop_time('vmec_save_state', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2713,8 +2920,10 @@
 
 !  local variables
       INTEGER                          :: error
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
          xc = this%xc
       END IF
@@ -2738,6 +2947,8 @@
          CALL threed1_file_cache_reset_state(this%threed1_file)
       END IF
 
+      CALL profiler_set_stop_time('vmec_reset_state', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2758,8 +2969,10 @@
 
 !  local variables
       INTEGER                       :: i
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       WRITE (iou,*)
       WRITE (iou,*) 'Equilibrium Type : VMEC'
       CALL pprofile_write(this%ne, 'pp_ne', iou)
@@ -2769,6 +2982,8 @@
       END DO
 
       CALL pprofile_write(this%te, 'pp_te', iou)
+
+      CALL profiler_set_stop_time('vmec_write', start_time)
 
       END SUBROUTINE
 
@@ -2841,9 +3056,12 @@
       INTEGER                       :: vmec_zbs_id
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
+      REAL (rprec)                  :: start_time
 
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define dimensions.
       status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,                &
      &                    vmec_nextcur_dim_id)
@@ -2898,6 +3116,8 @@
      &                    (/ maxnsetps_dim_id /), vmec_kappa_p_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      CALL profiler_set_stop_time('vmec_def_result', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2931,8 +3151,11 @@
       INTEGER                       :: vmec_rbs_id
       INTEGER                       :: vmec_zbc_id
       INTEGER                       :: vmec_zbs_id
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'vmec_extcur', vmec_extcur_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var_double(result_ncid, vmec_extcur_id,                  &
@@ -2985,6 +3208,8 @@
 
       CALL vmec_write_step_data(this, result_ncid, 1)
 
+      CALL profiler_set_stop_time('vmec_write_init_data', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -3009,8 +3234,11 @@
       INTEGER                       :: status
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
      &                      vmec_l_sub_i_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -3024,6 +3252,8 @@
       status = nf_put_var1_double(result_ncid, vmec_kappa_p_id,                &
      &                            current_step, vvc_kappa_p)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('vmec_write_step_data', start_time)
 
       END SUBROUTINE
 
@@ -3059,8 +3289,11 @@
       REAL (rprec), DIMENSION(:,:), POINTER   :: rbcc, rbss, rbcs, rbsc
       REAL (rprec), DIMENSION(:,:), POINTER   :: zbcc, zbss, zbcs, zbsc
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: temp_array
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (lasym) THEN
 !  Convert to representation with rbs(m=1) = zbc(m=1)
          delta = ATAN((rbs(0,1) - zbc(0,1))/                                   &
@@ -3182,6 +3415,8 @@
          END IF
          DEALLOCATE(temp_array)
       END IF
+
+      CALL profiler_set_stop_time('vmec_reset_boundary', start_time)
 
       END SUBROUTINE
 
