@@ -694,7 +694,9 @@
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      IF (ASSOCIATED(this%params) .or. ASSOCIATED(this%signals)) THEN
+      IF (ASSOCIATED(this%params)  .or.                                        &
+     &    ASSOCIATED(this%signals) .or.                                        &
+     &    ASSOCIATED(this%model)) THEN
          status = nf_def_dim(this%result_ncid, 'string_len',                   &
      &                       data_name_length, string_len_dim_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
