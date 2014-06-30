@@ -1,6 +1,6 @@
 !*******************************************************************************
 !>  @file file_opts.f
-!>  @brief Contains cross platform routines for manipulating file on the file
+!>  @brief Contains cross platform routines for manipulating files on the file
 !>  system.
 !>
 !>  Defines a functions to move, copy and delete a file that is cross platform.
@@ -106,5 +106,64 @@
 !  Start of executable code
 
       CALL vmec_system(cmd // TRIM(file_source), error)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Makes a directory
+!>
+!>  Creates new directory by calling the appropriate command for the plaform.
+!>
+!>  @param[in]  file_source The file to delete.
+!>  @param[out] error       The result of the copy.
+!-------------------------------------------------------------------------------
+      SUBROUTINE create_directory(directory_source, error)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: directory_source
+      INTEGER, INTENT(out)          :: error
+
+!  local parameters
+#if defined(WIN32)
+      CHARACTER (len=*), PARAMETER :: cmd = 'mkdir '
+#else
+      CHARACTER (len=*), PARAMETER :: cmd = 'mkdir -p '
+#endif
+
+!  Start of executable code
+
+      CALL vmec_system(cmd // TRIM(directory_source), error)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Deletes a directory
+!>
+!>  Deletes directory by calling the appropriate command for the plaform. This
+!>  deletes all files inside the directory as well.
+!>
+!>  @param[in]  file_source The file to delete.
+!>  @param[out] error       The result of the copy.
+!-------------------------------------------------------------------------------
+      SUBROUTINE delete_directory(directory_source, error)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: directory_source
+      INTEGER, INTENT(out)          :: error
+
+!  local parameters
+#if defined(WIN32)
+      CHARACTER (len=*), PARAMETER :: cmd = 'rmdir /Q /S '
+#else
+      CHARACTER (len=*), PARAMETER :: cmd = 'rm -rf '
+#endif
+
+!  Start of executable code
+
+      CALL vmec_system(cmd // TRIM(directory_source), error)
 
       END SUBROUTINE

@@ -15,6 +15,9 @@
       USE commandline_parser
       USE reconstruction
       USE ezcdf
+#if defined (MPI_OPT)
+      USE mpi
+#endif
 
       IMPLICIT NONE
 
@@ -84,6 +87,18 @@
 
 !>  NetCDF result file to write out the results in machine readable form.
          INTEGER :: result_ncid
+
+!--- MPI -----------------------------------------------------------------------
+#if defined (MPI_OPT)
+!>  MPI parent communicator reference.
+         INTEGER :: mpi_parent = MPI_COMM_NULL
+!>  MPI child communicator reference.
+         INTEGER, DIMENSION(:), POINTER :: mpi_child => null()
+!>  MPI size
+         INTEGER :: size = 1
+!>  MPI rank
+         INTEGER :: rank = 0
+#endif
       END TYPE
 
       CONTAINS
@@ -237,6 +252,13 @@
          this%recon => null()
       END IF
 
+#if defined (MPI_OPT)
+      IF (ASSOCIATED(this%mpi_child)) THEN
+         DEALLOCATE(this%mpi_child)
+         this%mpi_child => null()
+      END IF
+#endif
+
 !  Reset the signal index
       this%magnetic_index = -1
       this%sxrem_index = -1
@@ -250,6 +272,36 @@
       DEALLOCATE(this)
 
       END SUBROUTINE
+
+#if defined (MPI_OPT)
+!*******************************************************************************
+!  SETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Allocate mpi_child array.
+!>
+!>  This array contains references for comunicating with the child processes.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!>  @param[in]    size Size of the array need to allocate all the child comm
+!>                     references.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_set_mpi_child(this, size)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                       :: size
+
+!  Start of executable code
+      ALLOCATE(this%mpi_child(size))
+
+      this%mpi_child = MPI_COMM_NULL
+
+      END SUBROUTINE
+
+#endif
 
 !*******************************************************************************
 !  UTILITY SUBROUTINES
@@ -685,6 +737,8 @@
 
 !  Start of executable code
 !  Define dimensions
+      status = nf_noerr
+
       IF (ASSOCIATED(this%recon)) THEN
          status = nf_def_dim(this%result_ncid, 'maxnsteps',                    &
      &                       SIZE(this%recon%e, 1), maxnsteps_dim_id)
@@ -694,7 +748,9 @@
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      IF (ASSOCIATED(this%params) .or. ASSOCIATED(this%signals)) THEN
+      IF (ASSOCIATED(this%params)  .or.                                        &
+     &    ASSOCIATED(this%signals) .or.                                        &
+     &    ASSOCIATED(this%model)) THEN
          status = nf_def_dim(this%result_ncid, 'string_len',                   &
      &                       data_name_length, string_len_dim_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))

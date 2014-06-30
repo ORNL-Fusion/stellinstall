@@ -15,20 +15,27 @@
 !  signal module parameters
 !*******************************************************************************
 !>  Maximum length of short data strings.
-      INTEGER, PARAMETER :: data_short_name_length = 30
+      INTEGER, PARAMETER           :: data_short_name_length = 30
 !>  Maximum length of data strings.
-      INTEGER, PARAMETER :: data_name_length = 80
+      INTEGER, PARAMETER           :: data_name_length = 80
 !>  Maximum length of file name. This needs to be large to accommodate the
 !>  path to the file as well.
-      INTEGER, PARAMETER :: data_filename_length = 300
+      INTEGER, PARAMETER           :: data_filename_length = 300
 
 !>  Default parameter id specifiying no id.
 !>  @see model
 !>  @see equilibrium
-      INTEGER, PARAMETER :: data_no_id = -1
+      INTEGER, PARAMETER           :: data_no_id = -1
 
 !>  Max number of parameter indicies.
-      INTEGER, PARAMETER :: data_max_indicies = 2
+      INTEGER, PARAMETER           :: data_max_indicies = 2
+
+#if defined(MPI_OPT)
+!>  Directory prefix name.
+      CHARACTER (len=*), PARAMETER :: dir_prefix = 'process_dir'
+!>  Directory string length.
+      INTEGER, PARAMETER           :: dir_prefix_len = 14
+#endif
 
       CONTAINS
 !*******************************************************************************

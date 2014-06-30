@@ -133,52 +133,52 @@
 
 !  Start of executable code.
 #if PROFILE_ON
-       CALL second0(time)
-       time = time - start_time
-       index = profiler_hash_function(symbol_name)
+      CALL second0(time)
+      time = time - start_time
+      index = profiler_hash_function(symbol_name)
 
-       DO i = index, profiler_bucket_size
-!$        CALL OMP_SET_LOCK(buckets(i)%lock)
-          IF (buckets(i)%symbol_name .eq. '') THEN
-             buckets(i)%symbol_name = symbol_name
-             buckets(i)%number_of_calls = 1
-             buckets(i)%total_time = time
-             buckets(i)%average_time = time
-!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
-             RETURN
-          ELSE IF (buckets(i)%symbol_name .eq. symbol_name) THEN
-             buckets(i)%number_of_calls = buckets(i)%number_of_calls + 1
-             buckets(i)%total_time = buckets(i)%total_time + time
-             buckets(i)%average_time = buckets(i)%total_time                   &
-     &                               / buckets(i)%number_of_calls
-!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
-             RETURN
-          END IF
-!$        CALL OMP_UNSET_LOCK(buckets(i)%lock)
-       END DO
+      DO i = index, profiler_bucket_size
+!$       CALL OMP_SET_LOCK(buckets(i)%lock)
+         IF (buckets(i)%symbol_name .eq. '') THEN
+            buckets(i)%symbol_name = symbol_name
+            buckets(i)%number_of_calls = 1
+            buckets(i)%total_time = time
+            buckets(i)%average_time = time
+!$          CALL OMP_UNSET_LOCK(buckets(i)%lock)
+            RETURN
+         ELSE IF (buckets(i)%symbol_name .eq. symbol_name) THEN
+            buckets(i)%number_of_calls = buckets(i)%number_of_calls + 1
+            buckets(i)%total_time = buckets(i)%total_time + time
+            buckets(i)%average_time = buckets(i)%total_time                    &
+     &                              / buckets(i)%number_of_calls
+!$          CALL OMP_UNSET_LOCK(buckets(i)%lock)
+            RETURN
+         END IF
+!$       CALL OMP_UNSET_LOCK(buckets(i)%lock)
+      END DO
 
-       DO i = 1, index - 1
-!$        CALL OMP_SET_LOCK(buckets(i)%lock)
-          IF (buckets(i)%symbol_name .eq. '') THEN
-             buckets(i)%symbol_name = symbol_name
-             buckets(i)%number_of_calls = 1
-             buckets(i)%total_time = time
-             buckets(i)%average_time = time
-!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
-             RETURN
-          ELSE IF (buckets(i)%symbol_name .eq. symbol_name) THEN
-             buckets(i)%number_of_calls = buckets(i)%number_of_calls + 1
-             buckets(i)%total_time = buckets(i)%total_time + time
-             buckets(i)%average_time = buckets(i)%total_time                   &
-     &                               / buckets(i)%number_of_calls
-!$           CALL OMP_UNSET_LOCK(buckets(i)%lock)
-             RETURN
-          END IF
-!$        CALL OMP_UNSET_LOCK(buckets(i)%lock)
-       END DO
+      DO i = 1, index - 1
+!$       CALL OMP_SET_LOCK(buckets(i)%lock)
+         IF (buckets(i)%symbol_name .eq. '') THEN
+            buckets(i)%symbol_name = symbol_name
+            buckets(i)%number_of_calls = 1
+            buckets(i)%total_time = time
+            buckets(i)%average_time = time
+!$          CALL OMP_UNSET_LOCK(buckets(i)%lock)
+            RETURN
+         ELSE IF (buckets(i)%symbol_name .eq. symbol_name) THEN
+            buckets(i)%number_of_calls = buckets(i)%number_of_calls + 1
+            buckets(i)%total_time = buckets(i)%total_time + time
+            buckets(i)%average_time = buckets(i)%total_time                    &
+     &                              / buckets(i)%number_of_calls
+!$          CALL OMP_UNSET_LOCK(buckets(i)%lock)
+            RETURN
+         END IF
+!$       CALL OMP_UNSET_LOCK(buckets(i)%lock)
+      END DO
 
-       WRITE (*,*) 'Profile table full: ' // TRIM(symbol_name) //              &
-     &             ' could not be profiled.'
+      WRITE (*,*) 'Profile table full: ' // TRIM(symbol_name) //               &
+     &            ' could not be profiled.'
 #endif
 
        END SUBROUTINE
