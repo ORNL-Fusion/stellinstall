@@ -185,8 +185,8 @@
       CALL profiler_write(context%recout_iou)
       CALL profiler_destruct
 
+      CALL cleanup_parallelism(context)
       CALL v3fit_context_destruct(context)
-      CALL cleanup_parallelism
 
       END PROGRAM
 
@@ -1288,9 +1288,16 @@
       INTEGER                                   :: num_threads
 #if defined(MPI_OPT)
       INTEGER                                   :: error
-      INTEGER, DIMENSION(1)                     :: error_array
       INTEGER                                   :: i
-      INTEGER                                   :: info
+      INTEGER, DIMENSION(:), ALLOCATABLE        :: info
+      INTEGER, DIMENSION(:), ALLOCATABLE        :: error_array
+      CHARACTER (len=data_filename_length),                                    &
+     &   DIMENSION(:), ALLOCATABLE              :: commands
+      CHARACTER (len=data_filename_length),                                    &
+     &   DIMENSION(:,:), ALLOCATABLE            :: args
+      INTEGER, DIMENSION(:), ALLOCATABLE        :: max_procs
+      INTEGER                                   :: parent_comm
+      INTEGER                                   :: child_comm
       CHARACTER (len=dir_prefix_len)            :: directory_name
 #endif
 
@@ -1324,46 +1331,53 @@
 #if defined (MPI_OPT)
 !  Configure num processes to use for MPI
       CALL MPI_INIT(error)
-      CALL assert_eq(error, MPI_SUCCESS, 'Failed to initialize mpi.')
 
       CALL MPI_COMM_SIZE(MPI_COMM_WORLD, context%size, error)
-      CALL assert_eq(error, MPI_SUCCESS, 'Failed to get MPI size.')
-
       CALL MPI_COMM_SIZE(MPI_COMM_WORLD, context%rank, error)
-      CALL assert_eq(error, MPI_SUCCESS, 'Failed to get MPI rank.')
 
-      CALL MPI_COMM_GET_PARENT(context%mpi_parent, error)
-      CALL assert_eq(error, MPI_SUCCESS, 'Failed to get MPI parent.')
+      CALL MPI_COMM_GET_PARENT(parent_comm, error)
 
-      IF (context%mpi_parent .ne. MPI_COMM_NULL) THEN
-!  This is a child process. Do nothing else.
-         my_task = 'child_jacobian'
-         WRITE (*,1004) context%rank, context%size
-         RETURN
-      END IF
+!  Congure the number of processes to use. Process may be configured in three.
+!
+!    1. auto     : Sets the number of processes egual to the number of
+!                  reconstruction parameters
+!    2. <number> : Set an explicit numner of parameters.
+!    3. Default  : Uses the preconfigured number of processes specified by the
+!                  user.
 
-      IF (commandline_parser_is_flag_set(context%cl_parser,                    &
-     &                                   '-mpi')) THEN
+      IF ((parent_comm .eq. MPI_COMM_NULL) .and.                               &
+     &    (context%rank .eq. 1)) THEN
+         IF (commandline_parser_is_flag_set(context%cl_parser,                 &
+     &                                      '-mpi')) THEN
 
-         CALL assert_eq(context%size, 1,                                       &
-     &                  'Cannot spawn processes when mpi is ' //               &
-     &                  'configured externally.')
+            CALL assert_eq(context%size, 1,                                    &
+     &                     'Cannot spawn processes when mpi is ' //            &
+     &                     'configured externally.')
 
-         SELECT CASE (TRIM(commandline_parser_get_string(                      &
+            SELECT CASE (TRIM(commandline_parser_get_string(                   &
      &                        context%cl_parser, '-mpi')))
 
-            CASE ('auto')
-               num_threads = n_rp
+               CASE ('auto')
+                  num_threads = n_rp
 
-            CASE DEFAULT
-               num_threads =                                                   &
-     &            commandline_parser_get_integer(context%cl_parser,            &
-     &                                           '-mpi', 1)
+               CASE DEFAULT
+                  num_threads =                                                &
+     &               commandline_parser_get_integer(context%cl_parser,         &
+     &                                              '-mpi', 1)
 
-         END SELECT
+            END SELECT
 
+         ELSE
+!  Processes were created externally. Set the intra_comm to the world comm so it
+!  is consistent with the spawning method.
+            context%intra_comm = MPI_COMM_WORLD
+            num_threads = context%size
+         END IF
       ELSE
-         num_threads = context%size
+!  This must be a child process. Merge the communicators and reread the rank.
+         CALL MPI_INTERCOMM_MERGE(parent_comm, .true.,                         &
+     &                            context%intra_comm, error)
+         CALL MPI_COMM_SIZE(context%intra_comm, context%rank, error)
       END IF
 
 !  Create sub working directories for the processes. When running in default
@@ -1371,48 +1385,76 @@
 !  for each sub process and spawn a child process in it. If this point is
 !  reached and the size is greater than 1, we can assume that default was used.
 
-      IF (context%size .eq. 1) THEN
-         CALL MPI_INFO_CREATE(info, error)
-         CALL assert_eq(error, MPI_SUCCESS,                                    &
-     &                  'Failed to create MPI info object.')
-         CALL v3fit_set_mpi_child(context, num_threads)
-      ELSE
-         num_threads = num_threads - 1
-      END IF
-
-      IF (context%rank .eq. 0) THEN
-         DO i = 1, num_threads
-            IF (i .le. 10) THEN
+      IF (context%rank .eq. 1) THEN
+         DO i = 2, num_threads
+            IF (i .lt. 10) THEN
                WRITE (directory_name, 1001) dir_prefix, i
             ELSE
                WRITE (directory_name, 1002) dir_prefix, i
             END IF
 
             CALL create_directory(directory_name, error)
-
-!  Set the newly created working directory.
-            IF (context%size .eq. 1) THEN
-               CALL MPI_INFO_SET(info, 'wdir', directory_name, error)
-               CALL assert_eq(error, MPI_SUCCESS,                              &
-     &                        'Failed to get MPI info key.')
-
-               CALL MPI_COMM_SPAWN(context%cl_parser%command,                  &
-     &                             main_nli_filename, 1, info, 0,              &
-     &                             MPI_COMM_WORLD,                             &
-     &                             context%mpi_child(i),                       &
-     &                             error_array, error)
-               CALL assert_eq(error, MPI_SUCCESS,                              &
-     &                        'Failed to spawn MPI process.')
-               CALL assert_eq(error_array(1), MPI_SUCCESS,                     &
-     &                        'Failed to spawn MPI process.')
-            ELSE
-            END IF
          END DO
+      END IF
+
+!  Create subprocess if needed and set the working directory of the sub
+!  processes. When spawning processes, the working directory set instantly.
+      IF (parent_comm .ne. MPI_COMM_NULL) THEN
+         ALLOCATE(commands(num_threads - 1))
+         ALLOCATE(args(num_threads - 1,1))
+         ALLOCATE(info(num_threads - 1))
+         ALLOCATE(max_procs(num_threads - 1))
+
+         commands = context%cl_parser%command
+         args = commandline_parser_get_string(context%cl_parser,               &
+     &                                        '-file')
+         max_procs = 1
+
+         DO i = 1, num_threads - 1
+            CALL MPI_INFO_CREATE(info(i), error)
+
+            IF ((i + 1) .lt. 10) THEN
+               WRITE (directory_name, 1001) dir_prefix, (i + 1)
+            ELSE
+               WRITE (directory_name, 1002) dir_prefix, (i + 1)
+            END IF
+
+            CALL MPI_INFO_SET(info(i), "wdir", directory_name, error)
+         END DO
+
+         CALL MPI_COMM_SPAWN_MULTIPLE(num_threads - 1, commands, args,         &
+     &                                max_procs, info, 0,                      &
+     &                                MPI_COMM_WORLD, child_comm,              &
+     &                                error_array, error)
+
+         CALL MPI_INTERCOMM_MERGE(parent_comm, .false.,                        &
+     &                            context%intra_comm, error)
+
+         DO i = 1, num_threads - 1
+            CALL MPI_INFO_FREE(info(i), error)
+         END DO
+
+         DEALLOCATE(info)
+         DEALLOCATE(max_procs)
+         DEALLOCATE(args)
+         DEALLOCATE(commands)
       ELSE
+!  Processes were prespawned, change the working directory for the sub
+!  processes.
+      END IF
+
+!  At this point all processes should be made and ready. Get teh final size and
+!  ranks. Set the task for the sub processes.
+      CALL MPI_COMM_SIZE(context%intra_comm, context%size, error)
+      CALL MPI_COMM_SIZE(context%intra_comm, context%rank, error)
+
+      IF (context%rank .gt. 1) THEN
          my_task = 'child_jacobian'
       END IF
 
       WRITE (*,1003) context%rank, context%size
+
+      CALL MPI_BARRIER(context%intra_comm, error)
 #endif
 
 1000  FORMAT('Using ',i4,' threads.')
@@ -1421,8 +1463,7 @@
 1001  FORMAT(a11,'_0',i1)
 1002  FORMAT(a11,'_',i2)
 
-1003  FORMAT('Configured parent process ',i2,' of ',i2)
-1004  FORMAT('Configured child process ',i2,' of ',i2)
+1003  FORMAT('Configured MPI process ',i2,' of ',i2)
 
       END SUBROUTINE
 
@@ -1430,8 +1471,11 @@
 !>  @brief Cleanup Parallelism
 !>
 !>  Cleans up resources needed for parallelism.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE cleanup_parallelism()
+      SUBROUTINE cleanup_parallelism(context)
+      USE v3fit_context
 #if defined(MPI_OPT)
       USE mpi
       USE data_parameters
@@ -1439,12 +1483,14 @@
 
       IMPLICIT NONE
 
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
 !  local variables
 #if defined(MPI_OPT)
-      INTEGER                        :: num_processes
-      INTEGER                        :: error
-      INTEGER                        :: i
-      CHARACTER (len=dir_prefix_len) :: directory_name
+      INTEGER                                   :: error
+      INTEGER                                   :: i
+      CHARACTER (len=dir_prefix_len)            :: directory_name
 #endif
 
 !  Start of executable code
@@ -1453,15 +1499,17 @@
 
 !  Clean up sub working directories for the processes. Parent directory should
 !  be ignored.
-      DO i = 1, num_processes
-         IF (i .le. 10) THEN
-            WRITE (directory_name, 1002) dir_prefix, i
-         ELSE
-            WRITE (directory_name, 1003) dir_prefix, i
-         END IF
+      IF (context%rank .eq. 1) THEN
+         DO i = 2, context%size
+            IF (i .le. 10) THEN
+               WRITE (directory_name, 1002) dir_prefix, i
+            ELSE
+               WRITE (directory_name, 1003) dir_prefix, i
+            END IF
 
-         CALL delete_directory(directory_name, error)
-      END DO
+            CALL delete_directory(directory_name, error)
+         END DO
+      END IF
 
 #endif
 

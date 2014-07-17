@@ -91,13 +91,11 @@
 !--- MPI -----------------------------------------------------------------------
 #if defined (MPI_OPT)
 !>  MPI parent communicator reference.
-         INTEGER :: mpi_parent = MPI_COMM_NULL
-!>  MPI child communicator reference.
-         INTEGER, DIMENSION(:), POINTER :: mpi_child => null()
+         INTEGER :: intra_comm = MPI_COMM_NULL
 !>  MPI size
          INTEGER :: size = 1
 !>  MPI rank
-         INTEGER :: rank = 0
+         INTEGER :: rank = 1
 #endif
       END TYPE
 
@@ -252,13 +250,6 @@
          this%recon => null()
       END IF
 
-#if defined (MPI_OPT)
-      IF (ASSOCIATED(this%mpi_child)) THEN
-         DEALLOCATE(this%mpi_child)
-         this%mpi_child => null()
-      END IF
-#endif
-
 !  Reset the signal index
       this%magnetic_index = -1
       this%sxrem_index = -1
@@ -272,36 +263,6 @@
       DEALLOCATE(this)
 
       END SUBROUTINE
-
-#if defined (MPI_OPT)
-!*******************************************************************************
-!  SETTER SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Allocate mpi_child array.
-!>
-!>  This array contains references for comunicating with the child processes.
-!>
-!>  @param[inout] this A @ref v3fit_context_class instance.
-!>  @param[in]    size Size of the array need to allocate all the child comm
-!>                     references.
-!-------------------------------------------------------------------------------
-      SUBROUTINE v3fit_set_mpi_child(this, size)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                       :: size
-
-!  Start of executable code
-      ALLOCATE(this%mpi_child(size))
-
-      this%mpi_child = MPI_COMM_NULL
-
-      END SUBROUTINE
-
-#endif
 
 !*******************************************************************************
 !  UTILITY SUBROUTINES
