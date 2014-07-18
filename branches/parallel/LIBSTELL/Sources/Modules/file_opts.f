@@ -1,12 +1,22 @@
 !*******************************************************************************
 !>  @file file_opts.f
-!>  @brief Contains cross platform routines for manipulating files on the file
-!>  system.
-!>
+!>   @brief Contains module @ref file_opts
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Contains cross platform routines for manipulating files on the file system.
 !>  Defines a functions to move, copy and delete a file that is cross platform.
 !>  While, vmec_system contains a crossplatform way to call a command line
 !>  commands, the command used will vary by platform.
 !*******************************************************************************
+
+      MODULE file_opts
+
+      IMPLICIT NONE
+
+      CONTAINS
+
 !-------------------------------------------------------------------------------
 !>  @brief Moves the source file to the destination.
 !>
@@ -167,3 +177,111 @@
       CALL vmec_system(cmd // TRIM(directory_source), error)
 
       END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Queries if the a path is absoulte.
+!>
+!>  Determines if the root of a path exists or if the path is relative. If the
+!>  path is absoulte return true. If the path is relative return false. An empty
+!>  path is treated as absoulte.
+!>
+!>  @param[in] path Path to test.
+!>  @returns True if the path is absolute.
+!-------------------------------------------------------------------------------
+      FUNCTION is_absolute_path(path)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: is_absolute_path
+      CHARACTER (len=*), INTENT(in) :: path
+
+!  Start of executable code
+!  Treat empty paths as absolute.
+      IF (path .eq. '') THEN
+         is_absolute_path = .true.
+         RETURN
+      END IF
+
+#if defined(WIN32)
+!  On windows systems, root paths start with a variey of cases. Taken from
+!
+!  http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx#paths
+!
+!    * A UNC name of any format, which always start with two backslash characters
+!      ("\\"). For more information, see the next section.
+!    * A disk designator with a backslash, for example "C:\" or "d:\".
+!    * A single backslash, for example, "\directory" or "\file.txt". This is
+!      also referred to as an absolute path.
+!
+      is_absolute_path = (path(1:2)         .eq. '\\') .or.                    &
+     &                   (INDEX(path, ':\') .eq. 0)    .or.                    &
+     &                   (path(1:1)         .eq. '\')
+#else
+!  On unix systems, an absolute path starts with either / or ~
+      is_absolute_path = (path(1:1) .eq. '/') .or.                             &
+     &                   (path(1:1) .eq. '~')
+#endif
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Returns the directory of a file.
+!>
+!>  Searches a path for last path separator and returns the directory path.
+!>
+!>  @param[in] path Path to file.
+!>  @returns The path of the file.
+!-------------------------------------------------------------------------------
+      FUNCTION get_path_of_file(file)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=300)           :: get_path_of_file
+      CHARACTER (len=*), INTENT(in) :: file
+
+!  Start of executable code
+#if defined(WIN32)
+      get_path_of_file =                                                       &
+     &   file(1:(INDEX(TRIM(file), '\', back = .true.) - 1))
+#else
+      get_path_of_file =                                                       &
+     &   file(1:(INDEX(TRIM(file), '/', back = .true.) - 1))
+#endif
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Builds a path.
+!>
+!>  Builds a path by concatenating a string onto a path.
+!>
+!>  @param[in] path Existing path.
+!>  @param[in] name String to add to path.
+!>  @returns The new path.
+!-------------------------------------------------------------------------------
+      FUNCTION build_path(path, name)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=300)           :: build_path
+      CHARACTER (len=*), INTENT(in) :: path
+      CHARACTER (len=*), INTENT(in) :: name
+
+!  Start of executable code
+      IF (TRIM(path) .eq. '') THEN
+         build_path = name
+         RETURN
+      END IF
+
+#if defined(WIN32)
+      build_path = TRIM(path) // '\' // name
+#else
+      build_path = TRIM(path) // '\' // name
+#endif
+
+      END FUNCTION
+
+      END MODULE

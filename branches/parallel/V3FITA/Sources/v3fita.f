@@ -704,6 +704,7 @@
       USE safe_open_mod
       USE v3_utilities
       USE ezcdf
+      USE file_opts
 
       IMPLICIT NONE
 !  Declare Arguments
@@ -737,16 +738,14 @@
      &               'failed to open ' // TRIM(mdsig_list_filename))
 
 !  Get the directory of the mdsig path.
-      mdsig_path =                                                             &
-     &   mdsig_list_filename(1:INDEX(TRIM(mdsig_list_filename),                &
-     &                       '/', back = .true.))
+      mdsig_path = get_path_of_file(mdsig_list_filename)
 
-!  Loop over the file in the list file
+!  Loop over each file in the list file
       DO
          READ(mdsig_list_iou, *, iostat=status)                                &
      &      mdsig_index, mdsig_filename
 
-         IF (status .ne. 0) RETURN
+         IF (status .ne. 0) EXIT
 
 !  Check if there are two many signals.
          IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
@@ -755,8 +754,9 @@
          END IF
 
 !  Open the netcdf file for the mdsig.
-         CALL cdf_open(mdsig_iou, TRIM(mdsig_path) //                          &
-     &                 TRIM(mdsig_filename), 'r', status)
+         CALL cdf_open(mdsig_iou, TRIM(build_path(mdsig_path,                  &
+     &                                            mdsig_filename)),            &
+     &                 'r', status)
          CALL assert_eq(0, status, 'init_magnetic_signals: ' //                &
      &                  'failed to open ', TRIM(mdsig_path) //                 &
      &                  TRIM(mdsig_filename))
@@ -788,6 +788,8 @@
          END IF
 
       END DO
+
+      CLOSE(mdsig_list_iou)
 
       END SUBROUTINE
 
@@ -1275,6 +1277,7 @@
 !  used or not.
       SUBROUTINE config_parallelism(context)
       USE v3fit_context
+      USE file_opts
 #if defined(MPI_OPT)
       USE data_parameters
 #endif
@@ -1393,6 +1396,7 @@
                WRITE (directory_name, 1002) dir_prefix, i
             END IF
 
+!  Create the directory and copy the namelist input files over.
             CALL create_directory(directory_name, error)
          END DO
       END IF
@@ -1476,6 +1480,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE cleanup_parallelism(context)
       USE v3fit_context
+      USE file_opts
 #if defined(MPI_OPT)
       USE mpi
       USE data_parameters
@@ -1516,5 +1521,112 @@
 !  Support up to 99 directories. need to add leading zeros to avoid spaces.
 1002  FORMAT(a11,'_0',i1)
 1003  FORMAT(a11,'_',i2)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Copy inputfiles
+!>
+!>  Checks if the file is absolute or a relative path. If the path is
+!>  relative, copies the path to the directory. The mdsig file list contains
+!>  many sub files as well. If th emdsig list file gets copied, all the sub
+!>  files need to be copied as well. If the file is an absoulte path, there is
+!>  no need copy files.
+!>
+!>  @note This routine needs to be called after the equilibrium has been
+!>  constructed otherwise the vmec and vacuum namelist input files may be
+!>
+!>  @param[inout] context   An instance of a @ref v3fit_context object.
+!>  @param[in]    directory Directory to copy the files to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_copy_files(context, directory)
+      USE v3fit_context
+      USE safe_open_mod
+      USE file_opts
+      USE vmec_input
+      USE vacuum_input
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      CHARACTER (len=*), INTENT(in)             :: directory
+
+!  local variables
+      CHARACTER (len=data_filename_length)      :: temp_file
+      INTEGER                                   :: mdsig_list_iou
+      CHARACTER (len=data_filename_length)      :: mdsig_path
+      CHARACTER (len=data_filename_length)      :: mdsig_filename
+      INTEGER                                   :: mdsig_index
+      INTEGER                                   :: status
+
+!  Start of executable code
+!-- V3FIT ----------------------------------------------------------------------
+      temp_file = commandline_parser_get_string(context%cl_parser,             &
+     &                                          '-file')
+      IF (.not.is_absolute_path(temp_file)) THEN
+         CALL copy_file(temp_file, directory, status)
+      END IF
+
+      IF (.not.is_absolute_path(vmec_nli_filename)) THEN
+         CALL copy_file(vmec_nli_filename, directory, status)
+      END IF
+
+      IF (.not.is_absolute_path(vmec_wout_input)) THEN
+         CALL copy_file(vmec_wout_input, directory, status)
+      END IF
+
+      IF (.not.is_absolute_path(vacuum_nli_filename)) THEN
+         CALL copy_file(vacuum_nli_filename, directory, status)
+      END IF
+
+!  The mdsig_list file contains a list of relative paths. If the mdsig list file
+!  is copied, all the inner files need to be copied as well.
+      IF (.not.is_absolute_path(mdsig_list_filename)) THEN
+         CALL copy_file(mdsig_list_filename, directory, status)
+
+         mdsig_list_iou = 0
+         CALL safe_open(mdsig_list_iou, status,                                &
+     &                  TRIM(mdsig_list_filename), 'old', 'formatted')
+         CALL assert_eq(0, status, 'init_magnetic_signals: ' //                &
+     &                 'failed to open ' // TRIM(mdsig_list_filename))
+
+         mdsig_path = get_path_of_file(mdsig_list_filename)
+
+!  Loop over each file in the list file
+         DO
+            READ(mdsig_list_iou, *, iostat=status)                             &
+     &         mdsig_index, mdsig_filename
+
+            IF (status .ne. 0) EXIT
+
+            CALL copy_file(TRIM(build_path(mdsig_path, mdsig_filename)),       &
+     &                     directory, status)
+         END DO
+
+         CLOSE(mdsig_list_iou)
+      END IF
+
+      IF (.not.is_absolute_path(sxrch_dot_filename)) THEN
+         CALL copy_file(sxrch_dot_filename, directory, status)
+      END IF
+
+      IF (.not.is_absolute_path(ipch_dot_filename)) THEN
+         CALL copy_file(ipch_dot_filename, directory, status)
+      END IF
+
+      IF (.not.is_absolute_path(thscte_dot_filename)) THEN
+         CALL copy_file(thscte_dot_filename, directory, status)
+      END IF
+
+!-- VMEC -----------------------------------------------------------------------
+      IF (.not.is_absolute_path(mgrid_file)) THEN
+         CALL copy_file(mgrid_file, directory, status)
+      END IF
+
+!-- VACUUM----------------------------------------------------------------------
+      IF (.not.is_absolute_path(coils_dot_file)) THEN
+         CALL copy_file(coils_dot_file, directory, status)
+      END IF
 
       END SUBROUTINE

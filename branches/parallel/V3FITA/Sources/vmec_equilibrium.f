@@ -530,6 +530,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_destruct(this)
       USE read_wout_mod, only: read_wout_deallocate
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -2860,6 +2861,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_save_state(this)
       USE xstuff, only: xc
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -2912,6 +2914,7 @@
       SUBROUTINE vmec_reset_state(this)
       USE xstuff, only: xc
       USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE file_opts
 
       IMPLICIT NONE
 

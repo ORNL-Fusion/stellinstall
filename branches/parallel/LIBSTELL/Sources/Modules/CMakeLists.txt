@@ -18,6 +18,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/diagnostic_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/extcurz_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/fftpack.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/file_opts.f
 	${CMAKE_CURRENT_SOURCE_DIR}/functions.f
         ${CMAKE_CURRENT_SOURCE_DIR}/ga_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/gade_mod.f
