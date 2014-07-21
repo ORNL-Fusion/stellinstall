@@ -18,6 +18,9 @@
       MODULE equilibrium
       USE vmec_equilibrium
       USE vacuum_equilibrium
+#if defined (MPI_OPT)
+      USE mpi
+#endif
 
       IMPLICIT NONE
 
@@ -64,11 +67,13 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref equilibrium_class types using
-!>  @ref equilibrium_construct_vmec
+!>  @ref equilibrium_construct_vmec, @ref equilibrium_construct_vacuum or
+!>  @ref equilibrium_construct_mpi
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_construct
          MODULE PROCEDURE equilibrium_construct_vmec,                          &
-     &                    equilibrium_construct_vacuum
+     &                    equilibrium_construct_vacuum,                        &
+     &                    equilibrium_construct_mpi
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -167,6 +172,52 @@
       equilibrium_construct_vacuum%vacuum => vacuum_object
       equilibrium_construct_vacuum%not_converged = .false.
       equilibrium_construct_vacuum%force_solve = force_solve
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref equilibrium_class by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref equilibrium_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref equilibrium_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), POINTER :: equilibrium_construct_mpi
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: bool_int
+
+!  Start of executable code
+      ALLOCATE(equilibrium_construct_mpi)
+
+      CALL MPI_BCAST(equilibrium_construct_mpi%type, 1, MPI_INTEGER, 1,        &
+     &               intra_comm, error)
+
+!  MPI doesn't have a boolean type. Pass LOGICALs as integers then case to
+!  logical.
+      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
+      equilibrium_construct_mpi%not_converged = bool_int .gt. 0
+      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
+      equilibrium_construct_mpi%force_solve = bool_int .gt. 0
+
+      SELECT CASE (equilibrium_construct_mpi%type)
+
+         CASE (equilibrium_vmec_type)
+
+         CASE (equilibrium_vacuum_type)
+
+      END SELECT
+
+#endif
 
       END FUNCTION
 
@@ -1572,6 +1623,63 @@
      &                                current_step)
 
       END SELECT
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref equilibrium_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                     :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                 :: error
+      INTEGER                                 :: bool_int
+
+!  Start of executable code
+      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 1, intra_comm, error)
+
+!  MPI doesn't have a boolean type. Pass LOGICALs as integers then case to
+!  logical.
+      IF (this%not_converged) THEN
+         bool_int = 1
+      ELSE
+         bool_int = 0
+      END IF
+      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
+      this%not_converged = bool_int .gt. 0
+
+      IF (this%force_solve) THEN
+         bool_int = 1
+      ELSE
+         bool_int = 0
+      END IF
+      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
+      this%force_solve = bool_int .gt. 0
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+
+         CASE (equilibrium_vacuum_type)
+
+      END SELECT
+#endif
 
       END SUBROUTINE
 

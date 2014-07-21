@@ -1088,4 +1088,59 @@
 
       END SUBROUTINE
 
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_sync_children(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                   :: error
+
+!  Start of executable code
+      CALL MPI_BARRIER(this%intra_comm, error)
+
+!  The MPI variables should not be synced. The command line parser, output files
+!  and stoping criteria do not need to be synced. Starting with the signal index
+!  values. MPI_BCAST broad casts from the parent and recieves in the children.
+      CALL MPI_BCAST(this%magnetic_index, 1, MPI_INTEGER, 1,                   &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%sxrem_index, 1, MPI_INTEGER, 1,                      &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%intpol_index, 1, MPI_INTEGER, 1,                     &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%thomson_index, 1, MPI_INTEGER, 1,                    &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%extcurz_index, 1, MPI_INTEGER, 1,                    &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%limiter_index, 1, MPI_INTEGER, 1,                    &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%prior_guassian_index, 1, MPI_INTEGER, 1,             &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 1,                &
+     &               this%intra_comm, error)
+
+      IF (ASSOCIATED(this%model)) THEN
+            CALL model_sync_children(this%model, this%intra_comm)
+         ELSE
+            this%model => model_construct(this%intra_comm)
+      END IF
+
+#endif
+
+      END SUBROUTINE
+
       END MODULE
