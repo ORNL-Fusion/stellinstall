@@ -48,6 +48,7 @@
 !>  off the remainder.
 !>
 !>  @param[in] namelist_file The file name of the input file.
+!>  @returns The base filename.
 !-------------------------------------------------------------------------------
       FUNCTION filename_base(filename)
 
@@ -64,6 +65,34 @@
       ELSE
          filename_base = TRIM(filename)
       END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Generates a directory name.
+!>
+!>  Generates a directory name string.
+!>
+!>  @param[in] rank Index of the directory.
+!>  @returns The directory name for a given rank.
+!-------------------------------------------------------------------------------
+      FUNCTION process_dir(rank)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=dir_prefix_len) :: process_dir
+      INTEGER, INTENT(in)            :: rank
+
+!  Start of executable code
+      IF (rank .le. 10) THEN
+         WRITE (process_dir, 1000) dir_prefix, rank
+      ELSE
+         WRITE (process_dir, 1001) dir_prefix, rank
+      END IF
+
+1000  FORMAT(a11,'_0',i1)
+1001  FORMAT(a11,'_',i2)
 
       END FUNCTION
 

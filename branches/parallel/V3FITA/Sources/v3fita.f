@@ -561,25 +561,17 @@
       LOGICAL, INTENT(in)                            :: force_solve
 
 !  local variables
-      TYPE (pprofile), POINTER                       :: ne => null()
-      TYPE (pprofile), POINTER                       :: te => null()
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
       INTEGER                                        :: i
       LOGICAL                                        :: not_converged
 
 !  Start of executable code
-      ALLOCATE(ne, te)
-      CALL pprofile_construct(ne, TRIM(pp_ne_ptype), pp_ne_b,                  &
-     &                        pp_ne_as, pp_ne_af)
-      CALL pprofile_construct(te, TRIM(pp_te_ptype), pp_te_b,                  &
-     &                        pp_te_as, pp_te_af)
-
       ALLOCATE(sxr(num_sxrem_p))
       DO i = 1, num_sxrem_p
-         ALLOCATE(sxr(i)%p)
-         CALL pprofile_construct(sxr(i)%p, TRIM(pp_sxrem_ptype_a(i)),          &
-     &                           pp_sxrem_b_a(i,:), pp_sxrem_as_a(i,:),        &
-     &                           pp_sxrem_af_a(i,:))
+         sxr(i)%p => pprofile_construct(TRIM(pp_sxrem_ptype_a(i)),             &
+     &                                  pp_sxrem_b_a(i,:),                     &
+     &                                  pp_sxrem_as_a(i,:),                    &
+     &                                  pp_sxrem_af_a(i,:))
       END DO
 
 !  If the woutfile in the v3fit namelist input file is specifed, assume that the
@@ -589,12 +581,14 @@
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
-     &   equilibrium_construct(vmec_construct(vmec_nli_filename,               &
-     &                                        vmec_wout_input,                 &
-     &                                        ne, te, sxr, phi_offset,         &
-     &                                        z_offset, pol_rad_ratio,         &
-     &                                        context%runlog_iou),             &
-     &                         force_solve, not_converged))
+     &   equilibrium_construct(                                                &
+     &      vmec_construct(vmec_nli_filename, vmec_wout_input,                 &
+     &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
+     &                            pp_ne_as, pp_ne_af),                         &
+     &         pprofile_construct(TRIM(pp_te_ptype), pp_te_b,                  &
+     &                            pp_te_as, pp_te_af), sxr,                    &
+     &         phi_offset, z_offset, pol_rad_ratio,                            &
+     &         context%runlog_iou), force_solve, not_converged))
 
       END SUBROUTINE
 
@@ -1295,6 +1289,8 @@
 #if defined(MPI_OPT)
       INTEGER                                   :: error
       INTEGER                                   :: i
+      INTEGER                                   :: mpi_rank
+      INTEGER                                   :: mpi_size
       INTEGER, DIMENSION(:), ALLOCATABLE        :: info
       INTEGER, DIMENSION(:), ALLOCATABLE        :: error_array
       CHARACTER (len=data_filename_length),                                    &
@@ -1339,8 +1335,8 @@
 !  Configure num processes to use for MPI
       CALL MPI_INIT(error)
 
-      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, context%size, error)
-      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, context%rank, error)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, error)
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, error)
 
       CALL MPI_COMM_GET_PARENT(parent_comm, error)
 
@@ -1352,14 +1348,13 @@
 !    3. Default  : Uses the preconfigured number of processes specified by the
 !                  user.
 
-      IF ((parent_comm .eq. MPI_COMM_NULL) .and.                               &
-     &    (context%rank .eq. 1)) THEN
+      IF ((parent_comm .eq. MPI_COMM_NULL) .and. (mpi_rank .eq. 0)) THEN
          IF (commandline_parser_is_flag_set(context%cl_parser,                 &
      &                                      '-mpi')) THEN
 
-            CALL assert_eq(context%size, 1,                                    &
-     &                     'Cannot spawn processes when mpi is ' //            &
-     &                     'configured externally.')
+            CALL assert_eq(mpi_size, 1, 'Cannot spawn processes ' //           &
+     &                                  'when mpi is configured ' //           &
+     &                                  'externally.')
 
             SELECT CASE (TRIM(commandline_parser_get_string(                   &
      &                        context%cl_parser, '-mpi')))
@@ -1378,13 +1373,13 @@
 !  Processes were created externally. Set the intra_comm to the world comm so it
 !  is consistent with the spawning method.
             context%intra_comm = MPI_COMM_WORLD
-            num_threads = context%size
+            num_threads = mpi_size
          END IF
       ELSE
 !  This must be a child process. Merge the communicators and reread the rank.
          CALL MPI_INTERCOMM_MERGE(parent_comm, .true.,                         &
      &                            context%intra_comm, error)
-         CALL MPI_COMM_SIZE(context%intra_comm, context%rank, error)
+         CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
       END IF
 
 !  Create sub working directories for the processes. When running in default
@@ -1393,19 +1388,13 @@
 !  reached and the size is greater than 1, we can assume that default was used.
       temp_file = commandline_parser_get_string(context%cl_parser,             &
      &                                          '-file')
-      IF (context%rank .eq. 1) THEN
+      IF (mpi_rank .eq. 0) THEN
          DO i = 2, num_threads
-            IF (i .lt. 10) THEN
-               WRITE (directory_name, 1001) dir_prefix, i
-            ELSE
-               WRITE (directory_name, 1002) dir_prefix, i
-            END IF
-
 !  Create the directory and copy the namelist input files over.
-            CALL create_directory(directory_name, error)
+            CALL create_directory(process_dir(i), error)
 
             IF (.not.is_absolute_path(temp_file)) THEN
-               CALL copy_file(temp_file, directory_name, error)
+               CALL copy_file(temp_file, process_dir(i), error)
             END IF
          END DO
       END IF
@@ -1423,16 +1412,10 @@
 
          max_procs = 1
 
-         DO i = 1, num_threads - 1
-            CALL MPI_INFO_CREATE(info(i), error)
-
-            IF ((i + 1) .lt. 10) THEN
-               WRITE (directory_name, 1001) dir_prefix, (i + 1)
-            ELSE
-               WRITE (directory_name, 1002) dir_prefix, (i + 1)
-            END IF
-
-            CALL MPI_INFO_SET(info(i), "wdir", directory_name, error)
+         DO i = 2, num_threads
+            CALL MPI_INFO_CREATE(info(i - 1), error)
+            CALL MPI_INFO_SET(info(i - 1), "wdir", process_dir(i),             &
+     &                        error)
          END DO
 
          CALL MPI_COMM_SPAWN_MULTIPLE(num_threads - 1, commands, args,         &
@@ -1458,14 +1441,14 @@
 
 !  At this point all processes should be made and ready. Get teh final size and
 !  ranks. Set the task for the sub processes.
-      CALL MPI_COMM_SIZE(context%intra_comm, context%size, error)
-      CALL MPI_COMM_SIZE(context%intra_comm, context%rank, error)
+      CALL MPI_COMM_SIZE(context%intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
 
-      IF (context%rank .gt. 1) THEN
+      IF (mpi_rank .gt. 0) THEN
          my_task = 'child_jacobian'
       END IF
 
-      WRITE (*,1003) context%rank, context%size
+      WRITE (*,1003) mpi_rank + 1, mpi_size
 
       CALL MPI_BARRIER(context%intra_comm, error)
 #endif
@@ -1503,25 +1486,22 @@
 !  local variables
 #if defined(MPI_OPT)
       INTEGER                                   :: error
+      INTEGER                                   :: mpi_rank
+      INTEGER                                   :: mpi_size
       INTEGER                                   :: i
       CHARACTER (len=dir_prefix_len)            :: directory_name
-#endif
 
 !  Start of executable code
-#if defined(MPI_OPT)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, error)
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, error)
+
       CALL MPI_FINALIZE(error)
 
 !  Clean up sub working directories for the processes. Parent directory should
 !  be ignored.
-      IF (context%rank .eq. 1) THEN
-         DO i = 2, context%size
-            IF (i .le. 10) THEN
-               WRITE (directory_name, 1002) dir_prefix, i
-            ELSE
-               WRITE (directory_name, 1003) dir_prefix, i
-            END IF
-
-            CALL delete_directory(directory_name, error)
+      IF (mpi_rank .eq. 0) THEN
+         DO i = 2, mpi_size
+            CALL delete_directory(process_dir(i), error)
          END DO
       END IF
 

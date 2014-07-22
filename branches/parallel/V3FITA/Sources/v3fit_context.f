@@ -92,10 +92,6 @@
 #if defined (MPI_OPT)
 !>  MPI parent communicator reference.
          INTEGER :: intra_comm = MPI_COMM_NULL
-!>  MPI size
-         INTEGER :: size = 1
-!>  MPI rank
-         INTEGER :: rank = 1
 #endif
       END TYPE
 
@@ -1116,21 +1112,21 @@
 !  The MPI variables should not be synced. The command line parser, output files
 !  and stoping criteria do not need to be synced. Starting with the signal index
 !  values. MPI_BCAST broad casts from the parent and recieves in the children.
-      CALL MPI_BCAST(this%magnetic_index, 1, MPI_INTEGER, 1,                   &
+      CALL MPI_BCAST(this%magnetic_index, 1, MPI_INTEGER, 0,                   &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%sxrem_index, 1, MPI_INTEGER, 1,                      &
+      CALL MPI_BCAST(this%sxrem_index, 1, MPI_INTEGER, 0,                      &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%intpol_index, 1, MPI_INTEGER, 1,                     &
+      CALL MPI_BCAST(this%intpol_index, 1, MPI_INTEGER, 0,                     &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%thomson_index, 1, MPI_INTEGER, 1,                    &
+      CALL MPI_BCAST(this%thomson_index, 1, MPI_INTEGER, 0,                    &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%extcurz_index, 1, MPI_INTEGER, 1,                    &
+      CALL MPI_BCAST(this%extcurz_index, 1, MPI_INTEGER, 0,                    &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%limiter_index, 1, MPI_INTEGER, 1,                    &
+      CALL MPI_BCAST(this%limiter_index, 1, MPI_INTEGER, 0,                    &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%prior_guassian_index, 1, MPI_INTEGER, 1,             &
+      CALL MPI_BCAST(this%prior_guassian_index, 1, MPI_INTEGER, 0,             &
      &               this%intra_comm, error)
-      CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 1,                &
+      CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 0,                &
      &               this%intra_comm, error)
 
       IF (ASSOCIATED(this%model)) THEN

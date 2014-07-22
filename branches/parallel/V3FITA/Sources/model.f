@@ -315,22 +315,22 @@
 !  Start of executable code
       ALLOCATE(model_construct_mpi)
 
-      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 1, intra_comm, error)
+      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
       ALLOCATE(model_construct_mpi%sxrem_type(sxrem_size))
 
-      CALL MPI_BCAST(model_construct_mpi%ne_type, 1, MPI_INTEGER, 1,           &
+      CALL MPI_BCAST(model_construct_mpi%ne_type, 1, MPI_INTEGER, 0,           &
      &               intra_comm, error)
       CALL MPI_BCAST(model_construct_mpi%sxrem_type, sxrem_size,               &
-     &               MPI_INTEGER, 1, intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%te_type, 1, MPI_INTEGER, 1,           &
+     &               MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(model_construct_mpi%te_type, 1, MPI_INTEGER, 0,           &
      &               intra_comm, error)
 
-      CALL MPI_BCAST(model_construct_mpi%ne_unit, 1, MPI_DOUBLE, 1,            &
+      CALL MPI_BCAST(model_construct_mpi%ne_unit, 1, MPI_REAL8, 0,             &
      &               intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%ne_min, 1, MPI_DOUBLE, 1,             &
+      CALL MPI_BCAST(model_construct_mpi%ne_min, 1, MPI_REAL8, 0,              &
      &               intra_comm, error)
       CALL MPI_BCAST(model_construct_mpi%pressure_fraction, 1,                 &
-     &               MPI_DOUBLE, 1, intra_comm, error)
+     &               MPI_REAL8, 0, intra_comm, error)
 
       model_construct_mpi%equilibrium =>                                       &
      &   equilibrium_construct(intra_comm)
@@ -349,12 +349,12 @@
          ALLOCATE(model_construct_mpi%sxrem_grid(sxrem_size,grid_size))
 
          CALL MPI_BCAST(model_construct_mpi%ne_grid, grid_size,                &
-     &                  MPI_DOUBLE, 1, intra_comm, error)
+     &                  MPI_REAL8, 0, intra_comm, error)
          CALL MPI_BCAST(model_construct_mpi%sxrem_grid,                        &
-     &                  grid_size*sxrem_size, MPI_DOUBLE, 1, intra_comm,       &
+     &                  grid_size*sxrem_size, MPI_REAL8, 0, intra_comm,        &
      &                  error)
          CALL MPI_BCAST(model_construct_mpi%te_grid, grid_size,                &
-     &                  MPI_DOUBLE, 1, intra_comm, error)
+     &                  MPI_REAL8, 0, intra_comm, error)
       END IF
 #endif
 
@@ -1392,29 +1392,29 @@
 !  Start of executable code
       sxrem_size = SIZE(this%sxrem_type)
 
-      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 1, intra_comm, error)
+      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
 
-      CALL MPI_BCAST(this%ne_type, 1, MPI_INTEGER, 1, intra_comm,              &
+      CALL MPI_BCAST(this%ne_type, 1, MPI_INTEGER, 0, intra_comm,              &
      &               error)
-      CALL MPI_BCAST(this%sxrem_type, sxrem_size, MPI_INTEGER, 1,              &
+      CALL MPI_BCAST(this%sxrem_type, sxrem_size, MPI_INTEGER, 0,              &
      &               intra_comm, error)
-      CALL MPI_BCAST(this%te_type, 1, MPI_INTEGER, 1, intra_comm,              &
+      CALL MPI_BCAST(this%te_type, 1, MPI_INTEGER, 0, intra_comm,              &
      &               error)
 
-      CALL MPI_BCAST(this%ne_unit, 1, MPI_DOUBLE, 1, intra_comm, error)
-      CALL MPI_BCAST(this%ne_min, 1, MPI_DOUBLE, 1, intra_comm, error)
-      CALL MPI_BCAST(this%pressure_fraction, 1, MPI_DOUBLE, 1,                 &
+      CALL MPI_BCAST(this%ne_unit, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%ne_min, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%pressure_fraction, 1, MPI_REAL8, 0,                  &
      &               intra_comm, error)
 
       CALL equilibrium_sync_children(this%equilibrium, intra_comm)
 
       grid_size = equilibrium_get_grid_size(this%equilibrium)
       IF (grid_size .gt. 0) THEN
-         CALL MPI_BCAST(this%ne_grid, grid_size, MPI_DOUBLE, 1,                &
+         CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
          CALL MPI_BCAST(this%sxrem_grid, grid_size*sxrem_size,                 &
-     &                  MPI_DOUBLE, 1, intra_comm, error)
-         CALL MPI_BCAST(this%te_grid, grid_size, MPI_DOUBLE, 1,                &
+     &                  MPI_REAL8, 0, intra_comm, error)
+         CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
       END IF
 #endif

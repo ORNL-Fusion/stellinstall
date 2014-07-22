@@ -18,9 +18,6 @@
       MODULE equilibrium
       USE vmec_equilibrium
       USE vacuum_equilibrium
-#if defined (MPI_OPT)
-      USE mpi
-#endif
 
       IMPLICIT NONE
 
@@ -194,24 +191,24 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                           :: error
-      INTEGER                           :: bool_int
 
 !  Start of executable code
       ALLOCATE(equilibrium_construct_mpi)
 
-      CALL MPI_BCAST(equilibrium_construct_mpi%type, 1, MPI_INTEGER, 1,        &
+      CALL MPI_BCAST(equilibrium_construct_mpi%type, 1, MPI_INTEGER, 0,        &
      &               intra_comm, error)
 
 !  MPI doesn't have a boolean type. Pass LOGICALs as integers then case to
 !  logical.
-      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
-      equilibrium_construct_mpi%not_converged = bool_int .gt. 0
-      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
-      equilibrium_construct_mpi%force_solve = bool_int .gt. 0
+      CALL MPI_BCAST(equilibrium_construct_mpi%not_converged, 1,               &
+     &               MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(equilibrium_construct_mpi%force_solve, 1,                 &
+     &               MPI_LOGICAL, 0, intra_comm, error)
 
       SELECT CASE (equilibrium_construct_mpi%type)
 
          CASE (equilibrium_vmec_type)
+            equilibrium_construct_mpi%vmec => vmec_construct(intra_comm)
 
          CASE (equilibrium_vacuum_type)
 
@@ -1639,6 +1636,7 @@
 !>  @param[in]    intra_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_sync_children(this, intra_comm)
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -1649,32 +1647,21 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                                 :: error
-      INTEGER                                 :: bool_int
 
 !  Start of executable code
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 1, intra_comm, error)
+      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
 
 !  MPI doesn't have a boolean type. Pass LOGICALs as integers then case to
 !  logical.
-      IF (this%not_converged) THEN
-         bool_int = 1
-      ELSE
-         bool_int = 0
-      END IF
-      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
-      this%not_converged = bool_int .gt. 0
-
-      IF (this%force_solve) THEN
-         bool_int = 1
-      ELSE
-         bool_int = 0
-      END IF
-      CALL MPI_BCAST(bool_int, 1, MPI_INTEGER, 1, intra_comm, error)
-      this%force_solve = bool_int .gt. 0
+      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0,                    &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%force_solve, 1, MPI_LOGICAL, 0,                      &
+     &               intra_comm, error)
 
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
+            CALL vmec_sync_children(this%vmec, intra_comm)
 
          CASE (equilibrium_vacuum_type)
 

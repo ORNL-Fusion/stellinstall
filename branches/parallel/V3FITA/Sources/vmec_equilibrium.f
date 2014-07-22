@@ -123,6 +123,9 @@
       USE pprofile_T
       USE threed1_file_cache
       USE profiler
+#if defined (MPI_OPT)
+      USE mpi
+#endif
 
       IMPLICIT NONE
 
@@ -299,10 +302,10 @@
 !>  File name of the v3fit namelist inout file.
          CHARACTER (len=data_filename_length)   :: vmec_file_name
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
-         TYPE (pprofile), POINTER               :: ne => null()
+         TYPE (pprofile_class), POINTER         :: ne => null()
 !>  @ref pprofile_T describing a flux surface constant electron temperature
 !>  profile.
-         TYPE (pprofile), POINTER               :: te => null()
+         TYPE (pprofile_class), POINTER         :: te => null()
 !>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
 !>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
@@ -388,6 +391,15 @@
      &                    vmec_get_p_radial
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref equilibrium_class types using
+!>  @ref equilibrium_construct_vmec, @ref equilibrium_construct_vacuum or
+!>  @ref equilibrium_construct_mpi
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_construct
+         MODULE PROCEDURE vmec_construct_new,                                  &
+     &                    vmec_construct_mpi
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -411,9 +423,9 @@
 !>  @param[in] iou        Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, wout_file_name,                       &
-     &                        ne, te, sxrem, phi_offset,                       &
-     &                        z_offset, pol_rad_ratio, iou)
+      FUNCTION vmec_construct_new(file_name, wout_file_name,                   &
+     &                            ne, te, sxrem, phi_offset,                   &
+     &                            z_offset, pol_rad_ratio, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -424,11 +436,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER           :: vmec_construct
+      TYPE (vmec_class), POINTER           :: vmec_construct_new
       CHARACTER (len=*), INTENT(in)        :: file_name
       CHARACTER (len=*), INTENT(in)        :: wout_file_name
-      TYPE (pprofile), POINTER             :: ne
-      TYPE (pprofile), POINTER             :: te
+      TYPE (pprofile_class), POINTER       :: ne
+      TYPE (pprofile_class), POINTER       :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
       REAL (rprec), INTENT(in)             :: z_offset
@@ -449,15 +461,15 @@
       WRITE (iou,*) ' *** Initializing VMEC equilibrium from file ' //         &
      &              TRIM(file_name)
 
-      ALLOCATE(vmec_construct)
-      vmec_construct%ne => ne
-      vmec_construct%te => te
-      vmec_construct%sxrem => sxrem
+      ALLOCATE(vmec_construct_new)
+      vmec_construct_new%ne => ne
+      vmec_construct_new%te => te
+      vmec_construct_new%sxrem => sxrem
 
-      vmec_construct%phi_offset = phi_offset
-      vmec_construct%z_offset = z_offset
+      vmec_construct_new%phi_offset = phi_offset
+      vmec_construct_new%z_offset = z_offset
 
-      vmec_construct%pol_rad_ratio = pol_rad_ratio
+      vmec_construct_new%pol_rad_ratio = pol_rad_ratio
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
@@ -469,15 +481,15 @@
 
       l_v3fit = .true.
 
-      vmec_construct%vmec_file_name = TRIM(file_name)
+      vmec_construct_new%vmec_file_name = TRIM(file_name)
 
       IF (wout_file_name .ne. '') THEN
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
-         vmec_construct%wout_file_name = wout_file_name
+         vmec_construct_new%wout_file_name = wout_file_name
          CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
 
-         CALL read_wout_file(vmec_construct%wout_file_name, error)
+         CALL read_wout_file(vmec_construct_new%wout_file_name, error)
          CALL assert_eq(error, 0, 'Error loading initialized ' //              &
      &                            'wout file.')
          CALL LoadRZL
@@ -490,13 +502,13 @@
 
          CASE (successful_term_flag, norm_term_flag, more_iter_flag)
 !  Set the wout file name.
-            index_dat = INDEX(file_name,'input.')
+            index_dat = INDEX(file_name, 'input.')
             index_end = LEN_TRIM(file_name)
             IF (index_dat .gt. 0) THEN
-               vmec_construct%wout_file_name = 'wout_' //                      &
+               vmec_construct_new%wout_file_name = 'wout_' //                  &
      &            TRIM(file_name(index_dat + 6:index_end)) // '.nc'
             ELSE
-               vmec_construct%wout_file_name = 'wout_' //                      &
+               vmec_construct_new%wout_file_name = 'wout_' //                  &
      &            TRIM(file_name(1:index_end)) // '.nc'
             END IF
 
@@ -506,16 +518,116 @@
 
       END SELECT
 
-      vmec_construct%ns_index = MAXLOC(ns_array, 1)
+      vmec_construct_new%ns_index = MAXLOC(ns_array, 1)
 
 !  Store the inital xc array here. This is needed to reset the xc array for
 !  error recovery in the initial equilibirum convergence. The vmec_save_state
 !  and vmec_reset_state routines cannot be used here since those assume a wout
 !  file was written.
-      ALLOCATE(vmec_construct%xc(SIZE(xc)))
-      vmec_construct%xc = xc
+      ALLOCATE(vmec_construct_new%xc(SIZE(xc)))
+      vmec_construct_new%xc = xc
 
       CALL profiler_set_stop_time('vmec_construct', start_time)
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref vmec_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
+!>  for one iteration to initialize all the input parameters. Defined in
+!>  @ref vmec_input.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref vmec_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_construct_mpi(intra_comm)
+      USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
+     &                       successful_term_flag, norm_term_flag,             &
+     &                       more_iter_flag
+      USE vmec_input, only: l_v3fit, ns_array
+      USE xstuff, only: xc
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), POINTER :: vmec_construct_mpi
+      INTEGER, INTENT(in)        :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                    :: error
+      INTEGER, DIMENSION(5)      :: ictrl_array
+      INTEGER                    :: index_dat, index_end
+      INTEGER                    :: i, num_sxrem
+
+!  Start of executable code
+      ALLOCATE(vmec_construct_mpi)
+
+      CALL MPI_BCAST(vmec_construct_mpi%phi_offset, 1, MPI_REAL8, 0,           &
+     &               intra_comm, error)
+      CALL MPI_BCAST(vmec_construct_mpi%z_offset, 1, MPI_REAL8, 0,             &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(vmec_construct_mpi%pol_rad_ratio, 1, MPI_REAL8, 0,        &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(vmec_construct_mpi%vmec_file_name,                        &
+     &               data_filename_length, MPI_CHARACTER, 0,                   &
+     &               intra_comm, error)
+
+      vmec_construct_mpi%ne => pprofile_construct(intra_comm)
+      vmec_construct_mpi%te => pprofile_construct(intra_comm)
+
+      CALL MPI_BCAST(num_sxrem, 1, MPI_INTEGER, 0, intra_comm, error)
+      ALLOCATE(vmec_construct_mpi%sxrem(num_sxrem))
+      DO i = 1, num_sxrem
+         vmec_construct_mpi%sxrem(i)%p => pprofile_construct(intra_comm)
+      END DO
+
+!  Initialize VMEC by taking a single step.
+      ictrl_array = 0
+      ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), readin_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
+      ictrl_array(3) = 1 ! Run for one iteration.
+      ictrl_array(4) = 1 ! Limit VMEC to single grid.
+
+      l_v3fit = .true.
+
+      CALL runvmec(ictrl_array, vmec_construct_mpi%vmec_file_name,             &
+     &             .false.)
+
+!  Check for errors in runvmec.
+      SELECT CASE (ictrl_array(2))
+
+         CASE (successful_term_flag, norm_term_flag, more_iter_flag)
+!  Set the wout file name.
+            index_dat = INDEX(vmec_construct_mpi%vmec_file_name,               &
+     &                        'input.')
+            index_end = LEN_TRIM(vmec_construct_mpi%vmec_file_name)
+            IF (index_dat .gt. 0) THEN
+               vmec_construct_mpi%wout_file_name = 'wout_' //                  &
+     &            TRIM(vmec_construct_mpi%vmec_file_name(                      &
+     &                    index_dat + 6:index_end)) // '.nc'
+            ELSE
+               vmec_construct_mpi%wout_file_name = 'wout_' //                  &
+     &            TRIM(vmec_construct_mpi%vmec_file_name(                      &
+     &                    1:index_end)) // '.nc'
+            END IF
+
+         CASE DEFAULT
+            CALL err_fatal('vmec_construct runvmec command failed ',           &
+     &                     int = ictrl_array(2))
+
+      END SELECT
+
+      vmec_construct_mpi%ns_index = MAXLOC(ns_array, 1)
+
+!  Allocate an array for for the xc array. It's not necessary to set it. When
+!  the child process is used, the parent process will sync the xc array first.
+      ALLOCATE(vmec_construct_mpi%xc(SIZE(xc)))
+#endif
+
       END FUNCTION
 
 !*******************************************************************************
@@ -542,22 +654,19 @@
 
 !  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
-         CALL pprofile_destroy(this%ne)
-         DEALLOCATE(this%ne)
+         CALL pprofile_destruct(this%ne)
          this%ne => null()
       END IF
 
       IF (ASSOCIATED(this%te)) THEN
-         CALL pprofile_destroy(this%te)
-         DEALLOCATE(this%te)
+         CALL pprofile_destruct(this%te)
          this%te => null()
       END IF
 
       IF (ASSOCIATED(this%sxrem)) THEN
          DO i = 1, SIZE(this%sxrem)
             IF (ASSOCIATED(this%sxrem(i)%p)) THEN
-               CALL pprofile_destroy(this%sxrem(i)%p)
-               DEALLOCATE(this%sxrem(i)%p)
+               CALL pprofile_destruct(this%sxrem(i)%p)
                this%sxrem(i)%p => null()
             END IF
          END DO
@@ -1791,7 +1900,7 @@
       start_time = profiler_get_start_time()
 
       IF (ASSOCIATED(this%ne)) THEN
-         vmec_get_ne_radial = pprofile_evaluate(this%ne, s)
+         vmec_get_ne_radial = pprofile_get_value(this%ne, s)
       ELSE
          vmec_get_ne_radial = 0.0
       END IF
@@ -1855,7 +1964,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%te)) THEN
-         vmec_get_te_radial = pprofile_evaluate(this%te, s)
+         vmec_get_te_radial = pprofile_get_value(this%te, s)
       ELSE
          vmec_get_te_radial = 0.0
       END IF
@@ -1927,7 +2036,7 @@
 
       IF (ASSOCIATED(this%sxrem)) THEN
          vmec_get_sxrem_radial =                                               &
-     &      pprofile_evaluate(this%sxrem(index)%p, s)
+     &      pprofile_get_value(this%sxrem(index)%p, s)
       ELSE
          vmec_get_sxrem_radial = 0.0
       END IF
@@ -3257,6 +3366,79 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       CALL profiler_set_stop_time('vmec_write_step_data', start_time)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref vmec_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_sync_children(this, intra_comm)
+      USE file_opts
+      USE vmec_input, only: lfreeb, mgrid_file
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)              :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                          :: error
+      INTEGER                          :: i
+      INTEGER                          :: num_sxrem
+      INTEGER                          :: mpi_rank
+      INTEGER                          :: mpi_size
+
+!  Start of executable code
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+
+!  Check all relevant file for relative paths and copy them to the sub process
+!  directories. This should only be handeled by the main process.
+      IF (mpi_rank .eq. 0) THEN
+         IF (.not.is_absolute_path(this%vmec_file_name)) THEN
+            DO i = 2, mpi_size
+               CALL copy_file(this%vmec_file_name, process_dir(i),             &
+     &                        error)
+            END DO
+         END IF
+
+         IF (lfreeb .and. .not.is_absolute_path(mgrid_file)) THEN
+            DO i = 2, mpi_size
+               CALL copy_file(mgrid_file, process_dir(i), error)
+            END DO
+         END IF
+      END IF
+
+      CALL MPI_BCAST(this%phi_offset, 1, MPI_REAL8, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%z_offset, 1, MPI_REAL8, 0, intra_comm, error)
+
+      CALL MPI_BCAST(this%pol_rad_ratio, 1, MPI_REAL8, 0, intra_comm,          &
+     &               error)
+
+      CALL MPI_BCAST(this%vmec_file_name, data_filename_length,                &
+     &               MPI_CHARACTER, 0, intra_comm, error)
+
+      CALL pprofile_sync_children(this%ne, intra_comm)
+      CALL pprofile_sync_children(this%te, intra_comm)
+
+      num_sxrem = SIZE(this%sxrem)
+      CALL MPI_BCAST(num_sxrem, 1, MPI_INTEGER, 0, intra_comm, error)
+      DO i = 1, num_sxrem
+         CALL pprofile_sync_children(this%sxrem(i)%p, intra_comm)
+      END DO
+#endif
 
       END SUBROUTINE
 
