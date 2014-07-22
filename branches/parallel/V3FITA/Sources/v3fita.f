@@ -441,6 +441,7 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  Start of executable code
+      CALL v3fit_context_sync_children(context)
 
       END SUBROUTINE
 
@@ -1401,7 +1402,8 @@
 
 !  Create subprocess if needed and set the working directory of the sub
 !  processes. When spawning processes, the working directory set instantly.
-      IF (parent_comm .ne. MPI_COMM_NULL) THEN
+      IF (parent_comm .eq. MPI_COMM_NULL .and.                                 &
+     &    mpi_rank .eq. 0 .and. mpi_size .eq. 1) THEN
          ALLOCATE(commands(num_threads - 1))
          ALLOCATE(args(num_threads - 1,1))
          ALLOCATE(info(num_threads - 1))
@@ -1423,7 +1425,7 @@
      &                                MPI_COMM_WORLD, child_comm,              &
      &                                error_array, error)
 
-         CALL MPI_INTERCOMM_MERGE(parent_comm, .false.,                        &
+         CALL MPI_INTERCOMM_MERGE(child_comm, .false.,                         &
      &                            context%intra_comm, error)
 
          DO i = 1, num_threads - 1
@@ -1438,6 +1440,9 @@
 !  Processes were prespawned, change the working directory for the sub
 !  processes.
       END IF
+
+!  Wait for all processes to reach this point.
+      CALL MPI_BARRIER(context%intra_comm, error)
 
 !  At this point all processes should be made and ready. Get teh final size and
 !  ranks. Set the task for the sub processes.
