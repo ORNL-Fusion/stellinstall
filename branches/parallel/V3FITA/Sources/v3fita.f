@@ -771,9 +771,8 @@
          IF (first_run) THEN
             CALL equilibrium_set_magnetic_cache(                               &
      &              context%model%equilibrium,                                 &
-     &              magnetic_object%response_function%kp,                      &
-     &              magnetic_object%response_function%kp_store,                &
-     &              magnetic_object%response_function%n_field_periods)
+     &              magnetic_object%kp, magnetic_object%kp_store,              &
+     &              magnetic_object%n_field_periods)
             first_run = .false.
          END IF
 
@@ -1402,8 +1401,10 @@
 
 !  Create subprocess if needed and set the working directory of the sub
 !  processes. When spawning processes, the working directory set instantly.
-      IF (parent_comm .eq. MPI_COMM_NULL .and.                                 &
-     &    mpi_rank .eq. 0 .and. mpi_size .eq. 1) THEN
+      IF ((parent_comm .eq. MPI_COMM_NULL) .and.                               &
+     &    (mpi_rank .eq. 0)                .and.                               &
+     &    (mpi_size .eq. 1)                .and.                               &
+     &    (num_threads .gt. 1)) THEN
          ALLOCATE(commands(num_threads - 1))
          ALLOCATE(args(num_threads - 1,1))
          ALLOCATE(info(num_threads - 1))

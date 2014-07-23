@@ -20,6 +20,9 @@ endif()
 
 target_link_libraries (xv3rfun ${NETCDF_LIBRARIES})
 
+if (MPI_Fortran_FOUND)
+        target_link_libraries (xv3rfun ${MPI_Fortran_LIBRARIES})
+endif ()
 if (LAPACK_FOUND)
     target_link_libraries (xv3rfun ${LAPACK_LIBRARIES})
 endif ()

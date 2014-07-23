@@ -1105,6 +1105,10 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                                   :: error
+      INTEGER                                   :: mpi_rank
+      LOGICAL                                   :: needs_sync
+      INTEGER                                   :: array_size
+      INTEGER                                   :: i
 
 !  Start of executable code
       CALL MPI_BARRIER(this%intra_comm, error)
@@ -1129,12 +1133,43 @@
       CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 0,                &
      &               this%intra_comm, error)
 
-      IF (ASSOCIATED(this%model)) THEN
+      CALL MPI_COMM_RANK(this%intra_comm, mpi_rank, error)
+
+!  Check if a model object exists in the parent process. If it does tell all
+!  processes to sync.
+      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%model)
+      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
+     &               error)
+      IF (needs_sync) THEN
+         IF (ASSOCIATED(this%model)) THEN
             CALL model_sync_children(this%model, this%intra_comm)
          ELSE
             this%model => model_construct(this%intra_comm)
+         END IF
       END IF
 
+!  Check if signal objects exists in the parent process. If they do tell all
+!  processes to sync. The size of the array must be synced first.
+      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%signals)
+      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
+     &               error)
+      IF (needs_sync) THEN
+         IF (mpi_rank .eq. 0) THEN
+            array_size = SIZE(this%signals)
+         END IF
+         CALL MPI_BCAST(array_size, 1, MPI_INTEGER, 0, this%intra_comm,        &
+     &                  error)
+
+         IF (ASSOCIATED(this%signals)) THEN
+            DO i = 1, array_size
+            END DO
+         ELSE
+            ALLOCATE(this%signals(array_size))
+
+            DO i = 1, array_size
+            END DO
+         END IF
+      END IF
 #endif
 
       END SUBROUTINE

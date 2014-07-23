@@ -392,9 +392,8 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref equilibrium_class types using
-!>  @ref equilibrium_construct_vmec, @ref equilibrium_construct_vacuum or
-!>  @ref equilibrium_construct_mpi
+!>  Interface for the construction of @ref vmec_construct types using
+!>  @ref vmec_construct_new or @ref vmec_construct_mpi
 !-------------------------------------------------------------------------------
       INTERFACE vmec_construct
          MODULE PROCEDURE vmec_construct_new,                                  &
