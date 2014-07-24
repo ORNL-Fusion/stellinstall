@@ -211,6 +211,8 @@
             equilibrium_construct_mpi%vmec => vmec_construct(intra_comm)
 
          CASE (equilibrium_vacuum_type)
+            equilibrium_construct_mpi%vacuum =>                                &
+     &         vacuum_construct(intra_comm)
 
       END SELECT
 
@@ -1664,6 +1666,7 @@
             CALL vmec_sync_children(this%vmec, intra_comm)
 
          CASE (equilibrium_vacuum_type)
+            CALL vacuum_sync_children(this%vacuum, intra_comm)
 
       END SELECT
 #endif

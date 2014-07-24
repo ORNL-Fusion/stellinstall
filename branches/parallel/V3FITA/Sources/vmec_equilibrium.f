@@ -299,7 +299,7 @@
       TYPE vmec_class
 !>  File name of the output of v3fit.
          CHARACTER (len=data_filename_length)   :: wout_file_name
-!>  File name of the v3fit namelist inout file.
+!>  File name of the vmec namelist inout file.
          CHARACTER (len=data_filename_length)   :: vmec_file_name
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
          TYPE (pprofile_class), POINTER         :: ne => null()
@@ -3437,6 +3437,7 @@
       DO i = 1, num_sxrem
          CALL pprofile_sync_children(this%sxrem(i)%p, intra_comm)
       END DO
+
 #endif
 
       END SUBROUTINE
