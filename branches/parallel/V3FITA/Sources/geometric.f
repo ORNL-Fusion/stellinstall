@@ -22,7 +22,7 @@
 !  geometric module parameters
 !*******************************************************************************
 !>  Type descriptor for the @ref geometric_class no sub class.
-      INTEGER, PARAMETER :: geometric_no_type = -1
+      INTEGER, PARAMETER :: geometric_no_type      = -1
 !>  Type descriptor for the @ref geometric_class subclass @ref limiter
       INTEGER, PARAMETER :: geometric_limiter_type = 0
 
@@ -44,6 +44,7 @@
 !>  * @ref geometric_no_type
 !>  * @ref geometric_limiter_type,
          INTEGER                        :: type = geometric_no_type
+!>  A reference to a limiter object.
          TYPE (limiter_class),  POINTER :: limiter => null()
       END TYPE geometric_class
 
@@ -55,7 +56,8 @@
 !>  @ref geometric_construct_limiter
 !-------------------------------------------------------------------------------
       INTERFACE geometric_construct
-      MODULE PROCEDURE geometric_construct_limiter
+         MODULE PROCEDURE geometric_construct_limiter,                         &
+     &                    geometric_construct_mpi
       END INTERFACE
 
       CONTAINS
@@ -84,6 +86,37 @@
 
       geometric_construct_limiter%type = geometric_limiter_type
       geometric_construct_limiter%limiter => limiter_object
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref geometric_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref geometric_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref geometric_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION geometric_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (geometric_class), POINTER :: geometric_construct_mpi
+      INTEGER, INTENT(in)             :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                         :: error
+
+!  Start of executable code
+      ALLOCATE(geometric_construct_mpi)
+
+      CALL MPI_BCAST(geometric_construct_mpi%type, 1, MPI_INTEGER, 0,          &
+     &               intra_comm, error)
+      geometric_construct_mpi%limiter => limiter_construct(intra_comm)
+
+#endif
 
       END FUNCTION
 
@@ -221,5 +254,37 @@
       END SELECT
 
       END FUNCTION
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref geometric_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE geometric_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (geometric_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                   :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                               :: error
+
+!  Start of executable code
+      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL limiter_sync_children(this%limiter, intra_comm)
+
+#endif
+
+      END SUBROUTINE
 
       END MODULE

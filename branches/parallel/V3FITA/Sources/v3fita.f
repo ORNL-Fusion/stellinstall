@@ -963,7 +963,6 @@
       INTEGER                                   :: i
       CHARACTER (len=data_short_name_length)    :: s_name = ''
       CHARACTER (len=data_name_length)          :: l_name = ''
-      TYPE (limiter_iso), POINTER               :: iso_funct => null()
       INTEGER                                   :: num_phi
 
 !  Start of executable code
@@ -988,13 +987,6 @@
          WRITE (l_name,'(a,i4)') 'edge limiter iso function ', i
 
          num_phi = MAX(MIN(v3fit_max_lif_size, n_phi_lif(i)), 1)
-!  Do not deallocate the iso_funct. It memory is taken over by the limiter_class
-!  and freed during it's destruction.
-         ALLOCATE(iso_funct)
-!  The conversion from degrees to radians is performed in v3fit_input
-         CALL limiter_iso_construct(iso_funct, lif_arz(i,:,:),                 &
-     &           lif_rc(i), lif_zc(i), 20,                                     &
-     &           lif_phi_degree(i,1:num_phi)*degree)
 
 !  Check if the sdo_sigma is zero and replace it lif_sigma instead.
          IF (sdo_sigma_a(signals_created + 1) .eq. 0.0) THEN
@@ -1003,14 +995,13 @@
 
          context%signals(signals_created + 1)%p => signal_construct(           &
      &      geometric_construct(                                               &
-     &         limiter_construct(iso_funct, lif_on_edge(i))),                  &
+     &         limiter_construct(                                              &
+     &            limiter_iso_construct(lif_arz(i,:,:), lif_rc(i),             &
+     &               lif_zc(i), 20, lif_phi_degree(i,1:num_phi)*degree),       &
+     &            lif_on_edge(i))),                                            &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
      &      sdo_weight_a(signals_created + 1))
-
-!  Set the iso_funct to null. This sets the local pointer of iso_funct to null.
-!  The pointer allocated above is now owned by the limiter_class instance.
-         iso_funct => null()
 
          signals_created = signals_created + 1
 

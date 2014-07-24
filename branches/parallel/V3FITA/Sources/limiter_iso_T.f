@@ -1,429 +1,287 @@
 !*******************************************************************************
-!  File limiter_iso_T.f
-!  Contains module limiter_iso_T
-!  Defines derived-types: limiter_iso
-
-!*******************************************************************************
-!  MODULE limiter_iso_T
-!    (limiter_iso Type Definition, for the V3FIT code)
-! SECTION I.    VARIABLE DECLARATIONS
-! SECTION II.   DERIVED-TYPE DECLARATIONS
-! SECTION III.  INTERFACE BLOCKS
-! SECTION IV.   CONSTRUCTION SUBROUTINES
-! SECTION V.    DESTRUCTION SUBROUTINES
-! SECTION VI.   ASSIGNMENT SUBROUTINES
-! SECTION VII.  OUTPUT SUBROUTINES
-! SECTION VIII. FUNCTION EVALUATION SUBROUTINES
-! SECTION XII.  AUXILIARY SUBROUTINES
-! SECTION XIII. DEBUGGING SUBROUTINES
-! SECTION XV.   DUPLICATE CODING FOR TESTING
-! SECTION XVI.  COMMENTS FOR DIFFERENT REVISIONS
+!>  @file limiter_iso_T.f
+!>  @brief Contains module @ref limiter_iso_T
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Defines the base class of the type @ref limiter_iso.
 !*******************************************************************************
       MODULE limiter_iso_T
 
-!*******************************************************************************
-! SECTION I. VARIABLE DECLARATIONS
-!*******************************************************************************
-
-!-------------------------------------------------------------------------------
-!  Type declarations - lengths of reals, integers, and complexes.
-!  Frequently used mathematical constants, lots of extra precision.
-!-------------------------------------------------------------------------------
       USE stel_kinds, only : rprec, cprec
       USE stel_constants, only : pi, twopi, one, zero
-     
-!-------------------------------------------------------------------------------
-!  Use Statements for V3 Utilities
-!-------------------------------------------------------------------------------
       USE v3_utilities
+#if defined (MPI_OPT)
+      USE mpi
+#endif
 
-!-------------------------------------------------------------------------------
-!  Implicit None comes after USE statements, before other declarations
-!-------------------------------------------------------------------------------
       IMPLICIT NONE
 
-!-------------------------------------------------------------------------------
-!  Make type declarations and constants Private, so there are no conflicts.
-!-------------------------------------------------------------------------------
-      PRIVATE rprec, cprec, pi, twopi, one, zero
-
-
 !*******************************************************************************
-! SECTION II. DERIVED-TYPE DECLARATIONS
-! 1)   Limiter iso:
-!         limiter_iso  
-!     Contains the data to define a scalar function of position, so that the
-!     iso-contour f=0 of the function corresponds to a geometric limit to the
-!     plasma
-!        Also contains data to specify the minimum number poloidal points on the
-!     s=1 surface to use, and the toroidal planes on which to s=1 surface will
-!     be evaluated
-!
-!    Second attempt:
-!     e = SUM_over_i(0,4)_j(0,4) [
-!       arz(i,j) (r - rc)^i (z - zc)^j]
-!     f = e / |grad(e)|
-!
-!  Note 
-!   1) For now, axisymmetric
-!   2) Easy to put in circles, ellipses, and planes
-!   3) Ffnction f is approximately distance.
+!  DERIVED-TYPE DECLARATIONS
+!  1) extcurz base class
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Declare type limiter_iso
-!       arz(i,j) (r - rc)^i (z - zc)^j]
-!     f = e / |grad(e)|
-!   arz         Real array (0:4,0:4), coefficients for function
-!   rc          Real, offset for function
-!   zc          Real, offset for function!   zc          Real array (4), coefficients for function
-!   numin       Integer, minimum number of poloidal angles for s=1 surface
-!   vgrid       Real array (POINTER), values of toroidal angle at which
-!                  to compute s=1 surface.
-!      ^ USE AS ALLOCATABLE ARRAY
+!>  Base class representing a limiter_iso function.
+!>
+!>  1) Limiter iso: limiter_iso
+!>  Contains the data to define a scalar function of position, so that the
+!>  iso-contour f=0 of the function corresponds to a geometric limit to the
+!>  plasma. Also contains data to specify the minimum number poloidal points on
+!>  the s=1 surface to use, and the toroidal planes on which to s=1 surface will
+!>  be evaluated
+!>
+!>  Second attempt:
+!>
+!>  e = SUM_over_i(0,4)_j(0,4) [arz(i,j) (r - rc)^i (z - zc)^j]
+!>  f = e / |grad(e)|
+!>
+!>  - @note
+!>  1. For now, axisymmetric
+!>  2. Easy to put in circles, ellipses, and planes
+!>  3. Function f is approximately distance.
 !-------------------------------------------------------------------------------
       TYPE limiter_iso
-         REAL(rprec), DIMENSION(0:4,0:4)       :: arz
-         REAL(rprec)                           :: rc, zc
-         INTEGER                               :: numin
-         REAL(rprec), DIMENSION(:), POINTER    :: vgrid => null()
-       END TYPE limiter_iso
+!>  Coefficients for the iso function.
+         REAL(rprec), DIMENSION(0:4,0:4)    :: arz
+!>  R offset for function.
+         REAL(rprec)                        :: rc
+!>  Z offset for function.
+         REAL(rprec)                        :: zc
+!>  Minimum number of poloidal angles for s=1 surface.
+         INTEGER                            :: numin
+!>  Values of toroidal angle at which to compute s=1 surface.
+         REAL(rprec), DIMENSION(:), POINTER :: vgrid => null()
+      END TYPE limiter_iso
 
 !*******************************************************************************
-! SECTION III. INTERFACE BLOCKS
+!  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Assignment for structures
+!>  Interface for the construction of @ref limiter_iso types using
+!>  @ref limiter_iso_construct_new or @ref limiter_iso_construct_mpi
 !-------------------------------------------------------------------------------
-      INTERFACE ASSIGNMENT (=)
-         MODULE PROCEDURE limiter_iso_assign, limiter_iso_assign_a
+      INTERFACE limiter_iso_construct
+         MODULE PROCEDURE limiter_iso_construct_new,                           &
+     &                    limiter_iso_construct_mpi
       END INTERFACE
 
-!-------------------------------------------------------------------------------
-!  End of interface blocks
-!-------------------------------------------------------------------------------
       CONTAINS
 !*******************************************************************************
-! SECTION IV. CONSTRUCTION SUBROUTINES
+!  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct a limiter_iso
+!>  @brief Construct a limiter iso function.
+!>
+!>  Allocates memory and initializes a @ref limiter_iso object.
+!>
+!>  @param[in] arz   Coefficients for the iso function.
+!>  @param[in] rc    R offset for function.
+!>  @param[in] zc    Z offset for function.
+!>  @param[in] numin Minimum number of poloidal angles for s=1 surface.
+!>  @param[in] vgrid Values of toroidal angle at which to compute s=1 surface.
+!>  @returns A pointer to a constructed @ref limiter_iso object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE limiter_iso_construct(this,arz,rc,zc,numin,vgrid)
+      FUNCTION limiter_iso_construct_new(arz, rc, zc, numin, vgrid)
       IMPLICIT NONE
 
 !  Declare Arguments 
-      TYPE (limiter_iso), INTENT(inout)                     :: this
-      REAL(rprec), DIMENSION(0:4,0:4), INTENT(in), OPTIONAL :: arz
-      REAL(rprec), INTENT(in), OPTIONAL                     :: rc
-      REAL(rprec), INTENT(in), OPTIONAL                     :: zc
-      INTEGER, INTENT(in), OPTIONAL                         :: numin
-      REAL(rprec), DIMENSION(:), INTENT(in), OPTIONAL       :: vgrid
-
-!  Declare local variables
-      INTEGER :: ier1
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'limiter_iso_construct: '
+      TYPE (limiter_iso), POINTER :: limiter_iso_construct_new
+      REAL(rprec), DIMENSION(0:4,0:4), INTENT(in) :: arz
+      REAL(rprec), INTENT(in)                     :: rc
+      REAL(rprec), INTENT(in)                     :: zc
+      INTEGER, INTENT(in)                         :: numin
+      REAL(rprec), DIMENSION(:), INTENT(in)       :: vgrid
 
 !  Start of executable code
-
 !  First, destroy this
-      CALL limiter_iso_destroy(this)
+      ALLOCATE(limiter_iso_construct_new)
       
-      IF (PRESENT(arz)) THEN
-         this % arz = arz
-      ELSE
-!  Default case is a circle of radius 1.
-         this % arz = zero
-         this % arz(2,0) = one
-         this % arz(0,2) = one
-         this % arz(0,0) = - one
-      ENDIF
+      limiter_iso_construct_new%arz = arz
+      limiter_iso_construct_new%rc = rc
+      limiter_iso_construct_new%zc = zc
+      limiter_iso_construct_new%numin = numin
 
-      IF (PRESENT(rc)) THEN
-         this % rc = rc
-      ELSE
-         this % rc = one
-      ENDIF
+      ALLOCATE(limiter_iso_construct_new%vgrid(SIZE(vgrid)))
+      limiter_iso_construct_new%vgrid = vgrid
+      
+      END FUNCTION
 
-      IF (PRESENT(zc)) THEN
-         this % zc = zc
-      ELSE
-         this % zc = zero
-      ENDIF
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref limiter_iso object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref limiter_iso object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref limiter_iso object.
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_iso_construct_mpi(intra_comm)
 
-      IF (PRESENT(numin)) THEN
-         this % numin = numin
-      ELSE
-         this % numin = 1
-      ENDIF
-      
-      IF (PRESENT(vgrid)) THEN
-         ALLOCATE(this % vgrid(1:SIZE(vgrid)),STAT=ier1)
-         CALL assert_eq(0,ier1,sub_name // 'alloc')
-         this % vgrid = vgrid
-      ELSE
-         ALLOCATE(this % vgrid(1),STAT=ier1)
-         CALL assert_eq(0,ier1,sub_name // 'alloc')
-         this % vgrid(1) = zero
-      ENDIF
-      
-      END SUBROUTINE limiter_iso_construct
-      
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (limiter_iso), POINTER :: limiter_iso_construct_mpi
+      INTEGER, INTENT(in)         :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                     :: error
+      INTEGER                     :: num_v
+
+!  Start of executable code
+      ALLOCATE(limiter_iso_construct_mpi)
+
+      CALL MPI_BCAST(limiter_iso_construct_mpi%arz, 25, MPI_REAL8, 0,          &
+     &               intra_comm, error)
+      CALL MPI_BCAST(limiter_iso_construct_mpi%rc, 1, MPI_REAL8, 0,            &
+     &               intra_comm, error)
+      CALL MPI_BCAST(limiter_iso_construct_mpi%zc, 1, MPI_REAL8, 0,            &
+     &               intra_comm, error)
+      CALL MPI_BCAST(limiter_iso_construct_mpi%numin, 1, MPI_INTEGER, 0,       &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(num_v, 1, MPI_INTEGER, 0, intra_comm, error)
+      ALLOCATE(limiter_iso_construct_mpi%vgrid(num_v))
+      CALL MPI_BCAST(limiter_iso_construct_mpi%vgrid, num_v, MPI_REAL8,        &
+     &               0, intra_comm, error)
+
+#endif
+
+      END FUNCTION
+
 !*******************************************************************************
-! SECTION V. DESTRUCTION SUBROUTINES
+!  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Destroy a limiter_iso
+!>  @brief Deconstruct a @ref limiter_iso object.
+!>
+!>  Deallocates memory and uninitializes a @ref limiter_iso object.
+!>
+!>  @param[inout] this A @ref limiter_iso instance.
 !-------------------------------------------------------------------------------
-      SUBROUTINE limiter_iso_destroy(this)
+      SUBROUTINE limiter_iso_destruct(this)
       IMPLICIT NONE
 
 !  Declare Arguments 
-      TYPE (limiter_iso), INTENT(inout) :: this
-
-!  Declare local variables
-      INTEGER :: ier1
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'limiter_iso_destroy: '
+      TYPE (limiter_iso), POINTER :: this
 
 !  Start of executable code
 
 !  Get rid of all components
-      this % arz = zero
-      this % rc = zero
-      this % zc = zero
-      this % numin = 0
-      IF (ASSOCIATED(this % vgrid)) THEN
-         DEALLOCATE(this % vgrid,STAT=ier1)
-         CALL assert_eq(0,ier1,sub_name // 'deallocate error')
+      IF (ASSOCIATED(this%vgrid)) THEN
+         DEALLOCATE(this%vgrid)
+         this%vgrid => null()
       ENDIF
 
-      END SUBROUTINE limiter_iso_destroy
+      DEALLOCATE(this)
+
+      END SUBROUTINE
 
 !*******************************************************************************
-! SECTION VI. ASSIGNMENT SUBROUTINES
+!  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Assignment for limiter_iso
+!>  @brief Computes the iso value at an r, phi, z position.
+!>
+!>  Limiter iso function is computed as
+!>
+!>  e = SUM_over_i(0,4)_j(0,4) [arz(i,j) (r - rc)^i (z - zc)^j]
+!>  f = e / |grad(e)|
+!>
+!>
+!>  @param[in] this    A @ref limiter_iso instance.
+!>  @param[in] rpz_arg The r, phi, z point to evaluate at.
+!>  @returns The value of iso function at the r, phi, z point.
 !-------------------------------------------------------------------------------
-      SUBROUTINE limiter_iso_assign(left,right)
-
-      IMPLICIT NONE
-      
-!  Declare Arguments 
-      TYPE (limiter_iso), INTENT (inout) :: left
-      TYPE (limiter_iso), INTENT (in) :: right
-      
-!  Declare local variables
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'limiter_iso_assign: '
-      CHARACTER (len=*), PARAMETER :: err_mess1 =                              &
-     & 'left-right vgrid are the same?. FIX IT'
-      INTEGER :: ier1
-         
-!  Start of executable code
-
-!  Check to see if the 'use as allocatable array' pointers are pointing
-!  to the same location
-      CALL assert(.not.ASSOCIATED(left % vgrid,right % vgrid),                 &
-     &   sub_name // err_mess1)
-
-!  Destroy left
-      CALL limiter_iso_destroy(left)
-      
-      left % arz = right % arz
-      left % rc = right % rc
-      left % zc = right % zc
-      left % numin = right % numin
-
-!  Allocate space for the 'use as allocatable array' pointer variables
-      ALLOCATE(left % vgrid(1:SIZE(right % vgrid)),STAT=ier1)
-      CALL assert_eq(0,ier1,sub_name // 'Allocation error')
-
-      left % vgrid = right % vgrid
-         
-      END SUBROUTINE limiter_iso_assign
-
-!-------------------------------------------------------------------------------
-!  Assignment for array of limiter_iso
-!-------------------------------------------------------------------------------
-      SUBROUTINE limiter_iso_assign_a(left,right)
-
-      IMPLICIT NONE
-      
-!  Declare Arguments 
-      TYPE (limiter_iso), DIMENSION(:), INTENT (inout) :: left
-      TYPE (limiter_iso), DIMENSION(:), INTENT (in) :: right
-      
-!  Declare local variables
-      INTEGER :: n_left, n_right, i
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'limiter_iso_assign_a: '
-      CHARACTER (len=*), PARAMETER :: err_mess1 =                              &
-     & 'left-right array lengths are not the same.'
-         
-!  Start of executable code
-
-      n_left = SIZE(left)
-      n_right = SIZE(right)
-      CALL assert_eq(n_left,n_right,sub_name // err_mess1)
-      DO i = 1,n_left
-         left(i) = right(i)
-      END DO
-         
-      END SUBROUTINE limiter_iso_assign_a
-
-!*******************************************************************************
-! SECTION VII.  OUTPUT SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Write out the contents of a limiter_iso
-!-------------------------------------------------------------------------------
-
-      SUBROUTINE limiter_iso_write(this,identifier,unit,verbose)
+      FUNCTION limiter_iso_value(this, rpz_arg)
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_iso), INTENT (in) :: this
-      CHARACTER (len=*), INTENT(in), OPTIONAL :: identifier
-      INTEGER, INTENT(in), OPTIONAL :: unit
-      INTEGER, INTENT(in), OPTIONAL :: verbose
-!  identifier   character variable, also written out
-!  unit         I/O unit number to write to
-!  verbose      integer, to specify verbosity level of write
+      REAL (rprec)                           :: limiter_iso_value
+      TYPE (limiter_iso), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: rpz_arg
 
-!  Declare local variables and constants
-      INTEGER :: iv_default = 1
-      INTEGER :: iv
-      INTEGER :: iou_default = 6
-      INTEGER :: iou
-      CHARACTER (len=60) :: id
-
-!  Declare Format array
-      CHARACTER(len=*), PARAMETER, DIMENSION(7) :: fmt1 = (/                   &
-     & '(" start limiter_iso write, called with id = ",a)         ',           &
-     & '(" arz = ",5(3x,es12.5))                                  ',           &
-     & '(" rc = ",3x,es12.5)                                      ',           &
-     & '(" zc = ",3x,es12.5)                                      ',           &
-     & '(" numin = ",i6)                                          ',           &
-     & '(" vgrid = ",5(3x,es12.5))                                ',           &
-     & '(" end limiter_iso write, called with id = ",a)           '            &
-     &  /) 
-
-!  start of executable code
-!  Check for arguments present
-      IF (PRESENT(identifier)) THEN
-         id = identifier
-      ELSE
-         id = ' '
-      END IF
-
-      IF (PRESENT(unit)) THEN
-         iou = unit
-      ELSE
-         iou = iou_default
-      END IF
-
-      IF (PRESENT(verbose)) THEN
-         iv = verbose
-      ELSE
-         iv = iv_default
-      END IF
-      
-!  Select Case of Verbosity Level
-!  Will need Select Case on s_type
-      SELECT CASE(iv)
-      CASE( :0)  ! VERY Terse
-         WRITE(iou,*) this % arz
-         WRITE(iou,*) this % rc
-         WRITE(iou,*) this % zc
-         WRITE(iou,*) this % numin
-         WRITE(iou,*) this % vgrid
-
-      
-      CASE(1:)    ! Default, more verbose
-         WRITE(iou,fmt1(1)) id
-         WRITE(iou,fmt1(2)) this % arz
-         WRITE(iou,fmt1(3)) this % rc
-         WRITE(iou,fmt1(4)) this % zc
-         WRITE(iou,fmt1(5)) this % numin
-         WRITE(iou,fmt1(6)) this % vgrid
-         WRITE(iou,fmt1(7)) id
-      
-      END SELECT
-
-      END SUBROUTINE limiter_iso_write
-
-!*******************************************************************************
-! SECTION VIII. FUNCTION EVALUATION SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Evaluate the limiter function
-!-------------------------------------------------------------------------------
-      FUNCTION limiter_iso_f_cyl(this,rpz_arg)
-      IMPLICIT NONE
-
-!  Declare Arguments
-      REAL (rprec) :: limiter_iso_f_cyl
-      TYPE (limiter_iso), INTENT(in)          :: this
-      REAL (rprec), DIMENSION(3), INTENT(in)   :: rpz_arg
-
-!  Declare local variables
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'limiter_iso_f_cyl: '
+!  local variables
       REAL(rprec)                 :: e, er, ez, grad_e
-      INTEGER                     :: i,j
+      INTEGER                     :: i, j
 
 !  Start of executable code
-
+!  Compute function
       e = zero
-      DO i = 0,4
-      DO j = 0,4
-         e = e + 
-     &      this % arz(i,j) * ((rpz_arg(1) - this % rc) ** i) *                &
-     &         ((rpz_arg(3) - this % zc) ** j)
-      END DO
+      DO i = 0, 4
+         DO j = 0, 4
+            e = e + this%arz(i,j)                                              &
+     &        * ((rpz_arg(1) - this%rc)**i)                                    &
+     &        * ((rpz_arg(3) - this%zc)**j)
+         END DO
       END DO
 
+!  Compute de/dr
       er = zero
-      DO i = 1,4
-      DO j = 0,4
-         er = er + 
-     &      this % arz(i,j) * i * ((rpz_arg(1) - this % rc) ** (i-1)) *        &
-     &         ((rpz_arg(3) - this % zc) ** j)
+      DO i = 1, 4
+         DO j = 0, 4
+            er = er + this%arz(i,j)*i                                          &
+     &         * ((rpz_arg(1) - this%rc)**(i-1))                               &
+     &         * ((rpz_arg(3) - this%zc)**j)
+         END DO
       END DO
-      END DO
-      
+
+!  Compute de/dr
       ez = zero
-      DO i = 0,4
-      DO j = 1,4
-         ez = ez + 
-     &      this % arz(i,j) * j * ((rpz_arg(1) - this % rc) ** i) *            &
-     &         ((rpz_arg(3) - this % zc) ** (j - 1))
+      DO i = 0, 4
+         DO j = 1, 4
+         ez = ez + this % arz(i,j)*j                                           &
+     &      * ((rpz_arg(1) - this%rc)**i)                                      &
+     &      * ((rpz_arg(3) - this%zc)**(j - 1))
+         END DO
       END DO
-      END DO
+
+!  Avoid divide by zero errors.
+      grad_e = MAX(1.E-12, SQRT(er*er + ez*ez))
       
-      grad_e = MAX(1.E-12,SQRT(er * er + ez * ez))
+      limiter_iso_value = e/grad_e
       
-      limiter_iso_f_cyl = e / grad_e
-      
-      END FUNCTION limiter_iso_f_cyl
-      
+      END FUNCTION
+
 !*******************************************************************************
-! SECTION XVI.  COMMENTS FOR DIFFERENT REVISIONS
+!  MPI SUBROUTINES
 !*******************************************************************************
-!  
-!  JDH 2009-01-14
-!     Modifying signal_T.f to get limiter_function_T
-!
-!  JDH 2009-01-31
-!     Changed name to limiter_iso_T. Added numin and vgrid components.
-!
-!  JDH 2009-04-10
-!     Changed details of function parameterization. (second attempt)
-!
-!  JDH 2011-03-16
-!    In construct, added call to destroy first.
-!
-      END MODULE limiter_iso_T
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref limiter_iso instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE limiter_iso_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (limiter_iso), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: num_v
+
+!  Start of executable code
+      CALL MPI_BCAST(this%arz, 25, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%rc, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%zc, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%numin, 1, MPI_INTEGER, 0, intra_comm, error)
+
+      num_v = SIZE(this%vgrid)
+      CALL MPI_BCAST(num_v, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(this%vgrid, num_v, MPI_REAL8, 0, intra_comm, error)
+
+#endif
+
+      END SUBROUTINE
+
+      END MODULE
