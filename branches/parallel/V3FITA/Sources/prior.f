@@ -53,10 +53,11 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref prior_class types using
-!>  @ref prior_construct_gaussian
+!>  @ref prior_construct_gaussian or @ref prior_construct_mpi
 !-------------------------------------------------------------------------------
       INTERFACE prior_construct
-         MODULE PROCEDURE prior_construct_gaussian
+         MODULE PROCEDURE prior_construct_gaussian,                            &
+     &                    prior_construct_mpi
       END INTERFACE
 
       CONTAINS
@@ -84,6 +85,44 @@
 
       prior_construct_gaussian%type = prior_gaussian_type
       prior_construct_gaussian%gaussian => gaussian_object
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref prior_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref prior_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref prior_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION prior_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_class), POINTER :: prior_construct_mpi
+      INTEGER, INTENT(in)         :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                         :: error
+
+!  Start of executable code
+      ALLOCATE(prior_construct_mpi)
+
+      CALL MPI_BCAST(prior_construct_mpi%type, 1, MPI_INTEGER, 0,              &
+     &               intra_comm, error)
+
+      SELECT CASE (prior_construct_mpi%type)
+
+         CASE (prior_gaussian_type)
+            prior_construct_mpi%gaussian =>                                    &
+     &         prior_gaussian_construct(intra_comm)
+
+      END SELECT
+
+#endif
 
       END FUNCTION
 
@@ -285,6 +324,44 @@
 
 1000  FORMAT('Signal',1x,i4,1x,                                                &
      &       'is a prior signal, type: ',a)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref prior_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE prior_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (prior_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+
+!  Start of executable code
+      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
+
+      SELECT CASE (this%type)
+
+         CASE (prior_gaussian_type)
+            CALL prior_gaussian_sync_children(this%gaussian, intra_comm)
+
+      END SELECT
+
+#endif
 
       END SUBROUTINE
 

@@ -20,11 +20,11 @@
 !  param module parameters
 !*******************************************************************************
 !>  No bounding type specified.
-      INTEGER, PARAMETER :: param_range_no_type = -1
+      INTEGER, PARAMETER :: param_range_no_type        = -1
 !>  Parameter value is bounded by a value.
-      INTEGER, PARAMETER :: param_range_value_type = 0
+      INTEGER, PARAMETER :: param_range_value_type     = 0
 !>  Parameter value is unbounded.
-      INTEGER, PARAMETER :: param_range_infinity_type = 1
+      INTEGER, PARAMETER :: param_range_infinity_type  = 1
 !>  Parameter value is bounded by another parameter.
       INTEGER, PARAMETER :: param_range_parameter_type = 2
 
@@ -71,16 +71,16 @@
 !>  The contraints can change the normalization size of the patarameter when
 !>  incrementing it. Store the actual change in parameter here for
 !>  normalization. This value is set by @ref param_increment.
-         REAL (rprec)                            :: delta
+         REAL (rprec)                          :: delta
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
 !>  step. This value is calculated by
 !>  @ref reconstruction::reconstruction_eval_pos_covar.
-         REAL (rprec)                        :: sigma = 0.0
+         REAL (rprec)                          :: sigma = 0.0
 !>  Stored row of the signal effectiveness matrix.
-         REAL (rprec), DIMENSION(:), POINTER :: sem => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: sem => null()
 !>  Stored row of the correlation matrix.
-         REAL (rprec), DIMENSION(:), POINTER :: correlation => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: correlation => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -100,7 +100,8 @@
 !-------------------------------------------------------------------------------
       INTERFACE param_construct
          MODULE PROCEDURE param_construct_basic,                               &
-     &                    param_construct_recon
+     &                    param_construct_recon,                               &
+     &                    param_construct_mpi
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -261,6 +262,51 @@
 
       ALLOCATE(param_construct_recon%sem(num_signals))
       param_construct_recon%sem = 0.0
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref param_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref param_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref param_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION param_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), POINTER :: param_construct_mpi
+      INTEGER, INTENT(in)         :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                     :: error
+
+!  Start of executable code
+      ALLOCATE(param_construct_mpi)
+
+!  Only need to sync the parts that are needed for computing the jacobian.
+      CALL MPI_BCAST(param_construct_mpi%param_id, 1, MPI_INTEGER, 0,          &
+     &               intra_comm, error)
+      CALL MPI_BCAST(param_construct_mpi%indicies, data_max_indicies,          &
+     &               MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(param_construct_mpi%vrnc, 1, MPI_REAL8, 0,                &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(param_construct_mpi%range_type, 2, MPI_INTEGER, 0,        &
+     &               intra_comm, error)
+      CALL MPI_BCAST(param_construct_mpi%range_id, 2, MPI_INTEGER, 0,          &
+     &               intra_comm, error)
+      CALL MPI_BCAST(param_construct_mpi%range_indicies,                       &
+     &               2*data_max_indicies, MPI_INTEGER, 0, intra_comm,          &
+     &               error)
+      CALL MPI_BCAST(param_construct_mpi%range_value, 2, MPI_REAL8, 0,         &
+     &               intra_comm, error)
+
+#endif
 
       END FUNCTION
 
@@ -986,4 +1032,49 @@
 
       END SUBROUTINE
 
-      END MODULE v3fit_params
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                          :: error
+
+!  Start of executable code
+!  Only need to sync the parts that are needed for computing the jacobian.
+      CALL MPI_BCAST(this%param_id, 1, MPI_INTEGER, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%indicies, data_max_indicies, MPI_INTEGER, 0,         &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%vrnc, 1, MPI_REAL8, 0, intra_comm, error)
+
+      CALL MPI_BCAST(this%range_type, 2, MPI_INTEGER, 0, intra_comm,           &
+     &               error)
+      CALL MPI_BCAST(this%range_id, 2, MPI_INTEGER, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%range_indicies, 2*data_max_indicies,                 &
+     &               MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(this%range_value, 2, MPI_REAL8, 0, intra_comm,            &
+     &               error)
+
+#endif
+
+      END SUBROUTINE
+
+      END MODULE

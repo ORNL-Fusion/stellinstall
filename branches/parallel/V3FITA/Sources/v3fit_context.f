@@ -1161,16 +1161,75 @@
      &                  error)
 
          IF (ASSOCIATED(this%signals)) THEN
-            DO i = 1, array_size
-            END DO
+!  Sync all signals except the combination signals.
+            IF (this%combination_index .gt. 0) THEN
+               DO i = 1, this%combination_index - 1
+                  CALL signal_sync_children(this%signals(i)%p,                 &
+     &                                      this%intra_comm)
+               END DO
+            ELSE
+               DO i = 1, array_size
+                  CALL signal_sync_children(this%signals(i)%p,                 &
+     &                                      this%intra_comm)
+               END DO
+            END IF
          ELSE
             ALLOCATE(this%signals(array_size))
 
-            DO i = 1, array_size
-            END DO
+!  Sync all signals except the combination signals.
+            IF (this%combination_index .gt. 0) THEN
+               DO i = 1, this%combination_index - 1
+                  this%signals(i)%p => signal_construct(this%intra_comm)
+               END DO
+            ELSE
+               DO i = 1, array_size
+                  this%signals(i)%p => signal_construct(this%intra_comm)
+               END DO
+            END IF
          END IF
       END IF
 #endif
+
+!  Check if derived parameter objects exists in the parent process. If they do
+!  tell all processes to sync. The size of the array must be synced first.
+      needs_sync = (mpi_rank .eq. 0) .and.                                     &
+     &             ASSOCIATED(this%derived_params)
+      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
+     &               error)
+      IF (needs_sync) THEN
+         IF (mpi_rank .eq. 0) THEN
+            array_size = SIZE(this%derived_params)
+         END IF
+         CALL MPI_BCAST(array_size, 1, MPI_INTEGER, 0, this%intra_comm,        &
+     &                  error)
+
+         IF (ASSOCIATED(this%derived_params)) THEN
+            CALL param_sync_children(this%derived_params(i)%p,                 &
+     &                               this%intra_comm)
+         ELSE
+            this%derived_params(i)%p => param_construct(this%intra_comm)
+         END IF
+      END IF
+
+!  Check if reconstruction parameter objects exists in the parent process. If
+!  they do tell all processes to sync. The size of the array must be synced
+!  first.
+      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%params)
+      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
+     &               error)
+      IF (needs_sync) THEN
+         IF (mpi_rank .eq. 0) THEN
+            array_size = SIZE(this%params)
+         END IF
+         CALL MPI_BCAST(array_size, 1, MPI_INTEGER, 0, this%intra_comm,        &
+     &                  error)
+
+         IF (ASSOCIATED(this%derived_params)) THEN
+            CALL param_sync_children(this%params(i)%p, this%intra_comm)
+         ELSE
+            this%params(i)%p => param_construct(this%intra_comm)
+         END IF
+      END IF
 
       END SUBROUTINE
 

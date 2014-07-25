@@ -114,7 +114,14 @@
 
       CALL MPI_BCAST(geometric_construct_mpi%type, 1, MPI_INTEGER, 0,          &
      &               intra_comm, error)
-      geometric_construct_mpi%limiter => limiter_construct(intra_comm)
+
+      SELECT CASE (geometric_construct_mpi%type)
+
+         CASE (geometric_limiter_type)
+            geometric_construct_mpi%limiter =>                                 &
+     &         limiter_construct(intra_comm)
+
+      END SELECT
 
 #endif
 
@@ -281,7 +288,13 @@
 
 !  Start of executable code
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL limiter_sync_children(this%limiter, intra_comm)
+
+      SELECT CASE (this%type)
+
+         CASE (geometric_limiter_type)
+            CALL limiter_sync_children(this%limiter, intra_comm)
+
+      END SELECT
 
 #endif
 
