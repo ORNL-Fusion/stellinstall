@@ -702,9 +702,10 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Evaluate the proper quasi-Newton step.
+!>  @brief Evaluate the jacobian.
 !>
-!>  Evaluates the jacobian, performs the SVD and computes the quasi-Newton step.
+!>  Evaluates the jacobian. When using MPI, reach row of the jacobian is
+!>  evaluated in parallel.
 !>
 !>  @param[inout] this           A @ref reconstruction_class instance.
 !>  @param[inout] signals        Array of @ref signal objects.
@@ -713,15 +714,15 @@
 !>  @param[inout] params         Array of @ref parameter objects.
 !>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
 !>  @param[in]    iou            Input/output file to write log messages to.
-!>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
-     &                                  a_model, params, eq_steps, iou)
+      SUBROUTINE reconstruction_eval_jacobians(this, signals,                  &
+     &                                         derived_params, a_model,        &
+     &                                         params, eq_steps, iou,          &
+     &                                         intra_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER :: reconstruction_eval_step
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
@@ -730,22 +731,36 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: intra_comm
 
 !  local arguments
-      INTEGER                                    :: i, j
-      REAL (rprec)                               :: param_value
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: temp_jacobian
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work2
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work3
-      INTEGER                                    :: svd_status
-      REAL (rprec)                               :: start_time
+      INTEGER                                            :: i, j
+      REAL (rprec)                                       :: param_value
+      REAL (rprec)                                       :: start_time
+      INTEGER                                            :: mpi_size
+      INTEGER                                            :: mpi_rank
+#if defined(MPI_OPT)
+      INTEGER                                            :: error
+#endif
 
-!  Start of executable code
+!  Start of
       start_time = profiler_get_start_time()
+
       CALL equilibrium_save_state(a_model%equilibrium)
 
-      DO j = 1, SIZE(params)
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+#else
+      mpi_rank = 0
+      mpi_size = 1
+#endif
+
+!  Loop over the parameters, but only do iterations for the rank. As a result,
+!  the iteration size is on the order of the size of the processes. Use this
+!  simple method at first. Latter methods may look for an idle process and
+!  proceed with the next parameter.
+      DO j = mpi_rank + 1, SIZE(params), mpi_size
 !  Save the initial parameter value and the equilirbium state.
          param_value = param_get_value(params(j)%p, a_model)
 
@@ -754,7 +769,7 @@
          CALL param_increment(params(j)%p, a_model)
 
          CALL assert(model_converge(a_model, eq_steps, iou),                   &
-     &               'reconstruction_eval_step: failed to converge ' //        &
+     &               'eval_jacobians: failed to converge ' //                  &
      &               'equilibrium. Try decreasing rp_vrnc')
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
@@ -786,15 +801,15 @@
 !$OMP& PRIVATE(i)
          DO i = 1, this%last_para_signal
             this%jacobian(i,j) =                                               &
-     &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
-     &           this%e(this%current_step,i))
+     &         -(signal_get_e(signals(i)%p, a_model, .false.)                  &
+     &         - this%e(this%current_step,i))
          END DO
 !$OMP END PARALLEL DO
 
          DO i = this%last_para_signal + 1, SIZE(signals)
             this%jacobian(i,j) =                                               &
-     &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
-     &           this%e(this%current_step,i))
+     &         -(signal_get_e(signals(i)%p, a_model, .false.)                  &
+     &         - this%e(this%current_step,i))
          END DO
          this%jacobian(:,j) = this%jacobian(:,j)                               &
      &                      * SIGN(1.0_rprec, params(j)%p%delta)
@@ -808,23 +823,90 @@
 !  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
          DO i = 1, SIZE(derived_params)
             this%derived_jacobian(i,j) =                                       &
-     &         -(param_get_value(derived_params(i)%p, a_model) -               &
-     &           this%f(this%current_step,i))
+     &         -(param_get_value(derived_params(i)%p, a_model)                 &
+     &         - this%f(this%current_step,i))
          END DO
-
          this%derived_jacobian(:,j) = this%derived_jacobian(:,j)               &
      &                              * SIGN(1.0_rprec, params(j)%p%delta)
 
-!  Restore the parameter and the equilibrium to it's initial value.
+!  Restore the parameter and the equilibrium to it's initial value. Need to sync
+!  the value of param delta back to the parent process.
          CALL param_set_value(params(j)%p, a_model, param_value)
          CALL equilibrium_reset_state(a_model%equilibrium)
 
       END DO
+!  At this point, the computed jacobian rows should be returned to the parent
+!  process.
+#if defined(MPI_OPT)
+!  Make sure all jacobain rows are finished before continuing.
+      CALL MPI_BARRIER(intra_comm, error)
+#endif
+      CALL profiler_set_stop_time('eval_jacobians', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the proper quasi-Newton step.
+!>
+!>  Evaluates the jacobian, performs the SVD and computes the quasi-Newton step.
+!>
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[inout] signals        Array of @ref signal objects.
+!>  @param[in]    derived_params Array of derived @ref param objects.
+!>  @param[inout] a_model        A @ref model instance.
+!>  @param[inout] params         Array of @ref parameter objects.
+!>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
+!>  @param[in]    iou            Input/output file to write log messages to.
+!>  @returns The number of singular values to use.
+!-------------------------------------------------------------------------------
+      FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
+     &                                  a_model, params, eq_steps, iou,        &
+     &                                  intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: reconstruction_eval_step
+      TYPE (reconstruction_class), INTENT(inout)         :: this
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
+     &   derived_params
+      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
+      INTEGER, INTENT(inout)                             :: eq_steps
+      INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: intra_comm
+
+!  local arguments
+      INTEGER                                    :: i, j
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: temp_jacobian
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work2
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work3
+      INTEGER                                    :: svd_status
+      REAL (rprec)                               :: start_time
+#if defined(MPI_OPT)
+      INTEGER                                    :: error
+#endif
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Tell the child processes to begin the jacobian task.
+#if defined(MPI_OPT)
+      CALL MPI_BCAST(mpi_jacobian_task, 1, MPI_INTEGER, 0, intra_comm,         &
+     &               error)
+      CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, intra_comm, error)
+#endif
+
+      CALL reconstruction_eval_jacobians(this, signals, derived_params,        &
+     &                                   a_model, params, eq_steps, iou,       &
+     &                                   intra_comm)
 
 !  Compute the positive definite Hessian, matrix. Equation 14 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
-!    alpha = A^T * A                                                         (6)
+!    alpha = A^T * A                                                         (1)
 !
 !  Numerical Recipes Third edition Equation 15.5.7 . In here, the second
 !  derivatives are assumed to be small and ignored.
@@ -833,13 +915,13 @@
 !  Compute the gradient vector in parameter space. Equation 13 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
-!    beta = A^T * e                                                          (7)
+!    beta = A^T * e                                                          (2)
       this%gradient = MATMUL(TRANSPOSE(this%jacobian),                         &
      &                       this%e(this%current_step,:))
 
 !  Compute the steepest descent step size in normalized parameter space.
 !
-!    da = beta * beta * beta / (beta * alpha * beta)                         (8)
+!    da = beta * beta * beta / (beta * alpha * beta)                         (3)
       this%delta_a(0,:) = this%gradient*DOT_PRODUCT(this%gradient,             &
      &                                              this%gradient)             &
      &                  / DOT_PRODUCT(this%gradient,                           &
@@ -1312,7 +1394,8 @@
 !>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, derived_params,              &
-     &                             a_model, params, eq_steps, iou)
+     &                             a_model, params, eq_steps, iou,             &
+     &                             intra_comm)
 
       IMPLICIT NONE
 
@@ -1326,6 +1409,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: intra_comm
 
 !  local variables
       INTEGER                                            :: k_use
@@ -1341,7 +1425,8 @@
 
 !  Evaluate the quasi-Newton step.
       k_use = reconstruction_eval_step(this, signals, derived_params,          &
-     &                                 a_model, params, eq_steps, iou)
+     &                                 a_model, params, eq_steps, iou,         &
+     &                                 intra_comm)
 
       ALLOCATE(param_value(SIZE(params)))
       ALLOCATE(delta_a(SIZE(params)))

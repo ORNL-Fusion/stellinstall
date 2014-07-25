@@ -12,7 +12,7 @@
       IMPLICIT NONE
 
 !*******************************************************************************
-!  signal module parameters
+!  module parameters
 !*******************************************************************************
 !>  Maximum length of short data strings.
       INTEGER, PARAMETER           :: data_short_name_length = 30
@@ -29,6 +29,12 @@
 
 !>  Max number of parameter indicies.
       INTEGER, PARAMETER           :: data_max_indicies = 2
+
+!  MPI task parameters.
+!>  Compute the jacobian task.
+      INTEGER, PARAMETER :: mpi_jacobian_task = 0
+!>  Quit child process task.
+      INTEGER, PARAMETER :: mpi_quit_task     = 1
 
 #if defined(MPI_OPT)
 !>  Directory prefix name.

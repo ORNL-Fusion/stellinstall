@@ -383,7 +383,12 @@
          IF (reconstruction_step(context%recon, context%signals,               &
      &                           context%derived_params,                       &
      &                           context%model, context%params,                &
-     &                           num_steps, context%runlog_iou)) THEN
+     &                           num_steps, context%runlog_iou,                &
+#if defined(MPI_OPT)
+     &                           context%intra_comm)) THEN
+#else
+     &                           0)) THEN
+#endif
 
 !  Step was successful. Post process the result.
             CALL reconstruction_eval_sem(context%recon,                        &
@@ -440,11 +445,17 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+#if defined(MPI_OPT)
 !  local variables
       INTEGER                                   :: signals_created
+      INTEGER                                   :: task
+      INTEGER                                   :: error
+      INTEGER                                   :: eq_steps
 
 !  Start of executable code
       CALL v3fit_context_sync_children(context)
+      CALL init_parameters(context)
+      CALL init_reconstruction(context )
 
 !  The combination signals need to be constructed in the child processes
 !  conventionally. This a result of the signal pointer references that they
@@ -453,6 +464,28 @@
          signals_created = context%combination_index - 1
          CALL init_combination_signals(context, signals_created)
       END IF
+
+      DO
+         CALL MPI_BCAST(task, 1, MPI_INTEGER, 0, context%intra_comm,           &
+     &                  error)
+
+         SELECT CASE (task)
+
+            CASE (mpi_jacobian_task)
+               CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0,                     &
+     &                        context%intra_comm, error)
+               CALL reconstruction_eval_jacobians(context%recon,               &
+     &                 context%signals, context%derived_params,                &
+     &                 context%model, context%params, eq_steps,                &
+     &                 context%runlog_iou, context%intra_comm)
+
+            CASE (mpi_quit_task)
+               EXIT
+
+         END SELECT
+      END DO
+
+#endif
 
       END SUBROUTINE
 
