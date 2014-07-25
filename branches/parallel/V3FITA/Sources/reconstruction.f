@@ -22,11 +22,11 @@
 !  reconstruction module parameters
 !*******************************************************************************
 !>  No reconstruction step type.
-      INTEGER, PARAMETER :: reconstruction_no_step_type = -1
+      INTEGER, PARAMETER :: reconstruction_no_step_type  = -1
 !>  Straight line reconstruction step type.
-      INTEGER, PARAMETER :: reconstruction_sl_step_type = 0
+      INTEGER, PARAMETER :: reconstruction_sl_step_type  = 0
 !>  Levenberg-Marquardt reconstruction step type.
-      INTEGER, PARAMETER :: reconstruction_lm_step_type = 1
+      INTEGER, PARAMETER :: reconstruction_lm_step_type  = 1
 !>  Segmented path reconstruction step type.
       INTEGER, PARAMETER :: reconstruction_seg_step_type = 2
 

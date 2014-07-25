@@ -440,8 +440,19 @@
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
+!  local variables
+      INTEGER                                   :: signals_created
+
 !  Start of executable code
       CALL v3fit_context_sync_children(context)
+
+!  The combination signals need to be constructed in the child processes
+!  conventionally. This a result of the signal pointer references that they
+!  contain. Since these signals do not change once constructed, this is ok.
+      IF (context%combination_index .gt. 0) THEN
+         signals_created = context%combination_index - 1
+         CALL init_combination_signals(context, signals_created)
+      END IF
 
       END SUBROUTINE
 
@@ -718,7 +729,7 @@
       CHARACTER (len=data_filename_length)      :: mdsig_filename
 
       TYPE (magnetic_class), POINTER :: magnetic_object => null()
-      LOGICAL                        :: first_run = .true.
+!      LOGICAL                        :: first_run = .true.
 
 !  Start of executable code
       status = 0
@@ -767,21 +778,20 @@
      &      mdsig_iou, sdo_data_a(signals_created),                            &
      &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created))
 
-!  If a magnetic signal is created, the magnetic cache must be used.
-         IF (first_run) THEN
-            CALL equilibrium_set_magnetic_cache(                               &
-     &              context%model%equilibrium,                                 &
-     &              magnetic_object%kp, magnetic_object%kp_store,              &
-     &              magnetic_object%n_field_periods)
-            first_run = .false.
-         END IF
-
          CALL cdf_close(mdsig_iou)
 
-!  At lease one magnetic signal was made. Mark the index of it in the context.
-!  This should only be run once.
+!  If at lease one magnetic signal was made. Mark the index of it in the
+!  context and set the magnetic cache. This should only be run once.
          IF (context%magnetic_index .eq. -1) THEN
             context%magnetic_index = signals_created
+            IF (signals_created .gt. 0) THEN
+               magnetic_object =>                                              &
+     &            context%signals(1)%p%diagnostic%magnetic
+               CALL equilibrium_set_magnetic_cache(                            &
+     &                 context%model%equilibrium,                              &
+     &                 magnetic_object%kp, magnetic_object%kp_store,           &
+     &                 magnetic_object%n_field_periods)
+            END IF
          END IF
 
       END DO
