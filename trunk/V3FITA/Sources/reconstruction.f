@@ -1202,6 +1202,7 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: param_value
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: delta_a
       REAL (rprec)                                       :: step_use
+      LOGICAL                                            :: temp
 
 !  Start of executable code
       reconstruction_step = .false.
@@ -1303,7 +1304,17 @@
 !  If this section was reached, the reconstruction step failed. Reset the
 !  current step to the last good step.
          this%current_step = this%current_step - 1
+
+!  Reset the equilibrium state back to the last step. The state of the last step
+!  was saved before the jacobian was computed.
+         CALL equilibrium_reset_state(a_model%equilibrium)
+
          IF (i .eq. reconstruction_max_step_try) THEN
+!  The signals contain cached values. If the step fails recompute the modeled
+!  signals so that values written to the recout match the result file.
+            temp = reconstruction_eval_e(this, signals, a_model,               &
+     &                                   eq_steps, iou)
+
             WRITE (*,*) 'Reconstruction step failed.'
             WRITE (iou,*) 'Reconstruction step failed.'
             EXIT
@@ -1313,10 +1324,6 @@
          step_use = step_use/2.0
          WRITE (*,*) 'Changing max step size to ', step_use
          WRITE (iou,*) 'Changing max step size to ', step_use
-
-!  Reset the equilibrium state back to the last step. The state of the last step
-!  was saved before the jacobian was computed.
-         CALL equilibrium_reset_state(a_model%equilibrium)
       END DO
 
       DEALLOCATE(param_value)
