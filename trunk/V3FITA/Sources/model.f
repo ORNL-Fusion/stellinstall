@@ -1087,9 +1087,9 @@
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      IF (ASSOCIATED(this%sxrem_grid)) THEN
+      IF (ASSOCIATED(this%sxrem_type)) THEN
          status = nf_def_dim(result_ncid, 'model_num_sxrem',                   &
-     &                       SIZE(this%sxrem_grid, 1),                         &
+     &                       SIZE(this%sxrem_type, 1),                         &
      &                       model_num_sxrem_dim_id)
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -1103,11 +1103,13 @@
      &                    (/ string_len_dim_id /), te_type_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'model_sxrem_type', nf_char, 2,         &
-     &                    (/ string_len_dim_id,                                &
-     &                       model_num_sxrem_dim_id /),                        &
-     &                    sxrem_type_var_id)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      IF (ASSOCIATED(this%sxrem_type)) THEN
+         status = nf_def_var(result_ncid, 'model_sxrem_type', nf_char,         &
+     &                       2, (/ string_len_dim_id,                          &
+     &                             model_num_sxrem_dim_id /),                  &
+     &                       sxrem_type_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
 
       status = nf_def_var(result_ncid, 'ne_unit', nf_double, 1,                &
      &                    (/ maxnsteps_dim_id /), ne_unit_var_id)
