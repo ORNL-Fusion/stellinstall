@@ -742,25 +742,57 @@
 #if defined(MPI_OPT)
       INTEGER                                            :: error
 #endif
+      INTEGER, DIMENSION(:), ALLOCATABLE                 :: stride
+      INTEGER, DIMENSION(:), ALLOCATABLE                 :: offset
+      INTEGER                                            :: minsize
+      INTEGER                                            :: extra
 
 !  Start of
       start_time = profiler_get_start_time()
 
-      CALL equilibrium_save_state(a_model%equilibrium)
-
 #if defined(MPI_OPT)
+!  Set the params first since they can change the state of the converged
+!  variable. Syning the model afterwards will bring the internal state up to
+!  sync.
+      DO i = 1, SIZE(params)
+         CALL param_sync_value(params(i)%p, a_model, intra_comm)
+      END DO
+      CALL model_sync_state(a_model, intra_comm)
+      CALL reconstruction_sync_state(this, intra_comm)
+
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+      minsize = SIZE(params)/mpi_size
+      extra = MOD(SIZE(params), mpi_size)
 #else
       mpi_rank = 0
       mpi_size = 1
 #endif
 
-!  Loop over the parameters, but only do iterations for the rank. As a result,
-!  the iteration size is on the order of the size of the processes. Use this
-!  simple method at first. Latter methods may look for an idle process and
-!  proceed with the next parameter.
-      DO j = mpi_rank + 1, SIZE(params), mpi_size
+
+      ALLOCATE(stride(mpi_size))
+      ALLOCATE(offset(mpi_size))
+
+!  Determine the offsets and strides that each uses. This determined the array
+!  indices that each process computes the jacobian for. The number of parameters
+!  might not be evenly dividable by the number of process. As a result. need to
+!  determine the minimum size and add extra work for some of the processes.
+      stride = minsize
+      stride(1:extra) = stride(1:extra) + 1
+      offset = 0
+      DO i = 2, mpi_size
+         offset(i) = offset(i - 1) + stride(i - 1)
+      END DO
+
+      CALL equilibrium_save_state(a_model%equilibrium)
+
+!  Loop over the parameters, but only do iterations for the rank as determined
+!  by the stride and the offset. Strides and offsets are determined using C
+!  array notation since the MPI libraries use C conventions. Make sure the
+!  offset is incremented by one for the initial index.
+      DO j = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
+     &                                 stride(mpi_rank + 1)
 !  Save the initial parameter value and the equilirbium state.
          param_value = param_get_value(params(j)%p, a_model)
 
@@ -838,9 +870,16 @@
 !  At this point, the computed jacobian rows should be returned to the parent
 !  process.
 #if defined(MPI_OPT)
-!  Make sure all jacobain rows are finished before continuing.
+!  Make sure all jacobian rows are finished before continuing.
       CALL MPI_BARRIER(intra_comm, error)
+      CALL reconstruction_sync_parent(this, params, SIZE(signals),             &
+     &                                SIZE(derived_params), stride,            &
+     &                                offset, intra_comm)
 #endif
+
+      DEALLOCATE(stride)
+      DEALLOCATE(offset)
+
       CALL profiler_set_stop_time('eval_jacobians', start_time)
 
       END SUBROUTINE
@@ -1418,6 +1457,7 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: delta_a
       REAL (rprec)                                       :: step_use
       REAL (rprec)                                       :: start_time
+      LOGICAL                                            :: temp
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1521,7 +1561,17 @@
 !  If this section was reached, the reconstruction step failed. Reset the
 !  current step to the last good step.
          this%current_step = this%current_step - 1
+
+!  Reset the equilibrium state back to the last step. The state of the last step
+!  was saved before the jacobian was computed.
+         CALL equilibrium_reset_state(a_model%equilibrium)
+
          IF (i .eq. reconstruction_max_step_try) THEN
+!  The signals contain cached values. If the step fails recompute the modeled
+!  signals so that values written to the recout match the result file.
+            temp = reconstruction_eval_e(this, signals, a_model,               &
+     &                                   eq_steps, iou)
+
             WRITE (*,*) 'Reconstruction step failed.'
             WRITE (iou,*) 'Reconstruction step failed.'
             EXIT
@@ -1531,10 +1581,6 @@
          step_use = step_use/2.0
          WRITE (*,*) 'Changing max step size to ', step_use
          WRITE (iou,*) 'Changing max step size to ', step_use
-
-!  Reset the equilibrium state back to the last step. The state of the last step
-!  was saved before the jacobian was computed.
-         CALL equilibrium_reset_state(a_model%equilibrium)
       END DO
 
       DEALLOCATE(param_value)
@@ -1888,6 +1934,117 @@
 1001  FORMAT(a4,': Step size limited to ',es12.5)
 1002  FORMAT('  Expected g^2 = ',es12.5)
 1003  FORMAT('(i4,',i3,'(2x,es12.5))')
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref reconstruction_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_sync_state(this, intra_comm)
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                        :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                    :: error
+
+!  Start of executable code
+      CALL MPI_BCAST(this%current_step, 1, MPI_INTEGER, 0, intra_comm,         &
+     &               error)
+      CALL MPI_BCAST(this%e(this%current_step,:),                              &
+     &               SIZE(this%e(this%current_step,:)), MPI_REAL8, 0,          &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%f(this%current_step,:),                              &
+     &               SIZE(this%f(this%current_step,:)), MPI_REAL8, 0,          &
+     &               intra_comm, error)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize child state back to parent.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this               A @ref reconstruction_class instance.
+!>  @param[in]    num_params         Number of reconstruction parameters.
+!>  @param[in]    num_signal         Number of signals.
+!>  @param[in]    num_derived_params Number of derived parameters.
+!>  @param[in]    intra_comm         A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_sync_parent(this, params, num_signal,          &
+     &                                      num_derived_params, stride,        &
+     &                                      offset, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout) :: params
+      INTEGER, INTENT(in)                        :: num_signal
+      INTEGER, INTENT(in)                        :: num_derived_params
+      INTEGER, DIMENSION(:), INTENT(in)          :: stride
+      INTEGER, DIMENSION(:), INTENT(in)          :: offset
+      INTEGER, INTENT(in)                        :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                    :: error
+      INTEGER                                    :: mpi_size
+      INTEGER                                    :: mpi_rank
+      INTEGER                                    :: i
+
+!  Start of executable code
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+!  Need to be careful here with strides and offsets. The mpi uses C style array
+!  notation but the data is laid out in memory using fortran array notation.
+!  This means that all offsets need to be zero referenced. For the jacobians,
+!  the arrays are 2D so all strides and offsets need to be multiplied by the
+!  relevant column size.
+      CALL MPI_GATHERV(this%jacobian(:,mpi_rank + 1),                          &
+     &                 num_signal*stride(mpi_rank + 1), MPI_REAL8,             &
+     &                 this%jacobian, num_signal*stride,                       &
+     &                 num_signal*offset, MPI_REAL8, 0, intra_comm,            &
+     &                 error)
+
+      CALL MPI_GATHERV(this%derived_jacobian(:,mpi_rank + 1),                  &
+     &                 num_derived_params*stride(mpi_rank + 1),                &
+     &                 MPI_REAL8, this%derived_jacobian,                       &
+     &                 num_derived_params*stride,                              &
+     &                 num_derived_params*offset, MPI_REAL8, 0,                &
+     &                 intra_comm, error)
+
+!  Sync the delta used to find the jacobians.
+      DO i = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
+     &                                 stride(mpi_rank + 1)
+         CALL param_send_delta(params(i)%p, i, intra_comm)
+      END DO
+
+      IF (mpi_rank .eq. 0) THEN
+         DO i = 1, SIZE(params)
+            CALL param_recv_delta(params(i)%p, i, intra_comm)
+         END DO
+      END IF
+
+#endif
 
       END SUBROUTINE
 

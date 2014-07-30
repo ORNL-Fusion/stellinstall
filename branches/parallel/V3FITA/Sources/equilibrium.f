@@ -1652,13 +1652,10 @@
 
 !  Start of executable code
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-
-!  MPI doesn't have a boolean type. Pass LOGICALs as integers then case to
-!  logical.
-      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0,                    &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%force_solve, 1, MPI_LOGICAL, 0,                      &
-     &               intra_comm, error)
+      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, intra_comm,        &
+     &               error)
+      CALL MPI_BCAST(this%force_solve, 1, MPI_LOGICAL, 0, intra_comm,          &
+     &               error)
 
       SELECT CASE (this%type)
 
@@ -1671,6 +1668,42 @@
       END SELECT
 #endif
 
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize the equilibrium state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref equilibrium_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_sync_state(this, intra_comm)
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                     :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                 :: error
+
+!  Start of executable code
+      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, intra_comm,        &
+     &               error)
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_sync_state(this%vmec, intra_comm)
+
+      END SELECT
+
+#endif
       END SUBROUTINE
 
       END MODULE

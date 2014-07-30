@@ -100,8 +100,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE param_construct
          MODULE PROCEDURE param_construct_basic,                               &
-     &                    param_construct_recon,                               &
-     &                    param_construct_mpi
+     &                    param_construct_recon
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -262,51 +261,6 @@
 
       ALLOCATE(param_construct_recon%sem(num_signals))
       param_construct_recon%sem = 0.0
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref param_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref param_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref param_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION param_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (param_class), POINTER :: param_construct_mpi
-      INTEGER, INTENT(in)         :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                     :: error
-
-!  Start of executable code
-      ALLOCATE(param_construct_mpi)
-
-!  Only need to sync the parts that are needed for computing the jacobian.
-      CALL MPI_BCAST(param_construct_mpi%param_id, 1, MPI_INTEGER, 0,          &
-     &               intra_comm, error)
-      CALL MPI_BCAST(param_construct_mpi%indicies, data_max_indicies,          &
-     &               MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(param_construct_mpi%vrnc, 1, MPI_REAL8, 0,                &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(param_construct_mpi%range_type, 2, MPI_INTEGER, 0,        &
-     &               intra_comm, error)
-      CALL MPI_BCAST(param_construct_mpi%range_id, 2, MPI_INTEGER, 0,          &
-     &               intra_comm, error)
-      CALL MPI_BCAST(param_construct_mpi%range_indicies,                       &
-     &               2*data_max_indicies, MPI_INTEGER, 0, intra_comm,          &
-     &               error)
-      CALL MPI_BCAST(param_construct_mpi%range_value, 2, MPI_REAL8, 0,         &
-     &               intra_comm, error)
-
-#endif
 
       END FUNCTION
 
@@ -1036,42 +990,112 @@
 !  MPI SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
+!>  @brief Syncronize the param value to children.
 !>
 !>  Syncs data between the parent and child processes. If MPI support is not
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
 !>  @param[in]    intra_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_sync_children(this, intra_comm)
+      SUBROUTINE param_sync_value(this, a_model, intra_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
       INTEGER, INTENT(in)               :: intra_comm
 
 #if defined(MPI_OPT)
 !  local variables
-      INTEGER                          :: error
+      INTEGER                           :: error
+      REAL (rprec)                      :: value
+      INTEGER                           :: mpi_rank
 
 !  Start of executable code
-!  Only need to sync the parts that are needed for computing the jacobian.
-      CALL MPI_BCAST(this%param_id, 1, MPI_INTEGER, 0, intra_comm,             &
-     &               error)
-      CALL MPI_BCAST(this%indicies, data_max_indicies, MPI_INTEGER, 0,         &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%vrnc, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
 
-      CALL MPI_BCAST(this%range_type, 2, MPI_INTEGER, 0, intra_comm,           &
-     &               error)
-      CALL MPI_BCAST(this%range_id, 2, MPI_INTEGER, 0, intra_comm,             &
-     &               error)
-      CALL MPI_BCAST(this%range_indicies, 2*data_max_indicies,                 &
-     &               MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%range_value, 2, MPI_REAL8, 0, intra_comm,            &
-     &               error)
+      IF (mpi_rank .eq. 0) THEN
+         value = param_get_value(this, a_model)
+      END IF
+
+      CALL MPI_BCAST(value, 1, MPI_REAL8, 0, intra_comm, error)
+
+      IF (mpi_rank .gt. 0) THEN
+         CALL param_set_value(this, a_model, value)
+      END IF
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sends the delta used.
+!>
+!>  Sends the value of delta used in the child process to the parent process. If
+!>  MPI support is not compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_send_delta(this, index, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: index
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: mpi_size
+
+!  Start of executable code
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+      CALL MPI_SEND(this%delta, 1, MPI_REAL8, 0, index, intra_comm,            &
+     &              error)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Receives the delta used.
+!>
+!>  Receives the value of delta used in the child process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_recv_delta(this, index, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout)   :: this
+      INTEGER, INTENT(in)                 :: index
+      INTEGER, INTENT(in)                 :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                             :: error
+      INTEGER                             :: mpi_size
+      REAL (rprec)                        :: temp
+      INTEGER, DIMENSION(MPI_STATUS_SIZE) :: status
+
+!  Start of executable code
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+      CALL MPI_RECV(this%delta, 1, MPI_REAL8, MOD(index, mpi_size),            &
+     &              index, intra_comm, status, error)
 
 #endif
 

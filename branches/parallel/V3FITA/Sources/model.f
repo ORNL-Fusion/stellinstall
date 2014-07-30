@@ -1167,9 +1167,9 @@
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      IF (ASSOCIATED(this%sxrem_grid)) THEN
+      IF (ASSOCIATED(this%sxrem_type)) THEN
          status = nf_def_dim(result_ncid, 'model_num_sxrem',                   &
-     &                       SIZE(this%sxrem_grid, 1),                         &
+     &                       SIZE(this%sxrem_type, 1),                         &
      &                       model_num_sxrem_dim_id)
       END IF
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -1183,11 +1183,13 @@
      &                    (/ string_len_dim_id /), te_type_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
-      status = nf_def_var(result_ncid, 'model_sxrem_type', nf_char, 2,         &
-     &                    (/ string_len_dim_id,                                &
-     &                       model_num_sxrem_dim_id /),                        &
-     &                    sxrem_type_var_id)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      IF (ASSOCIATED(this%sxrem_type)) THEN
+         status = nf_def_var(result_ncid, 'model_sxrem_type', nf_char,         &
+     &                       2, (/ string_len_dim_id,                          &
+     &                             model_num_sxrem_dim_id /),                  &
+     &                       sxrem_type_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
 
       status = nf_def_var(result_ncid, 'ne_unit', nf_double, 1,                &
      &                    (/ maxnsteps_dim_id /), ne_unit_var_id)
@@ -1417,6 +1419,46 @@
          CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
       END IF
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize the model state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref model_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_sync_state(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: sxrem_size
+      INTEGER                           :: grid_size
+
+!  Start of executable code
+      CALL equilibrium_sync_state(this%equilibrium, intra_comm)
+
+      grid_size = equilibrium_get_grid_size(this%equilibrium)
+      IF (grid_size .gt. 0) THEN
+         CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  intra_comm, error)
+         CALL MPI_BCAST(this%sxrem_grid, grid_size*sxrem_size,                 &
+     &                  MPI_REAL8, 0, intra_comm, error)
+         CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  intra_comm, error)
+      END IF
+
 #endif
 
       END SUBROUTINE

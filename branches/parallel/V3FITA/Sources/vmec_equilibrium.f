@@ -3046,7 +3046,7 @@
       CALL assert_eq(error, 0, 'Error moving wout file.')
 
       CALL read_wout_file(this%wout_file_name, error)
-      CALL assert_eq(error, 0, 'Error moving reading reset wout file.')
+      CALL assert_eq(error, 0, 'Error reading reset wout file.')
       CALL LoadRZL
 
       IF (ASSOCIATED(this%magnetic_cache)) THEN
@@ -3402,7 +3402,7 @@
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
 
-!  Check all relevant file for relative paths and copy them to the sub process
+!  Check all relevant files for relative paths and copy them to the sub process
 !  directories. This should only be handeled by the main process.
       IF (mpi_rank .eq. 0) THEN
          IF (.not.is_absolute_path(this%vmec_file_name)) THEN
@@ -3440,6 +3440,74 @@
 
 #endif
 
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize the vmec state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref vmec_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_sync_state(this, intra_comm)
+      USE xstuff, only: xc
+      USE v3f_vmec_comm
+      USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+       TYPE (vmec_class), INTENT(inout) :: this
+       INTEGER, INTENT(in)              :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: mpi_rank
+      INTEGER                           :: mpi_size
+      INTEGER                           :: i
+      INTEGER                           :: xc_size
+
+!  Start of executable code
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+
+!  If this is the parent process, copy the wout file to the children.
+      IF (mpi_rank .eq. 0) THEN
+         DO i = 2, mpi_size
+            CALL copy_file(TRIM(this%wout_file_name), process_dir(i),          &
+     &                     error)
+         END DO
+      END IF
+
+      CALL MPI_BARRIER(intra_comm, error)
+
+      IF (mpi_rank .gt. 0) THEN
+         CALL read_wout_file(this%wout_file_name, error)
+         CALL assert_eq(error, 0, 'Error reading synced wout file.')
+         CALL LoadRZL
+      END IF
+
+!  Sync the xc array. First sync the size incase the local xc array needs to be
+!  reallocated.
+      xc_size = SIZE(xc)
+      CALL MPI_BCAST(xc_size, 1, MPI_INTEGER, 0, intra_comm, error)
+
+!  If the size of the xc array stop. It is unknown why and when the xc array
+!  would change size.
+      IF (mpi_rank .gt. 0) THEN
+         CALL assert_eq(xc_size, SIZE(xc), "xc array changed size.")
+      END IF
+      CALL MPI_BCAST(xc, SIZE(xc), MPI_REAL8, 0, intra_comm, error)
+
+!  Sync the values from the threed1 file.
+      CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(vvc_kappa_p, 1, MPI_REAL8, 0, intra_comm, error)
+
+#endif
       END SUBROUTINE
 
 !*******************************************************************************
