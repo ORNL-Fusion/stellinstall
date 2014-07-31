@@ -1060,7 +1060,6 @@
 
       CALL MPI_SEND(this%delta, 1, MPI_REAL8, 0, index, intra_comm,            &
      &              error)
-
 #endif
 
       END SUBROUTINE
@@ -1087,15 +1086,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                             :: error
-      INTEGER                             :: mpi_size
-      REAL (rprec)                        :: temp
       INTEGER, DIMENSION(MPI_STATUS_SIZE) :: status
 
 !  Start of executable code
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
-
-      CALL MPI_RECV(this%delta, 1, MPI_REAL8, MOD(index, mpi_size),            &
-     &              index, intra_comm, status, error)
+      CALL MPI_RECV(this%delta, 1, MPI_REAL8, MPI_ANY_SOURCE, index,           &
+     &              intra_comm, status, error)
 
 #endif
 

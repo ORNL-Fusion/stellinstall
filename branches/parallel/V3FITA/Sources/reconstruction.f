@@ -770,7 +770,6 @@
       mpi_size = 1
 #endif
 
-
       ALLOCATE(stride(mpi_size))
       ALLOCATE(offset(mpi_size))
 
@@ -793,6 +792,7 @@
 !  offset is incremented by one for the initial index.
       DO j = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
      &                                 stride(mpi_rank + 1)
+
 !  Save the initial parameter value and the equilirbium state.
          param_value = param_get_value(params(j)%p, a_model)
 
@@ -865,7 +865,6 @@
 !  the value of param delta back to the parent process.
          CALL param_set_value(params(j)%p, a_model, param_value)
          CALL equilibrium_reset_state(a_model%equilibrium)
-
       END DO
 !  At this point, the computed jacobian rows should be returned to the parent
 !  process.
@@ -1927,6 +1926,14 @@
       END DO
       WRITE (iou,*)
 
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Derived Jacobian'
+      WRITE (jac_format,1003) SIZE(this%derived_jacobian, 2)
+      DO i = 1, SIZE(this%derived_jacobian, 1)
+         WRITE(iou,jac_format) i, this%derived_jacobian(i,:)
+      END DO
+      WRITE (iou,*)
+
       CALL profiler_set_stop_time('reconstruction_write_step',                 &
      &                            start_time)
 
@@ -1986,6 +1993,8 @@
 !>  @param[in]    num_params         Number of reconstruction parameters.
 !>  @param[in]    num_signal         Number of signals.
 !>  @param[in]    num_derived_params Number of derived parameters.
+!>  @param[in]    stride             Length work size for each process.
+!>  @param[in]    offset             Start offset for each process.
 !>  @param[in]    intra_comm         A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_sync_parent(this, params, num_signal,          &
@@ -2009,6 +2018,7 @@
       INTEGER                                    :: mpi_size
       INTEGER                                    :: mpi_rank
       INTEGER                                    :: i
+      INTEGER                                    :: iLow, iHigh
 
 !  Start of executable code
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
@@ -2019,13 +2029,16 @@
 !  This means that all offsets need to be zero referenced. For the jacobians,
 !  the arrays are 2D so all strides and offsets need to be multiplied by the
 !  relevant column size.
-      CALL MPI_GATHERV(this%jacobian(:,mpi_rank + 1),                          &
+      iLow = offset(mpi_rank + 1) + 1
+      iHigh = offset(mpi_rank + 1) + stride(mpi_rank + 1)
+
+      CALL MPI_GATHERV(this%jacobian(:,iLow:iHigh),                            &
      &                 num_signal*stride(mpi_rank + 1), MPI_REAL8,             &
      &                 this%jacobian, num_signal*stride,                       &
      &                 num_signal*offset, MPI_REAL8, 0, intra_comm,            &
      &                 error)
 
-      CALL MPI_GATHERV(this%derived_jacobian(:,mpi_rank + 1),                  &
+      CALL MPI_GATHERV(this%derived_jacobian(:,iLow:iHigh),                    &
      &                 num_derived_params*stride(mpi_rank + 1),                &
      &                 MPI_REAL8, this%derived_jacobian,                       &
      &                 num_derived_params*stride,                              &

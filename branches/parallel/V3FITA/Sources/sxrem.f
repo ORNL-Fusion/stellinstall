@@ -259,6 +259,7 @@
       CALL path_sync_children(this%chord_path, intra_comm)
       CALL MPI_BCAST(this%profile_number, 1, MPI_INTEGER, 0, intra_comm,       &
      &               error)
+
 #endif
 
       END SUBROUTINE

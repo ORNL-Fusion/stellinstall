@@ -116,7 +116,7 @@
 
       CALL MPI_BCAST(next, 1, MPI_LOGICAL, 0, intra_comm, error)
       IF (next) THEN
-         new_vertex => path_construct_mpi(intra_comm)
+         new_vertex%next => path_construct_mpi(intra_comm)
       END IF
 
       CALL MPI_BCAST(new_vertex%x, 1, MPI_REAL8, 0, intra_comm, error)

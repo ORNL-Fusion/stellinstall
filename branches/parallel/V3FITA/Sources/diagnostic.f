@@ -513,6 +513,7 @@
             CALL extcurz_sync_children(this%extcurz, intra_comm)
 
       END SELECT
+
 #endif
 
       END SUBROUTINE

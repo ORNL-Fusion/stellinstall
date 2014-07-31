@@ -125,6 +125,11 @@
 !  local variables
       TYPE (v3fit_context_class), POINTER :: context => null()
       REAL (rprec)                        :: time_start, time_end
+      INTEGER                             :: mpi_rank
+      INTEGER                             :: mpi_size
+#if defined(MPI_OPT)
+      INTEGER                             :: error
+#endif
 
 !  Start of executable code
       CALL second0(time_start)
@@ -171,18 +176,28 @@
       END SELECT
 
 !  Clean up memory
-      CALL second0(time_end)
+#if defined(MPI_OPT)
+      CALL MPI_COMM_SIZE(context%intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
+#else
+      mpi_size = 1
+      mpi_rank = 0
+#endif
 
-      CALL v3fit_context_write(context)
+      IF (mpi_rank .eq. 0) THEN
+         CALL second0(time_end)
 
-      WRITE (context%runlog_iou,'(/,a,f10.2)')                                 &
-     &   '  *** V3FIT run time (s): ', time_end - time_start
-      WRITE (context%recout_iou,'(/,a,f10.2)')                                 &
-     &   '  *** V3FIT run time (s): ', time_end - time_start
-      WRITE (*,'(/,a,f10.2)')                                                  &
-     &   '  *** V3FIT run time (s): ', time_end - time_start
+         CALL v3fit_context_write(context)
 
-      CALL profiler_write(context%recout_iou)
+         WRITE (context%runlog_iou,'(/,a,f10.2)')                              &
+     &      '  *** V3FIT run time (s): ', time_end - time_start
+         WRITE (context%recout_iou,'(/,a,f10.2)')                              &
+     &      '  *** V3FIT run time (s): ', time_end - time_start
+         WRITE (*,'(/,a,f10.2)')                                               &
+     &      '  *** V3FIT run time (s): ', time_end - time_start
+
+         CALL profiler_write(context%recout_iou)
+      END IF
       CALL profiler_destruct
 
       CALL cleanup_parallelism(context)
@@ -425,6 +440,11 @@
          END IF
       END DO
 
+#if defined(MPI_OPT)
+      CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
+     &               context%intra_comm, error)
+#endif
+
 1000  FORMAT('dg2_stop = ',es12.5,' change in g^2 = ',es12.5)
 1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
 1002  FORMAT('  *** Reconstruction step ',i4)
@@ -484,7 +504,6 @@
 
          END SELECT
       END DO
-
 #endif
 
       END SUBROUTINE

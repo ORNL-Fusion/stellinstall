@@ -197,8 +197,9 @@
 
       CALL MPI_BCAST(pprofile_construct_mpi%p_type, 1, MPI_INTEGER, 0,         &
      &               intra_comm, error)
-      CALL MPI_BCAST(pprofile_construct_mpi%b, (iub_b - ilb_b) + 1,            &
-     &               MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(pprofile_construct_mpi%b,                                 &
+     &               SIZE(pprofile_construct_mpi%b), MPI_REAL8, 0,             &
+     &               intra_comm, error)
       CALL MPI_BCAST(pprofile_construct_mpi%as, iub_asf, MPI_REAL8, 0,         &
      &               intra_comm, error)
       CALL MPI_BCAST(pprofile_construct_mpi%af, iub_asf, MPI_REAL8, 0,         &
@@ -469,7 +470,7 @@
 
 !  Start of executable code
       CALL MPI_BCAST(this%p_type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%b, (iub_b - ilb_b) + 1, MPI_REAL8, 0,                &
+      CALL MPI_BCAST(this%b, SIZE(this%b), MPI_REAL8, 0,                &
      &               intra_comm, error)
       CALL MPI_BCAST(this%as, iub_asf, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%af, iub_asf, MPI_REAL8, 0, intra_comm, error)

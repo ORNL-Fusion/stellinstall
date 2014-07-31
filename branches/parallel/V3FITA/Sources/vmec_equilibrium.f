@@ -691,7 +691,7 @@
       END IF
 
 !  Delete the cached wout file. Errors here can safely be ignored.
-       CALL delete_file(TRIM(this%wout_file_name) // '_cache', error)
+      CALL delete_file(TRIM(this%wout_file_name) // '_cache', error)
 
       IF (ASSOCIATED(this%threed1_file)) THEN
          CALL threed1_file_cache_destruct(this%threed1_file)
@@ -3480,6 +3480,7 @@
          DO i = 2, mpi_size
             CALL copy_file(TRIM(this%wout_file_name), process_dir(i),          &
      &                     error)
+            CALL assert_eq(error, 0, 'Error syncing wout file.')
          END DO
       END IF
 
@@ -3489,6 +3490,10 @@
          CALL read_wout_file(this%wout_file_name, error)
          CALL assert_eq(error, 0, 'Error reading synced wout file.')
          CALL LoadRZL
+
+         IF (ASSOCIATED(this%magnetic_cache)) THEN
+            CALL vmec_set_magnetic_cache(this)
+         END IF
       END IF
 
 !  Sync the xc array. First sync the size incase the local xc array needs to be
