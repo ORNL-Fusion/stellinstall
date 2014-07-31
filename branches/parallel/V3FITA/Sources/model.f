@@ -1394,8 +1394,7 @@
 !  Start of executable code
       sxrem_size = SIZE(this%sxrem_type)
 
-      CALL MPI_BCAST(SIZE(this%sxrem_type), 1, MPI_INTEGER, 0,                 &
-     &               intra_comm, error)
+      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
 
       CALL MPI_BCAST(this%ne_type, 1, MPI_INTEGER, 0, intra_comm,              &
      &               error)

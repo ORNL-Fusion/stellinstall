@@ -377,6 +377,8 @@
       CALL reconstruction_eval_f(context%recon, context%derived_params,        &
      &                           context%model)
 
+      CALL MPI_BARRIER(context%intra_comm, error)
+
       WRITE (*,*)
       WRITE (*,1002) 0
       WRITE (*,1003) reconstruction_get_g2(context%recon)
@@ -475,7 +477,7 @@
 !  Start of executable code
       CALL v3fit_context_sync_children(context)
       CALL init_parameters(context)
-      CALL init_reconstruction(context )
+      CALL init_reconstruction(context)
 
 !  The combination signals need to be constructed in the child processes
 !  conventionally. This a result of the signal pointer references that they
@@ -484,6 +486,18 @@
          signals_created = context%combination_index - 1
          CALL init_combination_signals(context, signals_created)
       END IF
+
+!  Converge the initial equilibrium. This make sure the equilibrium state is
+!  fully initialized.
+!
+!  NOTE: It may not be necessary to completely reconverge here.
+      CALL assert(reconstruction_eval_e(context%recon,                         &
+     &                                  context%signals,                       &
+     &                                  context%model, num_steps,              &
+     &                                  context%runlog_iou),                   &
+     &            'Failed initial convergence in child process.')
+
+      CALL MPI_BARRIER(context%intra_comm, error)
 
       DO
          CALL MPI_BCAST(task, 1, MPI_INTEGER, 0, context%intra_comm,           &
@@ -1434,6 +1448,19 @@
      &                            context%intra_comm, error)
          CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
       END IF
+
+!  MPI parallelization is only implemented for specific tasks. If the root task
+!  is not a reconstruction task stop the child processes.
+      SELECT CASE (my_task)
+
+         CASE ('reconstruct', 'reconstruct_a1')
+
+         CASE DEFAULT
+            IF (mpi_rank .gt. 0) THEN
+               STOP 'MPI is only supported for the reconstruct task.'
+            END IF
+
+      END SELECT
 
 !  Create sub working directories for the processes. When running in default
 !  mode one process can use the main directory. Otherwise create one directory
