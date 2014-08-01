@@ -36,12 +36,10 @@
 !>  Quit child process task.
       INTEGER, PARAMETER :: mpi_quit_task     = 1
 
-#if defined(MPI_OPT)
 !>  Directory prefix name.
       CHARACTER (len=*), PARAMETER :: dir_prefix = 'process_dir'
 !>  Directory string length.
       INTEGER, PARAMETER           :: dir_prefix_len = 14
-#endif
 
       CONTAINS
 !*******************************************************************************

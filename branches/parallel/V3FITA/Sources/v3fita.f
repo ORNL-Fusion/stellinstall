@@ -378,7 +378,9 @@
       CALL reconstruction_eval_f(context%recon, context%derived_params,        &
      &                           context%model)
 
+#if defined(MPI_OPT)
       CALL MPI_BARRIER(context%intra_comm, error)
+#endif
 
       WRITE (*,*)
       WRITE (*,1002) 0
