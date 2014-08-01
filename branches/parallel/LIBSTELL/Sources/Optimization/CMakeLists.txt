@@ -1,8 +1,48 @@
-cmake_minimum_required (VERSION 2.8)
-
 # Append all source files to variable stell_sources. As new files are added this must be updated.
 list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/crosovr.f
-	${CMAKE_CURRENT_SOURCE_DIR}/DE_driver.f90	${CMAKE_CURRENT_SOURCE_DIR}/DE_Evaluate.f90	${CMAKE_CURRENT_SOURCE_DIR}/DE_Evolve.f90	${CMAKE_CURRENT_SOURCE_DIR}/de_mpi.f	${CMAKE_CURRENT_SOURCE_DIR}/de_parallel.f90	${CMAKE_CURRENT_SOURCE_DIR}/DE_preset.f	${CMAKE_CURRENT_SOURCE_DIR}/dpmpar.f	${CMAKE_CURRENT_SOURCE_DIR}/enorm.f	${CMAKE_CURRENT_SOURCE_DIR}/fdjac_mod.f	${CMAKE_CURRENT_SOURCE_DIR}/fdjac_parallel.f90	${CMAKE_CURRENT_SOURCE_DIR}/ga_code.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_decode.f	${CMAKE_CURRENT_SOURCE_DIR}/GA_driver.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_evalout.f90	${CMAKE_CURRENT_SOURCE_DIR}/ga_evaluate.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_fitness_mpi.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_fitness_parallel.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_initial.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_micro.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_mutate.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_newgen.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_niche.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_possibl.f	${CMAKE_CURRENT_SOURCE_DIR}/GA_preset.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_restart.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_select.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_selectn.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_shuffle.f	${CMAKE_CURRENT_SOURCE_DIR}/ga_sp.f	${CMAKE_CURRENT_SOURCE_DIR}/lmdif.f90	${CMAKE_CURRENT_SOURCE_DIR}/lmdif1_mp.f	${CMAKE_CURRENT_SOURCE_DIR}/lmdif1.f90	${CMAKE_CURRENT_SOURCE_DIR}/lmpar_mod.f	${CMAKE_CURRENT_SOURCE_DIR}/lmpar_parallel.f90	${CMAKE_CURRENT_SOURCE_DIR}/lmpar.f	${CMAKE_CURRENT_SOURCE_DIR}/multiprocess.f90	${CMAKE_CURRENT_SOURCE_DIR}/myfork.f90	${CMAKE_CURRENT_SOURCE_DIR}/qrfac.f	${CMAKE_CURRENT_SOURCE_DIR}/qrsolv.f	${CMAKE_CURRENT_SOURCE_DIR}/ran3.f	${CMAKE_CURRENT_SOURCE_DIR}/unique_boundary_PG.f	${CMAKE_CURRENT_SOURCE_DIR}/unique_boundary.f	${CMAKE_CURRENT_SOURCE_DIR}/write_gade_nml.f
+	${CMAKE_CURRENT_SOURCE_DIR}/DE_driver.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/DE_Evaluate.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/DE_Evolve.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/de_mpi.f
+	${CMAKE_CURRENT_SOURCE_DIR}/de_parallel.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/DE_preset.f
+	${CMAKE_CURRENT_SOURCE_DIR}/dpmpar.f
+	${CMAKE_CURRENT_SOURCE_DIR}/enorm.f
+	${CMAKE_CURRENT_SOURCE_DIR}/fdjac_mod.f
+	${CMAKE_CURRENT_SOURCE_DIR}/fdjac_parallel.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_code.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_decode.f
+	${CMAKE_CURRENT_SOURCE_DIR}/GA_driver.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_evalout.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_evaluate.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_fitness_mpi.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_fitness_parallel.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_initial.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_micro.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_mutate.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_newgen.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_niche.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_possibl.f
+	${CMAKE_CURRENT_SOURCE_DIR}/GA_preset.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_restart.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_select.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_selectn.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_shuffle.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ga_sp.f
+	${CMAKE_CURRENT_SOURCE_DIR}/lmdif.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/lmdif1_mp.f
+	${CMAKE_CURRENT_SOURCE_DIR}/lmdif1.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/lmpar_mod.f
+	${CMAKE_CURRENT_SOURCE_DIR}/lmpar_parallel.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/lmpar.f
+	${CMAKE_CURRENT_SOURCE_DIR}/multiprocess.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/myfork.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/qrfac.f
+	${CMAKE_CURRENT_SOURCE_DIR}/qrsolv.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ran3.f
+	${CMAKE_CURRENT_SOURCE_DIR}/unique_boundary_PG.f
+	${CMAKE_CURRENT_SOURCE_DIR}/unique_boundary.f
+	${CMAKE_CURRENT_SOURCE_DIR}/write_gade_nml.f
 )
 set (stell_sources "${stell_sources}" PARENT_SCOPE)

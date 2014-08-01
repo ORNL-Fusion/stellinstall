@@ -1,7 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
-
-# This program only has tyhe driver. If it ever has more than one souce file uncomment the APPEND.
-
+# Append all source files to variable wout_converter_sources. As new files are added this must be updated.
 list (APPEND wout_converter_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/wout_converter.f
 )

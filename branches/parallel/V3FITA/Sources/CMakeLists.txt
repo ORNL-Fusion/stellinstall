@@ -1,6 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
-
-# Append all source files to variable stell_sources. As new files are added this must be updated.
+# Append all source files to variable v3fit_sources. As new files are added this must be updated.
 list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
 	${CMAKE_CURRENT_SOURCE_DIR}/diagnostic.f
@@ -15,7 +13,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/prior.f
 	${CMAKE_CURRENT_SOURCE_DIR}/prior_gaussian.f
 	${CMAKE_CURRENT_SOURCE_DIR}/signal.f
-        ${CMAKE_CURRENT_SOURCE_DIR}/signal_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/signal_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrem.f
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/thomson.f

@@ -13,7 +13,7 @@
 # BUILD_GTOVMI        -- Optionally builds GTOVMI
 #
 
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.0)
 
 # Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
 project (v3fit_suite Fortran C CXX)
