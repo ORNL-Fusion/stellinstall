@@ -763,8 +763,6 @@
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
 
-      minsize = SIZE(params)/mpi_size
-      extra = MOD(SIZE(params), mpi_size)
 #else
       mpi_rank = 0
       mpi_size = 1
@@ -777,6 +775,9 @@
 !  indices that each process computes the jacobian for. The number of parameters
 !  might not be evenly dividable by the number of process. As a result. need to
 !  determine the minimum size and add extra work for some of the processes.
+      minsize = SIZE(params)/mpi_size
+      extra = MOD(SIZE(params), mpi_size)
+
       stride = minsize
       stride(1:extra) = stride(1:extra) + 1
       offset = 0
