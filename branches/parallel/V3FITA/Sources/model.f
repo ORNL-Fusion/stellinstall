@@ -1443,7 +1443,6 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                           :: error
-      INTEGER                           :: sxrem_size
       INTEGER                           :: grid_size
 
 !  Start of executable code
@@ -1453,8 +1452,9 @@
       IF (grid_size .gt. 0) THEN
          CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
-         CALL MPI_BCAST(this%sxrem_grid, grid_size*sxrem_size,                 &
-     &                  MPI_REAL8, 0, intra_comm, error)
+         CALL MPI_BCAST(this%sxrem_grid,                                       &
+     &                  grid_size*SIZE(this%sxrem_type), MPI_REAL8, 0,         &
+     &                  intra_comm, error)
          CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
       END IF

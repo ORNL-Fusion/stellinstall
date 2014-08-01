@@ -169,7 +169,7 @@
 #if defined(WIN32)
       CHARACTER (len=*), PARAMETER :: cmd = 'rmdir /Q /S '
 #else
-      CHARACTER (len=*), PARAMETER :: cmd = 'rm -rf '
+      CHARACTER (len=*), PARAMETER :: cmd = 'rm -rdf '
 #endif
 
 !  Start of executable code

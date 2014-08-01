@@ -653,6 +653,7 @@
      &               error)
 
 !  Plasma Response Arrays ------------------------------------------------------
+      dim_lengths = (/ this%ir, this%jz, this%kp_store /)
       CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
       this%ir = dim_lengths(1)
       this%jz = dim_lengths(2)

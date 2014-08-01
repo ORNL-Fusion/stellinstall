@@ -340,7 +340,7 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  local variables
-      INTEGER                                   :: num_steps = 1
+      INTEGER                                   :: num_steps
       INTEGER                                   :: i, error
       LOGICAL                                   :: eq_converged
       CHARACTER (len=dir_prefix_len)            :: directory
@@ -368,6 +368,7 @@
       WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
      &                             'equilibrium convergence'
 
+      num_steps = 1
       eq_converged = reconstruction_eval_e(context%recon,                      &
      &                                     context%signals,                    &
      &                                     context%model, num_steps,           &
@@ -473,6 +474,7 @@
       INTEGER                                   :: task
       INTEGER                                   :: error
       INTEGER                                   :: eq_steps
+      INTEGER                                   :: num_steps
 
 !  Start of executable code
       CALL v3fit_context_sync_children(context)
@@ -491,6 +493,7 @@
 !  fully initialized.
 !
 !  NOTE: It may not be necessary to completely reconverge here.
+      num_steps = 1
       CALL assert(reconstruction_eval_e(context%recon,                         &
      &                                  context%signals,                       &
      &                                  context%model, num_steps,              &
@@ -515,6 +518,10 @@
 
             CASE (mpi_quit_task)
                EXIT
+
+            CASE DEFAULT
+               WRITE (*,*) 'Unknown MPI task.'
+               CALL EXIT(1)
 
          END SELECT
       END DO
@@ -1490,7 +1497,7 @@
          ALLOCATE(info(num_threads - 1))
          ALLOCATE(max_procs(num_threads - 1))
 
-         commands = context%cl_parser%command
+         commands = TRIM(context%cl_parser%command)
          args = temp_file
 
          max_procs = 1
@@ -1575,11 +1582,10 @@
       INTEGER                                   :: mpi_rank
       INTEGER                                   :: mpi_size
       INTEGER                                   :: i
-      CHARACTER (len=dir_prefix_len)            :: directory_name
 
 !  Start of executable code
-      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, error)
-      CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, error)
+      CALL MPI_COMM_SIZE(context%intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
 
       CALL MPI_FINALIZE(error)
 
@@ -1590,7 +1596,6 @@
             CALL delete_directory(process_dir(i), error)
          END DO
       END IF
-
 #endif
 
 !  Support up to 99 directories. need to add leading zeros to avoid spaces.
