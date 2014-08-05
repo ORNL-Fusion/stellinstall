@@ -880,7 +880,8 @@
       DEALLOCATE(stride)
       DEALLOCATE(offset)
 
-      CALL profiler_set_stop_time('eval_jacobians', start_time)
+      CALL profiler_set_stop_time('reconstruction_eval_jacobians',             &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -1968,9 +1969,12 @@
 
 #if defined(MPI_OPT)
 !  local variables
+      REAL (rprec)                               :: start_time
       INTEGER                                    :: error
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%current_step, 1, MPI_INTEGER, 0, intra_comm,         &
      &               error)
       CALL MPI_BCAST(this%e(this%current_step,:),                              &
@@ -1979,6 +1983,9 @@
       CALL MPI_BCAST(this%f(this%current_step,:),                              &
      &               SIZE(this%f(this%current_step,:)), MPI_REAL8, 0,          &
      &               intra_comm, error)
+
+      CALL profiler_set_stop_time('reconstruction_sync_state',                 &
+     &                            start_time)
 
 #endif
 
@@ -2015,6 +2022,7 @@
 
 #if defined(MPI_OPT)
 !  local variables
+      REAL (rprec)                               :: start_time
       INTEGER                                    :: error
       INTEGER                                    :: mpi_size
       INTEGER                                    :: mpi_rank
@@ -2022,6 +2030,8 @@
       INTEGER                                    :: iLow, iHigh
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
 
@@ -2057,6 +2067,9 @@
             CALL param_recv_delta(params(i)%p, i, intra_comm)
          END DO
       END IF
+
+      CALL profiler_set_stop_time('reconstruction_sync_parent',                &
+     &                            start_time)
 
 #endif
 

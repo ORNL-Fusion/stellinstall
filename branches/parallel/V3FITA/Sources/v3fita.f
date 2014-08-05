@@ -1364,6 +1364,7 @@
       INTEGER                                   :: num_threads
 #if defined(MPI_OPT)
       INTEGER                                   :: error
+      INTEGER                                   :: num_processes
       INTEGER                                   :: i
       INTEGER                                   :: mpi_rank
       INTEGER                                   :: mpi_size
@@ -1377,7 +1378,7 @@
       INTEGER                                   :: parent_comm
       INTEGER                                   :: child_comm
       CHARACTER (len=dir_prefix_len)            :: directory_name
-      CHARACTER (len=data_filename_length)      :: temp_file
+      CHARACTER (len=data_filename_length)      :: temp_string
 #endif
 
 !  Forward declare the interface for OMP_GET_MAX_THREADS. This explicitly
@@ -1416,6 +1417,11 @@
 
       CALL MPI_COMM_GET_PARENT(parent_comm, error)
 
+!  Initialize the intra communicator to the world communicator. This is do so
+!  intra_comm is is value even when num_processes is 1 or the processes were
+!  created externally.
+      context%intra_comm = MPI_COMM_WORLD
+
 !  Congure the number of processes to use. Process may be configured in three.
 !
 !    1. auto     : Sets the number of processes egual to the number of
@@ -1423,7 +1429,6 @@
 !    2. <number> : Set an explicit numner of parameters.
 !    3. Default  : Uses the preconfigured number of processes specified by the
 !                  user.
-
       IF ((parent_comm .eq. MPI_COMM_NULL) .and. (mpi_rank .eq. 0)) THEN
          IF (commandline_parser_is_flag_set(context%cl_parser,                 &
      &                                      '-mpi')) THEN
@@ -1436,20 +1441,18 @@
      &                        context%cl_parser, '-mpi')))
 
                CASE ('auto')
-                  num_threads = n_rp
+                  num_processes = n_rp
 
                CASE DEFAULT
-                  num_threads =                                                &
+                  num_processes =                                              &
      &               commandline_parser_get_integer(context%cl_parser,         &
      &                                              '-mpi', 1)
 
             END SELECT
 
          ELSE
-!  Processes were created externally. Set the intra_comm to the world comm so it
-!  is consistent with the spawning method.
-            context%intra_comm = MPI_COMM_WORLD
-            num_threads = mpi_size
+!  Processes were created externally.
+            num_processes = mpi_size
          END IF
       ELSE
 !  This must be a child process. Merge the communicators and reread the rank.
@@ -1475,15 +1478,15 @@
 !  mode one process can use the main directory. Otherwise create one directory
 !  for each sub process and spawn a child process in it. If this point is
 !  reached and the size is greater than 1, we can assume that default was used.
-      temp_file = commandline_parser_get_string(context%cl_parser,             &
+      temp_string = commandline_parser_get_string(context%cl_parser,             &
      &                                          '-file')
       IF (mpi_rank .eq. 0) THEN
-         DO i = 2, num_threads
+         DO i = 2, num_processes
 !  Create the directory and copy the namelist input files over.
             CALL create_directory(process_dir(i), error)
 
-            IF (.not.is_absolute_path(temp_file)) THEN
-               CALL copy_file(temp_file, process_dir(i), error)
+            IF (.not.is_absolute_path(temp_string)) THEN
+               CALL copy_file(temp_string, process_dir(i), error)
             END IF
          END DO
       END IF
@@ -1493,24 +1496,33 @@
       IF ((parent_comm .eq. MPI_COMM_NULL) .and.                               &
      &    (mpi_rank .eq. 0)                .and.                               &
      &    (mpi_size .eq. 1)                .and.                               &
-     &    (num_threads .gt. 1)) THEN
-         ALLOCATE(commands(num_threads - 1))
-         ALLOCATE(args(num_threads - 1,1))
-         ALLOCATE(info(num_threads - 1))
-         ALLOCATE(max_procs(num_threads - 1))
+     &    (num_processes .gt. 1)) THEN
+         ALLOCATE(commands(num_processes - 1))
+         ALLOCATE(args(num_processes - 1,2))
+         ALLOCATE(info(num_processes - 1))
+         ALLOCATE(max_procs(num_processes - 1))
 
          commands = TRIM(context%cl_parser%command)
-         args = temp_file
+         args(:,1) = temp_string
+         IF (num_threads .lt. 0) THEN
+            args(:,2) = '-para=-1'
+         ELSE IF (num_threads .lt. 10) THEN
+            WRITE (temp_string, 1004) num_threads
+            args(:,2) = TRIM(temp_string)
+         ELSE
+            WRITE (temp_string, 1005) num_threads
+            args(:,2) = TRIM(temp_string)
+         END IF
 
          max_procs = 1
 
-         DO i = 2, num_threads
+         DO i = 2, num_processes
             CALL MPI_INFO_CREATE(info(i - 1), error)
             CALL MPI_INFO_SET(info(i - 1), "wdir", process_dir(i),             &
      &                        error)
          END DO
 
-         CALL MPI_COMM_SPAWN_MULTIPLE(num_threads - 1, commands, args,         &
+         CALL MPI_COMM_SPAWN_MULTIPLE(num_processes - 1, commands, args,       &
      &                                max_procs, info, 0,                      &
      &                                MPI_COMM_WORLD, child_comm,              &
      &                                error_array, error)
@@ -1518,7 +1530,7 @@
          CALL MPI_INTERCOMM_MERGE(child_comm, .false.,                         &
      &                            context%intra_comm, error)
 
-         DO i = 1, num_threads - 1
+         DO i = 1, num_processes - 1
             CALL MPI_INFO_FREE(info(i), error)
          END DO
 
@@ -1555,6 +1567,9 @@
 1002  FORMAT(a11,'_',i2)
 
 1003  FORMAT('Configured MPI process ',i2,' of ',i2)
+
+1004  FORMAT('-para=',i1)
+1005  FORMAT('-para=',i2)
 
       END SUBROUTINE
 

@@ -4,7 +4,7 @@
 add_test (NAME    diagnostic_rotation_test_mdsig
           COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3rfun v3rfun.in)
 add_test (NAME    diagnostic_rotation_test
-          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1 -mpi=auto)
 
 #  Since the reconstruction task test was run, Check the output files for correct values.
 
