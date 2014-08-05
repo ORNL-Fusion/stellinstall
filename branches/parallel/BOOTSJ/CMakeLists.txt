@@ -9,7 +9,11 @@ add_executable (xbootsj ${xbootsj_sources})
 add_dependencies (xbootsj stell)
 target_link_libraries (xbootsj stell)
 set_target_properties (xbootsj PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xbootsj)
-set_target_properties (xbootsj PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_Fortran_MODULE_DIRECTORY}/stell)
+if (CMAKE_VERSION VERSION_GREATER "2.8.8")
+	set_target_properties (xbootsj PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_Fortran_MODULE_DIRECTORY}/stell)
+else ()
+	set_target_properties (xbootsj PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+endif()
 
 target_link_libraries (xbootsj ${NETCDF_LIBRARIES})
 

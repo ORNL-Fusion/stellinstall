@@ -9,7 +9,11 @@ add_executable (xv3rfun ${v3rfun_sources})
 add_dependencies (xv3rfun stell)
 target_link_libraries (xv3rfun stell)
 set_target_properties (xv3rfun PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xv3rfun)
-set_target_properties (xv3rfun PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_Fortran_MODULE_DIRECTORY}/stell)
+if (CMAKE_VERSION VERSION_GREATER "2.8.8")
+	set_target_properties (xv3rfun PROPERTIES INCLUDE_DIRECTORIES ${CMAKE_Fortran_MODULE_DIRECTORY}/stell)
+else ()
+	set_target_properties (xv3rfun PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+endif ()
 
 target_link_libraries (xv3rfun ${NETCDF_LIBRARIES})
 

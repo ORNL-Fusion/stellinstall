@@ -9,7 +9,11 @@ add_executable (xwout_converter ${wout_converter_sources})
 add_dependencies (xwout_converter stell)
 target_link_libraries (xwout_converter stell)
 set_target_properties (xwout_converter PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/wout_converter)
-set_target_properties (xwout_converter PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+if (CMAKE_VERSION VERSION_GREATER "2.8.8")
+	set_target_properties (xwout_converter PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+else ()
+	set_target_properties (xwout_converter PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+endif ()
 
 target_link_libraries (xwout_converter ${NETCDF_LIBRARIES})
 
