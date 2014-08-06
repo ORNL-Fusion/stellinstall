@@ -98,8 +98,7 @@
 
       DO i = 1, SIZE(chord_paths, 1)
          CALL path_append_vertex(intpol_construct_int%chord_path,              &
-     &                           chord_paths(i,1), chord_paths(i,2),           &
-     &                           chord_paths(i,3))
+     &                           chord_paths(i,:))
       END DO
 
       intpol_construct_int%type = intpol_interferometry_type
@@ -138,8 +137,7 @@
 
       DO i = 1, SIZE(chord_paths, 1)
          CALL path_append_vertex(intpol_construct_pol%chord_path,              &
-     &                           chord_paths(i,1), chord_paths(i,2),           &
-     &                           chord_paths(i,3))
+     &                           chord_paths(i,:))
       END DO
 
       intpol_construct_pol%type = intpol_polarimetry_type

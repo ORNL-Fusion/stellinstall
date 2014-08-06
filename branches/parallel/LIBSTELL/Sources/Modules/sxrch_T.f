@@ -114,10 +114,8 @@
 !  Must NULL out the vertices array or else it will point to the last
 !  integration_path created in memory
 
-         CALL path_append_vertex(this%chordPath,                              &
-     &                           xcart_i(1), xcart_i(2), xcart_i(3))
-         CALL path_append_vertex(this%chordPath,                              &
-     &                           xcart_f(1), xcart_f(2), xcart_f(3))
+         CALL path_append_vertex(this%chordPath, xcart_i)
+         CALL path_append_vertex(this%chordPath, xcart_f)
 
       END SUBROUTINE sxrch_desc_construct
 
@@ -181,12 +179,8 @@
       INTEGER :: iou = 6
       INTEGER :: istat = 0      !status of safe_open call
 
-      xcart_i(1) = this%chordPath%x
-      xcart_i(2) = this%chordPath%y
-      xcart_i(3) = this%chordPath%z
-      xcart_f(1) = this%chordPath%next%x
-      xcart_f(2) = this%chordPath%next%y
-      xcart_f(3) = this%chordPath%next%z
+      xcart_i = this%chordPath%position
+      xcart_f = this%chordPath%next%position
 
       IF (PRESENT(iounit).AND.PRESENT(filename)) THEN
          iou=iounit

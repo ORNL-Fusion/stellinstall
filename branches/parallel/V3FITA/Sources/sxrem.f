@@ -86,11 +86,9 @@
       ALLOCATE(sxrem_construct_new)
 
       CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
-     &                        start_path(1), start_path(2),                    &
-     &                        start_path(3))
+     &                        start_path)
       CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
-     &                        end_path(1), end_path(2),                        &
-     &                        end_path(3))
+     &                        end_path)
 
       sxrem_construct_new%profile_number = profile_number
 

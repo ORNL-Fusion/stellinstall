@@ -26,8 +26,10 @@
 !>  structured as a singly linked list.
 !-------------------------------------------------------------------------------
       TYPE vertex
-         REAL (rprec)           :: x, y, z
-         TYPE (vertex), POINTER :: next => null()
+!>  Position in cartiesian coordinates.
+         REAL (rprec), DIMENSION(3) :: position
+!>  Reference to the next vertex.
+         TYPE (vertex), POINTER     :: next => null()
       END TYPE
 
 !*******************************************************************************
@@ -64,27 +66,21 @@
 !>
 !>  Allocates memory and initializes a @ref vertex object.
 !>
-!>  @param[in] x X position of the vertex object.
-!>  @param[in] y Y position of the vertex object.
-!>  @param[in] z Z position of the vertex object.
+!>  @param[in] position Cartesian position of the vertex object.
 !>  @returns A pointer to a constructed @ref vertex object.
 !-------------------------------------------------------------------------------
-      FUNCTION path_construct_new(x, y, z)
+      FUNCTION path_construct_new(position)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vertex), POINTER   :: path_construct_new
-      REAL (rprec), INTENT(in) :: x
-      REAL (rprec), INTENT(in) :: y
-      REAL (rprec), INTENT(in) :: z
+      TYPE (vertex), POINTER                 :: path_construct_new
+      REAL (rprec), DIMENSION(3), INTENT(in) :: position
 
 !  Start of executable code
       ALLOCATE(path_construct_new)
 
-      path_construct_new%x = x
-      path_construct_new%y = y
-      path_construct_new%z = z
+      path_construct_new%position = position
 
       END FUNCTION
 
@@ -119,9 +115,8 @@
          new_vertex%next => path_construct_mpi(intra_comm)
       END IF
 
-      CALL MPI_BCAST(new_vertex%x, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(new_vertex%y, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(new_vertex%z, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(new_vertex%position, 3, MPI_REAL8, 0, intra_comm,         &
+     &               error)
 
 #endif
 
@@ -166,29 +161,25 @@
 !>  last vertex is found, a new vertex is allocated and appended to the path.
 !>  This allow works as a constructer and allocates the first vertex if needed.
 !>
-!>  @param[inout] this Vertex to append path to.
-!>  @param[in]    x    X position of the vertex object.
-!>  @param[in]    y    Y position of the vertex object.
-!>  @param[in]    z    Z position of the vertex object.
+!>  @param[inout] this     Vertex to append path to.
+!>  @param[in]    position Cartesian position of the vertex object.
 !-------------------------------------------------------------------------------
-      RECURSIVE SUBROUTINE path_append_vertex(this, x, y, z)
+      RECURSIVE SUBROUTINE path_append_vertex(this, position)
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vertex), POINTER   :: this
-      REAL (rprec), INTENT(in) :: x
-      REAL (rprec), INTENT(in) :: y
-      REAL (rprec), INTENT(in) :: z
+      TYPE (vertex), POINTER                 :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: position
 
 !  Start of executable code
       IF (ASSOCIATED(this)) THEN
          IF (ASSOCIATED(this%next)) THEN
-            CALL path_append_vertex(this%next, x, y, z)
+            CALL path_append_vertex(this%next, position)
          ELSE
-            this%next => path_construct(x, y, z)
+            this%next => path_construct(position)
          END IF
       ELSE
-         this => path_construct(x, y, z)
+         this => path_construct(position)
       END IF
 
       END SUBROUTINE
@@ -269,9 +260,7 @@
          CALL path_sync_children(this%next, intra_comm)
       END IF
 
-      CALL MPI_BCAST(this%x, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%y, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%z, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%position, 3, MPI_REAL8, 0, intra_comm, error)
 
 #endif
 
@@ -321,14 +310,12 @@
       INTEGER                    :: i, nsteps
 
 !  local parameters
-      REAL(rprec), PARAMETER :: dxOptimal = 0.0025
+      REAL(rprec), PARAMETER     :: dxOptimal = 0.0025
 
 !  Start of executable code
 ! Determine the number of integration steps to take by dividing the path length
 ! by the step length and rounding to the nearest integer.
-      dxcart(1) = vertex2%x - vertex1%x
-      dxcart(2) = vertex2%y - vertex1%y
-      dxcart(3) = vertex2%z - vertex1%z
+      dxcart = vertex2%position - vertex1%position
 
 ! Store the entire length in dx temporarly.
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
@@ -339,7 +326,7 @@
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
 
       integrate = 0.0
-      xcart = (/ vertex1%x, vertex1%y, vertex1%z /)
+      xcart = vertex1%position
       DO i = 1, nsteps
          xcart = xcart + dxcart
          integrate = integrate                                                 &
@@ -377,52 +364,58 @@
 
 ! Test to make sure first vertex is created.
       CALL path_append_vertex(test_path,                                       &
-     &                        1.0_rprec, 2.0_rprec, 3.0_rprec)
+     &                        (/ 1.0_rprec, 2.0_rprec, 3.0_rprec /))
       path_test = check(.true., ASSOCIATED(test_path), 1,                      &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(1.0_rprec, test_path%x, 2, "path_append_vertex")
+      path_test = check(1.0_rprec, test_path%position(1), 2,                   &
+     &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(2.0_rprec, test_path%y, 3, "path_append_vertex")
+      path_test = check(2.0_rprec, test_path%position(2), 3,                   &
+     &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(3.0_rprec, test_path%z, 4, "path_append_vertex")
+      path_test = check(3.0_rprec, test_path%position(3), 4,                   &
+     &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
 ! Test to make sure second vertex is appended.
       CALL path_append_vertex(test_path,                                       &
-     &                        4.0_rprec, 5.0_rprec, 6.0_rprec)
+     &                        (/ 4.0_rprec, 5.0_rprec, 6.0_rprec /))
       path_test = check(.true., ASSOCIATED(test_path%next), 5,                 &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(1.0_rprec, test_path%x, 6, "path_append_vertex")
-      IF (.not.path_test) RETURN
-      path_test = check(2.0_rprec, test_path%y, 7, "path_append_vertex")
-      IF (.not.path_test) RETURN
-      path_test = check(3.0_rprec, test_path%z, 8, "path_append_vertex")
-      IF (.not.path_test) RETURN
-      path_test = check(4.0_rprec, test_path%next%x, 9,                        &
+      path_test = check(1.0_rprec, test_path%position(1), 6,                   &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(5.0_rprec, test_path%next%y, 10,                       &
+      path_test = check(2.0_rprec, test_path%position(2), 7,                   &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(6.0_rprec, test_path%next%z, 11,                       &
+      path_test = check(3.0_rprec, test_path%position(3), 8,                   &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(4.0_rprec, test_path%next%position(1), 9,              &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(5.0_rprec, test_path%next%position(2), 10,             &
+     &                  "path_append_vertex")
+      IF (.not.path_test) RETURN
+      path_test = check(6.0_rprec, test_path%next%position(3), 11,             &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
 ! Test to make sure third vertex is appended.
       CALL path_append_vertex(test_path,                                       &
-     &                        7.0_rprec, 8.0_rprec, 9.0_rprec)
+     &                        (/ 7.0_rprec, 8.0_rprec, 9.0_rprec /))
       path_test = check(.true., ASSOCIATED(test_path%next%next),               &
      &                  12, "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(7.0_rprec, test_path%next%next%x, 12,                  &
+      path_test = check(7.0_rprec, test_path%next%next%position(1), 12,        &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(8.0_rprec, test_path%next%next%y, 13,                  &
+      path_test = check(8.0_rprec, test_path%next%next%position(2), 13,        &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
-      path_test = check(9.0_rprec, test_path%next%next%z, 14,                  &
+      path_test = check(9.0_rprec, test_path%next%next%position(3), 14,        &
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
@@ -434,9 +427,9 @@
 
 ! Test path integration.
       CALL path_append_vertex(test_path,                                       &
-     &                        1.0_rprec, 0.0_rprec, 0.0_rprec)
+     &                        (/ 1.0_rprec, 0.0_rprec, 0.0_rprec /))
       CALL path_append_vertex(test_path,                                       &
-     &                        0.0_rprec, 0.0_rprec, 0.0_rprec)
+     &                        (/ 0.0_rprec, 0.0_rprec, 0.0_rprec /))
       result = path_integrate(test_path, test_function, context)
       path_test = check(400.0_rprec, result, 1, "path_integrate")
       CALL path_destruct(test_path)
