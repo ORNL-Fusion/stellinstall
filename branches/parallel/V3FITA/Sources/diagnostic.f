@@ -245,7 +245,7 @@
 
          CASE (diagnostic_magnetic_type)
             diagnostic_construct_mpi%magnetic =>                               &
-     &         magnetic_construct_mpi(intra_comm)
+     &         magnetic_construct(intra_comm)
 
          CASE (diagnostic_sxrem_type)
             diagnostic_construct_mpi%sxrem =>                                  &

@@ -847,7 +847,8 @@
 
 !  Construct a magnetic diagnostic signal using from the mdsig netcdf file.
          signals_created = signals_created + 1
-         magnetic_object => magnetic_construct(mdsig_iou)
+         magnetic_object =>                                                    &
+     &      magnetic_construct(mdsig_iou, mag_a(signals_created))
          context%signals(signals_created)%p => signal_construct(               &
      &      diagnostic_construct(magnetic_object),                             &
      &      mdsig_iou, sdo_data_a(signals_created),                            &

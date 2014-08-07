@@ -144,23 +144,28 @@
 !>  @end_table
 !>
 !>  @table_section{signal_spec_sec, Signal Data specification}
-!>     @item{n_sdata_o,              Number of signal_data observations,                                                                   v3fit_input::n_sdata_o}
-!>     @item{iw_sdo_verbose,         Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity),    v3fit_input::iw_sdo_verbose}
-!>     @item{sdo_data_a,             Array of data for observed signals,                                                                   v3fit_input::sdo_data_a}
-!>     @item{sdo_sigma_a,            Array of sigmas for observed signals,                                                                 v3fit_input::sdo_sigma_a}
-!>     @item{sdo_weight_a,           Array of weight for observed signals,                                                                 v3fit_input::sdo_weight_a}
-!>     @item{sdo_spec_can_overwrite, Logical controlling if the sdo_w_spec_ overwrites values in the sdo_sigma_a array. Defaults to true., v3fit_input::sdo_spec_can_overwrite}
+!>     @item{n_sdata_o,               Number of signal_data observations,                                                                  v3fit_input::n_sdata_o}
+!>     @item{iw_sdo_verbose,          Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity),   v3fit_input::iw_sdo_verbose}
+!>     @item{sdo_data_a,              Array of data for observed signals,                                                                  v3fit_input::sdo_data_a}
+!>     @item{sdo_sigma_a,             Array of sigmas for observed signals,                                                                v3fit_input::sdo_sigma_a}
+!>     @item{sdo_weight_a,            Array of weight for observed signals,                                                                v3fit_input::sdo_weight_a}
+!>     @item{mag_a,                   Array of weight for observed signals,                                                                v3fit_input::mag_a}
+!>     @item{sdo_spec_can_overwrite, Logical controlling if the sdo_*_spec_ overwrites values in the sdo_sigma_a array. Defaults to true., v3fit_input::sdo_spec_can_overwrite}
 !>     @table_subsection{sigma_spec_sec, Signal Data sigma specification}
-!>        @item{sdo_s_spec_imin,     Array of minimum index values for specifying sigmas,                                                  v3fit_input::sdo_s_spec_imin}
-!>        @item{sdo_s_spec_imax,     Array of maximum index values for specifying sigmas,                                                  v3fit_input::sdo_s_spec_imax}
-!>        @item{sdo_s_spec_floor,    Array of floor values for specifying sigmas,                                                          v3fit_input::sdo_s_spec_floor}
-!>        @item{sdo_s_spec_fraction, Array of fractional values for specifying sigmas
+!>        @item{sdo_s_spec_imin,      Array of minimum index values for specifying sigmas,                                                 v3fit_input::sdo_s_spec_imin}
+!>        @item{sdo_s_spec_imax,      Array of maximum index values for specifying sigmas,                                                 v3fit_input::sdo_s_spec_imax}
+!>        @item{sdo_s_spec_floor,     Array of floor values for specifying sigmas,                                                         v3fit_input::sdo_s_spec_floor}
+!>        @item{sdo_s_spec_fraction,  Array of fractional values for specifying sigmas
 !>            - floor \> 0\, sigma = max(floor\,fraction * sdo)
 !>            - floor \< 0\, sigma = sqrt(floor ** 2 + (fraction * sdo) ** 2),                                                             v3fit_input::sdo_s_spec_fraction}
 !>     @table_subsection{weight_spec_sec, Signal Data weight specification}
-!>        @item{sdo_w_spec_imin,     Array of minimum index values for specifying weights,                                                 v3fit_input::sdo_w_spec_imin}
-!>        @item{sdo_w_spec_imax,     Array of maximum index values for specifying weights,                                                 v3fit_input::sdo_w_spec_imax}
-!>        @item{sdo_w_spec_weight,   Array of weight values for specifying weights,                                                        v3fit_input::sdo_w_spec_weight}
+!>        @item{sdo_w_spec_imin,      Array of minimum index values for specifying weights,                                                v3fit_input::sdo_w_spec_imin}
+!>        @item{sdo_w_spec_imax,      Array of maximum index values for specifying weights,                                                v3fit_input::sdo_w_spec_imax}
+!>        @item{sdo_w_spec_weight,    Array of weight values for specifying weights,                                                       v3fit_input::sdo_w_spec_weight}
+!>     @table_subsection{magnetic_spec_sec, Magnetic signal specification}
+!>        @item{mag_spec_imin,        Array of minimum index values for specifying plasma only signals,                                    v3fit_input::mag_spec_imin}
+!>        @item{mag_spec_imax,        Array of maximum index values for specifying plasma only signals,                                    v3fit_input::mag_spec_imax}
+!>        @item{mag_spec_use_induced, Array of logicals for specifying plasma only signals,                                                v3fit_input::mag_spec_use_induced}
 !>  @end_table
 !>
 !>  @table_section{magnetic_sec, Magnetic signal parameters}
@@ -217,8 +222,8 @@
 !>        -# @fixed_width{'max'}  - maximum of weighted signals
 !>        -# @fixed_width{'min'}  - minimum of weighted signals,
 !>        v3fit_input::coosig_type}
-!>     @item{coosig_name,    Character array of coosig names,                                                                                                                      v3fit_input::coosig_name}
-!>     @item{coosig_units,   Character array of coosig units,                                                                                                                      v3fit_input::coosig_units}
+!>     @item{coosig_name,    Character array of coosig names,                                                                                                                       v3fit_input::coosig_name}
+!>     @item{coosig_units,   Character array of coosig units,                                                                                                                       v3fit_input::coosig_units}
 !>  @end_table
 !>
 !>  @table_section{plasma_off_sec, Plasma Offset Section}
@@ -750,6 +755,9 @@
      &   DIMENSION(v3fit_max_signals) :: sdo_weight_a = 1.0
 !>  Allow the sigma spec to overwrite the sigma array.
       LOGICAL                         :: sdo_spec_can_overwrite = .true.
+!>  Magnetic signal flags. Controls if the induced signal is included in the
+!>  total signal.
+      LOGICAL, DIMENSION(v3fit_max_diagnostics) :: mag_a = .true.
 
 !  Signal data sigma specification
 !>  Sigma specification lower index.
@@ -775,6 +783,17 @@
 !>  Weight specification weight.
       REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
      &   sdo_w_spec_weight = 0.0
+
+!  Magnetic specification
+!>  Magnetic specification lower index.
+      INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
+     &   mag_spec_imin = 0
+!>  Magnetic specification upper index.
+      INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
+     &   mag_spec_imax = 0
+!>  Magnetic specification toggle induced coil signal.
+      LOGICAL, DIMENSION(v3fit_max_spec_size) ::                               &
+     &   mag_spec_use_induced = .true.
 
 !  Magnetic integration parameters
 !>  Ratio of the number of poloidal grid points to radial grid points.
@@ -929,7 +948,7 @@
      &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc, rp_range_type,           &
      &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
-     &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
+     &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a, mag_a,            &
 !  Magnetic integration parameters
      &   pol_rad_ratio,                                                        &
 !  External current signal specification
@@ -941,6 +960,8 @@
      &   sdo_s_spec_fraction,                                                  &
 !  Signal data weight specification
      &   sdo_w_spec_imin, sdo_w_spec_imax, sdo_w_spec_weight,                  &
+!  Magnetic signal specification
+     &   mag_spec_imin, mag_spec_imax, mag_spec_use_induced,                   &
 !  Geometric information
      &   r_major_radius, a_minor_radius,                                       &
 !  Limiter iso function specification.
@@ -1004,14 +1025,20 @@
       CALL assert_eq(0, status, 'v3fit_input_read_namelist' //                 &
      &   ': Error losing ' // TRIM(namelist_file) // ' failed')
 
+!  Toggle use coil signals for the magnetics from the specification
+      DO j = 1, SIZE(mag_spec_imin)
+         IF (mag_spec_imin(j) .le. 0) EXIT
+         imin = MAX(MIN(mag_spec_imin(j), n_sdata_o), 1)
+         imax = MIN(MAX(mag_spec_imax(j), imin), n_sdata_o)
+         mag_a(imin:imax) = mag_spec_use_induced(j)
+      END DO
+
 !  Set weights from weight specification.
       DO j = 1, SIZE(sdo_w_spec_imin)
          IF (sdo_w_spec_imin(j) .le. 0) EXIT
          imin = MAX(MIN(sdo_w_spec_imin(j), n_sdata_o), 1)
          imax = MIN(MAX(sdo_w_spec_imax(j), imin), n_sdata_o)
-         DO i = imin, imax
-            sdo_weight_a(i) = sdo_w_spec_weight(j)
-         END DO
+         sdo_weight_a(imin:imax) = sdo_w_spec_weight(j)
       END DO
 
 !  Set sigmas from the sigma specification.

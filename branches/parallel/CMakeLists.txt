@@ -18,24 +18,24 @@ cmake_minimum_required (VERSION 2.8.7)
 # Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
 project (v3fit_suite Fortran C CXX)
 
-enable_testing()
+enable_testing ()
 
 # Add the ability to auto generate API documentation with Doxygen
 find_package(Doxygen)
 if (DOXYGEN_FOUND)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile @ONLY)
-	add_custom_target(doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile 
-			  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build
-			  COMMENT "Generating API documentation with Doxygen" VERBATIM)
+	configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile @ONLY)
+	add_custom_target (doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile 
+	                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build
+	                   COMMENT "Generating API documentation with Doxygen" VERBATIM)
 endif ()
 
 # Configure MPI
-find_package(MPI)
+find_package (MPI)
 if (MPI_Fortran_FOUND)
-	add_definitions(-DMPI_OPT)
-        set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAGS}")
-        set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
-        include_directories(${MPI_Fortran_INCLUDE_PATH})
+	add_definitions (-DMPI_OPT)
+	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAGS}")
+	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
+	include_directories (${MPI_Fortran_INCLUDE_PATH})
 endif ()
 
 # Set a directories to build all binary files.
@@ -53,15 +53,15 @@ set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
 
 # Set Apple specific options. This adds a predefine for DARWIN and adds lapack from the Accelerate framework.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-	add_definitions(-DDARWIN)
+	add_definitions (-DDARWIN)
 	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
 endif ()
 
 # Set Linux specific options. This adds a predefine for LINUX.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-	add_definitions(-DLINUX)
-	find_package(BLAS REQUIRED)
-	find_package(LAPACK REQUIRED)
+	add_definitions (-DLINUX)
+	find_package (BLAS REQUIRED)
+	find_package (LAPACK REQUIRED)
 endif ()
 
 # Use netcdf if libraries are found. The values of NETCDF_LIB_PATH and NETCDF_INC_PATH should be set from the command line or Cmake GUI. Convert path from native format to cmake internal format.

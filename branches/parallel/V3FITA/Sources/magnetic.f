@@ -32,6 +32,9 @@
 !>  @note Copied from @ref mddc_mrf.
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
+!>  Toggles whether to include the induced signal in the total signal.
+         LOGICAL                            :: use_coil_response
+
 !  Identification Variables ----------------------------------------------------
 !>  Name of the code which computed the responses.
          CHARACTER(len=data_name_length)    :: code_name
@@ -92,7 +95,8 @@
 !>  mpi comm have the dsame base type. Keep magnetic_construct for style.
 !-------------------------------------------------------------------------------
       INTERFACE magnetic_construct
-         MODULE PROCEDURE magnetic_construct_netcdf
+         MODULE PROCEDURE magnetic_construct_netcdf,                           &
+     &                    magnetic_construct_mpi
       END INTERFACE
 
       CONTAINS
@@ -105,10 +109,13 @@
 !>
 !>  Allocates memory and initializes a @ref magnetic_class object.
 !>
-!>  @param[in] mdsig_iou An instance of a the netcdf id of the open mdsig file.
+!>  @param[in] mdsig_iou         An instance of a the netcdf id of the open
+!>                               mdsig file.
+!>  @param[in] use_coil_response Toggle if the total signal contains the induced
+!>                               signal in addition to the plasma only signal.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_netcdf(mdsig_iou)
+      FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response)
       USE ezcdf
 
       IMPLICIT NONE
@@ -116,12 +123,15 @@
 !  Declare Arguments
       TYPE (magnetic_class), POINTER :: magnetic_construct_netcdf
       INTEGER, INTENT(in)            :: mdsig_iou
+      LOGICAL, INTENT(in)            :: use_coil_response
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_netcdf)
+
+      magnetic_construct_netcdf%use_coil_response = use_coil_response
 
 !  Identification Variables ----------------------------------------------------
       CALL cdf_read(mdsig_iou, 'mddc_mrf_code_name',                           &
@@ -215,6 +225,9 @@
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_mpi)
+
+      CALL MPI_BCAST(magnetic_construct_mpi%use_coil_response,                 &
+     &               1, MPI_LOGICAL, 0, intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------
       CALL MPI_BCAST(magnetic_construct_mpi%code_name,                         &
@@ -536,8 +549,13 @@
 !-------------------------------------------------------------------------------
 
 !  Add plasma signals and induced signal to create total signal.
-      magnetic_get_modeled_signal(1) =                                         &
-     &   SUM(magnetic_get_modeled_signal(2:3))
+      IF (this%use_coil_response) THEN
+         magnetic_get_modeled_signal(1) =                                      &
+     &      SUM(magnetic_get_modeled_signal(2:3))
+      ELSE
+         magnetic_get_modeled_signal(1) =                                      &
+     &      magnetic_get_modeled_signal(2)
+      END IF
 
       sigma = 0.0
 
@@ -623,6 +641,10 @@
       INTEGER                              :: total_length
 
 !  Start of executable code
+
+      CALL MPI_BCAST(this%use_coil_response, data_name_length,                 &
+     &               MPI_LOGICAL, 0, intra_comm, error)
+
 !  Identification Variables ----------------------------------------------------
       CALL MPI_BCAST(this%code_name, data_name_length, MPI_CHARACTER, 0,       &
      &               intra_comm, error)
