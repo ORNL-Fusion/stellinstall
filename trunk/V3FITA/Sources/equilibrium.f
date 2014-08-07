@@ -1055,11 +1055,14 @@
 !>  @see vacuum_equilibrium::vacuum_get_ext_currents
 !>
 !>  @param[in]  this           A @ref equilibrium_class instance.
+!>  @param[in]  num_currents   Forces the number of currents to return if
+!>                             greater than zero.
 !>  @param[out] scale_currents Informs the caller that currents need to be
 !>                             scaled.
 !>  @returns The external currents.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_ext_currents(this, scale_currents)
+      FUNCTION equilibrium_get_ext_currents(this, num_currents,                &
+     &                                      scale_currents)
 
       IMPLICIT NONE
 
@@ -1067,6 +1070,7 @@
       REAL (rprec), DIMENSION(:), POINTER  ::                                  &
      &   equilibrium_get_ext_currents
       TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER                              :: num_currents
       LOGICAL, INTENT(out)                 :: scale_currents
 
 !  Start of executable code
@@ -1074,7 +1078,8 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_ext_currents =>                                    &
-     &         vmec_get_ext_currents(this%vmec, scale_currents)
+     &         vmec_get_ext_currents(this%vmec, num_currents,                  &
+     &                               scale_currents)
 
          CASE (equilibrium_vacuum_type)
             equilibrium_get_ext_currents =>                                    &

@@ -30,6 +30,8 @@
       TYPE magnetic_class
 !>  Toggles whether to include the induced signal in the total signal.
          LOGICAL                  :: use_coil_response
+!>  Forces the induced coil signal to be computed.
+         LOGICAL                            :: force_coil_reponse
          TYPE (mddc_mrf), POINTER :: response_function => null()
       END TYPE magnetic_class
 
@@ -55,13 +57,16 @@
 !>
 !>  Allocates memory and initializes a @ref magnetic_class object.
 !>
-!>  @param[in] response_function An instance of a @ref mddc_mrf object.
-!>  @param[in] use_coil_response Toggle if the total signal contains the induced
-!>                               signal in addition to the plasma only signal.
+!>  @param[in] response_function  An instance of a @ref mddc_mrf object.
+!>  @param[in] use_coil_response  Toggle if the total signal contains the
+!>                                induced signal in addition to the plasma only
+!>                                signal.
+!>  @param[in] force_coil_reponse Force the coil responce to be computed.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_construct_response(response_function,                  &
-     &                                     use_coil_response)
+     &                                     use_coil_response,                  &
+     &                                     force_coil_reponse)
 
       IMPLICIT NONE
 
@@ -69,6 +74,7 @@
       TYPE (magnetic_class), POINTER :: magnetic_construct_response
       TYPE (mddc_mrf), POINTER       :: response_function
       LOGICAL, INTENT(in)            :: use_coil_response
+      LOGICAL, INTENT(in)            :: force_coil_reponse
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_response)
@@ -85,13 +91,16 @@
 !>  Constructs an instance of a @ref mddc_mrf and return the constructed
 !>  magnetic_class from @ref magnetic_construct_response
 !>
-!>  @param[in] mdsig_iou         An instance of a the netcdf id of the open
-!>                               mdsig file.
-!>  @param[in] use_coil_response Toggle if the total signal contains the induced
-!>                               signal in addition to the plasma only signal.
+!>  @param[in] mdsig_iou          An instance of a the netcdf id of the open
+!>                                mdsig file.
+!>  @param[in] use_coil_response  Toggle if the total signal contains the
+!>                                induced signal in addition to the plasma only
+!>                                signal.
+!>  @param[in] force_coil_reponse Force the coil responce to be computed.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response)
+      FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response,         &
+     &                                   force_coil_reponse)
       USE data_parameters
       USE ezcdf
 
@@ -101,6 +110,7 @@
       TYPE (magnetic_class), POINTER   :: magnetic_construct_netcdf
       INTEGER, INTENT(in)              :: mdsig_iou
       LOGICAL, INTENT(in)              :: use_coil_response
+      LOGICAL, INTENT(in)              :: force_coil_reponse
 
 !  local variables
       TYPE (mddc_mrf), POINTER         :: response_function
@@ -178,8 +188,9 @@
       a_f => null()
       a_z => null()
 
-      magnetic_construct_netcdf => magnetic_construct(response_function,       &
-     &                                                use_coil_response)
+      magnetic_construct_netcdf =>                                             &
+     &   magnetic_construct(response_function, use_coil_response,              &
+     &                      force_coil_reponse)
 
       END FUNCTION
 
@@ -385,8 +396,15 @@
       END IF
 
 !-------------------------------------------------------------------------------
+      IF (this%force_coil_reponse) THEN
+         num_currents = SIZE(this%response_function%rdiag_coilg_1)
+      ELSE
+         num_currents = -1
+      END IF
+
 !  Calculate the induced signal from external currents.
       extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
+     &                                       num_currents,                     &
      &                                       scale_current)
 
 !  If there are no external current extcur will be a null pointer
