@@ -28,6 +28,8 @@
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
+!>  Toggles whether to include the induced signal in the total signal.
+         LOGICAL                  :: use_coil_response
          TYPE (mddc_mrf), POINTER :: response_function => null()
       END TYPE magnetic_class
 
@@ -54,19 +56,24 @@
 !>  Allocates memory and initializes a @ref magnetic_class object.
 !>
 !>  @param[in] response_function An instance of a @ref mddc_mrf object.
+!>  @param[in] use_coil_response Toggle if the total signal contains the induced
+!>                               signal in addition to the plasma only signal.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_response(response_function)
+      FUNCTION magnetic_construct_response(response_function,                  &
+     &                                     use_coil_response)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (magnetic_class), POINTER :: magnetic_construct_response
       TYPE (mddc_mrf), POINTER       :: response_function
+      LOGICAL, INTENT(in)            :: use_coil_response
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_response)
 
+      magnetic_construct_response%use_coil_response = use_coil_response
       magnetic_construct_response%response_function => response_function
 
       END FUNCTION
@@ -77,10 +84,14 @@
 !>  Reads the description of a magnetic diagnostic from an mdsig file.
 !>  Constructs an instance of a @ref mddc_mrf and return the constructed
 !>  magnetic_class from @ref magnetic_construct_response
-!>  @param[in] mdsig_iou An instance of a the netcdf id of the open mdsig file.
+!>
+!>  @param[in] mdsig_iou         An instance of a the netcdf id of the open
+!>                               mdsig file.
+!>  @param[in] use_coil_response Toggle if the total signal contains the induced
+!>                               signal in addition to the plasma only signal.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_netcdf(mdsig_iou)
+      FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response)
       USE data_parameters
       USE ezcdf
 
@@ -89,6 +100,7 @@
 !  Declare Arguments
       TYPE (magnetic_class), POINTER   :: magnetic_construct_netcdf
       INTEGER, INTENT(in)              :: mdsig_iou
+      LOGICAL, INTENT(in)              :: use_coil_response
 
 !  local variables
       TYPE (mddc_mrf), POINTER         :: response_function
@@ -166,7 +178,8 @@
       a_f => null()
       a_z => null()
 
-      magnetic_construct_netcdf => magnetic_construct(response_function)
+      magnetic_construct_netcdf => magnetic_construct(response_function,       &
+     &                                                use_coil_response)
 
       END FUNCTION
 
@@ -401,8 +414,13 @@
 !-------------------------------------------------------------------------------
 
 !  Add plasma signals and induced signal to create total signal.
-      magnetic_get_modeled_signal(1) =                                         &
-     &   SUM(magnetic_get_modeled_signal(2:3))
+      IF (this%use_coil_response) THEN
+         magnetic_get_modeled_signal(1) =                                      &
+     &      SUM(magnetic_get_modeled_signal(2:3))
+      ELSE
+         magnetic_get_modeled_signal(1) =                                      &
+     &      magnetic_get_modeled_signal(2)
+      END IF
 
       sigma = 0.0
 
