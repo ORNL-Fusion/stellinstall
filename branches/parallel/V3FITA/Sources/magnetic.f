@@ -34,6 +34,8 @@
       TYPE magnetic_class
 !>  Toggles whether to include the induced signal in the total signal.
          LOGICAL                            :: use_coil_response
+!>  Forces the induced coil signal to be computed.
+         LOGICAL                            :: force_coil_reponse
 
 !  Identification Variables ----------------------------------------------------
 !>  Name of the code which computed the responses.
@@ -109,13 +111,16 @@
 !>
 !>  Allocates memory and initializes a @ref magnetic_class object.
 !>
-!>  @param[in] mdsig_iou         An instance of a the netcdf id of the open
-!>                               mdsig file.
-!>  @param[in] use_coil_response Toggle if the total signal contains the induced
-!>                               signal in addition to the plasma only signal.
+!>  @param[in] mdsig_iou          An instance of a the netcdf id of the open
+!>                                mdsig file.
+!>  @param[in] use_coil_response  Toggle if the total signal contains the
+!>                                induced signal in addition to the plasma only
+!>                                signal.
+!>  @param[in] force_coil_reponse Force the coil responce to be computed.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response)
+      FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response,         &
+     &                                   force_coil_reponse)
       USE ezcdf
 
       IMPLICIT NONE
@@ -124,6 +129,7 @@
       TYPE (magnetic_class), POINTER :: magnetic_construct_netcdf
       INTEGER, INTENT(in)            :: mdsig_iou
       LOGICAL, INTENT(in)            :: use_coil_response
+      LOGICAL, INTENT(in)            :: force_coil_reponse
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
@@ -132,6 +138,7 @@
       ALLOCATE(magnetic_construct_netcdf)
 
       magnetic_construct_netcdf%use_coil_response = use_coil_response
+      magnetic_construct_netcdf%force_coil_reponse = force_coil_reponse
 
 !  Identification Variables ----------------------------------------------------
       CALL cdf_read(mdsig_iou, 'mddc_mrf_code_name',                           &
@@ -227,6 +234,8 @@
       ALLOCATE(magnetic_construct_mpi)
 
       CALL MPI_BCAST(magnetic_construct_mpi%use_coil_response,                 &
+     &               1, MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(magnetic_construct_mpi%force_coil_reponse,                &
      &               1, MPI_LOGICAL, 0, intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------
@@ -520,16 +529,22 @@
       END IF
 
 !-------------------------------------------------------------------------------
+      IF (this%force_coil_reponse) THEN
+         num_currents = SIZE(this%rdiag_coilg_1)
+      ELSE
+         num_currents = -1
+      END IF
+
 !  Calculate the induced signal from external currents.
       extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
+     &                                       num_currents,                     &
      &                                       scale_current)
 
 !  If there are no external current extcur will be a null pointer
       IF (ASSOCIATED(extcur)) THEN
 
 !  Make sure we don't go out of bounds on any array.
-         num_currents = MIN(SIZE(extcur),                                      &
-     &                      SIZE(this%rdiag_coilg_1))
+         num_currents = MIN(SIZE(extcur), SIZE(this%rdiag_coilg_1))
          IF (num_currents .lt. this%n_field_cg) THEN
             CALL err_warn('magnetic_get_modeled_signal: ' //                   &
      &                    'mdsig_file expected more currents')
@@ -643,6 +658,8 @@
 !  Start of executable code
 
       CALL MPI_BCAST(this%use_coil_response, data_name_length,                 &
+     &               MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(this%force_coil_reponse, data_name_length,                &
      &               MPI_LOGICAL, 0, intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------

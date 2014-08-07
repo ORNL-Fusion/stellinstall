@@ -149,7 +149,10 @@
 !>     @item{sdo_data_a,              Array of data for observed signals,                                                                  v3fit_input::sdo_data_a}
 !>     @item{sdo_sigma_a,             Array of sigmas for observed signals,                                                                v3fit_input::sdo_sigma_a}
 !>     @item{sdo_weight_a,            Array of weight for observed signals,                                                                v3fit_input::sdo_weight_a}
-!>     @item{mag_a,                   Array of weight for observed signals,                                                                v3fit_input::mag_a}
+!>     @item{mag_a,                   Array of flags for magnetc signals. This flags controls if the induced signal is included in the
+!>                                    total signal.,                                                                                       v3fit_input::mag_a}
+!>     @item{mag_force_coil,          Flag to force the computation of induced signals. This has no affect on the total signal if
+!>                                    @ref mag_a is false.,                                                                                v3fit_input::mag_force_coil}
 !>     @item{sdo_spec_can_overwrite, Logical controlling if the sdo_*_spec_ overwrites values in the sdo_sigma_a array. Defaults to true., v3fit_input::sdo_spec_can_overwrite}
 !>     @table_subsection{sigma_spec_sec, Signal Data sigma specification}
 !>        @item{sdo_s_spec_imin,      Array of minimum index values for specifying sigmas,                                                 v3fit_input::sdo_s_spec_imin}
@@ -758,6 +761,8 @@
 !>  Magnetic signal flags. Controls if the induced signal is included in the
 !>  total signal.
       LOGICAL, DIMENSION(v3fit_max_diagnostics) :: mag_a = .true.
+!>  Forces the magnetic signal to compute the induced signal.
+      LOGICAL                         :: mag_force_coil = .false.
 
 !  Signal data sigma specification
 !>  Sigma specification lower index.
@@ -949,6 +954,7 @@
      &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a, mag_a,            &
+     &   mag_force_coil,                                                       &
 !  Magnetic integration parameters
      &   pol_rad_ratio,                                                        &
 !  External current signal specification

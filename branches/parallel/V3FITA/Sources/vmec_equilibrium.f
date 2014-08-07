@@ -2521,11 +2521,14 @@
 !>  pointer.
 !>
 !>  @param[in]  this           A @ref vmec_class instance.
+!>  @param[in]  num_currents   Forces the number of currents to return if
+!>                             greater than zero.
 !>  @param[out] scale_currents Informs the caller that currents need to be
 !>                             scaled.
 !>  @returns The external currents.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_ext_currents(this, scale_currents)
+      FUNCTION vmec_get_ext_currents(this, num_currents,                       &
+     &                               scale_currents)
       USE vmec_input, only: lfreeb
       USE mgrid_mod, only: mgrid_mode, nextcur
       USE vmec_input, only: extcur
@@ -2535,6 +2538,7 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(:), POINTER :: vmec_get_ext_currents
       TYPE (vmec_class), INTENT(in)       :: this
+      INTEGER                             :: num_currents
       LOGICAL, INTENT(out)                :: scale_currents
 
 !  local variables
@@ -2554,6 +2558,10 @@
 
          END SELECT
          vmec_get_ext_currents => extcur(1:nextcur)
+      ELSE IF (num_currents .gt. 0) THEN
+!  Assume if the currents are being forced that currents are not scaled.
+         scale_currents = .false.
+         vmec_get_ext_currents => extcur(1:num_currents)
       ELSE
          vmec_get_ext_currents => null()
       END IF
