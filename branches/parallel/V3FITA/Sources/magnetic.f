@@ -20,6 +20,16 @@
       IMPLICIT NONE
 
 !*******************************************************************************
+!  equilibrium module parameters
+!*******************************************************************************
+!>  Bit position for the use coil response flag.
+      INTEGER, PARAMETER :: magnetic_use_coil_response_flag   = 1
+!>  Bit position for the force coil response flag.
+      INTEGER, PARAMETER :: magnetic_force_coil_response_flag = 2
+!>  Bit position for the stellerator symmetry flag.
+      INTEGER, PARAMETER :: magnetic_stell_sym_flag           = 3
+
+!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) magnetic base class
 !
@@ -32,10 +42,12 @@
 !>  @note Copied from @ref mddc_mrf.
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
-!>  Toggles whether to include the induced signal in the total signal.
-         LOGICAL                            :: use_coil_response
-!>  Forces the induced coil signal to be computed.
-         LOGICAL                            :: force_coil_reponse
+!>  Contains flags that control how the magnetic signals are computed. Each bit
+!>  stores a different flag. The following flags are currently used.
+!>  -# Use coil induced responce in total signal.
+!>  -# Force signal response to be computed.
+!>  -# Stellarator symmetry is assumed.
+         INTEGER                            :: model_signal_flags
 
 !  Identification Variables ----------------------------------------------------
 !>  Name of the code which computed the responses.
@@ -74,8 +86,6 @@
          REAL(rprec)                        :: zmax
 !>  Number of field periods.
          INTEGER                            :: n_field_periods
-!>  Toggles if the response is stellarator symmetric.
-         LOGICAL                            :: lstell_sym
 
 !  Plasma Response Arrays ------------------------------------------------------
 !>  R component of plasma response function.
@@ -133,12 +143,23 @@
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
+      LOGICAL                        :: lstell_sym
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_netcdf)
 
-      magnetic_construct_netcdf%use_coil_response = use_coil_response
-      magnetic_construct_netcdf%force_coil_reponse = force_coil_reponse
+!  Store the states of the first two flags in the first two bits.
+      magnetic_construct_netcdf%model_signal_flags = 0
+      IF (use_coil_response) THEN
+         magnetic_construct_netcdf%model_signal_flags =                        &
+     &      IBSET(magnetic_construct_netcdf%model_signal_flags,                &
+     &            magnetic_use_coil_response_flag)
+      END IF
+      IF (force_coil_reponse) THEN
+         magnetic_construct_netcdf%model_signal_flags =                        &
+     &      IBSET(magnetic_construct_netcdf%model_signal_flags,                &
+     &            magnetic_force_coil_response_flag)
+      END IF
 
 !  Identification Variables ----------------------------------------------------
       CALL cdf_read(mdsig_iou, 'mddc_mrf_code_name',                           &
@@ -177,8 +198,14 @@
      &              magnetic_construct_netcdf%zmax)
       CALL cdf_read(mdsig_iou, 'mddc_mrf_n_field_periods',                     &
      &              magnetic_construct_netcdf%n_field_periods)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_lstell_sym',                          &
-     &              magnetic_construct_netcdf%lstell_sym)
+      CALL cdf_read(mdsig_iou, 'mddc_mrf_lstell_sym', lstell_sym)
+
+!  Set the stellarator symmetry flag.
+      IF (lstell_sym) THEN
+         magnetic_construct_netcdf%model_signal_flags =                        &
+     &      IBSET(magnetic_construct_netcdf%model_signal_flags,                &
+     &            magnetic_stell_sym_flag)
+      END IF
 
 !  Plasma Response Arrays ------------------------------------------------------
       CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_r', dim_lengths)
@@ -233,10 +260,8 @@
 !  Start of executable code
       ALLOCATE(magnetic_construct_mpi)
 
-      CALL MPI_BCAST(magnetic_construct_mpi%use_coil_response,                 &
-     &               1, MPI_LOGICAL, 0, intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%force_coil_reponse,                &
-     &               1, MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(magnetic_construct_mpi%model_signal_flags, 1,             &
+     &               MPI_INTEGER, 0, intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------
       CALL MPI_BCAST(magnetic_construct_mpi%code_name,                         &
@@ -281,8 +306,6 @@
      &               intra_comm, error)
       CALL MPI_BCAST(magnetic_construct_mpi%n_field_periods, 1,                &
      &               MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%lstell_sym, 1, MPI_LOGICAL,        &
-     &               0, intra_comm, error)
 
 !  Plasma Response Arrays ------------------------------------------------------
       CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
@@ -508,7 +531,8 @@
 
 !  Correct for stellarator symetry.
          magnetic_get_modeled_signal(2) = SUM(sumphi)
-         IF (this%lstell_sym) THEN
+         IF (BTEST(this%model_signal_flags,                                    &
+     &             magnetic_stell_sym_flag)) THEN
             magnetic_get_modeled_signal(2)                                     &
      &         = magnetic_get_modeled_signal(2)                                & 
      &         - (sumphi(1) + sumphi(num_phi))/2.0
@@ -529,7 +553,8 @@
       END IF
 
 !-------------------------------------------------------------------------------
-      IF (this%force_coil_reponse) THEN
+      IF (BTEST(this%model_signal_flags,                                       &
+     &    magnetic_force_coil_response_flag)) THEN
          num_currents = SIZE(this%rdiag_coilg_1)
       ELSE
          num_currents = -1
@@ -564,7 +589,8 @@
 !-------------------------------------------------------------------------------
 
 !  Add plasma signals and induced signal to create total signal.
-      IF (this%use_coil_response) THEN
+      IF (BTEST(this%model_signal_flags,                                       &
+     &          magnetic_use_coil_response_flag)) THEN
          magnetic_get_modeled_signal(1) =                                      &
      &      SUM(magnetic_get_modeled_signal(2:3))
       ELSE
@@ -657,10 +683,8 @@
 
 !  Start of executable code
 
-      CALL MPI_BCAST(this%use_coil_response, data_name_length,                 &
-     &               MPI_LOGICAL, 0, intra_comm, error)
-      CALL MPI_BCAST(this%force_coil_reponse, data_name_length,                &
-     &               MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(this%model_signal_flags, 1, MPI_INTEGER, 0,               &
+     &               intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------
       CALL MPI_BCAST(this%code_name, data_name_length, MPI_CHARACTER, 0,       &
@@ -688,8 +712,6 @@
       CALL MPI_BCAST(this%rmax, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%n_field_periods, 1, MPI_INTEGER, 0,                  &
      &               intra_comm, error)
-      CALL MPI_BCAST(this%lstell_sym, 1, MPI_LOGICAL, 0, intra_comm,           &
-     &               error)
 
 !  Plasma Response Arrays ------------------------------------------------------
       dim_lengths = (/ this%ir, this%jz, this%kp_store /)
