@@ -1503,6 +1503,7 @@
          ALLOCATE(args(num_processes - 1,2))
          ALLOCATE(info(num_processes - 1))
          ALLOCATE(max_procs(num_processes - 1))
+         ALLOCATE(error_array(num_processes - 1))
 
          commands = TRIM(context%cl_parser%command)
          args(:,1) = temp_string
@@ -1540,6 +1541,7 @@
          DEALLOCATE(max_procs)
          DEALLOCATE(args)
          DEALLOCATE(commands)
+         DEALLOCATE(error_array)
       ELSE
 !  Processes were prespawned, change the working directory for the sub
 !  processes.

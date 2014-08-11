@@ -180,9 +180,9 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 ! local variables
-      CHARACTER(len=1), ALLOCATABLE  :: context(:)
-      INTEGER                        :: context_length
-      TYPE (sxrem_context)           :: sxr_context
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      TYPE (sxrem_context)                    :: sxr_context
 
 !  Start of executable code
       sxrem_get_modeled_signal = 0.0
