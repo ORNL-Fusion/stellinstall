@@ -31,6 +31,7 @@
 !>  operate v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
+!>  Stopping criteria for change in g^2.
          REAL (rprec)                                 :: recon_stop
 
 !>  File input output unit for the runlog file. This file is a human readable
