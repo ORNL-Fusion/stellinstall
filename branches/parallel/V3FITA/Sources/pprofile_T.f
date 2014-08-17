@@ -162,7 +162,10 @@
 
          CASE ('line_segment')
             pprofile_construct_new%p_type = pprofile_line_segment_type
-      
+
+         CASE ('none')
+            pprofile_construct_new%p_type = pprofile_none_type
+
          CASE DEFAULT
             pprofile_construct_new%p_type = pprofile_none_type
             WRITE(*,*) 'Unrecognized p_type:', p_type_lc

@@ -8,7 +8,7 @@
 !**                                                                  **
 !**     SUBPROGRAM DESCRIPTION:                                      **
 !**          v3fit uses diagnostic data to reconstruct a VMEC        **
-!**	     equilibrium that matches the data                           **
+!**          equilibrium that matches the data                       **
 !**                                                                  **
 !**     CALLING ARGUMENTS: This is a stand alone code                **
 !**          xv3fit arg1                                             **
@@ -480,6 +480,7 @@
 
 !  Start of executable code
       CALL v3fit_context_sync_children(context)
+      CALL init_magnetic_cache(context)
       CALL init_parameters(context)
       CALL init_reconstruction(context)
 
@@ -791,6 +792,7 @@
       USE file_opts
 
       IMPLICIT NONE
+
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
       INTEGER, INTENT(inout)                    :: signals_created
@@ -802,9 +804,7 @@
       INTEGER                                   :: mdsig_index
       CHARACTER (len=data_filename_length)      :: mdsig_path
       CHARACTER (len=data_filename_length)      :: mdsig_filename
-
       TYPE (magnetic_class), POINTER :: magnetic_object => null()
-!      LOGICAL                        :: first_run = .true.
 
 !  Start of executable code
       status = 0
@@ -857,23 +857,46 @@
 
          CALL cdf_close(mdsig_iou)
 
-!  If at lease one magnetic signal was made. Mark the index of it in the
-!  context and set the magnetic cache. This should only be run once.
-         IF (context%magnetic_index .eq. -1) THEN
-            context%magnetic_index = signals_created
-            IF (signals_created .gt. 0) THEN
-               magnetic_object =>                                              &
-     &            context%signals(1)%p%diagnostic%magnetic
-               CALL equilibrium_set_magnetic_cache(                            &
-     &                 context%model%equilibrium,                              &
-     &                 magnetic_object%kp, magnetic_object%kp_store,           &
-     &                 magnetic_object%n_field_periods)
-            END IF
-         END IF
-
       END DO
 
       CLOSE(mdsig_list_iou)
+
+!  Set the magnetic index to one is any signals were creates at this point.
+      IF (signals_created .gt. 0) THEN
+         context%magnetic_index = 1
+      END IF
+
+      CALL init_magnetic_cache(context)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Initialized the magnetic cache.
+!>
+!>  If at least one magnetic signal was constructed, initialize the magnetic
+!>  cache.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_magnetic_cache(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      TYPE (magnetic_class), POINTER :: magnetic_object => null()
+
+!  Start of executable code
+      IF (context%magnetic_index .gt. 0) THEN
+         magnetic_object => context%signals(1)%p%diagnostic%magnetic
+         CALL equilibrium_set_magnetic_cache(                                  &
+     &           context%model%equilibrium, magnetic_object%kp,                &
+     &           magnetic_object%kp_store,                                     &
+     &           magnetic_object%n_field_periods)
+      END IF
 
       END SUBROUTINE
 
@@ -1480,7 +1503,7 @@
 !  mode one process can use the main directory. Otherwise create one directory
 !  for each sub process and spawn a child process in it. If this point is
 !  reached and the size is greater than 1, we can assume that default was used.
-      temp_string = commandline_parser_get_string(context%cl_parser,             &
+      temp_string = commandline_parser_get_string(context%cl_parser,           &
      &                                          '-file')
       IF (mpi_rank .eq. 0) THEN
          DO i = 2, num_processes
@@ -1506,14 +1529,15 @@
          ALLOCATE(error_array(num_processes - 1))
 
          commands = TRIM(context%cl_parser%command)
+
          args(:,1) = temp_string
          IF (num_threads .lt. 0) THEN
             args(:,2) = '-para=-1'
          ELSE IF (num_threads .lt. 10) THEN
-            WRITE (temp_string, 1004) num_threads
+            WRITE (temp_string, 1001) num_threads
             args(:,2) = TRIM(temp_string)
          ELSE
-            WRITE (temp_string, 1005) num_threads
+            WRITE (temp_string, 1002) num_threads
             args(:,2) = TRIM(temp_string)
          END IF
 
@@ -1567,13 +1591,10 @@
 1000  FORMAT('Using ',i4,' threads.')
 
 !  Support up to 99 directories. need to add leading zeros to avoid spaces.
-1001  FORMAT(a11,'_0',i1)
-1002  FORMAT(a11,'_',i2)
+1001  FORMAT('-para=',i1)
+1002  FORMAT('-para=',i2)
 
 1003  FORMAT('Configured MPI process ',i2,' of ',i2)
-
-1004  FORMAT('-para=',i1)
-1005  FORMAT('-para=',i2)
 
       END SUBROUTINE
 

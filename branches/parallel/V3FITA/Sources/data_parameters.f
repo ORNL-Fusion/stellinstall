@@ -89,7 +89,7 @@
       INTEGER, INTENT(in)            :: rank
 
 !  Start of executable code
-      IF (rank .le. 10) THEN
+      IF (rank .lt. 10) THEN
          WRITE (process_dir, 1000) dir_prefix, rank
       ELSE
          WRITE (process_dir, 1001) dir_prefix, rank
