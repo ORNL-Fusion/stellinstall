@@ -302,7 +302,7 @@
      &               intra_comm, error)
       CALL MPI_BCAST(magnetic_construct_mpi%zmin, 1, MPI_REAL8, 0,             &
      &               intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%rmax, 1, MPI_REAL8, 0,             &
+      CALL MPI_BCAST(magnetic_construct_mpi%zmax, 1, MPI_REAL8, 0,             &
      &               intra_comm, error)
       CALL MPI_BCAST(magnetic_construct_mpi%n_field_periods, 1,                &
      &               MPI_INTEGER, 0, intra_comm, error)
@@ -709,7 +709,7 @@
       CALL MPI_BCAST(this%rmin, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%rmax, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%zmin, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%rmax, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%zmax, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%n_field_periods, 1, MPI_INTEGER, 0,                  &
      &               intra_comm, error)
 
