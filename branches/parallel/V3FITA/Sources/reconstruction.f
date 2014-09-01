@@ -870,8 +870,6 @@
 !  At this point, the computed jacobian rows should be returned to the parent
 !  process.
 #if defined(MPI_OPT)
-!  Make sure all jacobian rows are finished before continuing.
-      CALL MPI_BARRIER(intra_comm, error)
       CALL reconstruction_sync_parent(this, params, SIZE(signals),             &
      &                                SIZE(derived_params), stride,            &
      &                                offset, intra_comm)

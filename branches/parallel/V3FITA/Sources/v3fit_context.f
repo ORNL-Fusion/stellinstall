@@ -123,8 +123,11 @@
 !  local variables
       CHARACTER (len=data_filename_length) :: filename
       INTEGER                              :: status
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       filename = commandline_parser_get_string(cl_parser, '-file')
 
       ALLOCATE(v3fit_context_construct)
@@ -164,6 +167,8 @@
      &   '  Namelist Input from file ', TRIM(filename)
 
       v3fit_context_construct%cl_parser => cl_parser
+
+      CALL profiler_set_stop_time('v3fit_context_construct', start_time)
 
       END FUNCTION
 
@@ -283,8 +288,11 @@
       INTEGER                                      :: i
       INTEGER                                      :: minsize = 0
       TYPE (signal_pointer), DIMENSION(:), POINTER :: temp_signal
+      REAL (rprec)                                 :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Resizing context arrays'
       WRITE (this%runlog_iou,*) ' *** Resizing context arrays'
 
@@ -315,6 +323,8 @@
 
       END IF
 
+      CALL profiler_set_stop_time('v3fit_context_resize', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -344,11 +354,14 @@
       CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER ::                 &
      &   sem_header
       INTEGER, DIMENSION(:), ALLOCATABLE        :: indices
+      REAL (rprec)                              :: start_time
 
 !  local parameters
       CHARACTER (len=12), PARAMETER :: prefix = '            '
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Writing context to disk'
       WRITE (this%runlog_iou,*) ' *** Writing context to disk'
 
@@ -524,6 +537,8 @@
          END DO
       END IF
 
+      CALL profiler_set_stop_time('v3fit_context_write', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -561,8 +576,11 @@
 !  effectiveness matrix. Make the start of this string at least 26 characters.
       CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER :: header
       INTEGER                                   :: offset, j
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (this%recout_iou, *)
       WRITE (this%recout_iou, *) type_name
 
@@ -587,6 +605,9 @@
       WRITE (this%recout_iou, 1000) header(1:offset)
 
       DEALLOCATE(header)
+
+      CALL profiler_set_stop_time('v3fit_context_write_param_header',          &
+     &                            start_time)
 
 1000  FORMAT (a)
 1001  FORMAT (a,2x,a12)
@@ -693,7 +714,11 @@
       INTEGER :: signal_model_value_id
       INTEGER :: signal_sigma_value_id
 
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define dimensions
       status = nf_noerr
 
@@ -934,6 +959,8 @@
 
       CALL v3fit_context_write_step_data(this, .true.)
 
+      CALL profiler_set_stop_time('v3fit_context_init_data', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -972,7 +999,11 @@
       INTEGER :: signal_model_value_id
       INTEGER :: signal_sigma_value_id
 
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Update number of steps taken.
       status = nf_inq_varid(this%result_ncid, 'nsteps', nsteps_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -1083,6 +1114,9 @@
       status = nf_sync(this%result_ncid)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      CALL profiler_set_stop_time('v3fit_context_write_step_data',             &
+     &                            start_time)
+
       END SUBROUTINE
 
 !*******************************************************************************
@@ -1110,8 +1144,11 @@
       LOGICAL                                   :: needs_sync
       INTEGER                                   :: array_size
       INTEGER                                   :: i
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BARRIER(this%intra_comm, error)
 
 !  The MPI variables should not be synced. The command line parser, output files
@@ -1189,6 +1226,9 @@
             END IF
          END IF
       END IF
+
+      CALL profiler_set_stop_time('v3fit_context_sync_children',               &
+     &                            start_time)
 #endif
 
       END SUBROUTINE

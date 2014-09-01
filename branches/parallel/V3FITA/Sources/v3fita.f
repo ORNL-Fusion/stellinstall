@@ -227,8 +227,11 @@
 !  local variables
       INTEGER                                   :: num_steps = 1
       LOGICAL                                   :: converged
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** In task equilibrium'
       WRITE (context%runlog_iou,*) ' *** In task equilibrium'
 
@@ -243,6 +246,8 @@
      &                                 num_steps, context%runlog_iou)
 
       CALL v3fit_context_init_data(context)
+
+      CALL profiler_set_stop_time('task_equilibrium', start_time)
 
       END SUBROUTINE
 
@@ -267,8 +272,11 @@
       LOGICAL                                   :: converged
       INTEGER                                   :: i, last_para_signal
       REAL (rprec)                              :: g2
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** In task v3post'
       WRITE (context%runlog_iou,*) ' *** In task v3post'
 
@@ -319,6 +327,8 @@
 
       CALL v3fit_context_init_data(context)
 
+      CALL profiler_set_stop_time('task_v3post', start_time)
+
 1000  FORMAT('g^2 = ',es12.5)
 
       END SUBROUTINE
@@ -344,8 +354,11 @@
       INTEGER                                   :: i, error
       LOGICAL                                   :: eq_converged
       CHARACTER (len=dir_prefix_len)            :: directory
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** In task reconstruct'
 
 !  Initialize the reconstruction.
@@ -450,6 +463,8 @@
      &               context%intra_comm, error)
 #endif
 
+      CALL profiler_set_stop_time('task_reconstruct', start_time)
+
 1000  FORMAT('dg2_stop = ',es12.5,' change in g^2 = ',es12.5)
 1001  FORMAT('nrstep 'i4,' completed. May be reconstructed.')
 1002  FORMAT('  *** Reconstruction step ',i4)
@@ -520,7 +535,8 @@
      &                 context%runlog_iou, context%intra_comm)
 
             CASE (mpi_quit_task)
-               EXIT
+               CALL cleanup_parallelism(context)
+               STOP
 
             CASE DEFAULT
                WRITE (*,*) 'Unknown MPI task.'
@@ -610,8 +626,11 @@
 
 !  local variables
       LOGICAL                                   :: force_solve
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing equilibrium model'
       WRITE (context%runlog_iou,*) ' *** Constructing equilibrium model'
 
@@ -627,6 +646,8 @@
          CALL init_vacuum_equilibrium(context, force_solve)
          RETURN
       END IF
+
+      CALL profiler_set_stop_time('init_equilibrium', start_time)
 
       END SUBROUTINE
 
@@ -652,8 +673,11 @@
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
       INTEGER                                        :: i
       LOGICAL                                        :: not_converged
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(sxr(num_sxrem_p))
       DO i = 1, num_sxrem_p
          sxr(i)%p => pprofile_construct(TRIM(pp_sxrem_ptype_a(i)),             &
@@ -678,6 +702,8 @@
      &         phi_offset, z_offset, pol_rad_ratio,                            &
      &         context%runlog_iou), force_solve, not_converged))
 
+      CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -698,7 +724,11 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
       LOGICAL, INTENT(in)                       :: force_solve
 
+!  local variables
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
@@ -706,6 +736,8 @@
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve))
+
+      CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
 
       END SUBROUTINE
 
@@ -726,8 +758,11 @@
 
 !  local variables
       INTEGER                                   :: signals_created = 0
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (na_s_desc .eq. 0) THEN
          CALL err_warn('init_signals: no signals will be created. ' //         &
      &                 'na_s_desc = 0')
@@ -772,6 +807,8 @@
 
       CALL v3fit_context_resize(context)
 
+      CALL profiler_set_stop_time('init_signals', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -805,8 +842,11 @@
       CHARACTER (len=data_filename_length)      :: mdsig_path
       CHARACTER (len=data_filename_length)      :: mdsig_filename
       TYPE (magnetic_class), POINTER :: magnetic_object => null()
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = 0
       mdsig_list_iou = 0
 
@@ -868,6 +908,8 @@
 
       CALL init_magnetic_cache(context)
 
+      CALL profiler_set_stop_time('init_magnetic_signals', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -888,8 +930,11 @@
 
 !  local variables
       TYPE (magnetic_class), POINTER :: magnetic_object => null()
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (context%magnetic_index .gt. 0) THEN
          magnetic_object => context%signals(1)%p%diagnostic%magnetic
          CALL equilibrium_set_magnetic_cache(                                  &
@@ -897,6 +942,8 @@
      &           magnetic_object%kp_store,                                     &
      &           magnetic_object%n_field_periods)
       END IF
+
+      CALL profiler_set_stop_time('init_magnetic_cache', start_time)
 
       END SUBROUTINE
 
@@ -920,7 +967,12 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
       INTEGER, INTENT(inout)                    :: signals_created
 
+!  local variables
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing sxrem signals from ' //                   &
      &            TRIM(sxrch_dot_filename)
       WRITE (context%runlog_iou,*) ' *** Constructing sxrem ' //               &
@@ -931,6 +983,8 @@
       CALL sxrch_dot_read(sxrch_dot_filename, context%signals,                 &
      &                    signals_created, sdo_data_a, sdo_sigma_a,            &
      &                    sdo_weight_a, context%sxrem_index)
+
+      CALL profiler_set_stop_time('init_sxrem_signals', start_time)
 
       END SUBROUTINE
 
@@ -954,7 +1008,12 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
       INTEGER, INTENT(inout)                    :: signals_created
 
+!  local variables
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing intpol signals from ' //                  &
      &            TRIM(ipch_dot_filename)
       WRITE (context%runlog_iou,*) ' *** Constructing intpol ' //              &
@@ -965,6 +1024,8 @@
       CALL ipch_dot_read(ipch_dot_filename, context%signals,                   &
      &                   signals_created, sdo_data_a, sdo_sigma_a,             &
      &                   sdo_weight_a, context%intpol_index)
+
+      CALL profiler_set_stop_time('init_intpol_signals', start_time)
 
       END SUBROUTINE
 
@@ -988,7 +1049,12 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
       INTEGER, INTENT(inout)                    :: signals_created
 
+!  local variables
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing thomson signals from ' //                 &
      &            TRIM(thscte_dot_filename)
       WRITE (context%runlog_iou,*) ' *** Constructing thomson ' //             &
@@ -1000,6 +1066,8 @@
       CALL thscte_dot_read(thscte_dot_filename, context%signals,               &
      &                     signals_created, sdo_data_a, sdo_sigma_a,           &
      &                     sdo_weight_a, context%thomson_index)
+
+      CALL profiler_set_stop_time('init_thomson_signals', start_time)
 
       END SUBROUTINE
 
@@ -1022,7 +1090,12 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
       INTEGER, INTENT(inout)                    :: signals_created
 
+!  local variables
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing extcurz signals'
       WRITE (context%runlog_iou,*) ' *** Constructing extcurz signals'
 
@@ -1047,6 +1120,8 @@
       IF (context%extcurz_index .eq. -1) THEN
          context%extcurz_index = signals_created
       END IF
+
+      CALL profiler_set_stop_time('init_extcurz_signals', start_time)
 
       END SUBROUTINE
 
@@ -1074,8 +1149,11 @@
       CHARACTER (len=data_short_name_length)    :: s_name = ''
       CHARACTER (len=data_name_length)          :: l_name = ''
       INTEGER                                   :: num_phi
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing geometric signals'
       WRITE (context%runlog_iou,*) ' *** Constructing geometric signals'
 
@@ -1123,6 +1201,8 @@
 
       END DO
 
+      CALL profiler_set_stop_time('init_geometric_signals', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1145,8 +1225,11 @@
 
 !  local variables
       INTEGER                                   :: i
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing prior signals'
       WRITE (context%runlog_iou,*) ' *** Constructing prior signals'
 
@@ -1184,6 +1267,8 @@
 
       END DO
 
+      CALL profiler_set_stop_time('init_prior_signals', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1205,8 +1290,11 @@
 !  local variables
       INTEGER                                   :: i, j
       TYPE (combination_class), POINTER         :: combination_signal
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing combination signals'
       WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
      &                             'combination signals'
@@ -1249,11 +1337,14 @@
 
 !  At lease one combination signal was made. Mark the index of it in the
 !  context. This should only be run once.
-      IF (context%combination_index .eq. -1) THEN
-         context%combination_index = signals_created
-      END IF
+         IF (context%combination_index .eq. -1) THEN
+            context%combination_index = signals_created
+         END IF
 
       END DO
+
+      CALL profiler_set_stop_time('init_combination_signals',                  &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -1275,8 +1366,11 @@
 
 !  local variables
       INTEGER                                   :: i
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Constructing reconstruction parameters'
       WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
      &                             'reconstruction parameters'
@@ -1305,6 +1399,8 @@
 
       END DO
 
+      CALL profiler_set_stop_time('init_parameters', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1322,8 +1418,11 @@
 
 !  local variables
       INTEGER                                   :: last_para_signal
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  The combination signals cannot be computed in parallel since the depend on
 !  other signals previously computed. If combinations are used, the signals need
 !  to be split into two loops.
@@ -1341,6 +1440,8 @@
      &                    step_type, astep_max, cut_svd, cut_eff,              &
      &                    cut_marg_eff, cut_delta_a, cut_dg2,                  &
      &                    last_para_signal)
+
+      CALL profiler_set_stop_time('init_reconstruction', start_time)
 
       END SUBROUTINE
 
@@ -1405,6 +1506,7 @@
       CHARACTER (len=dir_prefix_len)            :: directory_name
       CHARACTER (len=data_filename_length)      :: temp_string
 #endif
+      REAL (rprec)                              :: start_time
 
 !  Forward declare the interface for OMP_GET_MAX_THREADS. This explicitly
 !  defined the type for OMP_GET_MAX_THREADS to avoid a compiler error.
@@ -1415,6 +1517,8 @@
 !$    END INTERFACE
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Configuring parallelism.'
 
 !-- OpenMP ---------------------------------------------------------------------
@@ -1587,6 +1691,8 @@
 
       CALL MPI_BARRIER(context%intra_comm, error)
 #endif
+
+      CALL profiler_set_stop_time('config_parallelism', start_time)
 
 1000  FORMAT('Using ',i4,' threads.')
 
