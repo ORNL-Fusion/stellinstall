@@ -1195,6 +1195,7 @@
 !  local variables
       INTEGER                           :: error
       INTEGER                           :: mpi_size
+      INTEGER                           :: mpi_request
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
@@ -1202,8 +1203,11 @@
 
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
 
-      CALL MPI_SEND(this%delta, 1, MPI_REAL8, 0, index, intra_comm,            &
-     &              error)
+!  Must use a non blocking send here because we are sending messages from the
+!  main process to itself or need to send multiple sends before the first
+!  recieve. Other wise it could block until a recieve request is called.
+      CALL MPI_ISEND(this%delta, 1, MPI_REAL8, 0, index, intra_comm,           &
+     &               mpi_request, error)
 
       CALL profiler_set_stop_time('param_send_delta', start_time)
 #endif

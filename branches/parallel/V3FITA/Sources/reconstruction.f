@@ -1002,17 +1002,12 @@
      &                    this%e(this%current_step,:))
 
 !  Peform pseudo-inversion for successive numbers of singular values retained
-!$OMP PARALLEL DO
-!$OMP& SCHEDULE(STATIC)
-!$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(temp_work3,i)
       DO i = 1, SIZE(this%j_svd_w)
          temp_work3(1:i) = temp_work(1:i)*temp_work2(1:i)
          temp_work3(i + 1:SIZE(params)) = 0.0
          this%delta_a(i,:) = MATMUL(TRANSPOSE(this%j_svd_vt),                  &
      &                              temp_work3)
       END DO
-!$OMP END PARALLEL DO
 
       DEALLOCATE(temp_work)
       DEALLOCATE(temp_work2)

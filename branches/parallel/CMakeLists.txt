@@ -35,6 +35,9 @@ if (MPI_Fortran_FOUND)
 	add_definitions (-DMPI_OPT)
 	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAGS}")
 	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
+
+# When using ifort, the MPI_Fortran_INCLUDE_PATH includes an entry for the gfortran module files. Fix this by reversing the order of the paths.
+	list (REVERSE MPI_Fortran_INCLUDE_PATH)
 	include_directories (${MPI_Fortran_INCLUDE_PATH})
 endif ()
 

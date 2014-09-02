@@ -65,8 +65,7 @@ elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
 	fi
 
 	echo " `basename $0`: running cmake."
-	cmake -DEXTRA_RELEASE_FLAGS="-fp-model precise"    \
-	      -DEXTRA_FLAGS=-openmp                        \
+	cmake -DEXTRA_FLAGS=-openmp                        \
 	      -DNETCDF_INC_PATH=/usr/local/netcdf/include/ \
 	      -DNETCDF_LIB_PATH=/usr/local/netcdf/lib/     \
 	      -DCMAKE_BUILD_TYPE=$BUILD_TYPE               \
