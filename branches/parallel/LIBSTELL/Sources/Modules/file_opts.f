@@ -284,4 +284,25 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Change working directory
+!>
+!>  Changes the current working directory of the running process. CHDIR is an
+!>  extension on many compilers. Check for compatability.
+!>
+!>  @param[in] path Path of the working directory to change to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE change_directory(path, error)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: path
+      INTEGER, INTENT(out)          :: error
+
+!  local parameters
+      error = CHDIR(TRIM(path))
+
+      END SUBROUTINE
+
       END MODULE

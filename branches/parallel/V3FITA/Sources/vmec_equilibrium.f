@@ -24,23 +24,24 @@
 !>  reconstructed that change the equilibirum. These parameters require
 !>  the equilibrium to reconverge.
 !>  @begin_table
-!>     @item{ac,          1D Array of function current profile parameters.,     @ref vmec_input::ac}
-!>     @item{ac_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::ac_aux_s}
-!>     @item{ac_aux_f,    1D Array of segment current profile f values.,        @ref vmec_input::ac_aux_f}
-!>     @item{ai,          1D Array of function current profile parameters.,     @ref vmec_input::ai}
-!>     @item{ai_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::ai_aux_s}
-!>     @item{ai_aux_f,    1D Array of segment current profile f values.,        @ref vmec_input::ai_aux_f}
-!>     @item{am,          1D Array of function current profile parameters.,     @ref vmec_input::am}
-!>     @item{am_aux_s,    1D Array of segment current profile s poitions.,      @ref vmec_input::am_aux_s}
-!>     @item{am_aux_f,    1D Array of segment current profile f values.,        @ref vmec_input::am_aux_f}
-!>     @item{bloat,       Extends the field into the vacuum region.,            @ref vmec_input::bloat}
-!>     @item{rbc,         2D Array of outer boundary R cosine coeffiecents.,    @ref vmec_input::rbc}
-!>     @item{zbs,         2D Array of outer boundary Z sine coeffiecents.,      @ref vmec_input::zbs}
-!>     @item{rbs,         2D Array of outer boundary R sine coeffiecents.,      @ref vmec_input::rbs}
-!>     @item{zbc,         2D Array of outer boundary Z cosine coeffiecents.,    @ref vmec_input::zbc}
-!>     @item{extcur,      1D Array of external currents.,                       @ref vmec_input::extcur}
-!>     @item{phiedge,     The edge magnetic flux.,                              @ref vmec_input::phiedge}
-!>     @item{pres_scale,  The scaling parameter for the pressure.,              @ref vmec_input::pres_scale}
+!>     @item{ac,         1D Array of function current profile parameters.,  @ref vmec_input::ac}
+!>     @item{ac_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::ac_aux_s}
+!>     @item{ac_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::ac_aux_f}
+!>     @item{ai,         1D Array of function current profile parameters.,  @ref vmec_input::ai}
+!>     @item{ai_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::ai_aux_s}
+!>     @item{ai_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::ai_aux_f}
+!>     @item{am,         1D Array of function current profile parameters.,  @ref vmec_input::am}
+!>     @item{am_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::am_aux_s}
+!>     @item{am_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::am_aux_f}
+!>     @item{bloat,      Extends the field into the vacuum region.,         @ref vmec_input::bloat}
+!>     @item{rbc,        2D Array of outer boundary R cosine coeffiecents., @ref vmec_input::rbc}
+!>     @item{zbs,        2D Array of outer boundary Z sine coeffiecents.,   @ref vmec_input::zbs}
+!>     @item{rbs,        2D Array of outer boundary R sine coeffiecents.,   @ref vmec_input::rbs}
+!>     @item{zbc,        2D Array of outer boundary Z cosine coeffiecents., @ref vmec_input::zbc}
+!>     @item{extcur,     1D Array of external currents.,                    @ref vmec_input::extcur}
+!>     @item{curtor,     Toroidal current.,                                 @ref vmec_input::curtor}
+!>     @item{phiedge,    The edge magnetic flux.,                           @ref vmec_input::phiedge}
+!>     @item{pres_scale, The scaling parameter for the pressure.,           @ref vmec_input::pres_scale}
 !>  @end_table
 !>  @subsection vmec_equilibrium_aux_recon_param_sec VMEC Auxiliary Reconstruction Parameters
 !>  VMEC Auxiliary reconstruction parameters are parameters that maybe

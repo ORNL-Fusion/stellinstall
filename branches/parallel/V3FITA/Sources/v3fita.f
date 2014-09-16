@@ -1584,10 +1584,20 @@
             num_processes = mpi_size
          END IF
       ELSE
-!  This must be a child process. Merge the communicators and reread the rank.
-         CALL MPI_INTERCOMM_MERGE(parent_comm, .true.,                         &
+
+!  This must be a child process. Check to see if it was spawned from a parent or
+!  created manually.
+         IF (parent_comm .eq. MPI_COMM_NULL) THEN
+!  This was a manually create process. Set the intra_comm to the world
+!  communicator. There is no need to reset the rank.
+            context%intra_comm = MPI_COMM_WORLD
+         ELSE
+!  This was a spawned process. Merge the communicator and reset the rank.
+            CALL MPI_INTERCOMM_MERGE(parent_comm, .true.,                      &
      &                            context%intra_comm, error)
-         CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
+            CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
+
+         END IF
       END IF
 
 !  MPI parallelization is only implemented for specific tasks. If the root task
@@ -1670,13 +1680,16 @@
          DEALLOCATE(args)
          DEALLOCATE(commands)
          DEALLOCATE(error_array)
-      ELSE
-!  Processes were prespawned, change the working directory for the sub
-!  processes.
       END IF
 
 !  Wait for all processes to reach this point.
       CALL MPI_BARRIER(context%intra_comm, error)
+
+!  If the processes were created externally change the directory to the newly
+!  created directory.
+      IF ((parent_comm .eq. MPI_COMM_NULL) .and. (mpi_rank .gt. 0)) THEN
+         CALL change_directory(process_dir(mpi_rank + 1), error)
+      END IF
 
 !  At this point all processes should be made and ready. Get teh final size and
 !  ranks. Set the task for the sub processes.
