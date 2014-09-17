@@ -21,7 +21,7 @@ project (v3fit_suite Fortran C CXX)
 enable_testing ()
 
 # Add the ability to auto generate API documentation with Doxygen
-find_package(Doxygen)
+find_package (Doxygen)
 if (DOXYGEN_FOUND)
 	configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile @ONLY)
 	add_custom_target (doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile 
@@ -30,14 +30,18 @@ if (DOXYGEN_FOUND)
 endif ()
 
 # Configure MPI
-find_package (MPI)
+# If using the compiler wrapper, there is no need to find the MPI libraries.
+get_filename_component (compiler ${CMAKE_Fortran_COMPILER} NAME)
+if (${compiler} STREQUAL mpiifort)
+	add_definitions (-DMPI_OPT)
+else ()
+	find_package (MPI)
+endif ()
+
 if (MPI_Fortran_FOUND)
 	add_definitions (-DMPI_OPT)
 	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAGS}")
 	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
-
-# When using ifort, the MPI_Fortran_INCLUDE_PATH includes an entry for the gfortran module files. Fix this by reversing the order of the paths.
-	list (REVERSE MPI_Fortran_INCLUDE_PATH)
 	include_directories (${MPI_Fortran_INCLUDE_PATH})
 endif ()
 
