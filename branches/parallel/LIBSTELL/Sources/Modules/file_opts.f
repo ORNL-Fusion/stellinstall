@@ -294,6 +294,10 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE change_directory(path, error)
 
+#if defined(__INTEL_COMPILER)
+      USE IFLPORT
+#endif
+
       IMPLICIT NONE
 
 !  Declare Arguments
