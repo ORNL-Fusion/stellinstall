@@ -181,7 +181,12 @@
       REAL(rprec), INTENT(in)             :: sigma
       REAL(rprec), INTENT(in)             :: weight
 
+!  local variables
+      REAL (rprec)                        :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(signal_construct_diagnostic)
 
       signal_construct_diagnostic%type = signal_diagnostic_type
@@ -194,6 +199,9 @@
       signal_construct_diagnostic%diagnostic => diagnostic_object
       signal_construct_diagnostic%modeled = 0.0
       signal_construct_diagnostic%modeled_sigma = 0.0
+
+      CALL profiler_set_stop_time('signal_construct_diagnostic',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -227,7 +235,12 @@
       REAL(rprec), INTENT(in)            :: sigma
       REAL(rprec), INTENT(in)            :: weight
 
+!  local variables
+      REAL (rprec)                       :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(signal_construct_geometric)
 
       signal_construct_geometric%type = signal_geometric_type
@@ -240,6 +253,9 @@
       signal_construct_geometric%geometric => geometric_object
       signal_construct_geometric%modeled = 0.0
       signal_construct_geometric%modeled_sigma = 0.0
+
+      CALL profiler_set_stop_time('signal_construct_geometric',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -272,7 +288,12 @@
       REAL(rprec), INTENT(in)            :: sigma
       REAL(rprec), INTENT(in)            :: weight
 
+!  local variables
+      REAL (rprec)                       :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(signal_construct_prior)
 
       signal_construct_prior%type = signal_prior_type
@@ -285,6 +306,8 @@
       signal_construct_prior%prior => prior_object
       signal_construct_prior%modeled = 0.0
       signal_construct_prior%modeled_sigma = 0.0
+
+      CALL profiler_set_stop_time('signal_construct_prior', start_time)
 
       END FUNCTION
 
@@ -313,14 +336,19 @@
 !  Declare Arguments
       TYPE (signal_class), POINTER :: signal_construct_combination
       TYPE (combination_class), POINTER :: combination_object
-      CHARACTER(len=*), INTENT(in) :: s_name
-      CHARACTER(len=*), INTENT(in) :: l_name
-      CHARACTER(len=*), INTENT(in) :: units
-      REAL(rprec), INTENT(in)      :: observed
-      REAL(rprec), INTENT(in)      :: sigma
-      REAL(rprec), INTENT(in)      :: weight
+      CHARACTER(len=*), INTENT(in)      :: s_name
+      CHARACTER(len=*), INTENT(in)      :: l_name
+      CHARACTER(len=*), INTENT(in)      :: units
+      REAL(rprec), INTENT(in)           :: observed
+      REAL(rprec), INTENT(in)           :: sigma
+      REAL(rprec), INTENT(in)           :: weight
+
+!  local variables
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(signal_construct_combination)
 
       signal_construct_combination%type = signal_combination_type
@@ -333,6 +361,9 @@
       signal_construct_combination%combination => combination_object
       signal_construct_combination%modeled = 0.0
       signal_construct_combination%modeled_sigma = 0.0
+
+      CALL profiler_set_stop_time('signal_construct_combination',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -359,29 +390,35 @@
 !  Declare Arguments
       TYPE (signal_class), POINTER :: signal_construct_diagnostic_netcdf
       TYPE (diagnostic_class), POINTER :: diagnostic_object
-      INTEGER, INTENT(in)                      :: mdsig_iou
-      REAL(rprec), INTENT(in)                  :: observed
-      REAL(rprec), INTENT(in)                  :: sigma
-      REAL(rprec), INTENT(in)                  :: weight
+      INTEGER, INTENT(in)                    :: mdsig_iou
+      REAL(rprec), INTENT(in)                :: observed
+      REAL(rprec), INTENT(in)                :: sigma
+      REAL(rprec), INTENT(in)                :: weight
 
 !  local variables
-      CHARACTER (len=data_short_name_length)   :: s_name
-      CHARACTER (len=data_name_length)         :: l_name
-      CHARACTER (len=data_short_name_length)   :: units
+      CHARACTER (len=data_short_name_length) :: s_name
+      CHARACTER (len=data_name_length)       :: l_name
+      CHARACTER (len=data_short_name_length) :: units
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL cdf_read(mdsig_iou, 'diagnostic_desc_s_name', s_name)
       CALL cdf_read(mdsig_iou, 'diagnostic_desc_l_name', l_name)
       CALL cdf_read(mdsig_iou, 'diagnostic_desc_units', units)
 
-      signal_construct_diagnostic_netcdf =>                                     &
-     &   signal_construct(diagnostic_object, s_name, l_name, units,             &
+      signal_construct_diagnostic_netcdf =>                                    &
+     &   signal_construct(diagnostic_object, s_name, l_name, units,            &
      &                   observed, sigma, weight)
+
+      CALL profiler_set_stop_time('signal_construct_diagnostic_netcdf',        &
+     &                            start_time)
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref prior_class object by syncing through mpi.
+!>  @brief Construct a @ref signal_class object by syncing through mpi.
 !>
 !>  Allocates memory and initializes a @ref prior_class object. Combination
 !>  signals do not get synced because they reference pointers to previously
@@ -534,7 +571,12 @@
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
       LOGICAL, INTENT(in)                     :: use_cache
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (use_cache) THEN
          sigma = this%modeled_sigma
          signal_get_modeled_signal = this%modeled
@@ -567,6 +609,9 @@
 
       END IF
 
+      CALL profiler_set_stop_time('signal_get_modeled_signal',                 &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -592,11 +637,16 @@
       TYPE (model_class), INTENT(inout)  :: a_model
       LOGICAL, INTENT(in)                :: use_cache
 
-!  Local Variables
+!  local Variables
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
       signal_get_g2 = signal_get_e(this, a_model, use_cache)**2.0
+
+      CALL profiler_set_stop_time('signal_get_g2', start_time)
 
       END FUNCTION
 
@@ -623,11 +673,14 @@
       TYPE (model_class), INTENT(inout)  :: a_model
       LOGICAL, INTENT(in)                :: use_cache
 
-!  Local Variables
+!  local Variables
       REAL (rprec), DIMENSION(4)         :: modeled_signal
       REAL (rprec), DIMENSION(4)         :: modeled_sigma
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
      &                                           modeled_sigma,                &
      &                                           use_cache)
@@ -635,6 +688,8 @@
 !  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
       signal_get_e = (this%observed - modeled_signal(1))                       &
      &             * SQRT(this%weight/signal_get_sigma2(this))
+
+      CALL profiler_set_stop_time('signal_get_e', start_time)
 
       END FUNCTION
 
@@ -657,10 +712,17 @@
       REAL (rprec)                    :: signal_get_sigma2
       TYPE (signal_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  sigma_o^2 + sigma_m^2)
       signal_get_sigma2 = this%observed_sigma**2.0                             &
      &                  + this%modeled_sigma(1)**2.0
+
+      CALL profiler_set_stop_time('signal_get_sigma2', start_time)
 
       END FUNCTION
 
@@ -687,7 +749,12 @@
       CHARACTER (len=data_name_length) :: signal_get_signal_type
       TYPE (signal_class), INTENT(in)  :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (signal_diagnostic_type)
@@ -707,6 +774,8 @@
      &         TRIM(combination_get_signal_type(this%combination))
 
       END SELECT
+
+      CALL profiler_set_stop_time('signal_get_signal_type', start_time)
 
       END FUNCTION
 
@@ -732,9 +801,14 @@
 !  Declare Arguments
       CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   signal_get_header
-      TYPE (signal_class), INTENT(in) :: this
+      TYPE (signal_class), INTENT(in)                :: this
+
+!  local variables
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (signal_diagnostic_type)
@@ -750,6 +824,8 @@
             signal_get_header = combination_get_header(this%combination)
 
       END SELECT
+
+      CALL profiler_set_stop_time('signal_get_header', start_time)
 
       END FUNCTION
 
@@ -775,7 +851,12 @@
       CHARACTER (len=*), INTENT(in)          :: name
       INTEGER, INTENT(in)                    :: index
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Find the number of digits in the index
       IF (index .lt. 10) THEN
          WRITE(signal_make_short_name,'(a,i1)') TRIM(name), index
@@ -786,6 +867,8 @@
       ELSE
          WRITE(signal_make_short_name,'(a,i4)') TRIM(name), index
       END IF
+
+      CALL profiler_set_stop_time('signal_make_short_name', start_time)
 
       END FUNCTION
 
@@ -814,11 +897,18 @@
       INTEGER, INTENT(in)                :: index
       TYPE (model_class), INTENT(inout)  :: a_model
 
+!  local variables
+      REAL (rprec)                       :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,1000) index, signal_get_signal_type(this), this%s_name,       &
      &                 signal_get_g2(this, a_model, .true.),                   &
      &                 this%weight, this%observed, this%observed_sigma,        &
      &                 this%modeled, this%modeled_sigma
+
+      CALL profiler_set_stop_time('signal_write', start_time)
 
 1000  FORMAT(i4,2x,a23,2x,a20,12(2x,es12.5))
 
@@ -842,9 +932,16 @@
       TYPE (signal_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: iou
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,1000) signal_get_header(this)
+
+      CALL profiler_set_stop_time('signal_write_header', start_time)
 
 1000  FORMAT(3x,'#',2x,'type',21x,'s_name',16x,'g^2',11x,'weight',8x,          &
      &       'observed',6x,'sigma', 9x,'model',7x,2(2x,a12),7(2x,a12))
@@ -876,7 +973,12 @@
       INTEGER, INTENT(in)             :: index
       TYPE (model_class), INTENT(in)  :: a_model
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (signal_prior_type)
@@ -886,6 +988,8 @@
          CASE (signal_combination_type)
             CALL combination_write_auxiliary(this%combination,                 &
      &                                       iou, index)
+
+      CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
 
       END SELECT
 
@@ -932,8 +1036,11 @@
       INTEGER                            :: status
       REAL (rprec), DIMENSION(4)         :: modeled_sigma
       REAL (rprec), DIMENSION(4)         :: modeled_signal
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
      &                                           modeled_sigma, .true.)
 
@@ -946,6 +1053,8 @@
      &                            (/ index, current_step /),                   &
      &                            SQRT(signal_get_sigma2(this)))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
 
       END SUBROUTINE
 
@@ -974,8 +1083,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                            :: error
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%s_name, data_short_name_length, MPI_CHARACTER,       &
      &               0, intra_comm, error)
@@ -1004,6 +1116,7 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('signal_sync_children', start_time)
 #endif
 
       END SUBROUTINE
@@ -1043,8 +1156,11 @@
 
 !  Local Variables
       INTEGER                           :: status
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(combination_construct)
 
       ALLOCATE(combination_construct%signals(n_signals),                       &
@@ -1061,6 +1177,8 @@
             combination_construct%type = combination_min
 
       END SELECT
+
+      CALL profiler_set_stop_time('combination_construct', start_time)
 
       END FUNCTION
 
@@ -1084,7 +1202,7 @@
       TYPE (combination_class), POINTER :: this
 
 !  Local Variables
-      INTEGER                                          :: i
+      INTEGER                           :: i
 
 !  Start of executable code
 
@@ -1124,11 +1242,16 @@
       INTEGER, INTENT(in)                      :: index
       REAL (rprec), INTENT(in)                 :: a
 
-!  Local Variables
+!  local Variables
+      REAL (rprec)                             :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       this%a(index) = a
       this%signals(index)%p => signal
+
+      CALL profiler_set_stop_time('combination_set_signal', start_time)
 
       END SUBROUTINE
 
@@ -1159,8 +1282,11 @@
 !  Local Variables
       INTEGER                                 :: i
       REAL (rprec), DIMENSION(4)              :: sigma_local
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       combination_get_modeled_signal =                                         &
      &   this%a(1)*signal_get_modeled_signal(this%signals(1)%p, a_model,       &
      &                                       sigma, .true.)
@@ -1201,6 +1327,9 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('combination_get_modeled_signal',            &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1220,7 +1349,12 @@
       CHARACTER (len=data_name_length) :: combination_get_signal_type
       TYPE (combination_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
          CASE (combination_sum)
             combination_get_signal_type = 'coosig sum'
@@ -1232,6 +1366,9 @@
             combination_get_signal_type = 'coosig min'
 
       END SELECT
+
+      CALL profiler_set_stop_time('combination_get_signal_type',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1253,7 +1390,12 @@
      &   combination_get_header
       TYPE (combination_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       combination_get_header(1) = 'model(2)'
       combination_get_header(2) = 'model(3)'
       combination_get_header(3) = 'model(4)'
@@ -1261,6 +1403,8 @@
       combination_get_header(5) = 'model_sig(2)'
       combination_get_header(6) = 'model_sig(3)'
       combination_get_header(7) = 'model_sig(4)'
+
+      CALL profiler_set_stop_time('combination_get_header', start_time)
 
       END FUNCTION
 
@@ -1287,8 +1431,11 @@
 
 !  local variables
       INTEGER                              :: i
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,1000) index, combination_get_signal_type(this)
       WRITE (iou,1001)
@@ -1296,6 +1443,9 @@
       DO i = 1, SIZE(this%signals)
          WRITE (iou,1002) i, this%signals(i)%p%s_name, this%a(i)
       END DO
+
+      CALL profiler_set_stop_time('combination_write_auxiliary',               &
+     &                            start_time)
 
 1000  FORMAT('Signal',1x,i4,1x,                                                &
      &       'is a combination of other signals, type: ',a)

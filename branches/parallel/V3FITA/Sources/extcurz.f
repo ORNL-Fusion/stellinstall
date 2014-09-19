@@ -18,6 +18,7 @@
 #if defined (MPI_OPT)
       USE mpi
 #endif
+      USE profiler
 
       IMPLICIT NONE
 
@@ -71,10 +72,17 @@
       REAL(rprec), INTENT(in)        :: r
       REAL(rprec), INTENT(in)        :: theta
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(extcurz_construct_new)
       extcurz_construct_new%r = r
       extcurz_construct_new%theta = theta
+
+      CALL profiler_set_stop_time('extcurz_construct_new', start_time)
 
       END FUNCTION
 
@@ -162,7 +170,12 @@
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       extcurz_get_modeled_signal = 0.0
 
       extcurz_get_modeled_signal(1) =                                          &
@@ -170,6 +183,9 @@
      &                              this%theta)/mu0
 
       sigma = 0
+
+      CALL profiler_set_stop_time('extcurz_get_modeled_signal',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -190,8 +206,15 @@
       CHARACTER (len=data_name_length) :: extcurz_get_signal_type
       TYPE (extcurz_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       extcurz_get_signal_type = 'extcur'
+
+      CALL profiler_set_stop_time('extcurz_get_signal_type', start_time)
 
       END FUNCTION
 
@@ -218,11 +241,15 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                            :: error
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%r, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%theta, 1, MPI_REAL8, 0, intra_comm, error)
 
+      CALL profiler_set_stop_time('extcurz_sync_children', start_time)
 #endif
 
       END SUBROUTINE

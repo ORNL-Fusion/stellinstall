@@ -95,7 +95,6 @@
 
       USE stel_kinds
       USE stel_constants
-      USE sxrch_T
       USE signal_dot
 
       IMPLICIT NONE
@@ -147,8 +146,11 @@
      &   sxrchd_keyword
       TYPE(signal_dot_file)                 :: sxrch_dot_file_ref
       INTEGER                               :: current_profile
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Initialize the keywords
       sxrchd_keyword(1) = 'sxr_chord_XYZ'
       sxrchd_keyword(2) = 'sxr_chord_RPhiDegZ'
@@ -197,6 +199,8 @@
 
 !  Close the 'sxrch.' file
       CALL signal_dot_close(sxrch_dot_file_ref)
+
+      CALL profiler_set_stop_time('sxrch_dot_read', start_time)
 
       END SUBROUTINE
 
@@ -249,10 +253,13 @@
       INTEGER, INTENT(inout)                 :: first_index
 
 !  local variables
-      REAL(rprec), DIMENSION(3)      :: xcart_i, xcart_f
-      CHARACTER (len=chord_name_len) :: chord_name
+      REAL(rprec), DIMENSION(3)              :: xcart_i, xcart_f
+      CHARACTER (len=data_short_name_length) :: chord_name
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
          CALL err_fatal('sxrch_dot_parse_chord_new: created signals' //        &
@@ -277,6 +284,8 @@
       IF (first_index .eq. -1) THEN
          first_index = signals_created
       END IF
+
+      CALL profiler_set_stop_time('sxrch_dot_parse_chord', start_time)
 
       END SUBROUTINE
 

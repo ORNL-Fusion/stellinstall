@@ -196,8 +196,11 @@
 !  local variables
       INTEGER                                       :: i, grid_size
       REAL (rprec)                                  :: grid_stop
+      REAL (rprec)                                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(model_construct_new)
 
       SELECT CASE (TRIM(ADJUSTL(ne_type)))
@@ -287,6 +290,8 @@
      &                                           grid_size))
          ALLOCATE(model_construct_new%te_grid(grid_size))
       END IF
+
+      CALL profiler_set_stop_time('model_construct_new', start_time)
 
       END FUNCTION
 
@@ -434,7 +439,12 @@
       INTEGER, INTENT(in)               :: j_index
       REAL (rprec), INTENT(in)          :: value
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
@@ -451,6 +461,8 @@
      &                                 i_index, j_index, value)
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_set_param', start_time)
 
       END SUBROUTINE
 
@@ -476,7 +488,12 @@
       TYPE (model_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in)  :: param_name
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (TRIM(param_name))
 
          CASE ('ne_unit')
@@ -502,6 +519,8 @@
      &         equilibrium_get_param_id(this%equilibrium, param_name)
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_param_id', start_time)
 
       END FUNCTION
 
@@ -529,7 +548,12 @@
       INTEGER, INTENT(in)            :: i_index
       INTEGER, INTENT(in)            :: j_index
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
@@ -571,6 +595,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('model_get_param_value', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -592,7 +618,12 @@
       TYPE (model_class), INTENT(in)  :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
@@ -619,6 +650,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('model_get_param_name', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -640,7 +673,12 @@
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
@@ -659,6 +697,8 @@
              model_get_ne_cart = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_ne_cart', start_time)
 
       END FUNCTION
 
@@ -681,7 +721,12 @@
       TYPE (model_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)       :: r
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
@@ -700,6 +745,8 @@
             model_get_ne_radial = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_ne_radial', start_time)
 
       END FUNCTION
 
@@ -722,7 +769,12 @@
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
@@ -739,6 +791,8 @@
             model_get_te_cart = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_te_cart', start_time)
 
       END FUNCTION
 
@@ -761,7 +815,12 @@
       TYPE (model_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)       :: r
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
@@ -778,6 +837,8 @@
             model_get_te_radial = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_te_radial', start_time)
 
       END FUNCTION
 
@@ -802,7 +863,12 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
@@ -813,6 +879,8 @@
             model_get_sxrem_cart = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_sxrem_cart', start_time)
 
       END FUNCTION
 
@@ -837,7 +905,12 @@
       REAL (rprec), INTENT(in)       :: r
       INTEGER, INTENT(in)            :: index
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
@@ -848,6 +921,8 @@
             model_get_sxrem_radial = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_sxrem_radial', start_time)
 
       END FUNCTION
 
@@ -865,7 +940,12 @@
       CHARACTER (len=data_name_length) :: model_get_ne_type
       TYPE (model_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
@@ -878,6 +958,8 @@
             model_get_ne_type = 'none'
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_ne_type', start_time)
 
       END FUNCTION
 
@@ -895,7 +977,12 @@
       CHARACTER (len=data_name_length) :: model_get_te_type
       TYPE (model_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
@@ -908,6 +995,8 @@
             model_get_te_type = 'none'
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_te_type', start_time)
 
       END FUNCTION
 
@@ -927,7 +1016,12 @@
       TYPE (model_class), INTENT(in)   :: this
       INTEGER, INTENT(in)              :: index
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
@@ -937,6 +1031,8 @@
             model_get_sxrem_type = 'none'
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_sxrem_type', start_time)
 
       END FUNCTION
 
@@ -962,7 +1058,12 @@
       TYPE (model_class), INTENT(in) :: this
       INTEGER, INTENT(in)            :: id
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id, model_ne_min_id,                              &
@@ -974,6 +1075,8 @@
      &         equilibrium_is_recon_param(this%equilibrium, id)
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_is_recon_param', start_time)
 
       END FUNCTION
 
@@ -1004,8 +1107,11 @@
 !  local variables
       REAL (rprec)                      :: r, dr
       INTEGER                           :: i, j
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       model_converge = equilibrium_converge(this%equilibrium, num_iter,        &
      &                                      iou)
 
@@ -1036,6 +1142,8 @@
 
       END IF
 
+      CALL profiler_set_stop_time('model_converge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1058,8 +1166,11 @@
 
 !  local variables
       INTEGER                        :: i
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,*) ' *** Model Parameters'
       WRITE (iou,*) 'model_ne_type is ',                                       &
@@ -1079,6 +1190,8 @@
 1000  FORMAT(1x,a,2x,es12.5)
 
       CALL equilibrium_write(this%equilibrium, iou)
+
+      CALL profiler_set_stop_time('model_write', start_time)
 
       END SUBROUTINE
 
@@ -1152,8 +1265,11 @@
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
       INTEGER                        :: sxrem_grid_var_id
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define dimensions
       IF (ASSOCIATED(this%ne_grid) .or.                                        &
      &    ASSOCIATED(this%te_grid) .or.                                        &
@@ -1226,6 +1342,8 @@
       CALL equilibrium_def_result(this%equilibrium, result_ncid,               &
      &                            maxnsteps_dim_id)
 
+      CALL profiler_set_stop_time('model_def_result', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1250,8 +1368,11 @@
       INTEGER                        :: ne_type_var_id
       INTEGER                        :: te_type_var_id
       INTEGER                        :: sxrem_type_var_id
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'model_ne_type',                      &
      &                      ne_type_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -1280,6 +1401,8 @@
 
       CALL equilibrium_write_init_data(this%equilibrium, result_ncid)
 
+      CALL profiler_set_stop_time('model_write_init_data', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1307,8 +1430,11 @@
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
       INTEGER                        :: sxrem_grid_var_id
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'ne_unit', ne_unit_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var1_double(result_ncid, ne_unit_var_id,                 &
@@ -1363,6 +1489,8 @@
       CALL equilibrium_write_step_data(this%equilibrium, result_ncid,          &
      &                                 current_step)
 
+      CALL profiler_set_stop_time('model_write_step_data', start_time)
+
       END SUBROUTINE
 
 !*******************************************************************************
@@ -1390,8 +1518,11 @@
       INTEGER                           :: error
       INTEGER                           :: sxrem_size
       INTEGER                           :: grid_size
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       sxrem_size = SIZE(this%sxrem_type)
 
       CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
@@ -1419,6 +1550,8 @@
          CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
       END IF
+
+      CALL profiler_set_stop_time('model_sync_children', start_time)
 #endif
 
       END SUBROUTINE
@@ -1444,8 +1577,11 @@
 !  local variables
       INTEGER                           :: error
       INTEGER                           :: grid_size
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL equilibrium_sync_state(this%equilibrium, intra_comm)
 
       grid_size = equilibrium_get_grid_size(this%equilibrium)
@@ -1459,6 +1595,7 @@
      &                  intra_comm, error)
       END IF
 
+      CALL profiler_set_stop_time('model_sync_state', start_time)
 #endif
 
       END SUBROUTINE

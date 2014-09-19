@@ -6,11 +6,9 @@
 !  found in the Module not the file.
 !
 !>  Defines functions for measuring an tabulating performance of function and
-!>  subroutine calls.
+!>  subroutine calls. These routines are only active when the PROFILE_ON macro
+!>  is defined.
 !*******************************************************************************
-
-!  Change to 0 to turn off profiling.
-#define PROFILE_ON 1
 
       MODULE profiler
       USE stel_kinds
@@ -216,7 +214,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Sorts the profile table based on the average call time.
 !>
-!>  The a recursive merge sort algorithm.
+!>  A recursive merge sort algorithm.
 !>
 !>  @param[in] low_index  Lower index to sort.
 !>  @param[in] high_index Higher index to sort.

@@ -82,7 +82,12 @@
       REAL(rprec), DIMENSION(3)   :: end_path
       INTEGER                     :: profile_number
 
+!  local variables
+      REAL (rprec)                :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(sxrem_construct_new)
 
       CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
@@ -91,6 +96,8 @@
      &                        end_path)
 
       sxrem_construct_new%profile_number = profile_number
+
+      CALL profiler_set_stop_time('sxrem_construct_new', start_time)
 
       END FUNCTION
 
@@ -183,8 +190,11 @@
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
       INTEGER                                 :: context_length
       TYPE (sxrem_context)                    :: sxr_context
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       sxrem_get_modeled_signal = 0.0
 
 !  The relevant data for the soft x-ray context.
@@ -202,6 +212,9 @@
 
       sigma = 0.0
       DEALLOCATE(context)
+
+      CALL profiler_set_stop_time('sxrem_get_modeled_signal',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -222,8 +235,15 @@
       CHARACTER (len=data_name_length) :: sxrem_get_signal_type
       TYPE (sxrem_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (sxrem_get_signal_type, 1000) this%profile_number
+
+      CALL profiler_set_stop_time('sxrem_get_signal_type', start_time)
 
 1000  FORMAT('sxrch(',i2,')')
 
@@ -252,12 +272,16 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                           :: error
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL path_sync_children(this%chord_path, intra_comm)
       CALL MPI_BCAST(this%profile_number, 1, MPI_INTEGER, 0, intra_comm,       &
      &               error)
 
+      CALL profiler_set_stop_time('sxrem_sync_children', start_time)
 #endif
 
       END SUBROUTINE
@@ -297,11 +321,16 @@
 
 ! local variables
       TYPE(sxrem_context)                   :: sxr_context
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       sxr_context = TRANSFER(context, sxr_context)
       sxr_function = model_get_sxrem(sxr_context%model, xcart,                 &
      &                               sxr_context%profile_number)*dx
+
+      CALL profiler_set_stop_time('sxr_function', start_time)
 
       END FUNCTION
 

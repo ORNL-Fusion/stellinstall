@@ -16,6 +16,7 @@
       USE stel_kinds, only: rprec, dp
       USE integration_path
       USE coordinate_utilities
+      USE profiler
 
       IMPLICIT NONE
 !*******************************************************************************
@@ -91,8 +92,10 @@
 
 !  local variables
       INTEGER                      :: i
+      REAL (rprec)                 :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       ALLOCATE(intpol_construct_int)
 
@@ -104,6 +107,8 @@
       intpol_construct_int%type = intpol_interferometry_type
       intpol_construct_int%wavelength = 0.0
       intpol_construct_int%in_degrees = .false.
+
+      CALL profiler_set_stop_time('intpol_construct_int', start_time)
 
       END FUNCTION
 
@@ -131,8 +136,11 @@
 
 !  local variables
       INTEGER                      :: i
+      REAL (rprec)                 :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(intpol_construct_pol)
 
       DO i = 1, SIZE(chord_paths, 1)
@@ -143,6 +151,8 @@
       intpol_construct_pol%type = intpol_polarimetry_type
       intpol_construct_pol%wavelength = wavelength
       intpol_construct_pol%in_degrees = in_degrees
+
+      CALL profiler_set_stop_time('intpol_construct_pol', start_time)
 
       END FUNCTION
 
@@ -241,13 +251,16 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
-      CHARACTER(len=1), ALLOCATABLE :: context(:)
-      INTEGER                       :: context_length
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      REAL (rprec)                            :: start_time
 
 !  local parameters
       REAL(rprec), PARAMETER :: polar_constant = 2.62E-13_dp
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       intpol_get_modeled_signal = 0.0
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
@@ -276,6 +289,9 @@
       sigma = 0.0
       DEALLOCATE(context)
 
+      CALL profiler_set_stop_time('intpol_get_modeled_signal',                 &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -295,8 +311,15 @@
       CHARACTER (len=data_name_length) :: intpol_get_signal_type
       TYPE (intpol_class), INTENT(in)  :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       intpol_get_signal_type = 'ipch'
+
+      CALL profiler_set_stop_time('intpol_get_signal_type', start_time)
 
       END FUNCTION
 
@@ -323,14 +346,19 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                            :: error
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL path_sync_children(this%chord_path, intra_comm)
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%wavelength, 1, MPI_REAL8, 0, intra_comm,             &
      &               error)
       CALL MPI_BCAST(this%in_degrees, 1, MPI_LOGICAL, 0, intra_comm,           &
      &               error)
+
+      CALL profiler_set_stop_time('intpol_sync_children', start_time)
 #endif
 
        END SUBROUTINE
@@ -370,10 +398,15 @@
 
 !  local variables
       TYPE(model_class)                     :: a_model
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       a_model = TRANSFER(context, a_model)
       int_function = model_get_ne(a_model, xcart)*dx
+
+      CALL profiler_set_stop_time('int_function', start_time)
 
       END FUNCTION
 
@@ -412,13 +445,18 @@
 !  local variables
       TYPE(model_class)                     :: a_model
       REAL(rprec), DIMENSION(3)             :: bcart
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       a_model = TRANSFER(context, a_model)
 
       bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart)
       pol_function =                                                           &
      &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
+
+      CALL profiler_set_stop_time('pol_function', start_time)
 
       END FUNCTION
 

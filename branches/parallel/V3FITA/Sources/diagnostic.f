@@ -108,14 +108,22 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (diagnostic_class), POINTER  :: diagnostic_construct_magnetic
-      TYPE (magnetic_class), POINTER    :: magnetic_object
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_magnetic
+      TYPE (magnetic_class), POINTER   :: magnetic_object
+
+!  local variables
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(diagnostic_construct_magnetic)
 
       diagnostic_construct_magnetic%type = diagnostic_magnetic_type
       diagnostic_construct_magnetic%magnetic => magnetic_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_magnetic',             &
+     &                            start_time)
 
       END FUNCTION
 
@@ -135,11 +143,19 @@
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_sxrem
       TYPE (sxrem_class), POINTER      :: sxrem_object
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(diagnostic_construct_sxrem)
 
       diagnostic_construct_sxrem%type = diagnostic_sxrem_type
       diagnostic_construct_sxrem%sxrem => sxrem_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_sxrem',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -159,11 +175,19 @@
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_intpol
       TYPE (intpol_class), POINTER     :: intpol_object
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(diagnostic_construct_intpol)
 
       diagnostic_construct_intpol%type = diagnostic_intpol_type
       diagnostic_construct_intpol%intpol => intpol_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_intpol',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -183,11 +207,19 @@
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_thomson
       TYPE (thomson_class), POINTER    :: thomson_object
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(diagnostic_construct_thomson)
 
       diagnostic_construct_thomson%type = diagnostic_thomson_type
       diagnostic_construct_thomson%thomson => thomson_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_thomson',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -207,11 +239,19 @@
       TYPE (diagnostic_class), POINTER :: diagnostic_construct_extcurz
       TYPE (extcurz_class), POINTER    :: extcurz_object
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(diagnostic_construct_extcurz)
 
       diagnostic_construct_extcurz%type = diagnostic_extcurz_type
       diagnostic_construct_extcurz%extcurz => extcurz_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_extcurz',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -350,7 +390,12 @@
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
          CASE (diagnostic_magnetic_type)
             diagnostic_get_modeled_signal =                                    &
@@ -374,6 +419,9 @@
      &         extcurz_get_modeled_signal(this%extcurz, a_model, sigma)
 
       END SELECT
+
+      CALL profiler_set_stop_time('diagnostic_get_modeled_signal',             &
+     &                            start_time)
 
       END FUNCTION
 
@@ -402,7 +450,12 @@
       CHARACTER (len=data_name_length) :: diagnostic_get_signal_type
       TYPE (diagnostic_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                        :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (diagnostic_magnetic_type)
@@ -427,6 +480,9 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('diagnostic_get_signal_type',                &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -449,9 +505,14 @@
 !  Declare Arguments
       CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   diagnostic_get_header
-      TYPE (diagnostic_class), INTENT(in) :: this
+      TYPE (diagnostic_class), INTENT(in)            :: this
+
+!  local variables
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (diagnostic_magnetic_type)
@@ -465,6 +526,8 @@
             diagnostic_get_header(7) = 'model_sig(4)'
 
       END SELECT
+
+      CALL profiler_set_stop_time('diagnostic_get_header', start_time)
 
       END FUNCTION
 
@@ -491,8 +554,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                                :: error
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
 
       SELECT CASE (this%type)
@@ -514,6 +580,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('diagnostic_sync_children',                  &
+     &                            start_time)
 #endif
 
       END SUBROUTINE

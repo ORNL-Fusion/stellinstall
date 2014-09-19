@@ -1015,8 +1015,10 @@
       INTEGER                       :: iou_mnli, status
       INTEGER                       :: j, i
       INTEGER                       :: imin, imax
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
 !  Initalize a default value of the I\O unit. V3FIT increments from there.
       iou_mnli = 0
@@ -1232,6 +1234,9 @@
 
       WRITE (*,*) ' *** V3FIT namelist input read from ' //                    &
      &            TRIM(namelist_file)
+
+      CALL profiler_set_stop_time('v3fit_input_read_namelist',                 &
+     &                            start_time)
 
       END SUBROUTINE
 

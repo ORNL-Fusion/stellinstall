@@ -20,6 +20,12 @@ project (v3fit_suite Fortran C CXX)
 
 enable_testing ()
 
+# Activate or Deactivate code profiling. The profiler maybe activated by setting -DUSE_PROFILE=ON on the cmake command line.
+OPTION (USE_PROFILER "Activate code profiling." OFF)
+if (USE_PROFILER)
+        add_definitions (-DPROFILE_ON)
+endif ()
+
 # Add the ability to auto generate API documentation with Doxygen
 find_package (Doxygen)
 if (DOXYGEN_FOUND)

@@ -63,6 +63,7 @@
       MODULE commandline_parser
       USE stel_kinds
       USE data_parameters
+      USE profiler
 
       IMPLICIT NONE
 
@@ -128,8 +129,11 @@
 !  local variables
       CHARACTER (len=max_length) :: temp
       INTEGER                    :: num_args, i, value_index
+      REAL (rprec)               :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       temp = ''
       num_args = 0
       value_index = 0
@@ -176,6 +180,9 @@
      &         temp(1:data_filename_length)
          END IF
       END DO
+
+      CALL profiler_set_stop_time('commandline_parser_construct',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -237,8 +244,11 @@
 
 !  Local arguments
       INTEGER                                     :: i
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Loop through the arguments until the correct arg is found.
       commandline_parser_get_string = ''
 
@@ -246,10 +256,17 @@
          DO i = 1, SIZE(this%arg)
             IF (TRIM(this%arg(i)) .eq. TRIM(arg)) THEN
                commandline_parser_get_string = this%value(i)
+
+               CALL profiler_set_stop_time(                                    &
+     &                 'commandline_parser_get_string', start_time)
+
                RETURN
             END IF
          END DO
       END IF
+
+      CALL profiler_set_stop_time('commandline_parser_get_string',             &
+     &                            start_time)
 
       END FUNCTION
 
@@ -280,12 +297,19 @@
 !  Local arguments
       CHARACTER (len=data_filename_length)        :: value
       INTEGER                                     :: status
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       value = commandline_parser_get_string(this, arg)
 
       IF (TRIM(value) .eq. '') THEN
          commandline_parser_get_integer = default_value
+
+         CALL profiler_set_stop_time('commandline_parser_get_integer',         &
+     &                               start_time)
+
          RETURN
       END IF
 
@@ -294,6 +318,9 @@
       IF (status .ne. 0) THEN
          commandline_parser_get_integer = default_value
       END IF
+
+      CALL profiler_set_stop_time('commandline_parser_get_integer',            &
+     &                            start_time)
 
 1000  FORMAT(i20)
 
@@ -323,8 +350,11 @@
 
 !  Local arguments
       INTEGER                                     :: i
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Loop through the arguments until the correct arg is found.
       commandline_parser_is_flag_set = .false.
 
@@ -332,10 +362,17 @@
          DO i = 1, SIZE(this%arg)
             IF (TRIM(this%arg(i)) .eq. TRIM(arg)) THEN
                commandline_parser_is_flag_set = .true.
+
+               CALL profiler_set_stop_time(                                    &
+     &                 'commandline_parser_is_flag_set', start_time)
+
                RETURN
             END IF
          END DO
       END IF
+
+      CALL profiler_set_stop_time('commandline_parser_is_flag_set',            &
+     &                            start_time)
 
       END FUNCTION
 

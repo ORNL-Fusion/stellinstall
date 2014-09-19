@@ -16,6 +16,7 @@
 #if defined (MPI_OPT)
       USE mpi
 #endif
+      USE profiler
 
       IMPLICIT NONE
 
@@ -144,8 +145,11 @@
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
       LOGICAL                        :: lstell_sym
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(magnetic_construct_netcdf)
 
 !  Store the states of the first two flags in the first two bits.
@@ -232,6 +236,9 @@
      &                                       dim_lengths(3)))
       CALL cdf_read(mdsig_iou, 'mddc_mrf_a_z',                                 &
      &              magnetic_construct_netcdf%a_z)
+
+      CALL profiler_set_stop_time('magnetic_construct_netcdf',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -429,10 +436,10 @@
       TYPE (model_class), INTENT(in)            :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out)   :: sigma
 
-!  Local variables
+!  local variables
       INTEGER                                   :: phi, num_phi, r, z
       INTEGER                                   :: numrvol, numzvol
-      TYPE (bivariate_type)                     :: bivariate_object
+      TYPE (bivariate_type), POINTER            :: bivariate_object
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: rgrid
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: zgrid
       REAL (rprec), DIMENSION(:,:,:), POINTER   :: rvolgrid
@@ -450,7 +457,11 @@
       INTEGER                                   :: num_currents
       REAL (rprec), DIMENSION(:), POINTER       :: extcur
 
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       magnetic_get_modeled_signal = 0.0
 
 !  Calculate the plasma only signal from the response function.
@@ -501,23 +512,22 @@
          END DO
 
 !  Create a bivariate object to do the interpolation.
-!>  @todo FIXME: The biavariate interpolation is performed one plane at a time.
-!>  Remove the torodial array index and make this interpolation 2D.
-         CALL createbivariate(bivariate_object, numrvol, numzvol,              &
-     &                        SIZE(rvolgrid, 3), 1)
+         bivariate_object => bivariate_construct(numrvol, numzvol)
 
 !  Sum over grid points for each toroidal plane
          DO phi = 1, num_phi
-            CALL setbivariate(bivariate_object, rvolgrid(:,:,phi),             &
-     &                        zvolgrid(:,:,phi), rgrid, zgrid, phi, 1)
+            CALL bivariate_set_grids(bivariate_object,                         &
+     &                               rvolgrid(:,:,phi),                        &
+     &                               zvolgrid(:,:,phi),                        &
+     &                               rgrid, zgrid)
 
 !  Interpolat from the diagnotic grid points to the volume grid points.
-            CALL bivariate4pt(bivariate_object, this%a_r(:,:,phi),             &
-     &                        response_rvol, phi)
-            CALL bivariate4pt(bivariate_object, this%a_f(:,:,phi),             &
-     &                        response_phivol, phi)
-            CALL bivariate4pt(bivariate_object, this%a_z(:,:,phi),             &
-     &                        response_zvol, phi)
+            CALL bivariate_get_4pt(bivariate_object, this%a_r(:,:,phi),        &
+     &                             response_rvol)
+            CALL bivariate_get_4pt(bivariate_object, this%a_f(:,:,phi),        &
+     &                             response_phivol)
+            CALL bivariate_get_4pt(bivariate_object, this%a_z(:,:,phi),        &
+     &                             response_zvol)
 
 !  J_plasma * A_diag
             sumrz = jrvolgrid(:,:,phi)*response_rvol                           &
@@ -527,7 +537,7 @@
      &                  + SUM(sumrz(1,:) + sumrz(numrvol,:))/2.0
          END DO
 
-         CALL clear_bivar(bivariate_object)
+         CALL bivariate_destruct(bivariate_object)
 
 !  Correct for stellarator symetry.
          magnetic_get_modeled_signal(2) = SUM(sumphi)
@@ -600,6 +610,9 @@
 
       sigma = 0.0
 
+      CALL profiler_set_stop_time('magnetic_get_modeled_signal',               &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -620,8 +633,16 @@
       CHARACTER (len=data_name_length) :: magnetic_get_signal_type
       TYPE (magnetic_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       magnetic_get_signal_type = 'mddc'
+
+      CALL profiler_set_stop_time('magnetic_get_signal_type',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -642,9 +663,14 @@
 !  Declare Arguments
       CHARACTER (len=data_name_length), DIMENSION(7) ::                        &
      &   magnetic_get_header
-      TYPE (magnetic_class), INTENT(in) :: this
+      TYPE (magnetic_class), INTENT(in)              :: this
+
+!  local variables
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       magnetic_get_header(1) = 'plasma only'
       magnetic_get_header(2) = 'eq currents'
       magnetic_get_header(3) = 'N/A'
@@ -652,6 +678,8 @@
       magnetic_get_header(5) = 'model_sig(2)'
       magnetic_get_header(6) = 'model_sig(3)'
       magnetic_get_header(7) = 'model_sig(4)'
+
+      CALL profiler_set_stop_time('magnetic_get_header', start_time)
 
       END FUNCTION
 
@@ -680,8 +708,10 @@
       INTEGER                              :: error
       INTEGER, DIMENSION(3)                :: dim_lengths
       INTEGER                              :: total_length
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       CALL MPI_BCAST(this%model_signal_flags, 1, MPI_INTEGER, 0,               &
      &               intra_comm, error)
@@ -728,6 +758,7 @@
       CALL MPI_BCAST(this%a_z, total_length, MPI_REAL8, 0, intra_comm,         &
      &               error)
 
+      CALL profiler_set_stop_time('magnetic_sync_children', start_time)
 #endif
 
       END SUBROUTINE

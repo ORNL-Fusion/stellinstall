@@ -80,11 +80,19 @@
       TYPE (prior_class), POINTER          :: prior_construct_gaussian
       TYPE (prior_gaussian_class), POINTER :: gaussian_object
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(prior_construct_gaussian)
 
       prior_construct_gaussian%type = prior_gaussian_type
       prior_construct_gaussian%gaussian => gaussian_object
+
+      CALL profiler_set_stop_time('prior_construct_gaussian',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -106,7 +114,7 @@
 
 #if defined(MPI_OPT)
 !  local variables
-      INTEGER                         :: error
+      INTEGER                     :: error
 
 !  Start of executable code
       ALLOCATE(prior_construct_mpi)
@@ -182,7 +190,12 @@
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (prior_gaussian_type)
@@ -195,6 +208,9 @@
             sigma = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('prior_get_modeled_signal',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -217,9 +233,14 @@
 
 !  Declare Arguments
       CHARACTER (len=data_name_length) :: prior_get_signal_type
-      TYPE (prior_class), INTENT(in) :: this
+      TYPE (prior_class), INTENT(in)   :: this
+
+!  local variables
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (prior_gaussian_type)
@@ -227,6 +248,8 @@
      &         prior_gaussian_get_signal_type(this%gaussian))
 
       END SELECT
+
+      CALL profiler_set_stop_time('prior_get_signal_type', start_time)
 
       END FUNCTION
 
@@ -248,7 +271,12 @@
       CHARACTER (len=data_name_length), DIMENSION(7) :: prior_get_header
       TYPE (prior_class), INTENT(in)                 :: this
 
+!  local variables
+      REAL (rprec)                                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE DEFAULT
@@ -259,6 +287,8 @@
             prior_get_header(7) = 'model_sig(4)'
 
       END SELECT
+
+      CALL profiler_set_stop_time('prior_get_header', start_time)
 
       END FUNCTION
 
@@ -278,12 +308,19 @@
       CHARACTER (len=data_name_length) :: prior_get_prior_type
       TYPE (prior_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (prior_gaussian_type)
             prior_get_prior_type = 'gaussian'
       END SELECT
+
+      CALL profiler_set_stop_time('prior_get_prior_type', start_time)
 
       END FUNCTION
 
@@ -310,7 +347,12 @@
       INTEGER, INTENT(in)            :: index
       TYPE (model_class), INTENT(in) :: a_model
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,1000) index, prior_get_prior_type(this)
 
@@ -321,6 +363,8 @@
      &                                          a_model)
 
       END SELECT
+
+      CALL profiler_set_stop_time('prior_write_auxiliary', start_time)
 
 1000  FORMAT('Signal',1x,i4,1x,                                                &
      &       'is a prior signal, type: ',a)
@@ -350,8 +394,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                           :: error
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
 
       SELECT CASE (this%type)
@@ -361,6 +408,7 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('prior_sync_children', start_time)
 #endif
 
       END SUBROUTINE

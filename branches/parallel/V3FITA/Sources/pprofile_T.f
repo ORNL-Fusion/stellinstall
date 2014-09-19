@@ -15,6 +15,7 @@
 #if defined (MPI_OPT)
       USE mpi
 #endif
+      USE profiler
 
       IMPLICIT NONE
 
@@ -117,8 +118,11 @@
 
 !  local variables
       CHARACTER (len = p_type_len)          :: p_type_lc
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(pprofile_construct_new)
 
 ! Store profile coeffients.
@@ -172,7 +176,9 @@
             WRITE(*,*) ' *** CHECK YOUR INPUT ***'
          
       END SELECT
-      
+
+      CALL profiler_set_stop_time('pprofile_construct_new', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -263,13 +269,16 @@
       TYPE (pprofile_class), INTENT (in) :: this
       REAL(rprec), INTENT(in)            :: s_arg
 
-!  Declare local variables
+!  local variables
       REAL(rprec)                        :: s_use
       REAL(rprec)                        :: s_01
       LOGICAL                            :: l_01
       INTEGER                            :: i, iflag
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define argument and logical variable for s between zero and one
       s_01 = MAX(zero, MIN(one,s_arg))
       l_01 = (s_arg .ge. zero) .and. (s_arg .le. one)
@@ -313,6 +322,10 @@
      &                        this%as, this%af,                                &
      &                        this%maxSplineIndex, iflag)
             IF (iflag .gt. 0) THEN
+
+               CALL profiler_set_stop_time('pprofile_get_value',               &
+     &                                     start_time)
+
                RETURN
             ELSE IF (iflag .eq. -1) THEN
                WRITE (*,*) 'ERROR: pprofile: outside value from ' //           &
@@ -344,7 +357,9 @@
      &                    this%maxSplineIndex)
          
       END SELECT
-      
+
+      CALL profiler_set_stop_time('pprofile_get_value', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -361,7 +376,12 @@
       CHARACTER(len=p_type_len)         :: pprofile_get_p_type_name
       TYPE (pprofile_class), INTENT(in) :: this
 
-!  start of executable code
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%p_type)
 
          CASE (pprofile_two_power_type)
@@ -387,6 +407,9 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('pprofile_get_p_type_name',                  &
+     &                            start_time)
+
       END FUNCTION
 
 !*******************************************************************************
@@ -410,8 +433,11 @@
 
 !  local variables
       INTEGER                           :: i
+      REAL (rprec)                      :: start_time
 
-!  start of executable code
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Actual write. Could do a select-case on p_type.
       WRITE(iou,1100) id
       WRITE(iou,1200) TRIM(pprofile_get_p_type_name(this))
@@ -435,6 +461,8 @@
      &                       i = 1, this%maxSplineIndex)
          
       END SELECT
+
+      CALL profiler_set_stop_time('pprofile_write', start_time)
 
 1100  FORMAT(/' Parameterized Profile Write: id = ',a)
 1200  FORMAT('   pp_type = ',a)
@@ -470,8 +498,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                              :: error
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%p_type, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%b, SIZE(this%b), MPI_REAL8, 0,                &
      &               intra_comm, error)
@@ -479,6 +510,8 @@
       CALL MPI_BCAST(this%af, iub_asf, MPI_REAL8, 0, intra_comm, error)
 
       this%maxSplineIndex = findMaxIndex(this%as)
+
+      CALL profiler_set_stop_time('pprofile_sync_children', start_time)
 #endif
 
       END SUBROUTINE
@@ -502,8 +535,15 @@
       INTEGER                               :: findMaxIndex
       REAL(rprec), DIMENSION(:), INTENT(in) :: s_array
 
+!  local variables
+      REAL (rprec)                          :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       findMaxIndex = MINLOC(s_array(2:),dim=1)
+
+      CALL profiler_set_stop_time('findMaxIndex', start_time)
 
       END FUNCTION
 

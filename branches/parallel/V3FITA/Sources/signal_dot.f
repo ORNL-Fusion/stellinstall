@@ -15,6 +15,7 @@
       USE stel_kinds
       USE stel_constants
       USE data_parameters
+      USE profiler
 
       IMPLICIT NONE
 
@@ -75,11 +76,14 @@
 
 !  local variables
       INTEGER                       :: status
+      REAL (rprec)                  :: start_time
 
 !  local parameters
       INTEGER, PARAMETER            :: iou_0 = 32
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Open up the file
       signal_dot_open%iou       = iou_0
       signal_dot_open%signal_id = signal_id
@@ -87,6 +91,8 @@
      &               'formatted')
       CALL signal_dot_check_status(status, signal_dot_open,                    &
      &                             'Error opening ', ' file.')
+
+      CALL profiler_set_stop_time('signal_dot_open', start_time)
 
       END FUNCTION
 
@@ -101,12 +107,19 @@
 
       IMPLICIT NONE
 
-!  local variables
+!  Declare Arguments
       TYPE(signal_dot_file), INTENT(in) :: signal_dot_file_ref
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Close the file
       CLOSE(signal_dot_file_ref%iou)
+
+      CALL profiler_set_stop_time('signal_dot_close', start_time)
 
       END SUBROUTINE
 
@@ -146,8 +159,11 @@
       REAL(rprec), DIMENSION(3)            :: x_start, x_end
       INTEGER                              :: status
       CHARACTER (len=signal_dot_line_len)  :: line
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Read the chord identification.
       line = signal_dot_read_line(signal_dot_file_ref,                         &
      &                            'Error reading ID for ', ' chord.')
@@ -189,6 +205,8 @@
          ENDIF
       ENDIF
 
+      CALL profiler_set_stop_time('signal_dot_parse_chord', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -214,8 +232,11 @@
 !  local variables
       INTEGER                              :: status
       CHARACTER (len=signal_dot_line_len)  :: line
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Read the start position.
       line = signal_dot_read_line(signal_dot_file_ref,                         &
      &                            'Error ', message)
@@ -223,6 +244,8 @@
       READ(line, *, iostat=status) signal_dot_parse_real
       CALL signal_dot_check_status(status, signal_dot_file_ref,                &
      &                             'Error ', message)
+
+      CALL profiler_set_stop_time('signal_dot_parse_real', start_time)
 
       END FUNCTION
 
@@ -249,8 +272,11 @@
 !  local variables
       INTEGER                              :: i
       CHARACTER (len=signal_dot_line_len)  :: line
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Contine looping until a vaild keyword is read. If the end of the file is
 !  reached an error will kill the program.
       DO
@@ -260,10 +286,16 @@
          DO i = 1, SIZE(keywords)
              IF (TRIM(ADJUSTL(line)) .eq. TRIM(keywords(i))) THEN
                 signal_dot_read_keyword = keywords(i)
+
+                CALL profiler_set_stop_time('signal_dot_read_keyword',         &
+     &                                      start_time)
+
                 RETURN
              ENDIF
          END DO
       END DO
+
+      CALL profiler_set_stop_time('signal_dot_read_keyword', start_time)
 
       END FUNCTION
 
@@ -294,13 +326,18 @@
 
 !  local variables
       INTEGER                              :: status
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       READ (signal_dot_file_ref%iou, '(a)', iostat=status)                     &
      &   signal_dot_read_line
       signal_dot_file_ref%i_line = signal_dot_file_ref%i_line + 1
       CALL signal_dot_check_status(status, signal_dot_file_ref,                &
      &                             pre_message, post_message)
+
+      CALL profiler_set_stop_time('signal_dot_read_line', start_time)
 
       END FUNCTION
 
@@ -332,13 +369,20 @@
       CHARACTER (len=*), INTENT(in)        :: pre_message
       CHARACTER (len=*), INTENT(in)        :: post_message
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (status .ne. 0) THEN
          WRITE(*,*) pre_message // TRIM(signal_dot_file_ref%signal_id)         &
      &              // post_message // ' line ',                               &
      &              signal_dot_file_ref%i_line
          STOP
       END IF
+
+      CALL profiler_set_stop_time('signal_dot_check_status', start_time)
 
       END SUBROUTINE
 

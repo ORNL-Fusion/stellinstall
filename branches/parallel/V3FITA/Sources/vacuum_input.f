@@ -78,6 +78,7 @@
       MODULE vacuum_input
       USE stel_kinds
       USE data_parameters
+      USE profiler
 
       IMPLICIT NONE
 
@@ -158,8 +159,11 @@
 
 !  local variables
       INTEGER                       :: iou_vacnli, status
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       iou_vacnli = 0
       status = 0
 
@@ -173,6 +177,9 @@
       CLOSE (iou_vacnli, iostat=status)
       CALL assert_eq(0, status, 'vacuum_input_read_namelist' //                &
      &   ': Error closing ' // TRIM(namelist_file) // ' failed')
+
+      CALL profiler_set_stop_time('vacuum_input_read_namelist',                &
+     &                            start_time)
 
       END SUBROUTINE
 

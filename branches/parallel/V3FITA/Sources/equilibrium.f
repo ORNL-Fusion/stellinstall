@@ -132,13 +132,21 @@
       LOGICAL, INTENT(in)               :: force_solve
       LOGICAL, INTENT(in)               :: not_converged
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(equilibrium_construct_vmec)
 
       equilibrium_construct_vmec%type = equilibrium_vmec_type
       equilibrium_construct_vmec%vmec => vmec_object
       equilibrium_construct_vmec%not_converged = not_converged
       equilibrium_construct_vmec%force_solve = force_solve
+
+      CALL profiler_set_stop_time('equilibrium_construct_vmec',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -162,13 +170,21 @@
       TYPE (vacuum_class), POINTER      :: vacuum_object
       LOGICAL, INTENT(in)               :: force_solve
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(equilibrium_construct_vacuum)
 
       equilibrium_construct_vacuum%type = equilibrium_vacuum_type
       equilibrium_construct_vacuum%vacuum => vacuum_object
       equilibrium_construct_vacuum%not_converged = .false.
       equilibrium_construct_vacuum%force_solve = force_solve
+
+      CALL profiler_set_stop_time('equilibrium_construct_vacuum',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -279,14 +295,19 @@
 
       IMPLICIT NONE
 
-!  Declare Sruments
+!  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout) :: this
       INTEGER, INTENT(in)                     :: id
       INTEGER, INTENT(in)                     :: i_index
       INTEGER, INTENT(in)                     :: j_index
       REAL (rprec), INTENT(in)                :: value
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
 !  Set param needs to come first so that function gets executed. Otherwise, when
@@ -305,6 +326,8 @@
      &                         .or. this%not_converged
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_set_param', start_time)
 
       END SUBROUTINE
 
@@ -334,13 +357,18 @@
 
       IMPLICIT NONE
 
-!  Declare Sruments
+!  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout) :: this
       INTEGER, INTENT(in)                     :: total_tor_planes
       INTEGER, INTENT(in)                     :: tor_planes_used
       INTEGER, INTENT(in)                     :: nfp
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -353,6 +381,9 @@
             END IF
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_set_magnetic_cache',            &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -380,7 +411,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in)        :: param_name
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -395,6 +431,9 @@
             equilibrium_get_param_id = data_no_id
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_param_id',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -423,7 +462,12 @@
       INTEGER, INTENT(in)                  :: i_index
       INTEGER, INTENT(in)                  :: j_index
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -438,6 +482,9 @@
             equilibrium_get_param_value = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_param_value',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -462,7 +509,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -477,6 +529,9 @@
             equilibrium_get_param_name = ''
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_param_name',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -502,7 +557,12 @@
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -512,6 +572,9 @@
             equilibrium_get_ne_cart = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ne_cart',                   &
+     &                            start_time)
 
       END FUNCTION
 
@@ -537,7 +600,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)             :: r
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -547,6 +615,9 @@
             equilibrium_get_ne_radial = 0.0
 
          END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ne_radial',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -572,7 +643,12 @@
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -582,6 +658,9 @@
             equilibrium_get_te_cart = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_te_cart',                   &
+     &                            start_time)
 
       END FUNCTION
 
@@ -607,7 +686,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)             :: r
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -617,6 +701,9 @@
             equilibrium_get_te_radial = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_te_radial',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -644,7 +731,12 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -655,6 +747,9 @@
             equilibrium_get_sxrem_cart = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_sxrem_cart',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -682,7 +777,12 @@
       REAL (rprec), INTENT(in)             :: r
       INTEGER, INTENT(in)                  :: index
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -693,6 +793,9 @@
             equilibrium_get_sxrem_radial = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_sxrem_radial',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -718,7 +821,12 @@
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -728,6 +836,8 @@
             equilibrium_get_p_cart = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_p_cart', start_time)
 
       END FUNCTION
 
@@ -753,7 +863,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)             :: r
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -763,6 +878,9 @@
             equilibrium_get_p_radial = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_p_radial',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -787,7 +905,12 @@
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -801,6 +924,8 @@
             equilibrium_get_B_vec = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_B_vec', start_time)
 
       END FUNCTION
 
@@ -828,7 +953,12 @@
       REAL (rprec), INTENT(in)             :: r
       REAL (rprec), INTENT(in)             :: theta
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -843,6 +973,9 @@
             equilibrium_get_Int_B_dphi = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_Int_B_dphi',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -878,7 +1011,12 @@
       REAL (rprec), DIMENSION(:), POINTER              :: r
       REAL (rprec), DIMENSION(:), POINTER              :: z
 
+!  local variables
+      REAL (rprec)                                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -891,6 +1029,9 @@
             z => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_plasma_edge',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -913,7 +1054,12 @@
      &   equilibrium_get_magnetic_volume_rgrid
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -924,6 +1070,9 @@
             equilibrium_get_magnetic_volume_rgrid => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_magnetic_volume_rgrid', start_time)
 
       END FUNCTION
 
@@ -946,7 +1095,12 @@
      &   equilibrium_get_magnetic_volume_zgrid
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -957,6 +1111,9 @@
             equilibrium_get_magnetic_volume_zgrid => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_magnetic_volume_zgrid', start_time)
 
       END FUNCTION
 
@@ -979,7 +1136,12 @@
      &   equilibrium_get_magnetic_volume_jrgrid
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -990,6 +1152,9 @@
             equilibrium_get_magnetic_volume_jrgrid => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_magnetic_volume_jrgrid', start_time)
 
       END FUNCTION
 
@@ -1012,7 +1177,12 @@
      &   equilibrium_get_magnetic_volume_jphigrid
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1023,6 +1193,9 @@
             equilibrium_get_magnetic_volume_jphigrid => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_magnetic_volume_jphigrid', start_time)
 
       END FUNCTION
 
@@ -1045,7 +1218,12 @@
      &   equilibrium_get_magnetic_volume_jzgrid
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1056,6 +1234,9 @@
             equilibrium_get_magnetic_volume_jzgrid => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_magnetic_volume_jzgrid', start_time)
 
       END FUNCTION
 
@@ -1077,7 +1258,12 @@
       REAL (rprec) :: equilibrium_get_volume_int_element
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
         CASE (equilibrium_vmec_type)
@@ -1088,6 +1274,9 @@
             equilibrium_get_volume_int_element = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_volume_int_element',        &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1123,7 +1312,12 @@
       INTEGER                              :: num_currents
       LOGICAL, INTENT(out)                 :: scale_currents
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1141,6 +1335,9 @@
             equilibrium_get_ext_currents => null()
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ext_currents',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1162,7 +1359,12 @@
       INTEGER :: equilibrium_get_grid_size
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1172,6 +1374,9 @@
             equilibrium_get_grid_size = 0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_grid_size',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1193,7 +1398,12 @@
       REAl (rprec) :: equilibrium_get_grid_start
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1203,6 +1413,9 @@
             equilibrium_get_grid_start = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_grid_start',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1224,7 +1437,12 @@
       REAl (rprec) :: equilibrium_get_grid_stop
       TYPE (equilibrium_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1234,6 +1452,9 @@
             equilibrium_get_grid_stop = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_grid_stop',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1260,7 +1481,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1271,6 +1497,9 @@
             equilibrium_is_scaler_value = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_is_scaler_value',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1295,7 +1524,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1309,6 +1543,8 @@
             equilibrium_is_1d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_is_1d_array', start_time)
 
       END FUNCTION
 
@@ -1332,7 +1568,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1342,6 +1583,8 @@
             equilibrium_is_2d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_is_2d_array', start_time)
 
       END FUNCTION
 
@@ -1367,7 +1610,12 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: id
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1382,6 +1630,9 @@
             equilibrium_is_recon_param = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_is_recon_param',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1415,8 +1666,11 @@
 
 !  local variables
       INTEGER                                 :: init_num_iter
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       init_num_iter = num_iter
       IF (this%not_converged .or. this%force_solve) THEN
          SELECT CASE (this%type)
@@ -1445,6 +1699,8 @@
      &                 num_iter - init_num_iter
 1000  FORMAT('Equilibrium converged ',l,2(2x,i7))
 
+      CALL profiler_set_stop_time('equilibrium_converge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1463,13 +1719,20 @@
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout) :: this
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
             CALL vmec_save_state(this%vmec)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_save_state', start_time)
 
       END SUBROUTINE
 
@@ -1490,7 +1753,12 @@
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout) :: this
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1500,6 +1768,9 @@
 
 !  Reseting should set the equilibrium to a converged state.
       this%not_converged = .false.
+
+      CALL profiler_set_stop_time('equilibrium_reset_state',                   &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -1522,16 +1793,23 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: iou
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
-      CASE (equilibrium_vmec_type)
-         CALL vmec_write(this%vmec, iou)
+         CASE (equilibrium_vmec_type)
+            CALL vmec_write(this%vmec, iou)
 
-      CASE (equilibrium_vacuum_type)
-         CALL vacuum_write(this%vacuum, iou)
+         CASE (equilibrium_vacuum_type)
+            CALL vacuum_write(this%vacuum, iou)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_write', start_time)
 
       END SUBROUTINE
 
@@ -1560,7 +1838,12 @@
       INTEGER, INTENT(in)                  :: result_ncid
       INTEGER, INTENT(in)                  :: maxnsetps_dim_id
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1568,6 +1851,8 @@
      &                           maxnsetps_dim_id)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_def_result', start_time)
 
       END SUBROUTINE
 
@@ -1589,13 +1874,21 @@
       TYPE (equilibrium_class), INTENT(in) :: this
       INTEGER, INTENT(in)                  :: result_ncid
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
             CALL vmec_write_init_data(this%vmec, result_ncid)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_write_init_data',               &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -1620,7 +1913,12 @@
       INTEGER, INTENT(in)                  :: result_ncid
       INTEGER, INTENT(in)                  :: current_step
 
+!  local variables
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -1628,6 +1926,9 @@
      &                                current_step)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_write_step_data',               &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -1654,9 +1955,12 @@
 
 #if defined(MPI_OPT)
 !  local variables
+      REAL (rprec)                            :: start_time
       INTEGER                                 :: error
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, intra_comm,        &
      &               error)
@@ -1672,6 +1976,9 @@
             CALL vacuum_sync_children(this%vacuum, intra_comm)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_sync_children',                 &
+     &                            start_time)
 #endif
 
       END SUBROUTINE
@@ -1696,9 +2003,12 @@
 
 #if defined(MPI_OPT)
 !  local variables
+      REAL (rprec)                            :: start_time
       INTEGER                                 :: error
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, intra_comm,        &
      &               error)
 
@@ -1708,6 +2018,8 @@
             CALL vmec_sync_state(this%vmec, intra_comm)
 
       END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_sync_state', start_time)
 
 #endif
       END SUBROUTINE

@@ -95,12 +95,19 @@
       TYPE (limiter_iso), POINTER             :: iso
       LOGICAL, INTENT(in)                     :: on_edge
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(limiter_construct_iso)
 
       limiter_construct_iso%type = limiter_iso_type
       limiter_construct_iso%on_edge = on_edge
       limiter_construct_iso%iso => iso
+
+      CALL profiler_set_stop_time('limiter_construct_iso', start_time)
 
       END FUNCTION
 
@@ -124,11 +131,19 @@
       TYPE (limiter_class), POINTER :: limiter_construct_polygon
       LOGICAL, POINTER              :: on_edge
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(limiter_construct_polygon)
 
       limiter_construct_polygon%type = limiter_iso_type
       limiter_construct_polygon%on_edge = on_edge
+
+      CALL profiler_set_stop_time('limiter_construct_polygon',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -230,7 +245,12 @@
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (limiter_iso_type)
@@ -242,6 +262,9 @@
             sigma = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('limiter_get_modeled_signal',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -259,10 +282,15 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_name_length)   :: limiter_get_signal_type
+      CHARACTER (len=data_name_length) :: limiter_get_signal_type
       TYPE (limiter_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%type)
 
          CASE (limiter_iso_type)
@@ -272,6 +300,8 @@
             limiter_get_signal_type = 'edge_lim poly'
 
       END SELECT
+
+      CALL profiler_set_stop_time('limiter_get_signal_type', start_time)
 
       END FUNCTION
 
@@ -296,7 +326,12 @@
      &   limiter_get_header
       TYPE (limiter_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       limiter_get_header(1) = 'r (m)'
       limiter_get_header(2) = 'phi (rad)'
       limiter_get_header(3) = 'z (m)'
@@ -304,6 +339,8 @@
       limiter_get_header(5) = 'model_sig(2)'
       limiter_get_header(6) = 'model_sig(3)'
       limiter_get_header(7) = 'model_sig(4)'
+
+      CALL profiler_set_stop_time('limiter_get_header', start_time)
 
       END FUNCTION
 
@@ -330,8 +367,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                             :: error
+      REAL (rprec)                        :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%on_edge, 1, MPI_LOGICAL, 0, intra_comm, error)
 
@@ -342,6 +382,7 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('limiter_sync_children', start_time)
 #endif
 
       END SUBROUTINE
@@ -385,8 +426,11 @@
       REAL(rprec), DIMENSION(:), POINTER     :: r, z
       REAL(rprec), DIMENSION(3)              :: rphiz_at_max
       REAL(rprec)                            :: fval_max, fval
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       r => null()
       z => null()
 
@@ -436,6 +480,9 @@
       z => null()
 
       sigma = 0.0
+
+      CALL profiler_set_stop_time('limiter_get_modeled_iso_signal',            &
+     &                            start_time)
 
       END FUNCTION
 

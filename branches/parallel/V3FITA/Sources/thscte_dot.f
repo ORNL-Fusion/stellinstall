@@ -74,7 +74,6 @@
 
       USE stel_kinds
       USE stel_constants
-      USE thscte_T
       USE signal_dot
 
       IMPLICIT NONE
@@ -118,15 +117,18 @@
 
 !  local parameters
 !  n_thscted_keyword    integer - number of thscted_keyword s.
-      INTEGER, PARAMETER :: n_thscted_keyword = 9
+      INTEGER, PARAMETER                :: n_thscted_keyword = 9
 
 !  local variables
 !  thscted_keyword   character array - keywords for various thscte input types
       CHARACTER(len=data_name_length),                                         &
      &   DIMENSION(1:n_thscted_keyword) :: thscted_keyword
       TYPE(signal_dot_file) :: thscte_dot_file_ref
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Initialize the keywords and keyword lengths
       thscted_keyword(1) = 'thscte_XYZ'
       thscted_keyword(2) = 'thscte_RPhiDegZ'
@@ -204,6 +206,8 @@
 !  Close the 'thscte.' file
       CALL signal_dot_close(thscte_dot_file_ref)
 
+      CALL profiler_set_stop_time('thscte_dot_read', start_time)
+
       END SUBROUTINE
 
 !*******************************************************************************
@@ -261,8 +265,11 @@
       CHARACTER (len=data_short_name_length) :: point_name
       TYPE (thomson_class), POINTER          :: thomson_obj => null()
       CHARACTER (len=data_short_name_length) :: units = ''
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
          CALL err_fatal('ipch_dot_parse_chord_new: created signals' //         &
@@ -303,6 +310,8 @@
       IF (first_index .eq. -1) THEN
          first_index = signals_created
       END IF
+
+      CALL profiler_set_stop_time('thscte_dot_parse_chord', start_time)
 
       END SUBROUTINE
 

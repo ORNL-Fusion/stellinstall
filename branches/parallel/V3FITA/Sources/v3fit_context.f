@@ -310,6 +310,10 @@
          IF (minsize .eq. 0) THEN
             DEALLOCATE(this%signals)
             this%signals => null()
+
+            CALL profiler_set_stop_time('v3fit_context_resize',                &
+     &                                  start_time)
+
             RETURN
          ELSE IF (minsize .lt. SIZE(this%signals)) THEN
             ALLOCATE(temp_signal(minsize))

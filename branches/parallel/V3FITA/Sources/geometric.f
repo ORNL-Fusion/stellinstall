@@ -78,14 +78,22 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-	TYPE (geometric_class), POINTER :: geometric_construct_limiter
+      TYPE (geometric_class), POINTER :: geometric_construct_limiter
       TYPE (limiter_class), POINTER   :: limiter_object
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(geometric_construct_limiter)
 
       geometric_construct_limiter%type = geometric_limiter_type
       geometric_construct_limiter%limiter => limiter_object
+
+      CALL profiler_set_stop_time('geometric_construct_limiter',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -184,7 +192,12 @@
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
          CASE (geometric_limiter_type)
             geometric_get_modeled_signal =                                     &
@@ -192,6 +205,9 @@
      &                                    sigma)
 
       END SELECT
+
+      CALL profiler_set_stop_time('prior_get_modeled_signal',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -216,7 +232,12 @@
       CHARACTER (len=data_name_length) :: geometric_get_signal_type
       TYPE (geometric_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                       :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (geometric_limiter_type)
@@ -224,6 +245,9 @@
      &         TRIM(limiter_get_signal_type(this%limiter))
 
       END SELECT
+
+      CALL profiler_set_stop_time('geometric_get_signal_type',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -249,7 +273,12 @@
      &   geometric_get_header
       TYPE (geometric_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                       :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE(this%type)
 
          CASE (geometric_limiter_type)
@@ -259,6 +288,8 @@
             geometric_get_header = 'N/A'
 
       END SELECT
+
+      CALL profiler_set_stop_time('geometric_get_header', start_time)
 
       END FUNCTION
 
@@ -285,8 +316,11 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                               :: error
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
 
       SELECT CASE (this%type)
@@ -296,6 +330,7 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('geometric_sync_children', start_time)
 #endif
 
       END SUBROUTINE

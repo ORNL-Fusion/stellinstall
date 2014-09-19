@@ -15,6 +15,7 @@
 #if defined (MPI_OPT)
       USE mpi
 #endif
+      USE profiler
 
       IMPLICIT NONE
 
@@ -95,7 +96,12 @@
       INTEGER, INTENT(in)                         :: numin
       REAL(rprec), DIMENSION(:), INTENT(in)       :: vgrid
 
+!  local variables
+      REAL (rprec)                                :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  First, destroy this
       ALLOCATE(limiter_iso_construct_new)
       
@@ -106,7 +112,10 @@
 
       ALLOCATE(limiter_iso_construct_new%vgrid(SIZE(vgrid)))
       limiter_iso_construct_new%vgrid = vgrid
-      
+
+      CALL profiler_set_stop_time('limiter_iso_construct_new',                 &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -204,10 +213,13 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: rpz_arg
 
 !  local variables
-      REAL(rprec)                 :: e, er, ez, grad_e
-      INTEGER                     :: i, j
+      REAL(rprec)                            :: e, er, ez, grad_e
+      INTEGER                                :: i, j
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Compute function
       e = zero
       DO i = 0, 4
@@ -242,7 +254,9 @@
       grad_e = MAX(1.E-12, SQRT(er*er + ez*ez))
       
       limiter_iso_value = e/grad_e
-      
+
+      CALL profiler_set_stop_time('limiter_iso_value', start_time)
+
       END FUNCTION
 
 !*******************************************************************************
@@ -269,8 +283,11 @@
 !  local variables
       INTEGER                           :: error
       INTEGER                           :: num_v
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_BCAST(this%arz, 25, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%rc, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%zc, 1, MPI_REAL8, 0, intra_comm, error)
@@ -280,6 +297,7 @@
       CALL MPI_BCAST(num_v, 1, MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(this%vgrid, num_v, MPI_REAL8, 0, intra_comm, error)
 
+      CALL profiler_set_stop_time('limiter_iso_value', start_time)
 #endif
 
       END SUBROUTINE

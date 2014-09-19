@@ -101,7 +101,6 @@
 
       USE stel_kinds
       USE stel_constants
-      USE ipch_T
       USE signal_dot
 
       IMPLICIT NONE
@@ -152,8 +151,11 @@
       CHARACTER(len=data_name_length), DIMENSION(1:n_ipchd_keyword) ::         &
      &   ipchd_keyword
       TYPE(signal_dot_file) :: ipch_dot_file_ref
+      REAL (rprec)          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Initialize the keywords and keyword lengths
       ipchd_keyword(1) = 'ip_chord_XYZ'
       ipchd_keyword(2) = 'ip_chord_RPhiDegZ'
@@ -236,6 +238,8 @@
 !  Close the 'ipch.' file
       CALL signal_dot_close(ipch_dot_file_ref)
 
+      CALL profiler_set_stop_time('ipch_dot_read', start_time)
+
       END SUBROUTINE
 
 !*******************************************************************************
@@ -281,6 +285,7 @@
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -296,11 +301,14 @@
       INTEGER, INTENT(inout)                 :: first_index
 
 !  local variables
-      REAL (rprec), DIMENSION(2,3)     :: xcart
-      CHARACTER (len=data_name_length) :: chord_name
-      REAL (rprec)                     :: wavelength = 0.0
+      REAL (rprec), DIMENSION(2,3)           :: xcart
+      CHARACTER (len=data_name_length)       :: chord_name
+      REAL (rprec)                           :: wavelength = 0.0
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
          CALL err_fatal('ipch_dot_parse_chord_new: created signals' //         &
@@ -337,6 +345,8 @@
       IF (first_index .eq. -1) THEN
          first_index = signals_created
       END IF
+
+      CALL profiler_set_stop_time('ipch_dot_parse_chord', start_time)
 
       END SUBROUTINE
 

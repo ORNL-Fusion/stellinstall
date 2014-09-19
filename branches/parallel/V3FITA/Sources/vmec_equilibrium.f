@@ -123,7 +123,6 @@
       USE data_parameters
       USE pprofile_T
       USE threed1_file_cache
-      USE profiler
 #if defined (MPI_OPT)
       USE mpi
 #endif

@@ -38,6 +38,7 @@
 #if defined (MPI_OPT)
       USE mpi
 #endif
+      USE profiler
 
       IMPLICIT NONE
 
@@ -106,8 +107,11 @@
       REAL (rprec), DIMENSION(3)    :: center, mean_r
       REAL (rprec)                  :: total_current
       INTEGER                       :: i, j
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Initializing vacuum equilibrium from file ' //         &
      &            TRIM(file_name)
       WRITE (iou,*) ' *** Initializing vacuum equilibrium from file ' //       &
@@ -154,6 +158,8 @@
      &                         center, cg_shift_2(i,:))
          CALL bsc_rot_shift(coil_group(i), bsc_rs_object)
       END DO
+
+      CALL profiler_set_stop_time('vacuum_construct_new', start_time)
 
       END FUNCTION
 
@@ -287,7 +293,11 @@
       INTEGER, INTENT(in)                :: i_index, j_index
       REAL (rprec), INTENT(in)           :: value
 
+!  local variables
+      REAL (rprec)                       :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       SELECT CASE (id)
 
@@ -296,6 +306,8 @@
             vacuum_set_param = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vacuum_set_param', start_time)
 
       END FUNCTION
 
@@ -320,7 +332,12 @@
       TYPE (vacuum_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in)   :: param_name
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (TRIM(param_name))
 
          CASE ('extcur')
@@ -330,6 +347,8 @@
             vacuum_get_param_id = data_no_id
 
       END SELECT
+
+      CALL profiler_set_stop_time('vacuum_get_param_id', start_time)
 
       END FUNCTION
 
@@ -353,7 +372,12 @@
       INTEGER, INTENT(in)             :: id
       INTEGER, INTENT(in)             :: i_index, j_index
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vacuum_extcur_id)
@@ -363,6 +387,8 @@
             vacuum_get_param_value = 0.0
 
       END SELECT
+
+      CALL profiler_set_stop_time('vacuum_get_param_value', start_time)
 
       END FUNCTION
 
@@ -384,7 +410,12 @@
       TYPE (vacuum_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vacuum_extcur_id)
@@ -394,6 +425,8 @@
             STOP 'Invalid vacuum parameter id.'
 
       END SELECT
+
+      CALL profiler_set_stop_time('vacuum_get_param_name', start_time)
 
       END FUNCTION
 
@@ -418,13 +451,18 @@
 !  local variables
       INTEGER                                :: i
       REAL (rprec), DIMENSION(3)             :: b_vec
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       vacuum_get_B_vec = 0.0
       DO i = 1, SIZE(this%extcur)
          CALL bsc_b(coil_group(i), x_cart, b_vec, this%extcur(i))
          vacuum_get_B_vec = vacuum_get_B_vec + b_vec
       END DO
+
+      CALL profiler_set_stop_time('vacuum_get_B_vec', start_time)
 
       END FUNCTION
 
@@ -458,8 +496,11 @@
       REAL (rprec), DIMENSION(3)      :: r_cyl
       REAL (rprec), DIMENSION(3)      :: dl
       REAL (rprec)                    :: dphi
+      REAL (rprec)                    :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       vacuum_get_Int_B_dphi = 0.0
 
       r_cyl(1) = r*cos(theta)
@@ -474,6 +515,8 @@
      &                         + DOT_PRODUCT(b_cart, dl)
          r_cyl(2) = r_cyl(2) + dphi
       END DO
+
+      CALL profiler_set_stop_time('vacuum_get_Int_B_dphi', start_time)
 
       END FUNCTION
 
@@ -498,10 +541,16 @@
       TYPE (vacuum_class), INTENT(in)     :: this
       LOGICAL, INTENT(out)                :: scale_currents
 
-!  Start of executable code
-      vacuum_get_ext_currents => this%extcur
+!  local variables
+      REAL (rprec)                        :: start_time
 
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      vacuum_get_ext_currents => this%extcur
       scale_currents = .false.
+
+      CALL profiler_set_stop_time('vacuum_get_ext_currents', start_time)
 
       END FUNCTION
 
@@ -526,7 +575,12 @@
       TYPE (vacuum_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vacuum_extcur_id)
@@ -536,6 +590,8 @@
             vacuum_is_1d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vacuum_is_1d_array', start_time)
 
       END FUNCTION
 
@@ -558,7 +614,12 @@
       TYPE (vacuum_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vacuum_extcur_id)
@@ -568,6 +629,8 @@
             vacuum_is_recon_param = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vacuum_is_recon_param', start_time)
 
       END FUNCTION
 
@@ -590,9 +653,16 @@
       TYPE (vacuum_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: iou
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,*) 'Equilibrium Type : vacuum'
+
+      CALL profiler_set_stop_time('vacuum_write', start_time)
 
       END SUBROUTINE
 
@@ -625,8 +695,11 @@
       INTEGER                            :: num_sxrem
       INTEGER                            :: mpi_rank
       INTEGER                            :: mpi_size
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
 
@@ -651,6 +724,7 @@
       CALL MPI_BCAST(this%extcur, n_extcur, MPI_REAL8, 0, intra_comm,          &
      &               error)
 
+      CALL profiler_set_stop_time('vacuum_sync_children', start_time)
 #endif
 
       END SUBROUTINE
