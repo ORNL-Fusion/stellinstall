@@ -743,6 +743,7 @@
      &   rp_range_index = 0
 
 !  Signal data
+!>  @deprecated
 !>  Number of observed signals.
       INTEGER                         :: n_sdata_o = 0
 !>  Not implemented.
@@ -1034,24 +1035,24 @@
 !  Toggle use coil signals for the magnetics from the specification
       DO j = 1, SIZE(mag_spec_imin)
          IF (mag_spec_imin(j) .le. 0) EXIT
-         imin = MAX(MIN(mag_spec_imin(j), n_sdata_o), 1)
-         imax = MIN(MAX(mag_spec_imax(j), imin), n_sdata_o)
+         imin = MAX(MIN(mag_spec_imin(j), v3fit_max_diagnostics), 1)
+         imax = MIN(MAX(mag_spec_imax(j), imin), v3fit_max_diagnostics)
          mag_a(imin:imax) = mag_spec_use_induced(j)
       END DO
 
 !  Set weights from weight specification.
       DO j = 1, SIZE(sdo_w_spec_imin)
          IF (sdo_w_spec_imin(j) .le. 0) EXIT
-         imin = MAX(MIN(sdo_w_spec_imin(j), n_sdata_o), 1)
-         imax = MIN(MAX(sdo_w_spec_imax(j), imin), n_sdata_o)
+         imin = MAX(MIN(sdo_w_spec_imin(j), v3fit_max_signals), 1)
+         imax = MIN(MAX(sdo_w_spec_imax(j), imin), v3fit_max_signals)
          sdo_weight_a(imin:imax) = sdo_w_spec_weight(j)
       END DO
 
 !  Set sigmas from the sigma specification.
       DO j = 1,SIZE(sdo_s_spec_imin)
          IF (sdo_s_spec_imin(j) .le. 0) EXIT
-         imin = MAX(MIN(sdo_s_spec_imin(j), n_sdata_o), 1)
-         imax = MIN(MAX(sdo_s_spec_imax(j), imin), n_sdata_o)
+         imin = MAX(MIN(sdo_s_spec_imin(j), v3fit_max_signals), 1)
+         imax = MIN(MAX(sdo_s_spec_imax(j), imin), v3fit_max_signals)
          DO i = imin, imax
             IF ((sdo_sigma_a(i) .eq. 0) .or.                                   &
      &          sdo_spec_can_overwrite) THEN

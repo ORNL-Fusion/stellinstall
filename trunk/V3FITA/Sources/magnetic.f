@@ -31,7 +31,7 @@
 !>  Toggles whether to include the induced signal in the total signal.
          LOGICAL                  :: use_coil_response
 !>  Forces the induced coil signal to be computed.
-         LOGICAL                            :: force_coil_reponse
+         LOGICAL                  :: force_coil_reponse
          TYPE (mddc_mrf), POINTER :: response_function => null()
       END TYPE magnetic_class
 
@@ -80,6 +80,8 @@
       ALLOCATE(magnetic_construct_response)
 
       magnetic_construct_response%use_coil_response = use_coil_response
+      magnetic_construct_response%force_coil_reponse =                         &
+     &   force_coil_reponse
       magnetic_construct_response%response_function => response_function
 
       END FUNCTION
