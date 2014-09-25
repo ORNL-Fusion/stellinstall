@@ -830,7 +830,7 @@
 !>  Number of combination signals.
       INTEGER :: n_coosig = 0
 !>  Number of signals in a combination signal.
-      INTEGER, DIMENSION(v3fit_max_cos_size) :: n_sig_coosig = 0
+      INTEGER, DIMENSION(v3fit_max_combinations) :: n_sig_coosig = 0
 !>  Indices of the number signals to combine. Number if indices needs to match
 !>  @ref n_sig_coosig.
       INTEGER, DIMENSION(v3fit_max_combinations,v3fit_max_cos_size) ::         &
@@ -1087,7 +1087,7 @@
             WRITE (*,*) ' *** Overwiting the sxrem profile first ' //          &
      &                  'element.'
             WRITE (*,*) '     Non array soft xray profiles have ' //           &
-     &                  'been depricated'
+     &                  'been deprecated'
             model_sxrem_type_a(1) = model_sxrem_type
             pp_sxrem_ptype_a(1) = pp_sxrem_ptype
             pp_sxrem_b_a(1,:) = pp_sxrem_b
