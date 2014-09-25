@@ -369,13 +369,6 @@
 
       CALL v3fit_context_sync_children(context)
 
-!  Check if the number of observed signals matches the number of signals
-!  created. Otherwise the reconstruction can be put in an infinite loop when
-!  performing the SVD.
-      CALL assert_eq(SIZE(context%signals), n_sdata_o,                         &
-     &               'task_reconstruct: number of observed signals' //         &
-     &               ' does not match the number of signals created')
-
 !  Solve equilibrium
       WRITE (*,*) ' *** Starting initial equilibrium convergence'
       WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
