@@ -47,6 +47,8 @@ C-----------------------------------------------
       INTEGER            :: iunit_dacess=10
       LOGICAL :: lswap2disk = .FALSE.                                 !Set internally if blocks do not fit in memory
 
+      INTEGER(KIND=8) :: test
+
 C-----------------------------------------------
 !
 !     SP:        forces single precision for blocks (smaller size)
@@ -209,6 +211,7 @@ C-----------------------------------------------
       REAL(rprec2) :: time_on, time_off, bsize, tprec2don, tprec2doff
       CHARACTER(LEN=100):: label
       LOGICAL, PARAMETER :: lscreen = .false.
+
 C-----------------------------------------------
 !
 !     COMPUTES THE JACOBIAN BLOCKS block_mins, block_diag, block_plus
@@ -226,9 +229,9 @@ C-----------------------------------------------
       nmax_jog = ntyptot
 
       bsize = REAL(mblk*mblk, dp2)*3*ns*KIND(block_diag)
-      IF (bsize .gt. HUGE(mblk)) THEN
+      IF (bsize .gt. HUGE(test)) THEN
         WRITE (6, *) ' bsize: ', bsize, ' exceeds HUGE(int): ', 
-     1                 HUGE(mblk)
+     1                 HUGE(test)
         WRITE (6, *) ' Blocks will be written to disk.'
         lswap2disk = .TRUE.
       ELSE

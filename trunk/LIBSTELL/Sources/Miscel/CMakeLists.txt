@@ -8,6 +8,7 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/CHFDV.f
 	${CMAKE_CURRENT_SOURCE_DIR}/convert_boundary_PG.f
 	${CMAKE_CURRENT_SOURCE_DIR}/convert_boundary.f
+	${CMAKE_CURRENT_SOURCE_DIR}/dcuhre.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ddsum.f
 	${CMAKE_CURRENT_SOURCE_DIR}/erf.f
 	${CMAKE_CURRENT_SOURCE_DIR}/factorial.f

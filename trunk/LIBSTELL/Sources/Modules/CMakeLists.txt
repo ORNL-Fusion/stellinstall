@@ -57,6 +57,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/vparams.f
         ${CMAKE_CURRENT_SOURCE_DIR}/vsvd0.f
         ${CMAKE_CURRENT_SOURCE_DIR}/v3f_vmec_comm.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/virtual_casing_mod.f90
         ${CMAKE_CURRENT_SOURCE_DIR}/write_array_generic.f
 )
 set (stell_sources "${stell_sources}" PARENT_SCOPE)

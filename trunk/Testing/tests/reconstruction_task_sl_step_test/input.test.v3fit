@@ -148,7 +148,7 @@ sdo_s_spec_fraction(9) = 0.01,
 
 sdo_data_a(32) = 1.0,
 prior_name(4) = 'pp_sxrem_prior_a',
-prior_param_name(4) = 'pp_sxrem_af',
+prior_param_name(4) = 'pp_sxrem_af_a',
 prior_indices(4,:) = 1, 1,
 sdo_s_spec_imin(10) = 32,
 sdo_s_spec_imax(10) = 32,
