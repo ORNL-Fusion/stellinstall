@@ -561,6 +561,11 @@
       
 !  Compute the coordinates, store them in xcart_grid_e
 !  Also compute and store (in phi_grid_e) the phi values
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i,j,k,l,xcyl,phi0)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
       DO k = 1,kp
          phi0 = (k - 1) * delp 
          DO l = 1,n_field_periods
@@ -575,6 +580,8 @@
             END DO ! over i
          END DO ! over l
       END DO ! over k
+!$OMP END DO
+!$OMP END PARALLEL
 
 !----------------------------------------------------------------------
 !  Safe open for the LIST file
@@ -659,15 +666,20 @@
 
 ! (A) Compute the coil response
 !         Calculate the flux, and then apply the flux correction factor.
-      DO i = 1, n_field_cg    !  Loop over coil groups
-         CALL bsc_fluxba(field_coils(i),                                       &
+         DO i = 1, n_field_cg    !  Loop over coil groups
+            CALL bsc_fluxba(field_coils(i),                                    &
      &         mddc_desc_array(idc) % mdcoil,len_integrate_ddc,                &
      &         rdiag_coilg_1(i))
             rdiag_coilg_1(i) = rdiag_coilg_1(i) *                              &
      &         mddc_desc_array(idc) % flux_factor
-      END DO
+         END DO
 
 ! (B) Compute the plasma responses
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i,j,k,l,acart,acyl)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
          DO i = 1,ir
          DO j = 1,jz
          DO k = 1,kp
@@ -684,6 +696,8 @@
          END DO ! k
          END DO ! j
          END DO ! i
+!$OMP END DO
+!$OMP END PARALLEL
          
 !  Additional Summation for Stellarator Symmetric case.
          IF (lstell_sym) THEN
