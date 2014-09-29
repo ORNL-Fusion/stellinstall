@@ -276,19 +276,37 @@
 !>  Object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
-!>  Volume differential elements
+!>  Volume differential element for the s direction.
          REAL (rprec)                            :: ds
+!>  Volume differential element for the u direction.
          REAL (rprec)                            :: du
+!>  Volume differential element for the v direction.
          REAL (rprec)                            :: dv
 
-!>  R and Z positions on the suv gird points.
+!>  Area differential elements for the u direction.
+         REAL (rprec)                            :: du_a
+
+!>  R positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
+!>  Z positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: zsuv => null()
 
-!>  The following have a 1/Sqrt(g) factor embeded.
+!>  Current density in the R direction. Has a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jrsuv => null()
+!>  Current density in the Phi direction. Has a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jphisuv => null()
+!>  Current density in the Z direction. Has a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jzsuv => null()
+
+!>  Surface current density in the R direction. Has all Jacobian and
+!>  normalization factors.
+         REAL (rprec), DIMENSION(:,:), POINTER :: kruv => null()
+!>  Surface current density in the Phi direction. Has all Jacobian and
+!>  normalization factors.
+         REAL (rprec), DIMENSION(:,:), POINTER :: kphiuv => null()
+!>  Surface current density in the Z direction. Has all Jacobian and
+!>  normalization factors.
+         REAL (rprec), DIMENSION(:,:), POINTER :: kzuv => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -1002,6 +1020,8 @@
 !>                                 planes.
 !>  @param[in]    nfp              Number of field periods the diagnostics were
 !>                                 generated with.
+!>  @param[in]    use_con_shell    Compute grids on the conducting shell.
+!>  @param[in]    n_u              Number of grid points in the u direction.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
@@ -1012,7 +1032,8 @@
 !>  size changes. Currently the grid are allocated once and never changed.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
-     &                                        tor_planes_used, nfp)
+     &                                        tor_planes_used, nfp,            &
+     &                                        use_con_shell, n_u)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
 
@@ -1023,6 +1044,8 @@
       INTEGER, INTENT(in)              :: total_tor_planes
       INTEGER, INTENT(in)              :: tor_planes_used
       INTEGER, INTENT(in)              :: nfp
+      LOGICAL, INTENT(in)              :: use_con_shell
+      INTEGER, INTENT(in)              :: n_u
 
 !  local variables
       INTEGER                          :: numU
@@ -1044,13 +1067,23 @@
       this%magnetic_cache%du = twopi/numU
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
+!  Set the differental area elements.
+      this%magnetic_cache%du_a = twopi/n_u
+
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,tor_planes_used))
+
+!  When conducting shell is used allocate the surface vector arrays.
+      IF (use_con_shell) THEN
+         ALLOCATE(this%magnetic_cache%kruv(n_u,tor_planes_used))
+         ALLOCATE(this%magnetic_cache%kphiuv(n_u,tor_planes_used))
+         ALLOCATE(this%magnetic_cache%kzuv(n_u,tor_planes_used))
+      END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
      &                            start_time)
@@ -1068,26 +1101,30 @@
       SUBROUTINE vmec_set_magnetic_cache_calc(this)
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
-     &                         currumnc, currvmnc, currumns, currvmns
+     &                         currumnc, currvmnc, currumns, currvmns,         &
+     &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns
+      USE stel_constants, only: mu0
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), INTENT(inout) :: this
+      TYPE (vmec_class), INTENT(inout)          :: this
 
 !  local variables
       INTEGER                                   :: s, u, v
       INTEGER                                   :: numS, numU, numV
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, cosv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu, sinv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu, sinu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv, sinv
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz_nyq, sinz_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu_nyq, cosv_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu_nyq, sinv_nyq
-      REAL (rprec)                              :: ru, rv, zu, zv
-      REAL (rprec)                              :: ju, jv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu_nyq, sinu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv_nyq, sinv_nyq
+      REAL (rprec)                              :: ru, rv, zu, zv, r
+      REAL (rprec)                              :: ju, jv, bu, bv
       REAL (rprec)                              :: phi
       REAL (rprec)                              :: start_time
+      REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubuc, bsubus
+      REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubvc, bsubvs
 
 !  Start of executable code.
       start_time = profiler_get_start_time()
@@ -1098,11 +1135,11 @@
       numV = SIZE(this%magnetic_cache%rsuv, 3)
 
       ALLOCATE(cosz(mnmax), sinz(mnmax))
-      ALLOCATE(cosu(mnmax, numU), sinu(mnmax, numU),                           &
+      ALLOCATE(cosu(mnmax), sinu(mnmax),                                       &
      &         cosv(mnmax, numV), sinv(mnmax, numV))
 
       ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
-      ALLOCATE(cosu_nyq(mnmax_nyq, numU), sinu_nyq(mnmax_nyq, numU),           &
+      ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq),                       &
      &         cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
 
 !  U grid is square with the s grid.
@@ -1113,16 +1150,8 @@
 !>  @ref vmec_set_magnetic_cache_init.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(u,v,phi)
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-      DO u = 1, numU
-         cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
-         sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
-         cosu_nyq(:,u) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
-         sinu_nyq(:,u) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
-      END DO
-!$OMP END DO
+!$OMP& PRIVATE(s,u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,ju,jv,
+!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO v = 1, numV
@@ -1133,7 +1162,6 @@
          sinv_nyq(:,v) = SIN(xn_nyq*phi)
       END DO
 !$OMP END DO
-!$OMP END PARALLEL
 
 !  Set the suv grids
 !
@@ -1147,21 +1175,23 @@
 !  jphi = jv*R
 !  jz = ju*zu + jv*zv
 
-!$OMP PARALLEL DO
+!$OMP DO
 !$OMP& SCHEDULE(STATIC)
-!$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(s,u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,ju,jv)
       DO u = 1, numU
+         cosu(:) = COS(xm*(u - 1)*this%magnetic_cache%du)
+         sinu(:) = SIN(xm*(u - 1)*this%magnetic_cache%du)
+         cosu_nyq(:) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
+         sinu_nyq(:) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
 
          DO v = 1, numV
 
-            cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
-            sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
+            cosz = cosu(:)*cosv(:,v) + sinu(:)*sinv(:,v)
+            sinz = sinu(:)*cosv(:,v) - cosu(:)*sinv(:,v)
 
-            cosz_nyq = cosu_nyq(:,u)*cosv_nyq(:,v)                             &
-     &               + sinu_nyq(:,u)*sinv_nyq(:,v)
-            sinz_nyq = sinu_nyq(:,u)*cosv_nyq(:,v)                             &
-     &               - cosu_nyq(:,u)*sinv_nyq(:,v)
+            cosz_nyq = cosu_nyq(:)*cosv_nyq(:,v)                               &
+     &               + sinu_nyq(:)*sinv_nyq(:,v)
+            sinz_nyq = sinu_nyq(:)*cosv_nyq(:,v)                               &
+     &               - cosu_nyq(:)*sinv_nyq(:,v)
 
             DO s = 1, numS
 
@@ -1198,15 +1228,122 @@
             END DO
          END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP END PARALLEL
 
       this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                      &
      &                         + this%z_offset
 
-      DEALLOCATE(cosz, sinz)
-      DEALLOCATE(cosu, sinu, cosv, sinv)
+      DEALLOCATE(cosu, sinu)
+      DEALLOCATE(cosu_nyq, sinu_nyq)
+
+!  Compute the conducting shell if needed. If the kruv array is associated, the
+!  the conducting shell is being used. The total conducting shell signal for a
+!  magnetic diagnostic is
+!
+!    S_i = AreaIntegral K(u,v) . R_i(u,v)dudv                                (1)
+!
+!  For now, It will be assumed that the last closed flux surface of the plasma
+!  is the conducting shell. This can be refined later. The total magnetic signal
+!  in flux coordinates becomes
+!
+!    S_i = AreaIntegral (-e^s/|e^s| X B/mu0) . R_i * J|e^s|dudv              (2)
+!
+!  Using the idenity e^s = 1/J*e_u X e_v equation 2 becomes
+!
+!    S_i = AreaIntegral -e_u X e_v X B/mu0 . R_i dudv                        (3)
+!
+!  From the triple cross product idenity equation 3 reduces to
+!
+!    S_i = AreaIntegral -1/mu0(B_u e_v - B_v e_u) . R_i dudv                 (4)
+!
+!  Computing the conducting shell surface current is simply.
+!
+!    K(u,v) = -1/mu0(B_u*e_v - B_v*e_u)                                      (5)
+!
+!  NOTE: The shell current cannot be used with the Z position shift.
+      IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
+!  Interpolate the b_u and b_v onto the last closed flux surface.
+         ALLOCATE(bsubuc(mnmax), bsubvc(mnmax))
+         bsubuc = (bsubumnc(:,numS - 1) - bsubumnc(:,numS))*numS               &
+     &          + bsubumnc(:,numS - 1)*(1.5 - numS)                            &
+     &          - bsubumnc(:,numS)*(0.5 - numS)
+         bsubvc = (bsubvmnc(:,numS - 1) - bsubvmnc(:,numS))*numS               &
+     &          + bsubvmnc(:,numS - 1)*(1.5 - numS)                            &
+     &          - bsubvmnc(:,numS)*(0.5 - numS)
+         IF (lasym) THEN
+            bsubus = (bsubumns(:,numS - 1) - bsubumns(:,numS))*numS            &
+     &             + bsubumns(:,numS - 1)*(1.5 - numS)                         &
+     &             - bsubumns(:,numS)*(0.5 - numS)
+            bsubvs = (bsubvmns(:,numS - 1) - bsubvmns(:,numS))*numS            &
+     &             + bsubvmns(:,numS - 1)*(1.5 - numS)                         &
+     &             - bsubvmns(:,numS)*(0.5 - numS)
+         END IF
+
+         numU = SIZE(this%magnetic_cache%kruv, 1)
+         ALLOCATE(cosu(mnmax), sinu(mnmax))
+         ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
+
+!  U grid is square with the v grid.
+!>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
+!>  component arrays every time.
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r,
+!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO u = 1, numU
+            cosu(:) = COS(xm*(u - 1)*this%magnetic_cache%du_a)
+            sinu(:) = SIN(xm*(u - 1)*this%magnetic_cache%du_a)
+            cosu_nyq(:) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du_a)
+            sinu_nyq(:) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du_a)
+
+            DO v = 1, numV
+
+               cosz = cosu(:)*cosv(:,v) + sinu(:)*sinv(:,v)
+               sinz = sinu(:)*cosv(:,v) - cosu(:)*sinv(:,v)
+
+               cosz_nyq = cosu_nyq(:)*cosv_nyq(:,v)                            &
+     &                  + sinu_nyq(:)*sinv_nyq(:,v)
+               sinz_nyq = sinu_nyq(:)*cosv_nyq(:,v)                            &
+     &                  - cosu_nyq(:)*sinv_nyq(:,v)
+
+               ru = -SUM(xm*rmnc(:,numS)*sinz)
+               zu = SUM(xm*zmns(:,numS)*cosz)
+               rv = SUM(xn*rmnc(:,numS)*sinz)
+               zv = -SUM(xn*zmns(:,numS)*cosz)
+               r = SUM(rmnc(:,numS)*cosz)
+
+               bu = SUM(bsubuc*cosz_nyq)
+               bv = SUM(bsubvc*cosz_nyq)
+
+               IF (lasym) THEN
+                  ru = ru + SUM(xm*rmns(:,numS)*cosz)
+                  zu = zu - SUM(xm*zmnc(:,numS)*sinz)
+                  rv = rv - SUM(xn*rmns(:,numS)*cosz)
+                  zv = zv + SUM(xn*zmnc(:,numS)*sinz)
+                  r = r + SUM(rmns(:,numS)*sinz)
+
+                  bu = bu + SUM(bsubus*sinz_nyq)
+                  bv = bu + SUM(bsubvs*sinz_nyq)
+               END IF
+
+               this%magnetic_cache%kruv(u,v) = -1.0/mu0*(bu*rv - bv*ru)
+               this%magnetic_cache%kphiuv(u,v) = -1.0/mu0*bu*r
+               this%magnetic_cache%kzuv(u,v) = -1.0/mu0*(bu*zv - bv*zu)
+            END DO
+         END DO
+!$OMP END DO
+!$OMP END PARALLEL
+
+         DEALLOCATE(cosu, sinu)
+         DEALLOCATE(cosu_nyq, sinu_nyq)
+      END IF
+
+      DEALLOCATE(cosv, sinv)
       DEALLOCATE(cosz_nyq, sinz_nyq)
-      DEALLOCATE(cosu_nyq, sinu_nyq, cosv_nyq, sinv_nyq)
+      DEALLOCATE(cosv_nyq, sinv_nyq)
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
      &                            start_time)
@@ -2508,6 +2645,133 @@
      &                            * this%magnetic_cache%dv
 
       CALL profiler_set_stop_time('vmec_get_volume_int_element',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kr grid points.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_con_surface_krgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_con_surface_krgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   vmec_get_con_surface_krgrid
+      TYPE (vmec_class), INTENT(in)         :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_con_surface_krgrid => this%magnetic_cache%kruv
+
+      CALL profiler_set_stop_time('vmec_get_con_surface_krgrid',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kphi grid points.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_con_surface_kphigrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_con_surface_kphigrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   vmec_get_con_surface_kphigrid
+      TYPE (vmec_class), INTENT(in)         :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_con_surface_kphigrid => this%magnetic_cache%kphiuv
+
+      CALL profiler_set_stop_time('vmec_get_con_surface_kphigrid',             &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kz grid points.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_con_surface_kzgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_con_surface_kzgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   vmec_get_con_surface_kzgrid
+      TYPE (vmec_class), INTENT(in)         :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_con_surface_kzgrid => this%magnetic_cache%kzuv
+
+      CALL profiler_set_stop_time('vmec_get_con_surface_kzgrid',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get area integration element.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_area_int_element.
+!>  For vmec this is J*|e^s|*du*dv where J is the jacobian. The jacobian is
+!>  integrated into kr, kphi and kz. There is no need to account for the sign
+!>  of the jacobian since it is taken care of implicity in the conversion
+!>  between of e^s to e_u and e_v.
+!>  @see vmec_equilibrium::vmec_set_magnetic_cache_calc equation 3.
+!>
+!>  * du = 2*Pi/number of u grid
+!>  * dv = 2*Pi/number of field periods/number of toroidal planes
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The area integration element.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_area_int_element(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: vmec_get_area_int_element
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_area_int_element = this%magnetic_cache%du_a
+     &                          * this%magnetic_cache%dv
+
+      CALL profiler_set_stop_time('vmec_get_area_int_element',                 &
      &                            start_time)
 
       END FUNCTION

@@ -139,6 +139,13 @@
          REAL(rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
          REAL(rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
          REAL(rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
+
+         LOGICAL                              :: use_con_shell
+         INTEGER                              :: n_u
+         REAL(rprec), DIMENSION(:,:), POINTER :: a_s_r => null()
+         REAL(rprec), DIMENSION(:,:), POINTER :: a_s_f => null()
+         REAL(rprec), DIMENSION(:,:), POINTER :: a_s_z => null()
+
       END TYPE mddc_mrf
 !-------------------------------------------------------------------------------
 !  Declare type mddc_desc
@@ -269,7 +276,8 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE mddc_mrf_construct(this,code_name,code_version,               &
      &  date_run,field_coils_id,rdiag_coilg_1,extcur_mg,kp,                    &
-     &  rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z)
+     &  rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z,            &
+     &  use_con_shell, a_s_r, a_s_f, a_s_z)
 
       IMPLICIT NONE
 
@@ -291,6 +299,11 @@
       REAL(rprec), DIMENSION(:,:,:), INTENT(in)  :: a_r
       REAL(rprec), DIMENSION(:,:,:), INTENT(in)  :: a_f
       REAL(rprec), DIMENSION(:,:,:), INTENT(in)  :: a_z
+
+      LOGICAL, INTENT(in)                        :: use_con_shell
+      REAL(rprec), DIMENSION(:,:), INTENT(in)    :: a_s_r
+      REAL(rprec), DIMENSION(:,:), INTENT(in)    :: a_s_f
+      REAL(rprec), DIMENSION(:,:), INTENT(in)    :: a_s_z
 
 !  Declare local variables
       INTEGER           :: ir1, ir2, ir3, if1, if2, if3, iz1,           &
@@ -348,12 +361,40 @@
       ALLOCATE(this % a_z(ir1,ir2,ir3),STAT=ier3)
       CALL assert_eq(0,ier1,ier2,ier3,sub_name // 'alloc a_')
 
+      this % use_con_shell = use_con_shell
+      IF (use_con_shell) THEN
+         ir1 = SIZE(a_s_r,1)
+         ir2 = SIZE(a_s_r,2)
+         if1 = SIZE(a_s_f,1)
+         if2 = SIZE(a_s_f,2)
+         iz1 = SIZE(a_s_z,1)
+         iz2 = SIZE(a_s_z,2)
+         CALL assert_eq(ir1,if1,iz1,sub_name //                                &
+     &                  'a_s_ first dims different')
+         CALL assert_eq(ir2,if2,iz2,sub_name //                                &
+     &                  'a_s_ 2nd dims different')
+
+         this % n_u = ir1
+
+         ALLOCATE(this % a_s_r(ir1,ir2),STAT=ier1)
+         ALLOCATE(this % a_s_f(ir1,ir2),STAT=ier2)
+         ALLOCATE(this % a_s_z(ir1,ir2),STAT=ier3)
+         CALL assert_eq(0,ier1,ier2,sub_name // 'alloc a_s_')
+      END IF
+
+
 !  Move arrays
       this % rdiag_coilg_1 = rdiag_coilg_1
       this % extcur_mg = extcur_mg
       this % a_r = a_r
       this % a_f = a_f
       this % a_z = a_z
+
+      IF (use_con_shell) THEN
+         this%a_s_r = a_s_r
+         this%a_s_f = a_s_f
+         this%a_s_z = a_s_z
+      END IF
      
       END SUBROUTINE mddc_mrf_construct
 
@@ -427,6 +468,9 @@
       this % jz = 0
       this % kp_store = 0
 
+      this % use_con_shell = .false.
+      this % n_u = 0
+
 !  Deallocate space for arrays
       IF (ASSOCIATED(this % rdiag_coilg_1)) THEN
          DEALLOCATE(this % rdiag_coilg_1,STAT=ier1)
@@ -447,6 +491,18 @@
       IF (ASSOCIATED(this % a_z)) THEN
          DEALLOCATE(this % a_z,STAT=ier1)
          CALL assert_eq(0,ier1,sub_name // 'dealloc a_z')
+      ENDIF
+      IF (ASSOCIATED(this % a_s_r)) THEN
+         DEALLOCATE(this % a_s_r,STAT=ier1)
+         CALL assert_eq(0,ier1,sub_name // 'dealloc a_s_r')
+      ENDIF
+      IF (ASSOCIATED(this % a_s_f)) THEN
+         DEALLOCATE(this % a_s_f,STAT=ier1)
+         CALL assert_eq(0,ier1,sub_name // 'dealloc a_s_f')
+      ENDIF
+      IF (ASSOCIATED(this % a_s_z)) THEN
+         DEALLOCATE(this % a_s_z,STAT=ier1)
+         CALL assert_eq(0,ier1,sub_name // 'dealloc a_s_z')
       ENDIF
 
       END SUBROUTINE mddc_mrf_destroy
@@ -535,6 +591,9 @@
       left % jz = right % jz
       left % kp_store = right % kp_store
 
+      left % use_con_shell = right % use_con_shell
+      left % n_u = right % n_u
+
 !  Allocate space for arrays (Were deallocated in _destroy)
       ALLOCATE(left % rdiag_coilg_1(left % n_field_cg),STAT=ier1)
       CALL assert_eq(0,ier1,sub_name // 'alloc rdiag_coilg_1')
@@ -548,6 +607,13 @@
       ALLOCATE(left % a_z(left % ir,left % jz,left % kp_store),                &
      &   STAT=ier3)
       CALL assert_eq(0,ier1,ier2,ier3,sub_name // 'alloc a_')
+
+      IF (left % use_con_shell) THEN
+         ALLOCATE(left % a_s_r(left % n_u,left % kp_store), STAT=ier1)
+         ALLOCATE(left % a_s_f(left % n_u,left % kp_store), STAT=ier2)
+         ALLOCATE(left % a_s_z(left % n_u,left % kp_store), STAT=ier3)
+         CALL assert_eq(0,ier1,ier2,ier3,sub_name // 'alloc a_s_')
+      END IF
 
 !  Move arrays
 !  JDH 2010-07-20. IF statements to avoid segmentation fault with
@@ -567,9 +633,21 @@
       IF ( ASSOCIATED(right % a_z)) THEN
         left % a_z = right % a_z
       ENDIF
-         
+
+      IF (left % use_con_shell) THEN
+         IF ( ASSOCIATED(right % a_s_r)) THEN
+            left % a_s_r = right % a_s_r
+         ENDIF
+         IF ( ASSOCIATED(right % a_s_f)) THEN
+            left % a_s_f = right % a_s_f
+         ENDIF
+         IF ( ASSOCIATED(right % a_s_z)) THEN
+            left % a_s_z = right % a_s_z
+         ENDIF
+      ENDIF
+
       END SUBROUTINE mddc_mrf_assign
-          
+
 !*******************************************************************************
 ! SECTION VII.  OUTPUT SUBROUTINES
 !*******************************************************************************
@@ -681,10 +759,10 @@
       INTEGER      :: iou
       CHARACTER (len=60)  :: id
       INTEGER      :: i, n_data
-      INTEGER      :: i1, i2, i3
+      INTEGER      :: i1, i2, i3, i4
 
 !  Declare Format array
-      CHARACTER(len=*), PARAMETER, DIMENSION(21) :: fmt1 = (/                  &
+      CHARACTER(len=*), PARAMETER, DIMENSION(23) :: fmt1 = (/                  &
      & '(" start mddc_mrf write, called with id = ",a)       ',                &
      & '(" code_name  = ",a)                                 ',                &
      & '(" code_version = ",a)                               ',                &
@@ -705,6 +783,8 @@
      & '(" Stellarator symmetry logical (lstell_sym) = ",l1) ',                &
      & '(" Three indices for a_ are ",i4,2x,i4,2x,i4)        ',                &
      & '(" a_r, a_f, a_z = ",3(3x,es12.5))                   ',                &
+     & '(" Two indices for a_s_ are ",i4,2x,i4)              ',                &
+     & '(" a_s_r, a_s_f, a_s_z = ",3(3x,es12.5))             ',                &
      & '(" end mddc_mrf write, called with id = ",a)         '                 &
      &  /) 
 
@@ -732,6 +812,7 @@
       i1 = this % ir / 2
       i2 = this % jz / 2
       i3 = this % kp_store / 2
+      i4 = this % n_u / 2
 
 !  Select Case of Verbosity Level
       SELECT CASE(iv)
@@ -756,6 +837,12 @@
          WRITE(iou,*) i1, i2, i3
          WRITE(iou,*) this % a_r(i1,i2,i3), this % a_f(i1,i2,i3),              &
      &      this % a_z(i1,i2,i3)
+         WRITE(iou,*) this % use_con_shell
+         WRITE(iou,*) i4, i3
+         IF (this % use_con_shell) THEN
+            WRITE(iou,*) this % a_s_r(i4,i3), this % a_s_f(i4,i3),             &
+     &                   this % a_s_z(i4,i3)
+         END IF
       
       CASE(1:)    ! Default, more verbose
          WRITE(iou,fmt1(1)) id
@@ -781,7 +868,13 @@
          WRITE(iou,fmt1(19)) i1, i2, i3
          WRITE(iou,fmt1(20)) this % a_r(i1,i2,i3), this % a_f(i1,i2,i3),       &
      &      this % a_z(i1,i2,i3)
-         WRITE(iou,fmt1(21)) id
+         WRITE(iou,fmt1(21)) i4, i3
+         IF (this % use_con_shell) THEN
+            WRITE(iou,fmt1(22)) this % a_s_r(i4,i3),                           &
+     &                          this % a_s_f(i4,i3),                           &
+     &                          this % a_s_z(i4,i3)
+         END IF
+         WRITE(iou,fmt1(23)) id
 
       END SELECT
 

@@ -348,12 +348,15 @@
 !>                                 planes.
 !>  @param[in]    nfp              Number of field period the diagnostics were
 !>                                 generated with.
+!>  @param[in]    use_con_shell    Compute grids on the conducting shell.
+!>  @param[in]    n_u              Number of grid points in the u direction.
 !>  @note Stellarator symmetry may be exploited to speed up computation and
 !>  reduce memory usage. If stellarator symmetry is not used then
 !>  tor_planes_used should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
-     &                                          tor_planes_used, nfp)
+     &                                          tor_planes_used, nfp,          &
+     &                                          use_con_shell, n_u)
 
       IMPLICIT NONE
 
@@ -362,6 +365,8 @@
       INTEGER, INTENT(in)                     :: total_tor_planes
       INTEGER, INTENT(in)                     :: tor_planes_used
       INTEGER, INTENT(in)                     :: nfp
+      LOGICAL, INTENT(in)                     :: use_con_shell
+      INTEGER, INTENT(in)                     :: n_u
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -373,7 +378,8 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
-     &                                   tor_planes_used, nfp)
+     &                                   tor_planes_used, nfp,                 &
+     &                                   use_con_shell, n_u)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
             IF (.not.this%not_converged) THEN
@@ -1245,7 +1251,7 @@
 !>
 !>  This method is virtual. The actual getting of the volume integration element
 !>  should be handled by a subclass method.
-!>  @see vmec_equilibrium::vmec_get_magnetic_volume_int_element
+!>  @see vmec_equilibrium::vmec_get_volume_int_element
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The volume integration element.
@@ -1276,6 +1282,169 @@
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_get_volume_int_element',        &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kr grid points.
+!>
+!>  This method is virtual. The actual getting of the kr grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_con_surface_krgrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The kr grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_con_surface_krgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   equilibrium_get_con_surface_krgrid
+      TYPE (equilibrium_class), INTENT(in)  :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_con_surface_krgrid =>                              &
+     &         vmec_get_con_surface_krgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_con_surface_krgrid => null()
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_con_surface_krgrid', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kphi grid points.
+!>
+!>  This method is virtual. The actual getting of the kphi grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_con_surface_kphigrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The kphi grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_con_surface_kphigrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   equilibrium_get_con_surface_kphigrid
+      TYPE (equilibrium_class), INTENT(in)  :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_con_surface_kphigrid =>                            &
+     &         vmec_get_con_surface_kphigrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_con_surface_kphigrid => null()
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_con_surface_kphigrid', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kz grid points.
+!>
+!>  This method is virtual. The actual getting of the kz grid points should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_con_surface_kzgrid
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The kz grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_con_surface_kzgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   equilibrium_get_con_surface_kzgrid
+      TYPE (equilibrium_class), INTENT(in)  :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_con_surface_kzgrid =>                              &
+     &         vmec_get_con_surface_kzgrid(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_con_surface_kzgrid => null()
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_get_con_surface_kzgrid', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get area integration element.
+!>
+!>  This method is virtual. The actual getting of the area integration element
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_area_int_element
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns The volume integration element.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_area_int_element(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_area_int_element
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_area_int_element =                                 &
+     &         vmec_get_area_int_element(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_get_area_int_element = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_area_int_element',          &
      &                            start_time)
 
       END FUNCTION

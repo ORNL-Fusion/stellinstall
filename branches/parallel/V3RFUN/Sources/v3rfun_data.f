@@ -97,10 +97,24 @@
       INTEGER :: iou_mdsig_ncdf  = 40
 
 !----------------------------------------------------------------------
+!-- Conducting Shell specification                                   --
+!-- For now model this as a torus.                                   --
+!--   use_con_shell : Computes the response function for a           --
+!--                   conducting shell.                              --
+!--   major_radius  : Major radius of the torus.                     --
+!--   minor_radius  : Minor radius of the torus.                     --
+!----------------------------------------------------------------------
+      LOGICAL      :: use_con_shell = .false.
+      REAL (rprec) :: major_radius = 0.0
+      REAL (rprec) :: minor_radius = 0.0
+
+!----------------------------------------------------------------------
 !-- version                                                          --
 !--   rfvers            : version number                             --
 !----------------------------------------------------------------------
-      CHARACTER(len=30) :: rfvers = 'JDH 2012-01-06'
+!  NOTE: When changing this version changes, the select statement in
+!  magnetic_construct_netcdf of magnetic.f in the V3FIT needs to be updated.
+      CHARACTER(len=30) :: rfvers = 'MRC 2014-09-28'
 
 !---------------------------------------------------------------------------
 !  Variables for shifts and rotations of coil_groups of coils_dot file
@@ -137,6 +151,7 @@
      &   len_integrate_ddc,                                                    &
      &   l_read_coils_dot, n_field_periods_nli,                                &
      &   cg_shift_1, cg_shift_2, cg_rot_xcent, cg_rot_theta,                   &
-     &   cg_rot_phi, cg_rot_angle, l_rot_coil_center
+     &   cg_rot_phi, cg_rot_angle, l_rot_coil_center,                          &
+     &   use_con_shell, major_radius, minor_radius
 
       END MODULE v3rfun_data

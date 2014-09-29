@@ -458,6 +458,10 @@
 !  n_field_periods       number of field periods
 !  lstell_sym            Logical - True for stellarator symmetry
 !  kp                    number of phi planes per field period in plasma grid
+!  use_con_shell         Logical - True for computing the signal responce of a
+!                                  conducting shell.
+!  major_radius          Major radius for a conducting shell.
+!  minor_radius          Minor radius for a conducting shell.
 
       IMPLICIT NONE
 !----------------------------------------------------------------------
@@ -499,6 +503,15 @@
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
+
+      REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: xcart_s_grid_e
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE, TARGET ::                    &
+     &   s_response, s_response_ss
+      REAl(rprec), DIMENSION(:,:), POINTER :: a_s_r => null()
+      REAl(rprec), DIMENSION(:,:), POINTER :: a_s_f => null()
+      REAl(rprec), DIMENSION(:,:), POINTER :: a_s_z => null()
+      REAL(rprec)                          :: u
+      INTEGER                              :: n_u
 
       INTEGER :: ier1, ier2, ier3
       CHARACTER(len=8) :: my_date
@@ -558,7 +571,17 @@
          ALLOCATE(pl_response_ss(ir,jz,kp_store,3),STAT=ier1)
          CALL assert_eq(0,ier1,sub_name // 'alloc 2')
       ENDIF
-      
+
+!  Allocate space for conducting shell
+      n_u = MAX(INT(n_field_periods*kp*major_radius/major_radius), 10)
+      IF (use_con_shell) THEN
+         ALLOCATE(xcart_s_grid_e(n_u, kp, n_field_periods, 3))
+         ALLOCATE(s_response(n_u,kp,3))
+         IF (lstell_sym) THEN
+            ALLOCATE(s_response_ss(n_u,kp_store,3))
+         END IF
+      END IF
+
 !  Compute the coordinates, store them in xcart_grid_e
 !  Also compute and store (in phi_grid_e) the phi values
 !$OMP PARALLEL
@@ -582,6 +605,29 @@
       END DO ! over k
 !$OMP END DO
 !$OMP END PARALLEL
+
+!  Compute the coordinates for the conducting shell. The phi values were
+!  computed in the previous loop.
+      IF (use_con_shell) THEN
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(j,k,l,xcyl)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO k = 1,kp
+            DO l = 1,n_field_periods
+               xcyl(2) = phi_grid_e(k,l)
+               DO j = 1,n_u
+                  u = (j - 1)*twopi/n_u
+                  xcyl(1) = major_radius + minor_radius*cos(u)
+                  xcyl(3) = major_radius + minor_radius*sin(u)
+                  xcart_s_grid_e(j,k,l,1:3) = cyl_to_cart(xcyl)
+               END DO
+            END DO
+         END DO
+!$OMP END DO
+!$OMP END PARALLEL
+      END IF
 
 !----------------------------------------------------------------------
 !  Safe open for the LIST file
@@ -686,7 +732,7 @@
             pl_response(i,j,k,1:3) = zero
             DO l = 1, n_field_periods
                CALL bsc_a(mddc_desc_array(idc) % mdcoil,                       &
-     &             xcart_grid_e(i,j,k,l,1:3),acart)
+     &                 xcart_grid_e(i,j,k,l,1:3), acart)
                CALL cart2cyl_v(acart,phi_grid_e(k,l),acyl)
                pl_response(i,j,k,1:3) = pl_response(i,j,k,1:3) +               &
      &            acyl(1:3)
@@ -722,6 +768,49 @@
             END DO ! i
          END IF ! lstell_sym
 
+! (C) Compute the conducting shell response.
+         IF (use_con_shell) THEN
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(j,k,l,acart,acyl)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+            DO j = 1, n_u
+            DO k = 1, kp
+               s_response(j,k,1:3) = zero
+               DO l = 1,n_field_periods
+                  CALL bsc_a(mddc_desc_array(idc)%mdcoil,                      &
+     &                   xcart_s_grid_e(j,k,l,1:3), acart)
+                  CALL cart2cyl_v(acart, phi_grid_e(k,l), acyl)
+                  s_response(j,k,1:3) = s_response(j,k,1:3) + acyl
+               END DO
+            END DO
+            END DO
+!$OMP END DO
+!$OMP END PARALLEL
+            s_response = s_response*mddc_desc_array(idc)%flux_factor
+
+            IF (lstell_sym) THEN
+               DO j = 1, n_u
+                  jss = n_u + 1 - j
+                  DO k = 1, kp_store
+                     IF (k .eq. 1) THEN
+                        kss = 1
+                     ELSE
+                        kss = kp + 2 - k
+                     END IF
+                     s_response_ss(j,k,1) = s_response(j,k,1)                  &
+     &                                    - s_response(jss,kss,1)
+                     s_response_ss(j,k,2) = s_response(j,k,2)                  &
+     &                                    + s_response(jss,kss,2)
+                     s_response_ss(j,k,3) = s_response(j,k,3)                  &
+     &                                    + s_response(jss,kss,3)
+                  END DO
+               END DO
+            END IF
+         END IF
+
+
 CDBG         print *,idc,minval(pl_response(1:ir,1:jz,1:kp,1:3)),
 CDBG     .  	maxval(pl_response(1:ir,1:jz,1:kp,1:3)),
 CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
@@ -734,15 +823,26 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
             a_r => pl_response_ss(:,:,:,1)
             a_f => pl_response_ss(:,:,:,2)
             a_z => pl_response_ss(:,:,:,3)
+            IF (use_con_shell) THEN
+               a_s_r => s_response_ss(:,:,1)
+               a_s_f => s_response_ss(:,:,2)
+               a_s_z => s_response_ss(:,:,3)
+            END IF
          ELSE
             a_r => pl_response(:,:,:,1)
             a_f => pl_response(:,:,:,2)
             a_z => pl_response(:,:,:,3)
-         ENDIF            
+            IF (use_con_shell) THEN
+               a_s_r => s_response(:,:,1)
+               a_s_f => s_response(:,:,2)
+               a_s_z => s_response(:,:,3)
+            END IF
+         ENDIF
          CALL mddc_mrf_construct(local_mddc_mrf,                               &
      &      code_name,code_version,date_run,field_coils_id,                    &
      &      rdiag_coilg_1,extcur,kp,                                           &
-     &      rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z)
+     &      rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z,        &
+     &      use_con_shell, a_s_r, a_s_f, a_s_z)
 
 !  iv)  Define a local mddc_desc, including the mddc_mrf
 !       NB - no further references to mddc_desc_array after this section,

@@ -933,7 +933,9 @@
          CALL equilibrium_set_magnetic_cache(                                  &
      &           context%model%equilibrium, magnetic_object%kp,                &
      &           magnetic_object%kp_store,                                     &
-     &           magnetic_object%n_field_periods)
+     &           magnetic_object%n_field_periods,                              &
+     &           ASSOCIATED(magnetic_object%a_s_r),                            &
+     &           magnetic_object%n_u)
       END IF
 
       CALL profiler_set_stop_time('init_magnetic_cache', start_time)
