@@ -223,9 +223,9 @@
 
       IF (.not.model_is_recon_param(a_model,                                   &
      &            param_construct_recon%param_id)) THEN
-         CALL err_fatal('param_construct: ' // param_name // ' is ' //         &
-     &                  'a valid reconstruction reconstruction ' //            &
-     &                  'parameter')
+         CALL err_fatal('param_construct: ' // TRIM(param_name) //             &
+     &                  ' is an invalid reconstruction ' //                    &
+     &                  'reconstruction parameter')
       END IF
 
       param_construct_recon%vrnc = vrnc
