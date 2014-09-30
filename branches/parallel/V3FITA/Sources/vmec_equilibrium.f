@@ -1329,7 +1329,7 @@
                   r = r + SUM(rmns(:,numS)*sinz)
 
                   bu = bu + SUM(bsubus*sinz_nyq)
-                  bv = bu + SUM(bsubvs*sinz_nyq)
+                  bv = bv + SUM(bsubvs*sinz_nyq)
                END IF
 
                this%magnetic_cache%kruv(u,v) = -1.0/mu0*(bu*rv - bv*ru)

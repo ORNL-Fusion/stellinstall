@@ -573,7 +573,7 @@
       ENDIF
 
 !  Allocate space for conducting shell
-      n_u = MAX(INT(n_field_periods*kp*major_radius/major_radius), 10)
+      n_u = MAX(INT(n_field_periods*kp*minor_radius/major_radius), 10)
       IF (use_con_shell) THEN
          ALLOCATE(xcart_s_grid_e(n_u, kp, n_field_periods, 3))
          ALLOCATE(s_response(n_u,kp,3))
@@ -618,9 +618,9 @@
             DO l = 1,n_field_periods
                xcyl(2) = phi_grid_e(k,l)
                DO j = 1,n_u
-                  u = (j - 1)*twopi/n_u
+                  u = (j - 1)*(twopi/n_u)
                   xcyl(1) = major_radius + minor_radius*cos(u)
-                  xcyl(3) = major_radius + minor_radius*sin(u)
+                  xcyl(3) = minor_radius*sin(u)
                   xcart_s_grid_e(j,k,l,1:3) = cyl_to_cart(xcyl)
                END DO
             END DO
@@ -792,13 +792,18 @@
 
             IF (lstell_sym) THEN
                DO j = 1, n_u
-                  jss = n_u + 1 - j
+                  IF (j .eq. 1) THEN
+                     jss = 1
+                  ELSE
+                     jss = n_u + 2 - j
+                  END IF
                   DO k = 1, kp_store
                      IF (k .eq. 1) THEN
                         kss = 1
                      ELSE
                         kss = kp + 2 - k
                      END IF
+
                      s_response_ss(j,k,1) = s_response(j,k,1)                  &
      &                                    - s_response(jss,kss,1)
                      s_response_ss(j,k,2) = s_response(j,k,2)                  &
