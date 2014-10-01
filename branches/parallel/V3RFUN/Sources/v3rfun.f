@@ -611,7 +611,7 @@
       IF (use_con_shell) THEN
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(j,k,l,xcyl)
+!$OMP& PRIVATE(j,k,l,xcyl,u)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO k = 1,kp
