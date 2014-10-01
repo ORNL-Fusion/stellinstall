@@ -321,7 +321,7 @@
             CALL spline_cubic(s_use, pprofile_get_value,                       &
      &                        this%as, this%af,                                &
      &                        this%maxSplineIndex, iflag)
-            IF (iflag .gt. 0) THEN
+            IF (iflag .ge. 0) THEN
 
                CALL profiler_set_stop_time('pprofile_get_value',               &
      &                                     start_time)
@@ -345,7 +345,7 @@
      &                  MAX(s_arg,this%as(1)))
             CALL spline_akima(s_use, pprofile_get_value,                       &
      &                        this%as, this%af,                                &
-     &                        this%maxSplineIndex,iflag)
+     &                        this%maxSplineIndex, iflag)
             IF (iflag < 0) THEN
                WRITE (*,*) 'ERROR: pprofile: bad value from ' //               &
      &                     'spline_akima requested'
