@@ -126,12 +126,16 @@
       TYPE (v3fit_context_class), POINTER :: context => null()
       REAL (rprec)                        :: time_start, time_end
       INTEGER                             :: mpi_rank
-      INTEGER                             :: mpi_size
 #if defined(MPI_OPT)
       INTEGER                             :: error
-#endif
 
 !  Start of executable code
+!  The Intel version of the MPI libraries does not provide a correct value for
+!  time until after MPI_INIT is called. Make sure this is the first think called
+!  so that correct timing information can be used.
+      CALL MPI_INIT(error)
+#endif
+
       CALL second0(time_start)
       CALL profiler_construct
 
@@ -177,10 +181,8 @@
 
 !  Clean up memory
 #if defined(MPI_OPT)
-      CALL MPI_COMM_SIZE(context%intra_comm, mpi_size, error)
       CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
 #else
-      mpi_size = 1
       mpi_rank = 0
 #endif
 
@@ -1534,8 +1536,6 @@
 
 #if defined (MPI_OPT)
 !  Configure num processes to use for MPI
-      CALL MPI_INIT(error)
-
       CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, error)
       CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, error)
 
