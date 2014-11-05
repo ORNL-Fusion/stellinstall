@@ -285,6 +285,8 @@
 
 !>  Area differential elements for the u direction.
          REAL (rprec)                            :: du_a
+!>  Area differential elements for the v direction.
+         REAL (rprec)                            :: dv_a
 
 !>  R positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
@@ -1033,7 +1035,9 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
      &                                        tor_planes_used, nfp,            &
-     &                                        use_con_shell, n_u)
+     &                                        use_con_shell, n_u,              &
+     &                                        total_shell_planes,              &
+     &                                        shell_planes_used)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
 
@@ -1046,6 +1050,8 @@
       INTEGER, INTENT(in)              :: nfp
       LOGICAL, INTENT(in)              :: use_con_shell
       INTEGER, INTENT(in)              :: n_u
+      INTEGER, INTENT(in)              :: total_shell_planes
+      INTEGER, INTENT(in)              :: shell_planes_used
 
 !  local variables
       INTEGER                          :: numU
@@ -1069,6 +1075,7 @@
 
 !  Set the differental area elements.
       this%magnetic_cache%du_a = twopi/n_u
+      this%magnetic_cache%dv_a = (twopi/nfp)/total_shell_planes
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
@@ -1080,9 +1087,9 @@
 
 !  When conducting shell is used allocate the surface vector arrays.
       IF (use_con_shell) THEN
-         ALLOCATE(this%magnetic_cache%kruv(n_u,tor_planes_used))
-         ALLOCATE(this%magnetic_cache%kphiuv(n_u,tor_planes_used))
-         ALLOCATE(this%magnetic_cache%kzuv(n_u,tor_planes_used))
+         ALLOCATE(this%magnetic_cache%kruv(n_u,shell_planes_used))
+         ALLOCATE(this%magnetic_cache%kphiuv(n_u,shell_planes_used))
+         ALLOCATE(this%magnetic_cache%kzuv(n_u,shell_planes_used))
       END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
@@ -1125,6 +1132,7 @@
       REAL (rprec)                              :: start_time
       REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubuc, bsubus
       REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubvc, bsubvs
+      REAL (rprec)                              :: wodd
 
 !  Start of executable code.
       start_time = profiler_get_start_time()
@@ -1138,7 +1146,7 @@
       ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
 
 !  U grid is square with the s grid.
-!>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
+!>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
 !>  component arrays every time. The v components can change if phi_offset is
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
@@ -1237,6 +1245,9 @@
       this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                      &
      &                         + this%z_offset
 
+      DEALLOCATE(cosv, sinv)
+      DEALLOCATE(cosv_nyq, sinv_nyq)
+
 !  Compute the conducting shell if needed. If the kruv array is associated, the
 !  the conducting shell is being used. The total conducting shell signal for a
 !  magnetic diagnostic is
@@ -1247,48 +1258,87 @@
 !  is the conducting shell. This can be refined later. The total magnetic signal
 !  in flux coordinates becomes
 !
-!    S_i = AreaIntegral (-e^s/|e^s| X B/mu0) . R_i * J|e^s|dudv              (2)
+!    S_i = AreaIntegral (-e^s/|e^s| X B/mu0) . R_i * |J||e^s|dudv            (2)
 !
 !  Using the idenity e^s = 1/J*e_u X e_v equation 2 becomes
 !
-!    S_i = AreaIntegral -e_u X e_v X B/mu0 . R_i dudv                        (3)
+!    S_i = AreaIntegral -e_u X e_v X B/mu0 . R_i |J|/J dudv                  (3)
 !
 !  From the triple cross product idenity equation 3 reduces to
 !
-!    S_i = AreaIntegral -1/mu0(B_u e_v - B_v e_u) . R_i dudv                 (4)
+!    S_i = AreaIntegral -1/mu0(B_u e_v - B_v e_u) . R_i |J|/J dudv           (4)
 !
 !  Computing the conducting shell surface current is simply.
 !
 !    K(u,v) = -1/mu0(B_u*e_v - B_v*e_u)                                      (5)
 !
 !  NOTE: The shell current cannot be used with the Z position shift.
+!
+!  NOTE: Equation 2.5.49a in "Flux Coordinates and Magnetic Field Structure" by
+!        W.D.D'haeseleer, W.N.G.Hitchon, J.D.Callen and J.L.Shohet assumes a
+!        positive jacobian. The correct equation should be
+!
+!            dS(i)=|J||e^i| du^j dv^k
+!
+!        As a result the signal due to the conducting shell contains a |J|/J
+!        term. The sign of the jacobian needs to be taken into account. This is
+!        taken care of in vmec_get_area_int_element.
+
       IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
-!  Interpolate the b_u and b_v onto the last closed flux surface.
+!  Interpolate the b_u and b_v onto the last closed flux surface. This
+!  interpolation follows what is outlined in tosuvspace. For odd modes
+!  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
+         wodd = SQRT((numS - 1.0)/(numS - 1.0 - 1.5))
+
          ALLOCATE(bsubuc(mnmax), bsubvc(mnmax))
-         bsubuc = (bsubumnc(:,numS - 1) - bsubumnc(:,numS))*numS               &
-     &          + bsubumnc(:,numS - 1)*(1.5 - numS)                            &
-     &          - bsubumnc(:,numS)*(0.5 - numS)
-         bsubvc = (bsubvmnc(:,numS - 1) - bsubvmnc(:,numS))*numS               &
-     &          + bsubvmnc(:,numS - 1)*(1.5 - numS)                            &
-     &          - bsubvmnc(:,numS)*(0.5 - numS)
+         WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
+            bsubuc = 1.5*bsubumnc(:,numS) - 0.5*bsubumnc(:,numS - 1)
+            bsubvc = 1.5*bsubvmnc(:,numS) - 0.5*bsubvmnc(:,numS - 1)
+         ELSE WHERE
+            bsubuc = wodd*bsubumnc(:,numS - 1)
+            bsubvc = wodd*bsubvmnc(:,numS - 1)
+         END WHERE
+
          IF (lasym) THEN
-            bsubus = (bsubumns(:,numS - 1) - bsubumns(:,numS))*numS            &
-     &             + bsubumns(:,numS - 1)*(1.5 - numS)                         &
-     &             - bsubumns(:,numS)*(0.5 - numS)
-            bsubvs = (bsubvmns(:,numS - 1) - bsubvmns(:,numS))*numS            &
-     &             + bsubvmns(:,numS - 1)*(1.5 - numS)                         &
-     &             - bsubvmns(:,numS)*(0.5 - numS)
+            WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
+               bsubus = 1.5*bsubumns(:,numS) - 0.5*bsubumns(:,numS - 1)
+               bsubvs = 1.5*bsubvmns(:,numS) - 0.5*bsubvmns(:,numS - 1)
+            ELSE WHERE
+               bsubus = wodd*bsubumns(:,numS - 1)
+               bsubvs = wodd*bsubvmns(:,numS - 1)
+            END WHERE
          END IF
 
          numU = SIZE(this%magnetic_cache%kruv, 1)
+         numV = SIZE(this%magnetic_cache%kruv, 2)
 
-!  U grid is square with the v grid.
-!>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
-!>  component arrays every time.
+         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
+         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+
+!  U grid is square with the s grid.
+!>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
+!>  component arrays every time. The v components can change if phi_offset is
+!>  being reconstructed. The u components can be cached in the
+!>  @ref vmec_magnetic_cache and calculated once in
+!>  @ref vmec_set_magnetic_cache_init.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r,
-!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq)
+!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO v = 1, numV
+            phi = (v - 1)*this%magnetic_cache%dv_a + this%phi_offset
+            cosv(:,v) = COS(xn*phi)
+            sinv(:,v) = SIN(xn*phi)
+            cosv_nyq(:,v) = COS(xn_nyq*phi)
+            sinv_nyq(:,v) = SIN(xn_nyq*phi)
+         END DO
+!$OMP END DO
+
+!  U grid is square with the v grid.
+!>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
+!>  component arrays every time.
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO u = 1, numU
@@ -1309,8 +1359,6 @@
 
                cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
      &                  + sinu_nyq*sinv_nyq(:,v)
-               sinz_nyq = sinu_nyq*cosv_nyq(:,v)                               &
-     &                  - cosu_nyq*sinv_nyq(:,v)
 
                ru = -SUM(xm*rmnc(:,numS)*sinz)
                zu = SUM(xm*zmns(:,numS)*cosz)
@@ -1322,6 +1370,9 @@
                bv = SUM(bsubvc*cosz_nyq)
 
                IF (lasym) THEN
+                  sinz_nyq = sinu_nyq*cosv_nyq(:,v)                            &
+     &                     - cosu_nyq*sinv_nyq(:,v)
+
                   ru = ru + SUM(xm*rmns(:,numS)*cosz)
                   zu = zu - SUM(xm*zmnc(:,numS)*sinz)
                   rv = rv - SUM(xn*rmns(:,numS)*cosz)
@@ -1344,10 +1395,11 @@
          END DO
 !$OMP END DO
 !$OMP END PARALLEL
-      END IF
 
-      DEALLOCATE(cosv, sinv)
-      DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(cosv, sinv)
+         DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(bsubuc, bsubvc)
+      END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
      &                            start_time)
@@ -2747,10 +2799,9 @@
 !>  @brief Get area integration element.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_area_int_element.
-!>  For vmec this is J*|e^s|*du*dv where J is the jacobian. The jacobian is
-!>  integrated into kr, kphi and kz. There is no need to account for the sign
-!>  of the jacobian since it is taken care of implicity in the conversion
-!>  between of e^s to e_u and e_v.
+!>  For vmec this is |J||e^s|*du*dv where J is the jacobian. A 1/J term is
+!>  integrated into kr, kphi and kz. Since due to the resulting |J|/J term, the
+!>  the sign of the jacobian must be taken into account.
 !>  @see vmec_equilibrium::vmec_set_magnetic_cache_calc equation 3.
 !>
 !>  * du = 2*Pi/number of u grid
@@ -2760,6 +2811,7 @@
 !>  @returns The area integration element.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_area_int_element(this)
+      USE read_wout_mod, only: isigng
 
       IMPLICIT NONE
 
@@ -2773,7 +2825,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
       vmec_get_area_int_element = this%magnetic_cache%du_a
-     &                          * this%magnetic_cache%dv
+     &                          * this%magnetic_cache%dv_a*isigng
 
       CALL profiler_set_stop_time('vmec_get_area_int_element',                 &
      &                            start_time)

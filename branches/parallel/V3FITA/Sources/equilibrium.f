@@ -356,7 +356,9 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
      &                                          tor_planes_used, nfp,          &
-     &                                          use_con_shell, n_u)
+     &                                          use_con_shell, n_u,            &
+     &                                          total_shell_planes,            &
+     &                                          shell_planes_used)
 
       IMPLICIT NONE
 
@@ -367,6 +369,8 @@
       INTEGER, INTENT(in)                     :: nfp
       LOGICAL, INTENT(in)                     :: use_con_shell
       INTEGER, INTENT(in)                     :: n_u
+      INTEGER, INTENT(in)                     :: total_shell_planes
+      INTEGER, INTENT(in)                     :: shell_planes_used
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -379,7 +383,9 @@
          CASE (equilibrium_vmec_type)
             CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
      &                                   tor_planes_used, nfp,                 &
-     &                                   use_con_shell, n_u)
+     &                                   use_con_shell, n_u,                   &
+     &                                   total_shell_planes,                   &
+     &                                   shell_planes_used)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
             IF (.not.this%not_converged) THEN

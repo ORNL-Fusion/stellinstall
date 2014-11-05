@@ -93,6 +93,10 @@
 
 !>  Number of grid points in u, conducting shell grid.
          INTEGER                            :: n_u
+!>  Number of phi planes per field period in the conducting shell grid.
+         INTEGER                            :: kp_shell
+!>  Number of phi planes actually stored in the conducting shell grid.
+         INTEGER                            :: kp_shell_store
 
 !  Plasma Response Arrays ------------------------------------------------------
 !>  R component of plasma response function.
@@ -266,9 +270,13 @@
      &            IBSET(magnetic_construct_netcdf%model_signal_flags,          &
      &                  magnetic_use_con_shell_flag)
 
+               CALL cdf_read(mdsig_iou, 'mddc_mrf_kp_shell',                   &
+     &                       magnetic_construct_netcdf%kp_shell)
+
                CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_s_r',                   &
      &                          dim_lengths(1:2))
                magnetic_construct_netcdf%n_u = dim_lengths(1)
+               magnetic_construct_netcdf%kp_shell_store = dim_lengths(2)
 
                ALLOCATE(magnetic_construct_netcdf%a_s_r(dim_lengths(1),        &
      &                                                  dim_lengths(2)))
@@ -397,9 +405,13 @@
 !  Conducting Shell Response Arrays --------------------------------------------
       IF (BTEST(magnetic_construct_mpi%model_signal_flags,                     &
      &          magnetic_use_con_shell_flag)) THEN
+         CALL MPI_BCAST(magnetic_construct_mpi%kp_shell, 1, MPI_INTEGER,       &
+     &                  0, intra_comm, error)
+
          CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,       &
      &                  error)
          magnetic_construct_mpi%n_u = dim_lengths(1)
+         magnetic_construct_mpi%kp_shell_store = dim_lengths(2)
 
          total_length = dim_lengths(1)*dim_lengths(2)
 
@@ -648,6 +660,8 @@
 !-------------------------------------------------------------------------------
       IF (BTEST(this%model_signal_flags,                                       &
      &          magnetic_use_con_shell_flag)) THEN
+
+         num_phi = this%kp_shell_store
 
          krgrid =>                                                             &
      &      equilibrium_get_con_surface_krgrid(a_model%equilibrium)
@@ -898,10 +912,14 @@
 !  Conducting Shell Response Arrays --------------------------------------------
       IF (BTEST(this%model_signal_flags,                                       &
      &          magnetic_use_con_shell_flag)) THEN
-         dim_lengths(1:2) = (/ this%n_u, this%kp_store /)
+         CALL MPI_BCAST(this%kp_shell, 2, MPI_INTEGER, 0, intra_comm,          &
+     &                  error)
+
+         dim_lengths(1:2) = (/ this%n_u, this%kp_shell_store /)
          CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,       &
      &                  error)
          this%n_u = dim_lengths(1)
+         this%kp_shell_store = dim_lengths(2)
 
          total_length = dim_lengths(1)*dim_lengths(2)
          CALL MPI_BCAST(this%a_s_r, total_length, MPI_REAL8, 0,                &

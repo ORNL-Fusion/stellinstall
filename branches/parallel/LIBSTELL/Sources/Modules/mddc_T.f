@@ -142,6 +142,8 @@
 
          LOGICAL                              :: use_con_shell
          INTEGER                              :: n_u
+         INTEGER                              :: kp_shell
+         INTEGER                              :: kp_shell_store
          REAL(rprec), DIMENSION(:,:), POINTER :: a_s_r => null()
          REAL(rprec), DIMENSION(:,:), POINTER :: a_s_f => null()
          REAL(rprec), DIMENSION(:,:), POINTER :: a_s_z => null()
@@ -277,7 +279,7 @@
       SUBROUTINE mddc_mrf_construct(this,code_name,code_version,               &
      &  date_run,field_coils_id,rdiag_coilg_1,extcur_mg,kp,                    &
      &  rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z,            &
-     &  use_con_shell, a_s_r, a_s_f, a_s_z)
+     &  use_con_shell, a_s_r, a_s_f, a_s_z, kp_shell)
 
       IMPLICIT NONE
 
@@ -304,6 +306,7 @@
       REAL(rprec), DIMENSION(:,:), INTENT(in)    :: a_s_r
       REAL(rprec), DIMENSION(:,:), INTENT(in)    :: a_s_f
       REAL(rprec), DIMENSION(:,:), INTENT(in)    :: a_s_z
+      INTEGER, INTENT(in)                        :: kp_shell
 
 !  Declare local variables
       INTEGER           :: ir1, ir2, ir3, if1, if2, if3, iz1,           &
@@ -363,6 +366,8 @@
 
       this % use_con_shell = use_con_shell
       IF (use_con_shell) THEN
+         this % kp_shell = kp_shell
+
          ir1 = SIZE(a_s_r,1)
          ir2 = SIZE(a_s_r,2)
          if1 = SIZE(a_s_f,1)
@@ -375,6 +380,7 @@
      &                  'a_s_ 2nd dims different')
 
          this % n_u = ir1
+         this % kp_shell_store = ir2
 
          ALLOCATE(this % a_s_r(ir1,ir2),STAT=ier1)
          ALLOCATE(this % a_s_f(ir1,ir2),STAT=ier2)
@@ -470,6 +476,8 @@
 
       this % use_con_shell = .false.
       this % n_u = 0
+      this % kp_shell = 0
+      this % kp_shell_store = 0
 
 !  Deallocate space for arrays
       IF (ASSOCIATED(this % rdiag_coilg_1)) THEN
@@ -593,6 +601,8 @@
 
       left % use_con_shell = right % use_con_shell
       left % n_u = right % n_u
+      left % kp_shell = right % kp_shell
+      left % kp_shell_store = right % kp_shell_store
 
 !  Allocate space for arrays (Were deallocated in _destroy)
       ALLOCATE(left % rdiag_coilg_1(left % n_field_cg),STAT=ier1)
@@ -609,9 +619,12 @@
       CALL assert_eq(0,ier1,ier2,ier3,sub_name // 'alloc a_')
 
       IF (left % use_con_shell) THEN
-         ALLOCATE(left % a_s_r(left % n_u,left % kp_store), STAT=ier1)
-         ALLOCATE(left % a_s_f(left % n_u,left % kp_store), STAT=ier2)
-         ALLOCATE(left % a_s_z(left % n_u,left % kp_store), STAT=ier3)
+         ALLOCATE(left % a_s_r(left % n_u,left % kp_shell_store),              &
+     &            STAT=ier1)
+         ALLOCATE(left % a_s_f(left % n_u,left % kp_shell_store),              &
+     &            STAT=ier2)
+         ALLOCATE(left % a_s_z(left % n_u,left % kp_shell_store),              &
+     &            STAT=ier3)
          CALL assert_eq(0,ier1,ier2,ier3,sub_name // 'alloc a_s_')
       END IF
 
@@ -759,10 +772,10 @@
       INTEGER      :: iou
       CHARACTER (len=60)  :: id
       INTEGER      :: i, n_data
-      INTEGER      :: i1, i2, i3, i4
+      INTEGER      :: i1, i2, i3, i4, i5
 
 !  Declare Format array
-      CHARACTER(len=*), PARAMETER, DIMENSION(23) :: fmt1 = (/                  &
+      CHARACTER(len=*), PARAMETER, DIMENSION(25) :: fmt1 = (/                  &
      & '(" start mddc_mrf write, called with id = ",a)       ',                &
      & '(" code_name  = ",a)                                 ',                &
      & '(" code_version = ",a)                               ',                &
@@ -785,8 +798,10 @@
      & '(" a_r, a_f, a_z = ",3(3x,es12.5))                   ',                &
      & '(" Two indices for a_s_ are ",i4,2x,i4)              ',                &
      & '(" a_s_r, a_s_f, a_s_z = ",3(3x,es12.5))             ',                &
-     & '(" end mddc_mrf write, called with id = ",a)         '                 &
-     &  /) 
+     & '(" end mddc_mrf write, called with id = ",a)         ',                &
+     & '(" number of s grid points in phi ",i4)              ',                &
+     & '(" number of s g. p. in phi stored ",i4)             '                 &
+     &  /)
 
 !  start of executable code
 !  Check for arguments present
@@ -813,6 +828,7 @@
       i2 = this % jz / 2
       i3 = this % kp_store / 2
       i4 = this % n_u / 2
+      i5 = this % kp_shell_store / 2
 
 !  Select Case of Verbosity Level
       SELECT CASE(iv)
@@ -840,8 +856,10 @@
          WRITE(iou,*) this % use_con_shell
          WRITE(iou,*) i4, i3
          IF (this % use_con_shell) THEN
-            WRITE(iou,*) this % a_s_r(i4,i3), this % a_s_f(i4,i3),             &
-     &                   this % a_s_z(i4,i3)
+            WRITE(iou,*) this % kp_shell
+            WRITE(iou,*) this % kp_shell_store
+            WRITE(iou,*) this % a_s_r(i4,i5), this % a_s_f(i4,i5),             &
+     &                   this % a_s_z(i4,i5)
          END IF
       
       CASE(1:)    ! Default, more verbose
@@ -870,9 +888,11 @@
      &      this % a_z(i1,i2,i3)
          WRITE(iou,fmt1(21)) i4, i3
          IF (this % use_con_shell) THEN
-            WRITE(iou,fmt1(22)) this % a_s_r(i4,i3),                           &
-     &                          this % a_s_f(i4,i3),                           &
-     &                          this % a_s_z(i4,i3)
+            WRITE(iou,fmt1(24)) this % kp_shell
+            WRITE(iou,fmt1(25)) this % kp_shell_store
+            WRITE(iou,fmt1(22)) this % a_s_r(i4,i5),                           &
+     &                          this % a_s_f(i4,i5),                           &
+     &                          this % a_s_z(i4,i5)
          END IF
          WRITE(iou,fmt1(23)) id
 

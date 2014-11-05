@@ -107,6 +107,8 @@
       LOGICAL      :: use_con_shell = .false.
       REAL (rprec) :: major_radius = 0.0
       REAL (rprec) :: minor_radius = 0.0
+      INTEGER      :: kp_shell = 1
+      INTEGER      :: kp_shell_store
 
 !----------------------------------------------------------------------
 !-- version                                                          --
@@ -152,6 +154,6 @@
      &   l_read_coils_dot, n_field_periods_nli,                                &
      &   cg_shift_1, cg_shift_2, cg_rot_xcent, cg_rot_theta,                   &
      &   cg_rot_phi, cg_rot_angle, l_rot_coil_center,                          &
-     &   use_con_shell, major_radius, minor_radius
+     &   use_con_shell, major_radius, minor_radius, kp_shell
 
       END MODULE v3rfun_data

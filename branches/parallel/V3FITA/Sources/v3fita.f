@@ -937,7 +937,8 @@
      &           magnetic_object%kp_store,                                     &
      &           magnetic_object%n_field_periods,                              &
      &           ASSOCIATED(magnetic_object%a_s_r),                            &
-     &           magnetic_object%n_u)
+     &           magnetic_object%n_u, magnetic_object%kp_shell,                &
+     &           magnetic_object%kp_shell_store)
       END IF
 
       CALL profiler_set_stop_time('init_magnetic_cache', start_time)

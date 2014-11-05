@@ -251,7 +251,12 @@
          ENDIF
          kp_store = kp / 2 + 1
       ENDIF
-      
+
+      kp_shell_store = kp_shell
+      IF (lstell_sym) THEN
+         kp_shell_store = kp_shell/2 + 1
+      ENDIF
+
 !----------------------------------------------------------------------
 !-- Text Output File                                       --
 !----------------------------------------------------------------------
@@ -477,7 +482,7 @@
       INTEGER :: iss, jss, kss
       INTEGER :: istat, i_last_slash
       REAL(rprec) :: phi0
-      REAL(rprec) :: fperiod, delr, delz, delp
+      REAL(rprec) :: fperiod, delr, delz, delp, delu, delp_shell
       CHARACTER (len=120) :: mdsig_filename, list_filename,                    &
      &   name_dd_nopath, mi_filename
       INTEGER :: numc, maxindex(1)
@@ -504,6 +509,7 @@
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
 
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: phi_grid_shell
       REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: xcart_s_grid_e
       REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE, TARGET ::                    &
      &   s_response, s_response_ss
@@ -561,6 +567,7 @@
       delr = (rmax - rmin) / (ir - 1)
       delz = (zmax - zmin) / (jz - 1)                    
       delp = fperiod / kp
+      delp_shell = fperiod / kp_shell
 
 !  Allocate space
       ALLOCATE(xcart_grid_e(ir,jz,kp,n_field_periods,3),STAT=ier1)
@@ -573,14 +580,18 @@
       ENDIF
 
 !  Allocate space for conducting shell
-      n_u = MAX(INT(n_field_periods*kp*minor_radius/major_radius), 10)
+      n_u = MAX(INT(n_field_periods*kp_shell*minor_radius/major_radius),       &
+     &          10)
       IF (use_con_shell) THEN
-         ALLOCATE(xcart_s_grid_e(n_u, kp, n_field_periods, 3))
-         ALLOCATE(s_response(n_u,kp,3))
+         ALLOCATE(xcart_s_grid_e(n_u, kp_shell, n_field_periods, 3))
+         ALLOCATE(s_response(n_u,kp_shell,3))
+         ALLOCATE(phi_grid_shell(kp_shell,n_field_periods))
          IF (lstell_sym) THEN
-            ALLOCATE(s_response_ss(n_u,kp_store,3))
+            ALLOCATE(s_response_ss(n_u,kp_shell_store,3))
          END IF
       END IF
+
+      delu = twopi / n_u
 
 !  Compute the coordinates, store them in xcart_grid_e
 !  Also compute and store (in phi_grid_e) the phi values
@@ -611,14 +622,16 @@
       IF (use_con_shell) THEN
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(j,k,l,xcyl,u)
+!$OMP& PRIVATE(j,k,l,xcyl,u,phi0)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO k = 1,kp
+         DO k = 1,kp_shell
+            phi0 = (k - 1)*delp_shell
             DO l = 1,n_field_periods
-               xcyl(2) = phi_grid_e(k,l)
+               xcyl(2) = phi0 + (l - 1)*fperiod
+               phi_grid_shell(k,l) = xcyl(2)
                DO j = 1,n_u
-                  u = (j - 1)*(twopi/n_u)
+                  u = (j - 1)*delu
                   xcyl(1) = major_radius + minor_radius*cos(u)
                   xcyl(3) = minor_radius*sin(u)
                   xcart_s_grid_e(j,k,l,1:3) = cyl_to_cart(xcyl)
@@ -776,12 +789,12 @@
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
             DO j = 1, n_u
-            DO k = 1, kp
+            DO k = 1, kp_shell
                s_response(j,k,1:3) = zero
                DO l = 1,n_field_periods
                   CALL bsc_a(mddc_desc_array(idc)%mdcoil,                      &
      &                   xcart_s_grid_e(j,k,l,1:3), acart)
-                  CALL cart2cyl_v(acart, phi_grid_e(k,l), acyl)
+                  CALL cart2cyl_v(acart, phi_grid_shell(k,l), acyl)
                   s_response(j,k,1:3) = s_response(j,k,1:3) + acyl
                END DO
             END DO
@@ -797,11 +810,11 @@
                   ELSE
                      jss = n_u + 2 - j
                   END IF
-                  DO k = 1, kp_store
+                  DO k = 1, kp_shell_store
                      IF (k .eq. 1) THEN
                         kss = 1
                      ELSE
-                        kss = kp + 2 - k
+                        kss = kp_shell + 2 - k
                      END IF
 
                      s_response_ss(j,k,1) = s_response(j,k,1)                  &
@@ -843,11 +856,12 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
                a_s_z => s_response(:,:,3)
             END IF
          ENDIF
+
          CALL mddc_mrf_construct(local_mddc_mrf,                               &
      &      code_name,code_version,date_run,field_coils_id,                    &
      &      rdiag_coilg_1,extcur,kp,                                           &
      &      rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z,        &
-     &      use_con_shell, a_s_r, a_s_f, a_s_z)
+     &      use_con_shell, a_s_r, a_s_f, a_s_z, kp_shell)
 
 !  iv)  Define a local mddc_desc, including the mddc_mrf
 !       NB - no further references to mddc_desc_array after this section,
@@ -921,6 +935,13 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
       ENDIF
       DEALLOCATE (rdiag_coilg_1, extcur, STAT=ier1)
       CALL assert_eq(0,ier1,sub_name // 'dealloc 3')
+
+      IF (use_con_shell) THEN
+         DEALLOCATE(xcart_s_grid_e, s_response, phi_grid_shell)
+         IF (lstell_sym) THEN
+            DEALLOCATE(s_response_ss)
+         END IF
+      END IF
 
 !  Close up the list file and the mutual inductance file
       CLOSE (iou_list)

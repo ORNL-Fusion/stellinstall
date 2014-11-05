@@ -265,7 +265,7 @@
             temp_buckets(i) = buckets(i1)
             i1 = i1 + 1
             IF (i1 .gt. mid_index - 1) THEN
-!  Merged the last value in the lower tabel the remining values are all from the
+!  Merged the last value in the lower table the remining values are all from the
 !  upper.
                temp_buckets(i + 1:high_index) = buckets(i2:high_index)
                EXIT

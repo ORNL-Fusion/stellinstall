@@ -138,7 +138,9 @@
      &  vn_use_con_shell = 'mddc_mrf_use_con_shell',                           &
      &  vn_a_s_r = 'mddc_mrf_a_s_r',                                           &
      &  vn_a_s_f = 'mddc_mrf_a_s_f',                                           &
-     &  vn_a_s_z = 'mddc_mrf_a_s_z'
+     &  vn_a_s_z = 'mddc_mrf_a_s_z',                                           &
+     &  vn_kp_shell = 'mddc_mrf_kp_shell',                                     &
+     &  vn_kp_shell_store = 'mddc_mrf_kp_shell_store'
 
       CHARACTER (LEN=64), PRIVATE ::                                           &
      &  vn_code_name_use,                                                      &
@@ -164,7 +166,9 @@
      &  vn_use_con_shell_use,                                                  &
      &  vn_a_s_r_use,                                                          &
      &  vn_a_s_f_use,                                                          &
-     &  vn_a_S_z_use
+     &  vn_a_S_z_use,                                                          &
+     &  vn_kp_shell_use,                                                       &
+     &  vn_kp_shell_store_use
 
 !-------------------------------------------------------------------------------
 !  Lengths of Character Variables
@@ -340,6 +344,7 @@
       CALL cdf_define(iou, TRIM(vn_use_con_shell_use),                         &
      &                this%use_con_shell)
       IF (this%use_con_shell) THEN
+         CALL cdf_define(iou, TRIM(vn_kp_shell_use), this % kp_shell)
          CALL cdf_define(iou, TRIM(vn_a_s_r_use), this % a_s_r)
          CALL cdf_define(iou, TRIM(vn_a_s_f_use), this % a_s_f)
          CALL cdf_define(iou, TRIM(vn_a_s_z_use), this % a_s_z)
@@ -481,6 +486,10 @@
       CALL cdf_write(iou, TRIM(vn_use_con_shell_use),                          &
      &               this%use_con_shell)
       IF (this%use_con_shell) THEN
+         CALL cdf_write(iou, TRIM(vn_kp_shell_use), this % kp_shell)
+         CALL cdf_write(iou, TRIM(vn_kp_shell_store_use),                      &
+     &                  this % kp_shell_store)
+
          CALL cdf_write(iou, TRIM(vn_a_s_r_use), this % a_s_r)
          CALL cdf_write(iou, TRIM(vn_a_s_f_use), this % a_s_f)
          CALL cdf_write(iou, TRIM(vn_a_s_z_use), this % a_s_z)
@@ -621,6 +630,8 @@
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE   :: a_s_r
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE   :: a_s_f
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE   :: a_s_z
+      INTEGER                                    :: kp_shell
+      INTEGER                                    :: kp_shell_store
 
 ! Declare local variables
       INTEGER           :: ir1, ir2, ir3, if1, if2, if3, iz1,           &
@@ -736,6 +747,8 @@
      &                    use_con_shell)
 
             IF (use_con_shell) THEN
+               CALL cdf_read(iou, TRIM(vn_kp_shell_use), kp_shell)
+
                CALL cdf_inquire(iou, TRIM(vn_a_r_use), dimlens2)
                ir1 = dimlens2(1)
                ir2 = dimlens2(2)
@@ -764,7 +777,7 @@
       CALL mddc_mrf_construct(this,code_name,code_version,                     &
      &  date_run,field_coils_id,rdiag_coilg_1,extcur_mg,kp,                    &
      &  rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z,            &
-     &  use_con_shell, a_s_r, a_s_f, a_s_z)
+     &  use_con_shell, a_s_r, a_s_f, a_s_z, kp_shell)
 
 ! Deallocate the local pointers
       DEALLOCATE(rdiag_coilg_1,extcur_mg,STAT=ier1)
@@ -881,6 +894,9 @@
       vn_a_s_r_use = mddc_cdf_mknam(prefix_use,vn_a_s_r)
       vn_a_s_f_use = mddc_cdf_mknam(prefix_use,vn_a_s_f)
       vn_a_s_z_use = mddc_cdf_mknam(prefix_use,vn_a_s_z)
+      vn_kp_shell_use = mddc_cdf_mknam(prefix_use,vn_kp_shell)
+      vn_kp_shell_store_use = mddc_cdf_mknam(prefix_use,                       &
+     &                                       vn_kp_shell_store)
 
       RETURN
 
