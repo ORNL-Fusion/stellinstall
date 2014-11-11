@@ -425,7 +425,7 @@
 !>  @param[in] xcart   A the integration point.
 !>  @param[in] dxcart  A vector change in path.
 !>  @param[in] dx      A scalar change in path. Not used in this function.
-!>  @returns The ne(x)*dl at point x.
+!>  @returns The ne(x)*B.dl at point x.
 !>
 !>  @note context in this case if not that same as @ref context. It refers to
 !>  generic passed to the function. This is the fortran eqivalent to a void

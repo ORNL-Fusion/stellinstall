@@ -1300,6 +1300,7 @@
          END WHERE
 
          IF (lasym) THEN
+            ALLOCATE(bsubus(mnmax), bsubvs(mnmax))
             WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
                bsubus = 1.5*bsubumns(:,numS) - 0.5*bsubumns(:,numS - 1)
                bsubvs = 1.5*bsubvmns(:,numS) - 0.5*bsubvmns(:,numS - 1)
@@ -1342,6 +1343,8 @@
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO u = 1, numU
+!  Arrays need to be allocated within the loop since each thread requires its
+!  own allocation.
             ALLOCATE(cosu(mnmax), sinu(mnmax))
             ALLOCATE(cosz(mnmax), sinz(mnmax))
             ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
@@ -1399,6 +1402,10 @@
          DEALLOCATE(cosv, sinv)
          DEALLOCATE(cosv_nyq, sinv_nyq)
          DEALLOCATE(bsubuc, bsubvc)
+
+         IF (lasym) THEN
+            DEALLOCATE(bsubus, bsubvs)
+         END IF
       END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
