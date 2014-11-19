@@ -912,7 +912,7 @@
 !  Conducting Shell Response Arrays --------------------------------------------
       IF (BTEST(this%model_signal_flags,                                       &
      &          magnetic_use_con_shell_flag)) THEN
-         CALL MPI_BCAST(this%kp_shell, 2, MPI_INTEGER, 0, intra_comm,          &
+         CALL MPI_BCAST(this%kp_shell, 1, MPI_INTEGER, 0, intra_comm,          &
      &                  error)
 
          dim_lengths(1:2) = (/ this%n_u, this%kp_shell_store /)

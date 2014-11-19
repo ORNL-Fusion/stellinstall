@@ -3438,7 +3438,7 @@
       CALL safe_open(iou_nl, status,                                           &
      &               TRIM(this%vmec_file_name) // '_out',                      &
      &               'replace', 'formatted', delim_in='none')
-	  WRITE (iou_nl, nml=indata)
+      WRITE (iou_nl, nml=indata)
       CLOSE (iou_nl, iostat=status)
 
       CALL profiler_set_stop_time('vmec_write', start_time)
