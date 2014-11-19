@@ -3406,6 +3406,8 @@
 !>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write(this, iou)
+      USE safe_open_mod
+      USE vmec_input
 
       IMPLICIT NONE
 
@@ -3416,6 +3418,8 @@
 !  local variables
       INTEGER                       :: i
       REAL (rprec)                  :: start_time
+      INTEGER                       :: iou_nl
+      INTEGER                       :: status
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -3428,6 +3432,14 @@
       END DO
 
       CALL pprofile_write(this%te, 'pp_te', iou)
+
+!  Write out the final namelist input file.
+      iou_nl = 0
+      CALL safe_open(iou_nl, status,                                           &
+     &               TRIM(this%vmec_file_name) // '_out',                      &
+     &               'replace', 'formatted', delim_in='none')
+	  WRITE (iou_nl, nml=indata)
+      CLOSE (iou_nl, iostat=status)
 
       CALL profiler_set_stop_time('vmec_write', start_time)
 
