@@ -1560,6 +1560,12 @@
 !  was saved before the jacobian was computed.
          CALL equilibrium_reset_state(a_model%equilibrium)
 
+!  If the step failed reset the param values so that remain in sync with the
+!  step.
+         DO j = 1, SIZE(params)
+            CALL param_set_value(params(j)%p, a_model, param_value(j))
+         END DO
+
          IF (i .eq. reconstruction_max_step_try) THEN
 !  The signals contain cached values. If the step fails recompute the modeled
 !  signals so that values written to the recout match the result file.
