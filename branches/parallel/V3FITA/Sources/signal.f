@@ -1044,9 +1044,9 @@
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
      &                                           modeled_sigma, .true.)
 
-      status = nf_put_var1_double(result_ncid, signal_model_value_id,          &
-     &                            (/ index, current_step /),                   &
-     &                            modeled_signal(1))
+      status = nf_put_vara_double(result_ncid, signal_model_value_id,          &
+     &                            (/ 1, index, current_step /),                &
+     &                            (/ 4, 1, 1 /), modeled_signal)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_put_var1_double(result_ncid, signal_sigma_value_id,          &

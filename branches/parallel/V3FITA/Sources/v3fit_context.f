@@ -697,6 +697,7 @@
       INTEGER :: nparam_dim_id
       INTEGER :: nparamindex_dim_id
       INTEGER :: nsignal_dim_id
+      INTEGER :: n_sig_models_dim_id
       INTEGER :: string_len_dim_id
       INTEGER :: nsteps_id
       INTEGER :: g2_id
@@ -764,6 +765,12 @@
       IF (ASSOCIATED(this%signals)) THEN
          status = nf_def_dim(this%result_ncid, 'nsignal',                      &
      &                       SIZE(this%signals), nsignal_dim_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%signals)) THEN
+         status = nf_def_dim(this%result_ncid, 'n_sig_models', 4,              &
+     &                       n_sig_models_dim_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -875,7 +882,8 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_model_value',           &
-     &                       nf_double, 2, (/ nsignal_dim_id,                  &
+     &                       nf_double, 3, (/ n_sig_models_dim_id,             &
+     &                                        nsignal_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
      &                       signal_model_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
