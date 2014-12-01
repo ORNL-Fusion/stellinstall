@@ -75,7 +75,7 @@
 !-------------------------------------------------------------------------------
       TYPE sxrch_desc
         CHARACTER(LEN=chord_name_len) :: chord_name
-        TYPE(path)                    :: chordPath
+        TYPE(vertex), POINTER         :: chordPath
       END TYPE sxrch_desc
 
 !*******************************************************************************
@@ -113,12 +113,9 @@
 
 !  Must NULL out the vertices array or else it will point to the last
 !  integration_path created in memory
-         this % chordPath % vertices => NULL()
 
-         CALL path_append_vertex(this%chordPath,                              &
-     &                           xcart_i(1), xcart_i(2), xcart_i(3))
-         CALL path_append_vertex(this%chordPath,                              &
-     &                           xcart_f(1), xcart_f(2), xcart_f(3))
+         CALL path_append_vertex(this%chordPath, xcart_i)
+         CALL path_append_vertex(this%chordPath, xcart_f)
 
       END SUBROUTINE sxrch_desc_construct
 
@@ -137,7 +134,7 @@
          
          this % chord_name = ''
 
-         CALL path_destroy(this%chordPath)
+         CALL path_destruct(this%chordPath)
       
       END SUBROUTINE sxrch_desc_destroy
 
@@ -182,12 +179,8 @@
       INTEGER :: iou = 6
       INTEGER :: istat = 0      !status of safe_open call
 
-      xcart_i(1) = this%chordPath%vertices(1)%x
-      xcart_i(2) = this%chordPath%vertices(1)%y
-      xcart_i(3) = this%chordPath%vertices(1)%z
-      xcart_f(1) = this%chordPath%vertices(2)%x
-      xcart_f(2) = this%chordPath%vertices(2)%y
-      xcart_f(3) = this%chordPath%vertices(2)%z
+      xcart_i = this%chordPath%position
+      xcart_f = this%chordPath%next%position
 
       IF (PRESENT(iounit).AND.PRESENT(filename)) THEN
          iou=iounit

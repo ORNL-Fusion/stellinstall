@@ -1,4 +1,3 @@
-cmake_minimum_required (VERSION 2.8)
 # Append all source files to variable stell_sources. As new files are added this must be updated.
 list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/bcoils_mod.f
@@ -18,6 +17,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/diagnostic_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/extcurz_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/fftpack.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/file_opts.f
 	${CMAKE_CURRENT_SOURCE_DIR}/functions.f
         ${CMAKE_CURRENT_SOURCE_DIR}/ga_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/gade_mod.f
@@ -31,6 +31,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/mpi_params.f
         ${CMAKE_CURRENT_SOURCE_DIR}/optim_params.f
         ${CMAKE_CURRENT_SOURCE_DIR}/packafile.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/profiler.f
         ${CMAKE_CURRENT_SOURCE_DIR}/read_boozer_mod.f90
         ${CMAKE_CURRENT_SOURCE_DIR}/read_response_nompi.f
         ${CMAKE_CURRENT_SOURCE_DIR}/read_response.f
@@ -57,7 +58,6 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/vparams.f
         ${CMAKE_CURRENT_SOURCE_DIR}/vsvd0.f
         ${CMAKE_CURRENT_SOURCE_DIR}/v3f_vmec_comm.f
-        ${CMAKE_CURRENT_SOURCE_DIR}/virtual_casing_mod.f90
         ${CMAKE_CURRENT_SOURCE_DIR}/write_array_generic.f
 )
 set (stell_sources "${stell_sources}" PARENT_SCOPE)

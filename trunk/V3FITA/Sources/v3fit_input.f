@@ -29,11 +29,7 @@
 !>  @end_table
 !>
 !>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
-!>     @item{na_d_desc, d_desc array\, diagnostic_desc @b DEPRICATED @b, v3fit_input::na_d_desc}
-!>     @item{na_g_desc, g_desc array\, geometric_desc @b DEPRICATED @b,  v3fit_input::na_g_desc}
-!>     @item{na_c_desc, c_desc array\, coosig_desc @b DEPRICATED @b,     v3fit_input::na_c_desc}
-!>     @item{na_s_desc, s_desc array\, signal_desc,                      v3fit_input::na_s_desc}
-!>     @item{na_rparam, rparam array\, recon_param @b DEPRICATED @b,     v3fit_input::na_rparam}
+!>     @item{na_s_desc, s_desc array\, signal_desc, v3fit_input::na_s_desc}
 !>  @end_table
 !>
 !>  @table_section{work_sec, Task specification\, work variables}
@@ -42,10 +38,7 @@
 !>                    -# @fixed_width{'equilibrium'} Solve the equilibrium.
 !>                    -# @fixed_width{'v3post'}      Solve the equilibrium and compute modeled signals.
 !>                    -# @fixed_width{'reconstruct'} Reconstruct the equilibirum.
-!>                    -# @fixed_width{'units_tests'} Run the internal unit tests.,   v3fit_input::my_task}
-!>     @item{i_work,  Array of integers\, work space @b DEPRICATED @b,            v3fit_input::i_work}
-!>     @item{r_work,  Array of reals\, work space @b DEPRICATED @b,               v3fit_input::r_work}
-!>     @item{c_work,  Array of character variables\, work space @b DEPRICATED @b, v3fit_input::c_work}
+!>                    -# @fixed_width{'units_tests'} Run the internal unit tests., v3fit_input::my_task}
 !>  @end_table
 !>
 !>  @table_section{model_profile_sec, Model profile specification}
@@ -144,7 +137,7 @@
 !>  @end_table
 !>
 !>  @table_section{signal_spec_sec, Signal Data specification}
-!>     @item{n_sdata_o,               Number of signal_data observations,                                                                  v3fit_input::n_sdata_o}
+!>     @item{n_sdata_o,               Number of signal_data observations @b DEPRICATED @b,                                                 v3fit_input::n_sdata_o}
 !>     @item{iw_sdo_verbose,          Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity),   v3fit_input::iw_sdo_verbose}
 !>     @item{sdo_data_a,              Array of data for observed signals,                                                                  v3fit_input::sdo_data_a}
 !>     @item{sdo_sigma_a,             Array of sigmas for observed signals,                                                                v3fit_input::sdo_sigma_a}
@@ -492,10 +485,6 @@
 !>  Maximum number of reconstruction parameters.
       INTEGER, PARAMETER :: v3fit_max_parameters = 100
 
-!>  @deprecated
-!>  Maximum size of the work arrays.
-      INTEGER, PARAMETER :: v3fit_work_size = 100
-
 !>  Maximum size of the easy specification arrays.
 !>  @see sdo_s_spec_imin
 !>  @see sdo_s_spec_imax
@@ -548,24 +537,12 @@
       CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.
-!>  @deprecated
-!>  Maximum number of diagnostics to create.
-      INTEGER :: na_d_desc = v3fit_max_diagnostics
-!>  @deprecated
-!>  Maximum number of geometrics to create.
-      INTEGER :: na_g_desc = v3fit_max_geometrics
-!>  @deprecated
-!>  Maximum number of combinations to create.
-      INTEGER :: na_c_desc = v3fit_max_combinations
 !>  Maximum number of signals to create.
 !>  @note this needs to be greater than or equal to total number of signals
 !>  used. The signal arrays are resized to free up memory if this value is
 !>  larger than the number of signals constructed. If this value is equal to the
 !>  number of signals, the resize step can be avoided.
       INTEGER :: na_s_desc = v3fit_max_signals
-!>  @deprecated
-!>  Maximum number of reconstruction parameters.
-      INTEGER :: na_rparam = v3fit_max_parameters
 
 !  Task specification and work variables
 !>  The v3fit task. Possible values are.
@@ -574,16 +551,6 @@
 !>  -# @fixed_width{reconstruct} Reconstruct the equilibirum.
 !>  -# @fixed_width{units_tests} Run the internal unit tests.
       CHARACTER (len=data_name_length)         :: my_task = ''
-!>  @deprecated
-!>  Work array for integer inputs.
-      INTEGER, DIMENSION(v3fit_work_size)      :: i_work = 0
-!>  @deprecated
-!>  Work array for real inputs.
-      REAL (rprec), DIMENSION(v3fit_work_size) :: r_work = 0.0
-!>  @deprecated
-!>  Work array for string inputs.
-      CHARACTER (len=data_name_length), DIMENSION(v3fit_work_size) ::          &
-     &   c_work = ''
 
 !  Model profile specification
 !  Electron Denisty
@@ -927,13 +894,9 @@
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename,                                                    &
 !  Array allocation sizes
-     &   na_d_desc, na_g_desc, na_c_desc, na_s_desc, na_rparam,                &
+     &   na_s_desc,                                                            &
 !  Task specification and work variables
      &   my_task,                                                              &
-!>  @deprecated The following arrays will be removed in the future. Users should
-!>  use the @ref namelist_sec::recon_sec "reconstruction step control
-!>  specifications" instead.
-     &   i_work, c_work, r_work,                                               &
 !  Model profile specification
 !  Electron Denisty
      &   pp_ne_ptype, pp_ne_b, pp_ne_as, pp_ne_af,                             &
@@ -1016,8 +979,10 @@
       INTEGER                       :: iou_mnli, status
       INTEGER                       :: j, i
       INTEGER                       :: imin, imax
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
 !  Initalize a default value of the I\O unit. V3FIT increments from there.
       iou_mnli = 0
@@ -1233,6 +1198,9 @@
 
       WRITE (*,*) ' *** V3FIT namelist input read from ' //                    &
      &            TRIM(namelist_file)
+
+      CALL profiler_set_stop_time('v3fit_input_read_namelist',                 &
+     &                            start_time)
 
       END SUBROUTINE
 

@@ -15,6 +15,9 @@
       USE commandline_parser
       USE reconstruction
       USE ezcdf
+#if defined (MPI_OPT)
+      USE mpi
+#endif
 
       IMPLICIT NONE
 
@@ -28,6 +31,7 @@
 !>  operate v3fit.
 !-------------------------------------------------------------------------------
       TYPE v3fit_context_class
+!>  Stopping criteria for change in g^2.
          REAL (rprec)                                 :: recon_stop
 
 !>  File input output unit for the runlog file. This file is a human readable
@@ -84,6 +88,12 @@
 
 !>  NetCDF result file to write out the results in machine readable form.
          INTEGER :: result_ncid
+
+!--- MPI -----------------------------------------------------------------------
+#if defined (MPI_OPT)
+!>  MPI parent communicator reference.
+         INTEGER :: intra_comm = MPI_COMM_NULL
+#endif
       END TYPE
 
       CONTAINS
@@ -113,8 +123,11 @@
 !  local variables
       CHARACTER (len=data_filename_length) :: filename
       INTEGER                              :: status
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       filename = commandline_parser_get_string(cl_parser, '-file')
 
       ALLOCATE(v3fit_context_construct)
@@ -154,6 +167,8 @@
      &   '  Namelist Input from file ', TRIM(filename)
 
       v3fit_context_construct%cl_parser => cl_parser
+
+      CALL profiler_set_stop_time('v3fit_context_construct', start_time)
 
       END FUNCTION
 
@@ -273,8 +288,11 @@
       INTEGER                                      :: i
       INTEGER                                      :: minsize = 0
       TYPE (signal_pointer), DIMENSION(:), POINTER :: temp_signal
+      REAL (rprec)                                 :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Resizing context arrays'
       WRITE (this%runlog_iou,*) ' *** Resizing context arrays'
 
@@ -292,6 +310,10 @@
          IF (minsize .eq. 0) THEN
             DEALLOCATE(this%signals)
             this%signals => null()
+
+            CALL profiler_set_stop_time('v3fit_context_resize',                &
+     &                                  start_time)
+
             RETURN
          ELSE IF (minsize .lt. SIZE(this%signals)) THEN
             ALLOCATE(temp_signal(minsize))
@@ -304,6 +326,8 @@
          END IF
 
       END IF
+
+      CALL profiler_set_stop_time('v3fit_context_resize', start_time)
 
       END SUBROUTINE
 
@@ -334,11 +358,14 @@
       CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER ::                 &
      &   sem_header
       INTEGER, DIMENSION(:), ALLOCATABLE        :: indices
+      REAL (rprec)                              :: start_time
 
 !  local parameters
       CHARACTER (len=12), PARAMETER :: prefix = '            '
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Writing context to disk'
       WRITE (this%runlog_iou,*) ' *** Writing context to disk'
 
@@ -514,6 +541,8 @@
          END DO
       END IF
 
+      CALL profiler_set_stop_time('v3fit_context_write', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -551,8 +580,11 @@
 !  effectiveness matrix. Make the start of this string at least 26 characters.
       CHARACTER (len=26 + 14*v3fit_max_parameters), POINTER :: header
       INTEGER                                   :: offset, j
+      REAL (rprec)                              :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (this%recout_iou, *)
       WRITE (this%recout_iou, *) type_name
 
@@ -577,6 +609,9 @@
       WRITE (this%recout_iou, 1000) header(1:offset)
 
       DEALLOCATE(header)
+
+      CALL profiler_set_stop_time('v3fit_context_write_param_header',          &
+     &                            start_time)
 
 1000  FORMAT (a)
 1001  FORMAT (a,2x,a12)
@@ -662,6 +697,7 @@
       INTEGER :: nparam_dim_id
       INTEGER :: nparamindex_dim_id
       INTEGER :: nsignal_dim_id
+      INTEGER :: n_sig_models_dim_id
       INTEGER :: string_len_dim_id
       INTEGER :: nsteps_id
       INTEGER :: g2_id
@@ -683,8 +719,14 @@
       INTEGER :: signal_model_value_id
       INTEGER :: signal_sigma_value_id
 
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define dimensions
+      status = nf_noerr
+
       IF (ASSOCIATED(this%recon)) THEN
          status = nf_def_dim(this%result_ncid, 'maxnsteps',                    &
      &                       SIZE(this%recon%e, 1), maxnsteps_dim_id)
@@ -723,6 +765,12 @@
       IF (ASSOCIATED(this%signals)) THEN
          status = nf_def_dim(this%result_ncid, 'nsignal',                      &
      &                       SIZE(this%signals), nsignal_dim_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%signals)) THEN
+         status = nf_def_dim(this%result_ncid, 'n_sig_models', 4,              &
+     &                       n_sig_models_dim_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF
 
@@ -834,7 +882,8 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
          status = nf_def_var(this%result_ncid, 'signal_model_value',           &
-     &                       nf_double, 2, (/ nsignal_dim_id,                  &
+     &                       nf_double, 3, (/ n_sig_models_dim_id,             &
+     &                                        nsignal_dim_id,                  &
      &                                        maxnsteps_dim_id /),             &
      &                       signal_model_value_id)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -922,6 +971,8 @@
 
       CALL v3fit_context_write_step_data(this, .true.)
 
+      CALL profiler_set_stop_time('v3fit_context_init_data', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -960,7 +1011,11 @@
       INTEGER :: signal_model_value_id
       INTEGER :: signal_sigma_value_id
 
+      REAL (rprec)                              :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Update number of steps taken.
       status = nf_inq_varid(this%result_ncid, 'nsteps', nsteps_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -1070,6 +1125,123 @@
 !  of a fatal error that stops v3fit execution.
       status = nf_sync(this%result_ncid)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('v3fit_context_write_step_data',             &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_sync_children(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                   :: error
+      INTEGER                                   :: mpi_rank
+      LOGICAL                                   :: needs_sync
+      INTEGER                                   :: array_size
+      INTEGER                                   :: i
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BARRIER(this%intra_comm, error)
+
+!  The MPI variables should not be synced. The command line parser, output files
+!  and stoping criteria do not need to be synced. Starting with the signal index
+!  values. MPI_BCAST broad casts from the parent and recieves in the children.
+      CALL MPI_BCAST(this%magnetic_index, 1, MPI_INTEGER, 0,                   &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%sxrem_index, 1, MPI_INTEGER, 0,                      &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%intpol_index, 1, MPI_INTEGER, 0,                     &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%thomson_index, 1, MPI_INTEGER, 0,                    &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%extcurz_index, 1, MPI_INTEGER, 0,                    &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%limiter_index, 1, MPI_INTEGER, 0,                    &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%prior_guassian_index, 1, MPI_INTEGER, 0,             &
+     &               this%intra_comm, error)
+      CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 0,                &
+     &               this%intra_comm, error)
+
+      CALL MPI_COMM_RANK(this%intra_comm, mpi_rank, error)
+
+!  Check if a model object exists in the parent process. If it does tell all
+!  processes to sync.
+      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%model)
+      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
+     &               error)
+      IF (needs_sync) THEN
+         IF (ASSOCIATED(this%model)) THEN
+            CALL model_sync_children(this%model, this%intra_comm)
+         ELSE
+            this%model => model_construct(this%intra_comm)
+         END IF
+      END IF
+
+!  Check if signal objects exists in the parent process. If they do tell all
+!  processes to sync. The size of the array must be synced first.
+      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%signals)
+      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
+     &               error)
+      IF (needs_sync) THEN
+         IF (mpi_rank .eq. 0) THEN
+            array_size = SIZE(this%signals)
+         END IF
+         CALL MPI_BCAST(array_size, 1, MPI_INTEGER, 0, this%intra_comm,        &
+     &                  error)
+
+         IF (ASSOCIATED(this%signals)) THEN
+!  Sync all signals except the combination signals.
+            IF (this%combination_index .gt. 0) THEN
+               DO i = 1, this%combination_index - 1
+                  CALL signal_sync_children(this%signals(i)%p,                 &
+     &                                      this%intra_comm)
+               END DO
+            ELSE
+               DO i = 1, array_size
+                  CALL signal_sync_children(this%signals(i)%p,                 &
+     &                                      this%intra_comm)
+               END DO
+            END IF
+         ELSE
+            ALLOCATE(this%signals(array_size))
+
+!  Sync all signals except the combination signals.
+            IF (this%combination_index .gt. 0) THEN
+               DO i = 1, this%combination_index - 1
+                  this%signals(i)%p => signal_construct(this%intra_comm)
+               END DO
+            ELSE
+               DO i = 1, array_size
+                  this%signals(i)%p => signal_construct(this%intra_comm)
+               END DO
+            END IF
+         END IF
+      END IF
+
+      CALL profiler_set_stop_time('v3fit_context_sync_children',               &
+     &                            start_time)
+#endif
 
       END SUBROUTINE
 

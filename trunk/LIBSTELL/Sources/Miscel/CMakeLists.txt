@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 2.8)
-
 # Append all source files to variable stell_sources. As new files are added this must be updated.
 list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bextrema.f
@@ -8,7 +6,6 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/CHFDV.f
 	${CMAKE_CURRENT_SOURCE_DIR}/convert_boundary_PG.f
 	${CMAKE_CURRENT_SOURCE_DIR}/convert_boundary.f
-	${CMAKE_CURRENT_SOURCE_DIR}/dcuhre.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ddsum.f
 	${CMAKE_CURRENT_SOURCE_DIR}/erf.f
 	${CMAKE_CURRENT_SOURCE_DIR}/factorial.f
@@ -50,6 +47,5 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_getenv.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_putenv.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_system.f
-	${CMAKE_CURRENT_SOURCE_DIR}/file_opts.f
 )
 set (stell_sources "${stell_sources}" PARENT_SCOPE)

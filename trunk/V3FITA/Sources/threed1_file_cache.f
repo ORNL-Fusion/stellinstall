@@ -12,6 +12,7 @@
       MODULE threed1_file_cache
       USE stel_kinds
       USE v3f_vmec_comm
+      USE profiler
 
       IMPLICIT NONE
 
@@ -64,11 +65,19 @@
       TYPE (threed1_file_cache_class), POINTER ::                              &
      &   threed1_file_cache_construct_new
 
+!  local variables
+      REAL (rprec)                             :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(threed1_file_cache_construct_new)
 
       threed1_file_cache_construct_new%vvc_smaleli = vvc_smaleli
       threed1_file_cache_construct_new%vvc_kappa_p = vvc_kappa_p
+
+      CALL profiler_set_stop_time('threed1_file_cache_construct_new',          &
+     &                            start_time)
 
       END FUNCTION
 
@@ -91,13 +100,21 @@
      &   threed1_file_cache_construct_copy
       TYPE (threed1_file_cache_class), INTENT(in) :: cache_object
 
+!  local variables
+      REAL (rprec)                                :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(threed1_file_cache_construct_copy)
 
       threed1_file_cache_construct_copy%vvc_smaleli =                          &
      &   cache_object%vvc_smaleli
       threed1_file_cache_construct_copy%vvc_kappa_p =                          &
      &   cache_object%vvc_kappa_p
+
+      CALL profiler_set_stop_time('threed1_file_cache_construct_copy',         &
+     &                            start_time)
 
       END FUNCTION
 
@@ -140,9 +157,17 @@
 !  Declare Arguments
       TYPE (threed1_file_cache_class), INTENT(inout) :: this
 
+!  local variables
+      REAL (rprec)                                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       this%vvc_smaleli = vvc_smaleli
       this%vvc_kappa_p = vvc_kappa_p
+
+      CALL profiler_set_stop_time('threed1_file_cache_save_state',             &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -160,9 +185,17 @@
 !  Declare Arguments
       TYPE (threed1_file_cache_class), INTENT(inout) :: this
 
+!  local variables
+      REAL (rprec)                                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       vvc_smaleli = this%vvc_smaleli
       vvc_kappa_p = this%vvc_kappa_p
+
+      CALL profiler_set_stop_time('threed1_file_cache_reset_state',            &
+     &                            start_time)
 
       END SUBROUTINE
 

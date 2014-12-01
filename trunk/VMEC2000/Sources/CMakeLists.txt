@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 2.8)
-
 # Add subdirectories for all the sources.
 add_subdirectory (General)
 add_subdirectory (Hessian)

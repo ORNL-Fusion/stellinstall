@@ -1,504 +1,468 @@
 !*******************************************************************************
-!  File pprofile_T.f
-!  Contains module pprofile_T
-!  Defines derived-types: pprofile
-
-!  Module is part of the V3FIT stellarator equilibrium reconstruction code.
-
-
-!*******************************************************************************
-!  MODULE pprofile_T
-! SECTION I.      VARIABLE DECLARATIONS
-! SECTION II.     DERIVED TYPE DECLARATIONS
-! SECTION III.    INTERFACE BLOCKS
-! SECTION IV.     CONSTRUCTION SUBROUTINES
-! SECTION V.      DESTRUCTION SUBROUTINES
-! SECTION VI.     ASSIGNMENT SUBROUTINES
-! SECTION VII.    EVALUATION SUBROUTINES
-! SECTION VIII.   PUT SUBROUTINES
-! SECTION IX.     GET SUBROUTINES
-! SECTION X.      WRITE SUBROUTINES
-! SECTION XI.     COMMENTS FOR DIFFERENT REVISIONS
+!>  @file pprofile_T.f
+!>  @brief Contains module @ref pprofile_T.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Defines the base class of the type @ref pprofile_class. This module contains
+!>  all the code necessary to define parameterized profiles.
 !*******************************************************************************
       MODULE pprofile_T
-
-!*******************************************************************************
-! SECTION I. VARIABLE DECLARATIONS
-!*******************************************************************************
-
-!-------------------------------------------------------------------------------
-!  Type declarations - lengths of reals, integers, and complexes.
-!-------------------------------------------------------------------------------
       USE stel_kinds
-
-!-------------------------------------------------------------------------------
-!  Frequently used mathematical constants, lots of extra precision.
-!-------------------------------------------------------------------------------
       USE stel_constants
-
-!-------------------------------------------------------------------------------
-!  Use Statements for  V3 Utilities
-!-------------------------------------------------------------------------------
       USE v3_utilities
-
-      
+#if defined (MPI_OPT)
+      USE mpi
+#endif
+      USE profiler
 
       IMPLICIT NONE
-!-------------------------------------------------------------------------------
-!  Lengths of Character Variables
-!-------------------------------------------------------------------------------
+
+!*******************************************************************************
+!  model module parameters
+!*******************************************************************************
+!>  Maximum size for parameter profile name lengths.
       INTEGER, PARAMETER, PUBLIC :: p_type_len=20
-!-------------------------------------------------------------------------------
-!  Array Bounds for the components
-!-------------------------------------------------------------------------------
-      INTEGER, PARAMETER, PUBLIC :: ilb_b = 0
-      INTEGER, PARAMETER, PUBLIC :: iub_b = 21
-      INTEGER, PARAMETER, PUBLIC :: iub_asf = 101    
-!-------------------------------------------------------------------------------
-!  Other Dependencies
-!    1) pprofile_construct uses to_lower, from LIBSTELL
-!-------------------------------------------------------------------------------
+
+!>  Lower array bound for function profiles.
+      INTEGER, PARAMETER, PUBLIC :: ilb_b   = 0
+!>  Upper array bound for function profiles.
+      INTEGER, PARAMETER, PUBLIC :: iub_b   = 21
+!>  Array size for spline profiles.
+      INTEGER, PARAMETER, PUBLIC :: iub_asf = 101
+
+!>  No profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_none_type         = -1
+!>  Two Power profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_type    = 0
+!>  Two Power with guassian profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_gs_type = 1
+!>  Power Series profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_power_series_type = 2
+!>  Cubic Spline profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_cubic_spline_type = 3
+!>  Akima Spline profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_akima_spline_type = 4
+!>  Line Segment profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_line_segment_type = 5
 
 !*******************************************************************************
-! SECTION II. DERIVED TYPE (STRUCTURE) DECLARATIONS
-!
-!   Derived Type for Parameterized Profiles
-!      Variables of type pprofile will be used for quantities such as the
-!      electron density, ion density, electron temperature
-!      They are assumed to be functions of the radial coordinate, which varies 
-!      from 0. to 1. The derived type will carry the parameters and the type
-!      of parameterization. A module function will evaluate the profile as
-!      a function of s.
-!
-!      The code is partly modelled after the code in VMEC2000 file 
-!      profile_functions.f, which implements the current, pressure, and iota
-!      profiles.
-!
-!      One difference from the VMEC2000 profiles is that a pprofile will need
-!      to return a value for s arguments larger than 1, indicating that the
-!      point is outside the plasma.
-!
-!      I call the parameters b (not ac, am, ai, as in VMEC2000) to remind the
-!      user that these parameterizations are DIFFERENT from the VMEC2000
-!      parameterizations.
+!  DERIVED-TYPE DECLARATIONS
+!  1) model class
 !
 !*******************************************************************************
-!
-!  
 !-------------------------------------------------------------------------------
-!  Declare type pprofile
-!
-!  p_type      Type of parameterization, character variable
-!  b           Array of parameters, dimensioned (0:20)
-!  as          Array of spline s values (independent variables)
-!  af          Array of spline function values (dependent variables)
+!>  Base class representing a parameterized profile.
 !-------------------------------------------------------------------------------
-      TYPE pprofile
-!  Variables for a parameterized profile
-
-         CHARACTER (len = p_type_len)        :: p_type
+      TYPE pprofile_class
+!>  Parameterized profile type
+         INTEGER :: p_type = pprofile_none_type
+!>  Array of coefficients for the functional profiles.
          REAL(rprec), DIMENSION(ilb_b:iub_b) :: b = 0.0
-         REAL(rprec), DIMENSION(iub_asf)     :: as = 0.0, af = 0.0
+!>  Array of radial position values for the segmented profiles.
+         REAL(rprec), DIMENSION(iub_asf)     :: as = 0.0
+!>  Array of profile values for the segmented profiles.
+         REAL(rprec), DIMENSION(iub_asf)     :: af = 0.0
+!>  Index of the last segemented value.
          INTEGER                             :: maxSplineIndex = 1
-      END TYPE pprofile
+      END TYPE
 
 !-------------------------------------------------------------------------------
 !>  Pointer to a pprofile object. Used for creating arrays of pprofile pointers.
 !>  This is needed because fortran does not allow arrays of pointers directly.
 !-------------------------------------------------------------------------------
       TYPE pprofile_pointer
-         TYPE (pprofile), POINTER :: p => null()
+         TYPE (pprofile_class), POINTER :: p => null()
       END TYPE
 
 !*******************************************************************************
 ! SECTION III. INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Generic get 
+!>  Interface for the construction of @ref model_class types using
+!>  @ref model_construct_new or @ref signal_construct_mpi
 !-------------------------------------------------------------------------------
-      INTERFACE pprofile_get
-         MODULE PROCEDURE pprofile_get_ch, pprofile_get_real
+      INTERFACE pprofile_construct
+         MODULE PROCEDURE pprofile_construct_new,                              &
+     &                    pprofile_construct_mpi
       END INTERFACE
 
       PRIVATE findMaxIndex
 
       CONTAINS
 !*******************************************************************************
-! SECTION IV. CONSTRUCTION SUBROUTINES
+!  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Construct an pprofile
-!
+!>  @brief Construct a @ref pprofile_class.
+!>
+!>  Allocates memory and initializes a @ref pprofile_class.
+!>
+!>  @param[in] p_type Profile type discription.
+!>  @param[in] b_arg  Array of functional profile coefficients
+!>  @param[in] as_arg Array of segmented radial positions.
+!>  @param[in] af_arg Array of segmented profile values.
+!>  @returns A pointer to a constructed @ref pprofile_class object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_construct(this, p_type_arg, b_arg,                   &
-     &   as_arg, af_arg)
+      FUNCTION pprofile_construct_new(p_type_arg, b_arg, as_arg, af_arg)
 
       IMPLICIT NONE
 
 !  Declare Arguments 
-      TYPE (pprofile), INTENT (inout)                 :: this
-      CHARACTER (len=*), INTENT(in)                   :: p_type_arg
-      REAL(rprec), DIMENSION(:), INTENT(in)           :: b_arg
-      REAL(rprec), DIMENSION(:), OPTIONAL, INTENT(in) :: as_arg, af_arg
+      TYPE (pprofile_class), POINTER :: pprofile_construct_new
+      CHARACTER (len=*), INTENT(in)         :: p_type_arg
+      REAL(rprec), DIMENSION(:), INTENT(in) :: b_arg
+      REAL(rprec), DIMENSION(:), INTENT(in) :: as_arg
+      REAL(rprec), DIMENSION(:), INTENT(in) :: af_arg
 
-!  Declare local variables
-      INTEGER :: n_b_copy, ilb_b_arg, n_as_copy, n_af_copy
-      CHARACTER (len = p_type_len)                :: p_type_lc
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'pprofile_construct: '
+!  local variables
+      CHARACTER (len = p_type_len)          :: p_type_lc
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(pprofile_construct_new)
+
+! Store profile coeffients.
+      pprofile_construct_new%b = b_arg
+
+! Find and store the maximum s index if specifying splines.
+      pprofile_construct_new%maxSplineIndex = findMaxIndex(as_arg)
+      pprofile_construct_new%as = as_arg
+      pprofile_construct_new%af = af_arg
 
 !  Convert the type to lower case, and truncate
       p_type_lc = p_type_arg
       CALL tolower(p_type_lc)
       SELECT CASE(TRIM(p_type_lc))
       
-         CASE ('two_power', 'two_power_gs','power_series', 'none',             &
-     &         'cubic_spline', 'akima_spline', 'line_segment')
-            this % p_type = p_type_lc
-      
+         CASE ('two_power')
+            pprofile_construct_new%p_type = pprofile_two_power_type
+
+         CASE ('two_power_gs')
+            pprofile_construct_new%p_type = pprofile_two_power_gs_type
+
+         CASE ('cubic_spline')
+            IF (pprofile_construct_new%maxSplineIndex .lt. 4) THEN
+               WRITE(*,*) 'pprofile:cubic spline: too few as values'
+               WRITE(*,*) 'maxSplineIndex, as = ',                             &
+     &                    pprofile_construct_new%maxSplineIndex
+               WRITE(*,*) pprofile_construct_new%as
+               CALL EXIT(1)
+            ENDIF
+            pprofile_construct_new%p_type = pprofile_cubic_spline_type
+
+         CASE ('akima_spline')
+            IF (pprofile_construct_new%maxSplineIndex .lt. 4) THEN
+               WRITE(*,*) 'pprofile:akima spline: too few as values'
+               WRITE(*,*) 'maxSplineIndex, as = ',                             &
+     &                    pprofile_construct_new%maxSplineIndex
+               WRITE(*,*) pprofile_construct_new%as
+               CALL EXIT(1)
+            ENDIF
+            pprofile_construct_new%p_type = pprofile_akima_spline_type
+
+         CASE ('line_segment')
+            pprofile_construct_new%p_type = pprofile_line_segment_type
+
+         CASE ('none')
+            pprofile_construct_new%p_type = pprofile_none_type
+
          CASE DEFAULT
-            this % p_type = 'none'
-            WRITE(*,*) sub_name, 'Unrecognized p_type:', p_type_lc
-            WRITE(*,*) ' *** CHECK YOUR INPUT ***'            
+            pprofile_construct_new%p_type = pprofile_none_type
+            WRITE(*,*) 'Unrecognized p_type:', p_type_lc
+            WRITE(*,*) ' *** CHECK YOUR INPUT ***'
          
       END SELECT
 
-! Store profile coeffients.
-      this % b = b_arg
+      CALL profiler_set_stop_time('pprofile_construct_new', start_time)
 
-! Find and store the maximum s index if specifying splines.
-      IF (PRESENT(as_arg)) THEN
-         IF (.not.PRESENT(af_arg)) THEN
-            STOP "Spline Functions require *_af arrays."
-         ENDIF
-         this % maxSplineIndex = findMaxIndex(as_arg)
-         this % as = as_arg
-         this % af = af_arg
-      ENDIF
-      
-      END SUBROUTINE pprofile_construct
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref pprofile_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref pprofile_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref pprofile_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION pprofile_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (pprofile_class), POINTER :: pprofile_construct_mpi
+      INTEGER, INTENT(in)            :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                        :: error
+
+!  Start of executable code
+      ALLOCATE(pprofile_construct_mpi)
+
+      CALL MPI_BCAST(pprofile_construct_mpi%p_type, 1, MPI_INTEGER, 0,         &
+     &               intra_comm, error)
+      CALL MPI_BCAST(pprofile_construct_mpi%b,                                 &
+     &               SIZE(pprofile_construct_mpi%b), MPI_REAL8, 0,             &
+     &               intra_comm, error)
+      CALL MPI_BCAST(pprofile_construct_mpi%as, iub_asf, MPI_REAL8, 0,         &
+     &               intra_comm, error)
+      CALL MPI_BCAST(pprofile_construct_mpi%af, iub_asf, MPI_REAL8, 0,         &
+     &               intra_comm, error)
+
+      pprofile_construct_mpi%maxSplineIndex =                                  &
+     &   findMaxIndex(pprofile_construct_mpi%as)
+#endif
+
+      END FUNCTION
 
 !*******************************************************************************
-! SECTION V. DESTRUCTION SUBROUTINES
+!  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Destroy an p_profile
+!>  @brief Deconstruct a @ref pprofile_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref pprofile_class object.
+!>
+!>  @param[inout] this A @ref pprofile_class instance.
 !-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_destroy(this)
+      SUBROUTINE pprofile_destruct(this)
+
       IMPLICIT NONE
 
 !  Declare Arguments 
-      TYPE (pprofile), INTENT(inout) :: this
+      TYPE (pprofile_class), POINTER :: this
 
 !  Start of executable code
-!  Get rid of all components
+      DEALLOCATE(this)
 
-      this % p_type   = ''
-      this % b        = zero
-      this % as       = zero
-      this % af       = zero
-
-      END SUBROUTINE pprofile_destroy
+      END SUBROUTINE
 
 !*******************************************************************************
-! SECTION VI. ASSIGNMENT SUBROUTINES
+!  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Assignment for pprofile - Default OK as no Pointers
+!>  @brief Gets the value of a profile at a radial position.
+!>
+!>  Evaluates the profile at the specifed radial position. If the radial
+!>  position is out side the plasma, it returns the baseline value. If there is
+!>  no profile type specified return the default value.
+!>
+!>  @param[in] this  A @ref pprofile_class instance.
+!>  @param[in] s_arg Radial position to evaluate the profile at.
+!>  @returns The value of the profile.
+!>  @todo This function makes vmec specific assumptions of 1 being the maximum
+!>  radial value.
 !-------------------------------------------------------------------------------
-
-!*******************************************************************************
-! SECTION VII. EVALUATION FUNCTION
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Evaluate a pprofile at an argument value
-!-------------------------------------------------------------------------------
-
-      FUNCTION pprofile_evaluate(this,s_arg)
+      FUNCTION pprofile_get_value(this, s_arg)
       USE line_segment
       USE functions
 
       IMPLICIT NONE
 
-!  Declare Arguments 
-      TYPE (pprofile), INTENT (in)               :: this
-      REAL(rprec), INTENT(in)                    :: s_arg
-      REAL(rprec)                                :: pprofile_evaluate
+!  Declare Arguments
+      REAL(rprec)                        :: pprofile_get_value
+      TYPE (pprofile_class), INTENT (in) :: this
+      REAL(rprec), INTENT(in)            :: s_arg
 
-!  Declare local variables
-      REAL(rprec) :: s_use, s_01
-      LOGICAL     :: l_01
-      INTEGER     :: i, iflag
-      REAL(rprec) :: pprofile_value
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'pprofile_evaluate: '
+!  local variables
+      REAL(rprec)                        :: s_use
+      REAL(rprec)                        :: s_01
+      LOGICAL                            :: l_01
+      INTEGER                            :: i, iflag
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
 !  Define argument and logical variable for s between zero and one
-      s_01 = MAX(zero,MIN(one,s_arg))
+      s_01 = MAX(zero, MIN(one,s_arg))
       l_01 = (s_arg .ge. zero) .and. (s_arg .le. one)
 
-      SELECT CASE(TRIM(this % p_type))
+      SELECT CASE(this%p_type)
       
-         CASE ('none')
-            pprofile_value = -1.E49_rprec
+         CASE (pprofile_none_type)
+            pprofile_get_value = -1.E49_rprec
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
 ! one index shorter than what two_power takes.
-         CASE ('two_power')
-            pprofile_value = this % b(0)
+         CASE (pprofile_two_power_type)
+            pprofile_get_value = this%b(0)
             IF (l_01) THEN
-               pprofile_value = pprofile_value                                 &
-     &                        + two_power(s_arg, this % b(1:iub_b))
+               pprofile_get_value = pprofile_get_value                         &
+     &                            + two_power(s_arg, this%b(1:iub_b))
             ENDIF
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
 ! one index shorter than what two_power_gs takes. As a result only 5 guassian
 ! peaks maybe specified instead of the 6 vmec can use.
-         CASE ('two_power_gs')
-            pprofile_value = this % b(0)
+         CASE (pprofile_two_power_gs_type)
+            pprofile_get_value = this%b(0)
             IF (l_01) THEN
-               pprofile_value = pprofile_value                                 &
-     &                        + two_power_gs(s_arg, this%b(1:iub_b))
+               pprofile_get_value = pprofile_get_value                         &
+     &                            + two_power_gs(s_arg,                        &
+     &                                           this%b(1:iub_b))
             ENDIF
       
-         CASE ('power_series')
-         !  use s_01, so that value is constant outside
-            pprofile_value = zero
+         CASE (pprofile_power_series_type)
+            pprofile_get_value = zero
             DO i = iub_b, ilb_b, -1      ! all of b array, backwards
-               pprofile_value = pprofile_value*s_01 + this%b(i)
+               pprofile_get_value = pprofile_get_value*s_01                    &
+     &                            + this%b(i)
             END DO
 
-         CASE ('cubic_spline')
-!  Cubic splines come from LIBSTELL/miscel/cubic_spline.f
-!  As of 2011-10-21, this subroutine is used in VMEC profile_functions.f
-            IF (this % maxSplineIndex .lt. 4) THEN
-               WRITE(*,*) 'pprofile:cubic spline: too few as values'
-               WRITE(*,*) 'maxSplineIndex, as = ', this % maxSplineIndex
-               WRITE(*,*) this % as
-               STOP
+         CASE (pprofile_cubic_spline_type)
+            s_use = MIN(this%as(this%maxSplineIndex - 1),                      &
+     &                  MAX(s_arg, this%as(1)))
+            CALL spline_cubic(s_use, pprofile_get_value,                       &
+     &                        this%as, this%af,                                &
+     &                        this%maxSplineIndex, iflag)
+            IF (iflag .ge. 0) THEN
+
+               CALL profiler_set_stop_time('pprofile_get_value',               &
+     &                                     start_time)
+
+               RETURN
+            ELSE IF (iflag .eq. -1) THEN
+               WRITE (*,*) 'ERROR: pprofile: outside value from ' //           &
+     &                     'spline_cubic'
+            ELSE IF(iflag .eq. -2) THEN
+               WRITE (*,*) 'ERROR: pprofile:  decreasing s values ' //         &
+     &                     'in spline_cubic'
+            ELSE
+               WRITE (*,*) 'ERROR: pprofile: unknown error from ' //           &
+     &                     'spline_cubic'
             ENDIF
-            s_use = MIN(this % as(this % maxSplineIndex - 1),                  &
-     &                  MAX(s_arg,this % as(1)))
-            CALL spline_cubic(s_use,pprofile_value,this % as,this % af,        &
-     &         this % maxSplineIndex,iflag)
+!  Splines shuld not reach this point without triggering an error.
+            CALL EXIT(1)
+
+         CASE (pprofile_akima_spline_type)
+            s_use = MIN(this%as(this%maxSplineIndex - 1),                      &
+     &                  MAX(s_arg,this%as(1)))
+            CALL spline_akima(s_use, pprofile_get_value,                       &
+     &                        this%as, this%af,                                &
+     &                        this%maxSplineIndex, iflag)
             IF (iflag < 0) THEN
-               IF(iflag == -1) THEN
-                  STOP 'pprofile: outside value from spline_cubic'
-               ELSEIF(iflag == -2) THEN
-                  STOP 'pprofile:  decreasing s values in spline_cubic'
-               ELSE
-                  STOP 'pprofile: unknown error from spline_cubic'
-               ENDIF
+               WRITE (*,*) 'ERROR: pprofile: bad value from ' //               &
+     &                     'spline_akima requested'
+               CALL EXIT(1)
             ENDIF
 
-         CASE ('akima_spline')
-!  Akima splines come from LIBSTELL/miscel/spline_akima.f
-!  As of 2011-10-21, this subroutine is used in VMEC profile_functions.f
-            IF (this % maxSplineIndex .lt. 4) THEN
-               WRITE(*,*) 'pprofile:akima spline: too few as values'
-               WRITE(*,*) 'maxSplineIndex, as = ', this % maxSplineIndex
-               WRITE(*,*) this % as
-               STOP
-            ENDIF
-            s_use = MIN(this % as(this % maxSplineIndex - 1),                  &
-     &                  MAX(s_arg,this % as(1)))
-            CALL spline_akima(s_use,pprofile_value,this % as,this % af,        &
-     &         this % maxSplineIndex,iflag)
-            IF (iflag < 0) THEN
-               STOP 'pprofile: bad value from spline_akima requested'
-            ENDIF
-
-         CASE ('line_segment')
-!  Line segments come from LIBSTELL/miscel/line_segment_mod.f
-!  As of 2012-08-18, this subrountine is used in VMEC profile_functions.f
-            CALL line_seg(s_arg, pprofile_value, this % as, this % af,         &
-     &                    this % maxSplineIndex)
-    
-         CASE DEFAULT
-            WRITE(*,*) sub_name, 'Unrecognized p_type:', this % p_type
-            WRITE(*,*) ' SHOULD HAVE BEEN CORRECTLY SET IN ',                  &
-     &         'pprofile_construct'
+         CASE (pprofile_line_segment_type)
+            CALL line_seg(s_arg, pprofile_get_value, this%as, this%af,         &
+     &                    this%maxSplineIndex)
          
       END SELECT
-      
-      pprofile_evaluate = pprofile_value
-      
-      END FUNCTION pprofile_evaluate
 
-!*******************************************************************************
-! SECTION VIII. PUT SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Put a value into a pprofile
-!-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_put(this,id,index,value)
-      IMPLICIT NONE
+      CALL profiler_set_stop_time('pprofile_get_value', start_time)
 
-!  Declare Arguments 
-      TYPE (pprofile), INTENT(inout) :: this
-      CHARACTER(len=*), INTENT(in) :: id
-      INTEGER, INTENT(in) :: index
-      REAL(rprec), INTENT(in) :: value
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the name of the profile type.
+!>
+!>  Convertes a profile type to a string discription.
+!>
+!>  @param[in] this  A @ref pprofile_class instance.
+!>  @returns The name of the profile type.
+!-------------------------------------------------------------------------------
+      FUNCTION pprofile_get_p_type_name(this)
+
+!  Declare Arguments
+      CHARACTER(len=p_type_len)         :: pprofile_get_p_type_name
+      TYPE (pprofile_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
-      SELECT CASE(TRIM(id))
-      
-      CASE('b')
-         IF((index .ge. ilb_b) .and. (index .le. iub_b)) THEN
-            this % b(index) = value
-         ENDIF
-      
-      CASE('as')
-         IF((index .ge. 1) .and. (index .le. iub_asf)) THEN
-            this % as(index) = value
-         ENDIF
+      SELECT CASE (this%p_type)
 
-      CASE('af')
-         IF((index .ge. 1) .and. (index .le. iub_asf)) THEN
-            this % af(index) = value
-         ENDIF
+         CASE (pprofile_two_power_type)
+            pprofile_get_p_type_name = 'two_power'
 
-      CASE DEFAULT
-         WRITE(*,*) ' BAD ID ARGUMENT, pprofile_put. id=', id
-      
-      END SELECT   
+         CASE (pprofile_two_power_gs_type)
+            pprofile_get_p_type_name = 'two_power_gs'
 
-      END SUBROUTINE pprofile_put
+         CASE (pprofile_power_series_type)
+            pprofile_get_p_type_name = 'power_series'
+
+         CASE (pprofile_cubic_spline_type)
+            pprofile_get_p_type_name = 'cubic_spline'
+
+         CASE (pprofile_akima_spline_type)
+            pprofile_get_p_type_name = 'akima_spline'
+
+         CASE (pprofile_line_segment_type)
+            pprofile_get_p_type_name = 'line_segment'
+
+         CASE DEFAULT
+            pprofile_get_p_type_name = 'none'
+
+      END SELECT
+
+      CALL profiler_set_stop_time('pprofile_get_p_type_name',                  &
+     &                            start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
-! SECTION IX. GET SUBROUTINES
+!  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!  Get a character value from a pprofile
-!    CALL pprofile_get(pp_ne,'p_type',p_type_return)
+!>  @brief Write out the profile to an output file.
+!>
+!>  This formats and writes out information about a parameterized profile.
+!>
+!>  @param[in] this A @ref pprofile_class instance.
+!>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_get_ch(this,id,ch_value)
+      SUBROUTINE pprofile_write(this, id, iou)
       IMPLICIT NONE
 
-!  Declare Arguments 
-      TYPE (pprofile), INTENT(in) :: this
-      CHARACTER(len=*), INTENT(in) :: id
-      CHARACTER(len=*), INTENT(inout) :: ch_value
+!  Declare Arguments
+      TYPE (pprofile_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)     :: id
+      INTEGER, INTENT(in)               :: iou
+
+!  local variables
+      INTEGER                           :: i
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
-
-!  The only character information carried is the p_type. Return it
-
-      ch_value = this % p_type
-
-      END SUBROUTINE pprofile_get_ch
-!-------------------------------------------------------------------------------
-!  Get a real value from a pprofile internal array
-!    CALL pprofile_get(pp_ne,'b',i,b_i)
-!-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_get_real(this,id,index,value)
-      IMPLICIT NONE
-
-!  Declare Arguments 
-      TYPE (pprofile), INTENT(in) :: this
-      CHARACTER(len=*), INTENT(in) :: id
-      INTEGER, INTENT(in) :: index
-      REAL(rprec), INTENT(out) :: value
-
-!  Start of executable code
-
-      value = -2.E49_rprec     ! indicator that indices out of range
-      SELECT CASE(TRIM(id))
-      
-      CASE('b')
-         IF((index .ge. ilb_b) .and. (index .le. iub_b)) THEN
-            value = this % b(index)
-         ENDIF
-      
-      CASE('as')
-         IF((index .ge. 1) .and. (index .le. iub_asf)) THEN
-            value = this % as(index)
-         ENDIF
-
-      CASE('af')
-         IF((index .ge. 1) .and. (index .le. iub_asf)) THEN
-            value = this % af(index)
-         ENDIF
-
-      CASE DEFAULT
-         WRITE(*,*) ' BAD ID ARGUMENT, pprofile_get. id=', id
-      
-      END SELECT   
-
-      END SUBROUTINE pprofile_get_real
-
-*******************************************************************************
-! SECTION X. WRITE SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!  Write pprofile
-!    CALL pprofile_write(pp_ne,'pp_ne',iou)
-!-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_write(this,identifier,unit)
-      IMPLICIT NONE
-
-!  Declare Arguments 
-      TYPE (pprofile), INTENT(in) :: this
-      CHARACTER (len=*), INTENT(in), OPTIONAL :: identifier
-      INTEGER, INTENT(in), OPTIONAL :: unit
-!  identifier   character variable, also written out
-!  unit         I/O unit number to write to
-
-!  Declare local variables and constants
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'pprofile_write: '
-      INTEGER :: iou_default = 6
-      INTEGER :: iou
-      INTEGER :: i, i_max
-      CHARACTER (len=60) :: id
-
-!  start of executable code
-!  Check for arguments present
-      IF (PRESENT(identifier)) THEN
-         id = identifier
-      ELSE
-         id = ' '
-      END IF
-
-      IF (PRESENT(unit)) THEN
-         iou = unit
-      ELSE
-         iou = iou_default
-      END IF
+      start_time = profiler_get_start_time()
 
 !  Actual write. Could do a select-case on p_type.
       WRITE(iou,1100) id
-      WRITE(iou,1200) this % p_type
+      WRITE(iou,1200) TRIM(pprofile_get_p_type_name(this))
       
-      SELECT CASE(TRIM(this % p_type))
-      
-         CASE ('none')
+      SELECT CASE(this%p_type)
          
-         CASE ('two_power')
+         CASE (pprofile_two_power_type)
             WRITE(iou,1210)
-            WRITE(iou,1300) this % b(0:3)
+            WRITE(iou,1300) this%b(0:3)
 
-         CASE ('power_series','two_power_gs')
+         CASE (pprofile_power_series_type,                                     &
+     &         pprofile_two_power_gs_type)
             WRITE(iou,1220)
-            WRITE(iou,1300) this % b(ilb_b:iub_b)
+            WRITE(iou,1300) this%b(ilb_b:iub_b)
             
-         CASE ('cubic_spline','akima_spline','line_segment')
-            i_max = MINLOC(this % as(2:),dim=1) ! last value used for splines
+         CASE (pprofile_cubic_spline_type,                                     &
+     &         pprofile_akima_spline_type,                                     &
+     &         pprofile_line_segment_type)
             WRITE(iou,1230)
-            WRITE(iou,1231) (i, this % as(i), this % af(i),i=1,i_max)
-
-         CASE DEFAULT
-            WRITE(*,*) sub_name, 'Unrecognized p_type:', this % p_type
-            WRITE(*,*) ' SHOULD HAVE BEEN CORRECTLY SET IN ',                  &
-     &         'pprofile_construct'
+            WRITE(iou,1231) (i, this%as(i), this%af(i),                        &
+     &                       i = 1, this%maxSplineIndex)
          
       END SELECT
 
-!      WRITE(iou,1400) id
+      CALL profiler_set_stop_time('pprofile_write', start_time)
 
 1100  FORMAT(/' Parameterized Profile Write: id = ',a)
 1200  FORMAT('   pp_type = ',a)
@@ -508,53 +472,79 @@
 1230  FORMAT(' i       as(i)           af(i)')
 1231  FORMAT(1x,i3,2x,es15.8,2x,es15.8)
 1300  FORMAT(4(2x,es15.8))
-1400  FORMAT(" END Parameterized Profile Write: id = ",a)
 
-      END SUBROUTINE pprofile_write
+      END SUBROUTINE
 
 !*******************************************************************************
-!  Private Functions and Subroutines.
+!  MPI SUBROUTINES
 !*******************************************************************************
-!*******************************************************************************
-!  Find the maximum index of spline arrays.
-!
-!  This is separated out into it's own function for unit testing purposes.
-!*******************************************************************************
-      FUNCTION findMaxIndex(s_array)
-      IMPLICIT none
-
 !-------------------------------------------------------------------------------
-!  Variable declarations.
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref pprofile_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
-      REAL(rprec), DIMENSION(:), INTENT(in) :: s_array
-      INTEGER                               :: findMaxIndex
+      SUBROUTINE pprofile_sync_children(this, intra_comm)
 
-!-------------------------------------------------------------------------------
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (pprofile_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                  :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                              :: error
+      REAL (rprec)                         :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BCAST(this%p_type, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(this%b, SIZE(this%b), MPI_REAL8, 0,                &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%as, iub_asf, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%af, iub_asf, MPI_REAL8, 0, intra_comm, error)
+
+      this%maxSplineIndex = findMaxIndex(this%as)
+
+      CALL profiler_set_stop_time('pprofile_sync_children', start_time)
+#endif
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  PRIVATE
+!*******************************************************************************
 !-------------------------------------------------------------------------------
+!>  @brief Finds the index of the maximum radial position.
+!>
+!>  This assumes that the radials positions are specifed in increasing order.
+!>
+!>  @param[in] s_array Array of radial positions
+!>  @returns Index of the last position.
+!-------------------------------------------------------------------------------
+      FUNCTION findMaxIndex(s_array)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                               :: findMaxIndex
+      REAL(rprec), DIMENSION(:), INTENT(in) :: s_array
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
       findMaxIndex = MINLOC(s_array(2:),dim=1)
+
+      CALL profiler_set_stop_time('findMaxIndex', start_time)
 
       END FUNCTION
 
-!*******************************************************************************
-! SECTION XI.  COMMENTS FOR DIFFERENT REVISIONS
-!*******************************************************************************
-!
-!  To Do (2011-10-21)
-! 1) add other p_type
-!
-!  2012-08-18 MRC
-!    Add profile type for line segments
-!
-!  2011-10-21 JDH
-!    Add coding for cubic aplines and Akima splines
-!
-!  2011-10-19 JDH
-!    Some code changes
-!
-!  2011-07-26 JDH
-!    First version, based on module density_T
-!    Wait on use until have refactored model to have appropriate methods.
-!
-           
-      END MODULE pprofile_T
+      END MODULE

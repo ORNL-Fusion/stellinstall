@@ -29,22 +29,33 @@
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
       TYPE sxrem_class
-         TYPE (path) :: chord_path
+!>  The complete path of the chord.
+         TYPE (vertex), POINTER :: chord_path => null()
 !>  Index of the soft x-ray emissivity profile for this chord.
-         INTEGER     :: profile_number
+         INTEGER                :: profile_number
       END TYPE sxrem_class
 
 !-------------------------------------------------------------------------------
 !> Structure to hold all memory needed to be sent to the callback function.
 !-------------------------------------------------------------------------------
       TYPE sxrem_context
+!>  The index of the emissivity profile model.
          INTEGER                     :: profile_number
+!>  Reference to a @ref model_class object.
          TYPE (model_class), POINTER :: model => null()
       END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref sxrem_class types using
+!>  @ref sxrem_construct_new or @ref sxrem_construct_mpi
+!-------------------------------------------------------------------------------
+      INTERFACE sxrem_construct
+         MODULE PROCEDURE sxrem_construct_new,                                 &
+     &                    sxrem_construct_mpi
+      END INTERFACE
 
       PRIVATE :: sxr_function
 
@@ -61,25 +72,64 @@
 !>  @param[in] end_path Ending point of a sxrem chord.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct(start_path, end_path, profile_number)
+      FUNCTION sxrem_construct_new(start_path, end_path, profile_number)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), POINTER :: sxrem_construct
+      TYPE (sxrem_class), POINTER :: sxrem_construct_new
       REAL(rprec), DIMENSION(3)   :: start_path
       REAL(rprec), DIMENSION(3)   :: end_path
       INTEGER                     :: profile_number
 
+!  local variables
+      REAL (rprec)                :: start_time
+
 !  Start of executable code
-      ALLOCATE(sxrem_construct)
+      start_time = profiler_get_start_time()
 
-      CALL path_append_vertex(sxrem_construct%chord_path, start_path(1),       &
-     &                        start_path(2), start_path(3))
-      CALL path_append_vertex(sxrem_construct%chord_path, end_path(1),         &
-     &                        end_path(2), end_path(3))
+      ALLOCATE(sxrem_construct_new)
 
-      sxrem_construct%profile_number = profile_number
+      CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
+     &                        start_path)
+      CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
+     &                        end_path)
+
+      sxrem_construct_new%profile_number = profile_number
+
+      CALL profiler_set_stop_time('sxrem_construct_new', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref sxrem_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref sxrem_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref sxrem_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION sxrem_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (sxrem_class), POINTER :: sxrem_construct_mpi
+      INTEGER, INTENT(in)         :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                     :: error
+
+!  Start of executable code
+      ALLOCATE(sxrem_construct_mpi)
+
+      sxrem_construct_mpi%chord_path => path_construct(intra_comm)
+
+      CALL MPI_BCAST(sxrem_construct_mpi%profile_number, 1, MPI_INTEGER,       &
+     &               0, intra_comm, error)
+
+#endif
 
       END FUNCTION
 
@@ -101,7 +151,11 @@
       TYPE (sxrem_class), POINTER :: this
 
 !  Start of executable code
-      CALL path_destroy(this%chord_path)
+      IF (ASSOCIATED(this%chord_path)) THEN
+         CALL path_destruct(this%chord_path)
+         this%chord_path => null()
+      END IF
+
       this%profile_number = 0
 
       DEALLOCATE(this)
@@ -133,11 +187,14 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 ! local variables
-      CHARACTER(len=1), ALLOCATABLE  :: context(:)
-      INTEGER                        :: context_length
-      TYPE (sxrem_context)           :: sxr_context
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      TYPE (sxrem_context)                    :: sxr_context
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       sxrem_get_modeled_signal = 0.0
 
 !  The relevant data for the soft x-ray context.
@@ -149,12 +206,15 @@
       context_length = SIZE(TRANSFER(sxr_context, context))
       ALLOCATE(context(context_length))
       context = TRANSFER(sxr_context, context)
-      sxrem_get_modeled_signal(1) = path_integrate(this%chord_Path,            &
+      sxrem_get_modeled_signal(1) = path_integrate(this%chord_path,            &
      &                                             sxr_function,               &
      &                                             context)
 
       sigma = 0.0
       DEALLOCATE(context)
+
+      CALL profiler_set_stop_time('sxrem_get_modeled_signal',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -175,12 +235,56 @@
       CHARACTER (len=data_name_length) :: sxrem_get_signal_type
       TYPE (sxrem_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (sxrem_get_signal_type, 1000) this%profile_number
+
+      CALL profiler_set_stop_time('sxrem_get_signal_type', start_time)
 
 1000  FORMAT('sxrch(',i2,')')
 
       END FUNCTION
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref sxrem_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE sxrem_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (sxrem_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL path_sync_children(this%chord_path, intra_comm)
+      CALL MPI_BCAST(this%profile_number, 1, MPI_INTEGER, 0, intra_comm,       &
+     &               error)
+
+      CALL profiler_set_stop_time('sxrem_sync_children', start_time)
+#endif
+
+      END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE
@@ -217,11 +321,16 @@
 
 ! local variables
       TYPE(sxrem_context)                   :: sxr_context
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       sxr_context = TRANSFER(context, sxr_context)
       sxr_function = model_get_sxrem(sxr_context%model, xcart,                 &
      &                               sxr_context%profile_number)*dx
+
+      CALL profiler_set_stop_time('sxr_function', start_time)
 
       END FUNCTION
 

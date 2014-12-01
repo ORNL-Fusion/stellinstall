@@ -150,6 +150,15 @@
      &                    model_get_sxrem_radial
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref model_class types using
+!>  @ref model_construct_new or @ref signal_construct_mpi
+!-------------------------------------------------------------------------------
+      INTERFACE model_construct
+         MODULE PROCEDURE model_construct_new,                                 &
+     &                    model_construct_mpi
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -167,14 +176,14 @@
 !>  @param[in] equilibrium       An instance of an @ref equilibrium.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
-     &                         ne_unit, ne_min, pressure_fraction,             &
-     &                         equilibrium)
+      FUNCTION model_construct_new(ne_type, sxrem_type, te_type,               &
+     &                             ne_unit, ne_min, pressure_fraction,         &
+     &                             equilibrium)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (model_class), POINTER                   :: model_construct
+      TYPE (model_class), POINTER :: model_construct_new
       CHARACTER (len=data_name_length), INTENT(in)  :: ne_type
       CHARACTER (len=data_name_length), DIMENSION(:), INTENT(in) ::            &
      &   sxrem_type
@@ -187,44 +196,47 @@
 !  local variables
       INTEGER                                       :: i, grid_size
       REAL (rprec)                                  :: grid_stop
+      REAL (rprec)                                  :: start_time
 
 !  Start of executable code
-      ALLOCATE(model_construct)
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(model_construct_new)
 
       SELECT CASE (TRIM(ADJUSTL(ne_type)))
 
          CASE ('none')
-            model_construct%ne_type = model_none_type
+            model_construct_new%ne_type = model_none_type
 
          CASE ('pp_ne')
-            model_construct%ne_type = model_ne_type
+            model_construct_new%ne_type = model_ne_type
 
          CASE ('pp_te_p')
-            model_construct%ne_type = model_ne_te_p_type
+            model_construct_new%ne_type = model_ne_te_p_type
 
          CASE DEFAULT
             WRITE (*,*) 'ne type: ' // TRIM(ADJUSTL(ne_type)) //               &
      &                  ' setting type to none.'
-            model_construct%ne_type = model_none_type
+            model_construct_new%ne_type = model_none_type
 
       END SELECT
 
-      ALLOCATE(model_construct%sxrem_type(SIZE(sxrem_type)))
+      ALLOCATE(model_construct_new%sxrem_type(SIZE(sxrem_type)))
       DO i = 1, SIZE(sxrem_type)
 
          SELECT CASE (TRIM(ADJUSTL(sxrem_type(i))))
 
             CASE ('none')
-               model_construct%sxrem_type(i) = model_none_type
+               model_construct_new%sxrem_type(i) = model_none_type
 
             CASE ('pp_sxrem')
-               model_construct%sxrem_type(i) = model_sxrem_type
+               model_construct_new%sxrem_type(i) = model_sxrem_type
 
             CASE DEFAULT
                WRITE (*,*)                                                     &
      &            'sxrem type: ' // TRIM(ADJUSTL(sxrem_type(i))) //            &
      &            ' setting type to none.'
-               model_construct%sxrem_type(i) = model_none_type
+               model_construct_new%sxrem_type(i) = model_none_type
 
          END SELECT
 
@@ -233,50 +245,123 @@
       SELECT CASE (TRIM(ADJUSTL(te_type)))
 
          CASE ('none')
-            model_construct%te_type = model_none_type
+            model_construct_new%te_type = model_none_type
 
          CASE ('pp_te')
-            model_construct%te_type = model_te_type
+            model_construct_new%te_type = model_te_type
 
 !>  @todo FIXME: Name here shouldn't have vmec in it
          CASE ('pp_ne_vmec_p', 'pp_ne_p')
-            model_construct%te_type = model_te_ne_p_type
+            model_construct_new%te_type = model_te_ne_p_type
 
          CASE DEFAULT
             WRITE (*,*) 'te type: ' // TRIM(ADJUSTL(te_type)) //               &
      &                  ' setting type to none.'
-            model_construct%te_type = model_none_type
+            model_construct_new%te_type = model_none_type
 
       END SELECT
 
 !  Cannot have the temperature derived from the denisty at the same time the
 !  density is derived from the temperature.
       CALL assert(.not.(                                                       &
-     &        (model_construct%te_type .eq. model_te_ne_p_type) .and.          &
-     &        (model_construct%ne_type .eq. model_ne_te_p_type)),              &
+     &        (model_construct_new%te_type .eq. model_te_ne_p_type)            &
+     &        .and.                                                            &
+     &        (model_construct_new%ne_type .eq. model_ne_te_p_type)),          &
      &        'Cannot derive both the denisty and temperature' //              &
      &        ' from pressure in the same model.')
 
-      model_construct%ne_unit = ne_unit
-      model_construct%ne_min = ne_min
-      model_construct%pressure_fraction = pressure_fraction
-      model_construct%equilibrium => equilibrium
+      model_construct_new%ne_unit = ne_unit
+      model_construct_new%ne_min = ne_min
+      model_construct_new%pressure_fraction = pressure_fraction
+      model_construct_new%equilibrium => equilibrium
 
       grid_size = equilibrium_get_grid_size(equilibrium)
 
       IF (grid_size .gt. 0) THEN
-         model_construct%grid_start =                                          &
+         model_construct_new%grid_start =                                      &
      &      equilibrium_get_grid_start(equilibrium)
          grid_stop = equilibrium_get_grid_stop(equilibrium)
 
-         model_construct%grid_step =                                           &
-     &      (grid_stop - model_construct%grid_start)/grid_size
+         model_construct_new%grid_step =                                       &
+     &      (grid_stop - model_construct_new%grid_start)/grid_size
 
-         ALLOCATE(model_construct%ne_grid(grid_size))
-         ALLOCATE(model_construct%sxrem_grid(SIZE(sxrem_type),                 &
-     &                                       grid_size))
-         ALLOCATE(model_construct%te_grid(grid_size))
+         ALLOCATE(model_construct_new%ne_grid(grid_size))
+         ALLOCATE(model_construct_new%sxrem_grid(SIZE(sxrem_type),             &
+     &                                           grid_size))
+         ALLOCATE(model_construct_new%te_grid(grid_size))
       END IF
+
+      CALL profiler_set_stop_time('model_construct_new', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref model_class containing an @ref equilibrium by
+!>  syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref model_class object.
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref model_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION model_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), POINTER :: model_construct_mpi
+      INTEGER, INTENT(in)         :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                     :: error
+      INTEGER                     :: sxrem_size
+      INTEGER                     :: grid_size
+
+!  Start of executable code
+      ALLOCATE(model_construct_mpi)
+
+      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
+      ALLOCATE(model_construct_mpi%sxrem_type(sxrem_size))
+
+      CALL MPI_BCAST(model_construct_mpi%ne_type, 1, MPI_INTEGER, 0,           &
+     &               intra_comm, error)
+      CALL MPI_BCAST(model_construct_mpi%sxrem_type, sxrem_size,               &
+     &               MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(model_construct_mpi%te_type, 1, MPI_INTEGER, 0,           &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(model_construct_mpi%ne_unit, 1, MPI_REAL8, 0,             &
+     &               intra_comm, error)
+      CALL MPI_BCAST(model_construct_mpi%ne_min, 1, MPI_REAL8, 0,              &
+     &               intra_comm, error)
+      CALL MPI_BCAST(model_construct_mpi%pressure_fraction, 1,                 &
+     &               MPI_REAL8, 0, intra_comm, error)
+
+      model_construct_mpi%equilibrium =>                                       &
+     &   equilibrium_construct(intra_comm)
+
+      grid_size =                                                              &
+     &   equilibrium_get_grid_size(model_construct_mpi%equilibrium)
+
+      IF (grid_size .gt. 0) THEN
+         model_construct_mpi%grid_start =                                      &
+     &      equilibrium_get_grid_start(model_construct_mpi%equilibrium)
+         model_construct_mpi%grid_step =                                       &
+     &      equilibrium_get_grid_start(model_construct_mpi%equilibrium)
+
+         ALLOCATE(model_construct_mpi%ne_grid(grid_size))
+         ALLOCATE(model_construct_mpi%te_grid(grid_size))
+         ALLOCATE(model_construct_mpi%sxrem_grid(sxrem_size,grid_size))
+
+         CALL MPI_BCAST(model_construct_mpi%ne_grid, grid_size,                &
+     &                  MPI_REAL8, 0, intra_comm, error)
+         CALL MPI_BCAST(model_construct_mpi%sxrem_grid,                        &
+     &                  grid_size*sxrem_size, MPI_REAL8, 0, intra_comm,        &
+     &                  error)
+         CALL MPI_BCAST(model_construct_mpi%te_grid, grid_size,                &
+     &                  MPI_REAL8, 0, intra_comm, error)
+      END IF
+#endif
 
       END FUNCTION
 
@@ -354,7 +439,12 @@
       INTEGER, INTENT(in)               :: j_index
       REAL (rprec), INTENT(in)          :: value
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
@@ -371,6 +461,8 @@
      &                                 i_index, j_index, value)
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_set_param', start_time)
 
       END SUBROUTINE
 
@@ -396,7 +488,12 @@
       TYPE (model_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in)  :: param_name
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (TRIM(param_name))
 
          CASE ('ne_unit')
@@ -422,6 +519,8 @@
      &         equilibrium_get_param_id(this%equilibrium, param_name)
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_param_id', start_time)
 
       END FUNCTION
 
@@ -449,7 +548,12 @@
       INTEGER, INTENT(in)            :: i_index
       INTEGER, INTENT(in)            :: j_index
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
@@ -491,6 +595,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('model_get_param_value', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -512,7 +618,12 @@
       TYPE (model_class), INTENT(in)  :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                    :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
@@ -539,6 +650,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('model_get_param_name', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -560,7 +673,12 @@
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
@@ -579,6 +697,8 @@
              model_get_ne_cart = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_ne_cart', start_time)
 
       END FUNCTION
 
@@ -601,7 +721,12 @@
       TYPE (model_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)       :: r
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
@@ -620,6 +745,8 @@
             model_get_ne_radial = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_ne_radial', start_time)
 
       END FUNCTION
 
@@ -642,7 +769,12 @@
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
@@ -659,6 +791,8 @@
             model_get_te_cart = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_te_cart', start_time)
 
       END FUNCTION
 
@@ -681,7 +815,12 @@
       TYPE (model_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)       :: r
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
@@ -698,6 +837,8 @@
             model_get_te_radial = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_te_radial', start_time)
 
       END FUNCTION
 
@@ -722,7 +863,12 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
@@ -733,6 +879,8 @@
             model_get_sxrem_cart = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_sxrem_cart', start_time)
 
       END FUNCTION
 
@@ -757,7 +905,12 @@
       REAL (rprec), INTENT(in)       :: r
       INTEGER, INTENT(in)            :: index
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
@@ -768,6 +921,8 @@
             model_get_sxrem_radial = -2.0E49_rprec
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_sxrem_radial', start_time)
 
       END FUNCTION
 
@@ -785,7 +940,12 @@
       CHARACTER (len=data_name_length) :: model_get_ne_type
       TYPE (model_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%ne_type)
 
          CASE (model_ne_type)
@@ -798,6 +958,8 @@
             model_get_ne_type = 'none'
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_ne_type', start_time)
 
       END FUNCTION
 
@@ -815,7 +977,12 @@
       CHARACTER (len=data_name_length) :: model_get_te_type
       TYPE (model_class), INTENT(in)   :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%te_type)
 
          CASE (model_te_type)
@@ -828,6 +995,8 @@
             model_get_te_type = 'none'
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_te_type', start_time)
 
       END FUNCTION
 
@@ -847,7 +1016,12 @@
       TYPE (model_class), INTENT(in)   :: this
       INTEGER, INTENT(in)              :: index
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%sxrem_type(index))
 
          CASE (model_sxrem_type)
@@ -857,6 +1031,8 @@
             model_get_sxrem_type = 'none'
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_get_sxrem_type', start_time)
 
       END FUNCTION
 
@@ -882,7 +1058,12 @@
       TYPE (model_class), INTENT(in) :: this
       INTEGER, INTENT(in)            :: id
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (model_ne_unit_id, model_ne_min_id,                              &
@@ -894,6 +1075,8 @@
      &         equilibrium_is_recon_param(this%equilibrium, id)
 
       END SELECT
+
+      CALL profiler_set_stop_time('model_is_recon_param', start_time)
 
       END FUNCTION
 
@@ -924,8 +1107,11 @@
 !  local variables
       REAL (rprec)                      :: r, dr
       INTEGER                           :: i, j
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       model_converge = equilibrium_converge(this%equilibrium, num_iter,        &
      &                                      iou)
 
@@ -956,6 +1142,8 @@
 
       END IF
 
+      CALL profiler_set_stop_time('model_converge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -978,8 +1166,11 @@
 
 !  local variables
       INTEGER                        :: i
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,*) ' *** Model Parameters'
       WRITE (iou,*) 'model_ne_type is ',                                       &
@@ -999,6 +1190,8 @@
 1000  FORMAT(1x,a,2x,es12.5)
 
       CALL equilibrium_write(this%equilibrium, iou)
+
+      CALL profiler_set_stop_time('model_write', start_time)
 
       END SUBROUTINE
 
@@ -1072,8 +1265,11 @@
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
       INTEGER                        :: sxrem_grid_var_id
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define dimensions
       IF (ASSOCIATED(this%ne_grid) .or.                                        &
      &    ASSOCIATED(this%te_grid) .or.                                        &
@@ -1146,6 +1342,8 @@
       CALL equilibrium_def_result(this%equilibrium, result_ncid,               &
      &                            maxnsteps_dim_id)
 
+      CALL profiler_set_stop_time('model_def_result', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1170,8 +1368,11 @@
       INTEGER                        :: ne_type_var_id
       INTEGER                        :: te_type_var_id
       INTEGER                        :: sxrem_type_var_id
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'model_ne_type',                      &
      &                      ne_type_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -1200,6 +1401,8 @@
 
       CALL equilibrium_write_init_data(this%equilibrium, result_ncid)
 
+      CALL profiler_set_stop_time('model_write_init_data', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1227,8 +1430,11 @@
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
       INTEGER                        :: sxrem_grid_var_id
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'ne_unit', ne_unit_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var1_double(result_ncid, ne_unit_var_id,                 &
@@ -1282,6 +1488,115 @@
 
       CALL equilibrium_write_step_data(this%equilibrium, result_ncid,          &
      &                                 current_step)
+
+      CALL profiler_set_stop_time('model_write_step_data', start_time)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref model_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: sxrem_size
+      INTEGER                           :: grid_size
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      sxrem_size = SIZE(this%sxrem_type)
+
+      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
+
+      CALL MPI_BCAST(this%ne_type, 1, MPI_INTEGER, 0, intra_comm,              &
+     &               error)
+      CALL MPI_BCAST(this%sxrem_type, sxrem_size, MPI_INTEGER, 0,              &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%te_type, 1, MPI_INTEGER, 0, intra_comm,              &
+     &               error)
+
+      CALL MPI_BCAST(this%ne_unit, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%ne_min, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%pressure_fraction, 1, MPI_REAL8, 0,                  &
+     &               intra_comm, error)
+
+      CALL equilibrium_sync_children(this%equilibrium, intra_comm)
+
+      grid_size = equilibrium_get_grid_size(this%equilibrium)
+      IF (grid_size .gt. 0) THEN
+         CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  intra_comm, error)
+         CALL MPI_BCAST(this%sxrem_grid, grid_size*sxrem_size,                 &
+     &                  MPI_REAL8, 0, intra_comm, error)
+         CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  intra_comm, error)
+      END IF
+
+      CALL profiler_set_stop_time('model_sync_children', start_time)
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize the model state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref model_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_sync_state(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: grid_size
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL equilibrium_sync_state(this%equilibrium, intra_comm)
+
+      grid_size = equilibrium_get_grid_size(this%equilibrium)
+      IF (grid_size .gt. 0) THEN
+         CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  intra_comm, error)
+         CALL MPI_BCAST(this%sxrem_grid,                                       &
+     &                  grid_size*SIZE(this%sxrem_type), MPI_REAL8, 0,         &
+     &                  intra_comm, error)
+         CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
+     &                  intra_comm, error)
+      END IF
+
+      CALL profiler_set_stop_time('model_sync_state', start_time)
+#endif
 
       END SUBROUTINE
 

@@ -20,11 +20,11 @@
 !  param module parameters
 !*******************************************************************************
 !>  No bounding type specified.
-      INTEGER, PARAMETER :: param_range_no_type = -1
+      INTEGER, PARAMETER :: param_range_no_type        = -1
 !>  Parameter value is bounded by a value.
-      INTEGER, PARAMETER :: param_range_value_type = 0
+      INTEGER, PARAMETER :: param_range_value_type     = 0
 !>  Parameter value is unbounded.
-      INTEGER, PARAMETER :: param_range_infinity_type = 1
+      INTEGER, PARAMETER :: param_range_infinity_type  = 1
 !>  Parameter value is bounded by another parameter.
       INTEGER, PARAMETER :: param_range_parameter_type = 2
 
@@ -71,16 +71,16 @@
 !>  The contraints can change the normalization size of the patarameter when
 !>  incrementing it. Store the actual change in parameter here for
 !>  normalization. This value is set by @ref param_increment.
-         REAL (rprec)                            :: delta
+         REAL (rprec)                          :: delta
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
 !>  step. This value is calculated by
 !>  @ref reconstruction::reconstruction_eval_pos_covar.
-         REAL (rprec)                        :: sigma = 0.0
+         REAL (rprec)                          :: sigma = 0.0
 !>  Stored row of the signal effectiveness matrix.
-         REAL (rprec), DIMENSION(:), POINTER :: sem => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: sem => null()
 !>  Stored row of the correlation matrix.
-         REAL (rprec), DIMENSION(:), POINTER :: correlation => null()
+         REAL (rprec), DIMENSION(:), POINTER   :: correlation => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -138,13 +138,18 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (param_class), POINTER :: param_construct_basic
+      TYPE (param_class), POINTER       :: param_construct_basic
       TYPE (model_class), INTENT(in)    :: a_model
       CHARACTER (len=*), INTENT(in)     :: param_name
       INTEGER, DIMENSION(2), INTENT(in) :: indicies
       INTEGER, INTENT(in)               :: num_params
 
+!  local variables
+      REAL (rprec)                      :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(param_construct_basic)
 
       param_construct_basic%param_id =                                         &
@@ -154,6 +159,8 @@
       param_construct_basic%correlation = 0.0
 
       param_construct_basic%indicies = indicies
+
+      CALL profiler_set_stop_time('param_construct_basic', start_time)
 
       END FUNCTION
 
@@ -205,15 +212,20 @@
       INTEGER, INTENT(in)                         :: num_signals
       INTEGER, INTENT(in)                         :: num_params
 
+!  local variables
+      REAL (rprec)                                :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       param_construct_recon => param_construct(a_model, param_name,            &
      &                                         indicies, num_params)
 
       IF (.not.model_is_recon_param(a_model,                                   &
      &            param_construct_recon%param_id)) THEN
-         CALL err_fatal('param_construct: ' // param_name // ' is ' //         &
-     &                  'a valid reconstruction reconstruction ' //            &
-     &                  'parameter')
+         CALL err_fatal('param_construct: ' // TRIM(param_name) //             &
+     &                  ' is an invalid reconstruction ' //                    &
+     &                  'reconstruction parameter')
       END IF
 
       param_construct_recon%vrnc = vrnc
@@ -261,6 +273,8 @@
 
       ALLOCATE(param_construct_recon%sem(num_signals))
       param_construct_recon%sem = 0.0
+
+      CALL profiler_set_stop_time('param_construct_recon', start_time)
 
       END FUNCTION
 
@@ -332,8 +346,11 @@
       REAL (rprec)                      :: set_value
       REAL (rprec)                      :: upper_value
       REAL (rprec)                      :: lower_value
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       set_value = value
 
 !  Check if the value is within the lower range. If the value is outside,
@@ -345,6 +362,9 @@
             CALL model_set_param(a_model, this%param_id,                       &
      &              this%indicies(1), this%indicies(2), lower_value)
             set_value = lower_value
+
+            CALL profiler_set_stop_time('profiler_get_start_time',             &
+     &                                  start_time)
             RETURN
          END IF
       END IF
@@ -358,6 +378,9 @@
             CALL model_set_param(a_model, this%param_id,                       &
      &              this%indicies(1), this%indicies(2), upper_value)
             set_value = upper_value
+
+            CALL profiler_set_stop_time('profiler_get_start_time',             &
+     &                                  start_time)
             RETURN
          END IF
       END IF
@@ -366,6 +389,8 @@
       CALL model_set_param(a_model, this%param_id,                             &
      &                     this%indicies(1), this%indicies(2),                 &
      &                     set_value)
+
+      CALL profiler_set_stop_time('profiler_get_start_time', start_time)
 
       END SUBROUTINE
 
@@ -391,11 +416,18 @@
       TYPE (param_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in) :: a_model
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       param_get_value = model_get_param_value(a_model,                         &
      &                                        this%param_id,                   &
      &                                        this%indicies(1),                &
      &                                        this%indicies(2))
+
+      CALL profiler_set_stop_time('param_get_value', start_time)
 
       END FUNCTION
 
@@ -418,8 +450,15 @@
       TYPE (param_class), INTENT(in)   :: this
       TYPE (model_class), INTENT(in)   :: a_model
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       param_get_name = model_get_param_name(a_model, this%param_id)
+
+      CALL profiler_set_stop_time('param_get_name', start_time)
 
       END FUNCTION
 
@@ -442,7 +481,12 @@
       TYPE (param_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in) :: a_model
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%range_type(1))
 
          CASE DEFAULT
@@ -455,6 +499,9 @@
      &                               this%range_indicies(1,2))
 
       END SELECT
+
+      CALL profiler_set_stop_time('param_get_lower_range_value',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -477,7 +524,12 @@
       TYPE (param_class), INTENT(in) :: this
       TYPE (model_class), INTENT(in) :: a_model
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%range_type(2))
 
          CASE DEFAULT
@@ -490,6 +542,9 @@
      &                               this%range_indicies(2,2))
 
       END SELECT
+
+      CALL profiler_set_stop_time('param_get_upper_range_value',               &
+     &                            start_time)
 
       END FUNCTION
 
@@ -508,10 +563,15 @@
 
 !  Declare Arguments
       CHARACTER (len=data_name_length) :: param_get_lower_range_type
-      TYPE (model_class), INTENT(in)   :: a_model
       TYPE (param_class), INTENT(in)   :: this
+      TYPE (model_class), INTENT(in)   :: a_model
+
+!  local variables
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%range_type(1))
 
          CASE DEFAULT
@@ -528,6 +588,9 @@
      &         model_get_param_name(a_model, this%range_id(1))
 
       END SELECT
+
+      CALL profiler_set_stop_time('param_get_lower_range_type',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -546,10 +609,15 @@
 
 !  Declare Arguments
       CHARACTER (len=data_name_length) :: param_get_upper_range_type
-      TYPE (model_class), INTENT(in)   :: a_model
       TYPE (param_class), INTENT(in)   :: this
+      TYPE (model_class), INTENT(in)   :: a_model
+
+!  local variables
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (this%range_type(2))
 
          CASE DEFAULT
@@ -566,6 +634,9 @@
      &         model_get_param_name(a_model, this%range_id(2))
 
       END SELECT
+
+      CALL profiler_set_stop_time('param_get_upper_range_type',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -593,12 +664,19 @@
       TYPE (model_class), INTENT(in) :: a_model
       REAL (rprec), INTENT(in)       :: value
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       param_is_in_lower_range = .true.
       IF (this%range_type(1) .ne. param_range_infinity_type) THEN
          param_is_in_lower_range =                                             &
      &      value .ge. param_get_lower_range_value(this, a_model)
       END IF
+
+      CALL profiler_set_stop_time('param_is_in_lower_range', start_time)
 
       END FUNCTION
 
@@ -623,12 +701,19 @@
       TYPE (model_class), INTENT(in) :: a_model
       REAL (rprec), INTENT(in)       :: value
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       param_is_in_upper_range = .true.
       IF (this%range_type(2) .ne. param_range_infinity_type) THEN
          param_is_in_upper_range =                                             &
      &      value .le. param_get_upper_range_value(this, a_model)
       END IF
+
+      CALL profiler_set_stop_time('param_is_in_upper_range', start_time)
 
       END FUNCTION
 
@@ -663,8 +748,11 @@
       REAL (rprec)                      :: value
       REAL (rprec)                      :: step
       INTEGER                           :: itry
+      REAL (rprec)                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       value = param_get_value(this, a_model)
 !  Take the absolute value here to control the direction of the step.
       step = ABS(this%vrnc)
@@ -709,6 +797,8 @@
      &               'reconstruction. Try decreaing rp_vrnc or ' //            &
      &               'expanding the range.')
 
+      CALL profiler_set_stop_time('param_increment', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -733,7 +823,11 @@
       INTEGER, INTENT(in)            :: index
       TYPE (model_class), INTENT(in) :: a_model
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       WRITE (iou,1000) index,                                                  &
      &                 param_get_name(this, a_model),                          &
@@ -748,6 +842,8 @@
      &                 this%range_indicies(1,:)
 1000  FORMAT(i3,2x,a18,2(1x,i4),3(2x,es12.5),2(2x,a13),2(2x,es12.5),           &
      &       2(2x,i8,1x,i8))
+
+      CALL profiler_set_stop_time('param_write', start_time)
 
       END SUBROUTINE
 
@@ -772,13 +868,19 @@
       INTEGER, INTENT(in)            :: index
       TYPE (model_class), INTENT(in) :: a_model
 
+!  local variables
+      REAL (rprec)                   :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       WRITE (iou,1000) index,                                                  &
      &                 param_get_name(this, a_model),                          &
      &                 this%indicies(1), this%indicies(2),                     &
      &                 param_get_value(this, a_model), this%sigma
 1000  FORMAT(i3,2x,a18,2(1x,i4),2(2x,es12.5))
+
+      CALL profiler_set_stop_time('param_write_short', start_time)
 
       END SUBROUTINE
 
@@ -799,14 +901,23 @@
 !  Declare Arguments
       INTEGER, INTENT(in) :: iou
 
+!  local variables
+      REAL (rprec)        :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,*) ' *** Reconstruction parameters'
       WRITE (iou,1000)
+
+      CALL profiler_set_stop_time('param_write_header', start_time)
+
 1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
      &        'sigma',9x,'vrnc',10x,'range_type_h',3x,'range_type_l',3x,       &
      &        'r_value_h',5x,'r_value_l',5x,                                   &
      &        'r_inx1_h',1x,'r_inx2_h',2x,'r_inx1_l',1x,'r_inx2_l')
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -826,12 +937,22 @@
 !  Declare Arguments
       INTEGER, INTENT(in) :: iou
 
+!  local variables
+      REAL (rprec)        :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,*) ' *** Derived parameters'
       WRITE (iou,1000)
+
+      CALL profiler_set_stop_time('param_write_header_short',                  &
+     &                            start_time)
+
 1000  FORMAT ('irp',2x,'p_type',13x,'inx1',1x,'inx2',2x,'value',9x,            &
      &        'sigma')
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -856,11 +977,16 @@
 
 !  local variables
       CHARACTER (len=20)             :: row_format
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (row_format,1000) SIZE(this%correlation)
       WRITE (iou,row_format) param_get_name(this, a_model),                    &
      &                       this%correlation
+
+      CALL profiler_set_stop_time('param_write_correlation', start_time)
 
 1000  FORMAT ('(a12,',i3,'(2x,es12.5))')
 
@@ -913,8 +1039,11 @@
 
 !  local variables
       INTEGER                        :: status
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       CALL param_write_step_data(this, a_model, result_ncid,                   &
      &                           current_step, index,                          &
      &                           param_value_id, param_sigma_id,               &
@@ -924,6 +1053,8 @@
      &                            (/ 1, index, current_step /),                &
      &                            (/ SIZE(this%sem), 1, 1 /),                  &
      &                            this%sem)
+
+      CALL profiler_set_stop_time('param_write_step_data_1', start_time)
 
       END SUBROUTINE
 
@@ -967,8 +1098,11 @@
 
 !  local variables
       INTEGER                        :: status
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_put_var1_double(result_ncid, param_value_id,                 &
      &                            (/ index, current_step /),                   &
      &                            param_get_value(this, a_model))
@@ -984,6 +1118,137 @@
      &                            (/ SIZE(this%correlation), 1, 1 /),          &
      &                            this%correlation)
 
+      CALL profiler_set_stop_time('param_write_step_data_2', start_time)
+
       END SUBROUTINE
 
-      END MODULE v3fit_params
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize the param value to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_sync_value(this, a_model, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      REAL (rprec)                      :: value
+      INTEGER                           :: mpi_rank
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+
+      IF (mpi_rank .eq. 0) THEN
+         value = param_get_value(this, a_model)
+      END IF
+
+      CALL MPI_BCAST(value, 1, MPI_REAL8, 0, intra_comm, error)
+
+      IF (mpi_rank .gt. 0) THEN
+         CALL param_set_value(this, a_model, value)
+      END IF
+
+      CALL profiler_set_stop_time('param_sync_value', start_time)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sends the delta used.
+!>
+!>  Sends the value of delta used in the child process to the parent process. If
+!>  MPI support is not compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_send_delta(this, index, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: index
+      INTEGER, INTENT(in)               :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: mpi_size
+      INTEGER                           :: mpi_request
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+!  Must use a non blocking send here because we are sending messages from the
+!  main process to itself or need to send multiple sends before the first
+!  recieve. Other wise it could block until a recieve request is called.
+      CALL MPI_ISEND(this%delta, 1, MPI_REAL8, 0, index, intra_comm,           &
+     &               mpi_request, error)
+
+      CALL profiler_set_stop_time('param_send_delta', start_time)
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Receives the delta used.
+!>
+!>  Receives the value of delta used in the child process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_recv_delta(this, index, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout)   :: this
+      INTEGER, INTENT(in)                 :: index
+      INTEGER, INTENT(in)                 :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                             :: error
+      INTEGER, DIMENSION(MPI_STATUS_SIZE) :: status
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_RECV(this%delta, 1, MPI_REAL8, MPI_ANY_SOURCE, index,           &
+     &              intra_comm, status, error)
+
+      CALL profiler_set_stop_time('param_recv_delta', start_time)
+
+#endif
+
+      END SUBROUTINE
+
+      END MODULE

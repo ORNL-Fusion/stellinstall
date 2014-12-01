@@ -13,6 +13,8 @@
       USE stel_kinds
       USE v3fit_params
       USE signal
+      USE model
+      USE profiler
 
       IMPLICIT NONE
 
@@ -20,11 +22,11 @@
 !  reconstruction module parameters
 !*******************************************************************************
 !>  No reconstruction step type.
-      INTEGER, PARAMETER :: reconstruction_no_step_type = -1
+      INTEGER, PARAMETER :: reconstruction_no_step_type  = -1
 !>  Straight line reconstruction step type.
-      INTEGER, PARAMETER :: reconstruction_sl_step_type = 0
+      INTEGER, PARAMETER :: reconstruction_sl_step_type  = 0
 !>  Levenberg-Marquardt reconstruction step type.
-      INTEGER, PARAMETER :: reconstruction_lm_step_type = 1
+      INTEGER, PARAMETER :: reconstruction_lm_step_type  = 1
 !>  Segmented path reconstruction step type.
       INTEGER, PARAMETER :: reconstruction_seg_step_type = 2
 
@@ -53,6 +55,8 @@
 
 !>  Counter to track the step number.
          INTEGER                               :: current_step = 0
+!>  Index of the last parallelable signal.
+         INTEGER                               :: last_para_signal = 0
 !>  Array of all e vectors for each reconstruction step.
 !>  @see signal::signal_get_e
          REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
@@ -132,6 +136,8 @@
 !>                                    @ref v3fit_input::cut_delta_a
 !>  @param[in] cut_dg2                Cutoff value for expected change in g^2.
 !>                                    @ref v3fit_input::cut_dg2
+!>  @param[in] last_para_signal       Index of the last signal that can be
+!>                                    parallelized.
 !>  @returns A pointer to a constructed @ref reconstruction_class object.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_construct(num_steps, num_signals,                &
@@ -139,7 +145,7 @@
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
-     &                                  cut_dg2)
+     &                                  cut_dg2, last_para_signal)
 
       IMPLICIT NONE
 
@@ -156,11 +162,15 @@
       REAL (rprec), INTENT(in)             :: cut_marg_eff
       REAL (rprec), INTENT(in)             :: cut_delta_a
       REAL (rprec), INTENT(in)             :: cut_dg2
+      INTEGER, INTENT(in)                  :: last_para_signal
 
 !  local variables
       INTEGER                              :: num_svd
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(reconstruction_construct)
 
       SELECT CASE (TRIM(step_type))
@@ -187,6 +197,8 @@
       reconstruction_construct%cut_delta_a = cut_delta_a
       reconstruction_construct%cut_dg2 = cut_dg2
 
+      reconstruction_construct%last_para_signal = last_para_signal
+
       num_svd = MIN(num_signals, num_parameters)
 
       ALLOCATE(reconstruction_construct%e(0:num_steps,num_signals))
@@ -212,6 +224,9 @@
       ALLOCATE(reconstruction_construct%exp_g2(num_steps))
       ALLOCATE(reconstruction_construct%step_size(num_steps))
       ALLOCATE(reconstruction_construct%num_sv(num_steps))
+
+      CALL profiler_set_stop_time('reconstruction_construct',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -346,8 +361,11 @@
       INTEGER                                    :: k
       REAL (rprec)                               :: denom
       REAL (rprec)                               :: largest_w
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(dg2exp(0:num_sv))
       ALLOCATE(exp_eff(0:num_sv))
       ALLOCATE(marg_exp_eff(0:num_sv))
@@ -369,6 +387,7 @@
 !  Descent (index 0) and just one singular value cases, for convenience define
 !  them here.
       marg_exp_eff(0:1) = exp_eff(0:1)
+
       DO k = 2, num_sv
          denom = this%delta_a_len(k) - this%delta_a_len(k - 1)
          IF (denom .eq. 0.0) THEN
@@ -409,6 +428,9 @@
       DEALLOCATE(marg_exp_eff)
       DEALLOCATE(l_all)
 
+      CALL profiler_set_stop_time('reconstruction_get_k_use',                  &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -433,10 +455,12 @@
       REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
 !  local arguments
-      REAL (rprec)                               :: dg2exp_lin
-      REAL (rprec)                               :: dg2exp_quad
+      REAL (rprec)                            :: dg2exp_lin
+      REAL (rprec)                            :: dg2exp_quad
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
 !  2e * A * da  
       dg2exp_lin =                                                             &
@@ -447,6 +471,9 @@
 !  Equation 14 in Hanson et. al. doi: 10.1088/0029-5515/49/7/075031
       dg2exp_quad = DOT_PRODUCT(delta_a, MATMUL(this%hessian, delta_a))
       reconstruction_get_exp_dg2 = dg2exp_lin - dg2exp_quad
+
+      CALL profiler_set_stop_time('reconstruction_get_exp_dg2',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -469,10 +496,18 @@
       TYPE (reconstruction_class), INTENT(in) :: this
       REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       reconstruction_get_exp_g2 = reconstruction_get_g2(this)                  &
      &                          - reconstruction_get_exp_dg2(this,             &
      &                                                       delta_a)
+
+      CALL profiler_set_stop_time('reconstruction_get_exp_g2',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -492,10 +527,18 @@
       REAL (rprec) :: reconstruction_get_g2
       TYPE (reconstruction_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       reconstruction_get_g2 =                                                  &
      &   DOT_PRODUCT(this%e(this%current_step,:),                              &
      &               this%e(this%current_step,:))
+
+      CALL profiler_set_stop_time('reconstruction_get_g2', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -514,10 +557,18 @@
       REAL (rprec) :: reconstruction_get_lastg2
       TYPE (reconstruction_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       reconstruction_get_lastg2 =                                              &
      &   DOT_PRODUCT(this%e(this%current_step - 1,:),                          &
      &               this%e(this%current_step - 1,:))
+
+      CALL profiler_set_stop_time('reconstruction_get_lastg2',                 &
+     &                            start_time)
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -537,9 +588,16 @@
       REAL (rprec) :: reconstruction_get_dg2
       TYPE (reconstruction_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                            :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       reconstruction_get_dg2 = reconstruction_get_lastg2(this)                 &
      &                       - reconstruction_get_g2(this)
+
+      CALL profiler_set_stop_time('reconstruction_get_dg2', start_time)
       END FUNCTION
 
 !*******************************************************************************
@@ -560,34 +618,51 @@
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps,         &
      &                               iou)
-      USE signal
-      USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       LOGICAL :: reconstruction_eval_e
-      TYPE (reconstruction_class), INTENT(inout) :: this
+      TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
-      TYPE (model_class), INTENT(inout)          :: a_model
-      INTEGER, INTENT(inout)                     :: eq_steps
-      INTEGER, INTENT(in)                        :: iou
+      TYPE (model_class), INTENT(inout)                  :: a_model
+      INTEGER, INTENT(inout)                             :: eq_steps
+      INTEGER, INTENT(in)                                :: iou
 
 !  local arguments
-      INTEGER                                    :: i
+      INTEGER                                            :: i
+      REAL (rprec)                                       :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
       IF (model_converge(a_model, eq_steps, iou)) THEN
-         DO i = 1, SIZE(signals)
+
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+         DO i = 1, this%last_para_signal
             this%e(this%current_step,i) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
          END DO
+!$OMP END PARALLEL DO
+
+         DO i = this%last_para_signal + 1, SIZE(signals)
+            this%e(this%current_step,i) =                                      &
+     &         signal_get_e(signals(i)%p, a_model, .false.)
+         END DO
+
          !  Write out the step information.
          reconstruction_eval_e = .true.
       ELSE
          reconstruction_eval_e = .false.
       END IF
+
+      CALL profiler_set_stop_time('reconstruction_eval_e', start_time)
 
       END FUNCTION
 
@@ -602,8 +677,6 @@
 !>  @param[inout] a_model        A @ref model instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_f(this, derived_params, a_model)
-      USE v3fit_params
-      USE model
 
       IMPLICIT NONE
 
@@ -614,19 +687,25 @@
 
 !  local arguments
       INTEGER                                        :: i
+      REAL (rprec)                                   :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       DO i = 1, SIZE(derived_params)
          this%f(this%current_step,i) =                                         &
      &      param_get_value(derived_params(i)%p, a_model)
       END DO
 
+      CALL profiler_set_stop_time('reconstruction_eval_f', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Evaluate the proper quasi-Newton step.
+!>  @brief Evaluate the jacobian.
 !>
-!>  Evaluates the jacobian, performs the SVD and computes the quasi-Newton step.
+!>  Evaluates the jacobian. When using MPI, reach row of the jacobian is
+!>  evaluated in parallel.
 !>
 !>  @param[inout] this           A @ref reconstruction_class instance.
 !>  @param[inout] signals        Array of @ref signal objects.
@@ -635,15 +714,15 @@
 !>  @param[inout] params         Array of @ref parameter objects.
 !>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
 !>  @param[in]    iou            Input/output file to write log messages to.
-!>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
-      FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
-     &                                  a_model, params, eq_steps, iou)
+      SUBROUTINE reconstruction_eval_jacobians(this, signals,                  &
+     &                                         derived_params, a_model,        &
+     &                                         params, eq_steps, iou,          &
+     &                                         intra_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER :: reconstruction_eval_step
       TYPE (reconstruction_class), INTENT(inout)         :: this
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
@@ -652,20 +731,69 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: intra_comm
 
 !  local arguments
-      INTEGER                                    :: i, j
-      REAL (rprec)                               :: param_value
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: temp_jacobian
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work2
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work3
-      INTEGER                                    :: svd_status
+      INTEGER                                            :: i, j
+      REAL (rprec)                                       :: param_value
+      REAL (rprec)                                       :: start_time
+      INTEGER                                            :: mpi_size
+      INTEGER                                            :: mpi_rank
+#if defined(MPI_OPT)
+      INTEGER                                            :: error
+#endif
+      INTEGER, DIMENSION(:), ALLOCATABLE                 :: stride
+      INTEGER, DIMENSION(:), ALLOCATABLE                 :: offset
+      INTEGER                                            :: minsize
+      INTEGER                                            :: extra
 
-!  Start of executable code
+!  Start of
+      start_time = profiler_get_start_time()
+
+#if defined(MPI_OPT)
+!  Set the params first since they can change the state of the converged
+!  variable. Syning the model afterwards will bring the internal state up to
+!  sync.
+      DO i = 1, SIZE(params)
+         CALL param_sync_value(params(i)%p, a_model, intra_comm)
+      END DO
+      CALL model_sync_state(a_model, intra_comm)
+      CALL reconstruction_sync_state(this, intra_comm)
+
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+#else
+      mpi_rank = 0
+      mpi_size = 1
+#endif
+
+      ALLOCATE(stride(mpi_size))
+      ALLOCATE(offset(mpi_size))
+
+!  Determine the offsets and strides that each uses. This determined the array
+!  indices that each process computes the jacobian for. The number of parameters
+!  might not be evenly dividable by the number of process. As a result. need to
+!  determine the minimum size and add extra work for some of the processes.
+      minsize = SIZE(params)/mpi_size
+      extra = MOD(SIZE(params), mpi_size)
+
+      stride = minsize
+      stride(1:extra) = stride(1:extra) + 1
+      offset = 0
+      DO i = 2, mpi_size
+         offset(i) = offset(i - 1) + stride(i - 1)
+      END DO
+
       CALL equilibrium_save_state(a_model%equilibrium)
 
-      DO j = 1, SIZE(params)
+!  Loop over the parameters, but only do iterations for the rank as determined
+!  by the stride and the offset. Strides and offsets are determined using C
+!  array notation since the MPI libraries use C conventions. Make sure the
+!  offset is incremented by one for the initial index.
+      DO j = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
+     &                                 stride(mpi_rank + 1)
+
 !  Save the initial parameter value and the equilirbium state.
          param_value = param_get_value(params(j)%p, a_model)
 
@@ -674,7 +802,7 @@
          CALL param_increment(params(j)%p, a_model)
 
          CALL assert(model_converge(a_model, eq_steps, iou),                   &
-     &               'reconstruction_eval_step: failed to converge ' //        &
+     &               'eval_jacobians: failed to converge ' //                  &
      &               'equilibrium. Try decreasing rp_vrnc')
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
@@ -698,10 +826,23 @@
 !  In this coding e_i = Sqrt(signal_get_g2)
 !  and |pi_j|/pi_j = SIGN(1,delta_param)
 
-         DO i = 1, SIZE(signals)
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+         DO i = 1, this%last_para_signal
             this%jacobian(i,j) =                                               &
-     &         -(signal_get_e(signals(i)%p, a_model, .false.) -                &
-     &           this%e(this%current_step,i))
+     &         -(signal_get_e(signals(i)%p, a_model, .false.)                  &
+     &         - this%e(this%current_step,i))
+         END DO
+!$OMP END PARALLEL DO
+
+         DO i = this%last_para_signal + 1, SIZE(signals)
+            this%jacobian(i,j) =                                               &
+     &         -(signal_get_e(signals(i)%p, a_model, .false.)                  &
+     &         - this%e(this%current_step,i))
          END DO
          this%jacobian(:,j) = this%jacobian(:,j)                               &
      &                      * SIGN(1.0_rprec, params(j)%p%delta)
@@ -715,22 +856,95 @@
 !  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
          DO i = 1, SIZE(derived_params)
             this%derived_jacobian(i,j) =                                       &
-     &         -(param_get_value(derived_params(i)%p, a_model) -               &
-     &           this%f(this%current_step,i))
+     &         -(param_get_value(derived_params(i)%p, a_model)                 &
+     &         - this%f(this%current_step,i))
          END DO
          this%derived_jacobian(:,j) = this%derived_jacobian(:,j)               &
      &                              * SIGN(1.0_rprec, params(j)%p%delta)
 
-!  Restore the parameter and the equilibrium to it's initial value.
+!  Restore the parameter and the equilibrium to it's initial value. Need to sync
+!  the value of param delta back to the parent process.
          CALL param_set_value(params(j)%p, a_model, param_value)
          CALL equilibrium_reset_state(a_model%equilibrium)
-
       END DO
+!  At this point, the computed jacobian rows should be returned to the parent
+!  process.
+#if defined(MPI_OPT)
+      CALL reconstruction_sync_parent(this, params, SIZE(signals),             &
+     &                                SIZE(derived_params), stride,            &
+     &                                offset, intra_comm)
+#endif
+
+      DEALLOCATE(stride)
+      DEALLOCATE(offset)
+
+      CALL profiler_set_stop_time('reconstruction_eval_jacobians',             &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the proper quasi-Newton step.
+!>
+!>  Evaluates the jacobian, performs the SVD and computes the quasi-Newton step.
+!>
+!>  @param[inout] this           A @ref reconstruction_class instance.
+!>  @param[inout] signals        Array of @ref signal objects.
+!>  @param[in]    derived_params Array of derived @ref param objects.
+!>  @param[inout] a_model        A @ref model instance.
+!>  @param[inout] params         Array of @ref parameter objects.
+!>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
+!>  @param[in]    iou            Input/output file to write log messages to.
+!>  @returns The number of singular values to use.
+!-------------------------------------------------------------------------------
+      FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
+     &                                  a_model, params, eq_steps, iou,        &
+     &                                  intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: reconstruction_eval_step
+      TYPE (reconstruction_class), INTENT(inout)         :: this
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
+     &   derived_params
+      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
+      INTEGER, INTENT(inout)                             :: eq_steps
+      INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: intra_comm
+
+!  local arguments
+      INTEGER                                    :: i, j
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: temp_jacobian
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work2
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work3
+      INTEGER                                    :: svd_status
+      REAL (rprec)                               :: start_time
+#if defined(MPI_OPT)
+      INTEGER                                    :: error
+#endif
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Tell the child processes to begin the jacobian task.
+#if defined(MPI_OPT)
+      CALL MPI_BCAST(mpi_jacobian_task, 1, MPI_INTEGER, 0, intra_comm,         &
+     &               error)
+      CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, intra_comm, error)
+#endif
+
+      CALL reconstruction_eval_jacobians(this, signals, derived_params,        &
+     &                                   a_model, params, eq_steps, iou,       &
+     &                                   intra_comm)
 
 !  Compute the positive definite Hessian, matrix. Equation 14 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
-!    alpha = A^T * A                                                         (6)
+!    alpha = A^T * A                                                         (1)
 !
 !  Numerical Recipes Third edition Equation 15.5.7 . In here, the second
 !  derivatives are assumed to be small and ignored.
@@ -739,13 +953,13 @@
 !  Compute the gradient vector in parameter space. Equation 13 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
 !
-!    beta = A^T * e                                                          (7)
+!    beta = A^T * e                                                          (2)
       this%gradient = MATMUL(TRANSPOSE(this%jacobian),                         &
      &                       this%e(this%current_step,:))
 
 !  Compute the steepest descent step size in normalized parameter space.
 !
-!    da = beta * beta * beta / (beta * alpha * beta)                         (8)
+!    da = beta * beta * beta / (beta * alpha * beta)                         (3)
       this%delta_a(0,:) = this%gradient*DOT_PRODUCT(this%gradient,             &
      &                                              this%gradient)             &
      &                  / DOT_PRODUCT(this%gradient,                           &
@@ -802,6 +1016,9 @@
       reconstruction_eval_step =                                               &
      &   reconstruction_get_k_use(this, SIZE(this%j_svd_w))
 
+      CALL profiler_set_stop_time('reconstruction_eval_step',                  &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -826,7 +1043,11 @@
       REAL (rprec), INTENT(in)                   :: step_size
       REAL (rprec), DIMENSION(:), INTENT(out)    :: delta_a
 
+!  local variables
+      REAL (rprec)                               :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       IF ((step_size .ge. 0.0) .and.                                           &
      &    (this%delta_a_len(k_use) .gt. step_size)) THEN
@@ -837,6 +1058,8 @@
          delta_a = this%delta_a(k_use,:)
          reconstruction_sl_step = this%delta_a_len(k_use)
       END IF
+
+      CALL profiler_set_stop_time('reconstruction_sl_step', start_time)
 
       END FUNCTION
 
@@ -867,8 +1090,10 @@
       REAL (rprec)                               :: ysq, zsq, ydz
       REAL (rprec)                               :: aa, bb, cc, xx
       REAL (rprec)                               :: discriminant
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       IF ((step_size .ge. 0.0) .and.                                           &
      &    (this%delta_a_len(k_use) .gt. step_size)) THEN
@@ -923,6 +1148,8 @@
          reconstruction_seg_step = this%delta_a_len(k_use)
       END IF
 
+      CALL profiler_set_stop_time('reconstruction_seg_step', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -951,8 +1178,10 @@
 !  local variables
       REAL (rprec)                               :: lambda
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: utdote
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       IF ((step_size .ge. 0.0) .and.                                           &
      &    (this%delta_a_len(k_use) .gt. step_size)) THEN
@@ -980,6 +1209,8 @@
          delta_a = this%delta_a(k_use,:)
          reconstruction_lm_step = this%delta_a_len(k_use)
       END IF
+
+      CALL profiler_set_stop_time('reconstruction_lm_step', start_time)
 
       END FUNCTION
 
@@ -1019,11 +1250,13 @@
       REAL (rprec)                               :: lambda_new
       REAL (rprec)                               :: f_try, f_new
       REAL (rprec)                               :: s
+      REAL (rprec)                               :: start_time
 
 !  local parameters
       REAL (rprec), PARAMETER :: d_lambda_min = 1.0E-6_rprec
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
 !  Set up stuff for the function reconstruction_lm_function for root find.
       ALLOCATE(f_sqrd(k_use))
@@ -1042,6 +1275,8 @@
       IF (f_0 .lt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: f_0 < 0.0')
          DEALLOCATE(f_sqrd)
+         CALL profiler_set_stop_time('reconstruction_lm_rootfind',             &
+     &                               start_time)
          RETURN
       END IF
       lambda_0 = 0.0
@@ -1063,6 +1298,8 @@
       IF (f_2 .gt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: f_2 > 0.0')
          DEALLOCATE(f_sqrd)
+         CALL profiler_set_stop_time('reconstruction_lm_rootfind',             &
+     &                               start_time)
          RETURN
       END IF
 
@@ -1070,6 +1307,9 @@
       IF (f_0*f_2 .gt. 0.0) THEN
          CALL err_warn('reconstruction_lm_rootfind: fail to bracket')
          DEALLOCATE(f_sqrd)
+
+         CALL profiler_set_stop_time('reconstruction_lm_rootfind',             &
+     &                               start_time)
          RETURN
       END IF
 
@@ -1121,6 +1361,9 @@
 
       DEALLOCATE(f_sqrd)
 
+      CALL profiler_set_stop_time('reconstruction_lm_rootfind',                &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1149,8 +1392,11 @@
 
 !  local variables
       INTEGER                                    :: i
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       reconstruction_lm_function = 0.0
       DO i = 1, SIZE(f_sqrd)
          reconstruction_lm_function = reconstruction_lm_function               &
@@ -1160,6 +1406,9 @@
 
       reconstruction_lm_function = reconstruction_lm_function                  &
      &                           - step_size_sqrd
+
+      CALL profiler_set_stop_time('reconstruction_lm_function',                &
+     &                            start_time)
 
       END FUNCTION
 
@@ -1178,10 +1427,8 @@
 !>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, derived_params,              &
-     &                             a_model, params, eq_steps, iou)
-      USE signal
-      USE model
-      USE v3fit_params
+     &                             a_model, params, eq_steps, iou,             &
+     &                             intra_comm)
 
       IMPLICIT NONE
 
@@ -1195,6 +1442,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: intra_comm
 
 !  local variables
       INTEGER                                            :: k_use
@@ -1202,14 +1450,17 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: param_value
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: delta_a
       REAL (rprec)                                       :: step_use
+      REAL (rprec)                                       :: start_time
       LOGICAL                                            :: temp
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       reconstruction_step = .false.
 
 !  Evaluate the quasi-Newton step.
       k_use = reconstruction_eval_step(this, signals, derived_params,          &
-     &                                 a_model, params, eq_steps, iou)
+     &                                 a_model, params, eq_steps, iou,         &
+     &                                 intra_comm)
 
       ALLOCATE(param_value(SIZE(params)))
       ALLOCATE(delta_a(SIZE(params)))
@@ -1309,6 +1560,12 @@
 !  was saved before the jacobian was computed.
          CALL equilibrium_reset_state(a_model%equilibrium)
 
+!  If the step failed reset the param values so that remain in sync with the
+!  step.
+         DO j = 1, SIZE(params)
+            CALL param_set_value(params(j)%p, a_model, param_value(j))
+         END DO
+
          IF (i .eq. reconstruction_max_step_try) THEN
 !  The signals contain cached values. If the step fails recompute the modeled
 !  signals so that values written to the recout match the result file.
@@ -1328,6 +1585,8 @@
 
       DEALLOCATE(param_value)
       DEALLOCATE(delta_a)
+
+      CALL profiler_set_stop_time('reconstruction_step', start_time)
 
 1000  FORMAT('g^2 old',7x,'g^2 new',7x,'g^2 diff')
 1001  FORMAT(es12.5,2x,es12.5,2x,es12.5)
@@ -1363,12 +1622,15 @@
       INTEGER                                            :: j, i
       REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
+      REAL (rprec)                                       :: start_time
 
 !  local parameters
       CHARACTER (len=*), PARAMETER ::                                          &
      &   sub_name = 'reconstruction_eval_sem'
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Since the jacobian that will be used is normalized, the signal covaiance
 !  must be normalized as well. This results in an idenity matrix of
 !  SIZE(signals) X SIZE(signals).
@@ -1439,6 +1701,8 @@
 
       DEALLOCATE(j_dot_cp, cp)
 
+      CALL profiler_set_stop_time('reconstruction_eval_sem', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1470,8 +1734,11 @@
       INTEGER                                     :: work_size
       INTEGER                                     :: i, status
       INTEGER                                     :: m, n
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       m = SIZE(matrix, 1)
       n = SIZE(matrix, 2)
 
@@ -1520,6 +1787,9 @@
          DEALLOCATE(svd_vt, svd_u, svd_w, svd_work)
       END IF
 
+      CALL profiler_set_stop_time('reconstruction_invert_matrix',              &
+     &                            start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -1539,8 +1809,11 @@
 
 !  local arguments
       INTEGER                                           :: j, i
+      REAL (rprec)                                      :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       DO j = 1, SIZE(params)
          params(j)%p%correlation = params(j)%p%correlation                     &
      &                           / params(j)%p%sigma
@@ -1549,6 +1822,9 @@
      &         = params(j)%p%correlation(i)/params(i)%p%sigma
          END DO
       END DO
+
+      CALL profiler_set_stop_time(                                             &
+     &        'reconstruction_normalize_correlations', start_time)
 
       END SUBROUTINE
 
@@ -1573,8 +1849,11 @@
 !  local arguments
       INTEGER                              :: i
       REAL (rprec)                         :: temp_g2
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*)
       WRITE (iou,*)
       WRITE (*,*) ' *** Reconstruction Steps'
@@ -1593,6 +1872,8 @@
          WRITE (iou,1001) i, temp_g2, this%exp_g2(i), this%num_sv(i),          &
      &                    this%step_size(i)
       END DO
+
+      CALL profiler_set_stop_time('reconstruction_write', start_time)
 
 1000  FORMAT('irstep',2x,'g^2',11x,'Expected g^2',4x,'sv ',2x,                 &
      &       'normalized step size')
@@ -1623,8 +1904,11 @@
 !  local variables.
       CHARACTER (len=21)                      :: jac_format
       INTEGER                                 :: i
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*)
       WRITE (*,1000) this%num_sv(this%current_step + 1)
       WRITE (*,1001) step_type, this%step_size(this%current_step + 1)
@@ -1643,10 +1927,150 @@
       END DO
       WRITE (iou,*)
 
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Derived Jacobian'
+      WRITE (jac_format,1003) SIZE(this%derived_jacobian, 2)
+      DO i = 1, SIZE(this%derived_jacobian, 1)
+         WRITE(iou,jac_format) i, this%derived_jacobian(i,:)
+      END DO
+      WRITE (iou,*)
+
+      CALL profiler_set_stop_time('reconstruction_write_step',                 &
+     &                            start_time)
+
 1000  FORMAT('Number of singular values used: 'i3)
 1001  FORMAT(a4,': Step size limited to ',es12.5)
 1002  FORMAT('  Expected g^2 = ',es12.5)
 1003  FORMAT('(i4,',i3,'(2x,es12.5))')
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref reconstruction_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_sync_state(this, intra_comm)
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                        :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      REAL (rprec)                               :: start_time
+      INTEGER                                    :: error
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BCAST(this%current_step, 1, MPI_INTEGER, 0, intra_comm,         &
+     &               error)
+      CALL MPI_BCAST(this%e(this%current_step,:),                              &
+     &               SIZE(this%e(this%current_step,:)), MPI_REAL8, 0,          &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%f(this%current_step,:),                              &
+     &               SIZE(this%f(this%current_step,:)), MPI_REAL8, 0,          &
+     &               intra_comm, error)
+
+      CALL profiler_set_stop_time('reconstruction_sync_state',                 &
+     &                            start_time)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize child state back to parent.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this               A @ref reconstruction_class instance.
+!>  @param[in]    num_params         Number of reconstruction parameters.
+!>  @param[in]    num_signal         Number of signals.
+!>  @param[in]    num_derived_params Number of derived parameters.
+!>  @param[in]    stride             Length work size for each process.
+!>  @param[in]    offset             Start offset for each process.
+!>  @param[in]    intra_comm         A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_sync_parent(this, params, num_signal,          &
+     &                                      num_derived_params, stride,        &
+     &                                      offset, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout) :: params
+      INTEGER, INTENT(in)                        :: num_signal
+      INTEGER, INTENT(in)                        :: num_derived_params
+      INTEGER, DIMENSION(:), INTENT(in)          :: stride
+      INTEGER, DIMENSION(:), INTENT(in)          :: offset
+      INTEGER, INTENT(in)                        :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      REAL (rprec)                               :: start_time
+      INTEGER                                    :: error
+      INTEGER                                    :: mpi_size
+      INTEGER                                    :: mpi_rank
+      INTEGER                                    :: i
+      INTEGER                                    :: iLow, iHigh
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+
+!  Need to be careful here with strides and offsets. The mpi uses C style array
+!  notation but the data is laid out in memory using fortran array notation.
+!  This means that all offsets need to be zero referenced. For the jacobians,
+!  the arrays are 2D so all strides and offsets need to be multiplied by the
+!  relevant column size.
+      iLow = offset(mpi_rank + 1) + 1
+      iHigh = offset(mpi_rank + 1) + stride(mpi_rank + 1)
+
+      CALL MPI_GATHERV(this%jacobian(:,iLow:iHigh),                            &
+     &                 num_signal*stride(mpi_rank + 1), MPI_REAL8,             &
+     &                 this%jacobian, num_signal*stride,                       &
+     &                 num_signal*offset, MPI_REAL8, 0, intra_comm,            &
+     &                 error)
+
+      CALL MPI_GATHERV(this%derived_jacobian(:,iLow:iHigh),                    &
+     &                 num_derived_params*stride(mpi_rank + 1),                &
+     &                 MPI_REAL8, this%derived_jacobian,                       &
+     &                 num_derived_params*stride,                              &
+     &                 num_derived_params*offset, MPI_REAL8, 0,                &
+     &                 intra_comm, error)
+
+!  Sync the delta used to find the jacobians.
+      DO i = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
+     &                                 stride(mpi_rank + 1)
+         CALL param_send_delta(params(i)%p, i, intra_comm)
+      END DO
+
+      IF (mpi_rank .eq. 0) THEN
+         DO i = 1, SIZE(params)
+            CALL param_recv_delta(params(i)%p, i, intra_comm)
+         END DO
+      END IF
+
+      CALL profiler_set_stop_time('reconstruction_sync_parent',                &
+     &                            start_time)
+
+#endif
 
       END SUBROUTINE
 

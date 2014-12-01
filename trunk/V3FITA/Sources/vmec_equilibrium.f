@@ -123,6 +123,9 @@
       USE data_parameters
       USE pprofile_T
       USE threed1_file_cache
+#if defined (MPI_OPT)
+      USE mpi
+#endif
 
       IMPLICIT NONE
 
@@ -273,19 +276,39 @@
 !>  Object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
-!>  Volume differential elements
+!>  Volume differential element for the s direction.
          REAL (rprec)                            :: ds
+!>  Volume differential element for the u direction.
          REAL (rprec)                            :: du
+!>  Volume differential element for the v direction.
          REAL (rprec)                            :: dv
 
-!>  R and Z positions on the suv gird points.
+!>  Area differential elements for the u direction.
+         REAL (rprec)                            :: du_a
+!>  Area differential elements for the v direction.
+         REAL (rprec)                            :: dv_a
+
+!>  R positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
+!>  Z positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: zsuv => null()
 
-!>  The following have a 1/Sqrt(g) factor embeded.
+!>  Current density in the R direction. Has a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jrsuv => null()
+!>  Current density in the Phi direction. Has a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jphisuv => null()
+!>  Current density in the Z direction. Has a 1/Sqrt(g) factor embeded.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jzsuv => null()
+
+!>  Surface current density in the R direction. Has all Jacobian and
+!>  normalization factors.
+         REAL (rprec), DIMENSION(:,:), POINTER :: kruv => null()
+!>  Surface current density in the Phi direction. Has all Jacobian and
+!>  normalization factors.
+         REAL (rprec), DIMENSION(:,:), POINTER :: kphiuv => null()
+!>  Surface current density in the Z direction. Has all Jacobian and
+!>  normalization factors.
+         REAL (rprec), DIMENSION(:,:), POINTER :: kzuv => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -296,13 +319,13 @@
       TYPE vmec_class
 !>  File name of the output of v3fit.
          CHARACTER (len=data_filename_length)   :: wout_file_name
-!>  File name of the v3fit namelist inout file.
+!>  File name of the vmec namelist inout file.
          CHARACTER (len=data_filename_length)   :: vmec_file_name
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
-         TYPE (pprofile), POINTER               :: ne => null()
+         TYPE (pprofile_class), POINTER         :: ne => null()
 !>  @ref pprofile_T describing a flux surface constant electron temperature
 !>  profile.
-         TYPE (pprofile), POINTER               :: te => null()
+         TYPE (pprofile_class), POINTER         :: te => null()
 !>  @ref pprofile_T describing a flux surface conatsnt soft x-ray emissivity
 !>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
@@ -388,6 +411,14 @@
      &                    vmec_get_p_radial
       END INTERFACE
 
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref vmec_construct types using
+!>  @ref vmec_construct_new or @ref vmec_construct_mpi
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_construct
+         MODULE PROCEDURE vmec_construct_new,                                  &
+     &                    vmec_construct_mpi
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -411,9 +442,9 @@
 !>  @param[in] iou        Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, wout_file_name,                       &
-     &                        ne, te, sxrem, phi_offset,                       &
-     &                        z_offset, pol_rad_ratio, iou)
+      FUNCTION vmec_construct_new(file_name, wout_file_name,                   &
+     &                            ne, te, sxrem, phi_offset,                   &
+     &                            z_offset, pol_rad_ratio, iou)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -424,11 +455,11 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER           :: vmec_construct
+      TYPE (vmec_class), POINTER           :: vmec_construct_new
       CHARACTER (len=*), INTENT(in)        :: file_name
       CHARACTER (len=*), INTENT(in)        :: wout_file_name
-      TYPE (pprofile), POINTER             :: ne
-      TYPE (pprofile), POINTER             :: te
+      TYPE (pprofile_class), POINTER       :: ne
+      TYPE (pprofile_class), POINTER       :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
       REAL (rprec), INTENT(in)             :: phi_offset
       REAL (rprec), INTENT(in)             :: z_offset
@@ -439,22 +470,25 @@
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
       INTEGER                              :: error
+      REAL (rprec)                         :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
      &            TRIM(file_name)
       WRITE (iou,*) ' *** Initializing VMEC equilibrium from file ' //         &
      &              TRIM(file_name)
 
-      ALLOCATE(vmec_construct)
-      vmec_construct%ne => ne
-      vmec_construct%te => te
-      vmec_construct%sxrem => sxrem
+      ALLOCATE(vmec_construct_new)
+      vmec_construct_new%ne => ne
+      vmec_construct_new%te => te
+      vmec_construct_new%sxrem => sxrem
 
-      vmec_construct%phi_offset = phi_offset
-      vmec_construct%z_offset = z_offset
+      vmec_construct_new%phi_offset = phi_offset
+      vmec_construct_new%z_offset = z_offset
 
-      vmec_construct%pol_rad_ratio = pol_rad_ratio
+      vmec_construct_new%pol_rad_ratio = pol_rad_ratio
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
@@ -466,15 +500,15 @@
 
       l_v3fit = .true.
 
-      vmec_construct%vmec_file_name = TRIM(file_name)
+      vmec_construct_new%vmec_file_name = TRIM(file_name)
 
       IF (wout_file_name .ne. '') THEN
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
-         vmec_construct%wout_file_name = wout_file_name
+         vmec_construct_new%wout_file_name = wout_file_name
          CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
 
-         CALL read_wout_file(vmec_construct%wout_file_name, error)
+         CALL read_wout_file(vmec_construct_new%wout_file_name, error)
          CALL assert_eq(error, 0, 'Error loading initialized ' //              &
      &                            'wout file.')
          CALL LoadRZL
@@ -487,13 +521,13 @@
 
          CASE (successful_term_flag, norm_term_flag, more_iter_flag)
 !  Set the wout file name.
-            index_dat = INDEX(file_name,'input.')
+            index_dat = INDEX(file_name, 'input.')
             index_end = LEN_TRIM(file_name)
             IF (index_dat .gt. 0) THEN
-               vmec_construct%wout_file_name = 'wout_' //                      &
+               vmec_construct_new%wout_file_name = 'wout_' //                  &
      &            TRIM(file_name(index_dat + 6:index_end)) // '.nc'
             ELSE
-               vmec_construct%wout_file_name = 'wout_' //                      &
+               vmec_construct_new%wout_file_name = 'wout_' //                  &
      &            TRIM(file_name(1:index_end)) // '.nc'
             END IF
 
@@ -503,14 +537,115 @@
 
       END SELECT
 
-      vmec_construct%ns_index = MAXLOC(ns_array, 1)
+      vmec_construct_new%ns_index = MAXLOC(ns_array, 1)
 
 !  Store the inital xc array here. This is needed to reset the xc array for
 !  error recovery in the initial equilibirum convergence. The vmec_save_state
 !  and vmec_reset_state routines cannot be used here since those assume a wout
 !  file was written.
-      ALLOCATE(vmec_construct%xc(SIZE(xc)))
-      vmec_construct%xc = xc
+      ALLOCATE(vmec_construct_new%xc(SIZE(xc)))
+      vmec_construct_new%xc = xc
+
+      CALL profiler_set_stop_time('vmec_construct', start_time)
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref vmec_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
+!>  for one iteration to initialize all the input parameters. Defined in
+!>  @ref vmec_input.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref vmec_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_construct_mpi(intra_comm)
+      USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
+     &                       successful_term_flag, norm_term_flag,             &
+     &                       more_iter_flag
+      USE vmec_input, only: l_v3fit, ns_array
+      USE xstuff, only: xc
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), POINTER :: vmec_construct_mpi
+      INTEGER, INTENT(in)        :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                    :: error
+      INTEGER, DIMENSION(5)      :: ictrl_array
+      INTEGER                    :: index_dat, index_end
+      INTEGER                    :: i, num_sxrem
+
+!  Start of executable code
+      ALLOCATE(vmec_construct_mpi)
+
+      CALL MPI_BCAST(vmec_construct_mpi%phi_offset, 1, MPI_REAL8, 0,           &
+     &               intra_comm, error)
+      CALL MPI_BCAST(vmec_construct_mpi%z_offset, 1, MPI_REAL8, 0,             &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(vmec_construct_mpi%pol_rad_ratio, 1, MPI_REAL8, 0,        &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(vmec_construct_mpi%vmec_file_name,                        &
+     &               data_filename_length, MPI_CHARACTER, 0,                   &
+     &               intra_comm, error)
+
+      vmec_construct_mpi%ne => pprofile_construct(intra_comm)
+      vmec_construct_mpi%te => pprofile_construct(intra_comm)
+
+      CALL MPI_BCAST(num_sxrem, 1, MPI_INTEGER, 0, intra_comm, error)
+      ALLOCATE(vmec_construct_mpi%sxrem(num_sxrem))
+      DO i = 1, num_sxrem
+         vmec_construct_mpi%sxrem(i)%p => pprofile_construct(intra_comm)
+      END DO
+
+!  Initialize VMEC by taking a single step.
+      ictrl_array = 0
+      ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), readin_flag)
+      ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
+      ictrl_array(3) = 1 ! Run for one iteration.
+      ictrl_array(4) = 1 ! Limit VMEC to single grid.
+
+      l_v3fit = .true.
+
+      CALL runvmec(ictrl_array, vmec_construct_mpi%vmec_file_name,             &
+     &             .false.)
+
+!  Check for errors in runvmec.
+      SELECT CASE (ictrl_array(2))
+
+         CASE (successful_term_flag, norm_term_flag, more_iter_flag)
+!  Set the wout file name.
+            index_dat = INDEX(vmec_construct_mpi%vmec_file_name,               &
+     &                        'input.')
+            index_end = LEN_TRIM(vmec_construct_mpi%vmec_file_name)
+            IF (index_dat .gt. 0) THEN
+               vmec_construct_mpi%wout_file_name = 'wout_' //                  &
+     &            TRIM(vmec_construct_mpi%vmec_file_name(                      &
+     &                    index_dat + 6:index_end)) // '.nc'
+            ELSE
+               vmec_construct_mpi%wout_file_name = 'wout_' //                  &
+     &            TRIM(vmec_construct_mpi%vmec_file_name(                      &
+     &                    1:index_end)) // '.nc'
+            END IF
+
+         CASE DEFAULT
+            CALL err_fatal('vmec_construct runvmec command failed ',           &
+     &                     int = ictrl_array(2))
+
+      END SELECT
+
+      vmec_construct_mpi%ns_index = MAXLOC(ns_array, 1)
+
+!  Allocate an array for for the xc array. It's not necessary to set it. When
+!  the child process is used, the parent process will sync the xc array first.
+      ALLOCATE(vmec_construct_mpi%xc(SIZE(xc)))
+#endif
 
       END FUNCTION
 
@@ -526,33 +661,31 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_destruct(this)
       USE read_wout_mod, only: read_wout_deallocate
+      USE file_opts
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER                :: this
+      TYPE (vmec_class), POINTER :: this
 
 !  local variables
-      INTEGER                                   :: i, error
+      INTEGER                    :: i, error
 
 !  Start of executable code
       IF (ASSOCIATED(this%ne)) THEN
-         CALL pprofile_destroy(this%ne)
-         DEALLOCATE(this%ne)
+         CALL pprofile_destruct(this%ne)
          this%ne => null()
       END IF
 
       IF (ASSOCIATED(this%te)) THEN
-         CALL pprofile_destroy(this%te)
-         DEALLOCATE(this%te)
+         CALL pprofile_destruct(this%te)
          this%te => null()
       END IF
 
       IF (ASSOCIATED(this%sxrem)) THEN
          DO i = 1, SIZE(this%sxrem)
             IF (ASSOCIATED(this%sxrem(i)%p)) THEN
-               CALL pprofile_destroy(this%sxrem(i)%p)
-               DEALLOCATE(this%sxrem(i)%p)
+               CALL pprofile_destruct(this%sxrem(i)%p)
                this%sxrem(i)%p => null()
             END IF
          END DO
@@ -578,7 +711,7 @@
       END IF
 
 !  Delete the cached wout file. Errors here can safely be ignored.
-       CALL delete_file(TRIM(this%wout_file_name) // '_cache', error)
+      CALL delete_file(TRIM(this%wout_file_name) // '_cache', error)
 
       IF (ASSOCIATED(this%threed1_file)) THEN
          CALL threed1_file_cache_destruct(this%threed1_file)
@@ -643,8 +776,10 @@
 !  local variables
       REAL (rprec)                     :: phiedge_ratio
       INTEGER                          :: status
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       SELECT CASE (id)
 
@@ -871,6 +1006,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_set_param', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -885,6 +1022,8 @@
 !>                                 planes.
 !>  @param[in]    nfp              Number of field periods the diagnostics were
 !>                                 generated with.
+!>  @param[in]    use_con_shell    Compute grids on the conducting shell.
+!>  @param[in]    n_u              Number of grid points in the u direction.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
@@ -895,7 +1034,10 @@
 !>  size changes. Currently the grid are allocated once and never changed.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
-     &                                        tor_planes_used, nfp)
+     &                                        tor_planes_used, nfp,            &
+     &                                        use_con_shell, n_u,              &
+     &                                        total_shell_planes,              &
+     &                                        shell_planes_used)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
 
@@ -906,12 +1048,19 @@
       INTEGER, INTENT(in)              :: total_tor_planes
       INTEGER, INTENT(in)              :: tor_planes_used
       INTEGER, INTENT(in)              :: nfp
+      LOGICAL, INTENT(in)              :: use_con_shell
+      INTEGER, INTENT(in)              :: n_u
+      INTEGER, INTENT(in)              :: total_shell_planes
+      INTEGER, INTENT(in)              :: shell_planes_used
 
 !  local variables
       INTEGER                          :: numU
       INTEGER                          :: ns
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code.
+      start_time = profiler_get_start_time()
+
       ALLOCATE(this%magnetic_cache)
 
 !  In order to sample the fields on a grid, the sampling frequency of the grid
@@ -924,13 +1073,27 @@
       this%magnetic_cache%du = twopi/numU
       this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
 
+!  Set the differental area elements.
+      this%magnetic_cache%du_a = twopi/n_u
+      this%magnetic_cache%dv_a = (twopi/nfp)/total_shell_planes
+
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns, numU, tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns, numU, tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%zsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,tor_planes_used))
+
+!  When conducting shell is used allocate the surface vector arrays.
+      IF (use_con_shell) THEN
+         ALLOCATE(this%magnetic_cache%kruv(n_u,shell_planes_used))
+         ALLOCATE(this%magnetic_cache%kphiuv(n_u,shell_planes_used))
+         ALLOCATE(this%magnetic_cache%kzuv(n_u,shell_planes_used))
+      END IF
+
+      CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -945,52 +1108,55 @@
       SUBROUTINE vmec_set_magnetic_cache_calc(this)
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
-     &                         currumnc, currvmnc, currumns, currvmns
+     &                         currumnc, currvmnc, currumns, currvmns,         &
+     &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns
+      USE stel_constants, only: mu0
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), INTENT(inout) :: this
+      TYPE (vmec_class), INTENT(inout)          :: this
 
 !  local variables
       INTEGER                                   :: s, u, v
       INTEGER                                   :: numS, numU, numV
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, cosv
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu, sinv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu, sinu
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv, sinv
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz_nyq, sinz_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu_nyq, cosv_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sinu_nyq, sinv_nyq
-      REAL (rprec)                              :: ru, rv, zu, zv
-      REAL (rprec)                              :: ju, jv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu_nyq, sinu_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv_nyq, sinv_nyq
+      REAL (rprec)                              :: ru, rv, zu, zv, r
+      REAL (rprec)                              :: ju, jv, bu, bv
       REAL (rprec)                              :: phi
+      REAL (rprec)                              :: start_time
+      REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubuc, bsubus
+      REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubvc, bsubvs
+      REAL (rprec)                              :: wodd
 
 !  Start of executable code.
+      start_time = profiler_get_start_time()
+
 !  Get the size of the SUV grid.
       numS = SIZE(this%magnetic_cache%rsuv, 1)
       numU = SIZE(this%magnetic_cache%rsuv, 2)
       numV = SIZE(this%magnetic_cache%rsuv, 3)
 
-      ALLOCATE(cosz(mnmax), sinz(mnmax))
-      ALLOCATE(cosu(mnmax, numU), sinu(mnmax, numU),                           &
-     &         cosv(mnmax, numV), sinv(mnmax, numV))
-
-      ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
-      ALLOCATE(cosu_nyq(mnmax_nyq, numU), sinu_nyq(mnmax_nyq, numU),           &
-     &         cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+      ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
+      ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
 
 !  U grid is square with the s grid.
-!>  @todo FIXME: There is no reason to recalulate the sin and cosin for the u
+!>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
 !>  component arrays every time. The v components can change if phi_offset is
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
 !>  @ref vmec_set_magnetic_cache_init.
-      DO u = 1, numU
-         cosu(:,u) = COS(xm*(u - 1)*this%magnetic_cache%du)
-         sinu(:,u) = SIN(xm*(u - 1)*this%magnetic_cache%du)
-         cosu_nyq(:,u) = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
-         sinu_nyq(:,u) = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
-      END DO
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(s,u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,ju,jv,
+!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
       DO v = 1, numV
          phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
          cosv(:,v) = COS(xn*phi)
@@ -998,6 +1164,7 @@
          cosv_nyq(:,v) = COS(xn_nyq*phi)
          sinv_nyq(:,v) = SIN(xn_nyq*phi)
       END DO
+!$OMP END DO
 
 !  Set the suv grids
 !
@@ -1010,17 +1177,27 @@
 !  jr = ju*ru + jv*rv
 !  jphi = jv*R
 !  jz = ju*zu + jv*zv
+
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
       DO u = 1, numU
+         ALLOCATE(cosu(mnmax), sinu(mnmax))
+         ALLOCATE(cosz(mnmax), sinz(mnmax))
+         ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
+         ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+
+         cosu = COS(xm*(u - 1)*this%magnetic_cache%du)
+         sinu = SIN(xm*(u - 1)*this%magnetic_cache%du)
+         cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
+         sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
 
          DO v = 1, numV
 
-            cosz = cosu(:,u)*cosv(:,v) + sinu(:,u)*sinv(:,v)
-            sinz = sinu(:,u)*cosv(:,v) - cosu(:,u)*sinv(:,v)
+            cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
+            sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
 
-            cosz_nyq = cosu_nyq(:,u)*cosv_nyq(:,v)                             &
-     &               + sinu_nyq(:,u)*sinv_nyq(:,v)
-            sinz_nyq = sinu_nyq(:,u)*cosv_nyq(:,v)                             &
-     &               - cosu_nyq(:,u)*sinv_nyq(:,v)
+            cosz_nyq = cosu_nyq*cosv_nyq(:,v) + sinu_nyq*sinv_nyq(:,v)
+            sinz_nyq = sinu_nyq*cosv_nyq(:,v) - cosu_nyq*sinv_nyq(:,v)
 
             DO s = 1, numS
 
@@ -1056,15 +1233,183 @@
                this%magnetic_cache%jzsuv(s,u,v) = ju*zu + jv*zv
             END DO
          END DO
+
+         DEALLOCATE(cosu, sinu)
+         DEALLOCATE(cosz, sinz)
+         DEALLOCATE(cosu_nyq, sinu_nyq)
+         DEALLOCATE(cosz_nyq, sinz_nyq)
       END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
       this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                      &
      &                         + this%z_offset
 
-      DEALLOCATE(cosz, sinz)
-      DEALLOCATE(cosu, sinu, cosv, sinv)
-      DEALLOCATE(cosz_nyq, sinz_nyq)
-      DEALLOCATE(cosu_nyq, sinu_nyq, cosv_nyq, sinv_nyq)
+      DEALLOCATE(cosv, sinv)
+      DEALLOCATE(cosv_nyq, sinv_nyq)
+
+!  Compute the conducting shell if needed. If the kruv array is associated, the
+!  the conducting shell is being used. The total conducting shell signal for a
+!  magnetic diagnostic is
+!
+!    S_i = AreaIntegral K(u,v) . R_i(u,v)dudv                                (1)
+!
+!  For now, It will be assumed that the last closed flux surface of the plasma
+!  is the conducting shell. This can be refined later. The total magnetic signal
+!  in flux coordinates becomes
+!
+!    S_i = AreaIntegral (-e^s/|e^s| X B/mu0) . R_i * |J||e^s|dudv            (2)
+!
+!  Using the idenity e^s = 1/J*e_u X e_v equation 2 becomes
+!
+!    S_i = AreaIntegral -e_u X e_v X B/mu0 . R_i |J|/J dudv                  (3)
+!
+!  From the triple cross product idenity equation 3 reduces to
+!
+!    S_i = AreaIntegral -1/mu0(B_u e_v - B_v e_u) . R_i |J|/J dudv           (4)
+!
+!  Computing the conducting shell surface current is simply.
+!
+!    K(u,v) = -1/mu0(B_u*e_v - B_v*e_u)                                      (5)
+!
+!  NOTE: The shell current cannot be used with the Z position shift.
+!
+!  NOTE: Equation 2.5.49a in "Flux Coordinates and Magnetic Field Structure" by
+!        W.D.D'haeseleer, W.N.G.Hitchon, J.D.Callen and J.L.Shohet assumes a
+!        positive jacobian. The correct equation should be
+!
+!            dS(i)=|J||e^i| du^j dv^k
+!
+!        As a result the signal due to the conducting shell contains a |J|/J
+!        term. The sign of the jacobian needs to be taken into account. This is
+!        taken care of in vmec_get_area_int_element.
+
+      IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
+!  Interpolate the b_u and b_v onto the last closed flux surface. This
+!  interpolation follows what is outlined in tosuvspace. For odd modes
+!  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
+         wodd = SQRT((numS - 1.0)/(numS - 1.0 - 1.5))
+
+         ALLOCATE(bsubuc(mnmax), bsubvc(mnmax))
+         WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
+            bsubuc = 1.5*bsubumnc(:,numS) - 0.5*bsubumnc(:,numS - 1)
+            bsubvc = 1.5*bsubvmnc(:,numS) - 0.5*bsubvmnc(:,numS - 1)
+         ELSE WHERE
+            bsubuc = wodd*bsubumnc(:,numS - 1)
+            bsubvc = wodd*bsubvmnc(:,numS - 1)
+         END WHERE
+
+         IF (lasym) THEN
+            ALLOCATE(bsubus(mnmax), bsubvs(mnmax))
+            WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
+               bsubus = 1.5*bsubumns(:,numS) - 0.5*bsubumns(:,numS - 1)
+               bsubvs = 1.5*bsubvmns(:,numS) - 0.5*bsubvmns(:,numS - 1)
+            ELSE WHERE
+               bsubus = wodd*bsubumns(:,numS - 1)
+               bsubvs = wodd*bsubvmns(:,numS - 1)
+            END WHERE
+         END IF
+
+         numU = SIZE(this%magnetic_cache%kruv, 1)
+         numV = SIZE(this%magnetic_cache%kruv, 2)
+
+         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
+         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+
+!  U grid is square with the s grid.
+!>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
+!>  component arrays every time. The v components can change if phi_offset is
+!>  being reconstructed. The u components can be cached in the
+!>  @ref vmec_magnetic_cache and calculated once in
+!>  @ref vmec_set_magnetic_cache_init.
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r,
+!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO v = 1, numV
+            phi = (v - 1)*this%magnetic_cache%dv_a + this%phi_offset
+            cosv(:,v) = COS(xn*phi)
+            sinv(:,v) = SIN(xn*phi)
+            cosv_nyq(:,v) = COS(xn_nyq*phi)
+            sinv_nyq(:,v) = SIN(xn_nyq*phi)
+         END DO
+!$OMP END DO
+
+!  U grid is square with the v grid.
+!>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
+!>  component arrays every time.
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO u = 1, numU
+!  Arrays need to be allocated within the loop since each thread requires its
+!  own allocation.
+            ALLOCATE(cosu(mnmax), sinu(mnmax))
+            ALLOCATE(cosz(mnmax), sinz(mnmax))
+            ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
+            ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+
+            cosu = COS(xm*(u - 1)*this%magnetic_cache%du_a)
+            sinu = SIN(xm*(u - 1)*this%magnetic_cache%du_a)
+            cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du_a)
+            sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du_a)
+
+            DO v = 1, numV
+
+               cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
+               sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
+
+               cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
+     &                  + sinu_nyq*sinv_nyq(:,v)
+
+               ru = -SUM(xm*rmnc(:,numS)*sinz)
+               zu = SUM(xm*zmns(:,numS)*cosz)
+               rv = SUM(xn*rmnc(:,numS)*sinz)
+               zv = -SUM(xn*zmns(:,numS)*cosz)
+               r = SUM(rmnc(:,numS)*cosz)
+
+               bu = SUM(bsubuc*cosz_nyq)
+               bv = SUM(bsubvc*cosz_nyq)
+
+               IF (lasym) THEN
+                  sinz_nyq = sinu_nyq*cosv_nyq(:,v)                            &
+     &                     - cosu_nyq*sinv_nyq(:,v)
+
+                  ru = ru + SUM(xm*rmns(:,numS)*cosz)
+                  zu = zu - SUM(xm*zmnc(:,numS)*sinz)
+                  rv = rv - SUM(xn*rmns(:,numS)*cosz)
+                  zv = zv + SUM(xn*zmnc(:,numS)*sinz)
+                  r = r + SUM(rmns(:,numS)*sinz)
+
+                  bu = bu + SUM(bsubus*sinz_nyq)
+                  bv = bv + SUM(bsubvs*sinz_nyq)
+               END IF
+
+               this%magnetic_cache%kruv(u,v) = -1.0/mu0*(bu*rv - bv*ru)
+               this%magnetic_cache%kphiuv(u,v) = -1.0/mu0*bu*r
+               this%magnetic_cache%kzuv(u,v) = -1.0/mu0*(bu*zv - bv*zu)
+            END DO
+
+            DEALLOCATE(cosu, sinu)
+            DEALLOCATE(cosz, sinz)
+            DEALLOCATE(cosu_nyq, sinu_nyq)
+            DEALLOCATE(cosz_nyq, sinz_nyq)
+         END DO
+!$OMP END DO
+!$OMP END PARALLEL
+
+         DEALLOCATE(cosv, sinv)
+         DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(bsubuc, bsubvc)
+
+         IF (lasym) THEN
+            DEALLOCATE(bsubus, bsubvs)
+         END IF
+      END IF
+
+      CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -1089,7 +1434,12 @@
       TYPE (vmec_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in) :: param_name
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (TRIM(param_name))
 
          CASE ('ac')
@@ -1265,6 +1615,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_get_param_id', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1303,7 +1655,12 @@
       INTEGER, INTENT(in)           :: i_index
       INTEGER, INTENT(in)           :: j_index
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vmec_ac_id)
@@ -1479,6 +1836,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_get_param_value', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1499,7 +1858,12 @@
       TYPE (vmec_class), INTENT(in)   :: this
       INTEGER, INTENT(in)             :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       SELECT CASE (id)
 
          CASE (vmec_ac_id)
@@ -1675,6 +2039,8 @@
 
       END SELECT
 
+      CALL profiler_set_stop_time('vmec_get_param_name', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -1696,8 +2062,14 @@
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_ne_cart = vmec_get_ne(this, vmec_get_s(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_ne_cart', start_time)
 
       END FUNCTION
 
@@ -1720,12 +2092,19 @@
       TYPE (vmec_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)      :: s
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (ASSOCIATED(this%ne)) THEN
-         vmec_get_ne_radial = pprofile_evaluate(this%ne, s)
+         vmec_get_ne_radial = pprofile_get_value(this%ne, s)
       ELSE
          vmec_get_ne_radial = 0.0
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_ne_radial', start_time)
 
       END FUNCTION
 
@@ -1748,8 +2127,14 @@
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_te_cart = vmec_get_te(this, vmec_get_s(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_te_cart', start_time)
 
       END FUNCTION
 
@@ -1772,12 +2157,18 @@
       TYPE (vmec_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)      :: s
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%te)) THEN
-         vmec_get_te_radial = pprofile_evaluate(this%te, s)
+         vmec_get_te_radial = pprofile_get_value(this%te, s)
       ELSE
          vmec_get_te_radial = 0.0
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_te_radial', start_time)
 
       END FUNCTION
 
@@ -1802,10 +2193,16 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
       INTEGER, INTENT(in)                    :: index
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_sxrem_cart = vmec_get_sxrem(this,                               &
      &                                     vmec_get_s(this, x_cart),           &
      &                                     index)
+
+      CALL profiler_set_stop_time('vmec_get_sxrem_cart', start_time)
 
       END FUNCTION
 
@@ -1830,13 +2227,20 @@
       REAL (rprec), INTENT(in)      :: s
       INTEGER, INTENT(in)           :: index
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (ASSOCIATED(this%sxrem)) THEN
          vmec_get_sxrem_radial =                                               &
-     &      pprofile_evaluate(this%sxrem(index)%p, s)
+     &      pprofile_get_value(this%sxrem(index)%p, s)
       ELSE
          vmec_get_sxrem_radial = 0.0
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_sxrem_radial', start_time)
 
       END FUNCTION
 
@@ -1858,8 +2262,14 @@
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
+!  local variables
+      REAL (rprec)                           :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_p_cart = vmec_get_p(this, vmec_get_s(this, x_cart))
+
+      CALL profiler_set_stop_time('vmec_get_p_cart', start_time)
 
       END FUNCTION
 
@@ -1882,6 +2292,9 @@
       TYPE (vmec_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)      :: s
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Forward declare the interface for pmass. This explicitly defined the type for
 !  pmass to avoid a compiler error. If profile_functions.f was implimented as a
 !  module this would not be needed.
@@ -1894,7 +2307,10 @@
       END INTERFACE
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_p_radial = pmass(s)/mu0
+
+      CALL profiler_set_stop_time('vmec_get_p_cart', start_time)
 
       END FUNCTION
 
@@ -1920,8 +2336,10 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       r_cyl = cart_to_cyl(x_cart)
       vmec_get_B_vec = 0.0
       r_cyl(2) = r_cyl(2) + this%phi_offset
@@ -1932,6 +2350,8 @@
      &                  vmec_get_B_vec(3))
 
       vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+
+      CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 
       END FUNCTION
 
@@ -1963,8 +2383,10 @@
       REAL (rprec)                  :: bsubv00c, ds
       INTEGER                       :: i
       REAL (rprec), DIMENSION(ns)   :: s
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       ds = 1.0/(ns - 1)
       DO i = 0, ns - 1
          s(i + 1) = i*ds
@@ -1973,6 +2395,8 @@
       CALL line_seg(r, bsubv00c, s, bsubvmnc(1,:), ns)
 
       vmec_get_Int_B_dphi = twopi*bsubv00c
+
+      CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 
       END FUNCTION
 
@@ -2004,8 +2428,11 @@
       REAL (rprec)                           :: fmin
       INTEGER                                :: info
       INTEGER                                :: nfe
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       s_flux = 0.0
       fmin = 0.0
       info = 0
@@ -2026,6 +2453,8 @@
             WRITE(*,*) info, fmin, vmec_get_s
          END IF
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_s', start_time)
 
       END FUNCTION
 
@@ -2060,13 +2489,15 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosv, sinv
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosu, sinu
       INTEGER                                 :: i
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       vmec_get_plasma_edge = MAX(ns, 2*mpol + 6)
 
-      IF (.not.ASSOCIATED(r)) THEN
-         ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
-      END IF
+      ALLOCATE(r(vmec_get_plasma_edge), z(vmec_get_plasma_edge))
+
       ALLOCATE(cosv(SIZE(xn, 1)), sinv(SIZE(xn, 1)))
       ALLOCATE(cosu(SIZE(xm, 1)), sinu(SIZE(xm, 1)))
 
@@ -2089,6 +2520,8 @@
       z = z + this%z_offset
       DEALLOCATE(cosu, cosv, sinu, sinv)
 
+      CALL profiler_set_stop_time('vmec_get_plasma_edge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -2109,8 +2542,15 @@
      &   vmec_get_magnetic_volume_rgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_rgrid => this%magnetic_cache%rsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_rgrid',            &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2132,8 +2572,15 @@
      &   vmec_get_magnetic_volume_zgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_zgrid => this%magnetic_cache%zsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_zgrid',            &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2155,8 +2602,15 @@
      &   vmec_get_magnetic_volume_jrgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_jrgrid => this%magnetic_cache%jrsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_jrgrid',           &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2178,8 +2632,15 @@
      &   vmec_get_magnetic_volume_jphigrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_jphigrid => this%magnetic_cache%jphisuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_jphigrid',         &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2201,8 +2662,15 @@
      &   vmec_get_magnetic_volume_jzgrid
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_magnetic_volume_jzgrid => this%magnetic_cache%jzsuv
+
+      CALL profiler_set_stop_time('vmec_get_magnetic_volume_jzgrid',           &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2230,10 +2698,144 @@
       REAL (rprec) :: vmec_get_volume_int_element
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_volume_int_element = isigng*this%magnetic_cache%ds              &
      &                            * this%magnetic_cache%du                     &
      &                            * this%magnetic_cache%dv
+
+      CALL profiler_set_stop_time('vmec_get_volume_int_element',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kr grid points.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_con_surface_krgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_con_surface_krgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   vmec_get_con_surface_krgrid
+      TYPE (vmec_class), INTENT(in)         :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_con_surface_krgrid => this%magnetic_cache%kruv
+
+      CALL profiler_set_stop_time('vmec_get_con_surface_krgrid',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kphi grid points.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_con_surface_kphigrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_con_surface_kphigrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   vmec_get_con_surface_kphigrid
+      TYPE (vmec_class), INTENT(in)         :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_con_surface_kphigrid => this%magnetic_cache%kphiuv
+
+      CALL profiler_set_stop_time('vmec_get_con_surface_kphigrid',             &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the conducting surface integration kz grid points.
+!>
+!>  This method overrides
+!>  @ref equilibrium::equilibrium_get_con_surface_kzgrid.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The radial grid points.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_con_surface_kzgrid(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(:,:), POINTER ::                                 &
+     &   vmec_get_con_surface_kzgrid
+      TYPE (vmec_class), INTENT(in)         :: this
+
+!  local variables
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_con_surface_kzgrid => this%magnetic_cache%kzuv
+
+      CALL profiler_set_stop_time('vmec_get_con_surface_kzgrid',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get area integration element.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_area_int_element.
+!>  For vmec this is |J||e^s|*du*dv where J is the jacobian. A 1/J term is
+!>  integrated into kr, kphi and kz. Since due to the resulting |J|/J term, the
+!>  the sign of the jacobian must be taken into account.
+!>  @see vmec_equilibrium::vmec_set_magnetic_cache_calc equation 3.
+!>
+!>  * du = 2*Pi/number of u grid
+!>  * dv = 2*Pi/number of field periods/number of toroidal planes
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns The area integration element.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_area_int_element(this)
+      USE read_wout_mod, only: isigng
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: vmec_get_area_int_element
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_area_int_element = this%magnetic_cache%du_a
+     &                          * this%magnetic_cache%dv_a*isigng
+
+      CALL profiler_set_stop_time('vmec_get_area_int_element',                 &
+     &                            start_time)
 
       END FUNCTION
 
@@ -2266,7 +2868,12 @@
       INTEGER                             :: num_currents
       LOGICAL, INTENT(out)                :: scale_currents
 
+!  local variables
+      REAL (rprec)                        :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (lfreeb) THEN
          SELECT CASE (mgrid_mode)
 
@@ -2285,6 +2892,8 @@
       ELSE
          vmec_get_ext_currents => null()
       END IF
+
+      CALL profiler_set_stop_time('vmec_get_ext_currents', start_time)
 
       END FUNCTION
 
@@ -2305,8 +2914,13 @@
       INTEGER                       :: vmec_get_grid_size
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_grid_size = ns_array(this%ns_index)
+      CALL profiler_set_stop_time('vmec_get_grid_size', start_time)
 
       END FUNCTION
 
@@ -2326,8 +2940,13 @@
       REAl (rprec)                  :: vmec_get_grid_start
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_grid_start = 0.0
+      CALL profiler_set_stop_time('vmec_get_grid_start', start_time)
 
       END FUNCTION
 
@@ -2347,8 +2966,13 @@
       REAl (rprec)                  :: vmec_get_grid_stop
       TYPE (vmec_class), INTENT(in) :: this
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       vmec_get_grid_stop = 1.0
+      CALL profiler_set_stop_time('vmec_get_grid_stop', start_time)
 
       END FUNCTION
 
@@ -2373,7 +2997,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_bloat_id, vmec_curtor_id, vmec_phiedge_id,                 &
@@ -2387,6 +3015,8 @@
             vmec_is_scaler_value = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_scaler_value', start_time)
 
       END FUNCTION
 
@@ -2408,7 +3038,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_ac_id, vmec_ac_aux_s_id, vmec_ac_aux_f_id,                 &
@@ -2424,6 +3058,8 @@
             vmec_is_1d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_1d_array', start_time)
 
       END FUNCTION
 
@@ -2445,7 +3081,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
@@ -2463,6 +3103,8 @@
             vmec_is_2d_array = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_2d_array', start_time)
 
       END FUNCTION
 
@@ -2485,7 +3127,11 @@
       TYPE (vmec_class), INTENT(in) :: this
       INTEGER, INTENT(in)           :: id
 
+!  local variables
+      REAL (rprec)                  :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
       SELECT CASE (id)
 
          CASE (vmec_rbc_id, vmec_zbs_id, vmec_rbs_id, vmec_zbc_id,             &
@@ -2504,6 +3150,8 @@
             vmec_is_recon_param = .false.
 
       END SELECT
+
+      CALL profiler_set_stop_time('vmec_is_recon_param', start_time)
 
       END FUNCTION
 
@@ -2549,8 +3197,11 @@
       INTEGER                          :: recovery_index
       INTEGER                          :: error, num_iter_init
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: xc_saved
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       delt_local = delt
       num_iter_init = iterc
       recovery_index = 0
@@ -2640,6 +3291,8 @@
       num_iter = num_iter + iterc - num_iter_init
       delt = delt_local
 
+      CALL profiler_set_stop_time('vmec_converge', start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -2651,6 +3304,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_save_state(this)
       USE xstuff, only: xc
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -2659,8 +3313,10 @@
 
 !  local variables
       INTEGER                          :: error
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%xc)) THEN
          IF (SIZE(xc) .eq. SIZE(this%xc)) THEN
             this%xc = xc
@@ -2687,6 +3343,8 @@
          this%threed1_file => threed1_file_cache_construct()
       END IF
 
+      CALL profiler_set_stop_time('vmec_save_state', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2699,6 +3357,7 @@
       SUBROUTINE vmec_reset_state(this)
       USE xstuff, only: xc
       USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -2707,8 +3366,10 @@
 
 !  local variables
       INTEGER                          :: error
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
          xc = this%xc
       END IF
@@ -2720,7 +3381,7 @@
       CALL assert_eq(error, 0, 'Error moving wout file.')
 
       CALL read_wout_file(this%wout_file_name, error)
-      CALL assert_eq(error, 0, 'Error moving reading reset wout file.')
+      CALL assert_eq(error, 0, 'Error reading reset wout file.')
       CALL LoadRZL
 
       IF (ASSOCIATED(this%magnetic_cache)) THEN
@@ -2731,6 +3392,8 @@
       IF (ASSOCIATED(this%threed1_file)) THEN
          CALL threed1_file_cache_reset_state(this%threed1_file)
       END IF
+
+      CALL profiler_set_stop_time('vmec_reset_state', start_time)
 
       END SUBROUTINE
 
@@ -2743,6 +3406,8 @@
 !>  @param[in] iou  Input/output unit of the output file.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write(this, iou)
+      USE safe_open_mod
+      USE vmec_input
 
       IMPLICIT NONE
 
@@ -2752,8 +3417,12 @@
 
 !  local variables
       INTEGER                       :: i
+      REAL (rprec)                  :: start_time
+      INTEGER                       :: iou_nl
+      INTEGER                       :: status
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
       WRITE (iou,*)
       WRITE (iou,*) 'Equilibrium Type : VMEC'
       CALL pprofile_write(this%ne, 'pp_ne', iou)
@@ -2763,6 +3432,16 @@
       END DO
 
       CALL pprofile_write(this%te, 'pp_te', iou)
+
+!  Write out the final namelist input file.
+      iou_nl = 0
+      CALL safe_open(iou_nl, status,                                           &
+     &               TRIM(this%vmec_file_name) // '_out',                      &
+     &               'replace', 'formatted', delim_in='none')
+      WRITE (iou_nl, nml=indata)
+      CLOSE (iou_nl, iostat=status)
+
+      CALL profiler_set_stop_time('vmec_write', start_time)
 
       END SUBROUTINE
 
@@ -2835,9 +3514,12 @@
       INTEGER                       :: vmec_zbs_id
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
+      REAL (rprec)                  :: start_time
 
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Define dimensions.
       status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,                &
      &                    vmec_nextcur_dim_id)
@@ -2892,6 +3574,8 @@
      &                    (/ maxnsetps_dim_id /), vmec_kappa_p_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      CALL profiler_set_stop_time('vmec_def_result', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -2925,8 +3609,11 @@
       INTEGER                       :: vmec_rbs_id
       INTEGER                       :: vmec_zbc_id
       INTEGER                       :: vmec_zbs_id
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'vmec_extcur', vmec_extcur_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var_double(result_ncid, vmec_extcur_id,                  &
@@ -2979,6 +3666,8 @@
 
       CALL vmec_write_step_data(this, result_ncid, 1)
 
+      CALL profiler_set_stop_time('vmec_write_init_data', start_time)
+
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -3003,8 +3692,11 @@
       INTEGER                       :: status
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
      &                      vmec_l_sub_i_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
@@ -3019,6 +3711,155 @@
      &                            current_step, vvc_kappa_p)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
+      CALL profiler_set_stop_time('vmec_write_step_data', start_time)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref vmec_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_sync_children(this, intra_comm)
+      USE file_opts
+      USE vmec_input, only: lfreeb, mgrid_file
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)              :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                          :: error
+      INTEGER                          :: i
+      INTEGER                          :: num_sxrem
+      INTEGER                          :: mpi_rank
+      INTEGER                          :: mpi_size
+
+!  Start of executable code
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+
+!  Check all relevant files for relative paths and copy them to the sub process
+!  directories. This should only be handeled by the main process.
+      IF (mpi_rank .eq. 0) THEN
+         IF (.not.is_absolute_path(this%vmec_file_name)) THEN
+            DO i = 2, mpi_size
+               CALL copy_file(this%vmec_file_name, process_dir(i),             &
+     &                        error)
+            END DO
+         END IF
+
+         IF (lfreeb .and. .not.is_absolute_path(mgrid_file)) THEN
+            DO i = 2, mpi_size
+               CALL copy_file(mgrid_file, process_dir(i), error)
+            END DO
+         END IF
+      END IF
+
+      CALL MPI_BCAST(this%phi_offset, 1, MPI_REAL8, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%z_offset, 1, MPI_REAL8, 0, intra_comm, error)
+
+      CALL MPI_BCAST(this%pol_rad_ratio, 1, MPI_REAL8, 0, intra_comm,          &
+     &               error)
+
+      CALL MPI_BCAST(this%vmec_file_name, data_filename_length,                &
+     &               MPI_CHARACTER, 0, intra_comm, error)
+
+      CALL pprofile_sync_children(this%ne, intra_comm)
+      CALL pprofile_sync_children(this%te, intra_comm)
+
+      num_sxrem = SIZE(this%sxrem)
+      CALL MPI_BCAST(num_sxrem, 1, MPI_INTEGER, 0, intra_comm, error)
+      DO i = 1, num_sxrem
+         CALL pprofile_sync_children(this%sxrem(i)%p, intra_comm)
+      END DO
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize the vmec state to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref vmec_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_sync_state(this, intra_comm)
+      USE xstuff, only: xc
+      USE v3f_vmec_comm
+      USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+       TYPE (vmec_class), INTENT(inout) :: this
+       INTEGER, INTENT(in)              :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: mpi_rank
+      INTEGER                           :: mpi_size
+      INTEGER                           :: i
+      INTEGER                           :: xc_size
+
+!  Start of executable code
+      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+
+!  If this is the parent process, copy the wout file to the children.
+      IF (mpi_rank .eq. 0) THEN
+         DO i = 2, mpi_size
+            CALL copy_file(TRIM(this%wout_file_name), process_dir(i),          &
+     &                     error)
+            CALL assert_eq(error, 0, 'Error syncing wout file.')
+         END DO
+      END IF
+
+      CALL MPI_BARRIER(intra_comm, error)
+
+      IF (mpi_rank .gt. 0) THEN
+         CALL read_wout_file(this%wout_file_name, error)
+         CALL assert_eq(error, 0, 'Error reading synced wout file.')
+         CALL LoadRZL
+
+         IF (ASSOCIATED(this%magnetic_cache)) THEN
+            CALL vmec_set_magnetic_cache(this)
+         END IF
+      END IF
+
+!  Sync the xc array. First sync the size incase the local xc array needs to be
+!  reallocated.
+      xc_size = SIZE(xc)
+      CALL MPI_BCAST(xc_size, 1, MPI_INTEGER, 0, intra_comm, error)
+
+!  If the size of the xc array stop. It is unknown why and when the xc array
+!  would change size.
+      IF (mpi_rank .gt. 0) THEN
+         CALL assert_eq(xc_size, SIZE(xc), "xc array changed size.")
+      END IF
+      CALL MPI_BCAST(xc, SIZE(xc), MPI_REAL8, 0, intra_comm, error)
+
+!  Sync the values from the threed1 file.
+      CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(vvc_kappa_p, 1, MPI_REAL8, 0, intra_comm, error)
+
+#endif
       END SUBROUTINE
 
 !*******************************************************************************
@@ -3053,8 +3894,11 @@
       REAL (rprec), DIMENSION(:,:), POINTER   :: rbcc, rbss, rbcs, rbsc
       REAL (rprec), DIMENSION(:,:), POINTER   :: zbcc, zbss, zbcs, zbsc
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: temp_array
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       IF (lasym) THEN
 !  Convert to representation with rbs(m=1) = zbc(m=1)
          delta = ATAN((rbs(0,1) - zbc(0,1))/                                   &
@@ -3176,6 +4020,8 @@
          END IF
          DEALLOCATE(temp_array)
       END IF
+
+      CALL profiler_set_stop_time('vmec_reset_boundary', start_time)
 
       END SUBROUTINE
 

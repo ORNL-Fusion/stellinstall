@@ -1,89 +1,209 @@
+!*******************************************************************************
+!>  @file bivariate.f
+!>  @brief Contains module @ref bivariate.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  This modules contains routines for interpolating points inside a grid. This
+!>  was originally written by S. P. Hirshman. It has been modified for thread
+!>  safety converting it to be object oriented by M. Cianciosa.
+!*******************************************************************************
       MODULE bivariate
+
       USE stel_kinds
+      USE profiler
 
+      IMPLICIT NONE
+
+!*******************************************************************************
+!  DERIVED-TYPE DECLARATIONS
+!  1) bivariate_type
+!
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  An object containing persistent data for the bivariate interpolation.
+!-------------------------------------------------------------------------------
       TYPE bivariate_type
-         INTEGER :: nrgrid, nzgrid, ndim
-         INTEGER, DIMENSION(:,:), POINTER     :: irz11_bi => null()
-         INTEGER, DIMENSION(:,:), POINTER     :: irz12_bi => null()
-         INTEGER, DIMENSION(:,:), POINTER     :: irz21_bi => null()
-         INTEGER, DIMENSION(:,:), POINTER     :: irz22_bi => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: w11_bi => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: w12_bi => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: w21_bi => null()
-         REAL(rprec), DIMENSION(:,:), POINTER :: w22_bi => null()
+!>  Number of grid points in the R direction.
+         INTEGER                            :: nrgrid
+!>  Number of grid points in the Z direction.
+         INTEGER                            :: nzgrid
+!>  Number of interpolation points.
+         INTEGER                            :: ndim
+!>  Lower left interpolation point.
+         INTEGER, DIMENSION(:), POINTER     :: irz11_bi => null()
+!>  Lower right interpolation point.
+         INTEGER, DIMENSION(:), POINTER     :: irz12_bi => null()
+!>  Upper left interpolation point.
+         INTEGER, DIMENSION(:), POINTER     :: irz21_bi => null()
+!>  Upper right interpolation point.
+         INTEGER, DIMENSION(:), POINTER     :: irz22_bi => null()
+!>  Lower left interpolation weight.
+         REAL(rprec), DIMENSION(:), POINTER :: w11_bi => null()
+!>  Lower right interpolation weight.
+         REAL(rprec), DIMENSION(:), POINTER :: w12_bi => null()
+!>  Upper left interpolation weight.
+         REAL(rprec), DIMENSION(:), POINTER :: w21_bi => null()
+!>  Upper right interpolation weight.
+         REAL(rprec), DIMENSION(:), POINTER :: w22_bi => null()
       END TYPE
-
-C-----------------------------------------------
-!
-!     Written by S. P. Hirshman (01/30/03)
-!
-!  Modified 12-20-2004 JDH
-!    Changed logic so that if module arrays are already allocated, they are
-!    first deallocated, and then allocated to the correct size. (Too lazy to 
-!    worry about checking to see if they are already allocated to the
-!    appropriate size.)
-!
-!     Local variables:
-!
-!     irz11_bi(ns*nu,kp) : lower left corner indices on a
-!                          rectangular rgrid,zgrid enclosing 
-!                          the point (s,u,v)
-!     irz22_bi(ns*nu,kp) : upper right corner indices
-!     wij_bi(ns*nu,kp)  : weight factors for 4 pt interpolation
-!
-C-----------------------------------------------
      
       CONTAINS
+!*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref bivariate_type object.
+!>
+!>  Allocates memory and initializes a @ref bivariate_type object.
+!>
+!>  @param[in] ns Number of radial grid points.
+!>  @param[in] nu Number of poloidal grid points.
+!>  @returns A pointer to a constructed @ref bivariate_type object.
+!-------------------------------------------------------------------------------
+      FUNCTION bivariate_construct(ns, nu)
 
-      SUBROUTINE createbivariate (this, ns, nu, kp, ib)
       IMPLICIT NONE
-      TYPE (bivariate_type), INTENT(inout) :: this
-      INTEGER, INTENT(in) :: ns, nu, kp, ib
-      INTEGER :: istat = 0
 
-      this%ndim = (ns - ib + 1)*nu
+!  Declare Arguments
+      TYPE (bivariate_type), POINTER :: bivariate_construct
+      INTEGER, INTENT(in)            :: ns
+      INTEGER, INTENT(in)            :: nu
 
-      ALLOCATE (this%irz11_bi(this%ndim,kp),                                   &
-     &          this%irz12_bi(this%ndim,kp),                                   &
-     &          this%irz21_bi(this%ndim,kp),                                   &
-     &          this%irz22_bi(this%ndim,kp),                                   &
-     &          this%w11_bi(this%ndim,kp), this%w12_bi(this%ndim,kp),          &
-     &          this%w21_bi(this%ndim,kp), this%w22_bi(this%ndim,kp),          &
-     &          stat = istat)
-      IF (istat .ne. 0) STOP 'Allocation error in setbivariate'
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(bivariate_construct)
+
+      bivariate_construct%ndim = ns*nu
+
+      ALLOCATE (bivariate_construct%irz11_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%irz12_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%irz21_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%irz22_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%w11_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%w12_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%w21_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%w22_bi(bivariate_construct%ndim))
+
+      CALL profiler_set_stop_time('bivariate_construct', start_time)
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref bivariate_type object.
+!>
+!>  Deallocates memory and uninitializes a @ref bivariate_type object.
+!>
+!>  @param[inout] this A @ref bivariate_type instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bivariate_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (bivariate_type), POINTER :: this
+
+!  Start of executable code
+      IF (ASSOCIATED(this%irz11_bi)) THEN
+         DEALLOCATE (this%irz11_bi)
+         this%irz11_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%irz12_bi)) THEN
+         DEALLOCATE (this%irz12_bi)
+         this%irz12_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%irz21_bi)) THEN
+         DEALLOCATE (this%irz21_bi)
+         this%irz21_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%irz22_bi)) THEN
+         DEALLOCATE (this%irz22_bi)
+         this%irz22_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%w11_bi)) THEN
+         DEALLOCATE (this%w11_bi)
+         this%w11_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%w12_bi)) THEN
+         DEALLOCATE (this%w12_bi)
+         this%w12_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%w21_bi)) THEN
+         DEALLOCATE (this%w21_bi)
+         this%w21_bi => null()
+      END IF
+
+      IF (ASSOCIATED(this%w22_bi)) THEN
+         DEALLOCATE (this%w22_bi)
+         this%w22_bi => null()
+      END IF
+
+      DEALLOCATE(this)
 
       END SUBROUTINE
 
-      SUBROUTINE setbivariate (this, rsu, zsu,                                 &
-     &                         rgrid, zgrid, kin, ib)
+!*******************************************************************************
+!  SETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Set up the interpolation grid for a phi plane.
+!>
+!>  Compute the indices (ir_bi, jz_bi) and weight factors (wij_bi) for
+!>  performing bivariate (4 pt) interpolation FROM a rectangular (R X Z) grid TO
+!>  a general (non-orthogonal) grid (s, u). R and Z grids may have different
+!>  mesh sizes.
+!>
+!>  @param[inout] this  A @ref bivariate_type instance.
+!>  @param[in]    rsu   r coordinate at s,u
+!>  @param[in]    zsu   z coordinate at s,u
+!>  @param[in]    rgrid R coordinate on a fixed, equally spaced grid
+!>  @param[in]    zgrid Z coordinate on a fixed, equally spaced grid
+!-------------------------------------------------------------------------------
+      SUBROUTINE bivariate_set_grids(this, rsu, zsu, rgrid, zgrid)
+
       IMPLICIT NONE
-      TYPE (bivariate_type), INTENT(inout) :: this
-      INTEGER, INTENT(in) :: kin, ib
-      REAL(rprec), INTENT(in) :: rsu(:,:), zsu(:,:), rgrid(:), zgrid(:)
-      INTEGER :: ku, js, ns, nu, index1d, ir, jz, ir1, jz1
-      REAL(rprec) :: rad0, zee0, ri, zj, pr, qz, temp, delr, delz
-C-----------------------------------------------
-!
-!     Compute the indices (ir_bi, jz_bi) and weight factors (wij_bi) 
-!     for performing bivariate (4 pt) interpolation FROM a rectangular (R X Z)
-!     grid TO a general (non-orthogonal) grid (s, u)
-!
-!     rgrid(1:nr)     :  r coordinate on a fixed, equally spaced grid 
-!     zgrid(1:nz)     :  z coordinate on a fixed, equally spaced grid
-!                        (may be different mesh size than rgrid)
-!     rsu(1:ns,1:nu)  :  r coordinate at s,u
-!     zsu(1:ns,1:nu)  :  z coordinate at s,u
-!
-!     kin             :  toroidal plane index (1 <= kin <= kp)
-!     kp              :  number of toroidal planes
-!     ib              :  starting radial s index
-!
-!     index1d         :  index for making indices/weight arrays 1D (in each toroidal plane)
-!                        (improves speed by as much as 2X)
-!     
-C-----------------------------------------------
-      this%nrgrid = SIZE(rgrid, 1); this%nzgrid = SIZE(zgrid, 1)
-      ns = SIZE(rsu,1);  nu = SIZE(rsu,2)
+
+!  Declare Arguments
+      TYPE (bivariate_type), INTENT(inout)    :: this
+      REAL(rprec), DIMENSION(:,:), INTENT(in) :: rsu
+      REAL(rprec), DIMENSION(:,:), INTENT(in) :: zsu
+      REAL(rprec), DIMENSION(:), INTENT(in)   :: rgrid
+      REAL(rprec), DIMENSION(:), INTENT(in)   :: zgrid
+
+!  local variables
+      INTEGER                                 :: ku, js
+      INTEGER                                 :: ns, nu
+      INTEGER                                 :: index1d
+      INTEGER                                 :: ir, jz
+      INTEGER                                 :: ir1, jz1
+      REAL(rprec)                             :: rad0, zee0
+      REAL(rprec)                             :: ri, zj
+      REAL(rprec)                             :: pr, qz
+      REAL(rprec)                             :: temp
+      REAL(rprec)                             :: delr, delz
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%nrgrid = SIZE(rgrid, 1)
+      this%nzgrid = SIZE(zgrid, 1)
+      ns = SIZE(rsu, 1)
+      nu = SIZE(rsu, 2)
 
       delr = rgrid(2) - rgrid(1)
       delz = zgrid(2) - zgrid(1)
@@ -91,113 +211,97 @@ C-----------------------------------------------
       index1d = 0
 
       DO ku = 1, nu
-      DO js = ib, ns
+         DO js = 1, ns
 
-         index1d = index1d + 1
+            index1d = index1d + 1
 !
 !       CHECK THAT BOUNDARY POINTS ARE INSIDE GRID.  IF NOT, STOP!
 !
-         rad0 = rsu(js, ku)
-         zee0 = zsu(js, ku)
+            rad0 = rsu(js, ku)
+            zee0 = zsu(js, ku)
 
-         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(this%nrgrid) .or.
-     &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(this%nzgrid)) 
-     &       STOP 'Plasma point outside response function grid!'
+            IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(this%nrgrid) .or.
+     &          zee0.lt.zgrid(1) .or. zee0.gt.zgrid(this%nzgrid)) THEN
+               STOP 'Plasma point outside response function grid!'
+            END IF
 !
 !       DETERMINE INTEGER INDICES (IR,JZ) FOR LOWER LEFT R, Z CORNER GRID POINT
 !
-         ir = INT((rad0 - rgrid(1))/delr) + 1
-         jz = INT((zee0 - zgrid(1))/delz) + 1
-         ir1 = MIN(this%nrgrid,ir+1)
-         jz1 = MIN(this%nzgrid,jz+1)
+            ir = INT((rad0 - rgrid(1))/delr) + 1
+            jz = INT((zee0 - zgrid(1))/delz) + 1
+            ir1 = MIN(this%nrgrid, ir + 1)
+            jz1 = MIN(this%nzgrid, jz + 1)
 
 !
 !        STORE INDICES IN 1D ARRAYS
 !
-         this%irz11_bi(index1d,kin) = ir  + this%nrgrid*(jz-1)
-         this%irz22_bi(index1d,kin) = ir1 + this%nrgrid*(jz1-1)
-         this%irz12_bi(index1d,kin) = ir  + this%nrgrid*(jz1-1)
-         this%irz21_bi(index1d,kin) = ir1 + this%nrgrid*(jz-1)
+            this%irz11_bi(index1d) = ir  + this%nrgrid*(jz - 1)
+            this%irz22_bi(index1d) = ir1 + this%nrgrid*(jz1 - 1)
+            this%irz12_bi(index1d) = ir  + this%nrgrid*(jz1 - 1)
+            this%irz21_bi(index1d) = ir1 + this%nrgrid*(jz - 1)
 !
 !       COMPUTE RI, ZJ AND PR , QZ AT GRID POINT (IR , JZ)
 !       ALSO, COMPUTE WEIGHTS WIJ FOR 4 CORNER GRID POINTS
 !
-         ri = rgrid(ir)
-         zj = zgrid(jz)
-         pr = (rad0 - ri)/delr
-         qz = (zee0 - zj)/delz
-         temp = pr*qz
-         this%w22_bi(index1d,kin) = temp                   !p*q               
-         this%w21_bi(index1d,kin) = pr - temp              !p*(1-q)
-         this%w12_bi(index1d,kin) = qz - temp              !q*(1-p)
-         this%w11_bi(index1d,kin) = 1 + temp - (pr + qz)   !(1-p)*(1-q)
+            ri = rgrid(ir)
+            zj = zgrid(jz)
+            pr = (rad0 - ri)/delr
+            qz = (zee0 - zj)/delz
+            temp = pr*qz
+            this%w22_bi(index1d) = temp                   !p*q
+            this%w21_bi(index1d) = pr - temp              !p*(1-q)
+            this%w12_bi(index1d) = qz - temp              !q*(1-p)
+            this%w11_bi(index1d) = 1 + temp - (pr + qz)   !(1-p)*(1-q)
 
+         END DO
       END DO
-      END DO
 
-      END SUBROUTINE setbivariate
+      CALL profiler_set_stop_time('bivariate_set_grids', start_time)
 
-      SUBROUTINE bivariate4pt (this, resp_rz, resp_su, kin)
+      END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Interpolate points on to responce function grid.
+!>
+!>  Determin response function on the s,u grid by 4 point bivariate
+!>  interpolation of response function on the r,z mesh at a fixed toroidal
+!>  plane. This uses a 2-D interpolation based on the four point formula in
+!>  Abramowitz and Stegun, Eq. 25.2.66. Note that the arrays need an explicit
+!>  size in dimension to allow the 2D arrays to be passed to the 1D arguments.
+!>
+!>  @param[inout] this    A @ref bivariate_type instance.
+!>  @param[in]    resp_rz Response function on the rz grid.
+!>  @param[out]   resp_su Response function on the su grid.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bivariate_get_4pt(this, resp_rz, resp_su)
       IMPLICIT NONE
-      TYPE (bivariate_type), INTENT(inout) :: this
-      INTEGER, INTENT(in)      :: kin
-      REAL(rprec), INTENT(in)  :: resp_rz(this%nrgrid*this%nzgrid)
-      REAL(rprec), INTENT(out) :: resp_su(this%ndim)
-      INTEGER :: jsu, irz11, irz12, irz21, irz22
-!-----------------------------------------------
-!
-!     DETERMINE resp_uv ON THE S-U GRID BY 4 PT BIVARIATE INTERPOLATION
-!     OF resp_rz WHICH IS ON AN R-Z MESH, ALL AT A FIXED TOROIDAL PLANE
-!
-!     USES 2-D INTERPOLATION BASED ON THE FOUR POINT FORMULA
-!     IN ABRAMOWITZ AND STEGUN, EQ. 25.2.66 
-!
-!     resp_rz(1:nrgrid, 1:nzgrid) :   response on the rectangular R, Z grid
-!
-!     resp_su(1:ns,1:nu)          :   interpolated response on s,u grid (as 1d array)
-!
-!-----------------------------------------------
+      TYPE (bivariate_type), INTENT(inout)           :: this
+      REAL(rprec), DIMENSION(this%ndim), INTENT(in)  :: resp_rz
+      REAL(rprec), DIMENSION(this%ndim), INTENT(out) :: resp_su
+
+!  local variables
+      INTEGER                                        :: jsu
+      REAL (rprec)                                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
       DO jsu = 1, this%ndim
-         
-         irz11 = this%irz11_bi(jsu,kin)
-         irz22 = this%irz22_bi(jsu,kin)
-         irz12 = this%irz12_bi(jsu,kin)
-         irz21 = this%irz21_bi(jsu,kin)
 !
 !       COMPUTE RESPONSE AT R, PHI (fixed kin), Z BY 4-PT INTERPOLATION
 !
-         resp_su(jsu) = this%w11_bi(jsu,kin)*resp_rz(irz11) 
-     &                + this%w22_bi(jsu,kin)*resp_rz(irz22) 
-     &                + this%w21_bi(jsu,kin)*resp_rz(irz21) 
-     &                + this%w12_bi(jsu,kin)*resp_rz(irz12)
+         resp_su(jsu) = this%w11_bi(jsu)*resp_rz(this%irz11_bi(jsu))
+     &                + this%w22_bi(jsu)*resp_rz(this%irz22_bi(jsu))
+     &                + this%w21_bi(jsu)*resp_rz(this%irz21_bi(jsu))
+     &                + this%w12_bi(jsu)*resp_rz(this%irz12_bi(jsu))
 
       END DO
 
-      END SUBROUTINE bivariate4pt
+      CALL profiler_set_stop_time('bivariate_get_4pt', start_time)
 
-      SUBROUTINE clear_bivar(this)
+      END SUBROUTINE
 
-      IMPLICIT NONE
-      TYPE (bivariate_type), INTENT(inout) :: this
-
-      IF (ASSOCIATED(this%irz11_bi)) DEALLOCATE (this%irz11_bi)
-      IF (ASSOCIATED(this%irz12_bi)) DEALLOCATE (this%irz12_bi)
-      IF (ASSOCIATED(this%irz21_bi)) DEALLOCATE (this%irz21_bi)
-      IF (ASSOCIATED(this%irz22_bi)) DEALLOCATE (this%irz22_bi)
-      IF (ASSOCIATED(this%w11_bi)) DEALLOCATE (this%w11_bi)
-      IF (ASSOCIATED(this%w12_bi)) DEALLOCATE (this%w12_bi)
-      IF (ASSOCIATED(this%w21_bi)) DEALLOCATE (this%w21_bi)
-      IF (ASSOCIATED(this%w22_bi)) DEALLOCATE (this%w22_bi)
-
-      this%irz11_bi => null()
-      this%irz12_bi => null()
-      this%irz21_bi => null()
-      this%irz22_bi => null()
-      this%w11_bi => null()
-      this%w12_bi => null()
-      this%w21_bi => null()
-      this%w22_bi => null()
-
-      END SUBROUTINE clear_bivar
-
-      END MODULE bivariate
+      END MODULE

@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 2.8)
-
 # Create an empty variable to hold all the source files.
 set (stell_sources "")
 

@@ -16,17 +16,18 @@
       USE stel_kinds, only: rprec, dp
       USE integration_path
       USE coordinate_utilities
+      USE profiler
 
       IMPLICIT NONE
 !*******************************************************************************
 !  diagnostic module parameters
 !*******************************************************************************
 !>  Type descriptor for intpol no type.
-      INTEGER, PARAMETER :: intpol_no_type = -1
+      INTEGER, PARAMETER :: intpol_no_type             = -1
 !>  Type descriptor for intpol type represented a interferometer diagnostic.
       INTEGER, PARAMETER :: intpol_interferometry_type = 0
 !>  Type descriptor for intpol type represented a polarmetry diagnostic.
-      INTEGER, PARAMETER :: intpol_polarimetry_type = 1
+      INTEGER, PARAMETER :: intpol_polarimetry_type    = 1
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -44,10 +45,13 @@
 !>  * @ref intpol_no_type
 !>  * @ref intpol_interferometry_type
 !>  * @ref intpol_polarimetry_type
-         INTEGER      :: type
-         REAL (rprec) :: wavelength
-         LOGICAL      :: in_degrees
-         TYPE (path)  :: chord_path
+         INTEGER                :: type
+!>  Wavelength if the beam.
+         REAL (rprec)           :: wavelength
+!>  Controls if the results is computed in degrees or radians.
+         LOGICAL                :: in_degrees
+!>  The complete path of the chord.
+         TYPE (vertex), POINTER :: chord_path => null()
       END TYPE intpol_class
 
 !*******************************************************************************
@@ -55,11 +59,13 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref intpol_class types using
-!>  @ref intpol_construct_int or @ref intpol_construct_pol
+!>  @ref intpol_construct_int, @ref intpol_construct_pol or
+!>  @ref intpol_construct_mpi
 !-------------------------------------------------------------------------------
       INTERFACE intpol_construct
          MODULE PROCEDURE intpol_construct_int,                                &
-     &                    intpol_construct_pol
+     &                    intpol_construct_pol,                                &
+     &                    intpol_construct_mpi
       END INTERFACE
 
       PRIVATE :: int_function, pol_function
@@ -86,20 +92,23 @@
 
 !  local variables
       INTEGER                      :: i
+      REAL (rprec)                 :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
 
       ALLOCATE(intpol_construct_int)
 
       DO i = 1, SIZE(chord_paths, 1)
          CALL path_append_vertex(intpol_construct_int%chord_path,              &
-     &                           chord_paths(i,1), chord_paths(i,2),           &
-     &                           chord_paths(i,3))
+     &                           chord_paths(i,:))
       END DO
 
       intpol_construct_int%type = intpol_interferometry_type
       intpol_construct_int%wavelength = 0.0
       intpol_construct_int%in_degrees = .false.
+
+      CALL profiler_set_stop_time('intpol_construct_int', start_time)
 
       END FUNCTION
 
@@ -127,19 +136,60 @@
 
 !  local variables
       INTEGER                      :: i
+      REAL (rprec)                 :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       ALLOCATE(intpol_construct_pol)
 
       DO i = 1, SIZE(chord_paths, 1)
          CALL path_append_vertex(intpol_construct_pol%chord_path,              &
-     &                           chord_paths(i,1), chord_paths(i,2),           &
-     &                           chord_paths(i,3))
+     &                           chord_paths(i,:))
       END DO
 
       intpol_construct_pol%type = intpol_polarimetry_type
       intpol_construct_pol%wavelength = wavelength
       intpol_construct_pol%in_degrees = in_degrees
+
+      CALL profiler_set_stop_time('intpol_construct_pol', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref sxrem_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref intpol_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref intpol_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION intpol_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (intpol_class), POINTER :: intpol_construct_mpi
+
+      INTEGER, INTENT(in)          :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                      :: error
+
+!  Start of executable code
+      ALLOCATE(intpol_construct_mpi)
+
+      intpol_construct_mpi%chord_path => path_construct(intra_comm)
+
+      CALL MPI_BCAST(intpol_construct_mpi%type, 1, MPI_INTEGER, 0,             &
+     &               intra_comm, error)
+      CALL MPI_BCAST(intpol_construct_mpi%wavelength, 1, MPI_REAL8,            &
+     &               0, intra_comm, error)
+      CALL MPI_BCAST(intpol_construct_mpi%in_degrees, 1, MPI_LOGICAL,          &
+     &               0, intra_comm, error)
+
+#endif
 
       END FUNCTION
 
@@ -164,7 +214,11 @@
       this%type = intpol_no_type
       this%wavelength = 0.0
       this%in_degrees = .false.
-      CALL path_destroy(this%chord_path)
+
+      IF (ASSOCIATED(this%chord_path)) THEN
+         CALL path_destruct(this%chord_path)
+         this%chord_path => null()
+      END IF
 
       DEALLOCATE(this)
 
@@ -197,13 +251,16 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
-      CHARACTER(len=1), ALLOCATABLE :: context(:)
-      INTEGER                       :: context_length
+      CHARACTER(len=1), ALLOCATABLE           :: context(:)
+      INTEGER                                 :: context_length
+      REAL (rprec)                            :: start_time
 
 !  local parameters
       REAL(rprec), PARAMETER :: polar_constant = 2.62E-13_dp
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       intpol_get_modeled_signal = 0.0
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
@@ -232,6 +289,9 @@
       sigma = 0.0
       DEALLOCATE(context)
 
+      CALL profiler_set_stop_time('intpol_get_modeled_signal',                 &
+     &                            start_time)
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -251,10 +311,57 @@
       CHARACTER (len=data_name_length) :: intpol_get_signal_type
       TYPE (intpol_class), INTENT(in)  :: this
 
+!  local variables
+      REAL (rprec)                     :: start_time
+
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       intpol_get_signal_type = 'ipch'
 
+      CALL profiler_set_stop_time('intpol_get_signal_type', start_time)
+
       END FUNCTION
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref intpol_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE intpol_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (intpol_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                            :: error
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL path_sync_children(this%chord_path, intra_comm)
+      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(this%wavelength, 1, MPI_REAL8, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%in_degrees, 1, MPI_LOGICAL, 0, intra_comm,           &
+     &               error)
+
+      CALL profiler_set_stop_time('intpol_sync_children', start_time)
+#endif
+
+       END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE
@@ -291,10 +398,15 @@
 
 !  local variables
       TYPE(model_class)                     :: a_model
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       a_model = TRANSFER(context, a_model)
       int_function = model_get_ne(a_model, xcart)*dx
+
+      CALL profiler_set_stop_time('int_function', start_time)
 
       END FUNCTION
 
@@ -313,7 +425,7 @@
 !>  @param[in] xcart   A the integration point.
 !>  @param[in] dxcart  A vector change in path.
 !>  @param[in] dx      A scalar change in path. Not used in this function.
-!>  @returns The ne(x)*dl at point x.
+!>  @returns The ne(x)*B.dl at point x.
 !>
 !>  @note context in this case if not that same as @ref context. It refers to
 !>  generic passed to the function. This is the fortran eqivalent to a void
@@ -333,13 +445,18 @@
 !  local variables
       TYPE(model_class)                     :: a_model
       REAL(rprec), DIMENSION(3)             :: bcart
+      REAL (rprec)                          :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       a_model = TRANSFER(context, a_model)
 
       bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart)
       pol_function =                                                           &
      &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
+
+      CALL profiler_set_stop_time('pol_function', start_time)
 
       END FUNCTION
 

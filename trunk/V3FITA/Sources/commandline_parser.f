@@ -27,11 +27,24 @@
 !>  @header2{Argument, Takes Value, Discription}
 !>  @begin_table
 !>     @item3{@fixed_width{-h},     N, Displays the help text and exits the program.}
-!>     @item3{@fixed_width{-d},     N, Use the default namelist input file. The default input filename is @fixed_width{v3fit.in}.}
+!>     @item3{@fixed_width{-d},     N, Use the default namelist input file. The default input filename is
+!>                                     @fixed_width{v3fit.in}.}
 !>     @item3{@fixed_width{-file},  Y, Specify the v3fit namelist input file.}
-!>     @item3{@fixed_width{-test},  N, Overwrites the @ref v3fit_input::my_task variable and runs the internal unit tests instead.}
+!>     @item3{@fixed_width{-test},  N, Overwrites the @ref v3fit_input::my_task variable and runs the internal
+!>                                     unit tests instead.}
 !>     @item3{@fixed_width{-force}, N, Forces the equilibrium to re-solve on every reconstruction parameter}
+!>     @item3{@fixed_width{-para},  Y, Configures openmp parallelism. The value of this flag sets the maximum
+!>                                     number of threads to use. A value of @fixed_width{-1} uses the default.}
+!>     @item3{@fixed_width{-mpi},   Y, Configures mpi parallelism. This flag takes one of three values.
+!>                                     * @fixed_width{default}  Processes are configured externally.
+!>                                     * @fixed_width{auto}     Sets up one sub process per reconstruction parameter.
+!>                                     * @fixed_width{[number]} Sets the number of sub processes manually.}
+!>
 !>  @end_table
+!>
+!>  @note
+!>  OpenMP and MPI support must be configured at compile time to use. A simple way to check if support has been
+!>  included is to check the command line help @fixed_width{-h}.
 !>
 !>  @section cl_pasring_prog_ref_secProgrammers Reference
 !>  Reference material for the coding to implement command line parsing is found
@@ -50,6 +63,7 @@
       MODULE commandline_parser
       USE stel_kinds
       USE data_parameters
+      USE profiler
 
       IMPLICIT NONE
 
@@ -63,6 +77,12 @@
       INTEGER, PARAMETER, PRIVATE :: max_length = data_filename_length         &
      &                                          + max_arg_length + 1
 
+!  Commandline parser error codes.
+!>  Commandline argument not found.
+      INTEGER, PARAMETER :: commandline_parser_no_error      = 0
+!>  Commandline argument not found.
+      INTEGER, PARAMETER :: commandline_parser_arg_not_found = -1
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) commandline parser base class
@@ -72,6 +92,8 @@
 !>  Base class containing a parsed commandline.
 !-------------------------------------------------------------------------------
       TYPE commandline_parser_class
+!>  Command name of current process.
+         CHARACTER (len=max_length) :: command
 !>  Array of arguments. An argument is the form of -flag
          CHARACTER (len=max_arg_length), DIMENSION(:), POINTER ::              &
      &      arg => null()
@@ -107,15 +129,19 @@
 !  local variables
       CHARACTER (len=max_length) :: temp
       INTEGER                    :: num_args, i, value_index
+      REAL (rprec)               :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
       temp = ''
       num_args = 0
       value_index = 0
       ALLOCATE(commandline_parser_construct)
 
-!  Read the zeroith arg to get the number of arguments.
-      CALL getcarg(0, temp, num_args)
+!  Read the zeroith arg to get the number of arguments. This should also be the
+!  command name.
+      CALL getcarg(0, commandline_parser_construct%command, num_args)
 
       IF (num_args .le. 0) THEN
          CALL commandline_parser_print_help
@@ -154,6 +180,9 @@
      &         temp(1:data_filename_length)
          END IF
       END DO
+
+      CALL profiler_set_stop_time('commandline_parser_construct',              &
+     &                            start_time)
 
       END FUNCTION
 
@@ -215,8 +244,11 @@
 
 !  Local arguments
       INTEGER                                     :: i
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Loop through the arguments until the correct arg is found.
       commandline_parser_get_string = ''
 
@@ -224,10 +256,73 @@
          DO i = 1, SIZE(this%arg)
             IF (TRIM(this%arg(i)) .eq. TRIM(arg)) THEN
                commandline_parser_get_string = this%value(i)
+
+               CALL profiler_set_stop_time(                                    &
+     &                 'commandline_parser_get_string', start_time)
+
                RETURN
             END IF
          END DO
       END IF
+
+      CALL profiler_set_stop_time('commandline_parser_get_string',             &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the value of an argument as an integer.
+!>
+!>  Searches the parsed command line flags for a matching command like argument.
+!>  If no matching argument is found, no value was set or the value cannot be
+!>  converted to an integer, the default value is returned. Command line
+!>  arguments take the form of -flag.
+!>
+!>  @param[in] this          A @ref commandline_parser_class instance.
+!>  @param[in] arg           A argument string to search for.
+!>  @param[in] default_value Default value in case flag is not set.
+!>  @returns The argument value.
+!-------------------------------------------------------------------------------
+      FUNCTION commandline_parser_get_integer(this, arg,                       &
+     &                                        default_value)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER :: commandline_parser_get_integer
+      TYPE (commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)               :: arg
+      INTEGER, INTENT(in)                         :: default_value
+
+!  Local arguments
+      CHARACTER (len=data_filename_length)        :: value
+      INTEGER                                     :: status
+      REAL (rprec)                                :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      value = commandline_parser_get_string(this, arg)
+
+      IF (TRIM(value) .eq. '') THEN
+         commandline_parser_get_integer = default_value
+
+         CALL profiler_set_stop_time('commandline_parser_get_integer',         &
+     &                               start_time)
+
+         RETURN
+      END IF
+
+      READ (value,1000,iostat=status) commandline_parser_get_integer
+
+      IF (status .ne. 0) THEN
+         commandline_parser_get_integer = default_value
+      END IF
+
+      CALL profiler_set_stop_time('commandline_parser_get_integer',            &
+     &                            start_time)
+
+1000  FORMAT(i20)
 
       END FUNCTION
 
@@ -255,8 +350,11 @@
 
 !  Local arguments
       INTEGER                                     :: i
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
+      start_time = profiler_get_start_time()
+
 !  Loop through the arguments until the correct arg is found.
       commandline_parser_is_flag_set = .false.
 
@@ -264,10 +362,17 @@
          DO i = 1, SIZE(this%arg)
             IF (TRIM(this%arg(i)) .eq. TRIM(arg)) THEN
                commandline_parser_is_flag_set = .true.
+
+               CALL profiler_set_stop_time(                                    &
+     &                 'commandline_parser_is_flag_set', start_time)
+
                RETURN
             END IF
          END DO
       END IF
+
+      CALL profiler_set_stop_time('commandline_parser_is_flag_set',            &
+     &                            start_time)
 
       END FUNCTION
 
@@ -298,12 +403,32 @@
       WRITE(*,*) 'Options:                                             '
       WRITE(*,*) 'All options are displayed as [arg][takesoption][text]'
       WRITE(*,*) '  -h       N Display this information                '
+      WRITE(*,*) '                                                     '
       WRITE(*,*) '  -d       N Use default namelist input file         '
+      WRITE(*,*) '                                                     '
       WRITE(*,*) '  -file    Y Specify the v3fit namelist input file   '
+      WRITE(*,*) '                                                     '
       WRITE(*,*) '  -test    N Run unit tests                          '
+      WRITE(*,*) '                                                     '
       WRITE(*,*) '  -force   N Forces the equilibrium to resolve on    '
       WRITE(*,*) '             every reconstruction parameter.         '
       WRITE(*,*) '                                                     '
+!$    WRITE(*,*) '  -para    Y Determines number of parallel insatnces '
+!$    WRITE(*,*) '             to run with. A value of -1 means use the'
+!$    WRITE(*,*) '             default number of threads.              '
+!$    WRITE(*,*) '                                                     '
+#if defined(MPI_OPT)
+      WRITE(*,*) '  -mpi     Y Configures the use of MPI. This takes   '
+      WRITE(*,*) '             the following values.                   '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) '                 default : Processes are configured  '
+      WRITE(*,*) '                           externally.               '
+      WRITE(*,*) '                 auto : Sets up one process per      '
+      WRITE(*,*) '                        reconstruction parameter.    '
+      WRITE(*,*) '                 [number] : Set the number of        '
+      WRITE(*,*) '                            processes.               '
+      WRITE(*,*) '                                                     '
+#endif
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '
       WRITE(*,*) 'The default input filename is v3fit.in.              '
