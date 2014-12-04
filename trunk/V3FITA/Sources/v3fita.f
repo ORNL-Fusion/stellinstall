@@ -687,7 +687,7 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
+     &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
      &   equilibrium_construct(                                                &
      &      vmec_construct(vmec_nli_filename, vmec_wout_input,                 &
      &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
@@ -727,7 +727,7 @@
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
-     &   ne_pp_unit, ne_min, e_pressure_fraction,                              &
+     &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve))

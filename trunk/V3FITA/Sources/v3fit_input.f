@@ -87,6 +87,7 @@
 !>        v3fit_input::model_te_type}
 !>     @item{ne_pp_unit,          Scaling/conversion factor for the density. ne * ne_pp_unit is assumed to have units of m^-3.,                                 v3fit_input::ne_pp_unit}
 !>     @item{ne_min,              Minimum electron density\, m^-3.,                                                                                             v3fit_input::ne_min}
+!>     @item{te_min,              Minimum electron temperature\, eV.,                                                                                           v3fit_input::te_min}
 !>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p', v3fit_input::e_pressure_fraction}
 !>  @end_table
 !>
@@ -652,6 +653,8 @@
       REAL (rprec)                     :: ne_pp_unit = 1.0E18
 !>  Minimum electron density.
       REAL (rprec)                     :: ne_min = 0.0
+!>  Minimum electron temperature.
+      REAL (rprec)                     :: te_min = 0.0
 !>  Specifies the fraction of the pressure constributed by the electrons.
       REAL (rprec)                     :: e_pressure_fraction = 0.5
 
@@ -908,7 +911,7 @@
      &   pp_te_ptype, pp_te_b, pp_te_as, pp_te_af,                             &
 !  Model Specification Variables
      &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
-     &   model_te_type, ne_pp_unit, ne_min, e_pressure_fraction,               &
+     &   model_te_type, ne_pp_unit, ne_min, te_min, e_pressure_fraction,       &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters

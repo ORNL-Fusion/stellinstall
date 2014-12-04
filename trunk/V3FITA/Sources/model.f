@@ -19,6 +19,7 @@
 !>  @begin_table
 !>     @item{ne_unit,           Electron density scaling.,                                @ref model::model_class::ne_unit}
 !>     @item{ne_min,            Minimum electron density.,                                @ref model::model_class::ne_min}
+!>     @item{te_min,            Minimum electron temperature.,                            @ref model::model_class::te_min}
 !>     @item{pressure_fraction, Fractional portion of the pressure due to the electrons., @ref model::model_class::pressure_fraction}
 !>  @end_table
 !>
@@ -70,16 +71,18 @@
       INTEGER, PARAMETER :: model_ne_unit_id           = 0
 !>  Parameter id for the minimum electron density.
       INTEGER, PARAMETER :: model_ne_min_id            = 1
+!>  Parameter id for the minimum electron temperature.
+      INTEGER, PARAMETER :: model_te_min_id            = 2
 !>  Parameter id for the electrion fraction of the pressure.
-      INTEGER, PARAMETER :: model_pressure_fraction_id = 2
+      INTEGER, PARAMETER :: model_pressure_fraction_id = 3
 
 !  Derived Parameters
 !>  Parameter id for the electrion density grid.
-      INTEGER, PARAMETER :: model_ne_grid_id           = 3
+      INTEGER, PARAMETER :: model_ne_grid_id           = 4
 !>  Parameter id for the electrion temperature grid.
-      INTEGER, PARAMETER :: model_te_grid_id           = 4
+      INTEGER, PARAMETER :: model_te_grid_id           = 5
 !>  Parameter id for the soft x-ray emissivity grid.
-      INTEGER, PARAMETER :: model_sxrem_grid_id        = 5
+      INTEGER, PARAMETER :: model_sxrem_grid_id        = 6
 
 !>  Conversion from Joules to eV.
       REAL(rprec), PARAMETER :: eV_per_Joule = one/1.602e-19_rprec
@@ -106,6 +109,8 @@
          REAL (rprec) :: ne_unit = 0.0
 !>  Minimum electron density.
          REAL (rprec) :: ne_min = 0.0
+!>  Minimum electron temperature.
+         REAL (rprec) :: te_min = 0.0
 !>  Electron pressure fraction.
          REAL (rprec) :: pressure_fraction = 0.0
 !>  The @ref equilibrium.
@@ -172,13 +177,14 @@
 !>  @param[in] te_type           Model type for the electron temperature.
 !>  @param[in] ne_unit           Scaleing of the electron denisty.
 !>  @param[in] ne_min            Minimum electron density.
+!>  @param[in] te_min            Minimum electron temperature.
 !>  @param[in] pressure_fraction Fraction of the pressure provided by electrons.
 !>  @param[in] equilibrium       An instance of an @ref equilibrium.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
       FUNCTION model_construct_new(ne_type, sxrem_type, te_type,               &
-     &                             ne_unit, ne_min, pressure_fraction,         &
-     &                             equilibrium)
+     &                             ne_unit, ne_min, te_min,                    &
+     &                             pressure_fraction, equilibrium)
 
       IMPLICIT NONE
 
@@ -190,6 +196,7 @@
       CHARACTER (len=data_name_length), INTENT(in)  :: te_type
       REAL (rprec), INTENT(in)                      :: ne_unit
       REAL (rprec), INTENT(in)                      :: ne_min
+      REAL (rprec), INTENT(in)                      :: te_min
       REAL (rprec), INTENT(in)                      :: pressure_fraction
       TYPE (equilibrium_class), POINTER             :: equilibrium
 
@@ -272,6 +279,7 @@
 
       model_construct_new%ne_unit = ne_unit
       model_construct_new%ne_min = ne_min
+      model_construct_new%te_min = te_min
       model_construct_new%pressure_fraction = pressure_fraction
       model_construct_new%equilibrium => equilibrium
 
@@ -333,6 +341,8 @@
       CALL MPI_BCAST(model_construct_mpi%ne_unit, 1, MPI_REAL8, 0,             &
      &               intra_comm, error)
       CALL MPI_BCAST(model_construct_mpi%ne_min, 1, MPI_REAL8, 0,              &
+     &               intra_comm, error)
+      CALL MPI_BCAST(model_construct_mpi%te_min, 1, MPI_REAL8, 0,              &
      &               intra_comm, error)
       CALL MPI_BCAST(model_construct_mpi%pressure_fraction, 1,                 &
      &               MPI_REAL8, 0, intra_comm, error)
@@ -453,6 +463,9 @@
          CASE (model_ne_min_id)
             this%ne_min = value
 
+         CASE (model_te_min_id)
+            this%te_min = value
+
          CASE (model_pressure_fraction_id)
             this%pressure_fraction = value
 
@@ -501,6 +514,9 @@
 
          CASE ('ne_min')
             model_get_param_id = model_ne_min_id
+
+         CASE ('te_min')
+            model_get_param_id = model_te_min_id
 
          CASE ('pressure_fraction')
             model_get_param_id = model_pressure_fraction_id
@@ -561,6 +577,9 @@
 
          CASE (model_ne_min_id)
             model_get_param_value = this%ne_min
+
+         CASE (model_te_min_id)
+            model_get_param_value = this%te_min
 
          CASE (model_pressure_fraction_id)
             model_get_param_value = this%pressure_fraction
@@ -632,6 +651,9 @@
          CASE (model_ne_min_id)
             model_get_param_name = 'ne_min'
 
+         CASE (model_te_min_id)
+            model_get_param_name = 'te_min'
+
          CASE (model_pressure_fraction_id)
             model_get_param_name = 'pressure_fraction'
 
@@ -688,10 +710,15 @@
      &                              this%ne_unit*model_get_ne_cart)
 
          CASE (model_ne_te_p_type)
-            model_get_ne_cart = eV_per_Joule*this%pressure_fraction            &
-     &                        * equilibrium_get_p(this%equilibrium,            &
-     &                                            x_cart)                      &
-     &                        / model_get_te(this, x_cart)
+!  Electron temperature of zero can cause divide by zero errors. Check the value
+!  of the temperature first. If it is zero return zero density.
+            model_get_ne_cart = model_get_te(this, x_cart)
+            IF (model_get_ne_cart .gt. 0.0) THEN
+               model_get_ne_cart = eV_per_Joule*this%pressure_fraction         &
+     &                           * equilibrium_get_p(this%equilibrium,         &
+     &                                               x_cart)                   &
+     &                           / model_get_ne_cart
+            END IF
 
          CASE DEFAULT
              model_get_ne_cart = -2.0E49_rprec
@@ -736,10 +763,15 @@
      &                                this%ne_unit*model_get_ne_radial)
 
          CASE (model_ne_te_p_type)
-            model_get_ne_radial = eV_per_Joule*this%pressure_fraction          &
-     &                          * equilibrium_get_p(this%equilibrium,          &
-     &                                              r)                         &
-     &                          / model_get_te(this, r)
+!  Electron temperature of zero can cause divide by zero errors. Check the value
+!  of the temperature first. If it is zero return zero density.
+            model_get_ne_radial = model_get_te(this, r)
+            IF (model_get_ne_radial .gt. 0.0) THEN
+               model_get_ne_radial = eV_per_Joule*this%pressure_fraction       &
+     &                             * equilibrium_get_p(this%equilibrium,       &
+     &                                                 r)                      &
+     &                             / model_get_ne_radial
+            END IF
 
          CASE DEFAULT
             model_get_ne_radial = -2.0E49_rprec
@@ -780,12 +812,18 @@
          CASE (model_te_type)
             model_get_te_cart = equilibrium_get_te(this%equilibrium,           &
      &                                             x_cart)
+            model_get_te_cart = MAX(this%te_min, model_get_te_cart)            &
 
          CASE (model_te_ne_p_type)
-            model_get_te_cart = eV_per_Joule*this%pressure_fraction            &
-     &                        * equilibrium_get_p(this%equilibrium,            &
-     &                                            x_cart)                      &
-     &                        / model_get_ne(this, x_cart)
+!  Electron densities of zero can cause divide by zero errors. Check the value
+!  of the density first. If it is zero return zero temperature.
+            model_get_te_cart = model_get_ne(this, x_cart)
+            IF (model_get_te_cart .gt. 0.0) THEN
+               model_get_te_cart = eV_per_Joule*this%pressure_fraction         &
+     &                           * equilibrium_get_p(this%equilibrium,         &
+     &                                               x_cart)                   &
+     &                           / model_get_te_cart
+            END IF
 
          CASE DEFAULT
             model_get_te_cart = -2.0E49_rprec
@@ -826,12 +864,18 @@
          CASE (model_te_type)
             model_get_te_radial = equilibrium_get_te(this%equilibrium,         &
      &                                               r)
+            model_get_te_radial = MAX(this%te_min, model_get_te_radial)        &
 
          CASE (model_te_ne_p_type)
-            model_get_te_radial = eV_per_Joule*this%pressure_fraction          &
-     &                          * equilibrium_get_p(this%equilibrium,          &
+!  Electron densities of zero can cause divide by zero errors. Check the value
+!  of the density first. If it is zero return zero temperature.
+            model_get_te_radial = model_get_ne(this, r)
+            IF (model_get_te_radial .gt. 0.0) THEN
+               model_get_te_radial = eV_per_Joule*this%pressure_fraction       &
+     &                             * equilibrium_get_p(this%equilibrium,       &
      &                                              r)                         &
-     &                          / model_get_ne(this, r)
+     &                             / model_get_te_radial
+            END IF
 
          CASE DEFAULT
             model_get_te_radial = -2.0E49_rprec
@@ -1066,7 +1110,7 @@
 
       SELECT CASE (id)
 
-         CASE (model_ne_unit_id, model_ne_min_id,                              &
+         CASE (model_ne_unit_id, model_ne_min_id, model_te_min_id,             &
      &         model_pressure_fraction_id)
             model_is_recon_param = .true.
 
@@ -1185,6 +1229,7 @@
      &              TRIM(model_get_te_type(this))
       WRITE (iou, 1000) 'ne_pp_unit is ', this%ne_unit
       WRITE (iou, 1000) 'ne_min is ', this%ne_min
+      WRITE (iou, 1000) 'te_min is ', this%te_min
       WRITE (iou, 1000) 'e_pressure_fraction is ',                             &
      &                  this%pressure_fraction
 1000  FORMAT(1x,a,2x,es12.5)
@@ -1221,6 +1266,7 @@
 !>      @item{model_sxrem_type (string_len\, model_num_sxrem), Discription of the soft x-ray emissivity model., model::model_class::sxrem_type}
 !>      @item{ne_unit (maxnsteps),                             Electron density unit scaling,                   model::model_class::ne_unit}
 !>      @item{ne_min (maxnsteps),                              Minimum electron density,                        model::model_class::ne_min}
+!>      @item{te_min (maxnsteps),                              Minimum electron temperature,                    model::model_class::te_min}
 !>      @item{pressure_fraction (maxnsteps),                   Fractional Pressure,                             model::model_class::pressure_fraction}
 !>  @end_table
 !>  @table_section{result_file_model_grid_sec, Model Profiles}
@@ -1261,6 +1307,7 @@
       INTEGER                        :: sxrem_type_var_id
       INTEGER                        :: ne_unit_var_id
       INTEGER                        :: ne_min_var_id
+      INTEGER                        :: te_min_var_id
       INTEGER                        :: pressure_fraction_var_id
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
@@ -1313,6 +1360,10 @@
 
       status = nf_def_var(result_ncid, 'ne_min', nf_double, 1,                 &
      &                    (/ maxnsteps_dim_id /), ne_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(result_ncid, 'te_min', nf_double, 1,                 &
+     &                    (/ maxnsteps_dim_id /), te_min_var_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_def_var(result_ncid, 'pressure_fraction', nf_double,         &
@@ -1426,6 +1477,7 @@
       INTEGER                        :: i, status
       INTEGER                        :: ne_unit_var_id
       INTEGER                        :: ne_min_var_id
+      INTEGER                        :: te_min_var_id
       INTEGER                        :: pressure_fraction_var_id
       INTEGER                        :: ne_grid_var_id
       INTEGER                        :: te_grid_var_id
@@ -1445,6 +1497,12 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
       status = nf_put_var1_double(result_ncid, ne_min_var_id,                  &
      &                            current_step, this%ne_min)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'te_min', te_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var1_double(result_ncid, te_min_var_id,                  &
+     &                            current_step, this%te_min)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'pressure_fraction',                  &
@@ -1536,6 +1594,7 @@
 
       CALL MPI_BCAST(this%ne_unit, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%ne_min, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%te_min, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%pressure_fraction, 1, MPI_REAL8, 0,                  &
      &               intra_comm, error)
 
