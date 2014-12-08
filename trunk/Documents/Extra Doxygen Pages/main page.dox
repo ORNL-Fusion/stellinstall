@@ -13,6 +13,7 @@
  *
  * @subsection user_model Model Manual.
  * * @ref model_sec "Model Manual" User manual for the V3FIT model.
+ * * @ref emission_file_sec "Emission File Manual" User manual for the Soft X-ray emission file.
  *
  * @subsection user_equilibirum Equilibrium manuals.
  * V3FIT is designed to support many different equilibrium solvers. Currently

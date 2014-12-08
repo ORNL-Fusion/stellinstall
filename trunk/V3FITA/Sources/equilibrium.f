@@ -13,6 +13,7 @@
 !>  methods.
 !>  @par Sub Classes:
 !>  @ref vmec_equilibrium
+!>  @ref vacuum_equilibrium
 !*******************************************************************************
 
       MODULE equilibrium

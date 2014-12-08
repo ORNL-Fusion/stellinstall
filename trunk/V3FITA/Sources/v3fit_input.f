@@ -89,7 +89,7 @@
 !>     @item{ne_min,              Minimum electron density\, m^-3.,                                                                                             v3fit_input::ne_min}
 !>     @item{te_min,              Minimum electron temperature\, eV.,                                                                                           v3fit_input::te_min}
 !>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p', v3fit_input::e_pressure_fraction}
-!>     @item{emission_file,       Path to file defining the soft x-ray emission.,                                                                               v3fit_input::emission_file}
+!>     @item{emission_file,       Path to file defining the soft x-ray emission. @see @ref emission_file_sec ,                                                  v3fit_input::emission_file}
 !>  @end_table
 !>
 !>  @table_section{recon_con_sec, Reconstruction constraints (DEPRICATED)}

@@ -31,6 +31,12 @@
 !>     @item{te_grid,    Electron temperature grid.,  @ref model::model_class::te_grid}
 !>     @item{sxrem_grid, Soft X-ray emissivity grid., @ref model::model_class::sxrem_grid}
 !>  @end_table
+!>
+!>  @section model_sxrem_sec Model Soft X-ray Emissivity
+!>  The soft x-ray emissivity can be modeled as a plain emissivity profile, or
+!>  soft x-ray emission can be computed directly. The latter requires a soft
+!>  x-ray emissivity file to be defined.
+!>  @see @ref emission_file_sec 
 !*******************************************************************************
 !>  @file model.f
 !>  @brief Contains module @ref model.

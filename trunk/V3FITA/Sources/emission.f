@@ -1,3 +1,32 @@
+!-------------------------------------------------------------------------------
+!  The @header, @table_section, @table_subsection, @item and @end_table commands
+!  are custom defined commands in Doxygen.in. They are defined under ALIASES.
+!  For the page created here, the 80 column limit is exceeded. Arguments of
+!  aliases are separated by ','. If you intended ',' to be a string you must use
+!  an escaped comma '\,'.
+!
+!>  @page emission_file_sec Soft X-Ray Emission File Manual
+!>
+!>  @tableofcontents
+!>  @section emission_file_intro_sec Introduction
+!>  This page documents the NetCDF file format for the Soft X-Ray emission file.
+!>  This file contains all the information to compute the Soft X-Ray emission
+!>  from physical parameters. To allow for mutiple cameras and  multi-color
+!>  systems, transmission and absorption functions need to be defined for each
+!>  camera.
+!>
+!>  @section emission_file_contents_sec File Contents
+!>  @header{Variable, Description, Dimension}
+!>  @begin_table
+!>     @item{te_start,     Initial temperature.,               Scalar}
+!>     @item{te_step,      Temperature step.,                  Scalar}
+!>     @item{energy_start, Initial energy.,                    Scalar}
+!>     @item{energy_step,  Energy step.,                       Scalar}
+!>     @item{emission,     Soft X-Ray emission function.,      (Number Temperatures\, Number Energies)}
+!>     @item{transmission, Filter transmission function.,      (Number Cameras\, Number Energies)}
+!>     @item{absorption,   Absorption function of the camera., (Number Cameras\, Number Energies)}
+!>  @end_table
+!>
 !*******************************************************************************
 !>  @file emission.f
 !>  @brief Contains module @ref emission.
@@ -272,8 +301,8 @@
          i_low = 1
          i_high = 2
       ELSE IF (te .gt. this%te_start + (SIZE(this%emission,                    &
-     &                                       2) - 1)*this%te_step) THEN
-         i_high = SIZE(this%emission, 2)
+     &                                       1) - 1)*this%te_step) THEN
+         i_high = SIZE(this%emission, 1)
          i_low = i_high - 1
       ELSE
          i_low = (te - this%te_start)/this%te_step
@@ -285,8 +314,8 @@
 
       w_high = 1.0 - w_high
 
-      this%work_array = w_high*this%emission(:,i_high)                         &
-     &                + w_low*this%emission(:,i_low)
+      this%work_array = w_high*this%emission(i_high,:)                         &
+     &                + w_low*this%emission(i_low,:)
       this%work_array = this%work_array*ne*ne
 
       this%work_array = this%work_array*this%transmission(index,:)             &
