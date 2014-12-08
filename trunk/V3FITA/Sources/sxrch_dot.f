@@ -25,9 +25,11 @@
 !>
 !>  @section sxrem_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{sxr_chord_XYZ},      A soft x-ray chord specified in Cartesian coordinates.}
-!>  @item2{@fixed_width{sxr_chord_RPhiDegZ}, A soft x-ray chord specified in Cylindrical coordinates.}
-!>  @item2{@fixed_width{sxr_new_profile},    Mark the start of chords that begin the next profile.}
+!>  @item2{@fixed_width{sxr_chord_XYZ},          A soft x-ray chord specified in Cartesian coordinates.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ},     A soft x-ray chord specified in Cylindrical coordinates.}
+!>  @item2{@fixed_width{sxr_chord_XYZ_geo},      A soft x-ray chord specified in Cartesian coordinates with the geometric factor.}
+!>  @item2{@fixed_width{sxr_chord_RPhiDegZ_geo}, A soft x-ray chord specified in Cylindrical coordinates with the geometric factor.}
+!>  @item2{@fixed_width{sxr_new_profile},        Mark the start of chords that begin the next profile.}
 !>  @end_table
 !>
 !>  @section sxrem_dot_chord_spec_sec Chord Specification
@@ -37,6 +39,14 @@
 !>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
 !>  @fixed_width{x1(REAL) y1(REAL) z1(REAL)\n}
 !>  @fixed_width{x2(REAL) y2(REAL) z2(REAL)\n}
+!>
+!>  Keywords that end with _geo, contain an extra geomtric factor.
+!>
+!>  @fixed_width{key_word_geo\n}
+!>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
+!>  @fixed_width{x1(REAL) y1(REAL) z1(REAL)\n}
+!>  @fixed_width{x2(REAL) y2(REAL) z2(REAL)\n}
+!>  @fixed_width{geo(REAL)\n}
 !>
 !>  @section sxrem_dot_exam_sec Example File
 !>  @code
@@ -138,7 +148,7 @@
 
 !  local parameters
 !  n_sxrchd_keyword        integer - number of sxrchd_keyword s.
-      INTEGER, PARAMETER :: n_sxrchd_keyword = 4
+      INTEGER, PARAMETER :: n_sxrchd_keyword = 6
 
 !  local variables
 !  sxrchd_keyword    character array - keywords for various sxrch input types
@@ -154,8 +164,10 @@
 !  Initialize the keywords
       sxrchd_keyword(1) = 'sxr_chord_XYZ'
       sxrchd_keyword(2) = 'sxr_chord_RPhiDegZ'
-      sxrchd_keyword(3) = 'sxr_new_profile'
-      sxrchd_keyword(4) = 'end_of_file'
+      sxrchd_keyword(3) = 'sxr_chord_XYZ_geo'
+      sxrchd_keyword(4) = 'sxr_chord_RPhiDegZ_geo'
+      sxrchd_keyword(5) = 'sxr_new_profile'
+      sxrchd_keyword(6) = 'end_of_file'
 
 !  Open up the 'sxrch.' file
       sxrch_dot_file_ref = signal_dot_open(TRIM(sxrch_file),"sxrch")
@@ -181,14 +193,32 @@
      &                                    'XYZ', signals,                      &
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
-     &                                    current_profile, first_index)
+     &                                    current_profile, first_index,        &
+     &                                    .false.)
 
             CASE ('sxr_chord_RPhiDegZ')
                CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
      &                                    'RPHiDegZ', signals,                 &
      &                                    signals_created,                     &
      &                                    observed, sigma, weight,             &
-     &                                    current_profile, first_index)
+     &                                    current_profile, first_index,        &
+     &                                    .false.)
+
+            CASE ('sxr_chord_XYZ_geo')
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'XYZ', signals,                      &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight,             &
+     &                                    current_profile, first_index,        &
+     &                                    .true.)
+
+            CASE ('sxr_chord_RPhiDegZ_geo')
+               CALL sxrch_dot_parse_chord(sxrch_dot_file_ref,                  &
+     &                                    'RPHiDegZ', signals,                 &
+     &                                    signals_created,                     &
+     &                                    observed, sigma, weight,             &
+     &                                    current_profile, first_index,        &
+     &                                    .true.)
 
             CASE ('sxr_new_profile')
                current_profile = current_profile + 1
@@ -227,6 +257,7 @@
 !>  @param[in]    weight          Array of signal weight values
 !>  @param[inout] first_index     Index of the first instance of an intpol
 !>                                signal.
+!>  @param[in]    use_geo         Chord contains geomtric factor.
 !>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
@@ -234,7 +265,8 @@
      &                                 signals,                                &
      &                                 signals_created,                        &
      &                                 observed, sigma, weight,                &
-     &                                 current_profile, first_index)
+     &                                 current_profile, first_index,           &
+     &                                 use_geo)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -251,10 +283,12 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
       INTEGER, INTENT(in)                    :: current_profile
       INTEGER, INTENT(inout)                 :: first_index
+      LOGICAL, INTENT(in)                    :: use_geo
 
 !  local variables
       REAL(rprec), DIMENSION(3)              :: xcart_i, xcart_f
       CHARACTER (len=data_short_name_length) :: chord_name
+      REAL (rprec)                           :: geo
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
@@ -272,9 +306,16 @@
      &                            chord_name,                                  &
      &                            xcart_i, xcart_f)
 
+!  Default the geometric factor to 1.
+      geo = 1.0
+      IF (use_geo) THEn
+         geo = signal_dot_parse_real(sxrch_dot_file_ref,                       &
+     &            'Expected geometric factor for sxrem chord')
+      END IF
+
       signals(signals_created + 1)%p => signal_construct(                      &
      &   diagnostic_construct(                                                 &
-     &      sxrem_construct(xcart_i, xcart_f, current_profile)),               &
+     &      sxrem_construct(xcart_i, xcart_f, geo, current_profile)),          &
      &   chord_name, chord_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1))
       signals_created = signals_created + 1

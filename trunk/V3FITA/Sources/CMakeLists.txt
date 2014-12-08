@@ -31,5 +31,6 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_context.f
 	${CMAKE_CURRENT_SOURCE_DIR}/commandline_parser.f
 	${CMAKE_CURRENT_SOURCE_DIR}/reconstruction.f
+	${CMAKE_CURRENT_SOURCE_DIR}/emission.f
 )
 set (v3fit_sources "${v3fit_sources}" PARENT_SCOPE)

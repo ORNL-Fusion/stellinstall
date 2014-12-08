@@ -5,7 +5,7 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  Module is part of the LIBSTELL. This modules containes code to define and
+!>  Module is part of the LIBSTELL. This modules contains code to define and
 !>  integrate along an arbitray path.
 !*******************************************************************************
 
@@ -207,12 +207,13 @@
       TYPE (vertex), INTENT(inout)  :: this
       CHARACTER (len=1), INTENT(in) :: context(:)
       INTERFACE
-         FUNCTION integration_function(context, xcart, dxcart, dx)
+         FUNCTION integration_function(context, xcart, dxcart,                 &
+     &                                 length, dx)
          USE stel_kinds
          REAL (rprec) :: integration_function
          CHARACTER (len=1), INTENT(in)          :: context(:)
          REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
-         REAL (rprec), INTENT(in)               :: dx
+         REAL (rprec), INTENT(in)               :: length, dx
          END FUNCTION
       END INTERFACE
 
@@ -294,18 +295,20 @@
       TYPE (vertex), INTENT(in)    :: vertex1
       TYPE (vertex), INTENT(in)    :: vertex2
       INTERFACE
-         FUNCTION integration_function(context, xcart, dxcart, dx)
+         FUNCTION integration_function(context, xcart, dxcart,                 &
+     &                                 length, dx)
          USE stel_kinds
          REAL (rprec) :: integration_function
          CHARACTER (len=1), INTENT(in)          :: context(:)
          REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
-         REAL (rprec), INTENT(in)               :: dx
+         REAL (rprec), INTENT(in)               :: length, dx
          END FUNCTION
       END INTERFACE
 
 !  local variables
       REAL (rprec), DIMENSION(3) :: xcart
       REAL (rprec), DIMENSION(3) :: dxcart
+      REAL (rprec)               :: length
       REAL (rprec)               :: dx
       INTEGER                    :: i, nsteps
 
@@ -313,15 +316,15 @@
       REAL(rprec), PARAMETER     :: dxOptimal = 0.0025
 
 !  Start of executable code
-! Determine the number of integration steps to take by dividing the path length
-! by the step length and rounding to the nearest integer.
+!  Determine the number of integration steps to take by dividing the path length
+!  by the step length and rounding to the nearest integer.
       dxcart = vertex2%position - vertex1%position
 
-! Store the entire length in dx temporarly.
-      dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
-      nsteps = INT(dx/dxOptimal)
+!  Store the entire length in dx temporarly.
+      length = SQRT(DOT_PRODUCT(dxcart, dxcart))
+      nsteps = INT(length/dxOptimal)
 
-! Choose the actual step size.
+!  Choose the actual step size.
       dxcart = dxcart/nsteps
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
 
@@ -330,7 +333,8 @@
       DO i = 1, nsteps
          xcart = xcart + dxcart
          integrate = integrate                                                 &
-     &             + integration_function(context, xcart, dxcart, dx)
+     &             + integration_function(context, xcart, dxcart,              &
+     &                                    length, dx)
       ENDDO
 
       END FUNCTION
@@ -358,11 +362,11 @@
       CHARACTER(len=1), ALLOCATABLE :: context(:)
 
 !  Start of executable code
-! Test to make sure the vertices begin in an unallocated state.
+!  Test to make sure the vertices begin in an unallocated state.
       path_test = check(.false., ASSOCIATED(test_path), 1, "ASSOCIATED")
       IF (.not.path_test) RETURN
 
-! Test to make sure first vertex is created.
+!  Test to make sure first vertex is created.
       CALL path_append_vertex(test_path,                                       &
      &                        (/ 1.0_rprec, 2.0_rprec, 3.0_rprec /))
       path_test = check(.true., ASSOCIATED(test_path), 1,                      &
@@ -378,7 +382,7 @@
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
-! Test to make sure second vertex is appended.
+!  Test to make sure second vertex is appended.
       CALL path_append_vertex(test_path,                                       &
      &                        (/ 4.0_rprec, 5.0_rprec, 6.0_rprec /))
       path_test = check(.true., ASSOCIATED(test_path%next), 5,                 &
@@ -403,7 +407,7 @@
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
-! Test to make sure third vertex is appended.
+!  Test to make sure third vertex is appended.
       CALL path_append_vertex(test_path,                                       &
      &                        (/ 7.0_rprec, 8.0_rprec, 9.0_rprec /))
       path_test = check(.true., ASSOCIATED(test_path%next%next),               &
@@ -419,13 +423,13 @@
      &                  "path_append_vertex")
       IF (.not.path_test) RETURN
 
-! Test to make sure path object is destroyed.
+!  Test to make sure path object is destroyed.
       CALL path_destruct(test_path)
       path_test = check(.false., ASSOCIATED(test_path), 1,                     &
      &                  "path_destruct")
       IF (.not.path_test) RETURN
 
-! Test path integration.
+!  Test path integration.
       CALL path_append_vertex(test_path,                                       &
      &                        (/ 1.0_rprec, 0.0_rprec, 0.0_rprec /))
       CALL path_append_vertex(test_path,                                       &
@@ -546,10 +550,11 @@
 !>                     function.
 !>  @param[in] xcart   Current point in the integration.
 !>  @param[in] dxcart  Vector direction of the current integration path.
+!>  @param[in] length  Length along the current integration.
 !>  @param[in] dx      Scaler length of the current integration path.
 !>  @returns One
 !-------------------------------------------------------------------------------
-      FUNCTION test_function(context, xcart, dxcart, dx)
+      FUNCTION test_function(context, xcart, dxcart, length, dx)
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -557,6 +562,7 @@
       CHARACTER (len=1), INTENT(in)          :: context(:)
       REAL (rprec), DIMENSION(3), INTENT(in) :: xcart
       REAL (rprec), DIMENSION(3), INTENT(in) :: dxcart
+      REAL (rprec), INTENT(in)               :: length
       REAL (rprec), INTENT(in)               :: dx
 
 !  Start of executable code

@@ -31,6 +31,8 @@
       TYPE sxrem_class
 !>  The complete path of the chord.
          TYPE (vertex), POINTER :: chord_path => null()
+!>  Geometric chord factor.
+         REAL (rprec)           :: geo
 !>  Index of the soft x-ray emissivity profile for this chord.
          INTEGER                :: profile_number
       END TYPE sxrem_class
@@ -69,21 +71,24 @@
 !>  Allocates memory and initializes a @ref sxrem_class object.
 !>
 !>  @param[in] start_path Starting point of a sxrem chord.
-!>  @param[in] end_path Ending point of a sxrem chord.
+!>  @param[in] end_path   Ending point of a sxrem chord.
+!>  @param[in] geo        Geometric factor of the chord.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct_new(start_path, end_path, profile_number)
+      FUNCTION sxrem_construct_new(start_path, end_path, geo,                  &
+     &                             profile_number)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), POINTER :: sxrem_construct_new
-      REAL(rprec), DIMENSION(3)   :: start_path
-      REAL(rprec), DIMENSION(3)   :: end_path
-      INTEGER                     :: profile_number
+      TYPE (sxrem_class), POINTER            :: sxrem_construct_new
+      REAL (rprec), DIMENSION(3), INTENT(in) :: start_path
+      REAL (rprec), DIMENSION(3), INTENT(in) :: end_path
+      REAL (rprec), INTENT(in)               :: geo
+      INTEGER, INTENT(in)                    :: profile_number
 
 !  local variables
-      REAL (rprec)                :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -95,6 +100,7 @@
       CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
      &                        end_path)
 
+      sxrem_construct_new%geo = geo
       sxrem_construct_new%profile_number = profile_number
 
       CALL profiler_set_stop_time('sxrem_construct_new', start_time)
@@ -125,7 +131,8 @@
       ALLOCATE(sxrem_construct_mpi)
 
       sxrem_construct_mpi%chord_path => path_construct(intra_comm)
-
+      CALL MPI_BCAST(sxrem_construct_mpi%geo, 1, MPI_REAL8, 0,                 &
+     &               intra_comm, error)
       CALL MPI_BCAST(sxrem_construct_mpi%profile_number, 1, MPI_INTEGER,       &
      &               0, intra_comm, error)
 
@@ -208,7 +215,8 @@
       context = TRANSFER(sxr_context, context)
       sxrem_get_modeled_signal(1) = path_integrate(this%chord_path,            &
      &                                             sxr_function,               &
-     &                                             context)
+     &                                             context)                    &
+     &                            * this%geo
 
       sigma = 0.0
       DEALLOCATE(context)
@@ -278,6 +286,7 @@
       start_time = profiler_get_start_time()
 
       CALL path_sync_children(this%chord_path, intra_comm)
+      CALL MPI_BCAST(this%geo, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%profile_number, 1, MPI_INTEGER, 0, intra_comm,       &
      &               error)
 
@@ -298,9 +307,10 @@
 !>
 !>  @see integration_path
 !>
-!>  @param[in] context A @ref the model.
-!>  @param[in] xcart   A the integration point.
+!>  @param[in] context A @ref sxrem_context for the model.
+!>  @param[in] xcart   The integration point.
 !>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] dx      Length along the integration.
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The sxrem(x)*dl at point x.
 !>
@@ -308,7 +318,7 @@
 !>  generic passed to the function. This is the fortran eqivalent to a void
 !>  pointer in C. 
 !-------------------------------------------------------------------------------
-      FUNCTION sxr_function(context, xcart, dxcart, dx)
+      FUNCTION sxr_function(context, xcart, dxcart, length, dx)
       USE coordinate_utilities
 
       IMPLICIT NONE
@@ -316,6 +326,7 @@
 !  Declare Arguments
       CHARACTER(len=1), INTENT(in)          :: context(:)
       REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL(rprec), INTENT(in)               :: length
       REAL(rprec), INTENT(in)               :: dx
       REAL(rprec)                           :: sxr_function
 
@@ -327,7 +338,7 @@
       start_time = profiler_get_start_time()
 
       sxr_context = TRANSFER(context, sxr_context)
-      sxr_function = model_get_sxrem(sxr_context%model, xcart,                 &
+      sxr_function = model_get_sxrem(sxr_context%model, xcart, length,         &
      &                               sxr_context%profile_number)*dx
 
       CALL profiler_set_stop_time('sxr_function', start_time)

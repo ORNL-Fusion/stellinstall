@@ -378,6 +378,7 @@
 !>  @param[in] context A @ref the model.
 !>  @param[in] xcart   A the integration point.
 !>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration. Not used in this function.
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The ne(x)*dl at point x.
 !>
@@ -385,7 +386,7 @@
 !>  generic passed to the function. This is the fortran eqivalent to a void
 !>  pointer in C.
 !-------------------------------------------------------------------------------
-      FUNCTION int_function(context, xcart, dxcart, dx)
+      FUNCTION int_function(context, xcart, dxcart, length, dx)
       USE model
 
       IMPLICIT NONE
@@ -393,7 +394,7 @@
 !  Declare Arguments
       CHARACTER(len=1), INTENT(in)          :: context(:)
       REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
-      REAL(rprec), INTENT(in)               :: dx
+      REAL(rprec), INTENT(in)               :: length, dx
       REAL(rprec)                           :: int_function
 
 !  local variables
@@ -424,6 +425,7 @@
 !>  @param[in] context A @ref the model.
 !>  @param[in] xcart   A the integration point.
 !>  @param[in] dxcart  A vector change in path.
+!>  @param[in] length  Length along the integration. Not used in this function.
 !>  @param[in] dx      A scalar change in path. Not used in this function.
 !>  @returns The ne(x)*B.dl at point x.
 !>
@@ -431,7 +433,7 @@
 !>  generic passed to the function. This is the fortran eqivalent to a void
 !>  pointer in C.
 !-------------------------------------------------------------------------------
-      FUNCTION pol_function(context, xcart, dxcart, dx)
+      FUNCTION pol_function(context, xcart, dxcart, length, dx)
       USE model
 
       IMPLICIT NONE
@@ -439,7 +441,7 @@
 !  Declare Arguments
       CHARACTER(len=1), INTENT(in)          :: context(:)
       REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
-      REAL(rprec), INTENT(in)               :: dx
+      REAL(rprec), INTENT(in)               :: length, dx
       REAL(rprec)                           :: pol_function
 
 !  local variables

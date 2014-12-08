@@ -44,6 +44,7 @@
 
       MODULE model
       USE equilibrium
+      USE emission
 
       IMPLICIT NONE
 
@@ -51,20 +52,22 @@
 !  model module parameters
 !*******************************************************************************
 !>  No model.
-      INTEGER, PARAMETER, PRIVATE :: model_none_type     = -1
+      INTEGER, PARAMETER, PRIVATE :: model_none_type        = -1
 
 !>  Electron denisty model.
-      INTEGER, PARAMETER, PRIVATE :: model_ne_type       =  0
+      INTEGER, PARAMETER, PRIVATE :: model_ne_type          =  0
 !>  Electron denisty model is derived from the temperature and pressure.
-      INTEGER, PARAMETER, PRIVATE :: model_ne_te_p_type  =  1
+      INTEGER, PARAMETER, PRIVATE :: model_ne_te_p_type     =  1
 
 !>  Soft X-ray Emissivity.
-      INTEGER, PARAMETER, PRIVATE :: model_sxrem_type    =  0
+      INTEGER, PARAMETER, PRIVATE :: model_sxrem_type       =  0
+!>  Soft X-ray Emissivity model is derived from the density and temperature.
+      INTEGER, PARAMETER, PRIVATE :: model_sxrem_te_ne_type =  1
 
 !>  Electron temperature model.
-      INTEGER, PARAMETER, PRIVATE :: model_te_type       =  0
+      INTEGER, PARAMETER, PRIVATE :: model_te_type          =  0
 !>  Electron temperature model is derived from the density and pressure.
-      INTEGER, PARAMETER, PRIVATE :: model_te_ne_p_type  =  1
+      INTEGER, PARAMETER, PRIVATE :: model_te_ne_p_type     =  1
 
 !  Model parameter ids
 !>  Parameter id for the electron density units.
@@ -113,6 +116,12 @@
          REAL (rprec) :: te_min = 0.0
 !>  Electron pressure fraction.
          REAL (rprec) :: pressure_fraction = 0.0
+
+!>  Soft X-Ray emission function.
+         TYPE (emission_class), POINTER        :: emission => null()
+!>  Filter transmission functions.
+         REAL (rprec), DIMENSION(:,:), POINTER :: transmission => null()
+
 !>  The @ref equilibrium.
          TYPE (equilibrium_class), POINTER :: equilibrium => null()
 
@@ -184,7 +193,8 @@
 !-------------------------------------------------------------------------------
       FUNCTION model_construct_new(ne_type, sxrem_type, te_type,               &
      &                             ne_unit, ne_min, te_min,                    &
-     &                             pressure_fraction, equilibrium)
+     &                             pressure_fraction, emission,                &
+     &                             equilibrium)
 
       IMPLICIT NONE
 
@@ -198,6 +208,7 @@
       REAL (rprec), INTENT(in)                      :: ne_min
       REAL (rprec), INTENT(in)                      :: te_min
       REAL (rprec), INTENT(in)                      :: pressure_fraction
+      TYPE (emission_class), POINTER                :: emission
       TYPE (equilibrium_class), POINTER             :: equilibrium
 
 !  local variables
@@ -238,6 +249,10 @@
 
             CASE ('pp_sxrem')
                model_construct_new%sxrem_type(i) = model_sxrem_type
+
+            CASE ('pp_sxrem_te_ne')
+               model_construct_new%sxrem_type(i) =                             &
+     &            model_sxrem_te_ne_type
 
             CASE DEFAULT
                WRITE (*,*)                                                     &
@@ -281,6 +296,12 @@
       model_construct_new%ne_min = ne_min
       model_construct_new%te_min = te_min
       model_construct_new%pressure_fraction = pressure_fraction
+
+      model_construct_new%emission => emission
+      IF (ASSOCIATED(model_construct_new%emission)) THEN
+
+      END IF
+
       model_construct_new%equilibrium => equilibrium
 
       grid_size = equilibrium_get_grid_size(equilibrium)
@@ -324,6 +345,7 @@
       INTEGER                     :: error
       INTEGER                     :: sxrem_size
       INTEGER                     :: grid_size
+      LOGICAL                     :: use_emission
 
 !  Start of executable code
       ALLOCATE(model_construct_mpi)
@@ -346,6 +368,11 @@
      &               intra_comm, error)
       CALL MPI_BCAST(model_construct_mpi%pressure_fraction, 1,                 &
      &               MPI_REAL8, 0, intra_comm, error)
+
+      CALL MPI_BCAST(use_emission, 1, MPI_LOGICAL, 0, intra_comm, error)
+      IF (use_emission) THEN
+         model_construct_mpi%emission => emission_construct(intra_comm)
+      END IF
 
       model_construct_mpi%equilibrium =>                                       &
      &   equilibrium_construct(intra_comm)
@@ -396,6 +423,11 @@
       IF (ASSOCIATED(this%sxrem_type)) THEN
          DEALLOCATE(this%sxrem_type)
          this%sxrem_type => null()
+      END IF
+
+      IF (ASSOCIATED(this%emission)) THEN
+         CALL emission_destruct(this%emission)
+         this%emission => null()
       END IF
 
       IF (ASSOCIATED(this%equilibrium)) THEN
@@ -584,7 +616,7 @@
          CASE (model_pressure_fraction_id)
             model_get_param_value = this%pressure_fraction
 
-!  Not every equilibrium will provide grid for these profiles.
+!  Not every equilibrium will provide a grid for these profiles.
          CASE (model_ne_grid_id)
             IF (ASSOCIATED(this%ne_grid)) THEN
                model_get_param_value = this%ne_grid(i_index)
@@ -894,10 +926,11 @@
 !>
 !>  @param[in] this   A @ref model_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
+!>  @param[in] length Distance to the camera.
 !>  @param[in] index  Index of the soft x-ray emissivity model.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem_cart(this, x_cart, index)
+      FUNCTION model_get_sxrem_cart(this, x_cart, length, index)
 
       IMPLICIT NONE
 
@@ -905,6 +938,7 @@
       REAL (rprec)                           :: model_get_sxrem_cart
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      REAL (rprec), INTENT(in)               :: length
       INTEGER, INTENT(in)                    :: index
 
 !  local variables
@@ -918,6 +952,12 @@
          CASE (model_sxrem_type)
             model_get_sxrem_cart =                                             &
      &         equilibrium_get_sxrem(this%equilibrium, x_cart, index)
+
+         CASE (model_sxrem_te_ne_type)
+            model_get_sxrem_cart = length*length*                              &
+     &         emission_get_emission(this%emission,                            &
+     &                               model_get_te(this, x_cart),               &
+     &                               model_get_ne(this, x_cart), index)
 
          CASE DEFAULT
             model_get_sxrem_cart = -2.0E49_rprec
@@ -936,10 +976,11 @@
 !>
 !>  @param[in] this  A @ref model_class instance.
 !>  @param[in] r     Radial position to get the soft x-ray emissivity at.
+!>  @param[in] length Distance to the camera.
 !>  @param[in] index Index of the soft x-ray emissivity model.
 !>  @returns The soft x-ray emissivity at r.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem_radial(this, r, index)
+      FUNCTION model_get_sxrem_radial(this, r, length, index)
 
       IMPLICIT NONE
 
@@ -947,6 +988,7 @@
       REAL (rprec)                   :: model_get_sxrem_radial
       TYPE (model_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)       :: r
+      REAL (rprec), INTENT(in)       :: length
       INTEGER, INTENT(in)            :: index
 
 !  local variables
@@ -960,6 +1002,12 @@
          CASE (model_sxrem_type)
             model_get_sxrem_radial =                                           &
      &         equilibrium_get_sxrem(this%equilibrium, r, index)
+
+         CASE (model_sxrem_te_ne_type)
+            model_get_sxrem_radial = length*length*                            &
+     &         emission_get_emission(this%emission,                            &
+     &                               model_get_te(this, r),                    &
+     &                               model_get_ne(this, r), index)
 
          CASE DEFAULT
             model_get_sxrem_radial = -2.0E49_rprec
@@ -1172,7 +1220,10 @@
             DO i = 1, SIZE(this%sxrem_grid, 2)
                r = (i - 1)*this%grid_step + this%grid_start
                DO j = 1, SIZE(this%sxrem_grid, 1)
-                   this%sxrem_grid(j,i) = model_get_sxrem(this, r, j)
+!  The length to the camera is not really known here so use 1 here. Since this
+!  is meant to map out the emission profile this is ok.
+                   this%sxrem_grid(j,i) = model_get_sxrem(this, r,             &
+     &                                                    1.0_dp, j)
                END DO
             END DO
          END IF
@@ -1597,6 +1648,12 @@
       CALL MPI_BCAST(this%te_min, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%pressure_fraction, 1, MPI_REAL8, 0,                  &
      &               intra_comm, error)
+
+      CALL MPI_BCAST(ASSOCIATED(this%emission), 1, MPI_LOGICAL, 0,             &
+     &               intra_comm, error)
+      IF (ASSOCIATED(this%emission)) THEN
+         CALL emission_sync_children(this%emission, intra_comm)
+      END IF
 
       CALL equilibrium_sync_children(this%equilibrium, intra_comm)
 

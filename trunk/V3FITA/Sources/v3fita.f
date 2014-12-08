@@ -669,6 +669,7 @@
       INTEGER                                        :: i
       LOGICAL                                        :: not_converged
       REAL (rprec)                                   :: start_time
+      TYPE (emission_class), POINTER :: emission_func => null()
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -681,6 +682,11 @@
      &                                  pp_sxrem_af_a(i,:))
       END DO
 
+!  Create a emission object if an emission file was provided.
+      IF (TRIM(emission_file) .ne. '') THEN
+         emission_func => emission_construct(emission_file)
+      END IF
+
 !  If the woutfile in the v3fit namelist input file is specifed, assume that the
 !  equilibrium is converged.
       not_converged = TRIM(vmec_wout_input) .eq. ''
@@ -688,6 +694,7 @@
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
+     &   emission_func,                                                        &
      &   equilibrium_construct(                                                &
      &      vmec_construct(vmec_nli_filename, vmec_wout_input,                 &
      &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
@@ -721,13 +728,20 @@
 
 !  local variables
       REAL (rprec)                              :: start_time
+      TYPE (emission_class), POINTER :: emission_func => null()
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+!  Create a emission object if an emission file was provided.
+      IF (TRIM(emission_file) .ne. '') THEN
+         emission_func => emission_construct(emission_file)
+      END IF
+
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
+     &   emission_func,                                                        &
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve))
