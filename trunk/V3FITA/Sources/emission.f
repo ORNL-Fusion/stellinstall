@@ -22,9 +22,9 @@
 !>     @item{te_step,      Temperature step.,                  Scalar}
 !>     @item{energy_start, Initial energy.,                    Scalar}
 !>     @item{energy_step,  Energy step.,                       Scalar}
-!>     @item{emission,     Soft X-Ray emission function.,      (Number Temperatures\, Number Energies)}
-!>     @item{transmission, Filter transmission function.,      (Number Cameras\, Number Energies)}
-!>     @item{absorption,   Absorption function of the camera., (Number Cameras\, Number Energies)}
+!>     @item{emission,     Soft X-Ray emission function.,      (Number Energies\, Number Temperatures)}
+!>     @item{transmission, Filter transmission function.,      (Number Energies\, Number Cameras)}
+!>     @item{absorption,   Absorption function of the camera., (Number Energies\, Number Cameras)}
 !>  @end_table
 !>
 !*******************************************************************************
