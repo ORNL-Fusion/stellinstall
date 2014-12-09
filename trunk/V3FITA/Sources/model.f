@@ -1125,6 +1125,9 @@
          CASE (model_sxrem_type)
             model_get_sxrem_type = 'pp_sxrem'
 
+         CASE (model_sxrem_te_ne_type)
+            model_get_sxrem_type = 'pp_sxrem_te_ne'
+
          CASE DEFAULT
             model_get_sxrem_type = 'none'
 
