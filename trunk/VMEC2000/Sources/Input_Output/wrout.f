@@ -19,7 +19,11 @@
       USE totzsp_mod
       USE vforces, ONLY: bsupua=>brmn_e, bsupva=>czmn_o, bsqa=>bzmn_e, 
      1                   bsubsa=>armn_e, bsubua=>azmn_e, bsubva=>armn_o 
-      USE vacmod, ONLY: potvac, mnpd    !added for diagno, J.Geiger
+#ifdef _VACUUM2
+      USE vac2_vacmod, ONLY: potvac, mnpd, xmpot, xnpot
+#else
+      USE vacmod, ONLY: potvac, mnpd, xmpot, xnpot    !added for diagno, J.Geiger
+#endif
 #ifdef _HBANGLE
       USE angle_constraints, ONLY: getrz
 #endif
@@ -32,6 +36,7 @@
      3  vn_asym, vn_recon, vn_free, vn_error, vn_aspect, vn_beta, 
      4  vn_pbeta, vn_tbeta, vn_abeta, vn_b0, vn_rbt0, vn_maxmod_nyq,
      5  vn_rbt1, vn_sgs, vn_lar, vn_modB, vn_ctor, vn_amin, vn_Rmaj, 
+     5  vn_potsin, vn_potcos, vn_maxpot, vn_xmpot, vn_xnpot,             !diagno/extender output (SPH071414)
      6  vn_vol, vn_mse, vn_thom, vn_ac, vn_ai, vn_am, vn_rfp, 
      6  vn_pmass_type, vn_pcurr_type, vn_piota_type,
      6  vn_am_aux_s, vn_am_aux_f, vn_ac_aux_s, vn_ac_aux_f, 
@@ -52,6 +57,7 @@
      H  ln_version, ln_extension, ln_mgrid,
      1  ln_magen, ln_therm, ln_gam, ln_maxr, ln_minr, ln_maxz, ln_fp,
      2  ln_radnod, ln_polmod, ln_tormod, ln_maxmod, ln_maxit, ln_actit,
+     2  ln_maxpot, ln_potsin, ln_potcos,
      3  ln_asym, ln_recon, ln_free, ln_error, ln_aspect, ln_beta, 
      4  ln_pbeta, ln_tbeta, ln_abeta, ln_b0, ln_rbt0, ln_maxmod_nyq,
      5  ln_rbt1, ln_sgs, ln_lar, ln_modB, ln_ctor, ln_amin, ln_Rmaj, 
@@ -99,6 +105,7 @@
       CHARACTER(LEN=*), PARAMETER, DIMENSION(1) ::
      1             r1dim = (/'radius'/), mn1dim = (/'mn_mode'/),
      2             mn2dim = (/'mn_mode_nyq'/),
+     2             mnpotdim = (/'mn_mode_pot'/),
      3             currg = (/'ext_current'/),
      4             currl = (/'current_label'/)
       CHARACTER(LEN=*), DIMENSION(2), PARAMETER :: 
@@ -308,10 +315,11 @@
       END IF
 
       CALL cdf_define(nwout, vn_nextcur, nextcur)
-      CALL cdf_define(nwout, vn_extcur,
-     1        extcur(1:nextcur), dimname=currg)
+      CALL cdf_define(nwout, vn_extcur, extcur(1:nextcur), 
+     1                dimname=currg)
       CALL cdf_define(nwout, vn_mgmode, mgrid_mode)
       IF (lfreeb) THEN
+         CALL cdf_define(nwout, vn_maxpot, mnpd)
          CALL cdf_define(nwout, vn_flp, nobser)
          CALL cdf_define(nwout, vn_nobd, nobd)
          CALL cdf_define(nwout, vn_nbset, nbsets)
@@ -454,9 +462,24 @@
       CALL cdf_define(nwout, vn_wdot, wdot(1:nstore_seq),
      1                dimname=(/'time'/))
 
-      IF (lfreeb .and. nextcur.gt.0 .and. ALLOCATED(curlabel)) THEN
+      IF (lfreeb) THEN
+         CALL cdf_define(nwout, vn_potsin, potvac(1:mnpd),
+     1                   dimname=mnpotdim)
+         CALL cdf_setatt(nwout, vn_potsin, ln_potsin)
+         CALL cdf_define(nwout, vn_xmpot, xmpot(1:mnpd),
+     1                   dimname=mnpotdim)
+         CALL cdf_define(nwout, vn_xnpot, xnpot(1:mnpd),
+     1                   dimname=mnpotdim)
+         IF (lasym) THEN 
+            CALL cdf_define(nwout, vn_potcos, 
+     1                      potvac(1+mnpd:2*mnpd), dimname=mnpotdim)
+            CALL cdf_setatt(nwout, vn_potcos, ln_potcos)
+         END IF
+
+         IF (nextcur.gt.0 .and. ALLOCATED(curlabel)) THEN
          CALL cdf_define(nwout, vn_curlab,
      1        curlabel(1:nextcur), dimname=currl)
+         END IF
       ENDIF
 
 ! 2D Arrays
@@ -583,6 +606,7 @@
       ENDIF
       IF (lfreeb) THEN
          CALL cdf_write(nwout, vn_flp, nobser)
+         CALL cdf_write(nwout, vn_maxpot, mnpd)
          CALL cdf_write(nwout, vn_nobd, nobd)
          CALL cdf_write(nwout, vn_nbset, nbsets)
          IF (nextcur.gt.0 .and. ALLOCATED(curlabel))
@@ -598,7 +622,11 @@
       CALL cdf_write(nwout, vn_tmod, xn)
       CALL cdf_write(nwout, vn_pmod_nyq, xm_nyq0)
       CALL cdf_write(nwout, vn_tmod_nyq, xn_nyq0)
-
+      CALL cdf_write(nwout, vn_potsin, potvac(1:mnpd))
+      IF (lasym) CALL cdf_write(nwout, vn_potcos, potvac(1+mnpd:2*mnpd))
+      CALL cdf_write(nwout, vn_xmpot, xmpot)
+      CALL cdf_write(nwout, vn_xnpot, xnpot)
+     
 940   CONTINUE   ! before closing, write the initial part of the wouttxt-file
 #endif
       IF(lwouttxt) THEN
@@ -997,23 +1025,48 @@
      3             tmult
          END DO
       END DO
-#endif
-!!#ifdef _DEBUG
+
       WRITE(333,*)' VMEC2000 V8.51'
-      WRITE(333,*)'    MN       GMNC         GMNS           BMNC' //
-     1            '          BMNS'
-      IF (.NOT.lasym) THEN
-      DO mn = 1, mnmax_nyq0 
-         WRITE (333,'(i6,1p,4e14.4)') mn, gmnc(mn,ns/2), 0., 
-     1                                    bmnc(mn,ns/2), 0.
-      END DO
+      IF (lasym) THEN
+         WRITE(333,2002) 'mn', 'rmnc', 'rmns', 'zmnc', 'zmns',                 &
+     &                         'lmnc', 'lmns', 'gmnc', 'gmns',                 &
+     &                         'bmnc', 'bmns',                                 &
+     &                         'bsubumnc', 'bsubumns',                         &
+     &                         'bsubvmnc', 'bsubvmns',                         &
+     &                         'bsubsmnc', 'bsubsmns',                         &
+     &                         'bsupumnc', 'bsupumns',                         &
+     &                         'bsupvmnc', 'bsupvmns'
       ELSE
-      DO mn = 1, mnmax_nyq0 
-         WRITE (333,'(i6,1p,4e14.4)') mn, gmnc(mn,ns/2), gmns(mn,ns/2),
-     1                                bmnc(mn,ns/2), bmns(mn,ns/2)
-      END DO
+         WRITE(333,2000) 'mn', 'rmnc', 'lmns', 'gmnc', 'bmnc',                 &
+     &                         'bsubumnc', 'bsubvmnc',                         &
+     &                         'bsubsmns',                                     &
+     &                         'bsupumnc', 'bsupvmnc'
       END IF
-!!#endif
+      DO mn = 1, mnmax_nyq0
+         IF (lasym) THEN
+            WRITE(333,2003) mn, rmnc(mn,ns/2), rmns(mn,ns/2),                  &
+     &                          zmnc(mn,ns/2), zmns(mn,ns/2),                  &
+     &                          lmnc(mn,ns/2), lmns(mn,ns/2),                  &
+     &                          gmnc(mn,ns/2), gmns(mn,ns/2),                  &
+     &                          bmnc(mn,ns/2), bmns(mn,ns/2),                  &
+     &                          bsubumnc(mn,ns/2), bsubumns(mn,ns/2),          &
+     &                          bsubvmnc(mn,ns/2), bsubvmns(mn,ns/2),          &
+     &                          bsubsmnc(mn,ns/2), bsubsmns(mn,ns/2),          &
+     &                          bsupumnc(mn,ns/2), bsupumns(mn,ns/2),          &
+     &                          bsupvmnc(mn,ns/2), bsupvmns(mn,ns/2)
+         ELSE
+            WRITE(333,2001) mn, rmnc(mn,ns/2), lmns(mn,ns/2),                  &
+     &                          gmnc(mn,ns/2), bmnc(mn,ns/2),                  &
+     &                          bsubumnc(mn,ns/2), bsubvmnc(mn,ns/2),          &
+     &                          bsubsmns(mn,ns/2),                             &
+     &                          bsupumnc(mn,ns/2), bsupvmnc(mn,ns/2)
+         END IF
+      END DO
+2000  FORMAT(a2,10(2x,a12))
+2001  FORMAT(i2,10(2x,e12.5))
+2002  FORMAT(a2,20(2x,a12))
+2003  FORMAT(i2,20(2x,es12.5))
+#endif
 !
 !     WRITE OUT ARRAYS
 !

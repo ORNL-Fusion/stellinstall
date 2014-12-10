@@ -8,7 +8,11 @@
 #ifdef _ANIMEC
      3  ,tau_an => brmn_o
 #endif
+#ifdef _VACUUM2
+      USE vac2_vacmod
+#else
       USE vacmod
+#endif
       USE vsvd
       USE vspline
       USE csplinx
@@ -75,7 +79,7 @@ C-----------------------------------------------
       rmncc => rzl_array(:,:,:,rcc)
       zmnsc => rzl_array(:,:,:,zsc+ntmax) 
       IF (lasym) THEN
-        rmaga => rzl_array(1,:,0,rsc)
+        rmaga => rzl_array(1,:,0,rcs)
         zmaga => rzl_array(1,:,0,zcc+ntmax)
       END IF
 
@@ -333,7 +337,7 @@ C-----------------------------------------------
 
       redge(:nznt) = r1(ns:nrzt:ns,0) + r1(ns:nrzt:ns,1)
       IF (lfreeb .and. ivac.gt.1) THEN
-         phat = bsqvac(:) - p5*(bsubvvac/redge(:))**2
+         phat = bsqvac - p5*(bsubvvac/redge)**2
       ELSE
          phat = c1p5*bsq(ns:nrzt:ns) - p5*bsq(ns-1:nrzt:ns)
      1        - p5*(rbtor/redge(:))**2

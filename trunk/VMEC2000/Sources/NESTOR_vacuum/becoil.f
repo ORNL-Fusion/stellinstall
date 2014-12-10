@@ -1,14 +1,14 @@
-      SUBROUTINE becoil(rad, zee, br, bp, bz, brvac, bpvac, bzvac)
+      SUBROUTINE becoil(rad, zee, br, bp, bz)
       USE vparams, ONLY: nthreed
       USE vacmod
+      USE mgrid_mod, ONLY: nr0b, np0b, nz0b, brvac, bpvac, bzvac,
+     1                     rminb, zminb, rmaxb, zmaxb, delrb, delzb
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       REAL(rprec), DIMENSION(nuv2), INTENT(in) :: rad, zee
       REAL(rprec), DIMENSION(nuv2), INTENT(out) :: br, bp, bz
-      REAL(rprec), DIMENSION(nr0b,nz0b,np0b), INTENT(in) ::
-     1   brvac, bpvac, bzvac
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------

@@ -153,8 +153,8 @@
       bsupv(2:nrzt) = p5*phipog(2:nrzt)*(lu(2:nrzt,0) + lu(1:nrzt-1,0) 
      1              + shalf(2:nrzt)*(lu(2:nrzt,1) + lu(1:nrzt-1,1)))
 !v8.49: add ndim points
-      bsupu(1) =0;  bsupu(ndim) = 0
-      bsupv(1) =0;  bsupv(ndim) = 0
+      bsupu(1)=0;  bsupu(ndim)=0
+      bsupv(1)=0;  bsupv(ndim)=0
 
 !
 !     UPDATE IOTA EITHER OF TWO WAYS:
@@ -365,10 +365,6 @@
 #endif
       ENDIF
 
-!
-!     COMPUTE COVARIANT BSUBU,V (EVEN, ODD) ON HALF RADIAL MESH
-!     FOR FORCE BALANCE AND RETURN (IEQUI=1)
-!
 !
 !     COMPUTE COVARIANT BSUBU,V (EVEN, ODD) ON HALF RADIAL MESH
 !     FOR FORCE BALANCE AND RETURN (IEQUI=1)

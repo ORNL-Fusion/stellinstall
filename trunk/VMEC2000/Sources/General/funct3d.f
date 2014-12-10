@@ -1,6 +1,10 @@
       SUBROUTINE funct3d (lscreen, ier_flag)
       USE vmec_main
+#ifdef _VACUUM2
+      USE vac2_vacmod, ONLY: mf, nf, bsqvac
+#else
       USE vacmod, ONLY: bsqvac, raxis_nestor, zaxis_nestor
+#endif
       USE vmec_params, ONLY: bad_jacobian_flag, zsc
       USE realspace
       USE vforces
@@ -16,14 +20,14 @@
       USE angle_constraints, ONLY: getrz, getfrho, xtempa
 #endif
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(inout) :: ier_flag
       LOGICAL, INTENT(in) :: lscreen
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: l0pi, l, lk, ivacskip
       INTEGER :: nvskip0 = 0
       REAL(dp), DIMENSION(mnmax) ::
@@ -31,10 +35,7 @@ C-----------------------------------------------
       REAL(dp), DIMENSION(:), POINTER :: lu, lv
       REAL(dp) :: presf_ns, delr_mse, delt0
       REAL(dp), EXTERNAL :: pmass
-C-----------------------------------------------
-!
-!     POINTER ALIASES
-!
+!-----------------------------------------------
 !
 !     POINTER ALIASES
 !
@@ -115,14 +116,12 @@ C-----------------------------------------------
 !
 !     COMPUTE CONSTRAINT RCON, ZCON
 !
-      DO l = 1,nrzt
 #ifndef _HBANGLE
-         rcon(l,0) = rcon(l,0) + rcon(l,1)*sqrts(l)
-         zcon(l,0) = zcon(l,0) + zcon(l,1)*sqrts(l)
+      rcon(:nrzt,0) = rcon(:nrzt,0) + rcon(:nrzt,1)*sqrts(:nrzt)
+      zcon(:nrzt,0) = zcon(:nrzt,0) + zcon(:nrzt,1)*sqrts(:nrzt)
 #endif
-         ru0(l) = ru(l,0) + ru(l,1)*sqrts(l)
-         zu0(l) = zu(l,0) + zu(l,1)*sqrts(l)
-      END DO
+      ru0(:nrzt) = ru(:nrzt,0) + ru(:nrzt,1)*sqrts(:nrzt)
+      zu0(:nrzt) = zu(:nrzt,0) + zu(:nrzt,1)*sqrts(:nrzt)
 
 !
 !     COMPUTE RCON0, ZCON0 FOR FIXED BOUNDARY BY SCALING EDGE VALUES
@@ -207,19 +206,25 @@ C-----------------------------------------------
                IF (ictrl_prec2d .eq. 3) ivacskip = 1       !Fast vacuum calculation used to compute Hessian
             END IF
 
+!           NOTE: gc contains correct edge values of r,z,l arrays
+!                 convert_sym, convert_asym have been applied to m=1 modes
+            CALL convert (rmnc, zmns, lmns, rmns, zmnc, lmnc, gc, ns)
+#ifdef _VACUUM2
+            CALL vac2_vacuum(rmnc, rmns, zmns, zmnc, xm, xn, ctor, 
+     1                       ivacskip, mnmax)
+
+#else
 !           DO NOT UPDATE THIS WHEN USING PRECONDITIONER: BREAKS TRI-DIAGONAL STRUCTURE
             IF (ictrl_prec2d .eq. 0) THEN
                raxis_nestor(1:nzeta) = r1(1:ns*nzeta:ns,0)
                zaxis_nestor(1:nzeta) = z1(1:ns*nzeta:ns,0)
             END IF
 
-!           NOTE: gc contains correct edge values of r,z,l arrays
-!                 convert_sym, convert_asym have been applied to m=1 modes
-            CALL convert (rmnc, zmns, lmns, rmns, zmnc, lmnc, gc, ns)
             CALL vacuum (rmnc, rmns, zmns, zmnc, xm, xn, 
      1                   ctor, rbtor, wint, ns, ivacskip, ivac, mnmax,
      2                   ier_flag, lscreen)
             IF (ier_flag .ne. 0) GOTO 100
+#endif
 !
 !           RESET FIRST TIME FOR SOFT START
 !

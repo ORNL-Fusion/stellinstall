@@ -20,8 +20,8 @@ C-----------------------------------------------
       gcons = 0
       gcona = 0
 
-      gcs(:,:ntor,:mpol1) = 0;  gsc(:,:ntor,:mpol1) = 0
-      gcc(:,:ntor,:mpol1) = 0;  gss(:,:ntor,:mpol1) = 0
+      gcs = 0;  gsc = 0
+      gcc = 0;  gss = 0
 
       DO m = 1, mpol1-1
          work = 0

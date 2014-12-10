@@ -14,7 +14,7 @@
      2                      ,pp3 
       USE fbal, ONLY: bimax_ppargrad
 #endif
-! #undef NETCDF
+#undef NETCDF
 #ifdef NETCDF
       USE ezcdf
 #endif
@@ -139,7 +139,7 @@
       legend(1) = " S = normalized toroidal flux (0 - 1)"
       IF (lasym) THEN
          legend(2) = " U = VMEC poloidal angle (0 - 2*pi, FULL period)"
-	ELSE
+      ELSE
          legend(2) = " U = VMEC poloidal angle (0 - pi, HALF a period)"
 	END IF
       legend(3) = " V = VMEC (geometric) toroidal angle (0 - 2*pi)"

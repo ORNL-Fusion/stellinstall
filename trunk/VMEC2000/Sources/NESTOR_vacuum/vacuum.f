@@ -40,7 +40,7 @@ C-----------------------------------------------
       IF (.not.ALLOCATED(potvac)) STOP 'POTVAC not ALLOCATED in VACCUM'
 
       ALLOCATE (amatrix(mnpd2*mnpd2), bsubu(nuv2), bsubv(nuv2),
-     1    potu(nuv2), potv(nuv2), stat = i)
+     1    potu(nuv2), potv(nuv2), stat=i)
       IF (i .ne. 0) STOP 'Allocation error in vacuum'
 
       potsin => potvac(1:mnpd)

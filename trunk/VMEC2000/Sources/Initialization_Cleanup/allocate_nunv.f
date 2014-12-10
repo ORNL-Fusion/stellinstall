@@ -1,7 +1,11 @@
       SUBROUTINE allocate_nunv
       USE vmec_main
       USE vmec_params, ONLY: ntmax
+#ifdef _VACUUM2
+      USE vac2_vacmod
+#else
       USE vacmod
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
@@ -23,9 +27,13 @@ C-----------------------------------------------
 
 !     PERSISTENT ARRAYS (DURATION OF PROGRAM)
       IF (lfreeb)
+#ifdef _VACUUM2
+     1   ALLOCATE (bsqsav(nznt,3), potvac(2*mnpd), stat=istat1)
+#else
      1   ALLOCATE (amatsav(mnpd2*mnpd2),bvecsav(mnpd2),
      2          bsqsav(nznt,3), potvac(2*mnpd), raxis_nestor(nv),
      3          zaxis_nestor(nv), stat=istat1)
+#endif
          IF (istat1.ne.0) STOP 'allocation error #3 in allocate_nunv'
 
       END SUBROUTINE allocate_nunv

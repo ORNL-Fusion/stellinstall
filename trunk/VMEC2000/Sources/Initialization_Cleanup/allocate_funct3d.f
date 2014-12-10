@@ -2,7 +2,11 @@
       USE vmec_main
       USE realspace
       USE vforces
+#ifdef _VACUUM2
+      USE vac2_vacmod
+#else
       USE vacmod
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s

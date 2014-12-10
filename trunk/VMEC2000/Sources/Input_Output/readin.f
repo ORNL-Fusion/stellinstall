@@ -1,25 +1,31 @@
       SUBROUTINE readin(input_file, iseq_count, ier_flag, lscreen)
       USE vmec_main
       USE vmec_params
+#ifdef _VACUUM2
+      USE vac2_vacmod
+#else
       USE vacmod
+#endif
       USE vsvd
       USE vspline
       USE timer_sub
-      USE mgrid_mod, ONLY: nextcur, curlabel, nfper0, read_mgrid
+      USE mgrid_mod, ONLY: nextcur, curlabel, nfper0, read_mgrid, 
+     1                     nr0b, nz0b, np0b, rminb, rmaxb,
+     2                     zminb, zmaxb
       USE init_geometry
 #ifdef _HBANGLE
       USE angle_constraints, ONLY: HB_EXP=>pexp
 #endif
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER :: iseq_count, ier_flag
       LOGICAL :: lscreen
       CHARACTER(LEN=*) :: input_file
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: iexit, ipoint, n, iunit, ier_flag_init,
      1   i, ni, m, nsmin, igrid, mj, isgn, ioff, joff
       REAL(rprec), DIMENSION(:,:), POINTER ::

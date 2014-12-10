@@ -1,6 +1,10 @@
       SUBROUTINE vsetup (iseq_count)
       USE vmec_main
+#ifdef _VACUUM2
+      USE vac2_vacmod
+#else
       USE vacmod
+#endif
       USE realspace
       USE vsvd
       USE mgrid_mod, ONLY: nbcoil_max, nlim_max, nextcur, mgrid_mode

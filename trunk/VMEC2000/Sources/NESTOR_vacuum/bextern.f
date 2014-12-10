@@ -1,6 +1,5 @@
       SUBROUTINE bextern(plascur, wint, ns)
       USE vacmod
-      USE mgrid_mod, ONLY: bvac
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -17,7 +16,6 @@ C-----------------------------------------------
 c
 c  exterior Neumann problem
 c
-      IF (.not.ALLOCATED(bvac)) STOP 'BVAC unallocated in bextern'
       ALLOCATE (brad(nuv2), bphi(nuv2), bz(nuv2), stat=i)
       IF (i .ne. 0) STOP 'allocation error in bextern'
 
@@ -28,7 +26,7 @@ c
 !     COMPUTE B FROM COILS ON THE PLASMA BOUNDARY
 !
 
-      CALL becoil(r1b,z1b,brad,bphi,bz,bvac(1,1),bvac(1,2),bvac(1,3))
+      CALL becoil(r1b,z1b,brad,bphi,bz)
 
 !
 !     COMPUTE B (ON PLASMA BOUNDARY) FROM NET TOROIDAL PLASMA CURRENT

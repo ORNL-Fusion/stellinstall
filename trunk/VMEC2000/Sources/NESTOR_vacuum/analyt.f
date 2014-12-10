@@ -1,22 +1,22 @@
       SUBROUTINE analyt(grpmn, bvec, ivacskip, ndim)
       USE vacmod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(in) :: ivacskip, ndim
       REAL(rprec), INTENT(out) :: grpmn(nuv2*mnpd2)
       REAL(rprec), INTENT(out) :: bvec(mnpd2)
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: l, n, m
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::
      1   r0p, r1p, r0m, r1m, sqrtc, sqrta, tlp2, tlp1, tlp, tlm2,
      2    tlm1, tlm, adp, adm, cma, ra1p, ra1m, slm, slp, tlpm, slpm,
      3    delt1u, azp1u, azm1u, cma11u, sqad1u, sqad2u
       REAL(rprec) :: fl, fl1, sign1
-C-----------------------------------------------
+!-----------------------------------------------
       ALLOCATE (r0p(nuv2), r1p(nuv2), r0m(nuv2), r1m(nuv2),
      1          sqrtc(nuv2), sqrta(nuv2), tlp2(nuv2), tlp1(nuv2),
      2          tlp(nuv2), tlm2(nuv2), tlm1(nuv2), tlm(nuv2), adp(nuv2),
@@ -178,5 +178,4 @@ C-----------------------------------------------
      1          tlp, tlm2, tlm1, tlm, adp, adm, cma, ra1p, ra1m, slm,
      2          slp, tlpm, slpm, delt1u, azp1u, azm1u, cma11u, sqad1u,
      3          sqad2u, stat = l)
-
       END SUBROUTINE analyt

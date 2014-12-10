@@ -17,7 +17,7 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       REAL(rprec), PARAMETER :: ftol_edge = 1.e-9_dp, c1p5 = 1.5_dp,
-     1      fac = 0.25_dp, edge_pedestal = 0.05_dp
+     1      fac=0.25_dp, edge_pedestal= 0.05_dp
       INTEGER :: m , mp, n, js, jmax, jmin4(0:mnsize-1)
       REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: ax, bx, dx
       REAL(rprec) :: mult_fac

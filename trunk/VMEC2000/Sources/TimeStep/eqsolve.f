@@ -69,9 +69,9 @@ C-----------------------------------------------
          xc = 0
          CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, .FALSE.)
          irst = 1
-         IF (liter_flag) CALL restart_iter(delt0)
+         IF (liter_flag) CALL restart_iter(delt0)    !(OFF IN v8.50)
       END IF
-!      IF (liter_flag) CALL restart_iter(delt0)
+!v8.50      IF (liter_flag) CALL restart_iter(delt0)
       liter_flag = .true.
       ier_flag = norm_term_flag
 

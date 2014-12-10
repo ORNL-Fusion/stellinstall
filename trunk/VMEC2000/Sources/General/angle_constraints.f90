@@ -47,6 +47,7 @@
          t2m(m) = t2m(m)**pexp
       END DO
 
+!      t1m(3) = 0
 !SPH-TEST (IMPROVES CONDITION #?)
 !      t1m(m2) = t2m(m2)
 
@@ -336,7 +337,8 @@
       END IF
 
 !ADD UNIQUE POLAR AXIS "CONSTRAINT"
-      frho_array(:,m1,1:ntmax) = 0                    !Unique angle
+      frho_array(:,m1,1:ntmax) = 0                   !Unique angle
+
 
       END SUBROUTINE getfrho
 
@@ -353,6 +355,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
+      REAL(dp), PARAMETER :: edge_pedestal=0.05_dp
       INTEGER :: m , mp, n, js, jmax, jmin4(0:mnsize-1)
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: arho, brho, drho,      &
                                                  arho2,brho2,drho2
@@ -378,11 +381,11 @@
   
       IF (SUM(gcz*gcz) .NE. SUM(gcen*gcen)) STOP 'ERROR #1 IN SCALFOR_RHO'
 
-      CALL scalaxis(arm, ard, crd, acen, bcen, dcen, jmax, gcen(:,:,1))
-      IF (lasym) CALL scalaxis(azm, azd, crd, acen, bcen, dcen, jmax, gcen(:,:,3))
+      CALL scalaxis(arm, ard, crd, acen, bcen, dcen, jmax, gcen(:,:,1), 0)
+      IF (lasym) CALL scalaxis(azm, azd, crd, acen, bcen, dcen, jmax, gcen(:,:,3), 0)
       IF (lthreed) THEN
-         CALL scalaxis(azm, azd, crd, acen, bcen, dcen, jmax, gcen(:,:,2))
-         IF (lasym) CALL scalaxis(arm, ard, crd, acen, bcen, dcen, jmax, gcen(:,:,4))
+         CALL scalaxis(azm, azd, crd, acen, bcen, dcen, jmax, gcen(:,:,2), 1)
+         IF (lasym) CALL scalaxis(arm, ard, crd, acen, bcen, dcen, jmax, gcen(:,:,4), 1)
       END IF
 
       gcz = 0
@@ -422,6 +425,16 @@
       CALL avg_rho(brho, brho2)
       CALL avg_rho(drho, drho2)
 
+      IF (jmax .ge. ns) THEN
+!
+!     SMALL EDGE PEDESTAL NEEDED TO IMPROVE CONVERGENCE
+!     IN PARTICULAR, NEEDED TO ACCOUNT FOR POTENTIAL ZERO
+!     EIGENVALUE DUE TO NEUMANN (GRADIENT) CONDITION AT EDGE
+!
+         drho(ns,:,:) = (1+edge_pedestal)*drho(ns,:,:)
+!         drho(ns,:,3:)  = (1+2*edge_pedestal)*drho(ns,:,3:)
+      END IF
+
       jmin4 = 2
       CALL tridslv (arho,drho,brho,gcr(:,:,:,rcc),jmin4,jmax,           &
                     mnsize-1,ns,1)
@@ -438,14 +451,17 @@
 
       END SUBROUTINE scalfor_rho
 
-      SUBROUTINE scalaxis(axm, axd, cxd, acen, bcen, dcen, jmax, gcen)
+      SUBROUTINE scalaxis(axm, axd, cxd, acen, bcen, dcen, jmax, gcen, iflag)
       USE vmec_main
       USE vmec_params
+      REAL(dp), PARAMETER :: edge_pedestal=0.15_dp, fac=0.25_dp
+!      REAL(dp), PARAMETER :: edge_pedestal=0.05_dp, fac=0.25_dp
       REAL(dp), INTENT(IN), DIMENSION(ns+1,2) ::  axm, axd
       REAL(dp), INTENT(IN), DIMENSION(ns+1)   ::  cxd
       REAL(dp), DIMENSION(ns,0:ntor) ::  acen, bcen, dcen
       REAL(dp), INTENT(INOUT) :: gcen(ns,0:ntor)
-      INTEGER, INTENT(IN)     :: jmax
+      REAL(dp) :: mult_fac
+      INTEGER, INTENT(IN)     :: jmax, iflag
       INTEGER :: mp, n, js, mnsize0, jmin4(0:mnsize-1)
 
       mp=1
@@ -456,6 +472,30 @@
             dcen(js,n) = -(axd(js,mp)+cxd(js)*(n*nfp)**2)
          END DO
       END DO
+
+      IF (jmax .ge. ns) THEN
+!
+!     SMALL EDGE PEDESTAL NEEDED TO IMPROVE CONVERGENCE
+!     IN PARTICULAR, NEEDED TO ACCOUNT FOR POTENTIAL ZERO
+!     EIGENVALUE DUE TO NEUMANN (GRADIENT) CONDITION AT EDGE
+!
+         dcen(ns,:)     = (1+edge_pedestal)*dcen(ns,:)
+!
+!     STABILIZATION ALGORITHM FOR ZC_00(NS)
+!     FOR UNSTABLE CASE, HAVE TO FLIP SIGN OF -FAC -> +FAC FOR CONVERGENCE
+!     COEFFICIENT OF < Ru (R Pvac)> ~ -fac*(z-zeq) WHERE fac (EIGENVALUE, OR
+!     FIELD INDEX) DEPENDS ON THE EQUILIBRIUM MAGNETIC FIELD AND CURRENT,
+!     AND zeq IS THE EQUILIBRIUM EDGE VALUE OF Z00
+          IF (iflag .eq. 1) THEN
+!
+!     METHOD 1: SUBTRACT (INSTABILITY) Pedge ~ fac*z/hs FROM PRECONDITIONER AT EDGE
+!
+             mult_fac = MIN(fac, fac*hs*15)
+             dcen(ns,0) = dcen(ns,0)*(1-mult_fac)/(1+edge_pedestal)
+          END IF
+
+      ENDIF
+
 
       mnsize0 = 1+ntor
       jmin4 = jmin3

@@ -1,6 +1,10 @@
       SUBROUTINE free_mem_nunv
       USE vmec_main
+#ifdef _VACUUM2
+      USE vac2_vacmod
+#else
       USE vacmod
+#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
@@ -16,10 +20,13 @@ C-----------------------------------------------
       IF (ALLOCATED(rmn_bdy))
      1    DEALLOCATE (rmn_bdy, zmn_bdy, stat=istat2)
 
-      IF (ALLOCATED(amatsav))
+      IF (ALLOCATED(potvac))
+#ifdef _VACUUM2
+     1    DEALLOCATE (potvac, bsqsav, stat=istat3)
+#else
      1    DEALLOCATE (amatsav, bvecsav, potvac, bsqsav, 
      2                raxis_nestor, zaxis_nestor, stat=istat3)
-
+#endif
       IF (istat1.ne.0 .or. istat2.ne.0 .or. istat3.ne.0) THEN
           PRINT *,' deallocation problem in free_mem_nunv'
           PRINT *,' istat1 = ',istat1,' istat2 = ',istat2
