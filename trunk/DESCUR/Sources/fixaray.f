@@ -14,7 +14,6 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l, nn0, n, m
-      REAL(rprec) :: sgn
 C-----------------------------------------------
 !
 !       This routine stores toroidal and poloidal mode number arrays
@@ -68,19 +67,18 @@ C-----------------------------------------------
          ENDIF
       END DO
 
-!
-!     FOR SECOND DERIVATIVE-TYPE CONSTRAINT, CHOOSE SGN = -one
-!
-      sgn = one                            !First derivative-TYPE constraint
-!     sgn = -one                      !Second derivative-TYPE constraint
+      t1m(0) = 0; t2m(0) = 0
       t1m(1) = one
       DO m = 2, mrho
         t1m(m) = (REAL(m-1, rprec)/m)**mexp
       END DO
-      DO m = 1,mrho-2
-        t2m(m) = sgn*(REAL(m+1, rprec)/m)**mexp
+      DO m = 1,mrho-1
+        t2m(m) = (REAL(m+1, rprec)/m)**mexp
       END DO
-      t2m(mrho-1) = zero
+!      t2m(mrho-1) = zero
       t2m(mrho) = zero
+
+!!SPH031214: BETTER FIT IF AXIS IS FIXED (mimics polar m=1 coupling)
+      t2m(0) = t1m(2)
 
       END SUBROUTINE fixaray

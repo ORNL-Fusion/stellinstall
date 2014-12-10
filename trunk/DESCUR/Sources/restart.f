@@ -35,6 +35,12 @@ C-----------------------------------------------
             STOP
          ENDIF
          RETURN
+
+!RESET AFTER EACH CROSS SECTION FOR MULTI-TOROIDAL PLANE INPUT FILE
+      CASE (0)
+         nresets = 0
+         RETURN
+
       END SELECT
 
       END SUBROUTINE restart

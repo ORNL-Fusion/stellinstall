@@ -97,7 +97,8 @@ C-----------------------------------------------
 
 !
 !     COMPUTE CURVE FORCES
-!     1. Magnetic axis forces
+!     1. Magnetic axis forces: to artificially freeze axis at R0N,Z0N values
+!                              (set in inguess), set these to zero
 !
       m = 0
       gr0c = dnorm*SUM(cosa(:ntheta,m)*r1(:ntheta))
@@ -108,8 +109,8 @@ C-----------------------------------------------
 !     (NOTE: RHO for m=0 IS EQUIVALENT TO THE L(v)-TERM => ARCLENGTH, Eq.14 H-B paper)
 !
       DO m = 0, mrho1
-         IF (m .le. 1) THEN
-            t1 = dnorm/t1m(m+1)
+         IF (m .le. 0) THEN
+            t1 = dnorm/MAX(t1m(m+1),0.1_dp)
             grhoc(m) = t1*SUM(cosa(:ntheta,m+1)*r1(:ntheta) +
      1                        sina(:ntheta,m+1)*z1(:ntheta))
             grhos(m) = t1*SUM(sina(:ntheta,m+1)*r1(:ntheta) -
@@ -117,6 +118,7 @@ C-----------------------------------------------
          ELSE
             t1 = t1m(m+1)
             t2 = t2m(m-1)
+            IF (t1.EQ.0 .AND. t2.EQ.0) CYCLE
             tnorm = dnorm/(t1*t1 + t2*t2)
             t1 = t1*tnorm
             t2 = t2*tnorm

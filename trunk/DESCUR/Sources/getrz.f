@@ -13,11 +13,11 @@ C-----------------------------------------------
 C-----------------------------------------------
 
       mrho1 = mrho_in-1
-      rhos(0) = zero            !Enforce constraint on toroidal angle
+      rhos(0) = zero            !constraint on poloidal angle
 
       IF (m .eq. 0) THEN
-         rmc = r0c  !!!+ t2m(m)*rhoc(1)
-         zmc = z0c  !!!+ t2m(m)*rhos(1)
+         rmc = r0c  + t2m(m)*rhoc(1)
+         zmc = z0c  + t2m(m)*rhos(1)
          rms = zero
          zms = zero
       ELSE IF (m .lt. mrho1) THEN

@@ -63,12 +63,15 @@ c*****************************************************************
       DO m = 0, mrz-1
          IF( m.le.1 )then
             t1 = t1m(m+1)
+            IF (t1 .EQ. 0) CYCLE
             rhoc(m) = 0.5_dp*(r1c(m+1) + z1s(m+1))/t1
             rhos(m) = 0.5_dp*(r1s(m+1) - z1c(m+1))/t1
          ELSE
             t1 = t1m(m+1)
             t2 = t2m(m-1)
-            tnorm = 0.5_dp/(t1**2 + t2**2)
+            tnorm = t1**2 + t2**2
+            IF (tnorm .EQ. 0) CYCLE
+            tnorm = 0.5/tnorm
             rhoc(m) = tnorm*( (r1c(m+1) + z1s(m+1))*t1
      1                   +  (r1c(m-1) - z1s(m-1))*t2 )
             rhos(m) = tnorm*( (r1s(m+1) - z1c(m+1))*t1

@@ -115,9 +115,11 @@ c
 
          imodes = mrho
          delt = deltf
+         CALL restart(0)
 
          DO iter = 1, niter
             gvec(:n2) = zero
+
             CALL funct (xvec, xvec(1+mrho1), xvec(2:mrho1),
      1        xvec(2+mrho1:2*mrho1),xvec(2*mrho1+1:), gvec,
      2        gvec(1+mrho1), gvec(2:mrho1), gvec(2+mrho1:2*mrho1),

@@ -67,12 +67,12 @@ C-----------------------------------------------
 
       data rdshape/3.0, 0.991, 0.136, 0./
       data zdshape/0.0, 1.409, -0.118, 0./
-      data rbean/3.0, 1.042, 0.502,  - 0.0389/
-      data zbean/0.0, 1.339, 0.296,  - 0.0176/
+      data rbean/3.0, 1.042, 0.502, -0.0389/
+      data zbean/0.0, 1.339, 0.296, -0.0176/
       data rbelt/3.0, 0.453, 0., 0./
       data zbelt/0.0, 0.60, 0., 0.196/
-      data rellip/3.0E0, 1.000E0, 0., 0./
-      data zellip/0.0, 3.00E0, 0., 0./
+      data rellip/3.0E0, 1.0E0, 0., 0./
+      data zellip/0.0, 3.0E0, 0., 0./
       DATA rd3dc/1.600721E+00, 5.675630E-01, 8.285081E-02, 8.140693E-03,
      1     -5.756955E-03, 6.116248E-03, -9.446896E-04, 2.829636E-04,
      2      9.626338E-04, 1.882352E-04,  2.479652E-04, 2.384830E-04 /
@@ -269,7 +269,7 @@ c
       DO k = 1, nphi
          DO j = 1, ntheta
             i = i + 1
-	      IF (iread .eq. 1) THEN
+            IF (iread .eq. 1) THEN
                READ (20, *, iostat=itype) rin(i), dumphi, zin(i)
 	      ELSE
                READ (20, *, iostat=itype) rin(i), zin(i)
