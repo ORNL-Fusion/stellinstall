@@ -49,7 +49,10 @@
  find_package
  @endcode
  * function. If for some reason Cmake cannot find working copies of these 
- * libraries an error message should instruct the correct variables to set.
+ * libraries an error message should instruct the correct variables to set. If
+ * libraries can be found in non standard paths, setting the
+ * @fixed_width{CMAKE_PREFIX_PATH} variable will allow the automated search
+ * functions to find these files.
  *
  * The <a href="http://www.unidata.ucar.edu/software/netcdf/">NetCDF</a> 
  * provides routines for reading and writting binary files. Unlike the 
