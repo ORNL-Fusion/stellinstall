@@ -34,6 +34,8 @@
         vn_maxz = 'zmax_surf', vn_fp = 'nfp',                           &
         vn_radnod = 'ns', vn_polmod = 'mpol', vn_tormod = 'ntor',       &
         vn_maxmod = 'mnmax', vn_maxit = 'niter', vn_actit = 'itfsq',    &
+        vn_maxpot ='mnmaxpot', vn_potsin = 'potsin', vn_potcos = 'potcos', &
+        vn_xmpot = 'xmpot', vn_xnpot='xnpot',                           &
         vn_asym = 'lasym', vn_recon = 'lrecon',                         &
 
         vn_free = 'lfreeb', vn_moveaxis = 'lmove_axis',                 &
@@ -88,7 +90,12 @@
         ln_maxz = 'Maximum Z', ln_fp = 'Field Periods',                 &
         ln_radnod = 'Radial nodes', ln_polmod = 'Poloidal modes',       &
         ln_tormod = 'Toroidal modes', ln_maxmod = 'Fourier modes',      &
-        ln_maxmod_nyq = 'Fourier modes (Nyquist)',                      &
+        ln_maxmod_nyq = 'Max # Fourier modes (Nyquist)',                &
+        ln_maxpot = 'Max # Fourier modes (vacuum potential)',           &
+        ln_potsin = 'Vacuum potential sin modes',                       &
+        ln_potcos = 'Vacuum potential cos modes',                       &
+        ln_xmpot = 'Vacuum potential poloidal modes',                   &
+        ln_xnpot = 'Vacuum potential toroidal modes',                   &
         ln_maxit = 'Max iterations', ln_actit = 'Actual iterations',    &
         ln_asym = 'Asymmetry', ln_recon = 'Reconstruction',             &
         ln_free = 'Free boundary',                                      &
@@ -180,7 +187,8 @@
 !-----------------------------------------------
       INTEGER :: nfp, ns, mpol, ntor, mnmax, mnmax_nyq, itfsq, niter,   &
           iasym, ireconstruct, ierr_vmec, imse, itse, nstore_seq,       &
-          isnodes, ipnodes, imatch_phiedge, isigng, mnyq, nnyq, ntmax
+          isnodes, ipnodes, imatch_phiedge, isigng, mnyq, nnyq, ntmax,  &
+          mnmaxpot
       REAL(rprec) :: wb, wp, gamma, pfac, rmax_surf, rmin_surf,         &
           zmax_surf, aspect, betatot, betapol, betator, betaxis, b0,    &
           tswgt, msewgt, flmwgt, bcwgt, phidiam, version_,              &
@@ -197,9 +205,8 @@
           bsupumns, bsupvmns, currumns, currvmns 
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::                         &
          iotas, iotaf, presf, phipf, mass, pres, beta_vol, xm, xn,      &
-
-         qfact, chipf, phi, chi,                                        &
-         xm_nyq, xn_nyq, phip, buco, bvco, vp, overr, jcuru, jcurv,& 
+         potsin, potcos, xmpot, xnpot, qfact, chipf, phi, chi,          &
+         xm_nyq, xn_nyq, phip, buco, bvco, vp, overr, jcuru, jcurv,     & 
          specw, jdotb, bdotgradv, fsqt, wdot, am, ac, ai,               & 
          am_aux_s, am_aux_f, ac_aux_s, ac_aux_f, ai_aux_s, ai_aux_f,    &
          Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, extcur,             &
@@ -766,6 +773,8 @@
       CALL cdf_read(nwout, vn_polmod, mpol)
       CALL cdf_read(nwout, vn_tormod, ntor)
       CALL cdf_read(nwout, vn_maxmod, mnmax)
+      mnmaxpot=0
+      CALL cdf_read(nwout, vn_maxpot, mnmaxpot)
       mnmax_nyq = -1
       CALL cdf_read(nwout, vn_maxmod_nyq, mnmax_nyq)
       CALL cdf_read(nwout, vn_maxit, niter)
@@ -831,6 +840,13 @@
          ALLOCATE (xm_nyq(dimlens(1)), stat = ierror)
          CALL cdf_inquire(nwout, vn_tmod_nyq, dimlens)
          ALLOCATE (xn_nyq(dimlens(1)), stat = ierror)
+      END IF
+
+      IF (mnmaxpot .gt. 0) THEN
+         CALL cdf_inquire(nwout, vn_potsin, dimlens)
+         ALLOCATE (potsin(dimlens(1)), xmpot(dimlens(1)),               &
+                   xnpot(dimlens(1)), stat = ierror)
+         IF (lasym) ALLOCATE (potcos(dimlens(1)), stat = ierror)
       END IF
 
       CALL cdf_inquire(nwout, vn_racc, dimlens)
@@ -1003,6 +1019,13 @@
       ELSE
          CALL cdf_read(nwout, vn_pmod_nyq, xm_nyq)
          CALL cdf_read(nwout, vn_tmod_nyq, xn_nyq)
+      END IF
+
+      IF (mnmaxpot .GT. 0) THEN
+         CALL cdf_read(nwout, vn_potsin, potsin)
+         CALL cdf_read(nwout, vn_xmpot, xmpot)
+         CALL cdf_read(nwout, vn_xnpot, xnpot)           !includes nfp factor
+         IF (lasym) CALL cdf_read(nwout, vn_potcos, potcos)
       END IF
 
       mnyq = INT(MAXVAL(xm_nyq));  nnyq = INT(MAXVAL(ABS(xn_nyq)))/nfp
@@ -1427,29 +1450,50 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: js
-      REAL(rprec) :: ohs
+      REAL(rprec) :: ohs, hs, shalf(ns), sfull(ns)
+      REAL(rprec), DIMENSION(mnmax_nyq) :: bu1, bu0, bv1, bv0, t1, t2, t3
 !-----------------------------------------------
 !
 !     Computes current harmonics for currXmn == sqrt(g)*JsupX, X = u,v
 !     [Corrected above "JsubX" to "JsupX", JDH 2010-08-16]
 
-!     NOTE: bsubu,vmn are on HALF radial grid; bsubsmn are on FULL radial grid
+!     NOTE: bsub(s,u,v)mn are on HALF radial grid
+!          (in earlier versions, bsubsmn was on FULL radial grid)
 
 !
       ohs = (ns-1)
+      hs  = 1._dp/ohs
+
+      DO js = 2, ns
+         shalf(js) = SQRT(hs*(js-1.5_dp))
+         sfull(js) = SQRT(hs*(js-1))
+      END DO
+
       ALLOCATE (currumnc(mnmax_nyq,ns), currvmnc(mnmax_nyq,ns),         &
                 stat=ierror)
       IF (ierror .ne. 0) RETURN
       
       DO js = 2, ns-1
-         currumnc(:,js) = -xn_nyq(:)*bsubsmns(:,js)                     &
-                - ohs*(bsubvmnc(:,js+1) - bsubvmnc(:,js))
-         currvmnc(:,js) = -xm_nyq(:)*bsubsmns(:,js)                     &
-                + ohs*(bsubumnc(:,js+1) - bsubumnc(:,js))
+         WHERE (MOD(INT(xm_nyq),2) .EQ. 1) 
+            t1 = 0.5_dp*(shalf(js+1)*bsubsmns(:,js+1)                  &
+               +         shalf(js)  *bsubsmns(:,js)) /sfull(js)
+            bu0 = bsubumnc(:,js  )/shalf(js)
+            bu1 = bsubumnc(:,js+1)/shalf(js+1)
+            t2 = ohs*(bu1-bu0)*sfull(js)+0.25_dp*(bu0+bu1)/sfull(js)
+            bv0 = bsubvmnc(:,js  )/shalf(js)
+            bv1 = bsubvmnc(:,js+1)/shalf(js+1)
+            t3 = ohs*(bv1-bv0)*sfull(js)+0.25_dp*(bv0+bv1)/sfull(js)
+         ELSEWHERE
+            t1 = 0.5_dp*(bsubsmns(:,js+1)+bsubsmns(:,js))
+            t2 = ohs*(bsubumnc(:,js+1)-bsubumnc(:,js))
+            t3 = ohs*(bsubvmnc(:,js+1)-bsubvmnc(:,js))
+         ENDWHERE
+         currumnc(:,js) = -xn_nyq(:)*t1 - t3
+         currvmnc(:,js) = -xm_nyq(:)*t1 + t2
       END DO         
    
-      WHERE (xm_nyq .eq. 0)
-         currvmnc(:,1) =  2*ohs*bsubumnc(:,2)   !bsubumn!-->0 at s=0; 2 from half pt
+      WHERE (xm_nyq .LE. 1)
+         currvmnc(:,1) =  2*currvmnc(:,2) - currvmnc(:,3)
          currumnc(:,1) =  2*currumnc(:,2) - currumnc(:,3)
       ELSEWHERE
          currvmnc(:,1) = 0
@@ -1460,25 +1504,37 @@
       currvmnc(:,ns) = 2*currvmnc(:,ns-1) - currvmnc(:,ns-2)
       currumnc = currumnc/mu0;   currvmnc = currvmnc/mu0
 
-      IF (.not.lasym) RETURN
+      IF (.NOT.lasym) RETURN
 
       ALLOCATE (currumns(mnmax_nyq,ns), currvmns(mnmax_nyq,ns),         &
                 stat=ierror)
 
       DO js = 2, ns-1
-         currumns(:,js) =  xn_nyq(:)*bsubsmnc(:,js)                     &
-                - ohs*(bsubvmns(:,js+1) - bsubvmns(:,js))
-         currvmns(:,js) =  xm_nyq(:)*bsubsmnc(:,js)                     &
-                + ohs*(bsubumns(:,js+1) - bsubumns(:,js))
+         WHERE (MOD(INT(xm_nyq),2) .EQ. 1) 
+            t1 = 0.5_dp*(shalf(js+1)*bsubsmnc(:,js+1)                   &
+               +         shalf(js)  *bsubsmnc(:,js)) / sfull(js)
+            bu0 = bsubumns(:,js  )/shalf(js+1)
+            bu1 = bsubumns(:,js+1)/shalf(js+1)
+            t2 = ohs*(bu1-bu0)*sfull(js) + 0.25_dp*(bu0+bu1)/sfull(js)
+            bv0 = bsubvmns(:,js  )/shalf(js)
+            bv1 = bsubvmns(:,js+1)/shalf(js+1)
+            t3 = ohs*(bv1-bv0)*sfull(js)+0.25_dp*(bv0+bv1)/sfull(js)
+         ELSEWHERE
+            t1 = 0.5_dp*(bsubsmnc(:,js+1) + bsubsmnc(:,js))
+            t2 = ohs*(bsubumns(:,js+1)-bsubumns(:,js))
+            t3 = ohs*(bsubvmns(:,js+1)-bsubvmns(:,js))
+         END WHERE
+         currumns(:,js) =  xn_nyq(:)*t1 - t3
+         currvmns(:,js) =  xm_nyq(:)*t1 + t2
       END DO         
 
-      WHERE (xm_nyq .eq. 0)
-         currvmns(:,1) =  2*ohs*bsubumns(:,2)   !bsubumns->0 at s=0; 2 from half pt
+      WHERE (xm_nyq .LE. 1)
+         currvmns(:,1) =  2*currvmns(:,2) - currvmns(:,3)
          currumns(:,1) =  2*currumns(:,2) - currumns(:,3)
       ELSEWHERE
          currvmns(:,1) = 0
          currumns(:,1) = 0
-      ENDWHERE
+      END WHERE
       currumns(:,ns) = 2*currumns(:,ns-1) - currumns(:,ns-2)
       currvmns(:,ns) = 2*currvmns(:,ns-1) - currvmns(:,ns-2)
       currumns = currumns/mu0;   currvmns = currvmns/mu0
@@ -1505,8 +1561,9 @@
         pres, beta_vol, phip, buco, bvco, phi, vp, jcuru, am, ac, ai,   &
         jcurv, specw, Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, jdotb, &
         bdotgradv, raxis, zaxis, fsqt, wdot, stat=istat(3))
-
-
+ 
+      IF (ALLOCATED(potsin)) DEALLOCATE (potsin)
+      IF (ALLOCATED(potcos)) DEALLOCATE (potcos)
 
       IF (ALLOCATED(chipf)) DEALLOCATE (chipf, chi)
 

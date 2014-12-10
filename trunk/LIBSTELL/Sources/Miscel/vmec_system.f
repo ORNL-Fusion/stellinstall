@@ -20,7 +20,9 @@
       ireturn = system(TRIM(cmd))
 #else
       INTEGER, EXTERNAL :: system
-      ireturn = system(TRIM(cmd) // CHAR(0))
+      CHARACTER(LEN=LEN_TRIM(cmd)+1) :: cmd1
+      cmd1 = TRIM(cmd) // CHAR(0)
+      ireturn = system(TRIM(cmd1))
 #endif
       IF (PRESENT(ierror)) ierror = ireturn
 

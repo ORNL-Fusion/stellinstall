@@ -84,15 +84,15 @@
 !                    errors in B for stellarators and big errors in A
 !                    persist.  Benchmarking on flux loops indicates
 !                    flux correctly calculated despite A discrepancy.
+!                    9/10/14 - SAL
+!                    Fixed local deallocations.
 !-----------------------------------------------------------------------
       MODULE virtual_casing_mod
 !-----------------------------------------------------------------------
 !     Libraries
 !-----------------------------------------------------------------------
-#ifdef NTCC
       USE EZspline_obj
       USE EZspline
-#endif
 !-----------------------------------------------------------------------
 !     Module Variables
 !-----------------------------------------------------------------------
@@ -108,19 +108,16 @@
       DOUBLE PRECISION, ALLOCATABLE    :: btopx(:),btopy(:),btopz(:),btops(:)
       DOUBLE PRECISION, ALLOCATABLE    :: jx_3d(:), jy_3d(:),jz_3d(:)
       DOUBLE PRECISION, PARAMETER      :: pi2 = 6.283185482025146D+00
-      INTEGER, PARAMETER      :: IWRK = 16777216 ! 2^24
-!      DOUBLE PRECISION                 :: extcur_vc(100)
-!      CHARACTER(LEN=256)               :: mgrid_vc_file=''
-!      CHARACTER(LEN=256)               :: coil_vc_file=''
+      INTEGER, PARAMETER               :: IWRK = 16777216 ! 2^24
       CHARACTER(LEN=256)               :: vc_type_str=''
+      DOUBLE PRECISION, PRIVATE, PARAMETER      :: zero = 0.0D+0
+      DOUBLE PRECISION, PRIVATE, PARAMETER      :: one  = 1.0D+0
 
-#ifdef NTCC
       TYPE(EZspline2_r8)   :: x_spl, y_spl, z_spl
       TYPE(EZspline2_r8)   :: nx_spl, ny_spl, nz_spl
       TYPE(EZspline2_r8)   :: kx_spl, ky_spl, kz_spl, bn_spl
       TYPE(EZspline3_r8)   :: x3d_spl, y3d_spl, z3d_spl, jx3d_spl, jy3d_spl, jz3d_spl
 
-#endif
 !-----------------------------------------------------------------------
 !     Module Subroutines
 !          init_virtual_casing    Initializes the atop and surf arrays
@@ -212,7 +209,6 @@
       IF (ALLOCATED(btopy)) DEALLOCATE(btopy)
       IF (ALLOCATED(btopz)) DEALLOCATE(btopz)
       IF (ALLOCATED(btops)) DEALLOCATE(btops)
-#ifdef NTCC
       IF (EZspline_allocated(x_spl)) CALL EZspline_free(x_spl,ier)
       IF (EZspline_allocated(y_spl)) CALL EZspline_free(y_spl,ier)
       IF (EZspline_allocated(z_spl)) CALL EZspline_free(z_spl,ier)
@@ -224,28 +220,20 @@
       IF (EZspline_allocated(kz_spl)) CALL EZspline_free(kz_spl,ier)
       IF (EZspline_allocated(bn_spl)) CALL EZspline_free(bn_spl,ier)
 
-#endif
       ! Initialize varaibles
       bcs1=(/-1,-1/)
       bcs2=(/-1,-1/)
-#ifdef NTCC
-      adapt_tol = 1.0E-5
-      adapt_rel = 1.0E-3
-
-#else
-      adapt_tol = -1.0
-      adapt_rel = -1.0
-
-#endif
-      factor = pi2 / FLOAT(nfp)
+      adapt_tol = 1.0D-5
+      adapt_rel = 1.0D-3
+      factor = pi2 / DBLE(nfp)
       nr_vc = 1
       nu_vc = nu
       nv_vc = nv
       nuv = nu * nv
       nvp = nv * nfp
       nuvp = nu * nv * nfp
-      norm = 1./(2*pi2*nuvp)
-      norm_nag = nfp/(pi2*2.0)
+      norm = one/(2*pi2*nuvp)
+      norm_nag = nfp/(pi2*2)
       vc_type_str='Surface Current'
       ! Alloocations
       ALLOCATE(xu(1:nu),xv(1:nv))
@@ -259,10 +247,10 @@
       ALLOCATE(nxreal(1:nu+1,1:nvp+1),nyreal(1:nu+1,1:nvp+1),nzreal(1:nu+1,1:nvp+1))
       ALLOCATE(kxreal(1:nu+1,1:nvp+1),kyreal(1:nu+1,1:nvp+1),kzreal(1:nu+1,1:nvp+1))
       ALLOCATE(btopreal(1:nu+1,1:nvp+1))
-      r_temp=0.0; z_temp=0.0; bs_temp=0.0; bu_temp=0.0; bv_temp=0.0
-      dr_temp=1.0;
-      FORALL(u=1:nu) xu(u) = REAL(u-1)/REAL(nu)
-      FORALL(v=1:nv) xv(v) = REAL(v-1)/REAL(nv)
+      r_temp=zero; z_temp=zero; bs_temp=zero; bu_temp=zero; bv_temp=zero
+      dr_temp=one;
+      FORALL(u=1:nu) xu(u) = DBLE(u-1)/DBLE(nu)
+      FORALL(v=1:nv) xv(v) = DBLE(v-1)/DBLE(nv)
       CALL mntouv_local(1,2,mnmax,nu,nv,xu,xv,rmnc,xm,xn,r_temp,0,1)
       CALL mntouv_local(1,2,mnmax,nu,nv,xu,xv,zmns,xm,xn,z_temp,1,0)
       IF (PRESENT(bsmns)) CALL mntouv_local(1,1,mnmax,nu,nv,xu,xv,bsmns,xm,xn,bs_temp,1,0)
@@ -275,7 +263,7 @@
       IF (PRESENT(bvmns)) CALL mntouv_local(1,1,mnmax,nu,nv,xu,xv,bvmns,xm,xn,bv_temp,1,0)
       IF (PRESENT(dr)) dr_temp = dr
       
-      xreal = 0.0; yreal = 0.0; zreal=0.0
+      xreal = zero; yreal = zero; zreal=zero
       uv = 1
       DO v = 1, nv
          DO u = 1, nu
@@ -295,7 +283,7 @@
       
       ! Now we calculate the edge metric elements
       ALLOCATE(fmn_temp(1:mnmax,1))
-      rs = 0.0; zs = 0.0; ru = 0.0; zu = 0.0; rv = 0.0; zv = 0.0
+      rs = zero; zs = 0.0; ru = zero; zu = zero; rv = zero; zv = zero
       FORALL(mn = 1:mnmax) fmn_temp(mn,1) = -rmnc(mn,2)*xm(mn)
       CALL mntouv_local(1,1,mnmax,nu,nv,xu,xv,fmn_temp,xm,xn,ru,1,0)
       FORALL(mn = 1:mnmax) fmn_temp(mn,1) = -rmnc(mn,2)*xn(mn)
@@ -324,14 +312,14 @@
       END DO
       
       ALLOCATE(btopx(1:nuvp), btopy(1:nuvp), btopz(1:nuvp),btops(1:nuvp))
-      btopx = 0.0; btopy = 0.0; btopz = 0.0; btops = 0.0; btopreal = 0.0
-      kxreal = 0.0; kyreal = 0.0; kzreal = 0.0;
-      nxreal = 0.0; nyreal = 0.0; nzreal = 0.0;
+      btopx = zero; btopy = zero; btopz = zero; btops = zero; btopreal = zero
+      kxreal = zero; kyreal = zero; kzreal = zero;
+      nxreal = zero; nyreal = zero; nzreal = zero;
       uv = 1
       ! Check sign of jacobian
-      signs = 1.0
-      stotal = 0.0
-      IF (zreal(2,1)-zreal(1,1) < 0) signs = -1.0
+      signs = one
+      stotal = zero
+      IF (zreal(2,1)-zreal(1,1) < 0) signs = -one
       ! u then v if not outputting
       DO v = 1, nv
          DO u = 1, nu
@@ -344,7 +332,7 @@
             snx     = -yu*zv(u,v,1)*pi2      + zu(u,v,1)*yv*pi2
             sny     = -xv_temp*zu(u,v,1)*pi2 + zv(u,v,1)*xu_temp*pi2
             snz     = -xu_temp*yv        + yu*xv_temp
-            sn      = SQRT(snx*snx+sny*sny+snz*snz)
+            sn      = DSQRT(snx*snx+sny*sny+snz*snz)
             stotal = stotal + sn
             brs   = bs_temp(u,v,1)*rs(u,v,1)+bu_temp(u,v,1)*ru(u,v,1)+bv_temp(u,v,1)*rv(u,v,1)*nfp
             bphis = bv_temp(u,v,1)*r_temp(u,v,2)
@@ -432,7 +420,7 @@
       nzreal(:,nvp+1) = nzreal(:,1)
       btopreal(:,nvp+1) = btopreal(:,1)
       ! Calculate Return map
-      min_delta_x = 1.0E+10
+      min_delta_x = 1.0D+10
       DO v = 2, nv-1
          DO u = 2, nu-1
              dx = xreal(nu+1,nv) - xreal(nu-1,nv)
@@ -446,7 +434,6 @@
          END DO
       END DO
       ! Construct Splines
-#ifdef NTCC
       CALL EZspline_init(x_spl,nu+1,nvp+1,bcs1,bcs2,ier)
       CALL EZspline_init(y_spl,nu+1,nvp+1,bcs1,bcs2,ier)
       CALL EZspline_init(z_spl,nu+1,nvp+1,bcs1,bcs2,ier)
@@ -460,28 +447,28 @@
       ! Define arrays from 0 to 1 because integrand already contains
       ! dA information.
       DO  u = 1, nu+1
-         x_spl%x1(u) = REAL(u-1)/REAL(nu)
-         y_spl%x1(u) = REAL(u-1)/REAL(nu)
-         z_spl%x1(u) = REAL(u-1)/REAL(nu)
-         nx_spl%x1(u) = REAL(u-1)/REAL(nu)
-         ny_spl%x1(u) = REAL(u-1)/REAL(nu)
-         nz_spl%x1(u) = REAL(u-1)/REAL(nu)
-         kx_spl%x1(u) = REAL(u-1)/REAL(nu)
-         ky_spl%x1(u) = REAL(u-1)/REAL(nu)
-         kz_spl%x1(u) = REAL(u-1)/REAL(nu)
-         bn_spl%x1(u) = REAL(u-1)/REAL(nu)
+         x_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         y_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         z_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         nx_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         ny_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         nz_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         kx_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         ky_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         kz_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         bn_spl%x1(u) = DBLE(u-1)/DBLE(nu)
       END DO
       DO  v = 1, nvp+1
-         x_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         y_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         z_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         nx_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         ny_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         nz_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         kx_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         ky_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         kz_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         bn_spl%x2(v) = REAL(v-1)/REAL(nvp)
+         x_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         y_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         z_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         nx_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         ny_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         nz_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         kx_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         ky_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         kz_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         bn_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
       END DO
       x_spl%isHermite  = 1
       y_spl%isHermite  = 1
@@ -503,16 +490,14 @@
       CALL EZspline_setup(ky_spl,kyreal,ier)
       CALL EZspline_setup(kz_spl,kzreal,ier)
       CALL EZspline_setup(bn_spl,btopreal,ier)
-
-#endif
       DEALLOCATE(xu,xv)
       DEALLOCATE(r_temp,z_temp)
       DEALLOCATE(bs_temp,bu_temp,bv_temp)
       DEALLOCATE(rs,ru,rv)
       DEALLOCATE(zs,zu,zv)
       DEALLOCATE(xreal,yreal,zreal)
-      DEALLOCATE(kxreal,kyreal,kzreal,btopreal)
       DEALLOCATE(nxreal,nyreal,nzreal)
+      DEALLOCATE(kxreal,kyreal,kzreal,btopreal)
       DEALLOCATE(fmn_temp)
       ! END SUBROUTINE
       END SUBROUTINE init_virtual_casing_dbl
@@ -552,7 +537,6 @@
       IF (ALLOCATED(btopy)) DEALLOCATE(btopy)
       IF (ALLOCATED(btopz)) DEALLOCATE(btopz)
       IF (ALLOCATED(btops)) DEALLOCATE(btops)
-#ifdef NTCC
       IF (EZspline_allocated(x_spl)) CALL EZspline_free(x_spl,ier)
       IF (EZspline_allocated(y_spl)) CALL EZspline_free(y_spl,ier)
       IF (EZspline_allocated(z_spl)) CALL EZspline_free(z_spl,ier)
@@ -563,21 +547,19 @@
       IF (EZspline_allocated(ky_spl)) CALL EZspline_free(ky_spl,ier)
       IF (EZspline_allocated(kz_spl)) CALL EZspline_free(kz_spl,ier)
       IF (EZspline_allocated(bn_spl)) CALL EZspline_free(bn_spl,ier)
-
-#endif
       ! Initialize varaibles
       bcs1=(/-1,-1/)
       bcs2=(/-1,-1/)
-      adapt_tol = 1.0E-5
-      adapt_rel = 1.0E-3
-      factor = pi2 / FLOAT(nfp)
+      adapt_tol = 1.0D-5
+      adapt_rel = 1.0D-3
+      factor = pi2 / DBLE(nfp)
       nu_vc = nu
       nv_vc = nv
       nuv = nu * nv
       nvp = nv * nfp
       nuvp = nu * nv * nfp
-      norm = 1./(2*pi2*nu*nv)
-      norm_nag = 1./(2.0*pi2)
+      norm = one/(2*pi2*nu*nv)
+      norm_nag = one/(2*pi2)
       vc_type_str='Surface Current (REALSPACE)'
       ! Alloocations
       ALLOCATE(xsurf(1:nuvp),ysurf(1:nuvp),zsurf(1:nuvp))
@@ -587,12 +569,12 @@
       ALLOCATE(nxreal(1:nu+1,1:nvp+1),nyreal(1:nu+1,1:nvp+1),nzreal(1:nu+1,1:nvp+1))
       ALLOCATE(kxreal(1:nu+1,1:nvp+1),kyreal(1:nu+1,1:nvp+1),kzreal(1:nu+1,1:nvp+1))
       ALLOCATE(btopreal(1:nu+1,1:nvp+1))
-      dr_temp=1.0;
+      dr_temp=one;
       uv = 1
       DO v = 1, nv
          DO u = 1, nu
-            xsurf(uv)   = rreal(u,v)*cos(phi(nv))
-            ysurf(uv)   = rreal(u,v)*sin(phi(nv))
+            xsurf(uv)   = rreal(u,v)*dcos(phi(nv))
+            ysurf(uv)   = rreal(u,v)*dsin(phi(nv))
             zsurf(uv)   = zreal(u,v)
             xreal(u,v)  = xsurf(uv)
             yreal(u,v)  = ysurf(uv)
@@ -606,19 +588,19 @@
       zreal2(nu+1,:) = zreal2(1,:)
       
       ALLOCATE(btopx(1:nuvp), btopy(1:nuvp), btopz(1:nuvp),btops(1:nuvp))
-      btopx = 0.0; btopy = 0.0; btopz = 0.0; btops = 0.0; btopreal = 0.0
+      btopx = zero; btopy = zero; btopz = zero; btops = zero; btopreal = zero
       uv = 1
       ! Check sign of jacobian
-      signs = -1.0
+      signs = -one
       IF (zreal2(2,1) < 0) signs = 1.0
       ! u then v if not outputting
       DO v = 1, nv
          DO u = 1, nu
-            cop   = cos(phi(v))
-            sip   = sin(phi(v))
+            cop   = dcos(phi(v))
+            sip   = dsin(phi(v))
             snx   = snr(u,v)*cop - snphi(u,v)*sip
             sny   = snr(u,v)*sip + snphi(u,v)*cop
-            sn    = SQRT(snx*snx+sny*sny+snz(u,v)*snz(u,v))
+            sn    = DSQRT(snx*snx+sny*sny+snz(u,v)*snz(u,v))
             bxs   = brreal(u,v)*cop - bphireal(u,v)*sip
             bys   = brreal(u,v)*sip + bphireal(u,v)*cop
             bzs   = bzreal(u,v)
@@ -646,8 +628,8 @@
       nyreal(nu+1,:) = nyreal(1,:)
       nzreal(nu+1,:) = nzreal(1,:)
       DO v = 2, nfp
-         cop  = cos((v-1)*factor)
-         sip  = sin((v-1)*factor)
+         cop  = dcos((v-1)*factor)
+         sip  = dsin((v-1)*factor)
          dex1 = (v-1)*nuv+1
          dex2 = v*nuv
          btopx(dex1:dex2) = btopx(1:nuv)*cop - btopy(1:nuv)*sip
@@ -684,7 +666,7 @@
       nzreal(:,nvp+1) = nzreal(:,1)
       btopreal(:,nvp+1) = btopreal(:,1)
       ! Calculate Return map
-      min_delta_x = 1.0E+10
+      min_delta_x = 1.0D+10
       DO v = 2, nv-1
          DO u = 2, nu-1
              dx = xreal(nu+1,nv) - xreal(nu-1,nv)
@@ -697,8 +679,6 @@
              min_delta_x=MIN(min_delta_x,SQRT(dx*dx+dy*dy+dz*dz))
          END DO
       END DO
-
-#ifdef NTCC
       ! Construct Splines
       CALL EZspline_init(x_spl,nu+1,nvp+1,bcs1,bcs2,ier)
       CALL EZspline_init(y_spl,nu+1,nvp+1,bcs1,bcs2,ier)
@@ -713,28 +693,28 @@
       ! Define arrays from 0 to 1 because integrand already contains
       ! dA information.
       DO  u = 1, nu+1
-         x_spl%x1(u) = REAL(u-1)/REAL(nu)
-         y_spl%x1(u) = REAL(u-1)/REAL(nu)
-         z_spl%x1(u) = REAL(u-1)/REAL(nu)
-         nx_spl%x1(u) = REAL(u-1)/REAL(nu)
-         ny_spl%x1(u) = REAL(u-1)/REAL(nu)
-         nz_spl%x1(u) = REAL(u-1)/REAL(nu)
-         kx_spl%x1(u) = REAL(u-1)/REAL(nu)
-         ky_spl%x1(u) = REAL(u-1)/REAL(nu)
-         kz_spl%x1(u) = REAL(u-1)/REAL(nu)
-         bn_spl%x1(u) = REAL(u-1)/REAL(nu)
+         x_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         y_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         z_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         nx_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         ny_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         nz_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         kx_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         ky_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         kz_spl%x1(u) = DBLE(u-1)/DBLE(nu)
+         bn_spl%x1(u) = DBLE(u-1)/DBLE(nu)
       END DO
       DO  v = 1, nvp+1
-         x_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         y_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         z_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         nx_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         ny_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         nz_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         kx_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         ky_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         kz_spl%x2(v) = REAL(v-1)/REAL(nvp)
-         bn_spl%x2(v) = REAL(v-1)/REAL(nvp)
+         x_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         y_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         z_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         nx_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         ny_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         nz_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         kx_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         ky_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         kz_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
+         bn_spl%x2(v) = DBLE(v-1)/DBLE(nvp)
       END DO
       x_spl%isHermite  = 1
       y_spl%isHermite  = 1
@@ -757,7 +737,6 @@
       CALL EZspline_setup(nz_spl,nzreal,ier)
       CALL EZspline_setup(bn_spl,btopreal,ier)
 
-#endif
       DEALLOCATE(r_temp,z_temp)
       DEALLOCATE(xreal,yreal,zreal2)
       DEALLOCATE(kxreal,kyreal,kzreal,btopreal)
@@ -793,11 +772,11 @@
       DOUBLE PRECISION :: bumnst(1:mnmax_flt,1),bvmnst(1:mnmax_flt,1)
       DOUBLE PRECISION :: drt
       ! BEGIN SUBROUTINE
-      rmnct = 0.0; rmnst = 0.0; zmnct = 0.0; zmnst = 0.0
-      bsmnct = 0.0; bsmnst = 0.0
-      bumnct = 0.0; bumnst = 0.0
-      bvmnct = 0.0; bvmnst = 0.0
-      drt    = 1.0
+      rmnct = zero; rmnst = zero; zmnct = zero; zmnst = zero
+      bsmnct = zero; bsmnst = zero
+      bumnct = zero; bumnst = zero
+      bvmnct = zero; bvmnst = zero
+      drt    = one
       rmnct  = rmnc_flt
       zmnst  = zmns_flt
       IF (PRESENT(rmns_flt))  rmnst = rmns_flt
@@ -864,12 +843,12 @@
       INTEGER :: ier
       ! BEGIN SUBROUTINE
       nuvp = 0
-      norm = -1
+      norm = -one
       IF (ALLOCATED(xsurf)) DEALLOCATE(xsurf, ysurf, zsurf)
       IF (ALLOCATED(nxsurf))DEALLOCATE(nxsurf, nysurf, nzsurf)
       IF (ALLOCATED(btopx))DEALLOCATE(btopx, btopy, btopz, btops)
+      IF (ALLOCATED(jx_3d))DEALLOCATE(jx_3d, jy_3d, jz_3d)
 
-#ifdef NTCC
       IF (EZspline_allocated(x_spl)) CALL EZspline_free(x_spl,ier)
       IF (EZspline_allocated(y_spl)) CALL EZspline_free(y_spl,ier)
       IF (EZspline_allocated(z_spl)) CALL EZspline_free(z_spl,ier)
@@ -887,7 +866,6 @@
       IF (EZspline_allocated(jy3d_spl)) CALL EZspline_free(jy3d_spl,ier)
       IF (EZspline_allocated(jz3d_spl)) CALL EZspline_free(jz3d_spl,ier)
 
-#endif
       ! END SUBROUTINE
       END SUBROUTINE free_virtual_casing                        
       !-----------------------------------------------------------------
@@ -902,7 +880,7 @@
       ! LOCAL VARIABLES
       DOUBLE PRECISION ::  gf(1:nuvp), gf3(1:nuvp)
       ! BEGIN SUBROUTINE
-      gf(1:nuvp) = 1./sqrt(  (x-xsurf(1:nuvp))**2 &
+      gf(1:nuvp) = one/dsqrt(  (x-xsurf(1:nuvp))**2 &
                                  + (y-ysurf(1:nuvp))**2 &
                                  + (z-zsurf(1:nuvp))**2)
       gf3 = gf*gf*gf
@@ -933,9 +911,9 @@
       xt  = x_flt
       yt  = y_flt
       zt  = z_flt
-      bxt = bx_flt
-      byt = by_flt
-      bzt = bz_flt
+      bxt = zero
+      byt = zero
+      bzt = zero
       CALL bfield_virtual_casing_dbl(xt,yt,zt,bxt,byt,bzt)
       bx_flt = bxt
       by_flt = byt
@@ -981,27 +959,22 @@
          RETURN
       END IF
 
-#ifndef NTCC
-      CALL bfield_virtual_casing_dbl(x,y,z,bx,by,bz)
-      RETURN
-
-#endif
-      a_nag(1:2) = 0.0
-      b_nag(1:2) = 1.0
+      a_nag(1:2) = zero
+      b_nag(1:2) = one
       mincls_nag = MIN_CLS
       maxcls_nag = IWRK
-      !absreq_nag = 0.0
+      !absreq_nag = zero
       absreq_nag = adapt_tol       ! Talk to Stuart about proper values
       relreq_nag = adapt_rel ! Talk to Stuart about proper values
-      finest_nag = 0.0
-      absest_nag = 0.0
+      finest_nag = zero
+      absest_nag = zero
       x_nag      = x
       y_nag      = y
       z_nag      = z
       adapt_rerun = .true.
       subs = 1
       restar = 0
-      DO WHILE (adapt_rerun)
+      DO WHILE (adapt_rerun) 
 
 #ifdef NAG
          CALL D01EAF(ndim_nag,a_nag,b_nag,mincls_nag,maxcls_nag,nfun_nag,funsub_nag_b,absreq_nag,&
@@ -1014,9 +987,9 @@
             mincls_nag = 64
             restar = 1
          ELSE IF (istat < 0) THEN
-            bx = 0
-            by = 0
-            bz = 0
+            bx = zero
+            by = zero
+            bz = zero
             adapt_rerun=.false.
          ELSE
             bx = finest_nag(1)
@@ -1026,25 +999,36 @@
          END IF
 
 #else
-         wrklen = ((maxcls_nag-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
-         ALLOCATE(vrtwrk(wrklen))
+         IF (.not.ALLOCATED(vrtwrk)) THEN
+            wrklen = ((maxcls_nag-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
+            ALLOCATE(vrtwrk(wrklen),STAT=istat)
+            IF (istat .ne. 0) THEN
+               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
+               WRITE(6,*) '   ISTAT: ',istat
+               RETURN
+            END IF
+         END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_b,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
-         DEALLOCATE(vrtwrk)
+         !PRINT *,istat,mincls_nag,funcls,maxcls_nag,finest_nag(1),finest_nag(2),finest_nag(3)
          IF (istat == 1) THEN
             maxcls_nag = maxcls_nag*10
             mincls_nag = funcls
             restar = 1
+            istat = 0
          ELSE IF (istat > 1) THEN
-            bx = 0
-            by = 0
-            bz = 0
+            bx = zero
+            by = zero
+            bz = zero
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          ELSE
             bx = finest_nag(1)
             by = finest_nag(2)
             bz = finest_nag(3)
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          END IF
 
 #endif
@@ -1069,9 +1053,9 @@
       xt = x_flt
       yt = y_flt
       zt = z_flt
-      bxt = bx_flt
-      byt = by_flt
-      bzt = bz_flt
+      bxt = zero
+      byt = zero
+      bzt = zero
       CALL bfield_virtual_casing_adapt_dbl(xt,yt,zt,bxt,byt,bzt,istat)
       bx_flt = bxt
       by_flt = byt
@@ -1094,7 +1078,7 @@
       DOUBLE PRECISION :: bn, bx, by, bz , xs, ys, zs, gf, gf3, nx, ny, nz, ax, ay, az
       ! BEGIN SUBROUTINE
 
-#ifdef NTCC
+      xs = zero; ys = zero; zs = zero
       CALL EZspline_interp(x_spl,vec(1),vec(2),xs,ier)
       CALL EZspline_interp(y_spl,vec(1),vec(2),ys,ier)
       CALL EZspline_interp(z_spl,vec(1),vec(2),zs,ier)
@@ -1102,10 +1086,9 @@
       CALL EZspline_interp(ky_spl,vec(1),vec(2),ay,ier)
       CALL EZspline_interp(kz_spl,vec(1),vec(2),az,ier)
 
-#endif
       !CALL EZspline_interp(bn_spl,vec(1),vec(2),bn,ier)
-      bn = 0.0
-      gf   = 1./SQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
+      bn = zero
+      gf   = one/DSQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
       gf3  = gf*gf*gf
       f(1) = norm_nag*(ay*(z_nag-zs)-az*(y_nag-ys)+bn*(x_nag-xs))*gf3
       f(2) = norm_nag*(az*(x_nag-xs)-ax*(z_nag-zs)+bn*(y_nag-ys))*gf3
@@ -1126,7 +1109,7 @@
       ! LOCAL VARIABLES
       DOUBLE PRECISION ::  gf(1:nuvp)
       ! BEGIN SUBROUTINE
-      gf(1:nuvp) = 1./sqrt(  (x-xsurf(1:nuvp))**2 &
+      gf(1:nuvp) = one/dsqrt(  (x-xsurf(1:nuvp))**2 &
                                  + (y-ysurf(1:nuvp))**2 &
                                  + (z-zsurf(1:nuvp))**2)
       ax = norm*sum((btopx(1:nuvp)+btops(1:nuvp)*nxsurf(1:nuvp))*gf(1:nuvp))
@@ -1150,9 +1133,9 @@
       xt   = x_flt
       yt   = y_flt
       zt   = z_flt
-      axt = ax_flt
-      ayt = ay_flt
-      azt = az_flt
+      axt = zero
+      ayt = zero
+      azt = zero
       CALL vecpot_virtual_casing_dbl(xt,yt,zt,axt,ayt,azt)
       ax_flt = axt
       ay_flt = ayt
@@ -1197,19 +1180,14 @@
          RETURN
       END IF
 
-#ifndef NTCC
-      CALL vecpot_virtual_casing_dbl(x,y,z,ax,ay,az)
-      RETURN
-
-#endif
-      a_nag(1:2) = 0.0
-      b_nag(1:2) = 1.0
+      a_nag(1:2) = zero
+      b_nag(1:2) = one
       mincls_nag = MIN_CLS
       maxcls_nag = IWRK
       absreq_nag = adapt_tol       ! Talk to Stuart about proper values
       relreq_nag = adapt_rel ! Talk to Stuart about proper values
-      finest_nag = 0.0
-      absest_nag = 0.0
+      finest_nag = zero
+      absest_nag = zero
       x_nag      = x
       y_nag      = y
       z_nag      = z
@@ -1229,9 +1207,9 @@
             mincls_nag = 64
             restar = 1
          ELSE IF (istat < 0) THEN
-            ax = 0
-            ay = 0
-            az = 0
+            ax = zero
+            ay = zero
+            az = zero
             adapt_rerun=.false.
             print *,'error'
          ELSE
@@ -1242,8 +1220,16 @@
          END IF
 
 #else
-         wrklen = ((maxcls_nag-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
-         ALLOCATE(vrtwrk(wrklen))
+         IF (.not.ALLOCATED(vrtwrk)) THEN
+            wrklen = ((IWRK-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
+            ALLOCATE(vrtwrk(wrklen),STAT=istat)
+            IF (istat .ne. 0) THEN
+               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
+               WRITE(6,*) '   ISTAT: ',istat
+               RETURN
+            END IF
+         END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_a,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
          DEALLOCATE(vrtwrk)
@@ -1252,15 +1238,17 @@
             mincls_nag = -1
             restar = 1
          ELSE IF (istat > 1) THEN
-            ax = 0
-            ay = 0
-            az = 0
+            ax = zero
+            ay = zero
+            az = zero
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          ELSE
             ax = finest_nag(1)
             ay = finest_nag(2)
             az = finest_nag(3)
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          END IF
 
 #endif
@@ -1286,9 +1274,9 @@
       xt   = x_flt
       yt   = y_flt
       zt   = z_flt
-      axt = ax_flt
-      ayt = ay_flt
-      azt = az_flt
+      axt = zero
+      ayt = zero
+      azt = zero
       CALL vecpot_virtual_casing_adapt_dbl(xt,yt,zt,axt,ayt,azt,istat)
       ax_flt = axt
       ay_flt = ayt
@@ -1311,7 +1299,8 @@
       DOUBLE PRECISION :: bn, bx, by, bz , xs, ys, zs, gf, nx, ny, nz, ax, ay, az
       ! BEGIN SUBROUTINE
 
-#ifdef NTCC
+      xs = zero; ys = zero; zs = zero; ax = zero; ay = zero; az = zero
+      nx = zero; ny = zero; nz = zero; bn = zero
       CALL EZspline_interp(x_spl,vec(1),vec(2),xs,ier)
       CALL EZspline_interp(y_spl,vec(1),vec(2),ys,ier)
       CALL EZspline_interp(z_spl,vec(1),vec(2),zs,ier)
@@ -1323,8 +1312,7 @@
       CALL EZspline_interp(nz_spl,vec(1),vec(2),nz,ier)
       CALL EZspline_interp(bn_spl,vec(1),vec(2),bn,ier)
 
-#endif
-      gf   = 1./SQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
+      gf   = one/DSQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
       f(1) = norm_nag*(ax+bn*nx)*gf
       f(2) = norm_nag*(ay+bn*ny)*gf
       f(3) = norm_nag*(az+bn*nz)*gf    
@@ -1343,12 +1331,12 @@
       ! BEGIN SUBROUTINE
       WRITE(iunit,'(A)')                     '----- Virtual Casing Information -----'
       WRITE(iunit,'(A,A)')                   '   INTEGRAL TYPE: ',TRIM(vc_type_str)
-      WRITE(iunit,'(A,ES10.4)')              '   MIN_GRID_DISTANCE = ',min_delta_x
-      WRITE(iunit,'(A,ES10.4)')              '   NORMAL_AREA = ',surf_area
+      WRITE(iunit,'(A,ES11.4)')              '   MIN_GRID_DISTANCE = ',min_delta_x
+      WRITE(iunit,'(A,ES11.4)')              '   NORMAL_AREA = ',surf_area
       WRITE(iunit,'(A,I4,A,I4,A,I4,A,I3)')   '   NR = ',nr_vc,';   NU = ',nu_vc,';  NV = ',nv_vc,';  NFP = ',nvp/nv_vc
       WRITE(iunit,'(A,I6)')                  '   NUVP = ',nuvp
       IF (adapt_tol > 0 .or. adapt_rel >0) THEN
-         WRITE(iunit,'(A,ES10.4,A,ES10.4)')  '   ABS_TOL = ',adapt_tol,';   REL_TOL = ',adapt_rel
+         WRITE(iunit,'(A,ES11.4,A,ES11.4)')  '   ABS_TOL = ',adapt_tol,';   REL_TOL = ',adapt_rel
       ELSE
          WRITE(iunit,'(A)')                  '   !!!!! Using discrete integration !!!!!'
       END IF
@@ -1372,7 +1360,7 @@
       DO i = 1, nuvp/(nu_vc*nv_vc)
          DO k = 1, nu_vc
             DO j = 1, nv_vc
-               WRITE(iunit,'(4I6,10ES20.10)') ik, i, k, j, &
+               WRITE(iunit,'(4I6,10ES23.16)') ik, i, k, j, &
                                  xsurf(ik), ysurf(ik), zsurf(ik), &
                                  nxsurf(ik), nysurf(ik), nzsurf(ik), &
                                  btopx(ik), btopy(ik), btopz(ik), &
@@ -1394,7 +1382,7 @@
       DOUBLE PRECISION, INTENT(in)  :: xp,yp,zp
       ! LOCAL VARIABLES
       ! BEGIN FUNCTION
-      virtual_casing_dist_dbl = MINVAL(SQRT((xp-xsurf)**2+(yp-ysurf)**2+(zp-zsurf)**2))
+      virtual_casing_dist_dbl = MINVAL(DSQRT((xp-xsurf)**2+(yp-ysurf)**2+(zp-zsurf)**2))
       ! END FUNCTION
       END FUNCTION virtual_casing_dist_dbl
       !-----------------------------------------------------------------
@@ -1407,7 +1395,7 @@
       REAL, INTENT(in)  :: xp_flt,yp_flt,zp_flt
       ! LOCAL VARIABLES
       ! BEGIN FUNCTION
-      virtual_casing_dist_flt = MINVAL(SQRT((xp_flt-xsurf)**2+(yp_flt-ysurf)**2+(zp_flt-zsurf)**2))
+      virtual_casing_dist_flt = MINVAL(DSQRT((xp_flt-xsurf)**2+(yp_flt-ysurf)**2+(zp_flt-zsurf)**2))
       ! END FUNCTION
       END FUNCTION virtual_casing_dist_flt
       !-----------------------------------------------------------------
@@ -1425,7 +1413,7 @@
       DOUBLE PRECISION, INTENT(in), OPTIONAL :: jumns(1:mnmax,ns),jvmns(1:mnmax,ns)
       DOUBLE PRECISION, INTENT(in), OPTIONAL :: rmns(1:mnmax,ns),zmnc(1:mnmax,ns)
       ! LOCAL VARIABLES
-      INTEGER :: nuv, mn, uv, i, u, v, dex1, dex2, ier, k
+      INTEGER :: mn, uv, i, u, v, dex1, dex2, ier, nuv, k
       INTEGER :: bcs1(2), bcs2(2), bcs3(2)
       DOUBLE PRECISION :: cop, sip
       DOUBLE PRECISION, ALLOCATABLE :: xu(:), xv(:)
@@ -1440,7 +1428,6 @@
       ! BEGIN SUBROUTINE
       ! Deallocate anything globally allocated
 
-#ifdef NTCC
       IF (EZspline_allocated(x3d_spl)) CALL EZspline_free(x3d_spl,ier)
       IF (EZspline_allocated(y3d_spl)) CALL EZspline_free(y3d_spl,ier)
       IF (EZspline_allocated(z3d_spl)) CALL EZspline_free(z3d_spl,ier)
@@ -1448,29 +1435,19 @@
       IF (EZspline_allocated(jy3d_spl)) CALL EZspline_free(jy3d_spl,ier)
       IF (EZspline_allocated(jz3d_spl)) CALL EZspline_free(jz3d_spl,ier)
 
-#endif
       ! Initialize varaibles
       bcs1=(/-1,-1/)
       bcs2=(/-1,-1/)
       bcs3=(/0,0/)
-
-#ifdef NTCC
-      adapt_tol = 1.0E-5
-      adapt_rel = 1.0E-3
-
-#else
-      adapt_tol = -1.0
-      adapt_rel = -1.0
-
-#endif
+      adapt_tol = 1.0D-5
+      adapt_rel = 1.0D-3
       nr_vc = ns
       nu_vc = nu
       nv_vc = nv
       nuv = nu * nv
       nvp = nv * nfp
       nuvp = nu * nv * nfp
-      !norm_3d = 1.0E-7*pi2*pi2
-      norm_3d = 1.0E-7
+      norm_3d = 1.0D-7
       vc_type_str='Volume Integral'
       ! Alloocations
       ALLOCATE(xu(nu),xv(nvp))
@@ -1486,9 +1463,9 @@
       ALLOCATE(xsurf(nu*nvp*ns),ysurf(nu*nvp*ns),zsurf(nu*nvp*ns))
       
       ! Get the major quantities (not require use the VMEC convenction of j of j=j*jac
-      r_temp=0.0; z_temp=0.0; ju_temp=0.0; jv_temp=0.0
-      FORALL(u=1:nu) xu(u) = REAL(u-1)/REAL(nu-1)
-      FORALL(v=1:nvp) xv(v) = REAL(v-1)/REAL(nvp-1)
+      r_temp=zero; z_temp=zero; ju_temp=zero; jv_temp=zero
+      FORALL(u=1:nu) xu(u) = DBLE(u-1)/DBLE(nu-1)
+      FORALL(v=1:nvp) xv(v) = DBLE(v-1)/DBLE(nvp-1)
       CALL mntouv_local(1,ns,mnmax,nu,nvp,xu,xv,rmnc,xm,xn,r_temp,0,1)
       CALL mntouv_local(1,ns,mnmax,nu,nvp,xu,xv,zmns,xm,xn,z_temp,1,0)
       CALL mntouv_local(1,ns,mnmax,nu,nvp,xu,xv,jumnc,xm,xn,ju_temp,0,0)
@@ -1498,7 +1475,7 @@
       IF (PRESENT(jumns)) CALL mntouv_local(1,ns,mnmax,nu,nvp,xu,xv,jumns,xm,xn,ju_temp,1,0)
       IF (PRESENT(jvmns)) CALL mntouv_local(1,ns,mnmax,nu,nvp,xu,xv,jvmns,xm,xn,jv_temp,1,0)
       ! Now we calculate the edge metric elements
-      ru = 0.0; zu = 0.0; rv = 0.0; zv = 0.0
+      ru = zero; zu = zero; rv = zero; zv = zero
       FORALL(mn = 1:mnmax) fmn_temp(mn,:) = -rmnc(mn,:)*xm(mn)
       CALL mntouv_local(1,ns,mnmax,nu,nvp,xu,xv,fmn_temp,xm,xn,ru,1,0)
       FORALL(mn = 1:mnmax) fmn_temp(mn,:) = -rmnc(mn,:)*xn(mn)
@@ -1548,7 +1525,6 @@
          END DO
       END DO
 
-#ifdef NTCC
       ! Construct Splines
       CALL EZspline_init(x3d_spl,nu,nvp,ns,bcs1,bcs2,bcs3,ier)
       CALL EZspline_init(y3d_spl,nu,nvp,ns,bcs1,bcs2,bcs3,ier)
@@ -1582,12 +1558,14 @@
       CALL EZspline_setup(jy3d_spl,jy,ier)
       CALL EZspline_setup(jz3d_spl,jz,ier)
 
-#endif
       ! DEALLOCATE
       DEALLOCATE(xu,xv)
       DEALLOCATE(fmn_temp)
       DEALLOCATE(r_temp,z_temp)
       DEALLOCATE(x_temp,y_temp)
+      DEALLOCATE(ju_temp,jv_temp)
+      DEALLOCATE(ru,rv)
+      DEALLOCATE(zu,zv)
       DEALLOCATE(jx,jy,jr,jphi,jz)
       ! END SUBROUTINE
       END SUBROUTINE init_volint_dbl
@@ -1616,9 +1594,9 @@
       DOUBLE PRECISION :: jumnct(1:mnmax_flt,ns_flt),jvmnct(1:mnmax_flt,ns_flt)
       DOUBLE PRECISION :: jumnst(1:mnmax_flt,ns_flt),jvmnst(1:mnmax_flt,ns_flt)
       ! BEGIN SUBROUTINE
-      rmnct = 0.0; rmnst = 0.0; zmnct = 0.0; zmnst = 0.0
-      jumnct = 0.0; jumnst = 0.0
-      jvmnct = 0.0; jvmnst = 0.0
+      rmnct = zero; rmnst = zero; zmnct = zero; zmnst = zero
+      jumnct = zero; jumnst = zero
+      jvmnct = zero; jvmnst = zero
       rmnct  = rmnc_flt
       zmnst  = zmns_flt
       jumnct = jumnc_flt
@@ -1652,7 +1630,8 @@
       DOUBLE PRECISION :: ax, ay, az , xs, ys, zs, gf, nx, ny, nz
       ! BEGIN SUBROUTINE
 
-#ifdef NTCC
+      xs = zero; ys = zero; zs = zero
+      ax = zero; ay = zero; az = zero
       CALL EZspline_interp(x3d_spl,vec(1),vec(2),vec(3),xs,ier)
       CALL EZspline_interp(y3d_spl,vec(1),vec(2),vec(3),ys,ier)
       CALL EZspline_interp(z3d_spl,vec(1),vec(2),vec(3),zs,ier)
@@ -1660,8 +1639,7 @@
       CALL EZspline_interp(jy3d_spl,vec(1),vec(2),vec(3),ay,ier)
       CALL EZspline_interp(jz3d_spl,vec(1),vec(2),vec(3),az,ier)
 
-#endif
-      gf   = 1./SQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
+      gf   = one/DSQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
       !PRINT *,xs,ys,zs,ax,ay,ax,gf
       f(1) = norm_3d*ax*gf
       f(2) = norm_3d*ay*gf
@@ -1684,7 +1662,8 @@
       DOUBLE PRECISION :: bn, ax, ay, az , xs, ys, zs, gf, gf3
       ! BEGIN SUBROUTINE
 
-#ifdef NTCC
+      xs = zero; ys = zero; zs = zero
+      ax = zero; ay = zero; az = zero
       CALL EZspline_interp(x3d_spl,vec(1),vec(2),vec(3),xs,ier)
       CALL EZspline_interp(y3d_spl,vec(1),vec(2),vec(3),ys,ier)
       CALL EZspline_interp(z3d_spl,vec(1),vec(2),vec(3),zs,ier)
@@ -1692,8 +1671,7 @@
       CALL EZspline_interp(jy3d_spl,vec(1),vec(2),vec(3),ay,ier)
       CALL EZspline_interp(jz3d_spl,vec(1),vec(2),vec(3),az,ier)
 
-#endif
-      gf   = 1./SQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
+      gf   = one/DSQRT((x_nag-xs)*(x_nag-xs)+(y_nag-ys)*(y_nag-ys)+(z_nag-zs)*(z_nag-zs))
       gf3  = gf*gf*gf
       f(1) = norm_3d*(ay*(z_nag-zs)-az*(y_nag-ys))*gf3
       f(2) = norm_3d*(az*(x_nag-xs)-ax*(z_nag-zs))*gf3
@@ -1719,9 +1697,9 @@
       xt   = x_flt
       yt   = y_flt
       zt   = z_flt
-      axt = ax_flt
-      ayt = ay_flt
-      azt = az_flt
+      axt = zero
+      ayt = zero
+      azt = zero
       CALL vecpot_volint_adapt_dbl(xt,yt,zt,axt,ayt,azt,istat)
       ax_flt = axt
       ay_flt = ayt
@@ -1741,7 +1719,7 @@
       ! LOCAL VARIABLES
       DOUBLE PRECISION ::  gf(nuvp*nr_vc)
       ! BEGIN SUBROUTINE
-      gf = 1./sqrt((x-xsurf)**2 + (y-ysurf)**2 + (z-zsurf)**2)
+      gf = one/dsqrt((x-xsurf)**2 + (y-ysurf)**2 + (z-zsurf)**2)
       ax  = norm_3d*SUM(jx_3d*gf)
       ay  = norm_3d*SUM(jy_3d*gf)
       az  = norm_3d*SUM(jz_3d*gf)
@@ -1760,7 +1738,7 @@
       ! LOCAL VARIABLES
       DOUBLE PRECISION ::  gf(nuvp*nr_vc), gf3(nuvp*nr_vc)
       ! BEGIN SUBROUTINE
-      gf = 1./sqrt((x-xsurf)**2 + (y-ysurf)**2 + (z-zsurf)**2)
+      gf = one/dsqrt((x-xsurf)**2 + (y-ysurf)**2 + (z-zsurf)**2)
       gf3  = gf*gf*gf
       bx  = norm_3d*SUM((jy_3d*(z-zsurf)-jz_3d*(y-ysurf))*gf3)
       by  = norm_3d*SUM((jz_3d*(x-xsurf)-jx_3d*(z-zsurf))*gf3)
@@ -1803,21 +1781,15 @@
          CALL vecpot_volint_dbl(x,y,z,ax,ay,az)
          RETURN
       END IF
-
-#ifndef NTCC
-      CALL vecpot_volint_dbl(x,y,z,ax,ay,az)
-      RETURN
-
-#endif
-      a_nag(1:3) = 0.0
-      b_nag(1:2) = 1.0*pi2
-      b_nag(3)   = 1.0
+      a_nag(1:3) = zero
+      b_nag(1:2) = one*pi2
+      b_nag(3)   = one
       mincls_nag = MIN_CLS
       maxcls_nag = IWRK
       absreq_nag = adapt_tol       ! Talk to Stuart about proper values
       relreq_nag = adapt_rel ! Talk to Stuart about proper values
-      finest_nag = 0.0
-      absest_nag = 0.0
+      finest_nag = zero
+      absest_nag = zero
       x_nag      = x
       y_nag      = y
       z_nag      = z
@@ -1834,9 +1806,9 @@
             mincls_nag = -1
             restar = 1
          ELSE IF (istat < 0) THEN
-            ax = 0
-            ay = 0
-            az = 0
+            ax = zero
+            ay = zero
+            az = zero
             adapt_rerun=.false.
          ELSE
             ax = finest_nag(1)
@@ -1846,8 +1818,16 @@
          END IF
 
 #else
-         wrklen = ((maxcls_nag-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
-         ALLOCATE(vrtwrk(wrklen))
+         IF (.not.ALLOCATED(vrtwrk)) THEN
+            wrklen = ((IWRK-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
+            ALLOCATE(vrtwrk(wrklen),STAT=istat)
+            IF (istat .ne. 0) THEN
+               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
+               WRITE(6,*) '   ISTAT: ',istat
+               RETURN
+            END IF
+         END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_a3d,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
          DEALLOCATE(vrtwrk)
@@ -1856,15 +1836,17 @@
             mincls_nag = -1
             restar = 1
          ELSE IF (istat > 1) THEN
-            ax = 0
-            ay = 0
-            az = 0
+            ax = zero
+            ay = zero
+            az = zero
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          ELSE
             ax = finest_nag(1)
             ay = finest_nag(2)
             az = finest_nag(3)
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          END IF
 
 #endif
@@ -1889,9 +1871,9 @@
       xt = x_flt
       yt = y_flt
       zt = z_flt
-      bxt = bx_flt
-      byt = by_flt
-      bzt = bz_flt
+      bxt = zero
+      byt = zero
+      bzt = zero
       CALL bfield_volint_adapt_dbl(xt,yt,zt,bxt,byt,bzt,istat)
       bx_flt = bxt
       by_flt = byt
@@ -1915,9 +1897,9 @@
       xt = x_flt
       yt = y_flt
       zt = z_flt
-      bxt = bx_flt
-      byt = by_flt
-      bzt = bz_flt
+      bxt = zero
+      byt = zero
+      bzt = zero
       SELECT CASE(TRIM(vc_type_str))
          CASE('Surface Current')
             CALL bfield_virtual_casing_adapt_dbl(xt,yt,zt,bxt,byt,bzt,istat)
@@ -1946,9 +1928,9 @@
       xt = x_flt
       yt = y_flt
       zt = z_flt
-      bxt = bx_flt
-      byt = by_flt
-      bzt = bz_flt
+      bxt = zero
+      byt = zero
+      bzt = zero
       SELECT CASE(TRIM(vc_type_str))
          CASE('Surface Current')
             CALL vecpot_virtual_casing_adapt_dbl(xt,yt,zt,bxt,byt,bzt,istat)
@@ -2038,22 +2020,15 @@
          CALL bfield_volint_dbl(x,y,z,bx,by,bz)
          RETURN
       END IF
-
-#ifndef NTCC
-      CALL bfield_volint_dbl(x,y,z,bx,by,bz)
-      RETURN
-
-#endif
-      a_nag(1:3) = 0.0
-      b_nag(1:2) = 1.0*pi2
-      b_nag(3)   = 1.0
+      a_nag(1:3) = zero
+      b_nag(1:2) = one*pi2
+      b_nag(3)   = one
       mincls_nag = MIN_CLS
       maxcls_nag = IWRK
-      !absreq_nag = 0.0
       absreq_nag = adapt_tol       ! Talk to Stuart about proper values
       relreq_nag = adapt_rel ! Talk to Stuart about proper values
-      finest_nag = 0.0
-      absest_nag = 0.0
+      finest_nag = zero
+      absest_nag = zero
       x_nag      = x
       y_nag      = y
       z_nag      = z
@@ -2070,9 +2045,9 @@
             mincls_nag = -1
             restar = 1
          ELSE IF (istat < 0) THEN
-            bx = 0
-            by = 0
-            bz = 0
+            bx = zero
+            by = zero
+            bz = zero
             adapt_rerun=.false.
          ELSE
             bx = finest_nag(1)
@@ -2082,8 +2057,16 @@
          END IF
 
 #else
-         wrklen = ((maxcls_nag-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
-         ALLOCATE(vrtwrk(wrklen))
+         IF (.not.ALLOCATED(vrtwrk)) THEN
+            wrklen = ((IWRK-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
+            ALLOCATE(vrtwrk(wrklen),STAT=istat)
+            IF (istat .ne. 0) THEN
+               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
+               WRITE(6,*) '   ISTAT: ',istat
+               RETURN
+            END IF
+         END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_b3d,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
          DEALLOCATE(vrtwrk)
@@ -2092,15 +2075,17 @@
             mincls_nag = funcls
             restar = 1
          ELSE IF (istat > 1) THEN
-            bx = 0
-            by = 0
-            bz = 0
+            bx = zero
+            by = zero
+            bz = zero
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          ELSE
             bx = finest_nag(1)
             by = finest_nag(2)
             bz = finest_nag(3)
             adapt_rerun=.false.
+            DEALLOCATE(vrtwrk)
          END IF
 
 #endif
@@ -2145,7 +2130,7 @@
       DOUBLE PRECISION, ALLOCATABLE, SAVE :: cosnz(:,:)
       DOUBLE PRECISION, ALLOCATABLE, SAVE :: sinnz(:,:)
       ! BEGIN SUBROUTINE
-      pi2_l = 8 * ATAN(1.)
+      pi2_l = 8.0D+0 * ATAN(1.)
       IF (calc_trig == 1) THEN
          IF (ALLOCATED(cosmt)) DEALLOCATE(cosmt)
          IF (ALLOCATED(sinmt)) DEALLOCATE(sinmt)
@@ -2153,8 +2138,8 @@
          IF (ALLOCATED(sinnz)) DEALLOCATE(sinnz)
          ALLOCATE(cosmt(1:mnmax,1:nu),sinmt(1:mnmax,1:nu),&
                   cosnz(1:mnmax,1:nv),sinnz(1:mnmax,1:nv),STAT=ier)
-         FORALL(i=1:mnmax) xm_temp(i,1)=REAL(xm(i))
-         FORALL(i=1:mnmax) xn_temp(i,1)=REAL(xn(i))
+         FORALL(i=1:mnmax) xm_temp(i,1)=DBLE(xm(i))
+         FORALL(i=1:mnmax) xn_temp(i,1)=DBLE(xn(i))
          FORALL(i=1:nu) xu_temp(1,i)=xu(i)
          FORALL(i=1:nv) xv_temp(1,i)=xv(i)
          mt = MATMUL(xm_temp,xu_temp)
@@ -2215,7 +2200,7 @@
       DOUBLE PRECISION, ALLOCATABLE, SAVE :: cosnz(:,:)
       DOUBLE PRECISION, ALLOCATABLE, SAVE :: sinnz(:,:)
       ! BEGIN SUBROUTINE
-      pi2_l = 8 * ATAN(1.)
+      pi2_l = 8.0D+0 * ATAN(1.)
       IF (calc_trig == 1) THEN
          IF (ALLOCATED(cosmt)) DEALLOCATE(cosmt)
          IF (ALLOCATED(sinmt)) DEALLOCATE(sinmt)
@@ -2225,10 +2210,10 @@
          ALLOCATE(fnuv(1:mnmax),STAT=ier)
          ALLOCATE(cosmt(1:mnmax,1:nu),sinmt(1:mnmax,1:nu),&
                   cosnz(1:mnmax,1:nv),sinnz(1:mnmax,1:nv),STAT=ier)
-         FORALL(i=1:mnmax) xm_temp(i,1)=REAL(xm(i))
-         FORALL(i=1:mnmax) xn_temp(i,1)=REAL(xn(i))
-         FORALL(i=1:mnmax) fnuv(i) = 2./REAL(nu*nv)
-         WHERE(xm == 0) fnuv = 0.5*fnuv
+         FORALL(i=1:mnmax) xm_temp(i,1)=DBLE(xm(i))
+         FORALL(i=1:mnmax) xn_temp(i,1)=DBLE(xn(i))
+         FORALL(i=1:mnmax) fnuv(i) = 2.0D+0/DBLE(nu*nv)
+         WHERE(xm == 0) fnuv = 5.0D-1*fnuv
          FORALL(i=1:nu) xu_temp(1,i)=xu(i)
          FORALL(i=1:nv) xv_temp(1,i)=xv(i)
          mt = MATMUL(xm_temp,xu_temp)
@@ -2238,7 +2223,7 @@
          FORALL(mn=1:mnmax,i=1:nv) cosnz(mn,i) = dcos(pi2_l*nz(mn,i))
          FORALL(mn=1:mnmax,i=1:nv) sinnz(mn,i) = dsin(pi2_l*nz(mn,i))
       END IF
-      fmn = 0.0
+      fmn = zero
       IF (signs == 0) THEN
          DO mn = 1, mnmax
             DO i = 1, nu

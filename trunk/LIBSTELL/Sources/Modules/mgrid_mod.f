@@ -82,7 +82,9 @@ C-----------------------------------------------
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: iconnect, needbfld
       REAL(rprec) :: rminb, zminb, rmaxb, zmaxb, delrb, delzb
       REAL(rprec) ::rx1, rx2, zy1, zy2, condif
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: bvac, unpsiext, 
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE, TARGET :: bvac
+      REAL(rprec), DIMENSION(:,:,:), POINTER :: brvac, bzvac, bpvac
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: unpsiext, 
      1   plbfld, rbcoil, zbcoil, abcoil, bcoil, rbcoilsqr
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: raw_coil_current
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: xobser, zobser,
@@ -323,6 +325,8 @@ C-----------------------------------------------
 
       DEALLOCATE (brtemp, bztemp, bptemp)
 
+      CALL assign_bptrs(bvac)
+
       IF (istat .ne. 0) THEN
          ier_flag = 9
          RETURN
@@ -532,6 +536,7 @@ C-----------------------------------------------
 
       END SUBROUTINE read_mgrid_bin
 
+
 #if defined(NETCDF)
       SUBROUTINE read_mgrid_nc (filename, extcur, nv, nfp,
      1                          ier_flag, lscreen)
@@ -680,6 +685,8 @@ C-----------------------------------------------
       IF (ALLOCATED(brtemp))
      1    DEALLOCATE (vn_br, vn_bz, vn_bp, brtemp, bptemp, bztemp)
 
+      CALL assign_bptrs(bvac)
+
       END SUBROUTINE read_mgrid_nc
 #endif
 
@@ -692,6 +699,16 @@ C-----------------------------------------------
       bfield = bfield + cur*bf_add
 
       END SUBROUTINE sum_bfield
+
+      SUBROUTINE assign_bptrs(bptr)
+      IMPLICIT NONE
+      REAL(rprec), TARGET, INTENT(in) :: bptr(nr0b,nz0b,np0b,3)
+
+      brvac => bptr(:,:,:,1)
+      bpvac => bptr(:,:,:,2)
+      bzvac => bptr(:,:,:,3)
+
+      END SUBROUTINE assign_bptrs
 
       SUBROUTINE free_mgrid (istat)
       INTEGER :: istat 

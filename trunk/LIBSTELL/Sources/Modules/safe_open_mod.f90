@@ -71,6 +71,10 @@
 !     Increment iunit until find one that is not in use
 !
       linvalid = .true.
+      IF (iunit < 0) THEN
+         WRITE (6, *) 'In safe_open, requested unit was uninitialized: IUNIT=', iunit
+         iunit = 10
+      END IF
       DO WHILE (linvalid)
          INQUIRE(iunit, exist=lexist, opened=lopen, iostat=istat)
          linvalid = (istat.ne.0 .or. .not.lexist) .or. lopen

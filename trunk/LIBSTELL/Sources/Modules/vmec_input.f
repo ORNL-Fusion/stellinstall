@@ -11,7 +11,7 @@
       INTEGER, PARAMETER :: ns_default   = 31
       INTEGER :: nfp, ncurr, nsin, niter, nstep, nvacskip, mpol, ntor,
      1           ntheta, nzeta, mfilter_fbdy, nfilter_fbdy,
-     2           max_main_iterations
+     2           max_main_iterations, omp_num_threads
       INTEGER, DIMENSION(100) :: ns_array, niter_array
       INTEGER :: imse, isnodes, itse, ipnodes, iopt_raxis,
      1   imatch_phiedge, nflxs
@@ -30,8 +30,8 @@
       CHARACTER(len=20) :: pcurr_type  !  len=12 -> len=20 J Hanson 2010-03-16
       CHARACTER(len=20) :: piota_type
       CHARACTER(len=20) :: pmass_type
-      REAL(rprec), DIMENSION(ndatafmax) :: am_aux_s, am_aux_f,                 &
-     &   ai_aux_s, ai_aux_f, ac_aux_s, ac_aux_f
+      REAL(rprec), DIMENSION(ndatafmax) :: am_aux_s, am_aux_f, 
+     1   ai_aux_s, ai_aux_f, ac_aux_s, ac_aux_f
 
 !     ANISOTROPIC AMPLITUDES: AH=PHOT/PTHERMAL, AT=TPERP/TPAR
 !     bcrit: hot particle energy deposition value for |B|
@@ -75,7 +75,7 @@
      3   raxis_cs, zaxis_cc, mpol, ntor, ntheta, nzeta, mfilter_fbdy,
      3   nfilter_fbdy, niter_array,
      4   ns_array, ftol_array, tcon0, precon_type, prec2d_threshold,
-     4   curtor, sigma_current, extcur,
+     4   curtor, sigma_current, extcur, omp_num_threads,
      5   phiedge, psa, pfa, isa, ifa, imatch_phiedge, iopt_raxis, 
      6   tensi, tensp, mseangle_offset, mseangle_offsetm, imse, 
      7   isnodes, rstark, datastark, sigma_stark, itse, ipnodes, 
@@ -98,6 +98,7 @@
 !
 !     INITIALIZATIONS
 !
+      omp_num_threads = 8
       gamma = 0
       spres_ped = 1
       mpol = mpol_default
@@ -119,7 +120,7 @@
       ftol_array = 0;  ftol_array(1) = ftol
       am = 0; ai = 0; ac = 0; aphi = 0; aphi(1) = 1
       pres_scale = 1
-      raxis_cc = 0; zaxis_cs = 0; raxis_cs = 0; zaxis_cc = 0;
+      raxis_cc = 0; zaxis_cs = 0; raxis_cs = 0; zaxis_cc = 0
       mfilter_fbdy = -1; nfilter_fbdy = -1
       tcon0 = 1
       precon_type = 'NONE'; prec2d_threshold = 1.E-30_dp
@@ -159,7 +160,7 @@
 !
 !     BACKWARDS COMPATIBILITY
 !
-      raxis = 0.0_dp;  zaxis = 0.0_dp
+      raxis = 0;  zaxis = 0
       
       READ (iunit, nml=indata, iostat=istat)
 
@@ -187,6 +188,8 @@
       ELSEWHERE
          zaxis_cs = zaxis_cs
       ENDWHERE
+
+      raxis_cs(0) = 0;  zaxis_cs(0) = 0
 
       IF(max_main_iterations .gt. 1) lmoreiter=.true.  !J Geiger: if more iterations are requested.
 
