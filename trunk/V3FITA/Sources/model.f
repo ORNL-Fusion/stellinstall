@@ -92,6 +92,8 @@
       INTEGER, PARAMETER :: model_te_grid_id           = 5
 !>  Parameter id for the soft x-ray emissivity grid.
       INTEGER, PARAMETER :: model_sxrem_grid_id        = 6
+!  NOTE: When model parameters are added here, the equilibrium id's need to be
+!  updated in additon.
 
 !>  Conversion from Joules to eV.
       REAL(rprec), PARAMETER :: eV_per_Joule = one/1.602e-19_rprec

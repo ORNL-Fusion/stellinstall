@@ -46,13 +46,13 @@
 !  vacuum equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vacuum interface. Parameter id's start at 6 since 0-5 are
+!  outside of the vacuum interface. Parameter id's start at 7 since 0-6 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added.
 
 !  Variable Parameters
 !>  1D Array of external currents.
-      INTEGER, PARAMETER :: vacuum_extcur_id = 6
+      INTEGER, PARAMETER :: vacuum_extcur_id = 7
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
