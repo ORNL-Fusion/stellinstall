@@ -77,8 +77,9 @@
 !>        @b DEPRICATED @b,
 !>        v3fit_input::model_sxrem_type}
 !>     @item{model_sxrem_type_a, Character array to specify how the Soft x-ray emissivity will be calculated by the model.
-!>        -# @fixed_width{'none'}     Not part of the model.
-!>        -# @fixed_width{'pp_sxrem'} Calculated from the parameterized profile pp_sxrem.,
+!>        -# @fixed_width{'none'}           Not part of the model.
+!>        -# @fixed_width{'pp_sxrem'}       Calculated from the parameterized profile pp_sxrem.
+!>        -# @fixed_width{'pp_sxrem_te_ne'} Calculated from pp_te and pp_ne.,
 !>        v3fit_input::model_sxrem_type_a}
 !>     @item{model_te_type, Character variable to specify how the e-temperature will be calculated by the model.
 !>        -# @fixed_width{'none'}                    Not part of the model.

@@ -319,8 +319,6 @@
 !  Determine the number of integration steps to take by dividing the path length
 !  by the step length and rounding to the nearest integer.
       dxcart = vertex2%position - vertex1%position
-
-!  Store the entire length in dx temporarly.
       length = SQRT(DOT_PRODUCT(dxcart, dxcart))
       nsteps = INT(length/dxOptimal)
 
@@ -328,10 +326,13 @@
       dxcart = dxcart/nsteps
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))
 
+!  Integrate the length in addition.
       integrate = 0.0
+      length = 0.0
       xcart = vertex1%position
       DO i = 1, nsteps
          xcart = xcart + dxcart
+         length = length + dx
          integrate = integrate                                                 &
      &             + integration_function(context, xcart, dxcart,              &
      &                                    length, dx)
