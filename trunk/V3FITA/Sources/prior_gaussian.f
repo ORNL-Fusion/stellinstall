@@ -61,7 +61,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref prior_gaussian_class object.
 !>
-!>  Allocates memory and initializes a @ref prior_class object.
+!>  Allocates memory and initializes a @ref prior_gaussian_class object.
 !>
 !>  @param[in] a_model    An instance of a @ref model object.
 !>  @param[in] param_name The name the parameter.
@@ -98,12 +98,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref limiter_class object by syncing through mpi.
+!>  @brief Construct a @ref prior_gaussian_class object by syncing through mpi.
 !>
-!>  Allocates memory and initializes a @ref limiter_class object.
+!>  Allocates memory and initializes a @ref prior_gaussian_class object.
 !>
 !>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref limiter_class object.
+!>  @returns A pointer to a constructed @ref prior_gaussian_class object.
 !-------------------------------------------------------------------------------
       FUNCTION prior_gaussian_construct_mpi(intra_comm)
 
@@ -124,7 +124,7 @@
       CALL MPI_BCAST(prior_gaussian_construct_mpi%param_id, 1,                 &
      &               MPI_INTEGER, 0, intra_comm, error)
       CALL MPI_BCAST(prior_gaussian_construct_mpi%indices, 2,                  &
-     &               MPI_LOGICAL, 0, intra_comm, error)
+     &               MPI_INTEGER, 0, intra_comm, error)
 
 #endif
 
@@ -156,7 +156,7 @@
       END SUBROUTINE
 
 !*******************************************************************************
-!  Getters SUBROUTINES
+!  GETTERS SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief Calculates the modeled signal.
@@ -173,8 +173,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(rprec) :: prior_gaussian_get_modeled_signal
-      TYPE(prior_gaussian_class), INTENT(in)  :: this
+      REAL (rprec) :: prior_gaussian_get_modeled_signal
+      TYPE (prior_gaussian_class), INTENT(in) :: this
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
 
@@ -237,7 +237,6 @@
 !>
 !>  @param[in] this    A @ref prior_gaussian_class instance.
 !>  @param[in] iou     A input/output representing the file to write to.
-!>  @param[in] index   A index of this signal.
 !>  @param[in] a_model The equilibrium model.
 !-------------------------------------------------------------------------------
       SUBROUTINE prior_gaussian_write_auxiliary(this, iou, a_model)
@@ -297,7 +296,7 @@
 
       CALL MPI_BCAST(this%param_id, 1, MPI_INTEGER, 0, intra_comm,             &
      &               error)
-      CALL MPI_BCAST(this%indices, 2, MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(this%indices, 2, MPI_INTEGER, 0, intra_comm, error)
 
       CALL profiler_set_stop_time('prior_gaussian_sync_children',              &
      &                            start_time)

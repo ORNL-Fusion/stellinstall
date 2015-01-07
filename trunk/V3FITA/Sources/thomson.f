@@ -304,7 +304,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Gets a discription of the thomson type.
 !>
-!>  Returns a description of the thomson type for use when writting output files.
+!>  Returns a description of the thomson type for use when writting output
+!>  files.
 !>
 !>  @param[in] this A @ref thomson_class instance.
 !>  @returns A string describing the thomson type.

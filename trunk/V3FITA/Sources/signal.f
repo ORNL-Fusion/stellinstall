@@ -24,6 +24,7 @@
       USE diagnostic
       USE geometric
       USE prior
+      USE feedback
       USE data_parameters
 
       IMPLICIT NONE
@@ -39,9 +40,11 @@
       INTEGER, PARAMETER :: signal_geometric_type   = 1
 !>  Type descriptor for the @ref signal_class subclass @ref prior
       INTEGER, PARAMETER :: signal_prior_type       = 2
+!>  Type descriptor for the @ref signal_class subclass @ref feedback
+      INTEGER, PARAMETER :: signal_feedback_type    = 3
 !>  Type descriptor for the @ref signal_class subclass @ref combination_class
 !  Use combination_class since combination lacks it's own module.
-      INTEGER, PARAMETER :: signal_combination_type = 3
+      INTEGER, PARAMETER :: signal_combination_type = 4
 
 !*******************************************************************************
 !  combination module parameters
@@ -99,6 +102,8 @@
          TYPE (geometric_class), POINTER    :: geometric => null()
 !>  An instance of a @ref prior object.
          TYPE (prior_class), POINTER        :: prior => null()
+!>  An instance of a @ref feedback object.
+         TYPE (feedback_class), POINTER     :: feedback => null()
 !>  An instance of a @ref combination object.
          TYPE (combination_class), POINTER  :: combination => null()
       END TYPE signal_class
@@ -142,6 +147,7 @@
          MODULE PROCEDURE signal_construct_diagnostic,                         &
      &                    signal_construct_geometric,                          &
      &                    signal_construct_prior,                              &
+     &                    signal_construct_feedback,                           &
      &                    signal_construct_combination,                        &
      &                    signal_construct_diagnostic_netcdf,                  &
      &                    signal_construct_mpi
@@ -312,6 +318,60 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Construct a @ref signal_class containing a @ref prior object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] prior_object An instance of a @ref prior subclass.
+!>  @param[in] s_name       The short name of the signal.
+!>  @param[in] l_name       The short name of the signal.
+!>  @param[in] units        The units of the signal.
+!>  @param[in] observed     Observed value of the signal.
+!>  @param[in] sigma        Observed sigma of the signal.
+!>  @param[in] weight       Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_feedback(feedback_object, s_name,              &
+     &                                   l_name, units, observed, sigma,       &
+     &                                   weight)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER       :: signal_construct_feedback
+      TYPE (feedback_class), POINTER     :: feedback_object
+      CHARACTER(len=*), INTENT(in)       :: s_name
+      CHARACTER(len=*), INTENT(in)       :: l_name
+      CHARACTER(len=*), INTENT(in)       :: units
+      REAL(rprec), INTENT(in)            :: observed
+      REAL(rprec), INTENT(in)            :: sigma
+      REAL(rprec), INTENT(in)            :: weight
+
+!  local variables
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(signal_construct_feedback)
+
+      signal_construct_feedback%type = signal_prior_type
+      signal_construct_feedback%s_name = s_name
+      signal_construct_feedback%l_name = l_name
+      signal_construct_feedback%units = units
+      signal_construct_feedback%observed = observed
+      signal_construct_feedback%observed_sigma = sigma
+      signal_construct_feedback%weight = weight
+      signal_construct_feedback%feedback => feedback_object
+      signal_construct_feedback%modeled = 0.0
+      signal_construct_feedback%modeled_sigma = 0.0
+
+      CALL profiler_set_stop_time('signal_construct_feedback',                 &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Construct a @ref signal_class containing a @ref combination_class
 !>  object.
 !>
@@ -475,6 +535,10 @@
          CASE (signal_prior_type)
             signal_construct_mpi%prior => prior_construct(intra_comm)
 
+         CASE (signal_feedback_type)
+            signal_construct_mpi%feedback =>                                  &
+     &         feedback_construct(intra_comm)
+
       END SELECT
 
 #endif
@@ -512,6 +576,11 @@
       IF (ASSOCIATED(this%prior)) THEN
          CALL prior_destruct(this%prior)
          this%prior => null()
+      END IF
+
+      IF (ASSOCIATED(this%feedback)) THEN
+         CALL feedback_destruct(this%feedback)
+         this%feedback => null()
       END IF
 
       IF (ASSOCIATED(this%combination)) THEN
@@ -572,7 +641,7 @@
       LOGICAL, INTENT(in)                     :: use_cache
 
 !  local variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -597,6 +666,11 @@
                signal_get_modeled_signal =                                     &
      &            prior_get_modeled_signal(this%prior, a_model, sigma)
 
+            CASE (signal_feedback_type)
+               signal_get_modeled_signal =                                     &
+     &            feedback_get_modeled_signal(this%feedback, a_model,          &
+     &                                        sigma)
+
             CASE (signal_combination_type)
                signal_get_modeled_signal =                                     &
      &            combination_get_modeled_signal(this%combination,             &
@@ -610,6 +684,51 @@
       END IF
 
       CALL profiler_set_stop_time('signal_get_modeled_signal',                 &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the observed signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_modeled_signal method of the subclass instance
+!>  @ref signal_class was constructed with. All signals expect feed back signals
+!>  use a fixed observed value.
+!>
+!>  @see feedback::feedback_get_modeled_signal
+!>
+!>  @param[in]    this      A @ref diagnostic_class instance.
+!>  @param[inout] a_model   A @ref model instance.
+!>  @returns The observed value.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_get_observed_signal(this, a_model)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: signal_get_observed_signal
+      TYPE (signal_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout)  :: a_model
+
+!  local variables
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+         CASE (signal_feedback_type)
+            signal_get_observed_signal =                                       &
+     &         feedback_get_observed_signal(this%feedback, a_model)
+
+         CASE  DEFAULT
+            signal_get_observed_signal = this%observed
+
+      END SELECT
+
+      CALL profiler_set_stop_time('signal_get_observed_signal',                &
      &                            start_time)
 
       END FUNCTION
@@ -638,7 +757,7 @@
       LOGICAL, INTENT(in)                :: use_cache
 
 !  local Variables
-      REAL (rprec)                         :: start_time
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -676,17 +795,20 @@
 !  local Variables
       REAL (rprec), DIMENSION(4)         :: modeled_signal
       REAL (rprec), DIMENSION(4)         :: modeled_sigma
+      REAL (rprec)                       :: observed_signal
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      observed_signal = signal_get_observed_signal(this, a_model)
 
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
      &                                           modeled_sigma,                &
      &                                           use_cache)
 
 !  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
-      signal_get_e = (this%observed - modeled_signal(1))                       &
+      signal_get_e = (observed_signal - modeled_signal(1))                     &
      &             * SQRT(this%weight/signal_get_sigma2(this))
 
       CALL profiler_set_stop_time('signal_get_e', start_time)
@@ -769,6 +891,10 @@
             signal_get_signal_type =                                           &
      &         TRIM(prior_get_signal_type(this%prior))
 
+         CASE (signal_feedback_type)
+            signal_get_signal_type =                                           &
+     &         TRIM(feedback_get_signal_type(this%feedback))
+
          CASE (signal_combination_type)
             signal_get_signal_type =                                           &
      &         TRIM(combination_get_signal_type(this%combination))
@@ -819,6 +945,9 @@
 
          CASE (signal_prior_type)
             signal_get_header = prior_get_header(this%prior)
+
+         CASE (signal_feedback_type)
+            signal_get_header = feedback_get_header(this%feedback)
 
          CASE (signal_combination_type)
             signal_get_header = combination_get_header(this%combination)
@@ -985,6 +1114,9 @@
             CALL prior_write_auxiliary(this%prior, iou, index,                 &
      &                                 a_model)
 
+         CASE (signal_feedback_type)
+            CALL feedback_write_auxiliary(this%feedback, iou, index)
+
          CASE (signal_combination_type)
             CALL combination_write_auxiliary(this%combination,                 &
      &                                       iou, index)
@@ -1113,6 +1245,9 @@
 
          CASE (signal_prior_type)
             CALL prior_sync_children(this%prior, intra_comm)
+
+         CASE (signal_feedback_type)
+            CALL feedback_sync_children(this%feedback, intra_comm)
 
       END SELECT
 

@@ -541,7 +541,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      findMaxIndex = MINLOC(s_array(2:),dim=1)
+      findMaxIndex = MINLOC(s_array(2:), dim=1)
 
       CALL profiler_set_stop_time('findMaxIndex', start_time)
 

@@ -18,6 +18,9 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/sxrch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/thomson.f
 	${CMAKE_CURRENT_SOURCE_DIR}/thscte_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/feedback.f
+	${CMAKE_CURRENT_SOURCE_DIR}/sxrem_ratio.f
+	${CMAKE_CURRENT_SOURCE_DIR}/sxrem_ratio_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fita.f
 	${CMAKE_CURRENT_SOURCE_DIR}/data_parameters.f
 	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_params.f

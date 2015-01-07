@@ -85,8 +85,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Read an thomson scattering diagnostic dot file.
 !>
-!>  Parses the structure of a dignostic dot file and constructs a @ref sxrem
-!>  object. Each chord is parsed by @ref sxrch_dot_parse_chord.
+!>  Parses the structure of a dignostic dot file and constructs a @ref thomson
+!>  object. Each chord is parsed by @ref thscte_dot_parse_chord.
 !>
 !>  @param[in]    thscte_file     Name of the thscte. file.
 !>  @param[inout] signals         Array of pointers to the a signal
@@ -97,7 +97,6 @@
 !>  @param[in]    weight          Array of signal weight values
 !>  @param[inout] first_index     Index of the first instance of an intpol
 !>                                signal.
-!>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_read(thscte_file, signals, signals_created,
      &                           observed, sigma, weight, first_index)
@@ -123,7 +122,7 @@
 !  thscted_keyword   character array - keywords for various thscte input types
       CHARACTER(len=data_name_length),                                         &
      &   DIMENSION(1:n_thscted_keyword) :: thscted_keyword
-      TYPE(signal_dot_file) :: thscte_dot_file_ref
+      TYPE(signal_dot_file)             :: thscte_dot_file_ref
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
@@ -214,7 +213,7 @@
 !  PARSING SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Parse soft x-ray diagnostic chord.
+!>  @brief Parse thomson scattering diagnostic chord.
 !>
 !>  Parses a signle chord. Chords are laid out as,
 !>
@@ -222,20 +221,19 @@
 !>  * Starting point as three reals.
 !>  * Ending point as three reals.
 !>
-!>  @param[in]    sxrch_file      Name of the sxrch. file.
-!>  @param[in]    coordinate_type Specifies the cartesian or cylindrical
-!>                                coordinate type.
-!>  @param[in]    point_type      Specifies a 't'emperature, 'd'ensity or
-!>                                'p'ressure point.
-!>  @param[inout] signals         Array of pointers to the a signal
-!>  @param[inout] signals_created Number valid signals in the array, or index of
-!>                                the last signal created.
-!>  @param[in]    observed        Array of observed values.
-!>  @param[in]    sigma           Array of observed sigma values
-!>  @param[in]    weight          Array of signal weight values
-!>  @param[inout] first_index     Index of the first instance of an intpol
-!>                                signal.
-!>  @todo FIXME: Remove the _new when removing the old code.
+!>  @param[in]    thscte_dot_file_ref Reference of the thscte file.
+!>  @param[in]    coordinate_type     Specifies the cartesian or cylindrical
+!>                                    coordinate type.
+!>  @param[in]    point_type          Specifies a 't'emperature, 'd'ensity or
+!>                                    'p'ressure point.
+!>  @param[inout] signals             Array of pointers to the a signal
+!>  @param[inout] signals_created     Number valid signals in the array, or
+!>                                    index of the last signal created.
+!>  @param[in]    observed            Array of observed values.
+!>  @param[in]    sigma               Array of observed sigma values
+!>  @param[in]    weight              Array of signal weight values
+!>  @param[inout] first_index         Index of the first instance of an intpol
+!>                                    signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_parse_chord(thscte_dot_file_ref,                   &
      &                                  coordinate_type,                       &
@@ -272,7 +270,7 @@
 
 !  Check if there are two many signals.
       IF (signals_created + 1 .gt. v3fit_max_diagnostics) THEN
-         CALL err_fatal('ipch_dot_parse_chord_new: created signals' //         &
+         CALL err_fatal('thscte_dot_parse_chord: created signals' //           &
      &                  ' exceeds v3fit_max_diagnostics')
       END IF
 
@@ -305,8 +303,8 @@
 
       signals_created = signals_created + 1
 
-!  At lease one intpol signal was made. Set the first index. This should only be
-!  run once.
+!  At lease one thomson scattering signal was made. Set the first index. This
+!  should only be run once.
       IF (first_index .eq. -1) THEN
          first_index = signals_created
       END IF
@@ -315,4 +313,4 @@
 
       END SUBROUTINE
 
-      END MODULE thscte_dot
+      END MODULE

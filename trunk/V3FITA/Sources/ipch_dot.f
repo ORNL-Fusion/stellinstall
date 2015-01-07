@@ -123,8 +123,7 @@
 !>  @param[in]    sigma           Array of observed sigma values
 !>  @param[in]    weight          Array of signal weight values
 !>  @param[inout] first_index     Index of the first instance of an intpol
-!>                                signal.
-!>  @todo FIXME: Remove the _new when removing the old code.
+!>                                signal.\
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_read(ipch_file, signals, signals_created,            &
      &                         observed, sigma, weight, first_index)
@@ -350,4 +349,4 @@
 
       END SUBROUTINE
 
-      END MODULE ipch_dot
+      END MODULE

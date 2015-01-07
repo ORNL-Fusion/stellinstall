@@ -22,8 +22,8 @@
 !  prior module parameters
 !*******************************************************************************
 !>  Type descriptor for the @ref prior_class no sub class.
-      INTEGER, PARAMETER :: prior_no_type = -1
-!>  Type descriptor for the @ref diagnostic_class subclass @ref prior_guassian
+      INTEGER, PARAMETER :: prior_no_type       = -1
+!>  Type descriptor for the @ref prior_class subclass @ref prior_guassian
       INTEGER, PARAMETER :: prior_gaussian_type = 0
 
 !*******************************************************************************
@@ -164,7 +164,7 @@
       END SUBROUTINE
 
 !*******************************************************************************
-!  Getters SUBROUTINES
+!  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief Calculates the modeled signal.
@@ -317,7 +317,8 @@
       SELECT CASE(this%type)
 
          CASE (prior_gaussian_type)
-            prior_get_prior_type = 'gaussian'
+            prior_get_prior_type =                                             &
+     &         prior_gaussian_get_signal_type(this%gaussian)
       END SELECT
 
       CALL profiler_set_stop_time('prior_get_prior_type', start_time)
@@ -366,8 +367,7 @@
 
       CALL profiler_set_stop_time('prior_write_auxiliary', start_time)
 
-1000  FORMAT('Signal',1x,i4,1x,                                                &
-     &       'is a prior signal, type: ',a)
+1000  FORMAT('Signal',1x,i4,1x,'is a prior signal, type: ',a)
 
       END SUBROUTINE
 

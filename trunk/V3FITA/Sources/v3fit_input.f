@@ -16,16 +16,17 @@
 !>  @header{Input variable, Description, Code Reference}
 !>
 !>  @table_section{filename_sec, Filename variables}
-!>     @item{main_nli_filename,      File name for main namelist input.,                                                                                         v3fit_input::main_nli_filename}
+!>     @item{main_nli_filename,           File name for main namelist input.,                                                                                         v3fit_input::main_nli_filename}
 !>     @table_subsection{eq_filename_sec, Equilibrium Filename variables}
-!>        @item{vmec_nli_filename,   File name for VMEC namelist input.,                                                                                         v3fit_input::vmec_nli_filename}
-!>        @item{vmec_wout_input,     File name for the VMEC wout file to start from.,                                                                            v3fit_input::vmec_wout_input}
-!>        @item{vacuum_nli_filename, File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
+!>        @item{vmec_nli_filename,        File name for VMEC namelist input.,                                                                                         v3fit_input::vmec_nli_filename}
+!>        @item{vmec_wout_input,          File name for the VMEC wout file to start from.,                                                                            v3fit_input::vmec_wout_input}
+!>        @item{vacuum_nli_filename,      File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
-!>        @item{mdsig_list_filename, File name for list of MDSIG files.,                                                                                         v3fit_input::mdsig_list_filename}
-!>        @item{sxrch_dot_filename,  File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
-!>        @item{thscte_dot_filename, File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
-!>        @item{ipch_dot_filename,   File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
+!>        @item{mdsig_list_filename,      File name for list of MDSIG files.,                                                                                         v3fit_input::mdsig_list_filename}
+!>        @item{sxrch_dot_filename,       File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
+!>        @item{thscte_dot_filename,      File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
+!>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
+!>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
 !>  @end_table
 !>
 !>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
@@ -62,6 +63,8 @@
 !>     @item{pp_te_b,          Array of b_coefficients for the e-temperature profile.,            v3fit_input::pp_te_b}
 !>     @item{pp_te_as,         Array of as_coefficients e-temperature splines.,                   v3fit_input::pp_te_as}
 !>     @item{pp_te_af,         Array of af_coefficients e-temperature splines.,                   v3fit_input::pp_te_af}
+!>     @item{sxrem_te,         Array of temperature points for the sxrem ratio function.,         v3fit_input::sxrem_te_a}
+!>     @item{sxrem_ratio,      Array of ratio points for the sxrem ratio function.,               v3fit_input::sxrem_ratio_a}
 !>  @end_table
 !>
 !>  @table_section{model_spec_sec, Model Specification Variables}
@@ -538,6 +541,9 @@
       CHARACTER (len=data_filename_length) :: ipch_dot_filename = ''
 !>  File holding Thomson Scattering information
       CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
+!>  File holding soft x-ray ratio information
+      CHARACTER (len=data_filename_length) ::                                  &
+     &   sxrem_ratio_dot_filename = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.
 !>  Maximum number of signals to create.
@@ -631,6 +637,12 @@
 !>  Array of af_coefficients electron temperature splines
 !>  @see pprofile_T
       REAL (rprec), DIMENSION(iub_asf)     :: pp_te_af = 0.0
+
+!  Soft X-ray emission ratio
+!>  Array of temperature points for the sxrem ratio function.
+      REAL (rprec), DIMENSION(iub_asf) :: sxrem_te_a = 0.0
+!>  Array of ratio points for the sxrem ratio function.
+      REAL (rprec), DIMENSION(iub_asf) :: sxrem_ratio_a = 0.0
 
 !  Model Specification Variables
 !>  Specify how electron density is computed by the model.
@@ -899,7 +911,7 @@
      &   vmec_nli_filename, vmec_wout_input, vacuum_nli_filename,              &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
-     &   ipch_dot_filename,                                                    &
+     &   ipch_dot_filename, sxrem_ratio_dot_filename,                          &
 !  Array allocation sizes
      &   na_s_desc,                                                            &
 !  Task specification and work variables
@@ -913,6 +925,8 @@
      &   pp_sxrem_af_a,                                                        &
 !  Electron temperature
      &   pp_te_ptype, pp_te_b, pp_te_as, pp_te_af,                             &
+!  Soft x-ray ratio
+     &   sxrem_te_a, sxrem_ratio_a,                                            &
 !  Model Specification Variables
      &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
      &   model_te_type, ne_pp_unit, ne_min, te_min, e_pressure_fraction,       &

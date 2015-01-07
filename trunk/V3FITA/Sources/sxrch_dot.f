@@ -258,7 +258,6 @@
 !>  @param[inout] first_index     Index of the first instance of an intpol
 !>                                signal.
 !>  @param[in]    use_geo         Chord contains geomtric factor.
-!>  @todo FIXME: Remove the _new when removing the old code.
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
      &                                 coordinate_type,                        &
@@ -330,4 +329,4 @@
 
       END SUBROUTINE
 
-      END MODULE sxrch_dot
+      END MODULE

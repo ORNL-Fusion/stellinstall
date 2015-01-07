@@ -143,6 +143,11 @@
          REAL (rprec), DIMENSION(:,:), POINTER :: sxrem_grid => null()
 !>  Grided electron temperature profile.
          REAL (rprec), DIMENSION(:), POINTER   :: te_grid => null()
+
+!>  Soft X-ray emissivity tempurature.
+         REAL (rprec), DIMENSION(:), POINTER :: sxrem_te => null()
+!>  Soft X-ray emissivity ratio.
+         REAL (rprec), DIMENSION(:), POINTER :: sxrem_ratio => null()
       END TYPE
 
 !*******************************************************************************
@@ -197,12 +202,14 @@
 !>  @param[in] te_min            Minimum electron temperature.
 !>  @param[in] pressure_fraction Fraction of the pressure provided by electrons.
 !>  @param[in] equilibrium       An instance of an @ref equilibrium.
+!>  @param[in] sxrem_te          Soft x-ray ratio function te.
+!>  @param[in] sxrem_ratio       Soft x-ray ratio function ratio.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
       FUNCTION model_construct_new(ne_type, sxrem_type, te_type,               &
      &                             ne_unit, ne_min, te_min,                    &
      &                             pressure_fraction, emission,                &
-     &                             equilibrium)
+     &                             equilibrium, sxrem_te, sxrem_ratio)
 
       IMPLICIT NONE
 
@@ -218,6 +225,8 @@
       REAL (rprec), INTENT(in)                      :: pressure_fraction
       TYPE (emission_class), POINTER                :: emission
       TYPE (equilibrium_class), POINTER             :: equilibrium
+      REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_te
+      REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_ratio
 
 !  local variables
       INTEGER                                       :: i, grid_size
@@ -328,6 +337,16 @@
          ALLOCATE(model_construct_new%te_grid(grid_size))
       END IF
 
+!  Find the size of the sxrem ratio arrays.
+      grid_size = MINLOC(sxrem_te(2:), dim=1)
+      IF (grid_size .gt. 1) THEN
+         ALLOCATE(model_construct_new%sxrem_te(grid_size))
+         model_construct_new%sxrem_te = sxrem_te(1:grid_size)
+
+         ALLOCATE(model_construct_new%sxrem_ratio(grid_size))
+         model_construct_new%sxrem_ratio = sxrem_ratio(1:grid_size)
+      END IF
+
       CALL profiler_set_stop_time('model_construct_new', start_time)
 
       END FUNCTION
@@ -353,7 +372,7 @@
       INTEGER                     :: error
       INTEGER                     :: sxrem_size
       INTEGER                     :: grid_size
-      LOGICAL                     :: use_emission
+      LOGICAL                     :: temp_logical
 
 !  Start of executable code
       ALLOCATE(model_construct_mpi)
@@ -377,8 +396,8 @@
       CALL MPI_BCAST(model_construct_mpi%pressure_fraction, 1,                 &
      &               MPI_REAL8, 0, intra_comm, error)
 
-      CALL MPI_BCAST(use_emission, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (use_emission) THEN
+      CALL MPI_BCAST(temp_logical, 1, MPI_LOGICAL, 0, intra_comm, error)
+      IF (temp_logical) THEN
          model_construct_mpi%emission => emission_construct(intra_comm)
       END IF
 
@@ -405,6 +424,21 @@
      &                  error)
          CALL MPI_BCAST(model_construct_mpi%te_grid, grid_size,                &
      &                  MPI_REAL8, 0, intra_comm, error)
+      END IF
+
+      CALL MPI_BCAST(temp_logical, 1, MPI_LOGICAL, 0, intra_comm, error)
+      IF (temp_logical) THEN
+         CALL MPI_BCAST(grid_size, 1, MPI_INTEGER, 0, intra_comm, error)
+
+         IF (grid_size .gt. 0) THEN
+            ALLOCATE (model_construct_mpi%sxrem_te(grid_size))
+            CALL MPI_BCAST(model_construct_mpi%sxrem_te, grid_size,            &
+     &                     MPI_REAL8, 0, intra_comm, error)
+
+            ALLOCATE (model_construct_mpi%sxrem_ratio(grid_size))
+            CALL MPI_BCAST(model_construct_mpi%sxrem_ratio, grid_size,         &
+     &                     MPI_REAL8, 0, intra_comm, error)
+         END IF
       END IF
 #endif
 
@@ -456,6 +490,16 @@
       IF (ASSOCIATED(this%te_grid)) THEN
          DEALLOCATE(this%te_grid)
          this%te_grid => null()
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_te)) THEN
+         DEALLOCATE(this%sxrem_te)
+         this%sxrem_te => null()
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_ratio)) THEN
+         DEALLOCATE(this%sxrem_ratio)
+         this%sxrem_ratio => null()
       END IF
 
       DEALLOCATE(this)
@@ -1023,6 +1067,41 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_get_sxrem_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the soft x-ray emissivity at a radial position.
+!>
+!>  Gets the soft x-ray emissivity at a radial position. Soft x-ray emissivity
+!>  is computed based on the type of @ref model_class::sxrem_type.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] r     Radial position to get the soft x-ray emissivity at.
+!>  @param[in] length Distance to the camera.
+!>  @param[in] index Index of the soft x-ray emissivity model.
+!>  @returns The soft x-ray emissivity at r.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_sxrem_ratio(this, te)
+      USE line_segment
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_sxrem_ratio
+      TYPE (model_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)       :: te
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL line_seg(te, model_get_sxrem_ratio, this%sxrem_te,                  &
+     &              this%sxrem_ratio, SIZE(this%sxrem_te))
+
+      CALL profiler_set_stop_time('model_get_sxrem_ratio', start_time)
 
       END FUNCTION
 
@@ -1676,6 +1755,20 @@
      &                  MPI_REAL8, 0, intra_comm, error)
          CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
      &                  intra_comm, error)
+      END IF
+
+      CALL MPI_BCAST(ASSOCIATED(this%sxrem_te), 1, MPI_LOGICAL, 0,             &
+     &               intra_comm, error)
+      IF (ASSOCIATED(this%sxrem_te)) THEN
+         CALL MPI_BCAST(SIZE(this%sxrem_te), 1, MPI_INTEGER, 0,                &
+     &                  intra_comm, error)
+
+         IF (SIZE(this%sxrem_te) .gt. 0) THEN
+            CALL MPI_BCAST(this%sxrem_te, SIZE(this%sxrem_te),                 &
+     &                     MPI_REAL8, 0, intra_comm, error)
+            CALL MPI_BCAST(this%sxrem_ratio, SIZE(this%sxrem_ratio),           &
+     &                     MPI_REAL8, 0, intra_comm, error)
+         END IF
       END IF
 
       CALL profiler_set_stop_time('model_sync_children', start_time)

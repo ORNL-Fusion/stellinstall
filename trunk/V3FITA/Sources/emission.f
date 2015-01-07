@@ -275,7 +275,6 @@
 !>  @returns The emissivity function for a fixed temperature.
 !-------------------------------------------------------------------------------
       FUNCTION emission_get_emission(this, te, ne, index)
-      USE line_segment
 
       IMPLICIT NONE
 
@@ -298,30 +297,35 @@
 !  beyond the first or last temperature, linearly interpolate from the last two
 !  temperatures.
       IF (te .lt. this%te_start) THEN
+!  Assume no emission at zero eV. Interpolate between zero and the first
+!  temperature level.
          i_low = 1
          i_high = 2
+
+         w_high = 0.0
+         w_low = te/this%te_start
       ELSE IF (te .gt. this%te_start + (SIZE(this%emission,                    &
      &                                       1) - 1)*this%te_step) THEN
          i_high = SIZE(this%emission, 1)
          i_low = i_high - 1
+
+         w_high = 1.0
+         w_low = 0.0
       ELSE
-         i_low = (te - this%te_start)/this%te_step
+         i_low = (te - this%te_start)/this%te_step + 1
          i_high = i_low + 1
+
+         w_high = (te - this%te_start)/this%te_step + 1.0 - i_low
+         w_low = 1.0 - w_high
       END IF
-
-      CALL line_seg((te - this%te_start)/this%te_step, w_low,                  &
-     &              (/ 0.0_dp, 1.0_dp /), (/ 1.0_dp, 0.0_dp /), 2)
-
-      w_high = 1.0 - w_high
 
       this%work_array = w_high*this%emission(i_high,:)                         &
      &                + w_low*this%emission(i_low,:)
-      this%work_array = this%work_array*ne*ne
-
       this%work_array = this%work_array*this%transmission(index,:)             &
-     &                * this%absorption(index,:)*this%energy_step
+     &                * this%absorption(index,:)
 
-      emission_get_emission = SUM(this%work_array)
+      emission_get_emission = SUM(this%work_array)*ne*ne                       &
+     &                      * this%energy_step
 
       CALL profiler_set_stop_time('emission_get_emission', start_time)
 

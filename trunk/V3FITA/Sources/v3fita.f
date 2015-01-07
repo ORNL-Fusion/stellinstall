@@ -702,7 +702,8 @@
      &         pprofile_construct(TRIM(pp_te_ptype), pp_te_b,                  &
      &                            pp_te_as, pp_te_af), sxr,                    &
      &         phi_offset, z_offset, pol_rad_ratio,                            &
-     &         context%runlog_iou), force_solve, not_converged))
+     &         context%runlog_iou), force_solve, not_converged),               &
+     &   sxrem_te_a, sxrem_ratio_a)
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
 
@@ -744,7 +745,8 @@
      &   emission_func,                                                        &
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
-     &                         force_solve))
+     &                         force_solve),                                   &
+     &   sxrem_te_a, sxrem_ratio_a)
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
 
@@ -811,6 +813,10 @@
       CALL init_geometric_signals(context, signals_created)
 
       CALL init_prior_signals(context, signals_created)
+
+      IF (sxrem_ratio_dot_filename .ne. '') THEN
+         CALL init_sxrem_ratio_signals(context, signals_created)
+      END IF
 
       CALL init_combination_signals(context, signals_created)
 
@@ -1280,6 +1286,49 @@
       END DO
 
       CALL profiler_set_stop_time('init_prior_signals', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Constructs @ref sxrem_ratio signals.
+!>
+!>  This constructs all @ref sxrem_ratio signals from the specified
+!>  @ref v3fit_input::sxrem_ratio_dot_filename.
+!>
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_sxrem_ratio_signals(context, signals_created)
+      USE v3fit_context
+      USE sxrem_ratio_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (*,*) ' *** Constructing sxrem ratio signals from ' //             &
+     &            TRIM(sxrem_ratio_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing intpol ' //              &
+     &                             'signals from ' //                          &
+     &                             TRIM(sxrem_ratio_dot_filename)
+
+!  The setting of the intpol_index for sxrem happens inside ipch_dot_parse_chord
+      CALL sxrem_ratio_dot_read(sxrem_ratio_dot_filename,                      &
+     &                          context%signals, signals_created,              &
+     &                          sdo_data_a, sdo_sigma_a, sdo_weight_a,         &
+     &                          context%sxrem_ratio_index)
+
+      CALL profiler_set_stop_time('init_sxrem_ratio_signals',                  &
+     &                            start_time)
 
       END SUBROUTINE
 
