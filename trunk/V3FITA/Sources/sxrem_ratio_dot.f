@@ -119,7 +119,7 @@
 
 !  local parameters
 !  n_thscted_keyword    integer - number of thscted_keyword s.
-      INTEGER, PARAMETER :: n_sxrem_ratio_keyword = 2
+      INTEGER, PARAMETER :: n_sxrem_ratio_keyword = 3
 
 !  local variables
 !  sxrem_ratio_keyword   character array - keywords for various thscte input types
@@ -134,6 +134,7 @@
 !  Initialize the keywords and keyword lengths
       sxrem_ratio_keyword(1) = 'sxrem_ratio_XYZ'
       sxrem_ratio_keyword(2) = 'sxrem_ratio_RPhiDegZ'
+      sxrem_ratio_keyword(3) = 'end_of_file'
 
 !  Open up the 'thscte.' file
       sxrem_ratio_dot_file_ref = signal_dot_open(TRIM(sxrem_ratio_file),            &
