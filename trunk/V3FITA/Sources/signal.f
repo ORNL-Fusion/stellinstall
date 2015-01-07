@@ -355,7 +355,7 @@
 
       ALLOCATE(signal_construct_feedback)
 
-      signal_construct_feedback%type = signal_prior_type
+      signal_construct_feedback%type = signal_feedback_type
       signal_construct_feedback%s_name = s_name
       signal_construct_feedback%l_name = l_name
       signal_construct_feedback%units = units
