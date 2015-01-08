@@ -185,7 +185,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL(rprec) :: prior_get_modeled_signal
+      REAL(rprec), DIMENSION(4) :: prior_get_modeled_signal
       TYPE(prior_class), INTENT(in)           :: this
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma

@@ -173,7 +173,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: prior_gaussian_get_modeled_signal
+      REAL (rprec), DIMENSION(4) :: prior_gaussian_get_modeled_signal
       TYPE (prior_gaussian_class), INTENT(in) :: this
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
@@ -184,7 +184,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      prior_gaussian_get_modeled_signal =                                      &
+      prior_gaussian_get_modeled_signal = 0.0
+      prior_gaussian_get_modeled_signal(1) =                                   &
      &   model_get_param_value(a_model, this%param_id,                         &
      &                         this%indices(1), this%indices(2))
       sigma = 0.0

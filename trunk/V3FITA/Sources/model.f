@@ -1167,7 +1167,7 @@
          CASE (model_te_type)
             model_get_te_type = 'pp_te'
 
-         CASE (model_ne_te_p_type)
+         CASE (model_te_ne_p_type)
             model_get_te_type = 'pp_ne_p'
 
          CASE DEFAULT

@@ -164,7 +164,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec) :: sxrem_ratio_get_modeled_signal
+      REAL (rprec), DIMENSION(4) :: sxrem_ratio_get_modeled_signal
       TYPE (sxrem_ratio_class), INTENT(in)    :: this
       TYPE (model_class), INTENT(inout)       :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
@@ -179,14 +179,14 @@
       emissivity = model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,          &
      &                                  this%indices(2))
 
+      sxrem_ratio_get_modeled_signal = 0.0
       IF (emissivity .eq. 0.0) THEN
-         sxrem_ratio_get_modeled_signal = 1.0
+         sxrem_ratio_get_modeled_signal(1) = 1.0
       ELSE
-         sxrem_ratio_get_modeled_signal =                                      &
+         sxrem_ratio_get_modeled_signal(1) =                                   &
      &      model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,                 &
      &                        this%indices(1))/emissivity
       END IF
-
       sigma = 0.0
 
       CALL profiler_set_stop_time('sxrem_ratio_get_modeled_signal',            &
