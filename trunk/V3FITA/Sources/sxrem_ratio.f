@@ -170,16 +170,23 @@
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
 
 !  local variables
+      REAL (rprec)                            :: emissivity
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      sxrem_ratio_get_modeled_signal =                                         &
-     &   model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,                    &
-     &                        this%indices(1))/                                &
-     &   model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,                    &
-     &                        this%indices(2))
+      emissivity = model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,          &
+     &                                  this%indices(2))
+
+      IF (emissivity .eq. 0.0) THEN
+         sxrem_ratio_get_modeled_signal = 1.0
+      ELSE
+         sxrem_ratio_get_modeled_signal =                                      &
+     &      model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,                 &
+     &                        this%indices(1))/emissivity
+      END IF
+
       sigma = 0.0
 
       CALL profiler_set_stop_time('sxrem_ratio_get_modeled_signal',            &
@@ -228,7 +235,7 @@
 !>  files.
 !>
 !>  @param[in] this A @ref prior_gaussian_class instance.
-!>  @returns A string describing the prior type.
+!>  @returns A string describing the feedback type.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_get_signal_type(this)
 

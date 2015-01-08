@@ -1034,7 +1034,9 @@
 
       WRITE (iou,1000) index, signal_get_signal_type(this), this%s_name,       &
      &                 signal_get_g2(this, a_model, .true.),                   &
-     &                 this%weight, this%observed, this%observed_sigma,        &
+     &                 this%weight, signal_get_observed_signal(this,           &
+     &                                                         a_model),       &
+     &                 this%observed_sigma,                                    &
      &                 this%modeled, this%modeled_sigma
 
       CALL profiler_set_stop_time('signal_write', start_time)

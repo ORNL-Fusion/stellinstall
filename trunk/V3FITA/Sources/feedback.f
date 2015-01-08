@@ -290,7 +290,7 @@
       SELECT CASE(this%type)
 
          CASE (feedback_sxrem_ratio_type)
-            feedback_get_signal_type = TRIM('prior ' //                        &
+            feedback_get_signal_type = TRIM('feedback ' //                     &
      &         sxrem_ratio_get_signal_type(this%ratio))
 
       END SELECT
