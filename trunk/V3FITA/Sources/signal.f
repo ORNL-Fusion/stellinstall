@@ -1027,17 +1027,22 @@
       TYPE (model_class), INTENT(inout)  :: a_model
 
 !  local variables
+      REAL (rprec), DIMENSION(4)         :: modeled_signal
+      REAL (rprec), DIMENSION(4)         :: modeled_sigma
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      modeled_signal = signal_get_modeled_signal(this, a_model,                &
+     &                                           modeled_sigma, .true.)
+
       WRITE (iou,1000) index, signal_get_signal_type(this), this%s_name,       &
      &                 signal_get_g2(this, a_model, .true.),                   &
      &                 this%weight, signal_get_observed_signal(this,           &
      &                                                         a_model),       &
-     &                 this%observed_sigma,                                    &
-     &                 this%modeled, this%modeled_sigma
+     &                 this%observed_sigma, modeled_signal,                    &
+     &                 modeled_sigma
 
       CALL profiler_set_stop_time('signal_write', start_time)
 
@@ -1168,6 +1173,7 @@
 
 !  local variables
       INTEGER                            :: status
+      INTEGER                            :: varid
       REAL (rprec), DIMENSION(4)         :: modeled_sigma
       REAL (rprec), DIMENSION(4)         :: modeled_signal
       REAL (rprec)                       :: start_time
@@ -1187,6 +1193,23 @@
      &                            (/ index, current_step /),                   &
      &                            SQRT(signal_get_sigma2(this)))
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+!  Feedback signals change the observed signal. Write the current observed
+!  value at eash step.
+      SELECT CASE(this%type)
+
+         CASE (signal_feedback_type)
+            status = nf_inq_varid(result_ncid, 'signal_observed_value',        &
+     &                            varid)
+            CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+            status =                                                           &
+     &         nf_put_var1_double(result_ncid, varid, index,                   &
+     &                            signal_get_observed_signal(this,             &
+     &                                                       a_model))
+            CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      END SELECT
 
       CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
 

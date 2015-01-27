@@ -1718,7 +1718,7 @@
 
          DO i = 2, num_processes
             CALL MPI_INFO_CREATE(info(i - 1), error)
-            CALL MPI_INFO_SET(info(i - 1), "wdir", process_dir(i),             &
+            CALL MPI_INFO_SET(info(i - 1), 'wdir', TRIM(process_dir(i)),       &
      &                        error)
          END DO
 

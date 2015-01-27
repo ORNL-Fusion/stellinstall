@@ -185,7 +185,7 @@
       ELSE
          sxrem_ratio_get_modeled_signal(1) =                                   &
      &      model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,                 &
-     &                        this%indices(1))/emissivity
+     &                           this%indices(1))/emissivity
       END IF
       sigma = 0.0
 
