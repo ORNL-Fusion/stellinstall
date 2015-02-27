@@ -9,6 +9,8 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_iso_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/magnetic.f
+	${CMAKE_CURRENT_SOURCE_DIR}/mse.f
+	${CMAKE_CURRENT_SOURCE_DIR}/mse_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/pprofile_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/prior.f
 	${CMAKE_CURRENT_SOURCE_DIR}/prior_gaussian.f

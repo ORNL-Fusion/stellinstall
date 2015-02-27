@@ -156,7 +156,6 @@
       REAL(rprec), DIMENSION(3), OPTIONAL, INTENT(out)    :: xcart_f
 
 !  local variables
-      REAL(rprec), DIMENSION(3)            :: x_start, x_end
       INTEGER                              :: status
       CHARACTER (len=signal_dot_line_len)  :: line
       REAL (rprec)                         :: start_time
@@ -170,38 +169,25 @@
       chord_name = TRIM(line)
 
 !  Read the start position.
-      line = signal_dot_read_line(signal_dot_file_ref,                         &
-     &                            'Error reading start position for ',         &
-     &                            ' chord.')
-!  Reread the line, looking for three reals
-      READ(line, *, iostat=status) x_start(1:3)
-      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
-     &                             'Error ', ' chord start position.')
+	  xcart_i = signal_dot_parse_3_real(signal_dot_file_ref,                   &
+     &                                  'Error reading start ' //              &
+     &                                  'position for chord.')
 
       IF (PRESENT(xcart_f)) THEN
 !  Read the end position.
-         line = signal_dot_read_line(signal_dot_file_ref,                      &
-     &                               'Error reading end position for ',        &
-     &                               ' chord.')
-!  Reread the line, looking for three reals
-         READ(line, *, iostat=status) x_end(1:3)
-         CALL signal_dot_check_status(status, signal_dot_file_ref,             &
-     &                                'Error ', ' chord end position.')
+         xcart_f = signal_dot_parse_3_real(signal_dot_file_ref,                &
+     &                                    'Error reading end ' //              &
+     &                                    'position for chord.')
       ENDIF
 
 !  Done reading information for this chord. Generate the chord
       IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
-         x_start(2) = x_start(2)*degree ! Convert from degrees to radians.
-         xcart_i = cyl_to_cart(x_start)
+         xcart_i(2) = xcart_i(2)*degree ! Convert from degrees to radians.
+         xcart_i = cyl_to_cart(xcart_i)
 
          IF (PRESENT(xcart_f)) THEN
-            x_end(2) = x_end(2)*degree  ! Convert from degrees to radians.
-            xcart_f = cyl_to_cart(x_end)
-         ENDIF
-      ELSE
-         xcart_i = x_start
-         IF (PRESENT(xcart_f)) THEN
-            xcart_f = x_end
+            xcart_f(2) = xcart_f(2)*degree  ! Convert from degrees to radians.
+            xcart_f = cyl_to_cart(xcart_f)
          ENDIF
       ENDIF
 
@@ -246,6 +232,47 @@
      &                             'Error ', message)
 
       CALL profiler_set_stop_time('signal_dot_parse_real', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Parse a three reals from a diagnostic dot file.
+!>
+!>  Reads three reals from the diagnostic dot file. This is used to be able to
+!>  get extra information about a diagnostic in the diagnostic dot file.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message             Error message to report back if there was
+!>                                    a problem.
+!>  @returns The parsed real values.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_dot_parse_3_real(signal_dot_file_ref, message)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3)            :: signal_dot_parse_3_real
+      TYPE (signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)         :: message
+
+!  local variables
+      INTEGER                               :: status
+      CHARACTER (len=signal_dot_line_len)   :: line
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            'Error ', message)
+!  Reread the line, looking for three reals
+      READ(line, *, iostat=status) signal_dot_parse_3_real
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
+     &                             'Error ', message)
+
+      CALL profiler_set_stop_time('signal_dot_parse_3_real', start_time)
 
       END FUNCTION
 

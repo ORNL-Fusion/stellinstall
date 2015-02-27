@@ -140,7 +140,7 @@
 !  Declare Arguments
       TYPE (vertex), POINTER :: this
 
-!  Start of executable code.
+!  Start of executable code
       IF (ASSOCIATED(this%next)) THEN
          CALL path_destruct(this%next)
          this%next => null()
@@ -165,6 +165,7 @@
 !>  @param[in]    position Cartesian position of the vertex object.
 !-------------------------------------------------------------------------------
       RECURSIVE SUBROUTINE path_append_vertex(this, position)
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -200,6 +201,7 @@
 !-------------------------------------------------------------------------------
       RECURSIVE FUNCTION path_integrate(this, integration_function,            &
      &                                  context) RESULT(total)
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -287,6 +289,7 @@
 !-------------------------------------------------------------------------------
       FUNCTION integrate(context, vertex1, vertex2,                            &
      &                   integration_function)
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -523,6 +526,7 @@
 !>  @returns True if the check passes and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION check_int(expected, received, testNum, name)
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -556,6 +560,7 @@
 !>  @returns One
 !-------------------------------------------------------------------------------
       FUNCTION test_function(context, xcart, dxcart, length, dx)
+
       IMPLICIT NONE
 
 !  Declare Arguments

@@ -76,6 +76,9 @@
 !>  Index of the first instance of a @ref extcurz signal. The default -1
 !>  represents no @ref extcurz signal created.
          INTEGER :: extcurz_index = -1
+!>  Index of the first instance of a @ref mse signal. The default -1
+!>  represents no @ref mse signal created.
+         INTEGER :: mse_index = -1
 !>  Index of the first instance of a @ref limiter signal. The default -1
 !>  represents no @ref limiter signal created.
          INTEGER :: limiter_index = -1
@@ -261,6 +264,7 @@
       this%intpol_index = -1
       this%thomson_index = -1
       this%extcurz_index = -1
+	  this%mse_index = -1
       this%limiter_index = -1
       this%prior_guassian_index = -1
       this%sxrem_ratio_index = -1
@@ -525,6 +529,7 @@
      &          (this%intpol_index .eq. i) .or.                                &
      &          (this%thomson_index .eq. i) .or.                               &
      &          (this%extcurz_index .eq. i) .or.                               &
+     &          (this%mse_index .eq. i) .or.                                   &
      &          (this%limiter_index .eq. i) .or.                               &
      &          (this%prior_guassian_index .eq. i) .or.                        &
      &          (this%sxrem_ratio_index .eq. i) .or.                           &

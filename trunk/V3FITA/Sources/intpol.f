@@ -52,7 +52,7 @@
          LOGICAL                :: in_degrees
 !>  The complete path of the chord.
          TYPE (vertex), POINTER :: chord_path => null()
-      END TYPE intpol_class
+      END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
@@ -79,6 +79,7 @@
 !>  diagnostic.
 !>
 !>  Allocates memory and initializes a @ref intpol_class object.
+!>
 !>  @param[in] chord_paths The nodes of a multi point segment integration path.
 !>  @returns A pointer to a constructed @ref intpol_class object.
 !-------------------------------------------------------------------------------
@@ -157,7 +158,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref sxrem_class object by syncing through mpi.
+!>  @brief Construct a @ref intpol_class object by syncing through mpi.
 !>
 !>  Allocates memory and initializes a @ref intpol_class object.
 !>

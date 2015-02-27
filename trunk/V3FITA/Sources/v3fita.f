@@ -810,6 +810,11 @@
          CALL init_extcurz_signals(context, signals_created)
       END IF
 
+!  If a mse filename is given, construct the diagnostics contained inside it.
+      IF (mse_dot_filename .ne. '') THEN
+         CALL init_mse_signals(context, signals_created)
+      END IF
+
       CALL init_geometric_signals(context, signals_created)
 
       CALL init_prior_signals(context, signals_created)
@@ -1140,6 +1145,47 @@
       END IF
 
       CALL profiler_set_stop_time('init_extcurz_signals', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Constructs @ref mse signals.
+!>
+!>  This constructs all @ref mse signals from the specified
+!>  @ref v3fit_input::mse_dot_filename.
+!>
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_mse_signals(context, signals_created)
+      USE v3fit_context
+      USE mse_dot
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (*,*) ' *** Constructing mse signals from ' //                     &
+     &            TRIM(mse_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing mse ' //                 &
+     &                             'signals from ' //                          &
+     &                             TRIM(mse_dot_filename)
+
+!  The setting of the mse_index for mse happens inside mse_dot_parse_chord
+      CALL mse_dot_read(mse_dot_filename, context%signals,                     &
+     &                  signals_created, sdo_data_a, sdo_sigma_a,              &
+     &                  sdo_weight_a, context%mse_index)
+
+      CALL profiler_set_stop_time('init_mse_signals', start_time)
 
       END SUBROUTINE
 

@@ -33,6 +33,8 @@
  * * @ref sxrem_dot_sec "Soft X-ray Diagnostic Dot File" User manual for the soft x-ray diagnostic dot file.
  * * @ref intpol_dot_sec "Inteferometry/Polarimetry Diagnostic Dot File" User manual for the inteferometry/polarimetry diagnostic dot file.
  * * @ref thomson_dot_sec "Thomson Scattering Diagnostic Dot File" User manual for the Thomson scattering diagnostic dot file.
+ * * @ref mse_dot_sec "Motional Stark Effect Diagnostic Dot File" User manual for the motional stark effect diagnostic dot file.
+ * * @ref sxrem_ratio_dot_sec "Soft X-ray Ratio Diagnostic Dot File" User manual for the soft x-ray ratio diagnostic dot file.
  *
  * @section programmer Programmer Manuals
  * These manuals are meant to document the various tools and structure used by

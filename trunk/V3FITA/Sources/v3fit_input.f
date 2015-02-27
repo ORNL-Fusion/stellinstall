@@ -26,6 +26,7 @@
 !>        @item{sxrch_dot_filename,       File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
 !>        @item{thscte_dot_filename,      File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
 !>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
+!>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_ratio_dot_sec.,         v3fit_input::mse_dot_filename}
 !>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
 !>  @end_table
 !>
@@ -541,6 +542,8 @@
       CHARACTER (len=data_filename_length) :: ipch_dot_filename = ''
 !>  File holding Thomson Scattering information
       CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
+!>  File holding motional stark effect information
+      CHARACTER (len=data_filename_length) :: mse_dot_filename = ''
 !>  File holding soft x-ray ratio information
       CHARACTER (len=data_filename_length) ::                                  &
      &   sxrem_ratio_dot_filename = ''
@@ -911,7 +914,7 @@
      &   vmec_nli_filename, vmec_wout_input, vacuum_nli_filename,              &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
-     &   ipch_dot_filename, sxrem_ratio_dot_filename,                          &
+     &   ipch_dot_filename, mse_dot_filename, sxrem_ratio_dot_filename,        &
 !  Array allocation sizes
      &   na_s_desc,                                                            &
 !  Task specification and work variables

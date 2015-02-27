@@ -246,18 +246,18 @@
 !>  * Starting point as three reals.
 !>  * Ending point as three reals.
 !>
-!>  @param[in]    sxrch_file      Name of the sxrch. file.
-!>  @param[in]    coordinate_type Specifies the cartesian or cylindrical
-!>                                coordinate type.
-!>  @param[inout] signals         Array of pointers to the a signal
-!>  @param[inout] signals_created Number valid signals in the array, or index of
-!>                                the last signal created.
-!>  @param[in]    observed        Array of observed values.
-!>  @param[in]    sigma           Array of observed sigma values
-!>  @param[in]    weight          Array of signal weight values
-!>  @param[inout] first_index     Index of the first instance of an intpol
-!>                                signal.
-!>  @param[in]    use_geo         Chord contains geomtric factor.
+!>  @param[in]    sxrch_dot_file_ref Reference to the sxrch. file.
+!>  @param[in]    coordinate_type    Specifies the cartesian or cylindrical
+!>                                   coordinate type.
+!>  @param[inout] signals            Array of pointers to the a signal
+!>  @param[inout] signals_created    Number valid signals in the array, or index
+!>                                   of the last signal created.
+!>  @param[in]    observed           Array of observed values.
+!>  @param[in]    sigma              Array of observed sigma values
+!>  @param[in]    weight             Array of signal weight values
+!>  @param[inout] first_index        Index of the first instance of an intpol
+!>                                   signal.
+!>  @param[in]    use_geo            Chord contains geomtric factor.
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrch_dot_parse_chord(sxrch_dot_file_ref,                     &
      &                                 coordinate_type,                        &
