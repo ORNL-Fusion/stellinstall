@@ -264,7 +264,7 @@
      &    + COS(theta)*COS(delta)*(b_cyl(1)*COS(alpha) -                       &
      &                             b_cyl(2)*SIN(alpha))
 
-      mse_get_modeled_signal(1) = ATAN(e_h, e_v)
+      mse_get_modeled_signal(1) = ATAN2(e_h, e_v)
 
       IF (this%in_degrees) THEN
 		 mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
