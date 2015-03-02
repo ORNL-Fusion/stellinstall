@@ -3218,8 +3218,12 @@
          ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
          ictrl_array(1) = IOR(ictrl_array(1), output_flag)
          ictrl_array(1) = IOR(ictrl_array(1), reset_jacdt_flag)
-         ictrl_array(3) = niter
-         ictrl_array(4) = this%ns_index
+
+!  Allow multigrid for the inital convergence only.
+         IF (num_iter .gt. 1) THEN
+            ictrl_array(3) = niter
+            ictrl_array(4) = this%ns_index
+         END IF
 
 !  Update internal vmec counters. These affect how the minimation occurs.
          iter1 = iter2
