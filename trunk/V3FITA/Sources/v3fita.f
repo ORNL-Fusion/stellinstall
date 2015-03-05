@@ -544,6 +544,38 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
+!>  @brief Computes the g^2 value on a grid.
+!>
+!>  Task to map out the chi^2 over a range of reconstruction parameters. This
+!>  task is choosen by setting @ref v3fit_input::my_task to 'gsq_on_grid'.
+!>
+!>  @param[inout] context An instance of a @ref v3fit_context object.
+!-------------------------------------------------------------------------------
+      SUBROUTINE task_gsq_on_grid(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (*,*) ' *** In task gsq_on_grid'
+
+!  Initialize the reconstruction.
+      CALL init_equilibrium(context)
+      CALL init_signals(context)
+      CALL init_parameters(context)
+      CALL init_reconstruction(context)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Run unit tests
 !>
 !>  This task is choosen by setting @ref v3fit_input::my_task to 'unit_test'. Or
@@ -566,28 +598,28 @@
 
 ! Line segment tests
       IF (line_seg_test()) THEN
-         WRITE(*,*) "Line Segment Test Passed"
+         WRITE(*,*) 'Line Segment Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
 ! Coordinate tests
       IF (cood_utils_test()) THEN
-         WRITE(*,*) "Coord Utilites Test Passed"
+         WRITE(*,*) 'Coord Utilites Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
 ! Profile function tests
       IF (function_test()) THEN
-         WRITE(*,*) "Functions Test Passed"
+         WRITE(*,*) 'Functions Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
 ! Integration path tests
       IF (path_test()) THEN
-         WRITE(*,*) "Integration Path Test Passed"
+         WRITE(*,*) 'Integration Path Test Passed'
       ELSE
          tests_failed = .true.
       END IF
@@ -634,15 +666,19 @@
 
       IF (vmec_nli_filename .ne. '') THEN
          CALL init_vmec_equilibrium(context, force_solve)
+         CALL profiler_set_stop_time('init_equilibrium', start_time)
          RETURN
       END IF
 
       IF (vacuum_nli_filename .ne. '') THEN
          CALL init_vacuum_equilibrium(context, force_solve)
+         CALL profiler_set_stop_time('init_equilibrium', start_time)
          RETURN
       END IF
 
-      CALL profiler_set_stop_time('init_equilibrium', start_time)
+      WRITE (*,*) 'Equilibrium not initialized. Please specify the ' //        &
+     &            'correct namelist input file.'
+      CALL EXIT(1)
 
       END SUBROUTINE
 
