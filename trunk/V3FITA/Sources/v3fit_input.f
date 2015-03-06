@@ -942,8 +942,8 @@
      &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc, rp_range_type,           &
      &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
-     &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a, mag_a,            &
-     &   mag_force_coil,                                                       &
+     &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
+     &   sdo_weight_a, mag_a, mag_force_coil,                                  &
 !  Magnetic integration parameters
      &   pol_rad_ratio,                                                        &
 !  External current signal specification
