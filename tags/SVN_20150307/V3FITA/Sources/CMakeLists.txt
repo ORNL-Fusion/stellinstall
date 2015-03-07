@@ -1,0 +1,41 @@
+# Append all source files to variable v3fit_sources. As new files are added this must be updated.
+list (APPEND v3fit_sources
+	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
+	${CMAKE_CURRENT_SOURCE_DIR}/diagnostic.f
+	${CMAKE_CURRENT_SOURCE_DIR}/extcurz.f
+	${CMAKE_CURRENT_SOURCE_DIR}/geometric.f
+	${CMAKE_CURRENT_SOURCE_DIR}/intpol.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ipch_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/limiter.f
+	${CMAKE_CURRENT_SOURCE_DIR}/limiter_iso_T.f
+	${CMAKE_CURRENT_SOURCE_DIR}/magnetic.f
+	${CMAKE_CURRENT_SOURCE_DIR}/mse.f
+	${CMAKE_CURRENT_SOURCE_DIR}/mse_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/pprofile_T.f
+	${CMAKE_CURRENT_SOURCE_DIR}/prior.f
+	${CMAKE_CURRENT_SOURCE_DIR}/prior_gaussian.f
+	${CMAKE_CURRENT_SOURCE_DIR}/signal.f
+	${CMAKE_CURRENT_SOURCE_DIR}/signal_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/sxrem.f
+	${CMAKE_CURRENT_SOURCE_DIR}/sxrch_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/thomson.f
+	${CMAKE_CURRENT_SOURCE_DIR}/thscte_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/feedback.f
+	${CMAKE_CURRENT_SOURCE_DIR}/sxrem_ratio.f
+	${CMAKE_CURRENT_SOURCE_DIR}/sxrem_ratio_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/v3fita.f
+	${CMAKE_CURRENT_SOURCE_DIR}/data_parameters.f
+	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_params.f
+	${CMAKE_CURRENT_SOURCE_DIR}/model.f
+	${CMAKE_CURRENT_SOURCE_DIR}/equilibrium.f
+	${CMAKE_CURRENT_SOURCE_DIR}/vmec_equilibrium.f
+	${CMAKE_CURRENT_SOURCE_DIR}/threed1_file_cache.f
+	${CMAKE_CURRENT_SOURCE_DIR}/vacuum_equilibrium.f
+	${CMAKE_CURRENT_SOURCE_DIR}/vacuum_input.f
+	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_input.f
+	${CMAKE_CURRENT_SOURCE_DIR}/v3fit_context.f
+	${CMAKE_CURRENT_SOURCE_DIR}/commandline_parser.f
+	${CMAKE_CURRENT_SOURCE_DIR}/reconstruction.f
+	${CMAKE_CURRENT_SOURCE_DIR}/emission.f
+)
+set (v3fit_sources "${v3fit_sources}" PARENT_SCOPE)

@@ -1,0 +1,432 @@
+!*******************************************************************************
+!>  @file mse.f
+!>  @brief Contains module @ref mse.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Implements motional stark effect diagnostic. Defines the base class of the
+!>  type @ref mse_class.
+!>  @par Super Class:
+!>  @ref diagnostic
+!*******************************************************************************
+
+      MODULE mse
+
+      USE stel_kinds, only: rprec, dp
+      USE coordinate_utilities
+      USE profiler
+#if defined (MPI_OPT)
+      USE mpi
+#endif
+
+      IMPLICIT NONE
+!*******************************************************************************
+!  DERIVED-TYPE DECLARATIONS
+!  1) mse base class
+!
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Base class representing a mse signal.
+!>  @par Super Class:
+!>  @ref diagnostic
+!-------------------------------------------------------------------------------
+      TYPE mse_class
+!>  Intersection point of the viewing angle and the neutral beam.
+         REAL (rprec), DIMENSION(3) :: point
+!>  Starting point defining the viewing vector.
+         REAL (rprec), DIMENSION(3) :: view_start
+!>  Ending point defining the viewing vector.
+         REAL (rprec), DIMENSION(3) :: view_end
+!>  Starting point defining the neutral beam vector.
+         REAL (rprec), DIMENSION(3) :: beam_start
+!>  Ending point defining the viewing vector.
+         REAL (rprec), DIMENSION(3) :: beam_end
+!>  Controls if the results is computed in degrees or radians.
+         LOGICAL                    :: in_degrees
+      END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref mse_class types using
+!>  @ref mse_construct_new or @ref mse_construct_mpi
+!-------------------------------------------------------------------------------
+      INTERFACE mse_construct
+		 MODULE PROCEDURE mse_construct_new,                                   &
+     &                    mse_construct_mpi
+      END INTERFACE
+
+      PRIVATE :: mse_angle_to_bt_proj, mse_angle_to_horizontal
+
+      CONTAINS
+!*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref mse_class object representing a motional stark
+!>  effect diagnostic.
+!>
+!>  Allocates memory and initializes a @ref mse_class object.
+!>
+!>  @param[in] point      Measurement point of the mse diagnostic.
+!>  @param[in] view_start Starting point of the view vector.
+!>  @param[in] view_end   Ending point of the view vector.
+!>  @param[in] beam_start Starting point of the beam vector.
+!>  @param[in] beam_end   Ending point of the beam vector.
+!>  @returns A pointer to a constructed @ref mse_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION mse_construct_new(point, view_start, view_end,                  &
+     &                           beam_start, beam_end, in_degrees)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (mse_class), POINTER  :: mse_construct_new
+      REAL (rprec), DIMENSION(3) :: point
+      REAL (rprec), DIMENSION(3) :: view_start
+      REAL (rprec), DIMENSION(3) :: view_end
+      REAL (rprec), DIMENSION(3) :: beam_start
+      REAL (rprec), DIMENSION(3) :: beam_end
+      LOGICAL, INTENT(in)        :: in_degrees
+
+!  local variables
+      REAL (rprec)              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(mse_construct_new)
+
+      mse_construct_new%point = point
+      mse_construct_new%view_start = point
+      mse_construct_new%view_end = point
+      mse_construct_new%beam_start = beam_start
+      mse_construct_new%beam_end = beam_end
+      mse_construct_new%in_degrees = in_degrees
+
+      CALL profiler_set_stop_time('mse_construct_new', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref mse_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref mse_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref mse_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION mse_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (mse_class), POINTER :: mse_construct_mpi
+
+      INTEGER, INTENT(in)       :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                   :: error
+
+!  Start of executable code
+      ALLOCATE(mse_construct_mpi)
+
+      CALL MPI_BCAST(mse_construct_mpi%point, 3, MPI_REAL8, 0,                 &
+     &               intra_comm, error)
+      CALL MPI_BCAST(mse_construct_mpi%view_start, 3, MPI_REAL8, 0,            &
+     &               intra_comm, error)
+      CALL MPI_BCAST(mse_construct_mpi%view_end, 3, MPI_REAL8, 0,              &
+     &               intra_comm, error)
+      CALL MPI_BCAST(mse_construct_mpi%beam_start, 3, MPI_REAL8, 0,            &
+     &               intra_comm, error)
+      CALL MPI_BCAST(mse_construct_mpi%beam_end, 3, MPI_REAL8, 0,              &
+     &               intra_comm, error)
+      CALL MPI_BCAST(mse_construct_mpi%in_degrees, 1, MPI_LOGICAL, 0,          &
+     &               intra_comm, error)
+
+#endif
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref mse_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref mse_class object.
+!>
+!>  @param[inout] this A @ref mse_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE mse_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (mse_class), POINTER :: this
+
+!  Start of executable code
+      this%point = 0.0
+      this%view_start = 0.0
+      this%view_end = 0.0
+      this%beam_start = 0.0
+      this%beam_end = 0.0
+      this%in_degrees = .false.
+
+	  DEALLOCATE(this)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled signal.
+!>
+!>  Calculates the modeled signal by Equation 1 of Hawkes et. al.
+!>  doi:10.1063/1.1149415. The polarization angle gamma_m is determined from.
+!>
+!>    tan(gamma_m) = E_h/E_v                                                 (1)
+!>
+!>    E_h = -[B_v*Cos(delta)*Cos(omega + alpha) +
+!>            Sin(delta)*(B_r*Sin(omega) - B_t*Cos(omega)]                   (2)
+!>
+!>    E_v = -B_v*Sin(theta)*Cos(delta)*Sin(omega + alpha)
+!>        + Sin(theta)*Sin(delta)*(B_t*Sin(omega) + B_r*Cos(omega))
+!>        + Cos(theta)*Sin(delta)*(B_r*Cos(alpha) - B_t*Sin(alpha))          (3)
+!>
+!>  The magnetic field components are defined as
+!>  * B_r Radial component of the magnetic field
+!>  * B_t Toroidal component of the magnetic field
+!>  * B_v Vertical component of the magnetic field
+!>
+!>  The angles are defined as
+!>  * alpha Projected angle between the neutral beam and B_t
+!>  * omega Projected angle between the view and and B_t
+!>  * theta Angle between the view and the horizontal
+!>  * delta Angle between the neutral beam and the horizontal
+!>
+!>  @param[in]    this    A @ref mse_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION mse_get_modeled_signal(this, a_model, sigma)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: mse_get_modeled_signal
+      TYPE (mse_class), INTENT(inout)         :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+
+!  local variables
+      REAL (rprec), DIMENSION(3)              :: b_cyl
+	  REAL (rprec)                            :: alpha
+      REAL (rprec)                            :: omega
+      REAL (rprec)                            :: theta
+      REAL (rprec)                            :: delta
+      REAL (rprec)                            :: e_h
+      REAL (rprec)                            :: e_v
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      mse_get_modeled_signal = 0.0
+      sigma = 0.0
+
+!  Get the magnetic field vector.
+      b_cyl = cart_to_cyl_vec(this%point,                                      &
+     &                        equilibrium_get_B_vec(a_model%equilibrium,       &
+     &                                              this%point))
+
+!  Get the angles with respect to the toroidal field component.
+      alpha = mse_angle_to_bt_proj(this,                                       &
+     &                             this%beam_end - this%beam_start)
+      omega = mse_angle_to_bt_proj(this,                                       &
+     &                             this%view_end - this%view_start)
+
+!  Get the angles with respect to the horizontal.
+      theta = mse_angle_to_horizontal(this%view_end - this%view_start)
+      delta = mse_angle_to_horizontal(this%beam_end - this%beam_start)
+
+      e_h = -(b_cyl(3)*COS(delta)*COS(omega + alpha) +                         &
+     &        SIN(delta)*(b_cyl(1)*SIN(omega) - b_cyl(2)*COS(omega)))
+      e_v = -b_cyl(3)*SIN(theta)*COS(delta)*SIN(omega + alpha)                 &
+     &    + SIN(theta)*SIN(delta)*(b_cyl(2)*SIN(omega) +                       &
+     &                             b_cyl(1)*COS(omega))                        &
+     &    + COS(theta)*COS(delta)*(b_cyl(1)*COS(alpha) -                       &
+     &                             b_cyl(2)*SIN(alpha))
+
+      mse_get_modeled_signal(1) = ATAN2(e_h, e_v)
+
+      IF (this%in_degrees) THEN
+		 mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+      END IF
+
+      CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the mse type.
+!>
+!>  Returns a description of the mse type for use when writting output files.
+!>
+!>  @param[in] this A @ref mse_class instance.
+!>  @returns A string describing the mse type.
+!-------------------------------------------------------------------------------
+      FUNCTION mse_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length) :: mse_get_signal_type
+      TYPE (mse_class), INTENT(in)     :: this
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      mse_get_signal_type = 'mse'
+
+      CALL profiler_set_stop_time('mse_get_signal_type', start_time)
+
+      END FUNCTION
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref mse_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE mse_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (mse_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)             :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                         :: error
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BCAST(this%point, 3, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%view_start, 3, MPI_REAL8, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%view_end, 3, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%beam_start, 3, MPI_REAL8, 0, intra_comm,             &
+     &               error)
+      CALL MPI_BCAST(this%beam_end, 3, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%in_degrees, 1, MPI_LOGICAL, 0, intra_comm,           &
+     &               error)
+
+      CALL profiler_set_stop_time('mse_sync_children', start_time)
+#endif
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  PRIVATE
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Computes the angle with respect to toroidal field.
+!>
+!>  Returns the angle projected to the horizontal between an arbitray vector and
+!>  and the toroidal field. This angle is computed by.
+!>
+!>    angle = acos(n_t.vxy/|vxy|)                                            (1)
+!>
+!>  where n_t is the unit vector in the toroidal direction at the measurement
+!>  point.
+!>
+!>    n_t = (-p_y, p_x)/|p|                                                  (2)
+!>
+!>  @param[in] this A @ref mse_class instance.
+!>  @param[in] vec  An arbitray vector.
+!>  @param[in] bvec The magnetic filed vector.
+!>  @returns The projected angle between the vector and the toroidal
+!-------------------------------------------------------------------------------
+      FUNCTION mse_angle_to_bt_proj(this, vec)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                 :: mse_angle_to_bt_proj
+      TYPE (mse_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(3)   :: vec
+
+!  local variables
+      REAL (rprec), DIMENSION(2)   :: temp_vec
+      REAL (rprec), DIMENSION(2)   :: norm_vec
+      REAL (rprec)                 :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Unit vector in the direction of
+      temp_vec = (/ -this%point(2), this%point(1) /)                           &
+     &         / SQRT(DOT_PRODUCT(this%point(1:2), this%point(1:2)))
+
+!  Compute the angle.
+      norm_vec = vec(1:2)/SQRT(DOT_PRODUCT(vec(1:2), vec(1:2)))
+      mse_angle_to_bt_proj = ACOS(DOT_PRODUCT(temp_vec, norm_vec))
+
+      CALL profiler_set_stop_time('mse_angle_to_bt_proj', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Computes the angle with respect to horizontal.
+!>
+!>  Returns the angle to the horizontal for an arbitray vector. This angle is
+!>  computed by.
+!>
+!>    angle = asin(vecz/|vecz|)
+!>
+!>  @param[in] vec  An arbitray vector.
+!>  @returns The projected angle between the vector and horizontal
+!-------------------------------------------------------------------------------
+      FUNCTION mse_angle_to_horizontal(vec)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)               :: mse_angle_to_horizontal
+      REAL (rprec), DIMENSION(3) :: vec
+
+!  local variables
+      REAL (rprec)               :: h
+      REAL (rprec)               :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      h = SQRT(DOT_PRODUCT(vec, vec))
+      mse_angle_to_horizontal = ASIN(vec(3)/h)
+
+      CALL profiler_set_stop_time('mse_angle_to_bt_proj', start_time)
+
+	  END FUNCTION
+
+      END MODULE
