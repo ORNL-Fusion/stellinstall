@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE fourp (grpmn, grp, istore, istart, iend, ndim)
       USE vacmod
       IMPLICIT NONE
@@ -24,6 +30,8 @@ C-----------------------------------------------
 !
 !     THE 3rd INDEX OF GRPMN IS THE PRIMED U,V MESH COORDINATE     
 !
+      IF (ndim .GT. 2) STOP 'NDIM > 2'
+
       ALLOCATE (g1(istore,nu2,0:nf,ndim), g2(istore,nu2,0:nf,ndim),
      1   kernel(istore), gcos(istore), gsin(istore), stat=m)
       IF (m .ne. 0) STOP 'Allocation error in fourp'
@@ -31,6 +39,8 @@ C-----------------------------------------------
       g1 = 0
       g2 = 0
 
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& COLLAPSE(2) PRIVATE(n,kv,cosn,sinn,iuv,ireflect)
       DO n = 0,nf
          DO kv = 1,nv
             cosn = p5*onp*cosv(n,kv)
@@ -55,41 +65,42 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-
+!$OMP END PARALLEL DO
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANFORM [COMPLETE SIN(mu-nv) / COS(mu-nv) TRANSFORM]
 !
-      
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC) COLLAPSE(3)
+!$OMP$ PRIVATE(m,ku,isym,cosm,sinm)      
       DO m = 0,mf
          DO ku = 1,nu2
             DO isym = 1, ndim
-               IF (isym .eq. 1) THEN
+               IF (isym .EQ. 1) THEN
                   cosm = -cosui(m,ku)
                   sinm =  sinui(m,ku)
-               ELSE IF (isym .eq. 2) THEN
+               ELSE IF (isym .EQ. 2) THEN
                   sinm = cosui(m,ku)
                   cosm = sinui(m,ku)
                END IF
-                  DO n= 0,nf
-                     DO ip = 1,istore
-                        gcos(ip) = g1(ip,ku,n,isym)*sinm
-                        gsin(ip) = g2(ip,ku,n,isym)*cosm
-                        grpmn(m,n,ip+istart,isym) = 
-     1                  grpmn(m,n,ip+istart,isym) + gcos(ip) + gsin(ip)
-                     END DO
-
-                     IF (n .ne. 0) THEN
-                        DO ip = 1,istore
-                           grpmn(m,-n,ip+istart,isym) = 
-     1                     grpmn(m,-n,ip+istart,isym)
-     2                         + gcos(ip) - gsin(ip)
-                        END DO
-                     ENDIF
+               DO n= 0,nf
+                  DO ip = 1,istore
+                     gcos(ip) = g1(ip,ku,n,isym)*sinm
+                     gsin(ip) = g2(ip,ku,n,isym)*cosm
+                     grpmn(m,n,ip+istart,isym) = 
+     1               grpmn(m,n,ip+istart,isym) + gcos(ip) + gsin(ip)
                   END DO
-              END DO
+
+                  IF (n .NE. 0) THEN
+                     DO ip = 1,istore
+                        grpmn(m,-n,ip+istart,isym) = 
+     1                  grpmn(m,-n,ip+istart,isym)
+     2                      + gcos(ip) - gsin(ip)
+                     END DO
+                  ENDIF
+               END DO
+            END DO
          END DO
       END DO
-
+!$OMP END PARALLEL DO
       istart = iend
 
       DEALLOCATE (g1, g2, kernel, gcos, gsin, stat=m)

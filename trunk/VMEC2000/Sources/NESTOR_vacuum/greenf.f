@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE greenf(delgr, delgrp, ip)
       USE vacmod
       USE vparams, ONLY: one
@@ -63,13 +69,15 @@ C-----------------------------------------------
 !     NOTE THE SURFACE NORMAL SNORM == Xu cross Xv = NP*[SNR, SNV, SNZ]
 !     IS PERIODIC ON EACH FIELD PERIOD
 !
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& PRIVATE(kp, xper,yper, sxsave, sysave)
       DO kp = 1, nvper
          xper = xip*cosper(kp) - yip*sinper(kp)              !x(ip) in field period kp
          yper = yip*cosper(kp) + xip*sinper(kp)              !y(ip) in field period kp
          sxsave = (snr(ip)*xper - snv(ip)*yper)/r1b(ip)
          sysave = (snr(ip)*yper + snv(ip)*xper)/r1b(ip)
 
-         IF (kp.eq.1 .or. nv.eq.1) THEN
+         IF (kp.EQ.1 .OR. nv.EQ.1) THEN
 
 !        INITIALIZE ANALYTIC APPROXIMATIONS GA1, GA2
             DO i = 1, nuv
@@ -82,7 +90,7 @@ C-----------------------------------------------
             END DO
 
             DO nloop = 1, 2
-               IF (kp.gt.1 .and. nloop.eq.2) CYCLE 
+               IF (kp.GT.1 .AND. nloop.EQ.2) CYCLE 
                DO i = ilow(nloop), ihigh(nloop)
                  ga2(i) = ga2(i)/ga1(i)
                  ga1(i) = one/SQRT(ga1(i))
@@ -96,7 +104,7 @@ C-----------------------------------------------
                END DO
             END DO
 
-            IF (kp.eq.nvper .and. nv.eq.1) THEN
+            IF (kp.EQ.nvper .and. nv.EQ.1) THEN
                 delgrp = delgrp/nvper
                 delgr  = delgr /nvper
             END IF
@@ -115,6 +123,7 @@ C-----------------------------------------------
            END DO
          ENDIF
       END DO
+!$OMP END PARALLEL DO
 
       DEALLOCATE (ftemp, gsave, htemp, ga1, ga2, dsave, stat=i)
 

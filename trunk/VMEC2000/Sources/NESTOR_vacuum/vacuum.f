@@ -4,7 +4,6 @@
       USE vacmod
       USE vparams, ONLY: nthreed, zero, one, mu0
       USE vmec_params, ONLY: norm_term_flag, phiedge_error_flag
-      USE vmec_input, ONLY: lrfp         ! JDH Added 2013-11-25, to test for RFP
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -41,7 +40,7 @@ C-----------------------------------------------
 
       ALLOCATE (amatrix(mnpd2*mnpd2), bsubu(nuv2), bsubv(nuv2),
      1    potu(nuv2), potv(nuv2), stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in vacuum'
+      IF (i .NE. 0) STOP 'Allocation error in vacuum'
 
       potsin => potvac(1:mnpd)
       potcos => potvac(1+mnpd:)
@@ -52,7 +51,7 @@ C-----------------------------------------------
      3     avv(nuv2), snr(nuv2), snv(nuv2), snz(nuv2), drv(nuv2),
      4     guu_b(nuv2), guv_b(nuv2), gvv_b(nuv2), rzb2(nuv),
      5     rcosuv(nuv), rsinuv(nuv), stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in vacuum'
+      IF (i .NE. 0) STOP 'Allocation error in vacuum'
 
 !
 !       INDEX OF LOCAL VARIABLES
@@ -79,7 +78,7 @@ C-----------------------------------------------
 !       potential = SUM potsin*SIN(mu - nv) + potcos*COS(mu - nv)
 !
 
-      IF (.not. ALLOCATED(tanu)) CALL precal
+      IF (.NOT. ALLOCATED(tanu)) CALL precal
       CALL surface (rmnc, rmns, zmns, zmnc, xm, xn, mnmax)
       CALL bextern (plascur, wint, ns)
 !
@@ -107,7 +106,7 @@ C-----------------------------------------------
                potu(i) = potu(i) + dm2*potsin(mn)*cosmn
                potv(i) = potv(i) + dn2*potsin(mn)*cosmn
             END DO
-            IF (.not.lasym) CYCLE
+            IF (.NOT.lasym) CYCLE
             DO i = 1, nuv2
                sinmn = sinu1(i,m)*cosv1(i,n1) - csign(n)*
      1                 cosu1(i,m)*sinv1(i,n1)
@@ -134,7 +133,7 @@ C-----------------------------------------------
 !
 !       PRINT OUT VACUUM PARAMETERS
 !
-      IF (ivac .eq. 0) THEN
+      IF (ivac .EQ. 0) THEN
          ivac = ivac + 1
          IF (lscreen) WRITE (*, 200) nfper, mf, nf, nu, nv
          WRITE (nthreed, 200) nfper, mf, nf, nu, nv
@@ -150,29 +149,9 @@ C-----------------------------------------------
  1000    FORMAT(2x,'2*pi * a * -BPOL(vac) = ',1p,e10.2,
      1      ' TOROIDAL CURRENT = ',e10.2,/,2x,'R * BTOR(vac) = ',
      2      e10.2,' R * BTOR(plasma) = ',e10.2)
-!  JDH Add test for RFP. 2013-11-25
-!         IF (rbtor*bsubvvac .lt. zero) ier_flag = phiedge_error_flag
-!         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp)
-!     1      ier_flag = 10
-         IF (rbtor*bsubvvac .lt. zero) THEN
-            IF (lrfp) THEN
- 1100    FORMAT(2x,'lrfp is TRUE. Ignore phiedge sign problem')
-               IF (lscreen) WRITE(*,1100) 
-               WRITE(nthreed,1100) 
-            ELSE
-               ier_flag = phiedge_error_flag
-            ENDIF
-         ENDIF
-         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp) THEN
-            IF (lrfp) THEN
-1200     FORMAT(2x,'lrfp is TRUE. Proceed with convergence')
-               IF (lscreen) WRITE(*,1200) 
-               WRITE(nthreed,1200) 
-            ELSE
-               ier_flag = 10
-            ENDIF
-         ENDIF
-!  END JDH Add test for RFP. 2013-11-25
+         IF (rbtor*bsubvvac .lt. zero) ier_flag = phiedge_error_flag
+         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp)
+     1      ier_flag = 10
       ENDIF
 
       IF (ALLOCATED(bexu))

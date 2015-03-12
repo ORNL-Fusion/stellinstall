@@ -47,8 +47,6 @@ C-----------------------------------------------
       INTEGER            :: iunit_dacess=10
       LOGICAL :: lswap2disk = .FALSE.                                 !Set internally if blocks do not fit in memory
 
-      INTEGER(KIND=8) :: test
-
 C-----------------------------------------------
 !
 !     SP:        forces single precision for blocks (smaller size)
@@ -211,7 +209,6 @@ C-----------------------------------------------
       REAL(rprec2) :: time_on, time_off, bsize, tprec2don, tprec2doff
       CHARACTER(LEN=100):: label
       LOGICAL, PARAMETER :: lscreen = .false.
-
 C-----------------------------------------------
 !
 !     COMPUTES THE JACOBIAN BLOCKS block_mins, block_diag, block_plus
@@ -229,14 +226,14 @@ C-----------------------------------------------
       nmax_jog = ntyptot
 
       bsize = REAL(mblk*mblk, dp2)*3*ns*KIND(block_diag)
-      IF (bsize .gt. HUGE(test)) THEN
-        WRITE (6, *) ' bsize: ', bsize, ' exceeds HUGE(int): ', 
-     1                 HUGE(test)
-        WRITE (6, *) ' Blocks will be written to disk.'
-        lswap2disk = .TRUE.
-      ELSE
+!      IF (bsize .gt. HUGE(mblk)) THEN
+!        WRITE (6, *) ' bsize: ', INT(bsize, SELECTED_INT_KIND(12)), 
+!     1               ' exceeds HUGE(int): ', HUGE(mblk)
+!        WRITE (6, *) ' Blocks will be written to disk.'
+!        lswap2disk = .TRUE.
+!      ELSE
         lswap2disk = .FALSE.
-      END IF
+!      END IF
 
       IF (bsize .lt. 1.E6_dp2) THEN
           ibsize = bsize/1.E1_dp2
@@ -293,7 +290,7 @@ C-----------------------------------------------
       IF (lswap2disk) THEN
          WRITE (6,'(a,i4,a)') '  Allocation error(1) = ', istat,
      1               ': Not enough memory in compute_blocks'
-         WRITE (6,*) ' Writing blocks to disk file'
+         WRITE (6,*) ' Writing blocks to disk file.'
          ALLOCATE (
      1 block_diag_sw(0:ntor,0:mpol1,ntyptot,0:ntor,0:mpol1,ntyptot),
      2 block_plus_sw(0:ntor,0:mpol1,ntyptot,0:ntor,0:mpol1,ntyptot),
@@ -350,9 +347,6 @@ C-----------------------------------------------
       IF (lasym) DEALLOCATE(
      1    lua_save, lva_save, r1a_save, rua_save, rva_save, rcona_save, 
      2    z1a_save, zua_save, zva_save, zcona_save, stat=istat)
-
-!SPH021014: compute eigenvalues (for small enough matrices)
-!      CALL get_eigenvalues(mblk, ns, block_mins, block_diag, block_plus)
 
       CALL second0(time_off)
       DO m = 1, 2
@@ -454,7 +448,7 @@ C-----------------------------------------------
 !     CALL FUNCT3D FIRST TIME TO STORE INITIAL UN-PRECONDITIONED FORCES
 !     THIS WILL CALL LAMBLKS (SO FAR, ONLY IMPLEMENTED FOR lasym = false)
 !
-      ictrl_prec2d = 2                 !Signals funct3d to initialize preconditioner
+      ictrl_prec2d = 2                 !Signals funct3d that preconditioner is being initialized
       CALL funct3d (lscreen, istat)
       IF (istat .ne. 0) THEN
          PRINT *,' ier_flag = ', istat,
@@ -462,52 +456,19 @@ C-----------------------------------------------
          STOP
       ENDIF
 
-      xstore = xc                      !chips is saved in xc(lsc00)
-      ictrl_prec2d = 3                 !Signals funct3d to compute preconditioner
+      xstore = xc                      !iotas is saved in xc(lsc00)
+      ictrl_prec2d = 3                 !Signals funct3d that preconditioner is being computed
 
       gc_save = gc
 
-!     FIRST DO R00 JOG TO LOAD DIAG_VAL ARRAY (DO NOT RELY ON IT BEING THE FIRST JOG
-!
-      m_2d=0; n_2d=0
-#ifdef _HBANGLE
-      ntype_2d=zsc+ntmax
-#else
-      ntype_2d=rcc
-#endif
-!     APPLY JOG
-      hj = eps * MAX(ABS(r01(ns)), ABS(z01(ns)))
-      DO js = jstart(1), ns, 3
-         xc(js,n_2d,m_2d,ntype_2d) = 
-     1   xstore(js,n_2d,m_2d,ntype_2d) + hj
-         xcdot(js,n_2d,m_2d,ntype_2d) = hj
-      END DO
-
-      istat = 0
-      CALL funct3d (lscreen, istat)
-      IF (istat .ne. 0) STOP 'Error computing Hessian jog!'
-!     CLEAR JOG AND STORE BLOCKS FOR THIS JOG
-      xc = xstore;  xcdot = 0
-      DO js = jstart(1), ns, 3
-         DataItem = (gc(js,:,:,:) - gc_save(js,:,:,:))/hj
-         diag_val(js) = DataItem(0,0,ntype_2d)
-      END DO
-      IF (diag_val(1) .EQ. zero) diag_val(1) = diag_val(4)
-
-      DO js = jstart(2), ns, 3
-         diag_val(js) = diag_val(js-1)
-      END DO
-      DO js = jstart(3), ns, 3
-         diag_val(js) = diag_val(js-1)
-      END DO
-        
 !
 !     PERFORM "JOGS" FOR EACH VARIABLE AT EVERY 3rd RADIAL POINT ACROSS MESH
 !     FOR ntyp = (Rcc, Rss, Rsc, Rcs, Zsc, Zcs, Zcc, Zss)
 !     AND EVERY n2d (toroidal mode index) and EVERY m2d (poloidal mode index)
 !
-!     Lambda jogs could be implemented analytically for lasym=FALSE
-!
+!     Lambda jogs are implemented analytically for lasym=FALSE
+!      
+
       NTYPE2D: DO ntype_2d = 1, nmax_jog
          IF (ntype_2d .lt. lamtype) THEN
             hj = eps * MAX(ABS(r01(ns)), ABS(z01(ns)))
@@ -517,15 +478,6 @@ C-----------------------------------------------
 
          M2D: DO m_2d = 0, mpol1
             N2D: DO n_2d = 0, ntor
-#ifdef _HBANGLE
-            IF (ntype_2d.GT.ntmax .AND. ntype_2d.LE.2*ntmax) THEN
-               IF (m_2d .NE. 0) THEN
-                  block_diag(n_2d,m_2d,ntype_2d,
-     1                       n_2d,m_2d,ntype_2d,:) = diag_val
-                  CYCLE
-               END IF
-            END IF
-#endif
             MESH_3PT: DO mesh = 1,3
 !              APPLY JOG
                DO js = jstart(mesh), ns, 3
@@ -537,6 +489,7 @@ C-----------------------------------------------
                istat = 0
                CALL funct3d (lscreen, istat)
                IF (istat .ne. 0) STOP 'Error computing Hessian jog!'
+
 !
 !              COMPUTE PRECONDITIONER (HESSIAN) ELEMENTS. LINEARIZED EQUATIONS
 !              OF FORM (FIXED mn FOR SIMPLICITY):
@@ -604,12 +557,12 @@ C-----------------------------------------------
                   END IF
 
 !
-!     Set diagonals for m=0,n  and m,n=0 sin modes
+!     Set diagonals for m=0,n  and m,n=0 sin modes (set diag_val to rcc value)
+                  IF (n_2d.eq.0 .and. m_2d.eq.0 .and. ntype_2d.eq.rcc)
+     1               diag_val(js) = DataItem(0,0,rcc)
                   IF (m_2d. eq. 0) THEN
-#ifndef _HBANGLE
                      IF (ntype_2d .eq. zsc+ntmax) 
      1                  DataItem(n_2d,0,ntype_2d) = diag_val(js)
-#endif
                      IF (ntype_2d .eq. zsc+2*ntmax) THEN 
                         IF (ncurr.eq.0 .or. n_2d.ne.0)             !lsc(0,0) for ncurr=1 stores iotas
      1                     DataItem(n_2d,0,ntype_2d) = 1
@@ -623,10 +576,8 @@ C-----------------------------------------------
      1                      ntype_2d.eq.zcs+2*ntmax)
      2                     DataItem(n_2d,0,ntype_2d) = 1
                         IF (lasym) THEN
-#ifndef _HBANGLE
                            IF (ntype_2d .eq. zss+ntmax)
      1                     DataItem(n_2d,0,ntype_2d) = diag_val(js)
-#endif
                            IF (ntype_2d .eq. zss+2*ntmax)
      1                     DataItem(n_2d,0,ntype_2d) = 1
                         END IF
@@ -636,7 +587,7 @@ C-----------------------------------------------
      1                     DataItem(n_2d,0,ntype_2d) = diag_val(js)
                         IF (n_2d.eq.0 .and. ntype_2d.eq.(zcc+2*ntmax))      !m=0, n=0 lambda not evolved
      1                     DataItem(0,0,ntype_2d) = 1
-                        IF (ntype_2d.eq.(zcc+2*ntmax) .and.                 !SPH120808
+                        IF (ntype_2d.eq.(zcc+2*ntmax) .and.             !SPH120808
      1                      jlam(0).ne. 1 .and. js.eq.1)        
      1                     DataItem(n_2d,0,ntype_2d) = 1
                      END IF
@@ -645,37 +596,19 @@ C-----------------------------------------------
                   IF (lthreed .and. n_2d.eq.0) THEN
                      IF (ntype_2d .eq. rss) 
      1                  DataItem(0,m_2d,ntype_2d) = diag_val(js)
-#ifndef _HBANGLE
                      IF (ntype_2d .eq. zcs+ntmax)
      1                  DataItem(0,m_2d,ntype_2d) = diag_val(js)
-#endif
                      IF (ntype_2d .eq. zcs+2*ntmax)
      1                  DataItem(0,m_2d,ntype_2d) = 1
                      IF (lasym) THEN
                         IF (ntype_2d .eq. rcs)
      1                     DataItem(0,m_2d,ntype_2d) = diag_val(js)
-#ifndef _HBANGLE
                         IF (ntype_2d .eq. zss+ntmax)
      1                     DataItem(0,m_2d,ntype_2d) = diag_val(js)
-#endif
                         IF (ntype_2d .eq. zss+2*ntmax)
      1                     DataItem(0,m_2d,ntype_2d) = 1
                      END IF
                   END IF
-
-!SPH121912
-                  IF (DataItem(n_2d,m_2d,ntype_2d) .eq. zero) THEN
-                     IF (diag_val(js) .EQ. zero) diag_val(js)=1
-                     DataItem(n_2d,m_2d,ntype_2d) = diag_val(js)
-                  END IF
-
-#ifdef _HBANGLE
-!ADD LEVENBERG-MARQUARDT TYPE PARAMETER TO DIAGONAL
-!                  IF (m_2d.EQ.1 .AND. ntype_2d.LE.ntmax) THEN
-!                     DataItem(n_2d,m_2d,ntype_2d) = (1+1.E-1_dp)*
-!     1               DataItem(n_2d,m_2d,ntype_2d)
-!                  END IF
-#endif
 
                   IF (lswap2disk) THEN
                      !CALL WriteDAItem_RA(DataItem,js,bldia,index)
@@ -1516,51 +1449,6 @@ c  error returns. ------------------------------------------------------
 
       END SUBROUTINE blk3d_slv_swp2
 
-      SUBROUTINE get_eigenvalues(mblk, nblk, blk_min, blk_diag, 
-     1                           blk_plus)
-      INTEGER, INTENT(IN) :: mblk, nblk
-      REAL(dp), DIMENSION(mblk,mblk,nblk), INTENT(IN) :: blk_min,
-     1                                     blk_diag, blk_plus
-      INTEGER :: istat, I, MROW, MCOL
-      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: A, VL, VR
-      REAL(dp), DIMENSION(:), ALLOCATABLE   :: WR, WI, WORK
-      CHARACTER, PARAMETER :: JOBVL='N', JOBVR='V'
-      INTEGER   ::       INFO, LDA, LDVR=1, LDVL=1, LWORK, N, SDIM
-
-      EXTERNAL :: DGEES
-
-      N = mblk*nblk; LDA = N; LWORK=10*N
-      IF (JOBVR.EQ.'V') LDVR=N
-      IF (JOBVL.EQ.'V') LDVL=N
-      ALLOCATE (A(N,N), WR(N), WI(N), VR(LDVR,N), VL(LDVL,N),
-     1          WORK(LWORK), stat=istat)
-      IF (istat .NE. 0) THEN
-         PRINT *,'Unable to compute eigenvalues!'
-         RETURN
-      END IF
-
-      A = 0
-      A(1:mblk,1:mblk) = blk_diag(:,:,1)
-      A(1:mblk,1+mblk:2*mblk) = blk_plus(:,:,1)
-      MROW=mblk+1; MCOL=1
-      DO I=2, nblk-1
-         A(MROW:MROW+mblk-1,MCOL:MCOL+mblk-1)=blk_min(:,:,I)
-         MCOL = MCOL+mblk
-         A(MROW:MROW+mblk-1,MCOL:MCOL+mblk-1)=blk_diag(:,:,I)
-         MCOL = MCOL+mblk
-         A(MROW:MROW+mblk-1,MCOL:MCOL+mblk-1)=blk_plus(:,:,I)
-         MCOL = MROW; MROW = MROW+mblk; 
-      END DO
-      A(MROW:MROW+mblk-1,MCOL:MCOL+mblk-1)=blk_min(:,:,nblk)
-      MCOL = MCOL+mblk
-      A(MROW:MROW+mblk-1,MCOL:MCOL+mblk-1)=blk_diag(:,:,nblk)
-
-      CALL DGEEV( JOBVL, JOBVR, N, A, LDA, WR, WI, VL, LDVL, VR,
-     1            LDVR, WORK, LWORK, INFO )
-
-      DEALLOCATE (A, WR, WI, VR, VL, WORK)
-
-      END SUBROUTINE get_eigenvalues
 
       SUBROUTINE free_mem_precon
       INTEGER :: istat

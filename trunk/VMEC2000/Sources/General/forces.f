@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE forces
       USE vmec_main, p5 => cp5
       USE realspace
@@ -13,7 +19,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: l, ndim
+      INTEGER :: l, ndim, lb, ub
       REAL(rprec), DIMENSION(:), POINTER :: 
      1    bsqr, gvvs, guvs, guus
 C-----------------------------------------------
@@ -48,130 +54,147 @@ C-----------------------------------------------
 !
 !     GUU, GUV: VARIATION OF Ru, Rv, Zu, Zv IN guu, guv
 !
-      lu_e(1:ndim:ns) = 0; lv_e(1:ndim:ns) = 0
-      guu(1:ndim:ns)  = 0; guv(1:ndim:ns)  = 0; gvv(1:ndim:ns) = 0
-      guus = guu*shalf;    guvs = guv*shalf;    gvvs = gvv*shalf
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& PRIVATE(l,lb,ub)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l
 
-      armn_e  = ohs*zu12 * lu_e
-      azmn_e  =-ohs*ru12 * lu_e
-      brmn_e  = brmn_e * lu_e
-      bzmn_e  =-bzmn_e * lu_e
-      bsqr    = dshalfds*lu_e/shalf
+         lu_e(lb) = 0; lv_e(lb) = 0
+         guu(lb)  = 0; guv(lb)  = 0; gvv(lb) = 0
+         guus(lb:ub) = guu(lb:ub)*shalf(1:ns)
+         gvvs(lb:ub) = gvv(lb:ub)*shalf(1:ns)
 
-      armn_o(1:ndim)  = armn_e(1:ndim) *shalf
-      azmn_o(1:ndim)  = azmn_e(1:ndim) *shalf
-      brmn_o(1:ndim)  = brmn_e(1:ndim) *shalf
-      bzmn_o(1:ndim)  = bzmn_e(1:ndim) *shalf
+         armn_e(lb:ub)  = ohs*zu12(lb:ub) * lu_e(lb:ub)
+         azmn_e(lb:ub)  =-ohs*ru12(lb:ub) * lu_e(lb:ub)
+         brmn_e(lb:ub)  = brmn_e(lb:ub) * lu_e(lb:ub)
+         bzmn_e(lb:ub)  =-bzmn_e(lb:ub) * lu_e(lb:ub)
+         bsqr(lb:ub)    = dshalfds*lu_e(lb:ub)/shalf(1:ns)
+         armn_o(lb:ub)  = armn_e(lb:ub) *shalf(1:ns)
+         azmn_o(lb:ub)  = azmn_e(lb:ub) *shalf(1:ns)
+         brmn_o(lb:ub)  = brmn_e(lb:ub) *shalf(1:ns)
+         bzmn_o(lb:ub)  = bzmn_e(lb:ub) *shalf(1:ns)
 !
 !     CONSTRUCT CYLINDRICAL FORCE KERNELS
 !     NOTE: presg(ns+1) == 0, AND WILL BE "FILLED IN" AT EDGE
 !     FOR FREE-BOUNDARY BY RBSQ
 !
-!DIR$ IVDEP
-      DO l = 1, nrzt
-         guu(l) = p5*(guu(l) + guu(l+1))
-         gvv(l) = p5*(gvv(l) + gvv(l+1))
-         bsqr(l) = bsqr(l) + bsqr(l+1)
-         guus(l) = p5*(guus(l) + guus(l+1))
-         gvvs(l) = p5*(gvvs(l) + gvvs(l+1))
-      END DO
-!DIR$ IVDEP
-      DO l = 1, nrzt
-         armn_e(l) = armn_e(l+1) - armn_e(l) + p5*(lv_e(l) + lv_e(l+1))
-         azmn_e(l) = azmn_e(l+1) - azmn_e(l)
-         brmn_e(l) = p5*(brmn_e(l) + brmn_e(l+1))
-         bzmn_e(l) = p5*(bzmn_e(l) + bzmn_e(l+1))
-      END DO
+         guu(lb:ub-1) = p5*(guu(lb:ub-1) + guu(lb+1:ub))
+         guu(ub) = p5*guu(ub)
+         gvv(lb:ub-1) = p5*(gvv(lb:ub-1) + gvv(lb+1:ub))
+         gvv(ub) = p5*gvv(ub)
+         bsqr(lb:ub-1) = bsqr(lb:ub-1) + bsqr(lb+1:ub)
+         guus(lb:ub-1) = p5*(guus(lb:ub-1) + guus(lb+1:ub))
+         guus(ub) = p5*guus(ub)
+         gvvs(lb:ub-1) = p5*(gvvs(lb:ub-1) + gvvs(lb+1:ub))
+         gvvs(ub) = p5*gvvs(ub)
 
-      armn_e(:nrzt) = armn_e(:nrzt) - (gvvs(:nrzt)*r1(:nrzt,1)
-     1              + gvv(:nrzt)*r1(:nrzt,0))
-      brmn_e(:nrzt) = brmn_e(:nrzt) + bsqr(:nrzt)*z1(:nrzt,1)
-     1              -(guus(:nrzt)*ru(:nrzt,1) + guu(:nrzt)*ru(:nrzt,0))
-      bzmn_e(:nrzt) = bzmn_e(:nrzt) - (bsqr(:nrzt)*r1(:nrzt,1)
-     1              + guus(:nrzt)*zu(:nrzt,1) + guu(:nrzt)*zu(:nrzt,0))
-      lv_e(1:ndim) = lv_e(1:ndim)*shalf(1:ndim)
-      lu_o(1:ndim) = dshalfds*lu_e(1:ndim)
+         armn_e(lb:ub-1) = armn_e(lb+1:ub) - armn_e(lb:ub-1) 
+     1                   + p5*(lv_e(lb:ub-1) + lv_e(lb+1:ub))
+         armn_e(ub) = -armn_e(ub)+p5*lv_e(ub)
+         azmn_e(lb:ub-1) = azmn_e(lb+1:ub) - azmn_e(lb:ub-1)
+         azmn_e(ub) = -azmn_e(ub)
+         brmn_e(lb:ub-1) = p5*(brmn_e(lb:ub-1) + brmn_e(lb+1:ub))
+         brmn_e(ub) = p5*brmn_e(ub)
+         bzmn_e(lb:ub-1) = p5*(bzmn_e(lb:ub-1) + bzmn_e(lb+1:ub))
+         bzmn_e(ub) = p5*bzmn_e(ub)
 
-!DIR$ IVDEP
-      DO l = 1, nrzt
-         armn_o(l) = armn_o(l+1) - armn_o(l) - zu(l,0)*bsqr(l)
-     1             + p5*(lv_e(l) + lv_e(l+1))
-         azmn_o(l) = azmn_o(l+1) - azmn_o(l) + ru(l,0)*bsqr(l)
-         brmn_o(l) = p5*(brmn_o(l) + brmn_o(l+1))
-         bzmn_o(l) = p5*(bzmn_o(l) + bzmn_o(l+1))
-         lu_o(l)   = lu_o(l) + lu_o(l+1)
-      END DO
+         armn_e(lb:ub) = armn_e(lb:ub) - (gvvs(lb:ub)*r1(lb:ub,1)
+     1              + gvv(lb:ub)*r1(lb:ub,0))
+         brmn_e(lb:ub) = brmn_e(lb:ub) + bsqr(lb:ub)*z1(lb:ub,1)
+     1              -(guus(lb:ub)*ru(lb:ub,1) + guu(lb:ub)*ru(lb:ub,0))
+         bzmn_e(lb:ub) = bzmn_e(lb:ub) - (bsqr(lb:ub)*r1(lb:ub,1)
+     1              + guus(lb:ub)*zu(lb:ub,1) + guu(lb:ub)*zu(lb:ub,0))
+         lv_e(lb:ub) = lv_e(lb:ub)*shalf(1:ns)
+         lu_o(lb:ub) = dshalfds*lu_e(lb:ub)
 
-      guu(1:nrzt)  = guu(1:nrzt) * sqrts(1:nrzt)**2
-      bsqr(1:nrzt) = gvv(1:nrzt) * sqrts(1:nrzt)**2
+         armn_o(lb:ub-1) = armn_o(lb+1:ub) - armn_o(lb:ub-1)
+     1             - zu(lb:ub-1,0)*bsqr(lb:ub-1)
+     1             + p5*(lv_e(lb:ub-1) + lv_e(lb+1:ub))
+         armn_o(ub) = -armn_o(ub)-zu(ub,0)*bsqr(ub)+p5*lv_e(ub)
+         azmn_o(lb:ub-1) = azmn_o(lb+1:ub) - azmn_o(lb:ub-1) 
+     1             + ru(lb:ub-1,0)*bsqr(lb:ub-1)
+         azmn_o(ub) = -azmn_o(ub)+ru(ub,0)*bsqr(ub)
+         brmn_o(lb:ub-1) = p5*(brmn_o(lb:ub-1) + brmn_o(lb+1:ub))
+         brmn_o(ub) = p5*brmn_o(ub)
+         bzmn_o(lb:ub-1) = p5*(bzmn_o(lb:ub-1) + bzmn_o(lb+1:ub))
+         bzmn_o(ub) = p5*bzmn_o(ub)
+         lu_o(lb:ub-1)   = lu_o(lb:ub-1) + lu_o(lb+1:ub)
 
-      armn_o(:nrzt) = armn_o(:nrzt) - (zu(:nrzt,1)*lu_o(:nrzt)
-     1             + bsqr(:nrzt)*r1(:nrzt,1) + gvvs(:nrzt)*r1(:nrzt,0))
-      azmn_o(:nrzt) = azmn_o(:nrzt) + ru(:nrzt,1)*lu_o(:nrzt)
-      brmn_o(:nrzt) = brmn_o(:nrzt) + z1(:nrzt,1)*lu_o(:nrzt)
-     1             -(guu(:nrzt)*ru(:nrzt,1) + guus(:nrzt)*ru(:nrzt,0))
-      bzmn_o(:nrzt) = bzmn_o(:nrzt) - (r1(:nrzt,1)*lu_o(:nrzt)
-     1             + guu(:nrzt)*zu(:nrzt,1) + guus(:nrzt)*zu(:nrzt,0))
+         guu(lb:ub)  = guu(lb:ub) * sqrts(1:ns)**2
+         bsqr(lb:ub) = gvv(lb:ub) * sqrts(1:ns)**2
 
-      IF (lthreed) THEN
-!DIR$ IVDEP
-         DO l = 1, nrzt
-            guv(l)  = p5*(guv(l) + guv(l+1))
-            guvs(l) = p5*(guvs(l) + guvs(l+1))
-         END DO
+         armn_o(lb:ub) = armn_o(lb:ub) - (zu(lb:ub,1)*lu_o(lb:ub)
+     1              + bsqr(lb:ub)*r1(lb:ub,1) + gvvs(lb:ub)*r1(lb:ub,0))
+         azmn_o(lb:ub) = azmn_o(lb:ub) + ru(lb:ub,1)*lu_o(lb:ub)
+         brmn_o(lb:ub) = brmn_o(lb:ub) + z1(lb:ub,1)*lu_o(lb:ub)
+     1              -(guu(lb:ub)*ru(lb:ub,1) + guus(lb:ub)*ru(lb:ub,0))
+         bzmn_o(lb:ub) = bzmn_o(lb:ub) - (r1(lb:ub,1)*lu_o(lb:ub)
+     1              + guu(lb:ub)*zu(lb:ub,1) + guus(lb:ub)*zu(lb:ub,0))
 
-         brmn_e(:nrzt) = brmn_e(:nrzt) 
-     1          - (guv(:nrzt)*rv(:nrzt,0) + guvs(:nrzt)*rv(:nrzt,1))
-         bzmn_e(:nrzt) = bzmn_e(:nrzt) 
-     1          - (guv(:nrzt)*zv(:nrzt,0) + guvs(:nrzt)*zv(:nrzt,1))
-         crmn_e(:nrzt) = guv(:nrzt) *ru(:nrzt,0) 
-     1                 + gvv(:nrzt) *rv(:nrzt,0)
-     2          + gvvs(:nrzt)*rv(:nrzt,1) + guvs(:nrzt)*ru(:nrzt,1)
-         czmn_e(:nrzt) = guv(:nrzt) *zu(:nrzt,0) 
-     1                 + gvv(:nrzt) *zv(:nrzt,0)
-     2          + gvvs(:nrzt)*zv(:nrzt,1) + guvs(:nrzt)*zu(:nrzt,1)
-         guv(:nrzt) = guv(:nrzt) *sqrts(:nrzt)*sqrts(:nrzt)
-         brmn_o(:nrzt) = brmn_o(:nrzt) 
-     1          - (guvs(:nrzt)*rv(:nrzt,0) + guv(:nrzt)*rv(:nrzt,1))
-         bzmn_o(:nrzt) = bzmn_o(:nrzt) 
-     1          - (guvs(:nrzt)*zv(:nrzt,0) + guv(:nrzt)*zv(:nrzt,1))
-         crmn_o(:nrzt) = guvs(:nrzt)*ru(:nrzt,0) 
-     1                 + gvvs(:nrzt)*rv(:nrzt,0)
-     2          + bsqr(:nrzt)*rv(:nrzt,1) + guv(:nrzt) *ru(:nrzt,1)
-         czmn_o(:nrzt) = guvs(:nrzt)*zu(:nrzt,0) 
-     1                 + gvvs(:nrzt)*zv(:nrzt,0)
-     2          + bsqr(:nrzt)*zv(:nrzt,1) + guv(:nrzt) *zu(:nrzt,1)
-      ENDIF
+         IF (lthreed) THEN
+
+         guvs(lb:ub) = guv(lb:ub)*shalf(1:ns)
+         guv(lb:ub-1)  = p5*(guv(lb:ub-1) + guv(lb+1:ub))
+         guv(ub) = p5*guv(ub)
+         guvs(lb:ub-1) = p5*(guvs(lb:ub-1) + guvs(lb+1:ub))
+         guvs(ub) = p5*guvs(ub)
+
+         brmn_e(lb:ub) = brmn_e(lb:ub) 
+     1          - (guv(lb:ub)*rv(lb:ub,0) + guvs(lb:ub)*rv(lb:ub,1))
+         bzmn_e(lb:ub) = bzmn_e(lb:ub) 
+     1          - (guv(lb:ub)*zv(lb:ub,0) + guvs(lb:ub)*zv(lb:ub,1))
+         crmn_e(lb:ub) = guv(lb:ub) *ru(lb:ub,0) 
+     1                 + gvv(lb:ub) *rv(lb:ub,0)
+     2          + gvvs(lb:ub)*rv(lb:ub,1) + guvs(lb:ub)*ru(lb:ub,1)
+         czmn_e(lb:ub) = guv(lb:ub) *zu(lb:ub,0) 
+     1                 + gvv(lb:ub) *zv(lb:ub,0)
+     2          + gvvs(lb:ub)*zv(lb:ub,1) + guvs(lb:ub)*zu(lb:ub,1)
+         guv(lb:ub) = guv(lb:ub) *sqrts(lb:ub)*sqrts(lb:ub)
+         brmn_o(lb:ub) = brmn_o(lb:ub) 
+     1          - (guvs(lb:ub)*rv(lb:ub,0) + guv(lb:ub)*rv(lb:ub,1))
+         bzmn_o(lb:ub) = bzmn_o(lb:ub) 
+     1          - (guvs(lb:ub)*zv(lb:ub,0) + guv(lb:ub)*zv(lb:ub,1))
+         crmn_o(lb:ub) = guvs(lb:ub)*ru(lb:ub,0) 
+     1                 + gvvs(lb:ub)*rv(lb:ub,0)
+     2          + bsqr(lb:ub)*rv(lb:ub,1) + guv(lb:ub) *ru(lb:ub,1)
+         czmn_o(lb:ub) = guvs(lb:ub)*zu(lb:ub,0) 
+     1                 + gvvs(lb:ub)*zv(lb:ub,0)
+     2          + bsqr(lb:ub)*zv(lb:ub,1) + guv(lb:ub) *zu(lb:ub,1)
+         END IF
+
 !
 !     ASSIGN EDGE FORCES (JS = NS) FOR FREE BOUNDARY CALCULATION
 !
-      IF (ivac .ge. 1) THEN
-         armn_e(ns:nrzt:ns) = armn_e(ns:nrzt:ns) 
-     1                      + zu0(ns:nrzt:ns)*rbsq(1:nznt)
-         armn_o(ns:nrzt:ns) = armn_o(ns:nrzt:ns) 
-     1                      + zu0(ns:nrzt:ns)*rbsq(1:nznt)
-         azmn_e(ns:nrzt:ns) = azmn_e(ns:nrzt:ns) 
-     1                      - ru0(ns:nrzt:ns)*rbsq(1:nznt)
-         azmn_o(ns:nrzt:ns) = azmn_o(ns:nrzt:ns) 
-     1                      - ru0(ns:nrzt:ns)*rbsq(1:nznt)
-!         fz00_edge = SUM(wint(ns:nrzt:ns)*ru0(ns:nrzt:ns)*rbsq(1:nznt))
-      ENDIF
-
- 100  CONTINUE
+         IF (ivac .GE. 1) THEN
+         armn_e(ub) = armn_e(ub) + zu0(ub)*rbsq(l)
+         armn_o(ub) = armn_o(ub) + zu0(ub)*rbsq(l)
+         azmn_e(ub) = azmn_e(ub) - ru0(ub)*rbsq(l)
+         azmn_o(ub) = azmn_o(ub) - ru0(ub)*rbsq(l)
+         ENDIF
 
 !
 !     COMPUTE CONSTRAINT FORCE KERNELS
 !
 #ifndef _HBANGLE
-      rcon(:nrzt,0) = (rcon(:nrzt,0) - rcon0(:nrzt)) * gcon(:nrzt)
-      zcon(:nrzt,0) = (zcon(:nrzt,0) - zcon0(:nrzt)) * gcon(:nrzt)
-      brmn_e(:nrzt) = brmn_e(:nrzt) + rcon(:nrzt,0)
-      bzmn_e(:nrzt) = bzmn_e(:nrzt) + zcon(:nrzt,0)
-      brmn_o(:nrzt) = brmn_o(:nrzt)+ rcon(:nrzt,0)*sqrts(:nrzt)
-      bzmn_o(:nrzt) = bzmn_o(:nrzt)+ zcon(:nrzt,0)*sqrts(:nrzt)
-      rcon(:nrzt,0) =  ru0(:nrzt) * gcon(:nrzt)
-      zcon(:nrzt,0) =  zu0(:nrzt) * gcon(:nrzt)
-      rcon(:nrzt,1) = rcon(:nrzt,0) * sqrts(:nrzt)
-      zcon(:nrzt,1) = zcon(:nrzt,0) * sqrts(:nrzt)
+         rcon(lb:ub,0) = (rcon(lb:ub,0) - rcon0(lb:ub)) * gcon(lb:ub)
+         zcon(lb:ub,0) = (zcon(lb:ub,0) - zcon0(lb:ub)) * gcon(lb:ub)
+         brmn_e(lb:ub) = brmn_e(lb:ub) + rcon(lb:ub,0)
+         bzmn_e(lb:ub) = bzmn_e(lb:ub) + zcon(lb:ub,0)
+         brmn_o(lb:ub) = brmn_o(lb:ub)+ rcon(lb:ub,0)*sqrts(lb:ub)
+         bzmn_o(lb:ub) = bzmn_o(lb:ub)+ zcon(lb:ub,0)*sqrts(lb:ub)
+         rcon(lb:ub,0) =  ru0(lb:ub) * gcon(lb:ub)
+         zcon(lb:ub,0) =  zu0(lb:ub) * gcon(lb:ub)
+         rcon(lb:ub,1) = rcon(lb:ub,0) * sqrts(1:ns)
+         zcon(lb:ub,1) = zcon(lb:ub,0) * sqrts(1:ns)
 #endif
+
+      END DO
+!$OMP END PARALLEL DO      
+
+
+
+ 100  CONTINUE
+
+
       END SUBROUTINE forces

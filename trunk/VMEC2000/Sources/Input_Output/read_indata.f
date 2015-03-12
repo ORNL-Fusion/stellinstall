@@ -72,7 +72,7 @@
 !                    and add a notification
       IF (ntor.gt.0)then
         IF (nzeta .lt. 2*ntor+4) THEN
-          WRITE(6,*)"Adjust NZETA from ",nzeta,
+          WRITE(6,*)"Adjust NZETA from  ",nzeta,
      1              " to new value: ",2*ntor+4
           nzeta = 2*ntor+4      !number of zeta grid points (=1 IF ntor=0)
         ENDIF

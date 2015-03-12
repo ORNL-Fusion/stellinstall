@@ -13,6 +13,7 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/jxbforce.f
 	${CMAKE_CURRENT_SOURCE_DIR}/magnetics_data.f
 	${CMAKE_CURRENT_SOURCE_DIR}/mercier.f
+	${CMAKE_CURRENT_SOURCE_DIR}/perf2likwid.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/printout.f
 	${CMAKE_CURRENT_SOURCE_DIR}/read_indata.f
 	${CMAKE_CURRENT_SOURCE_DIR}/readin.f

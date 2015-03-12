@@ -20,7 +20,7 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i
-      REAL(rprec) :: Itor, si, pedge, vpnorm, polflux_edge
+      REAL(rprec) :: Itor, si, tf, pedge, vpnorm, polflux_edge
 C-----------------------------------------------
 C   E x t e r n a l   F u n c t i o n s
 C-----------------------------------------------
@@ -68,11 +68,14 @@ C-----------------------------------------------
 
       DO i = 2,ns
          si = hs*(i-c1p5)
-!         si = torflux(si)          !SPH060409: Fcn of s, NOT flux
+         tf = MIN(one, torflux(si))
+         IF (lRFP) tf=si
          phips(i) = torflux_edge * torflux_deriv(si)
          chips(i) = torflux_edge * polflux_deriv(si)
-         iotas(i) = piota(si)
-         icurv(i) = pcurr(si)
+         iotas(i) = piota(tf)
+         icurv(i) = pcurr(tf)
+!         iotas(i) = piota(si)
+!         icurv(i) = pcurr(si)
       END DO
 
 !
@@ -89,8 +92,9 @@ C-----------------------------------------------
 
       DO i = 1,ns
          si = hs*(i-1)
-!         si = torflux(si)
-         iotaf(i) = piota(si)
+         tf = MIN(one, torflux(si))
+         IF (lRFP) tf=si
+         iotaf(i) = piota(tf)
          phipf(i) = torflux_edge * torflux_deriv(si)
          chipf(i) = torflux_edge * polflux_deriv(si)
       ENDDO
@@ -117,21 +121,23 @@ C-----------------------------------------------
 !         See line 195 of bcovar: pres(2:ns) = mass(2:ns)/vp(2:ns)**gamma
 
           IF (lRFP) THEN
+             tf = si
              vpnorm = polflux_edge * polflux_deriv(si) 
           ELSE
+             tf = MIN(one, torflux(si))
              vpnorm = torflux_edge * torflux_deriv(si)
           END IF
           IF (si .gt. spres_ped) THEN
              pedge = pmass(spres_ped)
           ELSE
-!             si = torflux(si)
-             pedge = pmass(si)
+             pedge = pmass(tf)
+!             pedge = pmass(si)
           END IF
           mass(i) = pedge*(ABS(vpnorm)*r00)**gamma
 #ifdef _ANIMEC
 !         ANISOTROPIC PRESSURE, Tper/T|| RATIOS
-          phot(i) = photp(si)
-          tpotb(i)= ptrat(si)
+          phot(i) = photp(tf)
+          tpotb(i)= ptrat(tf)
 #endif
         END DO
 

@@ -5,10 +5,13 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec) :: x, torflux_deriv
+      REAL(rprec), INTENT(IN) :: x
+      REAL(rprec) :: torflux_deriv
       REAL(rprec), EXTERNAL :: polflux_deriv, piota
       INTEGER     :: i
 C-----------------------------------------------
+!     x: radial flux variable (=TOROIDAL FLUX ONLY IF APHI=1)
+
       IF (lRFP) THEN
 !        RFP/TOKAMAK
          IF (piota(x) .eq. zero) STOP 'piota(x) = 0!'
@@ -31,16 +34,24 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec) :: x, polflux_deriv
-      REAL(rprec), EXTERNAL :: torflux_deriv, piota
+      REAL(rprec), INTENT(IN) :: x
+      REAL(rprec) :: tf, polflux_deriv
+      REAL(rprec), EXTERNAL :: torflux, torflux_deriv, piota
 C-----------------------------------------------
+!     x: radial flux variable (=TOROIDAL FLUX ONLY IF APHI=1)
+!     polflux_deriv == d(chi)/dx = iota(TF(x)) * torflux_deriv(x)
+
       IF (lRFP) THEN
 !        RFP/TOKAMAK
          polflux_deriv = 1
 
       ELSE
 !        TOKAMAK/STELLARATOR: dchi/ds = iota * dphi/ds
-         polflux_deriv = piota(x)*torflux_deriv(x)
+!        piota is assumed to be a function of the TF(x) on input
+         tf = torflux(x)
+         tf = MIN(tf, 1.0_dp)
+         polflux_deriv = piota(tf)*torflux_deriv(x)
+!        polflux_deriv = piota(x)*torflux_deriv(x)
       END IF
 
       END FUNCTION polflux_deriv
@@ -50,11 +61,12 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec) :: x, torflux
-      REAL(rprec) :: h, xi
+      REAL(rprec), INTENT(IN)  :: x
+      REAL(rprec) :: torflux, h, xi
       REAL(rprec), EXTERNAL :: torflux_deriv
       INTEGER     :: i
 C-----------------------------------------------
+!     x: radial flux variable (=TOROIDAL FLUX ONLY IF APHI=1)
       h = 1.E-2_dp*x
       torflux = 0
       DO i=1,101
@@ -72,8 +84,8 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec) :: x, polflux
-      REAL(rprec) :: h, xi
+      REAL(rprec), INTENT(IN) :: x
+      REAL(rprec) :: polflux, h, xi
       REAL(rprec), EXTERNAL :: polflux_deriv
       INTEGER     :: i
 C-----------------------------------------------

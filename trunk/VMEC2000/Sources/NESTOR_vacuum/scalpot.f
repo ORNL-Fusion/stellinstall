@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE scalpot(bvec, amatrix, wint, ns, ivacskip)
       USE vacmod
       IMPLICIT NONE
@@ -10,9 +16,10 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: ip, istore, istart, istore_max, ndim
+      INTEGER :: ip, istore, istart, istore_max, ndim, ichunk
       REAL(rprec), ALLOCATABLE :: grpmn(:), green(:), gstore(:)
       REAL(rprec), ALLOCATABLE :: greenp(:,:)
+      REAL(rprec) :: gstore_(nuv)
 C-----------------------------------------------
       IF (.not.ALLOCATED(amatsav))
      1   STOP 'AMATSAV: Allocation error in scalpot'
@@ -28,8 +35,10 @@ C-----------------------------------------------
 !
 !     FOR ivacskip != 0, USE PREVIOUSLY COMPUTED bvecsav FOR SPEED
 !
+!      call perfon("scalpot1")
       ndim = mnpd2/mnpd
       CALL analyt (grpmn, bvec, ivacskip, ndim)
+!      call perfoff("scalpot1")
 
       IF (ivacskip .ne. 0) THEN
          bvec = bvec + bvecsav
@@ -46,9 +55,17 @@ C-----------------------------------------------
 !        NOTE: SOURCE IS THE RHS OF EQ.(3.2), KERNEL IS THE LHS OF EQ (3.2).
 !        IP IS THE INDEX OF THE PRIMED VARIABLE MESH.
 !
+
+!      call perfon("scalpot2")
          istart = 0
-         DO ip = 1, nuv2
-            istore = 1 + MOD(ip-1,istore_max)
+!$OMP PARALLEL
+!$OMP&  DEFAULT(NONE)
+!$OMP&  PRIVATE(ip,ichunk,istore,istart,green,greenp,gstore_)
+!$OMP&  SHARED(nuv2,istore_max,gstore,bexni,grpmn,ndim
+!$OMP&         )
+         gstore_=0
+!$OMP DO SCHEDULE(STATIC)
+         DO ichunk = 1, max(1,nuv2/istore_max)
 !
 !        COMPUTE DIFFERENCE BETWEEN THE EXACT AND ANALYTIC GREENS FUNCTION AND GRADIENT 
 !        [FIRST TERMS IN EQ.(2.14, 2.16)].
@@ -59,31 +76,55 @@ C-----------------------------------------------
 !        THE FOURIER TRANSFORM OVER THE PRIMED MESH IS "BUILT-UP" BY MULTIPLE CALLS TO FOURP
 !        WITHIN THIS LOOP. 
 !
-            CALL greenf (green, greenp(1,istore), ip)
+
+            do istore=1,istore_max
+                ip=(ichunk-1)*istore_max+istore
+            !call perfon("  greenf")
+                 if (ip.le.nuv2)
+     1             CALL greenf (green, greenp(1,istore), ip)
+            !call perfoff("  greenf")
 
 !
 !        PERFORM INTEGRAL (SUM) OVER PRIMED MESH OF NON-SINGULAR SOURCE TERM 
 !        [(h-hsing)(u,v,u',v') == bexni(ip)*green(u,v; ip) in Eq. 2.16]
 !        AND STORE IT - FOR UNPRIMED MESH VALUES - IN GSTORE
 !
-            gstore = gstore + bexni(ip)*green
+                gstore_ = gstore_ + bexni(ip)*green
+            enddo
+
 !
 !        PERFORM FOURIER INTEGRAL OF GRADIENT KERNEL (GREENP) OVER THE UNPRIMED MESH
 !        (FOR )
 !        AND STORE IN GRPMN (NOTE THAT GRPMN IS ADDED TO THE ANALYTIC PIECE IN EQ. 2.14,
 !        - COMPUTED IN ANALYT - WHICH HAS THE APPROPRIATE SIN, COS FACTORS ALREADY)
 !
-            IF (istore.eq.istore_max .or. ip.eq.nuv2)
-     1        CALL fourp (grpmn, greenp, istore, istart, ip, ndim)
-
+            !IF (istore.eq.istore_max .or. ip.eq.nuv2) THEN
+              istore=istore_max   ! mjr: check this
+              istart=ip-istore_max
+              !print *,ip,istore, istart,ip,ndim,nuv2
+              !call perfon("  fourp")
+              CALL fourp (grpmn, greenp, istore, istart, ip, ndim)
+              !call perfoff("  fourp")
+            !ENDIF
          END DO
+!$OMP END DO NOWAIT
+!$OMP CRITICAL
+            gstore = gstore + gstore_
+!$OMP END CRITICAL
+!$OMP END PARALLEL
+
+ !     call perfoff("scalpot2")
 
 !
 !        COMPUTE FOURIER INTEGRAL OF GRADIENT (GRPMN) OVER PRIMED MESH IN EQ. 2.14
 !        AND SOURCE (GSTORE) OVER UNPRIMED MESH IN EQ. 2.16
 !
+!         call perfon("scalpot3")
+
          CALL fouri (grpmn, gstore, amatrix, amatsav, bvec, wint, 
      1               ndim, ns)
+!         call perfoff("scalpot3")
+
          DEALLOCATE (green, greenp, gstore)
       ENDIF
 

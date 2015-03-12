@@ -1,14 +1,20 @@
-      SUBROUTINE becoil(rad, zee, br, bp, bz)
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
+      SUBROUTINE becoil(rad, zee, br, bp, bz, brvac, bpvac, bzvac)
       USE vparams, ONLY: nthreed
       USE vacmod
-      USE mgrid_mod, ONLY: nr0b, np0b, nz0b, brvac, bpvac, bzvac,
-     1                     rminb, zminb, rmaxb, zmaxb, delrb, delzb
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       REAL(rprec), DIMENSION(nuv2), INTENT(in) :: rad, zee
       REAL(rprec), DIMENSION(nuv2), INTENT(out) :: br, bp, bz
+      REAL(rprec), DIMENSION(nr0b,nz0b,np0b), INTENT(in) ::
+     1   brvac, bpvac, bzvac
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -36,7 +42,8 @@ C-----------------------------------------------
 !
 C-----------------------------------------------
       icount = icount + 1
-
+!$OMP PARALLEL DO DEFAULT(SHARED) 
+!$OMP& PRIVATE(i,rad0,zee0,kv,ri,zj,pr,qz,w11,w12,w21,w22)
       DO i = 1, nuv2
 !
 !       CHECK THAT BOUNDARY POINTS ARE INSIDE VACUUM GRID.  IF NOT,
@@ -50,7 +57,7 @@ C-----------------------------------------------
 !       DETERMINE PHI-PLANE, KV (MUST LIE IN FIRST FIELD PERIOD)
 !
          kv = 1 + MOD(i - 1,nv)
-         kv = MIN (kv, np0b)                       !!Axi-symmetric special case
+         kv = MIN (kv, np0b)                       !!Axi-symmetric special CASE
 !
 !
 !       DETERMINE INTEGER INDICES (IR,JZ) FOR LOWER LEFT R, Z CORNER GRID POINT
@@ -82,7 +89,7 @@ C-----------------------------------------------
      1      w21*bpvac(ir1,jz,kv) + w12*bpvac(ir,jz1,kv)
 
       END DO
-
+!$OMP END PARALLEL DO
 !
 !     PRINT INFO IF R, Z OUT OF BOX
 !

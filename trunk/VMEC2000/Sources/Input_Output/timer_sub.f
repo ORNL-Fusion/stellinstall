@@ -35,7 +35,7 @@ C-----------------------------------------------
      7       'TIME IN PROFILE RECONSTRUCTION ',
      8       'TIME IN FOURIER TRANSFORM      ',
      9       'TIME IN INVERSE FOURIER XFORM  ',
-     A       'TIME IN FORCES                 ',
+     A       'TIME IN FORCES + SYMFORCES     ',
      B       'TIME IN BCOVAR                 ',
      C       'TIME IN RESIDUE                ',
      D       'TIME IN PRECON2D SETUP         '

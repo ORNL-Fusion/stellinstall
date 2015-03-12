@@ -1,4 +1,10 @@
-      SUBROUTINE fouri(grpmn, gsource, amatrix, amatsq, bvec, wint, 
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
+      SUBROUTINE fouri(grpmn, gsource, amatrix, amatsq, bvec, wint,
      1                 ndim, ns)
       USE vacmod
       IMPLICIT NONE
@@ -101,6 +107,8 @@ C-----------------------------------------------
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& PRIVATE(m,cosm,sinm) 
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)
@@ -112,7 +120,6 @@ C-----------------------------------------------
      1         bcos(kui,-nf:nf,2)*cosm + bsin(kui,-nf:nf,2)*sinm
             END IF
          END DO
-
 !
 !     RECALL, LAST INDEX OF AS,CTEMP
 !                        = 1 CORRESPONDS TO SIN (UNPRIMED) TRANSFORM (FIRST INDEX OF AMATRIX)
@@ -122,7 +129,7 @@ C-----------------------------------------------
             sinm = sinu(m,kui)*wint(kui*ns*nv)
             amatrix(:,m+1:mnpd:mf1,1) = amatrix(:,m+1:mnpd:mf1,1) +
      1         sinm*actemp(:,-nf:nf,kui,1) - cosm*astemp(:,-nf:nf,kui,1)       !SIN SIN'
-            IF (.not.lasym) CYCLE
+            IF (.NOT.lasym) CYCLE
             amatrix(:,m+1:mnpd:mf1,2) = amatrix(:,m+1:mnpd:mf1,2) +
      1         cosm*actemp(:,-nf:nf,kui,1) + sinm*astemp(:,-nf:nf,kui,1)       !SIN COS'
             amatrix(:,m+1:mnpd:mf1,3) = amatrix(:,m+1:mnpd:mf1,3) +
@@ -131,6 +138,7 @@ C-----------------------------------------------
      1         cosm*actemp(:,-nf:nf,kui,2) + sinm*astemp(:,-nf:nf,kui,2)       !COS COS'
          END DO
       END DO
+!$OMP END PARALLEL DO
 
 
       DEALLOCATE (bcos, bsin, actemp, astemp, source, stat=i)
@@ -168,7 +176,7 @@ C-----------------------------------------------
 !
       amatsq(:mnpd,:mnpd) = amatrix(:,:,1)                      !Sin-Sin'
 
-      IF (.not.lasym) RETURN
+      IF (.NOT.lasym) RETURN
 
       amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)               !Sin-Cos'
       amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)               !Cos-Sin'

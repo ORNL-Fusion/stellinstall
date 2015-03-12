@@ -1,22 +1,28 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE analyt(grpmn, bvec, ivacskip, ndim)
       USE vacmod
       IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
+C-----------------------------------------------
+C   D u m m y   A r g u m e n t s
+C-----------------------------------------------
       INTEGER, INTENT(in) :: ivacskip, ndim
       REAL(rprec), INTENT(out) :: grpmn(nuv2*mnpd2)
       REAL(rprec), INTENT(out) :: bvec(mnpd2)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
+C-----------------------------------------------
+C   L o c a l   V a r i a b l e s
+C-----------------------------------------------
       INTEGER :: l, n, m
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::
      1   r0p, r1p, r0m, r1m, sqrtc, sqrta, tlp2, tlp1, tlp, tlm2,
      2    tlm1, tlm, adp, adm, cma, ra1p, ra1m, slm, slp, tlpm, slpm,
      3    delt1u, azp1u, azm1u, cma11u, sqad1u, sqad2u
       REAL(rprec) :: fl, fl1, sign1
-!-----------------------------------------------
+C-----------------------------------------------
       ALLOCATE (r0p(nuv2), r1p(nuv2), r0m(nuv2), r1m(nuv2),
      1          sqrtc(nuv2), sqrta(nuv2), tlp2(nuv2), tlp1(nuv2),
      2          tlp(nuv2), tlm2(nuv2), tlm1(nuv2), tlm(nuv2), adp(nuv2),
@@ -69,13 +75,16 @@
 !     R0P(M): Coefficient of l*T(l-1)+(-) in eq (A17)
 !     RA1P(M):Coefficient of Tl+(-) in eq (A17)
 !
+!      call perfon(" analyt1")
+
       adp  = guu_b  + guv_b  + gvv_b
       adm  = guu_b  - guv_b  + gvv_b
       cma  = gvv_b  - guu_b
       sqrtc  = two*SQRT(gvv_b)
       sqrta  = two*SQRT(guu_b)
 
-      IF (ivacskip .eq. 0) THEN
+      IF (ivacskip .EQ. 0) THEN
+!$OMP PARALLEL WORKSHARE
          grpmn = 0
          delt1u  = adp*adm  - cma*cma
          azp1u  = auu  + auv  + avv
@@ -91,11 +100,13 @@
      1        + two*cma11u*adp)/delt1u
          ra1p = azp1u/adp
          ra1m = azm1u/adm
+!$OMP END PARALLEL WORKSHARE
       ENDIF
 
 !
 !     INITIALIZE VECTORS
 !
+!$OMP PARALLEL WORKSHARE
       bvec = 0
 !
 !     INITIALIZE T0+ and T0-
@@ -121,6 +132,11 @@
       sign1 = 1
       fl1 = 0
 
+!      call perfoff(" analyt1")
+
+!      call perfon(" analyt2")
+!$OMP END PARALLEL WORKSHARE
+
       LLOOP: DO l = 0, mf + nf
          fl = fl1
 !
@@ -137,9 +153,11 @@
 !
 !     BEGIN MODE NUMBER (m,n) LOOP
 !
+!$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(SHARED)
+!$OMP&  PRIVATE(m,n) COLLAPSE(2)
          DO n = 0, nf
             DO m = 0, mf
-               IF (cmns(l,m,n) .eq. zero) CYCLE
+               IF (cmns(l,m,n) .ne. zero) THEN  ! mjr: load imbalance?
 
                IF (n.eq.0 .or. m.eq.0) THEN
 !
@@ -155,8 +173,11 @@
                  CALL analysum2 (grpmn, bvec, slm, tlm, slp, tlp,
      1               m, n, l, ivacskip, ndim)
                ENDIF
+
+               ENDIF
             END DO
          END DO
+!$OMP END PARALLEL DO
 !
 !     UPDATE "TL's" (FOR L -> L+1) USING EQ (A15)
 !
@@ -171,11 +192,12 @@
          tlm = ((sqrtc + sign1*sqrta) - (two*fl1 - one)*cma*tlm1 -
      1      fl*adp*tlm2)/(adm*fl1)
          tlpm = tlp + tlm
-
       END DO LLOOP
+!      call perfoff(" analyt2")
 
       DEALLOCATE (r0p, r1p, r0m, r1m, sqrtc, sqrta, tlp2, tlp1,
      1          tlp, tlm2, tlm1, tlm, adp, adm, cma, ra1p, ra1m, slm,
      2          slp, tlpm, slpm, delt1u, azp1u, azm1u, cma11u, sqad1u,
      3          sqad2u, stat = l)
+
       END SUBROUTINE analyt

@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE symrzl(r1s, rus, rvs, z1s, zus, zvs, lus, lvs, rcons,
      1   zcons, r1a, rua, rva, z1a, zua, zva, lua, lva, rcona, zcona)
       USE vmec_main
@@ -18,6 +24,8 @@ C-----------------------------------------------
 !     FIRST SUM SYMMETRIC, ANTISYMMETRIC PIECES ON EXTENDED INTERVAL, THETA = [PI,2*PI]
 !
       DO mpar = 0, 1
+!$OMP PARALLEL DEFAULT(SHARED)
+!$OMP DO PRIVATE(i,ir,jk,jka)
          DO i = 1 + ntheta2, ntheta1
             ir = ntheta1 + 2 - i                 !-theta
             DO jk = 1, ns*nzeta
@@ -39,23 +47,27 @@ C-----------------------------------------------
                END DO
             ENDIF
          END DO
-
+!$OMP END DO
 !
 !        NOW SUM SYMMETRIC, ANTISYMMETRIC PIECES FOR THETA = [0,PI]
 !
-         n2 = ntheta2
-         r1s(:,:n2,mpar) = r1s(:,:n2,mpar) + r1a(:,:n2,mpar)
-         rus(:,:n2,mpar) = rus(:,:n2,mpar) + rua(:,:n2,mpar)
-         z1s(:,:n2,mpar) = z1s(:,:n2,mpar) + z1a(:,:n2,mpar)
-         zus(:,:n2,mpar) = zus(:,:n2,mpar) + zua(:,:n2,mpar)
-         lus(:,:n2,mpar) = lus(:,:n2,mpar) + lua(:,:n2,mpar)
-         rcons(:,:n2,mpar) = rcons(:,:n2,mpar) + rcona(:,:n2,mpar)
-         zcons(:,:n2,mpar) = zcons(:,:n2,mpar) + zcona(:,:n2,mpar)
+!$OMP DO PRIVATE(i,jk)
+         DO jk = 1, ns*nzeta
+         DO i = 1, ntheta2
+         r1s(jk,i,mpar) = r1s(jk,i,mpar) + r1a(jk,i,mpar)
+         rus(jk,i,mpar) = rus(jk,i,mpar) + rua(jk,i,mpar)
+         z1s(jk,i,mpar) = z1s(jk,i,mpar) + z1a(jk,i,mpar)
+         zus(jk,i,mpar) = zus(jk,i,mpar) + zua(jk,i,mpar)
+         lus(jk,i,mpar) = lus(jk,i,mpar) + lua(jk,i,mpar)
+         rcons(jk,i,mpar) = rcons(jk,i,mpar) + rcona(jk,i,mpar)
+         zcons(jk,i,mpar) = zcons(jk,i,mpar) + zcona(jk,i,mpar)
          IF (lthreed) THEN
-            rvs(:,:n2,mpar) = rvs(:,:n2,mpar) + rva(:,:n2,mpar)
-            zvs(:,:n2,mpar) = zvs(:,:n2,mpar) + zva(:,:n2,mpar)
-            lvs(:,:n2,mpar) = lvs(:,:n2,mpar) + lva(:,:n2,mpar)
+            rvs(jk,i,mpar) = rvs(jk,i,mpar) + rva(jk,i,mpar)
+            zvs(jk,i,mpar) = zvs(jk,i,mpar) + zva(jk,i,mpar)
+            lvs(jk,i,mpar) = lvs(jk,i,mpar) + lva(jk,i,mpar)
          ENDIF
+         END DO
+         END DO
+!$OMP END PARALLEL
       END DO
-
       END SUBROUTINE symrzl

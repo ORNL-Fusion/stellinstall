@@ -30,7 +30,7 @@
      1   i, ni, m, nsmin, igrid, mj, isgn, ioff, joff
       REAL(rprec), DIMENSION(:,:), POINTER ::
      1  rbcc, rbss, rbcs, rbsc, zbcs, zbsc, zbcc, zbss
-      REAL(rprec) :: rtest, ztest, tzc, trc, delta
+      REAL(rprec) :: rtest, ztest, tzc, trc, delta, sumphi
       REAL(rprec), ALLOCATABLE :: temp(:)
       CHARACTER(LEN=100) :: line, line2
       CHARACTER(LEN=1)   :: ch1, ch2
@@ -426,11 +426,11 @@ C-----------------------------------------------
       WRITE(nthreed,130)
       WRITE(nthreed,131) TRIM(pmass_type)
       WRITE(nthreed,132)
- 130  FORMAT(' MASS PROFILE COEFFICIENTS am - newton/m**2',
+ 130  FORMAT(' MASS PROFILE COEFFICIENTS - newton/m**2',
      1  ' (EXPANSION IN NORMALIZED RADIUS):')
  131  FORMAT(' PMASS parameterization type is ''', a,'''')
  132  FORMAT(1x,35('-'))
-      WRITE(nthreed,135)(am(i-1),i=1, SIZE(am))
+
  135  FORMAT(1p,6e12.3)
       SELECT CASE(TRIM(pmass_type))
       CASE ('Akima_spline','cubic_spline')
@@ -438,16 +438,17 @@ C-----------------------------------------------
          WRITE(nthreed,135)(am_aux_s(i),i=1, SIZE(am_aux_s))
          WRITE(nthreed,"(' am_aux_f is' )")
          WRITE(nthreed,135)(am_aux_f(i),i=1, SIZE(am_aux_f))
+      CASE DEFAULT
+         WRITE(nthreed,135)(am(i-1),i=1, SIZE(am))
       END SELECT
 
-      IF (ncurr.eq.0) THEN
+      IF (ncurr .EQ. 0) THEN
           IF (lRFP) THEN
              WRITE (nthreed,142)
           ELSE
              WRITE (nthreed,140)
           END IF
 !  Print out ai array          
-          WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
           WRITE(nthreed,143) TRIM(piota_type)
           SELECT CASE(TRIM(piota_type))
           CASE ('Akima_spline','cubic_spline')
@@ -455,13 +456,14 @@ C-----------------------------------------------
              WRITE(nthreed,135)(ai_aux_s(i),i=1, SIZE(ai_aux_s))
              WRITE(nthreed,"(' ai_aux_f is' )")
              WRITE(nthreed,135)(ai_aux_f(i),i=1, SIZE(ai_aux_f))
+          CASE DEFAULT
+             WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
           END SELECT
       ELSE
 !  Print out ac array
           WRITE(nthreed,145)
           WRITE(nthreed,146) TRIM(pcurr_type)
           WRITE(nthreed,147)
-          WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
           SELECT CASE(TRIM(pcurr_type))
           CASE ('Akima_spline_Ip','Akima_spline_I',                            &
      &           'cubic_spline_Ip','cubic_spline_I')
@@ -469,6 +471,8 @@ C-----------------------------------------------
              WRITE(nthreed,135)(ac_aux_s(i),i=1, SIZE(ac_aux_s))
              WRITE(nthreed,"(' ac_aux_f is' )")
              WRITE(nthreed,135)(ac_aux_f(i),i=1, SIZE(ac_aux_f))
+          CASE DEFAULT
+             WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
           END SELECT
       ENDIF
 
@@ -483,6 +487,9 @@ C-----------------------------------------------
  147  FORMAT(1x,38('-'))
 
       WRITE(nthreed,150)
+!NORMALIZE APHI
+      sumphi=SUM(aphi)
+      IF (sumphi .NE. zero) aphi = aphi/sumphi
       WRITE(nthreed,135)(aphi(i),i=1, SIZE(aphi))
  150  FORMAT(/' NORMALIZED TOROIDAL FLUX COEFFICIENTS aphi',
      1   ' (EXPANSION IN S):',/,1x,35('-'))

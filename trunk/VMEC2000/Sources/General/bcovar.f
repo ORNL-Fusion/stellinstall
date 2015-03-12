@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE bcovar (lu, lv, lmnsc00)
       USE vmec_main, fpsi => bvco, p5 => cp5
       USE vmec_params, ONLY: ns4, signgs, pdamp, lamscale
@@ -31,14 +37,17 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: l, js, ndim
+      INTEGER :: l, js, ndim, ub, lb
       REAL(rprec) :: r2, volume, curpol_temp
 #ifndef _HBANGLE
-      REAL(rprec) :: arnorm, aznorm, tcon_mul
+      REAL(rprec), DIMENSION(2:ns-1):: maznorm, marnorm
+      REAL(rprec) :: tcon_mul
 #endif
       REAL(rprec), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
       REAL(rprec), DIMENSION(:), POINTER :: bsupu, bsubuh, 
      1                                      bsupv, bsubvh, r12sq
+      REAL(rprec), DIMENSION(ns):: temp1, temp2, temp3
+      REAL(rprec) :: t1, t2
       LOGICAL :: lctor
 !-----------------------------------------------
       ndim = 1+nrzt
@@ -53,83 +62,69 @@
       bsupv => luv;  bsubvh => bsubv_o
       r12sq => bsq
 
+      vp=0
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub,temp1,temp2,temp3)
+!$OMP& REDUCTION(+:vp)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l
 
-!
-!     FOR OPTIMIZATION ON CRAY, MUST USE COMPILER DIRECTIVES TO
-!     GET VECTORIZATION OF LOOPS INVOLVING (MORE THAN ONE) POINTER!
-!
-      guu(ndim) = 0;  guv = 0;  gvv = 0  
+         temp3 = sqrts(lb:ub)*sqrts(lb:ub)
 
-!
-!     COMPUTE METRIC ELEMENTS GIJ ON HALF MESH
-!     FIRST, GIJ = EVEN PART (ON FULL MESH), LIJ = ODD PART (ON FULL MESH)
-!     THEN, GIJ(HALF) = < GIJ(even)> + SHALF < GIJ(odd) >
-!
+         temp1= ru(lb:ub,0)*ru(lb:ub,0) 
+     1        + zu(lb:ub,0)*zu(lb:ub,0) + temp3*
+     2        ( ru(lb:ub,1)*ru(lb:ub,1)
+     3        + zu(lb:ub,1)*zu(lb:ub,1))
+         
+         temp2= (ru(lb:ub,0)*ru(lb:ub,1) 
+     1        +  zu(lb:ub,0)*zu(lb:ub,1))*2
+         guu(lb)=0
+         guu(lb+1:ub) = p5*(temp1(2:ns) + temp1(1:ns-1) + 
+     1        shalf(lb+1:ub)*(temp2(2:ns) + temp2(1:ns-1)))
 
-      r12sq(1:nrzt) = sqrts(1:nrzt)*sqrts(1:nrzt)
-      guu(1:nrzt)   = ru(1:nrzt,0)*ru(1:nrzt,0) 
-     1              + zu(1:nrzt,0)*zu(1:nrzt,0) + r12sq(1:nrzt)*
-     2              ( ru(1:nrzt,1)*ru(1:nrzt,1)
-     3            +   zu(1:nrzt,1)*zu(1:nrzt,1))
+         IF (lthreed) THEN
+         temp1= ru(lb:ub,0)*rv(lb:ub,0)
+     1        + zu(lb:ub,0)*zv(lb:ub,0) + temp3*
+     2        ( ru(lb:ub,1)*rv(lb:ub,1) 
+     3        + zu(lb:ub,1)*zv(lb:ub,1) )
+         temp2= ru(lb:ub,0)*rv(lb:ub,1) 
+     1        + ru(lb:ub,1)*rv(lb:ub,0)
+     2        + zu(lb:ub,0)*zv(lb:ub,1) 
+     3        + zu(lb:ub,1)*zv(lb:ub,0)
 
-      luu(1:nrzt)   = (ru(1:nrzt,0)*ru(1:nrzt,1) 
-     1              +  zu(1:nrzt,0)*zu(1:nrzt,1))*2
-      phipog(1:nrzt)= 2*r1(1:nrzt,0)*r1(1:nrzt,1) 
+         guv(lb)=0
+         guv(lb+1:ub) = p5*(temp1(2:ns) + temp1(1:ns-1) + 
+     1        shalf(lb+1:ub)*(temp2(2:ns) + temp2(1:ns-1)))
+         ELSE
+            guv(lb:ub) = 0
+         END IF
 
-      IF (lthreed) THEN
-         guv(1:nrzt)   = ru(1:nrzt,0)*rv(1:nrzt,0)
-     1                 + zu(1:nrzt,0)*zv(1:nrzt,0) + r12sq(1:nrzt)*
-     2                 ( ru(1:nrzt,1)*rv(1:nrzt,1) 
-     3                 + zu(1:nrzt,1)*zv(1:nrzt,1) )
-         luv(1:nrzt)   = ru(1:nrzt,0)*rv(1:nrzt,1) 
-     1                 + ru(1:nrzt,1)*rv(1:nrzt,0)
-     2                 + zu(1:nrzt,0)*zv(1:nrzt,1) 
-     3                 + zu(1:nrzt,1)*zv(1:nrzt,0)
-         gvv(1:nrzt)   = rv(1:nrzt,0)*rv(1:nrzt,0)
-     1                 + zv(1:nrzt,0)*zv(1:nrzt,0) + r12sq(1:nrzt)*
-     2                 ( rv(1:nrzt,1)*rv(1:nrzt,1)
-     3                 + zv(1:nrzt,1)*zv(1:nrzt,1) )
-         lvv(1:nrzt)   =(rv(1:nrzt,0)*rv(1:nrzt,1) 
-     1                 + zv(1:nrzt,0)*zv(1:nrzt,1))*2
-      END IF
+         temp1= r1(lb:ub,0)*r1(lb:ub,0) 
+     1        + temp3*r1(lb:ub,1)*r1(lb:ub,1)
+         temp2 = 2*r1(lb:ub,0)*r1(lb:ub,1)
+         IF (lthreed) THEN
+         temp1= temp1
+     1        + rv(lb:ub,0)*rv(lb:ub,0)
+     3        + zv(lb:ub,0)*zv(lb:ub,0) 
+     4        + temp3*( rv(lb:ub,1)*rv(lb:ub,1)
+     5        + zv(lb:ub,1)*zv(lb:ub,1) )
+          temp2 = temp2
+     1        + (rv(lb:ub,0)*rv(lb:ub,1) 
+     2        +  zv(lb:ub,0)*zv(lb:ub,1))*2
+         END IF
+         gvv(lb)=0
+         gvv(lb+1:ub) = p5*(temp1(2:ns) + temp1(1:ns-1) + 
+     1      shalf(lb+1:ub)*(temp2(2:ns) + temp2(1:ns-1)))
+    
+         tau(lb:ub) = gsqrt(lb:ub)
+         gsqrt(lb:ub) = r12(lb:ub)*gsqrt(lb:ub)
+         gsqrt(lb)=gsqrt(lb+1)
 
-      r12sq(1:nrzt) = r1(1:nrzt,0)*r1(1:nrzt,0) + r12sq(1:nrzt)*
-     1                r1(1:nrzt,1)*r1(1:nrzt,1)                       
-
-!DIR$ IVDEP
-      DO l = nrzt, 2, -1
-         guu(l) = p5*(guu(l) + guu(l-1) + shalf(l)*(luu(l) + luu(l-1)))
-         r12sq(l) = p5*(r12sq(l) + r12sq(l-1) + shalf(l)*             !Comment: r12sq = r12**2
-     1                (phipog(l) + phipog(l-1)))                      
-      END DO
-
-      IF (lthreed) THEN
-!DIR$ IVDEP
-         DO l = nrzt, 2, -1
-            guv(l) = p5*(guv(l) + guv(l-1) +
-     1         shalf(l)*(luv(l) + luv(l-1)))
-            gvv(l) = p5*(gvv(l) + gvv(l-1) +
-     1         shalf(l)*(lvv(l) + lvv(l-1)))
-         END DO
-      END IF
-
-      tau(1:nrzt) = gsqrt(1:nrzt)
-      gsqrt(1:nrzt) = r12(1:nrzt)*tau(1:nrzt)      
-      gsqrt(1:nrzt:ns) = gsqrt(2:nrzt:ns)
-
-      gvv(2:nrzt) = gvv(2:nrzt) + r12sq(2:nrzt)
-
-!CATCH THIS AFTER WHERE LINE BELOW   phipog = 0
-      WHERE (gsqrt(2:ndim) .ne. zero) 
-     1   phipog(2:ndim) = one/gsqrt(2:ndim)
-      phipog(1:ndim:ns) = 0
-
-      vp(1) = 0;  vp(ns+1) = 0
-      DO js = 2, ns
-         vp(js) = signgs*SUM(gsqrt(js:nrzt:ns)*wint(js:nrzt:ns))
-      END DO
-      IF (iter2 .eq. 1) voli = twopi*twopi*hs*SUM(vp(2:ns))
-
+         phipog(lb)=0
+         phipog(lb+1:ub)=one/gsqrt(lb+1:ub)
+         
+         vp(2:ns)=vp(2:ns)+signgs*gsqrt(lb+1:ub)*wint(lb+1:ub)
 !
 !     COMPUTE CONTRA-VARIANT COMPONENTS OF B (Bsupu,v) ON RADIAL HALF-MESH
 !     TO ACCOMODATE LRFP=T CASES, THE OVERALL PHIP FACTOR (PRIOR TO v8.46)
@@ -141,20 +136,21 @@
 !          BSUPU = PHIPOG*(chip - LAMV*LAMSCALE),
 !          BSUPV = PHIPOG*(phip + LAMU*LAMSCALE)
 !
-      lu = lu*lamscale
-      lv = lv*lamscale
+         lu(lb:ub,:) = lu(lb:ub,:)*lamscale
+         lv(lb:ub,:) = lv(lb:ub,:)*lamscale
+         lu(lb:ub,0)=lu(lb:ub,0)+phipf(1:ns)
 
-      DO js=1,ns
-         lu(js:nrzt:ns,0)=lu(js:nrzt:ns,0)+phipf(js)
-      END DO
-
-      bsupu(2:nrzt) = p5*phipog(2:nrzt)*(lv(2:nrzt,0) + lv(1:nrzt-1,0) 
-     1              + shalf(2:nrzt)*(lv(2:nrzt,1) + lv(1:nrzt-1,1)))
-      bsupv(2:nrzt) = p5*phipog(2:nrzt)*(lu(2:nrzt,0) + lu(1:nrzt-1,0) 
-     1              + shalf(2:nrzt)*(lu(2:nrzt,1) + lu(1:nrzt-1,1)))
+         bsupu(lb+1:ub)=p5*phipog(lb+1:ub)*(lv(lb+1:ub,0)+lv(lb:ub-1,0) 
+     1              + shalf(2:ns)*(lv(lb+1:ub,1) + lv(lb:ub-1,1)))
+         bsupv(lb+1:ub)=p5*phipog(lb+1:ub)*(lu(lb+1:ub,0)+lu(lb:ub-1,0) 
+     1              + shalf(2:ns)*(lu(lb+1:ub,1) + lu(lb:ub-1,1)))
 !v8.49: add ndim points
-      bsupu(1)=0;  bsupu(ndim)=0
-      bsupv(1)=0;  bsupv(ndim)=0
+         bsupu(lb)=0
+         bsupv(lb)=0
+      END DO 
+!$OMP END PARALLEL DO 
+
+      IF (iter2 .eq. 1) voli = twopi*twopi*hs*SUM(vp(2:ns))
 
 !
 !     UPDATE IOTA EITHER OF TWO WAYS:
@@ -181,55 +177,83 @@
 !     COMPUTE (IF NEEDED) AND ADD CHIP TO BSUPU
       CALL add_fluxes(phipog, bsupu, bsupv, ictrl_prec2d.eq.0)
 
+      wb = 0
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+!$OMP& REDUCTION(+:wb)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l         
 !
 !     COMPUTE LAMBDA FORCE KERNELS (COVARIANT B COMPONENT bsubu,v) ON RADIAL HALF-MESH
 !
-      bsubuh(1:nrzt)=guu(1:nrzt)*bsupu(1:nrzt)+guv(1:nrzt)*bsupv(1:nrzt)
-      bsubvh(1:nrzt)=guv(1:nrzt)*bsupu(1:nrzt)+gvv(1:nrzt)*bsupv(1:nrzt)
-!v8.49
-      bsubuh(ndim) = 0; bsubvh(ndim) = 0
+         bsubuh(lb:ub)=guu(lb:ub)*bsupu(lb:ub)+guv(lb:ub)*bsupv(lb:ub)
+         bsubvh(lb:ub)=guv(lb:ub)*bsupu(lb:ub)+gvv(lb:ub)*bsupv(lb:ub)
 
 !
 !     COMPUTE MAGNETIC AND KINETIC PRESSURE ON RADIAL HALF-MESH
 !
-      bsq(:nrzt) = p5*(bsupu(:nrzt)*bsubuh(:nrzt) 
-     1           +     bsupv(:nrzt)*bsubvh(:nrzt))
+         bsq(lb:ub) = p5*(bsupu(lb:ub)*bsubuh(lb:ub) 
+     1              +     bsupv(lb:ub)*bsubvh(lb:ub))
 
-      wb = hs*ABS(SUM(wint(:nrzt)*gsqrt(:nrzt)*bsq(:nrzt)))
+         wb = wb+hs*ABS(SUM(wint(lb:ub)*gsqrt(lb:ub)*bsq(lb:ub)))
+      END DO 
+!$OMP END PARALLEL DO 
 
 #ifdef _ANIMEC
 !SPH: MAKE CALL HERE (bsubX_e are used for scratch arrays)
       CALL an_pressure(bsubu_e, bsubv_e)
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
-      bsq(2:nrzt) = bsq(2:nrzt) + pperp(2:nrzt)
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l         
+         bsq(lb+1:ub) = bsq(lb+1:ub) + pperp(lb+1:ub)
 
 !WAC-SPH: MODIFY EFFECTIVE CURRENT K = curl(sigma_an*B)
-      phipog(1:nrzt) = phipog(1:nrzt)*sigma_an(1:nrzt)
-      bsubuh(1:nrzt) = bsubuh(1:nrzt)*sigma_an(1:nrzt)
-      bsubvh(1:nrzt) = bsubvh(1:nrzt)*sigma_an(1:nrzt)
+         phipog(lb:ub) = phipog(lb:ub)*sigma_an(lb:ub)
+         bsubuh(lb:ub) = bsubuh(lb:ub)*sigma_an(lb:ub)
+         bsubvh(lb:ub) = bsubvh(lb:ub)*sigma_an(lb:ub)
+      END DO 
+!$OMP END PARALLEL DO 
 
 #else
       pres(2:ns) = mass(2:ns)/vp(2:ns)**gamma
       wp = hs*SUM(vp(2:ns)*pres(2:ns))
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
-      DO js=2,ns
-         bsq(js:nrzt:ns) = bsq(js:nrzt:ns) + pres(js)
-      END DO
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l         
+         bsq(lb+1:ub) = bsq(lb+1:ub) + pres(2:ns)
+      END DO 
+!$OMP END PARALLEL DO 
 #endif
 
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
 !SPH122407-MOVED HERE: COMPUTE LAMBDA FULL MESH FORCES
 !     NOTE: bsubu_e is used here ONLY as a temporary array
-      lvv = phipog(:ndim)*gvv
-      bsubv_e(1:nrzt) = p5*(lvv(1:nrzt)+lvv(2:ndim))*lu(1:nrzt,0)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l         
+         lvv(lb:ub) = phipog(lb:ub)*gvv(lb:ub)
+         bsubv_e(lb:ub-1)=p5*(lvv(lb:ub-1)+lvv(lb+1:ub))*lu(lb:ub-1,0)
+         bsubv_e(ub) = p5*lvv(ub)*lu(ub,0)
 
-      lvv = lvv*shalf
-      bsubu_e(:nrzt) = guv(:nrzt)*bsupu(:nrzt)*sigma_an(:nrzt)          !sigma_an=1 isotropic
-      bsubu_e(ndim) = 0
-      bsubv_e(1:nrzt) = bsubv_e(1:nrzt) 
-     1            + p5*((lvv(1:nrzt) + lvv(2:ndim))*lu(1:nrzt,1)
-     2            +      bsubu_e(1:nrzt) + bsubu_e(2:ndim))
+         lvv(lb:ub) = lvv(lb:ub)*shalf(1:ns)
+         bsubu_e(lb:ub)=guv(lb:ub)*bsupu(lb:ub)*sigma_an(lb:ub)          !sigma_an=1 isotropic
+         bsubv_e(lb:ub-1) = bsubv_e(lb:ub-1) 
+     1            + p5*((lvv(lb:ub-1) + lvv(lb+1:ub))*lu(lb:ub-1,1)
+     2            +      bsubu_e(lb:ub-1) + bsubu_e(lb+1:ub))
+         bsubv_e(ub) = bsubv_e(ub) + p5*(lvv(ub)*lu(ub,1)+
+     1                 bsubu_e(ub))
+      END DO 
+!$OMP END PARALLEL DO 
 
 !
 !     COMPUTE AVERAGE FORCE BALANCE AND TOROIDAL/POLOIDAL CURRENTS
@@ -277,27 +301,30 @@
 !     AVERAGE LAMBDA FORCES ONTO FULL RADIAL MESH
 !     USE BLENDING FOR bsubv_e FOR NUMERICAL STABILITY NEAR AXIS
 !
-      DO l=1,ns
-         lvv(l:nrzt:ns) = bdamp(l)
-      END DO
-
-      IF (ANY(bsubuh(1:ndim:ns) .ne. zero)) STOP 'BSUBUH != 0 AT JS=1'
-      IF (ANY(bsubvh(1:ndim:ns) .ne. zero)) STOP 'BSUBVH != 0 AT JS=1'
-
-      bsubu_e(1:nrzt) = p5*(bsubuh(1:nrzt) + bsubuh(2:ndim))
-      bsubv_e(1:nrzt) = bsubv_e(1:nrzt)*lvv(1:nrzt) + p5*(1-lvv(1:nrzt))
-     1                *(bsubvh(1:nrzt) + bsubvh(2:ndim))
-
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l         
+         IF (bsubuh(lb) .ne. zero) STOP 'BSUBUH != 0 AT JS=1'
+         IF (bsubvh(lb) .ne. zero) STOP 'BSUBVH != 0 AT JS=1'
+         bsubu_e(lb:ub-1) = p5*(bsubuh(lb:ub-1) + bsubuh(lb+1:ub))
+         bsubu_e(ub) = p5*bsubuh(ub)
+         bsubv_e(lb:ub-1) = bsubv_e(lb:ub-1)*bdamp(1:ns-1) + 
+     1     p5*(1-bdamp(1:ns-1))*(bsubvh(lb:ub-1) + bsubvh(lb+1:ub))
+         bsubv_e(ub) = bsubv_e(ub)*bdamp(ns) + p5*(1-bdamp(ns))*
+     1                 bsubvh(ub)
 !
 !     COMPUTE R,Z AND LAMBDA PRE-CONDITIONING MATRIX
 !     ELEMENTS AND FORCE NORMS: NOTE THAT lu=>czmn, lv=>crmn externally
 !     SO THIS STORES bsupv in czmn_e, bsupu in crmn_e
 !
-      IF (iequi .EQ. 1) THEN
-         lu(:nrzt,0) = bsupv(:nrzt)
-         lv(:nrzt,0) = bsupu(:nrzt)
-      END IF
- 
+         IF (iequi .EQ. 1) THEN
+            lu(lb:ub,0) = bsupv(lb:ub)
+            lv(lb:ub,0) = bsupu(lb:ub)
+         END IF
+      END DO 
+!$OMP END PARALLEL DO 
 !
 !     COMPUTE PRECONDITIONING (1D) AND SCALING PARAMETERS
 !     NO NEED TO RECOMPUTE WHEN 2D-PRECONDITIONER ON
@@ -305,7 +332,14 @@
       IF ((MOD(iter2-iter1,ns4).eq.0 .and. iequi.eq.0) 
      1        .and. ictrl_prec2d.eq.0) THEN
          phifsave = phifac
-         phipog(:nrzt) = phipog(:nrzt)*wint(:nrzt)
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+         DO l=1,nznt
+            lb=ns*(l-1)+1
+            ub=ns*l         
+            phipog(lb:ub) = phipog(lb:ub)*wint(lb:ub)
+         END DO
+!$OMP END PARALLEL DO 
          CALL lamcal(phipog, guu, guv, gvv)
          CALL precondn(bsupv,bsq,gsqrt,r12,zs,zu12,zu,zu(1,1),
      1                 z1(1,1),arm,ard,brm,brd,
@@ -327,17 +361,26 @@
 #ifdef _HBANGLE
          CALL precondn_rho
 #endif
-
-
          volume = hs*SUM(vp(2:ns))
          r2 = MAX(wb,wp)/volume
-         guu(:nrzt) = guu(:nrzt)*r12(:nrzt)**2                     !R12 from RP in force
-         fnorm = one/(SUM(guu(1:nrzt)*wint(1:nrzt))*(r2*r2))       !Norm, unpreconditioned R,Z forces
+
+         t1=0; t2=0
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+!$OMP& REDUCTION(+:t1,t2)
+         DO l=1,nznt
+            lb=ns*(l-1)+2
+            ub=ns*l          
+            guu(lb:ub) = guu(lb:ub)*r12(lb:ub)**2
+            t1 = t1 + SUM(guu(lb:ub)*wint(lb:ub))
+            t2 = t2 + SUM((bsubuh(lb:ub)**2 + bsubvh(lb:ub)**2)
+     1                    *wint(lb:ub))
+         END DO
+!$OMP END PARALLEL DO 
+
+         fnorm = one/(t1*r2*r2)                                    !Norm, unpreconditioned R,Z forces
          fnorm1 = one/SUM(xc(1+ns:2*irzloff)**2)                   !Norm for preconditioned R,Z forces
-         fnormL = one/(SUM((bsubuh(1:nrzt)**2 + bsubvh(1:nrzt)**2)
-     1            *wint(1:nrzt))*lamscale**2)                                     !Norm for unpreconditioned Lambda force
-!         r3 = one/(2*r0scale)**2
-!         fnorm2 = one/MAX(SUM(xc(2*irzloff+1:3*irzloff)**2),r3/4) !Norm for preconditioned Lambda force
+         fnormL = one/(t2*lamscale**2)                             !Norm for unpreconditioned Lambda force
 
 !
 !        COMPUTE CONSTRAINT FORCE SCALING FACTOR (TCON)
@@ -351,20 +394,35 @@
          tcon_mul = tcon_mul/((4*r0scale**2)**2)                   !!Scaling of ard, azd (2*r0scale**2); 
                                                                    !!Scaling of cos**2 in alias (4*r0scale**2)
 
-         DO js = 2, ns-1
-           arnorm = SUM(wint(js:nrzt:ns)*ru0(js:nrzt:ns)**2)
-           aznorm = SUM(wint(js:nrzt:ns)*zu0(js:nrzt:ns)**2)
-           IF (arnorm.eq.zero .or. aznorm.eq.zero)
+         marnorm=0
+         maznorm=0
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+!$OMP& REDUCTION(+:marnorm,maznorm)
+         DO l=1,nznt
+            lb=ns*(l-1)+2
+            ub=ns*l-1
+            marnorm = marnorm + wint(lb:ub)*ru0(lb:ub)**2
+            maznorm = maznorm + wint(lb:ub)*zu0(lb:ub)**2
+         END DO
+!$OMP END PARALLEL DO 
+         IF (ANY(marnorm(2:ns-1).EQ.zero .OR. maznorm(2:ns-1).EQ.zero))
      1        STOP 'arnorm or aznorm=0 in bcovar'
 
-           tcon(js) = MIN(ABS(ard(js,1)/arnorm),
-     1                    ABS(azd(js,1)/aznorm)) * tcon_mul*(32*hs)**2
+         DO js = 2, ns-1
+           tcon(js) = MIN(ABS(ard(js,1)/marnorm(js)),
+     1                ABS(azd(js,1)/maznorm(js))) * tcon_mul*(32*hs)**2
          END DO
+
          tcon(ns) = p5*tcon(ns-1)
          IF (lasym) tcon = p5*tcon
 #endif
       ENDIF
 
+!
+!     COMPUTE COVARIANT BSUBU,V (EVEN, ODD) ON HALF RADIAL MESH
+!     FOR FORCE BALANCE AND RETURN (IEQUI=1)
+!
 !
 !     COMPUTE COVARIANT BSUBU,V (EVEN, ODD) ON HALF RADIAL MESH
 !     FOR FORCE BALANCE AND RETURN (IEQUI=1)
@@ -397,22 +455,30 @@
          RETURN
 
       END IF
+!$OMP PARALLEL DO 
+!$OMP& PRIVATE(l,lb,ub)
+      DO l=1,nznt
+         lb=ns*(l-1)+1
+         ub=ns*l      
 
 !     MINUS SIGN => HESSIAN DIAGONALS ARE POSITIVE
-      bsubu_e = -lamscale*bsubu_e
-      bsubv_e = -lamscale*bsubv_e
-      bsubu_o(:nrzt)  = sqrts(:nrzt)*bsubu_e(:nrzt)
-      bsubv_o(:nrzt)  = sqrts(:nrzt)*bsubv_e(:nrzt)
+!     MINUS SIGN => HESSIAN DIAGONALS ARE POSITIVE
+         bsubu_e(lb:ub) = -lamscale*bsubu_e(lb:ub)
+         bsubv_e(lb:ub) = -lamscale*bsubv_e(lb:ub)
+         bsubu_o(lb:ub)  = sqrts(lb:ub)*bsubu_e(lb:ub)
+         bsubv_o(lb:ub)  = sqrts(lb:ub)*bsubv_e(lb:ub)
 !
 !     STORE LU * LV COMBINATIONS USED IN FORCES
 !
 !WAC, SPH122407: sigma_an (=1 for isotropic case)
-      lvv(2:nrzt) = gsqrt(2:nrzt)*sigma_an(2:nrzt)
-      guu(2:nrzt)  = bsupu(2:nrzt)*bsupu(2:nrzt)*lvv(2:nrzt)
-      guv(2:nrzt)  = bsupu(2:nrzt)*bsupv(2:nrzt)*lvv(2:nrzt)
-      gvv(2:nrzt)  = bsupv(2:nrzt)*bsupv(2:nrzt)*lvv(2:nrzt)
-      lv(2:nrzt,0) = bsq(2:nrzt)*tau(2:nrzt)
-      lu(2:nrzt,0) = bsq(2:nrzt)*r12(2:nrzt)
+         lvv(lb:ub) = gsqrt(lb:ub)*sigma_an(lb:ub)
+         guu(lb:ub) = bsupu(lb:ub)*bsupu(lb:ub)*lvv(lb:ub)
+         guv(lb:ub) = bsupu(lb:ub)*bsupv(lb:ub)*lvv(lb:ub)
+         gvv(lb:ub) = bsupv(lb:ub)*bsupv(lb:ub)*lvv(lb:ub)
+         lv(lb:ub,0)= bsq(lb:ub)*tau(lb:ub)
+         lu(lb:ub,0)= bsq(lb:ub)*r12(lb:ub)
+      END DO
+!$OMP END PARALLEL DO 
 
       END SUBROUTINE bcovar
 

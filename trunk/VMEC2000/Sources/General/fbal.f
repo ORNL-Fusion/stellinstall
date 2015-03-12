@@ -1,5 +1,12 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       MODULE fbal
       USE stel_kinds, ONLY: dp
+      USE vmec_dim, ONLY: ns, nrzt, nznt, ns1
       REAL(dp), DIMENSION(:), ALLOCATABLE :: rzu_fac, rru_fac,
      1  frcc_fac, fzsc_fac
 
@@ -13,7 +20,6 @@
      3                    ,pmap, pd, phot, tpotb, zero
 #endif
       USE vmec_params, ONLY: signgs
-      USE vmec_dim, ONLY: ns, nrzt, nznt, ns1
       USE vmec_input, ONLY: lrfp
       USE realspace, ONLY: wint, phip
 #ifdef _ANIMEC
@@ -26,16 +32,25 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: js
+      INTEGER  :: js, l, lb, ub
+C-----------------------------------------------
 #ifdef _ANIMEC
       INTEGER  :: lk
       REAL(dp) :: t4, t5
 #endif
 !-----------------------------------------------
-      DO js = 2, ns
-         buco(js) = SUM(bsubu(js:nrzt:ns)*wint(js:nrzt:ns))
-         bvco(js) = SUM(bsubv(js:nrzt:ns)*wint(js:nrzt:ns))
+      buco(2:ns)=0
+      bvco(2:ns)=0
+!$OMP PARALLEL DO
+!$OMP& PRIVATE(l,lb,ub)
+!$OMP& REDUCTION(+:buco,bvco)
+      do l=1,nznt
+         lb=ns*(l-1)+2
+         ub=ns*l
+         buco(2:ns) = buco(2:ns)+bsubu(lb:ub)*wint(lb:ub)
+         bvco(2:ns) = bvco(2:ns)+bsubv(lb:ub)*wint(lb:ub)
       END DO
+!$OMP END PARALLEL DO
 
 !     FROM AMPERE'S LAW, JcurX are angle averages of jac*JsupX, so
 !                        JcurX = (dV/ds)/twopi**2 <JsupX> where <...> is flux surface average
@@ -61,6 +76,7 @@
          pd   = 0
       END IF
 #endif
+
       DO js = 2, ns1
          jcurv(js) = (signgs*ohs)*(buco(js+1) - buco(js))
          jcuru(js) =-(signgs*ohs)*(bvco(js+1) - bvco(js))
@@ -86,7 +102,6 @@
       SUBROUTINE bimax_ppargrad(pp1, pp2, pp3, ppar, onembc, pres, phot,
      1                          tpotb)
       USE vmec_main, ONLY: zero
-      USE vmec_dim, ONLY: ns, nznt, nrzt
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------

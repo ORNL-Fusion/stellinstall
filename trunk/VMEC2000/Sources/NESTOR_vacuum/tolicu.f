@@ -18,7 +18,7 @@ C-----------------------------------------------
 !     COMPUTE WIRE SEGMENTS (DO NOT CLOSE LOOP, CLOSURE DONE IN biotsavart ROUTINES)
 !
       ALLOCATE (xpts(3,nvp), stat=i)
-      IF (i .ne. 0) STOP ' allocation error in tolicu'
+      IF (i .NE. 0) STOP ' allocation error in tolicu'
 
       current = torcur/mu0
 

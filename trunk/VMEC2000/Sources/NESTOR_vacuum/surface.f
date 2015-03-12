@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE surface(rc, rs, zs, zc, xm, xn, mnmax)
       USE vacmod
       IMPLICIT NONE
@@ -26,10 +32,11 @@ C-----------------------------------------------
 !
       ALLOCATE (ruu(nuv2), ruv(nuv2), rvv(nuv2), zuu(nuv2), zuv(nuv2),
      1          zvv(nuv2), cosmn1(nuv2), sinmn1(nuv2), stat = i)
-      IF (i .ne. 0) STOP 'Allocation error in SURFACE'
+      IF (i .NE. 0) STOP 'Allocation error in SURFACE'
 
       r1b = 0;   rub = 0;   rvb = 0;  ruu = 0; ruv = 0; rvv = 0
       z1b = 0;   zub = 0;   zvb = 0;  zuu = 0; zuv = 0; zvv = 0
+
       DO mn = 1, mnmax
          m = NINT(xm(mn))
          n = NINT(xn(mn)/(nfper))
@@ -38,6 +45,8 @@ C-----------------------------------------------
      1               sinv1(:,n1)
          sinmn1(:) = sinu1(:,m)*cosv1(:,n1) - csign(n)*cosu1(:,m)*
      1               sinv1(:,n1)
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& PRIVATE(i)
          DO i = 1, nuv2
             r1b(i) = r1b(i) + rc(mn) * cosmn1(i)
             rub(i) = rub(i) - xm(mn) * rc(mn) * sinmn1(i)
@@ -52,9 +61,12 @@ C-----------------------------------------------
             zuv(i) = zuv(i) + xm(mn)*xn(mn)*zs(mn) * sinmn1(i)
             zvv(i) = zvv(i) - xn(mn)*xn(mn)*zs(mn) * sinmn1(i)
          END DO
+!$OMP END PARALLEL DO
 
-         IF (.not.lasym) CYCLE
+         IF (.NOT.lasym) CYCLE
 
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& PRIVATE(i)
          DO i = 1, nuv2
             r1b(i) = r1b(i) + rs(mn) * sinmn1(i)
             rub(i) = rub(i) + xm(mn) * rs(mn) * cosmn1(i)
@@ -69,8 +81,8 @@ C-----------------------------------------------
             zuv(i) = zuv(i) + xm(mn)*xn(mn)*zc(mn) * cosmn1(i)
             zvv(i) = zvv(i) - xn(mn)*xn(mn)*zc(mn) * cosmn1(i)
          END DO
+!$OMP END PARALLEL DO
       END DO
-
 !
 !     COMPUTE METRIC COEFFICIENTS GIJ_B AND SURFACE NORMAL COMPONENTS
 !     [SNR, SNV, SNZ] = NP*[Xu cross Xv]
@@ -104,7 +116,7 @@ C-----------------------------------------------
      1                          +     snz(i)* zvv(i)))*onp2
       END DO
 
-      IF (.not.lasym) THEN
+      IF (.NOT.lasym) THEN
          DO i = 1 + nv, nuv2 - nv
             rzb2(imirr(i)) = rzb2(i)
             r1b(imirr(i))  = r1b(i)

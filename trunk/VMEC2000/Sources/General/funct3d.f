@@ -1,3 +1,9 @@
+!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
+!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
+#ifdef NO_VMEC_OMP
+#define OMP NO_OMP
+#endif
+
       SUBROUTINE funct3d (lscreen, ier_flag)
       USE vmec_main
 #ifdef _VACUUM2
@@ -28,7 +34,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: l0pi, l, lk, ivacskip
+      INTEGER :: l0pi, l, lk, ivacskip, lb, ub
       INTEGER :: nvskip0 = 0
       REAL(dp), DIMENSION(mnmax) ::
      1   rmnc, zmns, lmns, rmns, zmnc, lmnc
@@ -94,8 +100,10 @@
       IF (ictrl_prec2d .GE. 2) THEN
 #ifdef _HBANGLE
          CALL getrz(xcdot)
-#endif       
+#endif
+!$OMP PARALLEL WORKSHARE       
          xcdot(:neqs2) = xcdot(:neqs2)*scalxc(:neqs2)
+!$OMP END PARALLEL WORKSHARE
          CALL totzsps_hess (xcdot, r1, ru, rv, z1, zu, zv, lu, lv, 
      1                      rcon, zcon)
          IF (lasym) THEN
@@ -116,12 +124,14 @@
 !
 !     COMPUTE CONSTRAINT RCON, ZCON
 !
+!$OMP PARALLEL WORKSHARE
 #ifndef _HBANGLE
       rcon(:nrzt,0) = rcon(:nrzt,0) + rcon(:nrzt,1)*sqrts(:nrzt)
       zcon(:nrzt,0) = zcon(:nrzt,0) + zcon(:nrzt,1)*sqrts(:nrzt)
 #endif
       ru0(:nrzt) = ru(:nrzt,0) + ru(:nrzt,1)*sqrts(:nrzt)
       zu0(:nrzt) = zu(:nrzt,0) + zu(:nrzt,1)*sqrts(:nrzt)
+!$OMP END PARALLEL WORKSHARE
 
 !
 !     COMPUTE RCON0, ZCON0 FOR FIXED BOUNDARY BY SCALING EDGE VALUES
@@ -133,20 +143,25 @@
 !     SLOWLY IN FREE-BOUNDARY VACUUM LOOP (BELOW)
 !
 #ifndef _HBANGLE
-      IF (iter2.eq.iter1 .and. ivac.le.0) THEN
+      IF (iter2.EQ.iter1 .AND. ivac.LE.0) THEN
 !!         rcon0(1:nrzt) = rcon(1:nrzt,0)
 !!         zcon0(1:nrzt) = zcon(1:nrzt,0)
-         DO l = 1, ns
-            rcon0(l:nrzt:ns) = rcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
-            zcon0(l:nrzt:ns) = zcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
+!$OMP& PRIVATE(l,lb,ub)
+         DO l = 1, nznt
+            lb=ns*(l-1)+1
+            ub=ns*l
+            rcon0(lb:ub) = rcon(ub,0)*sqrts(1:ns)**2
+            zcon0(lb:ub) = zcon(ub,0)*sqrts(1:ns)**2
          END DO
+!$OMP END PARALLEL DO      
       ENDIF
 #endif
 !
 !     COMPUTE S AND THETA DERIVATIVE OF R AND Z AND JACOBIAN ON HALF-GRID
 !
       CALL jacobian
-      IF (irst.eq.2 .and. iequi.eq.0) GOTO 100
+      IF (irst.EQ.2 .AND. iequi.EQ.0) GOTO 100
 
 !
 !     COMPUTE COVARIANT COMPONENTS OF B, MAGNETIC AND KINETIC
@@ -154,9 +169,8 @@
 !
       CALL second0 (tbcovon)
       CALL bcovar (lu, lv, xc(1+2*irzloff+mns*(zsc-1)))    !FIX THIS: last arg used elsewhere!
-
       CALL second0 (tbcovoff)
-      IF (ictrl_prec2d .le. 1) timer(tbcov) = timer(tbcov) 
+      IF (ictrl_prec2d .LE. 1) timer(tbcov) = timer(tbcov) 
      1                                      + (tbcovoff - tbcovon)
 
 !     COMPUTE VACUUM MAGNETIC PRESSURE AT PLASMA EDGE
@@ -223,12 +237,12 @@
             CALL vacuum (rmnc, rmns, zmns, zmnc, xm, xn, 
      1                   ctor, rbtor, wint, ns, ivacskip, ivac, mnmax,
      2                   ier_flag, lscreen)
-            IF (ier_flag .ne. 0) GOTO 100
+            IF (ier_flag .NE. 0) GOTO 100
 #endif
 !
 !           RESET FIRST TIME FOR SOFT START
 !
-            IF (ivac .eq. 1) THEN
+            IF (ivac .EQ. 1) THEN
                irst = 2;  delt0 = delt
 #ifdef _HBANGLE
                gc = xc; xc = xtempa
@@ -254,8 +268,9 @@
             lk = 0
             gcon(:nrzt) = r1(:nrzt,0)+sqrts(:nrzt)*r1(:nrzt,1)
             gcon(1+nrzt) = 0
-            DO l = ns, nrzt, ns
-               lk = lk + 1
+!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC) PRIVATE(l,lk)
+            DO lk = 1, nznt
+               l = ns*lk
                bsqsav(lk,3) = 1.5_dp*bzmn_o(l) - 0.5_dp*bzmn_o(l-1)
 #ifdef _ANIMEC
                gcon(l)     = bsqvac(lk) + pperp_ns(lk)
@@ -266,6 +281,7 @@
                rbsq(lk) = gcon(l)*(r1(l,0) + r1(l,1))*ohs
                dbsq(lk) = ABS(gcon(l)-bsqsav(lk,3))  
             END DO
+!$OMP END PARALLEL DO
 !           
 !           COMPUTE m=0,n=0 EDGE "pedestals"
 !
@@ -274,13 +290,14 @@
 !!     1         hs*SUM(wint(ns:nrzt:ns)*zu0(ns:nrzt:ns)*rbsq)/alphaR
 
 !!            PRINT *,' alphaR/r1(ns) = ', alphaR/gcon(ns)
-
-            IF (ivac .eq. 1) THEN
+            IF (ivac .EQ. 1) THEN
+!$OMP PARALLEL WORKSHARE       
                bsqsav(:nznt,1) = bzmn_o(ns:nrzt:ns)
                bsqsav(:nznt,2) = bsqvac(:nznt)
+!$OMP END PARALLEL WORKSHARE       
             ENDIF
             CALL second0 (tvacoff)
-            IF (ictrl_prec2d .le. 1)
+            IF (ictrl_prec2d .LE. 1)
      1         timer(tvac) = timer(tvac) + (tvacoff - tvacon)
          ENDIF
       ENDIF
@@ -293,8 +310,10 @@
       IF (iequi .EQ. 1) GOTO 100
 #else
       IF (iequi .NE. 1) THEN
+!$OMP PARALLEL WORKSHARE 
          extra1(:nrzt,0) = (rcon(:nrzt,0) - rcon0(:nrzt))*ru0(:nrzt)
      1                   + (zcon(:nrzt,0) - zcon0(:nrzt))*zu0(:nrzt)
+!$OMP END PARALLEL WORKSHARE
          CALL alias (gcon, extra1(:,0), gc, gc(1+mns), gc(1+2*mns), 
      1               extra1(:,1))
       ELSE 
@@ -307,7 +326,6 @@
 !
       CALL second0 (tforon)
       CALL forces
-
 !
 !     FFT TEST
 !
@@ -329,7 +347,7 @@
       END IF
 
       CALL second0 (tforoff)
-      IF (ictrl_prec2d .le. 1) timer(tfor) = timer(tfor) 
+      IF (ictrl_prec2d .LE. 1) timer(tfor) = timer(tfor) 
      1                                     + (tforoff - tforon)
 !
 !     FOURIER-TRANSFORM MHD FORCES TO (M,N)-SPACE
@@ -342,7 +360,7 @@
      1                         extra3, extra4, extra1, extra2)
 
       CALL second0 (tfftoff)
-      IF (ictrl_prec2d .le. 1) timer(tffi) = timer(tffi) 
+      IF (ictrl_prec2d .LE. 1) timer(tffi) = timer(tffi) 
      1                                     + (tfftoff - tffton)
 
 !================================================================
@@ -351,30 +369,33 @@
 !
 !================================================================
       CALL second0 (treson)
-
+!$OMP PARALLEL WORKSHARE
       gc = gc * scalxc    !!IS THIS CORRECT: SPH010214?
+!$OMP END PARALLEL WORKSHARE
 #ifdef _HBANGLE
       CALL getfrho(gc)
 #endif
       CALL residue (gc, gc(1+irzloff), gc(1+2*irzloff))
 !     Force new initial axis guess IF ALLOWED (l_moveaxis=T)
-      IF (lmove_axis .and. iter2.eq.1 .and. (fsqr+fsqz+fsql).gt.1.E2_dp)
+      IF (lmove_axis .AND. iter2.EQ.1 .AND. (fsqr+fsqz+fsql).GT.1.E2_dp)
      1    irst = 4
 
       CALL second0 (tresoff)
-      IF (ictrl_prec2d .le. 1) timer(tres) = timer(tres) 
+      IF (ictrl_prec2d .LE. 1) timer(tres) = timer(tres) 
      1                                     + (tresoff - treson)
 
       gc(neqs1) = gphifac
-      IF (iopt_raxis .gt. 0) gc(neqs2) = grmse
+      IF (iopt_raxis .GT. 0) gc(neqs2) = grmse
 
  100  CONTINUE
 
 #ifdef _HBANGLE
+!$OMP PARALLEL WORKSHARE
       xc = xtempa
+!$OMP END PARALLEL WORKSHARE
 #endif
       CALL second0 (tfunoff)
-      IF (ictrl_prec2d .le. 1) timer(tfun) = timer(tfun) 
+      IF (ictrl_prec2d .LE. 1) timer(tfun) = timer(tfun) 
      1                                     + (tfunoff - tfunon)
 
       END SUBROUTINE funct3d

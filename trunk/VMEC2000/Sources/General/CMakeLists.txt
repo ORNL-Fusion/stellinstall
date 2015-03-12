@@ -14,6 +14,7 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/getfsq.f
 	${CMAKE_CURRENT_SOURCE_DIR}/jacobian.f
 	${CMAKE_CURRENT_SOURCE_DIR}/lamcal.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/lamfull.f
 	${CMAKE_CURRENT_SOURCE_DIR}/precondn.f
 	${CMAKE_CURRENT_SOURCE_DIR}/realspace.f
 	${CMAKE_CURRENT_SOURCE_DIR}/residue.f90
