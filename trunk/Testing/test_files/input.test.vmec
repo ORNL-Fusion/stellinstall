@@ -15,6 +15,7 @@ MPOL = 5,
 NZETA = 1,
 NVACSKIP = 9,
 LASYM = F,
+OMP_NUM_THREADS = 1,
 
 ! Fitting parameters.
 GAMMA = 0.0,

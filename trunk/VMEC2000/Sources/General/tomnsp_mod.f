@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
 #define oldtomnsps
       MODULE tomnsp_mod
       USE realspace, ONLY: wint, phip
@@ -55,7 +49,7 @@
 
       ALLOCATE (work1(nsz,12), tempr(nsz), tempz(nsz),
      1          stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in VMEC2000 tomnsps'
+      IF (i .NE. 0) STOP 'Allocation error in VMEC2000 tomnsps'
 
       ioff = LBOUND(frcc,2)
       joff = LBOUND(frcc,3)
@@ -63,7 +57,7 @@
       frzl_array = 0
 
       jmax = ns
-      IF (ivac .lt. 1) jmax = ns1
+      IF (ivac .LT. 1) jmax = ns1
 
 !
 !     BEGIN FOURIER TRANSFORM
@@ -74,8 +68,8 @@
 !
 !       NOTE: sinmumi = -m sin(mu),  sinnvn = -n sin(nv)
 !
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP&  PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,i,l,lb,ub,
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,i,l,lb,ub,
 !$OMP&          n,ni,k,jmaxl,j2l)
       DO m = 0, mpol1
          mparity = MOD(m,2)
@@ -154,18 +148,18 @@
             END DO
          END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
 !
 !     COMPUTE IOTA EVOLUTION EQUATION [STORED IN LMNSC(0,0) COMPONENT]
 !
       IF (ictrl_prec2d.GT.0 .and. ncurr.EQ.1) THEN
          ni = 0+ioff;  mj = 0+joff
          t1 = r0scale
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(jl)
+!$OMP DO PRIVATE(jl)
          DO jl = 2, ns
             flsc(jl, ni, mj) = -t1*(buco(jl) - icurv(jl))
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
       END IF
 
 !
@@ -176,15 +170,16 @@
          mj = 1 + joff
          ni = 0 + ioff
          t1 = nscale(0)*r0scale    !/4    !!v8.52
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(jl)
+!$OMP DO PRIVATE(jl)
          DO jl = 2, ns-1
             work1(jl,1) = frcc_fac(jl)*frcc(jl,ni,mj)
      1                  + fzsc_fac(jl)*fzsc(jl,ni,mj)
             frcc(jl,ni,mj) = rzu_fac(jl)*(t1*equif(jl) + work1(jl,1))
             fzsc(jl,ni,mj) = rru_fac(jl)*(t1*equif(jl) - work1(jl,1))
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
       END IF
+!$OMP END PARALLEL
 
       DEALLOCATE (work1, tempr, tempz)
 
@@ -238,7 +233,7 @@ C-----------------------------------------------
 
       d2=nzeta*ntheta3*2
 !      call perfon('trnm1')
-!$OMP PARALLEL SECTIONS
+!$OMP PARALLEL SECTIONS NUM_THREADS(OMP_NUM_THREADS) 
 !$OMP SECTION
       call mytrans(armn,myarmn,d2,ns)
 !$OMP SECTION
@@ -290,7 +285,7 @@ C-----------------------------------------------
       d7=2*ntheta2
       d8=4*nzeta
 
-!$OMP PARALLEL DO
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP&  PRIVATE(js,m,i,mparity,work1,tempr,n)
       do js=1,ns
 
@@ -641,9 +636,9 @@ C-----------------------------------------------
 !
 !     BEGIN FOURIER TRANSFORM
 !
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP&  PRIVATE(m,mparity,mj,j2,jl,work1,temp1,temp3,i,l,j2l,jll,
-!$OMP&          n,ni,k,jmaxl)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,temp1,temp3,i,l,j2l,jll,
+!$OMP&         n,ni,k,jmaxl)
       DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
@@ -717,7 +712,8 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP END PARALLEL
 
       DEALLOCATE (work1)
 

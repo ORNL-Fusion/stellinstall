@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE symrzl(r1s, rus, rvs, z1s, zus, zvs, lus, lvs, rcons,
      1   zcons, r1a, rua, rva, z1a, zua, zva, lua, lva, rcona, zcona)
       USE vmec_main
@@ -24,7 +18,7 @@ C-----------------------------------------------
 !     FIRST SUM SYMMETRIC, ANTISYMMETRIC PIECES ON EXTENDED INTERVAL, THETA = [PI,2*PI]
 !
       DO mpar = 0, 1
-!$OMP PARALLEL DEFAULT(SHARED)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP DO PRIVATE(i,ir,jk,jka)
          DO i = 1 + ntheta2, ntheta1
             ir = ntheta1 + 2 - i                 !-theta
@@ -68,6 +62,7 @@ C-----------------------------------------------
          ENDIF
          END DO
          END DO
+!$OMP END DO
 !$OMP END PARALLEL
       END DO
       END SUBROUTINE symrzl

@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE restart_iter(time_step)
       USE vmec_main
       USE xstuff
@@ -20,15 +14,15 @@ c-----------------------------------------------
 
       SELECT CASE (irst)
       CASE DEFAULT
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS)
          xstore(:neqs2) = xc(:neqs2)
 !$OMP END PARALLEL WORKSHARE
          RETURN
       CASE (2:3)
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS)
          xcdot(:neqs2) = zero
          xc(:neqs2) = xstore(:neqs2)
-!$OMP END PARALLEL WORKSHARE
+!$OMP END PARALLEL WORKSHARE 
          time_step = time_step*((irst-2)/c1p03 + cp90*(3-irst))
          IF (irst .eq. 2) THEN
             ijacob = ijacob + 1

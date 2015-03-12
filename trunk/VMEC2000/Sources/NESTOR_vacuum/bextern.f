@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE bextern(plascur, wint, ns)
       USE vacmod
       USE mgrid_mod, ONLY: bvac
@@ -45,7 +39,8 @@ c
 !
       CALL tolicu (plascur)
       CALL belicu (bexu, bexv, bexn, cosuv, sinuv, r1b, z1b)
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(i) SCHEDULE(STATIC)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(i) SCHEDULE(STATIC)
       DO i = 1, nuv2
          brad(i) = brad(i) + bexu(i)*cosuv(i) + bexv(i)*sinuv(i)
          bphi(i) = bphi(i) - bexu(i)*sinuv(i) + bexv(i)*cosuv(i)

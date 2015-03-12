@@ -133,21 +133,15 @@ C-----------------------------------------------
          CALL vsetup (iseq_count)
          CALL readin (input_file, iseq_count, ier_flag, lscreen)
          IF (ier_flag .ne. 0) GOTO 1000
-
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifndef NO_VMEC_OMP
+!        DO NOT CHANGE ENV VARIABLE (IMPORTANT IF VMEC CALLED
+!        EXTERNALLY), RATHER SET IT ON A PER LOOP BASIS
 #ifdef _OPENMP
-!  V3FIT can sets the number of OpenMP threads. No not override this when called
-!  from inside V3FIT.
-         IF (.not.l_v3fit) THEN
-            CALL omp_set_num_threads(OMP_NUM_THREADS)
-!$OMP PARALLEL
-            IF (omp_get_thread_num() .EQ. 0) WRITE(*,'(2x,a,i3)')
-     1      'OPENMP NUMBER THREADS: ',omp_get_num_threads()
-!$OMP END PARALLEL
-         END IF
-#endif
+!         CALL omp_set_num_threads(OMP_NUM_THREADS)
+!!$OMP PARALLEL
+!         IF (omp_get_thread_num() .EQ. 0) WRITE(*,'(2x,a,i3)')
+!     1   'OPENMP NUMBER THREADS: ',omp_get_num_threads()
+!!$OMP END PARALLEL
+         WRITE(*,'(2x,a,i3)')'OPENMP NUMBER THREADS: ',omp_num_threads
 #endif
 !
 !        COMPUTE NS-INVARIANT ARRAYS

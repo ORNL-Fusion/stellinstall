@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
 #define oldtotzsps
       MODULE totzsp_mod
       USE stel_kinds, ONLY: rprec
@@ -99,8 +93,8 @@
 !      r11 = 0;  ru1 = 0;  rv1 = 0;  rcn1 = 0
 !      z11 = 0;  zu1 = 0;  zv1 = 0;  zcn1 = 0
 !      lu1 = 0;  lv1 = 0
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP& PRIVATE(i,l,lb,ub)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!$OMP DO PRIVATE(i,l,lb,ub)
          DO i = 1, ntheta2
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
@@ -110,8 +104,7 @@
             zv1(lb:ub,:) = 0;  zcn1(lb:ub,:) = 0
             lu1(lb:ub,:) = 0;  lv1(lb:ub,:) = 0
          END DO
-!$OMP END PARALLEL DO
-
+!$OMP END DO
 !
 !     COMPUTE R, Z, AND LAMBDA IN REAL SPACE
 !     NOTE: LU = d(Lam)/du, LV = -d(Lam)/dv
@@ -127,8 +120,7 @@
 !
 !        INVERSE TRANSFORM IN N-ZETA, FOR FIXED M
 !
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP&  PRIVATE(k,l,lb,ub,n,ni)
+!$OMP DO PRIVATE(k,l,lb,ub,n,ni)
          DO k = 1, nzeta
             l = ns*(k-1)
             lb = l+1;  ub = ns+l
@@ -163,13 +155,12 @@
      1                        + lmnsc(:,ni,mj)*sinnvn(k,n)
             END DO
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
 !
 !        INVERSE TRANSFORM IN M-THETA, FOR ALL RADIAL, ZETA VALUES
 !
 
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP& PRIVATE(i,l,lb,ub,cosmux,sinmux)
+!$OMP DO PRIVATE(i,l,lb,ub,cosmux,sinmux)
          DO i = 1, ntheta2
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
@@ -227,9 +218,9 @@
      1                          - (work1(:,11)*cosmu(i,m) 
      1                          +  work1(:,12)*sinmu(i,m))
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
       END DO
-
+!$OMP END PARALLEL
       DEALLOCATE (work1)
 
       z01(1:ns) = zmnsc(1:ns,n0+ioff,m1+joff)
@@ -339,7 +330,7 @@ C-----------------------------------------------
 
 !      call perfon('totzsploop')
 
-!$OMP PARALLEL DO
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS)
 !$OMP&  DEFAULT(NONE)
 !$OMP&  PRIVATE(s,m,i,mparity,mywork,mywork2,mytemp)
 !$OMP&  SHARED(mpol1,nzeta,ns,ntheta2,ntor,mycosnv,mysinnv,
@@ -571,7 +562,7 @@ C-----------------------------------------------
 
       d2=nzeta*ntheta3*2
 !      call perfon('trans2')
-!$OMP PARALLEL SECTIONS
+!$OMP PARALLEL SECTIONS NUM_THREADS(OMP_NUM_THREADS)
 !$OMP SECTION
       call mytrans(myr11,r11,ns,d2)
 !$OMP SECTION
@@ -849,7 +840,7 @@ C-----------------------------------------------
 !     CONVERT FROM INTERNAL REPRESENTATION TO "PHYSICAL" RMNSS, ZMNCS FOURIER FORM
 !
       IF (.NOT.lconm1) RETURN
-!$OMP PARALLEL WORKSHARE DEFAULT(SHARED)
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
       temp(:,:) = rmnss(:,:,1)
       rmnss(:,:,1) = temp(:,:) + zmncs(:,:,1)
       zmncs(:,:,1) = temp(:,:) - zmncs(:,:,1)
@@ -918,8 +909,8 @@ C-----------------------------------------------
 !
 !      r11 = 0;  ru1 = 0;  rv1 = 0;  z11 = 0;  zu1 = 0
 !      zv1 = 0;  lu1 = 0;  lv1 = 0;  rcn1 = 0; zcn1 = 0
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP& PRIVATE(i,l,lb,ub)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(i,l,lb,ub)
          DO i = 1, ntheta2
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
@@ -929,7 +920,7 @@ C-----------------------------------------------
             zv1(lb:ub,:) = 0;  zcn1(lb:ub,:) = 0
             lu1(lb:ub,:) = 0;  lv1(lb:ub,:) = 0
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
 
       IF (jlam(m0) .gt. 1) lmncc(1,:,m0+joff) = lmncc(2,:,m0+joff)
 
@@ -938,8 +929,7 @@ C-----------------------------------------------
          mj = m+joff
 !         work1 = 0
 !         j1 = jmin1(m)
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP&  PRIVATE(k,l,lb,ub,n,ni)
+!$OMP DO PRIVATE(k,l,lb,ub,n,ni)
          DO k = 1, nzeta
             l = ns*(k-1)
             lb = l+1;  ub = ns+l
@@ -976,12 +966,11 @@ C-----------------------------------------------
      1                          + lmncc(:,ni,mj)*sinnvn(k,n)
             END DO
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
 !
 !        INVERSE TRANSFORM IN M-THETA
 !
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP& PRIVATE(i,l,lb,ub,cosmux,sinmux)
+!$OMP DO PRIVATE(i,l,lb,ub,cosmux,sinmux)
          DO i = 1, ntheta2
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
@@ -1026,9 +1015,9 @@ C-----------------------------------------------
             lv1(lb:ub,mparity) = lv1(lb:ub,mparity) - (work1(:,11)*
      1               sinmu(i,m)+work1(:,12)*cosmu(i,m))
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
       END DO
-
+!$OMP END PARALLEL
       DEALLOCATE (work1)
 
       END SUBROUTINE totzspa

@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE add_fluxes(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
       USE realspace, ONLY: wint, guu, guv, chip, phip, sigma_an 
@@ -35,9 +29,8 @@
 
       top = icurv(2:ns)
       bot = 0
-!$OMP PARALLEL DO &
-!$OMP PRIVATE(l,lb,ub)&
-!$OMP REDUCTION(+:top,bot)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) &
+!$OMP PRIVATE(l,lb,ub) REDUCTION(+:top,bot)
       DO l=1,nznt
          lb=ns*(l-1)+2
          ub=ns*l
@@ -89,7 +82,7 @@
          END DO
       END IF
 
-!$OMP PARALLEL DO &
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) &
 !$OMP PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1

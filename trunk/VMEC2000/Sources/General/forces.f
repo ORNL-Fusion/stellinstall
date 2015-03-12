@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE forces
       USE vmec_main, p5 => cp5
       USE realspace
@@ -54,8 +48,8 @@ C-----------------------------------------------
 !
 !     GUU, GUV: VARIATION OF Ru, Rv, Zu, Zv IN guu, guv
 !
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
-!$OMP& PRIVATE(l,lb,ub)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) SCHEDULE(STATIC) 
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l

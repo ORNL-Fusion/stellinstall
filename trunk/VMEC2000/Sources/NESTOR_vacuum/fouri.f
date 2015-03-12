@@ -1,10 +1,4 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
-      SUBROUTINE fouri(grpmn, gsource, amatrix, amatsq, bvec, wint,
+      SUBROUTINE fouri(grpmn, gsource, amatrix, amatsq, bvec, wint, 
      1                 ndim, ns)
       USE vacmod
       IMPLICIT NONE
@@ -107,8 +101,8 @@ C-----------------------------------------------
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
-!$OMP& PRIVATE(m,cosm,sinm) 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& SCHEDULE(STATIC) PRIVATE(m,cosm,sinm) 
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)

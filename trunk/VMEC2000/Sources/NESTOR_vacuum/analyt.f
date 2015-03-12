@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE analyt(grpmn, bvec, ivacskip, ndim)
       USE vacmod
       IMPLICIT NONE
@@ -84,7 +78,7 @@ C-----------------------------------------------
       sqrta  = two*SQRT(guu_b)
 
       IF (ivacskip .EQ. 0) THEN
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS)
          grpmn = 0
          delt1u  = adp*adm  - cma*cma
          azp1u  = auu  + auv  + avv
@@ -106,7 +100,7 @@ C-----------------------------------------------
 !
 !     INITIALIZE VECTORS
 !
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS)
       bvec = 0
 !
 !     INITIALIZE T0+ and T0-
@@ -153,8 +147,8 @@ C-----------------------------------------------
 !
 !     BEGIN MODE NUMBER (m,n) LOOP
 !
-!$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(SHARED)
-!$OMP&  PRIVATE(m,n) COLLAPSE(2)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& SCHEDULE(STATIC) PRIVATE(m,n) COLLAPSE(2)
          DO n = 0, nf
             DO m = 0, mf
                IF (cmns(l,m,n) .ne. zero) THEN  ! mjr: load imbalance?

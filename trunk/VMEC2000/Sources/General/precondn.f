@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE precondn(lu1, bsq, gsqrt, r12, xs, xu12, xue, xuo,
      1                    xodd, axm, axd, bxm, bxd, 
 #ifdef _HBANGLE
@@ -65,7 +59,7 @@ C-----------------------------------------------
 !     COMPUTE DOMINANT (1/DELTA-S)**2 PRECONDITIONING
 !     MATRIX ELEMENTS
 !
-!$OMP PARALLEL DO
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 #ifdef _HBANGLE
 !$OMP& PRIVATE(l,lb,ub,t1,t2,t3,ptau,ptau2)
 !$OMP& REDUCTION(+:temp,ax,bx,cx,ax2,bx2)

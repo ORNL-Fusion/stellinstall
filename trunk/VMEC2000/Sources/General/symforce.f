@@ -1,10 +1,4 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
-      SUBROUTINE symforce(ars, brs, crs, azs, bzs, czs, bls,
+      SUBROUTINE symforce(ars, brs, crs, azs, bzs, czs, bls, 
      1 cls, rcs, zcs, ara, bra, cra, aza, bza, cza, bla, cla, rca, zca)
       USE vmec_main, p5 => cp5
       IMPLICIT NONE
@@ -32,7 +26,7 @@ C-----------------------------------------------
 !
 !
       DO mpar = 0, 1
-!$OMP PARALLEL DEFAULT(SHARED)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP DO PRIVATE(i,ir,jk,jka)
          DO i = 1,ntheta2
             ir = ntheta1 + 2 - i                       !-theta

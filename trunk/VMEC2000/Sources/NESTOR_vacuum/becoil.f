@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE becoil(rad, zee, br, bp, bz, brvac, bpvac, bzvac)
       USE vparams, ONLY: nthreed
       USE vacmod
@@ -42,7 +36,7 @@ C-----------------------------------------------
 !
 C-----------------------------------------------
       icount = icount + 1
-!$OMP PARALLEL DO DEFAULT(SHARED) 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(i,rad0,zee0,kv,ri,zj,pr,qz,w11,w12,w21,w22)
       DO i = 1, nuv2
 !

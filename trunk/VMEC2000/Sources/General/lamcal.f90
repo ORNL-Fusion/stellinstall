@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE lamcal(overg, guu, guv, gvv)
       USE vmec_main
       USE vmec_params, ONLY: ntmax, jlam, lamscale
@@ -27,9 +21,8 @@
       blam=0
       clam=0
       dlam=0
-!$OMP PARALLEL DO &
-!$OMP PRIVATE(l) &
-!$OMP REDUCTION(+:blam,clam,dlam)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) &
+!$OMP PRIVATE(l) REDUCTION(+:blam,clam,dlam)
       DO l=1,nznt
          blam(1:ns) = blam(1:ns) + guu(:,l)*overg(:,l)
          clam(1:ns) = clam(1:ns) + gvv(:,l)*overg(:,l)
@@ -48,7 +41,7 @@
       faclam = 0
       pfactor0 = damping_fac/(2*r0scale*lamscale)**2
 
-!$OMP PARALLEL DO &
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) &
 !$OMP PRIVATE(m,tmm,power,pfactor,n,tnn,tnm,js) 
       DO m = 0, mpol1
          tmm = m*m

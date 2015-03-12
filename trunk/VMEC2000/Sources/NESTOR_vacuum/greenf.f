@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE greenf(delgr, delgrp, ip)
       USE vacmod
       USE vparams, ONLY: one
@@ -58,19 +52,21 @@ C-----------------------------------------------
 !
 !     NOTE: |x - x'|**2 = gsave - 2*[x*x' + y*y']
 !
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& SCHEDULE(STATIC) PRIVATE(i)
       DO i = 1, nuv
          gsave(i) = rzb2(ip) + rzb2(i) - 2*z1b(ip)*z1b(i)
          dsave(i) = drv(ip) + z1b(i)*snz(ip)
       END DO
-
+!$OMP END PARALLEL DO
 !
 !     SUM OVER FIELD-PERIODS (NVPER=NFPER) OR INTEGRATE OVER NV (NVPER=64) IF NV == 1
 !
 !     NOTE THE SURFACE NORMAL SNORM == Xu cross Xv = NP*[SNR, SNV, SNZ]
 !     IS PERIODIC ON EACH FIELD PERIOD
 !
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
-!$OMP& PRIVATE(kp, xper,yper, sxsave, sysave)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& SCHEDULE(STATIC) PRIVATE(kp, xper,yper, sxsave, sysave)
       DO kp = 1, nvper
          xper = xip*cosper(kp) - yip*sinper(kp)              !x(ip) in field period kp
          yper = yip*cosper(kp) + xip*sinper(kp)              !y(ip) in field period kp

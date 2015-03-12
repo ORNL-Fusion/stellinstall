@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       MODULE fbal
       USE stel_kinds, ONLY: dp
       USE vmec_dim, ONLY: ns, nrzt, nznt, ns1
@@ -20,7 +14,7 @@
      3                    ,pmap, pd, phot, tpotb, zero
 #endif
       USE vmec_params, ONLY: signgs
-      USE vmec_input, ONLY: lrfp
+      USE vmec_input, ONLY: lrfp, omp_num_threads
       USE realspace, ONLY: wint, phip
 #ifdef _ANIMEC
      1                    ,pperp, ppar, onembc, sigma_an,
@@ -41,9 +35,8 @@ C-----------------------------------------------
 !-----------------------------------------------
       buco(2:ns)=0
       bvco(2:ns)=0
-!$OMP PARALLEL DO
-!$OMP& PRIVATE(l,lb,ub)
-!$OMP& REDUCTION(+:buco,bvco)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:buco,bvco)
       do l=1,nznt
          lb=ns*(l-1)+2
          ub=ns*l

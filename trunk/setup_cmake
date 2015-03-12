@@ -53,7 +53,6 @@ then
 	      -DNETCDF_INC_PATH=/usr/include/       \
 	      -DNETCDF_LIB_PATH=/usr/lib            \
 	      -DEXTRA_FLAGS=-fopenmp                \
-              -DNO_VMEC_OMP=ON                      \
 	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
 elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then

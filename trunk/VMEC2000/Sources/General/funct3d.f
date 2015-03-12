@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE funct3d (lscreen, ier_flag)
       USE vmec_main
 #ifdef _VACUUM2
@@ -101,7 +95,7 @@
 #ifdef _HBANGLE
          CALL getrz(xcdot)
 #endif
-!$OMP PARALLEL WORKSHARE       
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)      
          xcdot(:neqs2) = xcdot(:neqs2)*scalxc(:neqs2)
 !$OMP END PARALLEL WORKSHARE
          CALL totzsps_hess (xcdot, r1, ru, rv, z1, zu, zv, lu, lv, 
@@ -124,7 +118,7 @@
 !
 !     COMPUTE CONSTRAINT RCON, ZCON
 !
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 #ifndef _HBANGLE
       rcon(:nrzt,0) = rcon(:nrzt,0) + rcon(:nrzt,1)*sqrts(:nrzt)
       zcon(:nrzt,0) = zcon(:nrzt,0) + zcon(:nrzt,1)*sqrts(:nrzt)
@@ -146,8 +140,8 @@
       IF (iter2.EQ.iter1 .AND. ivac.LE.0) THEN
 !!         rcon0(1:nrzt) = rcon(1:nrzt,0)
 !!         zcon0(1:nrzt) = zcon(1:nrzt,0)
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
-!$OMP& PRIVATE(l,lb,ub)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) SCHEDULE(STATIC)
          DO l = 1, nznt
             lb=ns*(l-1)+1
             ub=ns*l
@@ -268,7 +262,8 @@
             lk = 0
             gcon(:nrzt) = r1(:nrzt,0)+sqrts(:nrzt)*r1(:nrzt,1)
             gcon(1+nrzt) = 0
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC) PRIVATE(l,lk)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& SCHEDULE(STATIC) PRIVATE(l,lk)
             DO lk = 1, nznt
                l = ns*lk
                bsqsav(lk,3) = 1.5_dp*bzmn_o(l) - 0.5_dp*bzmn_o(l-1)
@@ -291,7 +286,7 @@
 
 !!            PRINT *,' alphaR/r1(ns) = ', alphaR/gcon(ns)
             IF (ivac .EQ. 1) THEN
-!$OMP PARALLEL WORKSHARE       
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)       
                bsqsav(:nznt,1) = bzmn_o(ns:nrzt:ns)
                bsqsav(:nznt,2) = bsqvac(:nznt)
 !$OMP END PARALLEL WORKSHARE       
@@ -310,7 +305,7 @@
       IF (iequi .EQ. 1) GOTO 100
 #else
       IF (iequi .NE. 1) THEN
-!$OMP PARALLEL WORKSHARE 
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
          extra1(:nrzt,0) = (rcon(:nrzt,0) - rcon0(:nrzt))*ru0(:nrzt)
      1                   + (zcon(:nrzt,0) - zcon0(:nrzt))*zu0(:nrzt)
 !$OMP END PARALLEL WORKSHARE
@@ -369,7 +364,7 @@
 !
 !================================================================
       CALL second0 (treson)
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
       gc = gc * scalxc    !!IS THIS CORRECT: SPH010214?
 !$OMP END PARALLEL WORKSHARE
 #ifdef _HBANGLE
@@ -390,7 +385,7 @@
  100  CONTINUE
 
 #ifdef _HBANGLE
-!$OMP PARALLEL WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
       xc = xtempa
 !$OMP END PARALLEL WORKSHARE
 #endif

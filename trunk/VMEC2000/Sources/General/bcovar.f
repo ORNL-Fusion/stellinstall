@@ -1,9 +1,3 @@
-!  Small equilibria resolutions can be slower when run in parallel. Allow V3FIT
-!  to be compiled with OpenMP support while disabling VMEC OpenMP support.
-#ifdef NO_VMEC_OMP
-#define OMP NO_OMP
-#endif
-
       SUBROUTINE bcovar (lu, lv, lmnsc00)
       USE vmec_main, fpsi => bvco, p5 => cp5
       USE vmec_params, ONLY: ns4, signgs, pdamp, lamscale
@@ -63,9 +57,8 @@
       r12sq => bsq
 
       vp=0
-!$OMP PARALLEL DO 
-!$OMP& PRIVATE(l,lb,ub,temp1,temp2,temp3)
-!$OMP& REDUCTION(+:vp)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub,temp1,temp2,temp3) REDUCTION(+:vp)
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l
@@ -178,9 +171,8 @@
       CALL add_fluxes(phipog, bsupu, bsupv, ictrl_prec2d.eq.0)
 
       wb = 0
-!$OMP PARALLEL DO 
-!$OMP& PRIVATE(l,lb,ub)
-!$OMP& REDUCTION(+:wb)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:wb)
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l         
@@ -205,7 +197,7 @@
       CALL an_pressure(bsubu_e, bsubv_e)
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1
@@ -224,7 +216,7 @@
       wp = hs*SUM(vp(2:ns)*pres(2:ns))
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1
@@ -234,7 +226,7 @@
 !$OMP END PARALLEL DO 
 #endif
 
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(l,lb,ub)
 !SPH122407-MOVED HERE: COMPUTE LAMBDA FULL MESH FORCES
 !     NOTE: bsubu_e is used here ONLY as a temporary array
@@ -301,7 +293,7 @@
 !     AVERAGE LAMBDA FORCES ONTO FULL RADIAL MESH
 !     USE BLENDING FOR bsubv_e FOR NUMERICAL STABILITY NEAR AXIS
 !
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1
@@ -332,7 +324,7 @@
       IF ((MOD(iter2-iter1,ns4).eq.0 .and. iequi.eq.0) 
      1        .and. ictrl_prec2d.eq.0) THEN
          phifsave = phifac
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
 !$OMP& PRIVATE(l,lb,ub)
          DO l=1,nznt
             lb=ns*(l-1)+1
@@ -365,9 +357,8 @@
          r2 = MAX(wb,wp)/volume
 
          t1=0; t2=0
-!$OMP PARALLEL DO 
-!$OMP& PRIVATE(l,lb,ub)
-!$OMP& REDUCTION(+:t1,t2)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:t1,t2)
          DO l=1,nznt
             lb=ns*(l-1)+2
             ub=ns*l          
@@ -396,9 +387,8 @@
 
          marnorm=0
          maznorm=0
-!$OMP PARALLEL DO 
-!$OMP& PRIVATE(l,lb,ub)
-!$OMP& REDUCTION(+:marnorm,maznorm)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:marnorm,maznorm)
          DO l=1,nznt
             lb=ns*(l-1)+2
             ub=ns*l-1
@@ -455,7 +445,7 @@
          RETURN
 
       END IF
-!$OMP PARALLEL DO 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1

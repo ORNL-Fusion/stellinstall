@@ -1,6 +1,8 @@
 &INDATA
 !  VMEC Namelist Input File for the MST Reversed Field Pinch
 
+OMP_NUM_THREADS = 4,
+
 !  Type of equilibrium
 LRFP = .TRUE.,
 !LMOVE_AXIS = .FALSE.
