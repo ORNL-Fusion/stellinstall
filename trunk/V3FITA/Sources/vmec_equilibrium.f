@@ -1700,7 +1700,7 @@
             vmec_get_param_value = zbs(i_index, j_index)
 
          CASE (vmec_rbs_id)
-            vmec_get_param_value = rbc(i_index, j_index)
+            vmec_get_param_value = rbs(i_index, j_index)
 
          CASE (vmec_zbc_id)
             vmec_get_param_value = zbc(i_index, j_index)
