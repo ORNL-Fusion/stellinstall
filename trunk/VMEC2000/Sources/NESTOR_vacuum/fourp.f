@@ -33,9 +33,10 @@ C-----------------------------------------------
       g1 = 0
       g2 = 0
 
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& SCHEDULE(STATIC) COLLAPSE(2) 
-!$OMP& PRIVATE(n,kv,cosn,sinn,iuv,ireflect)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(n,ip,ku,isym)
+!$OMP DO SCHEDULE(STATIC) COLLAPSE(2) 
+!$OMP& PRIVATE(kv,cosn,sinn,iuv,ireflect)
       DO n = 0,nf
          DO kv = 1,nv
             cosn = p5*onp*cosv(n,kv)
@@ -60,12 +61,11 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANFORM [COMPLETE SIN(mu-nv) / COS(mu-nv) TRANSFORM]
 !
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC) COLLAPSE(3)
-!$OMP$ PRIVATE(m,ku,isym,cosm,sinm)      
+!$OMP DO PRIVATE(m,cosm,sinm)
       DO m = 0,mf
          DO ku = 1,nu2
             DO isym = 1, ndim
@@ -95,7 +95,8 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP END PARALLEL
       istart = iend
 
       DEALLOCATE (g1, g2, kernel, gcos, gsin, stat=m)

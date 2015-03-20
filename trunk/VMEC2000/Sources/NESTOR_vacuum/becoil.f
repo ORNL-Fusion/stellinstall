@@ -37,7 +37,8 @@ C-----------------------------------------------
 C-----------------------------------------------
       icount = icount + 1
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(i,rad0,zee0,kv,ri,zj,pr,qz,w11,w12,w21,w22)
+!$OMP& PRIVATE(i,rad0,zee0,kv,ri,zj,pr,qz,w11,w12,w21,w22,
+!$OMP& ir,jz,ir1,jz1)
       DO i = 1, nuv2
 !
 !       CHECK THAT BOUNDARY POINTS ARE INSIDE VACUUM GRID.  IF NOT,

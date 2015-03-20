@@ -52,7 +52,7 @@ C-----------------------------------------------
 
 !      call perfon("scalpot2")
          istart = 0
-!$OMP PARALLEL
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS)
 !$OMP&  DEFAULT(NONE)
 !$OMP&  PRIVATE(ip,ichunk,istore,istart,green,greenp,gstore_)
 !$OMP&  SHARED(nuv2,istore_max,gstore,bexni,grpmn,ndim

@@ -54,7 +54,10 @@ C-----------------------------------------------
 !     WINT: needed to normalize integral over angles to unity 
 !
       k = 0
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i,j,k)
       DO i = 1, nu2
+         k = nv*(i-1)
          DO j = 1, nv
             k = k + 1
             source(j,i,1) = gsource(k) - gsource(imirr(k))      !anti-symmetric part
@@ -62,7 +65,9 @@ C-----------------------------------------------
      1      source(j,i,2) = gsource(k) + gsource(imirr(k))      !symmetric part
          END DO
       END DO
+!$OMP END DO
 
+!$OMP WORKSHARE
       source = p5*onp*source
 
 !
@@ -71,10 +76,12 @@ C-----------------------------------------------
       bcos = 0;      bsin = 0
       actemp = 0;    astemp = 0
       amatrix = 0
+!$OMP END WORKSHARE
 
 !
 !     PERFORM KV (TOROIDAL ANGLE) TRANSFORM
 !
+!$OMP DO SCHEDULE(STATIC) PRIVATE(n,cosn,sinn,kvi,isym)
       DO n = 0, nf
          DO kvi = 1, nv
             cosn = cosv(n,kvi)
@@ -97,12 +104,12 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
+!$OMP END DO
 
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& SCHEDULE(STATIC) PRIVATE(m,cosm,sinm) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(m,cosm,sinm,kui)
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)
@@ -132,11 +139,14 @@ C-----------------------------------------------
      1         cosm*actemp(:,-nf:nf,kui,2) + sinm*astemp(:,-nf:nf,kui,2)       !COS COS'
          END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP END PARALLEL
 
 
       DEALLOCATE (bcos, bsin, actemp, astemp, source, stat=i)
 
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP WORKSHARE
       amatrix = (pi2*pi2)*amatrix
 !
 !     ZERO BVEC(0,n) FOR n < 0
@@ -150,30 +160,38 @@ C-----------------------------------------------
       mn0 = 1 + mf1*nf                                             !Index of m=0,n=0         
       amatrix(1:mn0-1:mf1,:,1:ndim*ndim) = 0
 !     amatrix(:(nf-1)*mf1+1:mf1,:,1:ndim*ndim) = 0
+!$OMP END WORKSHARE
 
 !
 !     ADD DIAGONAL TERMS TO AMATRIX [THE FIRST TERM IN EQ(3.2) OF PKM]
 !
+!$OMP DO PRIVATE(mn)
       DO mn = 1, mnpd
          amatrix(mn,mn,1) = amatrix(mn,mn,1) + pi3*int_ext
       END DO
+!$OMP END DO
 
       IF (lasym) THEN
+!$OMP DO PRIVATE(mn)
          DO mn = 1, mnpd
             amatrix(mn,mn,4) = amatrix(mn,mn,4) + pi3*int_ext
          END DO
+!$OMP END DO
          amatrix(mn0,mn0,4) = amatrix(mn0,mn0,4) + pi3*int_ext     !!COS(0-0) mode *2
       END IF
-
 !
 !     PUT ELEMENTS INTO SQUARE MATRIX
 !
+!$OMP WORKSHARE
       amatsq(:mnpd,:mnpd) = amatrix(:,:,1)                      !Sin-Sin'
-
-      IF (.NOT.lasym) RETURN
-
+!$OMP END WORKSHARE
+      IF (lasym) THEN
+!$OMP WORKSHARE
       amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)               !Sin-Cos'
       amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)               !Cos-Sin'
       amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)        !Cos-Cos'
+!$OMP END WORKSHARE
+      END IF
+!$OMP END PARALLEL
 
       END SUBROUTINE fouri

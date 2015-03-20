@@ -39,8 +39,8 @@ C-----------------------------------------------
      1               sinv1(:,n1)
          sinmn1(:) = sinu1(:,m)*cosv1(:,n1) - csign(n)*cosu1(:,m)*
      1               sinv1(:,n1)
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
-!$OMP& PRIVATE(i)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
          DO i = 1, nuv2
             r1b(i) = r1b(i) + rc(mn) * cosmn1(i)
             rub(i) = rub(i) - xm(mn) * rc(mn) * sinmn1(i)
@@ -55,12 +55,10 @@ C-----------------------------------------------
             zuv(i) = zuv(i) + xm(mn)*xn(mn)*zs(mn) * sinmn1(i)
             zvv(i) = zvv(i) - xn(mn)*xn(mn)*zs(mn) * sinmn1(i)
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+         IF (lasym) THEN
 
-         IF (.NOT.lasym) CYCLE
-
-!$OMP PARALLEL DO DEFAULT(SHARED) SCHEDULE(STATIC)
-!$OMP& PRIVATE(i)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
          DO i = 1, nuv2
             r1b(i) = r1b(i) + rs(mn) * sinmn1(i)
             rub(i) = rub(i) + xm(mn) * rs(mn) * cosmn1(i)
@@ -75,8 +73,11 @@ C-----------------------------------------------
             zuv(i) = zuv(i) + xm(mn)*xn(mn)*zc(mn) * cosmn1(i)
             zvv(i) = zvv(i) - xn(mn)*xn(mn)*zc(mn) * cosmn1(i)
          END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+         END IF
+!$OMP END PARALLEL
       END DO
+
 !
 !     COMPUTE METRIC COEFFICIENTS GIJ_B AND SURFACE NORMAL COMPONENTS
 !     [SNR, SNV, SNZ] = NP*[Xu cross Xv]
@@ -95,6 +96,8 @@ C-----------------------------------------------
 !
 !           AVV == NP*CAP(C) = .5*Xvv dot [Xu cross Xv] * NP
 !
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
       DO i = 1,nuv2
         guu_b(i) = rub(i)*rub(i) + zub(i)*zub(i)
         guv_b(i) = (rub(i)*rvb(i)+ zub(i)*zvb(i))*onp*2
@@ -109,7 +112,7 @@ C-----------------------------------------------
         avv(i) = (snv(i)*rvb(i) + p5*(snr(i)*(rvv(i) - r1b(i))
      1                          +     snz(i)* zvv(i)))*onp2
       END DO
-
+!OMP END DO
       IF (.NOT.lasym) THEN
          DO i = 1 + nv, nuv2 - nv
             rzb2(imirr(i)) = rzb2(i)
@@ -118,10 +121,13 @@ C-----------------------------------------------
          END DO
       END IF
 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
       DO i = 1,nuv
         rcosuv(i) = r1b(i)*cosuv(i)
         rsinuv(i) = r1b(i)*sinuv(i)
       END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
       DEALLOCATE (ruu, ruv, rvv, zuu, zuv, zvv, cosmn1, sinmn1, stat=i)
 

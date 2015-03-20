@@ -52,21 +52,21 @@ C-----------------------------------------------
 !
 !     NOTE: |x - x'|**2 = gsave - 2*[x*x' + y*y']
 !
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& SCHEDULE(STATIC) PRIVATE(i)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+!$OMP DO SCHEDULE(STATIC)
       DO i = 1, nuv
          gsave(i) = rzb2(ip) + rzb2(i) - 2*z1b(ip)*z1b(i)
          dsave(i) = drv(ip) + z1b(i)*snz(ip)
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
 !
 !     SUM OVER FIELD-PERIODS (NVPER=NFPER) OR INTEGRATE OVER NV (NVPER=64) IF NV == 1
 !
 !     NOTE THE SURFACE NORMAL SNORM == Xu cross Xv = NP*[SNR, SNV, SNZ]
 !     IS PERIODIC ON EACH FIELD PERIOD
 !
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& SCHEDULE(STATIC) PRIVATE(kp, xper,yper, sxsave, sysave)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(kp, xper,yper, sxsave, sysave, nloop)
       DO kp = 1, nvper
          xper = xip*cosper(kp) - yip*sinper(kp)              !x(ip) in field period kp
          yper = yip*cosper(kp) + xip*sinper(kp)              !y(ip) in field period kp
@@ -119,8 +119,8 @@ C-----------------------------------------------
            END DO
          ENDIF
       END DO
-!$OMP END PARALLEL DO
-
+!$OMP END DO
+!$OMP END PARALLEL
       DEALLOCATE (ftemp, gsave, htemp, ga1, ga2, dsave, stat=i)
 
       END SUBROUTINE greenf
