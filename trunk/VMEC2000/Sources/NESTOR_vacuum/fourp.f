@@ -12,9 +12,8 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: n, kv, ku, ip, iuv, m, ireflect, isym
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:,:) :: g1, g2
-      REAL(rprec), ALLOCATABLE :: kernel(:), gcos(:),gsin(:)
-      REAL(rprec) :: cosm, sinm, cosn, sinn
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: g1, g2
+      REAL(rprec) :: cosm, sinm, cosn, sinn, kernel, gcos, gsin
 C-----------------------------------------------
 !
 !     PERFORM KV (TOROIDAL ANGLE) TRANSFORM (OVER UNPRIMED MESH IN EQ. 2.14)
@@ -26,48 +25,42 @@ C-----------------------------------------------
 !
       IF (ndim .GT. 2) STOP 'NDIM > 2'
 
-      ALLOCATE (g1(istore,nu2,0:nf,ndim), g2(istore,nu2,0:nf,ndim),
-     1   kernel(istore), gcos(istore), gsin(istore), stat=m)
-      IF (m .ne. 0) STOP 'Allocation error in fourp'
+      ALLOCATE (g1(istore,0:nf,ndim), g2(istore,0:nf,ndim),
+     1          stat=m)
+      IF (m .NE. 0) STOP 'Allocation error in fourp'
 
-      g1 = 0
-      g2 = 0
 
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(n,ip,ku,isym)
-!$OMP DO SCHEDULE(STATIC) COLLAPSE(2) 
-!$OMP& PRIVATE(kv,cosn,sinn,iuv,ireflect)
-      DO n = 0,nf
+!!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!!$OMP DO PRIVATE(ku, g1, g2, cosm, sinm, iuv, ireflect, kernel, 
+!!$OMP& gcos, gsin) REDUCTION(+:grpmn)
+      DO ku = 1,nu2
+         g1 = 0
+         g2 = 0
          DO kv = 1,nv
-            cosn = p5*onp*cosv(n,kv)
-            sinn = p5*onp*sinv(n,kv)
-            iuv = kv
-            DO ku = 1,nu2
+            DO n = 0,nf
+               cosn = p5*onp*cosv(n,kv)
+               sinn = p5*onp*sinv(n,kv)
+               iuv = kv+nv*(ku-1)
                ireflect = imirr(iuv)
                DO isym = 1, ndim
-                  IF (isym .eq. 1) THEN
-                     kernel(:istore) =
-     1                  grp(iuv,:istore) - grp(ireflect,:istore)           !anti-symmetric part (u,v -> -u,-v)
-                  ELSE IF (isym .eq. 2) THEN
-                     kernel(:istore) = 
-     1                  grp(iuv,:istore) + grp(ireflect,:istore)           !symmetric part
-                  END IF
                   DO ip = 1,istore
-                     g1(ip,ku,n,isym)=g1(ip,ku,n,isym) + cosn*kernel(ip)
-                     g2(ip,ku,n,isym)=g2(ip,ku,n,isym) + sinn*kernel(ip)
+                     IF (isym .eq. 1) THEN
+                        kernel =
+     1                  grp(iuv,ip) - grp(ireflect,ip)           !anti-symmetric part (u,v -> -u,-v)
+                     ELSE IF (isym .eq. 2) THEN
+                        kernel = 
+     1                  grp(iuv,ip) + grp(ireflect,ip)           !symmetric part
+                     END IF
+                     g1(ip,n,isym)=g1(ip,n,isym) + cosn*kernel
+                     g2(ip,n,isym)=g2(ip,n,isym) + sinn*kernel
                   END DO
                END DO
-               iuv = iuv + nv
             END DO
          END DO
-      END DO
-!$OMP END DO
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANFORM [COMPLETE SIN(mu-nv) / COS(mu-nv) TRANSFORM]
 !
-!$OMP DO PRIVATE(m,cosm,sinm)
-      DO m = 0,mf
-         DO ku = 1,nu2
+         DO m = 0,mf
             DO isym = 1, ndim
                IF (isym .EQ. 1) THEN
                   cosm = -cosui(m,ku)
@@ -77,28 +70,25 @@ C-----------------------------------------------
                   cosm = sinui(m,ku)
                END IF
                DO n= 0,nf
-                  DO ip = 1,istore
-                     gcos(ip) = g1(ip,ku,n,isym)*sinm
-                     gsin(ip) = g2(ip,ku,n,isym)*cosm
+                 DO ip = 1,istore
+                     gcos = g1(ip,n,isym)*sinm
+                     gsin = g2(ip,n,isym)*cosm
                      grpmn(m,n,ip+istart,isym) = 
-     1               grpmn(m,n,ip+istart,isym) + gcos(ip) + gsin(ip)
-                  END DO
-
-                  IF (n .NE. 0) THEN
-                     DO ip = 1,istore
+     1               grpmn(m,n,ip+istart,isym) + gcos + gsin
+                     IF (n .NE. 0) THEN
                         grpmn(m,-n,ip+istart,isym) = 
-     1                  grpmn(m,-n,ip+istart,isym)
-     2                      + gcos(ip) - gsin(ip)
-                     END DO
-                  ENDIF
+     1                  grpmn(m,-n,ip+istart,isym) + gcos - gsin
+                     ENDIF
+                 END DO
                END DO
             END DO
          END DO
       END DO
-!$OMP END DO
-!$OMP END PARALLEL
+!!$OMP END DO
+!!$OMP END PARALLEL
+
       istart = iend
 
-      DEALLOCATE (g1, g2, kernel, gcos, gsin, stat=m)
+      DEALLOCATE (g1, g2, stat=m)
 
       END SUBROUTINE fourp

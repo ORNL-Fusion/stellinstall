@@ -11,11 +11,11 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER, DIMENSION(2) :: ilow, ihigh
-      INTEGER :: ivoff, iskip, iuoff, i, kp, nloop
+      INTEGER :: ivoff, iskip, iuoff, i, kp, nloop, ivoff0
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::
-     1    ftemp, gsave, htemp, ga1, ga2, dsave
+     1    gsave, ga1, ga2, dsave
       REAL(rprec):: xip, yip, xper, yper,
-     1    sxsave, sysave
+     1    sxsave, sysave, ftemp, htemp
 C-----------------------------------------------
 !
 !     ON ENTRANCE, IP IS THE INDEX OF THE PRIMED MESH POINT (lies in 1st field period)
@@ -28,8 +28,7 @@ C-----------------------------------------------
 !     BOTH THESE QUANTITIES ARE COMPUTED FOR ALL UNPRIMED U,V POINTS IN ONE FIELD PERIOD,
 !     FOR THIS FIXED PRIMED POINT (IP).
 !
-      ALLOCATE (ftemp(nuv), gsave(nuv), htemp(nuv), ga1(nuv), ga2(nuv),
-     1          dsave(nuv), stat=i)
+      ALLOCATE (gsave(nuv), ga1(nuv), ga2(nuv), dsave(nuv), stat=i)
       IF (i .ne. 0) STOP 'allocation error in greenf'
 
 !
@@ -39,35 +38,33 @@ C-----------------------------------------------
       ilow(2) = ip + 1
       ihigh(1) = ip - 1
       ihigh(2) = nuv
-      ivoff = nuv + 1 - ip
+      ivoff0 = nuv + 1 - ip
       iskip = (ip - 1)/nv
       iuoff = nuv - nv*iskip
       xip = rcosuv(ip)             !x == r*COS(ip), in 1st field period
       yip = rsinuv(ip)             !y == r*SIN(ip), in 1st field period
       delgr  = 0
       delgrp = 0
-
 !
 !     COMPUTE FIELD-PERIOD INVARIANT VECTORS
 !
 !     NOTE: |x - x'|**2 = gsave - 2*[x*x' + y*y']
 !
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(i)
-!$OMP DO SCHEDULE(STATIC)
+!!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
       DO i = 1, nuv
          gsave(i) = rzb2(ip) + rzb2(i) - 2*z1b(ip)*z1b(i)
          dsave(i) = drv(ip) + z1b(i)*snz(ip)
       END DO
-!$OMP END DO
+!!$OMP END DO
 !
 !     SUM OVER FIELD-PERIODS (NVPER=NFPER) OR INTEGRATE OVER NV (NVPER=64) IF NV == 1
 !
 !     NOTE THE SURFACE NORMAL SNORM == Xu cross Xv = NP*[SNR, SNV, SNZ]
-!     IS PERIODIC ON EACH FIELD PERIOD
+!     IS PERIODIC ON EACH FIELD PERIOD: NOTE THE LOOP OVER KP IS A REDUCTION ON delgr, delgrp
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(kp, xper,yper, sxsave, sysave, nloop)
       DO kp = 1, nvper
+         ivoff = ivoff0 + 2*nu*(kp-1)
          xper = xip*cosper(kp) - yip*sinper(kp)              !x(ip) in field period kp
          yper = yip*cosper(kp) + xip*sinper(kp)              !y(ip) in field period kp
          sxsave = (snr(ip)*xper - snv(ip)*yper)/r1b(ip)
@@ -76,6 +73,7 @@ C-----------------------------------------------
          IF (kp.EQ.1 .OR. nv.EQ.1) THEN
 
 !        INITIALIZE ANALYTIC APPROXIMATIONS GA1, GA2
+!!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
             DO i = 1, nuv
                ga1(i) = tanu(i+iuoff)*(guu_b(ip)*tanu(i+iuoff) 
      1                               + guv_b(ip)*tanv(i+ivoff))
@@ -84,43 +82,46 @@ C-----------------------------------------------
      1                + auv(ip)*tanv(i+ivoff))
      2                + avv(ip)*tanv(i+ivoff)*tanv(i+ivoff)
             END DO
-
+!!$OMP END DO
             DO nloop = 1, 2
                IF (kp.GT.1 .AND. nloop.EQ.2) CYCLE 
+!!$OMP DO SCHEDULE(STATIC) PRIVATE(i, ftemp, htemp)
                DO i = ilow(nloop), ihigh(nloop)
                  ga2(i) = ga2(i)/ga1(i)
                  ga1(i) = one/SQRT(ga1(i))
-                 ftemp(i) = one/(gSAVE(i) 
+                 ftemp = one/(gsave(i) 
      1                    - 2*(xper*rcosuv(i) + yper*rsinuv(i)))
-                 htemp(i) = SQRT(ftemp(i))
+                 htemp = SQRT(ftemp)
                  delgrp(i) = delgrp(i) - ga2(i)*ga1(i) 
-     1                     + ftemp(i)*htemp(i)*
+     1                     + ftemp*htemp*
      2              (rcosuv(i)*sxsave + rsinuv(i)*sysave + dsave(i))
-                 delgr(i) = delgr(i) + htemp(i) - ga1(i)
+                 delgr(i) = delgr(i) + htemp - ga1(i)
                END DO
+!!$OMP END DO
             END DO
 
-            IF (kp.EQ.nvper .and. nv.EQ.1) THEN
+            IF (kp.EQ.nvper .AND. nv.EQ.1) THEN
                 delgrp = delgrp/nvper
                 delgr  = delgr /nvper
             END IF
 
-            ivoff = ivoff + 2*nu
+!!            ivoff = ivoff + 2*nu
             ihigh(1) = nuv
 
          ELSE
+!!$OMP DO SCHEDULE(STATIC) PRIVATE(i, ftemp, htemp)
             DO i = 1,nuv
-              ftemp(i) = one/(gSAVE(i)  
+              ftemp = one/(gsave(i)  
      1                 -  2*(xper*rcosuv(i) + yper*rsinuv(i)))
-              htemp(i) = SQRT(ftemp(i))
-              delgrp(i) = delgrp(i) + ftemp(i)*htemp(i)*
+              htemp = SQRT(ftemp)
+              delgrp(i) = delgrp(i) + ftemp*htemp*
      1           (rcosuv(i)*sxsave + rsinuv(i)*sysave + dsave(i))
-              delgr(i) = delgr(i) + htemp(i)
-           END DO
+              delgr(i) = delgr(i) + htemp
+            END DO
+!!$OMP END DO
          ENDIF
       END DO
-!$OMP END DO
-!$OMP END PARALLEL
-      DEALLOCATE (ftemp, gsave, htemp, ga1, ga2, dsave, stat=i)
+!!$OMP END PARALLEL
+      DEALLOCATE (gsave, ga1, ga2, dsave, stat=i)
 
       END SUBROUTINE greenf

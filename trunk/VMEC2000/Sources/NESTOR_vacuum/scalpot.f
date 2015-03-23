@@ -13,7 +13,8 @@ C-----------------------------------------------
       INTEGER :: ip, istore, istart, istore_max, ndim, ichunk
       REAL(rprec), ALLOCATABLE :: grpmn(:), green(:), gstore(:)
       REAL(rprec), ALLOCATABLE :: greenp(:,:)
-      REAL(rprec) :: gstore_(nuv)
+      REAL(rprec) :: dchunk
+!      REAL(rprec) :: gstore_(nuv)
 C-----------------------------------------------
       IF (.not.ALLOCATED(amatsav))
      1   STOP 'AMATSAV: Allocation error in scalpot'
@@ -39,6 +40,10 @@ C-----------------------------------------------
       ELSE
 
          istore_max = MIN(64,nuv2)
+         dchunk = REAL(nuv2, dp)/(istore_max*OMP_NUM_THREADS)
+         istore_max = MAX(1, INT(dchunk*OMP_NUM_THREADS)) 
+!         PRINT *,'nuv2=',nuv2, 'istore_max: ',istore_max,
+!     1           ' nuv2/istore_max: ',nuv2/istore_max
 
          ALLOCATE (green(nuv), gstore(nuv), greenp(nuv,istore_max))
          bvecsav = bvec
@@ -50,16 +55,12 @@ C-----------------------------------------------
 !        IP IS THE INDEX OF THE PRIMED VARIABLE MESH.
 !
 
-!      call perfon("scalpot2")
          istart = 0
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS)
-!$OMP&  DEFAULT(NONE)
-!$OMP&  PRIVATE(ip,ichunk,istore,istart,green,greenp,gstore_)
-!$OMP&  SHARED(nuv2,istore_max,gstore,bexni,grpmn,ndim
-!$OMP&         )
-         gstore_=0
-!$OMP DO SCHEDULE(STATIC)
-         DO ichunk = 1, max(1,nuv2/istore_max)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP&  PRIVATE(ip,ichunk,istore,istart,green,greenp)   !,gstore_)
+!$OMP&  REDUCTION(+:gstore), SCHEDULE(STATIC)
+!         gstore_=0
+         DO ichunk = 1, MAX(1,nuv2/istore_max)
 !
 !        COMPUTE DIFFERENCE BETWEEN THE EXACT AND ANALYTIC GREENS FUNCTION AND GRADIENT 
 !        [FIRST TERMS IN EQ.(2.14, 2.16)].
@@ -70,11 +71,9 @@ C-----------------------------------------------
 !        THE FOURIER TRANSFORM OVER THE PRIMED MESH IS "BUILT-UP" BY MULTIPLE CALLS TO FOURP
 !        WITHIN THIS LOOP. 
 !
-
-            do istore=1,istore_max
+            DO istore=1,istore_max
                 ip=(ichunk-1)*istore_max+istore
-            !call perfon("  greenf")
-                 if (ip.le.nuv2)
+                 IF (ip.le.nuv2)
      1             CALL greenf (green, greenp(1,istore), ip)
             !call perfoff("  greenf")
 
@@ -83,8 +82,9 @@ C-----------------------------------------------
 !        [(h-hsing)(u,v,u',v') == bexni(ip)*green(u,v; ip) in Eq. 2.16]
 !        AND STORE IT - FOR UNPRIMED MESH VALUES - IN GSTORE
 !
-                gstore_ = gstore_ + bexni(ip)*green
-            enddo
+!!                gstore_ = gstore_ + bexni(ip)*green
+                gstore = gstore + bexni(ip)*green
+            END DO
 
 !
 !        PERFORM FOURIER INTEGRAL OF GRADIENT KERNEL (GREENP) OVER THE UNPRIMED MESH
@@ -101,24 +101,13 @@ C-----------------------------------------------
               !call perfoff("  fourp")
             !ENDIF
          END DO
-!$OMP END DO NOWAIT
-!$OMP CRITICAL
-            gstore = gstore + gstore_
-!$OMP END CRITICAL
-!$OMP END PARALLEL
-
- !     call perfoff("scalpot2")
-
+!!$OMP END PARALLEL DO
 !
 !        COMPUTE FOURIER INTEGRAL OF GRADIENT (GRPMN) OVER PRIMED MESH IN EQ. 2.14
 !        AND SOURCE (GSTORE) OVER UNPRIMED MESH IN EQ. 2.16
 !
-!         call perfon("scalpot3")
-
          CALL fouri (grpmn, gstore, amatrix, amatsav, bvec, wint, 
      1               ndim, ns)
-!         call perfoff("scalpot3")
-
          DEALLOCATE (green, greenp, gstore)
       ENDIF
 
@@ -132,3 +121,4 @@ C-----------------------------------------------
       bvecsav(:mnpd2) = bvec - bvecsav(:mnpd2)
 
       END SUBROUTINE scalpot
+

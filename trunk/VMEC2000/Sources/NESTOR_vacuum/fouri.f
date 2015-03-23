@@ -55,11 +55,10 @@ C-----------------------------------------------
 !
       k = 0
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i,j,k)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i,k) 
       DO i = 1, nu2
-         k = nv*(i-1)
          DO j = 1, nv
-            k = k + 1
+            k = j+nv*(i-1)
             source(j,i,1) = gsource(k) - gsource(imirr(k))      !anti-symmetric part
             IF (lasym)
      1      source(j,i,2) = gsource(k) + gsource(imirr(k))      !symmetric part
@@ -81,7 +80,7 @@ C-----------------------------------------------
 !
 !     PERFORM KV (TOROIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(n,cosn,sinn,kvi,isym)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(n,cosn,sinn) 
       DO n = 0, nf
          DO kvi = 1, nv
             cosn = cosv(n,kvi)
@@ -109,7 +108,7 @@ C-----------------------------------------------
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(m,cosm,sinm,kui)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(m,cosm,sinm) 
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)
