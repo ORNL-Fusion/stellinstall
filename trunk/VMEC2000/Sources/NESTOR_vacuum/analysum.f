@@ -11,33 +11,27 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: istat
-      REAL(rprec), ALLOCATABLE, TARGET :: trigp(:)
-      REAL(rprec), POINTER :: sinp(:), cosp(:)
+      INTEGER :: i
+      REAL(rprec) :: sinp, cosp
 C-----------------------------------------------
-      ALLOCATE (trigp(nuv2), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error in analysum'
+      IF (n .LT. 0) STOP 'error calling analysum!'
 
-      IF (n .lt. 0) STOP 'error calling analysum!'
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(i,sinp,cosp) REDUCTION(+:bvec)
+      DO i = 1,nuv2
+         sinp = (sinu1(i,m)*cosv1(i,n) - sinv1(i,n)*cosu1(i,m))
+     1            *  cmns(l,m,n)                            !SIN(mu - |n|v)*cmns
+         IF (ivacskip .EQ. 0) grpmn(m,n,i,1) = grpmn(m,n,i,1) 
+     1                                       + sl(i)*sinp
+         bvec(m,n,1) = bvec(m,n,1) + tl(i)*bexni(i)*sinp
 
-      sinp => trigp
-      sinp = (sinu1(:,m)*cosv1(:,n) - sinv1(:,n)*cosu1(:,m))
-     1     *  cmns(l,m,n)                            !SIN(mu - |n|v)*cmns
-      bvec(m,n,1) = bvec(m,n,1) + SUM(tl*bexni*sinp)
-
-      IF (ivacskip .eq. 0) grpmn(m,n,:,1) = grpmn(m,n,:,1) + sl*sinp
-
-      IF (lasym) THEN
-
-         cosp => trigp
-         cosp = (cosu1(:,m)*cosv1(:,n) + sinv1(:,n)*sinu1(:,m))
-     1        *  cmns(l,m,n)                            !COS(mu - |n|v)*cmns
-         bvec(m,n,2) = bvec(m,n,2) + SUM(tl*bexni*cosp)
-
-         IF (ivacskip .eq. 0) grpmn(m,n,:,2) = grpmn(m,n,:,2) + sl*cosp
-
-      END IF
-
-      DEALLOCATE (trigp)
+         IF (lasym) THEN
+            cosp = (cosu1(i,m)*cosv1(i,n) + sinv1(i,n)*sinu1(i,m))
+     1           *  cmns(l,m,n)                                !COS(mu - |n|v)*cmns
+            IF (ivacskip .EQ. 0) grpmn(m,n,i,2) = grpmn(m,n,i,2) 
+     1                                          + sl(i)*cosp
+            bvec(m,n,2) = bvec(m,n,2) + tl(i)*bexni(i)*cosp
+         END IF
+      END DO
 
       END SUBROUTINE analysum

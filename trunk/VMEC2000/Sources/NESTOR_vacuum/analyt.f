@@ -71,14 +71,16 @@ C-----------------------------------------------
 !
 !      call perfon(" analyt1")
 
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP WORKSHARE
       adp  = guu_b  + guv_b  + gvv_b
       adm  = guu_b  - guv_b  + gvv_b
       cma  = gvv_b  - guu_b
       sqrtc  = two*SQRT(gvv_b)
       sqrta  = two*SQRT(guu_b)
-
+!$OMP END WORKSHARE
       IF (ivacskip .EQ. 0) THEN
-!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS)
+!$OMP WORKSHARE
          grpmn = 0
          delt1u  = adp*adm  - cma*cma
          azp1u  = auu  + auv  + avv
@@ -94,13 +96,12 @@ C-----------------------------------------------
      1        + two*cma11u*adp)/delt1u
          ra1p = azp1u/adp
          ra1m = azm1u/adm
-!$OMP END PARALLEL WORKSHARE
+!$OMP END WORKSHARE
       ENDIF
-
 !
 !     INITIALIZE VECTORS
 !
-!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS)
+!$OMP WORKSHARE
       bvec = 0
 !
 !     INITIALIZE T0+ and T0-
@@ -125,11 +126,8 @@ C-----------------------------------------------
 !
       sign1 = 1
       fl1 = 0
-
-!      call perfoff(" analyt1")
-
-!      call perfon(" analyt2")
-!$OMP END PARALLEL WORKSHARE
+!$OMP END WORKSHARE
+!$OMP END PARALLEL
 
       LLOOP: DO l = 0, mf + nf
          fl = fl1
@@ -137,7 +135,7 @@ C-----------------------------------------------
 !     COMPUTE SL+ and SL- , Eq (A17)
 !     SLP(M): SL+(-)
 !
-         IF (ivacskip .eq. 0) THEN
+         IF (ivacskip .EQ. 0) THEN
             slp = (r1p*fl + ra1p)*tlp + r0p*fl*tlp1 - (r1p + r0p)/sqrtc
      1          + sign1*(r0p - r1p)/sqrta
             slm = (r1m*fl + ra1m)*tlm + r0m*fl*tlm1 - (r1m + r0m)/sqrtc
@@ -147,8 +145,8 @@ C-----------------------------------------------
 !
 !     BEGIN MODE NUMBER (m,n) LOOP
 !
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& SCHEDULE(STATIC) PRIVATE(m,n) COLLAPSE(2)
+!!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!!$OMP& SCHEDULE(STATIC) PRIVATE(m,n) COLLAPSE(2)
          DO n = 0, nf
             DO m = 0, mf
                IF (cmns(l,m,n) .ne. zero) THEN  ! mjr: load imbalance?
@@ -171,23 +169,24 @@ C-----------------------------------------------
                ENDIF
             END DO
          END DO
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 !
 !     UPDATE "TL's" (FOR L -> L+1) USING EQ (A15)
 !
+         fl1  = fl1 + 1                       !next l
+         sign1 = -sign1                       !(-1)**l (next l now)
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
          tlp2 = tlp1
          tlm2 = tlm1
          tlp1 = tlp
          tlm1 = tlm
-         fl1  = fl1 + 1                       !next l
-         sign1 = -sign1                       !(-1)**l (next l now)
          tlp = ((sqrtc + sign1*sqrta) - (two*fl1 - one)*cma*tlp1 -
      1      fl*adm*tlp2)/(adp*fl1)
          tlm = ((sqrtc + sign1*sqrta) - (two*fl1 - one)*cma*tlm1 -
      1      fl*adp*tlm2)/(adm*fl1)
          tlpm = tlp + tlm
+!$OMP END PARALLEL WORKSHARE
       END DO LLOOP
-!      call perfoff(" analyt2")
 
       DEALLOCATE (r0p, r1p, r0m, r1m, sqrtc, sqrta, tlp2, tlp1,
      1          tlp, tlm2, tlm1, tlm, adp, adm, cma, ra1p, ra1m, slm,

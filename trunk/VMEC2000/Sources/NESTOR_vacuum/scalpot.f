@@ -10,11 +10,9 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: ip, istore, istart, istore_max, ndim, ichunk
+      INTEGER :: ip, istore, istart, istore_max, ndim, ichunk, nchunk
       REAL(rprec), ALLOCATABLE :: grpmn(:), green(:), gstore(:)
       REAL(rprec), ALLOCATABLE :: greenp(:,:)
-      REAL(rprec) :: dchunk
-!      REAL(rprec) :: gstore_(nuv)
 C-----------------------------------------------
       IF (.not.ALLOCATED(amatsav))
      1   STOP 'AMATSAV: Allocation error in scalpot'
@@ -35,15 +33,18 @@ C-----------------------------------------------
       CALL analyt (grpmn, bvec, ivacskip, ndim)
 !      call perfoff("scalpot1")
 
-      IF (ivacskip .ne. 0) THEN
+      IF (ivacskip .NE. 0) THEN
          bvec = bvec + bvecsav
       ELSE
 
          istore_max = MIN(64,nuv2)
-         dchunk = REAL(nuv2, dp)/(istore_max*OMP_NUM_THREADS)
-         istore_max = MAX(1, INT(dchunk*OMP_NUM_THREADS)) 
-!         PRINT *,'nuv2=',nuv2, 'istore_max: ',istore_max,
-!     1           ' nuv2/istore_max: ',nuv2/istore_max
+         nchunk = MAX(1,nuv2/(istore_max*OMP_NUM_THREADS))
+         IF (nchunk .GT. 1) nchunk = nchunk*OMP_NUM_THREADS
+
+         IF (MOD(nchunk,OMP_NUM_THREADS) .NE. 0) STOP 'nchunk wrong!'
+
+         istore_max = MAX(1, nuv2/nchunk) 
+         IF (istore_max*nchunk .LT. nuv2) istore_max=istore_max+1
 
          ALLOCATE (green(nuv), gstore(nuv), greenp(nuv,istore_max))
          bvecsav = bvec
@@ -54,13 +55,13 @@ C-----------------------------------------------
 !        NOTE: SOURCE IS THE RHS OF EQ.(3.2), KERNEL IS THE LHS OF EQ (3.2).
 !        IP IS THE INDEX OF THE PRIMED VARIABLE MESH.
 !
-
          istart = 0
+
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP&  PRIVATE(ip,ichunk,istore,istart,green,greenp)   !,gstore_)
+!$OMP&  PRIVATE(ip,ichunk,istore,istart,green,greenp)
 !$OMP&  REDUCTION(+:gstore), SCHEDULE(STATIC)
-!         gstore_=0
-         DO ichunk = 1, MAX(1,nuv2/istore_max)
+         DO ichunk = 1, nchunk
+
 !
 !        COMPUTE DIFFERENCE BETWEEN THE EXACT AND ANALYTIC GREENS FUNCTION AND GRADIENT 
 !        [FIRST TERMS IN EQ.(2.14, 2.16)].
@@ -73,16 +74,13 @@ C-----------------------------------------------
 !
             DO istore=1,istore_max
                 ip=(ichunk-1)*istore_max+istore
-                 IF (ip.le.nuv2)
-     1             CALL greenf (green, greenp(1,istore), ip)
-            !call perfoff("  greenf")
+                IF (ip .GT. nuv2) EXIT
+                CALL greenf (green, greenp(1,istore), ip)
 
 !
 !        PERFORM INTEGRAL (SUM) OVER PRIMED MESH OF NON-SINGULAR SOURCE TERM 
 !        [(h-hsing)(u,v,u',v') == bexni(ip)*green(u,v; ip) in Eq. 2.16]
 !        AND STORE IT - FOR UNPRIMED MESH VALUES - IN GSTORE
-!
-!!                gstore_ = gstore_ + bexni(ip)*green
                 gstore = gstore + bexni(ip)*green
             END DO
 
@@ -92,14 +90,10 @@ C-----------------------------------------------
 !        AND STORE IN GRPMN (NOTE THAT GRPMN IS ADDED TO THE ANALYTIC PIECE IN EQ. 2.14,
 !        - COMPUTED IN ANALYT - WHICH HAS THE APPROPRIATE SIN, COS FACTORS ALREADY)
 !
-            !IF (istore.eq.istore_max .or. ip.eq.nuv2) THEN
-              istore=istore_max   ! mjr: check this
+              istore=istore-1
               istart=ip-istore_max
-              !print *,ip,istore, istart,ip,ndim,nuv2
-              !call perfon("  fourp")
               CALL fourp (grpmn, greenp, istore, istart, ip, ndim)
-              !call perfoff("  fourp")
-            !ENDIF
+
          END DO
 !!$OMP END PARALLEL DO
 !
@@ -112,9 +106,10 @@ C-----------------------------------------------
       ENDIF
 
       DEALLOCATE (grpmn)
+      
       amatrix = amatsav
 
-      IF (ivacskip .ne. 0) RETURN
+      IF (ivacskip .NE. 0) RETURN
 !
 !     SAVE NON-SINGULAR CONTRIBUTION TO BVEC (IN BVECSAV)
 !

@@ -62,15 +62,17 @@ C-----------------------------------------------
 !
 !     NOTE THE SURFACE NORMAL SNORM == Xu cross Xv = NP*[SNR, SNV, SNZ]
 !     IS PERIODIC ON EACH FIELD PERIOD: NOTE THE LOOP OVER KP IS A REDUCTION ON delgr, delgrp
+!     SINCE nvper IS SMALL, THIS DOESN'T DO MUCH FOR PARALLELIZATION
 !
       DO kp = 1, nvper
-         ivoff = ivoff0 + 2*nu*(kp-1)
          xper = xip*cosper(kp) - yip*sinper(kp)              !x(ip) in field period kp
          yper = yip*cosper(kp) + xip*sinper(kp)              !y(ip) in field period kp
          sxsave = (snr(ip)*xper - snv(ip)*yper)/r1b(ip)
          sysave = (snr(ip)*yper + snv(ip)*xper)/r1b(ip)
 
          IF (kp.EQ.1 .OR. nv.EQ.1) THEN
+
+         ivoff = ivoff0 + 2*nu*(kp-1)
 
 !        INITIALIZE ANALYTIC APPROXIMATIONS GA1, GA2
 !!$OMP DO SCHEDULE(STATIC) PRIVATE(i)

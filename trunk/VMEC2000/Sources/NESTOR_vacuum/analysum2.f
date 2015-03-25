@@ -13,45 +13,41 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: istat
-      REAL(rprec), ALLOCATABLE :: temp(:)
-      REAL(rprec), POINTER     :: sinp(:), sinm(:)
-      REAL(rprec), POINTER     :: cosp(:), cosm(:)
+      INTEGER :: i
+      REAL(rprec) :: sinp, sinm, cosp, cosm, temp
 C-----------------------------------------------
-      ALLOCATE (sinp(nuv2), sinm(nuv2), temp(nuv2), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error in analysum2'
-      
-      IF (n .lt. 0) STOP 'error calling analysum2!'
-      
-      sinp =  sinu1(:,m)*cosv1(:,n)*cmns(l,m,n)
-      temp = -cosu1(:,m)*sinv1(:,n)*cmns(l,m,n)
-      sinm = sinp - temp                 !SIN(mu + |n|v) * cmns (l,m,|n|)
-      sinp = sinp + temp                 !SIN(mu - |n|v) * cmns (l,m,|n|)
-      bvec(m,n,1)  = bvec(m,n,1)  + SUM(tlp*bexni*sinp)
-      bvec(m,-n,1) = bvec(m,-n,1) + SUM(tlm*bexni*sinm)
+    
+      IF (n .LT. 0) STOP 'error calling analysum2!'
 
-      IF (ivacskip .eq. 0) THEN
-         grpmn(m,n,:,1)  = grpmn(m,n,:,1)  + slp*sinp
-         grpmn(m,-n,:,1) = grpmn(m,-n,:,1) + slm*sinm
-      END IF
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(i,temp,sinm,sinp,cosm,cosp) REDUCTION(+:bvec)
+      DO i = 1,nuv2      
+         sinp =  sinu1(i,m)*cosv1(i,n)*cmns(l,m,n)
+         temp = -cosu1(i,m)*sinv1(i,n)*cmns(l,m,n)
+         sinm = sinp - temp                 !SIN(mu + |n|v) * cmns (l,m,|n|)
+         sinp = sinp + temp                 !SIN(mu - |n|v) * cmns (l,m,|n|)
+         bvec(m,n,1)  = bvec(m,n,1)  + tlp(i)*bexni(i)*sinp
+         bvec(m,-n,1) = bvec(m,-n,1) + tlm(i)*bexni(i)*sinm
 
-
-      IF (lasym) THEN
-         cosp => sinp;  cosm => sinm
-         cosp = cosu1(:,m)*cosv1(:,n)*cmns(l,m,n)
-         temp = sinu1(:,m)*sinv1(:,n)*cmns(l,m,n)
-         cosm = cosp - temp                !COS(mu + |n|v) * cmns (l,m,|n|)
-         cosp = cosp + temp                !COS(mu - |n|v) * cmns (l,m,|n|)
-         bvec(m,n,2)  = bvec(m,n,2)  + SUM(tlp*bexni*cosp)
-         bvec(m,-n,2) = bvec(m,-n,2) + SUM(tlm*bexni*cosm)
-
-         IF (ivacskip .eq. 0) THEN
-            grpmn(m,n,:,2)  = grpmn(m,n,:,2)  + slp*cosp
-            grpmn(m,-n,:,2) = grpmn(m,-n,:,2) + slm*cosm
+         IF (ivacskip .EQ. 0) THEN
+            grpmn(m,n,i,1)  = grpmn(m,n,i,1)  + slp(i)*sinp
+            grpmn(m,-n,i,1) = grpmn(m,-n,i,1) + slm(i)*sinm
          END IF
 
-      END IF
 
-      DEALLOCATE (sinp, sinm, temp)
+         IF (lasym) THEN
+         cosp = cosu1(i,m)*cosv1(i,n)*cmns(l,m,n)
+         temp = sinu1(i,m)*sinv1(i,n)*cmns(l,m,n)
+         cosm = cosp - temp                !COS(mu + |n|v) * cmns (l,m,|n|)
+         cosp = cosp + temp                !COS(mu - |n|v) * cmns (l,m,|n|)
+         bvec(m,n,2)  = bvec(m,n,2)  + tlp(i)*bexni(i)*cosp
+         bvec(m,-n,2) = bvec(m,-n,2) + tlm(i)*bexni(i)*cosm
 
+         IF (ivacskip .EQ. 0) THEN
+            grpmn(m,n,i,2)  = grpmn(m,n,i,2)  + slp(i)*cosp
+            grpmn(m,-n,i,2) = grpmn(m,-n,i,2) + slm(i)*cosm
+         END IF
+         END IF
+      END DO
+!$OMP END PARALLEL DO
       END SUBROUTINE analysum2
