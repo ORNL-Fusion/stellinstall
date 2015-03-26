@@ -74,7 +74,10 @@ C-----------------------------------------------
 !
             DO istore=1,istore_max
                 ip=(ichunk-1)*istore_max+istore
-                IF (ip .GT. nuv2) EXIT
+                IF (ip .GT. nuv2) THEN
+                   ip = nuv2
+                   EXIT
+                END IF
                 CALL greenf (green, greenp(1,istore), ip)
 
 !
@@ -90,12 +93,13 @@ C-----------------------------------------------
 !        AND STORE IN GRPMN (NOTE THAT GRPMN IS ADDED TO THE ANALYTIC PIECE IN EQ. 2.14,
 !        - COMPUTED IN ANALYT - WHICH HAS THE APPROPRIATE SIN, COS FACTORS ALREADY)
 !
-              istore=istore-1
-              istart=ip-istore_max
+              istore=istore-1       !SPH: LOOP COUNTER ENDS + 1
+              istart=ip-istore
+!             istart=ip-istore_max  !FIXED SPH032615
               CALL fourp (grpmn, greenp, istore, istart, ip, ndim)
 
          END DO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 !
 !        COMPUTE FOURIER INTEGRAL OF GRADIENT (GRPMN) OVER PRIMED MESH IN EQ. 2.14
 !        AND SOURCE (GSTORE) OVER UNPRIMED MESH IN EQ. 2.16

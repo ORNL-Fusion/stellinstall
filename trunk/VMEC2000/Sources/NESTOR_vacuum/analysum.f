@@ -33,5 +33,5 @@ C-----------------------------------------------
             bvec(m,n,2) = bvec(m,n,2) + tl(i)*bexni(i)*cosp
          END IF
       END DO
-
+!$OMP END PARALLEL DO
       END SUBROUTINE analysum
