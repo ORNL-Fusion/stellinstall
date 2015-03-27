@@ -1582,7 +1582,7 @@
      &                    SIZE(context%params),                                &
      &                    step_type, astep_max, cut_svd, cut_eff,              &
      &                    cut_marg_eff, cut_delta_a, cut_dg2,                  &
-     &                    last_para_signal)
+     &                    last_para_signal, cut_inv_svd)
 
       CALL profiler_set_stop_time('init_reconstruction', start_time)
 
@@ -1782,6 +1782,7 @@
          ALLOCATE(info(num_processes - 1))
          ALLOCATE(max_procs(num_processes - 1))
          ALLOCATE(error_array(num_processes - 1))
+         error_array = 0
 
          commands = TRIM(context%cl_parser%command)
 

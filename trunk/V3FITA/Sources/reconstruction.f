@@ -106,6 +106,9 @@
 !>  Cutoff value for expected change in g^2.
 !>  @see v3fit_input::cut_dg2
          REAL (rprec) :: cut_dg2
+!>  Cutoff value for pseudo inverse singular values
+!>  @see v3fit_input::cut_inv_svd
+         REAL (rprec) :: cut_inv_svd
       END TYPE
 
       CONTAINS
@@ -138,6 +141,8 @@
 !>                                    @ref v3fit_input::cut_dg2
 !>  @param[in] last_para_signal       Index of the last signal that can be
 !>                                    parallelized.
+!>  @param[in] cut_inv_svd            Cutoff value for the pseudo inverse
+!>                                    singular values.
 !>  @returns A pointer to a constructed @ref reconstruction_class object.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_construct(num_steps, num_signals,                &
@@ -145,7 +150,8 @@
      &                                  num_parameters, step_type,             &
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
-     &                                  cut_dg2, last_para_signal)
+     &                                  cut_dg2, last_para_signal,             &
+     &                                  cut_inv_svd)
 
       IMPLICIT NONE
 
@@ -163,6 +169,7 @@
       REAL (rprec), INTENT(in)             :: cut_delta_a
       REAL (rprec), INTENT(in)             :: cut_dg2
       INTEGER, INTENT(in)                  :: last_para_signal
+      REAL (rprec), INTENT(in)             :: cut_inv_svd
 
 !  local variables
       INTEGER                              :: num_svd
@@ -198,6 +205,8 @@
       reconstruction_construct%cut_dg2 = cut_dg2
 
       reconstruction_construct%last_para_signal = last_para_signal
+
+      reconstruction_construct%cut_inv_svd = cut_inv_svd
 
       num_svd = MIN(num_signals, num_parameters)
 
@@ -1644,7 +1653,7 @@
       cp = this%hessian
 
 !  Invert C_p^-1 to get the parameter covariance matrix.
-      CALL reconstruction_invert_matrix(cp, sub_name, 'C_p^-1')
+      CALL reconstruction_invert_matrix(this, cp, sub_name, 'C_p^-1')
 
 !  From the parameter covariance matrix, map the reconstructed uncertainty to
 !  the derived parameters by the derived jacobian.
@@ -1709,32 +1718,33 @@
 !>  @brief Invert an M x N matrix.
 !>
 !>  Perform a pseudo-inversion using a singular value decomposition. This
-!>  subroutine destroys the original matrix. Since this method is static, it
-!>  does not require the 'this' parameter.
+!>  subroutine destroys the original matrix.
 !>
+!>  @param[inout] this   A @ref reconstruction_class instance.
 !>  @param[inout] matrix The matrix to invert.
 !>  @param[in]    sub    The subroutine of the matrix this was called from.
 !>  @param[in]    name   The name of the matrix to be inverted.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_invert_matrix(matrix, sub, name)
+      SUBROUTINE reconstruction_invert_matrix(this, matrix, sub, name)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(:,:), POINTER       :: matrix
-      CHARACTER (len=*), INTENT(in)               :: sub
-      CHARACTER (len=*), INTENT(in)               :: name
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      REAL (rprec), DIMENSION(:,:), POINTER      :: matrix
+      CHARACTER (len=*), INTENT(in)              :: sub
+      CHARACTER (len=*), INTENT(in)              :: name
 
 !  local arguments
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: svd_vt
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: svd_u
-      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: svd_w
-      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: svd_work
-      INTEGER                                     :: num_svd
-      INTEGER                                     :: work_size
-      INTEGER                                     :: i, status
-      INTEGER                                     :: m, n
-      REAL (rprec)                                :: start_time
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: svd_vt
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: svd_u
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: svd_w
+      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: svd_work
+      INTEGER                                    :: num_svd
+      INTEGER                                    :: work_size
+      INTEGER                                    :: i, status
+      INTEGER                                    :: m, n
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1776,7 +1786,8 @@
 !  Invert the nonzero elements of the W matrix.
          matrix = 0
          DO i = 1, num_svd
-            IF (svd_w(i) .gt. 0.0) THEN
+            IF (svd_w(i) .gt. 0.0 .and.                                        &
+     &          svd_w(i) .ge. this%cut_inv_svd) THEN
                matrix(i,i) = 1.0/svd_w(i)
             END IF
          END DO
