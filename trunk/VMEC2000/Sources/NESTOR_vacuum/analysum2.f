@@ -14,20 +14,27 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: bvec_
       REAL(rprec) :: sinp, sinm, cosp, cosm, temp
 C-----------------------------------------------
     
       IF (n .LT. 0) STOP 'error calling analysum2!'
 
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(i,temp,sinm,sinp,cosm,cosp) REDUCTION(+:bvec)
+      ALLOCATE(bvec_(0:mf,-nf:nf,ndim), stat=i)
+      IF (i. NE. 0) STOP 'Allocation error in analysum2'
+
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(bvec_)
+      bvec_ = 0
+!$OMP DO PRIVATE(i,temp,sinm,sinp,cosm,cosp) SCHEDULE(STATIC)
+ 
       DO i = 1,nuv2      
          sinp =  sinu1(i,m)*cosv1(i,n)*cmns(l,m,n)
          temp = -cosu1(i,m)*sinv1(i,n)*cmns(l,m,n)
          sinm = sinp - temp                 !SIN(mu + |n|v) * cmns (l,m,|n|)
          sinp = sinp + temp                 !SIN(mu - |n|v) * cmns (l,m,|n|)
-         bvec(m,n,1)  = bvec(m,n,1)  + tlp(i)*bexni(i)*sinp
-         bvec(m,-n,1) = bvec(m,-n,1) + tlm(i)*bexni(i)*sinm
+         bvec_(m,n,1)  = bvec_(m,n,1)  + tlp(i)*bexni(i)*sinp
+         bvec_(m,-n,1) = bvec_(m,-n,1) + tlm(i)*bexni(i)*sinm
 
          IF (ivacskip .EQ. 0) THEN
             grpmn(m,n,i,1)  = grpmn(m,n,i,1)  + slp(i)*sinp
@@ -40,8 +47,8 @@ C-----------------------------------------------
          temp = sinu1(i,m)*sinv1(i,n)*cmns(l,m,n)
          cosm = cosp - temp                !COS(mu + |n|v) * cmns (l,m,|n|)
          cosp = cosp + temp                !COS(mu - |n|v) * cmns (l,m,|n|)
-         bvec(m,n,2)  = bvec(m,n,2)  + tlp(i)*bexni(i)*cosp
-         bvec(m,-n,2) = bvec(m,-n,2) + tlm(i)*bexni(i)*cosm
+         bvec_(m,n,2)  = bvec_(m,n,2)  + tlp(i)*bexni(i)*cosp
+         bvec_(m,-n,2) = bvec_(m,-n,2) + tlm(i)*bexni(i)*cosm
 
          IF (ivacskip .EQ. 0) THEN
             grpmn(m,n,i,2)  = grpmn(m,n,i,2)  + slp(i)*cosp
@@ -49,5 +56,12 @@ C-----------------------------------------------
          END IF
          END IF
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO NOWAIT
+!$OMP CRITICAL
+      bvec  = bvec  + bvec_
+!$OMP END CRITICAL
+!$OMP END PARALLEL
+
+      DEALLOCATE(bvec_)
+
       END SUBROUTINE analysum2

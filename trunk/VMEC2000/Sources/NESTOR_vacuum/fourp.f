@@ -25,14 +25,9 @@ C-----------------------------------------------
 !
       IF (ndim .GT. 2) STOP 'NDIM > 2'
 
-      ALLOCATE (g1(istore,0:nf,ndim), g2(istore,0:nf,ndim),
-     1          stat=m)
+      ALLOCATE (g1(istore,0:nf,ndim), g2(istore,0:nf,ndim), stat=m)
       IF (m .NE. 0) STOP 'Allocation error in fourp'
 
-
-!!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
-!!$OMP DO PRIVATE(ku, g1, g2, cosm, sinm, iuv, ireflect, kernel, 
-!!$OMP& gcos, gsin) REDUCTION(+:grpmn)
       DO ku = 1,nu2
          g1 = 0
          g2 = 0
@@ -84,8 +79,6 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-!!$OMP END DO
-!!$OMP END PARALLEL
 
       istart = iend
 

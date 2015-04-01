@@ -56,9 +56,8 @@
       bsupv => luv;  bsubvh => bsubv_o
       r12sq => bsq
 
-      vp=0
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub,temp1,temp2,temp3) REDUCTION(+:vp)
+!$OMP& PRIVATE(l,lb,ub,temp1,temp2,temp3) 
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l
@@ -117,7 +116,6 @@
          phipog(lb)=0
          phipog(lb+1:ub)=one/gsqrt(lb+1:ub)
          
-         vp(2:ns)=vp(2:ns)+signgs*gsqrt(lb+1:ub)*wint(lb+1:ub)
 !
 !     COMPUTE CONTRA-VARIANT COMPONENTS OF B (Bsupu,v) ON RADIAL HALF-MESH
 !     TO ACCOMODATE LRFP=T CASES, THE OVERALL PHIP FACTOR (PRIOR TO v8.46)
@@ -142,6 +140,13 @@
          bsupv(lb)=0
       END DO 
 !$OMP END PARALLEL DO 
+
+      vp(1)=0
+!$OMP DO PRIVATE(js)
+      DO js = 2, ns
+         vp(js) = signgs*SUM(gsqrt(js:nrzt:ns)*wint(js:nrzt:ns))
+      END DO
+!$OMP END DO
 
       IF (iter2 .eq. 1) voli = twopi*twopi*hs*SUM(vp(2:ns))
 
@@ -197,8 +202,8 @@
       CALL an_pressure(bsubu_e, bsubv_e)
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l         
@@ -209,25 +214,24 @@
          bsubuh(lb:ub) = bsubuh(lb:ub)*sigma_an(lb:ub)
          bsubvh(lb:ub) = bsubvh(lb:ub)*sigma_an(lb:ub)
       END DO 
-!$OMP END PARALLEL DO 
+!$OMP END DO 
 
 #else
       pres(2:ns) = mass(2:ns)/vp(2:ns)**gamma
       wp = hs*SUM(vp(2:ns)*pres(2:ns))
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l         
          bsq(lb+1:ub) = bsq(lb+1:ub) + pres(2:ns)
       END DO 
-!$OMP END PARALLEL DO 
+!$OMP END DO 
 #endif
 
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub)
+!$OMP DO PRIVATE(l,lb,ub)
 !SPH122407-MOVED HERE: COMPUTE LAMBDA FULL MESH FORCES
 !     NOTE: bsubu_e is used here ONLY as a temporary array
       DO l=1,nznt
@@ -245,7 +249,8 @@
          bsubv_e(ub) = bsubv_e(ub) + p5*(lvv(ub)*lu(ub,1)+
      1                 bsubu_e(ub))
       END DO 
-!$OMP END PARALLEL DO 
+!$OMP END DO 
+!$OMP END PARALLEL
 
 !
 !     COMPUTE AVERAGE FORCE BALANCE AND TOROIDAL/POLOIDAL CURRENTS
@@ -346,10 +351,13 @@
 #endif
      3                 crd,rru_fac,sin01)
 
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP WORKSHARE
          rzu_fac(2:ns-1) = sqrts(2:ns-1)*rzu_fac(2:ns-1)
          rru_fac(2:ns-1) = sqrts(2:ns-1)*rru_fac(2:ns-1)
          frcc_fac(2:ns-1) = one/rzu_fac(2:ns-1);  rzu_fac = rzu_fac/2
          fzsc_fac(2:ns-1) =-one/rru_fac(2:ns-1);  rru_fac = rru_fac/2
+!$OMP END WORKSHARE
 #ifdef _HBANGLE
          CALL precondn_rho
 #endif
@@ -357,8 +365,7 @@
          r2 = MAX(wb,wp)/volume
 
          t1=0; t2=0
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:t1,t2)
+!$OMP DO PRIVATE(l,lb,ub) REDUCTION(+:t1,t2)
          DO l=1,nznt
             lb=ns*(l-1)+2
             ub=ns*l          
@@ -367,12 +374,11 @@
             t2 = t2 + SUM((bsubuh(lb:ub)**2 + bsubvh(lb:ub)**2)
      1                    *wint(lb:ub))
          END DO
-!$OMP END PARALLEL DO 
+!$OMP END DO 
 
          fnorm = one/(t1*r2*r2)                                    !Norm, unpreconditioned R,Z forces
-         fnorm1 = one/SUM(xc(1+ns:2*irzloff)**2)                   !Norm for preconditioned R,Z forces
          fnormL = one/(t2*lamscale**2)                             !Norm for unpreconditioned Lambda force
-
+         fnorm1 = one/SUM(xc(1+ns:2*irzloff)**2)                   !Norm for preconditioned R,Z forces
 !
 !        COMPUTE CONSTRAINT FORCE SCALING FACTOR (TCON)
 !        OVERRIDE USER INPUT VALUE HERE
@@ -383,26 +389,23 @@
          tcon_mul = tcon0*(1 + r2*(one/60 + r2/(200*120)))
 
          tcon_mul = tcon_mul/((4*r0scale**2)**2)                   !!Scaling of ard, azd (2*r0scale**2); 
-                                                                   !!Scaling of cos**2 in alias (4*r0scale**2)
 
-         marnorm=0
-         maznorm=0
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:marnorm,maznorm)
-         DO l=1,nznt
-            lb=ns*(l-1)+2
-            ub=ns*l-1
-            marnorm = marnorm + wint(lb:ub)*ru0(lb:ub)**2
-            maznorm = maznorm + wint(lb:ub)*zu0(lb:ub)**2
+!$OMP DO PRIVATE(js)
+         DO js=2,ns-1
+            marnorm(js)=SUM(wint(js:nrzt:ns)*ru0(js:nrzt:ns)**2)
+            maznorm(js)=SUM(wint(js:nrzt:ns)*zu0(js:nrzt:ns)**2)
          END DO
-!$OMP END PARALLEL DO 
+!$OMP END DO
          IF (ANY(marnorm(2:ns-1).EQ.zero .OR. maznorm(2:ns-1).EQ.zero))
      1        STOP 'arnorm or aznorm=0 in bcovar'
 
+!$OMP DO PRIVATE(js)
          DO js = 2, ns-1
            tcon(js) = MIN(ABS(ard(js,1)/marnorm(js)),
      1                ABS(azd(js,1)/maznorm(js))) * tcon_mul*(32*hs)**2
          END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
          tcon(ns) = p5*tcon(ns-1)
          IF (lasym) tcon = p5*tcon
@@ -417,7 +420,7 @@
 !     COMPUTE COVARIANT BSUBU,V (EVEN, ODD) ON HALF RADIAL MESH
 !     FOR FORCE BALANCE AND RETURN (IEQUI=1)
 !
-      IF (iequi .eq. 1) THEN
+      IF (iequi .EQ. 1) THEN
 
 !         IF (.FALSE.) THEN
          DO js = ns-1,2,-1
@@ -442,9 +445,7 @@
          bsubu_o(:nrzt) = shalf(:nrzt)*bsubu_e(:nrzt)
          bsubv_o(:nrzt) = shalf(:nrzt)*bsubv_e(:nrzt)
 
-         RETURN
-
-      END IF
+      ELSE
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(l,lb,ub)
       DO l=1,nznt
@@ -469,6 +470,7 @@
          lu(lb:ub,0)= bsq(lb:ub)*r12(lb:ub)
       END DO
 !$OMP END PARALLEL DO 
+      ENDIF
 
       END SUBROUTINE bcovar
 

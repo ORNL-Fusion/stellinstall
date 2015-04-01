@@ -28,13 +28,13 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: js, l, lb, ub
+      INTEGER :: js, l, lb
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: ax, bx
 #ifdef _HBANGLE
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: ax2, bx2
 #endif
       REAL(rprec) :: pfactor, temp(ns+1)
-      REAL(rprec), DIMENSION(2:ns) :: t1, t2, t3, ptau, ptau2
+      REAL(rprec):: t1, t2, t3, ptau, ptau2, osh
 C-----------------------------------------------
 !
 !     COMPUTE PRECONDITIONING MATRIX ELEMENTS FOR R,Z
@@ -59,56 +59,53 @@ C-----------------------------------------------
 !     COMPUTE DOMINANT (1/DELTA-S)**2 PRECONDITIONING
 !     MATRIX ELEMENTS
 !
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-#ifdef _HBANGLE
-!$OMP& PRIVATE(l,lb,ub,t1,t2,t3,ptau,ptau2)
-!$OMP& REDUCTION(+:temp,ax,bx,cx,ax2,bx2)
-#else
-!$OMP& PRIVATE(l,lb,ub,t1,t2,t3,ptau)
-!$OMP& REDUCTION(+:temp,ax,bx,cx)
-#endif
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(js,l,lb,t1,t2,t3,osh,ptau,ptau2)
+      DO js = 2,ns
+         osh = one/shalf(js)
       DO l=1,nznt
-         lb=ns*(l-1)+2 
-         ub=ns*l
-         t1 = pfactor*r12(lb:ub)*bsq(lb:ub)
-         ptau2 = r12(lb:ub)*t1/gsqrt(lb:ub)
-         t1 = t1*wint(lb:ub)
-         temp(2:ns) = temp(2:ns) + t1*trigmult(l)*xu12(lb:ub)
-         ptau = r12(lb:ub)*t1/gsqrt(lb:ub)
-         t1 = xu12(lb:ub)*ohs
-         t2 = cp25*(xue(lb:ub)/shalf(2:ns) + xuo(lb:ub))/shalf(2:ns)
-         t3 = cp25*(xue(lb-1:ub-1)/shalf(2:ns) 
-     1      +       xuo(lb-1:ub-1))/shalf(2:ns)
-         ax(2:ns,1) = ax(2:ns,1) + ptau*t1*t1
-         ax(2:ns,2) = ax(2:ns,2) + ptau*(-t1+t3)*(t1+t2)
-         ax(2:ns,3) = ax(2:ns,3) + ptau*(t1+t2)*(t1+t2)
-         ax(2:ns,4) = ax(2:ns,4) + ptau*(-t1+t3)*(-t1+t3)
+         lb=js+ns*(l-1) 
+!         ub=ns*l
+         t1 = pfactor*r12(lb)*bsq(lb)
+         ptau2 = r12(lb)*t1/gsqrt(lb)
+         t1 = t1*wint(lb)
+         temp(js) = temp(js) + t1*trigmult(l)*xu12(lb)
+         ptau = r12(lb)*t1/gsqrt(lb)
+         t1 = xu12(lb)*ohs
+         t2 = cp25*(xue(lb)*osh + xuo(lb))*osh
+         t3 = cp25*(xue(lb-1)*osh + xuo(lb-1))*osh
+         ax(js,1) = ax(js,1) + ptau*t1*t1
+         ax(js,2) = ax(js,2) + ptau*(-t1+t3)*(t1+t2)
+         ax(js,3) = ax(js,3) + ptau*(t1+t2)*(t1+t2)
+         ax(js,4) = ax(js,4) + ptau*(-t1+t3)*(-t1+t3)
 #ifdef _HBANGLE
-         ptau2( = ptau2*cos2u(l)
-         ax2(2:ns,1) = ax2(2:ns,1) + ptau2*t1*t1
-         ax2(2:ns,2) = ax2(2:ns,2) + ptau2*(-t1+t3)*(t1+t2)
-         ax2(2:ns,3) = ax2(2:ns,3) + ptau2*(t1+t2)*(t1+t2)
-         ax2(2:ns,4) = ax2(2:ns,4) + ptau2*(-t1+t3)*(-t1+t3)
+         ptau2 = ptau2*cos2u(l)
+         ax2(js,1) = ax2(js,1) + ptau2*t1*t1
+         ax2(js,2) = ax2(js,2) + ptau2*(-t1+t3)*(t1+t2)
+         ax2(js,3) = ax2(js,3) + ptau2*(t1+t2)*(t1+t2)
+         ax2(js,4) = ax2(js,4) + ptau2*(-t1+t3)*(-t1+t3)
 #endif
 !
 !       COMPUTE PRECONDITIONING MATRIX ELEMENTS FOR M**2, N**2 TERMS
 !
-         t1 = cp5*(xs(lb:ub) + cp5*xodd(lb:ub)/shalf(2:ns))
-         t2 = cp5*(xs(lb:ub) + cp5*xodd(lb-1:ub-1)/shalf(2:ns))
-         bx(2:ns,1) = bx(2:ns,1) + ptau*t1*t2
-         bx(2:ns,2) = bx(2:ns,2) + ptau*t1*t1
-         bx(2:ns,3) = bx(2:ns,3) + ptau*t2*t2
-         cx(2:ns) = cx(2:ns) + cp25*pfactor*lu1(lb:ub)**2*gsqrt(lb:ub)
-     1                   * wint(lb:ub)
+         t1 = cp5*(xs(lb) + cp5*xodd(lb)*osh)
+         t2 = cp5*(xs(lb) + cp5*xodd(lb-1)*osh)
+         bx(js,1) = bx(js,1) + ptau*t1*t2
+         bx(js,2) = bx(js,2) + ptau*t1*t1
+         bx(js,3) = bx(js,3) + ptau*t2*t2
+         cx(js) = cx(js) + cp25*pfactor*lu1(lb)**2*gsqrt(lb)
+     1                   * wint(lb)
 #ifdef _HBANGLE
-         bx2(2:ns,1) = bx2(2:ns,1) + ptau2*t1*t2
-         bx2(2:ns,2) = bx2(2:ns,2) + ptau2*t1*t1
-         bx2(2:ns,3) = bx2(2:ns,3) + ptau2*t2*t2
+         bx2(js,1) = bx2(js,1) + ptau2*t1*t2
+         bx2(js,2) = bx2(js,2) + ptau2*t1*t1
+         bx2(js,3) = bx2(js,3) + ptau2*t2*t2
 #endif
         END DO
-!$OMP END PARALLEL DO
+        temp(js) = temp(js)/vp(js)
+      END DO
+!$OMP END DO
 
-      temp(1)=0; temp(2:ns)=temp(2:ns)/vp(2:ns); temp(ns+1)=0
+!$OMP DO PRIVATE(js)
       DO js = 1,ns
         axm(js,1) =-ax(js,1)
         axd(js,1) = ax(js,1) + ax(js+1,1)
@@ -130,9 +127,11 @@ C-----------------------------------------------
 #endif
         cx(js)    = cx(js) + cx(js+1)
         temp(js) = signgs*(temp(js) + temp(js+1))
+        eqfactor(js) = axd(js,2)*hs*hs/temp(js)
       END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
-      eqfactor(2:ns-1) = axd(2:ns-1,2)*hs*hs/temp(2:ns-1)
       eqfactor(1) = 0;  eqfactor(ns) = 0
       axm(ns+1,:) = 0;  axd(ns+1,:) = 0
       bxm(ns+1,:) = 0;  bxd(ns+1,:) = 0
@@ -143,3 +142,4 @@ C-----------------------------------------------
       DEALLOCATE (ax2, bx2)
 #endif
       END SUBROUTINE precondn
+

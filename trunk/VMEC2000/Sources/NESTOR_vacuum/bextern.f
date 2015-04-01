@@ -39,8 +39,8 @@ c
 !
       CALL tolicu (plascur)
       CALL belicu (bexu, bexv, bexn, cosuv, sinuv, r1b, z1b)
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(i) SCHEDULE(STATIC)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(i) SCHEDULE(STATIC)
       DO i = 1, nuv2
          brad(i) = brad(i) + bexu(i)*cosuv(i) + bexv(i)*sinuv(i)
          bphi(i) = bphi(i) - bexu(i)*sinuv(i) + bexv(i)*cosuv(i)
@@ -57,15 +57,17 @@ c
         bexv(i) = rvb(i)*brad(i) + zvb(i)*bz(i) + r1b(i)*bphi(i)
         bexn(i) =-(brad(i)*snr(i) + bphi(i)*snv(i) + bz(i)*snz(i))
       END DO
-!$OMP END PARALLEL DO
-
-      DEALLOCATE (brad, bphi, bz)
-
+!$OMP END DO
 !
 !     COMPUTE NORMALIZED [(2*pi)**2], READY-TO-INTEGRATE (WINT FACTOR) SOURCE TERM
 !
 !     NOTE: BEXN == NP*F = -B0 dot [Xu cross Xv] NP        (see PKM, Eq. 2.13)
 !
+!$OMP WORKSHARE
       bexni(:nuv2) = wint(ns:nuv2*ns:ns)*bexn(:nuv2)*pi2*pi2
+!$OMP END WORKSHARE
+!$OMP END PARALLEL
+
+      DEALLOCATE (brad, bphi, bz)
 
       END SUBROUTINE bextern

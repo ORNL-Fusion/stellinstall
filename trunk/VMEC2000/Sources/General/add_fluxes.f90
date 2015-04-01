@@ -19,6 +19,7 @@
 !-----------------------------------------------
       INTEGER :: js, l, ub, lb
       REAL(rprec), DIMENSION(2:ns) :: top, bot
+      REAL(rprec) :: tops, bots
 !-----------------------------------------------
 !
 !     ADD MAGNETIC FLUX (CHIP, PHIP) TERMS TO BSUPU=-OVERG*LAM_V, BSUPV=OVERG*LAM_U
@@ -29,24 +30,29 @@
 
       top = icurv(2:ns)
       bot = 0
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) &
-!$OMP PRIVATE(l,lb,ub) REDUCTION(+:top,bot)
-      DO l=1,nznt
-         lb=ns*(l-1)+2
-         ub=ns*l
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!$OMP DO PRIVATE(js,lb) 
+      DO js = 2, ns
+         DO l=1,nznt
+         lb=js+ns*(l-1)
+!         ub=ns*l
 #ifdef _ANIMEC
-         top = top-wint(lb:ub)*(guu(lb:ub)*bsupu(lb:ub)                &
-                               +guv(lb:ub)*bsupv(lb:ub))*sigma_an(lb:ub)
-         bot = bot + wint(lb:ub)*sigma_an(lb:ub)*overg(lb:ub)*guu(lb:ub)
+         top(js) = top(js)-wint(lb)*(guu(lb)*bsupu(lb)                &
+                               +guv(lb)*bsupv(lb))*sigma_an(lb)
+         bot(js) = bot(js) + wint(lb)*sigma_an(lb)*overg(lb)*guu(lb)
 #else
-         top = top - wint(lb:ub)*(guu(lb:ub)*bsupu(lb:ub)              &
-             +                  guv(lb:ub)*bsupv(lb:ub))
-         bot = bot + wint(lb:ub)*overg(lb:ub)*guu(lb:ub)
+         top(js) = top(js) - wint(lb)*(guu(lb)*bsupu(lb)              &
+             +                  guv(lb)*bsupv(lb))
+         bot(js) = bot(js) + wint(lb)*overg(lb)*guu(lb)
 #endif
+         END DO
       END DO
-!$OMP END PARALLEL DO
+!$OMP END DO
+!$OMP WORKSHARE
       WHERE (bot .ne. zero) chips(2:ns) = top/bot
       WHERE (phips(2:ns) .ne. zero) iotas(2:ns) = chips(2:ns)/phips(2:ns)
+!$OMP END WORKSHARE
+!$OMP END PARALLEL
 
  100  CONTINUE
 

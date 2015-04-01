@@ -33,22 +33,20 @@ C-----------------------------------------------
       REAL(dp) :: t4, t5
 #endif
 !-----------------------------------------------
-      buco(2:ns)=0
-      bvco(2:ns)=0
+!      buco(2:ns)=0
+!      bvco(2:ns)=0
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:buco,bvco)
-      do l=1,nznt
-         lb=ns*(l-1)+2
-         ub=ns*l
-         buco(2:ns) = buco(2:ns)+bsubu(lb:ub)*wint(lb:ub)
-         bvco(2:ns) = bvco(2:ns)+bsubv(lb:ub)*wint(lb:ub)
+!$OMP& PRIVATE(js) 
+      DO js = 2, ns
+         buco(js) = SUM(bsubu(js:nrzt:ns)*wint(js:nrzt:ns))
+         bvco(js) = SUM(bsubv(js:nrzt:ns)*wint(js:nrzt:ns))
       END DO
 !$OMP END PARALLEL DO
 
 !     FROM AMPERE'S LAW, JcurX are angle averages of jac*JsupX, so
 !                        JcurX = (dV/ds)/twopi**2 <JsupX> where <...> is flux surface average
 #ifdef _ANIMEC
-      IF (ANY(phot .ne. zero)) THEN
+      IF (ANY(phot .NE. zero)) THEN
          pp3(1:nrzt:ns) = 0
          DO js = 2,ns
             DO lk = 1,nznt
@@ -70,6 +68,8 @@ C-----------------------------------------------
       END IF
 #endif
 
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(js, t4, t5) 
       DO js = 2, ns1
          jcurv(js) = (signgs*ohs)*(buco(js+1) - buco(js))
          jcuru(js) =-(signgs*ohs)*(bvco(js+1) - bvco(js))
@@ -85,6 +85,7 @@ C-----------------------------------------------
          equif(js) = (-phipf(js)*jcuru(js) + chipf(js)*jcurv(js))
      1                /vpphi(js) + presgrad(js)
       END DO
+!$OMP END PARALLEL DO
 
       equif(1) = 0
       equif(ns) = 0
