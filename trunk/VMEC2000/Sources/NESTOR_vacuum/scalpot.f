@@ -51,9 +51,6 @@ C-----------------------------------------------
          ALLOCATE (green(nuv), gstore(nuv), gstore_(nuv), 
      1             greenp(nuv,istore_max), stat=ip)
          IF (ip .NE. 0) STOP 'Allocation error in SCALPOT'
-         bvecsav = bvec
-         gstore  = 0
-         istart = 0
 !
 !        COMPUTE SURFACE INTEGRALS OF SOURCE AND GREENS FUNCTION NEEDED
 !        FOR SPECTRAL DECOMPOSITION OF POTENTIAL INTEGRAL EQUATION
@@ -63,10 +60,14 @@ C-----------------------------------------------
 
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(ip,ichunk,istore,istart,green,greenp,gstore_) 
+!$OMP WORKSHARE
+         bvecsav = bvec
+         gstore  = 0
+!$OMP END WORKSHARE
+         gstore_ = 0    !Could initialize these outside parallel and use FIRSTPRIVATE
+         istart = 0
 
-         gstore_ = 0 
-
-!$OMP DO SCHEDULE(STATIC)
+!$OMP DO SCHEDULE(STATIC) 
 
          DO ichunk = 1, nchunk
 !
@@ -124,14 +125,19 @@ C-----------------------------------------------
 
       DEALLOCATE (grpmn)
       
-!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP WORKSHARE
       amatrix = amatsav
-!$OMP END PARALLEL WORKSHARE
-      IF (ivacskip .NE. 0) RETURN
-!
+!$OMP END WORKSHARE
+
 !     SAVE NON-SINGULAR CONTRIBUTION TO BVEC (IN BVECSAV)
-!
-      bvecsav(:mnpd2) = bvec - bvecsav(:mnpd2)
+      IF (ivacskip .EQ. 0) THEN
+!$OMP WORKSHARE
+         bvecsav(:mnpd2) = bvec - bvecsav(:mnpd2)
+!$OMP END WORKSHARE
+      END IF
+!$OMP END PARALLEL
+
 
       END SUBROUTINE scalpot
 

@@ -80,35 +80,38 @@ C-----------------------------------------------
 !
 !     PERFORM KV (TOROIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(n,cosn,sinn) 
+!!$OMP DO SCHEDULE(STATIC) PRIVATE(n,kvi,cosn,sinn)
       DO n = 0, nf
          DO kvi = 1, nv
             cosn = cosv(n,kvi)
             sinn = sinv(n,kvi)
             DO isym = 1, ndim
+!$OMP WORKSHARE
                bcos(:,n,isym) = bcos(:,n,isym) + cosn*source(kvi,:,isym)
                bsin(:,n,isym) = bsin(:,n,isym) + sinn*source(kvi,:,isym)
                actemp(:,n,:,isym) = actemp(:,n,:,isym) 
      1                            + cosn*grpmn(:,kvi,:,isym)
                astemp(:,n,:,isym) = astemp(:,n,:,isym) 
      1                            + sinn*grpmn(:,kvi,:,isym)
-
-               IF (n .ne. 0) THEN
+!$OMP END WORKSHARE
+               IF (n .NE. 0) THEN
+!$OMP WORKSHARE
                   bcos(:,(-n),isym) =  bcos(:,n,isym)
                   bsin(:,(-n),isym) = -bsin(:,n,isym)
                   actemp(:,(-n),:,isym) =  actemp(:,n,:,isym)
                   astemp(:,(-n),:,isym) = -astemp(:,n,:,isym)
+!$OMP END WORKSHARE
                ENDIF
 
             END DO
          END DO
       END DO
-!$OMP END DO
+!!$OMP END DO
 
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(m,cosm,sinm) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(m,kui,cosm,sinm) 
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)
@@ -120,31 +123,33 @@ C-----------------------------------------------
      1         bcos(kui,-nf:nf,2)*cosm + bsin(kui,-nf:nf,2)*sinm
             END IF
          END DO
+       END DO
+!$OMP END DO
 !
 !     RECALL, LAST INDEX OF AS,CTEMP
 !                        = 1 CORRESPONDS TO SIN (UNPRIMED) TRANSFORM (FIRST INDEX OF AMATRIX)
 !                        = 2 CORRESPONDS TO COS (UNPRIMED) TRANSFORM
-         DO kui = 1, nu3
+       DO m = 0, mf
+          DO kui = 1, nu3
             cosm = cosu(m,kui)*wint(kui*ns*nv)
             sinm = sinu(m,kui)*wint(kui*ns*nv)
+!$OMP WORKSHARE
             amatrix(:,m+1:mnpd:mf1,1) = amatrix(:,m+1:mnpd:mf1,1) +
      1         sinm*actemp(:,-nf:nf,kui,1) - cosm*astemp(:,-nf:nf,kui,1)       !SIN SIN'
+!$OMP END WORKSHARE
             IF (.NOT.lasym) CYCLE
+!$OMP WORKSHARE
             amatrix(:,m+1:mnpd:mf1,2) = amatrix(:,m+1:mnpd:mf1,2) +
      1         cosm*actemp(:,-nf:nf,kui,1) + sinm*astemp(:,-nf:nf,kui,1)       !SIN COS'
             amatrix(:,m+1:mnpd:mf1,3) = amatrix(:,m+1:mnpd:mf1,3) +
      1         sinm*actemp(:,-nf:nf,kui,2) - cosm*astemp(:,-nf:nf,kui,2)       !COS SIN'
             amatrix(:,m+1:mnpd:mf1,4) = amatrix(:,m+1:mnpd:mf1,4) +
      1         cosm*actemp(:,-nf:nf,kui,2) + sinm*astemp(:,-nf:nf,kui,2)       !COS COS'
+!$OMP END WORKSHARE
          END DO
       END DO
-!$OMP END DO
-!$OMP END PARALLEL
 
-
-      DEALLOCATE (bcos, bsin, actemp, astemp, source, stat=i)
-
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+      mn0 = 1 + mf1*nf                                             !!Index of m=0,n=0         
 !$OMP WORKSHARE
       amatrix = (pi2*pi2)*amatrix
 !
@@ -156,7 +161,6 @@ C-----------------------------------------------
 !
 !     ZERO AMATRIX(0,n,m',n') M = 0 MODES FOR n < 0 
 !
-      mn0 = 1 + mf1*nf                                             !Index of m=0,n=0         
       amatrix(1:mn0-1:mf1,:,1:ndim*ndim) = 0
 !     amatrix(:(nf-1)*mf1+1:mf1,:,1:ndim*ndim) = 0
 !$OMP END WORKSHARE
@@ -167,15 +171,12 @@ C-----------------------------------------------
 !$OMP DO PRIVATE(mn)
       DO mn = 1, mnpd
          amatrix(mn,mn,1) = amatrix(mn,mn,1) + pi3*int_ext
+         IF (lasym) THEN
+            amatrix(mn,mn,4) = amatrix(mn,mn,4) + pi3*int_ext
+         END IF
       END DO
 !$OMP END DO
-
       IF (lasym) THEN
-!$OMP DO PRIVATE(mn)
-         DO mn = 1, mnpd
-            amatrix(mn,mn,4) = amatrix(mn,mn,4) + pi3*int_ext
-         END DO
-!$OMP END DO
          amatrix(mn0,mn0,4) = amatrix(mn0,mn0,4) + pi3*int_ext     !!COS(0-0) mode *2
       END IF
 !
@@ -186,11 +187,13 @@ C-----------------------------------------------
 !$OMP END WORKSHARE
       IF (lasym) THEN
 !$OMP WORKSHARE
-      amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)               !Sin-Cos'
-      amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)               !Cos-Sin'
-      amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)        !Cos-Cos'
+         amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)            !Sin-Cos'
+         amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)            !Cos-Sin'
+         amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)     !Cos-Cos'
 !$OMP END WORKSHARE
       END IF
 !$OMP END PARALLEL
+
+      DEALLOCATE (bcos, bsin, actemp, astemp, source, stat=i)
 
       END SUBROUTINE fouri

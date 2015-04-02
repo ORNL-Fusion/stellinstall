@@ -28,9 +28,11 @@ C-----------------------------------------------
      1          zvv(nuv2), cosmn1(nuv2), sinmn1(nuv2), stat = i)
       IF (i .NE. 0) STOP 'Allocation error in SURFACE'
 
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!$OMP WORKSHARE
       r1b = 0;   rub = 0;   rvb = 0;  ruu = 0; ruv = 0; rvv = 0
       z1b = 0;   zub = 0;   zvb = 0;  zuu = 0; zuv = 0; zvv = 0
-
+!$OMP END WORKSHARE
       DO mn = 1, mnmax
          m = NINT(xm(mn))
          n = NINT(xn(mn)/(nfper))
@@ -39,7 +41,6 @@ C-----------------------------------------------
      1               sinv1(:,n1)
          sinmn1(:) = sinu1(:,m)*cosv1(:,n1) - csign(n)*cosu1(:,m)*
      1               sinv1(:,n1)
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
 !$OMP DO SCHEDULE(STATIC) PRIVATE(i)
          DO i = 1, nuv2
             r1b(i) = r1b(i) + rc(mn) * cosmn1(i)
@@ -54,12 +55,7 @@ C-----------------------------------------------
             zuu(i) = zuu(i) - xm(mn)*xm(mn)*zs(mn) * sinmn1(i)
             zuv(i) = zuv(i) + xm(mn)*xn(mn)*zs(mn) * sinmn1(i)
             zvv(i) = zvv(i) - xn(mn)*xn(mn)*zs(mn) * sinmn1(i)
-         END DO
-!$OMP END DO
          IF (lasym) THEN
-
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
-         DO i = 1, nuv2
             r1b(i) = r1b(i) + rs(mn) * sinmn1(i)
             rub(i) = rub(i) + xm(mn) * rs(mn) * cosmn1(i)
             rvb(i) = rvb(i) - xn(mn) * rs(mn) * cosmn1(i)
@@ -72,10 +68,9 @@ C-----------------------------------------------
             zuu(i) = zuu(i) - xm(mn)*xm(mn)*zc(mn) * cosmn1(i)
             zuv(i) = zuv(i) + xm(mn)*xn(mn)*zc(mn) * cosmn1(i)
             zvv(i) = zvv(i) - xn(mn)*xn(mn)*zc(mn) * cosmn1(i)
-         END DO
-!$OMP END DO
          END IF
-!$OMP END PARALLEL
+      END DO
+!$OMP END DO
       END DO
 
 !
@@ -96,7 +91,6 @@ C-----------------------------------------------
 !
 !           AVV == NP*CAP(C) = .5*Xvv dot [Xu cross Xv] * NP
 !
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
 !$OMP DO SCHEDULE(STATIC) PRIVATE(i)
       DO i = 1,nuv2
         guu_b(i) = rub(i)*rub(i) + zub(i)*zub(i)
@@ -112,13 +106,15 @@ C-----------------------------------------------
         avv(i) = (snv(i)*rvb(i) + p5*(snr(i)*(rvv(i) - r1b(i))
      1                          +     snz(i)* zvv(i)))*onp2
       END DO
-!OMP END DO
+!$OMP END DO
       IF (.NOT.lasym) THEN
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
          DO i = 1 + nv, nuv2 - nv
             rzb2(imirr(i)) = rzb2(i)
             r1b(imirr(i))  = r1b(i)
             z1b(imirr(i))  =-z1b(i)
          END DO
+!$OMP END DO
       END IF
 
 !$OMP DO SCHEDULE(STATIC) PRIVATE(i)
