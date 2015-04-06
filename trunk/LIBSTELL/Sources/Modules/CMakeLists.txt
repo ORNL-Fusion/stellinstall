@@ -29,6 +29,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/mgrid_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/modular_coils.f
         ${CMAKE_CURRENT_SOURCE_DIR}/mpi_params.f
+	${CMAKE_CURRENT_SOURCE_DIR}/magnetic_response.f
         ${CMAKE_CURRENT_SOURCE_DIR}/optim_params.f
         ${CMAKE_CURRENT_SOURCE_DIR}/packafile.f
         ${CMAKE_CURRENT_SOURCE_DIR}/profiler.f

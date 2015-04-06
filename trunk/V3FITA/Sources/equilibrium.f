@@ -343,38 +343,23 @@
 !>  called once to tell the equilibrium it needs to use a magnetic cache.
 !>  @see vmec_equilibrium::vmec_set_magnetic_cache
 !>
-!>  @param[inout] this             A @ref equilibrium_class instance.
-!>  @param[in]    total_tor_planes Total number of toroidal planes.
-!>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
-!>                                 planes.
-!>  @param[in]    nfp              Number of field period the diagnostics were
-!>                                 generated with.
-!>  @param[in]    use_con_shell    Compute grids on the conducting shell.
-!>  @param[in]    n_u              Number of grid points in the u direction.
+!>  @param[inout] this            A @ref equilibrium_class instance.
+!>  @param[in]    response_object A @ref magnetic_response_class instance.
 !>  @note Stellarator symmetry may be exploited to speed up computation and
 !>  reduce memory usage. If stellarator symmetry is not used then
 !>  tor_planes_used should match total_tor_planes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_set_magnetic_cache(this, total_tor_planes,        &
-     &                                          tor_planes_used, nfp,          &
-     &                                          use_con_shell, n_u,            &
-     &                                          total_shell_planes,            &
-     &                                          shell_planes_used)
+      SUBROUTINE equilibrium_set_magnetic_cache(this, response_object)
+      USE magnetic_response
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (equilibrium_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                     :: total_tor_planes
-      INTEGER, INTENT(in)                     :: tor_planes_used
-      INTEGER, INTENT(in)                     :: nfp
-      LOGICAL, INTENT(in)                     :: use_con_shell
-      INTEGER, INTENT(in)                     :: n_u
-      INTEGER, INTENT(in)                     :: total_shell_planes
-      INTEGER, INTENT(in)                     :: shell_planes_used
+      TYPE (equilibrium_class), INTENT(inout)    :: this
+      TYPE (magnetic_response_class), INTENT(in) :: response_object
 
 !  local variables
-      REAL (rprec)                            :: start_time
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -382,11 +367,7 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            CALL vmec_set_magnetic_cache(this%vmec, total_tor_planes,          &
-     &                                   tor_planes_used, nfp,                 &
-     &                                   use_con_shell, n_u,                   &
-     &                                   total_shell_planes,                   &
-     &                                   shell_planes_used)
+            CALL vmec_set_magnetic_cache(this%vmec, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
             IF (.not.this%not_converged) THEN

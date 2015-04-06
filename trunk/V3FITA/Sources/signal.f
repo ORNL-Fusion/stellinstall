@@ -470,7 +470,7 @@
 
       signal_construct_diagnostic_netcdf =>                                    &
      &   signal_construct(diagnostic_object, s_name, l_name, units,            &
-     &                   observed, sigma, weight)
+     &                    observed, sigma, weight)
 
       CALL profiler_set_stop_time('signal_construct_diagnostic_netcdf',        &
      &                            start_time)

@@ -957,7 +957,7 @@
             IF (model_get_te_radial .gt. 0.0) THEN
                model_get_te_radial = eV_per_Joule*this%pressure_fraction       &
      &                             * equilibrium_get_p(this%equilibrium,       &
-     &                                              r)                         &
+     &                                                 r)                      &
      &                             / model_get_te_radial
             END IF
 

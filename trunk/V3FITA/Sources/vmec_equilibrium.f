@@ -1016,42 +1016,22 @@
 !>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
 !>  allocates a @ref vmec_magnetic_cache structure.
 !>
-!>  @param[inout] this             A @ref vmec_class instance.
-!>  @param[in]    total_tor_planes Total number of toroidal planes.
-!>  @param[in]    tor_planes_used  Number of stellarator symmetric toroidal
-!>                                 planes.
-!>  @param[in]    nfp              Number of field periods the diagnostics were
-!>                                 generated with.
-!>  @param[in]    use_con_shell    Compute grids on the conducting shell.
-!>  @param[in]    n_u              Number of grid points in the u direction.
+!>  @param[inout] this            A @ref vmec_class instance.
+!>  @param[in]    response_object A @ref magnetic_response_class instance.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
-!>
-!>  @todo This method explicity uses only the first element of the ns_array.
-!>  In effect, this excludes support for multigrid VMEC. To support multi grid,
-!>  the vmec_set_magnetic_cache_init will need to be reset every time the grid
-!>  size changes. Currently the grid are allocated once and never changed.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_set_magnetic_cache_init(this, total_tor_planes,          &
-     &                                        tor_planes_used, nfp,            &
-     &                                        use_con_shell, n_u,              &
-     &                                        total_shell_planes,              &
-     &                                        shell_planes_used)
+      SUBROUTINE vmec_set_magnetic_cache_init(this, response_object)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
+      USE magnetic_response
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)              :: total_tor_planes
-      INTEGER, INTENT(in)              :: tor_planes_used
-      INTEGER, INTENT(in)              :: nfp
-      LOGICAL, INTENT(in)              :: use_con_shell
-      INTEGER, INTENT(in)              :: n_u
-      INTEGER, INTENT(in)              :: total_shell_planes
-      INTEGER, INTENT(in)              :: shell_planes_used
+      TYPE (vmec_class), INTENT(inout)           :: this
+      TYPE (magnetic_response_class), INTENT(in) :: response_object
 
 !  local variables
       INTEGER                          :: numU
@@ -1071,25 +1051,35 @@
 !  Set the differental volume elements.
       this%magnetic_cache%ds = 1.0/(ns - 1.0)
       this%magnetic_cache%du = twopi/numU
-      this%magnetic_cache%dv = (twopi/nfp)/total_tor_planes
+      this%magnetic_cache%dv = (twopi/response_object%n_field_periods)         &
+     &                       / response_object%num_t
 
 !  Set the differental area elements.
-      this%magnetic_cache%du_a = twopi/n_u
-      this%magnetic_cache%dv_a = (twopi/nfp)/total_shell_planes
+      this%magnetic_cache%du_a = twopi/response_object%num_u
+      this%magnetic_cache%dv_a = (twopi/response_object%n_field_periods)       &
+     &                         / response_object%num_t_shell
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns,numU,tor_planes_used))
-      ALLOCATE(this%magnetic_cache%zsuv(ns,numU,tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,tor_planes_used))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,tor_planes_used))
+      ALLOCATE(this%magnetic_cache%rsuv(ns,numU,                               &
+     &                                  response_object%num_t_store))
+      ALLOCATE(this%magnetic_cache%zsuv(ns,numU,                               &
+     &                                  response_object%num_t_store))
+      ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,                              &
+     &                                   response_object%num_t_store))
+      ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,                            &
+     &                                     response_object%num_t_store))
+      ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,                              &
+     &                                   response_object%num_t_store))
 
 !  When conducting shell is used allocate the surface vector arrays.
-      IF (use_con_shell) THEN
-         ALLOCATE(this%magnetic_cache%kruv(n_u,shell_planes_used))
-         ALLOCATE(this%magnetic_cache%kphiuv(n_u,shell_planes_used))
-         ALLOCATE(this%magnetic_cache%kzuv(n_u,shell_planes_used))
+      IF (ASSOCIATED(response_object%a_s_r)) THEN
+         ALLOCATE(this%magnetic_cache%kruv(response_object%num_u,              &
+     &               response_object%num_t_shell_store))
+         ALLOCATE(this%magnetic_cache%kphiuv(response_object%num_u,            &
+     &               response_object%num_t_shell_store))
+         ALLOCATE(this%magnetic_cache%kzuv(response_object%num_u,              &
+     &               response_object%num_t_shell_store))
       END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
@@ -2310,7 +2300,7 @@
       start_time = profiler_get_start_time()
       vmec_get_p_radial = pmass(s)/mu0
 
-      CALL profiler_set_stop_time('vmec_get_p_cart', start_time)
+      CALL profiler_set_stop_time('vmec_get_p_radial', start_time)
 
       END FUNCTION
 

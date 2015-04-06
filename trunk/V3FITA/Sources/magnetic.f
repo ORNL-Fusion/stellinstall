@@ -13,6 +13,7 @@
       MODULE magnetic
       USE stel_kinds, only: rprec
       USE data_parameters
+      USE magnetic_response
 #if defined (MPI_OPT)
       USE mpi
 #endif
@@ -21,16 +22,14 @@
       IMPLICIT NONE
 
 !*******************************************************************************
-!  equilibrium module parameters
+!  magnetic module parameters
 !*******************************************************************************
 !>  Bit position for the use coil response flag.
       INTEGER, PARAMETER :: magnetic_use_coil_response_flag   = 1
 !>  Bit position for the force coil response flag.
       INTEGER, PARAMETER :: magnetic_force_coil_response_flag = 2
-!>  Bit position for the stellerator symmetry flag.
-      INTEGER, PARAMETER :: magnetic_stell_sym_flag           = 3
 !>  Bit position for the use conducting shell flag.
-      INTEGER, PARAMETER :: magnetic_use_con_shell_flag       = 4
+      INTEGER, PARAMETER :: magnetic_use_con_shell_flag       = 3
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -47,73 +46,13 @@
       TYPE magnetic_class
 !>  Contains flags that control how the magnetic signals are computed. Each bit
 !>  stores a different flag. The following flags are currently used.
-!>  -# Use coil induced responce in total signal.
+!>  -# Use coil induced response in total signal.
 !>  -# Force signal response to be computed.
 !>  -# Stellarator symmetry is assumed.
 !>  -# Use conducting shell.
-         INTEGER                            :: model_signal_flags
-
-!  Identification Variables ----------------------------------------------------
-!>  Name of the code which computed the responses.
-         CHARACTER(len=data_name_length)    :: code_name
-!>  Version of the code.
-         CHARACTER(len=data_name_length)    :: code_version
-!>  Data and time the code was run.
-         CHARACTER(len=data_name_length)    :: date_run
-!>  Idenifier of field-coilds.
-         CHARACTER(len=data_name_length)    :: field_coils_id
-
-!  Coil Responce Function Variables --------------------------------------------
-!>  Number of field-coil groups.
-         INTEGER                            :: n_field_cg
-!>  Array of diagnostic field-coil-group responses.
-         REAL(rprec), DIMENSION(:), POINTER :: rdiag_coilg_1 => null()
-!>  Array of external currents.
-         REAL(rprec), DIMENSION(:), POINTER :: extcur_mg => null()
-
-!  Plasma Response Grid Variables ----------------------------------------------
-!>  Number of grid points in R, plasma grid.
-         INTEGER                            :: ir
-!>  Number of grid points in z, plasma grid.
-         INTEGER                            :: jz
-!>  Number of phi planes per field period in plasma grid.
-         INTEGER                            :: kp
-!>  Number of phi planes actually stored in plasma grid.
-         INTEGER                            :: kp_store
-!>  Minimum R for plasma grid.
-         REAL(rprec)                        :: rmin
-!>  Maximum R for plasma grid.
-         REAL(rprec)                        :: rmax
-!>  Minimum z for plasma grid.
-         REAL(rprec)                        :: zmin
-!>  Maximum z for plasma grid.
-         REAL(rprec)                        :: zmax
-!>  Number of field periods.
-         INTEGER                            :: n_field_periods
-
-!>  Number of grid points in u, conducting shell grid.
-         INTEGER                            :: n_u
-!>  Number of phi planes per field period in the conducting shell grid.
-         INTEGER                            :: kp_shell
-!>  Number of phi planes actually stored in the conducting shell grid.
-         INTEGER                            :: kp_shell_store
-
-!  Plasma Response Arrays ------------------------------------------------------
-!>  R component of plasma response function.
-         REAL(rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
-!>  Phi component of plasma response function.
-         REAL(rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
-!>  Z component of plasma response function.
-         REAL(rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
-
-!  Conducting Shell Response Arrays --------------------------------------------
-!>  R component of the conducting shell response function.
-         REAL(rprec), DIMENSION(:,:), POINTER :: a_s_r => null()
-!>  Phi component of the conducting shell response function.
-         REAL(rprec), DIMENSION(:,:), POINTER :: a_s_f => null()
-!>  Z component of the conducting shell response function.
-         REAL(rprec), DIMENSION(:,:), POINTER :: a_s_z => null()
-
+         INTEGER                                 :: model_signal_flags
+!>  Magnetic response function object.
+         TYPE (magnetic_response_class), POINTER :: response => null()
       END TYPE
 
 !*******************************************************************************
@@ -146,7 +85,7 @@
 !>  @param[in] use_coil_response  Toggle if the total signal contains the
 !>                                induced signal in addition to the plasma only
 !>                                signal.
-!>  @param[in] force_coil_reponse Force the coil responce to be computed.
+!>  @param[in] force_coil_reponse Force the coil response to be computed.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response,         &
@@ -157,9 +96,9 @@
 
 !  Declare Arguments
       TYPE (magnetic_class), POINTER :: magnetic_construct_netcdf
-      INTEGER, INTENT(in)            :: mdsig_iou
-      LOGICAL, INTENT(in)            :: use_coil_response
-      LOGICAL, INTENT(in)            :: force_coil_reponse
+      INTEGER, INTENT(in)                     :: mdsig_iou
+      LOGICAL, INTENT(in)                     :: use_coil_response
+      LOGICAL, INTENT(in)                     :: force_coil_reponse
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
@@ -184,120 +123,8 @@
      &            magnetic_force_coil_response_flag)
       END IF
 
-!  Identification Variables ----------------------------------------------------
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_code_name',                           &
-     &              magnetic_construct_netcdf%code_name)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_code_version',                        &
-     &              magnetic_construct_netcdf%code_version)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_date_run',                            &
-     &              magnetic_construct_netcdf%date_run)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_field_coils_id',                      &
-     &              magnetic_construct_netcdf%field_coils_id)
-
-!  Coil Responce Function Variables --------------------------------------------
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_n_field_cg',                          &
-     &              magnetic_construct_netcdf%n_field_cg)
-
-      ALLOCATE(magnetic_construct_netcdf%rdiag_coilg_1(                        &
-     &            magnetic_construct_netcdf%n_field_cg))
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_rdiag_coilg_1',                       &
-     &              magnetic_construct_netcdf%rdiag_coilg_1)
-
-      ALLOCATE(magnetic_construct_netcdf%extcur_mg(                            &
-     &            magnetic_construct_netcdf%n_field_cg))
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_extcur_mg',                           &
-     &              magnetic_construct_netcdf%extcur_mg)
-
-!  Plasma Response Grid Variables ----------------------------------------------
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_kp',                                  &
-     &              magnetic_construct_netcdf%kp)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_rmin',                                &
-     &              magnetic_construct_netcdf%rmin)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_rmax',                                &
-     &              magnetic_construct_netcdf%rmax)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_zmin',                                &
-     &              magnetic_construct_netcdf%zmin)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_zmax',                                &
-     &              magnetic_construct_netcdf%zmax)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_n_field_periods',                     &
-     &              magnetic_construct_netcdf%n_field_periods)
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_lstell_sym', temp_flag)
-
-!  Set the stellarator symmetry flag.
-      IF (temp_flag) THEN
-         magnetic_construct_netcdf%model_signal_flags =                        &
-     &      IBSET(magnetic_construct_netcdf%model_signal_flags,                &
-     &            magnetic_stell_sym_flag)
-      END IF
-
-!  Plasma Response Arrays ------------------------------------------------------
-      CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_r', dim_lengths)
-      magnetic_construct_netcdf%ir = dim_lengths(1)
-      magnetic_construct_netcdf%jz = dim_lengths(2)
-      magnetic_construct_netcdf%kp_store = dim_lengths(3)
-
-      ALLOCATE(magnetic_construct_netcdf%a_r(dim_lengths(1),                   &
-     &                                       dim_lengths(2),                   &
-     &                                       dim_lengths(3)))
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_a_r',                                 &
-     &              magnetic_construct_netcdf%a_r)
-
-      CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_f', dim_lengths)
-      ALLOCATE(magnetic_construct_netcdf%a_f(dim_lengths(1),                   &
-     &                                       dim_lengths(2),                   &
-     &                                       dim_lengths(3)))
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_a_f',                                 &
-     &              magnetic_construct_netcdf%a_f)
-
-      CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_z', dim_lengths)
-      ALLOCATE(magnetic_construct_netcdf%a_z(dim_lengths(1),                   &
-     &                                       dim_lengths(2),                   &
-     &                                       dim_lengths(3)))
-      CALL cdf_read(mdsig_iou, 'mddc_mrf_a_z',                                 &
-     &              magnetic_construct_netcdf%a_z)
-
-!  Conducting Shell Response Arrays --------------------------------------------
-!  The conducting shell is only in the newer version. Only check for the
-!  conducting if the version is after 'MRC 2014-09-28'
-      SELECT CASE (magnetic_construct_netcdf%code_version)
-
-         CASE ('MRC 2014-09-28')
-            CALL cdf_read(mdsig_iou, 'mddc_mrf_use_con_shell',                 &
-     &                    temp_flag)
-
-            IF (temp_flag) THEN
-               magnetic_construct_netcdf%model_signal_flags =                  &
-     &            IBSET(magnetic_construct_netcdf%model_signal_flags,          &
-     &                  magnetic_use_con_shell_flag)
-
-               CALL cdf_read(mdsig_iou, 'mddc_mrf_kp_shell',                   &
-     &                       magnetic_construct_netcdf%kp_shell)
-
-               CALL cdf_inquire(mdsig_iou, 'mddc_mrf_a_s_r',                   &
-     &                          dim_lengths(1:2))
-               magnetic_construct_netcdf%n_u = dim_lengths(1)
-               magnetic_construct_netcdf%kp_shell_store = dim_lengths(2)
-
-               ALLOCATE(magnetic_construct_netcdf%a_s_r(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-               CALL cdf_read(mdsig_iou, 'mddc_mrf_a_s_r',                      &
-     &                       magnetic_construct_netcdf%a_s_r)
-
-               ALLOCATE(magnetic_construct_netcdf%a_s_f(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-               CALL cdf_read(mdsig_iou, 'mddc_mrf_a_s_f',                      &
-     &                       magnetic_construct_netcdf%a_s_f)
-
-               ALLOCATE(magnetic_construct_netcdf%a_s_z(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-               CALL cdf_read(mdsig_iou, 'mddc_mrf_a_s_z',                      &
-     &                       magnetic_construct_netcdf%a_s_z)
-            END IF
-
-         CASE DEFAULT
-!  Do nothing
-
-      END SELECT
+      magnetic_construct_netcdf%response =>                                    &
+     &   magnetic_response_construct(mdsig_iou)
 
       CALL profiler_set_stop_time('magnetic_construct_netcdf',                 &
      &                            start_time)
@@ -332,104 +159,8 @@
       CALL MPI_BCAST(magnetic_construct_mpi%model_signal_flags, 1,             &
      &               MPI_INTEGER, 0, intra_comm, error)
 
-!  Identification Variables ----------------------------------------------------
-      CALL MPI_BCAST(magnetic_construct_mpi%code_name,                         &
-     &               data_name_length, MPI_CHARACTER, 0, intra_comm,           &
-     &               error)
-      CALL MPI_BCAST(magnetic_construct_mpi%code_version,                      &
-     &               data_name_length, MPI_CHARACTER, 0, intra_comm,           &
-     &               error)
-      CALL MPI_BCAST(magnetic_construct_mpi%date_run,                          &
-     &               data_name_length, MPI_CHARACTER, 0, intra_comm,           &
-     &               error)
-      CALL MPI_BCAST(magnetic_construct_mpi%field_coils_id,                    &
-     &               data_name_length, MPI_CHARACTER, 0, intra_comm,           &
-     &               error)
-
-!  Coil Responce Function Variables --------------------------------------------
-      CALL MPI_BCAST(magnetic_construct_mpi%n_field_cg, 1,                     &
-     &               MPI_INTEGER, 0, intra_comm, error)
-
-      ALLOCATE(magnetic_construct_mpi%rdiag_coilg_1(                           &
-     &            magnetic_construct_mpi%n_field_cg))
-      CALL MPI_BCAST(magnetic_construct_mpi%rdiag_coilg_1,                     &
-     &               magnetic_construct_mpi%n_field_cg, MPI_REAL8, 0,          &
-     &               intra_comm, error)
-
-      ALLOCATE(magnetic_construct_mpi%extcur_mg(                               &
-     &            magnetic_construct_mpi%n_field_cg))
-      CALL MPI_BCAST(magnetic_construct_mpi%extcur_mg,                         &
-     &               magnetic_construct_mpi%n_field_cg, MPI_REAL8, 0,          &
-     &               intra_comm, error)
-
-!  Plasma Response Grid Variables ----------------------------------------------
-      CALL MPI_BCAST(magnetic_construct_mpi%kp, 1, MPI_INTEGER, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%rmin, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%rmax, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%zmin, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%zmax, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(magnetic_construct_mpi%n_field_periods, 1,                &
-     &               MPI_INTEGER, 0, intra_comm, error)
-
-!  Plasma Response Arrays ------------------------------------------------------
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      magnetic_construct_mpi%ir = dim_lengths(1)
-      magnetic_construct_mpi%jz = dim_lengths(2)
-      magnetic_construct_mpi%kp_store = dim_lengths(3)
-
-      total_length = dim_lengths(1)*dim_lengths(2)*dim_lengths(3)
-
-      ALLOCATE(magnetic_construct_mpi%a_r(dim_lengths(1),                      &
-     &                                    dim_lengths(2),                      &
-     &                                    dim_lengths(3)))
-      CALL MPI_BCAST(magnetic_construct_mpi%a_r, total_length,                 &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-      ALLOCATE(magnetic_construct_mpi%a_f(dim_lengths(1),                      &
-     &                                    dim_lengths(2),                      &
-     &                                    dim_lengths(3)))
-      CALL MPI_BCAST(magnetic_construct_mpi%a_f, total_length,                 &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-      ALLOCATE(magnetic_construct_mpi%a_z(dim_lengths(1),                      &
-     &                                    dim_lengths(2),                      &
-     &                                    dim_lengths(3)))
-      CALL MPI_BCAST(magnetic_construct_mpi%a_z, total_length,                 &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-!  Conducting Shell Response Arrays --------------------------------------------
-      IF (BTEST(magnetic_construct_mpi%model_signal_flags,                     &
-     &          magnetic_use_con_shell_flag)) THEN
-         CALL MPI_BCAST(magnetic_construct_mpi%kp_shell, 1, MPI_INTEGER,       &
-     &                  0, intra_comm, error)
-
-         CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,       &
-     &                  error)
-         magnetic_construct_mpi%n_u = dim_lengths(1)
-         magnetic_construct_mpi%kp_shell_store = dim_lengths(2)
-
-         total_length = dim_lengths(1)*dim_lengths(2)
-
-         ALLOCATE(magnetic_construct_mpi%a_s_r(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-         CALL MPI_BCAST(magnetic_construct_mpi%a_s_r, total_length,            &
-     &                  MPI_REAL8, 0, intra_comm, error)
-
-         ALLOCATE(magnetic_construct_mpi%a_s_f(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-         CALL MPI_BCAST(magnetic_construct_mpi%a_s_f, total_length,            &
-     &                  MPI_REAL8, 0, intra_comm, error)
-
-         ALLOCATE(magnetic_construct_mpi%a_s_z(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-         CALL MPI_BCAST(magnetic_construct_mpi%a_s_z, total_length,            &
-     &                  MPI_REAL8, 0, intra_comm, error)
-      END IF
+      magnetic_construct_mpi%response =>                                       &
+     &   magnetic_response_construct_mpi(intra_comm)
 #endif
 
       END FUNCTION
@@ -452,29 +183,9 @@
       TYPE (magnetic_class), POINTER :: this
 
 !  Start of executable code
-      IF (ASSOCIATED(this%rdiag_coilg_1)) THEN
-         DEALLOCATE(this%rdiag_coilg_1)
-         this%rdiag_coilg_1 => null()
-      END IF
-
-      IF (ASSOCIATED(this%extcur_mg)) THEN
-         DEALLOCATE(this%extcur_mg)
-         this%extcur_mg => null()
-      END IF
-
-      IF (ASSOCIATED(this%a_r)) THEN
-         DEALLOCATE(this%a_r)
-         this%a_r => null()
-      END IF
-
-      IF (ASSOCIATED(this%a_f)) THEN
-         DEALLOCATE(this%a_f)
-         this%a_f => null()
-      END IF
-
-      IF (ASSOCIATED(this%a_z)) THEN
-         DEALLOCATE(this%a_z)
-         this%a_z => null()
+      IF (ASSOCIATED(this%response)) THEN
+         CALL magnetic_response_destruct(this%response)
+         this%response => null()
       END IF
 
       DEALLOCATE(this)
@@ -488,7 +199,7 @@
 !>  @brief Calculates the modeled signal.
 !>
 !>  The plasma signal is the volume integral of the current denisty dotted with
-!>  the diagnostic response function vector. The response_function contains a r z
+!>  the diagnostic response function vector. The response_function contains a rz
 !>  grid of reponce function vectors. These grid points are then interpolated
 !>  into the equilibrium grid positions for a single toroidal plane.
 !>  Hishman et. al. Phys. Plasmas 11, 595 (2004); doi: 10.1063/1.1637347
@@ -586,22 +297,24 @@
          ALLOCATE(response_zvol(numrvol, numzvol))
 
 !  Allocate work arrays to hold the results of the integration.
-         num_phi = this%kp_store
+         num_phi = this%response%num_t_store
          ALLOCATE(sumrz(numrvol, numzvol))
          ALLOCATE(sumphi(num_phi))
 
 !  Create the r and z gridpoints for the magnetic response function.
 !>  @todo FIXME: For a single diagnostic these never change. Allocate these once
 !>  and cache these in the @ref magnetic_class object.
-         ALLOCATE(rgrid(this%ir))
-         DO r = 1, this%ir
-            rgrid(r) = this%rmin + (r - 1)*(this%rmax - this%rmin)             &
-     &               / (this%ir - 1)
+         ALLOCATE(rgrid(this%response%num_r))
+         DO r = 1, this%response%num_r
+            rgrid(r) = this%response%rmin                                      &
+     &               + (r - 1)*(this%response%rmax - this%response%rmin)       &
+     &               / (this%response%num_r - 1)
          END DO
-         ALLOCATE(zgrid(this%jz))
-         DO z = 1, this%jz
-            zgrid(z) = this%zmin + (z - 1)*(this%zmax - this%zmin)             &
-     &               / (this%jz - 1)
+         ALLOCATE(zgrid(this%response%num_z))
+         DO z = 1, this%response%num_z
+            zgrid(z) = this%response%zmin                                      &
+     &               + (z - 1)*(this%response%zmax - this%response%zmin)       &
+     &               / (this%response%num_z - 1)
          END DO
 
 !  Create a bivariate object to do the interpolation.
@@ -615,11 +328,14 @@
      &                               rgrid, zgrid)
 
 !  Interpolate from the diagnotic grid points to the volume grid points.
-            CALL bivariate_get_4pt(bivariate_object, this%a_r(:,:,phi),        &
+            CALL bivariate_get_4pt(bivariate_object,                           &
+     &                             this%response%a_r(:,:,phi),                 &
      &                             response_rvol)
-            CALL bivariate_get_4pt(bivariate_object, this%a_f(:,:,phi),        &
+            CALL bivariate_get_4pt(bivariate_object,                           &
+     &                             this%response%a_f(:,:,phi),                 &
      &                             response_phivol)
-            CALL bivariate_get_4pt(bivariate_object, this%a_z(:,:,phi),        &
+            CALL bivariate_get_4pt(bivariate_object,                           &
+     &                             this%response%a_z(:,:,phi),                 &
      &                             response_zvol)
 
 !  J_plasma * A_diag
@@ -636,8 +352,7 @@
 
 !  Correct for stellarator symetry.
          magnetic_get_modeled_signal(2) = SUM(sumphi)
-         IF (BTEST(this%model_signal_flags,                                    &
-     &             magnetic_stell_sym_flag)) THEN
+         IF (this%response%stell_sym) THEN
             magnetic_get_modeled_signal(2)                                     &
      &         = magnetic_get_modeled_signal(2)                                & 
      &         - (sumphi(1) + sumphi(num_phi))/2.0
@@ -657,11 +372,11 @@
 
       END IF
 
-!-------------------------------------------------------------------------------
+!  Conducting Shell ------------------------------------------------------------
       IF (BTEST(this%model_signal_flags,                                       &
      &          magnetic_use_con_shell_flag)) THEN
 
-         num_phi = this%kp_shell_store
+         num_phi = this%response%num_t_shell_store
 
          krgrid =>                                                             &
      &      equilibrium_get_con_surface_krgrid(a_model%equilibrium)
@@ -675,15 +390,15 @@
             ALLOCATE(sumphi(num_phi))
 
             DO phi = 1, num_phi
-               sumphi(phi) = SUM(krgrid(:,phi)*this%a_s_r(:,phi))              &
-     &                     + SUM(kphigrid(:,phi)*this%a_s_f(:,phi))            &
-     &                     + SUM(kzgrid(:,phi)*this%a_s_z(:,phi))
+               sumphi(phi)                                                     &
+     &            = SUM(krgrid(:,phi)*this%response%a_s_r(:,phi))              &
+     &            + SUM(kphigrid(:,phi)*this%response%a_s_f(:,phi))            &
+     &            + SUM(kzgrid(:,phi)*this%response%a_s_z(:,phi))
             END DO
 
 !  Correct for stellarator symetry.
             magnetic_get_modeled_signal(4) = SUM(sumphi)
-            IF (BTEST(this%model_signal_flags,                                 &
-     &                magnetic_stell_sym_flag)) THEN
+            IF (this%response%stell_sym) THEN
                magnetic_get_modeled_signal(4)                                  &
      &            = magnetic_get_modeled_signal(4)                             &
      &            - (sumphi(1) + sumphi(num_phi))/2.0
@@ -699,10 +414,10 @@
 
       END IF
 
-!-------------------------------------------------------------------------------
+!  Coil Pickup -----------------------------------------------------------------
       IF (BTEST(this%model_signal_flags,                                       &
      &          magnetic_force_coil_response_flag)) THEN
-         num_currents = SIZE(this%rdiag_coilg_1)
+         num_currents = SIZE(this%response%inductance)
       ELSE
          num_currents = -1
       END IF
@@ -716,24 +431,25 @@
       IF (ASSOCIATED(extcur)) THEN
 
 !  Make sure we don't go out of bounds on any array.
-         num_currents = MIN(SIZE(extcur), SIZE(this%rdiag_coilg_1))
-         IF (num_currents .lt. this%n_field_cg) THEN
+         num_currents = MIN(SIZE(extcur),                                      &
+     &                      SIZE(this%response%inductance))
+         IF (num_currents .lt. this%response%n_field_cg) THEN
             CALL err_warn('magnetic_get_modeled_signal: ' //                   &
      &                    'mdsig_file expected more currents')
          END IF
 
          IF (scale_current) THEN
             magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
-     &         this%rdiag_coilg_1(1:num_currents),                             &
-     &         extcur(1:num_currents)/this%extcur_mg)
+     &         this%response%inductance(1:num_currents),                       &
+     &         extcur(1:num_currents)/this%response%current_scale)
          ELSE
             magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
-     &         this%rdiag_coilg_1(1:num_currents),                             &
+     &         this%response%inductance(1:num_currents),                       &
      &         extcur(1:num_currents))
          END IF
       END IF
 
-!-------------------------------------------------------------------------------
+!  Total Signal ----------------------------------------------------------------
 
 !  Add plasma signals and induced signal to create total signal.
       IF (BTEST(this%model_signal_flags,                                       &
@@ -867,70 +583,7 @@
       CALL MPI_BCAST(this%model_signal_flags, 1, MPI_INTEGER, 0,               &
      &               intra_comm, error)
 
-!  Identification Variables ----------------------------------------------------
-      CALL MPI_BCAST(this%code_name, data_name_length, MPI_CHARACTER, 0,       &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%code_version, data_name_length, MPI_CHARACTER,       &
-     &               0, intra_comm, error)
-      CALL MPI_BCAST(this%date_run, data_name_length, MPI_CHARACTER, 0,        &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%field_coils_id, data_name_length,                    &
-     &               MPI_CHARACTER, 0, intra_comm, error)
-
-!  Coil Responce Function Variables --------------------------------------------
-      CALL MPI_BCAST(this%n_field_cg, 1,  MPI_INTEGER, 0, intra_comm,          &
-     &               error)
-      CALL MPI_BCAST(this%rdiag_coilg_1, this%n_field_cg, MPI_REAL8, 0,        &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%extcur_mg, this%n_field_cg, MPI_REAL8, 0,            &
-     &               intra_comm, error)
-
-!  Plasma Response Grid Variables ----------------------------------------------
-      CALL MPI_BCAST(this%kp, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%rmin, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%rmax, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%zmin, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%zmax, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%n_field_periods, 1, MPI_INTEGER, 0,                  &
-     &               intra_comm, error)
-
-!  Plasma Response Arrays ------------------------------------------------------
-      dim_lengths = (/ this%ir, this%jz, this%kp_store /)
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      this%ir = dim_lengths(1)
-      this%jz = dim_lengths(2)
-      this%kp_store = dim_lengths(3)
-
-      total_length = dim_lengths(1)*dim_lengths(2)*dim_lengths(3)
-      CALL MPI_BCAST(this%a_r, total_length, MPI_REAL8, 0, intra_comm,         &
-     &               error)
-      CALL MPI_BCAST(this%a_f, total_length, MPI_REAL8, 0, intra_comm,         &
-     &               error)
-      CALL MPI_BCAST(this%a_z, total_length, MPI_REAL8, 0, intra_comm,         &
-     &               error)
-
-!  Conducting Shell Response Arrays --------------------------------------------
-      IF (BTEST(this%model_signal_flags,                                       &
-     &          magnetic_use_con_shell_flag)) THEN
-         CALL MPI_BCAST(this%kp_shell, 1, MPI_INTEGER, 0, intra_comm,          &
-     &                  error)
-
-         dim_lengths(1:2) = (/ this%n_u, this%kp_shell_store /)
-         CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,       &
-     &                  error)
-         this%n_u = dim_lengths(1)
-         this%kp_shell_store = dim_lengths(2)
-
-         total_length = dim_lengths(1)*dim_lengths(2)
-         CALL MPI_BCAST(this%a_s_r, total_length, MPI_REAL8, 0,                &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%a_s_f, total_length, MPI_REAL8, 0,                &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%a_s_z, total_length, MPI_REAL8, 0,                &
-     &                  intra_comm, error)
-      END IF
-
-      CALL profiler_set_stop_time('magnetic_sync_children', start_time)
+      CALL magnetic_response_sync_children(this%response, intra_comm)
 #endif
 
       END SUBROUTINE

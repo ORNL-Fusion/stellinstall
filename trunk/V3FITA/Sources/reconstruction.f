@@ -82,6 +82,8 @@
          REAL (rprec), DIMENSION(:,:), POINTER :: j_svd_vt => null()
 !>  The normalized step length for each sigular value.
          REAL (rprec), DIMENSION(:), POINTER   :: delta_a_len => null()
+!>  The singular values used in inverting parameter covariance matrix.
+         REAL (rprec), DIMENSION(:), POINTER   :: svd_w => null()
 
 !>  The expected g^2 for each reconstruction step.
          REAL (rprec), DIMENSION(:), POINTER   :: exp_g2 => null()
@@ -110,6 +112,17 @@
 !>  @see v3fit_input::cut_inv_svd
          REAL (rprec) :: cut_inv_svd
       END TYPE
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for writing out step data.
+!-------------------------------------------------------------------------------
+      INTERFACE reconstruction_write_step
+         MODULE PROCEDURE reconstruction_write_step1,                           &
+     &                    reconstruction_write_step2
+      END INTERFACE
 
       CONTAINS
 !*******************************************************************************
@@ -228,6 +241,7 @@
       ALLOCATE(reconstruction_construct%j_svd_vt(num_parameters,               &
      &                                           num_parameters))
       ALLOCATE(reconstruction_construct%delta_a_len(0:num_svd))
+      ALLOCATE(reconstruction_construct%svd_w(num_parameters))
       reconstruction_construct%e = 0.0
 
       ALLOCATE(reconstruction_construct%exp_g2(num_steps))
@@ -320,6 +334,11 @@
       IF (ASSOCIATED(this%delta_a_len)) THEN
          DEALLOCATE(this%delta_a_len)
          this%delta_a_len => null()
+      END IF
+
+      IF (ASSOCIATED(this%svd_w)) THEN
+         DEALLOCATE(this%svd_w)
+         this%svd_w => null()
       END IF
 
       IF (ASSOCIATED(this%exp_g2)) THEN
@@ -1710,7 +1729,7 @@
 
       DEALLOCATE(j_dot_cp, cp)
 
-      CALL profiler_set_stop_time('reconstruction_eval_sem', start_time)
+      CALL profiler_set_stop_time(sub_name, start_time)
 
       END SUBROUTINE
 
@@ -1738,7 +1757,6 @@
 !  local arguments
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: svd_vt
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: svd_u
-      REAL (rprec), DIMENSION(:), ALLOCATABLE    :: svd_w
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: svd_work
       INTEGER                                    :: num_svd
       INTEGER                                    :: work_size
@@ -1752,51 +1770,45 @@
       m = SIZE(matrix, 1)
       n = SIZE(matrix, 2)
 
-      num_svd = MIN(m, n)
+      ALLOCATE(svd_vt(n,n))
+      ALLOCATE(svd_u(m,m))
+      ALLOCATE(svd_work(1))
 
-      IF (num_svd .gt. 0) THEN
-
-         ALLOCATE(svd_vt(n,n))
-         ALLOCATE(svd_u(m,m))
-         ALLOCATE(svd_w(num_svd))
-         ALLOCATE(svd_work(1))
-
-         svd_vt = 0.0
-         svd_u = 0.0
-         svd_w = 0.0
-         svd_work = 0.0
+      svd_vt = 0.0
+      svd_u = 0.0
+      this%svd_w = 0.0
+      svd_work = 0.0
 
 !  Find the optimal work size.
-         CALL dgesvd('All', 'All', m, n, matrix, m, svd_w, svd_u,              &
-     &               m, svd_vt, n, svd_work, -1, status)
-         work_size = INT(svd_work(1))
-         DEALLOCATE(svd_work)
-         ALLOCATE(svd_work(work_size))
+      CALL dgesvd('All', 'All', m, n, matrix, m, this%svd_w, svd_u, m,         &
+     &            svd_vt, n, svd_work, -1, status)
+      work_size = INT(svd_work(1))
+      DEALLOCATE(svd_work)
+      ALLOCATE(svd_work(work_size))
 
 !  Factor the matrix to M = U * W * V^T
-         CALL dgesvd('All', 'All', m, n, matrix, m, svd_w, svd_u,              &
-     &               m, svd_vt, n, svd_work, work_size, status)
-         CALL assert_eq(0, status, sub // ': dgesvd problem when ' //          &
-     &                  'inverting ' // name)
+      CALL dgesvd('All', 'All', m, n, matrix, m, this%svd_w, svd_u, m,         &
+     &            svd_vt, n, svd_work, work_size, status)
+      CALL assert_eq(0, status, sub // ': dgesvd problem when ' //             &
+     &               'inverting ' // name)
 
 !  If the matrix is rectangular the inverse matrix will be transposed.
-         DEALLOCATE(matrix)
-         ALLOCATE(matrix(n,m))
+      DEALLOCATE(matrix)
+      ALLOCATE(matrix(n,m))
 
 !  Invert the nonzero elements of the W matrix.
-         matrix = 0
-         DO i = 1, num_svd
-            IF (svd_w(i) .gt. 0.0 .and.                                        &
-     &          svd_w(i) .ge. this%cut_inv_svd) THEN
-               matrix(i,i) = 1.0/svd_w(i)
-            END IF
-         END DO
+      matrix = 0
+      DO i = 1, SIZE(this%svd_w)
+         IF (this%svd_w(i) .gt. 0.0 .and.                                      &
+     &       this%svd_w(i)/this%svd_w(1) .ge. this%cut_inv_svd) THEN
+            matrix(i,i) = 1.0/this%svd_w(i)
+         END IF
+      END DO
 
 !  Invert the matric M^-1 = V * W^-1 * U^T
-         matrix = MATMUL(TRANSPOSE(svd_vt),                                    &
-     &                   MATMUL(matrix, TRANSPOSE(svd_u)))
-         DEALLOCATE(svd_vt, svd_u, svd_w, svd_work)
-      END IF
+      matrix = MATMUL(TRANSPOSE(svd_vt), MATMUL(matrix,                        &
+     &                                          TRANSPOSE(svd_u)))
+      DEALLOCATE(svd_vt, svd_u, svd_work)
 
       CALL profiler_set_stop_time('reconstruction_invert_matrix',              &
      &                            start_time)
@@ -1893,7 +1905,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Write out a reconstruction step.
+!>  @brief Write out a reconstruction step attempt.
 !>
 !>  Write out information about a reconstruction step. This writes the number of
 !>  singular values use, the step type, the normalized step size and the
@@ -1903,7 +1915,7 @@
 !>  @param[in] step_type The step type used.
 !>  @param[in] iou       Input/output file to write final result to.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_write_step(this, step_type, iou)
+      SUBROUTINE reconstruction_write_step1(this, step_type, iou)
 
       IMPLICIT NONE
 
@@ -1913,8 +1925,6 @@
       INTEGER, INTENT(in)                     :: iou
 
 !  local variables.
-      CHARACTER (len=21)                      :: jac_format
-      INTEGER                                 :: i
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -1930,29 +1940,79 @@
       WRITE (iou,1001) step_type, this%step_size(this%current_step + 1)
       WRITE (iou,1002) this%exp_g2(this%current_step + 1)
 
+      CALL profiler_set_stop_time('reconstruction_write_step1',                 &
+     &                            start_time)
+
+1000  FORMAT('Number of singular values used: ',i3)
+1001  FORMAT(a4,': Step size limited to ',es12.5)
+1002  FORMAT('  Expected g^2 = ',es12.5)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write out a final reconstruction step.
+!>
+!>  Write out information about a reconstruction step. This writes the number of
+!>  singular values use, the step type, the normalized step size and the
+!>  expected g^2.
+!>
+!>  @param[in] this      A @ref reconstruction_class instance.
+!>  @param[in] iou       Input/output file to write final result to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_write_step2(this, iou)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                     :: iou
+
+!  local variables.
+      CHARACTER (len=21)                      :: jac_format
+      INTEGER                                 :: i
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
       WRITE (iou,*)
       WRITE (iou,*) ' *** Jacobian'
-      WRITE (jac_format,1003) SIZE(this%jacobian, 2)
+      WRITE (jac_format,1000) SIZE(this%jacobian, 2)
       DO i = 1, SIZE(this%jacobian, 1)
-         WRITE(iou,jac_format) i, this%jacobian(i,:)
+         WRITE (iou,jac_format) i, this%jacobian(i,:)
+      END DO
+
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Jacobian Singular Values'
+      WRITE (iou,1001)
+      DO i = 1, SIZE(this%j_svd_w)
+         WRITE (iou,1002) this%j_svd_w(i), i .le.                              &
+     &                    this%num_sv(this%current_step)
       END DO
       WRITE (iou,*)
 
       WRITE (iou,*)
       WRITE (iou,*) ' *** Derived Jacobian'
-      WRITE (jac_format,1003) SIZE(this%derived_jacobian, 2)
+      WRITE (jac_format,1000) SIZE(this%derived_jacobian, 2)
       DO i = 1, SIZE(this%derived_jacobian, 1)
-         WRITE(iou,jac_format) i, this%derived_jacobian(i,:)
+         WRITE (iou,jac_format) i, this%derived_jacobian(i,:)
+      END DO
+
+      WRITE (iou,*)
+      WRITE (iou,*) ' *** Parameter Covarance Singular Values'
+      WRITE (iou,1001)
+      DO i = 1, SIZE(this%svd_w)
+         WRITE (iou,1002) this%svd_w(i),                                       &
+     &      this%svd_w(i)/this%svd_w(1) .ge. this%cut_inv_svd
       END DO
       WRITE (iou,*)
 
       CALL profiler_set_stop_time('reconstruction_write_step',                 &
      &                            start_time)
 
-1000  FORMAT('Number of singular values used: 'i3)
-1001  FORMAT(a4,': Step size limited to ',es12.5)
-1002  FORMAT('  Expected g^2 = ',es12.5)
-1003  FORMAT('(i4,',i3,'(2x,es12.5))')
+1000  FORMAT('(i4,',i3,'(2x,es12.5))')
+1001  FORMAT('svd value',5x,'used')
+1002  FORMAT(es12.5,2x,l)
 
       END SUBROUTINE
 

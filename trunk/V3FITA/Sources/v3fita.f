@@ -423,6 +423,8 @@
      &                                   context%params,                       &
      &                                   context%signals,                      &
      &                                   context%derived_params)
+            CALL reconstruction_write_step(context%recon,                      &
+     &                                     context%runlog_iou)
             CALL v3fit_context_write_step_data(context, .false.)
 
 !  Test for convergence.
@@ -897,7 +899,7 @@
       INTEGER                                   :: mdsig_index
       CHARACTER (len=data_filename_length)      :: mdsig_path
       CHARACTER (len=data_filename_length)      :: mdsig_filename
-      TYPE (magnetic_class), POINTER :: magnetic_object => null()
+      TYPE (magnetic_class), POINTER            :: magnetic_object
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -985,21 +987,15 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  local variables
-      TYPE (magnetic_class), POINTER :: magnetic_object => null()
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       IF (context%magnetic_index .gt. 0) THEN
-         magnetic_object => context%signals(1)%p%diagnostic%magnetic
          CALL equilibrium_set_magnetic_cache(                                  &
-     &           context%model%equilibrium, magnetic_object%kp,                &
-     &           magnetic_object%kp_store,                                     &
-     &           magnetic_object%n_field_periods,                              &
-     &           ASSOCIATED(magnetic_object%a_s_r),                            &
-     &           magnetic_object%n_u, magnetic_object%kp_shell,                &
-     &           magnetic_object%kp_shell_store)
+     &           context%model%equilibrium,                                    &
+     &           context%signals(1)%p%diagnostic%magnetic%response)
       END IF
 
       CALL profiler_set_stop_time('init_magnetic_cache', start_time)
@@ -1620,6 +1616,7 @@
       SUBROUTINE config_parallelism(context)
       USE v3fit_context
       USE file_opts
+!$    USE omp_lib
 #if defined(MPI_OPT)
       USE data_parameters
 #endif
@@ -1650,14 +1647,6 @@
       CHARACTER (len=data_filename_length)      :: temp_string
 #endif
       REAL (rprec)                              :: start_time
-
-!  Forward declare the interface for OMP_GET_MAX_THREADS. This explicitly
-!  defined the type for OMP_GET_MAX_THREADS to avoid a compiler error.
-!$    INTERFACE
-!$       FUNCTION OMP_GET_MAX_THREADS()
-!$       INTEGER :: OMP_GET_MAX_THREADS
-!$       END FUNCTION
-!$    END INTERFACE
 
 !  Start of executable code
       start_time = profiler_get_start_time()
