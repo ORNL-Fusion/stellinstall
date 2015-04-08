@@ -519,7 +519,6 @@
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) v3fit_namelist_class
-!  2) v3fit_context_class
 !
 !*******************************************************************************
 !>  File name for main namelist input.
@@ -905,7 +904,7 @@
 !>  @see reconstruction
       CHARACTER (len=v3fit_step_name_length) :: step_type = 'sl'
 !>  Cutoff value for singular values in matrix inverse.
-      REAL (rprec)                           :: cut_inv_svd = 0.0
+      REAL (rprec)                           :: cut_inv_svd = 1.0E-10
 
 !>  Zero out vmec xcdot array
 !>  @todo FIXME: VMEC specific. Not implemented.

@@ -1006,7 +1006,7 @@
      &         equilibrium_get_sxrem(this%equilibrium, x_cart, index)
 
          CASE (model_sxrem_te_ne_type)
-            model_get_sxrem_cart = length*length*                              &
+            model_get_sxrem_cart =                                             &
      &         emission_get_emission(this%emission,                            &
      &                               model_get_te(this, x_cart),               &
      &                               model_get_ne(this, x_cart), index)
@@ -1056,7 +1056,7 @@
      &         equilibrium_get_sxrem(this%equilibrium, r, index)
 
          CASE (model_sxrem_te_ne_type)
-            model_get_sxrem_radial = length*length*                            &
+            model_get_sxrem_radial =                                           &
      &         emission_get_emission(this%emission,                            &
      &                               model_get_te(this, r),                    &
      &                               model_get_ne(this, r), index)
