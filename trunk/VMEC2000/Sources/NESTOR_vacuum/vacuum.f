@@ -5,25 +5,25 @@
       USE vparams, ONLY: nthreed, zero, one, mu0
       USE vmec_params, ONLY: norm_term_flag, phiedge_error_flag
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER :: ns, ivac_skip, ivac, mnmax, ier_flag
       REAL(rprec) :: plascur, rbtor
       REAL(rprec), DIMENSION(mnmax), INTENT(in) ::
      1   rmnc, rmns, zmns, zmnc, xm, xn
       REAL(rprec), DIMENSION(*), INTENT(in) :: wint
       LOGICAL :: lscreen
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: mn, n, n1, m, i, info
       REAL(rprec), DIMENSION(:), POINTER :: potcos, potsin
       REAL(rprec), ALLOCATABLE :: bsubu(:), bsubv(:), potu(:), potv(:)
       REAL(rprec), ALLOCATABLE :: amatrix(:)
       REAL(rprec):: dn2, dm2, cosmn, sinmn, huv, hvv,
      1    det, bsupu, bsupv, bsubuvac, fac
-C-----------------------------------------------
+!-----------------------------------------------
 !
 !     THIS ROUTINE COMPUTES .5 * B**2 ON THE VACUUM / PLASMA SURFACE
 !     BASED ON THE PROGRAM BY P. MERKEL [J. Comp. Phys. 66, 83 (1986)]
@@ -36,7 +36,7 @@ C-----------------------------------------------
 !
       ier_flag = norm_term_flag
 
-      IF (.not.ALLOCATED(potvac)) STOP 'POTVAC not ALLOCATED in VACCUM'
+      IF (.NOT.ALLOCATED(potvac)) STOP 'POTVAC not ALLOCATED in VACCUM'
 
       ALLOCATE (amatrix(mnpd2*mnpd2), bsubu(nuv2), bsubv(nuv2),
      1    potu(nuv2), potv(nuv2), stat=i)

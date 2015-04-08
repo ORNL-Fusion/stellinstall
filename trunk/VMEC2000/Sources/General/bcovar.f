@@ -27,6 +27,7 @@
 !-----------------------------------------------
 !     GENERALLY, IF TEMPORAL CONVERGENCE IS POOR, TRY TO INCREASE PDAMP (< 1)
 !     (STORED IN VMEC_PARAMS)
+      INTEGER, EXTERNAL :: OMP_GET_THREAD_NUM
       REAL(rprec), PARAMETER :: c1p5 = (one + p5)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -56,31 +57,31 @@
       bsupv => luv;  bsubvh => bsubv_o
       r12sq => bsq
 
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(l,lb,ub,temp1,temp2,temp3) 
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(l,lb,ub,temp1,temp2,temp3) 
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l
 
-         temp3 = sqrts(lb:ub)*sqrts(lb:ub)
+         temp3(:) = sqrts(lb:ub)*sqrts(lb:ub)
 
-         temp1= ru(lb:ub,0)*ru(lb:ub,0) 
-     1        + zu(lb:ub,0)*zu(lb:ub,0) + temp3*
+         temp1(:)= ru(lb:ub,0)*ru(lb:ub,0) 
+     1        + zu(lb:ub,0)*zu(lb:ub,0) + temp3(:)*
      2        ( ru(lb:ub,1)*ru(lb:ub,1)
      3        + zu(lb:ub,1)*zu(lb:ub,1))
          
-         temp2= (ru(lb:ub,0)*ru(lb:ub,1) 
+         temp2(:)= (ru(lb:ub,0)*ru(lb:ub,1) 
      1        +  zu(lb:ub,0)*zu(lb:ub,1))*2
          guu(lb)=0
          guu(lb+1:ub) = p5*(temp1(2:ns) + temp1(1:ns-1) + 
      1        shalf(lb+1:ub)*(temp2(2:ns) + temp2(1:ns-1)))
 
          IF (lthreed) THEN
-         temp1= ru(lb:ub,0)*rv(lb:ub,0)
-     1        + zu(lb:ub,0)*zv(lb:ub,0) + temp3*
+         temp1(:)= ru(lb:ub,0)*rv(lb:ub,0)
+     1        + zu(lb:ub,0)*zv(lb:ub,0) + temp3(:)*
      2        ( ru(lb:ub,1)*rv(lb:ub,1) 
      3        + zu(lb:ub,1)*zv(lb:ub,1) )
-         temp2= ru(lb:ub,0)*rv(lb:ub,1) 
+         temp2(:)= ru(lb:ub,0)*rv(lb:ub,1) 
      1        + ru(lb:ub,1)*rv(lb:ub,0)
      2        + zu(lb:ub,0)*zv(lb:ub,1) 
      3        + zu(lb:ub,1)*zv(lb:ub,0)
@@ -92,16 +93,16 @@
             guv(lb:ub) = 0
          END IF
 
-         temp1= r1(lb:ub,0)*r1(lb:ub,0) 
-     1        + temp3*r1(lb:ub,1)*r1(lb:ub,1)
-         temp2 = 2*r1(lb:ub,0)*r1(lb:ub,1)
+         temp1(:)= r1(lb:ub,0)*r1(lb:ub,0) 
+     1        + temp3(:)*r1(lb:ub,1)*r1(lb:ub,1)
+         temp2(:) = 2*r1(lb:ub,0)*r1(lb:ub,1)
          IF (lthreed) THEN
-         temp1= temp1
+         temp1(:)= temp1(:)
      1        + rv(lb:ub,0)*rv(lb:ub,0)
      3        + zv(lb:ub,0)*zv(lb:ub,0) 
-     4        + temp3*( rv(lb:ub,1)*rv(lb:ub,1)
+     4        + temp3(:)*( rv(lb:ub,1)*rv(lb:ub,1)
      5        + zv(lb:ub,1)*zv(lb:ub,1) )
-          temp2 = temp2
+          temp2(:) = temp2(:)
      1        + (rv(lb:ub,0)*rv(lb:ub,1) 
      2        +  zv(lb:ub,0)*zv(lb:ub,1))*2
          END IF
@@ -139,17 +140,17 @@
          bsupu(lb)=0
          bsupv(lb)=0
       END DO 
-!$OMP END PARALLEL DO 
+!$OMP END DO 
 
-      vp(1)=0
 !$OMP DO PRIVATE(js)
       DO js = 2, ns
          vp(js) = signgs*SUM(gsqrt(js:nrzt:ns)*wint(js:nrzt:ns))
       END DO
 !$OMP END DO
+!$OMP END PARALLEL
 
+      vp(1)=0
       IF (iter2 .eq. 1) voli = twopi*twopi*hs*SUM(vp(2:ns))
-
 !
 !     UPDATE IOTA EITHER OF TWO WAYS:
 !     1)  FOR ictrl_prec2d = 0, SOLVE THE LINEAR ALGEBRAIC EQUATION <Bsubu> = icurv 
@@ -231,9 +232,9 @@
 !$OMP END DO 
 #endif
 
-!$OMP DO PRIVATE(l,lb,ub)
 !SPH122407-MOVED HERE: COMPUTE LAMBDA FULL MESH FORCES
 !     NOTE: bsubu_e is used here ONLY as a temporary array
+!$OMP DO PRIVATE(l,lb,ub)
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l         
@@ -303,8 +304,8 @@
       DO l=1,nznt
          lb=ns*(l-1)+1
          ub=ns*l         
-         IF (bsubuh(lb) .ne. zero) STOP 'BSUBUH != 0 AT JS=1'
-         IF (bsubvh(lb) .ne. zero) STOP 'BSUBVH != 0 AT JS=1'
+         IF (bsubuh(lb) .NE. zero) STOP 'BSUBUH != 0 AT JS=1'
+         IF (bsubvh(lb) .NE. zero) STOP 'BSUBVH != 0 AT JS=1'
          bsubu_e(lb:ub-1) = p5*(bsubuh(lb:ub-1) + bsubuh(lb+1:ub))
          bsubu_e(ub) = p5*bsubuh(ub)
          bsubv_e(lb:ub-1) = bsubv_e(lb:ub-1)*bdamp(1:ns-1) + 
@@ -351,21 +352,23 @@
 #endif
      3                 crd,rru_fac,sin01)
 
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP WORKSHARE
+!$OMP PARALLEL WORKSHARE NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
          rzu_fac(2:ns-1) = sqrts(2:ns-1)*rzu_fac(2:ns-1)
          rru_fac(2:ns-1) = sqrts(2:ns-1)*rru_fac(2:ns-1)
-         frcc_fac(2:ns-1) = one/rzu_fac(2:ns-1);  rzu_fac = rzu_fac/2
-         fzsc_fac(2:ns-1) =-one/rru_fac(2:ns-1);  rru_fac = rru_fac/2
-!$OMP END WORKSHARE
+         frcc_fac(2:ns-1) = one/rzu_fac(2:ns-1)
+         rzu_fac(:) = rzu_fac(:)/2
+         fzsc_fac(2:ns-1) =-one/rru_fac(2:ns-1)
+         rru_fac(:) = rru_fac(:)/2
+!$OMP END PARALLEL WORKSHARE
 #ifdef _HBANGLE
          CALL precondn_rho
 #endif
          volume = hs*SUM(vp(2:ns))
          r2 = MAX(wb,wp)/volume
-
          t1=0; t2=0
-!$OMP DO PRIVATE(l,lb,ub) REDUCTION(+:t1,t2)
+
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(l,lb,ub) REDUCTION(+:t1,t2)
          DO l=1,nznt
             lb=ns*(l-1)+2
             ub=ns*l          
@@ -374,7 +377,7 @@
             t2 = t2 + SUM((bsubuh(lb:ub)**2 + bsubvh(lb:ub)**2)
      1                    *wint(lb:ub))
          END DO
-!$OMP END DO 
+!$OMP END PARALLEL DO
 
          fnorm = one/(t1*r2*r2)                                    !Norm, unpreconditioned R,Z forces
          fnormL = one/(t2*lamscale**2)                             !Norm for unpreconditioned Lambda force
@@ -390,22 +393,19 @@
 
          tcon_mul = tcon_mul/((4*r0scale**2)**2)                   !!Scaling of ard, azd (2*r0scale**2); 
 
-!$OMP DO PRIVATE(js)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(js)
          DO js=2,ns-1
             marnorm(js)=SUM(wint(js:nrzt:ns)*ru0(js:nrzt:ns)**2)
             maznorm(js)=SUM(wint(js:nrzt:ns)*zu0(js:nrzt:ns)**2)
-         END DO
-!$OMP END DO
-         IF (ANY(marnorm(2:ns-1).EQ.zero .OR. maznorm(2:ns-1).EQ.zero))
+
+            IF (marnorm(js).EQ.zero .OR. maznorm(js).EQ.zero)
      1        STOP 'arnorm or aznorm=0 in bcovar'
 
-!$OMP DO PRIVATE(js)
-         DO js = 2, ns-1
-           tcon(js) = MIN(ABS(ard(js,1)/marnorm(js)),
+            tcon(js) = MIN(ABS(ard(js,1)/marnorm(js)),
      1                ABS(azd(js,1)/maznorm(js))) * tcon_mul*(32*hs)**2
          END DO
-!$OMP END DO
-!$OMP END PARALLEL
+!$OMP END PARALLEL DO
 
          tcon(ns) = p5*tcon(ns-1)
          IF (lasym) tcon = p5*tcon

@@ -7,13 +7,13 @@
       USE mgrid_mod, ONLY: nr0b, np0b, nz0b, 
      1   rminb, zminb, rmaxb, zmaxb, delrb, delzb
       IMPLICIT NONE
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
-      REAL(rprec), PARAMETER :: p5 = cp5, two = c2p0
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+      REAL(rprec), PARAMETER :: p5=cp5, two=c2p0
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: nfper, nvper
       REAL(rprec), DIMENSION(:), ALLOCATABLE, TARGET :: potvac
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: bvecsav, amatsav,

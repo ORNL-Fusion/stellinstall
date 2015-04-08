@@ -22,18 +22,19 @@ C-----------------------------------------------
 
       current = torcur/mu0
 
-      i = 0
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(kper)
       DO kper = 1, nvper
          DO kv = 1, nv
-            i = i + 1
+            i = kv+nv*(kper-1)
             xpts(1,i) = raxis_nestor(kv)*(cosper(kper)*cosuv(kv)
      1                -                   sinper(kper)*sinuv(kv))
             xpts(2,i) = raxis_nestor(kv)*(sinper(kper)*cosuv(kv) 
-     1                +            cosper(kper)*sinuv(kv))
+     1                +                   cosper(kper)*sinuv(kv))
             xpts(3,i) = zaxis_nestor(kv)
          END DO
       END DO
-
+!$OMP END PARALLEL DO
  
 !
 !     INITIALIZE COIL-RELATED QUANTITIES

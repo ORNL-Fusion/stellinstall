@@ -1,17 +1,18 @@
       SUBROUTINE surface(rc, rs, zs, zc, xm, xn, mnmax)
       USE vacmod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER mnmax
       REAL(rprec), DIMENSION(mnmax) :: rc, rs, zs, zc, xm, xn
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
       INTEGER :: i, mn, m, n, n1
       REAL(rprec), ALLOCATABLE, DIMENSION(:) ::
-     1   ruu, ruv, rvv, zuu, zuv, zvv, cosmn1, sinmn1
-C-----------------------------------------------
+     1   ruu, ruv, rvv, zuu, zuv, zvv
+      REAL(rprec) :: cosmn1, sinmn1
+!-----------------------------------------------
 !
 !       THIS ROUTINE COMPUTES THE SURFACE VALUES OF R,Z AND DERIVATIVES
 !
@@ -25,7 +26,7 @@ C-----------------------------------------------
 !             variables used in PKM paper
 !
       ALLOCATE (ruu(nuv2), ruv(nuv2), rvv(nuv2), zuu(nuv2), zuv(nuv2),
-     1          zvv(nuv2), cosmn1(nuv2), sinmn1(nuv2), stat = i)
+     1          zvv(nuv2), stat = i)
       IF (i .NE. 0) STOP 'Allocation error in SURFACE'
 
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
@@ -37,37 +38,37 @@ C-----------------------------------------------
          m = NINT(xm(mn))
          n = NINT(xn(mn)/(nfper))
          n1 = ABS(n)
-         cosmn1(:) = cosu1(:,m)*cosv1(:,n1) + csign(n)*sinu1(:,m)*
-     1               sinv1(:,n1)
-         sinmn1(:) = sinu1(:,m)*cosv1(:,n1) - csign(n)*cosu1(:,m)*
-     1               sinv1(:,n1)
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i, cosmn1, sinmn1)
          DO i = 1, nuv2
-            r1b(i) = r1b(i) + rc(mn) * cosmn1(i)
-            rub(i) = rub(i) - xm(mn) * rc(mn) * sinmn1(i)
-            rvb(i) = rvb(i) + xn(mn) * rc(mn) * sinmn1(i)
-            z1b(i) = z1b(i) + zs(mn) * sinmn1(i)
-            zub(i) = zub(i) + xm(mn) * zs(mn) * cosmn1(i)
-            zvb(i) = zvb(i) - xn(mn) * zs(mn) * cosmn1(i)
-            ruu(i) = ruu(i) - xm(mn)*xm(mn)*rc(mn) * cosmn1(i)
-            ruv(i) = ruv(i) + xm(mn)*xn(mn)*rc(mn) * cosmn1(i)
-            rvv(i) = rvv(i) - xn(mn)*xn(mn)*rc(mn) * cosmn1(i)
-            zuu(i) = zuu(i) - xm(mn)*xm(mn)*zs(mn) * sinmn1(i)
-            zuv(i) = zuv(i) + xm(mn)*xn(mn)*zs(mn) * sinmn1(i)
-            zvv(i) = zvv(i) - xn(mn)*xn(mn)*zs(mn) * sinmn1(i)
+            cosmn1 = cosu1(i,m)*cosv1(i,n1) + csign(n)*sinu1(i,m)*
+     1               sinv1(i,n1)
+            sinmn1 = sinu1(i,m)*cosv1(i,n1) - csign(n)*cosu1(i,m)*
+     1               sinv1(i,n1)
+            r1b(i) = r1b(i) + rc(mn) * cosmn1
+            rub(i) = rub(i) - xm(mn) * rc(mn) * sinmn1
+            rvb(i) = rvb(i) + xn(mn) * rc(mn) * sinmn1
+            z1b(i) = z1b(i) + zs(mn) * sinmn1
+            zub(i) = zub(i) + xm(mn) * zs(mn) * cosmn1
+            zvb(i) = zvb(i) - xn(mn) * zs(mn) * cosmn1
+            ruu(i) = ruu(i) - xm(mn)*xm(mn)*rc(mn) * cosmn1
+            ruv(i) = ruv(i) + xm(mn)*xn(mn)*rc(mn) * cosmn1
+            rvv(i) = rvv(i) - xn(mn)*xn(mn)*rc(mn) * cosmn1
+            zuu(i) = zuu(i) - xm(mn)*xm(mn)*zs(mn) * sinmn1
+            zuv(i) = zuv(i) + xm(mn)*xn(mn)*zs(mn) * sinmn1
+            zvv(i) = zvv(i) - xn(mn)*xn(mn)*zs(mn) * sinmn1
          IF (lasym) THEN
-            r1b(i) = r1b(i) + rs(mn) * sinmn1(i)
-            rub(i) = rub(i) + xm(mn) * rs(mn) * cosmn1(i)
-            rvb(i) = rvb(i) - xn(mn) * rs(mn) * cosmn1(i)
-            z1b(i) = z1b(i) + zc(mn) * cosmn1(i)
-            zub(i) = zub(i) - xm(mn) * zc(mn) * sinmn1(i)
-            zvb(i) = zvb(i) + xn(mn) * zc(mn) * sinmn1(i)
-            ruu(i) = ruu(i) - xm(mn)*xm(mn)*rs(mn) * sinmn1(i)
-            ruv(i) = ruv(i) + xm(mn)*xn(mn)*rs(mn) * sinmn1(i)
-            rvv(i) = rvv(i) - xn(mn)*xn(mn)*rs(mn) * sinmn1(i)
-            zuu(i) = zuu(i) - xm(mn)*xm(mn)*zc(mn) * cosmn1(i)
-            zuv(i) = zuv(i) + xm(mn)*xn(mn)*zc(mn) * cosmn1(i)
-            zvv(i) = zvv(i) - xn(mn)*xn(mn)*zc(mn) * cosmn1(i)
+            r1b(i) = r1b(i) + rs(mn) * sinmn1
+            rub(i) = rub(i) + xm(mn) * rs(mn) * cosmn1
+            rvb(i) = rvb(i) - xn(mn) * rs(mn) * cosmn1
+            z1b(i) = z1b(i) + zc(mn) * cosmn1
+            zub(i) = zub(i) - xm(mn) * zc(mn) * sinmn1
+            zvb(i) = zvb(i) + xn(mn) * zc(mn) * sinmn1
+            ruu(i) = ruu(i) - xm(mn)*xm(mn)*rs(mn) * sinmn1
+            ruv(i) = ruv(i) + xm(mn)*xn(mn)*rs(mn) * sinmn1
+            rvv(i) = rvv(i) - xn(mn)*xn(mn)*rs(mn) * sinmn1
+            zuu(i) = zuu(i) - xm(mn)*xm(mn)*zc(mn) * cosmn1
+            zuv(i) = zuv(i) + xm(mn)*xn(mn)*zc(mn) * cosmn1
+            zvv(i) = zvv(i) - xn(mn)*xn(mn)*zc(mn) * cosmn1
          END IF
       END DO
 !$OMP END DO
@@ -125,6 +126,6 @@ C-----------------------------------------------
 !$OMP END DO
 !$OMP END PARALLEL
 
-      DEALLOCATE (ruu, ruv, rvv, zuu, zuv, zvv, cosmn1, sinmn1, stat=i)
+      DEALLOCATE (ruu, ruv, rvv, zuu, zuv, zvv, stat=i)
 
       END SUBROUTINE surface

@@ -6,7 +6,7 @@
 #endif
      4                 )
 ! ... from SPH 2009-10-05; changes for modB sine-harmonics included
-      USE vmec_main, p5 => cp5, two => c2p0
+      USE vparams, p5 => cp5, two => c2p0
       USE vmec_input, ONLY: ns_array, ftol_array, lwouttxt
       USE vmec_params
       USE vmercier

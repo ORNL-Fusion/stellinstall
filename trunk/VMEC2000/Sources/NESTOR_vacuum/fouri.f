@@ -2,9 +2,9 @@
      1                 ndim, ns)
       USE vacmod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(in) :: ns, ndim
       REAL(rprec), DIMENSION(mnpd,nv,nu3,ndim), INTENT(in) :: grpmn
       REAL(rprec), DIMENSION(nuv), INTENT(in) :: gsource
@@ -12,19 +12,19 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(mnpd2,mnpd2), INTENT(out) :: amatsq
       REAL(rprec), DIMENSION(0:mf,-nf:nf,ndim), INTENT(inout) :: bvec
       REAL(rprec), DIMENSION(*) :: wint
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
-C     interior  (int_ext=-1), exterior  (int_ext=+1)  neumann problem
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+!     interior  (int_ext=-1), exterior  (int_ext=+1)  neumann problem
       REAL(rprec), PARAMETER :: int_ext = 1
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: k, i, j, n, kvi, kui, mn, m, mn0, isym
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: bcos, bsin, source
       REAL(rprec), ALLOCATABLE :: actemp(:,:,:,:), astemp(:,:,:,:)
       REAL(rprec) :: cosn, sinn, cosm, sinm
-C-----------------------------------------------
+!-----------------------------------------------
 !
 !     AMATRIX(,1) = A(Sin)(Sin');  AMATRIX(,2) = A(Sin)(Cos');
 !     AMATRIX(,3) = A(Cos)(Sin');  AMATRIX(,4) = A(Cos)(Cos')
@@ -80,38 +80,33 @@ C-----------------------------------------------
 !
 !     PERFORM KV (TOROIDAL ANGLE) TRANSFORM
 !
-!!$OMP DO SCHEDULE(STATIC) PRIVATE(n,kvi,cosn,sinn)
+!$OMP DO SCHEDULE(STATIC) PRIVATE(n,kvi,cosn,sinn)
       DO n = 0, nf
          DO kvi = 1, nv
             cosn = cosv(n,kvi)
             sinn = sinv(n,kvi)
             DO isym = 1, ndim
-!$OMP WORKSHARE
                bcos(:,n,isym) = bcos(:,n,isym) + cosn*source(kvi,:,isym)
                bsin(:,n,isym) = bsin(:,n,isym) + sinn*source(kvi,:,isym)
                actemp(:,n,:,isym) = actemp(:,n,:,isym) 
      1                            + cosn*grpmn(:,kvi,:,isym)
                astemp(:,n,:,isym) = astemp(:,n,:,isym) 
      1                            + sinn*grpmn(:,kvi,:,isym)
-!$OMP END WORKSHARE
                IF (n .NE. 0) THEN
-!$OMP WORKSHARE
                   bcos(:,(-n),isym) =  bcos(:,n,isym)
                   bsin(:,(-n),isym) = -bsin(:,n,isym)
                   actemp(:,(-n),:,isym) =  actemp(:,n,:,isym)
                   astemp(:,(-n),:,isym) = -astemp(:,n,:,isym)
-!$OMP END WORKSHARE
                ENDIF
-
             END DO
          END DO
       END DO
-!!$OMP END DO
+!$OMP END DO
 
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(m,kui,cosm,sinm) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(m,kui,cosm,sinm)
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)
@@ -123,35 +118,29 @@ C-----------------------------------------------
      1         bcos(kui,-nf:nf,2)*cosm + bsin(kui,-nf:nf,2)*sinm
             END IF
          END DO
-       END DO
-!$OMP END DO
 !
 !     RECALL, LAST INDEX OF AS,CTEMP
 !                        = 1 CORRESPONDS TO SIN (UNPRIMED) TRANSFORM (FIRST INDEX OF AMATRIX)
 !                        = 2 CORRESPONDS TO COS (UNPRIMED) TRANSFORM
-       DO m = 0, mf
           DO kui = 1, nu3
             cosm = cosu(m,kui)*wint(kui*ns*nv)
             sinm = sinu(m,kui)*wint(kui*ns*nv)
-!$OMP WORKSHARE
             amatrix(:,m+1:mnpd:mf1,1) = amatrix(:,m+1:mnpd:mf1,1) +
      1         sinm*actemp(:,-nf:nf,kui,1) - cosm*astemp(:,-nf:nf,kui,1)       !SIN SIN'
-!$OMP END WORKSHARE
             IF (.NOT.lasym) CYCLE
-!$OMP WORKSHARE
             amatrix(:,m+1:mnpd:mf1,2) = amatrix(:,m+1:mnpd:mf1,2) +
      1         cosm*actemp(:,-nf:nf,kui,1) + sinm*astemp(:,-nf:nf,kui,1)       !SIN COS'
             amatrix(:,m+1:mnpd:mf1,3) = amatrix(:,m+1:mnpd:mf1,3) +
      1         sinm*actemp(:,-nf:nf,kui,2) - cosm*astemp(:,-nf:nf,kui,2)       !COS SIN'
             amatrix(:,m+1:mnpd:mf1,4) = amatrix(:,m+1:mnpd:mf1,4) +
      1         cosm*actemp(:,-nf:nf,kui,2) + sinm*astemp(:,-nf:nf,kui,2)       !COS COS'
-!$OMP END WORKSHARE
          END DO
       END DO
+!$OMP END DO
 
       mn0 = 1 + mf1*nf                                             !!Index of m=0,n=0         
 !$OMP WORKSHARE
-      amatrix = (pi2*pi2)*amatrix
+      amatrix(:,:,:) = (pi2*pi2)*amatrix(:,:,:)
 !
 !     ZERO BVEC(0,n) FOR n < 0
 !
@@ -164,7 +153,6 @@ C-----------------------------------------------
       amatrix(1:mn0-1:mf1,:,1:ndim*ndim) = 0
 !     amatrix(:(nf-1)*mf1+1:mf1,:,1:ndim*ndim) = 0
 !$OMP END WORKSHARE
-
 !
 !     ADD DIAGONAL TERMS TO AMATRIX [THE FIRST TERM IN EQ(3.2) OF PKM]
 !

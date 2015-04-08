@@ -1,27 +1,26 @@
       SUBROUTINE analysum(grpmn, bvec, sl, tl, m, n, l, ivacskip, ndim)
       USE vacmod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(in) :: m, n, l, ivacskip, ndim
       REAL(rprec), INTENT(inout) :: grpmn(0:mf,-nf:nf,nuv2,ndim)
       REAL(rprec), INTENT(inout) :: bvec(0:mf,-nf:nf,ndim)
       REAL(rprec), DIMENSION(nuv2), INTENT(in) :: sl, tl
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: i
       REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: bvec_
       REAL(rprec) :: sinp, cosp
-C-----------------------------------------------
+!-----------------------------------------------
       IF (n .LT. 0) STOP 'error calling analysum!'
-
-      ALLOCATE(bvec_(0:mf,-nf:nf,ndim), stat=i)
-      IF (i. NE. 0) STOP 'Allocation error in analysum'
-
+      
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(bvec_)
+      ALLOCATE(bvec_(0:mf,-nf:nf,ndim), stat=i)
+      IF (i. NE. 0) STOP 'Allocation error in analysum'
       bvec_ = 0
 !$OMP DO PRIVATE(i,sinp,cosp) SCHEDULE(STATIC) 
       DO i = 1,nuv2
@@ -43,8 +42,8 @@ C-----------------------------------------------
 !$OMP CRITICAL
       bvec  = bvec  + bvec_
 !$OMP END CRITICAL
+      DEALLOCATE(bvec_)
 !$OMP END PARALLEL
 
-      DEALLOCATE(bvec_)
 
       END SUBROUTINE analysum

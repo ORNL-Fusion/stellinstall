@@ -2,21 +2,21 @@
       USE vparams, ONLY: nthreed
       USE vacmod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(rprec), DIMENSION(nuv2), INTENT(in) :: rad, zee
       REAL(rprec), DIMENSION(nuv2), INTENT(out) :: br, bp, bz
       REAL(rprec), DIMENSION(nr0b,nz0b,np0b), INTENT(in) ::
      1   brvac, bpvac, bzvac
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       CHARACTER(LEN=50), PARAMETER :: warning =
      1   'Plasma Boundary exceeded Vacuum Grid Size'
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER, SAVE :: icount = 0
       INTEGER :: i, kv, ir, jz, ir1, jz1
       REAL(rprec) :: rad0, zee0, ri, zj,

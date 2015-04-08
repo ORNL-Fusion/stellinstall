@@ -1,20 +1,20 @@
       SUBROUTINE scalpot(bvec, amatrix, wint, ns, ivacskip)
       USE vacmod
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(in) :: ns, ivacskip
       REAL(rprec), INTENT(out) :: bvec(mnpd2), amatrix(mnpd2*mnpd2)
       REAL(rprec), INTENT(in) :: wint(*)
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: ip, istore, istart, istore_max, ndim, ichunk, nchunk
       REAL(rprec), ALLOCATABLE :: grpmn(:), green(:), gstore(:), 
      1                            gstore_(:)
       REAL(rprec), ALLOCATABLE :: greenp(:,:)
-C-----------------------------------------------
+!-----------------------------------------------
       IF (.NOT.ALLOCATED(amatsav))
      1   STOP 'AMATSAV: Allocation error in scalpot'
 
@@ -29,10 +29,8 @@ C-----------------------------------------------
 !
 !     FOR ivacskip != 0, USE PREVIOUSLY COMPUTED bvecsav FOR SPEED
 !
-!      call perfon("scalpot1")
       ndim = mnpd2/mnpd
       CALL analyt (grpmn, bvec, ivacskip, ndim)
-!      call perfoff("scalpot1")
 
       IF (ivacskip .NE. 0) THEN
          bvec = bvec + bvecsav
@@ -48,8 +46,7 @@ C-----------------------------------------------
          IF (istore_max*nchunk .LT. nuv2) istore_max=istore_max+1
          IF (istore_max*nchunk .LT. nuv2) STOP 'istore_max*nchunk<nuv2'
 
-         ALLOCATE (green(nuv), gstore(nuv), gstore_(nuv), 
-     1             greenp(nuv,istore_max), stat=ip)
+         ALLOCATE (gstore(nuv), stat=ip)
          IF (ip .NE. 0) STOP 'Allocation error in SCALPOT'
 !
 !        COMPUTE SURFACE INTEGRALS OF SOURCE AND GREENS FUNCTION NEEDED
@@ -60,6 +57,9 @@ C-----------------------------------------------
 
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(ip,ichunk,istore,istart,green,greenp,gstore_) 
+         ALLOCATE (green(nuv), gstore_(nuv), 
+     1             greenp(nuv,istore_max), stat=ip)
+         IF (ip .NE. 0) STOP 'Allocation error in SCALPOT'!
 !$OMP WORKSHARE
          bvecsav = bvec
          gstore  = 0
@@ -68,7 +68,6 @@ C-----------------------------------------------
          istart = 0
 
 !$OMP DO SCHEDULE(STATIC) 
-
          DO ichunk = 1, nchunk
 !
 !        COMPUTE DIFFERENCE BETWEEN THE EXACT AND ANALYTIC GREENS FUNCTION AND GRADIENT 
@@ -112,6 +111,7 @@ C-----------------------------------------------
 !$OMP CRITICAL
             gstore = gstore+gstore_
 !$OMP END CRITICAL
+         DEALLOCATE (green, greenp, gstore_)
 !$OMP END PARALLEL
 !
 !        COMPUTE FOURIER INTEGRAL OF GRADIENT (GRPMN) OVER PRIMED MESH IN EQ. 2.14
@@ -119,7 +119,7 @@ C-----------------------------------------------
 !
          CALL fouri (grpmn, gstore, amatrix, amatsav, bvec, wint, 
      1               ndim, ns)
-         DEALLOCATE (green, greenp, gstore, gstore_)
+         DEALLOCATE (gstore)
 
       ENDIF
 
@@ -127,13 +127,13 @@ C-----------------------------------------------
       
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP WORKSHARE
-      amatrix = amatsav
+      amatrix(:) = amatsav(:)
 !$OMP END WORKSHARE
 
 !     SAVE NON-SINGULAR CONTRIBUTION TO BVEC (IN BVECSAV)
       IF (ivacskip .EQ. 0) THEN
 !$OMP WORKSHARE
-         bvecsav(:mnpd2) = bvec - bvecsav(:mnpd2)
+         bvecsav = bvec - bvecsav
 !$OMP END WORKSHARE
       END IF
 !$OMP END PARALLEL

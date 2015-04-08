@@ -2,18 +2,18 @@
       USE vacmod
       USE mgrid_mod, ONLY: bvac
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!~-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER, INTENT(in) :: ns
       REAL(rprec), INTENT(in) :: plascur
       REAL(rprec), DIMENSION(*), INTENT(in) :: wint
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: i
       REAL(rprec), ALLOCATABLE :: brad(:), bphi(:), bz(:)
-C-----------------------------------------------
+!-----------------------------------------------
 c
 c  exterior Neumann problem
 c

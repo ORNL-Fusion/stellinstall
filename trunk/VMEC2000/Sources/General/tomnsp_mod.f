@@ -69,8 +69,8 @@
 !       NOTE: sinmumi = -m sin(mu),  sinnvn = -n sin(nv)
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,i,l,lb,ub,
-!$OMP&          n,ni,k,jmaxl,j2l)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,l,lb,ub,ni,j2l)
+!$OMP& SCHEDULE(STATIC)
       DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
@@ -155,7 +155,7 @@
       IF (ictrl_prec2d.GT.0 .and. ncurr.EQ.1) THEN
          ni = 0+ioff;  mj = 0+joff
          t1 = r0scale
-!$OMP DO PRIVATE(jl)
+!$OMP DO PRIVATE(jl) SCHEDULE(STATIC)
          DO jl = 2, ns
             flsc(jl, ni, mj) = -t1*(buco(jl) - icurv(jl))
          END DO
@@ -170,7 +170,7 @@
          mj = 1 + joff
          ni = 0 + ioff
          t1 = nscale(0)*r0scale    !/4    !!v8.52
-!$OMP DO PRIVATE(jl)
+!$OMP DO PRIVATE(jl) SCHEDULE(STATIC)
          DO jl = 2, ns-1
             work1(jl,1) = frcc_fac(jl)*frcc(jl,ni,mj)
      1                  + fzsc_fac(jl)*fzsc(jl,ni,mj)
@@ -609,11 +609,11 @@ C-----------------------------------------------
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: jmax, m, mparity, i, n, k, l
+      INTEGER :: jmax, m, mparity, i, n, k, l, nsz
       INTEGER :: ioff, joff, mj, ni, nsl, j2, j2l, jl, jll, jmaxl 
       REAL(rprec), DIMENSION(:,:,:), POINTER :: 
      1           frcs, frsc, fzcc, fzss, flcc, flss
-      REAL(rprec), DIMENSION(ns*nzeta) :: temp1, temp3
+      REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: temp1, temp3
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
 !-----------------------------------------------
       frsc => frzl_array(:,:,:,rsc)               !!R-SIN(mu) COS(nv)
@@ -625,7 +625,9 @@ C-----------------------------------------------
          flss => frzl_array(:,:,:,zss+2*ntmax)    !!L-SIN(mu) SIN(nv)
       END IF
 
-      ALLOCATE (work1(ns*nzeta,12), stat=i)
+      nsz = ns*nzeta
+
+      ALLOCATE (work1(nsz,12), temp1(nsz), temp3(nsz),  stat=i)
       IF (i .ne. 0) STOP 'Allocation error in VMEC tomnspa'
 
       ioff = LBOUND(frsc,2)
@@ -637,8 +639,7 @@ C-----------------------------------------------
 !     BEGIN FOURIER TRANSFORM
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,temp1,temp3,i,l,j2l,jll,
-!$OMP&         n,ni,k,jmaxl)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1, temp1, temp3)
       DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
@@ -714,8 +715,6 @@ C-----------------------------------------------
       END DO
 !$OMP END DO
 !$OMP END PARALLEL
-
-      DEALLOCATE (work1)
 
       END SUBROUTINE tomnspa
 
