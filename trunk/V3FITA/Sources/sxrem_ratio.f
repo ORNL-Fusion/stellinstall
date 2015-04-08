@@ -176,7 +176,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      emissivity = model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,          &
+      emissivity = model_get_sxrem_cart(a_model, this%x_cart,                  &
      &                                  this%indices(2))
 
       sxrem_ratio_get_modeled_signal = 0.0
@@ -184,7 +184,7 @@
          sxrem_ratio_get_modeled_signal(1) = 1.0
       ELSE
          sxrem_ratio_get_modeled_signal(1) =                                   &
-     &      model_get_sxrem_cart(a_model, this%x_cart, 1.0_dp,                 &
+     &      model_get_sxrem_cart(a_model, this%x_cart,                         &
      &                           this%indices(1))/emissivity
       END IF
       sigma = 0.0

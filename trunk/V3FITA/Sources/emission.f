@@ -20,7 +20,7 @@
 !>  @begin_table
 !>     @item{te_start,    Initial temperature.,          Scalar}
 !>     @item{te_step,     Temperature step.,             Scalar}
-!>     @item{emissionity, Soft X-Ray emission function., (Number Energies\, Number Cameras)}
+!>     @item{emissivity, Soft X-Ray emission function., (Number Energies\, Number Cameras)}
 !>  @end_table
 !>
 !*******************************************************************************
@@ -59,7 +59,7 @@
          REAL (rprec)                          :: te_step = 0.0
 
 !>  X-Ray Emission function.
-         REAL (rprec), DIMENSION(:,:), POINTER :: emissionity => null()
+         REAL (rprec), DIMENSION(:,:), POINTER :: emissivity => null()
       END TYPE
 
 !*******************************************************************************
@@ -111,11 +111,11 @@
       CALL cdf_read(iou, 'te_start', emission_construct_netcdf%te_start)
       CALL cdf_read(iou, 'te_step', emission_construct_netcdf%te_step)
 
-      CALL cdf_inquire(iou, 'emissionity', dim_lengths)
-      ALLOCATE(emission_construct_netcdf%emissionity(dim_lengths(1),           &
-     &                                               dim_lengths(2)))
-      CALL cdf_read(iou, 'emissionity',                                        &
-     &              emission_construct_netcdf%emissionity)
+      CALL cdf_inquire(iou, 'emissivity', dim_lengths)
+      ALLOCATE(emission_construct_netcdf%emissivity(dim_lengths(1),            &
+     &                                              dim_lengths(2)))
+      CALL cdf_read(iou, 'emissivity',                                        &
+     &              emission_construct_netcdf%emissivity)
 
       CALL cdf_close(iou)
 
@@ -155,9 +155,9 @@
 
       CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
 
-      ALLOCATE(emission_construct_mpi%emissionity(dim_lengths(1),              &
-     &                                            dim_lengths(2)))
-      CALL MPI_BCAST(emission_construct_mpi%emissionity,                       &
+      ALLOCATE(emission_construct_mpi%emissivity(dim_lengths(1),               &
+     &                                           dim_lengths(2)))
+      CALL MPI_BCAST(emission_construct_mpi%emissivity,                        &
      &               dim_lengths(1)*dim_lengths(2), MPI_REAL8, 0,              &
      &               intra_comm, error)
 #endif
@@ -182,9 +182,9 @@
       TYPE (emission_class), POINTER :: this
 
 !  Start of executable code
-      IF (ASSOCIATED(this%emissionity)) THEN
-         DEALLOCATE(this%emissionity)
-         this%emissionity => null()
+      IF (ASSOCIATED(this%emissivity)) THEN
+         DEALLOCATE(this%emissivity)
+         this%emissivity => null()
       END IF
 
       DEALLOCATE(this)
@@ -237,9 +237,9 @@
 
          w_high = 0.0
          w_low = te/this%te_start
-      ELSE IF (te .gt. this%te_start + (SIZE(this%emissionity,                 &
+      ELSE IF (te .gt. this%te_start + (SIZE(this%emissivity,                  &
      &                                       1) - 1)*this%te_step) THEN
-         i_high = SIZE(this%emissionity, 1)
+         i_high = SIZE(this%emissivity, 1)
          i_low = i_high - 1
 
          w_high = 1.0
@@ -252,8 +252,8 @@
          w_low = 1.0 - w_high
       END IF
 
-      emission_get_emission = w_high*this%emissionity(i_high,index)            &
-     &                      + w_low*this%emissionity(i_low,index)
+      emission_get_emission = w_high*this%emissivity(i_high,index)             &
+     &                      + w_low*this%emissivity(i_low,index)
 
       emission_get_emission = ne*ne/SQRT(te)*MAX(emission_get_emission,        &
      &                                           0.0)
@@ -294,11 +294,11 @@
       CALL MPI_BCAST(this%te_start, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%te_step, 1, MPI_REAL8, 0, intra_comm, error)
 
-      dim_lengths(1) = SIZE(this%emissionity, 1)
-      dim_lengths(2) = SIZE(this%emissionity, 2)
+      dim_lengths(1) = SIZE(this%emissivity, 1)
+      dim_lengths(2) = SIZE(this%emissivity, 2)
       CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
 
-      CALL MPI_BCAST(this%emissionity, dim_lengths(1)*dim_lengths(2),          &
+      CALL MPI_BCAST(this%emissivity, dim_lengths(1)*dim_lengths(2),           &
      &               MPI_REAL8, 0, intra_comm, error)
 
       CALL profiler_set_stop_time('magnetic_sync_children', start_time)

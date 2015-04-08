@@ -978,11 +978,10 @@
 !>
 !>  @param[in] this   A @ref model_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
-!>  @param[in] length Distance to the camera.
 !>  @param[in] index  Index of the soft x-ray emissivity model.
 !>  @returns The soft x-ray emissivity at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem_cart(this, x_cart, length, index)
+      FUNCTION model_get_sxrem_cart(this, x_cart, index)
 
       IMPLICIT NONE
 
@@ -990,7 +989,6 @@
       REAL (rprec)                           :: model_get_sxrem_cart
       TYPE (model_class), INTENT(in)         :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
-      REAL (rprec), INTENT(in)               :: length
       INTEGER, INTENT(in)                    :: index
 
 !  local variables
@@ -1028,11 +1026,10 @@
 !>
 !>  @param[in] this  A @ref model_class instance.
 !>  @param[in] r     Radial position to get the soft x-ray emissivity at.
-!>  @param[in] length Distance to the camera.
 !>  @param[in] index Index of the soft x-ray emissivity model.
 !>  @returns The soft x-ray emissivity at r.
 !-------------------------------------------------------------------------------
-      FUNCTION model_get_sxrem_radial(this, r, length, index)
+      FUNCTION model_get_sxrem_radial(this, r, index)
 
       IMPLICIT NONE
 
@@ -1040,7 +1037,6 @@
       REAL (rprec)                   :: model_get_sxrem_radial
       TYPE (model_class), INTENT(in) :: this
       REAL (rprec), INTENT(in)       :: r
-      REAL (rprec), INTENT(in)       :: length
       INTEGER, INTENT(in)            :: index
 
 !  local variables
@@ -1312,8 +1308,7 @@
                DO j = 1, SIZE(this%sxrem_grid, 1)
 !  The length to the camera is not really known here so use 1 here. Since this
 !  is meant to map out the emission profile this is ok.
-                   this%sxrem_grid(j,i) = model_get_sxrem(this, r,             &
-     &                                                    1.0_dp, j)
+                   this%sxrem_grid(j,i) = model_get_sxrem(this, r, j)
                END DO
             END DO
          END IF

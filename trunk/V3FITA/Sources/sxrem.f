@@ -338,7 +338,7 @@
       start_time = profiler_get_start_time()
 
       sxr_context = TRANSFER(context, sxr_context)
-      sxr_function = model_get_sxrem(sxr_context%model, xcart, length,         &
+      sxr_function = model_get_sxrem(sxr_context%model, xcart,                 &
      &                               sxr_context%profile_number)*dx
 
       CALL profiler_set_stop_time('sxr_function', start_time)
