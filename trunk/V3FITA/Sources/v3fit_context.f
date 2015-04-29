@@ -197,8 +197,8 @@
       TYPE (v3fit_context_class), POINTER :: this
 
 !  local variables
-      INTEGER                                            :: i
-      INTEGER                                            :: status
+      INTEGER                             :: i
+      INTEGER                             :: status
 
 !  Start of executable code
       CLOSE(this%runlog_iou)

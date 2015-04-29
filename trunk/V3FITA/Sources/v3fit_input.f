@@ -1023,7 +1023,7 @@
       READ (iou_mnli, nml=v3fit_main_nli)
       CLOSE (iou_mnli, iostat=status)
       CALL assert_eq(0, status, 'v3fit_input_read_namelist' //                 &
-     &   ': Error losing ' // TRIM(namelist_file) // ' failed')
+     &   ': Error closing ' // TRIM(namelist_file) // ' failed')
 
 !  Toggle use coil signals for the magnetics from the specification
       DO j = 1, SIZE(mag_spec_imin)

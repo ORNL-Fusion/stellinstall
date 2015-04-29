@@ -18,9 +18,9 @@
 !>  @section emission_file_contents_sec File Contents
 !>  @header{Variable, Description, Dimension}
 !>  @begin_table
-!>     @item{te_start,    Initial temperature.,          Scalar}
-!>     @item{te_step,     Temperature step.,             Scalar}
-!>     @item{emissivity, Soft X-Ray emission function., (Number Energies\, Number Cameras)}
+!>     @item{te_start,    Initial temperature.,         Scalar}
+!>     @item{te_step,     Temperature step.,            Scalar}
+!>     @item{emissivity, Soft X-Ray emission function., (Number Cameras\, Number Energies)}
 !>  @end_table
 !>
 !*******************************************************************************
@@ -221,14 +221,25 @@
 !  local variables
       INTEGER                           :: i_low, i_high
       REAL (rprec)                      :: w_low, w_high
+      INTEGER                           :: num_temp
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+!  Avoid a divid by zero error.
+      IF (te .eq. 0.0) THEN
+         emission_get_emission = 0.0
+         CALL profiler_set_stop_time('emission_get_emission',                  &
+     &                               start_time)
+         RETURN
+      END IF
+
 !  Determine the high and low indices for interpolating. If the temperature is
 !  beyond the first or last temperature, linearly interpolate from the last two
 !  temperatures.
+      num_temp = SIZE(this%emissivity, 2)
+
       IF (te .lt. this%te_start) THEN
 !  Assume no emission at zero eV. Interpolate between zero and the first
 !  temperature level.
@@ -237,9 +248,8 @@
 
          w_high = 0.0
          w_low = te/this%te_start
-      ELSE IF (te .gt. this%te_start + (SIZE(this%emissivity,                  &
-     &                                       1) - 1)*this%te_step) THEN
-         i_high = SIZE(this%emissivity, 1)
+      ELSE IF (te .gt. this%te_start + (num_temp - 1)*this%te_step) THEN
+         i_high = num_temp
          i_low = i_high - 1
 
          w_high = 1.0
@@ -252,8 +262,8 @@
          w_low = 1.0 - w_high
       END IF
 
-      emission_get_emission = w_high*this%emissivity(i_high,index)             &
-     &                      + w_low*this%emissivity(i_low,index)
+      emission_get_emission = w_high*this%emissivity(index,i_high)             &
+     &                      + w_low*this%emissivity(index,i_low)
 
       emission_get_emission = ne*ne/SQRT(te)*MAX(emission_get_emission,        &
      &                                           0.0)

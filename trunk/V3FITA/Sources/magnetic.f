@@ -22,16 +22,6 @@
       IMPLICIT NONE
 
 !*******************************************************************************
-!  magnetic module parameters
-!*******************************************************************************
-!>  Bit position for the use coil response flag.
-      INTEGER, PARAMETER :: magnetic_use_coil_response_flag   = 1
-!>  Bit position for the force coil response flag.
-      INTEGER, PARAMETER :: magnetic_force_coil_response_flag = 2
-!>  Bit position for the use conducting shell flag.
-      INTEGER, PARAMETER :: magnetic_use_con_shell_flag       = 3
-
-!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) magnetic base class
 !
@@ -44,13 +34,8 @@
 !>  @note Copied from @ref mddc_mrf.
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
-!>  Contains flags that control how the magnetic signals are computed. Each bit
-!>  stores a different flag. The following flags are currently used.
-!>  -# Use coil induced response in total signal.
-!>  -# Force signal response to be computed.
-!>  -# Stellarator symmetry is assumed.
-!>  -# Use conducting shell.
-         INTEGER                                 :: model_signal_flags
+!>  Setting to force the computing of the coil constribution.
+         LOGICAL                                 :: force_coil_reponse
 !>  Magnetic response function object.
          TYPE (magnetic_response_class), POINTER :: response => null()
       END TYPE
@@ -91,14 +76,15 @@
       FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response,         &
      &                                   force_coil_reponse)
       USE ezcdf
+      USE v3_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (magnetic_class), POINTER :: magnetic_construct_netcdf
-      INTEGER, INTENT(in)                     :: mdsig_iou
-      LOGICAL, INTENT(in)                     :: use_coil_response
-      LOGICAL, INTENT(in)                     :: force_coil_reponse
+      INTEGER, INTENT(in)            :: mdsig_iou
+      LOGICAL, INTENT(in)            :: use_coil_response
+      LOGICAL, INTENT(in)            :: force_coil_reponse
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
@@ -110,21 +96,23 @@
 
       ALLOCATE(magnetic_construct_netcdf)
 
-!  Store the states of the first two flags in the first two bits.
-      magnetic_construct_netcdf%model_signal_flags = 0
-      IF (use_coil_response) THEN
-         magnetic_construct_netcdf%model_signal_flags =                        &
-     &      IBSET(magnetic_construct_netcdf%model_signal_flags,                &
-     &            magnetic_use_coil_response_flag)
-      END IF
-      IF (force_coil_reponse) THEN
-         magnetic_construct_netcdf%model_signal_flags =                        &
-     &      IBSET(magnetic_construct_netcdf%model_signal_flags,                &
-     &            magnetic_force_coil_response_flag)
-      END IF
-
       magnetic_construct_netcdf%response =>                                    &
      &   magnetic_response_construct(mdsig_iou)
+
+      IF (force_coil_reponse) THEN
+         CALL assert(magnetic_response_use_coil(                               &
+     &                  magnetic_construct_netcdf%response),                   &
+     &               'Cannot force coil response. Coil responses ' //          &
+     &               'not found in mdsig file.')
+      END IF
+      magnetic_construct_netcdf%force_coil_reponse = force_coil_reponse
+
+!  Check if using the coil response for this diagnostic. If not using it clear
+!  the responce flag bit.
+      IF (.not.use_coil_response) THEN
+         CALL magnetic_response_clr_use_coil(                                  &
+     &           magnetic_construct_netcdf%response)
+      END IF
 
       CALL profiler_set_stop_time('magnetic_construct_netcdf',                 &
      &                            start_time)
@@ -150,15 +138,13 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                        :: error
-      INTEGER, DIMENSION(3)          :: dim_lengths
       INTEGER                        :: total_length
 
 !  Start of executable code
       ALLOCATE(magnetic_construct_mpi)
 
-      CALL MPI_BCAST(magnetic_construct_mpi%model_signal_flags, 1,             &
-     &               MPI_INTEGER, 0, intra_comm, error)
-
+      CALL MPI_BCAST(magnetic_construct_mpi%force_coil_reponse, 1,             &
+     &               MPI_LOGICAL, 0, intra_comm, error)
       magnetic_construct_mpi%response =>                                       &
      &   magnetic_response_construct_mpi(intra_comm)
 #endif
@@ -198,6 +184,95 @@
 !-------------------------------------------------------------------------------
 !>  @brief Calculates the modeled signal.
 !>
+!>  The modeled signal can be computed in one of two ways. Modeled as a full
+!>  coil or as a point measurement.
+!>
+!>  @param[in]    this    A @ref magnetic_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal
+      TYPE (magnetic_class), INTENT(in)         :: this
+      TYPE (model_class), INTENT(in)            :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out)   :: sigma
+
+!  local variables
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (magnetic_response_is_point(this%response)) THEN
+         magnetic_get_modeled_signal =                                         &
+     &      magnetic_get_modeled_signal_point(this, a_model, sigma)
+      ELSE
+         magnetic_get_modeled_signal =                                         &
+     &      magnetic_get_modeled_signal_coil(this, a_model, sigma)
+      END IF
+
+      CALL profiler_set_stop_time('magnetic_get_modeled_signal',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the point modeled signal.
+!>
+!>  The plasma signal is the surface integral of the virtual current denisty.
+!>  This is computed using the virtual casing routines in LIBSTELL.
+!-------------------------------------------------------------------------------
+!>
+!>  External current contribrutions are included by the dot product of the
+!>  external currents with a linear combination of the external fields.
+!-------------------------------------------------------------------------------
+!>
+!>  The plasma only signal is stored in the 2nd index.
+!>  The external current signal is stored in the 3rd index.
+!>  Total signal is the sum of plasma signal and external signal.
+!>
+!>  @param[in]    this    A @ref magnetic_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_modeled_signal_point(this, a_model, sigma)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal_point
+      TYPE (magnetic_class), INTENT(in)       :: this
+      TYPE (model_class), INTENT(in)          :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+
+!  local variables
+      REAL (rprec), DIMENSION(3)              :: b_field
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_get_modeled_signal_point = 0.0
+
+      magnetic_get_modeled_signal_point(2) =                                   &
+     &   DOT_PRODUCT(b_field, this%response%direction)
+
+      CALL profiler_set_stop_time('magnetic_get_modeled_signal_point',         &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the coil modeled signal.
+!>
 !>  The plasma signal is the volume integral of the current denisty dotted with
 !>  the diagnostic response function vector. The response_function contains a rz
 !>  grid of reponce function vectors. These grid points are then interpolated
@@ -224,7 +299,7 @@
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_get_modeled_signal(this, a_model, sigma)
+      FUNCTION magnetic_get_modeled_signal_coil(this, a_model, sigma)
       USE model
       USE bivariate
       USE v3_utilities, only: err_warn
@@ -232,7 +307,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal
+      REAL (rprec), DIMENSION(4) :: magnetic_get_modeled_signal_coil
       TYPE (magnetic_class), INTENT(in)         :: this
       TYPE (model_class), INTENT(in)            :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out)   :: sigma
@@ -266,7 +341,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      magnetic_get_modeled_signal = 0.0
+      magnetic_get_modeled_signal_coil = 0.0
 
 !  Calculate the plasma only signal from the response function.
 !  Get the volume integration grid points.
@@ -351,15 +426,16 @@
          CALL bivariate_destruct(bivariate_object)
 
 !  Correct for stellarator symetry.
-         magnetic_get_modeled_signal(2) = SUM(sumphi)
-         IF (this%response%stell_sym) THEN
-            magnetic_get_modeled_signal(2)                                     &
-     &         = magnetic_get_modeled_signal(2)                                & 
+         magnetic_get_modeled_signal_coil(2) = SUM(sumphi)
+         IF (magnetic_response_is_stell_sym(this%response)) THEN
+            magnetic_get_modeled_signal_coil(2)                                &
+     &         = magnetic_get_modeled_signal_coil(2)                           &
      &         - (sumphi(1) + sumphi(num_phi))/2.0
          END IF
 
 !  Finish integration with the volume element.
-         magnetic_get_modeled_signal(2) = magnetic_get_modeled_signal(2)       &
+         magnetic_get_modeled_signal_coil(2)                                   &
+     &      = magnetic_get_modeled_signal_coil(2)                              &
      &      * equilibrium_get_volume_int_element(a_model%equilibrium)
 
 !  Deallocate work arrays.
@@ -373,8 +449,7 @@
       END IF
 
 !  Conducting Shell ------------------------------------------------------------
-      IF (BTEST(this%model_signal_flags,                                       &
-     &          magnetic_use_con_shell_flag)) THEN
+      IF (magnetic_response_use_shell(this%response)) THEN
 
          num_phi = this%response%num_t_shell_store
 
@@ -397,16 +472,16 @@
             END DO
 
 !  Correct for stellarator symetry.
-            magnetic_get_modeled_signal(4) = SUM(sumphi)
-            IF (this%response%stell_sym) THEN
-               magnetic_get_modeled_signal(4)                                  &
-     &            = magnetic_get_modeled_signal(4)                             &
+            magnetic_get_modeled_signal_coil(4) = SUM(sumphi)
+            IF (magnetic_response_is_stell_sym(this%response)) THEN
+               magnetic_get_modeled_signal_coil(4)                             &
+     &            = magnetic_get_modeled_signal_coil(4)                        &
      &            - (sumphi(1) + sumphi(num_phi))/2.0
             END IF
 
 !  Finish integration with the area element.
-            magnetic_get_modeled_signal(4)                                     &
-     &         = magnetic_get_modeled_signal(4)                                &
+            magnetic_get_modeled_signal_coil(4)                                &
+     &         = magnetic_get_modeled_signal_coil(4)                           &
      &         * equilibrium_get_area_int_element(a_model%equilibrium)
 
             DEALLOCATE(sumphi)
@@ -415,8 +490,7 @@
       END IF
 
 !  Coil Pickup -----------------------------------------------------------------
-      IF (BTEST(this%model_signal_flags,                                       &
-     &          magnetic_force_coil_response_flag)) THEN
+      IF (this%force_coil_reponse) THEN
          num_currents = SIZE(this%response%inductance)
       ELSE
          num_currents = -1
@@ -434,16 +508,16 @@
          num_currents = MIN(SIZE(extcur),                                      &
      &                      SIZE(this%response%inductance))
          IF (num_currents .lt. this%response%n_field_cg) THEN
-            CALL err_warn('magnetic_get_modeled_signal: ' //                   &
+            CALL err_warn('magnetic_get_modeled_signal_coil: ' //              &
      &                    'mdsig_file expected more currents')
          END IF
 
          IF (scale_current) THEN
-            magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
+            magnetic_get_modeled_signal_coil(3) = DOT_PRODUCT(                 &
      &         this%response%inductance(1:num_currents),                       &
      &         extcur(1:num_currents)/this%response%current_scale)
          ELSE
-            magnetic_get_modeled_signal(3) = DOT_PRODUCT(                      &
+            magnetic_get_modeled_signal_coil(3) = DOT_PRODUCT(                 &
      &         this%response%inductance(1:num_currents),                       &
      &         extcur(1:num_currents))
          END IF
@@ -452,25 +526,24 @@
 !  Total Signal ----------------------------------------------------------------
 
 !  Add plasma signals and induced signal to create total signal.
-      IF (BTEST(this%model_signal_flags,                                       &
-     &          magnetic_use_coil_response_flag)) THEN
-         magnetic_get_modeled_signal(1) =                                      &
-     &      SUM(magnetic_get_modeled_signal(2:3))
+      IF (magnetic_response_use_coil(this%response)) THEN
+         magnetic_get_modeled_signal_coil(1) =                                 &
+     &      SUM(magnetic_get_modeled_signal_coil(2:3))
       ELSE
-         magnetic_get_modeled_signal(1) =                                      &
-     &      magnetic_get_modeled_signal(2)
+         magnetic_get_modeled_signal_coil(1) =                                 &
+     &      magnetic_get_modeled_signal_coil(2)
       END IF
 
 !  Add shell currents if used.
-      IF (BTEST(this%model_signal_flags,                                       &
-     &          magnetic_use_con_shell_flag)) THEN
-         magnetic_get_modeled_signal(1) = magnetic_get_modeled_signal(1)       &
-     &                                  + magnetic_get_modeled_signal(4)
+      IF (magnetic_response_use_shell(this%response)) THEN
+         magnetic_get_modeled_signal_coil(1)                                   &
+     &      = magnetic_get_modeled_signal_coil(1)                              &
+     &      + magnetic_get_modeled_signal_coil(4)
       END IF
 
       sigma = 0.0
 
-      CALL profiler_set_stop_time('magnetic_get_modeled_signal',               &
+      CALL profiler_set_stop_time('magnetic_get_modeled_signal_coil',          &
      &                            start_time)
 
       END FUNCTION
@@ -534,8 +607,7 @@
       magnetic_get_header(1) = 'plasma only'
       magnetic_get_header(2) = 'eq currents'
 
-      IF (BTEST(this%model_signal_flags,                                       &
-     &          magnetic_use_con_shell_flag)) THEN
+      IF (magnetic_response_use_shell(this%response)) THEN
          magnetic_get_header(3) = 'shell currents'
       ELSE
          magnetic_get_header(3) = 'N/A'
@@ -580,10 +652,11 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(this%model_signal_flags, 1, MPI_INTEGER, 0,               &
+      CALL MPI_BCAST(this%force_coil_reponse, 1, MPI_LOGICAL, 0,               &
      &               intra_comm, error)
-
       CALL magnetic_response_sync_children(this%response, intra_comm)
+
+      CALL profiler_set_stop_time('magnetic_sync_children', start_time)
 #endif
 
       END SUBROUTINE

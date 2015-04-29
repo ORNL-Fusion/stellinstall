@@ -276,6 +276,9 @@
 !>  Object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
+!>  Use point measurement magnetics
+         LOGICAL                                 :: use_point
+
 !>  Volume differential element for the s direction.
          REAL (rprec)                            :: ds
 !>  Volume differential element for the u direction.
@@ -361,7 +364,8 @@
 !-------------------------------------------------------------------------------
       INTERFACE vmec_set_magnetic_cache
          MODULE PROCEDURE vmec_set_magnetic_cache_init,                        &
-     &                    vmec_set_magnetic_cache_calc
+     &                    vmec_set_magnetic_cache_calc,                        &
+     &                    vmec_set_magnetic_cache_sync
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -578,6 +582,7 @@
       INTEGER, DIMENSION(5)      :: ictrl_array
       INTEGER                    :: index_dat, index_end
       INTEGER                    :: i, num_sxrem
+      LOGICAL                    :: use_cache
 
 !  Start of executable code
       ALLOCATE(vmec_construct_mpi)
@@ -645,6 +650,11 @@
 !  Allocate an array for for the xc array. It's not necessary to set it. When
 !  the child process is used, the parent process will sync the xc array first.
       ALLOCATE(vmec_construct_mpi%xc(SIZE(xc)))
+
+      CALL MPI_BCAST(use_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
+      IF (use_cache) THEN
+         CALL vmec_set_magnetic_cache(vmec_construct_mpi, intra_comm)
+      END IF
 #endif
 
       END FUNCTION
@@ -694,17 +704,45 @@
       END IF
 
       IF (ASSOCIATED(this%magnetic_cache)) THEN
-         DEALLOCATE(this%magnetic_cache%rsuv)
-         DEALLOCATE(this%magnetic_cache%zsuv)
-         DEALLOCATE(this%magnetic_cache%jrsuv)
-         DEALLOCATE(this%magnetic_cache%jphisuv)
-         DEALLOCATE(this%magnetic_cache%jzsuv)
+         IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
+            DEALLOCATE(this%magnetic_cache%rsuv)
+            this%magnetic_cache%rsuv => null()
+         END IF
 
-         this%magnetic_cache%rsuv => null()
-         this%magnetic_cache%zsuv => null()
-         this%magnetic_cache%jrsuv => null()
-         this%magnetic_cache%jphisuv => null()
-         this%magnetic_cache%jzsuv => null()
+         IF (ASSOCIATED(this%magnetic_cache%zsuv)) THEN
+            DEALLOCATE(this%magnetic_cache%zsuv)
+            this%magnetic_cache%zsuv => null()
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache%jrsuv)) THEN
+            DEALLOCATE(this%magnetic_cache%jrsuv)
+            this%magnetic_cache%jrsuv => null()
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache%jphisuv)) THEN
+            DEALLOCATE(this%magnetic_cache%jphisuv)
+            this%magnetic_cache%jphisuv => null()
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache%jzsuv)) THEN
+            DEALLOCATE(this%magnetic_cache%jzsuv)
+            this%magnetic_cache%jzsuv => null()
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
+            DEALLOCATE(this%magnetic_cache%kruv)
+            this%magnetic_cache%kruv => null()
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache%kphiuv)) THEN
+            DEALLOCATE(this%magnetic_cache%kphiuv)
+            this%magnetic_cache%kphiuv => null()
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache%kzuv)) THEN
+            DEALLOCATE(this%magnetic_cache%kzuv)
+            this%magnetic_cache%kzuv => null()
+         END IF
 
          DEALLOCATE(this%magnetic_cache)
          this%magnetic_cache => null()
@@ -1014,15 +1052,18 @@
 !>  @brief Set magnetic cache initialy.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
-!>  allocates a @ref vmec_magnetic_cache structure.
+!>  allocates a @ref vmec_magnetic_cache structure. Point measurements require
+!>  no array allocations.
 !>
 !>  @param[inout] this            A @ref vmec_class instance.
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
+!>  @param[in]    use_point       Uses the point measurements
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_set_magnetic_cache_init(this, response_object)
+      SUBROUTINE vmec_set_magnetic_cache_init(this, response_object,           &
+     &                                        use_point)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
       USE magnetic_response
@@ -1032,48 +1073,54 @@
 !  Declare Arguments
       TYPE (vmec_class), INTENT(inout)           :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
+      LOGICAL, INTENT(in)                        :: use_point
 
 !  local variables
-      INTEGER                          :: numU
-      INTEGER                          :: ns
-      REAL (rprec)                     :: start_time
+      INTEGER                                    :: numU
+      INTEGER                                    :: ns
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code.
       start_time = profiler_get_start_time()
 
       ALLOCATE(this%magnetic_cache)
 
+      this%magnetic_cache%use_point = use_point
+
+      IF (magnetic_response_use_plasma(response_object)) THEN
 !  In order to sample the fields on a grid, the sampling frequency of the grid
 !  must be at least twice the frequency of the highest mode.
-      ns = ns_array(this%ns_index)
-      numU = MAX(INT(this%pol_rad_ratio*ns), 2*mpol)
+         ns = ns_array(this%ns_index)
+         numU = MAX(INT(this%pol_rad_ratio*ns), 2*mpol)
 
 !  Set the differental volume elements.
-      this%magnetic_cache%ds = 1.0/(ns - 1.0)
-      this%magnetic_cache%du = twopi/numU
-      this%magnetic_cache%dv = (twopi/response_object%n_field_periods)         &
-     &                       / response_object%num_t
-
-!  Set the differental area elements.
-      this%magnetic_cache%du_a = twopi/response_object%num_u
-      this%magnetic_cache%dv_a = (twopi/response_object%n_field_periods)       &
-     &                         / response_object%num_t_shell
+         this%magnetic_cache%ds = 1.0/(ns - 1.0)
+         this%magnetic_cache%du = twopi/numU
+         this%magnetic_cache%dv = twopi/response_object%n_field_periods        &
+     &                          / response_object%num_t
 
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
-      ALLOCATE(this%magnetic_cache%rsuv(ns,numU,                               &
-     &                                  response_object%num_t_store))
-      ALLOCATE(this%magnetic_cache%zsuv(ns,numU,                               &
-     &                                  response_object%num_t_store))
-      ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,                              &
-     &                                   response_object%num_t_store))
-      ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,                            &
-     &                                     response_object%num_t_store))
-      ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,                              &
-     &                                   response_object%num_t_store))
+         ALLOCATE(this%magnetic_cache%rsuv(ns,numU,                            &
+     &               response_object%num_t_store))
+         ALLOCATE(this%magnetic_cache%zsuv(ns,numU,                            &
+     &               response_object%num_t_store))
+         ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,                           &
+     &               response_object%num_t_store))
+         ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,                         &
+     &               response_object%num_t_store))
+         ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,                           &
+     &               response_object%num_t_store))
+      END IF
 
 !  When conducting shell is used allocate the surface vector arrays.
-      IF (ASSOCIATED(response_object%a_s_r)) THEN
+      IF (magnetic_response_use_shell(response_object)) THEN
+!  Set the differental area elements.
+         this%magnetic_cache%du_a = twopi/response_object%num_u
+         this%magnetic_cache%dv_a                                              &
+     &      = (twopi/response_object%n_field_periods)                          &
+     &      / response_object%num_t_shell
+
          ALLOCATE(this%magnetic_cache%kruv(response_object%num_u,              &
      &               response_object%num_t_shell_store))
          ALLOCATE(this%magnetic_cache%kphiuv(response_object%num_u,            &
@@ -1084,6 +1131,105 @@
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
      &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sync the magnetic cache.
+!>
+!>  This syncronizes the magnetic cache when spawning external mpi processes.
+!>
+!>  @param[inout] this       A @ref vmec_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_set_magnetic_cache_sync(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)              :: intra_comm
+
+!  local variables
+      INTEGER, DIMENSION(3)            :: dim_lengths
+      INTEGER                          :: error
+
+!  Start of executable code.
+      CALL MPI_BCAST(this%magnetic_cache%use_point, 1, MPI_LOGICAL, 0,         &
+     &               intra_comm, error)
+
+!  Grid sizes.
+      CALL MPI_BCAST(this%magnetic_cache%ds, 1, MPI_REAL8, 0,                  &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%magnetic_cache%du, 1, MPI_REAL8, 0,                  &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%magnetic_cache%dv, 1, MPI_REAL8, 0,                  &
+     &               intra_comm, error)
+
+      CALL MPI_BCAST(this%magnetic_cache%du_a, 1, MPI_REAL8, 0,                &
+     &               intra_comm, error)
+      CALL MPI_BCAST(this%magnetic_cache%dv_a, 1, MPI_REAL8, 0,                &
+     &               intra_comm, error)
+
+!  Conducting shell plasma resonse arrays.
+      dim_lengths = 0
+      IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
+         dim_lengths = SHAPE(this%magnetic_cache%rsuv)
+      END IF
+      CALL MPI_BCAST(dim_lengths, 3, MPI_REAL8, 0, intra_comm, error)
+      IF (.not.ASSOCIATED(this%magnetic_cache%rsuv) .and.                      &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%rsuv(dim_lengths(1),                     &
+     &                               dim_lengths(2),                           &
+     &                               dim_lengths(3)))
+      END IF
+      IF (.not.ASSOCIATED(this%magnetic_cache%zsuv) .and.                      &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%zsuv(dim_lengths(1),                     &
+     &                               dim_lengths(2),                           &
+     &                               dim_lengths(3)))
+      END IF
+      IF (.not.ASSOCIATED(this%magnetic_cache%jrsuv) .and.                     &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%jrsuv(dim_lengths(1),                    &
+     &                                dim_lengths(2),                          &
+     &                                dim_lengths(3)))
+      END IF
+      IF (.not.ASSOCIATED(this%magnetic_cache%jphisuv) .and.                   &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%jphisuv(dim_lengths(1),                  &
+     &                                  dim_lengths(2),                        &
+     &                                  dim_lengths(3)))
+      END IF
+      IF (.not.ASSOCIATED(this%magnetic_cache%jzsuv) .and.                     &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%jzsuv(dim_lengths(1),                    &
+     &                                dim_lengths(2),                          &
+     &                                dim_lengths(3)))
+      END IF
+
+!  Conducting shell arrays.
+      dim_lengths = 0
+      IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
+         dim_lengths(1:2) = SHAPE(this%magnetic_cache%kruv)
+      END IF
+      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_REAL8, 0, intra_comm,            &
+     &               error)
+      IF (.not.ASSOCIATED(this%magnetic_cache%kruv) .and.                      &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%kruv(dim_lengths(1),                     &
+     &                               dim_lengths(2)))
+      END IF
+      IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv) .and.                    &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%kphiuv(dim_lengths(1),                   &
+     &                                 dim_lengths(2)))
+      END IF
+      IF (.not.ASSOCIATED(this%magnetic_cache%kzuv) .and.                      &
+     &    SUM(dim_lengths) .gt. 0) THEN
+         ALLOCATE(this%magnetic_cache%kzuv(dim_lengths(1),                     &
+     &                               dim_lengths(2)))
+      END IF
 
       END SUBROUTINE
 
@@ -1099,8 +1245,11 @@
       USE read_wout_mod, only: lasym, xm, xn, mnmax, xm_nyq, xn_nyq,           &
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
      &                         currumnc, currvmnc, currumns, currvmns,         &
-     &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns
+     &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns,         &
+     &                         bsupumnc, bsupumns, bsupvmnc, bsupvmns,         &
+     &                         nfp, ns
       USE stel_constants, only: mu0
+      USE virtual_casing_mod
 
       IMPLICIT NONE
 
@@ -1127,13 +1276,13 @@
 !  Start of executable code.
       start_time = profiler_get_start_time()
 
+      IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
 !  Get the size of the SUV grid.
-      numS = SIZE(this%magnetic_cache%rsuv, 1)
-      numU = SIZE(this%magnetic_cache%rsuv, 2)
-      numV = SIZE(this%magnetic_cache%rsuv, 3)
+         numU = SIZE(this%magnetic_cache%rsuv, 2)
+         numV = SIZE(this%magnetic_cache%rsuv, 3)
 
-      ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
-      ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
+         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
 
 !  U grid is square with the s grid.
 !>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
@@ -1147,13 +1296,13 @@
 !$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO v = 1, numV
-         phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
-         cosv(:,v) = COS(xn*phi)
-         sinv(:,v) = SIN(xn*phi)
-         cosv_nyq(:,v) = COS(xn_nyq*phi)
-         sinv_nyq(:,v) = SIN(xn_nyq*phi)
-      END DO
+         DO v = 1, numV
+            phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
+            cosv(:,v) = COS(xn*phi)
+            sinv(:,v) = SIN(xn*phi)
+            cosv_nyq(:,v) = COS(xn_nyq*phi)
+            sinv_nyq(:,v) = SIN(xn_nyq*phi)
+         END DO
 !$OMP END DO
 
 !  Set the suv grids
@@ -1170,73 +1319,76 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO u = 1, numU
-         ALLOCATE(cosu(mnmax), sinu(mnmax))
-         ALLOCATE(cosz(mnmax), sinz(mnmax))
-         ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
-         ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+         DO u = 1, numU
+            ALLOCATE(cosu(mnmax), sinu(mnmax))
+            ALLOCATE(cosz(mnmax), sinz(mnmax))
+            ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
+            ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
 
-         cosu = COS(xm*(u - 1)*this%magnetic_cache%du)
-         sinu = SIN(xm*(u - 1)*this%magnetic_cache%du)
-         cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
-         sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
+            cosu = COS(xm*(u - 1)*this%magnetic_cache%du)
+            sinu = SIN(xm*(u - 1)*this%magnetic_cache%du)
+            cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
+            sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
 
-         DO v = 1, numV
+            DO v = 1, numV
 
-            cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
-            sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
+               cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
+               sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
 
-            cosz_nyq = cosu_nyq*cosv_nyq(:,v) + sinu_nyq*sinv_nyq(:,v)
-            sinz_nyq = sinu_nyq*cosv_nyq(:,v) - cosu_nyq*sinv_nyq(:,v)
+               cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
+     &                  + sinu_nyq*sinv_nyq(:,v)
+               sinz_nyq = sinu_nyq*cosv_nyq(:,v)                               &
+     &                  - cosu_nyq*sinv_nyq(:,v)
 
-            DO s = 1, numS
+               DO s = 1, ns
 
-               this%magnetic_cache%rsuv(s,u,v) = SUM(rmnc(:,s)*cosz)
-               this%magnetic_cache%zsuv(s,u,v) = SUM(zmns(:,s)*sinz)
-               ru = -SUM(xm*rmnc(:,s)*sinz)
-               zu = SUM(xm*zmns(:,s)*cosz)
-               rv = SUM(xn*rmnc(:,s)*sinz)
-               zv = -SUM(xn*zmns(:,s)*cosz)
+                  this%magnetic_cache%rsuv(s,u,v) = SUM(rmnc(:,s)*cosz)
+                  this%magnetic_cache%zsuv(s,u,v) = SUM(zmns(:,s)*sinz)
+                  ru = -SUM(xm*rmnc(:,s)*sinz)
+                  zu = SUM(xm*zmns(:,s)*cosz)
+                  rv = SUM(xn*rmnc(:,s)*sinz)
+                  zv = -SUM(xn*zmns(:,s)*cosz)
 
-               ju = SUM(currumnc(:,s)*cosz_nyq)
-               jv = SUM(currvmnc(:,s)*cosz_nyq)
+                  ju = SUM(currumnc(:,s)*cosz_nyq)
+                  jv = SUM(currvmnc(:,s)*cosz_nyq)
 
-               IF (lasym) THEN
-                  this%magnetic_cache%rsuv(s,u,v) =                            &
-     &               this%magnetic_cache%rsuv(s,u,v) +                         &
-     &               SUM(rmns(:,s)*sinz)
-                  this%magnetic_cache%zsuv(s,u,v) =                            &
-     &               this%magnetic_cache%zsuv(s,u,v) +                         &
-     &               SUM(zmnc(:,s)*cosz)
-                  ru = ru + SUM(xm*rmns(:,s)*cosz)
-                  zu = zu - SUM(xm*zmnc(:,s)*sinz)
-                  rv = rv - SUM(xn*rmns(:,s)*cosz)
-                  zv = zv + SUM(xn*zmnc(:,s)*sinz)
+                  IF (lasym) THEN
+                     this%magnetic_cache%rsuv(s,u,v) =                         &
+     &                  this%magnetic_cache%rsuv(s,u,v) +                      &
+     &                  SUM(rmns(:,s)*sinz)
+                     this%magnetic_cache%zsuv(s,u,v) =                         &
+     &                  this%magnetic_cache%zsuv(s,u,v) +                      &
+     &                  SUM(zmnc(:,s)*cosz)
+                     ru = ru + SUM(xm*rmns(:,s)*cosz)
+                     zu = zu - SUM(xm*zmnc(:,s)*sinz)
+                     rv = rv - SUM(xn*rmns(:,s)*cosz)
+                     zv = zv + SUM(xn*zmnc(:,s)*sinz)
 
-                  ju = ju + SUM(currumns(:,s)*sinz_nyq)
-                  jv = jv + SUM(currvmns(:,s)*sinz_nyq)
-               END IF
+                     ju = ju + SUM(currumns(:,s)*sinz_nyq)
+                     jv = jv + SUM(currvmns(:,s)*sinz_nyq)
+                  END IF
 
-               this%magnetic_cache%jrsuv(s,u,v) = ju*ru + jv*rv
-               this%magnetic_cache%jphisuv(s,u,v) =                            &
-     &            jv*this%magnetic_cache%rsuv(s,u,v)
-               this%magnetic_cache%jzsuv(s,u,v) = ju*zu + jv*zv
+                  this%magnetic_cache%jrsuv(s,u,v) = ju*ru + jv*rv
+                  this%magnetic_cache%jphisuv(s,u,v) =                            &
+     &               jv*this%magnetic_cache%rsuv(s,u,v)
+                  this%magnetic_cache%jzsuv(s,u,v) = ju*zu + jv*zv
+               END DO
             END DO
-         END DO
 
-         DEALLOCATE(cosu, sinu)
-         DEALLOCATE(cosz, sinz)
-         DEALLOCATE(cosu_nyq, sinu_nyq)
-         DEALLOCATE(cosz_nyq, sinz_nyq)
-      END DO
+            DEALLOCATE(cosu, sinu)
+            DEALLOCATE(cosz, sinz)
+            DEALLOCATE(cosu_nyq, sinu_nyq)
+            DEALLOCATE(cosz_nyq, sinz_nyq)
+         END DO
 !$OMP END DO
 !$OMP END PARALLEL
 
-      this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                      &
-     &                         + this%z_offset
+         this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                   &
+     &                            + this%z_offset
 
-      DEALLOCATE(cosv, sinv)
-      DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(cosv, sinv)
+         DEALLOCATE(cosv_nyq, sinv_nyq)
+      END IF
 
 !  Compute the conducting shell if needed. If the kruv array is associated, the
 !  the conducting shell is being used. The total conducting shell signal for a
@@ -1395,6 +1547,26 @@
 
          IF (lasym) THEN
             DEALLOCATE(bsubus, bsubvs)
+         END IF
+      END IF
+
+!  Setup the virtual casing mod if using the point measurements.
+      IF (this%magnetic_cache%use_point) THEN
+         IF (lasym) THEN
+            CALL init_virtual_casing_dbl(mnmax, 1000, 1000,                    &
+     &              INT(xm), -INT(xn/nfp),                                     &
+     &              rmnc(:,(ns - 1):), zmns(:,(ns - 1):), nfp,                 &
+     &              bumnc=(1.5*bsupumnc(:,ns) - 0.5*bsupumnc(:,ns - 1)),       &
+     &              bvmnc=(1.5*bsupvmnc(:,ns) - 0.5*bsupvmnc(:,ns - 1)),       &
+     &              rmns=rmns(:,(ns - 1):), zmnc=zmnc(:,(ns - 1):),            &
+     &              bumns=(1.5*bsupumns(:,ns) - 0.5*bsupumns(:,ns - 1)),       &
+     &              bvmns=(1.5*bsupvmns(:,ns) - 0.5*bsupvmns(:,ns - 1)))
+         ELSE
+            CALL init_virtual_casing_dbl(mnmax, 1000, 1000,                    &
+     &              INT(xm), -INT(xn/nfp),                                     &
+     &              rmnc(:,(ns - 1):), zmns(:,(ns - 1):), nfp,                 &
+     &              bumnc=(1.5*bsupumnc(:,ns) - 0.5*bsupumnc(:,ns - 1)),       &
+     &              bvmnc=(1.5*bsupvmnc(:,ns) - 0.5*bsupvmnc(:,ns - 1)))
          END IF
       END IF
 
@@ -2888,6 +3060,40 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Get external plasma magnetic field.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_ext_b_plasma.
+!>
+!>  @param[in]  this     A @ref vmec_class instance.
+!>  @param[in]  position Position to compute the fields at.
+!>  @returns The external currents.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_ext_b_plasma(this, position)
+      USE virtual_casing_mod
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3)    :: vmec_get_ext_b_plasma
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(3)    :: position
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL bfield_virtual_casing(position(1), position(2), position(3),        &
+     &                           vmec_get_ext_b_plasma(1),                     &
+     &                           vmec_get_ext_b_plasma(2),                     &
+     &                           vmec_get_ext_b_plasma(3))
+
+      CALL profiler_set_stop_time('vmec_get_ext_b_plasma', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Get radial grid size.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_grid_size.
@@ -3738,6 +3944,7 @@
       INTEGER                          :: num_sxrem
       INTEGER                          :: mpi_rank
       INTEGER                          :: mpi_size
+      LOGICAL                          :: sync_cache
 
 !  Start of executable code
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
@@ -3779,6 +3986,11 @@
          CALL pprofile_sync_children(this%sxrem(i)%p, intra_comm)
       END DO
 
+      sync_cache = ASSOCIATED(this%magnetic_cache)
+      CALL MPI_BCAST(sync_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
+      IF (sync_cache) THEN
+         CALL vmec_set_magnetic_cache(this, intra_comm)
+      END IF
 #endif
 
       END SUBROUTINE

@@ -329,7 +329,7 @@
          grid_stop = equilibrium_get_grid_stop(equilibrium)
 
          model_construct_new%grid_step =                                       &
-     &      (grid_stop - model_construct_new%grid_start)/grid_size
+     &      (grid_stop - model_construct_new%grid_start)/(grid_size - 1)
 
          ALLOCATE(model_construct_new%ne_grid(grid_size))
          ALLOCATE(model_construct_new%sxrem_grid(SIZE(sxrem_type),             &

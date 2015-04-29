@@ -5,7 +5,7 @@
 !  separated by ','. If you intended ',' to be a string you must use an escaped
 !  comma '\,'.
 !
-!>  @page sxrem_dot_sec Soft X-ray Diagnostic Dot File
+!>  @page sxrem_dot_sec Soft X-Ray Diagnostic Dot File
 !>
 !>  @tableofcontents
 !>  @section sxrem_dot_intro_sec Introduction

@@ -20,6 +20,22 @@
 !*******************************************************************************
 !  magnetic_response module parameters
 !*******************************************************************************
+!  NOTE: When changing this version changes, the select statement in
+!  magnetic_construct_netcdf of magnetic.f in the V3FIT needs to be updated. ???
+!  FIXME Check if this is true. The versioning should probably be handeled
+!  internally here.
+
+!  Currnet version -------------------------------------------------------------
+!>  Version for the MDSIG files. This version adds the point diagnostics.
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   magnetic_response_current = 'MRC 2015-04-27'
+!  Previous versions -----------------------------------------------------------
+!>  Version for the MDSIG files. This version adds the conducting shell.
+!>  @depreicated
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   magnetic_response_20140928 = 'MRC 2014-09-28'
+
+!>  Length for strings.
       INTEGER, PARAMETER :: magnetic_response_len = 80
 
 !>  Bit position for the use coil response flag.
@@ -30,8 +46,13 @@
       INTEGER, PARAMETER :: magnetic_response_stell_sym_flag  = 3
 !>  Bit position for the use conducting shell flag.
       INTEGER, PARAMETER :: magnetic_response_use_shell_flag  = 4
+!>  Bit position for the use conducting shell flag.
+      INTEGER, PARAMETER :: magnetic_response_is_point_flag   = 5
 
 !  NETCDF file variable names --------------------------------------------------
+!>  NETCDF configureation flags.
+      CHARACTER (len=*), PARAMETER :: nc_flags = 'mddc_mrf_flags'
+
 !  Identification Variables ----------------------------------------------------
 !>  NETCDF code name variable.
       CHARACTER (len=*), PARAMETER :: nc_name = 'mddc_mrf_code_name'
@@ -75,6 +96,7 @@
      &   'mddc_mrf_n_field_periods'
 
 !>  NETCDF stell symmetric variable.
+!>  @depricated
       CHARACTER (len=*), PARAMETER :: nc_stell_sym =                           &
      &   'mddc_mrf_lstell_sym'
 
@@ -86,7 +108,8 @@
       CHARACTER (len=*), PARAMETER :: nc_a_z = 'mddc_mrf_a_z'
 
 !  Conducting Shell Response Arrays --------------------------------------------
-!>
+!>  NETCDF use conducting shell variable.
+!>  @depricated
       CHARACTER (len=*), PARAMETER :: nc_use_shell =                           &
      &   'mddc_mrf_use_con_shell'
 !>  NETCDF number torodial shell grid points variable.
@@ -100,6 +123,14 @@
 !>  NETCDF vertical response shell grid variable.
       CHARACTER (len=*), PARAMETER :: nc_a_s_z = 'mddc_mrf_a_s_z'
 
+!  Point Diagnostic ------------------------------------------------------------
+!>  NETCDF use conducting shell variable.
+      CHARACTER (len=*), PARAMETER :: nc_position =                            &
+     &   'mddc_mrf_position'
+!>  NETCDF number torodial shell grid points variable.
+      CHARACTER (len=*), PARAMETER :: nc_direction =                           &
+     &   'mddc_mrf_direction'
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) magnetic base class
@@ -109,6 +140,9 @@
 !>  Base class representing a magnetic signal response function.
 !-------------------------------------------------------------------------------
       TYPE magnetic_response_class
+!>  Flag variables stored as a bit packed integer.
+         INTEGER                               :: flags
+
 !  Identification Variables ----------------------------------------------------
 !>  Name of the code which computed the responses.
          CHARACTER (len=magnetic_response_len) :: name
@@ -147,8 +181,6 @@
 
 !>  Number of field periods.
          INTEGER                            :: n_field_periods
-!>  Use stellarator symmetry.
-         LOGICAL                            :: stell_sym
 
 !>  Number of grid points in u, conducting shell grid.
          INTEGER                            :: num_u
@@ -173,6 +205,12 @@
 !>  Z component of the conducting shell response function.
          REAL (rprec), DIMENSION(:,:), POINTER :: a_s_z => null()
 
+!  Point Diagnostic Response ---------------------------------------------------
+!  Use the mutual inductance array to store the vacuum field response.
+!>  Position of the bfield measurement point.
+         REAL (rprec), DIMENSION(3) :: position
+!>  Position of the bfield measurement point.
+         REAL (rprec), DIMENSION(3) :: direction
       END TYPE
 
 !*******************************************************************************
@@ -180,13 +218,16 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref magnetic_response_class types using
-!>  @ref magnetic_response_construct_netcdf
+!>  @ref magnetic_response_construct_new,                                      &
+!>  @ref magnetic_response_construct_point or                                  &
+!>  @ref magnetic_response_construct_netcdf.
 !>
 !>  @note @ref magnetic_construct_mpi cannot be included since netcdf handel and
 !>  mpi comm have the dsame base type. Keep magnetic_construct for style.
 !-------------------------------------------------------------------------------
       INTERFACE magnetic_response_construct
          MODULE PROCEDURE magnetic_response_construct_new,                     &
+     &                    magnetic_response_construct_point,                   &
      &                    magnetic_response_construct_netcdf
       END INTERFACE
 
@@ -199,8 +240,6 @@
 !>
 !>  Allocates memory and initializes a @ref magnetic_response_class object.
 !>
-!>  @param[in] mdsig_iou       An instance of a the netcdf id of the open mdsig
-!>                             file.
 !>  @param[in] name            Name of the code which computed the responses.
 !>  @param[in] version         Version of the code.
 !>  @param[in] date            Data and time the code was run.
@@ -228,7 +267,7 @@
 !>                             function.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_response_construct_new(name, version, date,            &
+      FUNCTION magnetic_response_construct_new(name, date,                     &
      &                                         coil_id, inductance,            &
      &                                         current_scale,                  &
      &                                         num_t, num_t_shell,             &
@@ -236,7 +275,6 @@
      &                                         n_field_periods,                &
      &                                         stell_sym, a_r, a_f, a_z,       &
      &                                         a_s_r, a_s_f, a_s_z)
-      USE ezcdf
       USE v3_utilities
 
       IMPLICIT NONE
@@ -245,7 +283,6 @@
       TYPE (magnetic_response_class), POINTER                                  &
      &   :: magnetic_response_construct_new
       CHARACTER (len=*), INTENT(in)           :: name
-      CHARACTER (len=*), INTENT(in)           :: version
       CHARACTER (len=*), INTENT(in)           :: date
       CHARACTER (len=*), INTENT(in)           :: coil_id
       REAL (rprec), DIMENSION(:), POINTER     :: inductance
@@ -274,14 +311,21 @@
 
       ALLOCATE(magnetic_response_construct_new)
 
+      magnetic_response_construct_new%flags = 0
+
 !  Identification Variables ----------------------------------------------------
       magnetic_response_construct_new%name = name
-      magnetic_response_construct_new%version = version
+      magnetic_response_construct_new%version =                                &
+     &   magnetic_response_current
       magnetic_response_construct_new%date = date
       magnetic_response_construct_new%coil_id = coil_id
 
 !  Coil Responce Function Variables --------------------------------------------
       IF (ASSOCIATED(inductance)) THEN
+         magnetic_response_construct_new%flags =                               &
+     &      IBSET(magnetic_response_construct_new%flags,                       &
+     &            magnetic_response_use_coil_flag)
+
          ALLOCATE(magnetic_response_construct_new%inductance(                  &
      &               SIZE(inductance)))
          magnetic_response_construct_new%inductance = inductance
@@ -302,10 +346,19 @@
       magnetic_response_construct_new%zmin = zmin
       magnetic_response_construct_new%zmax = zmax
       magnetic_response_construct_new%n_field_periods = n_field_periods
-      magnetic_response_construct_new%stell_sym = stell_sym
+
+      IF (stell_sym) THEN
+         magnetic_response_construct_new%flags =                               &
+     &      IBSET(magnetic_response_construct_new%flags,                       &
+     &            magnetic_response_stell_sym_flag)
+      END IF
 
 !  Plasma Response Arrays ------------------------------------------------------
       IF (ASSOCIATED(a_r)) THEN
+         magnetic_response_construct_new%flags =                               &
+     &      IBSET(magnetic_response_construct_new%flags,                       &
+     &            magnetic_response_use_plasma_flag)
+
          CALL assert(ASSOCIATED(a_f), 'a_f response function not ' //          &
      &                                'allocated')
          CALL assert(ASSOCIATED(a_z), 'a_z response function not ' //          &
@@ -332,13 +385,17 @@
 
 !  Conducting Shell Response Arrays --------------------------------------------
       IF (ASSOCIATED(a_s_r)) THEN
+         magnetic_response_construct_new%flags =                               &
+     &      IBSET(magnetic_response_construct_new%flags,                       &
+     &            magnetic_response_use_shell_flag)
+
          CALL assert(ASSOCIATED(a_s_f), 'a_s_f response function ' //          &
      &                                  'not allocated')
          CALL assert(ASSOCIATED(a_s_z), 'a_s_z response function ' //          &
      &                                  'not allocated')
 
          dim_lengths(1:2) = SHAPE(a_s_r)
-!         magnetic_response_construct_new%num_u = dim_lengths(1)
+         magnetic_response_construct_new%num_u = dim_lengths(1)
          magnetic_response_construct_new%num_t_shell_store =                   &
      &      dim_lengths(3)
 
@@ -354,6 +411,85 @@
       END IF
 
       CALL profiler_set_stop_time('magnetic_response_construct_new',           &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref magnetic_response_class object.
+!>
+!>  Allocates memory and initializes a @ref magnetic_response_class object.
+!>
+!>  @param[in] name          Name of the code which computed the responses.
+!>  @param[in] version       Version of the code.
+!>  @param[in] date          Data and time the code was run.
+!>  @param[in] coil_id       Idenifier of field-coils.
+!>  @param[in] position      Position of the point measurement.
+!>  @param[in] direction     Direction of the point measurement.
+!>  @param[in] vacuum        Array of diagnostic vacuum responses.
+!>  @param[in] current_scale Array of external current scales.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_response_construct_point(name, date,                   &
+     &                                           coil_id, position,            &
+     &                                           direction, vacuum,            &
+     &                                           current_scale)
+      USE v3_utilities
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (magnetic_response_class), POINTER                                  &
+     &   :: magnetic_response_construct_point
+      CHARACTER (len=*), INTENT(in)       :: name
+      CHARACTER (len=*), INTENT(in)       :: date
+      CHARACTER (len=*), INTENT(in)       :: coil_id
+      REAL (rprec), DIMENSION(3)          :: position
+      REAL (rprec), DIMENSION(3)          :: direction
+      REAL (rprec), DIMENSION(:), POINTER :: vacuum
+      REAL (rprec), DIMENSION(:), POINTER :: current_scale
+
+!  local variables
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(magnetic_response_construct_point)
+
+      magnetic_response_construct_point%flags =                                &
+     &   IBSET(magnetic_response_construct_point%flags,                        &
+     &         magnetic_response_is_point_flag)
+
+!  Identification Variables ----------------------------------------------------
+      magnetic_response_construct_point%name = name
+      magnetic_response_construct_point%version =                              &
+     &   magnetic_response_current
+      magnetic_response_construct_point%date = date
+      magnetic_response_construct_point%coil_id = coil_id
+
+!  Geometric Variables ---------------------------------------------------------
+      magnetic_response_construct_point%position = position
+      magnetic_response_construct_point%direction = direction
+
+!  Coil Responce Function Variables --------------------------------------------
+      IF (ASSOCIATED(vacuum)) THEN
+         magnetic_response_construct_point%flags =                             &
+     &      IBSET(magnetic_response_construct_point%flags,                     &
+     &            magnetic_response_use_coil_flag)
+
+         ALLOCATE(magnetic_response_construct_point%inductance(                &
+     &               SIZE(vacuum)))
+         magnetic_response_construct_point%inductance = vacuum
+         magnetic_response_construct_point%n_field_cg = SIZE(vacuum)
+      END IF
+
+      IF (ASSOCIATED(current_scale)) THEN
+         ALLOCATE(magnetic_response_construct_point%current_scale(             &
+     &               SIZE(current_scale)))
+         magnetic_response_construct_point%current_scale = current_scale
+      END IF
+
+      CALL profiler_set_stop_time('magnetic_response_construct_point',         &
      &                            start_time)
 
       END FUNCTION
@@ -378,9 +514,7 @@
       INTEGER, INTENT(in)                     :: mdsig_iou
 
 !  local variables
-      LOGICAL                                 :: use_inductance
-      LOGICAL                                 :: use_response
-      LOGICAL                                 :: use_shell
+      LOGICAL                                 :: temp_logical
       INTEGER, DIMENSION(3)                   :: dim_lengths
       REAL (rprec)                            :: start_time
 
@@ -399,25 +533,68 @@
       CALL cdf_read(mdsig_iou, nc_coil_id,                                     &
      &              magnetic_response_construct_netcdf%coil_id)
 
-!  Check the version code verison. If the version is 'MRC 2014-09-28' or later,
+!  Check the version code verison. If the version is 'MRC 2015-04-27' or later,
 !  there is a flag variable that indicates the contents of the file.
+      magnetic_response_construct_netcdf%flags = 0
+
       SELECT CASE (TRIM(magnetic_response_construct_netcdf%version))
 
-         CASE ('MRC 2014-09-28')
-            CALL cdf_read(mdsig_iou, 'mddc_mrf_use_con_shell',                 &
-     &                    use_shell)
-            use_inductance = .true.
-            use_response = .true.
+         CASE (magnetic_response_current)
+!  This version adds the new point diagnostic. The format of the netcdf mdsig
+!  file has been modified to fold a bit packed flags to determine what is or
+!  isn't present in the netcdf file.
+            CALL cdf_read(mdsig_iou, nc_flags,                                 &
+     &                    magnetic_response_construct_netcdf%flags)
+
+         CASE (magnetic_response_20140928)
+!  This version added the option for a coducting shell. Options were stored as
+!  logicals.
+            CALL cdf_read(mdsig_iou, nc_use_shell, temp_logical)
+            IF (temp_logical) THEN
+               magnetic_response_construct_netcdf%flags =                      &
+     &            IBSET(magnetic_response_construct_netcdf%flags,              &
+     &                  magnetic_response_use_shell_flag)
+            END IF
+
+            CALL cdf_read(mdsig_iou, nc_stell_sym, temp_logical)
+            IF (temp_logical) THEN
+               magnetic_response_construct_netcdf%flags =                      &
+     &            IBSET(magnetic_response_construct_netcdf%flags,              &
+     &                  magnetic_response_use_shell_flag)
+            END IF
+
+!  The mutual inductance and plasma response are expected.
+            magnetic_response_construct_netcdf%flags =                         &
+     &         IBSET(magnetic_response_construct_netcdf%flags,                 &
+     &               magnetic_response_use_coil_flag)
+
+            magnetic_response_construct_netcdf%flags =                         &
+     &         IBSET(magnetic_response_construct_netcdf%flags,                 &
+     &               magnetic_response_use_plasma_flag)
 
          CASE DEFAULT
-            use_inductance = .true.
-            use_response = .true.
-            use_shell = .false.
+!  This is the orginal format. Options were stored as logicals.
+            CALL cdf_read(mdsig_iou, nc_stell_sym, temp_logical)
+            IF (temp_logical) THEN
+               magnetic_response_construct_netcdf%flags =                      &
+     &            IBSET(magnetic_response_construct_netcdf%flags,              &
+     &                  magnetic_response_use_shell_flag)
+            END IF
+
+!  The mutual inductance and plasma response are expected.
+            magnetic_response_construct_netcdf%flags =                         &
+     &         IBSET(magnetic_response_construct_netcdf%flags,                 &
+     &               magnetic_response_use_coil_flag)
+
+            magnetic_response_construct_netcdf%flags =                         &
+     &         IBSET(magnetic_response_construct_netcdf%flags,                 &
+     &               magnetic_response_use_plasma_flag)
 
       END SELECT
 
 !  Coil Responce Function Variables --------------------------------------------
-      IF (use_inductance) THEN
+      IF (BTEST(magnetic_response_construct_netcdf%flags,                      &
+     &          magnetic_response_use_coil_flag)) THEN
          CALL cdf_read(mdsig_iou, nc_n_field_cg,                               &
      &                 magnetic_response_construct_netcdf%n_field_cg)
 
@@ -433,7 +610,8 @@
       END IF
 
 !  Plasma Response Grid Variables ----------------------------------------------
-      IF (use_response) THEN
+      IF (BTEST(magnetic_response_construct_netcdf%flags,                      &
+     &          magnetic_response_use_plasma_flag)) THEN
          CALL cdf_read(mdsig_iou, nc_num_t,                                    &
      &                 magnetic_response_construct_netcdf%num_t)
          CALL cdf_read(mdsig_iou, nc_rmin,                                     &
@@ -446,8 +624,6 @@
      &                 magnetic_response_construct_netcdf%zmax)
          CALL cdf_read(mdsig_iou, nc_n_field_periods,                          &
      &           magnetic_response_construct_netcdf%n_field_periods)
-         CALL cdf_read(mdsig_iou, nc_stell_sym,                                &
-     &                 magnetic_response_construct_netcdf%stell_sym)
 
          CALL cdf_inquire(mdsig_iou, nc_a_r, dim_lengths)
          magnetic_response_construct_netcdf%num_r = dim_lengths(1)
@@ -477,12 +653,8 @@
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
-      IF (use_shell) THEN
-         IF (.not.use_response) THEN
-            CALL cdf_read(mdsig_iou, nc_stell_sym,                             &
-     &                    magnetic_response_construct_netcdf%stell_sym)
-         END IF
-
+      IF (BTEST(magnetic_response_construct_netcdf%flags,                      &
+     &          magnetic_response_use_shell_flag)) THEN
          CALL cdf_read(mdsig_iou, nc_num_t_shell,                              &
      &                 magnetic_response_construct_netcdf%num_t_shell)
 
@@ -508,6 +680,16 @@
      &                                               dim_lengths(2)))
          CALL cdf_read(mdsig_iou, nc_a_s_z,                                    &
      &                 magnetic_response_construct_netcdf%a_s_z)
+      END IF
+
+!  Point Diagnostic Response ---------------------------------------------------
+      IF (BTEST(magnetic_response_construct_netcdf%flags,                      &
+     &          magnetic_response_is_point_flag)) THEN
+         CALL cdf_read(mdsig_iou, nc_position,                                 &
+     &                 magnetic_response_construct_netcdf%position)
+
+         CALL cdf_read(mdsig_iou, nc_direction,                                &
+     &                 magnetic_response_construct_netcdf%direction)
       END IF
 
       CALL profiler_set_stop_time('magnetic_response_construct_netcdf',        &
@@ -545,9 +727,8 @@
 
 !  All state flags are bit packed into a single integer to reduce mpi
 !  communication overhead.
-      CALL MPI_BCAST(flags, 1, MPI_INTEGER, 0, intra_comm, error)
-      magnetic_response_construct_mpi%stell_sym =                              &
-     &   BTEST(flags, magnetic_response_stell_sym_flag)
+      CALL MPI_BCAST(magnetic_response_construct_mpi%flags, 1,                 &
+     &               MPI_INTEGER, 0, intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------
       CALL MPI_BCAST(magnetic_response_construct_mpi%name,                     &
@@ -564,7 +745,8 @@
      &               intra_comm, error)
 
 !  Coil Responce Function Variables --------------------------------------------
-      IF (BTEST(flags, magnetic_response_use_coil_flag)) THEN
+      IF (BTEST(magnetic_response_construct_mpi%flags,                         &
+     &          magnetic_response_use_coil_flag)) THEN
          CALL MPI_BCAST(magnetic_response_construct_mpi%n_field_cg, 1,         &
      &                  MPI_INTEGER, 0, intra_comm, error)
 
@@ -582,7 +764,8 @@
       END IF
 
 !  Plasma Response Grid Variables ----------------------------------------------
-      IF (BTEST(flags, magnetic_response_use_plasma_flag)) THEN
+      IF (BTEST(magnetic_response_construct_mpi%flags,                         &
+     &          magnetic_response_use_plasma_flag)) THEN
          CALL MPI_BCAST(magnetic_response_construct_mpi%num_t, 1,              &
      &                  MPI_INTEGER, 0, intra_comm, error)
          CALL MPI_BCAST(magnetic_response_construct_mpi%rmin, 1,               &
@@ -624,7 +807,8 @@
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
-      IF (BTEST(flags, magnetic_response_use_shell_flag)) THEN
+      IF (BTEST(magnetic_response_construct_mpi%flags,                         &
+     &          magnetic_response_use_shell_flag)) THEN
          CALL MPI_BCAST(magnetic_response_construct_mpi%num_t_shell,           &
      &                  1, MPI_INTEGER, 0, intra_comm, error)
 
@@ -650,6 +834,16 @@
      &                                                  dim_lengths(2)))
          CALL MPI_BCAST(magnetic_response_construct_mpi%a_s_z,                 &
      &                  total_length, MPI_REAL8, 0, intra_comm, error)
+      END IF
+
+!  Point Diagnostic Response ---------------------------------------------------
+      IF (BTEST(magnetic_response_construct_mpi%flags,                         &
+     &          magnetic_response_is_point_flag)) THEN
+         CALL MPI_BCAST(magnetic_response_construct_mpi%position,              &
+     &                  3, MPI_REAL8, 0, intra_comm, error)
+
+         CALL MPI_BCAST(magnetic_response_construct_mpi%direction,             &
+     &                  3, MPI_REAL8, 0, intra_comm, error)
       END IF
 #endif
 
@@ -714,6 +908,194 @@
       DEALLOCATE(this)
 
       END SUBROUTINE
+
+!*******************************************************************************
+!  QUERY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Checks if the stellarator symmetric flag is set.
+!>
+!>  This is a convenience method so that outside callers do not need to test
+!>  bits directly.
+!>
+!>  @param[in] this A @ref magnetic_response_class instance.
+!>  @returns True if the flag is set.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_response_is_stell_sym(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: magnetic_response_is_stell_sym
+      TYPE (magnetic_response_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                               :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_response_is_stell_sym =                                         &
+     &   BTEST(this%flags, magnetic_response_stell_sym_flag)
+
+      CALL profiler_set_stop_time('magnetic_response_is_stell_sym',            &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Checks if the plasma flag is set.
+!>
+!>  This is a convenience method so that outside callers do not need to test
+!>  bits directly.
+!>
+!>  @param[in] this A @ref magnetic_response_class instance.
+!>  @returns True if the flag is set.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_response_use_plasma(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: magnetic_response_use_plasma
+      TYPE (magnetic_response_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                               :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_response_use_plasma =                                           &
+     &   BTEST(this%flags, magnetic_response_use_plasma_flag)
+
+      CALL profiler_set_stop_time('magnetic_response_use_plasma',              &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Checks if the conducting shell flag is set.
+!>
+!>  This is a convenience method so that outside callers do not need to test
+!>  bits directly.
+!>
+!>  @param[in] this A @ref magnetic_response_class instance.
+!>  @returns True if the flag is set.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_response_use_shell(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: magnetic_response_use_shell
+      TYPE (magnetic_response_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                               :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_response_use_shell =                                            &
+     &   BTEST(this%flags, magnetic_response_use_shell_flag)
+
+      CALL profiler_set_stop_time('magnetic_response_use_shell',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Checks if the coil response flag is set.
+!>
+!>  This is a convenience method so that outside callers do not need to test
+!>  bits directly.
+!>
+!>  @param[in] this A @ref magnetic_response_class instance.
+!>  @returns True if the flag is set.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_response_use_coil(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: magnetic_response_use_coil
+      TYPE (magnetic_response_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                               :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_response_use_coil =                                             &
+     &   BTEST(this%flags, magnetic_response_use_coil_flag)
+
+      CALL profiler_set_stop_time('magnetic_response_use_coil',                &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Clears the coil response bit.
+!>
+!>  This is a convenience method so that outside callers do not need to clear
+!>  bits directly.
+!>
+!>  @param[in] this A @ref magnetic_response_class instance.
+!>  @returns True if the flag is set.
+!-------------------------------------------------------------------------------
+      SUBROUTINE magnetic_response_clr_use_coil(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (magnetic_response_class), INTENT(inout) :: this
+
+!  local variables
+      REAL (rprec)                                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%flags = IBCLR(this%flags, magnetic_response_use_coil_flag)
+
+      CALL profiler_set_stop_time('magnetic_response_clr_use_coil',            &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Checks if the coil response flag is set.
+!>
+!>  This is a convenience method so that outside callers do not need to test
+!>  bits directly.
+!>
+!>  @param[in] this A @ref magnetic_response_class instance.
+!>  @returns True if the flag is set.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_response_is_point(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: magnetic_response_is_point
+      TYPE (magnetic_response_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                               :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_response_is_point =                                             &
+     &   BTEST(this%flags, magnetic_response_is_point_flag)
+
+      CALL profiler_set_stop_time('magnetic_response_is_point',                &
+     &                            start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  NETCDF SUBROUTINES
 !*******************************************************************************
@@ -741,6 +1123,8 @@
       start_time = profiler_get_start_time()
 
 !  Define Variables ------------------------------------------------------------
+      CALL cdf_define(mdsig_iou, nc_flags, this%flags)
+
 !  Identification Variables ----------------------------------------------------
       CALL cdf_define(mdsig_iou, nc_name, this%name)
       CALL cdf_define(mdsig_iou, nc_version, this%version)
@@ -748,7 +1132,7 @@
       CALL cdf_define(mdsig_iou, nc_coil_id, this%coil_id)
 
 !  Coil Responce Function Variables --------------------------------------------
-      IF (ASSOCIATED(this%inductance)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_coil_flag)) THEN
          CALL cdf_define(mdsig_iou, nc_n_field_cg, this%n_field_cg)
          CALL cdf_define(mdsig_iou, nc_inductance, this%inductance)
          CALL cdf_define(mdsig_iou, nc_current_scale,                          &
@@ -756,7 +1140,7 @@
       END IF
 
 !  Plasma Response Grid Variables ----------------------------------------------
-      IF (ASSOCIATED(this%a_r)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_plasma_flag)) THEN
          CALL cdf_define(mdsig_iou, nc_num_t, this%num_t)
          CALL cdf_define(mdsig_iou, nc_num_r, this%num_r)
          CALL cdf_define(mdsig_iou, nc_num_z, this%num_z)
@@ -766,23 +1150,23 @@
          CALL cdf_define(mdsig_iou, nc_zmax, this%zmax)
          CALL cdf_define(mdsig_iou, nc_n_field_periods,                        &
      &                   this%n_field_periods)
-         CALL cdf_define(mdsig_iou, nc_stell_sym, this%stell_sym)
          CALL cdf_define(mdsig_iou, nc_a_r, this%a_r)
          CALL cdf_define(mdsig_iou, nc_a_f, this%a_f)
          CALL cdf_define(mdsig_iou, nc_a_z, this%a_z)
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
-      CALL cdf_define(mdsig_iou, nc_use_shell, ASSOCIATED(this%a_s_r))
-      IF (ASSOCIATED(this%a_s_r)) THEN
-         IF (.not.ASSOCIATED(this%a_r)) THEN
-            CALL cdf_define(mdsig_iou, nc_stell_sym, this%stell_sym)
-         END IF
-         CALL cdf_define(mdsig_iou, nc_use_shell, .true.)
+      IF (BTEST(this%flags, magnetic_response_use_shell_flag)) THEN
          CALL cdf_define(mdsig_iou, nc_num_t_shell, this%num_t_shell)
          CALL cdf_define(mdsig_iou, nc_a_s_r, this%a_s_r)
          CALL cdf_define(mdsig_iou, nc_a_s_f, this%a_s_f)
          CALL cdf_define(mdsig_iou, nc_a_s_z, this%a_s_z)
+      END IF
+
+!  Point Diagnostic Response ---------------------------------------------------
+      IF (BTEST(this%flags, magnetic_response_is_point_flag)) THEN
+         CALL cdf_define(mdsig_iou, nc_position, this%position)
+         CALL cdf_define(mdsig_iou, nc_direction, this%direction)
       END IF
 
       CALL profiler_set_stop_time('magnetic_response_define',                  &
@@ -813,6 +1197,8 @@
       start_time = profiler_get_start_time()
 
 !  Define Variables ------------------------------------------------------------
+      CALL cdf_write(mdsig_iou, nc_flags, this%flags)
+
 !  Identification Variables ----------------------------------------------------
       CALL cdf_write(mdsig_iou, nc_name, this%name)
       CALL cdf_write(mdsig_iou, nc_version, this%version)
@@ -820,14 +1206,14 @@
       CALL cdf_write(mdsig_iou, nc_coil_id, this%coil_id)
 
 !  Coil Responce Function Variables --------------------------------------------
-      IF (ASSOCIATED(this%inductance)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_coil_flag)) THEN
          CALL cdf_write(mdsig_iou, nc_n_field_cg, this%n_field_cg)
          CALL cdf_write(mdsig_iou, nc_inductance, this%inductance)
          CALL cdf_write(mdsig_iou, nc_current_scale, this%current_scale)
       END IF
 
 !  Plasma Response Grid Variables ----------------------------------------------
-      IF (ASSOCIATED(this%a_r)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_plasma_flag)) THEN
          CALL cdf_write(mdsig_iou, nc_num_t, this%num_t)
          CALL cdf_write(mdsig_iou, nc_num_r, this%num_r)
          CALL cdf_write(mdsig_iou, nc_num_z, this%num_z)
@@ -837,23 +1223,23 @@
          CALL cdf_write(mdsig_iou, nc_zmax, this%zmax)
          CALL cdf_write(mdsig_iou, nc_n_field_periods,                         &
      &                  this%n_field_periods)
-         CALL cdf_write(mdsig_iou, nc_stell_sym, this%stell_sym)
          CALL cdf_write(mdsig_iou, nc_a_r, this%a_r)
          CALL cdf_write(mdsig_iou, nc_a_f, this%a_f)
          CALL cdf_write(mdsig_iou, nc_a_z, this%a_z)
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
-      CALL cdf_write(mdsig_iou, nc_use_shell, ASSOCIATED(this%a_s_r))
-      IF (ASSOCIATED(this%a_s_r)) THEN
-         IF (.not.ASSOCIATED(this%a_r)) THEN
-            CALL cdf_write(mdsig_iou, nc_stell_sym, this%stell_sym)
-         END IF
-         CALL cdf_write(mdsig_iou, nc_use_shell, .true.)
+      IF (BTEST(this%flags, magnetic_response_use_shell_flag)) THEN
          CALL cdf_write(mdsig_iou, nc_num_t_shell, this%num_t_shell)
          CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r)
          CALL cdf_write(mdsig_iou, nc_a_s_f, this%a_s_f)
          CALL cdf_write(mdsig_iou, nc_a_s_z, this%a_s_z)
+      END IF
+
+!  Point Diagnostic Response ---------------------------------------------------
+      IF (BTEST(this%flags, magnetic_response_is_point_flag)) THEN
+         CALL cdf_write(mdsig_iou, nc_position, this%position)
+         CALL cdf_write(mdsig_iou, nc_direction, this%direction)
       END IF
 
       CALL profiler_set_stop_time('magnetic_response_write', start_time)
@@ -882,7 +1268,6 @@
 
 #if defined(MPI_OPT)
 !  local variables
-      INTEGER                                       :: flags
       INTEGER                                       :: error
       INTEGER, DIMENSION(3)                         :: dim_lengths
       INTEGER                                       :: total_length
@@ -893,20 +1278,7 @@
 
 !  All state flags are bit packed into a single integer to reduce mpi
 !  communication overhead.
-      flags = 0
-      IF (ASSOCIATED(this%inductance)) THEN
-         flags = IBSET(flags, magnetic_response_use_coil_flag)
-      END IF
-      IF (ASSOCIATED(this%a_r)) THEN
-         flags = IBSET(flags, magnetic_response_use_plasma_flag)
-      END IF
-      IF (this%stell_sym) THEN
-         flags = IBSET(flags, magnetic_response_stell_sym_flag)
-      END IF
-      IF (ASSOCIATED(this%a_s_r)) THEN
-         flags = IBSET(flags, magnetic_response_use_shell_flag)
-      END IF
-      CALL MPI_BCAST(flags, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(this%flags, 1, MPI_INTEGER, 0, intra_comm, error)
 
 !  Identification Variables ----------------------------------------------------
       CALL MPI_BCAST(this%name, magnetic_response_len, MPI_CHARACTER, 0,       &
@@ -919,7 +1291,7 @@
      &               0, intra_comm, error)
 
 !  Coil Responce Function Variables --------------------------------------------
-      IF (ASSOCIATED(this%inductance)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_coil_flag)) THEN
          CALL MPI_BCAST(this%n_field_cg, 1, MPI_INTEGER, 0, intra_comm,        &
      &                  error)
          CALL MPI_BCAST(this%inductance, this%n_field_cg, MPI_REAL8, 0,        &
@@ -929,7 +1301,7 @@
       END IF
 
 !  Plasma Response Grid Variables ----------------------------------------------
-      IF (ASSOCIATED(this%a_r)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_plasma_flag)) THEN
          CALL MPI_BCAST(this%num_t, 1, MPI_INTEGER, 0, intra_comm,             &
      &                  error)
          CALL MPI_BCAST(this%rmin, 1, MPI_REAL8, 0, intra_comm, error)
@@ -954,7 +1326,7 @@
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
-      IF (ASSOCIATED(this%a_s_r)) THEN
+      IF (BTEST(this%flags, magnetic_response_use_shell_flag)) THEN
          CALL MPI_BCAST(this%num_t_shell, 1, MPI_INTEGER, 0, intra_comm,       &
      &                  error)
 
@@ -970,6 +1342,15 @@
      &                  intra_comm, error)
          CALL MPI_BCAST(this%a_s_z, total_length, MPI_REAL8, 0,                &
      &                  intra_comm, error)
+      END IF
+
+!  Point Diagnostic Response ---------------------------------------------------
+      IF (BTEST(this%flags, magnetic_response_is_point_flag)) THEN
+         CALL MPI_BCAST(this%position, 3, MPI_REAL8, 0, intra_comm,            &
+     &                  error)
+
+         CALL MPI_BCAST(this%direction, 3, MPI_REAL8, 0, intra_comm,           &
+     &                  error)
       END IF
 
       CALL profiler_set_stop_time('magnetic_response_sync_children',           &

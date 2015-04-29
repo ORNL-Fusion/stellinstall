@@ -1,121 +1,48 @@
-!******************************************************************************
-!  File v3fit.f
 !*******************************************************************************
-!**********************************************************************
-!**                                                                  **
-!**   MAIN PROGRAM:  Equilibrium Reconstruction                      **
-!**                                                                  **
-!**                                                                  **
-!**     SUBPROGRAM DESCRIPTION:                                      **
-!**          v3fit uses diagnostic data to reconstruct a VMEC        **
-!**          equilibrium that matches the data                       **
-!**                                                                  **
-!**     CALLING ARGUMENTS: This is a stand alone code                **
-!**          xv3fit arg1                                             **
-!**          arg1: optional input namelist file name                 **
-!**                                                                  **
-!**     Author: James D. Hanson, with help from:                     **
-!**             Steve Hirshman                                       **
-!**             Ed Lazarus                                           **
-!**             Lang Lao                                             **
-!**             Steve Knowlton                                       **
-!**                                                                  **
-!**     REFERENCES:                                                  **
-!**          (1)                                                     **
-!**                                                                  **
-!**********************************************************************
-!-------------------------------------------------------------------------------
-!   DEPENDENCIES
-!-------------------------------------------------------------------------------
+!>  @file v3fita.f
+!>  @brief Contains the main routines for V3FIT.
 !
-!  This file uses the following modules:
-!    stel_kinds
-!       located in LIBSTELL/Sources/Modules
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
 !
-!    stel_constants
-!       located in LIBSTELL/Sources/Modules
-!
-!    ezcdf
-!       located in LIBSTELL/Sources/Ezcdf
-!
-!    read_wout_mod
-!       located in LIBSTELL/Sources/Modules
-!
-!    safe_open_mod 
-!       located in LIBSTELL/Sources/Modules
-!
-!    v3f_global
-!       located in V3FITA/Sources
-!       storage for global variables
-!
-!    recon_param_T
-!       located in V3FITA/Sources
-!       Type declarations for reconstruction parameters
-!
-!-------------------------------------------------------------------------------
-!   CHANGE HISTORY
-!-------------------------------------------------------------------------------
-!
-!  See Section V, at end of file
-!
-!-------------------------------------------------------------------------------
-!   USAGE
-!-------------------------------------------------------------------------------
-!
-!  Executing 'xv3fit -h' will printout a help message
-!
-!    INPUT FILES
-!
-!  There are many input files read in by xv3fit:
-! 1) A namelist input file
-!      The first argument on the execute line is the name of this file
-!      If there is no argument on the execute line, the default name of the
-!         namelist input file is v3fit.in
-!      For example, 'xv3fita my_nl_file' reads namelist input from a file named
-!         my_nl_file
-!
-! 2) A LIST file
-!
-! 3) Many mdsig.nc files o one for each diagnostic
-!
-! 4) A VMEC namelist input file
-!
-!   OUTPUT FILES
-!      
-!-------------------------------------------------------------------------------
-!   COMMENTS
-!-------------------------------------------------------------------------------
-!
-!  The module v3_global contains the declarations for the globally accessible
-!   variables.
-!
+!>  V3FIT is a code for reconstructing 3D equilibria. V3FIT determined the
+!>  optimal parameters of a 3D equilibrium by minimizing the missmatch between
+!>  modeled and observed signals. V3FIT has been created with contributions
+!>  from.
+!>
+!>  @author James D. Hanson
+!>  @author Mark Cianciosa
+!>  @author Steve Hirshman
+!>  @author Ed Lazarus
+!>  @author Lang Lao
+!>  @author Steve Knowlton
+!>  @author Gregorio L. Trevisan
+!>
+!>  The theory behind V3FIT is outlined in
+!>     Hanson et. al. doi:10.1088/0029-5515/49/7/075031
+!>
+!>  Below is a brief discription of the major top level objects of the code. For
+!>  discriptions of lower level objects consult the referenced top level
+!>  objects.
+!>
+!>  @ref model defines the equilibrium model.
+!>  @ref signal defined the interface to the signals.
+!>  @ref reconstruction contain the minimization algorithm.
+!>  @ref data_parameters defined the various fixed parameters utility functions
+!>                       used throughout.
+!>  @ref v3fit_input Defines the V3FIT namelist input file.
+!>  @ref v3fit_context defined the main pointer to all allocated memory and
+!>                     objects.
+!>  @ref commandline_parser defines and parses commandline arguments.
 !*******************************************************************************
-!  CODE V3FITA
-!    
-! SECTION I.	Main Program
-! SECTION II.	Initialization Subroutines
-!    initialize_read   - called from Main
-!       init_command_line       - parse the command line
-!       init_main_nli           - read in the main namelist input file
-!       init_signal             - read in the signal information
-!                                 (9/04 - reads in mdsig files)
-!       init_equilibrium        - read in the initial mhd equilibrium state
-!    initialize_compute - called from Main
-! SECTION III.	TASK SUBROUTINES
-!
-!
-! SECTION IV. Cleanup Subroutines 
-!    cleanup           - called from Main (NYI 07-01-2005)
-!    cleanup_vmec      - deallocate vmec arrays and write out files
-!        (NYI 07-01-2005)
-!    help               - (NYI 07-01-2005)
-! SECTION V.	SUBROUTINES FOR TESTNG
-! SECTION VI.	COMMENTS FOR DIFFERENT REVISIONS
-!*******************************************************************************
-
 !*******************************************************************************
 !  MAIN PROGRAM
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief V3FIT main program.
+!>
+!>  Highest level V3FIT routine.
+!-------------------------------------------------------------------------------
       PROGRAM v3fit
       USE v3fit_context
       USE profiler
@@ -492,7 +419,6 @@
 
 !  Start of executable code
       CALL v3fit_context_sync_children(context)
-      CALL init_magnetic_cache(context)
       CALL init_parameters(context)
       CALL init_reconstruction(context)
 
@@ -893,6 +819,8 @@
       INTEGER, INTENT(inout)                    :: signals_created
 
 !  local variables
+      INTEGER                                   :: plasma_index
+      LOGICAL                                   :: use_point
       INTEGER                                   :: mdsig_list_iou
       INTEGER                                   :: mdsig_iou
       INTEGER                                   :: status
@@ -921,6 +849,11 @@
 
 !  Get the directory of the mdsig path.
       mdsig_path = get_path_of_file(mdsig_list_filename)
+
+!  Need to find an index of a magnetic resonse that uses the plasma response
+!  function. Also need to check for the use of a point.
+      plasma_index = 0
+      use_point = .false.
 
 !  Loop over each file in the list file
       DO
@@ -955,6 +888,16 @@
 
          CALL cdf_close(mdsig_iou)
 
+         IF (plasma_index .eq. 0 .and.                                         &
+     &       magnetic_response_use_plasma(                                     &
+     &          magnetic_object%response)) THEN
+            plasma_index = signals_created
+         END IF
+
+         IF (.not.use_point) THEN
+            use_point =                                                        &
+     &         magnetic_response_is_point(magnetic_object%response)
+         END IF
       END DO
 
       CLOSE(mdsig_list_iou)
@@ -964,7 +907,14 @@
          context%magnetic_index = 1
       END IF
 
-      CALL init_magnetic_cache(context)
+!  If response function was found set the plasma index to the number of signals
+!  created. This shold either be non zero pointing to a point diagnostic or zero
+!  where no magnetic signals were created.
+      IF (plasma_index .eq. 0) THEN
+         plasma_index = signals_created
+      END iF
+
+      CALL init_magnetic_cache(context, plasma_index, use_point)
 
       CALL profiler_set_stop_time('init_magnetic_signals', start_time)
 
@@ -978,13 +928,15 @@
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE init_magnetic_cache(context)
+      SUBROUTINE init_magnetic_cache(context, index, use_point)
       USE v3fit_context
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(in)                       :: index
+      LOGICAL, INTENT(in)                       :: use_point
 
 !  local variables
       REAL (rprec)                              :: start_time
@@ -995,7 +947,8 @@
       IF (context%magnetic_index .gt. 0) THEN
          CALL equilibrium_set_magnetic_cache(                                  &
      &           context%model%equilibrium,                                    &
-     &           context%signals(1)%p%diagnostic%magnetic%response)
+     &           context%signals(index)%p%diagnostic%magnetic%response,        &
+     &           use_point)
       END IF
 
       CALL profiler_set_stop_time('init_magnetic_cache', start_time)

@@ -4,6 +4,7 @@
       USE stel_kinds
       USE bsc_T
       USE diagnostic_T
+      USE magnetic_response
 
 !  Declarations/Initializations of variables used in namelist module
       CHARACTER(len=120)           :: name_coils_dot=' '
@@ -116,7 +117,8 @@
 !----------------------------------------------------------------------
 !  NOTE: When changing this version changes, the select statement in
 !  magnetic_construct_netcdf of magnetic.f in the V3FIT needs to be updated.
-      CHARACTER(len=30) :: rfvers = 'MRC 2014-09-28'
+      CHARACTER (len=*), PARAMETER :: rfvers = 'MRC 2014-09-28'
+      CHARACTER (len=*), PARAMETER :: code_name = 'V3RFUN'
 
 !---------------------------------------------------------------------------
 !  Variables for shifts and rotations of coil_groups of coils_dot file

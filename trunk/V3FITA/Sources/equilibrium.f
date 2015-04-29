@@ -345,11 +345,10 @@
 !>
 !>  @param[inout] this            A @ref equilibrium_class instance.
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
-!>  @note Stellarator symmetry may be exploited to speed up computation and
-!>  reduce memory usage. If stellarator symmetry is not used then
-!>  tor_planes_used should match total_tor_planes.
+!>  @param[in]    use_point       Uses the point measurements
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_set_magnetic_cache(this, response_object)
+      SUBROUTINE equilibrium_set_magnetic_cache(this, response_object,         &
+     &                                          use_point)
       USE magnetic_response
 
       IMPLICIT NONE
@@ -357,6 +356,7 @@
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout)    :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
+      LOGICAL, INTENT(in)                        :: use_point
 
 !  local variables
       REAL (rprec)                               :: start_time
@@ -367,7 +367,8 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            CALL vmec_set_magnetic_cache(this%vmec, response_object)
+            CALL vmec_set_magnetic_cache(this%vmec, response_object,           &
+     &                                   use_point)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
             IF (.not.this%not_converged) THEN
@@ -1494,6 +1495,48 @@
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_get_ext_currents',              &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get external plasma magnetic field.
+!>
+!>  This method is virtual. The actual getting of the external current should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_ext_b_plasma
+!>
+!>  @param[in]  this     A @ref equilibrium_class instance.
+!>  @param[in]  position Position to compute the fields at.
+!>  @returns The external currents.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_ext_b_plasma(this, position)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3) :: equilibrium_get_ext_b_plasma
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), DIMENSION(3)           :: position
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_ext_b_plasma =                                     &
+     &         vmec_get_ext_b_plasma(this%vmec, position)
+
+         CASE DEFAULT
+            equilibrium_get_ext_b_plasma = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_ext_b_plasma',              &
      &                            start_time)
 
       END FUNCTION

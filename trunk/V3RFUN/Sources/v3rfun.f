@@ -1,4 +1,180 @@
-!******************************************************************************
+!  V3RFUN is under going a complete refactoring. Allow the old code to be
+!  compiled by default. The main goal of this cleanup is to allow an extention
+!  D3D style plain magnetic probes.
+!#undef NEW_CODE
+#ifdef NEW_CODE
+!*******************************************************************************
+!>  @file v3rfun.f
+!>  @brief Contains the main routines for V3RFUN.
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  The V3RFUN code is part of a suite of codes, called V3FIT, designed for
+!>  equilibrium reconstruction of stellarator plasmas. It takes as input
+!>  descriptions of the field coils and diagnostic coils, and generates files
+!>  containing the coil and plasma response functions and the plasma response
+!>  functions. The output files from the V3RFUN code are designed to be used as
+!>  input to the V3FIT code. Physical quantities in the V3FIT project are
+!>  measured in SI units, unless otherwise specified.
+!>
+!>  @author James D. Hanson
+!>  @author Mark Cianciosa
+!>
+!>  Below is a brief discription of the major top level objects of the code. For
+!>  discriptions of lower level objects consult the referenced top level
+!>  objects.
+!*******************************************************************************
+!*******************************************************************************
+!  MAIN PROGRAM
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief V3RFUN main program.
+!>
+!>  Highest level V3RFUN routine.
+!-------------------------------------------------------------------------------
+      PROGRAM v3rfun
+      USE v3rfun_context
+      USE profiler
+!$    USE omp_lib
+
+      IMPLICIT NONE
+
+!  local variables
+!  Forward declare the v3rfun_parse_command_line function.
+      INTERFACE
+         FUNCTION v3rfun_parse_command_line()
+         USE v3rfun_input
+         IMPLICIT NONE
+         CHARACTER (len=v3rfun_file_length) :: v3rfun_parse_command_line
+         END FUNCTION
+      END INTERFACE
+
+      TYPE (v3rfun_context_class), POINTER :: context => null()
+      TYPE (diagnostic_dot_coil), POINTER  :: head
+      INTEGER                              :: id_num
+#if defined(MPI_OPT)
+      INTEGER                              :: error
+
+!  Start of executable code
+!  The Intel version of the MPI libraries does not provide a correct value for
+!  time until after MPI_INIT is called. Make sure this is the first think called
+!  so that correct timing information can be used.
+      CALL MPI_INIT(error)
+#endif
+
+      CALL profiler_construct
+
+!$    CALL OMP_SET_NUM_THREADS(OMP_GET_NUM_PROCS())
+!$OMP PARALLEL
+!$    error = OMP_GET_MAX_THREADS()
+!$OMP END PARALLEL
+!$    WRITE (*,*) error
+
+      context =>                                                               &
+     &   v3rfun_context_construct(TRIM(v3rfun_parse_command_line()))
+
+!  Compute the coil response functions.
+      head => context%coils
+      id_num = 1
+      DO WHILE(ASSOCIATED(head))
+         CALL v3rfun_context_write_mrf(context, head, id_num)
+
+         head => head%next
+         id_num = id_num + 1
+      END DO
+
+      CALL v3rfun_context_destruct(context)
+
+      CALL profiler_destruct
+
+#if defined(MPI_OPT)
+      CALL MPI_FINALIZE(error)
+#endif
+
+      END PROGRAM v3rfun
+
+!-------------------------------------------------------------------------------
+!>  @brief Parse command line arguments.
+!>
+!>  The command line arguments are simple. Expect either the -h flag or read the
+!>  namelist input filename. If any other argument is encountered display the
+!>  help and terminate the program.
+!>
+!>  @returns The namelist input filename.
+!-------------------------------------------------------------------------------
+      FUNCTION v3rfun_parse_command_line()
+      USE v3rfun_input
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=v3rfun_file_length) :: v3rfun_parse_command_line
+
+!  local variables
+      INTEGER                            :: num_args, i
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Read the zeroith arg to get the number of arguments. This should also be the
+!  command name.
+      CALL getcarg(0, v3rfun_parse_command_line, num_args)
+
+      IF (num_args .le. 0 .or. num_args .gt. 2) THEN
+         CALL v3rfun_print_help
+      END IF
+
+      DO i = 1, num_args
+         CALL getcarg(i, v3rfun_parse_command_line, num_args)
+         IF (TRIM(v3rfun_parse_command_line) .eq. '-h') THEN
+            CALL v3rfun_print_help
+         END IF
+      END DO
+
+      CALL profiler_set_stop_time('v3rfun_parse_command_line',                 &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Print out help text.
+!>
+!>  Command line help text should take the form of '-flag'. A Y or N indicating
+!>  the flag takes a value or not followed by a space. A short message
+!>  describing the flag. A reference for all the command line arguments can be
+!>  found at @ref FIXME.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3rfun_print_help()
+      USE v3rfun_context
+      USE magnetic_response
+
+      IMPLICIT NONE
+
+!  Start of executable code
+!  All command line messages need to fit within this width.
+!                '           s              c                          '
+      WRITE(*,*) '                                                     '
+      WRITE(*,1000) code_name
+      WRITE(*,1100) magnetic_response_current
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) 'Usage: xv3rfun [-arg] filename ...                   '
+      WRITE(*,*) '                                                     '
+      WRITE(*,*) 'Options:                                             '
+      WRITE(*,*) 'All options are displayed as [arg][takesoption][text]'
+      WRITE(*,*) '  -h       N Display this information                '
+      WRITE(*,*) '                                                     '
+
+      STOP
+
+1000  FORMAT('Code: ',a)
+1100  FORMAT('Version: ',a)
+
+      END SUBROUTINE
+#else
+
+!*******************************************************************************
 !  File v3rfun.f
 !*******************************************************************************
 !**********************************************************************
@@ -86,15 +262,21 @@
 !*******************************************************************************
 
       PROGRAM v3rfun
+      USE profiler
+
       IMPLICIT NONE
       
 
 !----------------------------------------------------------------------
 !-- Initialize and get inputs                                        --
 !----------------------------------------------------------------------
+      CALL profiler_construct
+
       CALL get_input
 
       CALL write_mdsigs
+
+      CALL profiler_destruct
 
       STOP
       END PROGRAM v3rfun
@@ -449,6 +631,7 @@
       USE safe_open_mod
       USE v3_utilities
       USE coordinate_utilities
+      USE magnetic_response
 
 !      Variables declared in v3rfun_data used in this subroutine:
 !  iou_mdsig_ncdf        i/o unit number for mdsig file
@@ -469,41 +652,27 @@
 !  minor_radius          Minor radius for a conducting shell.
 
       IMPLICIT NONE
-!----------------------------------------------------------------------
-!-- Declarations of local variables                                  --
-!----------------------------------------------------------------------
- 
+
+!  local variables
       REAL(rprec), DIMENSION(:,:,:,:,:), ALLOCATABLE :: xcart_grid_e
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: phi_grid_e
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE       :: phi_grid_e
       REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE, TARGET ::                  &
-     &   pl_response, pl_response_ss
-      REAL(rprec), DIMENSION(3) :: xcyl, acyl, acart
+     &   pl_response
+      REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE, TARGET ::                  &
+     &   pl_response_ss
+      REAL(rprec), DIMENSION(3)                      :: xcyl
+      REAL(rprec), DIMENSION(3)                      :: acart
       INTEGER :: i, j, k, l, idc 
       INTEGER :: iss, jss, kss
-      INTEGER :: istat, i_last_slash
       REAL(rprec) :: phi0
       REAL(rprec) :: fperiod, delr, delz, delp, delu, delp_shell
-      CHARACTER (len=120) :: mdsig_filename, list_filename,                    &
-     &   name_dd_nopath, mi_filename
+      CHARACTER (len=120) :: temp_filename, name_dd_nopath
       INTEGER :: numc, maxindex(1)
-      REAL(rprec), DIMENSION(:), ALLOCATABLE  :: extcur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE  :: rdiag_coilg_1
-      
-      CHARACTER(len=80)                          :: code_name
-      CHARACTER(len=80)                          :: code_version
-      CHARACTER(len=80)                          :: date_run
-      CHARACTER(len=80)                          :: field_coils_id
-      CHARACTER (len=80)                         :: s_name                                 
-      CHARACTER (len=80)                         :: l_name
-      CHARACTER (len=80)                         :: units                                 
-      CHARACTER (len=80)                         :: field_coil_id  
-      CHARACTER (len=80)                         :: mddc_type  
-      REAL(rprec)                                :: sigma_default
-      REAL(rprec)                                :: flux_factor
+      REAL(rprec), DIMENSION(:), POINTER :: extcur => null()
+      REAL(rprec), DIMENSION(:), POINTER :: rdiag_coilg_1 => null()
 
+      TYPE (magnetic_response_class), POINTER :: response => null()
       TYPE(mddc_mrf), POINTER   :: null_mrf => null()
-      TYPE(mddc_mrf)            :: local_mddc_mrf 
-      TYPE(mddc_desc)           :: local_mddc_desc
       TYPE(diagnostic_desc)     :: local_diagnostic_desc
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
@@ -519,14 +688,23 @@
       REAL(rprec)                          :: u
       INTEGER                              :: n_u
 
-      INTEGER :: ier1, ier2, ier3
-      CHARACTER(len=8) :: my_date
-      CHARACTER(len=10) :: my_time
-      CHARACTER(len=5) :: my_zone
-      CHARACTER(len=*), PARAMETER :: sub_name =                                &
-     &  'write_mdsigs: '
-      
-!  xcarte_grid_e    array of cartesian coordinates on the extended 
+      INTEGER                :: status
+      CHARACTER(len=8)       :: my_date
+      CHARACTER(len=10)      :: my_time
+      CHARACTER(len=5)       :: my_zone
+      CHARACTER (len=8+10+5) :: date_run
+
+      INTERFACE
+         FUNCTION cart2cyl_v(vcart, xphi)
+         USE stel_kinds
+         IMPLICIT NONE
+         REAL (rprec), DIMENSION(3)             :: cart2cyl_v
+         REAL (rprec), DIMENSION(3), INTENT(in) :: vcart
+         REAL (rprec), INTENT(in)               :: xphi
+         END FUNCTION
+      END INTERFACE
+
+!  xcarte_grid_e    array of cartesian coordinates on the extended
 !                      computational grid
 !  phi_grid_e       array of phi values on the extended computational grid 
 !  pl_response      array of plasma response values
@@ -555,33 +733,28 @@
 !  rdiag_coilg_1    array of responses of a diagnostic to field-coil groups
 
 
-!----------------------------------------------------------------------
-!  Start of Executable Coding
-!----------------------------------------------------------------------
+!  Start of executable code
 
-!----------------------------------------------------------------------
-!  Preliminaries for the plasma responses
-!----------------------------------------------------------------------
-!  Variables for the grid
-      fperiod = twopi / n_field_periods
-      delr = (rmax - rmin) / (ir - 1)
-      delz = (zmax - zmin) / (jz - 1)                    
-      delp = fperiod / kp
-      delp_shell = fperiod / kp_shell
+!  Preliminaries for the plasma responses --------------------------------------
+!  Set the grid differental elements
+      fperiod = twopi/n_field_periods
+      delr = (rmax - rmin)/(ir - 1)
+      delz = (zmax - zmin)/(jz - 1)
+      delp = fperiod/kp
 
-!  Allocate space
-      ALLOCATE(xcart_grid_e(ir,jz,kp,n_field_periods,3),STAT=ier1)
-      ALLOCATE(phi_grid_e(kp,n_field_periods),STAT=ier2)
-      ALLOCATE(pl_response(ir,jz,kp,3),STAT=ier3)
-      CALL assert_eq(0,ier1,ier2,ier3,sub_name // 'alloc 1')
+      ALLOCATE(xcart_grid_e(ir,jz,kp,n_field_periods,3))
+      ALLOCATE(phi_grid_e(kp,n_field_periods))
+      ALLOCATE(pl_response(ir,jz,kp,3))
       IF (lstell_sym) THEN
-         ALLOCATE(pl_response_ss(ir,jz,kp_store,3),STAT=ier1)
-         CALL assert_eq(0,ier1,sub_name // 'alloc 2')
+         ALLOCATE(pl_response_ss(ir,jz,kp_store,3))
       ENDIF
 
 !  Allocate space for conducting shell
       n_u = MAX(INT(n_field_periods*kp_shell*minor_radius/major_radius),       &
      &          10)
+      delu = twopi/n_u
+      delp_shell = fperiod/kp_shell
+
       IF (use_con_shell) THEN
          ALLOCATE(xcart_s_grid_e(n_u, kp_shell, n_field_periods, 3))
          ALLOCATE(s_response(n_u,kp_shell,3))
@@ -591,24 +764,22 @@
          END IF
       END IF
 
-      delu = twopi / n_u
-
-!  Compute the coordinates, store them in xcart_grid_e
-!  Also compute and store (in phi_grid_e) the phi values
+!  Compute the coordinates, store them in xcart_grid_e. Also compute and store
+!  (in phi_grid_e) the phi values
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i,j,k,l,xcyl,phi0)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO k = 1,kp
-         phi0 = (k - 1) * delp 
-         DO l = 1,n_field_periods
-            xcyl(2) = phi0 + (l - 1) * fperiod
+         phi0 = (k - 1)*delp
+         DO l = 1, n_field_periods
+            xcyl(2) = phi0 + (l - 1)*fperiod
             phi_grid_e(k,l) = xcyl(2)
             DO i = 1,ir
-               xcyl(1) = rmin + (i - 1) * delr
+               xcyl(1) = rmin + (i - 1)*delr
                DO j = 1,jz
-                  xcyl(3) = zmin + (j - 1) * delz
+                  xcyl(3) = zmin + (j - 1)*delz
                   xcart_grid_e(i,j,k,l,1:3) = cyl_to_cart(xcyl)
                END DO ! over j
             END DO ! over i
@@ -642,123 +813,104 @@
 !$OMP END PARALLEL
       END IF
 
-!----------------------------------------------------------------------
-!  Safe open for the LIST file
-!----------------------------------------------------------------------
+!  Open mdsig List File --------------------------------------------------------
 !  Strip off the leading path elements from name_diagnostic_dot
-      i_last_slash = INDEX(name_diagnostic_dot,'/',.TRUE.)
-      name_dd_nopath = name_diagnostic_dot(i_last_slash + 1:)
+      name_dd_nopath = name_diagnostic_dot(INDEX(name_diagnostic_dot,          &
+     &                                           '/' , .true.) + 1:)
       IF (LEN_TRIM(myid) .eq. 0) THEN
-         list_filename = TRIM(name_dd_nopath)//'_mdsig.LIST'
+         temp_filename = TRIM(name_dd_nopath) // '_mdsig.LIST'
       ELSE
-         list_filename =                                                       &
-     &   TRIM(name_dd_nopath)//'_'//TRIM(myid)//'_mdsig.LIST'
+         temp_filename = TRIM(name_dd_nopath) // '_' // TRIM(myid) //          &
+     &                   '_mdsig.LIST'
       END IF
-      WRITE(*,*) 'list_filename is ', list_filename
-      CALL safe_open(iou_list,istat,TRIM(list_filename),                       &
-     &    'unknown', 'formatted')
+      WRITE(*,*) 'list_filename is ', temp_filename
+      CALL safe_open(iou_list, status, TRIM(temp_filename), 'unknown',         &
+     &               'formatted')
 
-!----------------------------------------------------------------------
-!  Safe open for the Mutual Inducatance file
-!----------------------------------------------------------------------
+!  Open Mutual Inducatance File ------------------------------------------------
       IF (LEN_TRIM(myid) .eq. 0) THEN
-         mi_filename = TRIM(name_dd_nopath)//'_MI'
+         temp_filename = TRIM(name_dd_nopath) // '_MI'
       ELSE
-         mi_filename =                                                         &
-     &   TRIM(name_dd_nopath)//'_'//TRIM(myid)//'_MI'
+         temp_filename = TRIM(name_dd_nopath) // '_' // TRIM(myid) //          &
+     &                   '_MI'
       END IF
-      WRITE(*,*) 'mi_filename is ', TRIM(mi_filename)
-      CALL safe_open(iou_mi,istat,TRIM(mi_filename),                           &
-     &    'unknown', 'formatted',delim_in='n')
+      WRITE(*,*) 'mi_filename is ', TRIM(temp_filename)
+      CALL safe_open(iou_mi, status, TRIM(temp_filename), 'unknown',             &
+     &               'formatted', delim_in='n')
 
 !----------------------------------------------------------------------
 !  Preliminaries for the coil responses
 !----------------------------------------------------------------------
 !  Allocate space for rdiag_coilg_1 array
-      IF (ALLOCATED(rdiag_coilg_1)) DEALLOCATE (rdiag_coilg_1)
-      ALLOCATE (rdiag_coilg_1(n_field_cg), extcur(n_field_cg),                 &
-     &   STAT=ier1)
-      CALL assert_eq(0,ier1,sub_name // 'alloc 3')
+      ALLOCATE(rdiag_coilg_1(n_field_cg))
+      ALLOCATE(extcur(n_field_cg))
 
-      DO i = 1, n_field_cg    !  Loop over coil groups
-!
+      DO i = 1, n_field_cg
 !  Find extcur array element for computing scaled inductance matrix
 !  next 3 lines taken out of makegrid code
-!
-         numc = field_coils(i) % ncoil
+         numc = field_coils(i)%ncoil
          maxindex = MAXLOC(ABS(field_coils(i)%coils(1:numc)%current))
          extcur(i) = field_coils(i)%coils(maxindex(1))%current
-         IF (extcur(i) == zero) extcur(i) = 1
+         IF (extcur(i) == zero) THEN
+            extcur(i) = 1
+         END IF
       END DO
 
-!----------------------------------------------------------------------
-!  Preliminaries for creating the signal_mrf
-!----------------------------------------------------------------------
-      code_name = 'V3RFUN'
-      code_version = rfvers
-      CALL date_and_time(my_date,my_time,my_zone)
+      CALL date_and_time(my_date, my_time, my_zone)
       date_run = my_date // ' ' // my_time // ' ' // my_zone
-      field_coil_id = name_coils_dot
 
-!----------------------------------------------------------------------
-!  Preliminary write to the Mutual Inductance file
-!----------------------------------------------------------------------
-      WRITE(iou_mi,*) ' MUTUAL INDUCTANCES computed by ',                      &
-     &   TRIM(code_name)
-      WRITE(iou_mi,*) ' code version is ', TRIM(rfvers)
+!  Write mutual inductance file header.
+      WRITE(iou_mi,*) ' MUTUAL INDUCTANCES computed by ', code_name
+      WRITE(iou_mi,*) ' code version is ', rfvers
       WRITE(iou_mi,*) ' Date run: ', TRIM(date_run)
       WRITE(iou_mi,*) ' Field coil information from ',                         &
-     &   TRIM(name_coils_dot)
+     &                TRIM(name_coils_dot)
       WRITE(iou_mi,*) ' Diagnostic information from ',                         &
-     &   TRIM(name_diagnostic_dot)
+     &                TRIM(name_diagnostic_dot)
       WRITE(iou_mi,*) 
       
-!----------------------------------------------------------------------
-!  Big loop over diagnostic coils
-!----------------------------------------------------------------------
-!  Compute the plasma response 
-!  Write out files
-!  (Don't bother to indent the i,j,k loops separately, as the 
-!   loops boundaries coincide)
+!  Loop over all diagnostic coils.
       DO idc =  1,n_diagn_c
-         WRITE (6, '(5x,a12,i4)') 'Diagnostic #', idc
+         WRITE (6,'(5x,a12,i4)') 'Diagnostic #', idc
 
-! (A) Compute the coil response
-!         Calculate the flux, and then apply the flux correction factor.
+!  Coil Response ---------------------------------------------------------------
          DO i = 1, n_field_cg    !  Loop over coil groups
-            CALL bsc_fluxba(field_coils(i),                                    &
-     &         mddc_desc_array(idc) % mdcoil,len_integrate_ddc,                &
-     &         rdiag_coilg_1(i))
-            rdiag_coilg_1(i) = rdiag_coilg_1(i) *                              &
-     &         mddc_desc_array(idc) % flux_factor
+            CALL bsc_fluxba(field_coils(i), mddc_desc_array(idc)%mdcoil,       &
+     &                      len_integrate_ddc, rdiag_coilg_1(i))
+            rdiag_coilg_1(i) = rdiag_coilg_1(i)                                &
+     &                       * mddc_desc_array(idc)%flux_factor
          END DO
 
-! (B) Compute the plasma responses
+!  Plasma Response -------------------------------------------------------------
+!  Parallelize the outer most loops. Any local variables inside the loop must
+!  be private.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i,j,k,l,acart,acyl)
+!$OMP& PRIVATE(i,j,k,l,acart)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO i = 1,ir
-         DO j = 1,jz
-         DO k = 1,kp
-            pl_response(i,j,k,1:3) = zero
-            DO l = 1, n_field_periods
-               CALL bsc_a(mddc_desc_array(idc) % mdcoil,                       &
-     &                 xcart_grid_e(i,j,k,l,1:3), acart)
-               CALL cart2cyl_v(acart,phi_grid_e(k,l),acyl)
-               pl_response(i,j,k,1:3) = pl_response(i,j,k,1:3) +               &
-     &            acyl(1:3)
-            END DO ! l, field periods
-            pl_response(i,j,k,1:3) = pl_response(i,j,k,1:3) *                  &
-     &            mddc_desc_array(idc) % flux_factor       ! Conversion Factor
-         END DO ! k
-         END DO ! j
+            DO j = 1,jz
+               DO k = 1,kp
+                  pl_response(i,j,k,1:3) = zero
+                  DO l = 1, n_field_periods
+                     CALL bsc_a(mddc_desc_array(idc)%mdcoil,                   &
+     &                          xcart_grid_e(i,j,k,l,1:3), acart)
+                     pl_response(i,j,k,1:3) = pl_response(i,j,k,1:3) +         &
+     &                  cart2cyl_v(acart, phi_grid_e(k,l))
+                  END DO ! l, field periods
+                  pl_response(i,j,k,1:3) = pl_response(i,j,k,1:3) *            &
+     &               mddc_desc_array(idc)%flux_factor       ! Conversion Factor
+               END DO ! k
+            END DO ! j
          END DO ! i
 !$OMP END DO
 !$OMP END PARALLEL
          
-!  Additional Summation for Stellarator Symmetric case.
+!  When using stellator symmetry, only half of the field period needs to be
+!  stored due to the symmetry. A vertical point will have the same current as a
+!  the symmetric point below the midplane. The counter point to point j is found
+!  from by counting the grid in reverse.
          IF (lstell_sym) THEN
             DO i = 1,ir
                iss = i
@@ -781,28 +933,36 @@
             END DO ! i
          END IF ! lstell_sym
 
-! (C) Compute the conducting shell response.
+!  Conducting Shell Response ---------------------------------------------------
          IF (use_con_shell) THEN
+
+!  Parallelize the outer most loops. Any local variables inside the loop must
+!  be private.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(j,k,l,acart,acyl)
+!$OMP& PRIVATE(j,k,l,acart)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
             DO j = 1, n_u
-            DO k = 1, kp_shell
-               s_response(j,k,1:3) = zero
-               DO l = 1,n_field_periods
-                  CALL bsc_a(mddc_desc_array(idc)%mdcoil,                      &
-     &                   xcart_s_grid_e(j,k,l,1:3), acart)
-                  CALL cart2cyl_v(acart, phi_grid_shell(k,l), acyl)
-                  s_response(j,k,1:3) = s_response(j,k,1:3) + acyl
+               DO k = 1, kp_shell
+                  s_response(j,k,1:3) = zero
+                  DO l = 1,n_field_periods
+                     CALL bsc_a(mddc_desc_array(idc)%mdcoil,                   &
+     &                          xcart_s_grid_e(j,k,l,1:3), acart)
+                     s_response(j,k,1:3) = s_response(j,k,1:3) +               &
+     &                  cart2cyl_v(acart, phi_grid_shell(k,l))
+                  END DO
                END DO
-            END DO
             END DO
 !$OMP END DO
 !$OMP END PARALLEL
             s_response = s_response*mddc_desc_array(idc)%flux_factor
 
+!  When using stellator symmetry, only half of the field period needs to be
+!  stored due to the symmetry. A poloidal point will have the same current as a
+!  the symmetric point below the midplane. The j=1 point corresponds to the
+!  same u position on the opposite side of the field perior. For j!=0, the
+!  symmetry point is found by counting indices backwards.
             IF (lstell_sym) THEN
                DO j = 1, n_u
                   IF (j .eq. 1) THEN
@@ -828,15 +988,7 @@
             END IF
          END IF
 
-
-CDBG         print *,idc,minval(pl_response(1:ir,1:jz,1:kp,1:3)),
-CDBG     .  	maxval(pl_response(1:ir,1:jz,1:kp,1:3)),
-CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
-
-! (C) Create the necessary structures:
-!  i)   bsc_coil (already done - diagnostic_coils % coils(idc))
-!  ii)  mddc_desc - already done - mddc_desc_array(idc)
-!  iii) mddc_mrf
+!  Assign the response function grids to pointers.
          IF (lstell_sym) THEN
             a_r => pl_response_ss(:,:,:,1)
             a_f => pl_response_ss(:,:,:,2)
@@ -857,84 +1009,93 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
             END IF
          ENDIF
 
-         CALL mddc_mrf_construct(local_mddc_mrf,                               &
-     &      code_name,code_version,date_run,field_coils_id,                    &
-     &      rdiag_coilg_1,extcur,kp,                                           &
-     &      rmin,rmax,zmin,zmax,n_field_periods,lstell_sym,a_r,a_f,a_z,        &
-     &      use_con_shell, a_s_r, a_s_f, a_s_z, kp_shell)
+!  Construct a responce object.
+         response => magnetic_response_construct(code_name, date_run,          &
+     &                                           TRIM(name_coils_dot),         &
+     &                                           rdiag_coilg_1, extcur,        &
+     &                                           kp, kp_shell,                 &
+     &                                           rmin, rmax, zmin, zmax,       &
+     &                                           n_field_periods,              &
+     &                                           lstell_sym,                   &
+     &                                           a_r, a_f, a_z,                &
+     &                                           a_s_r, a_s_f, a_s_z)
 
-!  iv)  Define a local mddc_desc, including the mddc_mrf
-!       NB - no further references to mddc_desc_array after this section,
-!            all references are to local_mddc_desc.
-         s_name = mddc_desc_array(idc) % s_name
-         l_name = mddc_desc_array(idc) % l_name
-         units = mddc_desc_array(idc) % units
-         sigma_default = mddc_desc_array(idc) % sigma_default
-         mddc_type =  mddc_desc_array(idc) % mddc_type
-         flux_factor =  mddc_desc_array(idc) % flux_factor
-         CALL mddc_construct(local_mddc_desc,s_name,l_name,units,              &
-     &       sigma_default,mddc_type,mddc_desc_array(idc) % mdcoil,            &
-     &       local_mddc_mrf,flux_factor)
-
-!  v) diagnostic_desc. Use same s_name, l_name, units, sigma_default
-         CALL diagnostic_construct(local_diagnostic_desc,'mddc',               &
-     &       s_name,l_name,units,sigma_default,local_mddc_desc)
-
-! (D) Open up an mdsig file, for netcdf writing
+!  Write Coil Response ---------------------------------------------------------
+!  Open up an mdsig file, for netcdf writing
          IF (LEN_TRIM(myid) .eq. 0) THEN
-            mdsig_filename = TRIM(ADJUSTL(                                     &
-     &      mddc_desc_array(idc) % mdcoil % s_name)) // '_mdsig.nc'
+            temp_filename =                                                    &
+     &         TRIM(ADJUSTL(mddc_desc_array(idc)%mdcoil%s_name)) //            &
+     &         '_mdsig.nc'
          ELSE
-            mdsig_filename = TRIM(ADJUSTL(                                     &
-     &         mddc_desc_array(idc) % mdcoil % s_name))//'_'                   &
-     &         //TRIM(myid)//'_mdsig.nc'
+            temp_filename =                                                    &
+     &         TRIM(ADJUSTL(mddc_desc_array(idc)%mdcoil%s_name)) //            &
+     &         '_' // TRIM(myid) // '_mdsig.nc'
          ENDIF
-         istat = 0
-         CALL cdf_open(iou_mdsig_ncdf,TRIM(mdsig_filename),'w',istat)
-         CALL assert_eq(0,istat,sub_name // 'mdsig file open status')
+         status = 0
+         CALL cdf_open(iou_mdsig_ncdf, TRIM(temp_filename), 'w', status)
+         CALL assert_eq(0, status,                                             &
+     &                  'write_mdsigs mdsig file open status')
 
-!  netCDF Define, write, and close
+!  Define NetCDF variables.
+         CALL cdf_define(iou_mdsig_ncdf, 'diagnostic_desc_d_type',             &
+     &                   mddc_desc_array(idc)%mddc_type)
+         CALL cdf_define(iou_mdsig_ncdf, 'diagnostic_desc_s_name',             &
+     &                   mddc_desc_array(idc)%s_name)
+         CALL cdf_define(iou_mdsig_ncdf, 'diagnostic_desc_l_name',             &
+     &                   mddc_desc_array(idc)%l_name)
+         CALL cdf_define(iou_mdsig_ncdf, 'diagnostic_desc_units',              &
+     &                   mddc_desc_array(idc)%units)
+         CALL cdf_define(iou_mdsig_ncdf,                                       &
+     &                   'diagnostic_desc_sigma_default',                      &
+     &                   mddc_desc_array(idc)%sigma_default)
+         CALL magnetic_response_define(response, iou_mdsig_ncdf)
 
-!  2007-06-11. cdf define and write the local_diagnostic_desc, which
-!  should containt both the bsc_coil and the mddc_mrf.
 
-         CALL diagnostic_cdf_define(local_diagnostic_desc,                     &
-     &      iou_mdsig_ncdf)
+!  Write NetCDF variables. The cdf_write subroutine switches from define mode to
+!  write mode.
+         CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_d_type',              &
+     &                  TRIM(mddc_desc_array(idc)%mddc_type))
+         CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_s_name',              &
+     &                  TRIM(mddc_desc_array(idc)%s_name))
+         CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_l_name',              &
+     &                  TRIM(mddc_desc_array(idc)%l_name))
+         CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_units',               &
+     &                  TRIM(mddc_desc_array(idc)%units))
+         CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_sigma_default',       &
+     &                  mddc_desc_array(idc)%sigma_default)
+         CALL magnetic_response_write(response, iou_mdsig_ncdf)
 
-         CALL diagnostic_cdf_write(local_diagnostic_desc,                      &
-     &      iou_mdsig_ncdf)
-
+!  Close NetCDF file.
          CALL cdf_close(iou_mdsig_ncdf)
-         
-!  (E) Write entry in list file
-         WRITE(iou_list,fmt='(i4.4,x,a)')idc,TRIM(mdsig_filename)
 
-!  (F) Write to Mutual Inductance file
+!  Write entry in list file
+          WRITE(iou_list,fmt='(i4.4,x,a)') idc, TRIM(temp_filename)
+
+!  Write to Mutual Inductance file
          WRITE(iou_mi,'(a,t20,i4)') 'Diagnostic Coil: ', idc
          WRITE(iou_mi,'(a,t20,a)') 'Short Name: ',                             &
-     &      TRIM(local_mddc_desc % mdcoil % s_name)
+     &      TRIM(mddc_desc_array(idc)%s_name)
          WRITE(iou_mi,'(a,t20,a)') 'MDDC Type: ',                              &
-     &      TRIM(local_mddc_desc % mddc_type)
+     &      TRIM(mddc_desc_array(idc)%mddc_type)
          WRITE(iou_mi,'(a,t20,a)') 'Signal units: ',                           &
-     &      TRIM(local_mddc_desc % units)
+     &      TRIM(mddc_desc_array(idc)%units)
          WRITE(iou_mi,*) ' i      ID          Inductance'
          DO i = 1, n_field_cg
             WRITE(iou_mi,'(i4,1x,a11,1x,es14.6)') i,                           &
      &         TRIM(field_coils(i) % s_name), rdiag_coilg_1(i)
          END DO
-         WRITE(iou_mi,*) 
-         
+         WRITE(iou_mi,*)
+
+!  Cleanup
+         CALL magnetic_response_destruct(response)
       END DO ! over diagnostic coils
 
 !  Deallocate space  ZZZZZZZZ
-      DEALLOCATE(xcart_grid_e,phi_grid_e,pl_response,STAT=ier1)
-      CALL assert_eq(0,ier1,sub_name // 'dealloc 1')
+      DEALLOCATE(xcart_grid_e, phi_grid_e, pl_response)
       IF (lstell_sym) THEN
-         DEALLOCATE(pl_response_ss,STAT=ier1)
-         CALL assert_eq(0,ier1,sub_name // 'dealloc 2')
+         DEALLOCATE(pl_response_ss)
       ENDIF
-      DEALLOCATE (rdiag_coilg_1, extcur, STAT=ier1)
-      CALL assert_eq(0,ier1,sub_name // 'dealloc 3')
+      DEALLOCATE(rdiag_coilg_1, extcur)
 
       IF (use_con_shell) THEN
          DEALLOCATE(xcart_s_grid_e, s_response, phi_grid_shell)
@@ -954,35 +1115,33 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
 !
 !----------------------------------------------------------------------
 
-
 !*******************************************************************************
 ! SECTION III.	AUXILIARY SUBROUTINES
 !*******************************************************************************
-
-      SUBROUTINE cart2cyl_v(vcart,xphi,vcyl)
-!  Subroutine to convert a tangent vector from Cartesian coordinates 
+!  Subroutine to convert a tangent vector from Cartesian coordinates
 !  to cylindrical coordinates
+      FUNCTION cart2cyl_v(vcart, xphi)
       USE stel_kinds
 
       IMPLICIT NONE
       
 !   Declare Arguments
-      REAL(rprec), DIMENSION(3), INTENT(in) :: vcart
-      REAL(rprec), INTENT(in) :: xphi
-      REAL(rprec), DIMENSION(3), INTENT(out) :: vcyl
+      REAL (rprec), DIMENSION(3)             :: cart2cyl_v
+      REAL (rprec), DIMENSION(3), INTENT(in) :: vcart
+      REAL (rprec), INTENT(in)               :: xphi
 
-!   Declare local variables
-      REAL(rprec) :: cphi,sphi
+!  local variables
+      REAL (rprec)                           :: cphi
+      REAL (rprec)                           :: sphi
 
 !  Start of executable code
       cphi = cos(xphi)
       sphi = sin(xphi)
-      vcyl(1) = vcart(1) * cphi + vcart(2) * sphi
-      vcyl(2) = - vcart(1) * sphi + vcart(2) * cphi
-      vcyl(3) = vcart(3)
+      cart2cyl_v(1) = vcart(1)*cphi + vcart(2)*sphi
+      cart2cyl_v(2) = -vcart(1)*sphi + vcart(2)*cphi
+      cart2cyl_v(3) = vcart(3)
 
-      RETURN
-      END SUBROUTINE cart2cyl_v
+      END FUNCTION
 
 !----------------------------------------------------------------------
 !----------------------------------------------------------------------
@@ -1156,3 +1315,5 @@ CDBG     .		shape(pl_response(1:ir,1:jz,1:kp,1:3))
 !
 !  2011-011-08 JDH
 !    Add coil group rotation and shift.
+
+#endif
