@@ -120,6 +120,19 @@ then
               -DEXTRA_FLAGS=-fopenmp                \
               -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
+elif [ $MACHINE_ID == "swim.ornl.gov" ]
+then
+
+	# Machines hosted on the ORNL network.
+
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE               \
+	      -DCMAKE_Fortran_COMPILER=gfortran                   \
+	      -DNETCDF_INC_PATH=/usr/include                      \
+	      -DNETCDF_LIB_PATH=/usr/lib64/openmpi/lib            \
+	      -DEXTRA_FLAGS=-fopenmp                              \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=/usr/lib64/openmpi/lib \
+	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.
