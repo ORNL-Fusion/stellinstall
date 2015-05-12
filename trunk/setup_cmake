@@ -109,6 +109,17 @@ then
 	        -DEXTRA_FLAGS=-fopenmp                                                        \
 	        -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
+elif [ $MACHINE_ID == "mba82063" ]
+then
+	# Config for Mark Cianciosa's ORNL machine.
+
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
+              -DCMAKE_Fortran_COMPILER=gfortran     \
+              -DNETCDF_INC_PATH=/usr/local/include/ \
+              -DNETCDF_LIB_PATH=/usr/local/lib      \
+              -DEXTRA_FLAGS=-fopenmp                \
+              -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.
