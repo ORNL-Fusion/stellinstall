@@ -1,5 +1,8 @@
 enable_testing ()
 
+#  The python interpreter may not be in the same location on all systems.
+find_package (PythonInterp)
+
 set (TEST_SCRIPT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test_utilities)
 
 #  Copy common files to the equilibrium  test directory.
