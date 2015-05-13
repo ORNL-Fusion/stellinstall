@@ -39,6 +39,7 @@
 !>                                     * @fixed_width{default}  Processes are configured externally.
 !>                                     * @fixed_width{auto}     Sets up one sub process per reconstruction parameter.
 !>                                     * @fixed_width{[number]} Sets the number of sub processes manually.}
+!>     @item3{@fixed_width{-out},   N, Writes out the input filefor each reconstruction step.}
 !>
 !>  @end_table
 !>
@@ -429,6 +430,9 @@
       WRITE(*,*) '                            processes.               '
       WRITE(*,*) '                                                     '
 #endif
+      WRITE(*,*) '  -out     Y Write out the input file and at each    '
+      WRITE(*,*) '             step.                                   '
+      WRITE(*,*) '                                                     '
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '
       WRITE(*,*) 'The default input filename is v3fit.in.              '

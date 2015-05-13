@@ -3404,7 +3404,8 @@
 
 !  Store the value of the xc array. This xc array is different than the one
 !  stored in save/reset state methods. This xc array needs to be stored so that
-!  error recovery store the state to before runvmec was run.
+!  error recovery can restore the state to before runvmec was run but after the
+!  parameters were changed.
       ALLOCATE(xc_saved(SIZE(xc)))
       xc_saved = xc
 
@@ -3421,8 +3422,9 @@
             ictrl_array(4) = this%ns_index
          END IF
 
-!  Update internal vmec counters. These affect how the minimation occurs.
-         iter1 = iter2
+!  Update internal vmec counters. These affect how the minimization occurs.
+         iter1 = 1
+         iter2 = 1
 
 !  Zero the xcdot array.
          xcdot = 0.0
@@ -3607,6 +3609,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write(this, iou)
       USE safe_open_mod
+      USE read_wout_mod, only: rmnc, rmns, zmnc, zmns, xm, xn, mnmax
       USE vmec_input
 
       IMPLICIT NONE
@@ -3634,6 +3637,28 @@
       CALL pprofile_write(this%te, 'pp_te', iou)
 
 !  Write out the final namelist input file.
+!  Update the boundary from the free boundary solution.
+      IF (lfreeb) THEN
+         DO i = 1, mnmax
+            rbc(INT(xn(i)),INT(xm(i))) = rmnc(i,ns_array(this%ns_index))
+            zbs(INT(xn(i)),INT(xm(i))) = zmns(i,ns_array(this%ns_index))
+            IF (lasym) THEN
+               rbs(INT(xn(i)),INT(xm(i))) =                                    &
+     &            rmns(i,ns_array(this%ns_index))
+               zbc(INT(xn(i)),INT(xm(i))) =                                    &
+     &            zmnc(i,ns_array(this%ns_index))
+            END IF
+         END DO
+       END IF
+
+!  Update the magnetic axis.
+       raxis_cc = rmnc(1,1)
+       zaxis_cs = zmns(1,1)
+       IF (lasym) THEN
+          raxis_cs = rmns(1,1)
+          zaxis_cc = zmnc(1,1)
+       END IF
+
       iou_nl = 0
       CALL safe_open(iou_nl, status,                                           &
      &               TRIM(this%vmec_file_name) // '_out',                      &
@@ -3642,6 +3667,85 @@
       CLOSE (iou_nl, iostat=status)
 
       CALL profiler_set_stop_time('vmec_write', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write the current valid input.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_write_input. The
+!>  boundary and other fixed parameters do not get updated as the reconstruction
+!>  progresses. Need to update them manually if in free boundary mode.
+!>
+!>  @param[in] this         A @ref vmec_class instance.
+!>  @param[in] current_step Step number to append to input filename.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_write_input(this, current_step)
+      USE safe_open_mod
+      USE vmec_input
+      USE read_wout_mod, only: rmnc, rmns, zmnc, zmns, xm, xn, mnmax
+      USE data_parameters
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in)        :: this
+      INTEGER, INTENT(in)                  :: current_step
+
+!  local variables
+      INTEGER                              :: iou_nl
+      INTEGER                              :: status
+      INTEGER                              :: i
+      CHARACTER (len=data_filename_length) :: filename
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Update the boundary from the free boundary solution.
+      IF (lfreeb) THEN
+         DO i = 1, mnmax
+            rbc(INT(xn(i)),INT(xm(i))) = rmnc(i,ns_array(this%ns_index))
+            zbs(INT(xn(i)),INT(xm(i))) = zmns(i,ns_array(this%ns_index))
+            IF (lasym) THEN
+               rbs(INT(xn(i)),INT(xm(i))) =                                    &
+     &            rmns(i,ns_array(this%ns_index))
+               zbc(INT(xn(i)),INT(xm(i))) =                                    &
+     &            zmnc(i,ns_array(this%ns_index))
+            END IF
+         END DO
+      END IF
+
+!  Update the magnetic axis.
+      raxis_cc = rmnc(1,1)
+      zaxis_cs = zmns(1,1)
+      IF (lasym) THEN
+         raxis_cs = rmns(1,1)
+         zaxis_cc = zmnc(1,1)
+      END IF
+
+!  Write out the final namelist input file.
+      iou_nl = 0
+      status = 0
+
+      WRITE (filename,1000) TRIM(this%vmec_file_name), current_step
+
+      CALL safe_open(iou_nl, status, TRIM(filename), 'replace',                &
+     &               'formatted', delim_in='none')
+      WRITE (iou_nl, nml=indata)
+      CLOSE (iou_nl, iostat=status)
+      CALL assert_eq(status, 0, 'Error saving input file.')
+
+!  Save the woutfile by making a copy with a new name.
+      WRITE (filename,1000) TRIM(this%wout_file_name), current_step
+
+      CALL copy_file(this%wout_file_name, TRIM(filename), status)
+      CALL assert_eq(status, 0, 'Error copying wout file.')
+
+      CALL profiler_set_stop_time('vmec_write_input', start_time)
+
+1000  FORMAT(a,'_',i0.3)
 
       END SUBROUTINE
 

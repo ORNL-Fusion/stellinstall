@@ -283,6 +283,7 @@
       INTEGER                                   :: i, error
       LOGICAL                                   :: eq_converged
       CHARACTER (len=dir_prefix_len)            :: directory
+      LOGICAL                                   :: write_input
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -291,6 +292,9 @@
       WRITE (*,*) ' *** In task reconstruct'
 
 !  Initialize the reconstruction.
+      write_input = commandline_parser_is_flag_set(context%cl_parser,          &
+     &                                             '-out')
+
       CALL init_equilibrium(context)
       CALL init_signals(context)
       CALL init_parameters(context)
@@ -353,6 +357,11 @@
             CALL reconstruction_write_step(context%recon,                      &
      &                                     context%runlog_iou)
             CALL v3fit_context_write_step_data(context, .false.)
+
+            IF (write_input) THEN
+               CALL equilibrium_write_input(context%model%equilibrium,         &
+     &                                      i)
+            END IF
 
 !  Test for convergence.
             IF (reconstruction_get_dg2(context%recon) .lt.                     &

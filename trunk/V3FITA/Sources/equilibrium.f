@@ -2013,6 +2013,45 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Write the current valid input.
+!>
+!>  This method is virtual. The actual writing of the input file should be
+!>  handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_write_input
+!>  @see vaccum_equilibrium::vacuum_write_input
+!>
+!>  @param[in] this         A @ref equilibrium_class instance.
+!>  @param[in] current_step Step number to append to input filename.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_write_input(this, current_step)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER                              :: current_step
+
+!  local variables
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_write_input(this%vmec, current_step)
+
+         CASE (equilibrium_vacuum_type)
+            CALL vacuum_write_input(this%vacuum, current_step)
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_write_input', start_time)
+
+      END SUBROUTINE
+
 !*******************************************************************************
 !  NETCDF SUBROUTINES
 !*******************************************************************************

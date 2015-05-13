@@ -666,6 +666,41 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Write the current valid input.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_write_input. The
+!>  boundary and other fixed parameters do not get updated as the reconstruction
+!>  progresses. Need to update them manually if in free boundary mode.
+!>
+!>  @param[in] this         A @ref vmec_class instance.
+!>  @param[in] current_step Step number to append to input filename.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vacuum_write_input(this, current_step)
+      USE vacuum_input
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vacuum_class), INTENT(in)      :: this
+      INTEGER, INTENT(in)                  :: current_step
+
+!  local variables
+      CHARACTER (len=data_filename_length) :: filename
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (filename,1000) TRIM(this%vacuum_file_name), current_step
+      CALL vacuum_input_write_namelist(TRIM(filename))
+
+      CALL profiler_set_stop_time('vacuum_write_input', start_time)
+
+1000  FORMAT(a,'_',i0.3)
+
+      END SUBROUTINE
+
 !*******************************************************************************
 !  MPI SUBROUTINES
 !*******************************************************************************

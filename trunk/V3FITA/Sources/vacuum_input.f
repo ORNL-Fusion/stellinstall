@@ -183,4 +183,46 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Writes the namelist input file.
+!>
+!>  Writes the namelist input file.
+!>
+!>  @param[in] namelist_file The file name of the namelist input file.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vacuum_input_write_namelist(namelist_file)
+      USE safe_open_mod
+      USE v3_utilities
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: namelist_file
+
+!  local variables
+      INTEGER                       :: iou_vacnli, status
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      iou_vacnli = 0
+      status = 0
+
+      CALL safe_open(iou_vacnli, status, TRIM(namelist_file),                  &
+     &               'old', 'formatted')
+      CALL assert_eq(0, status, 'vacuum_input_write_namelist' //               &
+     &   ': Safe_open of ' // TRIM(namelist_file) // ' failed')
+
+!  Read the namelist input file.
+      WRITE (iou_vacnli, nml=vacuum_main_nli)
+      CLOSE (iou_vacnli, iostat=status)
+      CALL assert_eq(0, status, 'vacuum_input_write_namelist' //               &
+     &   ': Error closing ' // TRIM(namelist_file) // ' failed')
+
+      CALL profiler_set_stop_time('vacuum_input_write_namelist',               &
+     &                            start_time)
+
+      END SUBROUTINE
+
       END MODULE
