@@ -3652,11 +3652,11 @@
        END IF
 
 !  Update the magnetic axis.
-       raxis_cc = rmnc(1,1)
-       zaxis_cs = zmns(1,1)
+       raxis_cc(0:ntor) = rmnc(1,1:ntor + 1)
+       zaxis_cs(0:ntor) = zmns(1,1:ntor + 1)
        IF (lasym) THEN
-          raxis_cs = rmns(1,1)
-          zaxis_cc = zmnc(1,1)
+          raxis_cs(0:ntor) = rmns(1,1:ntor + 1)
+          zaxis_cc(0:ntor) = zmnc(1,1:ntor + 1)
        END IF
 
       iou_nl = 0
@@ -3718,11 +3718,11 @@
       END IF
 
 !  Update the magnetic axis.
-      raxis_cc = rmnc(1,1)
-      zaxis_cs = zmns(1,1)
+      raxis_cc(0:ntor) = rmnc(1,1:ntor + 1)
+      zaxis_cs(0:ntor) = zmns(1,1:ntor + 1)
       IF (lasym) THEN
-         raxis_cs = rmns(1,1)
-         zaxis_cc = zmnc(1,1)
+         raxis_cs(0:ntor) = rmns(1,1:ntor + 1)
+         zaxis_cc(0:ntor) = zmnc(1,1:ntor + 1)
       END IF
 
 !  Write out the final namelist input file.
