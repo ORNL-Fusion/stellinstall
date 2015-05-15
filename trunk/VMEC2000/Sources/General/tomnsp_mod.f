@@ -23,13 +23,13 @@
 !-----------------------------------------------
       REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,3*ntmax),
      1   TARGET, INTENT(out) :: frzl_array
-      REAL(rprec), DIMENSION(ns*nzeta*ntheta3,0:1), INTENT(in) ::
+      REAL(rprec), DIMENSION(ns*nzeta,ntheta3,0:1), INTENT(in) ::
      1   armn, brmn, crmn, azmn, bzmn, czmn, blmn, clmn, arcon, azcon
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: jmax, m, mparity, i, n, k, l, nsz
-      INTEGER :: ioff, joff, mj, ni, j2, j2l, jl, lb, ub, jmaxl 
+      INTEGER :: ioff, joff, mj, ni, j2, j2l, jl, jll, nsl, jmaxl 
       REAL(rprec), DIMENSION(:,:,:), POINTER :: 
      1           frcc, frss, fzcs, fzsc, flcs, flsc
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: work1
@@ -69,8 +69,8 @@
 !       NOTE: sinmumi = -m sin(mu),  sinnvn = -n sin(nv)
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,i,l,lb,ub,
-!$OMP&           n,ni,k,jmaxl,j2l)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,
+!$OMP&           i,l,n,ni,k,jmaxl,j2l,jll,nsl)
 
       DO m = 0, mpol1
          mparity = MOD(m,2)
@@ -82,36 +82,34 @@
 !        DO THETA (U) INTEGRATION FIRST ON HALF INTERVAL (0 < U < PI)
 !
          DO i = 1, ntheta2
-            l = nsz*(i-1)
-            lb = l+1;  ub = nsz+l
-            tempr = armn(lb:ub,mparity) 
+            tempr = armn(:,i,mparity) 
 #ifndef _HBANGLE
-     1               + xmpq(m,1)*arcon(lb:ub,mparity)
+     1               + xmpq(m,1)*arcon(:,i,mparity)
 #endif
-            tempz = azmn(lb:ub,mparity) 
+            tempz = azmn(:,i,mparity) 
 #ifndef _HBANGLE
-     1               + xmpq(m,1)*azcon(lb:ub,mparity)
+     1               + xmpq(m,1)*azcon(:,i,mparity)
 #endif
             work1(:,1) = work1(:,1) + tempr*cosmui(i,m) 
-     1                              + brmn(lb:ub,mparity)*sinmumi(i,m)
+     1                              + brmn(:,i,mparity)*sinmumi(i,m)
             work1(:,7) = work1(:,7) + tempz*sinmui(i,m)
-     1                              + bzmn(lb:ub,mparity)*cosmumi(i,m)
-            work1(:,11)= work1(:,11)+ blmn(lb:ub,mparity)*cosmumi(i,m)
+     1                              + bzmn(:,i,mparity)*cosmumi(i,m)
+            work1(:,11)= work1(:,11)+ blmn(:,i,mparity)*cosmumi(i,m)
  
             IF (.NOT.lthreed) CYCLE
 
-            work1(:,2) = work1(:,2) - crmn(lb:ub,mparity)*cosmui(i,m)
+            work1(:,2) = work1(:,2) - crmn(:,i,mparity)*cosmui(i,m)
             work1(:,3) = work1(:,3) + tempr*sinmui(i,m)
-     1                              + brmn(lb:ub,mparity)*cosmumi(i,m)
-            work1(:,4) = work1(:,4) - crmn(lb:ub,mparity)*sinmui(i,m)
+     1                              + brmn(:,i,mparity)*cosmumi(i,m)
+            work1(:,4) = work1(:,4) - crmn(:,i,mparity)*sinmui(i,m)
             work1(:,5) = work1(:,5) + tempz*cosmui(i,m)
-     1                              + bzmn(lb:ub,mparity)*sinmumi(i,m)
-            work1(:,6) = work1(:,6) - czmn(lb:ub,mparity)*cosmui(i,m)
-            work1(:,8) = work1(:,8) - czmn(lb:ub,mparity)*sinmui(i,m)
+     1                              + bzmn(:,i,mparity)*sinmumi(i,m)
+            work1(:,6) = work1(:,6) - czmn(:,i,mparity)*cosmui(i,m)
+            work1(:,8) = work1(:,8) - czmn(:,i,mparity)*sinmui(i,m)
 
-            work1(:,9) = work1(:,9) + blmn(lb:ub,mparity)*sinmumi(i,m)
-            work1(:,10) =work1(:,10)- clmn(lb:ub,mparity)*cosmui(i,m)
-            work1(:,12) =work1(:,12)- clmn(lb:ub,mparity)*sinmui(i,m)
+            work1(:,9) = work1(:,9) + blmn(:,i,mparity)*sinmumi(i,m)
+            work1(:,10) =work1(:,10)- clmn(:,i,mparity)*cosmui(i,m)
+            work1(:,12) =work1(:,12)- clmn(:,i,mparity)*sinmui(i,m)
          END DO
 !
 !        NEXT, DO ZETA (V) TRANSFORM
@@ -120,13 +118,13 @@
             ni = n+ioff
             DO k = 1, nzeta
                l=ns*(k-1)
-               j2l = j2+l; jmaxl = jmax+l; lb = jl+l; ub = ns+l
+               j2l = j2+l; jmaxl = jmax+l; jll = jl+l; nsl = ns+l
                frcc(j2:jmax,ni,mj) = frcc(j2:jmax,ni,mj)
      1                             + work1(j2l:jmaxl,1)*cosnv(k,n)
                fzsc(j2:jmax,ni,mj) = fzsc(j2:jmax,ni,mj)
      1                             + work1(j2l:jmaxl,7)*cosnv(k,n)
                flsc(jl:ns,ni,mj) = flsc(jl:ns,ni,mj)
-     1                           + work1(lb:ub,11)*cosnv(k,n)
+     1                           + work1(jll:nsl,11)*cosnv(k,n)
 
                IF (.NOT.lthreed) CYCLE
 
@@ -142,10 +140,10 @@
      2                             + work1(j2l:jmaxl,6)*cosnvn(k,n)
 
                flsc(jl:ns,ni,mj) = flsc(jl:ns,ni,mj)
-     1                           + work1(lb:ub,12)*sinnvn(k,n)
+     1                           + work1(jll:nsl,12)*sinnvn(k,n)
                flcs(jl:ns,ni,mj) = flcs(jl:ns,ni,mj)
-     1                           + work1(lb:ub,9)*sinnv(k,n)
-     2                           + work1(lb:ub,10)*cosnvn(k,n)
+     1                           + work1(jll:nsl,9)*sinnv(k,n)
+     2                           + work1(jll:nsl,10)*cosnvn(k,n)
             END DO
          END DO
       END DO
@@ -614,7 +612,7 @@ C-----------------------------------------------
       INTEGER :: ioff, joff, mj, ni, nsl, j2, j2l, jl, jll, jmaxl 
       REAL(rprec), DIMENSION(:,:,:), POINTER :: 
      1           frcs, frsc, fzcc, fzss, flcc, flss
-      REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: temp1, temp3
+      REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: tempr, tempz
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
 !-----------------------------------------------
       frsc => frzl_array(:,:,:,rsc)               !!R-SIN(mu) COS(nv)
@@ -628,7 +626,7 @@ C-----------------------------------------------
 
       nsz = ns*nzeta
 
-      ALLOCATE (work1(nsz,12), temp1(nsz), temp3(nsz),  stat=i)
+      ALLOCATE (work1(nsz,12), tempr(nsz), tempz(nsz),  stat=i)
       IF (i .ne. 0) STOP 'Allocation error in VMEC tomnspa'
 
       ioff = LBOUND(frsc,2)
@@ -640,8 +638,9 @@ C-----------------------------------------------
 !     BEGIN FOURIER TRANSFORM
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,temp1,temp3,
-!$OMP&           i,l,j2l,jll,n,ni,nsl,k,jmaxl)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,
+!$OMP&           i,l,n,ni,k,jmaxl,j2l,jll,nsl)
+
       DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
@@ -652,28 +651,28 @@ C-----------------------------------------------
 !        DO THETA (U) TRANSFORM FIRST
 !
          DO i = 1, ntheta2
-            temp1(:) = armn(:,i,mparity)
+            tempr = armn(:,i,mparity)
 #ifndef _HBANGLE
-     1                + xmpq(m,1)*arcon(:,i,mparity)
+     1            + xmpq(m,1)*arcon(:,i,mparity)
 #endif
-            temp3(:) = azmn(:,i,mparity)
+            tempz = azmn(:,i,mparity)
 #ifndef _HBANGLE
-     1               + xmpq(m,1)*azcon(:,i,mparity)
+     1            + xmpq(m,1)*azcon(:,i,mparity)
 #endif
-            work1(:,3) = work1(:,3) + temp1(:)*sinmui(i,m) 
+            work1(:,3) = work1(:,3) + tempr*sinmui(i,m) 
      1                              + brmn(:,i,mparity)*cosmumi(i,m)
-            work1(:,5) = work1(:,5) + temp3(:)*cosmui(i,m)
+            work1(:,5) = work1(:,5) + tempz*cosmui(i,m)
      1                              + bzmn(:,i,mparity)*sinmumi(i,m)
             work1(:,9) = work1(:,9) + blmn(:,i,mparity)*sinmumi(i,m)
 
             IF (.not.lthreed) CYCLE
 
-            work1(:,1) = work1(:,1) + temp1(:)*cosmui(i,m)
+            work1(:,1) = work1(:,1) + tempr*cosmui(i,m)
      1                              + brmn(:,i,mparity)*sinmumi(i,m)
             work1(:,2) = work1(:,2) - crmn(:,i,mparity)*cosmui(i,m)
             work1(:,4) = work1(:,4) - crmn(:,i,mparity)*sinmui(i,m)
             work1(:,6) = work1(:,6) - czmn(:,i,mparity)*cosmui(i,m)
-            work1(:,7) = work1(:,7) + temp3(:)*sinmui(i,m)
+            work1(:,7) = work1(:,7) + tempz*sinmui(i,m)
      1                              + bzmn(:,i,mparity)*cosmumi(i,m)
             work1(:,8) = work1(:,8) - czmn(:,i,mparity)*sinmui(i,m)
             work1(:,10) = work1(:,10) - clmn(:,i,mparity)*cosmui(i,m)
@@ -718,7 +717,7 @@ C-----------------------------------------------
 !$OMP END DO
 !$OMP END PARALLEL
 
-      DEALLOCATE (work1, temp1, temp3)
+      DEALLOCATE (work1, tempr, tempz)
 
       END SUBROUTINE tomnspa
 
