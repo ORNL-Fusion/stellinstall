@@ -69,8 +69,9 @@
 !       NOTE: sinmumi = -m sin(mu),  sinnvn = -n sin(nv)
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,l,lb,ub,ni,j2l)
-!$OMP& SCHEDULE(STATIC)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,tempr,tempz,i,l,lb,ub,
+!$OMP&           n,ni,k,jmaxl,j2l)
+
       DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
@@ -155,7 +156,7 @@
       IF (ictrl_prec2d.GT.0 .and. ncurr.EQ.1) THEN
          ni = 0+ioff;  mj = 0+joff
          t1 = r0scale
-!$OMP DO PRIVATE(jl) SCHEDULE(STATIC)
+!$OMP DO PRIVATE(jl)
          DO jl = 2, ns
             flsc(jl, ni, mj) = -t1*(buco(jl) - icurv(jl))
          END DO
@@ -170,7 +171,7 @@
          mj = 1 + joff
          ni = 0 + ioff
          t1 = nscale(0)*r0scale    !/4    !!v8.52
-!$OMP DO PRIVATE(jl) SCHEDULE(STATIC)
+!$OMP DO PRIVATE(jl)
          DO jl = 2, ns-1
             work1(jl,1) = frcc_fac(jl)*frcc(jl,ni,mj)
      1                  + fzsc_fac(jl)*fzsc(jl,ni,mj)
@@ -639,7 +640,8 @@ C-----------------------------------------------
 !     BEGIN FOURIER TRANSFORM
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1, temp1, temp3)
+!$OMP DO PRIVATE(m,mparity,mj,j2,jl,work1,temp1,temp3,
+!$OMP&           i,l,j2l,jll,n,ni,nsl,k,jmaxl)
       DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
@@ -715,6 +717,8 @@ C-----------------------------------------------
       END DO
 !$OMP END DO
 !$OMP END PARALLEL
+
+      DEALLOCATE (work1, temp1, temp3)
 
       END SUBROUTINE tomnspa
 
