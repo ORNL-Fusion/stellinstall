@@ -330,6 +330,10 @@
       WRITE (context%runlog_iou,1003)                                          &
      &   reconstruction_get_g2(context%recon)
 
+      IF (write_input) THEN
+         CALL equilibrium_write_input(context%model%equilibrium, 0)
+      END IF
+
       CALL v3fit_context_init_data(context)
 
       DO i = 1, SIZE(context%recon%e, 1) - 1

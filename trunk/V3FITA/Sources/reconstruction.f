@@ -1584,15 +1584,18 @@
 !  current step to the last good step.
          this%current_step = this%current_step - 1
 
-!  Reset the equilibrium state back to the last step. The state of the last step
-!  was saved before the jacobian was computed.
-         CALL equilibrium_reset_state(a_model%equilibrium)
-
-!  If the step failed reset the param values so that remain in sync with the
-!  step.
+!  If the step failed, reset the param values so that they remain in sync with
+!  the step.
          DO j = 1, SIZE(params)
             CALL param_set_value(params(j)%p, a_model, param_value(j))
          END DO
+
+!  Reset the equilibrium state back to the last step. The state of the last step
+!  was saved before the jacobian was computed. This needs to be called after the
+!  parameters are reset so that the equilibrium is flagged to the converged
+!  state. Otherwise the equilibirum will try to converge again producing an
+!  incorrect wout file.
+         CALL equilibrium_reset_state(a_model%equilibrium)
 
          IF (i .eq. reconstruction_max_step_try) THEN
 !  The signals contain cached values. If the step fails recompute the modeled

@@ -3578,8 +3578,7 @@
 
 !  Reset the wout file.
       CALL copy_file(TRIM(this%wout_file_name) // '_cache',                    &
-     &               this%wout_file_name,                                      &
-     &               error)
+     &               TRIM(this%wout_file_name), error)
       CALL assert_eq(error, 0, 'Error moving wout file.')
 
       CALL read_wout_file(this%wout_file_name, error)
