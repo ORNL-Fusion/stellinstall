@@ -265,6 +265,23 @@
       magnetic_get_modeled_signal_point(2) =                                   &
      &   DOT_PRODUCT(b_field, this%response%direction)
 
+!  Coil Pickup -----------------------------------------------------------------
+      magnetic_get_modeled_signal_point(3) =                                   &
+     &   magnetic_get_modeled_signal_coil_pickup(this, a_model)
+
+!  Total Signal ----------------------------------------------------------------
+
+!  Add plasma signals and induced signal to create total signal.
+      IF (magnetic_response_use_coil(this%response)) THEN
+         magnetic_get_modeled_signal_point(1) =                                &
+     &      SUM(magnetic_get_modeled_signal_point(2:3))
+      ELSE
+         magnetic_get_modeled_signal_point(1) =                                &
+     &      magnetic_get_modeled_signal_point(2)
+      END IF
+
+      sigma = 0.0
+
       CALL profiler_set_stop_time('magnetic_get_modeled_signal_point',         &
      &                            start_time)
 
@@ -331,10 +348,6 @@
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_zvol
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sumrz
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sumphi
-
-      LOGICAL                                   :: scale_current
-      INTEGER                                   :: num_currents
-      REAL (rprec), DIMENSION(:), POINTER       :: extcur
 
       REAL (rprec)                              :: start_time
 
@@ -490,38 +503,8 @@
       END IF
 
 !  Coil Pickup -----------------------------------------------------------------
-      IF (this%force_coil_reponse) THEN
-         num_currents = SIZE(this%response%inductance)
-      ELSE
-         num_currents = -1
-      END IF
-
-!  Calculate the induced signal from external currents.
-      extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
-     &                                       num_currents,                     &
-     &                                       scale_current)
-
-!  If there are no external current extcur will be a null pointer
-      IF (ASSOCIATED(extcur)) THEN
-
-!  Make sure we don't go out of bounds on any array.
-         num_currents = MIN(SIZE(extcur),                                      &
-     &                      SIZE(this%response%inductance))
-         IF (num_currents .lt. this%response%n_field_cg) THEN
-            CALL err_warn('magnetic_get_modeled_signal_coil: ' //              &
-     &                    'mdsig_file expected more currents')
-         END IF
-
-         IF (scale_current) THEN
-            magnetic_get_modeled_signal_coil(3) = DOT_PRODUCT(                 &
-     &         this%response%inductance(1:num_currents),                       &
-     &         extcur(1:num_currents)/this%response%current_scale)
-         ELSE
-            magnetic_get_modeled_signal_coil(3) = DOT_PRODUCT(                 &
-     &         this%response%inductance(1:num_currents),                       &
-     &         extcur(1:num_currents))
-         END IF
-      END IF
+      magnetic_get_modeled_signal_coil(3) =                                    &
+     &   magnetic_get_modeled_signal_coil_pickup(this, a_model)
 
 !  Total Signal ----------------------------------------------------------------
 
@@ -545,6 +528,76 @@
 
       CALL profiler_set_stop_time('magnetic_get_modeled_signal_coil',          &
      &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the model signal contribution from the external coils.
+!>
+!>  Return the protion of the modeled signal for the induced pickup of the
+!>  external coils. If no external coils exist or the induced current is not
+!>  used this returns zero.
+!>
+!>  @param[in]    this    A @ref magnetic_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @returns The modeled signal from the induced coils.
+!-------------------------------------------------------------------------------
+      FUNCTION magnetic_get_modeled_signal_coil_pickup(this, a_model)
+      USE model
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      Real (rprec) :: magnetic_get_modeled_signal_coil_pickup
+      TYPE (magnetic_class), INTENT(in)   :: this
+      TYPE (model_class), INTENT(in)      :: a_model
+
+!  local variables
+      LOGICAL                             :: scale_current
+      INTEGER                             :: num_currents
+      REAL (rprec), DIMENSION(:), POINTER :: extcur
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      magnetic_get_modeled_signal_coil_pickup = 0.0
+
+      IF (this%force_coil_reponse) THEN
+         num_currents = SIZE(this%response%inductance)
+      ELSE
+         num_currents = -1
+      END IF
+
+!  Calculate the induced signal from external currents.
+      extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
+     &                                       num_currents,                     &
+     &                                       scale_current)
+
+!  If there are no external current extcur will be a null pointer
+      IF (ASSOCIATED(extcur)) THEN
+
+!  Make sure we don't go out of bounds on any array.
+         num_currents = MIN(SIZE(extcur),                                      &
+     &                      SIZE(this%response%inductance))
+         IF (num_currents .lt. this%response%n_field_cg) THEN
+            CALL err_warn('magnetic_get_modeled_signal_coil: ' //              &
+     &                    'mdsig_file expected more currents')
+         END IF
+
+         IF (scale_current) THEN
+            magnetic_get_modeled_signal_coil_pickup = DOT_PRODUCT(             &
+     &         this%response%inductance(1:num_currents),                       &
+     &         extcur(1:num_currents)/this%response%current_scale)
+         ELSE
+            magnetic_get_modeled_signal_coil_pickup = DOT_PRODUCT(             &
+     &         this%response%inductance(1:num_currents),                       &
+     &         extcur(1:num_currents))
+         END IF
+      END IF
+
+      CALL profiler_set_stop_time(                                             &
+     &        'magnetic_get_modeled_signal_coil_pickup', start_time)
 
       END FUNCTION
 

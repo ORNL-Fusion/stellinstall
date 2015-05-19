@@ -28,12 +28,12 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: js, l, lb
+      INTEGER :: js, l, lb, lb0
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: ax, bx
 #ifdef _HBANGLE
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: ax2, bx2
 #endif
-      REAL(rprec) :: pfactor, temp(ns+1)
+      REAL(rprec) :: pfactor, temp(ns+1), temp2(ns), cx2(ns)
       REAL(rprec):: t1, t2, t3, ptau, ptau2, osh
 C-----------------------------------------------
 !
@@ -60,12 +60,12 @@ C-----------------------------------------------
 !     MATRIX ELEMENTS
 !
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(js,l,lb,t1,t2,t3,osh,ptau,ptau2)
+!$OMP DO PRIVATE(js,l,lb,lb0,t1,t2,t3,osh,ptau,ptau2)
       DO js = 2,ns
          osh = one/shalf(js)
       DO l=1,nznt
-         lb=js+ns*(l-1) 
-!         ub=ns*l
+         lb0=ns*(l-1) 
+         lb=lb0+js 
          t1 = pfactor*r12(lb)*bsq(lb)
          ptau2 = r12(lb)*t1/gsqrt(lb)
          t1 = t1*wint(lb)
@@ -101,9 +101,12 @@ C-----------------------------------------------
          bx2(js,3) = bx2(js,3) + ptau2*t2*t2
 #endif
         END DO
-        temp(js) = temp(js)/vp(js)
       END DO
 !$OMP END DO
+
+!$OMP WORKSHARE
+      temp = temp/vp
+!$OMP END WORKSHARE
 
 !$OMP DO PRIVATE(js)
       DO js = 1,ns
@@ -125,11 +128,14 @@ C-----------------------------------------------
         bxd2(js,1) = bx2(js,2) + bx2(js+1,3)
         bxd2(js,2) = bx2(js,2)*sm(js)**2 + bx2(js+1,3)*sp(js)**2
 #endif
-        cx(js)    = cx(js) + cx(js+1)
-        temp(js) = signgs*(temp(js) + temp(js+1))
-        eqfactor(js) = axd(js,2)*hs*hs/temp(js)
+        cx2(js)    = cx(js) + cx(js+1)
+        temp2(js)  = signgs*(temp(js) + temp(js+1))
+        eqfactor(js) = axd(js,2)*hs*hs/temp2(js)
       END DO
 !$OMP END DO
+!$OMP WORKSHARE
+      cx = cx2
+!$OMP END WORKSHARE
 !$OMP END PARALLEL
 
       eqfactor(1) = 0;  eqfactor(ns) = 0
@@ -142,4 +148,3 @@ C-----------------------------------------------
       DEALLOCATE (ax2, bx2)
 #endif
       END SUBROUTINE precondn
-

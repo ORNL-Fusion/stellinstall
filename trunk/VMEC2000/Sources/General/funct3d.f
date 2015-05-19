@@ -260,8 +260,8 @@
      1         presf_ns = (pmass(1._dp)/presf_ns) * pres(ns)
 
             lk = 0
-            gcon(:nrzt) = r1(:nrzt,0)+sqrts(:nrzt)*r1(:nrzt,1)
-            gcon(1+nrzt) = 0
+!            gcon(:nrzt) = r1(:nrzt,0)+sqrts(:nrzt)*r1(:nrzt,1)
+!            gcon(1+nrzt) = 0
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& SCHEDULE(STATIC) PRIVATE(l,lk)
             DO lk = 1, nznt

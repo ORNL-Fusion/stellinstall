@@ -1258,7 +1258,7 @@
 
 !  local variables
       INTEGER                                   :: s, u, v
-      INTEGER                                   :: numS, numU, numV
+      INTEGER                                   :: numU, numV
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu, sinu
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv, sinv
@@ -1430,25 +1430,25 @@
 !  Interpolate the b_u and b_v onto the last closed flux surface. This
 !  interpolation follows what is outlined in tosuvspace. For odd modes
 !  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
-         wodd = SQRT((numS - 1.0)/(numS - 1.0 - 1.5))
+         wodd = SQRT((ns - 1.0)/(ns - 1.0 - 1.5))
 
          ALLOCATE(bsubuc(mnmax), bsubvc(mnmax))
          WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
-            bsubuc = 1.5*bsubumnc(:,numS) - 0.5*bsubumnc(:,numS - 1)
-            bsubvc = 1.5*bsubvmnc(:,numS) - 0.5*bsubvmnc(:,numS - 1)
+            bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
+            bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
          ELSE WHERE
-            bsubuc = wodd*bsubumnc(:,numS - 1)
-            bsubvc = wodd*bsubvmnc(:,numS - 1)
+            bsubuc = wodd*bsubumnc(:,ns - 1)
+            bsubvc = wodd*bsubvmnc(:,ns - 1)
          END WHERE
 
          IF (lasym) THEN
             ALLOCATE(bsubus(mnmax), bsubvs(mnmax))
             WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
-               bsubus = 1.5*bsubumns(:,numS) - 0.5*bsubumns(:,numS - 1)
-               bsubvs = 1.5*bsubvmns(:,numS) - 0.5*bsubvmns(:,numS - 1)
+               bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
+               bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
             ELSE WHERE
-               bsubus = wodd*bsubumns(:,numS - 1)
-               bsubvs = wodd*bsubvmns(:,numS - 1)
+               bsubus = wodd*bsubumns(:,ns - 1)
+               bsubvs = wodd*bsubvmns(:,ns - 1)
             END WHERE
          END IF
 
@@ -1505,11 +1505,11 @@
                cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
      &                  + sinu_nyq*sinv_nyq(:,v)
 
-               ru = -SUM(xm*rmnc(:,numS)*sinz)
-               zu = SUM(xm*zmns(:,numS)*cosz)
-               rv = SUM(xn*rmnc(:,numS)*sinz)
-               zv = -SUM(xn*zmns(:,numS)*cosz)
-               r = SUM(rmnc(:,numS)*cosz)
+               ru = -SUM(xm*rmnc(:,ns)*sinz)
+               zu = SUM(xm*zmns(:,ns)*cosz)
+               rv = SUM(xn*rmnc(:,ns)*sinz)
+               zv = -SUM(xn*zmns(:,ns)*cosz)
+               r = SUM(rmnc(:,ns)*cosz)
 
                bu = SUM(bsubuc*cosz_nyq)
                bv = SUM(bsubvc*cosz_nyq)
@@ -1518,11 +1518,11 @@
                   sinz_nyq = sinu_nyq*cosv_nyq(:,v)                            &
      &                     - cosu_nyq*sinv_nyq(:,v)
 
-                  ru = ru + SUM(xm*rmns(:,numS)*cosz)
-                  zu = zu - SUM(xm*zmnc(:,numS)*sinz)
-                  rv = rv - SUM(xn*rmns(:,numS)*cosz)
-                  zv = zv + SUM(xn*zmnc(:,numS)*sinz)
-                  r = r + SUM(rmns(:,numS)*sinz)
+                  ru = ru + SUM(xm*rmns(:,ns)*cosz)
+                  zu = zu - SUM(xm*zmnc(:,ns)*sinz)
+                  rv = rv - SUM(xn*rmns(:,ns)*cosz)
+                  zv = zv + SUM(xn*zmnc(:,ns)*sinz)
+                  r = r + SUM(rmns(:,ns)*sinz)
 
                   bu = bu + SUM(bsubus*sinz_nyq)
                   bv = bv + SUM(bsubvs*sinz_nyq)
@@ -1572,6 +1572,57 @@
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
      &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sets namelist variables from the solved VMEC equilibrium.
+!>
+!>  This method updates the boundary and magnetic axis coefficients in the
+!>  namelist input file.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_set_namelist(this)
+      USE read_wout_mod, only: rmnc, rmns, zmnc, zmns, xm, xn, mnmax
+      USE vmec_input
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      INTEGER                       :: i
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Write out the final namelist input file.
+!  Update the boundary from the free boundary solution.
+      IF (lfreeb) THEN
+         DO i = 1, mnmax
+            rbc(INT(xn(i)),INT(xm(i))) = rmnc(i,ns_array(this%ns_index))
+            zbs(INT(xn(i)),INT(xm(i))) = zmns(i,ns_array(this%ns_index))
+            IF (lasym) THEN
+               rbs(INT(xn(i)),INT(xm(i))) =                                    &
+     &            rmns(i,ns_array(this%ns_index))
+               zbc(INT(xn(i)),INT(xm(i))) =                                    &
+     &            zmnc(i,ns_array(this%ns_index))
+            END IF
+         END DO
+      END IF
+
+!  Update the magnetic axis.
+      raxis_cc(0:ntor) = rmnc(1,1:ntor + 1)
+      zaxis_cs(0:ntor) = zmns(1,1:ntor + 1)
+      IF (lasym) THEN
+         raxis_cs(0:ntor) = rmns(1,1:ntor + 1)
+         zaxis_cc(0:ntor) = zmnc(1,1:ntor + 1)
+      END IF
+
+      CALL profiler_set_stop_time('vmec_set_namelist', start_time)
 
       END SUBROUTINE
 
@@ -3608,7 +3659,6 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_write(this, iou)
       USE safe_open_mod
-      USE read_wout_mod, only: rmnc, rmns, zmnc, zmns, xm, xn, mnmax
       USE vmec_input
 
       IMPLICIT NONE
@@ -3619,9 +3669,9 @@
 
 !  local variables
       INTEGER                       :: i
-      REAL (rprec)                  :: start_time
       INTEGER                       :: iou_nl
       INTEGER                       :: status
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -3635,28 +3685,8 @@
 
       CALL pprofile_write(this%te, 'pp_te', iou)
 
-!  Write out the final namelist input file.
-!  Update the boundary from the free boundary solution.
-      IF (lfreeb) THEN
-         DO i = 1, mnmax
-            rbc(INT(xn(i)),INT(xm(i))) = rmnc(i,ns_array(this%ns_index))
-            zbs(INT(xn(i)),INT(xm(i))) = zmns(i,ns_array(this%ns_index))
-            IF (lasym) THEN
-               rbs(INT(xn(i)),INT(xm(i))) =                                    &
-     &            rmns(i,ns_array(this%ns_index))
-               zbc(INT(xn(i)),INT(xm(i))) =                                    &
-     &            zmnc(i,ns_array(this%ns_index))
-            END IF
-         END DO
-       END IF
-
-!  Update the magnetic axis.
-       raxis_cc(0:ntor) = rmnc(1,1:ntor + 1)
-       zaxis_cs(0:ntor) = zmns(1,1:ntor + 1)
-       IF (lasym) THEN
-          raxis_cs(0:ntor) = rmns(1,1:ntor + 1)
-          zaxis_cc(0:ntor) = zmnc(1,1:ntor + 1)
-       END IF
+!  Update the namelist input variables from the equilibrium solution.
+      CALL vmec_set_namelist(this)
 
       iou_nl = 0
       CALL safe_open(iou_nl, status,                                           &
@@ -3682,7 +3712,6 @@
       SUBROUTINE vmec_write_input(this, current_step)
       USE safe_open_mod
       USE vmec_input
-      USE read_wout_mod, only: rmnc, rmns, zmnc, zmns, xm, xn, mnmax
       USE data_parameters
       USE file_opts
 
@@ -3695,34 +3724,14 @@
 !  local variables
       INTEGER                              :: iou_nl
       INTEGER                              :: status
-      INTEGER                              :: i
       CHARACTER (len=data_filename_length) :: filename
       REAL (rprec)                         :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-!  Update the boundary from the free boundary solution.
-      IF (lfreeb) THEN
-         DO i = 1, mnmax
-            rbc(INT(xn(i)),INT(xm(i))) = rmnc(i,ns_array(this%ns_index))
-            zbs(INT(xn(i)),INT(xm(i))) = zmns(i,ns_array(this%ns_index))
-            IF (lasym) THEN
-               rbs(INT(xn(i)),INT(xm(i))) =                                    &
-     &            rmns(i,ns_array(this%ns_index))
-               zbc(INT(xn(i)),INT(xm(i))) =                                    &
-     &            zmnc(i,ns_array(this%ns_index))
-            END IF
-         END DO
-      END IF
-
-!  Update the magnetic axis.
-      raxis_cc(0:ntor) = rmnc(1,1:ntor + 1)
-      zaxis_cs(0:ntor) = zmns(1,1:ntor + 1)
-      IF (lasym) THEN
-         raxis_cs(0:ntor) = rmns(1,1:ntor + 1)
-         zaxis_cc(0:ntor) = zmnc(1,1:ntor + 1)
-      END IF
+!  Update the namelist input variables from the equilibrium solution.
+      CALL vmec_set_namelist(this)
 
 !  Write out the final namelist input file.
       iou_nl = 0

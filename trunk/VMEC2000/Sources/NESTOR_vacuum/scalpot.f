@@ -38,7 +38,11 @@
 
          istore_max = MIN(64,nuv2)
          nchunk = MAX(1,nuv2/(istore_max*OMP_NUM_THREADS))
-         IF (nchunk .GT. 1) nchunk = nchunk*OMP_NUM_THREADS
+         IF (nchunk .GT. 1) THEN
+            nchunk = nchunk*OMP_NUM_THREADS
+         ELSE
+            nchunk = OMP_NUM_THREADS
+         END IF
 
          IF (MOD(nchunk,OMP_NUM_THREADS) .NE. 0) STOP 'nchunk wrong!'
 

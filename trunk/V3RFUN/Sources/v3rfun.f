@@ -1054,13 +1054,13 @@
 !  Write NetCDF variables. The cdf_write subroutine switches from define mode to
 !  write mode.
          CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_d_type',              &
-     &                  TRIM(mddc_desc_array(idc)%mddc_type))
+     &                  mddc_desc_array(idc)%mddc_type)
          CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_s_name',              &
-     &                  TRIM(mddc_desc_array(idc)%s_name))
+     &                  mddc_desc_array(idc)%s_name)
          CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_l_name',              &
-     &                  TRIM(mddc_desc_array(idc)%l_name))
+     &                  mddc_desc_array(idc)%l_name)
          CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_units',               &
-     &                  TRIM(mddc_desc_array(idc)%units))
+     &                  mddc_desc_array(idc)%units)
          CALL cdf_write(iou_mdsig_ncdf, 'diagnostic_desc_sigma_default',       &
      &                  mddc_desc_array(idc)%sigma_default)
          CALL magnetic_response_write(response, iou_mdsig_ncdf)

@@ -83,7 +83,7 @@
 !
 !$OMP DO PRIVATE(js)
       DO js = 1, ns
-         faclam(js,0,0,1) = (pfactor*lamscale**2)/blam(js)
+         faclam(js,0,0,1) = (pfactor0*lamscale**2)/blam(js)
       END DO
 !$OMP END DO
 !$OMP END PARALLEL

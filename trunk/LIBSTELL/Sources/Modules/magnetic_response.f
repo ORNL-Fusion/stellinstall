@@ -541,8 +541,8 @@
 
          CASE (magnetic_response_current)
 !  This version adds the new point diagnostic. The format of the netcdf mdsig
-!  file has been modified to fold a bit packed flags to determine what is or
-!  isn't present in the netcdf file.
+!  file has been modified to hold bit packed flags to determine what is or isn't
+!  present in the netcdf file.
             CALL cdf_read(mdsig_iou, nc_flags,                                 &
      &                    magnetic_response_construct_netcdf%flags)
 
