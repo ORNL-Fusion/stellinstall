@@ -54,6 +54,7 @@
 !     WINT: needed to normalize integral over angles to unity 
 !
       k = 0
+      mn0 = 1 + mf1*nf                                             !!Index of m=0,n=0         
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP DO SCHEDULE(STATIC) PRIVATE(i,k) 
       DO i = 1, nu2
@@ -138,7 +139,6 @@
       END DO
 !$OMP END DO
 
-      mn0 = 1 + mf1*nf                                             !!Index of m=0,n=0         
 !$OMP WORKSHARE
       amatrix(:,:,:) = (pi2*pi2)*amatrix(:,:,:)
 !
@@ -164,14 +164,16 @@
          END IF
       END DO
 !$OMP END DO
+!$OMP SINGLE
       IF (lasym) THEN
          amatrix(mn0,mn0,4) = amatrix(mn0,mn0,4) + pi3*int_ext     !!COS(0-0) mode *2
       END IF
+!$OMP END SINGLE
 !
 !     PUT ELEMENTS INTO SQUARE MATRIX
 !
 !$OMP WORKSHARE
-      amatsq(:mnpd,:mnpd) = amatrix(:,:,1)                      !Sin-Sin'
+      amatsq(:mnpd,:mnpd) = amatrix(:mnpd,:mnpd,1)                      !Sin-Sin'
 !$OMP END WORKSHARE
       IF (lasym) THEN
 !$OMP WORKSHARE

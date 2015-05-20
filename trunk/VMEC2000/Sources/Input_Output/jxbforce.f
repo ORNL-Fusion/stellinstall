@@ -649,16 +649,16 @@
 !        Compute <K dot B>, <B sup v> = signgs*phip
 !        jpar2 = <j||**2>, jperp2 = <j-perp**2>,  with <...> = flux surface average
 
-         jdotb(js) = dnorm1*tjnorm*SUM(bdotk(js,:nznt)*wint(2:nrzt:ns)
-     1                               / sigma_an(js,:nznt))
-         bdotb(js) = dnorm1*tjnorm*SUM(sqgb2(:nznt)*wint(2:nrzt:ns)
-     1                               / sigma_an(js,:nznt))
+         jdotb(js) = tjnorm*SUM(bdotk(js,:nznt)*wint(2:nrzt:ns)
+     1                        / sigma_an(js,:nznt))
+         bdotb(js) = tjnorm*SUM(sqgb2(:nznt)*wint(2:nrzt:ns)
+     1                        / sigma_an(js,:nznt))
               
          bdotgradv(js) = p5*dnorm1*tjnorm*(phip(js) + phip(js+1))
-         jpar2(js) = dnorm1*tjnorm*
+         jpar2(js) = tjnorm*
      1            SUM(bdotk(js,:nznt)**2*wint(2:nrzt:ns)
      2              /(sigma_an(js,:nznt)*sqgb2(:nznt)))
-         jperp2(js)= dnorm1*tjnorm*
+         jperp2(js)= tjnorm*
      1            SUM(kp2(:nznt)*wint(2:nrzt:ns)*sqrtg(:nznt))
 
          IF (MOD(js,ns_skip) .eq. 0 .and. lprint_flag) THEN

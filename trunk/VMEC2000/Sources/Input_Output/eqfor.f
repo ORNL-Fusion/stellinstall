@@ -436,7 +436,7 @@ C-----------------------------------------------
       betator = sump20/sumbtor
       VolAvgB = SQRT(ABS(sumbtot/volume_p))
       IonLarmor = 0.0032_dp/VolAvgB
-      jPS2(2:ns1) = (jpar2(2:ns1) - jdotb(2:ns1)**2/bdotb(2:ns1))
+      jPS2(2:ns1) = jpar2(2:ns1) - jdotb(2:ns1)**2/bdotb(2:ns1)
       jpar_perp = SUM(jpar2(2:ns1)*(vp(2:ns1) + vp(3:ns)))
       jparPS_perp = SUM(jPS2(2:ns1)*(vp(2:ns1) + vp(3:ns)))
       s2 = SUM(jperp2(2:ns1)*(vp(2:ns1) + vp(3:ns)))

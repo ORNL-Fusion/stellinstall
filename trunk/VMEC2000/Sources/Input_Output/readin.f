@@ -430,8 +430,8 @@ C-----------------------------------------------
      1  ' (EXPANSION IN NORMALIZED RADIUS):')
  131  FORMAT(' PMASS parameterization type is ''', a,'''')
  132  FORMAT(1x,35('-'))
-
  135  FORMAT(1p,6e12.3)
+
       SELECT CASE(TRIM(pmass_type))
       CASE ('Akima_spline','cubic_spline')
          WRITE(nthreed,"(' am_aux_s is' )")
@@ -439,6 +439,7 @@ C-----------------------------------------------
          WRITE(nthreed,"(' am_aux_f is' )")
          WRITE(nthreed,135)(am_aux_f(i),i=1, SIZE(am_aux_f))
       CASE DEFAULT
+         WRITE(nthreed,"(' am is' )")
          WRITE(nthreed,135)(am(i-1),i=1, SIZE(am))
       END SELECT
 
@@ -457,6 +458,7 @@ C-----------------------------------------------
              WRITE(nthreed,"(' ai_aux_f is' )")
              WRITE(nthreed,135)(ai_aux_f(i),i=1, SIZE(ai_aux_f))
           CASE DEFAULT
+             WRITE(nthreed,"(' ai is' )")
              WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
           END SELECT
       ELSE
@@ -472,17 +474,18 @@ C-----------------------------------------------
              WRITE(nthreed,"(' ac_aux_f is' )")
              WRITE(nthreed,135)(ac_aux_f(i),i=1, SIZE(ac_aux_f))
           CASE DEFAULT
+             WRITE(nthreed,"(' ac is' )")
              WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
           END SELECT
       ENDIF
 
- 140  FORMAT(/' IOTA PROFILE COEFFICIENTS ai',
+ 140  FORMAT(/' IOTA PROFILE COEFFICIENTS',
      1   ' (EXPANSION IN NORMALIZED RADIUS):',/,1x,35('-'))
- 142  FORMAT(/' SAFETY-FACTOR (q) PROFILE COEFFICIENTS ai',
+ 142  FORMAT(/' SAFETY-FACTOR (q) PROFILE COEFFICIENTS',
      1   ' (EXPANSION IN NORMALIZED RADIUS):',/,1x,35('-'))
  143  FORMAT(' PIOTA parameterization type is ''', a,'''')
  145  FORMAT(/' TOROIDAL CURRENT DENSITY (*V'') COEFFICIENTS',
-     1        ' ac (EXPANSION IN NORMALIZED RADIUS):')
+     1        ' (EXPANSION IN NORMALIZED RADIUS):')
  146  FORMAT(' PCURR parameterization type is ''', a,'''')
  147  FORMAT(1x,38('-'))
 
