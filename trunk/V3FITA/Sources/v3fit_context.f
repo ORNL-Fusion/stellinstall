@@ -649,6 +649,7 @@
 !>  @end_table
 !>  @subsection result_file_main_eq_dim_sec Equilibrium Dimensions
 !>  Equilibrium dimensions change depending on the equilibrium used.
+!>  * Model @ref result_file_model_dim_sec
 !>  * VMEC @ref result_file_vmec_dim_sec
 !>
 !>  @section result_file_main_var_sec Variables
@@ -658,19 +659,19 @@
 !>     @item{g2 (maxnsteps), g^2 value for each reconstruction step., reconstruction::reconstruction_get_g2}
 !>  @end_table
 !>  @table_section{result_file_main_dir_param_var_sec, Derived Parameter Variables}
-!>     @item{derived_param_name (string_len\, ndparam),           Name of the derived parameter.,               param::param_get_name}
-!>     @item{derived_param_index (nparamindex\, ndparam),         Indices of the derived parameter.,            param::param_class::indicies}
-!>     @item{derived_param_value (ndparam\, maxnsteps),           Parameter values for each derived step.,      param::param_get_value}
-!>     @item{derived_param_sigma (ndparam\, maxnsteps),           Parameter sigmas for each derived step.,      param::param_class::sigma}
-!>     @item{derived_param_corr  (ndparam\, ndparam\, maxnsteps), Correlation matrix of the derived parameters, param::param_class::correlation}
+!>     @item{derived_param_name (string_len\, ndparam),           Name of the derived parameter.,               v3fit_params::param_get_name}
+!>     @item{derived_param_index (nparamindex\, ndparam),         Indices of the derived parameter.,            v3fit_params::param_class::indicies}
+!>     @item{derived_param_value (ndparam\, maxnsteps),           Parameter values for each derived step.,      v3fit_params::param_get_value}
+!>     @item{derived_param_sigma (ndparam\, maxnsteps),           Parameter sigmas for each derived step.,      v3fit_params::param_class::sigma}
+!>     @item{derived_param_corr  (ndparam\, ndparam\, maxnsteps), Correlation matrix of the derived parameters, v3fit_params::param_class::correlation}
 !>  @end_table
 !>  @table_section{result_file_main_param_var_sec, Reconstruction Parameter Variables}
-!>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,               param::param_get_name}
-!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,            param::param_class::indicies}
-!>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,      param::param_get_value}
-!>     @item{param_sigma (nparam\, maxnsteps),                 Parameter sigmas for each reconstruction step.,      param::param_class::sigma}
-!>     @item{param_corr  (nparam\, nparam\, maxnsteps),        Correlation matrix of the reconstruction parameters, param::param_class::correlation}
-!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step.,  param::param_class::sem}
+!>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,               v3fit_params::param_get_name}
+!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,            v3fit_params::param_class::indicies}
+!>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,      v3fit_params::param_get_value}
+!>     @item{param_sigma (nparam\, maxnsteps),                 Parameter sigmas for each reconstruction step.,      v3fit_params::param_class::sigma}
+!>     @item{param_corr  (nparam\, nparam\, maxnsteps),        Correlation matrix of the reconstruction parameters, v3fit_params::param_class::correlation}
+!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step.,  v3fit_params::param_class::sem}
 !>  @end_table
 !>  @table_section{result_file_main_sig_var_sec, Signal Variables}
 !>     @item{signal_name (string_len\, nsignal),       Short name of the signal.,                                signal::signal_class::s_name}
@@ -682,7 +683,7 @@
 !>  @end_table
 !>  @subsection result_file_main_eq_var_sec Equilibrium Variables
 !>  Equilibrium variables change depending on the equilibrium used.
-!>  * VMEC @ref result_file_model_var_sec
+!>  * Model @ref result_file_model_var_sec
 !>  * VMEC @ref result_file_vmec_var_sec
 !-------------------------------------------------------------------------------
 !>  @brief Initialize the dimensions and variables of the result file.

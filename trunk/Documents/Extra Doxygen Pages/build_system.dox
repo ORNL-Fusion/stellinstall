@@ -118,6 +118,33 @@
  * again except to reconfigure a build variable. When a CMakeList.txt file is 
  * altered, the cmake command is rerun using cached values for the variables.
  *
+ * @subsection build_system_cmake_variables Cmake Variables
+ * @header3{Variable, Values, Discription}
+ * @subsubsection build_system_cmake_variables_builtin Built In Variables
+ * @begin_table
+ *    @item4{CMAKE_Fortran_COMPILER, Path,     Path or command name for the fortran compiler.}
+ *    @item4{CMAKE_Fortran_FLAGS,    String,   Flags to pass to the fortran compiler.}
+ *    @item4{CMAKE_C_COMPILER,       Path,     Path or command name for the C compiler. While V3FIT and VMEC are all
+ *                                             written in Fortran\, some of the Cmake find packages use C compilers.}
+ *    @item4{CMAKE_CXX_COMPILER,     Path,     Path or command name for the C++ compiler. While V3FIT and VMEC are all
+ *                                             written in Fortran\, some of the Cmake find packages use C++ compilers.}
+ *    @item4{CMAKE_BUILD_TYPE,       String
+ *                                   * Release
+ *                                   * Debug,  Sets weither to generate build files for release or debug versions.}
+ *    @item4{CMAKE_PREFIX_PATH,      Path,     Paths to use when searching for libraries and executables.}
+ * @end_table
+ * @subsubsection build_system_cmake_variables_defined Defined Variables
+ * @begin_table
+ *    @item4{NETCDF_INC_PATH,        Path,     Path to the NetCDF include directory.}
+ *    @item4{NETCDF_LIB_PATH,        Path,     Path to the NetCDF include directory.}
+ *    @item4{EXTRA_FLAGS,            String,   Extra flags to pass to the compiler for all build modes.}
+ *    @item4{EXTRA_RELEASE_FLAGS,    String,   Extra flags to pass to the compiler for Release builds.}
+ *    @item4{EXTRA_DEBUG_FLAGS,      String,   Extra flags to pass to the compiler for Debug builds.}
+ *    @item4{USE_PROFILER,           String
+ *                                   * On
+ *                                   * Off,    Controls if code profiling is turned on or off.}
+ * @end_table
+ *
  * @subsection build_system_running_example Running Cmake Example
  * As an example a typical cmake command line used for the Auburn experiment is
  * @code

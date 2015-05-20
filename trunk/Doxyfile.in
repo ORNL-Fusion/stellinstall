@@ -215,6 +215,8 @@ ALIASES                += table_subsection{2}="</table>\subsubsection \1 \2\n<ta
 ALIASES                += header{3}="<table border=1px width=80%><tr><td width=20%>\fixed_width{\1}</td><td width=50%>\2</td><td width=30%>\3</td></tr></table>"
 ALIASES                += header2{3}="<table border=1px width=80%><tr><td width=20%>\fixed_width{\1}</td><td width=5%>\2</td><td width=75%>\3</td></tr></table>"
 ALIASES                += fixed_width{1}="<tt>\1</tt>"
+ALIASES                += header3{3}="<table border=1px width=80%><tr><td width=20%>\fixed_width{\1}</td><td width=20%>\2</td><td width=60%>\3</td></tr></table>"
+ALIASES                += item4{3}="<tr><td width=20%>\fixed_width{\1}</td><td width=20%>\2</td><td width=60%>\3</td></tr>"
 
 # This tag can be used to specify a number of word-keyword mappings (TCL only). 
 # A mapping has the form "name=value". For example adding 

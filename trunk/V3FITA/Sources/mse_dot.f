@@ -40,7 +40,12 @@
 !>  @end_table
 !>
 !>  @section mse_dot_point_spec_sec Point Specification
-!>  All motional stark effect points are specified in the following manner.
+!>  All motional stark effect points are specified in the following manner. A
+!>  string containing the diagnostic name. Three reals specfy the measurement
+!>  point in 3D. The next two sets of three reals are start and end points of the
+!>  viewing cord. The last two sets of real three reals are the start and end
+!>  points of the neutral beam. Each set of three reals is a point in either
+!>  Cartesian or Cyclindrical Coordinates depending on the keyword.
 !>
 !>  @fixed_width{key_word\n}
 !>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}

@@ -50,11 +50,11 @@
 !>     @item{pp_ne_af,         Array of af_coefficients electron density splines.,                v3fit_input::pp_ne_af}
 !>     @item{pp_sxrem_ptype,   Model soft x-ray emissivity profile\, parameterized profile type., v3fit_input::pp_sxrem_ptype}
 !>     @item{pp_sxrem_b,       Array of b_coefficients for the soft x-ray emissivity profile.
-!>                             @b DEPRICATED @b,                                                  v3fit_input::pp_sxrem_b}
+!>                             @b DEPRECATED @b,                                                  v3fit_input::pp_sxrem_b}
 !>     @item{pp_sxrem_as,      Array of as_coefficients soft x-ray emissivity splines.
-!>                             @b DEPRICATED @b,                                                  v3fit_input::pp_sxrem_as}
+!>                             @b DEPRECATED @b,                                                  v3fit_input::pp_sxrem_as}
 !>     @item{pp_sxrem_af,      Array of af_coefficients soft x-ray emissivity splines.
-!>                             @b DEPRICATED @b,                                                  v3fit_input::pp_sxrem_af}
+!>                             @b DEPRECATED @b,                                                  v3fit_input::pp_sxrem_af}
 !>     @item{num_sxrem_p,      Number of soft x-ray emissivity profiles.,                         v3fit_input::num_sxrem_p}
 !>     @item{pp_sxrem_ptype_a, Model soft x-ray emissivity profile\, parameterized profile type., v3fit_input::pp_sxrem_ptype_a}
 !>     @item{pp_sxrem_b_a,     Array of b_coefficients for the soft x-ray emissivity profile.,    v3fit_input::pp_sxrem_b_a}
@@ -78,7 +78,7 @@
 !>        -# @fixed_width{'none'}     Not part of the model.
 !>        -# @fixed_width{'pp_sxrem'} Calculated from the parameterized profile pp_sxrem.
 !>
-!>        @b DEPRICATED @b,
+!>        @b DEPRECATED @b,
 !>        v3fit_input::model_sxrem_type}
 !>     @item{model_sxrem_type_a, Character array to specify how the Soft x-ray emissivity will be calculated by the model.
 !>        -# @fixed_width{'none'}           Not part of the model.
@@ -97,7 +97,7 @@
 !>     @item{emission_file,       Path to file defining the soft x-ray emission. @see @ref emission_file_sec ,                                                  v3fit_input::emission_file}
 !>  @end_table
 !>
-!>  @table_section{recon_con_sec, Reconstruction constraints (DEPRICATED)}
+!>  @table_section{recon_con_sec, Reconstruction constraints (DEPRECATED)}
 !>     @item{n_rc,     Number of reconstruction constraints,       v3fit_input::n_rc}
 !>     @item{rc_type,  Array of reconstruction constraint types,   v3fit_input::rc_type}
 !>     @item{rc_index, Array of reconstruction constraint indices, v3fit_input::rc_index}
@@ -144,15 +144,16 @@
 !>  @end_table
 !>
 !>  @table_section{signal_spec_sec, Signal Data specification}
-!>     @item{n_sdata_o,               Number of signal_data observations @b DEPRICATED @b,                                                 v3fit_input::n_sdata_o}
+!>     @item{n_sdata_o,               Number of signal_data observations @b DEPRECATED @b,                                                 v3fit_input::n_sdata_o}
 !>     @item{iw_sdo_verbose,          Integer to control write out of signal_data observations. (-1\, no write\, otherwise\, verbosity),   v3fit_input::iw_sdo_verbose}
 !>     @item{sdo_data_a,              Array of data for observed signals,                                                                  v3fit_input::sdo_data_a}
 !>     @item{sdo_sigma_a,             Array of sigmas for observed signals,                                                                v3fit_input::sdo_sigma_a}
 !>     @item{sdo_weight_a,            Array of weight for observed signals,                                                                v3fit_input::sdo_weight_a}
 !>     @item{mag_a,                   Array of flags for magnetc signals. This flags controls if the induced signal is included in the
-!>                                    total signal.,                                                                                       v3fit_input::mag_a}
-!>     @item{mag_force_coil,          Flag to force the computation of induced signals. This has no affect on the total signal if
-!>                                    @ref mag_a is false.,                                                                                v3fit_input::mag_force_coil}
+!>                                    total signal for an individual magentic signal.,                                                     v3fit_input::mag_a}
+!>     @item{mag_force_coil,          Flag to force the computation of induced signals. Some equilibria do not contain information about
+!>                                    external currents. This allows the magnetic signals to include contributions from external coils
+!>                                    when the equilibrium does not. This has no affect on the total signal if @ref mag_a is false.,       v3fit_input::mag_force_coil}
 !>     @item{sdo_spec_can_overwrite, Logical controlling if the sdo_*_spec_ overwrites values in the sdo_sigma_a array. Defaults to true., v3fit_input::sdo_spec_can_overwrite}
 !>     @table_subsection{sigma_spec_sec, Signal Data sigma specification}
 !>        @item{sdo_s_spec_imin,      Array of minimum index values for specifying sigmas,                                                 v3fit_input::sdo_s_spec_imin}
@@ -172,7 +173,7 @@
 !>  @end_table
 !>
 !>  @table_section{magnetic_sec, Magnetic signal parameters}
-!>     @item{pol_rad_ratio, Ratio of the radial grid points to the poloidal grid points, v3fit_input::pol_rad_ratio}
+!>     @item{pol_rad_ratio, Ratio of the radial grid points to the poloidal grid points for the plasma only volumn integration., v3fit_input::pol_rad_ratio}
 !>  @end_table
 !>
 !>  @todo FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle.
@@ -239,7 +240,8 @@
 !>  @table_section{recon_sec, Reconstruction step control NLI variables}
 !>     @item{nrstep,       max number of reconstruction steps to perform,      v3fit_input::nrstep}
 !>     @item{dg2_stop,     Stopping criterion on change in g^2,                v3fit_input::dg2_stop}
-!>     @item{cut_svd,      cutoff value for relative Singular Values,          v3fit_input::cut_svd}
+!>     @item{cut_svd,      cutoff value for relative Singular Values of the
+!>                         Jacobian,                                           v3fit_input::cut_svd}
 !>     @item{cut_eff,      cutoff value for expected step efficiency,          v3fit_input::cut_eff}
 !>     @item{cut_marg_eff, cutoff value for expected marginal step efficiency, v3fit_input::coosig_units}
 !>     @item{cut_delta_a,  cutoff value for expected step size,                v3fit_input::cut_delta_a}
@@ -251,11 +253,14 @@
 !>        -# @fixed_width{'lm'}  - Levenberg-Marquardt,
 !>        v3fit_input::step_type}
 !>     @item{cut_inv_svd,  Cut off value for the singular values used for the
-!>                         pseudo matrix inverse,                              v3fit_input::cut_inv_svd}
+!>                         pseudo matrix inverse of the parameter covariance
+!>                         Matrix.,                                            v3fit_input::cut_inv_svd}
 !>  @end_table
 !>
 !>  @table_section{xcdot_sec, VMEC zero out xcdot control}
-!>     @item{l_zero_xcdot, reset the xcdot array to zero when converging vmec., v3fit_input::l_zero_xcdot}
+!>     @item{l_zero_xcdot, Reset the xcdot array to zero when converging vmec.
+!>                         Zeroing of the xcdot array is hardcoded.
+!>                         @b DEPRECATED @b,                                   v3fit_input::l_zero_xcdot}
 !>
 !>  @section namelist_exam_sec Example Files
 !>  @subsection namelist_exam_v3post_sec V3POST Example

@@ -829,9 +829,10 @@
 !  step size to keep the parameter in range.
          CALL param_increment(params(j)%p, a_model)
 
-         CALL assert(model_converge(a_model, eq_steps, iou),                   &
-     &               'eval_jacobians: failed to converge ' //                  &
-     &               'equilibrium. Try decreasing rp_vrnc')
+!  Check that model was able to converge. If the model converged proceed as
+!  normal otherwise set the jth index of the jacobian to zero to avoid a step
+!  in that parameter direction.
+         IF (model_converge(a_model, eq_steps, iou)) THEN
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
@@ -860,20 +861,20 @@
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-         DO i = 1, this%last_para_signal
-            this%jacobian(i,j) =                                               &
-     &         -(signal_get_e(signals(i)%p, a_model, .false.)                  &
-     &         - this%e(this%current_step,i))
-         END DO
+            DO i = 1, this%last_para_signal
+               this%jacobian(i,j) =                                            &
+     &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
+     &            - this%e(this%current_step,i))
+            END DO
 !$OMP END PARALLEL DO
 
-         DO i = this%last_para_signal + 1, SIZE(signals)
-            this%jacobian(i,j) =                                               &
-     &         -(signal_get_e(signals(i)%p, a_model, .false.)                  &
-     &         - this%e(this%current_step,i))
-         END DO
-         this%jacobian(:,j) = this%jacobian(:,j)                               &
-     &                      * SIGN(1.0_rprec, params(j)%p%delta)
+            DO i = this%last_para_signal + 1, SIZE(signals)
+               this%jacobian(i,j) =                                            &
+     &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
+     &            - this%e(this%current_step,i))
+            END DO
+            this%jacobian(:,j) = this%jacobian(:,j)                            &
+     &                         * SIGN(1.0_rprec, params(j)%p%delta)
 
 !  Compute the derived parameter jacobian. d f_i/d a_j . This will parallel the
 !  signal jacobian with the exception that the parameters aren't normalized.
@@ -882,13 +883,21 @@
 !    d f_i/d a_j = (f'_i - f_i)*|pi_j|/pi_j                                  (5)
 !
 !  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
-         DO i = 1, SIZE(derived_params)
-            this%derived_jacobian(i,j) =                                       &
-     &         -(param_get_value(derived_params(i)%p, a_model)                 &
-     &         - this%f(this%current_step,i))
-         END DO
-         this%derived_jacobian(:,j) = this%derived_jacobian(:,j)               &
-     &                              * SIGN(1.0_rprec, params(j)%p%delta)
+            DO i = 1, SIZE(derived_params)
+               this%derived_jacobian(i,j) =                                    &
+     &            -(param_get_value(derived_params(i)%p, a_model)              &
+     &            - this%f(this%current_step,i))
+            END DO
+            this%derived_jacobian(:,j) = this%derived_jacobian(:,j)            &
+     &                                 * SIGN(1.0_rprec,                       &
+     &                                        params(j)%p%delta)
+         ELSE
+!  Warn the user that the model failed to converge on the jth parameter.
+            WRITE (*,1000) j
+
+            this%jacobian(:,j) = 0.0
+            this%derived_jacobian(:,j) = 0.0
+         END IF
 
 !  Restore the parameter and the equilibrium to it's initial value. Need to sync
 !  the value of param delta back to the parent process.
@@ -908,6 +917,9 @@
 
       CALL profiler_set_stop_time('reconstruction_eval_jacobians',             &
      &                            start_time)
+
+1000  FORMAT('Warning: Model failed to converge in Jacobian for ',             &
+     &       'index ',i3,'.')
 
       END SUBROUTINE
 
