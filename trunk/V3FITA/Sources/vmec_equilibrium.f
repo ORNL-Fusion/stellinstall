@@ -3422,7 +3422,7 @@
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
-     &                       more_iter_flag
+     &                       more_iter_flag, restart_flag
       USE xstuff, only: xcdot, xc
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE vmec_main, only: iterc, iter1, iter2
@@ -3471,6 +3471,9 @@
          IF (num_iter .gt. 1) THEN
             ictrl_array(3) = niter
             ictrl_array(4) = this%ns_index
+         ELSE
+!  This allows the inital convergence to match a stand alone VMEC run.
+            ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
          END IF
 
 !  Update internal vmec counters. These affect how the minimization occurs.
