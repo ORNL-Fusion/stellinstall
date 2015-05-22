@@ -653,6 +653,7 @@
 
       CALL MPI_BCAST(use_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
       IF (use_cache) THEN
+         ALLOCATE(vmec_construct_mpi%magnetic_cache)
          CALL vmec_set_magnetic_cache(vmec_construct_mpi, intra_comm)
       END IF
 #endif
@@ -1171,7 +1172,7 @@
       CALL MPI_BCAST(this%magnetic_cache%dv_a, 1, MPI_REAL8, 0,                &
      &               intra_comm, error)
 
-!  Conducting shell plasma resonse arrays.
+!  Plasma resonse arrays.
       dim_lengths = 0
       IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
          dim_lengths = SHAPE(this%magnetic_cache%rsuv)
