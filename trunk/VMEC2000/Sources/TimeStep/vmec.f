@@ -309,21 +309,18 @@ C-----------------------------------------------
                   IF (lscreen) WRITE (6, '(1x,a)') increase_niter
                 ENDIF
               ENDDO
-              ictrl(1) = output_flag+cleanup_flag               ! - Output, cleanup
-              IF(ictrl(2).ne.successful_term_flag)
-     &                ictrl(2)=successful_term_flag             ! - force success flag to get full threed1-output!
-              ictrl(3) = 0                                      ! - this is the number of iterations
-              CALL runvmec (ictrl, extension(1), lscreen)       ! - final call.
-            ELSE                                                ! else-branch contains original code.
-              ictrl(1) = output_flag+cleanup_flag               !Output, cleanup  ! o-lines
-              ictrl(2) = 0                                      ! o-lines
-              IF(lfull3d1out) then
-                ictrl(2)=successful_term_flag
-                WRITE(6,'(1x,a)') full_3d1output_request
-                WRITE(nthreed,'(1x,a)') full_3d1output_request
-              ENDIF
-              CALL runvmec (ictrl, extension(1), lscreen)        ! o-lines
             ENDIF                                                ! J Geiger: -- end --
+            ictrl(1) = output_flag+cleanup_flag                  !Output, cleanup  ! o-lines
+                                                                 ! J Geiger: --start--
+            IF(ictrl(2) .NE. successful_term_flag) ictrl(2) = 0  ! o-line was without if-clause.
+                                                                 ! The if-clause was added to not spoil the
+                                                                 ! successful termination by not getting full 3d1 output
+            IF(lfull3d1out) THEN                                 ! in case full 3d1-output is requested
+              ictrl(2)=successful_term_flag                      ! This forces the full 3d1-output in eqfor.
+              WRITE(6,'(1x,a)') full_3d1output_request
+              WRITE(nthreed,'(1x,a)') full_3d1output_request
+            ENDIF                                                ! J Geiger: -- end --
+            CALL runvmec (ictrl, extension(1), lscreen)          ! o-lines
 
          CASE (bad_jacobian_flag)                             !Bad jacobian even after axis reset and ns->3
             IF (lscreen) WRITE (6, '(/,1x,a)') bad_jacobian

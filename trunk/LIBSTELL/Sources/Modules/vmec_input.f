@@ -93,7 +93,8 @@
       CONTAINS
 
       SUBROUTINE read_indata_namelist (iunit, istat)
-      INTEGER :: iunit, istat
+      INTEGER, INTENT(IN) :: iunit
+      INTEGER, INTENT(OUT) :: istat
 
 !
 !     INITIALIZATIONS
@@ -138,7 +139,7 @@
       lgiveup = .false.        ! inserted M.Drevlak
       fgiveup = 3.E+01_dp      ! inserted M.Drevlak
       lbsubs = .false.         ! J Hanson. See jxbforce coding
-      lfull3d1out = .false.
+      lfull3d1out = .true.     ! J Geiger & SPH (5-21-15)
       lmoreiter = .false.      ! default value if no max_main_iterations given.
       max_main_iterations = 1  ! to keep a presumably expected standard behavior.
 #if defined(NETCDF)
@@ -147,7 +148,6 @@
       lwouttxt = .true.        ! and without netcdf
 #endif
                                ! J Geiger 2010-05-04 end
-
       pcurr_type = 'power_series'
       piota_type = 'power_series'
       pmass_type = 'power_series'

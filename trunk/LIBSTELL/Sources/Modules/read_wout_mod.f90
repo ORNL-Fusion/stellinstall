@@ -366,7 +366,7 @@
 
       i = INDEX(vmec_version,'=')
       IF (i .ge. 0) THEN
-         READ(vmec_version(i+1:len_trim(vmec_version)),*) version_
+         READ(vmec_version(i+1:LEN_TRIM(vmec_version)),*) version_
       ELSE
          version_ = -1.0
       END IF
