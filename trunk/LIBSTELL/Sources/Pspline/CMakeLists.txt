@@ -36,12 +36,12 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_isindomain.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_load.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_modulo.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/EZspline_obj.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_obj.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_save.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_setup.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_setupx.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/EZspline_type.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/EZspline.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/ezspline_type.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/ezspline.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/f2test.f
 	${CMAKE_CURRENT_SOURCE_DIR}/f3test.f
 	${CMAKE_CURRENT_SOURCE_DIR}/genxpkg.f
