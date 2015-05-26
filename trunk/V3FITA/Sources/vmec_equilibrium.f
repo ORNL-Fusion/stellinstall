@@ -28,11 +28,11 @@
 !>     @item{ac_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::ac_aux_s}
 !>     @item{ac_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::ac_aux_f}
 !>     @item{ai,         1D Array of function current profile parameters.,  @ref vmec_input::ai}
-!>     @item{ai_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::ai_aux_s}
-!>     @item{ai_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::ai_aux_f}
+!>     @item{ai_aux_s,   1D Array of segment iotabar profile s poitions.,   @ref vmec_input::ai_aux_s}
+!>     @item{ai_aux_f,   1D Array of segment iotabar profile f values.,     @ref vmec_input::ai_aux_f}
 !>     @item{am,         1D Array of function current profile parameters.,  @ref vmec_input::am}
-!>     @item{am_aux_s,   1D Array of segment current profile s poitions.,   @ref vmec_input::am_aux_s}
-!>     @item{am_aux_f,   1D Array of segment current profile f values.,     @ref vmec_input::am_aux_f}
+!>     @item{am_aux_s,   1D Array of segment pressure profile s poitions.,  @ref vmec_input::am_aux_s}
+!>     @item{am_aux_f,   1D Array of segment pressure profile f values.,    @ref vmec_input::am_aux_f}
 !>     @item{bloat,      Extends the field into the vacuum region.,         @ref vmec_input::bloat}
 !>     @item{rbc,        2D Array of outer boundary R cosine coeffiecents., @ref vmec_input::rbc}
 !>     @item{zbs,        2D Array of outer boundary Z sine coeffiecents.,   @ref vmec_input::zbs}
