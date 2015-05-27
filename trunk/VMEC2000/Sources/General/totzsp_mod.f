@@ -34,8 +34,8 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: n, m, mparity, k, i, j1, l, lb, ub
-      INTEGER :: ioff, joff, mj, ni, nsz
+      INTEGER :: n, m, mparity, k, i, l, j1l, nsl
+      INTEGER :: ioff, joff, mj, ni, nsz, lb, ub
       REAL(rprec), DIMENSION(:,:,:), POINTER ::
      1           rmncc, rmnss, zmncs, zmnsc, lmncs, lmnsc
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
@@ -78,7 +78,7 @@
 #endif
       ioff = LBOUND(rmncc,2)
       joff = LBOUND(rmncc,3)
-      nsz = ns*nzeta
+
 !
 !     ORIGIN EXTRAPOLATION OF M=0 MODES FOR LAMBDA 
 !
@@ -87,40 +87,37 @@
  
       IF (ictrl_prec2d .eq. 3) RETURN
      
+      nsz = ns*nzeta
       ALLOCATE (work1(nsz,12), stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in VMEC2000 totzsps'
+      IF (i .NE. 0) STOP 'Allocation error #1 in VMEC2000 totzsps'
 
-!      r11 = 0;  ru1 = 0;  rv1 = 0;  rcn1 = 0
-!      z11 = 0;  zu1 = 0;  zv1 = 0;  zcn1 = 0
-!      lu1 = 0;  lv1 = 0
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
-!$OMP DO PRIVATE(i,l,lb,ub)
-         DO i = 1, ntheta2
-            l = nsz*(i-1)
-            lb = l+1;  ub = nsz+l
-            r11(lb:ub,:) = 0;  ru1(lb:ub,:) = 0
-            rv1(lb:ub,:) = 0;  rcn1(lb:ub,:) = 0
-            z11(lb:ub,:) = 0;  zu1(lb:ub,:) = 0
-            zv1(lb:ub,:) = 0;  zcn1(lb:ub,:) = 0
-            lu1(lb:ub,:) = 0;  lv1(lb:ub,:) = 0
-         END DO
-!$OMP END DO
 !
 !     COMPUTE R, Z, AND LAMBDA IN REAL SPACE
 !     NOTE: LU = d(Lam)/du, LV = -d(Lam)/dv
 !
-      DO m = 0, mpol1
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
+!$OMP$ PRIVATE (lb, ub)
+!$OMP DO PRIVATE(i,l)
+!
+!     INITIALIZATION BLOCK
+!
+      DO i = 1, ntheta3
+         l = nsz*(i-1)
+         lb = l+1;  ub = nsz+l
+         r11(lb:ub,:) = 0;  ru1(lb:ub,:) = 0
+         rv1(lb:ub,:) = 0;  rcn1(lb:ub,:) = 0
+         z11(lb:ub,:) = 0;  zu1(lb:ub,:) = 0
+         zv1(lb:ub,:) = 0;  zcn1(lb:ub,:) = 0
+         lu1(lb:ub,:) = 0;  lv1(lb:ub,:) = 0
+      END DO
+!$OMP END DO
+      MLOOP: DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
-!         work1 = 0
-!         j1 = jmin1(m)
-#ifdef _HBANGLE
-!         IF (m .EQ. 3) j1 = jmin1(1)
-#endif
 !
 !        INVERSE TRANSFORM IN N-ZETA, FOR FIXED M
 !
-!$OMP DO PRIVATE(k,l,lb,ub,n,ni)
+!$OMP DO PRIVATE(k,l,n,ni)
          DO k = 1, nzeta
             l = ns*(k-1)
             lb = l+1;  ub = ns+l
@@ -155,12 +152,10 @@
      1                        + lmnsc(:,ni,mj)*sinnvn(k,n)
             END DO
          END DO
-!$OMP END DO
 !
 !        INVERSE TRANSFORM IN M-THETA, FOR ALL RADIAL, ZETA VALUES
 !
-
-!$OMP DO PRIVATE(i,l,lb,ub,cosmux,sinmux)
+!$OMP DO PRIVATE(i,l,cosmux,sinmux)
          DO i = 1, ntheta2
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
@@ -219,8 +214,9 @@
      1                          +  work1(:,12)*sinmu(i,m))
          END DO
 !$OMP END DO
-      END DO
+      END DO MLOOP
 !$OMP END PARALLEL
+
       DEALLOCATE (work1)
 
       z01(1:ns) = zmnsc(1:ns,n0+ioff,m1+joff)
@@ -229,6 +225,7 @@
       dkappa = z01(1)/r01(1)
 
       END SUBROUTINE totzsps
+
 
 #else
       SUBROUTINE totzsps(rzl_array, r11, ru1, rv1, z11, zu1, zv1,
@@ -848,9 +845,8 @@ C-----------------------------------------------
 
       END SUBROUTINE convert_sym
 
-
-      SUBROUTINE totzspa(rzl_array, r11, ru1, rv1, z11, zu1, zv1, lu1,
-     1   lv1, rcn1, zcn1)
+      SUBROUTINE totzspa(rzl_array, r11, ru1, rv1, z11, zu1, zv1,
+     1    lu1, lv1, rcn1, zcn1)
       USE vmec_main
       USE vmec_params, ONLY: jmin1, jlam, ntmax, rcs, rsc, zcc, zss
       USE precon2d, ONLY: ictrl_prec2d
@@ -869,7 +865,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: m, n, mparity, k, i, l, j1, lb, ub, nsz
+      INTEGER :: m, n, mparity, k, i, l, lb, ub, nsz
       INTEGER :: ioff, joff, mj, ni
       REAL(rprec), DIMENSION(:,:,:), POINTER ::
      1           rmncs, rmnsc, zmncc, zmnss, lmncc, lmnss
@@ -904,14 +900,13 @@ C-----------------------------------------------
       ALLOCATE (work1(ns*nzeta,12), stat=i)
       IF (i .ne. 0) STOP 'Allocation error in VMEC totzspa'
 
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& PRIVATE(lb,ub)
 !
 !     INITIALIZATION BLOCK
 !
-!      r11 = 0;  ru1 = 0;  rv1 = 0;  z11 = 0;  zu1 = 0
-!      zv1 = 0;  lu1 = 0;  lv1 = 0;  rcn1 = 0; zcn1 = 0
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO PRIVATE(i,l,lb,ub)
-         DO i = 1, ntheta2
+!$OMP DO PRIVATE(i,l)
+         DO i = 1, ntheta3
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
             r11(lb:ub,:) = 0;  ru1(lb:ub,:) = 0
@@ -924,17 +919,14 @@ C-----------------------------------------------
 
       IF (jlam(m0) .gt. 1) lmncc(1,:,m0+joff) = lmncc(2,:,m0+joff)
 
-      DO m = 0, mpol1
+      MLOOP: DO m = 0, mpol1
          mparity = MOD(m,2)
          mj = m+joff
-!         work1 = 0
-!         j1 = jmin1(m)
-!$OMP DO PRIVATE(k,l,lb,ub,n,ni)
+!$OMP DO PRIVATE(k,l,n,ni)
          DO k = 1, nzeta
             l = ns*(k-1)
             lb = l+1;  ub = ns+l
             work1(lb:ub,:) = 0
-
             DO n = 0, ntor
                ni = n+ioff
                work1(lb:ub,1) = work1(lb:ub,1)
@@ -970,7 +962,7 @@ C-----------------------------------------------
 !
 !        INVERSE TRANSFORM IN M-THETA
 !
-!$OMP DO PRIVATE(i,l,lb,ub,cosmux,sinmux)
+!$OMP DO PRIVATE(i,l,cosmux,sinmux)
          DO i = 1, ntheta2
             l = nsz*(i-1)
             lb = l+1;  ub = nsz+l
@@ -1016,7 +1008,7 @@ C-----------------------------------------------
      1               sinmu(i,m)+work1(:,12)*cosmu(i,m))
          END DO
 !$OMP END DO
-      END DO
+      END DO MLOOP
 !$OMP END PARALLEL
       DEALLOCATE (work1)
 
