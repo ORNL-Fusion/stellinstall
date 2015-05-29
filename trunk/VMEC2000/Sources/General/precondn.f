@@ -105,7 +105,7 @@ C-----------------------------------------------
 !$OMP END DO
 
 !$OMP WORKSHARE
-      temp = temp/vp
+      temp(2:ns) = temp(2:ns)/vp(2:ns)
 !$OMP END WORKSHARE
 
 !$OMP DO PRIVATE(js)
