@@ -562,13 +562,13 @@
 
 !  Store the inital magnetic axis. This is needed to reset the equilibrium for
 !  error recovery in the initial equilibirum convergence.
-      ALLOCATE(vmec_construct_new%raxis_cc(ntord))
+      ALLOCATE(vmec_construct_new%raxis_cc(0:ntord))
       vmec_construct_new%raxis_cc = raxis_cc
-      ALLOCATE(vmec_construct_new%raxis_cs(ntord))
+      ALLOCATE(vmec_construct_new%raxis_cs(0:ntord))
       vmec_construct_new%raxis_cs = raxis_cs
-      ALLOCATE(vmec_construct_new%zaxis_cc(ntord))
+      ALLOCATE(vmec_construct_new%zaxis_cc(0:ntord))
       vmec_construct_new%zaxis_cc = zaxis_cc
-      ALLOCATE(vmec_construct_new%zaxis_cs(ntord))
+      ALLOCATE(vmec_construct_new%zaxis_cs(0:ntord))
       vmec_construct_new%zaxis_cs = zaxis_cs
 
       CALL profiler_set_stop_time('vmec_construct', start_time)
@@ -675,10 +675,10 @@
 
 !  Allocate arrays for the magnetic axis. It's not necessary to set it. When the
 !  child process is used, the parent process will sync the arrays first.
-      ALLOCATE(vmec_construct_mpi%raxis_cc(ntord))
-      ALLOCATE(vmec_construct_mpi%raxis_cs(ntord))
-      ALLOCATE(vmec_construct_mpi%zaxis_cc(ntord))
-      ALLOCATE(vmec_construct_mpi%zaxis_cs(ntord))
+      ALLOCATE(vmec_construct_mpi%raxis_cc(0:ntord))
+      ALLOCATE(vmec_construct_mpi%raxis_cs(0:ntord))
+      ALLOCATE(vmec_construct_mpi%zaxis_cc(0:ntord))
+      ALLOCATE(vmec_construct_mpi%zaxis_cs(0:ntord))
 
       CALL MPI_BCAST(use_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
       IF (use_cache) THEN
@@ -3516,13 +3516,13 @@
       ALLOCATE(xc_saved(SIZE(xc)))
       xc_saved = xc
 
-      ALLOCATE(raxis_cc_saved(ntord))
+      ALLOCATE(raxis_cc_saved(0:ntord))
       raxis_cc_saved = raxis_cc
-      ALLOCATE(raxis_cs_saved(ntord))
+      ALLOCATE(raxis_cs_saved(0:ntord))
       raxis_cs_saved = raxis_cs
-      ALLOCATE(zaxis_cc_saved(ntord))
+      ALLOCATE(zaxis_cc_saved(0:ntord))
       zaxis_cc_saved = zaxis_cc
-      ALLOCATE(zaxis_cs_saved(ntord))
+      ALLOCATE(zaxis_cs_saved(0:ntord))
       zaxis_cs_saved = zaxis_cs
 
 !  Run vmec until successful or an unrecoverable error has occured.
@@ -4216,7 +4216,7 @@
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
       USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
-      USE vparams, only: ntord
+      USE vparams, only: ntor1d
 
       IMPLICIT NONE
 
@@ -4270,10 +4270,10 @@
       CALL MPI_BCAST(xc, SIZE(xc), MPI_REAL8, 0, intra_comm, error)
 
 !  Sync the magnetic axis.
-      CALL MPI_BCAST(raxis_cc, ntord, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(raxis_cs, ntord, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(zaxis_cc, ntord, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(zaxis_cs, ntord, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(raxis_cc, ntor1d, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(raxis_cs, ntor1d, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(zaxis_cc, ntor1d, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(zaxis_cs, ntor1d, MPI_REAL8, 0, intra_comm, error)
 
 !  Sync the values from the threed1 file.
       CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, intra_comm, error)
