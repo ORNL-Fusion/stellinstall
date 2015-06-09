@@ -340,6 +340,14 @@
      &      magnetic_cache => null()
 !>  Cache of the vmec internal state xc array.
          REAL (rprec), DIMENSION(:), POINTER    :: xc => null()
+!>  Cache of the magnetic axis R cosine coefficents.
+         REAL (rprec), DIMENSION(:), POINTER    :: raxis_cc => null()
+!>  Cache of the magnetic axis R sine coefficents.
+         REAL (rprec), DIMENSION(:), POINTER    :: raxis_cs => null()
+!>  Cache of the magnetic axis Z cosine coefficents.
+         REAL (rprec), DIMENSION(:), POINTER    :: zaxis_cc => null()
+!>  Cache of the magnetic axis Z sine coefficents.
+         REAL (rprec), DIMENSION(:), POINTER    :: zaxis_cs => null()
 !>  Cache of the threed1 file state.
          TYPE (threed1_file_cache_class), POINTER ::                           &
      &      threed1_file => null()
@@ -452,8 +460,10 @@
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit, ns_array
+      USE vmec_input, only: l_v3fit, ns_array, raxis_cc, raxis_cs,             &
+     &                      zaxis_cc, zaxis_cs
       USE xstuff, only: xc
+      USE vparams, only: ntord
       USE read_wout_mod, only: read_wout_file, LoadRZL
 
       IMPLICIT NONE
@@ -550,6 +560,17 @@
       ALLOCATE(vmec_construct_new%xc(SIZE(xc)))
       vmec_construct_new%xc = xc
 
+!  Store the inital magnetic axis. This is needed to reset the equilibrium for
+!  error recovery in the initial equilibirum convergence.
+      ALLOCATE(vmec_construct_new%raxis_cc(ntord))
+      vmec_construct_new%raxis_cc = raxis_cc
+      ALLOCATE(vmec_construct_new%raxis_cs(ntord))
+      vmec_construct_new%raxis_cs = raxis_cs
+      ALLOCATE(vmec_construct_new%zaxis_cc(ntord))
+      vmec_construct_new%zaxis_cc = zaxis_cc
+      ALLOCATE(vmec_construct_new%zaxis_cs(ntord))
+      vmec_construct_new%zaxis_cs = zaxis_cs
+
       CALL profiler_set_stop_time('vmec_construct', start_time)
       END FUNCTION
 
@@ -569,6 +590,7 @@
      &                       more_iter_flag
       USE vmec_input, only: l_v3fit, ns_array
       USE xstuff, only: xc
+      USE vparams, only: ntord
 
       IMPLICIT NONE
 
@@ -647,9 +669,16 @@
 
       vmec_construct_mpi%ns_index = MAXLOC(ns_array, 1)
 
-!  Allocate an array for for the xc array. It's not necessary to set it. When
-!  the child process is used, the parent process will sync the xc array first.
+!  Allocate an array for the xc array. It's not necessary to set it. When the
+!  child process is used, the parent process will sync the xc array first.
       ALLOCATE(vmec_construct_mpi%xc(SIZE(xc)))
+
+!  Allocate arrays for the magnetic axis. It's not necessary to set it. When the
+!  child process is used, the parent process will sync the arrays first.
+      ALLOCATE(vmec_construct_mpi%raxis_cc(ntord))
+      ALLOCATE(vmec_construct_mpi%raxis_cs(ntord))
+      ALLOCATE(vmec_construct_mpi%zaxis_cc(ntord))
+      ALLOCATE(vmec_construct_mpi%zaxis_cs(ntord))
 
       CALL MPI_BCAST(use_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
       IF (use_cache) THEN
@@ -760,6 +789,26 @@
       IF (ASSOCIATED(this%xc)) THEN
          DEALLOCATE(this%xc)
          this%xc => null()
+      END IF
+
+      IF (ASSOCIATED(this%raxis_cc)) THEN
+         DEALLOCATE(this%raxis_cc)
+         this%raxis_cc => null()
+      END IF
+
+      IF (ASSOCIATED(this%raxis_cs)) THEN
+         DEALLOCATE(this%raxis_cs)
+         this%raxis_cs => null()
+      END IF
+
+      IF (ASSOCIATED(this%zaxis_cc)) THEN
+         DEALLOCATE(this%zaxis_cc)
+         this%zaxis_cc => null()
+      END IF
+
+      IF (ASSOCIATED(this%zaxis_cs)) THEN
+         DEALLOCATE(this%zaxis_cs)
+         this%zaxis_cs => null()
       END IF
 
 !  Deallocate VMEC allocated memory.
@@ -3419,7 +3468,8 @@
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_converge(this, num_iter, iou)
-      USE vmec_input, only: delt, niter
+      USE vmec_input, only: delt, niter, raxis_cc, raxis_cs,                   &
+     &                      zaxis_cc, zaxis_cs
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
@@ -3427,6 +3477,7 @@
       USE xstuff, only: xcdot, xc
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE vmec_main, only: iterc, iter1, iter2
+      USE vparams, ONLY: ntord
 
       IMPLICIT NONE
 
@@ -3445,6 +3496,10 @@
       INTEGER                          :: recovery_index
       INTEGER                          :: error, num_iter_init
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: xc_saved
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: raxis_cc_saved
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: raxis_cs_saved
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: zaxis_cc_saved
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: zaxis_cs_saved
       REAL (rprec)                     :: start_time
 
 !  Start of executable code
@@ -3460,6 +3515,15 @@
 !  parameters were changed.
       ALLOCATE(xc_saved(SIZE(xc)))
       xc_saved = xc
+
+      ALLOCATE(raxis_cc_saved(ntord))
+      raxis_cc_saved = raxis_cc
+      ALLOCATE(raxis_cs_saved(ntord))
+      raxis_cs_saved = raxis_cs
+      ALLOCATE(zaxis_cc_saved(ntord))
+      zaxis_cc_saved = zaxis_cc
+      ALLOCATE(zaxis_cs_saved(ntord))
+      zaxis_cs_saved = zaxis_cs
 
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
@@ -3498,6 +3562,12 @@
 !  Restore the xc array to the state it was before runvmec was called.
                xc = xc_saved
 
+!  Restore the magnetic axis to the state it was before runvmec was called.
+               raxis_cc = raxis_cc_saved
+               raxis_cs = raxis_cs_saved
+               zaxis_cc = zaxis_cc_saved
+               zaxis_cs = zaxis_cs_saved
+
                IF (recovery_index .le. 2) THEN
                   WRITE (*,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
                   WRITE (*,*) 'delt chnage: old, new:', delt, delt/2.0
@@ -3521,6 +3591,12 @@
 
 !  No longer need the xc_saved array.
       DEALLOCATE(xc_saved)
+
+!  No longer need the saved magnetic axis arrays.
+      DEALLOCATE(raxis_cc_saved)
+      DEALLOCATE(raxis_cs_saved)
+      DEALLOCATE(zaxis_cc_saved)
+      DEALLOCATE(zaxis_cs_saved)
 
 !  Check for errors, if vmec was successful, load vmec data for use with the
 !  signals. Other wise report the error.
@@ -3561,6 +3637,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_save_state(this)
       USE xstuff, only: xc
+      USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
       USE file_opts
 
       IMPLICIT NONE
@@ -3586,6 +3663,12 @@
          ALLOCATE(this%xc(SIZE(xc)))
          this%xc = xc
       END IF
+
+!  Save the magnetic axis state so it can be restored.
+      this%raxis_cc = raxis_cc
+      this%zaxis_cs = zaxis_cs
+      this%raxis_cc = raxis_cc
+      this%zaxis_cs = zaxis_cs
 
 !  Cache the wout file by appending _cache to a copy. Use copy here to keep the
 !  the orginal file intact.
@@ -3615,6 +3698,7 @@
       USE xstuff, only: xc
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
+      USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
 
       IMPLICIT NONE
 
@@ -3630,6 +3714,12 @@
       IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
          xc = this%xc
       END IF
+
+!  Reset the magnetic axis state.
+      raxis_cc = this%raxis_cc
+      zaxis_cs = this%zaxis_cs
+      raxis_cc = this%raxis_cc
+      zaxis_cs = this%zaxis_cs
 
 !  Reset the wout file.
       CALL copy_file(TRIM(this%wout_file_name) // '_cache',                    &
@@ -4125,6 +4215,8 @@
       USE v3f_vmec_comm
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
+      USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
+      USE vparams, only: ntord
 
       IMPLICIT NONE
 
@@ -4170,12 +4262,18 @@
       xc_size = SIZE(xc)
       CALL MPI_BCAST(xc_size, 1, MPI_INTEGER, 0, intra_comm, error)
 
-!  If the size of the xc array stop. It is unknown why and when the xc array
-!  would change size.
+!  If the size of the xc array changed stop. It is unknown why and when the xc
+!  array would change size.
       IF (mpi_rank .gt. 0) THEN
          CALL assert_eq(xc_size, SIZE(xc), "xc array changed size.")
       END IF
       CALL MPI_BCAST(xc, SIZE(xc), MPI_REAL8, 0, intra_comm, error)
+
+!  Sync the magnetic axis.
+      CALL MPI_BCAST(raxis_cc, ntord, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(raxis_cs, ntord, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(zaxis_cc, ntord, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(zaxis_cs, ntord, MPI_REAL8, 0, intra_comm, error)
 
 !  Sync the values from the threed1 file.
       CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, intra_comm, error)
