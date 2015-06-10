@@ -33,6 +33,7 @@ for i, line in enumerate(lines):
 
 if start != -1:
 	test_passed = check_num_iter(lines, start, 1) and check_num_iter(lines, start, 2) and check_num_iter(lines, start, 3)
+	test_passed = test_passed and check_num_iter(lines, start + 4, 1) and check_num_iter(lines, start + 4, 2) and check_num_iter(lines, start + 4, 3)
 
 if not test_passed:
 	print "VMEC took different numbers of iterations to converge in jacobian for the same parameter."

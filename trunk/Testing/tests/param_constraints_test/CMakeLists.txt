@@ -46,4 +46,4 @@ add_test (NAME    param_constraints_test_type_pp_sxrem_as_a_2_type
           
 #  Check correlation matrix values.
 add_test (NAME param_constraints_test_check_reconstruction_correlation_matrix
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)

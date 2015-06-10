@@ -238,6 +238,6 @@ add_test (NAME    z_offset_test_check_zbs01_constraint_type
 
 #  Check correlation matrix values.
 add_test (NAME z_offset_test_check_reconstruction_correlation_matrix
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)
 add_test (NAME z_offset_test_check_derived_correlation_matrix
-          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Derived)
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Derived)

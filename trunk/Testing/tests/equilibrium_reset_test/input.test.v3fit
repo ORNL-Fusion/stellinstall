@@ -85,7 +85,7 @@ dp_type(16) = 'vvc_smaleli',
 dp_type(17) = 'rmnc'
 dp_index(17,:) = 1, 1,
 
-n_rp = 4,
+n_rp = 8,
 
 rp_type(1) = 'rbc',
 rp_vrnc(1) = 0.001,
@@ -114,6 +114,18 @@ rp_index(4) = 0,
 rp_index2(4) = 0,
 rp_range_type(4,1:2) = 'value', 'value',
 rp_range_value(4,1:2) = 0.5, 1.0
+
+rp_type(5) = 'phiedge',
+rp_vrnc(5) = 5.0E-4,
+
+rp_type(6) = 'phiedge',
+rp_vrnc(6) = 5.0E-4,
+
+rp_type(7) = 'phiedge',
+rp_vrnc(7) = 5.0E-4,
+
+rp_type(8) = 'phiedge',
+rp_vrnc(8) = 5.0E-4,
 
 sdo_data_a(1:4) = 0.5, 0.5, 0.5, 0.5,
 sdo_s_spec_imin(1) = 1,

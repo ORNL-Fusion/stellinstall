@@ -3542,8 +3542,8 @@
          END IF
 
 !  Update internal vmec counters. These affect how the minimization occurs.
-         iter1 = 1
-         iter2 = 1
+!  Setting both iters to 1 causes different numbers of
+         iter1 = iter2
 
 !  Zero the xcdot array.
          xcdot = 0.0
