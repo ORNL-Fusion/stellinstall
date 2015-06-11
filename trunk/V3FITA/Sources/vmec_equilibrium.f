@@ -1032,8 +1032,6 @@
             CALL assert_eq(0, status, 'vmec_set_param: failed to ' //          &
      &                     'mgrid_file')
             ivac = 1
-            fsqr = 1.0
-            fsqz = 1.0
 
          CASE (vmec_curtor_id)
             vmec_set_param = .true.
@@ -3542,7 +3540,8 @@
          END IF
 
 !  Update internal vmec counters. These affect how the minimization occurs.
-!  Setting both iters to 1 causes different numbers of
+!  Setting both iters to 1 causes different numbers of iterations when computing
+!  the jacobian for the same parameter for certain parameters.
          iter1 = iter2
 
 !  Zero the xcdot array.

@@ -75,12 +75,4 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
       DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/z_offset_test)
 
-#  Copy common files to the equilibrium reset test directory.
-file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/sxrem.dot
-      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/equilibrium_reset_test)
-file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
-      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/equilibrium_reset_test)
-file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
-      DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/tests/equilibrium_reset_test)
-
 add_subdirectory (tests)

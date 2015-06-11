@@ -1,0 +1,15 @@
+#  Run the reconstruction task. This just tests if the reconstruction executes correctly. 
+#  Subsequent tests will examine the results of the reconstruction for correct 
+#  results.
+add_test (NAME    equilibrium_reset_free_boundary_mgrid_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/mgrid coils.test)
+
+add_test (NAME    equilibrium_reset_free_boundary_test
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
+
+#  Since the reconstruction task test was run, Check the output files for correct values.
+
+#  The reconstruction was configured with all the same reconstruction parameters. If the equilibrium was correctky reset, the number of iterations should be the same for all parameters.
+add_test (NAME    equilibrium_reset_free_boundary_test_jacobian_iter
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jacobian_iter.py --file=${CMAKE_CURRENT_SOURCE_DIR}/runlog.input.test.v3fit)
+
