@@ -230,7 +230,6 @@
 
 !  local variables
       INTEGER                                       :: i, grid_size
-      REAL (rprec)                                  :: grid_stop
       REAL (rprec)                                  :: start_time
 
 !  Start of executable code
@@ -324,12 +323,7 @@
       grid_size = equilibrium_get_grid_size(equilibrium)
 
       IF (grid_size .gt. 0) THEN
-         model_construct_new%grid_start =                                      &
-     &      equilibrium_get_grid_start(equilibrium)
-         grid_stop = equilibrium_get_grid_stop(equilibrium)
-
-         model_construct_new%grid_step =                                       &
-     &      (grid_stop - model_construct_new%grid_start)/(grid_size - 1)
+         CALL model_set_grid_params(model_construct_new, grid_size)
 
          ALLOCATE(model_construct_new%ne_grid(grid_size))
          ALLOCATE(model_construct_new%sxrem_grid(SIZE(sxrem_type),             &
@@ -372,6 +366,7 @@
       INTEGER                     :: error
       INTEGER                     :: sxrem_size
       INTEGER                     :: grid_size
+      REAL (rprec)                :: grid_stop
       LOGICAL                     :: temp_logical
 
 !  Start of executable code
@@ -408,10 +403,7 @@
      &   equilibrium_get_grid_size(model_construct_mpi%equilibrium)
 
       IF (grid_size .gt. 0) THEN
-         model_construct_mpi%grid_start =                                      &
-     &      equilibrium_get_grid_start(model_construct_mpi%equilibrium)
-         model_construct_mpi%grid_step =                                       &
-     &      equilibrium_get_grid_start(model_construct_mpi%equilibrium)
+         CALL model_set_grid_params(model_construct_mpi, grid_size)
 
          ALLOCATE(model_construct_mpi%ne_grid(grid_size))
          ALLOCATE(model_construct_mpi%te_grid(grid_size))
@@ -560,6 +552,38 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_set_param', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sets grid parameters.
+!>
+!>  Sets the start and step size of the radial grids.
+!>
+!>  @param[inout] this A @ref model_class instance.
+!>  @param[in]    size Number of grid points.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_set_grid_params(this, size)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: size
+
+!  local variables
+      REAL (rprec)                      :: grid_stop
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%grid_start = equilibrium_get_grid_start(this%equilibrium)
+      grid_stop = equilibrium_get_grid_stop(this%equilibrium)
+
+      this%grid_step = (grid_stop - this%grid_start)/(size - 1)
+
+      CALL profiler_set_stop_time('model_set_grid_params', start_time)
 
       END SUBROUTINE
 

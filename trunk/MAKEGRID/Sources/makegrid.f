@@ -8,7 +8,7 @@
 !**                                                                  **
 !**     PROGRAM DESCRIPTION:                                         **
 !**        MAKEGRID reads in a coils-dot file, and generates         **
-!**	     an MGRID file.                                            **
+!**        an MGRID file.                                            **
 !**                                                                  **
 !**     Author: Steve Hirshman                                       **
 !**             James Hanson                                         **

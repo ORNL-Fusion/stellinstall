@@ -296,6 +296,8 @@
 
 #if defined(__INTEL_COMPILER)
       USE IFLPORT
+#else
+      USE SYSTEM_MOD
 #endif
 
       IMPLICIT NONE

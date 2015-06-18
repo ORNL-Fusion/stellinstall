@@ -1198,6 +1198,7 @@
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(in)              :: intra_comm
 
+#if defined(MPI_OPT)
 !  local variables
       INTEGER, DIMENSION(3)            :: dim_lengths
       INTEGER                          :: error
@@ -1278,6 +1279,8 @@
          ALLOCATE(this%magnetic_cache%kzuv(dim_lengths(1),                     &
      &                               dim_lengths(2)))
       END IF
+
+#endif
 
       END SUBROUTINE
 

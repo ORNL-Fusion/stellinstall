@@ -133,6 +133,20 @@ then
 	      -DCMAKE_PREFIX_PATH:FILEPATH=/usr/lib64/openmpi/lib \
 	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
+elif [ $MACHINE_ID == "eos-ext1" ] || \
+     [ $MACHINE_ID == "eos-ext2" ]
+then
+
+	# Config for ORNL OLCF Machines. OLCF systems use a module system. Load the cmake
+	# module to get a compatable version first.
+
+	module load cmake
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                         \
+	      -DNETCDF_INC_PATH=/opt/cray/netcdf/4.3.2/INTEL/140/include             \
+	      -DNETCDF_LIB_PATH=/opt/cray/netcdf/4.3.2/INTEL/140/lib                 \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=/opt/cray/mpt/7.0.4/gni/mpich2-INTEL/140/ \
+	      -DEXTRA_FLAGS="-openmp"
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.

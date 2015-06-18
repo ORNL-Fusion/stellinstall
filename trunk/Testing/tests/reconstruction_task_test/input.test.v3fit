@@ -169,7 +169,7 @@ sdo_s_spec_imax(6) = 28,
 sdo_s_spec_floor(6) = 0.1,
 sdo_s_spec_fraction(6) = 0.01,
 
-n_prior = 7,
+n_prior = 8,
 
 sdo_data_a(29) = 1.0,
 prior_name(1) = 'pp_ne_prior',
@@ -234,6 +234,15 @@ sdo_s_spec_imax(13) = 35,
 sdo_s_spec_floor(13) = 0.0001,
 sdo_s_spec_fraction(13) = 0.0001,
 
-n_sdata_o = 35,
+sdo_data_a(36) = 15.0,
+prior_name(8) = 'te_grid_prior',
+prior_param_name(8) = 'te_grid',
+prior_indices(8,1) = 8,
+sdo_s_spec_imin(14) = 36,
+sdo_s_spec_imax(14) = 36,
+sdo_s_spec_floor(14) = 0.01,
+sdo_s_spec_fraction(14) = 0.01,
+
+n_sdata_o = 36,
 
 &END

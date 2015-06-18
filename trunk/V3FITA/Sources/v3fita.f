@@ -368,7 +368,7 @@
             END IF
 
 !  Test for convergence.
-            IF (reconstruction_get_dg2(context%recon) .lt.                     &
+            IF (reconstruction_get_dg2(context%recon) .le.                     &
      &          context%recon_stop) THEN
                WRITE (*,*)
                WRITE (*,*) ' *** Equilibrium reconstructed'
