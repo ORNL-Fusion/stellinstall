@@ -17,119 +17,104 @@
 !>  the name list input file.
 !>
 !>  @section  diagnostic_dot_coil_spec_sec Diagnostic Coil Specification
-!>  Every diagnostic coil specification looks like:
-!>  @fixed_width{key_word\n}
-!>  @fixed_width{name\n}
-!>  The remaining specification is keywood dependent.
+!>  Every diagnostic coil specification looks like:\n
+!>  @fixed_width{key_word}\n
+!>  @fixed_width{name}\n
+!>  The remaining specification is keyword dependent.
 !>
 !>  @section diagnostic_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{flux_loop,                An arbitrary shaped flux loop.
-!>
-!>                                   Lines after ID: Arbitrary number of nodes,
-!>                                   each consists of three reals.
-!>
-!>                                   Description: A flux_loop is a closed
-!>                                   filamentary polygon. Each line after the ID
-!>                                   line contains the x, y, and z coordinates
-!>                                   of one node. The last node need not be the
-!>                                   same as the first node: the parser will
-!>                                   ensure that the flux loop is closed.}
-!>  @item2{flux_loop_circular',      A circular flux loop.
-!>
-!>                                   Lines after ID:
-!>                                   First line after ID: one real, the radius
-!>                                   of the circle.
-!>                                   Second line after ID: three reals, the x,
-!>                                   y, z coordinates of the center of the
-!>                                   circle. Third line after ID: three reals,
-!>                                   the x, y, z components of the normal to the
-!>                                   circle.
-!>
-!>                                   Description: A flux_loop_circular is a
-!>                                   filamentary circle. The parser takes care
-!>                                   of the normalization of the normal vector.}
-!>  @item2{'magnetic_probe',         Point measurement of the magnetic field.
-!>
-!>                                   Lines after ID:
-!>                                   First line after ID: one real, the radius
-!>                                   of the magnetic probe.
-!>                                   Second line after ID: three reals, the x,
-!>                                   y, z coordinates of probe position.
-!>                                   Third line after ID: three reals, the x, y,
-!>                                   z components of the normal to the probe.
-!>
-!>                                   Description: A magnetic_probe is very
-!>                                   similar to a small flux_loop_circular
-!>                                   diagnostic. However, the signal for a
-!>                                   magnetic_probe is a B field component
-!>                                   (units in Tesla) rather than a magnetic
-!>                                   flux (units Webers). The parser takes care
-!>                                   of the normalization of the normal vector.}
-!>  @item2{'magnetic_probe_tokamak', Point measurement of the magnetic field.
-!>
-!>                                   Lines after ID:
-!>                                   First line after ID: five reals: probe
-!>                                   radius, major radius, toroidal angle (in
-!>                                   degrees), z position, and orientation angle
-!>                                   (in degrees).
-!>
-!>                                   Description: A magnetic_probe_tokamak is
-!>                                   very similar to a magnetic_probe. However,
-!>                                   the parameterization is different. The
-!>                                   normal to a magnetic_probe_tokamak lies in
-!>                                   the Rhat-zhat plane. It has no component in
-!>                                   the phi-hat direction. The orientation
-!>                                   angle specifies the angle from the Rhat
-!>                                   vector.}
-!>  @item2{'rogowski',               Rogowski coil.
-!>
-!>                                   Lines after ID:
-!>                                   First line after ID: two reals, the number
-!>                                   of turns, and the cross-sectional area (in
-!>                                   meter^2) of the Rogowski coil.
-!>                                   Second through last lines after ID:
-!>                                   arbitrary in number each containing three
-!>                                   reals.
-!>
-!>                                   Description: The guide curve for a rogowski
-!>                                   is specified by giving node positions. Each
-!>                                   of the second through last line after the
-!>                                   ID line specifies a node position. The
-!>                                   guide curve is made of straight line
-!>                                   segments between the node positions. Note
-!>                                   that the parser makes no assumption about
-!>                                   whether or not a Rogowski coil guide curve
-!>                                   is closed or not. Thus, a rogowski can
-!>                                   model either a partial Rogowski coil, or a
-!>                                   full Rogowski coil. The signal computed for
-!>                                   a Rogowski is the line integrated B along
-!>                                   the guide curve, divided by the length of
-!>                                   the guide curve. The units are Tesla.}
-!>  @item2{'b_rogowski',             Same as a @fixed_width{rogowski}.}
-!>  @item2{'i_rogowski',             Same as a @fixed_width{rogowski} with but
-!>                                   measuing current in Amperes. If this is a
-!>                                   full rogowski, the signal is the total
-!>                                   current enclosed.}
-!>  @item2{'f_rogowski',             Same as a @fixed_width{rogowski} with but
-!>                                   measuing flux in Webers.}
-!>  @item2{'b_point_probe',          Point measurement of the magnetic field in
-!>                                   tesla.
-!>
-!>                                   Lines after ID:
-!>                                   First line after ID: three reals, the x, y,
-!>                                   z coordinates of probe position.
-!>                                   Second line after ID: three reals, the x,
-!>                                   y, z components of the direction the probe
-!>                                   measures in.
-!>
-!>                                   Description: These probes differ from the
-!>                                   magnetic probes by modling the probe as an
-!>                                   exact point measurement insead of modeling
-!>                                   as a loop of wire. The second vector
-!>                                   direction defines the components that the
-!>                                   probe reads.}
-!>  @item2{'end_of_file',            End of the file.}
+!>  @item2{@fixed_width{flux_loop},              An arbitrary shaped flux loop.\n\n
+!>                                               Lines after ID:\n
+!>                                               Arbitrary number of nodes\, each consists of
+!>                                               three reals.\n\n
+!>                                               Description: A @fixed_width{flux_loop} is a
+!>                                               closed filamentary polygon. Each line after
+!>                                               the ID line contains the x\, y\, and z
+!>                                               coordinates of one node. The last node need
+!>                                               not be the same as the first node: the parser
+!>                                               will ensure that the flux loop is closed.}
+!>  @item2{@fixed_width{flux_loop_circular},     A circular flux loop.\n\n
+!>                                               Lines after ID:\n
+!>                                               First line after ID: one real\, the radius of
+!>                                               the circle.\n Second line after ID: three
+!>                                               reals\, the x\, y\, z coordinates of the
+!>                                               center of the circle.\n Third line after ID:
+!>                                               three reals\, the x\, y\, z components of the
+!>                                               normal to the circle.\n\n
+!>                                               Description: A flux_loop_circular is a
+!>                                               filamentary circle. The parser takes care of
+!>                                               the normalization of the normal vector.}
+!>  @item2{@fixed_width{magnetic_probe},         Point measurement of the magnetic field.\n\n
+!>                                               Lines after ID:\n
+!>                                               First line after ID: one real\, the radius
+!>                                               of the magnetic probe. Second line after ID:
+!>                                               three reals\, the x\, y\, z coordinates of
+!>                                               probe position.\n Third line after ID: three
+!>                                               reals\, the x\, y\, z components of the
+!>                                               normal to the probe.\n\n
+!>                                               Description: A magnetic_probe is very similar
+!>                                               to a small flux_loop_circular diagnostic.
+!>                                               However\, the signal for a magnetic_probe is
+!>                                               a B field component (units in Tesla) rather
+!>                                               than a magnetic flux (units Webers). The
+!>                                               parser takes care of the normalization of the
+!>                                               normal vector.}
+!>  @item2{@fixed_width{magnetic_probe_tokamak}, Point measurement of the magnetic field.\n\n
+!>                                               Lines after ID:\n
+!>                                               First line after ID: five reals: probe
+!>                                               radius\, major radius\, toroidal angle (in
+!>                                               degrees)\, z position\, and orientation angle
+!>                                               (in degrees).\n\n
+!>                                               Description: A magnetic_probe_tokamak is very
+!>                                               similar to a magnetic_probe. However\, the
+!>                                               parameterization is different. The normal to
+!>                                               a magnetic_probe_tokamak lies in the
+!>                                               Rhat-zhat plane. It has no component in the
+!>                                               phi-hat direction. The orientation angle
+!>                                               specifies the angle from the Rhat vector.}
+!>  @item2{@fixed_width{rogowski},               Rogowski coil.\n\n
+!>                                               Lines after ID:\n
+!>                                               First line after ID: two reals\, the number
+!>                                               of turns\, and the cross-sectional area (in
+!>                                               meter^2) of the Rogowski coil. Second through
+!>                                               last lines after ID: arbitrary in number each
+!>                                               containing three reals.\n\n
+!>                                               Description: The guide curve for a rogowski
+!>                                               is specified by giving node positions. Each
+!>                                               of the second through last line after the ID
+!>                                               line specifies a node position. The guide
+!>                                               curve is made of straight line segments
+!>                                               between the node positions. Note that the
+!>                                               parser makes no assumption about whether or
+!>                                               not a Rogowski coil guide curve is closed or
+!>                                               not. Thus\, a rogowski can model either a
+!>                                               partial Rogowski coil\, or a full Rogowski
+!>                                               coil. The signal computed for a Rogowski is
+!>                                               the line integrated B along the guide curve\,
+!>                                               divided by the length of the guide curve. The
+!>                                               units are Tesla.}
+!>  @item2{@fixed_width{b_rogowski},             Same as a @fixed_width{rogowski}.}
+!>  @item2{@fixed_width{i_rogowski},             Same as a @fixed_width{rogowski} but with
+!>                                               measuing current in Amperes. If this is a
+!>                                               full rogowski\, the signal is the total
+!>                                               current enclosed.}
+!>  @item2{@fixed_width{f_rogowski},             Same as a @fixed_width{rogowski} but with
+!>                                               measuing flux in Webers.}
+!>  @item2{@fixed_width{b_point_probe},          Point measurement of the magnetic field in
+!>                                               tesla.\n\n
+!>                                               Lines after ID:\n
+!>                                               First line after ID: three reals\, the x\,
+!>                                               y\, z coordinates of probe position.\n
+!>                                               Second line after ID: three reals\, the x\,
+!>                                               y\, z components of the direction the probe
+!>                                               measures in.\n\n
+!>                                               Description: These probes differ from the
+!>                                               magnetic probes by modling the probe as an
+!>                                               exact point measurement insead of modeling as
+!>                                               a loop of wire. The second vector direction
+!>                                               defines the components that the probe reads.}
+!>  @item2{@fixed_width{end_of_file},            End of the file.}
 !>  @end_table
 !>
 !>  @section diagnostic_dot_prog_ref_sec Programmers Reference

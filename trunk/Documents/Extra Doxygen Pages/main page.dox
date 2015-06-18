@@ -36,6 +36,12 @@
  * * @ref mse_dot_sec "Motional Stark Effect Diagnostic Dot File" User manual for the motional stark effect diagnostic dot file.
  * * @ref sxrem_ratio_dot_sec "Soft X-ray Ratio Diagnostic Dot File" User manual for the soft x-ray ratio diagnostic dot file.
  *
+ * @subsubsection user_v3rfun V3RFUN manuals.
+ * Magnetic diagnostics require a preprocessing code V3RFUN to generate the input discription files.
+ * * @ref diagnostic_dot_sec "Magnetic Diagnostic Dot File" User manual for the magnetic diagnostic dot file.
+ * * @ref v3rfun_namelist_sec "V3RFUN namelist input file" User manual for the V3RFUN namelist input file.
+ * * @ref v3rfun_cl_parsing_sec "V3RFUN Command Line Arguments" User manual for the V3RFUN command line arguments.
+ *
  * @section programmer Programmer Manuals
  * These manuals are meant to document the various tools and structure used by
  * V3FIT. Reading these pages is not necessary for the operation of V3FIT.

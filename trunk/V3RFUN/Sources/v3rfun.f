@@ -3,6 +3,32 @@
 !  D3D style plain magnetic probes.
 !#undef NEW_CODE
 #ifdef NEW_CODE
+!-------------------------------------------------------------------------------
+!  The @header2, @begin_table, @item3 and @end_table commands are custom defined
+!  commands in Doxygen.in. They are defined under ALIASES. For the page created
+!  here, the 80 column limit is exceeded. Arguments of aliases are separated by
+!  ','. If you intended ',' to be a string you must use an escaped comma '\,'.
+!
+!>  @page v3rfun_cl_parsing_sec Command Line Arguments
+!>
+!>  @tableofcontents
+!>
+!>  @section v3rfun_cl_parsing_intro Introduction
+!>  This contains a description of the command line arguments. All arguments
+!>  take the form of
+!>
+!>  @fixed_width{xv3rfun [-arg] filename}
+!>
+!>  @section v3rfun_cl_parsing_arg_sec Command Line Arguments
+!>  @header2{Argument, Takes Value, Discription}
+!>  @begin_table
+!>     @item3{@fixed_width{-h},     N, Displays the help text and exits the program.}
+!>  @end_table
+!>
+!>  @section cl_pasring_prog_ref_secProgrammers Reference
+!>  Reference material for the coding to implement command line parsing is found
+!>  in the @ref v3rfun.f
+!-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file v3rfun.f
 !>  @brief Contains the main routines for V3RFUN.

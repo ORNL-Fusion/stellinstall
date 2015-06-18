@@ -5,7 +5,7 @@
 !  aliases are separated by ','. If you intended ',' to be a string you must use
 !  an escaped comma '\,'.
 !
-!>  @page v3fit_namelist_sec Namelist v3r_coils definition
+!>  @page v3rfun_namelist_sec Namelist v3r_coils definition
 !>
 !>  @tableofcentents
 !>  @section v3rfun_namelist_intro_sec Introduction
@@ -15,11 +15,77 @@
 !>  @section v3rfun_namelist_var_sec Namelist Variables
 !>  @header{Input variable, Description, Code Reference}
 !>
-!>  @table_section{v3rfun_filename_sec, Filename variables}
+!>  @table_section{v3rfun_filename_sec, Filename Variables}
+!>    @item{name_coils_dot,      Filename for the field coil discription.,            v3rfun_input::name_coils_dot}
+!>    @item{name_diagnostic_dot, Filename for the field diagnostic coil discription., v3rfun_input::name_diagnostic_dot}
+!>  @end_table
+!>
+!>  @table_section{v3rfun_control_sec, Control Variables}
+!>    @item{idrfun,            V3RFUN identification for the run.,                     v3rfun_input::idrfun}
+!>    @item{lstell_sym,        Control for stellarator symmetry.,                      v3rfun_input::lstell_sym}
+!>    @item{l_read_coils_dot,  Control to ignore the coils dot file.,                  v3rfun_input::l_read_coils_dot}
+!>    @item{use_con_shell,     Computes the response function for a conducting shell., v3rfun_input::use_con_shell}
+!>    @item{len_integrate_ddc, Integration length in meters.,                          v3rfun_input::len_integrate_ddc}
+!>  @end_table
+!>
+!>  @table_section{v3rfun_grid_sec, Response Grid Variables}
+!>    @item{ir,                  Number of radial grid points.,         v3rfun_input::ir}
+!>    @item{jz,                  Number of vertical grid points.,       v3rfun_input::jz}
+!>    @item{kp,                  Number of toroidal grid points.,       v3rfun_input::kp}
+!>    @item{kp_shell,            Number of shell toroidal grid points., v3rfun_input::kp_shell}
+!>    @item{n_field_periods_nli, Number of field periods.,              v3rfun_input::n_field_periods_nli}
+!>    @item{rmin,                Minimum R for plasma grid.,            v3rfun_input::rmin}
+!>    @item{rmax,                Maximum R for plasma grid.,            v3rfun_input::rmax}
+!>    @item{zmin,                Minimum Z for plasma grid.,            v3rfun_input::zmin}
+!>    @item{zmax,                Maximum Z for plasma grid.,            v3rfun_input::zmax}
+!>    @item{major_radius,        Shell major radius for shell grid.,    v3rfun_input::major_radius}
+!>    @item{minor_radius,        Shell minor radius for shell grid.,    v3rfun_input::minor_radius}
+!>  @end_table
+!>
+!>  @table_section{v3rfun_shift_sec, Tilt and Shift Variables}
+!>    @item{cg_shift_1,        Vector to shift all the coils before rotation.,                           v3rfun_input::cg_shift_1}
+!>    @item{cg_shift_2,        Vector to shift all the coils after rotation.,                            v3rfun_input::cg_shift_2}
+!>    @item{cg_rot_xcent,      Position of center of rotation.,                                          v3rfun_input::cg_rot_xcent}
+!>    @item{cg_rot_theta,      Spherical polar angle to specify axis of rotation.,                       v3rfun_input::cg_rot_theta}
+!>    @item{cg_rot_phi,        Spherical azimuthal angle to specify axis of rotation.,                   v3rfun_input::cg_rot_phi}
+!>    @item{cg_rot_angle,      Angle to rotate about axis of rotation. Left hand convention. Put left
+!>                             thumb along axis of rotation\, fingers indicate direction of positive
+!>                             rotation.,                                                                v3rfun_input::cg_rot_angle}
+!>    @item{l_rot_coil_center, Controls the center of rotation.
+!>                             * True  Use current-averaged center of coil-group for center of rotation.
+!>                             * False Use position specified in cg_rot_xcent for center of rotation.,   v3rfun_input::l_rot_coil_center}
+!>  @end_table
+!>
+!>  @section v3r_coils Example File
+!>  @code
+!>  ! Example V3RFUN input file.
+!>  &v3fit_main_nli
+!>    idrfun = 'example'
+!>    name_coils_dot = 'coils.example'
+!>    name_diagnostic_dot = 'diagnostic.example.dot'
+!>    rmin=0.98
+!>    rmax=2.02
+!>    zmin=-0.52
+!>    zmax=0.52
+!>    ir=101
+!>    jz=101
+!>    kp=32
+!>    lstell_sym =  F
+!>
+!>    use_con_shell = T
+!>    major_radius = 1.5
+!>    minor_radius = 0.525
+!>    kp_shell = 128
+!>  /
+!>  @endcode
+!>
+!>  @section namelist_prog_ref_sec Programmers Reference
+!>  Reference material for the coding to implement this namelist is found in the
+!>  @ref v3rfun_input module.
 !-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file v3rfun_input.f
-!>  @brief Contains module @ref v3run_input.
+!>  @brief Contains module @ref v3rfun_input.
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
@@ -57,47 +123,47 @@
 !  1) v3rfun_namelist_class
 !
 !*******************************************************************************
-!>  Filename for the field coils,
+!>  Filename for the field coils.
       CHARACTER (len=v3rfun_file_length) :: name_coils_dot = ''
-!>  Filename for the diagnostic coils,
+!>  Filename for the diagnostic coils.
       CHARACTER (len=v3rfun_file_length) :: name_diagnostic_dot = ''
 
-!>  v3rfun identification for the run
+!>  v3rfun identification for the run.
       CHARACTER (len=v3rfun_name_length) :: idrfun = ''
 
-!>  Control for stellarator symmetry
+!>  Control for stellarator symmetry.
       LOGICAL :: lstell_sym = .false.
 !>  Control to ignore the coils dot file.
       LOGICAL :: l_read_coils_dot = .true.
 !>  Computes the response function for a conducting shell.
       LOGICAL :: use_con_shell = .false.
 
-!>  Number of radial grid points
+!>  Number of radial grid points.
       INTEGER :: ir = 101
-!>  Number of vertical grid points
+!>  Number of vertical grid points.
       INTEGER :: jz = 101
-!>  Number of toroidal grid points
+!>  Number of toroidal grid points.
       INTEGER :: kp = 1
-!>  Number of shell toroidal grid points
+!>  Number of shell toroidal grid points.
       INTEGER :: kp_shell = 1
-!>  Number of field periods
+!>  Number of field periods.
       INTEGER :: n_field_periods_nli = 0
 
-!>  Minimum R for plasma grid
+!>  Minimum R for plasma grid.
       REAL (rprec) :: rmin = 0.0
-!>  Maximum R for plasma grid
+!>  Maximum R for plasma grid.
       REAL (rprec) :: rmax = 0.0
-!>  Minimum Z for plasma grid
+!>  Minimum Z for plasma grid.
       REAL (rprec) :: zmin = 0.0
-!>  Maximum Z for plasma grid
+!>  Maximum Z for plasma grid.
       REAL (rprec) :: zmax = 0.0
 
-!>  Shell major radius for shell grid
+!>  Shell major radius for shell grid.
       REAL (rprec) :: major_radius = 0.0
-!>  Shell major radius for shell grid
+!>  Shell minor radius for shell grid.
       REAL (rprec) :: minor_radius = 0.0
 
-!>  Integration length in meters
+!>  Integration length in meters.
       REAL (rprec) :: len_integrate_ddc = 0.001
 
 !>  Vector to shift all the coils before rotation.
@@ -106,15 +172,15 @@
       REAL (rprec), DIMENSION(nigroup,3) :: cg_shift_2 = 0.0
 !>  Position of center of rotation.
       REAL (rprec), DIMENSION(nigroup,3) :: cg_rot_xcent = 0.0
-!>  Spherical polar angle to specify axis of rotation
+!>  Spherical polar angle to specify axis of rotation.
       REAL (rprec), DIMENSION(nigroup)   :: cg_rot_theta = 0.0
-!>  Spherical azimuthal angle to specify axis of rotation
+!>  Spherical azimuthal angle to specify axis of rotation.
       REAL (rprec), DIMENSION(nigroup)   :: cg_rot_phi = 0.0
-!>  Angle to rotate about axis of rotation
+!>  Angle to rotate about axis of rotation.
 !>  Left hand convention. Put left thumb along axis of rotation, fingers
 !>  indicate direction of positive rotation.
       REAL (rprec), DIMENSION(nigroup)   :: cg_rot_angle = 0.0
-!>  Controls the center of rotation
+!>  Controls the center of rotation.
 !>  * True  Use current-averaged center of coil-group for center of rotation.
 !>  * False Use position specified in cg_rot_xcent for center of rotation.
       LOGICAL, DIMENSION(nigroup)        :: l_rot_coil_center = .true.

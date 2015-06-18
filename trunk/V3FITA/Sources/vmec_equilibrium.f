@@ -48,29 +48,29 @@
 !>  reconstructed that do not change the equilibirum. These parameters do not
 !>  require the equilibrium to reconverge.
 !>  @begin_table
-!>     @item{pp_ne_b,       1D Array of function density profile parameters.,     @ref vmec_class::ne::b}
-!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,      @ref vmec_class::ne::as}
-!>     @item{pp_ne_af,      1D Array of segment density profile f values.,        @ref vmec_class::ne::af}
+!>     @item{pp_ne_b,       1D Array of function density profile parameters.,     @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_ne_as,      1D Array of segment density profile s poitions.,      @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_ne_af,      1D Array of segment density profile f values.,        @ref pprofile_T::pprofile_class::af}
 !>     @item{pp_sxrem_b,    1D Array of function sxrem profile parameters.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref vmec_class::sxrem::b}
+!>                          specification.,                                       @ref pprofile_T::pprofile_class::b}
 !>     @item{pp_sxrem_as,   1D Array of segment sxrem profile s poitions.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref vmec_class::sxrem::as}
+!>                          specification.,                                       @ref pprofile_T::pprofile_class::as}
 !>     @item{pp_sxrem_af,   1D Array of segment sxrem profile f values.
 !>                          DEPREICATED only use id when using the old profile
-!>                          specification.,                                       @ref vmec_class::sxrem::af}
+!>                          specification.,                                       @ref pprofile_T::pprofile_class::af}
 !>     @item{pp_sxrem_b_a,  2D Array of function sxrem profile parameters.
-!>                          First index is the profile number.,                   @ref vmec_class::sxrem::b}
+!>                          First index is the profile number.,                   @ref vmec_equilibrium::vmec_class::sxrem}
 !>     @item{pp_sxrem_as_a, 2D Array of segment sxrem profile s poitions.
-!>                          First index is the profile number.,                   @ref vmec_class::sxrem::as}
+!>                          First index is the profile number.,                   @ref vmec_equilibrium::vmec_class::sxrem}
 !>     @item{pp_sxrem_af_a, 2D Array of segment sxrem profile f values.
-!>                          First index is the profile number.,                   @ref vmec_class::sxrem::af}
-!>     @item{pp_te_b,       1D Array of function temperature profile parameters., @ref vmec_class::te::b}
-!>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref vmec_class::te::as}
-!>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref vmec_class::te::af}
+!>                          First index is the profile number.,                   @ref vmec_equilibrium::vmec_class::sxrem}
+!>     @item{pp_te_b,       1D Array of function temperature profile parameters., @ref pprofile_T::pprofile_class::b}
+!>     @item{pp_te_as,      1D Array of segment temperature profile s poitions.,  @ref pprofile_T::pprofile_class::as}
+!>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref pprofile_T::pprofile_class::af}
 !>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_equilibrium::vmec_class::phi_offset}
-!>     @item{z_offset,      Z offset in meters,                                   @ref vnec_equilibrium::vmec_class::z_offset}
+!>     @item{z_offset,      Z offset in meters,                                   @ref vmec_equilibrium::vmec_class::z_offset}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
