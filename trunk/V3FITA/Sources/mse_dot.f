@@ -20,10 +20,10 @@
 !>  This document contains information about the motional stark effect point
 !>  chord specifications. Points are specified in a structured text file. This
 !>  file is read in by the @ref v3fit_input::mse_dot_filename variable of the
-!>  name list input file. MSE points are specified as a point, two vertices in
-!>  defining the direction of the viewing cord and two vertices defining the
-!>  direction of the neutral beam in either cartesian or cyclindrical
-!>  coordinates.
+!>  name list input file. There are two types of MSE points.
+!>  * Points specified as vectors of the viewing and neutral beam.
+!>  * Points specified directly with angles with respect to the toroidal
+!>    direction and the horizontal.
 !>
 !>  @note The point of the MSE measurement could be infered from the
 !>  intersection of the neutral beam vector and the viewing vector. However for
@@ -42,12 +42,23 @@
 !>  @section mse_dot_point_spec_sec Point Specification
 !>  All motional stark effect points are specified in the following manner. A
 !>  string containing the diagnostic name. Three reals specfy the measurement
-!>  point in 3D. The next two sets of three reals are start and end points of the
-!>  viewing cord. The last two sets of real three reals are the start and end
-!>  points of the neutral beam. Each set of three reals is a point in either
-!>  Cartesian or Cyclindrical Coordinates depending on the keyword.
+!>  point in 3D.
 !>
-!>  @fixed_width{key_word\n}
+!>  Keywords that only have a single angle specification to the vector
+!>  discription. For these keyword two sets of three reals are start and end
+!>  points of the viewing cord. The last two sets of real three reals are the
+!>  start and end points of the neutral beam. Each set of three reals is a point
+!>  in either Cartesian or Cyclindrical Coordinates depending on the keyword.
+!>
+!>  Keywords that contain two angle specification use the angle discription. For
+!>  these keywords, a set of two real numbers specfies the angle of the neutral
+!>  beam with respect to the toroidal direction projected in the horizontal
+!>  plane. This is followed the angle between the viewing chord and the toroidal
+!>  direction in the horizontal plane. The next line contains two reals that
+!>  the pitch angle of the neutral beam and the viewing chords with respect to
+!>  the horizontal.
+!>
+!>  @fixed_width{key_word_ang\n}
 !>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
 !>  @fixed_width{x(REAL) y(REAL) z(REAL)\n}
 !>  @fixed_width{vx1(REAL) vy1(REAL) vz1(REAL)\n}
@@ -55,16 +66,31 @@
 !>  @fixed_width{nx1(REAL) ny1(REAL) nz1(REAL)\n}
 !>  @fixed_width{nx2(REAL) ny2(REAL) nz2(REAL)\n}
 !>
+!>  @fixed_width{key_word_ang_ang\n}
+!>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
+!>  @fixed_width{x(REAL) y(REAL) z(REAL)\n}
+!>  @fixed_width{nt(REAL) vt(REAL)}
+!>  @fixed_width{nh(REAL) vh(REAL)}
+!>
 !>  @section mse_dot_exam_sec Example File
 !>  @code
-!>  !  A motional stark effect chord specified in Cylindrical coordinates.
-!>  mse_point_XYZ_deg
+!>  !  A motional stark effect chord specified in Cylindrical coordinates using
+!>  !  the vector representation.
+!>  mse_point_RPhiDegZ_deg
 !>  mse001
-!>  0.0 0.5 0.0
+!>  0.5 0.0 0.0
 !>  0.0 0.0 0.0
 !>  0.0 1.0 0.0
 !>  -1.0 0.5 0.0
 !>  1.0 0.5 0.0
+!>
+!>  !  A motional stark effect chord specified in Cylindrical coordinates using
+!>  !  the angle representation.
+!>  mse_point_RPhiDegZ_deg_deg
+!>  mse002
+!>  0.5 0.0 0.0
+!>  1.0 10.0
+!>  0.0 0.0
 !>
 !>  !  All files must end with
 !>  end_of_file
@@ -131,7 +157,7 @@
 
 !  local parameters
 !  n_mse_keyword        integer - number of mse_keyword s.
-      INTEGER, PARAMETER :: n_mse_keyword = 5
+      INTEGER, PARAMETER :: n_mse_keyword = 13
 
 !  local variables
 !  mse_keyword    character array - keywords for various ipch input types
@@ -148,7 +174,15 @@
       mse_keyword(2) = 'mse_point_RPhiDegZ_deg'
       mse_keyword(3) = 'mse_point_XYZ_rad'
       mse_keyword(4) = 'mse_point_RPhiDegZ_rad'
-      mse_keyword(5) = 'end_of_file'
+      mse_keyword(5) = 'mse_point_XYZ_deg_deg'
+      mse_keyword(6) = 'mse_point_RPhiDegZ_deg_deg'
+      mse_keyword(7) = 'mse_point_XYZ_rad_deg'
+      mse_keyword(8) = 'mse_point_RPhiDegZ_rad_deg'
+      mse_keyword(9) = 'mse_point_XYZ_deg_rad'
+      mse_keyword(10) = 'mse_point_RPhiDegZ_deg_rad'
+      mse_keyword(11) = 'mse_point_XYZ_rad_rad'
+      mse_keyword(12) = 'mse_point_RPhiDegZ_rad_rad'
+      mse_keyword(13) = 'end_of_file'
 
 !  Open up the 'mse.' file
       mse_dot_file_ref = signal_dot_open(TRIM(mse_file), 'ipch')
@@ -167,12 +201,74 @@
                EXIT ! Exit out of infinte loop.
 
             CASE ('mse_point_XYZ_deg')
+               CALL mse_dot_parse_vec(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .true.)
 
             CASE ('mse_point_RPhiDegZ_deg')
+               CALL mse_dot_parse_vec(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .true.)
 
             CASE ('mse_point_XYZ_rad')
+               CALL mse_dot_parse_vec(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .false.)
 
             CASE ('mse_point_RPhiDegZ_rad')
+               CALL mse_dot_parse_vec(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .false.)
+
+            CASE ('mse_point_XYZ_deg_deg')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .true.,             &
+     &                                .true.)
+
+            CASE ('mse_point_RPhiDegZ_deg_deg')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .true., .true.)
+
+            CASE ('mse_point_XYZ_rad_deg')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .true.,             &
+     &                                .true.)
+
+            CASE ('mse_point_RPhiDegZ_rad_deg')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .false., .true.)
+
+            CASE ('mse_point_XYZ_deg_rad')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .true.,             &
+     &                                .false.)
+
+            CASE ('mse_point_RPhiDegZ_deg_rad')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .true., .false.)
+
+            CASE ('mse_point_XYZ_rad_rad')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .false.,            &
+     &                                .false.)
+
+            CASE ('mse_point_RPhiDegZ_rad_rad')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,
+     &                                first_index, .false., .true.)
 
          END SELECT
 
@@ -189,7 +285,7 @@
 !  PARSING SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Parse motional stark effect diagnostic point.
+!>  @brief Parse motional stark effect diagnostic point defined as a vector.
 !>
 !>  Parses a signle point. Points are laid out as,
 !>
@@ -209,15 +305,14 @@
 !>  @param[in]    observed         Array of observed values.
 !>  @param[in]    sigma            Array of observed sigma values
 !>  @param[in]    weight           Array of signal weight values
-!>  @param[inout] first_index      Index of the first instance of an intpol
+!>  @param[inout] first_index      Index of the first instance of an mse
 !>                                 signal.
 !>  @param[in]    in_degrees       Signal measures degrees if true.
 !-------------------------------------------------------------------------------
-      SUBROUTINE mse_dot_parse_point(mse_dot_file_ref, coordinate_type,        &
-     &                               signals, signals_created,                 &
-     &                               observed, sigma, weight,                  &
-     &                               current_profile, first_index,             &
-     &                               in_degrees)
+      SUBROUTINE mse_dot_parse_vec(mse_dot_file_ref, coordinate_type,          &
+     &                             signals, signals_created,                   &
+     &                             observed, sigma, weight,                    &
+     &                             first_index, in_degrees)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -233,7 +328,6 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: observed
       REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
-      INTEGER, INTENT(in)                    :: current_profile
       INTEGER, INTENT(inout)                 :: first_index
       LOGICAL, INTENT(in)                    :: in_degrees
 
@@ -271,7 +365,7 @@
      &                                   'end position.')
 
 !  Convert Coordinates if necessay.
-      IF (TRIM(coordinate_type) .eq. 'RPHiDegZ') THEN
+      IF (TRIM(coordinate_type) .eq. 'RPhiDegZ') THEN
 		 view_start(2) = view_start(2)*degree ! Convert from degrees to radians.
          view_start = cyl_to_cart(view_start)
          view_end(2) = view_end(2)*degree ! Convert from degrees to radians.
@@ -297,8 +391,105 @@
          first_index = signals_created
       END IF
 
-      CALL profiler_set_stop_time('mse_dot_parse_point', start_time)
+      CALL profiler_set_stop_time('mse_dot_parse_vec', start_time)
 
       END SUBROUTINE
 
-      END MODULE mse_dot
+!-------------------------------------------------------------------------------
+!>  @brief Parse motional stark effect diagnostic point defined as angles.
+!>
+!>  Parses a signle point. Points are laid out as,
+!>
+!>  * chord_name
+!>  * Point of measurement as three reals.
+!>  * Angles with respect to the toroidal as two reals.
+!>  * Angles with respect to the horizontal as two reals.
+!>
+!>  @param[in]    mse_dot_file_ref Reference to the mse. file.
+!>  @param[in]    coordinate_type  Specifies the cartesian or cylindrical
+!>                                 coordinate type.
+!>  @param[inout] signals          Array of pointers to the a signal
+!>  @param[inout] signals_created  Number valid signals in the array, or index
+!>                                 of the last signal created.
+!>  @param[in]    observed         Array of observed values.
+!>  @param[in]    sigma            Array of observed sigma values
+!>  @param[in]    weight           Array of signal weight values
+!>  @param[inout] first_index      Index of the first instance of an mse
+!>                                 signal.
+!>  @param[in]    in_degrees1      Angles specified in degrees if true.
+!>  @param[in]    in_degrees2      Signal measures degrees if true.
+!-------------------------------------------------------------------------------
+      SUBROUTINE mse_dot_parse_ang(mse_dot_file_ref, coordinate_type,          &
+     &                             signals, signals_created,                   &
+     &                             observed, sigma, weight,                    &
+     &                             first_index, in_degrees1,                   &
+     &                             in_degrees2)
+      USE signal
+      USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3_utilities, only: err_fatal
+      USE coordinate_utilities
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_dot_file), INTENT(inout)  :: mse_dot_file_ref
+      CHARACTER (len=*), INTENT(in)          :: coordinate_type
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      INTEGER, INTENT(inout)                 :: signals_created
+      REAL (rprec), DIMENSION(:), INTENT(in) :: observed
+      REAL (rprec), DIMENSION(:), INTENT(in) :: sigma
+      REAL (rprec), DIMENSION(:), INTENT(in) :: weight
+      INTEGER, INTENT(inout)                 :: first_index
+      LOGICAL, INTENT(in)                    :: in_degrees1
+      LOGICAL, INTENT(in)                    :: in_degrees2
+
+!  local variables
+      REAL (rprec), DIMENSION(3)             :: xcart
+      REAL (rprec), DIMENSION(2)             :: t_angles
+      REAL (rprec), DIMENSION(2)             :: h_angles
+      CHARACTER (len=data_short_name_length) :: point_name
+      CHARACTER (len=signal_dot_line_len)    :: line
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Get the position and name of the point.
+      CALL signal_dot_parse_chord(mse_dot_file_ref, coordinate_type,           &
+     &                            point_name, xcart)
+
+!  Get the alpha and omega.
+      t_angles = signal_dot_parse_2_real(mse_dot_file_ref,                     &
+     &                                   'Failed to parse angles ' //          &
+     &                                   'to toroidal')
+
+!  Get the delta and theta.
+      t_angles = signal_dot_parse_2_real(mse_dot_file_ref,                     &
+     &                                   'Failed to parse angles ' //          &
+     &                                   'to horizontal')
+
+!  Convert Coordinates if necessay.
+      IF (in_degrees1) THEN
+         t_angles = t_angles*degree
+         h_angles = h_angles*degree
+      END IF
+
+      signals(signals_created + 1)%p => signal_construct(                      &
+     &   diagnostic_construct(                                                 &
+     &      mse_construct(xcart, t_angles(1), t_angles(2),                     &
+     &                    h_angles(1), h_angles(2), in_degrees2)),             &
+     &   point_name, point_name, 'arb', observed(signals_created + 1),         &
+     &   sigma(signals_created + 1), weight(signals_created + 1))
+      signals_created = signals_created + 1
+
+!  At lease one mse signal was made. Set the first index. This should only be
+!  run once.
+      IF (first_index .eq. -1) THEN
+         first_index = signals_created
+      END IF
+
+      CALL profiler_set_stop_time('mse_dot_parse_ang', start_time)
+
+      END SUBROUTINE
+
+      END MODULE

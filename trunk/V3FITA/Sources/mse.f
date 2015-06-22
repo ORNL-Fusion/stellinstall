@@ -34,14 +34,16 @@
       TYPE mse_class
 !>  Intersection point of the viewing angle and the neutral beam.
          REAL (rprec), DIMENSION(3) :: point
-!>  Starting point defining the viewing vector.
-         REAL (rprec), DIMENSION(3) :: view_start
-!>  Ending point defining the viewing vector.
-         REAL (rprec), DIMENSION(3) :: view_end
-!>  Starting point defining the neutral beam vector.
-         REAL (rprec), DIMENSION(3) :: beam_start
-!>  Ending point defining the viewing vector.
-         REAL (rprec), DIMENSION(3) :: beam_end
+
+!>  Angle between the toroidal direction and neutral beam.
+         REAL (rprec)               :: alpha
+!>  Angle between the toroidal direction the view chord.
+         REAL (rprec)               :: omega
+!>  Pitch angle of the neutral beam with respect to the horizontal.
+         REAL (rprec)               :: delta
+!>  Pitch angle of the viewing chord with respect to the horizontal.
+         REAL (rprec)               :: theta
+
 !>  Controls if the results is computed in degrees or radians.
          LOGICAL                    :: in_degrees
       END TYPE
@@ -54,7 +56,8 @@
 !>  @ref mse_construct_new or @ref mse_construct_mpi
 !-------------------------------------------------------------------------------
       INTERFACE mse_construct
-		 MODULE PROCEDURE mse_construct_new,                                   &
+		 MODULE PROCEDURE mse_construct_vec,                                   &
+     &                    mse_construct_rad,                                   &
      &                    mse_construct_mpi
       END INTERFACE
 
@@ -68,7 +71,8 @@
 !>  @brief Construct a @ref mse_class object representing a motional stark
 !>  effect diagnostic.
 !>
-!>  Allocates memory and initializes a @ref mse_class object.
+!>  Allocates memory and initializes a @ref mse_class object. Uses vector
+!>  representation.
 !>
 !>  @param[in] point      Measurement point of the mse diagnostic.
 !>  @param[in] view_start Starting point of the view vector.
@@ -77,18 +81,18 @@
 !>  @param[in] beam_end   Ending point of the beam vector.
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION mse_construct_new(point, view_start, view_end,                  &
+      FUNCTION mse_construct_vec(point, view_start, view_end,                  &
      &                           beam_start, beam_end, in_degrees)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (mse_class), POINTER  :: mse_construct_new
-      REAL (rprec), DIMENSION(3) :: point
-      REAL (rprec), DIMENSION(3) :: view_start
-      REAL (rprec), DIMENSION(3) :: view_end
-      REAL (rprec), DIMENSION(3) :: beam_start
-      REAL (rprec), DIMENSION(3) :: beam_end
+      TYPE (mse_class), POINTER  :: mse_construct_vec
+      REAL (rprec), DIMENSION(3), INTENT(in) :: point
+      REAL (rprec), DIMENSION(3), INTENT(in) :: view_start
+      REAL (rprec), DIMENSION(3), INTENT(in) :: view_end
+      REAL (rprec), DIMENSION(3), INTENT(in) :: beam_start
+      REAL (rprec), DIMENSION(3), INTENT(in) :: beam_end
       LOGICAL, INTENT(in)        :: in_degrees
 
 !  local variables
@@ -97,16 +101,77 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(mse_construct_new)
+      ALLOCATE(mse_construct_vec)
 
-      mse_construct_new%point = point
-      mse_construct_new%view_start = point
-      mse_construct_new%view_end = point
-      mse_construct_new%beam_start = beam_start
-      mse_construct_new%beam_end = beam_end
-      mse_construct_new%in_degrees = in_degrees
+      mse_construct_vec%point = point
 
-      CALL profiler_set_stop_time('mse_construct_new', start_time)
+!  Get the angles with respect to the toroidal field component.
+      mse_construct_vec%alpha =                                                &
+     &   mse_angle_to_bt_proj(mse_construct_vec, beam_end - beam_start)
+      mse_construct_vec%omega =                                                &
+     &   mse_angle_to_bt_proj(mse_construct_vec, view_end - view_start)
+
+!  Get the angles with respect to the horizontal.
+      mse_construct_vec%theta =                                                &
+     &   mse_angle_to_horizontal(view_end - view_start)
+      mse_construct_vec%delta =                                                &
+     &   mse_angle_to_horizontal(beam_end - beam_start)
+
+      mse_construct_vec%in_degrees = in_degrees
+
+      CALL profiler_set_stop_time('mse_construct_vec', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref mse_class object representing a motional stark
+!>  effect diagnostic.
+!>
+!>  Allocates memory and initializes a @ref mse_class object. Uses angle
+!>  representation.
+!>
+!>  @param[in] point Measurement point of the mse diagnostic.
+!>  @param[in] omega Angle between the neutral beam and the toroidal in the
+!>                   horizontal.
+!>  @param[in] alpha Angle between the view chord and the toroidal in the
+!>                   horizontal.
+!>  @param[in] delta Pitch angle to the horizontal and the neutral beam.
+!>  @param[in] theta Pitch angle to the horizontal and the view chord.
+!>  @returns A pointer to a constructed @ref mse_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION mse_construct_rad(point, alpha, omega, delta, theta,            &
+     &                           in_degrees)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (mse_class), POINTER              :: mse_construct_rad
+      REAL (rprec), DIMENSION(3), INTENT(in) :: point
+      REAL (rprec), INTENT(in)               :: alpha
+      REAL (rprec), INTENT(in)               :: omega
+      REAL (rprec), INTENT(in)               :: delta
+      REAL (rprec), INTENT(in)               :: theta
+      LOGICAL, INTENT(in)                    :: in_degrees
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(mse_construct_rad)
+
+      mse_construct_rad%point = point
+
+!  Get the angles with respect to the toroidal field component.
+      mse_construct_rad%alpha = alpha
+      mse_construct_rad%omega = omega
+      mse_construct_rad%delta = delta
+      mse_construct_rad%theta = theta
+
+      mse_construct_rad%in_degrees = in_degrees
+
+      CALL profiler_set_stop_time('mse_construct_rad', start_time)
 
       END FUNCTION
 
@@ -136,13 +201,13 @@
 
       CALL MPI_BCAST(mse_construct_mpi%point, 3, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%view_start, 3, MPI_REAL8, 0,            &
+      CALL MPI_BCAST(mse_construct_mpi%alpha, 1, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%view_end, 3, MPI_REAL8, 0,              &
+      CALL MPI_BCAST(mse_construct_mpi%omega, 3, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%beam_start, 3, MPI_REAL8, 0,            &
+      CALL MPI_BCAST(mse_construct_mpi%delta, 3, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%beam_end, 3, MPI_REAL8, 0,              &
+      CALL MPI_BCAST(mse_construct_mpi%theta, 3, MPI_REAL8, 0,                 &
      &               intra_comm, error)
       CALL MPI_BCAST(mse_construct_mpi%in_degrees, 1, MPI_LOGICAL, 0,          &
      &               intra_comm, error)
@@ -170,10 +235,10 @@
 
 !  Start of executable code
       this%point = 0.0
-      this%view_start = 0.0
-      this%view_end = 0.0
-      this%beam_start = 0.0
-      this%beam_end = 0.0
+      this%alpha = 0.0
+      this%omega = 0.0
+      this%delta = 0.0
+      this%theta = 0.0
       this%in_degrees = .false.
 
 	  DEALLOCATE(this)
@@ -227,10 +292,6 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)              :: b_cyl
-	  REAL (rprec)                            :: alpha
-      REAL (rprec)                            :: omega
-      REAL (rprec)                            :: theta
-      REAL (rprec)                            :: delta
       REAL (rprec)                            :: e_h
       REAL (rprec)                            :: e_v
       REAL (rprec)                            :: start_time
@@ -246,23 +307,15 @@
      &                        equilibrium_get_B_vec(a_model%equilibrium,       &
      &                                              this%point))
 
-!  Get the angles with respect to the toroidal field component.
-      alpha = mse_angle_to_bt_proj(this,                                       &
-     &                             this%beam_end - this%beam_start)
-      omega = mse_angle_to_bt_proj(this,                                       &
-     &                             this%view_end - this%view_start)
-
-!  Get the angles with respect to the horizontal.
-      theta = mse_angle_to_horizontal(this%view_end - this%view_start)
-      delta = mse_angle_to_horizontal(this%beam_end - this%beam_start)
-
-      e_h = -(b_cyl(3)*COS(delta)*COS(omega + alpha) +                         &
-     &        SIN(delta)*(b_cyl(1)*SIN(omega) - b_cyl(2)*COS(omega)))
-      e_v = -b_cyl(3)*SIN(theta)*COS(delta)*SIN(omega + alpha)                 &
-     &    + SIN(theta)*SIN(delta)*(b_cyl(2)*SIN(omega) +                       &
-     &                             b_cyl(1)*COS(omega))                        &
-     &    + COS(theta)*COS(delta)*(b_cyl(1)*COS(alpha) -                       &
-     &                             b_cyl(2)*SIN(alpha))
+      e_h = -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +          &
+     &        SIN(this%delta)*(b_cyl(1)*SIN(this%omega) -                      &
+     &                         b_cyl(2)*COS(this%omega)))
+      e_v = -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
+     &                                                    this%alpha)          &
+     &    + SIN(this%theta)*SIN(this%delta)*(b_cyl(2)*SIN(this%omega) +        &
+     &                                       b_cyl(1)*COS(this%omega))                   &
+     &    + COS(this%theta)*COS(this%delta)*(b_cyl(1)*COS(this%alpha) -        &
+     &                                       b_cyl(2)*SIN(this%alpha))
 
       mse_get_modeled_signal(1) = ATAN2(e_h, e_v)
 
@@ -332,12 +385,10 @@
       start_time = profiler_get_start_time()
 
       CALL MPI_BCAST(this%point, 3, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%view_start, 3, MPI_REAL8, 0, intra_comm,             &
-     &               error)
-      CALL MPI_BCAST(this%view_end, 3, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%beam_start, 3, MPI_REAL8, 0, intra_comm,             &
-     &               error)
-      CALL MPI_BCAST(this%beam_end, 3, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%alpha, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%omega, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%delta, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(this%theta, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%in_degrees, 1, MPI_LOGICAL, 0, intra_comm,           &
      &               error)
 
