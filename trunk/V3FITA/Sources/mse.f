@@ -203,11 +203,11 @@
      &               intra_comm, error)
       CALL MPI_BCAST(mse_construct_mpi%alpha, 1, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%omega, 3, MPI_REAL8, 0,                 &
+      CALL MPI_BCAST(mse_construct_mpi%omega, 1, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%delta, 3, MPI_REAL8, 0,                 &
+      CALL MPI_BCAST(mse_construct_mpi%delta, 1, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%theta, 3, MPI_REAL8, 0,                 &
+      CALL MPI_BCAST(mse_construct_mpi%theta, 1, MPI_REAL8, 0,                 &
      &               intra_comm, error)
       CALL MPI_BCAST(mse_construct_mpi%in_degrees, 1, MPI_LOGICAL, 0,          &
      &               intra_comm, error)
