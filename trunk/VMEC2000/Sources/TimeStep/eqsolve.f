@@ -1,4 +1,4 @@
-      SUBROUTINE eqsolve(ier_flag, delt0, res0, lscreen)
+      SUBROUTINE eqsolve(ier_flag, lscreen)
       USE vmec_main
       USE vmec_params, ONLY: ntmax, ns4, jac75_flag, norm_term_flag,
      1                       bad_jacobian_flag, more_iter_flag,
@@ -16,7 +16,6 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER :: ier_flag
       LOGICAL :: lscreen
-      REAL(rprec), INTENT(inout) :: delt0, res0
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -69,9 +68,9 @@ C-----------------------------------------------
          xc = 0
          CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, .FALSE.)
          irst = 1
-         IF (liter_flag) CALL restart_iter(delt0)    !(OFF IN v8.50)
+         IF (liter_flag) CALL restart_iter(delt0r)    !(OFF IN v8.50)
       END IF
-!v8.50      IF (liter_flag) CALL restart_iter(delt0)
+!v8.50      IF (liter_flag) CALL restart_iter(delt0r)
       liter_flag = .true.
       ier_flag = norm_term_flag
 
@@ -83,7 +82,7 @@ C-----------------------------------------------
 !
 !     ADVANCE FOURIER AMPLITUDES OF R, Z, AND LAMBDA
 !
-         CALL evolve (delt0, ier_flag, liter_flag, lscreen)
+         CALL evolve (delt0r, ier_flag, liter_flag, lscreen)
          IF (ijacob.eq.0 .and. (ier_flag.eq.bad_jacobian_flag
      1       .or. irst.eq.4) .and. ns.ge.3) THEN
             IF (lscreen) THEN
@@ -120,16 +119,16 @@ C-----------------------------------------------
 !
          IF (ijacob .eq. 25) THEN
             irst = 2
-            CALL restart_iter(delt0)
-            delt0 = p98*delt
-            IF (lscreen) PRINT 120, delt0
+            CALL restart_iter(delt0r)
+            delt0r = p98*delt
+            IF (lscreen) PRINT 120, delt0r
             irst = 1
             GOTO 1000
          ELSE IF (ijacob .eq. 50) THEN
             irst = 2
-            CALL restart_iter(delt0)
-            delt0 = p96*delt
-            IF (lscreen) PRINT 120, delt0
+            CALL restart_iter(delt0r)
+            delt0r = p96*delt
+            IF (lscreen) PRINT 120, delt0r
             irst = 1
             GOTO 1000
          ELSE IF (ijacob .ge. 75) THEN
@@ -147,7 +146,7 @@ C-----------------------------------------------
          res0 = MIN(res0,fsq)
 !       Store current state (irst=1)
          IF (fsq.le.res0 .and. iter2-iter1.gt.10) THEN
-            CALL restart_iter(delt0)
+            CALL restart_iter(delt0r)
 !       Residuals are growing in time, reduce time step
          ELSE IF (fsq.gt.100*res0 .and. iter2.gt.iter1) THEN
             irst = 2
@@ -158,12 +157,12 @@ C-----------------------------------------------
 
          IF (irst .ne. 1) THEN
 !       Retrieve previous good state
-            CALL restart_iter(delt0)
+            CALL restart_iter(delt0r)
             iter1 = iter2
          ELSE
 !       Increment time step and printout every nstep iterations
             IF (MOD(iter2,nstep).eq.0 .or. iter2.eq.1 .or.
-     1         .not.liter_flag) CALL printout(iter2, delt0, w0, lscreen)
+     1        .not.liter_flag) CALL printout(iter2, delt0r, w0, lscreen)
             iter2 = iter2 + 1
             iterc = iterc + 1
 ! JDH 2012-06-20 ^^^ iterc is a cumulative iteration counter. Used in V3FIT.
@@ -171,7 +170,7 @@ C-----------------------------------------------
 
 ! JDH 2010-08-03: Call to vmec_history_store moved here from evolve.f
 !  Stores fsq values and other, for later post-processing
-            CALL vmec_history_store(delt0)
+            CALL vmec_history_store(delt0r)
             CALL flush(6)
          ENDIF
 
@@ -209,7 +208,7 @@ C-----------------------------------------------
 !            lqmr = (itype_precon .ge. 2)
 !         ELSE
          IF (ictrl_prec2d .gt. 0) THEN
-            CALL restart_iter(delt0)
+            CALL restart_iter(delt0r)
          END IF
       END IF
 

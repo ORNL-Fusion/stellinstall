@@ -122,7 +122,7 @@
       USE stel_kinds
       USE data_parameters
       USE pprofile_T
-      USE threed1_file_cache
+      USE vmec_context
 #if defined (MPI_OPT)
       USE mpi
 #endif
@@ -324,6 +324,7 @@
          CHARACTER (len=data_filename_length)   :: wout_file_name
 !>  File name of the vmec namelist inout file.
          CHARACTER (len=data_filename_length)   :: vmec_file_name
+
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
          TYPE (pprofile_class), POINTER         :: ne => null()
 !>  @ref pprofile_T describing a flux surface constant electron temperature
@@ -333,24 +334,16 @@
 !>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
      &      sxrem => null()
+
 !>  Ratio of the poloidal grid points to the poloidal grid points.
          REAL (rprec)                           :: pol_rad_ratio
 !>  Instance of a @ref vmec_magnetic_cache object.
          TYPE (vmec_magnetic_cache), POINTER    ::                             &
      &      magnetic_cache => null()
-!>  Cache of the vmec internal state xc array.
-         REAL (rprec), DIMENSION(:), POINTER    :: xc => null()
-!>  Cache of the magnetic axis R cosine coefficents.
-         REAL (rprec), DIMENSION(:), POINTER    :: raxis_cc => null()
-!>  Cache of the magnetic axis R sine coefficents.
-         REAL (rprec), DIMENSION(:), POINTER    :: raxis_cs => null()
-!>  Cache of the magnetic axis Z cosine coefficents.
-         REAL (rprec), DIMENSION(:), POINTER    :: zaxis_cc => null()
-!>  Cache of the magnetic axis Z sine coefficents.
-         REAL (rprec), DIMENSION(:), POINTER    :: zaxis_cs => null()
-!>  Cache of the threed1 file state.
-         TYPE (threed1_file_cache_class), POINTER ::                           &
-     &      threed1_file => null()
+
+!>  VMEC context.
+         TYPE (vmec_context_class), POINTER     ::                             &
+     &      vmec_context_save => null()
 
 !  Extra reconstruction parameters
 !>  Plasma phi offset.
@@ -460,10 +453,7 @@
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit, ns_array, raxis_cc, raxis_cs,             &
-     &                      zaxis_cc, zaxis_cs
-      USE xstuff, only: xc
-      USE vparams, only: ntord
+      USE vmec_input, only: l_v3fit, ns_array
       USE read_wout_mod, only: read_wout_file, LoadRZL
 
       IMPLICIT NONE
@@ -551,25 +541,9 @@
 
       END SELECT
 
+      vmec_construct_new%vmec_context_save => vmec_context_construct()
+
       vmec_construct_new%ns_index = MAXLOC(ns_array, 1)
-
-!  Store the inital xc array here. This is needed to reset the xc array for
-!  error recovery in the initial equilibirum convergence. The vmec_save_state
-!  and vmec_reset_state routines cannot be used here since those assume a wout
-!  file was written.
-      ALLOCATE(vmec_construct_new%xc(SIZE(xc)))
-      vmec_construct_new%xc = xc
-
-!  Store the inital magnetic axis. This is needed to reset the equilibrium for
-!  error recovery in the initial equilibirum convergence.
-      ALLOCATE(vmec_construct_new%raxis_cc(0:ntord))
-      vmec_construct_new%raxis_cc = raxis_cc
-      ALLOCATE(vmec_construct_new%raxis_cs(0:ntord))
-      vmec_construct_new%raxis_cs = raxis_cs
-      ALLOCATE(vmec_construct_new%zaxis_cc(0:ntord))
-      vmec_construct_new%zaxis_cc = zaxis_cc
-      ALLOCATE(vmec_construct_new%zaxis_cs(0:ntord))
-      vmec_construct_new%zaxis_cs = zaxis_cs
 
       CALL profiler_set_stop_time('vmec_construct', start_time)
       END FUNCTION
@@ -589,8 +563,6 @@
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
       USE vmec_input, only: l_v3fit, ns_array
-      USE xstuff, only: xc
-      USE vparams, only: ntord
 
       IMPLICIT NONE
 
@@ -667,18 +639,9 @@
 
       END SELECT
 
+      vmec_construct_mpi%vmec_context_save => vmec_context_construct()
+
       vmec_construct_mpi%ns_index = MAXLOC(ns_array, 1)
-
-!  Allocate an array for the xc array. It's not necessary to set it. When the
-!  child process is used, the parent process will sync the xc array first.
-      ALLOCATE(vmec_construct_mpi%xc(SIZE(xc)))
-
-!  Allocate arrays for the magnetic axis. It's not necessary to set it. When the
-!  child process is used, the parent process will sync the arrays first.
-      ALLOCATE(vmec_construct_mpi%raxis_cc(0:ntord))
-      ALLOCATE(vmec_construct_mpi%raxis_cs(0:ntord))
-      ALLOCATE(vmec_construct_mpi%zaxis_cc(0:ntord))
-      ALLOCATE(vmec_construct_mpi%zaxis_cs(0:ntord))
 
       CALL MPI_BCAST(use_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
       IF (use_cache) THEN
@@ -781,34 +744,9 @@
 !  Delete the cached wout file. Errors here can safely be ignored.
       CALL delete_file(TRIM(this%wout_file_name) // '_cache', error)
 
-      IF (ASSOCIATED(this%threed1_file)) THEN
-         CALL threed1_file_cache_destruct(this%threed1_file)
-         this%threed1_file => null()
-      END IF
-
-      IF (ASSOCIATED(this%xc)) THEN
-         DEALLOCATE(this%xc)
-         this%xc => null()
-      END IF
-
-      IF (ASSOCIATED(this%raxis_cc)) THEN
-         DEALLOCATE(this%raxis_cc)
-         this%raxis_cc => null()
-      END IF
-
-      IF (ASSOCIATED(this%raxis_cs)) THEN
-         DEALLOCATE(this%raxis_cs)
-         this%raxis_cs => null()
-      END IF
-
-      IF (ASSOCIATED(this%zaxis_cc)) THEN
-         DEALLOCATE(this%zaxis_cc)
-         this%zaxis_cc => null()
-      END IF
-
-      IF (ASSOCIATED(this%zaxis_cs)) THEN
-         DEALLOCATE(this%zaxis_cs)
-         this%zaxis_cs => null()
+      IF (ASSOCIATED(this%vmec_context_save)) THEN
+         CALL vmec_context_destruct(this%vmec_context_save)
+         this%vmec_context_save => null()
       END IF
 
 !  Deallocate VMEC allocated memory.
@@ -846,7 +784,7 @@
      &                      extcur, curtor, phiedge, pres_scale,               &
      &                      bloat, mgrid_file, nfp, lfreeb
       USE xstuff, only: xc, xstore, xcdot
-      USE vmec_main, only: irzloff, currv, ivac, fsqr, fsqz
+      USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
       USE mgrid_mod, only: read_mgrid, mgrid_path_old
       USE vacmod0, only: nv
@@ -877,8 +815,6 @@
             CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
@@ -892,8 +828,6 @@
             CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
@@ -907,8 +841,6 @@
             CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
@@ -922,8 +854,6 @@
             CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               fsqr = 1.0
-               fsqz = 1.0
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
                CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
      &                       .false.)
@@ -3475,33 +3405,28 @@
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag, restart_flag
-      USE xstuff, only: xcdot, xc
+      USE xstuff, only: xcdot
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE vmec_main, only: iterc, iter1, iter2
-      USE vparams, ONLY: ntord
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL                          :: vmec_converge
-      TYPE (vmec_class), INTENT(inout) :: this
-      INTEGER, INTENT(inout)           :: num_iter
-      INTEGER, INTENT(in)              :: iou
+      LOGICAL                            :: vmec_converge
+      TYPE (vmec_class), INTENT(inout)   :: this
+      INTEGER, INTENT(inout)             :: num_iter
+      INTEGER, INTENT(in)                :: iou
 
 !  local variables
 !  delt_local   Value of delt on entry. Store, for restoration after error
 !               recovery.
 !  ictrl_array  Array containing various vmec control parameters.
-      REAL (rprec)                     :: delt_local
-      INTEGER, DIMENSION(5)            :: ictrl_array
-      INTEGER                          :: recovery_index
-      INTEGER                          :: error, num_iter_init
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: xc_saved
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: raxis_cc_saved
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: raxis_cs_saved
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: zaxis_cc_saved
-      REAL (rprec), DIMENSION(:), ALLOCATABLE :: zaxis_cs_saved
-      REAL (rprec)                     :: start_time
+      REAL (rprec)                       :: delt_local
+      INTEGER, DIMENSION(5)              :: ictrl_array
+      INTEGER                            :: recovery_index
+      INTEGER                            :: error, num_iter_init
+      TYPE (vmec_context_class), POINTER :: temp_context => null()
+      REAL (rprec)                       :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -3510,21 +3435,11 @@
       num_iter_init = iterc
       recovery_index = 0
 
-!  Store the value of the xc array. This xc array is different than the one
-!  stored in save/reset state methods. This xc array needs to be stored so that
-!  error recovery can restore the state to before runvmec was run but after the
+!  Store the current VMEC context. This context is different than the one stored
+!  in save/reset state methods. This context needs to be stored so that error
+!  recovery can restore the state to before runvmec was run but after the
 !  parameters were changed.
-      ALLOCATE(xc_saved(SIZE(xc)))
-      xc_saved = xc
-
-      ALLOCATE(raxis_cc_saved(0:ntord))
-      raxis_cc_saved = raxis_cc
-      ALLOCATE(raxis_cs_saved(0:ntord))
-      raxis_cs_saved = raxis_cs
-      ALLOCATE(zaxis_cc_saved(0:ntord))
-      zaxis_cc_saved = zaxis_cc
-      ALLOCATE(zaxis_cs_saved(0:ntord))
-      zaxis_cs_saved = zaxis_cs
+      temp_context => vmec_context_construct()
 
 !  Run vmec until successful or an unrecoverable error has occured.
       DO
@@ -3561,14 +3476,8 @@
          SELECT CASE (ictrl_array(2))
             CASE (jac75_flag)
 
-!  Restore the xc array to the state it was before runvmec was called.
-               xc = xc_saved
-
-!  Restore the magnetic axis to the state it was before runvmec was called.
-               raxis_cc = raxis_cc_saved
-               raxis_cs = raxis_cs_saved
-               zaxis_cc = zaxis_cc_saved
-               zaxis_cs = zaxis_cs_saved
+!  Restore the context to the state it was before runvmec was called.
+               CALL vmec_context_set_context(temp_context)
 
                IF (recovery_index .le. 2) THEN
                   WRITE (*,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
@@ -3591,14 +3500,8 @@
          recovery_index = recovery_index + 1
       END DO
 
-!  No longer need the xc_saved array.
-      DEALLOCATE(xc_saved)
-
-!  No longer need the saved magnetic axis arrays.
-      DEALLOCATE(raxis_cc_saved)
-      DEALLOCATE(raxis_cs_saved)
-      DEALLOCATE(zaxis_cc_saved)
-      DEALLOCATE(zaxis_cs_saved)
+!  No longer need the local context array.
+      DEALLOCATE(temp_context)
 
 !  Check for errors, if vmec was successful, load vmec data for use with the
 !  signals. Other wise report the error.
@@ -3633,13 +3536,11 @@
 !-------------------------------------------------------------------------------
 !>  @brief Save the internal state of the equilibrium.
 !>
-!>  Saves the VMEC xc array and the wout file.
+!>  Saves the VMEC state and the wout file.
 !>
 !>  @param[inout] this A @ref vmec_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_save_state(this)
-      USE xstuff, only: xc
-      USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
       USE file_opts
 
       IMPLICIT NONE
@@ -3653,24 +3554,12 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-      IF (ASSOCIATED(this%xc)) THEN
-         IF (SIZE(xc) .eq. SIZE(this%xc)) THEN
-            this%xc = xc
-         ELSE
-            DEALLOCATE(this%xc)
-            ALLOCATE(this%xc(SIZE(xc)))
-            this%xc = xc
-         END IF
-      ELSE
-         ALLOCATE(this%xc(SIZE(xc)))
-         this%xc = xc
-      END IF
 
-!  Save the magnetic axis state so it can be restored.
-      this%raxis_cc = raxis_cc
-      this%zaxis_cs = zaxis_cs
-      this%raxis_cc = raxis_cc
-      this%zaxis_cs = zaxis_cs
+      IF (ASSOCIATED(this%vmec_context_save)) THEN
+         CALL vmec_context_get_context(this%vmec_context_save)
+      ELSE
+         this%vmec_context_save => vmec_context_construct()
+      END IF
 
 !  Cache the wout file by appending _cache to a copy. Use copy here to keep the
 !  the orginal file intact.
@@ -3679,12 +3568,6 @@
      &               error)
       CALL assert_eq(error, 0, 'Error copying wout file.')
 
-      IF(ASSOCIATED(this%threed1_file)) THEN
-         CALL threed1_file_cache_save_state(this%threed1_file)
-      ELSE
-         this%threed1_file => threed1_file_cache_construct()
-      END IF
-
       CALL profiler_set_stop_time('vmec_save_state', start_time)
 
       END SUBROUTINE
@@ -3692,15 +3575,13 @@
 !-------------------------------------------------------------------------------
 !>  @brief Reset the internal state of the equilibrium.
 !>
-!>  Copies the saved VMEC xc array back to VMEC.
+!>  Copies the saved VMEC state back to VMEC.
 !>
 !>  @param[inout] this A @ref vmec_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_reset_state(this)
-      USE xstuff, only: xc
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
-      USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
 
       IMPLICIT NONE
 
@@ -3713,15 +3594,10 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-      IF (ASSOCIATED(this%xc) .and. (SIZE(xc) .eq. SIZE(this%xc))) THEN
-         xc = this%xc
-      END IF
 
-!  Reset the magnetic axis state.
-      raxis_cc = this%raxis_cc
-      zaxis_cs = this%zaxis_cs
-      raxis_cc = this%raxis_cc
-      zaxis_cs = this%zaxis_cs
+      IF (ASSOCIATED(this%vmec_context_save)) THEN
+         CALL vmec_context_set_context(this%vmec_context_save)
+      END IF
 
 !  Reset the wout file.
       CALL copy_file(TRIM(this%wout_file_name) // '_cache',                    &
@@ -3734,11 +3610,6 @@
 
       IF (ASSOCIATED(this%magnetic_cache)) THEN
          CALL vmec_set_magnetic_cache(this)
-      END IF
-
-!  Reset the threed1 file.
-      IF (ASSOCIATED(this%threed1_file)) THEN
-         CALL threed1_file_cache_reset_state(this%threed1_file)
       END IF
 
       CALL profiler_set_stop_time('vmec_reset_state', start_time)
@@ -4213,12 +4084,8 @@
 !>  @param[in]    intra_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_sync_state(this, intra_comm)
-      USE xstuff, only: xc
-      USE v3f_vmec_comm
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
-      USE vmec_input, only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
-      USE vparams, only: ntor1d
 
       IMPLICIT NONE
 
@@ -4232,7 +4099,6 @@
       INTEGER                           :: mpi_rank
       INTEGER                           :: mpi_size
       INTEGER                           :: i
-      INTEGER                           :: xc_size
 
 !  Start of executable code
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
@@ -4259,27 +4125,7 @@
          END IF
       END IF
 
-!  Sync the xc array. First sync the size incase the local xc array needs to be
-!  reallocated.
-      xc_size = SIZE(xc)
-      CALL MPI_BCAST(xc_size, 1, MPI_INTEGER, 0, intra_comm, error)
-
-!  If the size of the xc array changed stop. It is unknown why and when the xc
-!  array would change size.
-      IF (mpi_rank .gt. 0) THEN
-         CALL assert_eq(xc_size, SIZE(xc), "xc array changed size.")
-      END IF
-      CALL MPI_BCAST(xc, SIZE(xc), MPI_REAL8, 0, intra_comm, error)
-
-!  Sync the magnetic axis.
-      CALL MPI_BCAST(raxis_cc, ntor1d, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(raxis_cs, ntor1d, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(zaxis_cc, ntor1d, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(zaxis_cs, ntor1d, MPI_REAL8, 0, intra_comm, error)
-
-!  Sync the values from the threed1 file.
-      CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(vvc_kappa_p, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL vmec_context_sync_state(this%vmec_context_save, intra_comm)
 
 #endif
       END SUBROUTINE

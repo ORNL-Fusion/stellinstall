@@ -41,6 +41,7 @@ C-----------------------------------------------
       iter1 = iter2
       ijacob = 0
       irst = 1
+      res0 = -1
 
 !
 !       INITIALIZE MESH-DEPENDENT SCALARS

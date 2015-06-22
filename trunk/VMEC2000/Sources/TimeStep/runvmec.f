@@ -8,9 +8,6 @@
      4                       reset_jacdt_flag
       USE vsvd
       USE timer_sub
-#ifdef _OPENMP
-      USE omp_lib
-#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -22,7 +19,6 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      REAL(rprec), SAVE :: delt0, res0
       INTEGER, POINTER :: ier_flag
       INTEGER :: ictrl_flag, iseq_count
       INTEGER :: ns_index, ns_min, nsval, ns_old=0, numsteps
@@ -56,7 +52,7 @@ C-----------------------------------------------
 !                                             if ier_flag (see below) returns the value more_iter_flag, the cleanup
 !                                             code will be skipped even if cleanup_flag is set, so that the run
 !                                             could be continued on the next call to runvmec.
-!             32       reset_jacdt_flag       Resets ijacobian flag and time step to delt0
+!             32       reset_jacdt_flag       Resets ijacobian flag and time step to delt0r
 !
 !                  thus, setting ictrl_flag = 1+2+4+8+16 will perform ALL the tasks thru cleanup_flag
 !                  in addition, if ns_index = 0 and numsteps = 0 (see below), vmec will control its own run history
@@ -81,7 +77,7 @@ C-----------------------------------------------
 C-----------------------------------------------
       INTERFACE
          SUBROUTINE initialize_radial(nsval, ns_old, delt0,
-     1                               lscreen, reset_file_name)
+     1                                lscreen, reset_file_name)
          USE vmec_main
          IMPLICIT NONE
          INTEGER, INTENT(in) :: nsval
@@ -116,14 +112,11 @@ C-----------------------------------------------
 !
       lreset = (IAND(ictrl_flag, restart_flag) .ne. 0)
 
-      IF (lreset) THEN
-         CALL reset_params
-         res0 = -1
-      END IF
+      IF (lreset) CALL reset_params
 
       IF (IAND(ictrl_flag, reset_jacdt_flag) .ne. 0) THEN
          ijacob = 0
-         delt0 = delt
+         delt0r = delt
       END IF
 
       IF (IAND(ictrl_flag, readin_flag) .ne. 0) THEN
@@ -153,7 +146,7 @@ C-----------------------------------------------
             IF (LEN_TRIM(reset_file_name) .ne. 0)igrid0 = multi_ns_grid
          END IF
          WRITE (nthreed, 30)
-         delt0 = delt
+         delt0r = delt
       ENDIF
 
   30  FORMAT(' FSQR, FSQZ = Normalized Physical Force Residuals',/,
@@ -204,13 +197,13 @@ C-----------------------------------------------
 !  Logical l_v3fit is declared in vmec_input, available via vmec_main
          IF (l_v3fit) THEN                            ! V3FIT is running here 
             IF (ns_old .ne. nsval) THEN
-               CALL initialize_radial(nsval, ns_old, delt0,                    &
-     &            lscreen, reset_file_name)
+               CALL initialize_radial(nsval, ns_old, delt0r,
+     1                                lscreen, reset_file_name)
             ENDIF
          ELSE                                         ! V3FIT not running here
             IF (ns_old .le. nsval)
-     1         CALL initialize_radial(nsval, ns_old, delt0, 
-     2                          lscreen, reset_file_name)
+     1         CALL initialize_radial(nsval, ns_old, delt0r, 
+     2                                lscreen, reset_file_name)
          ENDIF
 
 !     CONTROL NUMBER OF STEPS
@@ -219,7 +212,7 @@ C-----------------------------------------------
             niter = numsteps+iter2-1
          END IF
 
-         CALL eqsolve (ier_flag, delt0, res0, lscreen)
+         CALL eqsolve (ier_flag, lscreen)
 
          IF (numsteps > 0) THEN
             niter = niter_store
@@ -261,7 +254,7 @@ C-----------------------------------------------
 !
 !     WRITE OUTPUT TO THREED1, WOUT FILES; FREE MEMORY ALLOCATED GLOBALLY
 !
- 1000 if (ier_flag.eq.more_iter_flag) then  ! J Geiger
+ 1000 if(ier_flag.eq.more_iter_flag) then  ! J Geiger
 ! 1000 if(lmoreiter .and. ier_flag.eq.more_iter_flag) then  ! J Geiger
         print *, "runvmec: Running some more iterations",
      &           " -> Skipping call to fileout!"
