@@ -236,6 +236,47 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Parse a two reals from a diagnostic dot file.
+!>
+!>  Reads three reals from the diagnostic dot file. This is used to be able to
+!>  get extra information about a diagnostic in the diagnostic dot file.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message             Error message to report back if there was
+!>                                    a problem.
+!>  @returns The parsed real values.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_dot_parse_2_real(signal_dot_file_ref, message)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(2)            :: signal_dot_parse_2_real
+      TYPE (signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)         :: message
+
+!  local variables
+      INTEGER                               :: status
+      CHARACTER (len=signal_dot_line_len)   :: line
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            'Error ', message)
+!  Reread the line, looking for three reals
+      READ(line, *, iostat=status) signal_dot_parse_2_real
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
+     &                             'Error ', message)
+
+      CALL profiler_set_stop_time('signal_dot_parse_2_real', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Parse a three reals from a diagnostic dot file.
 !>
 !>  Reads three reals from the diagnostic dot file. This is used to be able to
