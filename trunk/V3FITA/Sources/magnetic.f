@@ -262,6 +262,9 @@
 
       magnetic_get_modeled_signal_point = 0.0
 
+      b_field = equilibrium_get_ext_b_plasma(a_model%equilibrium,              &
+     &                                       this%response%position)
+
       magnetic_get_modeled_signal_point(2) =                                   &
      &   DOT_PRODUCT(b_field, this%response%direction)
 
