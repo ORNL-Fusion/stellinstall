@@ -162,6 +162,8 @@
          CHARACTER (len=2)                      :: units
 !>  Diagnostic Type
          CHARACTER (len=diagnostic_dot_id_name) :: d_type
+!>  Diagnostic id name
+         CHARACTER (len=diagnostic_dot_id_name) :: id_name
 
 !>  Probe position.
          REAL (rprec), DIMENSION(3)             :: position
@@ -278,6 +280,7 @@
                 new_coil =>                                                    &
      &             diagnostic_dot_parse_point(iou, line, line_number,          &
      &                                        'T')
+                new_coil%d_type = 'b_point_probe'
 
          END SELECT
 
@@ -639,6 +642,7 @@
       ALLOCATE(diagnostic_dot_parse_filaments%coil)
       diagnostic_dot_parse_filaments%next => null()
       diagnostic_dot_parse_filaments%units = TRIM(units)
+      diagnostic_dot_parse_filaments%id_name = id_name
 
       IF (is_rogowski) THEN
          CALL bsc_construct(diagnostic_dot_parse_filaments%coil,               &
@@ -769,6 +773,7 @@
       ALLOCATE(diagnostic_dot_parse_probe%coil)
       diagnostic_dot_parse_probe%next => null()
       diagnostic_dot_parse_probe%units = TRIM(units)
+      diagnostic_dot_parse_probe%id_name = id_name
 
       SELECT CASE (TRIM(units))
 
@@ -847,10 +852,13 @@
      &           'diagnostic_dot_parse_point')
       END IF
 
+!  Normalize to a unit vector.
+      direction = direction/SQRT(DOT_PRODUCT(direction, direction))
+
 !  Construct the coil.
       ALLOCATE(diagnostic_dot_parse_point)
 
-      diagnostic_dot_parse_point%d_type = id_name
+      diagnostic_dot_parse_point%id_name = id_name
       diagnostic_dot_parse_point%next => null()
       diagnostic_dot_parse_point%position = position
       diagnostic_dot_parse_point%direction = direction

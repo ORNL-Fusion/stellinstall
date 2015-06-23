@@ -8,7 +8,6 @@
 !>  Defines a @ref v3rfun_context_class object to contain all the memory for
 !>  running v3rfun.
 !*******************************************************************************
-
       MODULE v3rfun_context
 !#undef NEW_CODE
 #ifdef NEW_CODE
@@ -702,7 +701,7 @@
 
 !  Construct a responce object.
       response => magnetic_response_construct(code_name, this%date_run,        &
-     &                                        d_coil%coil%s_name,              &
+     &                                        d_coil%id_name,                  &
      &                                        this%rdiag, this%extcur,         &
      &                                        kp, kp_shell,                    &
      &                                        rmin, rmax, zmin, zmax,          &
@@ -713,7 +712,7 @@
 !  Write Coil Response ---------------------------------------------------------
 !  Open up an mdsig file, for netcdf writing. Borrow the i variable to store the
 !  status. Borrow the j variable as the netcdf input/output unit.
-      temp_filename = TRIM(d_coil%coil%s_name) // '_mdsig.nc'
+      temp_filename = TRIM(d_coil%id_name) // '_mdsig.nc'
       i = 0
       CALL cdf_open(j, TRIM(temp_filename), 'w', i)
       CALL assert_eq(0, i, 'mdsig file ' // TRIM(temp_filename) //             &
@@ -721,10 +720,8 @@
 
 !  Define NetCDF variables.
       CALL cdf_define(j, 'diagnostic_desc_d_type', d_coil%d_type)
-      CALL cdf_define(j, 'diagnostic_desc_s_name',                             &
-     &                d_coil%coil%s_name)
-      CALL cdf_define(j, 'diagnostic_desc_l_name',                             &
-     &                d_coil%coil%l_name)
+      CALL cdf_define(j, 'diagnostic_desc_s_name', d_coil%id_name)
+      CALL cdf_define(j, 'diagnostic_desc_l_name', d_coil%id_name)
       CALL cdf_define(j, 'diagnostic_desc_units', d_coil%units)
       CALL cdf_define(j, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_define(response, j)
@@ -733,8 +730,8 @@
 !  Write NetCDF variables. The cdf_write subroutine switches from define mode to
 !  write mode.
       CALL cdf_write(j, 'diagnostic_desc_d_type', d_coil%d_type)
-      CALL cdf_write(j, 'diagnostic_desc_s_name', d_coil%coil%s_name)
-      CALL cdf_write(j, 'diagnostic_desc_l_name', d_coil%coil%l_name)
+      CALL cdf_write(j, 'diagnostic_desc_s_name', d_coil%id_name)
+      CALL cdf_write(j, 'diagnostic_desc_l_name', d_coil%id_name)
       CALL cdf_write(j, 'diagnostic_desc_units', TRIM(d_coil%units))
       CALL cdf_write(j, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_write(response, j)
@@ -747,7 +744,7 @@
 
 !  Write to Mutual Inductance file
       WRITE (this%mi_iou,1200) id_num
-      WRITE (this%mi_iou,1300) TRIM(d_coil%coil%s_name)
+      WRITE (this%mi_iou,1300) TRIM(d_coil%id_name)
       WRITE (this%mi_iou,1400) TRIM(d_coil%d_type)
       WRITE (this%mi_iou,1500) TRIM(d_coil%units)
       WRITE (this%mi_iou,1600)
@@ -814,7 +811,7 @@
       END DO
 
       response => magnetic_response_construct(code_name, this%date_run,        &
-     &                                        d_coil%d_type,                   &
+     &                                        d_coil%id_name,                  &
      &                                        d_coil%position,                 &
      &                                        d_coil%direction,                &
      &                                        this%rdiag, this%extcur)
@@ -822,16 +819,38 @@
 !  Write Coil Response ---------------------------------------------------------
 !  Open up an mdsig file, for netcdf writing. Borrow the i variable to store the
 !  status.
-      temp_filename = TRIM(d_coil%coil%s_name) // '_mdsig.nc'
+      temp_filename = TRIM(d_coil%id_name) // '_mdsig.nc'
       mdsig_iou = 0
       CALL cdf_open(mdsig_iou, TRIM(temp_filename), 'w', i)
       CALL assert_eq(0, i, 'mdsig file ' // TRIM(temp_filename) //             &
      &               ' failed to open.')
 
+!  Define NetCDF variables.
+      CALL cdf_define(mdsig_iou, 'diagnostic_desc_d_type',                     &
+     &                d_coil%d_type)
+      CALL cdf_define(mdsig_iou, 'diagnostic_desc_s_name',                     &
+     &                d_coil%id_name)
+      CALL cdf_define(mdsig_iou, 'diagnostic_desc_l_name',                     &
+     &                d_coil%id_name)
+      CALL cdf_define(mdsig_iou, 'diagnostic_desc_units', d_coil%units)
+      CALL cdf_define(mdsig_iou, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_define(response, mdsig_iou)
+
+!  Write NetCDF variables. The cdf_write subroutine switches from define mode to
+!  write mode.
+      CALL cdf_write(mdsig_iou, 'diagnostic_desc_d_type', d_coil%d_type)
+      CALL cdf_write(mdsig_iou, 'diagnostic_desc_s_name',                      &
+     &               d_coil%id_name)
+      CALL cdf_write(mdsig_iou, 'diagnostic_desc_l_name',                      &
+     &               d_coil%id_name)
+      CALL cdf_write(mdsig_iou, 'diagnostic_desc_units', d_coil%units)
+      CALL cdf_write(mdsig_iou, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_write(response, mdsig_iou)
 
       CALL cdf_close(mdsig_iou)
+
+!  Write entry in list file
+      WRITE(this%mdsig_list_iou,1100) id_num, TRIM(temp_filename)
 
 !  Cleanup
       CALL magnetic_response_destruct(response)
@@ -840,6 +859,7 @@
      &                            start_time)
 
 1000  FORMAT(5x,'Diagnostic #',i4)
+1100  FORMAT(i4.4,x,a)
       END SUBROUTINE
 
 !*******************************************************************************

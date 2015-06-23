@@ -62,6 +62,7 @@
       PROGRAM v3rfun
       USE v3rfun_context
       USE profiler
+      USE v3_utilities
 !$    USE omp_lib
 
       IMPLICIT NONE
@@ -111,8 +112,11 @@
      &            'f_rogowski')
                CALL v3rfun_context_write_mrf(context, head, id_num)
 
-            CASE DEFAULT
+            CASE ('b_point_probe')
                CALL v3rfun_context_write_point(context, head, id_num)
+
+            CASE DEFAULT
+               CALL err_fatal('Unknown magnetic diagnostic type.')
 
          END SELECT
 
@@ -786,12 +790,12 @@
       ENDIF
 
 !  Allocate space for conducting shell
-      n_u = MAX(INT(n_field_periods*kp_shell*minor_radius/major_radius),       &
-     &          10)
-      delu = twopi/n_u
-      delp_shell = fperiod/kp_shell
-
       IF (use_con_shell) THEN
+         n_u = MAX(INT(n_field_periods*kp_shell*minor_radius/                  &
+     &                 major_radius), 10)
+         delu = twopi/n_u
+         delp_shell = fperiod/kp_shell
+
          ALLOCATE(xcart_s_grid_e(n_u, kp_shell, n_field_periods, 3))
          ALLOCATE(s_response(n_u,kp_shell,3))
          ALLOCATE(phi_grid_shell(kp_shell,n_field_periods))
@@ -1054,7 +1058,8 @@
      &                                           n_field_periods,              &
      &                                           lstell_sym,                   &
      &                                           a_r, a_f, a_z,                &
-     &                                           a_s_r, a_s_f, a_s_z)
+     &                                           a_s_r, a_s_f, a_s_z,          &
+     &                                           0.0_dp)
 
 !  Write Coil Response ---------------------------------------------------------
 !  Open up an mdsig file, for netcdf writing
