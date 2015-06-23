@@ -104,7 +104,17 @@
       head => context%coils
       id_num = 1
       DO WHILE(ASSOCIATED(head))
-         CALL v3rfun_context_write_mrf(context, head, id_num)
+         SELECT CASE (head%d_type)
+
+            CASE ('flux_loop', 'flux_loop_circular', 'magnetic_probe',         &
+     &            'magnetic_probe_tokamak', 'b_rogowski', 'i_rogowski',        &
+     &            'f_rogowski')
+               CALL v3rfun_context_write_mrf(context, head, id_num)
+
+            CASE DEFAULT
+               CALL v3rfun_context_write_point(context, head, id_num)
+
+         END SELECT
 
          head => head%next
          id_num = id_num + 1

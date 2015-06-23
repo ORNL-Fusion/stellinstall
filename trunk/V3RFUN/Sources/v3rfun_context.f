@@ -702,7 +702,7 @@
 
 !  Construct a responce object.
       response => magnetic_response_construct(code_name, this%date_run,        &
-     &                                        TRIM(name_coils_dot),            &
+     &                                        d_coil%coil%s_name,              &
      &                                        this%rdiag, this%extcur,         &
      &                                        kp, kp_shell,                    &
      &                                        rmin, rmax, zmin, zmax,          &
@@ -814,7 +814,7 @@
       END DO
 
       response => magnetic_response_construct(code_name, this%date_run,        &
-     &                                        TRIM(name_coils_dot),            &
+     &                                        d_coil%d_type,                   &
      &                                        d_coil%position,                 &
      &                                        d_coil%direction,                &
      &                                        this%rdiag, this%extcur)
@@ -827,6 +827,11 @@
       CALL cdf_open(mdsig_iou, TRIM(temp_filename), 'w', i)
       CALL assert_eq(0, i, 'mdsig file ' // TRIM(temp_filename) //             &
      &               ' failed to open.')
+
+      CALL magnetic_response_define(response, mdsig_iou)
+      CALL magnetic_response_write(response, mdsig_iou)
+
+      CALL cdf_close(mdsig_iou)
 
 !  Cleanup
       CALL magnetic_response_destruct(response)

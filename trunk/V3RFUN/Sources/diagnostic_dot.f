@@ -849,6 +849,8 @@
 
 !  Construct the coil.
       ALLOCATE(diagnostic_dot_parse_point)
+
+      diagnostic_dot_parse_point%d_type = id_name
       diagnostic_dot_parse_point%next => null()
       diagnostic_dot_parse_point%position = position
       diagnostic_dot_parse_point%direction = direction
