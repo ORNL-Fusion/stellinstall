@@ -782,7 +782,7 @@
      &                      ai, ai_aux_s, ai_aux_f,                            &
      &                      am, am_aux_s, am_aux_f,                            &
      &                      extcur, curtor, phiedge, pres_scale,               &
-     &                      bloat, mgrid_file, nfp, lfreeb
+     &                      bloat, mgrid_file, nfp, lfreeb, aphi
       USE xstuff, only: xc, xstore, xcdot
       USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
@@ -978,10 +978,12 @@
                phiedge_ratio = 1.0
             END IF
             phiedge = value
-            xc(1 + 2*irzloff:3*irzloff) =                                      &
-     &         phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
-            xstore(1 + 2*irzloff:3*irzloff) =                                  &
-     &         phiedge_ratio*xstore(1 + 2*irzloff:3*irzloff)
+            IF (aphi(1) .eq. 1.0) THEN
+               xc(1 + 2*irzloff:3*irzloff) =                                   &
+     &            phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
+               xstore(1 + 2*irzloff:3*irzloff) =                               &
+     &            phiedge_ratio*xstore(1 + 2*irzloff:3*irzloff)
+            END IF
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
