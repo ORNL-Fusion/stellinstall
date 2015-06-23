@@ -313,7 +313,7 @@
       e_v = -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
      &                                                    this%alpha)          &
      &    + SIN(this%theta)*SIN(this%delta)*(b_cyl(2)*SIN(this%omega) +        &
-     &                                       b_cyl(1)*COS(this%omega))                   &
+     &                                       b_cyl(1)*COS(this%omega))         &
      &    + COS(this%theta)*COS(this%delta)*(b_cyl(1)*COS(this%alpha) -        &
      &                                       b_cyl(2)*SIN(this%alpha))
 

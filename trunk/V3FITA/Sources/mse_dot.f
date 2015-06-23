@@ -464,7 +464,7 @@
      &                                   'to toroidal')
 
 !  Get the delta and theta.
-      t_angles = signal_dot_parse_2_real(mse_dot_file_ref,                     &
+      h_angles = signal_dot_parse_2_real(mse_dot_file_ref,                     &
      &                                   'Failed to parse angles ' //          &
      &                                   'to horizontal')
 
