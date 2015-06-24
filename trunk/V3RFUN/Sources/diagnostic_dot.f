@@ -114,6 +114,8 @@
 !>                                               exact point measurement insead of modeling as
 !>                                               a loop of wire. The second vector direction
 !>                                               defines the components that the probe reads.}
+!>  @item2{@fixed_width{b_point_probe_cly},      Same as @fixed_width{b_point_probe} but defined
+!>                                               in cylindrical coordinates.}
 !>  @item2{@fixed_width{end_of_file},            End of the file.}
 !>  @end_table
 !>
@@ -279,7 +281,13 @@
             CASE ('b_point_probe')
                 new_coil =>                                                    &
      &             diagnostic_dot_parse_point(iou, line, line_number,          &
-     &                                        'T')
+     &                                        'T', .true.)
+                new_coil%d_type = 'b_point_probe'
+
+            CASE ('b_point_probe_cyl')
+                new_coil =>                                                    &
+     &             diagnostic_dot_parse_point(iou, line, line_number,          &
+     &                                        'T', .false.)
                 new_coil%d_type = 'b_point_probe'
 
          END SELECT
@@ -804,16 +812,21 @@
 !>  @brief Parse a point field measurement.
 !>
 !>  Parses point measurement probe. Point measurements are defined as a point
-!>  and direction. The direction should be normalized.
+!>  and direction. The direction should be normalized. The phi_offset model is
+!>  easiest to use when dealing with cyclindical coordinates. Convert all points
+!>  to cyclindical coordinates for internal purposes.
 !>
 !>  @param[in]    iou         File handle of diagnostic dot file.
 !>  @param[out]   line        On exit contains the current line of the file.
 !>  @param[inout] line_number The current line number of the file.
 !>  @param[in]    units       Units the coil measures in.
+!>  @param[in]    is_cart     True is point and vector defined in cylindrical
+!>                            coordinates.
 !>  @returns A constructed @ref diagnostic_dot_coil instance.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_dot_parse_point(iou, line, line_number,              &
-     &                                    units)
+     &                                    units, is_cart)
+      USE coordinate_utilities
 
       IMPLICIT NONE
 
@@ -824,6 +837,7 @@
       CHARACTER (len=diagnostic_dot_line_len), INTENT(out) :: line
       INTEGER, INTENT(inout)                 :: line_number
       CHARACTER (len=*), INTENT(in)          :: units
+      LOGICAL, INTENT(in)                    :: is_cart
 
 !  local variables
       CHARACTER (len=diagnostic_dot_id_name) :: id_name
@@ -854,6 +868,15 @@
 
 !  Normalize to a unit vector.
       direction = direction/SQRT(DOT_PRODUCT(direction, direction))
+
+!  Convert to internal cylindical coordinates. If already cylindrical convert
+!  the phi direction to radians.
+      IF (is_cart) THEN
+         direction = cart_to_cyl_vec(position, direction)
+         position = cart_to_cyl(position)
+      ELSE
+         position(2) = position(2)*degree
+      END IF
 
 !  Construct the coil.
       ALLOCATE(diagnostic_dot_parse_point)

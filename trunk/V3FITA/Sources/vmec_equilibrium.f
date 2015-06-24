@@ -3096,32 +3096,45 @@
 !-------------------------------------------------------------------------------
 !>  @brief Get external plasma magnetic field.
 !>
-!>  This method overrides @ref equilibrium::equilibrium_get_ext_b_plasma.
+!>  This method overrides @ref equilibrium::equilibrium_get_ext_b_plasma. The b
+!>  field is returned in cyclindical coordinates.
 !>
 !>  @param[in]  this     A @ref vmec_class instance.
-!>  @param[in]  position Position to compute the fields at.
+!>  @param[in]  position Position to compute the fields at in cylindrical
+!>                       coordinates.
 !>  @returns The external currents.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_ext_b_plasma(this, position)
       USE virtual_casing_mod
+      USE coordinate_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(3)    :: vmec_get_ext_b_plasma
-      TYPE (vmec_class), INTENT(in) :: this
-      REAL (rprec), DIMENSION(3)    :: position
+      REAL (rprec), DIMENSION(3)             :: vmec_get_ext_b_plasma
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: position
 
 !  local variables
-      REAL (rprec)                  :: start_time
+      REAL (rprec), DIMENSION(3)             :: x_cart
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL bfield_virtual_casing(position(1), position(2), position(3),        &
+!  Convert the position to cartesian coordinates.
+      x_cart = position
+      x_cart(2) = x_cart(2) - this%phi_offset
+      x_cart = cyl_to_cart(x_cart)
+
+      CALL bfield_virtual_casing(x_cart(1), x_cart(2), x_cart(3),              &
      &                           vmec_get_ext_b_plasma(1),                     &
      &                           vmec_get_ext_b_plasma(2),                     &
      &                           vmec_get_ext_b_plasma(3))
+
+!  Convert the b vector to cyclindical.
+      vmec_get_ext_b_plasma = cart_to_cyl_vec(x_cart,                          &
+     &                                        vmec_get_ext_b_plasma)
 
       CALL profiler_set_stop_time('vmec_get_ext_b_plasma', start_time)
 
