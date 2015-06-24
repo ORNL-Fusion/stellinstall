@@ -1058,8 +1058,7 @@
      &                                           n_field_periods,              &
      &                                           lstell_sym,                   &
      &                                           a_r, a_f, a_z,                &
-     &                                           a_s_r, a_s_f, a_s_z,          &
-     &                                           0.0_dp)
+     &                                           a_s_r, a_s_f, a_s_z)
 
 !  Write Coil Response ---------------------------------------------------------
 !  Open up an mdsig file, for netcdf writing
