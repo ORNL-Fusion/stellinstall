@@ -713,6 +713,7 @@
 !  Open up an mdsig file, for netcdf writing. Borrow the i variable to store the
 !  status. Borrow the j variable as the netcdf input/output unit.
       temp_filename = TRIM(d_coil%id_name) // '_mdsig.nc'
+      temp_filename	= TRIM(ADJUSTL(temp_filename))
       i = 0
       CALL cdf_open(j, TRIM(temp_filename), 'w', i)
       CALL assert_eq(0, i, 'mdsig file ' // TRIM(temp_filename) //             &
@@ -820,6 +821,7 @@
 !  Open up an mdsig file, for netcdf writing. Borrow the i variable to store the
 !  status.
       temp_filename = TRIM(d_coil%id_name) // '_mdsig.nc'
+      temp_filename	= TRIM(ADJUSTL(temp_filename))
       mdsig_iou = 0
       CALL cdf_open(mdsig_iou, TRIM(temp_filename), 'w', i)
       CALL assert_eq(0, i, 'mdsig file ' // TRIM(temp_filename) //             &
