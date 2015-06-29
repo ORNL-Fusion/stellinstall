@@ -783,7 +783,7 @@
      &                      am, am_aux_s, am_aux_f,                            &
      &                      extcur, curtor, phiedge, pres_scale,               &
      &                      bloat, mgrid_file, nfp, lfreeb, aphi
-      USE xstuff, only: xc, xstore, xcdot
+      USE xstuff, only: xc, xcdot
       USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
       USE mgrid_mod, only: read_mgrid, mgrid_path_old
@@ -816,8 +816,6 @@
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
-     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -829,8 +827,6 @@
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
-     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -842,8 +838,6 @@
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
-     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -855,8 +849,6 @@
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
-               CALL profil3d(xstore(1), xstore(1 + irzloff), .true.,           &
-     &                       .false.)
             ELSE
                CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
@@ -981,8 +973,6 @@
             IF (aphi(1) .eq. 1.0) THEN
                xc(1 + 2*irzloff:3*irzloff) =                                   &
      &            phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
-               xstore(1 + 2*irzloff:3*irzloff) =                               &
-     &            phiedge_ratio*xstore(1 + 2*irzloff:3*irzloff)
             END IF
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
@@ -3472,13 +3462,10 @@
             ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
          END IF
 
-!  Update internal vmec counters. These affect how the minimization occurs.
-!  Setting both iters to 1 causes different numbers of iterations when computing
-!  the jacobian for the same parameter for certain parameters.
-         iter1 = iter2
-
-!  Zero the xcdot array.
+!  Zero the xcdot array and store the xc array used for timestep resets.
          xcdot = 0.0
+         xstore = xc
+         CALL reset_params
          CALL runvmec(ictrl_array, this%vmec_file_name, .false.)
 
 !  Set error flag. (Flags declared in vmec_params.f)

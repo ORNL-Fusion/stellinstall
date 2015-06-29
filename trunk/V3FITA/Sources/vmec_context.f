@@ -12,8 +12,6 @@
       USE stel_kinds
       USE data_parameters
       USE xstuff
-      USE vmec_main, Only: fsqr, fsqz, fsq, res0, delt0r, iter1, iter2,        &
-     &                     iequi, ivac, ijacob, irst, ftolv
       USE vmec_input, Only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
       USE v3f_vmec_comm
       USE profiler
@@ -33,34 +31,9 @@
 !>  variable that is needed to define the VMEC state.
 !-------------------------------------------------------------------------------
       TYPE vmec_context_class
-!>  Normalized radial force residual.
-         REAL (rprec)                        :: fsqr
-!>  Normalized vertial force residual.
-         REAL (rprec)                        :: fsqz
-!>  Force residual.
-         REAL (rprec)                        :: fsq
-!>  Residual.
-         REAL (rprec)                        :: res0
-!>  Time step.
-         REAL (rprec)                        :: delt0r
-!>  Force tolarance.
-         REAL (rprec)                        :: ftolv
-
-!>  Internal iteration counter 1.
-         INTEGER                             :: iter1
-!>  Internal iteration counter 2.
-         INTEGER                             :: iter2
-!>  Counter used to call -EQFOR- at end of run.
-         INTEGER                             :: iequi
-!>  Counts number of free-boundary iterations.
-         INTEGER                             :: ivac
-!>  Counter for number of times jacobian changes sign.
-         INTEGER                             :: ijacob
-!>  Counter monitoring sign of jacobian.
-         INTEGER                             :: irst
-
 !>  Cache of the vmec internal state xc array.
          REAL (rprec), DIMENSION(:), POINTER :: xc => null()
+
 !>  Cache of the magnetic axis R cosine coefficents.
          REAL (rprec), DIMENSION(:), POINTER :: raxis_cc => null()
 !>  Cache of the magnetic axis R sine coefficents.
@@ -186,23 +159,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      fsqr = this%fsqr
-      fsqz = this%fsqz
-      fsq = this%fsq
-      res0 = this%res0
-      delt0r = this%delt0r
-      ftolv = this%ftolv
-
-      iter1 = this%iter1
-      iter2 = this%iter2
-      iequi = this%iequi
-      ivac = this%ivac
-      ijacob = this%ijacob
-      irst = this%irst
-
       CALL assert_eq(SIZE(this%xc), SIZE(xc), "xc size change. " //            &
      &               "Cannot set context.")
       xc = this%xc
+
       raxis_cc = this%raxis_cc
       raxis_cs = this%raxis_cs
       zaxis_cc = this%zaxis_cc
@@ -239,25 +199,12 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      this%fsqr = fsqr
-      this%fsqz = fsqz
-      this%fsq = fsq
-      this%res0 = res0
-      this%delt0r = delt0r
-      this%ftolv = ftolv
-
-      this%iter1 = iter1
-      this%iter2 = iter2
-      this%iequi = iequi
-      this%ivac = ivac
-      this%ijacob = ijacob
-      this%irst = irst
-
       IF(SIZE(this%xc) .ne. SIZE(xc)) THEN
          DEALLOCATE(this%xc)
          ALLOCATE(this%xc(SIZE(xc)))
       END IF
       this%xc = xc
+
       this%raxis_cc = raxis_cc
       this%raxis_cs = raxis_cs
       this%zaxis_cc = zaxis_cc
@@ -286,6 +233,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_context_sync_state(this, intra_comm)
       USE v3_utilities
+      USE vsvd
 
       IMPLICIT NONE
 
@@ -296,36 +244,23 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                                  :: error
-      INTEGER                                  :: xc_size
+      INTEGER                                  :: temp_size
       INTEGER                                  :: mpi_rank
 
 !  Start of executable code
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
 
-      CALL MPI_BCAST(fsqr, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(fsqz, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(fsq, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(res0, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(delt0r, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(ftolv, 1, MPI_REAL8, 0, intra_comm, error)
-
-      CALL MPI_BCAST(iter1, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(iter2, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(iequi, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(ivac, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(ijacob, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(irst, 1, MPI_INTEGER, 0, intra_comm, error)
-
 !  If the size of the xc array changed reallocate the child processes to the
 !  parent process size.
-      xc_size = SIZE(xc)
-      CALL MPI_BCAST(xc_size, 1, MPI_INTEGER, 0, intra_comm, error)
+      temp_size = SIZE(xc)
+      CALL MPI_BCAST(temp_size, 1, MPI_INTEGER, 0, intra_comm, error)
 
       IF (mpi_rank .gt. 0) THEN
-         CALL assert_eq(xc_size, SIZE(xc), 'Cannot sync xc arrays. ' //        &
-     &                                     'Arrays changed size.')
+         CALL assert_eq(temp_size, SIZE(xc),                                   &
+     &                  'Cannot sync xc arrays. Arrays changed size.')
       END IF
-      CALL MPI_BCAST(xc, xc_size, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(xc, temp_size, MPI_REAL8, 0, intra_comm, error)
+
       CALL MPI_BCAST(raxis_cc, SIZE(raxis_cc), MPI_REAL8, 0, intra_comm,       &
      &               error)
       CALL MPI_BCAST(raxis_cs, SIZE(raxis_cs), MPI_REAL8, 0, intra_comm,       &
