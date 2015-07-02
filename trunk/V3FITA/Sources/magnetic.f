@@ -22,6 +22,14 @@
       IMPLICIT NONE
 
 !*******************************************************************************
+!  magnetic module parameters
+!*******************************************************************************
+!>  Bit position for the use coil response flag.
+      INTEGER, PARAMETER :: magnetic_force_coil_flag = 1
+!>  Bit position for the force coil response flag.
+      INTEGER, PARAMETER :: magnetic_3D_flag         = 2
+
+!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) magnetic base class
 !
@@ -35,7 +43,7 @@
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
 !>  Setting to force the computing of the coil constribution.
-         LOGICAL                                 :: force_coil_reponse
+         INTEGER                                 :: control_flags
 !>  Magnetic response function object.
          TYPE (magnetic_response_class), POINTER :: response => null()
       END TYPE
@@ -71,10 +79,13 @@
 !>                                induced signal in addition to the plasma only
 !>                                signal.
 !>  @param[in] force_coil_reponse Force the coil response to be computed.
+!>  @param[in] use_3D_only        Subtract of the axisymmtric porition of the
+!>                                signal.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response,         &
-     &                                   force_coil_reponse)
+     &                                   force_coil_reponse,                   &
+     &                                   use_3D_only)
       USE ezcdf
       USE v3_utilities
 
@@ -85,6 +96,7 @@
       INTEGER, INTENT(in)            :: mdsig_iou
       LOGICAL, INTENT(in)            :: use_coil_response
       LOGICAL, INTENT(in)            :: force_coil_reponse
+      LOGICAL, INTENT(in)            :: use_3D_only
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
@@ -99,13 +111,23 @@
       magnetic_construct_netcdf%response =>                                    &
      &   magnetic_response_construct(mdsig_iou)
 
+      magnetic_construct_netcdf%control_flags = 0
+
       IF (force_coil_reponse) THEN
          CALL assert(magnetic_response_use_coil(                               &
      &                  magnetic_construct_netcdf%response),                   &
      &               'Cannot force coil response. Coil responses ' //          &
      &               'not found in mdsig file.')
+         magnetic_construct_netcdf%control_flags =                             &
+     &      IBSET(magnetic_construct_netcdf%control_flags,                     &
+     &            magnetic_force_coil_flag)
       END IF
-      magnetic_construct_netcdf%force_coil_reponse = force_coil_reponse
+
+      IF (use_3D_only) THEN
+         magnetic_construct_netcdf%control_flags =                             &
+     &      IBSET(magnetic_construct_netcdf%control_flags,                     &
+     &            magnetic_3D_flag)
+      END IF
 
 !  Check if using the coil response for this diagnostic. If not using it clear
 !  the responce flag bit.
@@ -143,8 +165,8 @@
 !  Start of executable code
       ALLOCATE(magnetic_construct_mpi)
 
-      CALL MPI_BCAST(magnetic_construct_mpi%force_coil_reponse, 1,             &
-     &               MPI_LOGICAL, 0, intra_comm, error)
+      CALL MPI_BCAST(magnetic_construct_mpi%control_flags, 1,                  &
+     &               MPI_INTEGER, 0, intra_comm, error)
       magnetic_construct_mpi%response =>                                       &
      &   magnetic_response_construct_mpi(intra_comm)
 #endif
@@ -263,10 +285,21 @@
       magnetic_get_modeled_signal_point = 0.0
 
       b_field = equilibrium_get_ext_b_plasma(a_model%equilibrium,              &
-     &                                       this%response%position)
+     &                                       this%response%position,           &
+     &                                       .false.)
 
       magnetic_get_modeled_signal_point(2) =                                   &
      &   DOT_PRODUCT(b_field, this%response%direction)
+
+!  Axisymmetric component.
+      IF (BTEST(this%control_flags, magnetic_3D_flag)) THEN
+         b_field = equilibrium_get_ext_b_plasma(a_model%equilibrium,           &
+     &                                          this%response%position,        &
+     &                                          .true.)
+
+         magnetic_get_modeled_signal_point(4) =                                &
+     &      DOT_PRODUCT(b_field, this%response%direction)
+      END IF
 
 !  Coil Pickup -----------------------------------------------------------------
       magnetic_get_modeled_signal_point(3) =                                   &
@@ -282,6 +315,13 @@
          magnetic_get_modeled_signal_point(1) =                                &
      &      magnetic_get_modeled_signal_point(2)
       END IF
+
+!  Subtract of the axisymmtric component. When not using the 3D only signal
+!  the value stored in the forth position is zero so there is no need to check
+!  the flag.
+      magnetic_get_modeled_signal_point(1) =                                   &
+     &   magnetic_get_modeled_signal_point(1) -                                &
+     &   magnetic_get_modeled_signal_point(4)
 
       sigma = 0.0
 
@@ -566,7 +606,7 @@
 
       magnetic_get_modeled_signal_coil_pickup = 0.0
 
-      IF (this%force_coil_reponse) THEN
+      IF (BTEST(this%control_flags, magnetic_force_coil_flag)) THEN
          num_currents = SIZE(this%response%inductance)
       ELSE
          num_currents = -1
@@ -663,10 +703,11 @@
       magnetic_get_header(1) = 'plasma only'
       magnetic_get_header(2) = 'eq currents'
 
+!  Default to the 4th label as the axi symmtric only signal.
       IF (magnetic_response_use_shell(this%response)) THEN
          magnetic_get_header(3) = 'shell currents'
       ELSE
-         magnetic_get_header(3) = 'N/A'
+         magnetic_get_header(3) = 'Axi signal'
       END IF
 
       magnetic_get_header(4) = 'model_sig(1)'
@@ -708,8 +749,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(this%force_coil_reponse, 1, MPI_LOGICAL, 0,               &
-     &               intra_comm, error)
+      CALL MPI_BCAST(this%control_flags, 1, MPI_INTEGER, 0, intra_comm,        &
+     &               error)
       CALL magnetic_response_sync_children(this%response, intra_comm)
 
       CALL profiler_set_stop_time('magnetic_sync_children', start_time)

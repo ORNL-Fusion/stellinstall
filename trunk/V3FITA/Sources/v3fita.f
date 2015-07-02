@@ -893,7 +893,8 @@
          signals_created = signals_created + 1
          magnetic_object =>                                                    &
      &      magnetic_construct(mdsig_iou, mag_a(signals_created),              &
-     &                         mag_force_coil)
+     &                         mag_force_coil,                                 &
+     &                         mag_3D_a(signals_created))
          context%signals(signals_created)%p => signal_construct(               &
      &      diagnostic_construct(magnetic_object),                             &
      &      mdsig_iou, sdo_data_a(signals_created),                            &
@@ -961,7 +962,7 @@
          CALL equilibrium_set_magnetic_cache(                                  &
      &           context%model%equilibrium,                                    &
      &           context%signals(index)%p%diagnostic%magnetic%response,        &
-     &           use_point)
+     &           use_point, ANY(mag_3D_a))
       END IF
 
       CALL profiler_set_stop_time('init_magnetic_cache', start_time)

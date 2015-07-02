@@ -151,6 +151,8 @@
 !>     @item{sdo_weight_a,            Array of weight for observed signals,                                                                v3fit_input::sdo_weight_a}
 !>     @item{mag_a,                   Array of flags for magnetc signals. This flags controls if the induced signal is included in the
 !>                                    total signal for an individual magentic signal.,                                                     v3fit_input::mag_a}
+!>     @item{mag_3D_a,                Array of flags for magnetc signals. This flags controls if the axisymmtric portion is subtracted
+!>                                    off the total signal. By default this is false and the total signal is used.,                        v3fit_input::mag_3D_a}
 !>     @item{mag_force_coil,          Flag to force the computation of induced signals. Some equilibria do not contain information about
 !>                                    external currents. This allows the magnetic signals to include contributions from external coils
 !>                                    when the equilibrium does not. This has no affect on the total signal if @ref mag_a is false.,       v3fit_input::mag_force_coil}
@@ -757,6 +759,9 @@
 !>  Magnetic signal flags. Controls if the induced signal is included in the
 !>  total signal.
       LOGICAL, DIMENSION(v3fit_max_diagnostics) :: mag_a = .true.
+!>  Magnetic signal flags. Controls if the axisymmetric part of the signal is
+!>  removed from the model signal.
+      LOGICAL, DIMENSION(v3fit_max_diagnostics) :: mag_3D_a = .false.
 !>  Forces the magnetic signal to compute the induced signal.
       LOGICAL                         :: mag_force_coil = .false.
 
@@ -951,7 +956,7 @@
      &   rp_range_value, rp_range_index,                                       &
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
-     &   sdo_weight_a, mag_a, mag_force_coil,                                  &
+     &   sdo_weight_a, mag_a, mag_3D_a, mag_force_coil,                        &
 !  Magnetic integration parameters
      &   pol_rad_ratio,                                                        &
 !  External current signal specification
