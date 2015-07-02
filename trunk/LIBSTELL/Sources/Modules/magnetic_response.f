@@ -456,6 +456,8 @@
 
       ALLOCATE(magnetic_response_construct_point)
 
+      magnetic_response_construct_point%flags = 0
+
       magnetic_response_construct_point%flags =                                &
      &   IBSET(magnetic_response_construct_point%flags,                        &
      &         magnetic_response_is_point_flag)
