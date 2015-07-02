@@ -48,7 +48,7 @@
 !>  @item2{@fixed_width{magnetic_probe},         Point measurement of the magnetic field.\n\n
 !>                                               Lines after ID:\n
 !>                                               First line after ID: one real\, the radius
-!>                                               of the magnetic probe. Second line after ID:
+!>                                               of the magnetic probe.\n Second line after ID:
 !>                                               three reals\, the x\, y\, z coordinates of
 !>                                               probe position.\n Third line after ID: three
 !>                                               reals\, the x\, y\, z components of the
@@ -106,15 +106,15 @@
 !>                                               Lines after ID:\n
 !>                                               First line after ID: three reals\, the x\,
 !>                                               y\, z coordinates of probe position.\n
-!>                                               Second line after ID: three reals\, the x\,
-!>                                               y\, z components of the direction the probe
+!>                                               Second line after ID: three reals\, the xhat\,
+!>                                               yhat\, zhat components of the direction the probe
 !>                                               measures in.\n\n
 !>                                               Description: These probes differ from the
 !>                                               magnetic probes by modling the probe as an
 !>                                               exact point measurement insead of modeling as
 !>                                               a loop of wire. The second vector direction
 !>                                               defines the components that the probe reads.}
-!>  @item2{@fixed_width{b_point_probe_cly},      Same as @fixed_width{b_point_probe} but defined
+!>  @item2{@fixed_width{b_point_probe_cyl},      Same as @fixed_width{b_point_probe} but defined
 !>                                               in cylindrical coordinates.}
 !>  @item2{@fixed_width{end_of_file},            End of the file.}
 !>  @end_table
@@ -340,7 +340,7 @@
 !  Start of executable code
       DO WHILE(ASSOCIATED(list))
 
-!  Check if the end of the list has been reached yet. If this is not the lasy
+!  Check if the end of the list has been reached yet. If this is not the last
 !  node, point current_coil to the start of the linked list. Move the start of
 !  the list to next node. current_coil still points to the last node. With the
 !  list pointing to the next node, erase the current node. Otherwise erase the
@@ -349,8 +349,10 @@
             current_coil => list
             list => list%next
 
-            DEALLOCATE(current_coil%coil)
-            current_coil%coil => null()
+            IF (ASSOCIATED(current_coil%coil)) THEN
+               DEALLOCATE(current_coil%coil)
+               current_coil%coil => null()
+            END IF
 
             DEALLOCATE(current_coil)
          ELSE

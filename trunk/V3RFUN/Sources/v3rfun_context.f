@@ -142,25 +142,30 @@
       CALL assert_eq(0, status, 'v3rfun_context_construct' //                  &
      &   ': Safe_open of ' // TRIM(temp_filename) // ' failed')
 
-      temp_filename = TRIM(base_name) // '_MI'
-      v3rfun_context_construct%mi_iou = 0
-      WRITE(*,*) 'mi_filename is ', TRIM(temp_filename)
-      CALL safe_open(v3rfun_context_construct%mi_iou, status,                  &
-     &               TRIM(temp_filename), 'replace', 'formatted',              &
-     &               delim_in='none')
-      CALL assert_eq(0, status, 'v3rfun_context_construct' //                  &
-     &   ': Safe_open of ' // TRIM(temp_filename) // ' failed')
+      IF (l_read_coils_dot) THEN
+         temp_filename = TRIM(base_name) // '_MI'
+         v3rfun_context_construct%mi_iou = 0
+         WRITE(*,*) 'mi_filename is ', TRIM(temp_filename)
+         CALL safe_open(v3rfun_context_construct%mi_iou, status,               &
+     &                  TRIM(temp_filename), 'replace', 'formatted',           &
+     &                  delim_in='none')
+         CALL assert_eq(0, status, 'v3rfun_context_construct' //               &
+     &      ': Safe_open of ' // TRIM(temp_filename) // ' failed')
 
 !  Write mutual inductance file header.
-      WRITE(v3rfun_context_construct%mi_iou,1000) code_name
-      WRITE(v3rfun_context_construct%mi_iou,1100)                              &
-     &   magnetic_response_current
-      WRITE(v3rfun_context_construct%mi_iou,1200)                              &
-     &   TRIM(v3rfun_context_construct%date_run)
-      WRITE(v3rfun_context_construct%mi_iou,1300) TRIM(name_coils_dot)
-      WRITE(v3rfun_context_construct%mi_iou,1400)                              &
-     &   TRIM(name_diagnostic_dot)
-      WRITE(v3rfun_context_construct%mi_iou,*)
+         WRITE(v3rfun_context_construct%mi_iou,1000) code_name
+         WRITE(v3rfun_context_construct%mi_iou,1100)                           &
+     &      magnetic_response_current
+         WRITE(v3rfun_context_construct%mi_iou,1200)                           &
+     &      TRIM(v3rfun_context_construct%date_run)
+         WRITE(v3rfun_context_construct%mi_iou,1300)                           &
+     &      TRIM(name_coils_dot)
+         WRITE(v3rfun_context_construct%mi_iou,1400)                           &
+     &      TRIM(name_diagnostic_dot)
+         WRITE(v3rfun_context_construct%mi_iou,*)
+      ELSE
+         nfp_bs = n_field_periods_nli
+      END IF
 
 !  Check stellarator symmetric grid sizes.
       IF (lstell_sym) THEN
@@ -456,7 +461,10 @@
 
 !  Start of executable code
       CLOSE(this%mdsig_list_iou)
-      CLOSE(this%mi_iou)
+
+      IF (l_read_coils_dot) THEN
+         CLOSE(this%mi_iou)
+      END IF
 
       CALL cleanup_biotsavart
 
@@ -744,16 +752,18 @@
       WRITE(this%mdsig_list_iou,1100) id_num, TRIM(temp_filename)
 
 !  Write to Mutual Inductance file
-      WRITE (this%mi_iou,1200) id_num
-      WRITE (this%mi_iou,1300) TRIM(d_coil%id_name)
-      WRITE (this%mi_iou,1400) TRIM(d_coil%d_type)
-      WRITE (this%mi_iou,1500) TRIM(d_coil%units)
-      WRITE (this%mi_iou,1600)
-      DO i = 1, SIZE(coil_group)
-         WRITE (this%mi_iou,1700) i, TRIM(coil_group(i)%s_name),               &
-     &                            this%rdiag(i)
-      END DO
-      WRITE (this%mi_iou,*)
+      IF (l_read_coils_dot) THEN
+         WRITE (this%mi_iou,1200) id_num
+         WRITE (this%mi_iou,1300) TRIM(d_coil%id_name)
+         WRITE (this%mi_iou,1400) TRIM(d_coil%d_type)
+         WRITE (this%mi_iou,1500) TRIM(d_coil%units)
+         WRITE (this%mi_iou,1600)
+         DO i = 1, SIZE(coil_group)
+            WRITE (this%mi_iou,1700) i, TRIM(coil_group(i)%s_name),            &
+     &                               this%rdiag(i)
+         END DO
+         WRITE (this%mi_iou,*)
+      END IF
 
 !  Cleanup
       CALL magnetic_response_destruct(response)
@@ -806,10 +816,12 @@
 
       WRITE (*,1000) id_num
 
-      DO i = 1, SIZE(coil_group)
-         CALL bsc_b(coil_group(i), d_coil%position, b_vec)
-         this%rdiag(i) = DOT_PRODUCT(b_vec, d_coil%direction)
-      END DO
+      IF (l_read_coils_dot) THEN
+         DO i = 1, SIZE(coil_group)
+           CALL bsc_b(coil_group(i), d_coil%position, b_vec)
+           this%rdiag(i) = DOT_PRODUCT(b_vec, d_coil%direction)
+         END DO
+      END IF
 
       response => magnetic_response_construct(code_name, this%date_run,        &
      &                                        d_coil%id_name,                  &
