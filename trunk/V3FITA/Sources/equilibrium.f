@@ -346,11 +346,9 @@
 !>  @param[inout] this            A @ref equilibrium_class instance.
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
 !>  @param[in]    use_point       Uses the point measurements
-!>  @param[in]    use_axi         Magnetics can subtract off axisymmetric
-!>                                components.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache(this, response_object,         &
-     &                                          use_point, use_axi)
+     &                                          use_point)
       USE magnetic_response
 
       IMPLICIT NONE
@@ -359,7 +357,6 @@
       TYPE (equilibrium_class), INTENT(inout)    :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
       LOGICAL, INTENT(in)                        :: use_point
-      LOGICAL, INTENT(in)                        :: use_axi
 
 !  local variables
       REAL (rprec)                               :: start_time
@@ -371,7 +368,7 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_set_magnetic_cache(this%vmec, response_object,           &
-     &                                   use_point, use_axi)
+     &                                   use_point)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
             IF (.not.this%not_converged) THEN
@@ -1509,13 +1506,11 @@
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_ext_b_plasma
 !>
-!>  @param[in] this     A @ref equilibrium_class instance.
-!>  @param[in] position Position to compute the fields at.
-!>  @param[in] axi_only Gives only the axisymmtric component of the magnetic
-!>                      field.
+!>  @param[in]  this     A @ref equilibrium_class instance.
+!>  @param[in]  position Position to compute the fields at.
 !>  @returns The external currents.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_ext_b_plasma(this, position, axi_only)
+      FUNCTION equilibrium_get_ext_b_plasma(this, position)
 
       IMPLICIT NONE
 
@@ -1523,7 +1518,6 @@
       REAL (rprec), DIMENSION(3) :: equilibrium_get_ext_b_plasma
       TYPE (equilibrium_class), INTENT(in) :: this
       REAL (rprec), DIMENSION(3)           :: position
-      LOGICAL, INTENT(in)                  :: axi_only
 
 !  local variables
       REAL (rprec)                         :: start_time
@@ -1535,7 +1529,7 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_ext_b_plasma =                                     &
-     &         vmec_get_ext_b_plasma(this%vmec, position, axi_only)
+     &         vmec_get_ext_b_plasma(this%vmec, position)
 
          CASE DEFAULT
             equilibrium_get_ext_b_plasma = 0.0

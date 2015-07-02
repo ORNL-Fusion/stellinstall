@@ -266,9 +266,6 @@
 !>  the plasma
       INTEGER, PARAMETER :: vmec_z_offset_id    = 62
 
-!>  Virtual casing grid points for vacuum field measurements.
-      INTEGER, PARAMETER :: magnetic_cache_vc_grid_points = 100
-
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) vmec magnetic cache
@@ -279,6 +276,9 @@
 !>  Object to cache data needed to compute magnetic signals.
 !-------------------------------------------------------------------------------
       TYPE vmec_magnetic_cache
+!>  Use point measurement magnetics
+         LOGICAL                                 :: use_point
+
 !>  Volume differential element for the s direction.
          REAL (rprec)                            :: ds
 !>  Volume differential element for the u direction.
@@ -290,11 +290,6 @@
          REAL (rprec)                            :: du_a
 !>  Area differential elements for the v direction.
          REAL (rprec)                            :: dv_a
-
-!>  Full surface area differential elements for the u direction.
-         REAL (rprec)                            :: du_full
-!>  Full surface area differential elements for the v direction.
-         REAL (rprec)                            :: dv_full
 
 !>  R positions on the suv gird points.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: rsuv => null()
@@ -317,30 +312,6 @@
 !>  Surface current density in the Z direction. Has all Jacobian and
 !>  normalization factors.
          REAL (rprec), DIMENSION(:,:), POINTER :: kzuv => null()
-
-!>  X' vector on the full uv grid.
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: x_prime => null()
-!>  Full surface current density in the R direction. Has all Jacobian and
-!>  normalization factors.
-         REAL (rprec), DIMENSION(:,:), POINTER :: kruv_full => null()
-!>  Full surface current density in the Phi direction. Has all Jacobian and
-!>  normalization factors.
-         REAL (rprec), DIMENSION(:,:), POINTER :: kphiuv_full => null()
-!>  Full surface current density in the Z direction. Has all Jacobian and
-!>  normalization factors.
-         REAL (rprec), DIMENSION(:,:), POINTER :: kzuv_full => null()
-
-!>  Axisymmtric X' vector on the full uv grid.
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: x_axi => null()
-!>  Axisymmtric  surface current density in the R direction. Has all Jacobian
-!>  and normalization factors.
-         REAL (rprec), DIMENSION(:,:), POINTER :: kruv_axi => null()
-!>  Full surface current density in the Phi direction. Has all Jacobian and
-!>  normalization factors.
-         REAL (rprec), DIMENSION(:,:), POINTER :: kphiuv_axi => null()
-!>  Full surface current density in the Z direction. Has all Jacobian and
-!>  normalization factors.
-         REAL (rprec), DIMENSION(:,:), POINTER :: kzuv_axi => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -1057,14 +1028,12 @@
 !>  @param[inout] this            A @ref vmec_class instance.
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
 !>  @param[in]    use_point       Uses the point measurements
-!>  @param[in]    use_axi         Magnetics can subtract off axisymmetric
-!>                                components.
 !>  @note Stellarator symmetry may be exploited speed up computation and reduce
 !>  memory usage. If stellarator symmetry is not used then tor_planes_used
 !>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_init(this, response_object,           &
-     &                                        use_point, use_axi)
+     &                                        use_point)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
       USE magnetic_response
@@ -1075,7 +1044,6 @@
       TYPE (vmec_class), INTENT(inout)           :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
       LOGICAL, INTENT(in)                        :: use_point
-      LOGICAL, INTENT(in)                        :: use_axi
 
 !  local variables
       INTEGER                                    :: numU
@@ -1086,6 +1054,8 @@
       start_time = profiler_get_start_time()
 
       ALLOCATE(this%magnetic_cache)
+
+      this%magnetic_cache%use_point = use_point
 
       IF (magnetic_response_use_plasma(response_object)) THEN
 !  In order to sample the fields on a grid, the sampling frequency of the grid
@@ -1102,15 +1072,15 @@
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
          ALLOCATE(this%magnetic_cache%rsuv(ns,numU,                            &
-     &            response_object%num_t_store))
+     &               response_object%num_t_store))
          ALLOCATE(this%magnetic_cache%zsuv(ns,numU,                            &
-     &            response_object%num_t_store))
+     &               response_object%num_t_store))
          ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,                           &
-     &            response_object%num_t_store))
+     &               response_object%num_t_store))
          ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,                         &
-     &            response_object%num_t_store))
+     &               response_object%num_t_store))
          ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,                           &
-     &            response_object%num_t_store))
+     &               response_object%num_t_store))
       END IF
 
 !  When conducting shell is used allocate the surface vector arrays.
@@ -1122,49 +1092,11 @@
      &      / response_object%num_t_shell
 
          ALLOCATE(this%magnetic_cache%kruv(response_object%num_u,              &
-     &            response_object%num_t_shell_store))
+     &               response_object%num_t_shell_store))
          ALLOCATE(this%magnetic_cache%kphiuv(response_object%num_u,            &
-     &            response_object%num_t_shell_store))
+     &               response_object%num_t_shell_store))
          ALLOCATE(this%magnetic_cache%kzuv(response_object%num_u,              &
-     &            response_object%num_t_shell_store))
-      END IF
-
-      IF (use_point) THEN
-         this%magnetic_cache%du_full = twopi                                   &
-     &                               / magnetic_cache_vc_grid_points
-         this%magnetic_cache%dv_full = twopi                                   &
-     &                               / magnetic_cache_vc_grid_points
-
-         ALLOCATE(this%magnetic_cache%kruv_full(                               &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-         ALLOCATE(this%magnetic_cache%kphiuv_full(                             &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-         ALLOCATE(this%magnetic_cache%kzuv_full(                               &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-
-         ALLOCATE(this%magnetic_cache%x_prime(                                 &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points,3))
-
-         IF (use_axi) THEN
-            ALLOCATE(this%magnetic_cache%kruv_axi(                             &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-            ALLOCATE(this%magnetic_cache%kphiuv_axi(                           &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-            ALLOCATE(this%magnetic_cache%kzuv_axi(                             &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-
-            ALLOCATE(this%magnetic_cache%x_axi(                                &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points,3))
-
-         END IF
+     &               response_object%num_t_shell_store))
       END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
@@ -1194,6 +1126,8 @@
       INTEGER                          :: error
 
 !  Start of executable code.
+      CALL MPI_BCAST(this%magnetic_cache%use_point, 1, MPI_LOGICAL, 0,         &
+     &               intra_comm, error)
 
 !  Grid sizes.
       CALL MPI_BCAST(this%magnetic_cache%ds, 1, MPI_REAL8, 0,                  &
@@ -1208,11 +1142,6 @@
       CALL MPI_BCAST(this%magnetic_cache%dv_a, 1, MPI_REAL8, 0,                &
      &               intra_comm, error)
 
-      CALL MPI_BCAST(this%magnetic_cache%du_full, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%magnetic_cache%dv_full, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-
 !  Plasma resonse arrays.
       dim_lengths = 0
       IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
@@ -1222,32 +1151,32 @@
       IF (.not.ASSOCIATED(this%magnetic_cache%rsuv) .and.                      &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%rsuv(dim_lengths(1),                     &
-     &                                     dim_lengths(2),                     &
-     &                                     dim_lengths(3)))
+     &                               dim_lengths(2),                           &
+     &                               dim_lengths(3)))
       END IF
       IF (.not.ASSOCIATED(this%magnetic_cache%zsuv) .and.                      &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%zsuv(dim_lengths(1),                     &
-     &                                     dim_lengths(2),                     &
-     &                                     dim_lengths(3)))
+     &                               dim_lengths(2),                           &
+     &                               dim_lengths(3)))
       END IF
       IF (.not.ASSOCIATED(this%magnetic_cache%jrsuv) .and.                     &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%jrsuv(dim_lengths(1),                    &
-     &                                      dim_lengths(2),                    &
-     &                                      dim_lengths(3)))
+     &                                dim_lengths(2),                          &
+     &                                dim_lengths(3)))
       END IF
       IF (.not.ASSOCIATED(this%magnetic_cache%jphisuv) .and.                   &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%jphisuv(dim_lengths(1),                  &
-     &                                        dim_lengths(2),                  &
-     &                                        dim_lengths(3)))
+     &                                  dim_lengths(2),                        &
+     &                                  dim_lengths(3)))
       END IF
       IF (.not.ASSOCIATED(this%magnetic_cache%jzsuv) .and.                     &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%jzsuv(dim_lengths(1),                    &
-     &                                      dim_lengths(2),                    &
-     &                                      dim_lengths(3)))
+     &                                dim_lengths(2),                          &
+     &                                dim_lengths(3)))
       END IF
 
 !  Conducting shell arrays.
@@ -1260,87 +1189,17 @@
       IF (.not.ASSOCIATED(this%magnetic_cache%kruv) .and.                      &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%kruv(dim_lengths(1),                     &
-     &                                     dim_lengths(2)))
+     &                               dim_lengths(2)))
       END IF
       IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv) .and.                    &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%kphiuv(dim_lengths(1),                   &
-     &                                       dim_lengths(2)))
+     &                                 dim_lengths(2)))
       END IF
       IF (.not.ASSOCIATED(this%magnetic_cache%kzuv) .and.                      &
      &    SUM(dim_lengths) .gt. 0) THEN
          ALLOCATE(this%magnetic_cache%kzuv(dim_lengths(1),                     &
-     &                                     dim_lengths(2)))
-      END IF
-
-!  Point virtual casing arrays.
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%kruv_full)) THEN
-         dim_lengths(1:2) = SHAPE(this%magnetic_cache%kruv_full)
-      END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_REAL8, 0, intra_comm,            &
-     &               error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%kruv_full) .and.                 &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kruv_full(dim_lengths(1),                &
-     &                                          dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv_full) .and.               &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kphiuv_full(dim_lengths(1),              &
-     &                                            dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_full) .and.                 &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kzuv_full(dim_lengths(1),                &
-     &                                          dim_lengths(2)))
-      END IF
-
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%x_prime)) THEN
-         dim_lengths = SHAPE(this%magnetic_cache%x_prime)
-      END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_REAL8, 0, intra_comm, error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%x_prime) .and.                   &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%x_prime(dim_lengths(1),                  &
-     &                                        dim_lengths(2),                  &
-     &                                       dim_lengths(3)))
-      END IF
-
-!  Point axisymmtric virtual casing arrays.
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%kruv_axi)) THEN
-         dim_lengths(1:2) = SHAPE(this%magnetic_cache%kruv_axi)
-      END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_REAL8, 0, intra_comm,            &
-     &               error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%kruv_axi) .and.                  &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kruv_axi(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv_axi) .and.                &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kphiuv_axi(dim_lengths(1),               &
-     &                                           dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_axi) .and.                  &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kzuv_axi(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-      END IF
-
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%x_axi)) THEN
-         dim_lengths = SHAPE(this%magnetic_cache%x_axi)
-      END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_REAL8, 0, intra_comm, error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%x_axi) .and.                     &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%x_axi(dim_lengths(1),                    &
-     &                                      dim_lengths(2),                    &
-     &                                      dim_lengths(3)))
+     &                               dim_lengths(2)))
       END IF
 
 #endif
@@ -1371,16 +1230,15 @@
       TYPE (vmec_class), INTENT(inout)          :: this
 
 !  local variables
-      INTEGER                                   :: s, u, v, i
+      INTEGER                                   :: s, u, v
       INTEGER                                   :: numU, numV
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu, sinu
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv, sinv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosphi, sinphi
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz_nyq, sinz_nyq
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu_nyq, sinu_nyq
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv_nyq, sinv_nyq
-      REAL (rprec)                              :: ru, rv, zu, zv, r, z
+      REAL (rprec)                              :: ru, rv, zu, zv, r
       REAL (rprec)                              :: ju, jv, bu, bv
       REAL (rprec)                              :: phi
       REAL (rprec)                              :: start_time
@@ -1509,7 +1367,7 @@
 !  the conducting shell is being used. The total conducting shell signal for a
 !  magnetic diagnostic is
 !
-!    S_i = AreaIntegral K(u,v) . R_i(u,v) da                                 (1)
+!    S_i = AreaIntegral K(u,v) . R_i(u,v)dudv                                (1)
 !
 !  For now, It will be assumed that the last closed flux surface of the plasma
 !  is the conducting shell. This can be refined later. The total magnetic signal
@@ -1540,29 +1398,8 @@
 !        As a result the signal due to the conducting shell contains a |J|/J
 !        term. The sign of the jacobian needs to be taken into account. This is
 !        taken care of in vmec_get_area_int_element.
-!
-!  Compute virtual casing points if needed, If the kruv_full array is
-!  associated, the point magnetics are being used. The total signal for a point
-!  is
-!
-!    B(x) = mu0/2Pi AreaIntegral K(u,v) x (x - x')/|x - x'|^3 da             (6)
-!
-!  The surface used is the last closed flux surface. Simular to the procedure
-!  for the conducting shell, the different area element and surface current in
-!  equation 2 reduce the point field to.
-!
-!    B(x) = mu0/2Pi AreaIntegral -1/mu0(B_u*e_v - B_v*e_u)
-!         x (x - x')/|x - x'|^3 |J|/J dudv                                   (7)
-!
-!  Computing the virtual casing surface current is simply.
-!
-!    K(u,v) = -1/mu0(B_u*e_v - B_v*e_u)
-!
-!  NOTE: Unlike the shell current, the virtual casing can be used with the Z
-!        position shift.
 
-      IF (ASSOCIATED(this%magnetic_cache%kruv) .or.                            &
-     &    ASSOCIATED(this%magnetic_cache%kzuv_full)) THEN
+      IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
 !  Interpolate the b_u and b_v onto the last closed flux surface. This
 !  interpolation follows what is outlined in tosuvspace. For odd modes
 !  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
@@ -1587,9 +1424,7 @@
                bsubvs = wodd*bsubvmns(:,ns - 1)
             END WHERE
          END IF
-      END IF
 
-      IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
          numU = SIZE(this%magnetic_cache%kruv, 1)
          numV = SIZE(this%magnetic_cache%kruv, 2)
 
@@ -1681,169 +1516,6 @@
 
          DEALLOCATE(cosv, sinv)
          DEALLOCATE(cosv_nyq, sinv_nyq)
-      END IF
-
-      IF (ASSOCIATED(this%magnetic_cache%kruv_full)) THEN
-         numU = SIZE(this%magnetic_cache%kruv_full, 1)
-         numV = SIZE(this%magnetic_cache%kruv_full, 2)
-
-         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
-         ALLOCATE(cosphi(numV), sinphi(numV))
-         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
-
-!>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
-!>  component arrays every time. The v components can change if phi_offset is
-!>  being reconstructed. The u components can be cached in the
-!>  @ref vmec_magnetic_cache and calculated once in
-!>  @ref vmec_set_magnetic_cache_init.
-!$OMP PARALLEL
-!$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r, z,
-!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-      DO v = 1, numV
-         phi = (v - 1)*this%magnetic_cache%dv_full + this%phi_offset
-         cosphi(v) = COS(phi)
-         sinphi(v) = SIN(phi)
-         cosv(:,v) = COS(xn*phi)
-         sinv(:,v) = SIN(xn*phi)
-         cosv_nyq(:,v) = COS(xn_nyq*phi)
-         sinv_nyq(:,v) = SIN(xn_nyq*phi)
-      END DO
-!$OMP END DO
-
-!>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
-!>  component arrays every time.
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-         DO u = 1, numU
-!  Arrays need to be allocated within the loop since each thread requires its
-!  own allocation.
-            ALLOCATE(cosu(mnmax), sinu(mnmax))
-            ALLOCATE(cosz(mnmax), sinz(mnmax))
-            ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
-            ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
-
-            cosu = COS(xm*(u - 1)*this%magnetic_cache%du_full)
-            sinu = SIN(xm*(u - 1)*this%magnetic_cache%du_full)
-            cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du_full)
-            sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du_full)
-
-            DO v = 1, numV
-
-               cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
-               sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
-
-               cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
-     &                  + sinu_nyq*sinv_nyq(:,v)
-
-               ru = -SUM(xm*rmnc(:,ns)*sinz)
-               zu = SUM(xm*zmns(:,ns)*cosz)
-               rv = SUM(xn*rmnc(:,ns)*sinz)
-               zv = -SUM(xn*zmns(:,ns)*cosz)
-               r = SUM(rmnc(:,ns)*cosz)
-               z = SUM(zmns(:,ns)*sinz)
-
-               bu = SUM(bsubuc*cosz_nyq)
-               bv = SUM(bsubvc*cosz_nyq)
-
-               IF (lasym) THEN
-                  sinz_nyq = sinu_nyq*cosv_nyq(:,v)                            &
-     &                     - cosu_nyq*sinv_nyq(:,v)
-
-                  ru = ru + SUM(xm*rmns(:,ns)*cosz)
-                  zu = zu - SUM(xm*zmnc(:,ns)*sinz)
-                  rv = rv - SUM(xn*rmns(:,ns)*cosz)
-                  zv = zv + SUM(xn*zmnc(:,ns)*sinz)
-                  r = r + SUM(rmns(:,ns)*sinz)
-                  z = z + SUM(zmnc(:,ns)*cosz)
-
-                  bu = bu + SUM(bsubus*sinz_nyq)
-                  bv = bv + SUM(bsubvs*sinz_nyq)
-               END IF
-
-               this%magnetic_cache%kruv_full(u,v) = -1.0/mu0*(bu*rv -          &
-     &                                                        bv*ru)
-               this%magnetic_cache%kphiuv_full(u,v) = -1.0/mu0*bu*r
-               this%magnetic_cache%kzuv_full(u,v) = -1.0/mu0*(bu*zv -          &
-     &                                                        bv*zu)
-
-               this%magnetic_cache%x_prime(u,v,1) = r*cosphi(v)
-               this%magnetic_cache%x_prime(u,v,2) = r*sinphi(v)
-               this%magnetic_cache%x_prime(u,v,3) = z + this%z_offset
-
-               IF (ASSOCIATED(this%magnetic_cache%kruv_axi)) THEN
-                  r = 0.0
-                  z = 0.0
-                  ru = 0.0
-                  zu = 0.0
-                  rv = 0.0
-                  zv = 0.0
-
-                  bu = 0.0
-                  bv = 0.0
-
-                  DO i = 1, SIZE(xn)
-                     IF (xn(i) .eq. 0.0) THEN
-                        ru = ru - xm(i)*rmnc(i,ns)*sinz(i)
-                        zu = zu + xm(i)*zmns(i,ns)*cosz(i)
-                        r = r + rmnc(i,ns)*cosz(i)
-                        z = z + zmns(i,ns)*sinz(i)
-                     END IF
-                  END DO
-
-                  DO i = 1, SIZE(xn_nyq)
-                     IF (xn_nyq(i) .eq. 0.0) THEN
-                        bu = bu + bsubuc(i)*cosz_nyq(i)
-                        bv = bv + bsubvc(i)*cosz_nyq(i)
-                     END IF
-                  END DO
-
-                  IF (lasym) THEN
-                     DO i = 1, SIZE(xn)
-                        IF (xn(i) .eq. 0.0) THEN
-                           ru = ru + xm(i)*rmns(i,ns)*cosz(i)
-                           zu = zu - xm(i)*zmnc(i,ns)*sinz(i)
-                           r = r + rmns(i,ns)*sinz(i)
-                           z = z + zmnc(i,ns)*cosz(i)
-                        END IF
-                     END DO
-
-                     DO i = 1, SIZE(xn_nyq)
-                        IF (xn_nyq(i) .eq. 0.0) THEN
-                           bu = bu + bsubus(i)*sinz_nyq(i)
-                           bv = bv + bsubvs(i)*sinz_nyq(i)
-                        END IF
-                     END DO
-                  END IF
-
-                  this%magnetic_cache%kruv_axi(u,v) = 1.0/mu0*bv*ru
-                  this%magnetic_cache%kphiuv_axi(u,v) = -1.0/mu0*bu*r
-                  this%magnetic_cache%kzuv_axi(u,v) = 1.0/mu0*bv*zu
-
-                  this%magnetic_cache%x_axi(u,v,1) = r*cosphi(v)
-                  this%magnetic_cache%x_axi(u,v,2) = r*sinphi(v)
-                  this%magnetic_cache%x_axi(u,v,3) = z + this%z_offset
-
-               END IF
-            END DO
-
-            DEALLOCATE(cosu, sinu)
-            DEALLOCATE(cosz, sinz)
-            DEALLOCATE(cosu_nyq, sinu_nyq)
-            DEALLOCATE(cosz_nyq, sinz_nyq)
-         END DO
-!$OMP END DO
-!$OMP END PARALLEL
-
-         DEALLOCATE(cosv, sinv)
-         DEALLOCATE(cosphi, sinphi)
-         DEALLOCATE(cosv_nyq, sinv_nyq)
-      END IF
-
-      IF (ASSOCIATED(this%magnetic_cache%kruv) .or.                            &
-     &    ASSOCIATED(this%magnetic_cache%kzuv_full)) THEN
          DEALLOCATE(bsubuc, bsubvc)
 
          IF (lasym) THEN
@@ -1851,7 +1523,25 @@
          END IF
       END IF
 
-!  Setup the virtual casing arrays.
+!  Setup the virtual casing mod if using the point measurements.
+      IF (this%magnetic_cache%use_point) THEN
+         IF (lasym) THEN
+            CALL init_virtual_casing_dbl(mnmax, 1000, 1000,                    &
+     &              INT(xm), -INT(xn/nfp),                                     &
+     &              rmnc(:,(ns - 1):), zmns(:,(ns - 1):), nfp,                 &
+     &              bumnc=(1.5*bsupumnc(:,ns) - 0.5*bsupumnc(:,ns - 1)),       &
+     &              bvmnc=(1.5*bsupvmnc(:,ns) - 0.5*bsupvmnc(:,ns - 1)),       &
+     &              rmns=rmns(:,(ns - 1):), zmnc=zmnc(:,(ns - 1):),            &
+     &              bumns=(1.5*bsupumns(:,ns) - 0.5*bsupumns(:,ns - 1)),       &
+     &              bvmns=(1.5*bsupvmns(:,ns) - 0.5*bsupvmns(:,ns - 1)))
+         ELSE
+            CALL init_virtual_casing_dbl(mnmax, 1000, 1000,                    &
+     &              INT(xm), -INT(xn/nfp),                                     &
+     &              rmnc(:,(ns - 1):), zmns(:,(ns - 1):), nfp,                 &
+     &              bumnc=(1.5*bsupumnc(:,ns) - 0.5*bsupumnc(:,ns - 1)),       &
+     &              bvmnc=(1.5*bsupvmnc(:,ns) - 0.5*bsupvmnc(:,ns - 1)))
+         END IF
+      END IF
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
      &                            start_time)
@@ -3399,36 +3089,25 @@
 !>  This method overrides @ref equilibrium::equilibrium_get_ext_b_plasma. The b
 !>  field is returned in cyclindical coordinates.
 !>
-!>  @param[in] this     A @ref vmec_class instance.
-!>  @param[in] position Position to compute the fields at in cylindrical
-!>                      coordinates.
-!>  @param[in] axi_only Gives only the axisymmtric component of the magnetic
-!>                      field.
+!>  @param[in]  this     A @ref vmec_class instance.
+!>  @param[in]  position Position to compute the fields at in cylindrical
+!>                       coordinates.
 !>  @returns The external currents.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_ext_b_plasma(this, position, axi_only)
+      FUNCTION vmec_get_ext_b_plasma(this, position)
+      USE virtual_casing_mod
       USE coordinate_utilities
-      USE read_wout_mod, only: isigng
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec), DIMENSION(3)              :: vmec_get_ext_b_plasma
-      TYPE (vmec_class), INTENT(in)           :: this
-      REAL (rprec), DIMENSION(3), INTENT(in)  :: position
-      LOGICAL, INTENT(in)                     :: axi_only
+      REAL (rprec), DIMENSION(3)             :: vmec_get_ext_b_plasma
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: position
 
 !  local variables
-      REAL (rprec), DIMENSION(3)              :: x_cart
-      INTEGER                                 :: u, v
-      REAL (rprec), DIMENSION(3)              :: l_prime
-      REAL (rprec), DIMENSION(3)              :: r_prime
-      REAL (rprec), DIMENSION(:,:,:), POINTER :: x_prime
-      REAL (rprec), DIMENSION(:,:), POINTER   :: kruv
-      REAL (rprec), DIMENSION(:,:), POINTER   :: kphiuv
-      REAL (rprec), DIMENSION(:,:), POINTER   :: kzuv
-      REAL (rprec), DIMENSION(3)              :: sum_b
-      REAL (rprec)                            :: start_time
+      REAL (rprec), DIMENSION(3)             :: x_cart
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -3438,62 +3117,14 @@
       x_cart(2) = x_cart(2) - this%phi_offset
       x_cart = cyl_to_cart(x_cart)
 
-      IF (axi_only) THEN
-         CALL assert(ASSOCIATED(this%magnetic_cache%kzuv_axi),                 &
-     &               'Cannot get the axisymmtric only ext bfield.')
+      CALL bfield_virtual_casing(x_cart(1), x_cart(2), x_cart(3),              &
+     &                           vmec_get_ext_b_plasma(1),                     &
+     &                           vmec_get_ext_b_plasma(2),                     &
+     &                           vmec_get_ext_b_plasma(3))
 
-         x_prime => this%magnetic_cache%x_axi
-         kruv => this%magnetic_cache%kruv_axi
-         kphiuv => this%magnetic_cache%kphiuv_axi
-         kzuv => this%magnetic_cache%kzuv_axi
-      ELSE
-         CALL assert(ASSOCIATED(this%magnetic_cache%kzuv_full),                &
-     &               'Cannot get the ext bfield.')
-
-         x_prime => this%magnetic_cache%x_prime
-         kruv => this%magnetic_cache%kruv_full
-         kphiuv => this%magnetic_cache%kphiuv_full
-         kzuv => this%magnetic_cache%kzuv_full
-      END IF
-
-!  The magnetic field produced by a sheet of current is
-!
-!    B(x) = Int K x (x-x')/|x-x'|da                                          (1)
-      sum_b = 0.0
-      DO v = 1, SIZE(kruv,2)
-         DO u = 1, SIZE(kruv,1)
-            l_prime = x_cart - x_prime(u,v,:)
-            r_prime = cart_to_cyl_vec(x_prime(u,v,:), l_prime)
-
-            sum_b(1) = sum_b(1)                                                &
-     &               + (kphiuv(u,v)*r_prime(3) - kzuv(u,v)*r_prime(2))         &
-     &               / (SQRT(DOT_PRODUCT(l_prime, l_prime))**3.0)
-            sum_b(2) = sum_b(2)                                                &
-     &               + (kzuv(u,v)*r_prime(1) - kruv(u,v)*r_prime(3))           &
-     &               / (SQRT(DOT_PRODUCT(l_prime, l_prime))**3.0)
-            sum_b(3) = sum_b(3)                                                &
-     &               + (kruv(u,v)*r_prime(2) - kphiuv(u,v)*r_prime(1))         &
-     &               / (SQRT(DOT_PRODUCT(l_prime, l_prime))**3.0)
-
-         END DO
-      END DO
-
-!  The virtual casing principal acts as if there is a perfectly conducting shell
-!  around the last closed flux surface. In this shell, eddy currents induced
-!  from the volume currents get canceled out by the shell currents.
-!
-!    B_v + B_s = 0                                                           (2)
-!
-!  Thus the shell field is the same magnetude but opposite sign to the volume
-!  current.
-!
-!    B_v = -B_s                                                              (3)
-!
-!  After the surface integral is completed, negate the result to produce a field
-!  that would be the same as a volume integral.
-      vmec_get_ext_b_plasma = -mu0/(4.0*pi)*sum_b*isigng                       &
-     &                      * this%magnetic_cache%du_full                      &
-     &                      * this%magnetic_cache%dv_full
+!  Convert the b vector to cyclindical.
+      vmec_get_ext_b_plasma = cart_to_cyl_vec(x_cart,                          &
+     &                                        vmec_get_ext_b_plasma)
 
       CALL profiler_set_stop_time('vmec_get_ext_b_plasma', start_time)
 
