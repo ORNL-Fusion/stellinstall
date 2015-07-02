@@ -1386,7 +1386,7 @@
       REAL (rprec)                              :: start_time
       REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubuc, bsubus
       REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubvc, bsubvs
-      REAL (rprec)                              :: wodd
+      REAL (rprec)                              :: woddlow, woddhigh
 
 !  Start of executable code.
       start_time = profiler_get_start_time()
@@ -1566,25 +1566,30 @@
 !  Interpolate the b_u and b_v onto the last closed flux surface. This
 !  interpolation follows what is outlined in tosuvspace. For odd modes
 !  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
-         wodd = SQRT((ns - 1.0)/(ns - 1.0 - 1.5))
+         woddlow = 0.5*SQRT((ns - 1.0)/(ns - 1.5))
+         woddhigh = 1.5*SQRT((ns - 1.0)/(ns - 2.5))
 
-         ALLOCATE(bsubuc(mnmax), bsubvc(mnmax))
+         ALLOCATE(bsubuc(mnmax_nyq), bsubvc(mnmax_nyq))
          WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
             bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
             bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
          ELSE WHERE
-            bsubuc = wodd*bsubumnc(:,ns - 1)
-            bsubvc = wodd*bsubvmnc(:,ns - 1)
+            bsubuc = woddhigh*bsubumnc(:,ns)                                   &
+     &             - woddlow*bsubumnc(:,ns - 1)
+            bsubvc = woddhigh*bsubvmnc(:,ns)                                   &
+     &             - woddlow*bsubvmnc(:,ns - 1)
          END WHERE
 
          IF (lasym) THEN
-            ALLOCATE(bsubus(mnmax), bsubvs(mnmax))
+            ALLOCATE(bsubus(mnmax_nyq), bsubvs(mnmax_nyq))
             WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
                bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
                bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
             ELSE WHERE
-               bsubus = wodd*bsubumns(:,ns - 1)
-               bsubvs = wodd*bsubvmns(:,ns - 1)
+               bsubus = woddhigh*bsubumns(:,ns)                                &
+     &                - woddlow*bsubumns(:,ns - 1)
+               bsubvs = woddhigh*bsubvmns(:,ns)                                &
+     &                - woddlow*bsubvmns(:,ns - 1)
             END WHERE
          END IF
       END IF
