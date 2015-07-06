@@ -16,12 +16,12 @@ C-----------------------------------------------
 C-----------------------------------------------
 c**********************************************************************
 c       this subroutine obtains initial guesses for the centroid at each
-c       toroidal plane. by default, the polar axis is set equal to this
-c       centroid.  it is imperative that the polar axis be enclosed by
+c       toroidal plane. By default, the polar axis is set equal to this
+c       centroid.  It is imperative that the polar axis be enclosed by
 c       the surface (otherwise the computed theta angles will not span
-c       [0,2pi]). for certain complex cross-sections, this simple estimate
+c       [0,2pi]). For certain complex cross-sections, this simple estimate
 c       of the polar axis may fail, and the user must supply values for
-c       raxis(i),zaxis(i).  in addition, for non-starlike domains, the
+c       raxis(i),zaxis(i).  In addition, for non-starlike domains, the
 c       points along the curve must be monitonically increasing as a
 c       function of the arclength from any fixed point on the curve. this
 c       ordering is attempted by the subroutine order, but may fail in

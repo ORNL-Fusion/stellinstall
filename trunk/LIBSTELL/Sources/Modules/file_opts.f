@@ -7,11 +7,11 @@
 !
 !>  Contains cross platform routines for manipulating files on the file system.
 !>  Defines a functions to move, copy and delete a file that is cross platform.
-!>  While, vmec_system contains a crossplatform way to call a command line
+!>  While, system contains a crossplatform way to call a command line
 !>  commands, the command used will vary by platform.
 !*******************************************************************************
-
       MODULE file_opts
+      USE SYSTEM_MOD
 
       IMPLICIT NONE
 
@@ -47,7 +47,7 @@
 
 !  Start of executable code
 
-      CALL vmec_system(cmd // TRIM(file_source) // ' ' // file_dest,           &
+      CALL system(cmd // TRIM(file_source) // ' ' // file_dest,           &
      &                 error)
 
       END SUBROUTINE
@@ -82,7 +82,7 @@
 
 !  Start of executable code
 
-      CALL vmec_system(cmd // TRIM(file_source) // ' ' // file_dest,           &
+      CALL system(cmd // TRIM(file_source) // ' ' // file_dest,           &
      &                 error)
 
       END SUBROUTINE
@@ -115,7 +115,7 @@
 
 !  Start of executable code
 
-      CALL vmec_system(cmd // TRIM(file_source), error)
+      CALL system(cmd // TRIM(file_source), error)
 
       END SUBROUTINE
 
@@ -144,7 +144,7 @@
 
 !  Start of executable code
 
-      CALL vmec_system(cmd // TRIM(directory_source), error)
+      CALL system(cmd // TRIM(directory_source), error)
 
       END SUBROUTINE
 
@@ -158,7 +158,6 @@
 !>  @param[out] error       The result of the copy.
 !-------------------------------------------------------------------------------
       SUBROUTINE delete_directory(directory_source, error)
-
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -174,7 +173,7 @@
 
 !  Start of executable code
 
-      CALL vmec_system(cmd // TRIM(directory_source), error)
+      CALL system(cmd // TRIM(directory_source), error)
 
       END SUBROUTINE
 
@@ -293,11 +292,9 @@
 !>  @param[in] path Path of the working directory to change to.
 !-------------------------------------------------------------------------------
       SUBROUTINE change_directory(path, error)
-
+  
 #if defined(__INTEL_COMPILER)
       USE IFLPORT
-#else
-      USE SYSTEM_MOD
 #endif
 
       IMPLICIT NONE

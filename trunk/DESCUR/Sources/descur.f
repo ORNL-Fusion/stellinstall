@@ -29,7 +29,7 @@ c       PARAMETER VALUE INTERPRETATIONS:
 c
 c       MPOL:   ACTUAL NO. OF POLOIDAL MODES USED IN FIT FOR R and Z
 c       MRHO:   ACTUAL NO. OF POLOIDAL MODES IN FIT FOR QUASI-POLAR RHO
-c       NTHETA: ACTUAL NO. OF THETA (POLOIDAL) POINTS AUSED IN FIT
+c       NTHETA: ACTUAL NO. OF THETA (POLOIDAL) POINTS USED IN FIT
 c       NPHI:   ACTUAL NO. OF TOROIDAL PLANES IN FIT
 c
 c***********************************************************************
@@ -44,16 +44,17 @@ C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
       INTEGER, PARAMETER :: nphi20 = 1 + nv/2
       INTEGER, PARAMETER :: mntot = mu*(2*nphi20 + 1)
+      INTEGER :: IUNIT=33
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: niter, nstep, itype, ncount,
-     1   i, k, j, m, n, mexp = 4, ns, iread
+     1   i, k, j, m, n, mexp = 4, ns, iread, numargs, ier_flag
       REAL(rprec), DIMENSION(nu*nv) :: rin, zin
       REAL(rprec), DIMENSION(mntot) :: rbc, rbs, zbc, zbs
       REAL(rprec), DIMENSION(0:nv) :: rmnaxis, zmnaxis
-      REAL(rprec), DIMENSION(0:mu-1,-nphi20:nphi20) ::
-     1 rbdy_3d, zbdy_3d
+      REAL(rprec), DIMENSION(0:mu-1,-nphi20:nphi20,2) ::
+     1             rbdy_3d, zbdy_3d
       REAL(rprec), DIMENSION(4) :: rbdy, zbdy, rdshape, zdshape,
      1 rbean, zbean, rbelt, zbelt, rellip, zellip, rsqr, zsqr
       REAL(rprec), DIMENSION(0:11) :: rd3dc, zd3dc, rd3ds, zd3ds
@@ -62,6 +63,7 @@ C-----------------------------------------------
      1   dumr, dumphi, dumz, arg, PSI, EPS, KAPPA, BDIA, R1, A1, QPSI
 !     2  , XI, DELTA_R, rmin, rmax, denom
       CHARACTER :: datafile*80
+      CHARACTER*120 :: command_arg(10)
       CHARACTER*1 :: ch_yn
 C-----------------------------------------------
 
@@ -103,16 +105,29 @@ c**********************************************************************
       data datafile/'none'/
 
       twopi = 8*ATAN(one)
+      HB_Parameter = 1
+      mexp = 4
+!**********************************************************************
+!       CREATE ARRAYS OF CURVE POINTS, RIN(THETA,PHI) , ZIN(THETA,PHI),
+!       TO BE FIT TO AN OPTIMIZED FOURIER SERIES BY CALLING "SCRUNCH".
+!       NOTE: N IS IN UNITS NORMED TO NFP (NUMBER OF FIELD PERIODS) IN 20 LOOP
+!**********************************************************************
+!
+!     Read in data from file or command line i numargs > 0
+!
+      CALL getcarg(1, command_arg(1), numargs)
+      IF (numargs .GT. 0) THEN
+!
+!        READ INPUT DATA FILE ON COMMAND LINE, RATHER THAN INTERACTIVE MODE
+         CALL read_indata(command_arg(1), iunit, ier_flag,
+     1                    nphi20, rbdy_3d, zbdy_3d)
+         IF (ier_flag .ne. 0) STOP 'ERROR READING INPUT FILE'
+         GO TO 1006
+      ENDIF
 
-c**********************************************************************
-c       CREATE ARRAYS OF CURVE POINTS, RIN(THETA,PHI) , ZIN(THETA,PHI),
-c       TO BE FIT TO AN OPTIMIZED FOURIER SERIES BY CALLING "SCRUNCH".
-c       NOTE: N IS IN UNITS NORMED TO NFP (NUMBER OF FIELD PERIODS) IN 20 LOOP
-c**********************************************************************
-c
-c     Read in data
-c
-
+!
+!     INTERACTIVE MODE
+!
       WRITE (6, '(a)') ' Enter spectral convergence parameter'
       WRITE (6, '(a)') ' =0 for polar,  =1 for equal arclength'
       WRITE (6, '(a)') ' >1 for smaller spectral width'
@@ -271,18 +286,18 @@ c
             i = i + 1
             IF (iread .eq. 1) THEN
                READ (20, *, iostat=itype) rin(i), dumphi, zin(i)
-	      ELSE
+            ELSE
                READ (20, *, iostat=itype) rin(i), zin(i)
             END IF
             IF (itype .ne. 0) THEN
                IF (iread .eq. 1) THEN
-	            CLOSE (20)
-	            GOTO 1002
-	         ELSE
+                  CLOSE (20)
+                  GOTO 1002
+               ELSE
                   PRINT *,' Error reading datafile: iostat = ',itype
                   STOP
                END IF
-	      END IF
+             END IF
           END DO
       END DO
 
@@ -305,9 +320,6 @@ c
 
  1003 CONTINUE
 
-      ntheta = nu
-      rbdy_3d = 0
-      zbdy_3d = 0
 !
 !     try to read data from a wout file
 !
@@ -324,8 +336,8 @@ c
              READ(20, *, iostat=itype, END=200) n, m, dumr, dumz
              IF (itype .ne. 0) CYCLE
              IF (nfp .ne. 0) n = n/nfp
-             rbdy_3d(m,n) = dumr
-             zbdy_3d(m,n) = dumz
+             rbdy_3d(m,n,1) = dumr
+             zbdy_3d(m,n,1) = dumz
          END DO
 
  200     CONTINUE
@@ -333,13 +345,15 @@ c
 
       END IF
 
+ 1006 CONTINUE
+      ntheta = nu
       mpol1 = mpol-1
       nphi  = 2*(nphi2+1)
       IF (nphi2 .le. 0) nphi = 1
       IF (nphi .gt. nv)  STOP 'nphi > nv'
 
-      rin = zero
-      zin = zero
+      rin = 0
+      zin = 0
 
       DO m = 0, mpol1
          DO n = -nphi2, nphi2
@@ -349,8 +363,10 @@ c
                DO j = 1, ntheta
                   i = i + 1
                   arg = twopi*(j - 1)/REAL(ntheta,rprec)
-                  rin(i) = rin(i) + rbdy_3d(m,n)*COS(m*arg - n*zeta)
-                  zin(i) = zin(i) + zbdy_3d(m,n)*SIN(m*arg - n*zeta)
+                  rin(i) = rin(i) + rbdy_3d(m,n,1)*COS(m*arg - n*zeta)
+     1                            + rbdy_3d(m,n,2)*SIN(m*arg - n*zeta)
+                  zin(i) = zin(i) + zbdy_3d(m,n,1)*SIN(m*arg - n*zeta)
+     1                            + zbdy_3d(m,n,2)*COS(m*arg - n*zeta)
                END DO
             END DO
          END DO
@@ -470,7 +486,7 @@ c**********************************************************************
       CALL printit(rin,zin,rbc,zbs,rbs,zbc,rmnaxis,zmnaxis)
       CLOSE(10)
 
-!DEC$ IF .NOT.DEFINED(WIN32)
+#ifndef WIN32
 c**********************************************************************
 c     PLOT FIT TO DATA POINTS
 c**********************************************************************
@@ -480,6 +496,6 @@ c**********************************************************************
 
       IF (ch_yn == 'Y' .or. ch_yn == 'y') CALL system ("xdes_plot")
 
-!DEC$ ENDIF
+#endif
 
       END PROGRAM descur

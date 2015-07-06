@@ -1,25 +1,25 @@
       SUBROUTINE getrz(rmc,rms,zmc,zms,r0c,z0c,rhoc,rhos,m,mrho_in)
       USE Vname1
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       INTEGER m, mrho_in
       REAL(rprec), DIMENSION(0:mrho-1) :: rhoc, rhos
       REAL(rprec) :: rmc, rms, zmc, zms, r0c, z0c
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER :: mrho1
-C-----------------------------------------------
+!-----------------------------------------------
 
       mrho1 = mrho_in-1
-      rhos(0) = zero            !constraint on poloidal angle
+      rhos(0) = 0               !constraint on poloidal angle
 
       IF (m .eq. 0) THEN
          rmc = r0c  + t2m(m)*rhoc(1)
          zmc = z0c  + t2m(m)*rhos(1)
-         rms = zero
-         zms = zero
+         rms = 0
+         zms = 0
       ELSE IF (m .lt. mrho1) THEN
          rmc = (t1m(m)*rhoc(m-1) + t2m(m)*rhoc(m+1))
          zms = (t1m(m)*rhoc(m-1) - t2m(m)*rhoc(m+1))

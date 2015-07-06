@@ -27,12 +27,12 @@ C-----------------------------------------------
       CASE (2)
          xdot(:n2) = zero
          xvec(:n2) = xstore(:n2)
-         delt = .95*delt
+         delt = .975_dp*delt
          irst = 1
          nresets = nresets + 1
          IF (nresets .ge. 100) THEN
             PRINT *, ' Time step reduced 100 times without convergence'
-            STOP
+            irst = 4
          ENDIF
          RETURN
 

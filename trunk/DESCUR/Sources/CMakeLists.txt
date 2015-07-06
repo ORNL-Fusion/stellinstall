@@ -11,6 +11,7 @@ list (APPEND xdescur_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/inguess.f
 	${CMAKE_CURRENT_SOURCE_DIR}/order.f
 	${CMAKE_CURRENT_SOURCE_DIR}/printit.f
+	${CMAKE_CURRENT_SOURCE_DIR}/read_indata.f
 	${CMAKE_CURRENT_SOURCE_DIR}/read_wout_curve.f
 	${CMAKE_CURRENT_SOURCE_DIR}/restart.f
 	${CMAKE_CURRENT_SOURCE_DIR}/scrunch.f

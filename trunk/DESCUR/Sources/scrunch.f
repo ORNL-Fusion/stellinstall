@@ -17,7 +17,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: pexp = 4, qEXP = 1
+      REAL(rprec), PARAMETER :: pexp = 4, qexp = 1
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -39,7 +39,7 @@ c
 !
 !     CHECK THAT INPUT DIMENSIONS ARE CONSISTENT WITH NAME1 PARAMETERS
 !
-      deltf = 0.97_dp
+      deltf = 1
       IF (MOD(nphi,2).ne.0 .and. nphi.ne.1 .or. nphi.eq.0) THEN
          PRINT *, ' NPHI > 0 must be EVEN for non-symmetric systems'
          STOP
@@ -134,13 +134,19 @@ c
 !     RUDIMENTARY TIME STEP CONTROL
 !
                IF (gnorm/gmin .gt. too_large) irst = 2
-               IF (irst.eq.2 .or. gmin.eq.gnorm) CALL restart (irst)
+               IF (irst.eq.2 .or. gmin.eq.gnorm) THEN
+                  CALL restart (irst)
+                  IF (irst .eq. 4) THEN
+                     gnorm=gmin
+                     EXIT
+                  END IF
+               END IF
 
                IF (gnorm.lt.gtrig .and. imodes.lt.mrho) THEN
                   imodes = imodes + 1
                   CALL restart (irst)
                   irst = 2
-                  delt = delt/.95
+                  delt = MIN(0.98_dp, delt/.975)
                ENDIF
                IF (MOD(iter,nstep).ne.0 .and. gnorm.gt.ftol**2) CYCLE
             CASE (2)

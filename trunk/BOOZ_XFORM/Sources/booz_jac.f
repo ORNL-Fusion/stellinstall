@@ -14,6 +14,7 @@ C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
       REAL(rprec), PARAMETER :: one = 1, c1p5 = 1.5_dp
+      LOGICAL, PARAMETER     :: lwrite=.FALSE.
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -31,10 +32,10 @@ C-----------------------------------------------
          z12 = z
       END IF
 
-!     WRITE R,Z IN SPECIFIED TOROIDAL PLANE IN VMEC COORDINATES 
+!     WRITE R,Z IN SPECIFIED TOROIDAL PLANE IN VMEC/BOOZER COORDINATES 
       nvplane = 1
 !	nvplane = nv_boz/4
-      CALL WriteSurface(js, nvplane, nrep, r12, z12)
+      IF (lWrite) CALL WriteSurface(js, nvplane, nrep, r12, z12)
 
       END SUBROUTINE booz_rzhalf
 
