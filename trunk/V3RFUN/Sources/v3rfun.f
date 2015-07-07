@@ -712,8 +712,6 @@
       REAL(rprec), DIMENSION(:), POINTER :: rdiag_coilg_1 => null()
 
       TYPE (magnetic_response_class), POINTER :: response => null()
-      TYPE(mddc_mrf), POINTER   :: null_mrf => null()
-      TYPE(diagnostic_desc)     :: local_diagnostic_desc
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
       REAL(rprec), DIMENSION(:,:,:), POINTER :: a_z => null()

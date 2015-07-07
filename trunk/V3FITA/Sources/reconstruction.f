@@ -2128,18 +2128,37 @@
       iLow = offset(mpi_rank + 1) + 1
       iHigh = offset(mpi_rank + 1) + stride(mpi_rank + 1)
 
-      CALL MPI_GATHERV(this%jacobian(:,iLow:iHigh),                            &
-     &                 num_signal*stride(mpi_rank + 1), MPI_REAL8,             &
-     &                 this%jacobian, num_signal*stride,                       &
-     &                 num_signal*offset, MPI_REAL8, 0, intra_comm,            &
-     &                 error)
+!  MPI cannot send and recieve to the same buffer. For the root buffer, use the
+!  in place specifer. This makes the recieve buffer act as double duty acts as
+!  the send and recieve buffer. Otherwise on the root process, the pointers for
+!  the buffers would alias.
+      IF (mpi_rank .eq. 0) THEN
+         CALL MPI_GATHERV(MPI_IN_PLACE,                                        &
+     &                    num_signal*stride(mpi_rank + 1), MPI_REAL8,          &
+     &                    this%jacobian, num_signal*stride,                    &
+     &                    num_signal*offset, MPI_REAL8, 0, intra_comm,         &
+     &                    error)
 
-      CALL MPI_GATHERV(this%derived_jacobian(:,iLow:iHigh),                    &
-     &                 num_derived_params*stride(mpi_rank + 1),                &
-     &                 MPI_REAL8, this%derived_jacobian,                       &
-     &                 num_derived_params*stride,                              &
-     &                 num_derived_params*offset, MPI_REAL8, 0,                &
-     &                 intra_comm, error)
+         CALL MPI_GATHERV(MPI_IN_PLACE,                                        &
+     &                    num_derived_params*stride(mpi_rank + 1),             &
+     &                    MPI_REAL8, this%derived_jacobian,                    &
+     &                    num_derived_params*stride,                           &
+     &                    num_derived_params*offset, MPI_REAL8, 0,             &
+     &                    intra_comm, error)
+      ELSE
+         CALL MPI_GATHERV(this%jacobian(:,iLow:iHigh),                         &
+     &                    num_signal*stride(mpi_rank + 1), MPI_REAL8,          &
+     &                    this%jacobian, num_signal*stride,                    &
+     &                    num_signal*offset, MPI_REAL8, 0, intra_comm,         &
+     &                    error)
+
+         CALL MPI_GATHERV(this%derived_jacobian(:,iLow:iHigh),                 &
+     &                    num_derived_params*stride(mpi_rank + 1),             &
+     &                    MPI_REAL8, this%derived_jacobian,                    &
+     &                    num_derived_params*stride,                           &
+     &                    num_derived_params*offset, MPI_REAL8, 0,             &
+     &                    intra_comm, error)
+      END IF
 
 !  Sync the delta used to find the jacobians.
       DO i = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &

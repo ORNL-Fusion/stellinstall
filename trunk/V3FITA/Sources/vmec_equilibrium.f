@@ -981,8 +981,7 @@
             CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false.,              &
      &                      status)
             CALL assert_eq(0, status, 'vmec_set_param: failed to ' //          &
-     &                     'mgrid_file')
-            ivac = 1
+     &                     'read mgrid_file')
 
          CASE (vmec_curtor_id)
             vmec_set_param = .true.

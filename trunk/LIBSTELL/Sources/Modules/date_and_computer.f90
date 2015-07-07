@@ -8,7 +8,6 @@
       CHARACTER(LEN=9), PARAMETER :: finfo='VInfo.txt'
       CHARACTER(LEN=100) :: computer, os, os_release
 
-!  The Mac OS X version of uname doesn't have the -o option. Use -s instead.
 #if defined(DARWIN)
       CHARACTER(LEN=2), PARAMETER :: os_flag = '-s'
 #else
