@@ -562,7 +562,7 @@
             IF (temp_logical) THEN
                magnetic_response_construct_netcdf%flags =                      &
      &            IBSET(magnetic_response_construct_netcdf%flags,              &
-     &                  magnetic_response_use_shell_flag)
+     &                  magnetic_response_stell_sym_flag)
             END IF
 
 !  The mutual inductance and plasma response are expected.
@@ -580,7 +580,7 @@
             IF (temp_logical) THEN
                magnetic_response_construct_netcdf%flags =                      &
      &            IBSET(magnetic_response_construct_netcdf%flags,              &
-     &                  magnetic_response_use_shell_flag)
+     &                  magnetic_response_stell_sym_flag)
             END IF
 
 !  The mutual inductance and plasma response are expected.

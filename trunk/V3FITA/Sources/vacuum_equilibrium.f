@@ -344,11 +344,14 @@
             vacuum_get_param_id = vacuum_extcur_id
 
          CASE DEFAULT
-            vacuum_get_param_id = data_no_id
+            WRITE (*,1000) TRIM(param_name)
+            CALL EXIT(1)
 
       END SELECT
 
       CALL profiler_set_stop_time('vacuum_get_param_id', start_time)
+
+1000  FORMAT('ERROR: ',a,' is not a valid parameter.')
 
       END FUNCTION
 
