@@ -894,7 +894,8 @@
          magnetic_object =>                                                    &
      &      magnetic_construct(mdsig_iou, mag_a(signals_created),              &
      &                         mag_force_coil,                                 &
-     &                         mag_3D_a(signals_created))
+     &                         mag_3D_a(signals_created), cut_comp_svd)
+
          context%signals(signals_created)%p => signal_construct(               &
      &      diagnostic_construct(magnetic_object),                             &
      &      mdsig_iou, sdo_data_a(signals_created),                            &

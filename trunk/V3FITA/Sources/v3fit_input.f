@@ -257,6 +257,9 @@
 !>     @item{cut_inv_svd,  Cut off value for the singular values used for the
 !>                         pseudo matrix inverse of the parameter covariance
 !>                         Matrix.,                                            v3fit_input::cut_inv_svd}
+!>     @item{cut_comp_svd, cutoff value for the energy deficit in the number
+!>                         of singular values to keep for the magnet response
+!>                         function data compression. Zero is no compression., v3fit_input::cut_comp_svd}
 !>  @end_table
 !>
 !>  @table_section{xcdot_sec, VMEC zero out xcdot control}
@@ -915,6 +918,8 @@
       CHARACTER (len=v3fit_step_name_length) :: step_type = 'sl'
 !>  Cutoff value for singular values in matrix inverse.
       REAL (rprec)                           :: cut_inv_svd = 1.0E-10
+!>  Cutoff value for singular values used in the magnetic data compression.
+      REAL (rprec)                           :: cut_comp_svd = 0.0
 
 !>  Zero out vmec xcdot array
 !>  @todo FIXME: VMEC specific. Not implemented.
@@ -985,7 +990,7 @@
      &   phi_offset, z_offset,                                                 &
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
-     &   cut_dg2, astep_max, step_type, cut_inv_svd,                           &
+     &   cut_dg2, astep_max, step_type, cut_inv_svd, cut_comp_svd,             &
 !>  @todo FIXME: The implementation is VMEC specific.
      &   l_zero_xcdot
 

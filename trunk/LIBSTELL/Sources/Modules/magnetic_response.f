@@ -9,6 +9,7 @@
 !*******************************************************************************
 
       MODULE magnetic_response
+      USE compression
       USE stel_kinds, only: rprec
 #if defined (MPI_OPT)
       USE mpi
@@ -162,14 +163,8 @@
          REAL (rprec), DIMENSION(:), POINTER :: current_scale => null()
 
 !  Plasma Response Grid Variables ----------------------------------------------
-!>  Number of grid points in R, plasma grid.
-         INTEGER                            :: num_r
-!>  Number of grid points in z, plasma grid.
-         INTEGER                            :: num_z
 !>  Number of phi planes per field period in plasma grid.
          INTEGER                            :: num_t
-!>  Number of phi planes actually stored in plasma grid.
-         INTEGER                            :: num_t_store
 !>  Minimum R for plasma grid.
          REAL (rprec)                       :: rmin
 !>  Maximum R for plasma grid.
@@ -182,28 +177,27 @@
 !>  Number of field periods.
          INTEGER                            :: n_field_periods
 
-!>  Number of grid points in u, conducting shell grid.
-         INTEGER                            :: num_u
 !>  Number of phi planes per field period in the conducting shell grid.
          INTEGER                            :: num_t_shell
-!>  Number of phi planes actually stored in the conducting shell grid.
-         INTEGER                            :: num_t_shell_store
 
 !  Plasma Response Arrays ------------------------------------------------------
 !>  R component of plasma response function.
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
+         TYPE (compression_pointer), DIMENSION(:), POINTER ::                  &
+     &      a_r => null()
 !>  Phi component of plasma response function.
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: a_f => null()
+         TYPE (compression_pointer), DIMENSION(:), POINTER ::                  &
+     &      a_f => null()
 !>  Z component of plasma response function.
-         REAL (rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
+         TYPE (compression_pointer), DIMENSION(:), POINTER ::                  &
+     &      a_z => null()
 
 !  Conducting Shell Response Arrays --------------------------------------------
 !>  R component of the conducting shell response function.
-         REAL (rprec), DIMENSION(:,:), POINTER :: a_s_r => null()
+         TYPE (compression_class), POINTER :: a_s_r => null()
 !>  Phi component of the conducting shell response function.
-         REAL (rprec), DIMENSION(:,:), POINTER :: a_s_f => null()
+         TYPE (compression_class), POINTER :: a_s_f => null()
 !>  Z component of the conducting shell response function.
-         REAL (rprec), DIMENSION(:,:), POINTER :: a_s_z => null()
+         TYPE (compression_class), POINTER :: a_s_z => null()
 
 !  Point Diagnostic Response ---------------------------------------------------
 !  Use the mutual inductance array to store the vacuum field response.
@@ -265,6 +259,7 @@
 !>                             function.
 !>  @param[in] a_s_z           Z component of the conducting shell response
 !>                             function.
+!>  @param[in] svd_cut_off     Cutoff on singular values for data compression.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_response_construct_new(name, date,                     &
@@ -274,7 +269,8 @@
      &                                         rmin, rmax, zmin, zmax,         &
      &                                         n_field_periods,                &
      &                                         stell_sym, a_r, a_f, a_z,       &
-     &                                         a_s_r, a_s_f, a_s_z)
+     &                                         a_s_r, a_s_f, a_s_z,            &
+     &                                         svd_cut_off)
       USE v3_utilities
 
       IMPLICIT NONE
@@ -301,9 +297,10 @@
       REAL (rprec), DIMENSION(:,:), POINTER   :: a_s_r
       REAL (rprec), DIMENSION(:,:), POINTER   :: a_s_f
       REAL (rprec), DIMENSION(:,:), POINTER   :: a_s_z
+      REAL (rprec), INTENT(in)                :: svd_cut_off
 
 !  local variables
-      INTEGER, DIMENSION(3)                   :: dim_lengths
+      INTEGER                                 :: phi
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -364,23 +361,18 @@
          CALL assert(ASSOCIATED(a_z), 'a_z response function not ' //          &
      &                                'allocated')
 
-         dim_lengths = SHAPE(a_r)
-         magnetic_response_construct_new%num_r = dim_lengths(1)
-         magnetic_response_construct_new%num_z = dim_lengths(2)
-         magnetic_response_construct_new%num_t_store = dim_lengths(3)
+         ALLOCATE(magnetic_response_construct_new%a_r(SIZE(a_r, 3)))
+         ALLOCATE(magnetic_response_construct_new%a_f(SIZE(a_r, 3)))
+         ALLOCATE(magnetic_response_construct_new%a_z(SIZE(a_r, 3)))
 
-         ALLOCATE(magnetic_response_construct_new%a_r(dim_lengths(1),          &
-     &                                                dim_lengths(2),          &
-     &                                                dim_lengths(3)))
-         ALLOCATE(magnetic_response_construct_new%a_f(dim_lengths(1),          &
-     &                                                dim_lengths(2),          &
-     &                                                dim_lengths(3)))
-         ALLOCATE(magnetic_response_construct_new%a_z(dim_lengths(1),          &
-     &                                                dim_lengths(2),          &
-     &                                                dim_lengths(3)))
-         magnetic_response_construct_new%a_r = a_r
-         magnetic_response_construct_new%a_f = a_f
-         magnetic_response_construct_new%a_z = a_z
+         DO phi = 1, SIZE(a_r, 3)
+            magnetic_response_construct_new%a_r(phi)%p =>                      &
+     &         compression_construct(a_r(:,:,phi), svd_cut_off)
+            magnetic_response_construct_new%a_f(phi)%p =>                      &
+     &         compression_construct(a_f(:,:,phi), svd_cut_off)
+            magnetic_response_construct_new%a_z(phi)%p =>                      &
+     &         compression_construct(a_z(:,:,phi), svd_cut_off)
+         END DO
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
@@ -394,20 +386,12 @@
          CALL assert(ASSOCIATED(a_s_z), 'a_s_z response function ' //          &
      &                                  'not allocated')
 
-         dim_lengths(1:2) = SHAPE(a_s_r)
-         magnetic_response_construct_new%num_u = dim_lengths(1)
-         magnetic_response_construct_new%num_t_shell_store =                   &
-     &      dim_lengths(3)
-
-         ALLOCATE(magnetic_response_construct_new%a_s_r(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         ALLOCATE(magnetic_response_construct_new%a_s_f(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         ALLOCATE(magnetic_response_construct_new%a_s_z(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         magnetic_response_construct_new%a_s_r = a_s_r
-         magnetic_response_construct_new%a_s_f = a_s_f
-         magnetic_response_construct_new%a_s_z = a_s_z
+         magnetic_response_construct_new%a_s_r =>                              &
+     &      compression_construct(a_s_r, svd_cut_off)
+         magnetic_response_construct_new%a_s_f =>                              &
+     &      compression_construct(a_s_f, svd_cut_off)
+         magnetic_response_construct_new%a_s_z =>                              &
+     &      compression_construct(a_s_z, svd_cut_off)
       END IF
 
       CALL profiler_set_stop_time('magnetic_response_construct_new',           &
@@ -502,10 +486,13 @@
 !>  Allocates memory and initializes a @ref magnetic_class object from a mdsig
 !>  file.
 !>
-!>  @param[in] mdsig_iou An instance of a the netcdf id of the open mdsig file.
+!>  @param[in] mdsig_iou   An instance of a the netcdf id of the open mdsig
+!>                         file.
+!>  @param[in] svd_cut_off Cutoff on singular values for data compression.
 !>  @returns A pointer to a constructed @ref magnetic_response_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION magnetic_response_construct_netcdf(mdsig_iou)
+      FUNCTION magnetic_response_construct_netcdf(mdsig_iou,                   &
+     &                                            svd_cut_off)
       USE ezcdf
 
       IMPLICIT NONE
@@ -513,12 +500,15 @@
 !  Declare Arguments
       TYPE (magnetic_response_class), POINTER ::                               &
      &   magnetic_response_construct_netcdf
-      INTEGER, INTENT(in)                     :: mdsig_iou
+      INTEGER, INTENT(in)                        :: mdsig_iou
+      REAL (rprec), INTENT(in)                   :: svd_cut_off
 
 !  local variables
-      LOGICAL                                 :: temp_logical
-      INTEGER, DIMENSION(3)                   :: dim_lengths
-      REAL (rprec)                            :: start_time
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp_buffer
+      LOGICAL                                    :: temp_logical
+      INTEGER, DIMENSION(3)                      :: dim_lengths
+      INTEGER                                    :: phi
+      REAL (rprec)                               :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -628,30 +618,35 @@
      &           magnetic_response_construct_netcdf%n_field_periods)
 
          CALL cdf_inquire(mdsig_iou, nc_a_r, dim_lengths)
-         magnetic_response_construct_netcdf%num_r = dim_lengths(1)
-         magnetic_response_construct_netcdf%num_z = dim_lengths(2)
-         magnetic_response_construct_netcdf%num_t_store = dim_lengths(3)
+         ALLOCATE(temp_buffer(dim_lengths(1),                                  &
+     &                        dim_lengths(2),                                  &
+     &                        dim_lengths(3)))
 
-         ALLOCATE(                                                             &
-     &      magnetic_response_construct_netcdf%a_r(dim_lengths(1),             &
-     &                                             dim_lengths(2),             &
-     &                                             dim_lengths(3)))
-         CALL cdf_read(mdsig_iou, nc_a_r,                                      &
-     &                 magnetic_response_construct_netcdf%a_r)
+         CALL cdf_read(mdsig_iou, nc_a_r, temp_buffer)
+         ALLOCATE(magnetic_response_construct_netcdf%a_r(                      &
+     &               dim_lengths(3)))
+         DO phi = 1, dim_lengths(3)
+            magnetic_response_construct_netcdf%a_r(phi)%p =>                   &
+     &         compression_construct(temp_buffer(:,:,phi), svd_cut_off)
+         END DO
 
-         ALLOCATE(                                                             &
-     &      magnetic_response_construct_netcdf%a_f(dim_lengths(1),             &
-     &                                             dim_lengths(2),             &
-     &                                             dim_lengths(3)))
-         CALL cdf_read(mdsig_iou, nc_a_f,                                      &
-     &                 magnetic_response_construct_netcdf%a_f)
+         CALL cdf_read(mdsig_iou, nc_a_f, temp_buffer)
+         ALLOCATE(magnetic_response_construct_netcdf%a_f(                      &
+     &               dim_lengths(3)))
+         DO phi = 1, dim_lengths(3)
+            magnetic_response_construct_netcdf%a_f(phi)%p =>                   &
+     &         compression_construct(temp_buffer(:,:,phi), svd_cut_off)
+         END DO
 
-         ALLOCATE(                                                             &
-     &      magnetic_response_construct_netcdf%a_z(dim_lengths(1),             &
-     &                                             dim_lengths(2),             &
-     &                                             dim_lengths(3)))
-         CALL cdf_read(mdsig_iou, nc_a_z,                                      &
-     &                 magnetic_response_construct_netcdf%a_z)
+         CALL cdf_read(mdsig_iou, nc_a_z, temp_buffer)
+         ALLOCATE(magnetic_response_construct_netcdf%a_z(                      &
+     &               dim_lengths(3)))
+         DO phi = 1, dim_lengths(3)
+            magnetic_response_construct_netcdf%a_z(phi)%p =>                   &
+     &         compression_construct(temp_buffer(:,:,phi), svd_cut_off)
+         END DO
+
+         DEALLOCATE(temp_buffer)
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
@@ -661,27 +656,21 @@
      &                 magnetic_response_construct_netcdf%num_t_shell)
 
          CALL cdf_inquire(mdsig_iou, nc_a_s_r, dim_lengths(1:2))
-         magnetic_response_construct_netcdf%num_u = dim_lengths(1)
-         magnetic_response_construct_netcdf%num_t_shell_store =                &
-     &      dim_lengths(2)
+         ALLOCATE(temp_buffer(1,dim_lengths(1),dim_lengths(2)))
 
-         ALLOCATE(                                                             &
-     &      magnetic_response_construct_netcdf%a_s_r(dim_lengths(1),           &
-     &                                               dim_lengths(2)))
-         CALL cdf_read(mdsig_iou, nc_a_s_r,                                    &
-     &                 magnetic_response_construct_netcdf%a_s_r)
+         CALL cdf_read(mdsig_iou, nc_a_s_r, temp_buffer(1,:,:))
+         magnetic_response_construct_netcdf%a_s_r =>                           &
+     &      compression_construct(temp_buffer(1,:,:), svd_cut_off)
 
-         ALLOCATE(                                                             &
-     &      magnetic_response_construct_netcdf%a_s_f(dim_lengths(1),           &
-     &                                               dim_lengths(2)))
-         CALL cdf_read(mdsig_iou, nc_a_s_f,                                    &
-     &                 magnetic_response_construct_netcdf%a_s_f)
+         CALL cdf_read(mdsig_iou, nc_a_s_f, temp_buffer(1,:,:))
+         magnetic_response_construct_netcdf%a_s_f =>                           &
+     &      compression_construct(temp_buffer(1,:,:), svd_cut_off)
 
-         ALLOCATE(                                                             &
-     &      magnetic_response_construct_netcdf%a_s_z(dim_lengths(1),           &
-     &                                               dim_lengths(2)))
-         CALL cdf_read(mdsig_iou, nc_a_s_z,                                    &
-     &                 magnetic_response_construct_netcdf%a_s_z)
+         CALL cdf_read(mdsig_iou, nc_a_s_z, temp_buffer(1,:,:))
+         magnetic_response_construct_netcdf%a_s_z =>                           &
+     &      compression_construct(temp_buffer(1,:,:), svd_cut_off)
+
+         DEALLOCATE(temp_buffer)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------
@@ -715,14 +704,14 @@
 !  Declare Arguments
       TYPE (magnetic_response_class), POINTER ::                               &
      &   magnetic_response_construct_mpi
-      INTEGER, INTENT(in)            :: intra_comm
+      INTEGER, INTENT(in)                     :: intra_comm
 
 #if defined(MPI_OPT)
 !  local variables
-      INTEGER                        :: flags
-      INTEGER                        :: error
-      INTEGER, DIMENSION(3)          :: dim_lengths
-      INTEGER                        :: total_length
+      INTEGER                                 :: flags
+      INTEGER                                 :: error
+      INTEGER                                 :: phi
+      INTEGER                                 :: num_phi
 
 !  Start of executable code
       ALLOCATE(magnetic_response_construct_mpi)
@@ -781,31 +770,19 @@
          CALL MPI_BCAST(magnetic_response_construct_mpi%n_field_periods,       &
      &                  1, MPI_INTEGER, 0, intra_comm, error)
 
-         CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm,            &
-     &                  error)
-         magnetic_response_construct_mpi%num_r = dim_lengths(1)
-         magnetic_response_construct_mpi%num_z = dim_lengths(2)
-         magnetic_response_construct_mpi%num_t_store = dim_lengths(3)
+         CALL MPI_BCAST(num_phi, 1, MPI_INTEGER, 0, intra_comm, error)
 
-         total_length = dim_lengths(1)*dim_lengths(2)*dim_lengths(3)
-
-         ALLOCATE(magnetic_response_construct_mpi%a_r(dim_lengths(1),          &
-     &                                                dim_lengths(2),          &
-     &                                                dim_lengths(3)))
-         CALL MPI_BCAST(magnetic_response_construct_mpi%a_r,                   &
-     &                  total_length, MPI_REAL8, 0, intra_comm, error)
-
-         ALLOCATE(magnetic_response_construct_mpi%a_f(dim_lengths(1),          &
-     &                                                dim_lengths(2),          &
-     &                                                dim_lengths(3)))
-         CALL MPI_BCAST(magnetic_response_construct_mpi%a_f,                   &
-     &                  total_length, MPI_REAL8, 0, intra_comm, error)
-
-         ALLOCATE(magnetic_response_construct_mpi%a_z(dim_lengths(1),          &
-     &                                                dim_lengths(2),          &
-     &                                                dim_lengths(3)))
-         CALL MPI_BCAST(magnetic_response_construct_mpi%a_z,                   &
-     &                  total_length, MPI_REAL8, 0, intra_comm, error)
+         ALLOCATE(magnetic_response_construct_mpi%a_r(num_phi))
+         ALLOCATE(magnetic_response_construct_mpi%a_f(num_phi))
+         ALLOCATE(magnetic_response_construct_mpi%a_z(num_phi))
+         DO phi = 1, num_phi
+            magnetic_response_construct_mpi%a_r(phi)%p =>                      &
+     &         compression_construct(intra_comm)
+            magnetic_response_construct_mpi%a_f(phi)%p =>                      &
+     &         compression_construct(intra_comm)
+            magnetic_response_construct_mpi%a_z(phi)%p =>                      &
+     &         compression_construct(intra_comm)
+         END DO
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
@@ -814,28 +791,13 @@
          CALL MPI_BCAST(magnetic_response_construct_mpi%num_t_shell,           &
      &                  1, MPI_INTEGER, 0, intra_comm, error)
 
-         CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,       &
-     &                  error)
-!         magnetic_response_construct_mpi%num_u = dim_lengths(1)
-         magnetic_response_construct_mpi%num_t_shell_store =                   &
-     &      dim_lengths(2)
-
-         total_length = dim_lengths(1)*dim_lengths(2)
-
-         ALLOCATE(magnetic_response_construct_mpi%a_s_r(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         CALL MPI_BCAST(magnetic_response_construct_mpi%a_s_r,                 &
-     &                  total_length, MPI_REAL8, 0, intra_comm, error)
-
-         ALLOCATE(magnetic_response_construct_mpi%a_s_f(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         CALL MPI_BCAST(magnetic_response_construct_mpi%a_s_f,                 &
-     &                  total_length, MPI_REAL8, 0, intra_comm, error)
-
-         ALLOCATE(magnetic_response_construct_mpi%a_s_z(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         CALL MPI_BCAST(magnetic_response_construct_mpi%a_s_z,                 &
-     &                  total_length, MPI_REAL8, 0, intra_comm, error)
+         CALL MPI_BCAST(num_phi, 1, MPI_INTEGER, 0, intra_comm, error)
+         magnetic_response_construct_mpi%a_s_r =>                              &
+     &      compression_construct(intra_comm)
+         magnetic_response_construct_mpi%a_s_f =>                              &
+     &      compression_construct(intra_comm)
+         magnetic_response_construct_mpi%a_s_z =>                              &
+     &      compression_construct(intra_comm)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------
@@ -866,6 +828,9 @@
 !  Declare Arguments
       TYPE (magnetic_response_class), POINTER :: this
 
+!  local variables
+      INTEGER                                 :: phi
+
 !  Start of executable code
       IF (ASSOCIATED(this%inductance)) THEN
          DEALLOCATE(this%inductance)
@@ -878,32 +843,41 @@
       END IF
 
       IF (ASSOCIATED(this%a_r)) THEN
+         DO phi = 1, SIZE(this%a_r)
+            CALL compression_destruct(this%a_r(phi)%p)
+         END DO
          DEALLOCATE(this%a_r)
          this%a_r => null()
       END IF
 
       IF (ASSOCIATED(this%a_f)) THEN
+         DO phi = 1, SIZE(this%a_f)
+            CALL compression_destruct(this%a_f(phi)%p)
+         END DO
          DEALLOCATE(this%a_f)
          this%a_f => null()
       END IF
 
       IF (ASSOCIATED(this%a_z)) THEN
+         DO phi = 1, SIZE(this%a_z)
+            CALL compression_destruct(this%a_z(phi)%p)
+         END DO
          DEALLOCATE(this%a_z)
          this%a_z => null()
       END IF
 
       IF (ASSOCIATED(this%a_s_r)) THEN
-         DEALLOCATE(this%a_s_r)
+         CALL compression_destruct(this%a_s_r)
          this%a_s_r => null()
       END IF
 
       IF (ASSOCIATED(this%a_s_f)) THEN
-         DEALLOCATE(this%a_s_f)
+         CALL compression_destruct(this%a_s_f)
          this%a_s_f => null()
       END IF
 
       IF (ASSOCIATED(this%a_s_z)) THEN
-         DEALLOCATE(this%a_s_z)
+         CALL compression_destruct(this%a_s_z)
          this%a_s_z => null()
       END IF
 
@@ -1115,11 +1089,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_response_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                        :: mdsig_iou
+      TYPE (magnetic_response_class), INTENT(in)  :: this
+      INTEGER, INTENT(in)                         :: mdsig_iou
 
 !  local variables
-      REAL (rprec)                               :: start_time
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp_buffer
+      INTEGER                                     :: phi
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1144,25 +1120,43 @@
 !  Plasma Response Grid Variables ----------------------------------------------
       IF (BTEST(this%flags, magnetic_response_use_plasma_flag)) THEN
          CALL cdf_define(mdsig_iou, nc_num_t, this%num_t)
-         CALL cdf_define(mdsig_iou, nc_num_r, this%num_r)
-         CALL cdf_define(mdsig_iou, nc_num_z, this%num_z)
          CALL cdf_define(mdsig_iou, nc_rmin, this%rmin)
          CALL cdf_define(mdsig_iou, nc_rmax, this%rmax)
          CALL cdf_define(mdsig_iou, nc_zmin, this%zmin)
          CALL cdf_define(mdsig_iou, nc_zmax, this%zmax)
          CALL cdf_define(mdsig_iou, nc_n_field_periods,                        &
      &                   this%n_field_periods)
-         CALL cdf_define(mdsig_iou, nc_a_r, this%a_r)
-         CALL cdf_define(mdsig_iou, nc_a_f, this%a_f)
-         CALL cdf_define(mdsig_iou, nc_a_z, this%a_z)
+
+!  Decompress a single response function phi plane to get the r z dimensions.
+!  Then define the netcdf variables based off a temp buffer. All response
+!  function directions should have the same dimensions.
+         ALLOCATE(temp_buffer(compression_get_dimension1(this%a_r(1)%p),       &
+     &                        compression_get_dimension2(this%a_r(1)%p),       &
+     &                        SIZE(this%a_r)))
+
+         CALL cdf_define(mdsig_iou, nc_a_r, temp_buffer)
+         CALL cdf_define(mdsig_iou, nc_a_f, temp_buffer)
+         CALL cdf_define(mdsig_iou, nc_a_z, temp_buffer)
+
+         DEALLOCATE(temp_buffer)
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
       IF (BTEST(this%flags, magnetic_response_use_shell_flag)) THEN
          CALL cdf_define(mdsig_iou, nc_num_t_shell, this%num_t_shell)
-         CALL cdf_define(mdsig_iou, nc_a_s_r, this%a_s_r)
-         CALL cdf_define(mdsig_iou, nc_a_s_f, this%a_s_f)
-         CALL cdf_define(mdsig_iou, nc_a_s_z, this%a_s_z)
+
+!  Decompress a single conducting shell response function phi plane to get the
+!  data buffer. All shell response function directions should have the same
+!  dimensions.
+         ALLOCATE(temp_buffer(1,                                               &
+     &               compression_get_dimension1(this%a_r(1)%p),                &
+     &               compression_get_dimension2(this%a_r(1)%p)))
+
+         CALL cdf_define(mdsig_iou, nc_a_s_r, temp_buffer(1,:,:))
+         CALL cdf_define(mdsig_iou, nc_a_s_f, temp_buffer(1,:,:))
+         CALL cdf_define(mdsig_iou, nc_a_s_z, temp_buffer(1,:,:))
+
+         DEALLOCATE(temp_buffer)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------
@@ -1189,11 +1183,13 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (magnetic_response_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                        :: mdsig_iou
+      TYPE (magnetic_response_class), INTENT(in)  :: this
+      INTEGER, INTENT(in)                         :: mdsig_iou
 
 !  local variables
-      REAL (rprec)                               :: start_time
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp_buffer
+      INTEGER                                     :: phi
+      REAL (rprec)                                :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1217,25 +1213,57 @@
 !  Plasma Response Grid Variables ----------------------------------------------
       IF (BTEST(this%flags, magnetic_response_use_plasma_flag)) THEN
          CALL cdf_write(mdsig_iou, nc_num_t, this%num_t)
-         CALL cdf_write(mdsig_iou, nc_num_r, this%num_r)
-         CALL cdf_write(mdsig_iou, nc_num_z, this%num_z)
          CALL cdf_write(mdsig_iou, nc_rmin, this%rmin)
          CALL cdf_write(mdsig_iou, nc_rmax, this%rmax)
          CALL cdf_write(mdsig_iou, nc_zmin, this%zmin)
          CALL cdf_write(mdsig_iou, nc_zmax, this%zmax)
          CALL cdf_write(mdsig_iou, nc_n_field_periods,                         &
      &                  this%n_field_periods)
-         CALL cdf_write(mdsig_iou, nc_a_r, this%a_r)
-         CALL cdf_write(mdsig_iou, nc_a_f, this%a_f)
-         CALL cdf_write(mdsig_iou, nc_a_z, this%a_z)
+
+!  Need to decompress all the response function planes to and write the data
+!  buffers to a temp buffer. Decompress the r direction first to get the r z
+!  dimensions to allocate the temp buffer.
+         CALL compression_decompress(this%a_r(1)%p)
+         ALLOCATE(temp_buffer(SIZE(this%a_r(1)%p%data_buffer, 1),              &
+     &                        SIZE(this%a_r(2)%p%data_buffer, 2),              &
+     &                        SIZE(this%a_r)))
+
+         temp_buffer(:,:,1) = this%a_r(1)%p%data_buffer
+         CALL compression_cleanup(this%a_r(1)%P)
+         DO phi = 2, SIZE(this%a_r)
+            CALL compression_decompress(this%a_r(phi)%p)
+            temp_buffer(:,:,phi) = this%a_r(phi)%p%data_buffer
+            CALL compression_cleanup(this%a_r(phi)%p)
+         END DO
+         CALL cdf_write(mdsig_iou, nc_a_r, temp_buffer)
+
+         DO phi = 1, SIZE(this%a_f)
+            CALL compression_decompress(this%a_f(phi)%p)
+            temp_buffer(:,:,phi) = this%a_f(phi)%p%data_buffer
+            CALL compression_cleanup(this%a_f(phi)%p)
+         END DO
+         CALL cdf_write(mdsig_iou, nc_a_f, temp_buffer)
+
+         DO phi = 1, SIZE(this%a_z)
+            CALL compression_decompress(this%a_z(phi)%p)
+            temp_buffer(:,:,phi) = this%a_z(phi)%p%data_buffer
+            CALL compression_cleanup(this%a_z(phi)%p)
+         END DO
+         CALL cdf_write(mdsig_iou, nc_a_z, temp_buffer)
+
+         DEALLOCATE(temp_buffer)
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
       IF (BTEST(this%flags, magnetic_response_use_shell_flag)) THEN
          CALL cdf_write(mdsig_iou, nc_num_t_shell, this%num_t_shell)
-         CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r)
-         CALL cdf_write(mdsig_iou, nc_a_s_f, this%a_s_f)
-         CALL cdf_write(mdsig_iou, nc_a_s_z, this%a_s_z)
+
+!  Decompress each shell response function direction then write the data buffer.
+         CALL compression_decompress(this%a_s_r)
+         CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
+         CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
+         CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
+         CALL compression_cleanup(this%a_s_r)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------
@@ -1271,8 +1299,8 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                                       :: error
-      INTEGER, DIMENSION(3)                         :: dim_lengths
-      INTEGER                                       :: total_length
+      INTEGER                                       :: phi
+      INTEGER                                       :: num_phi
       REAL (rprec)                                  :: start_time
 
 !  Start of executable code
@@ -1313,18 +1341,13 @@
          CALL MPI_BCAST(this%n_field_periods, 1, MPI_INTEGER, 0,               &
      &                  intra_comm, error)
 
-         dim_lengths = SHAPE(this%a_r)
-         CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm,            &
-     &                  error)
-
-         total_length = dim_lengths(1)*dim_lengths(2)*dim_lengths(3)
-
-         CALL MPI_BCAST(this%a_r, total_length, MPI_REAL8, 0,                  &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%a_f, total_length, MPI_REAL8, 0,                  &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%a_z, total_length, MPI_REAL8, 0,                  &
-     &                  intra_comm, error)
+         num_phi = SIZE(this%a_r)
+         CALL MPI_BCAST(num_phi, 1, MPI_INTEGER, 0, intra_comm, error)
+         DO phi = 1, num_phi
+            CALL compression_sync_children(this%a_r(phi)%p, intra_comm)
+            CALL compression_sync_children(this%a_f(phi)%p, intra_comm)
+            CALL compression_sync_children(this%a_z(phi)%p, intra_comm)
+         END DO
       END IF
 
 !  Conducting Shell Response Arrays --------------------------------------------
@@ -1332,18 +1355,9 @@
          CALL MPI_BCAST(this%num_t_shell, 1, MPI_INTEGER, 0, intra_comm,       &
      &                  error)
 
-         dim_lengths(1:2) = SHAPE(this%a_s_r)
-         CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,       &
-     &                  error)
-
-         total_length = dim_lengths(1)*dim_lengths(2)
-
-         CALL MPI_BCAST(this%a_s_r, total_length, MPI_REAL8, 0,                &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%a_s_f, total_length, MPI_REAL8, 0,                &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%a_s_z, total_length, MPI_REAL8, 0,                &
-     &                  intra_comm, error)
+          CALL compression_sync_children(this%a_s_r, intra_comm)
+          CALL compression_sync_children(this%a_s_f, intra_comm)
+          CALL compression_sync_children(this%a_s_z, intra_comm)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------

@@ -81,11 +81,14 @@
 !>  @param[in] force_coil_reponse Force the coil response to be computed.
 !>  @param[in] use_3D_only        Subtract of the axisymmtric porition of the
 !>                                signal.
+!>  @param[in] svd_cut_off        Cutoff value for the number of singular values
+!>                                to retain when compressing the response
+!>                                function arrays.
 !>  @returns A pointer to a constructed @ref magnetic_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_construct_netcdf(mdsig_iou, use_coil_response,         &
      &                                   force_coil_reponse,                   &
-     &                                   use_3D_only)
+     &                                   use_3D_only, svd_cut_off)
       USE ezcdf
       USE v3_utilities
 
@@ -97,6 +100,7 @@
       LOGICAL, INTENT(in)            :: use_coil_response
       LOGICAL, INTENT(in)            :: force_coil_reponse
       LOGICAL, INTENT(in)            :: use_3D_only
+      REAL (rprec), INTENT(in)       :: svd_cut_off
 
 !  local variables
       INTEGER, DIMENSION(3)          :: dim_lengths
@@ -109,7 +113,7 @@
       ALLOCATE(magnetic_construct_netcdf)
 
       magnetic_construct_netcdf%response =>                                    &
-     &   magnetic_response_construct(mdsig_iou)
+     &   magnetic_response_construct(mdsig_iou, svd_cut_off)
 
       magnetic_construct_netcdf%control_flags = 0
 
@@ -391,6 +395,7 @@
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: response_zvol
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: sumrz
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sumphi
+      INTEGER                                   :: num_r, num_z
 
       REAL (rprec)                              :: start_time
 
@@ -428,24 +433,27 @@
          ALLOCATE(response_zvol(numrvol, numzvol))
 
 !  Allocate work arrays to hold the results of the integration.
-         num_phi = this%response%num_t_store
+         num_phi = SIZE(this%response%a_r)
          ALLOCATE(sumrz(numrvol, numzvol))
          ALLOCATE(sumphi(num_phi))
 
 !  Create the r and z gridpoints for the magnetic response function.
 !>  @todo FIXME: For a single diagnostic these never change. Allocate these once
 !>  and cache these in the @ref magnetic_class object.
-         ALLOCATE(rgrid(this%response%num_r))
-         DO r = 1, this%response%num_r
+         num_r = compression_get_dimension1(this%response%a_r(1)%p)
+         ALLOCATE(rgrid(num_r))
+         DO r = 1, num_r
             rgrid(r) = this%response%rmin                                      &
      &               + (r - 1)*(this%response%rmax - this%response%rmin)       &
-     &               / (this%response%num_r - 1)
+     &               / (num_r - 1)
          END DO
-         ALLOCATE(zgrid(this%response%num_z))
-         DO z = 1, this%response%num_z
+
+         num_z = compression_get_dimension2(this%response%a_r(1)%p)
+         ALLOCATE(zgrid(num_z))
+         DO z = 1, num_z
             zgrid(z) = this%response%zmin                                      &
      &               + (z - 1)*(this%response%zmax - this%response%zmin)       &
-     &               / (this%response%num_z - 1)
+     &               / (num_z - 1)
          END DO
 
 !  Create a bivariate object to do the interpolation.
@@ -459,15 +467,23 @@
      &                               rgrid, zgrid)
 
 !  Interpolate from the diagnotic grid points to the volume grid points.
+            CALL compression_decompress(this%response%a_r(phi)%p)
             CALL bivariate_get_4pt(bivariate_object,                           &
-     &                             this%response%a_r(:,:,phi),                 &
+     &                             this%response%a_r(phi)%p%data_buffer,       &
      &                             response_rvol)
+            CALL compression_cleanup(this%response%a_r(phi)%p)
+
+            CALL compression_decompress(this%response%a_f(phi)%p)
             CALL bivariate_get_4pt(bivariate_object,                           &
-     &                             this%response%a_f(:,:,phi),                 &
+     &                             this%response%a_f(phi)%p%data_buffer,       &
      &                             response_phivol)
+            CALL compression_cleanup(this%response%a_f(phi)%p)
+
+            CALL compression_decompress(this%response%a_z(phi)%p)
             CALL bivariate_get_4pt(bivariate_object,                           &
-     &                             this%response%a_z(:,:,phi),                 &
+     &                             this%response%a_z(phi)%p%data_buffer,       &
      &                             response_zvol)
+            CALL compression_cleanup(this%response%a_z(phi)%p)
 
 !  J_plasma * A_diag
 !  First compute the rz grid signal. Then compute the signal for a single phi
@@ -507,7 +523,7 @@
 !  Conducting Shell ------------------------------------------------------------
       IF (magnetic_response_use_shell(this%response)) THEN
 
-         num_phi = this%response%num_t_shell_store
+         num_phi = compression_get_dimension2(this%response%a_s_r)
 
          krgrid =>                                                             &
      &      equilibrium_get_con_surface_krgrid(a_model%equilibrium)
@@ -520,12 +536,23 @@
      &       ASSOCIATED(kzgrid)) THEN
             ALLOCATE(sumphi(num_phi))
 
+            CALL compression_decompress(this%response%a_s_r)
+            CALL compression_decompress(this%response%a_s_f)
+            CALL compression_decompress(this%response%a_s_z)
+
             DO phi = 1, num_phi
                sumphi(phi)                                                     &
-     &            = SUM(krgrid(:,phi)*this%response%a_s_r(:,phi))              &
-     &            + SUM(kphigrid(:,phi)*this%response%a_s_f(:,phi))            &
-     &            + SUM(kzgrid(:,phi)*this%response%a_s_z(:,phi))
+     &            = SUM(krgrid(:,phi)*                                         &
+     &                  this%response%a_s_r%data_buffer(:,phi))                &
+     &            + SUM(kphigrid(:,phi)*                                       &
+     &                  this%response%a_s_f%data_buffer(:,phi))                &
+     &            + SUM(kzgrid(:,phi)*                                         &
+     &                  this%response%a_s_z%data_buffer(:,phi))
             END DO
+
+            CALL compression_cleanup(this%response%a_s_r)
+            CALL compression_cleanup(this%response%a_s_f)
+            CALL compression_cleanup(this%response%a_s_z)
 
 !  Correct for stellarator symetry.
             magnetic_get_modeled_signal_coil(4) = SUM(sumphi)

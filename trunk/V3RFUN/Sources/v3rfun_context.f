@@ -10,6 +10,7 @@
 !*******************************************************************************
       MODULE v3rfun_context
 !#undef NEW_CODE
+#define NEW_CODE
 #ifdef NEW_CODE
       USE v3rfun_input
       USE diagnostic_dot
@@ -715,7 +716,8 @@
      &                                        rmin, rmax, zmin, zmax,          &
      &                                        nfp_bs, lstell_sym,              &
      &                                        a_r, a_f, a_z,                   &
-     &                                        a_s_r, a_s_f, a_s_z)
+     &                                        a_s_r, a_s_f, a_s_z,             &
+     &                                        0.0_dp)
 
 !  Write Coil Response ---------------------------------------------------------
 !  Open up an mdsig file, for netcdf writing. Borrow the i variable to store the

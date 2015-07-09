@@ -1101,31 +1101,35 @@
 !  When stellarator symmetry is used, do not need to store all the toroidal
 !  planes in a single field period.
          ALLOCATE(this%magnetic_cache%rsuv(ns,numU,                            &
-     &            response_object%num_t_store))
+     &            SIZE(response_object%a_r)))
          ALLOCATE(this%magnetic_cache%zsuv(ns,numU,                            &
-     &            response_object%num_t_store))
+     &            SIZE(response_object%a_r)))
          ALLOCATE(this%magnetic_cache%jrsuv(ns,numU,                           &
-     &            response_object%num_t_store))
+     &            SIZE(response_object%a_r)))
          ALLOCATE(this%magnetic_cache%jphisuv(ns,numU,                         &
-     &            response_object%num_t_store))
+     &            SIZE(response_object%a_r)))
          ALLOCATE(this%magnetic_cache%jzsuv(ns,numU,                           &
-     &            response_object%num_t_store))
+     &            SIZE(response_object%a_r)))
       END IF
 
 !  When conducting shell is used allocate the surface vector arrays.
       IF (magnetic_response_use_shell(response_object)) THEN
 !  Set the differental area elements.
-         this%magnetic_cache%du_a = twopi/response_object%num_u
+         this%magnetic_cache%du_a = twopi/compression_get_dimension1(          &
+     &                                       response_object%a_s_r)
          this%magnetic_cache%dv_a                                              &
      &      = (twopi/response_object%n_field_periods)                          &
      &      / response_object%num_t_shell
 
-         ALLOCATE(this%magnetic_cache%kruv(response_object%num_u,              &
-     &            response_object%num_t_shell_store))
-         ALLOCATE(this%magnetic_cache%kphiuv(response_object%num_u,            &
-     &            response_object%num_t_shell_store))
-         ALLOCATE(this%magnetic_cache%kzuv(response_object%num_u,              &
-     &            response_object%num_t_shell_store))
+         ALLOCATE(this%magnetic_cache%kruv(                                    &
+     &               compression_get_dimension1(response_object%a_s_r),        &
+     &               compression_get_dimension2(response_object%a_s_r)))
+         ALLOCATE(this%magnetic_cache%kphiuv(                                  &
+     &               compression_get_dimension1(response_object%a_s_r),        &
+     &               compression_get_dimension2(response_object%a_s_r)))
+         ALLOCATE(this%magnetic_cache%kzuv(                                    &
+     &               compression_get_dimension1(response_object%a_s_r),        &
+     &               compression_get_dimension2(response_object%a_s_r)))
       END IF
 
       IF (use_point) THEN

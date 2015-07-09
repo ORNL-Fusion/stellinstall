@@ -120,7 +120,7 @@
 !>  Interface for writing out step data.
 !-------------------------------------------------------------------------------
       INTERFACE reconstruction_write_step
-         MODULE PROCEDURE reconstruction_write_step1,                           &
+         MODULE PROCEDURE reconstruction_write_step1,                          &
      &                    reconstruction_write_step2
       END INTERFACE
 

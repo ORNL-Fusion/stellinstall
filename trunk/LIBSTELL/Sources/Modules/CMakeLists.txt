@@ -8,6 +8,7 @@ list (APPEND stell_sources
         ${CMAKE_CURRENT_SOURCE_DIR}/bsc_cdf.f
         ${CMAKE_CURRENT_SOURCE_DIR}/bsc_T.f
         ${CMAKE_CURRENT_SOURCE_DIR}/coilsnamin.f
+        ${CMAKE_CURRENT_SOURCE_DIR}/compression.f
         ${CMAKE_CURRENT_SOURCE_DIR}/control_mod.f
         ${CMAKE_CURRENT_SOURCE_DIR}/coordinate_utilities.f
         ${CMAKE_CURRENT_SOURCE_DIR}/cyl_flux.f
