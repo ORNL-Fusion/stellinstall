@@ -281,7 +281,7 @@
 
 !  Sync data buffer.
       CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (SUM(dim_lengths) .gt. 0) THEN
+      IF (.not.ANY(dim_lengths .eq. 0)) THEN
 !  Data is uncompressed.
          ALLOCATE(compression_construct_mpi%data_buffer(dim_lengths(1),        &
      &                                                  dim_lengths(2)))
@@ -293,7 +293,7 @@
 
 !  Sync u and wvt buffers.
       CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (SUM(dim_lengths) .gt. 0) THEN
+      IF (.not.ANY(dim_lengths .eq. 0)) THEN
 !  Data is compressed.
          ALLOCATE(compression_construct_mpi%u_buffer(dim_lengths(1),           &
      &                                               dim_lengths(2)))
@@ -455,7 +455,6 @@
 
 !  If control has reached this point, the data is compressed. Uncompress it by
 !  U.WVT.
-
       ALLOCATE(this%data_buffer(SIZE(this%u_buffer, 1),                        &
      &                          SIZE(this%wvt_buffer, 2)))
 
@@ -520,7 +519,7 @@
          dim_lengths = 0
       END IF
       CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (SUM(dim_lengths) .gt. 0) THEN
+      IF (.not.ANY(dim_lengths .eq. 0)) THEN
 !  Data is uncompressed.
          CALL MPI_BCAST(this%data_buffer, PRODUCT(dim_lengths),                &
      &                  MPI_REAL8, 0, intra_comm, error)
@@ -529,12 +528,12 @@
 
 !  Sync u and wvt buffers.
       IF (ASSOCIATED(this%u_buffer)) THEN
-         dim_lengths = 0
+         dim_lengths = SHAPE(this%u_buffer)
       ELSE
-         dim_lengths = SHAPE(this%data_buffer)
+         dim_lengths = 0
       END IF
       CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (SUM(dim_lengths) .gt. 0) THEN
+      IF (.not.ANY(dim_lengths .eq. 0)) THEN
 !  Data is compressed.
          CALL MPI_BCAST(this%u_buffer, PRODUCT(dim_lengths), MPI_REAL8,        &
      &                  0, intra_comm, error)

@@ -791,7 +791,6 @@
          CALL MPI_BCAST(magnetic_response_construct_mpi%num_t_shell,           &
      &                  1, MPI_INTEGER, 0, intra_comm, error)
 
-         CALL MPI_BCAST(num_phi, 1, MPI_INTEGER, 0, intra_comm, error)
          magnetic_response_construct_mpi%a_s_r =>                              &
      &      compression_construct(intra_comm)
          magnetic_response_construct_mpi%a_s_f =>                              &
@@ -1355,9 +1354,9 @@
          CALL MPI_BCAST(this%num_t_shell, 1, MPI_INTEGER, 0, intra_comm,       &
      &                  error)
 
-          CALL compression_sync_children(this%a_s_r, intra_comm)
-          CALL compression_sync_children(this%a_s_f, intra_comm)
-          CALL compression_sync_children(this%a_s_z, intra_comm)
+         CALL compression_sync_children(this%a_s_r, intra_comm)
+         CALL compression_sync_children(this%a_s_f, intra_comm)
+         CALL compression_sync_children(this%a_s_z, intra_comm)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------
