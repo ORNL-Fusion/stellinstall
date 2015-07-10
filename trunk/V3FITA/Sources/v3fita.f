@@ -443,17 +443,7 @@
          CALL init_combination_signals(context, signals_created)
       END IF
 
-!  Converge the initial equilibrium. This make sure the equilibrium state is
-!  fully initialized.
-!
-!  NOTE: It may not be necessary to completely reconverge here.
-      num_steps = 1
-      CALL assert(reconstruction_eval_e(context%recon,                         &
-     &                                  context%signals,                       &
-     &                                  context%model, num_steps,              &
-     &                                  context%runlog_iou),                   &
-     &            'Failed initial convergence in child process.')
-
+!  Wait for parent process to finish initial equilibrium.
       CALL MPI_BARRIER(context%intra_comm, error)
 
       DO
