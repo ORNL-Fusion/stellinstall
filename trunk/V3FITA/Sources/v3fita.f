@@ -318,6 +318,10 @@
      &                           context%model)
 
 #if defined(MPI_OPT)
+!  Sync the number of equilibrium steps the inital convergence took so that the'
+!  child processes start in the same place.
+      CALL MPI_BCAST(num_steps, 1, MPI_INTEGER, 0, context%intra_comm,         &
+     &               error)
       CALL MPI_BARRIER(context%intra_comm, error)
 #endif
 
@@ -443,7 +447,11 @@
          CALL init_combination_signals(context, signals_created)
       END IF
 
-!  Wait for parent process to finish initial equilibrium.
+!  Wait for parent process to finish the initial equilibrium. Sync the number of
+!  equilibrium steps so that the child processes match after the inital
+!  equilibrium convergence.
+      CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, context%intra_comm,          &
+     &               error)
       CALL MPI_BARRIER(context%intra_comm, error)
 
       DO
