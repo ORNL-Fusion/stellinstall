@@ -33,10 +33,18 @@
 !>
 !>  @section mse_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{mse_point_XYZ_deg},      A MSE point specified in Cartesian Coordinates outputting the signal in degrees.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg}, A MSE point specified in Cylindrical Coordinates outputting the signal in degrees.}
-!>  @item2{@fixed_width{mse_point_XYZ_rad},      A MSE point specified in Cartesian Coordinates outputting the signal in radians.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad}, A MSE point specified in Cylindrical Coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg},          A MSE point specified in Cartesian Coordinates outputting the signal in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg},     A MSE point specified in Cylindrical Coordinates outputting the signal in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad},          A MSE point specified in Cartesian Coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad},     A MSE point specified in Cylindrical Coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg_deg},      A MSE point specified in Cartesian Coordinates outputting the signal in degrees. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_deg}, A MSE point specified in Cylindrical Coordinates outputting the signal in degrees. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad_deg},      A MSE point specified in Cartesian Coordinates outputting the signal in degrees. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_deg}, A MSE point specified in Cylindrical Coordinates outputting the signal in degrees. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg_rad},      A MSE point specified in Cartesian Coordinates outputting the signal in radians. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_rad}, A MSE point specified in Cylindrical Coordinates outputting the signal in radians. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad_rad},      A MSE point specified in Cartesian Coordinates outputting the signal in radians. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_rad}, A MSE point specified in Cylindrical Coordinates outputting the signal in radians. Direction angles are specifed in radians.}
 !>  @end_table
 !>
 !>  @section mse_dot_point_spec_sec Point Specification
@@ -50,13 +58,14 @@
 !>  start and end points of the neutral beam. Each set of three reals is a point
 !>  in either Cartesian or Cyclindrical Coordinates depending on the keyword.
 !>
-!>  Keywords that contain two angle specification use the angle discription. For
-!>  these keywords, a set of two real numbers specfies the angle of the neutral
-!>  beam with respect to the toroidal direction projected in the horizontal
-!>  plane. This is followed the angle between the viewing chord and the toroidal
-!>  direction in the horizontal plane. The next line contains two reals that
-!>  the pitch angle of the neutral beam and the viewing chords with respect to
-!>  the horizontal.
+!>  Keywords that contain two angle specification use the angle discription.
+!>  These keywords specify the angle in using 4 angles. The first line contains
+!>  the angles alpha and omega. The second set of angles are delta and theta.
+!>  These angles are defined such that.
+!>  * alpha: The angle between the neutral beam and the toroidal direction. When alpha is 0, the neutral beam points in the negative toroidal direction. When alpha is 90, the beam points in the negative radial direction.
+!>  * omgea: The angle between the view chord and the torodial direction. When omega is 0, the chord points in the positive toroidal direction. When alpha is 90, the beam points in the negative radial direction.
+!>  * delta: The angle between the neutral beam and the horizontal. When delta is 90, the beam points in the negative z direction.
+!>  * theta: The angle between the view chord and the horizontal. When delta is 90, the beam points in the positive z direction.
 !>
 !>  @fixed_width{key_word_ang\n}
 !>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
@@ -69,8 +78,8 @@
 !>  @fixed_width{key_word_ang_ang\n}
 !>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
 !>  @fixed_width{x(REAL) y(REAL) z(REAL)\n}
-!>  @fixed_width{nt(REAL) vt(REAL)}
-!>  @fixed_width{nh(REAL) vh(REAL)}
+!>  @fixed_width{alpha(REAL) omega(REAL)\n}
+!>  @fixed_width{delta(REAL) theta(REAL)\n}
 !>
 !>  @section mse_dot_exam_sec Example File
 !>  @code
@@ -237,7 +246,7 @@
             CASE ('mse_point_XYZ_rad_deg')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
-     &                                weight, first_index, .true.,             &
+     &                                weight, first_index, .false.,            &
      &                                .true.)
 
             CASE ('mse_point_RPhiDegZ_rad_deg')
@@ -268,7 +277,7 @@
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
      &                                observed, sigma, weight,
-     &                                first_index, .false., .true.)
+     &                                first_index, .false., .false.)
 
          END SELECT
 

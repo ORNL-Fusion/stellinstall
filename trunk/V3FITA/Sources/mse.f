@@ -106,16 +106,21 @@
       mse_construct_vec%point = point
 
 !  Get the angles with respect to the toroidal field component.
-      mse_construct_vec%alpha =                                                &
+!  The mse alpha is defined so that 0 points in the negative torodial direction
+!  and 90 points in the negative radial direction. So this needs to be PI minus
+!  the angle obtained from the dotproduct.
+      mse_construct_vec%alpha = PI -                                           &
      &   mse_angle_to_bt_proj(mse_construct_vec, beam_end - beam_start)
       mse_construct_vec%omega =                                                &
      &   mse_angle_to_bt_proj(mse_construct_vec, view_end - view_start)
 
 !  Get the angles with respect to the horizontal.
+!  The mse delta is defined so that 90 points in the negative z direction. So
+!  this needs to be the negation of the angle obtained from the dotproduct.
+      mse_construct_vec%delta =                                                &
+     &   -mse_angle_to_horizontal(beam_end - beam_start)
       mse_construct_vec%theta =                                                &
      &   mse_angle_to_horizontal(view_end - view_start)
-      mse_construct_vec%delta =                                                &
-     &   mse_angle_to_horizontal(beam_end - beam_start)
 
       mse_construct_vec%in_degrees = in_degrees
 
@@ -269,10 +274,16 @@
 !>  * B_v Vertical component of the magnetic field
 !>
 !>  The angles are defined as
-!>  * alpha Projected angle between the neutral beam and B_t
-!>  * omega Projected angle between the view and and B_t
-!>  * theta Angle between the view and the horizontal
-!>  * delta Angle between the neutral beam and the horizontal
+!>  * alpha: Projected angle between the neutral beam and B_t. Defined such that
+!>    0 is the negative toroidal direction. When 90, it is in the negative
+!>    radial direction.
+!>  * omega: Projected angle between the view and and B_t. Defined such that 0
+!>    is the positive toroidal direction. When 90, it is in the negative
+!>    radial direction.
+!>  * delta: Angle between the neutral beam and the horizontal. Defined such
+!>    that 90 is in the negative z direction.
+!>  * theta: Angle between the view and the horizontal. Defined such that 90 is
+!>    in the positive z direction.
 !>
 !>  @param[in]    this    A @ref mse_class instance.
 !>  @param[inout] a_model A @ref model instance.
@@ -475,6 +486,7 @@
 
       h = SQRT(DOT_PRODUCT(vec, vec))
       mse_angle_to_horizontal = ASIN(vec(3)/h)
+      mse_angle_to_horizontal = PI/2.0 - mse_angle_to_horizontal
 
       CALL profiler_set_stop_time('mse_angle_to_bt_proj', start_time)
 
