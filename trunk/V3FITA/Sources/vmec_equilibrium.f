@@ -393,7 +393,8 @@
 !>  @ref vmec_set_magnetic_cache_init or @ref vmec_set_magnetic_cache_calc. 
 !-------------------------------------------------------------------------------
       INTERFACE vmec_set_magnetic_cache
-         MODULE PROCEDURE vmec_set_magnetic_cache_init,                        &
+         MODULE PROCEDURE vmec_set_magnetic_cache_responce,                    &
+     &                    vmec_set_magnetic_cache_point,                       &
      &                    vmec_set_magnetic_cache_calc,                        &
      &                    vmec_set_magnetic_cache_sync
       END INTERFACE
@@ -1047,7 +1048,7 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Set magnetic cache initialy.
+!>  @brief Set magnetic cache for plasma resonce.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
 !>  allocates a @ref vmec_magnetic_cache structure. Point measurements require
@@ -1055,15 +1056,8 @@
 !>
 !>  @param[inout] this            A @ref vmec_class instance.
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
-!>  @param[in]    use_point       Uses the point measurements
-!>  @param[in]    use_axi         Magnetics can subtract off axisymmetric
-!>                                components.
-!>  @note Stellarator symmetry may be exploited speed up computation and reduce
-!>  memory usage. If stellarator symmetry is not used then tor_planes_used
-!>  should match total_tor_planes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_set_magnetic_cache_init(this, response_object,           &
-     &                                        use_point, use_axi)
+      SUBROUTINE vmec_set_magnetic_cache_responce(this, response_object)
       USE vmec_input, only: ns_array, mpol
       USE stel_constants, only: twopi
       USE magnetic_response
@@ -1073,8 +1067,6 @@
 !  Declare Arguments
       TYPE (vmec_class), INTENT(inout)           :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
-      LOGICAL, INTENT(in)                        :: use_point
-      LOGICAL, INTENT(in)                        :: use_axi
 
 !  local variables
       INTEGER                                    :: numU
@@ -1084,7 +1076,9 @@
 !  Start of executable code.
       start_time = profiler_get_start_time()
 
-      ALLOCATE(this%magnetic_cache)
+      IF (.not.ASSOCIATED(this%magnetic_cache)) THEN
+         ALLOCATE(this%magnetic_cache)
+      END IF
 
       IF (magnetic_response_use_plasma(response_object)) THEN
 !  In order to sample the fields on a grid, the sampling frequency of the grid
@@ -1132,45 +1126,76 @@
      &               compression_get_dimension2(response_object%a_s_r)))
       END IF
 
-      IF (use_point) THEN
-         this%magnetic_cache%du_full = twopi                                   &
-     &                               / magnetic_cache_vc_grid_points
-         this%magnetic_cache%dv_full = twopi                                   &
-     &                               / magnetic_cache_vc_grid_points
+      CALL profiler_set_stop_time('vmec_set_magnetic_cache_responce',          &
+     &                            start_time)
 
-         ALLOCATE(this%magnetic_cache%kruv_full(                               &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-         ALLOCATE(this%magnetic_cache%kphiuv_full(                             &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-         ALLOCATE(this%magnetic_cache%kzuv_full(                               &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
+      END SUBROUTINE
 
-         ALLOCATE(this%magnetic_cache%x_prime(                                 &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points,3))
+!-------------------------------------------------------------------------------
+!>  @brief Set magnetic cache initialy.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
+!>  allocates a @ref vmec_magnetic_cache structure. Point measurements require
+!>  no array allocations.
+!>
+!>  @param[inout] this    A @ref vmec_class instance.
+!>  @param[in]    use_axi Magnetics can subtract off axisymmetric components.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_set_magnetic_cache_point(this, use_axi)
 
-         IF (use_axi) THEN
-            ALLOCATE(this%magnetic_cache%kruv_axi(                             &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-            ALLOCATE(this%magnetic_cache%kphiuv_axi(                           &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-            ALLOCATE(this%magnetic_cache%kzuv_axi(                             &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
+      IMPLICIT NONE
 
-            ALLOCATE(this%magnetic_cache%x_axi(                                &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points,3))
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+      LOGICAL, INTENT(in)              :: use_axi
 
-         END IF
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (.not.ASSOCIATED(this%magnetic_cache)) THEN
+         ALLOCATE(this%magnetic_cache)
       END IF
 
-      CALL profiler_set_stop_time('vmec_set_magnetic_cache_init',              &
+      this%magnetic_cache%du_full = twopi                                      &
+     &                            / magnetic_cache_vc_grid_points
+      this%magnetic_cache%dv_full = twopi                                      &
+     &                            / magnetic_cache_vc_grid_points
+
+      ALLOCATE(this%magnetic_cache%kruv_full(                                  &
+     &            magnetic_cache_vc_grid_points,                               &
+     &            magnetic_cache_vc_grid_points))
+      ALLOCATE(this%magnetic_cache%kphiuv_full(                                &
+     &            magnetic_cache_vc_grid_points,                               &
+     &            magnetic_cache_vc_grid_points))
+      ALLOCATE(this%magnetic_cache%kzuv_full(                                  &
+     &            magnetic_cache_vc_grid_points,                               &
+     &            magnetic_cache_vc_grid_points))
+
+      ALLOCATE(this%magnetic_cache%x_prime(                                    &
+     &            magnetic_cache_vc_grid_points,                               &
+     &            magnetic_cache_vc_grid_points,3))
+
+      IF (use_axi) THEN
+         ALLOCATE(this%magnetic_cache%kruv_axi(                                &
+     &               magnetic_cache_vc_grid_points,                            &
+     &               magnetic_cache_vc_grid_points))
+         ALLOCATE(this%magnetic_cache%kphiuv_axi(                              &
+     &               magnetic_cache_vc_grid_points,                            &
+     &               magnetic_cache_vc_grid_points))
+         ALLOCATE(this%magnetic_cache%kzuv_axi(                                &
+     &               magnetic_cache_vc_grid_points,                            &
+     &               magnetic_cache_vc_grid_points))
+
+         ALLOCATE(this%magnetic_cache%x_axi(                                   &
+     &               magnetic_cache_vc_grid_points,                            &
+     &               magnetic_cache_vc_grid_points,3))
+
+      END IF
+
+      CALL profiler_set_stop_time('vmec_set_magnetic_cache_point',             &
      &                            start_time)
 
       END SUBROUTINE
@@ -1364,7 +1389,7 @@
      &                         currumnc, currvmnc, currumns, currvmns,         &
      &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns,         &
      &                         bsupumnc, bsupumns, bsupvmnc, bsupvmns,         &
-     &                         nfp, ns
+     &                         nfp, ns, lwout_opened
       USE stel_constants, only: mu0
       USE virtual_casing_mod
 
@@ -1393,6 +1418,16 @@
 
 !  Start of executable code.
       start_time = profiler_get_start_time()
+
+!  Only generate the magnetic caches if the woutfile is has been opened. This
+!  prevents a segfaults when the child processes sync the phi_edge and z_offset
+!  parameters before the first reconstruction step when no wout file exists in
+!  the child process working directory.
+      IF (.not.lwout_opened) THEN
+         CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',           &
+     &                               start_time)
+         RETURN
+      END IF
 
       IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
 !  Get the size of the SUV grid.
@@ -2833,6 +2868,8 @@
       FUNCTION vmec_get_B_vec(this, x_cart)
       USE coordinate_utilities, ONLY : cyl_to_cart_vec, cart_to_cyl
       USE vmec_utils, ONLY : GetBcyl_WOUT
+      USE mgrid_mod
+      USE vmec_input, ONLY: nfp
 
       IMPLICIT NONE
 
@@ -2843,20 +2880,111 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec)                           :: v_norm
+      INTEGER                                :: i_low
+      INTEGER                                :: j_low
+      INTEGER                                :: k_low
+      REAL (rprec)                           :: r_low
+      REAL (rprec)                           :: phi_low
+      REAL (rprec)                           :: z_low
+      REAL (rprec)                           :: wrl, wrh
+      REAL (rprec)                           :: wphil, wphih
+      REAL (rprec)                           :: wzl, wzh
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
       r_cyl = cart_to_cyl(x_cart)
-      vmec_get_B_vec = 0.0
       r_cyl(2) = r_cyl(2) + this%phi_offset
       r_cyl(3) = r_cyl(3) - this%z_offset
 
-      CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                          &
-     &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
-     &                  vmec_get_B_vec(3))
+      vmec_get_B_vec = 0.0
+      IF (vmec_get_s(this, x_cart) .le. 1.0) THEN
 
-      vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+         CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                       &
+     &                     vmec_get_B_vec(1), vmec_get_B_vec(2),               &
+     &                     vmec_get_B_vec(3))
+
+         vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+      ELSE IF (lfreeb) THEN
+         IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
+            STOP 'Radial point outside vacuum grid.'
+         END IF
+         IF (r_cyl(3) .gt. zmaxb .or. r_cyl(3) .lt. zminb) THEN
+            STOP 'Radial point outside vacuum grid.'
+         END IF
+
+!  Normalize phi position to fall within 0 - 2Pi.
+         v_norm = r_cyl(2)
+         DO WHILE(v_norm .gt. twopi .or. v_norm .lt. 0)
+            IF (v_norm .gt. twopi) THEN
+               v_norm = v_norm - twopi
+            ELSE
+               v_norm = v_norm + twopi
+            END IF
+         END DO
+
+!  Normalize phi position to fall within the first field period. We already
+!  made sure that v_norm is greater than zero degrees.
+         DO WHILE(v_norm .gt. twopi/nfp)
+            v_norm = v_norm - twopi/nfp
+         END DO
+
+!  Need to interpolate the vacuum field grid to get the vacuum field external to
+!  the plasma.
+         i_low = INT((r_cyl(1) - rminb)/delrb) + 1
+         j_low = nfp/twopi*(np0b - 1)*v_norm + 1
+         k_low = INT((r_cyl(3) - zminb)/delzb) + 1
+
+         r_low = rminb + (i_low - 1.0)/delrb
+         phi_low = (j_low - 1.0)*twopi*(np0b - 1.0)/nfp
+         z_low = zminb + (k_low - 1.0)/delzb
+
+         wrh = (r_cyl(1) - r_low)/delrb
+         wrl = (delrb - r_cyl(1) + r_low)/delrb
+         wphih = (v_norm - phi_low)*twopi*(np0b - 1.0)/nfp
+         wphil = (delrb - v_norm + phi_low)*twopi*(np0b - 1.0)/nfp
+         wzh = (r_cyl(3) - z_low)/delzb
+         wzl = (delzb - r_cyl(3) + z_low)/delzb
+
+         vmec_get_B_vec(1)                                                     &
+     &      = wrl*wphil*wzl*brvac(i_low,k_low,j_low)                           &
+     &      + wrh*wphil*wzl*brvac(i_low + 1,k_low,j_low)                       &
+     &      + wrl*wphih*wzl*brvac(i_low,k_low,j_low + 1)                       &
+     &      + wrh*wphih*wzl*brvac(i_low + 1,k_low,j_low + 1)                   &
+     &      + wrl*wphil*wzh*brvac(i_low,k_low + 1,j_low)                       &
+     &      + wrh*wphil*wzh*brvac(i_low + 1,k_low + 1,j_low)                   &
+     &      + wrl*wphih*wzh*brvac(i_low,k_low + 1,j_low + 1)                   &
+     &      + wrh*wphih*wzh*brvac(i_low + 1,k_low + 1,j_low + 1)
+
+         vmec_get_B_vec(2)                                                     &
+     &      = wrl*wphil*wzl*bpvac(i_low,k_low,j_low)                           &
+     &      + wrh*wphil*wzl*bpvac(i_low + 1,k_low,j_low)                       &
+     &      + wrl*wphih*wzl*bpvac(i_low,k_low,j_low + 1)                       &
+     &      + wrh*wphih*wzl*bpvac(i_low + 1,k_low,j_low + 1)                   &
+     &      + wrl*wphil*wzh*bpvac(i_low,k_low + 1,j_low)                       &
+     &      + wrh*wphil*wzh*bpvac(i_low + 1,k_low + 1,j_low)                   &
+     &      + wrl*wphih*wzh*bpvac(i_low,k_low + 1,j_low + 1)                   &
+     &      + wrh*wphih*wzh*bpvac(i_low + 1,k_low + 1,j_low + 1)
+
+         vmec_get_B_vec(3)                                                     &
+     &      = wrl*wphil*wzl*bzvac(i_low,k_low,j_low)                           &
+     &      + wrh*wphil*wzl*bzvac(i_low + 1,k_low,j_low)                       &
+     &      + wrl*wphih*wzl*bzvac(i_low,k_low,j_low + 1)                       &
+     &      + wrh*wphih*wzl*bzvac(i_low + 1,k_low,j_low + 1)                   &
+     &      + wrl*wphil*wzh*bzvac(i_low,k_low + 1,j_low)                       &
+     &      + wrh*wphil*wzh*bzvac(i_low + 1,k_low + 1,j_low)                   &
+     &      + wrl*wphih*wzh*bzvac(i_low,k_low + 1,j_low + 1)                   &
+     &      + wrh*wphih*wzh*bzvac(i_low + 1,k_low + 1,j_low + 1)
+
+!  Unshift the position since get_b_plasma uses the unshifted position.
+         r_cyl(2) = r_cyl(2) - this%phi_offset
+         r_cyl(3) = r_cyl(3) + this%z_offset
+
+         vmec_get_B_vec = vmec_get_ext_b_plasma(this, r_cyl, .false.)          &
+     &                  + vmec_get_B_vec
+      END IF
 
       CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 
@@ -3408,7 +3536,9 @@
 !>  @brief Get external plasma magnetic field.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_get_ext_b_plasma. The b
-!>  field is returned in cyclindical coordinates.
+!>  field is returned in cyclindical coordinates. This function does not require
+!>  shifting the plasma relative to the diagnostics. The plasma has already been
+!>  shifted when computing the surface currents and prime position.
 !>
 !>  @param[in] this     A @ref vmec_class instance.
 !>  @param[in] position Position to compute the fields at in cylindrical
@@ -3445,9 +3575,7 @@
       start_time = profiler_get_start_time()
 
 !  Convert the position to cartesian coordinates.
-      x_cart = position
-      x_cart(2) = x_cart(2) - this%phi_offset
-      x_cart = cyl_to_cart(x_cart)
+      x_cart = cyl_to_cart(position)
 
       IF (axi_only) THEN
          CALL assert(ASSOCIATED(this%magnetic_cache%kzuv_axi),                 &
@@ -3765,6 +3893,35 @@
       END SELECT
 
       CALL profiler_set_stop_time('vmec_is_recon_param', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Checks if a the point magnetics are being used.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_is_using_point.
+!>
+!>  @param[in] this A @ref vmec_class instance.
+!>  @returns True if the point magnetic are being used.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_is_using_point(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                       :: vmec_is_using_point
+      TYPE (vmec_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      vmec_is_using_point = ASSOCIATED(this%magnetic_cache) .and.              &
+     &                      ASSOCIATED(this%magnetic_cache%kruv_full)
+
+      CALL profiler_set_stop_time('vmec_is_using_point', start_time)
 
       END FUNCTION
 

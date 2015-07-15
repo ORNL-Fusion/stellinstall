@@ -123,10 +123,12 @@
 !>  @param[in]    sigma           Array of observed sigma values
 !>  @param[in]    weight          Array of signal weight values
 !>  @param[inout] first_index     Index of the first instance of an intpol
-!>                                signal.\
+!>                                signal.
+!>  @param[out]   use_polarimetry True is a polarimetry signal was constructed.
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_read(ipch_file, signals, signals_created,            &
-     &                         observed, sigma, weight, first_index)
+     &                         observed, sigma, weight, first_index,           &
+     &                         use_polarimetry)
       USE signal
       USE data_parameters
 
@@ -140,6 +142,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in)             :: sigma
       REAL (rprec), DIMENSION(:), INTENT(in)             :: weight
       INTEGER, INTENT(inout)                             :: first_index
+      LOGICAL, INTENT(out) :: use_polarimetry
 
 !  local parameters
 !  n_ipchd_keyword        integer - number of ipchd_keyword s.
@@ -168,6 +171,8 @@
 
 !  Open up the 'ipch.' file
       ipch_dot_file_ref = signal_dot_open(TRIM(ipch_file), "ipch")
+
+      use_polarimetry = .false.
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
@@ -204,6 +209,7 @@
      &                                    signals, signals_created,            &
      &                                    observed, sigma, weight,             &
      &                                    first_index)
+               use_polarimetry = .true.
 
 
             CASE ('ip_chord_RPhiDegZ_pol_rad')
@@ -212,6 +218,7 @@
      &                                    signals, signals_created,            &
      &                                    observed, sigma, weight,             &
      &                                    first_index)
+               use_polarimetry = .true.
 
 
             CASE ('ip_chord_XYZ_pol_deg')
@@ -220,6 +227,7 @@
      &                                    signals, signals_created,            &
      &                                    observed, sigma, weight,             &
      &                                    first_index)
+               use_polarimetry = .true.
 
 
             CASE ('ip_chord_RPhiDegZ_pol_deg')
@@ -228,6 +236,7 @@
      &                                    signals, signals_created,            &
      &                                    observed, sigma, weight,             &
      &                                    first_index)
+               use_polarimetry = .true.
 
 
          END SELECT

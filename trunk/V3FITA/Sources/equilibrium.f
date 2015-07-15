@@ -75,6 +75,14 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
+!>  Interface for the equilibrium set magnetic cache
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_set_magnetic_cache
+         MODULE PROCEDURE equilibrium_set_magnetic_cache_response,             &
+     &                    equilibrium_set_magnetic_cache_point
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface for the equilibrium density profile values.
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_get_ne
@@ -333,7 +341,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Sets the magnetic cache of the equilibrium.
+!>  @brief Sets the magnetic cache of the equilibrium for the magnetic responce.
 !>
 !>  This method is virtual. The actual setting of the magnetic cache should be
 !>  handled a subclass method. The magnetic cache is any pre compuation that
@@ -345,12 +353,11 @@
 !>
 !>  @param[inout] this            A @ref equilibrium_class instance.
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
-!>  @param[in]    use_point       Uses the point measurements
 !>  @param[in]    use_axi         Magnetics can subtract off axisymmetric
 !>                                components.
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_set_magnetic_cache(this, response_object,         &
-     &                                          use_point, use_axi)
+      SUBROUTINE equilibrium_set_magnetic_cache_response(this,                 &
+     &                                                  response_object)
       USE magnetic_response
 
       IMPLICIT NONE
@@ -358,8 +365,6 @@
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout)    :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
-      LOGICAL, INTENT(in)                        :: use_point
-      LOGICAL, INTENT(in)                        :: use_axi
 
 !  local variables
       REAL (rprec)                               :: start_time
@@ -370,8 +375,7 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            CALL vmec_set_magnetic_cache(this%vmec, response_object,           &
-     &                                   use_point, use_axi)
+            CALL vmec_set_magnetic_cache(this%vmec, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
             IF (.not.this%not_converged) THEN
@@ -380,8 +384,53 @@
 
       END SELECT
 
-      CALL profiler_set_stop_time('equilibrium_set_magnetic_cache',            &
-     &                            start_time)
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_set_magnetic_cache_response', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sets the magnetic cache of the equilibrium for points.
+!>
+!>  This method is virtual. The actual setting of the magnetic cache should be
+!>  handled a subclass method. The magnetic cache is any pre compuation that
+!>  needs to be performed so that magnetic signals may compute a modeled signal.
+!>  If the equilibrium does not require any information to be cached, this
+!>  method does not need to be overridden. This method is meant to only be
+!>  called once to tell the equilibrium it needs to use a magnetic cache.
+!>  @see vmec_equilibrium::vmec_set_magnetic_cache
+!>
+!>  @param[inout] this    A @ref equilibrium_class instance.
+!>  @param[in]    use_axi Magnetics can subtract off axisymmetric components.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_set_magnetic_cache_point(this, use_axi)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      LOGICAL, INTENT(in)                     :: use_axi
+
+!  local variables
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+      CASE (equilibrium_vmec_type)
+         CALL vmec_set_magnetic_cache(this%vmec, use_axi)
+
+!  If the equilibrium is already converged, compute the magnetic cache as well.
+         IF (.not.this%not_converged) THEN
+            CALL vmec_set_magnetic_cache(this%vmec)
+         END IF
+
+      END SELECT
+
+      CALL profiler_set_stop_time(                                             &
+     &        'equilibrium_set_magnetic_cache_point', start_time)
 
       END SUBROUTINE
 
@@ -1838,6 +1887,45 @@
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_is_recon_param',                &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Checks if a the point magnetics are being used.
+!>
+!>  This method is virtual. The actual check should be handled by a subclass
+!>  method.
+!>  @see vmec_equilibrium::vmec_is_using_point
+!>
+!>  @param[in] this A @ref equilibrium_class instance.
+!>  @returns True if the point magnetic are being used.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_is_using_point(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: equilibrium_is_using_point
+      TYPE (equilibrium_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_is_using_point = vmec_is_using_point(this%vmec)
+
+         CASE DEFAULT
+            equilibrium_is_using_point = .false.
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_is_using_point',                &
      &                            start_time)
 
       END FUNCTION

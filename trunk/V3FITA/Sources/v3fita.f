@@ -905,11 +905,15 @@
      &       magnetic_response_use_plasma(                                     &
      &          magnetic_object%response)) THEN
             plasma_index = signals_created
+            CALL equilibrium_set_magnetic_cache(                               &
+     &              context%model%equilibrium, magnetic_object%response)
          END IF
 
-         IF (.not.use_point) THEN
-            use_point =                                                        &
-     &         magnetic_response_is_point(magnetic_object%response)
+         IF (.not.use_point .and.                                              &
+     &       magnetic_response_is_point(magnetic_object%response)) THEN
+            use_point = .true.
+            CALL equilibrium_set_magnetic_cache(                               &
+     &              context%model%equilibrium, ANY(mag_3D_a))
          END IF
       END DO
 
@@ -920,51 +924,7 @@
          context%magnetic_index = 1
       END IF
 
-!  If response function was found set the plasma index to the number of signals
-!  created. This shold either be non zero pointing to a point diagnostic or zero
-!  where no magnetic signals were created.
-      IF (plasma_index .eq. 0) THEN
-         plasma_index = signals_created
-      END iF
-
-      CALL init_magnetic_cache(context, plasma_index, use_point)
-
       CALL profiler_set_stop_time('init_magnetic_signals', start_time)
-
-      END SUBROUTINE
-
-!-------------------------------------------------------------------------------
-!>  @brief Initialized the magnetic cache.
-!>
-!>  If at least one magnetic signal was constructed, initialize the magnetic
-!>  cache.
-!>
-!>  @param[inout] context An instance of a @ref v3fit_context object.
-!-------------------------------------------------------------------------------
-      SUBROUTINE init_magnetic_cache(context, index, use_point)
-      USE v3fit_context
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: context
-      INTEGER, INTENT(in)                       :: index
-      LOGICAL, INTENT(in)                       :: use_point
-
-!  local variables
-      REAL (rprec)                              :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      IF (context%magnetic_index .gt. 0) THEN
-         CALL equilibrium_set_magnetic_cache(                                  &
-     &           context%model%equilibrium,                                    &
-     &           context%signals(index)%p%diagnostic%magnetic%response,        &
-     &           use_point, ANY(mag_3D_a))
-      END IF
-
-      CALL profiler_set_stop_time('init_magnetic_cache', start_time)
 
       END SUBROUTINE
 
@@ -1030,6 +990,7 @@
       INTEGER, INTENT(inout)                    :: signals_created
 
 !  local variables
+      LOGICAL                                   :: use_polarimetry
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1044,7 +1005,15 @@
 !  The setting of the intpol_index for sxrem happens inside ipch_dot_parse_chord
       CALL ipch_dot_read(ipch_dot_filename, context%signals,                   &
      &                   signals_created, sdo_data_a, sdo_sigma_a,             &
-     &                   sdo_weight_a, context%intpol_index)
+     &                   sdo_weight_a, context%intpol_index,                   &
+     &                   use_polarimetry)
+
+      IF (use_polarimetry .and.                                                &
+     &    .not.equilibrium_is_using_point(                                     &
+     &            context%model%equilibrium)) THEN
+         CALL equilibrium_set_magnetic_cache(context%model%equilibrium,        &
+     &                                       .false.)
+      END IF
 
       CALL profiler_set_stop_time('init_intpol_signals', start_time)
 
@@ -1182,6 +1151,13 @@
       CALL mse_dot_read(mse_dot_filename, context%signals,                     &
      &                  signals_created, sdo_data_a, sdo_sigma_a,              &
      &                  sdo_weight_a, context%mse_index)
+
+      IF (context%mse_index .gt. 0 .and.                                       &
+     &    .not.equilibrium_is_using_point(                                     &
+     &            context%model%equilibrium)) THEN
+         CALL equilibrium_set_magnetic_cache(context%model%equilibrium,        &
+     &                                       .false.)
+      END IF
 
       CALL profiler_set_stop_time('init_mse_signals', start_time)
 
