@@ -267,7 +267,9 @@
       INTEGER, PARAMETER :: vmec_z_offset_id    = 62
 
 !>  Virtual casing grid points for vacuum field measurements.
-      INTEGER, PARAMETER :: magnetic_cache_vc_grid_points = 100
+      INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
+!>  Virtual casing grid dimension.
+      REAL (rprec), PARAMETER :: magnetic_cache_vc_grid_dim = 0.01
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -376,12 +378,12 @@
 
 !  Extra reconstruction parameters
 !>  Plasma phi offset.
-         REAL (rprec)                          :: phi_offset = 0
+         REAL (rprec)                           :: phi_offset = 0
 !>  Plasma z offset.
-         REAL (rprec)                          :: z_offset = 0
+         REAL (rprec)                           :: z_offset = 0
 
 !>  Index of the largest ns value.
-         INTEGER                               :: ns_index
+         INTEGER                                :: ns_index
 
       END TYPE
 
@@ -1142,6 +1144,7 @@
 !>  @param[in]    use_axi Magnetics can subtract off axisymmetric components.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_point(this, use_axi)
+      USE vmec_input, only: rbc, zbs
 
       IMPLICIT NONE
 
@@ -1150,6 +1153,7 @@
       LOGICAL, INTENT(in)              :: use_axi
 
 !  local variables
+      INTEGER                          :: u_size, v_size
       REAL (rprec)                     :: start_time
 
 !  Start of executable code
@@ -1159,39 +1163,28 @@
          ALLOCATE(this%magnetic_cache)
       END IF
 
-      this%magnetic_cache%du_full = twopi                                      &
-     &                            / magnetic_cache_vc_grid_points
-      this%magnetic_cache%dv_full = twopi                                      &
-     &                            / magnetic_cache_vc_grid_points
+!  Set the grid size based on the size of the rough size of the plasma.
+      v_size = MAX(INT(twopi*rbc(0,0)/magnetic_cache_vc_grid_dim),             &
+     &             magnetic_cache_vc_min_grid_points)
+      this%magnetic_cache%dv_full = twopi/v_size
 
-      ALLOCATE(this%magnetic_cache%kruv_full(                                  &
-     &            magnetic_cache_vc_grid_points,                               &
-     &            magnetic_cache_vc_grid_points))
-      ALLOCATE(this%magnetic_cache%kphiuv_full(                                &
-     &            magnetic_cache_vc_grid_points,                               &
-     &            magnetic_cache_vc_grid_points))
-      ALLOCATE(this%magnetic_cache%kzuv_full(                                  &
-     &            magnetic_cache_vc_grid_points,                               &
-     &            magnetic_cache_vc_grid_points))
+      u_size = MAX(INT(twopi*MAX(rbc(0,1), zbs(0,1))/                          &
+     &                 magnetic_cache_vc_grid_dim),                            &
+     &                magnetic_cache_vc_min_grid_points)
+      this%magnetic_cache%du_full = twopi/u_size
 
-      ALLOCATE(this%magnetic_cache%x_prime(                                    &
-     &            magnetic_cache_vc_grid_points,                               &
-     &            magnetic_cache_vc_grid_points,3))
+      ALLOCATE(this%magnetic_cache%kruv_full(u_size,v_size))
+      ALLOCATE(this%magnetic_cache%kphiuv_full(u_size,v_size))
+      ALLOCATE(this%magnetic_cache%kzuv_full(u_size,v_size))
+
+      ALLOCATE(this%magnetic_cache%x_prime(u_size,v_size,3))
 
       IF (use_axi) THEN
-         ALLOCATE(this%magnetic_cache%kruv_axi(                                &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-         ALLOCATE(this%magnetic_cache%kphiuv_axi(                              &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
-         ALLOCATE(this%magnetic_cache%kzuv_axi(                                &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points))
+         ALLOCATE(this%magnetic_cache%kruv_axi(u_size,v_size))
+         ALLOCATE(this%magnetic_cache%kphiuv_axi(u_size,v_size))
+         ALLOCATE(this%magnetic_cache%kzuv_axi(u_size,v_size))
 
-         ALLOCATE(this%magnetic_cache%x_axi(                                   &
-     &               magnetic_cache_vc_grid_points,                            &
-     &               magnetic_cache_vc_grid_points,3))
+         ALLOCATE(this%magnetic_cache%x_axi(u_size,v_size,3))
 
       END IF
 
@@ -1745,15 +1738,15 @@
 !$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO v = 1, numV
-         phi = (v - 1)*this%magnetic_cache%dv_full + this%phi_offset
-         cosphi(v) = COS(phi)
-         sinphi(v) = SIN(phi)
-         cosv(:,v) = COS(xn*phi)
-         sinv(:,v) = SIN(xn*phi)
-         cosv_nyq(:,v) = COS(xn_nyq*phi)
-         sinv_nyq(:,v) = SIN(xn_nyq*phi)
-      END DO
+         DO v = 1, numV
+            phi = (v - 1)*this%magnetic_cache%dv_full + this%phi_offset
+            cosphi(v) = COS(phi)
+            sinphi(v) = SIN(phi)
+            cosv(:,v) = COS(xn*phi)
+            sinv(:,v) = SIN(xn*phi)
+            cosv_nyq(:,v) = COS(xn_nyq*phi)
+            sinv_nyq(:,v) = SIN(xn_nyq*phi)
+         END DO
 !$OMP END DO
 
 !>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
@@ -1821,8 +1814,6 @@
                   z = 0.0
                   ru = 0.0
                   zu = 0.0
-                  rv = 0.0
-                  zv = 0.0
 
                   bu = 0.0
                   bv = 0.0
@@ -2887,6 +2878,7 @@
       REAL (rprec)                           :: r_low
       REAL (rprec)                           :: phi_low
       REAL (rprec)                           :: z_low
+      REAL (rprec)                           :: delphib
       REAL (rprec)                           :: wrl, wrh
       REAL (rprec)                           :: wphil, wphih
       REAL (rprec)                           :: wzl, wzh
@@ -2896,17 +2888,15 @@
       start_time = profiler_get_start_time()
 
       r_cyl = cart_to_cyl(x_cart)
-      r_cyl(2) = r_cyl(2) + this%phi_offset
-      r_cyl(3) = r_cyl(3) - this%z_offset
 
       vmec_get_B_vec = 0.0
       IF (vmec_get_s(this, x_cart) .le. 1.0) THEN
+         r_cyl(2) = r_cyl(2) + this%phi_offset
+         r_cyl(3) = r_cyl(3) - this%z_offset
 
          CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                       &
      &                     vmec_get_B_vec(1), vmec_get_B_vec(2),               &
      &                     vmec_get_B_vec(3))
-
-         vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
       ELSE IF (lfreeb) THEN
          IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
             STOP 'Radial point outside vacuum grid.'
@@ -2933,18 +2923,20 @@
 
 !  Need to interpolate the vacuum field grid to get the vacuum field external to
 !  the plasma.
+         delphib = twopi/(nfp*np0b)
+
          i_low = INT((r_cyl(1) - rminb)/delrb) + 1
-         j_low = nfp/twopi*(np0b - 1)*v_norm + 1
+         j_low = INT(v_norm/delphib) + 1
          k_low = INT((r_cyl(3) - zminb)/delzb) + 1
 
-         r_low = rminb + (i_low - 1.0)/delrb
-         phi_low = (j_low - 1.0)*twopi*(np0b - 1.0)/nfp
-         z_low = zminb + (k_low - 1.0)/delzb
+         r_low = rminb + (i_low - 1.0)*delrb
+         phi_low = (j_low - 1.0)*delphib
+         z_low = zminb + (k_low - 1.0)*delzb
 
          wrh = (r_cyl(1) - r_low)/delrb
          wrl = (delrb - r_cyl(1) + r_low)/delrb
-         wphih = (v_norm - phi_low)*twopi*(np0b - 1.0)/nfp
-         wphil = (delrb - v_norm + phi_low)*twopi*(np0b - 1.0)/nfp
+         wphih = (v_norm - phi_low)/delphib
+         wphil = (delphib - v_norm + phi_low)/delphib
          wzh = (r_cyl(3) - z_low)/delzb
          wzl = (delzb - r_cyl(3) + z_low)/delzb
 
@@ -2978,13 +2970,11 @@
      &      + wrl*wphih*wzh*bzvac(i_low,k_low + 1,j_low + 1)                   &
      &      + wrh*wphih*wzh*bzvac(i_low + 1,k_low + 1,j_low + 1)
 
-!  Unshift the position since get_b_plasma uses the unshifted position.
-         r_cyl(2) = r_cyl(2) - this%phi_offset
-         r_cyl(3) = r_cyl(3) + this%z_offset
-
          vmec_get_B_vec = vmec_get_ext_b_plasma(this, r_cyl, .false.)          &
      &                  + vmec_get_B_vec
       END IF
+
+      vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
 
       CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 
@@ -3562,7 +3552,6 @@
 !  local variables
       REAL (rprec), DIMENSION(3)              :: x_cart
       INTEGER                                 :: u, v
-      REAL (rprec), DIMENSION(3)              :: l_prime
       REAL (rprec), DIMENSION(3)              :: r_prime
       REAL (rprec), DIMENSION(:,:,:), POINTER :: x_prime
       REAL (rprec), DIMENSION(:,:), POINTER   :: kruv
@@ -3601,19 +3590,18 @@
       sum_b = 0.0
       DO v = 1, SIZE(kruv,2)
          DO u = 1, SIZE(kruv,1)
-            l_prime = x_cart - x_prime(u,v,:)
-            r_prime = cart_to_cyl_vec(x_prime(u,v,:), l_prime)
+            r_prime = cart_to_cyl_vec(x_prime(u,v,:),                          &
+     &                                x_cart - x_prime(u,v,:))
 
             sum_b(1) = sum_b(1)                                                &
      &               + (kphiuv(u,v)*r_prime(3) - kzuv(u,v)*r_prime(2))         &
-     &               / (SQRT(DOT_PRODUCT(l_prime, l_prime))**3.0)
+     &               / (SQRT(DOT_PRODUCT(r_prime, r_prime))**3.0)
             sum_b(2) = sum_b(2)                                                &
      &               + (kzuv(u,v)*r_prime(1) - kruv(u,v)*r_prime(3))           &
-     &               / (SQRT(DOT_PRODUCT(l_prime, l_prime))**3.0)
+     &               / (SQRT(DOT_PRODUCT(r_prime, r_prime))**3.0)
             sum_b(3) = sum_b(3)                                                &
      &               + (kruv(u,v)*r_prime(2) - kphiuv(u,v)*r_prime(1))         &
-     &               / (SQRT(DOT_PRODUCT(l_prime, l_prime))**3.0)
-
+     &               / (SQRT(DOT_PRODUCT(r_prime, r_prime))**3.0)
          END DO
       END DO
 
