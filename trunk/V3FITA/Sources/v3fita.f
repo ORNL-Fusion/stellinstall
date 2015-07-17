@@ -1801,7 +1801,6 @@
       USE v3fit_context
       USE file_opts
 #if defined(MPI_OPT)
-      USE mpi
       USE data_parameters
 #endif
 

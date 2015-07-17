@@ -14,9 +14,6 @@
       USE stel_kinds, only: rprec
       USE data_parameters
       USE magnetic_response
-#if defined (MPI_OPT)
-      USE mpi
-#endif
       USE profiler
 
       IMPLICIT NONE

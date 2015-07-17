@@ -15,9 +15,6 @@
       USE commandline_parser
       USE reconstruction
       USE ezcdf
-#if defined (MPI_OPT)
-      USE mpi
-#endif
 
       IMPLICIT NONE
 
