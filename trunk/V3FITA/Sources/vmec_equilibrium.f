@@ -631,13 +631,16 @@
          vmec_construct_mpi%sxrem(i)%p => pprofile_construct(intra_comm)
       END DO
 
+      CALL MPI_BCAST(vmec_construct_mpi%ns_index, 1, MPI_INTEGER, 0,           &
+     &               intra_comm, error)
+
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
       ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
       ictrl_array(1) = IOR(ictrl_array(1), readin_flag)
       ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
       ictrl_array(3) = 1 ! Run for one iteration.
-      ictrl_array(4) = 1 ! Limit VMEC to single grid.
+      ictrl_array(4) = vmec_construct_mpi%ns_index
 
       l_v3fit = .true.
 
@@ -4648,6 +4651,9 @@
       DO i = 1, num_sxrem
          CALL pprofile_sync_children(this%sxrem(i)%p, intra_comm)
       END DO
+
+      CALL MPI_BCAST(this%ns_index, 1, MPI_INTEGER, 0, intra_comm,             &
+     &               error)
 
       sync_cache = ASSOCIATED(this%magnetic_cache)
       CALL MPI_BCAST(sync_cache, 1, MPI_LOGICAL, 0, intra_comm, error)

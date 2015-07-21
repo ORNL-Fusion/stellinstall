@@ -255,7 +255,9 @@
 !-------------------------------------------------------------------------------
 !>  @brief Evaluate the line.
 !>
-!>  Evaluates the line defined by the x and y at the indicies.
+!>  Evaluates the line defined by the x and y at the indicies. Avoid a possible
+!>  divide by zero when two xx indices have the same value. Handel this by
+!>  taking the high index of yy.
 !>
 !>  @param[in] x     X point to evaluate the line at.
 !>  @param[in] xx    X positions defining the line segments.
@@ -277,15 +279,21 @@
       INTEGER, INTENT(in)                   :: ihigh
 
 !  Start of executable code
-      y_value = slope(yy, xx, ilow, ihigh)*x                                   &
-     &        + offset(yy, xx, ilow, ihigh)
+      IF (xx(ilow) .eq. xx(ihigh)) THEN
+         y_value = yy(ihigh)
+      ELSE
+         y_value = slope(yy, xx, ilow, ihigh)*x                                &
+     &           + offset(yy, xx, ilow, ihigh)
+      END IF
 
       END FUNCTION
 
 !-------------------------------------------------------------------------------
 !>  @brief Integrate the line.
 !>
-!>  Evaluates the integral of line defined by the x and y at the indicies.
+!>  Evaluates the integral of line defined by the x and y at the indicies. Avoid
+!>  a potential divide by zero error when two xx indices have the same value. In
+!>  this case, the integral is zero.
 !>
 !>  @param[in] x0    Starting point of the integration.
 !>  @param[in] x1    Ending point of the integration.
@@ -309,8 +317,13 @@
       INTEGER, INTENT(in)                   :: ihigh
 
 !  Start of executable code
-      y_value_int = slope(yy, xx, ilow, ihigh)/2.0*(x1**2.0 - x0**2.0)         &
-     &            + offset(yy, xx, ilow, ihigh)*(x1 - x0)
+      IF (xx(ilow) .eq. xx(ihigh)) THEN
+         y_value_int = 0.0
+      ELSE
+         y_value_int = slope(yy, xx, ilow, ihigh)                              &
+     &               / 2.0*(x1**2.0 - x0**2.0)                                 &
+     &               + offset(yy, xx, ilow, ihigh)*(x1 - x0)
+      END IF
 
       END FUNCTION
 
