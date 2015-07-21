@@ -649,16 +649,16 @@
 !        Compute <K dot B>, <B sup v> = signgs*phip
 !        jpar2 = <j||**2>, jperp2 = <j-perp**2>,  with <...> = flux surface average
 
-         jdotb(js) = tjnorm*SUM(bdotk(js,:nznt)*wint(2:nrzt:ns)
+         jdotb(js) = dnorm1*tjnorm*SUM(bdotk(js,:nznt)*wint(2:nrzt:ns)
      1                        / sigma_an(js,:nznt))
-         bdotb(js) = tjnorm*SUM(sqgb2(:nznt)*wint(2:nrzt:ns)
+         bdotb(js) = dnorm1*tjnorm*SUM(sqgb2(:nznt)*wint(2:nrzt:ns)
      1                        / sigma_an(js,:nznt))
               
          bdotgradv(js) = p5*dnorm1*tjnorm*(phip(js) + phip(js+1))
-         jpar2(js) = tjnorm*
+         jpar2(js) = dnorm1*tjnorm*
      1            SUM(bdotk(js,:nznt)**2*wint(2:nrzt:ns)
      2              /(sigma_an(js,:nznt)*sqgb2(:nznt)))
-         jperp2(js)= tjnorm*
+         jperp2(js)= dnorm1*tjnorm*
      1            SUM(kp2(:nznt)*wint(2:nrzt:ns)*sqrtg(:nznt))
 
          IF (MOD(js,ns_skip) .eq. 0 .and. lprint_flag) THEN
@@ -687,8 +687,8 @@ C                 lu (js,lz,lt ) =  lt
 #else
             WRITE (njxbout, 200) phi(js), avforce(js), jdotb(js),
      1         bdotgradv(js), pprime(1), one/ovp, 
-     2         (twopi**2)*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
-     3         (twopi**2)*tjnorm*SUM(izeta (js,:)*wint(js:nrzt:ns)),
+     2         dnorm1*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
+     3         dnorm1*tjnorm*SUM(izeta (js,:)*wint(js:nrzt:ns)),
      4         amaxfor(js), aminfor(js)
             WRITE (njxbout, 90)
             DO lz = 1, nzeta, nv_skip

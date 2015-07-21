@@ -129,7 +129,6 @@
       END SUBROUTINE store_init_array
 
       SUBROUTINE getrz (rz_array)
-!      USE vmec_main, ONLY: iter2
       USE xstuff, ONLY: xc, xstore
       IMPLICIT NONE
       REAL(dp), DIMENSION(ns*(1+ntor),0:mpol1,2*ntmax), INTENT(inout) :: rz_array
