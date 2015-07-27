@@ -213,6 +213,7 @@
       INTEGER, INTENT(in)                         :: num_params
 
 !  local variables
+      REAL (rprec)                                :: value
       REAL (rprec)                                :: start_time
 
 !  Start of executable code
@@ -273,6 +274,20 @@
 
       ALLOCATE(param_construct_recon%sem(num_signals))
       param_construct_recon%sem = 0.0
+
+!  Check if the inital parameter value is in range.
+      value = param_get_value(param_construct_recon, a_model)
+      CALL assert(param_is_in_lower_range(param_construct_recon,               &
+     &                                    a_model, value),                     &
+     &            TRIM(param_get_name(param_construct_recon, a_model))         &
+     &            // ' inital value is outside reconstruction parameter'       &
+     &            //' lower bound.')
+
+      CALL assert(param_is_in_upper_range(param_construct_recon,               &
+     &                                    a_model, value),                     &
+     &            TRIM(param_get_name(param_construct_recon, a_model))         &
+     &            // ' inital value is outside reconstruction parameter'       &
+     &            // ' upper bound.')
 
       CALL profiler_set_stop_time('param_construct_recon', start_time)
 
