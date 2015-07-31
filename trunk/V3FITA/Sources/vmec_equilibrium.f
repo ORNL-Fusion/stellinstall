@@ -1285,36 +1285,33 @@
       IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
          dim_lengths = SHAPE(this%magnetic_cache%rsuv)
       END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_REAL8, 0, intra_comm, error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%rsuv) .and.                      &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%rsuv(dim_lengths(1),                     &
-     &                                     dim_lengths(2),                     &
-     &                                     dim_lengths(3)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%zsuv) .and.                      &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%zsuv(dim_lengths(1),                     &
-     &                                     dim_lengths(2),                     &
-     &                                     dim_lengths(3)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%jrsuv) .and.                     &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%jrsuv(dim_lengths(1),                    &
-     &                                      dim_lengths(2),                    &
-     &                                      dim_lengths(3)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%jphisuv) .and.                   &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%jphisuv(dim_lengths(1),                  &
+      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
+      IF (PRODUCT(dim_lengths) .gt. 0) THEN
+         IF (.not.ASSOCIATED(this%magnetic_cache%rsuv)) THEN
+            ALLOCATE(this%magnetic_cache%rsuv(dim_lengths(1),                  &
      &                                        dim_lengths(2),                  &
      &                                        dim_lengths(3)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%jzsuv) .and.                     &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%jzsuv(dim_lengths(1),                    &
-     &                                      dim_lengths(2),                    &
-     &                                      dim_lengths(3)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%zsuv)) THEN
+            ALLOCATE(this%magnetic_cache%zsuv(dim_lengths(1),                  &
+     &                                        dim_lengths(2),                  &
+     &                                        dim_lengths(3)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%jrsuv)) THEN
+            ALLOCATE(this%magnetic_cache%jrsuv(dim_lengths(1),                 &
+     &                                         dim_lengths(2),                 &
+     &                                         dim_lengths(3)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%jphisuv)) THEN
+            ALLOCATE(this%magnetic_cache%jphisuv(dim_lengths(1),               &
+     &                                           dim_lengths(2),               &
+     &                                           dim_lengths(3)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%jzsuv)) THEN
+            ALLOCATE(this%magnetic_cache%jzsuv(dim_lengths(1),                 &
+     &                                         dim_lengths(2),                 &
+     &                                         dim_lengths(3)))
+         END IF
       END IF
 
 !  Conducting shell arrays.
@@ -1322,22 +1319,21 @@
       IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
          dim_lengths(1:2) = SHAPE(this%magnetic_cache%kruv)
       END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_REAL8, 0, intra_comm,            &
+      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,          &
      &               error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%kruv) .and.                      &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kruv(dim_lengths(1),                     &
-     &                                     dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv) .and.                    &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kphiuv(dim_lengths(1),                   &
-     &                                       dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kzuv) .and.                      &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kzuv(dim_lengths(1),                     &
-     &                                     dim_lengths(2)))
+      IF (PRODUCT(dim_lengths(1:2)) .gt. 0) THEN
+         IF (.not.ASSOCIATED(this%magnetic_cache%kruv)) THEN
+            ALLOCATE(this%magnetic_cache%kruv(dim_lengths(1),                  &
+     &                                        dim_lengths(2)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv)) THEN
+            ALLOCATE(this%magnetic_cache%kphiuv(dim_lengths(1),                &
+     &                                          dim_lengths(2)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%kzuv)) THEN
+            ALLOCATE(this%magnetic_cache%kzuv(dim_lengths(1),                  &
+     &                                        dim_lengths(2)))
+         END IF
       END IF
 
 !  Point virtual casing arrays.
@@ -1345,34 +1341,33 @@
       IF (ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
          dim_lengths(1:2) = SHAPE(this%magnetic_cache%kxuv_full)
       END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_REAL8, 0, intra_comm,            &
+      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,          &
      &               error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%kxuv_full) .and.                 &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kxuv_full(dim_lengths(1),                &
-     &                                          dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kyuv_full) .and.                 &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kyuv_full(dim_lengths(1),                &
-     &                                          dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_full) .and.                 &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kzuv_full(dim_lengths(1),                &
-     &                                          dim_lengths(2)))
+      IF (PRODUCT(dim_lengths(1:2)) .gt. 0) THEN
+         IF (.not.ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
+            ALLOCATE(this%magnetic_cache%kxuv_full(dim_lengths(1),             &
+     &                                           dim_lengths(2)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%kyuv_full)) THEN
+            ALLOCATE(this%magnetic_cache%kyuv_full(dim_lengths(1),             &
+     &                                             dim_lengths(2)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_full)) THEN
+            ALLOCATE(this%magnetic_cache%kzuv_full(dim_lengths(1),             &
+     &                                             dim_lengths(2)))
+         END IF
       END IF
 
       dim_lengths = 0
       IF (ASSOCIATED(this%magnetic_cache%x_prime)) THEN
          dim_lengths = SHAPE(this%magnetic_cache%x_prime)
       END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_REAL8, 0, intra_comm, error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%x_prime) .and.                   &
-     &    SUM(dim_lengths) .gt. 0) THEN
+      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
+      IF (PRODUCT(dim_lengths) .gt. 0 .and.                                    &
+     &    .not.ASSOCIATED(this%magnetic_cache%x_prime)) THEN
          ALLOCATE(this%magnetic_cache%x_prime(dim_lengths(1),                  &
      &                                        dim_lengths(2),                  &
-     &                                       dim_lengths(3)))
+     &                                        dim_lengths(3)))
       END IF
 
 !  Point axisymmtric virtual casing arrays.
@@ -1380,31 +1375,30 @@
       IF (ASSOCIATED(this%magnetic_cache%kxuv_axi)) THEN
          dim_lengths(1:2) = SHAPE(this%magnetic_cache%kxuv_axi)
       END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_REAL8, 0, intra_comm,            &
+      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,          &
      &               error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%kxuv_axi) .and.                  &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kxuv_axi(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kyuv_axi) .and.                  &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kyuv_axi(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
-      END IF
-      IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_axi) .and.                  &
-     &    SUM(dim_lengths) .gt. 0) THEN
-         ALLOCATE(this%magnetic_cache%kzuv_axi(dim_lengths(1),                 &
-     &                                         dim_lengths(2)))
+      IF (PRODUCT(dim_lengths(1:2)) .gt. 0) THEN
+         IF (.not.ASSOCIATED(this%magnetic_cache%kxuv_axi)) THEN
+            ALLOCATE(this%magnetic_cache%kxuv_axi(dim_lengths(1),              &
+     &                                            dim_lengths(2)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%kyuv_axi)) THEN
+            ALLOCATE(this%magnetic_cache%kyuv_axi(dim_lengths(1),              &
+     &                                            dim_lengths(2)))
+         END IF
+         IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_axi)) THEN
+            ALLOCATE(this%magnetic_cache%kzuv_axi(dim_lengths(1),              &
+     &                                            dim_lengths(2)))
+         END IF
       END IF
 
       dim_lengths = 0
       IF (ASSOCIATED(this%magnetic_cache%x_axi)) THEN
          dim_lengths = SHAPE(this%magnetic_cache%x_axi)
       END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_REAL8, 0, intra_comm, error)
-      IF (.not.ASSOCIATED(this%magnetic_cache%x_axi) .and.                     &
-     &    SUM(dim_lengths) .gt. 0) THEN
+      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
+      IF (PRODUCT(dim_lengths) .gt. 0 .and.                                    &
+     &    .not.ASSOCIATED(this%magnetic_cache%x_axi)) THEN
          ALLOCATE(this%magnetic_cache%x_axi(dim_lengths(1),                    &
      &                                      dim_lengths(2),                    &
      &                                      dim_lengths(3)))
@@ -3966,8 +3960,13 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      vmec_is_using_point = ASSOCIATED(this%magnetic_cache) .and.              &
-     &                      ASSOCIATED(this%magnetic_cache%kxuv_full)
+!  Some compilers will generate code that will early terminate when a first
+!  operand to a .and. operator evaluates to false. Others are not so clever.
+!  Avoid running the second ASSOCIATED check if the magnetic cache is null.
+      vmec_is_using_point = ASSOCIATED(this%magnetic_cache)
+      IF (vmec_is_using_point) THEN
+         vmec_is_using_point = ASSOCIATED(this%magnetic_cache%kxuv_full)
+      END IF
 
       CALL profiler_set_stop_time('vmec_is_using_point', start_time)
 

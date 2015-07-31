@@ -145,7 +145,7 @@ then
 	      -DNETCDF_INC_PATH=/opt/cray/netcdf/4.3.2/INTEL/140/include             \
 	      -DNETCDF_LIB_PATH=/opt/cray/netcdf/4.3.2/INTEL/140/lib                 \
 	      -DCMAKE_PREFIX_PATH:FILEPATH=/opt/cray/mpt/7.0.4/gni/mpich2-INTEL/140/ \
-	      -DEXTRA_FLAGS="-openmp"
+	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"
 
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
