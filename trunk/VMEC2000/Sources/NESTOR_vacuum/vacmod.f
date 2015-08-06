@@ -14,7 +14,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: nfper, nvper
+      INTEGER :: nfper, nvper, istore_max
       REAL(rprec), DIMENSION(:), ALLOCATABLE, TARGET :: potvac
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: bvecsav, amatsav,
      1   bexni, brv, bphiv, bzv, bsqvac, r1b, rub, rvb, z1b,

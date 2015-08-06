@@ -119,6 +119,7 @@
       tlm  = one/sqad2u*log((sqad2u*sqrtc + adm + cma)
      1                     /(sqad2u*sqrta - adm + cma ))
       tlpm = tlp  + tlm
+!$OMP END WORKSHARE
 !
 !     BEGIN L-SUM IN EQ (A14) TO COMPUTE Imn (and Kmn) INTEGRALS
 !     NOTE THAT IN THE LOOP OVER L BELOW: L == |m - n| + 2L_A14
@@ -126,7 +127,6 @@
 !
       sign1 = 1
       fl1 = 0
-!$OMP END WORKSHARE
 !$OMP END PARALLEL
 
       LLOOP: DO l = 0, mf + nf
@@ -145,8 +145,8 @@
 !
 !     BEGIN MODE NUMBER (m,n) LOOP
 !
-!!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!!$OMP& SCHEDULE(STATIC) PRIVATE(m,n) COLLAPSE(2)
+!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP& SCHEDULE(STATIC) PRIVATE(m,n)
          DO n = 0, nf
             DO m = 0, mf
                IF (cmns(l,m,n) .ne. zero) THEN  ! mjr: load imbalance?
@@ -169,7 +169,7 @@
                ENDIF
             END DO
          END DO
-!!$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 !
 !     UPDATE "TL's" (FOR L -> L+1) USING EQ (A15)
 !

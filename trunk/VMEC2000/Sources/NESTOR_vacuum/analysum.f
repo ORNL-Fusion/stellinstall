@@ -20,9 +20,7 @@ C-----------------------------------------------
 
       bvec_temp1 = zero
       bvec_temp2 = zero
-!$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(sin_temp, cos_temp)
-!$OMP& SCHEDULE(STATIC) REDUCTION(+:bvec_temp1, bvec_temp2)
-!$OMP& NUM_THREADS(OMP_NUM_THREADS)
+
       DO i = 1, nuv2
          sin_temp = (sinu1(i,m)*cosv1(i,n) - sinv1(i,n)*cosu1(i,m))            &
      &            * cmns(l,m,n) !SIN(mu - |n|v)*cmns
@@ -42,7 +40,7 @@ C-----------------------------------------------
             END IF
          END IF
       END DO
-!$OMP END PARALLEL DO
+
       bvec(m,n,1) = bvec(m,n,1) + bvec_temp1
       IF (lasym) THEN
          bvec(m,n,2) = bvec(m,n,2) + bvec_temp2

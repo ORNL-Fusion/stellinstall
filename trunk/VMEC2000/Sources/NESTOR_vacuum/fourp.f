@@ -4,7 +4,7 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(inout) :: istart
+      INTEGER, INTENT(in)    :: istart
       INTEGER, INTENT(in)    :: iend, istore, ndim
       REAL(rprec), INTENT(in)    :: grp(nuv,istore)
       REAL(rprec), INTENT(inout) :: grpmn(0:mf,-nf:nf,nuv2,ndim)
@@ -79,8 +79,6 @@ C-----------------------------------------------
             END DO
          END DO
       END DO
-
-      istart = iend
 
       DEALLOCATE (g1, g2, stat=m)
 

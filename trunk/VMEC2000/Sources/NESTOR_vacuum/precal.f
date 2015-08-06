@@ -194,4 +194,17 @@ C-----------------------------------------------
       cmns(0:mf+nf,0,0)    = (p5*alp)*(cmn(0:mf+nf,0,0)
      1                     +           cmn(0:mf+nf,0,0))
 
+!  Set the maximum storage size used in scalpot Typically nuv2 should be much
+!  larger than the number of threads used. But we need to handel the cases wif
+!  nuv2 is less than the number of threads. In this case, make the max storage
+!  size 1. The extra parallel threads will just end up sitting idle. Keep the
+!  storage size under 64,=.
+      istore_max = MAX(nuv2/OMP_NUM_THREADS, 1)
+!  Keep the storage size under 64.
+      i = 2
+      DO WHILE(istore_max .gt. 64)
+         istore_max = MAX(nuv2/(i*OMP_NUM_THREADS), 1)
+         i = i + 1
+      END DO
+
       END SUBROUTINE precal

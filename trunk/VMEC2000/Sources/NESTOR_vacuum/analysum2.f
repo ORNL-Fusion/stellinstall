@@ -26,11 +26,7 @@ C-----------------------------------------------
       bvec_temp_p2 = zero
       bvec_temp_n1 = zero
       bvec_temp_n2 = zero
-!$OMP PARALLEL DO DEFAULT(SHARED)
-!$OMP& PRIVATE(sin_temp, cos_temp, sin_temp_m, cos_temp_m)
-!$OMP& SCHEDULE(STATIC)
-!$OMP& REDUCTION(+:bvec_temp_p1,bvec_temp_p2,bvec_temp_n1,bvec_temp_n2)
-!$OMP& NUM_THREADS(OMP_NUM_THREADS)
+
       DO i = 1, nuv2
 
          sin_temp = sinu1(i,m)*cosv1(i,n)*cmns(l,m,n)
@@ -61,7 +57,6 @@ C-----------------------------------------------
 
          END IF
       END DO
-!$OMP END PARALLEL DO
 
       bvec(m,n,1)  = bvec(m,n,1)  + bvec_temp_p1
       bvec(m,-n,1) = bvec(m,-n,1) + bvec_temp_n1

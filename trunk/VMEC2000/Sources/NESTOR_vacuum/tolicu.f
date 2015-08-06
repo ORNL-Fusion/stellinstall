@@ -23,7 +23,7 @@ C-----------------------------------------------
       current = torcur/mu0
 
 !$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP& PRIVATE(kper)
+!$OMP& PRIVATE(kper,kv,i)
       DO kper = 1, nvper
          DO kv = 1, nv
             i = kv+nv*(kper-1)

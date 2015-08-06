@@ -56,7 +56,7 @@
       k = 0
       mn0 = 1 + mf1*nf                                             !!Index of m=0,n=0         
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i,k) 
+!$OMP DO SCHEDULE(STATIC) PRIVATE(i,j,k)
       DO i = 1, nu2
          DO j = 1, nv
             k = j+nv*(i-1)
