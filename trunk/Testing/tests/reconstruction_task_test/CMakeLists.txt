@@ -1,6 +1,10 @@
 #  Run the reconstruction task. This just tests if the reconstruction executes correctly. 
 #  Subsequent tests will examine the results of the reconstruction for correct 
 #  results.
+
+add_test (NAME    reconstruction_task_test_v3rfun
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3rfun v3rfun.in)
+
 add_test (NAME    reconstruction_task_test
           COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1)
 
@@ -231,6 +235,24 @@ add_test (NAME reconstruction_task_test_check_reconstruction_correlation_matrix
           COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)
 add_test (NAME reconstruction_task_test_check_derived_correlation_matrix
           COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Derived)
+
+#  Check point magnetic diagnostics values.
+add_test (NAME    reconstruction_task_test_check_point1
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point1 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point2
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point2 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point3
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point3 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point4 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point1_probe1
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe1 --s_name2=point1 --attribute=plasma --range=1.0E-5)
+add_test (NAME    reconstruction_task_test_check_point2_probe2
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe2 --s_name2=point2 --attribute=plasma --range=1.0E-5)
+add_test (NAME    reconstruction_task_test_check_point3_probe3
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe3 --s_name2=point3 --attribute=plasma --range=1.0E-5)
+add_test (NAME    reconstruction_task_test_check_point4_probe4
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe4 --s_name2=point4 --attribute=plasma --range=1.0E-5)
 
 #  Rerun reconstruction to test that MPI parallel version works. This is only run if MPI support was compiled in.
 
@@ -469,7 +491,25 @@ if (MPI_Fortran_FOUND)
 	add_test (NAME reconstruction_task_test_check_derived_correlation_matrix_mpi
         	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Derived)
 
-#  Run the reconstruction task. This just tests if the reconstruction executes correctly. 
+#  Check point magnetic diagnostics values.
+	add_test (NAME    reconstruction_task_test_check_point1_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point1 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point2_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point2 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point3_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point3 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point4 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point1_probe1_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe1 --s_name2=point1 --attribute=plasma --range=1.0E-5)
+	add_test (NAME    reconstruction_task_test_check_point2_probe2_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe2 --s_name2=point2 --attribute=plasma --range=1.0E-5)
+	add_test (NAME    reconstruction_task_test_check_point3_probe3_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe3 --s_name2=point3 --attribute=plasma --range=1.0E-5)
+	add_test (NAME    reconstruction_task_test_check_point4_probe4_mpi
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe4 --s_name2=point4 --attribute=plasma --range=1.0E-5)
+
+#  Run the reconstruction task. This just tests if the reconstruction executes correctly.
 #  Subsequent tests will examine the results of the reconstruction for correct 
 #  results.
 	add_test (NAME    reconstruction_task_test_mpiexec
@@ -701,5 +741,24 @@ if (MPI_Fortran_FOUND)
         	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Reconstruction)
 	add_test (NAME reconstruction_task_test_check_derived_correlation_matrix_mpiexec
         	  COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --param=Derived)
+
+#  Check point magnetic diagnostics values.
+	add_test (NAME    reconstruction_task_test_check_point1_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point1 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point2_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point2 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point3_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point3 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name=point4 --attribute=model --value=0.0 --range=1.0E-10)
+	add_test (NAME    reconstruction_task_test_check_point1_probe1_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe1 --s_name2=point1 --attribute=plasma --range=1.0E-5)
+	add_test (NAME    reconstruction_task_test_check_point2_probe2_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe2 --s_name2=point2 --attribute=plasma --range=1.0E-5)
+	add_test (NAME    reconstruction_task_test_check_point3_probe3_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe3 --s_name2=point3 --attribute=plasma --range=1.0E-5)
+	add_test (NAME    reconstruction_task_test_check_point4_probe4_mpiexec
+	          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_SOURCE_DIR}/recout.input.test.v3fit --s_name1=probe4 --s_name2=point4 --attribute=plasma --range=1.0E-5)
+
 
 endif ()
