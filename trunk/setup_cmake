@@ -109,7 +109,7 @@ then
 	        -DEXTRA_FLAGS=-fopenmp                                                        \
 	        -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
-elif [ $MACHINE_ID == "mba82063"      ] || \
+elif [ $MACHINE_ID == "mbp103254"     ] || \
      [ $MACHINE_ID == "cianciosaimac" ]
 then
 	# Config for Mark Cianciosa's ORNL machine.
