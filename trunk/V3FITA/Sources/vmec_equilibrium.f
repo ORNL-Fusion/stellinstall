@@ -1776,7 +1776,7 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r, z,
-!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi,kr,kphi)
+!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi,kr,kphi,i)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO v = 1, numV
