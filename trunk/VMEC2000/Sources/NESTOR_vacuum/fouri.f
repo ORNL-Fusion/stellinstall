@@ -144,14 +144,13 @@
 !
 !     ZERO BVEC(0,n) FOR n < 0
 !
-      bvec(0,:0,1:ndim) = 0
-!     bvec(0,:-1,1:ndim) = 0
+      bvec(0,-nf:-1,1:ndim) = 0
 
 !
 !     ZERO AMATRIX(0,n,m',n') M = 0 MODES FOR n < 0 
 !
-      amatrix(1:mn0-1:mf1,:,1:ndim*ndim) = 0
-!     amatrix(:(nf-1)*mf1+1:mf1,:,1:ndim*ndim) = 0
+      amatrix(1:mn0-mf1:mf1,:,1:ndim*ndim) = 0 !SPH082415: mn0-mf1: (m=0,n=-1 index)
+
 !$OMP END WORKSHARE
 !
 !     ADD DIAGONAL TERMS TO AMATRIX [THE FIRST TERM IN EQ(3.2) OF PKM]
