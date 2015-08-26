@@ -1780,7 +1780,9 @@
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO v = 1, numV
-            phi = (v - 1)*this%magnetic_cache%dv_full + this%phi_offset
+!  Rotate the signal with respect to a fixed plasma. The phi and z offsets are
+!  applied in vmec_get_ext_b_plasma.
+            phi = (v - 1)*this%magnetic_cache%dv_full
             cosphi(v) = COS(phi)
             sinphi(v) = SIN(phi)
             cosv(:,v) = COS(xn*phi)
@@ -1852,7 +1854,7 @@
 
                this%magnetic_cache%x_prime(u,v,1) = r*cosphi(v)
                this%magnetic_cache%x_prime(u,v,2) = r*sinphi(v)
-               this%magnetic_cache%x_prime(u,v,3) = z + this%z_offset
+               this%magnetic_cache%x_prime(u,v,3) = z
 
                IF (ASSOCIATED(this%magnetic_cache%kxuv_axi)) THEN
                   r = 0.0
@@ -1908,7 +1910,7 @@
 
                   this%magnetic_cache%x_axi(u,v,1) = r*cosphi(v)
                   this%magnetic_cache%x_axi(u,v,2) = r*sinphi(v)
-                  this%magnetic_cache%x_axi(u,v,3) = z + this%z_offset
+                  this%magnetic_cache%x_axi(u,v,3) = z
 
                END IF
             END DO
@@ -3614,8 +3616,11 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-!  Convert the position to cartesian coordinates.
-      x_cart = cyl_to_cart(position)
+!  Convert the position to cartesian coordinates. Rotate and shift the signal
+!  position with respect to the fixed plasma.
+      x_cart = cyl_to_cart(position - (/ 0.0_dp,                               &
+     &                                   this%phi_offset,                      &
+     &                                   this%z_offset /))
 
       IF (axi_only) THEN
          CALL assert(ASSOCIATED(this%magnetic_cache%kxuv_axi),                 &
