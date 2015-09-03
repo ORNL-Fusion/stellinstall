@@ -53,6 +53,8 @@
 !>  Arrays of reconstruction parameters.
 !>  @see param
          TYPE (param_pointer), DIMENSION(:), POINTER :: params => null()
+!>  Array of locking parameters.
+         TYPE (param_pointer), DIMENSION(:), POINTER  :: locks => null()
 !>  The reconstruction algorithm object.
          TYPE (reconstruction_class), POINTER         :: recon => null()
 
@@ -248,6 +250,18 @@
          END DO
          DEALLOCATE(this%params)
          this%params => null()
+      END IF
+
+!  Deconstruct and deallocate all the parameters.
+      IF (ASSOCIATED(this%params)) THEN
+         DO i = 1, SIZE(this%locks)
+            IF (ASSOCIATED(this%locks(i)%p)) THEN
+               CALL param_destruct(this%locks(i)%p)
+               this%locks(i)%p => null()
+            END IF
+         END DO
+         DEALLOCATE(this%locks)
+         this%locks => null()
       END IF
 
       IF (ASSOCIATED(this%recon)) THEN
@@ -456,7 +470,7 @@
 
             DO i = 1, SIZE(this%signals)
                DO j = 1, SIZE(this%params)
-                  sem_row(j) = this%params(j)%p%sem(i)
+                  sem_row(j) = this%params(j)%p%recon%sem(i)
                END DO
 
                WRITE (this%recout_iou, sem_header(1:26))                       &
@@ -467,7 +481,7 @@
 !  parameter. This should be 1.0.
             WRITE (sem_header, 1003) SIZE(this%params)
             DO j = 1, SIZE(this%params)
-               sem_row(j) = SUM(this%params(j)%p%sem)
+               sem_row(j) = SUM(this%params(j)%p%recon%sem)
             END DO
 
             WRITE (this%recout_iou, *)
@@ -479,8 +493,8 @@
             WRITE (sem_header, 1001) '    Most Effective Signal:'
             sem_offset = 26
             DO j = 1, SIZE(this%params)
-               indices(j) = MAXLOC(this%params(j)%p%sem, 1)
-               sem_row(j) = this%params(j)%p%sem(indices(j))
+               indices(j) = MAXLOC(this%params(j)%p%recon%sem, 1)
+               sem_row(j) = this%params(j)%p%recon%sem(indices(j))
 
                WRITE (sem_header, 1000)                                        &
      &            sem_header(1:sem_offset),                                    &
@@ -924,7 +938,7 @@
             status = nf_put_vara_int(this%result_ncid,                         &
      &                               derived_param_index_id,                   &
      &                               (/ 1, i /), (/ 2, 1 /),                   &
-     &                               this%derived_params(i)%p%indicies)
+     &                               this%derived_params(i)%p%indices)
             CALL assert_eq(status, nf_noerr, nf_strerror(status))
          END DO
       END IF
@@ -941,7 +955,7 @@
             status = nf_put_vara_int(this%result_ncid,                         &
      &                               param_index_id,                           &
      &                               (/ 1, i /), (/ 2, 1 /),                   &
-     &                               this%params(i)%p%indicies)
+     &                               this%params(i)%p%indices)
             CALL assert_eq(status, nf_noerr, nf_strerror(status))
          END DO
       END IF

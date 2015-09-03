@@ -28,7 +28,7 @@
       INTEGER, PARAMETER           :: data_no_id = -1
 
 !>  Max number of parameter indicies.
-      INTEGER, PARAMETER           :: data_max_indicies = 2
+      INTEGER, PARAMETER           :: data_max_indices = 2
 
 !  MPI task parameters.
 !>  Compute the jacobian task.

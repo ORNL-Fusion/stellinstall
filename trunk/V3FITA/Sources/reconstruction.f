@@ -744,8 +744,9 @@
 !>  @param[in]    iou            Input/output file to write log messages to.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_jacobians(this, signals,                  &
-     &                                         derived_params, a_model,        &
-     &                                         params, eq_steps, iou,          &
+     &                                         derived_params, locks,          &
+     &                                         a_model, params,                &
+     &                                         eq_steps, iou,                  &
      &                                         intra_comm)
 
       IMPLICIT NONE
@@ -755,6 +756,7 @@
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
@@ -787,6 +789,11 @@
       END DO
       CALL model_sync_state(a_model, intra_comm)
       CALL reconstruction_sync_state(this, intra_comm)
+
+!  Set the locked values.
+      DO i = 1, SIZE(locks)
+         CALL param_set_lock_value(locks(i)%p, a_model)
+      END DO
 
       CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
       CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
@@ -828,6 +835,10 @@
 !  Increment the parameter. param_increment checks the bounds and adjust the
 !  step size to keep the parameter in range.
          CALL param_increment(params(j)%p, a_model)
+!  Set the locked values.
+         DO i = 1, SIZE(locks)
+            CALL param_set_lock_value(locks(i)%p, a_model)
+         END DO
 
 !  Check that model was able to converge. If the model converged proceed as
 !  normal otherwise set the jth index of the jacobian to zero to avoid a step
@@ -874,7 +885,8 @@
      &            - this%e(this%current_step,i))
             END DO
             this%jacobian(:,j) = this%jacobian(:,j)                            &
-     &                         * SIGN(1.0_rprec, params(j)%p%delta)
+     &                         * SIGN(1.0_rprec,                               &
+     &                                params(j)%p%recon%delta)
 
 !  Compute the derived parameter jacobian. d f_i/d a_j . This will parallel the
 !  signal jacobian with the exception that the parameters aren't normalized.
@@ -890,7 +902,7 @@
             END DO
             this%derived_jacobian(:,j) = this%derived_jacobian(:,j)            &
      &                                 * SIGN(1.0_rprec,                       &
-     &                                        params(j)%p%delta)
+     &                                        params(j)%p%recon%delta)
          ELSE
 !  Warn the user that the model failed to converge on the jth parameter.
             WRITE (*,1000) j
@@ -903,6 +915,10 @@
 !  the value of param delta back to the parent process.
          CALL param_set_value(params(j)%p, a_model, param_value)
          CALL equilibrium_reset_state(a_model%equilibrium)
+!  Set the locked values.
+         DO i = 1, SIZE(locks)
+            CALL param_set_lock_value(locks(i)%p, a_model)
+         END DO
       END DO
 !  At this point, the computed jacobian rows should be returned to the parent
 !  process.
@@ -938,8 +954,8 @@
 !>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
-     &                                  a_model, params, eq_steps, iou,        &
-     &                                  intra_comm)
+     &                                  locks, a_model, params,                &
+     &                                  eq_steps, iou, intra_comm)
 
       IMPLICIT NONE
 
@@ -949,6 +965,7 @@
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
@@ -978,8 +995,8 @@
 #endif
 
       CALL reconstruction_eval_jacobians(this, signals, derived_params,        &
-     &                                   a_model, params, eq_steps, iou,       &
-     &                                   intra_comm)
+     &                                   locks, a_model, params,               &
+     &                                   eq_steps, iou, intra_comm)
 
 !  Compute the positive definite Hessian, matrix. Equation 14 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
@@ -1467,8 +1484,8 @@
 !>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, derived_params,              &
-     &                             a_model, params, eq_steps, iou,             &
-     &                             intra_comm)
+     &                             locks, a_model, params, eq_steps,           &
+     &                             iou, intra_comm)
 
       IMPLICIT NONE
 
@@ -1478,6 +1495,7 @@
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
      &   derived_params
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
@@ -1499,8 +1517,8 @@
 
 !  Evaluate the quasi-Newton step.
       k_use = reconstruction_eval_step(this, signals, derived_params,          &
-     &                                 a_model, params, eq_steps, iou,         &
-     &                                 intra_comm)
+     &                                 locks, a_model, params, eq_steps,       &
+     &                                 iou, intra_comm)
 
       ALLOCATE(param_value(SIZE(params)))
       ALLOCATE(delta_a(SIZE(params)))
@@ -1551,7 +1569,10 @@
 !  step size.
          DO j = 1, SIZE(params)
             CALL param_set_value(params(j)%p, a_model, param_value(j) +        &
-     &                           delta_a(j)*ABS(params(j)%p%delta))
+     &              delta_a(j)*ABS(params(j)%p%recon%delta))
+         END DO
+         DO j = 1, SIZE(locks)
+            CALL param_set_lock_value(locks(j)%p, a_model)
          END DO
 
 !  Reconverge the equilibrium. Increment the current step so
@@ -1600,6 +1621,9 @@
 !  the step.
          DO j = 1, SIZE(params)
             CALL param_set_value(params(j)%p, a_model, param_value(j))
+         END DO
+         DO j = 1, SIZE(locks)
+            CALL param_set_lock_value(locks(j)%p, a_model)
          END DO
 
 !  Reset the equilibrium state back to the last step. The state of the last step
@@ -1712,10 +1736,10 @@
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
       DO j = 1, SIZE(params)
-         params(j)%p%sigma = SQRT(cp(j,j)*params(j)%p%delta**2.0)
+         params(j)%p%sigma = SQRT(cp(j,j)*params(j)%p%recon%delta**2.0)
          DO i = 1, SIZE(params)
-            params(j)%p%correlation(i) = cp(j,i)*params(j)%p%delta             &
-     &                                 * params(i)%p%delta
+            params(j)%p%correlation(i) =                                       &
+     &         cp(j,i)*params(j)%p%recon%delta*params(i)%p%recon%delta
          END DO
       END DO
 
@@ -1737,9 +1761,9 @@
 !
 !    (A * cp_n)^2 * pi^2 / sigma_p^2                                         (4)
       DO j = 1, SIZE(params)
-         params(j)%p%sem = (j_dot_cp(:,j)**2.0)                                &
-     &                   * params(j)%p%delta**2.0                              &
-     &                   / params(j)%p%sigma**2.0
+         params(j)%p%recon%sem = (j_dot_cp(:,j)**2.0)                          &
+     &                         * params(j)%p%recon%delta**2.0                  &
+     &                         / params(j)%p%sigma**2.0
       END DO
 
       DEALLOCATE(j_dot_cp, cp)

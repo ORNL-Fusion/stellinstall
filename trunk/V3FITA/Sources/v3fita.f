@@ -348,7 +348,7 @@
          WRITE (context%runlog_iou,1002) i
 
          IF (reconstruction_step(context%recon, context%signals,               &
-     &                           context%derived_params,                       &
+     &                           context%derived_params, context%locks,        &
      &                           context%model, context%params,                &
      &                           num_steps, context%runlog_iou,                &
 #if defined(MPI_OPT)
@@ -465,8 +465,8 @@
      &                        context%intra_comm, error)
                CALL reconstruction_eval_jacobians(context%recon,               &
      &                 context%signals, context%derived_params,                &
-     &                 context%model, context%params, eq_steps,                &
-     &                 context%runlog_iou, context%intra_comm)
+     &                 context%locks, context%model, context%params,           &
+     &                 eq_steps, context%runlog_iou, context%intra_comm)
 
             CASE (mpi_quit_task)
                CALL cleanup_parallelism(context)
@@ -865,6 +865,10 @@
 !  function. Also need to check for the use of a point.
       plasma_index = 0
       use_point = .false.
+
+      cut_comp_svd =                                                           &
+     &   commandline_parser_get_real(context%cl_parser, '-c',                  &
+     &                               cut_comp_svd)
 
 !  Loop over each file in the list file
       DO
@@ -1446,7 +1450,8 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  local variables
-      INTEGER                                   :: i
+      INTEGER                                   :: i, j
+      INTEGER, DIMENSION(:,:), ALLOCATABLE      :: indices
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1471,6 +1476,7 @@
      &                                          n_rp)
       END DO
 
+!  Initialize the derived parameters.
       ALLOCATE(context%derived_params(n_dp))
       DO i = 1, n_dp
          context%derived_params(i)%p => param_construct(context%model,         &
@@ -1478,6 +1484,34 @@
      &                                                  dp_index(i,:),         &
      &                                                  n_dp)
 
+      END DO
+
+!  Initialize the locking parameters.
+      ALLOCATE(context%locks(n_lp))
+      DO i = 1, n_lp
+
+!  Find the number of parameters to lock to.
+         j = 1
+         DO WHILE (lp_sets(i,j) .ne. '')
+            j = j + 1
+         END DO
+         j = j - 1
+         CALL assert(j .ne. 0, 'Locking parameters require at ' //             &
+     &                         'least one set.')
+
+         ALLOCATE(indices(j, data_max_indices))
+         indices(:,1) = lp_sets_index(i,1:j)
+         indices(:,2) = lp_sets_index2(i,1:j)
+
+         context%locks(i)%p => param_construct(context%model,                  &
+     &                                         lp_type(i),                     &
+     &                                         (/ lp_index(i),                 &
+     &                                            lp_index2(i) /),             &
+     &                                         lp_sets(i,1:j),                 &
+     &                                         indices,                        &
+     &                                         lp_sets_coeff(i,1:j))
+
+         DEALLOCATE(indices)
       END DO
 
       CALL profiler_set_stop_time('init_parameters', start_time)

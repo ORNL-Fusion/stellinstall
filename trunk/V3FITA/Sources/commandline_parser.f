@@ -40,6 +40,7 @@
 !>                                     * @fixed_width{auto}     Sets up one sub process per reconstruction parameter.
 !>                                     * @fixed_width{[number]} Sets the number of sub processes manually.}
 !>     @item3{@fixed_width{-out},   N, Writes out the input file for each reconstruction step.}
+!>     @item3{@fixed_width{-c},     Y, Compress magnetic response functions using the cutoff.}
 !>
 !>  @end_table
 !>
@@ -327,6 +328,59 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Get the value of an argument as a Real.
+!>
+!>  Searches the parsed command line flags for a matching command like argument.
+!>  If no matching argument is found, no value was set or the value cannot be
+!>  converted to an integer, the default value is returned. Command line
+!>  arguments take the form of -flag.
+!>
+!>  @param[in] this          A @ref commandline_parser_class instance.
+!>  @param[in] arg           A argument string to search for.
+!>  @param[in] default_value Default value in case flag is not set.
+!>  @returns The argument value.
+!-------------------------------------------------------------------------------
+      FUNCTION commandline_parser_get_real(this, arg, default_value)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: commandline_parser_get_real
+      TYPE (commandline_parser_class), INTENT(in) :: this
+      CHARACTER (len=*), INTENT(in)               :: arg
+      REAL (rprec), INTENT(in)                    :: default_value
+
+!  Local arguments
+      CHARACTER (len=data_filename_length)        :: value
+      INTEGER                                     :: status
+      REAL (rprec)                                :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      value = commandline_parser_get_string(this, arg)
+
+      IF (TRIM(value) .eq. '') THEN
+         commandline_parser_get_real = default_value
+
+         CALL profiler_set_stop_time('commandline_parser_get_real',            &
+     &                               start_time)
+
+         RETURN
+      END IF
+
+      READ (value,*,iostat=status) commandline_parser_get_real
+
+      IF (status .ne. 0) THEN
+         commandline_parser_get_real = default_value
+      END IF
+
+      CALL profiler_set_stop_time('commandline_parser_get_real',               &
+     &                            start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  QUERY SUBROUTINES
 !*******************************************************************************
@@ -430,8 +484,11 @@
       WRITE(*,*) '                            processes.               '
       WRITE(*,*) '                                                     '
 #endif
-      WRITE(*,*) '  -out     Y Write out the input file and at each    '
+      WRITE(*,*) '  -out     N Write out the input file and at each    '
       WRITE(*,*) '             step.                                   '
+      WRITE(*,*) '  -c       Y Compress magnetic response functions    '
+      WRITE(*,*) '             using the cutoff. Overwrites the value  '
+      WRITE(*,*) '             in the namelist input.                  '
       WRITE(*,*) '                                                     '
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '

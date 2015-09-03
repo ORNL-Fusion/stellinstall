@@ -107,6 +107,7 @@
 !>  @table_section{derived_param_sec, Derived parameter specification}
 !>     @item{n_dp,     Number of derived parameters,                            v3fit_input::n_dp}
 !>     @item{dp_type,  Array of derived parameter types. Any parameter can be a
+!>                     a derived parameter.
 !>                     * @ref vmec_equilibrium_derive_param_sec
 !>                     * @ref model_derived_param_sec,                          v3fit_input::dp_type}
 !>     @item{dp_index, Array of derived parameter indices,                      v3fit_input::dp_index}
@@ -141,6 +142,26 @@
 !>                           The second index specifies the low and high ranges repectively.
 !>                           The third index contains the first and second index of the
 !>                           inequality constraint parameter.,                                   v3fit_input::rp_range_index}
+!>  @end_table
+!>
+!>  @table_section{lock_param_sec, Locking parameter specification}
+!>     @item{n_lp,           Number of derived parameters,                                   v3fit_input::n_dp}
+!>     @item{lp_type,        Array of locking parameter types. Any reconstuction parameter
+!>                           can be a locking parameter. Valid reconstruction parameters are
+!>                           defined by the @ref model or the @ref equilibirum.
+!>                           * @ref model_recon_param_sec
+!>                           * @ref vmec_equilibrium_recon_param_sec
+!>                           * @ref vacuum_equilibrium_recon_param_sec,                      v3fit_input::lp_type}
+!>     @item{lp_index,       Array of locking parameter indices,                             v3fit_input::lp_index}
+!>     @item{lp_index2,      Array of locking parameter 2nd indices,                         v3fit_input::lp_index2}
+!>     @item{lp_sets,        Array of parameter to lock to. Any model or equilirbium
+!>                           parameter maybe locked to.
+!>                           * @ref model_sec
+!>                           * @ref vmec_equilibrium_sec
+!>                           * @ref vacuum_equilibrium_sec,                                  v3fit_input::lp_sets}
+!>     @item{lp_sets_index,  Array of locking parameter sets indices,                        v3fit_input::lp_sets_index}
+!>     @item{lp_sets_index2, Array of locking parameter sets 2nd indices,                    v3fit_input::lp_sets_index2}
+!>     @item{lp_sets_coeff,  Array of locking sets coefficients,                             v3fit_input::lp_sets_coeff}
 !>  @end_table
 !>
 !>  @table_section{signal_spec_sec, Signal Data specification}
@@ -739,8 +760,37 @@
      &   DIMENSION(v3fit_max_parameters,2) :: rp_range_value = 0.0
 !>  Parameter range indices. The first index is the lower range and second index
 !>  the upper range.
-      INTEGER, DIMENSION(v3fit_max_parameters,2,data_max_indicies) ::          &
+      INTEGER, DIMENSION(v3fit_max_parameters,2,data_max_indices) ::           &
      &   rp_range_index = 0
+
+!  Reconstruction parameters
+!>  Number of locking parameters
+      INTEGER  :: n_lp = 0
+!>  Names of locking parameters.
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_parameters)   :: lp_type = ''
+!>  Ith index of locking parameters.
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters)   :: lp_index = 0
+!>  Jth index of locking parameters.
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters)   :: lp_index2 = 0
+!>  Names of parameters to lock to.
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_parameters,v3fit_max_parameters) ::               &
+     &      lp_sets = ''
+!>  Ith index of parameters to lock to.
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters,v3fit_max_parameters) ::               &
+     &      lp_sets_index = 0
+!>  Jth index of parameters to lock to.
+      INTEGER,                                                                 &
+     &   DIMENSION(v3fit_max_parameters,v3fit_max_parameters) ::               &
+     &      lp_sets_index2 = 0
+!>  Lock parameter coefficients.
+      REAL (rprec),                                                            &
+     &   DIMENSION(v3fit_max_parameters,v3fit_max_parameters) ::               &
+     &      lp_sets_coeff = 0.0
 
 !  Signal data
 !>  @deprecated
@@ -959,6 +1009,9 @@
 !  Reconstruction parameters
      &   n_rp, rp_type, rp_index, rp_index2, rp_vrnc, rp_range_type,           &
      &   rp_range_value, rp_range_index,                                       &
+!  Locking parameters
+     &   n_lp, lp_type, lp_index, lp_index2, lp_sets, lp_sets_index,           &
+     &   lp_sets_index2, lp_sets_coeff,
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
      &   sdo_weight_a, mag_a, mag_3D_a, mag_force_coil,                        &
