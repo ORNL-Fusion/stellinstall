@@ -554,7 +554,8 @@
      &                                       this%locks%indices(i,2))
       END DO
 
-      CALL param_set_value(this, a_model, temp)
+      CALL model_set_param(a_model, this%param_id,                             &
+     &                     this%indices(1), this%indices(2), temp)
 
       CALL profiler_set_stop_time('param_set_lock_value', start_time)
 

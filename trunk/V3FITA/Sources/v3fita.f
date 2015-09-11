@@ -1488,14 +1488,16 @@
 
 !  Initialize the locking parameters.
       ALLOCATE(context%locks(n_lp))
-      DO i = 1, n_lp
 
+      DO i = 1, n_lp
 !  Find the number of parameters to lock to.
-         j = 1
-         DO WHILE (lp_sets(i,j) .ne. '')
-            j = j + 1
+         DO j = 1, SIZE(lp_sets,2)
+            IF (lp_sets(i,j) .eq. '') THEN
+               EXIT
+            END IF
          END DO
-         j = j - 1
+         j = MIN(j - 1, SIZE(lp_sets,2))
+
          CALL assert(j .ne. 0, 'Locking parameters require at ' //             &
      &                         'least one set.')
 
