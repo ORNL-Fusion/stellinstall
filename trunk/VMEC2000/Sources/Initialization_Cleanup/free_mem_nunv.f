@@ -26,6 +26,12 @@ C-----------------------------------------------
 #else
      1    DEALLOCATE (amatsav, bvecsav, potvac, bsqsav, 
      2                raxis_nestor, zaxis_nestor, stat=istat3)
+
+      IF (ALLOCATED(bsubu_sur)) THEN
+         DEALLOCATE (bsubu_sur, bsubv_sur)
+         DEALLOCATE (bsupu_sur, bsupv_sur)
+      ENDIF
+
 #endif
       IF (istat1.ne.0 .or. istat2.ne.0 .or. istat3.ne.0) THEN
           PRINT *,' deallocation problem in free_mem_nunv'

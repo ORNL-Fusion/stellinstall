@@ -11,6 +11,7 @@
       USE vmec_params
       USE vmercier
       USE vmec_persistent
+      USE vac_persistent
       USE vsvd
       USE vspline
       USE xstuff
@@ -18,11 +19,11 @@
       USE realspace, ONLY: phip, chip, gsqrta=>z1, z1=>z1
       USE totzsp_mod
       USE vforces, ONLY: bsupua=>brmn_e, bsupva=>czmn_o, bsqa=>bzmn_e, 
-     1                   bsubsa=>armn_e, bsubua=>azmn_e, bsubva=>armn_o 
+     1                   bsubsa=>armn_e, bsubua=>azmn_e, bsubva=>armn_o
 #ifdef _VACUUM2
       USE vac2_vacmod, ONLY: potvac, mnpd, xmpot, xnpot
 #else
-      USE vacmod, ONLY: potvac, mnpd, xmpot, xnpot    !added for diagno, J.Geiger
+      USE vacmod, ONLY: potvac, mnpd, xmpot, xnpot, nuv2    !added for diagno, J.Geiger
 #endif
 #ifdef _HBANGLE
       USE angle_constraints, ONLY: getrz
@@ -55,6 +56,10 @@
      F  vn_bmns, vn_bsubumns, vn_bsubvmns, vn_bsubsmnc, vn_bsupumns, 
      G  vn_bsupvmns, vn_rbc, vn_zbs, vn_rbs, vn_zbc,
      H  ln_version, ln_extension, ln_mgrid,
+     &  vn_bsubumnc_sur, vn_bsubvmnc_sur,
+     &  vn_bsupumnc_sur, vn_bsupvmnc_sur,
+     &  vn_bsubumns_sur, vn_bsubvmns_sur,
+     &  vn_bsupumns_sur, vn_bsupvmns_sur,
      1  ln_magen, ln_therm, ln_gam, ln_maxr, ln_minr, ln_maxz, ln_fp,
      2  ln_radnod, ln_polmod, ln_tormod, ln_maxmod, ln_maxit, ln_actit,
      2  ln_maxpot, ln_potsin, ln_potcos,
@@ -75,11 +80,17 @@
      D  ln_bmnc, ln_bsubumnc, ln_bsubvmnc, ln_bsubsmns, 
      E  ln_bsupumnc, ln_bsupvmnc, ln_rmns, ln_zmnc, ln_lmnc, ln_gmns,
      F  ln_bmns, ln_bsubumns, ln_bsubvmns, ln_bsubsmnc, ln_bsupumns, 
-     G  ln_bsupvmns, ln_rbc, ln_zbs, ln_rbs, ln_zbc
+     G  ln_bsupvmns, ln_rbc, ln_zbs, ln_rbs, ln_zbc,
+     &  ln_bsubumnc_sur, ln_bsubvmnc_sur,
+     &  ln_bsupumnc_sur, ln_bsupvmnc_sur,
+     &  ln_bsubumns_sur, ln_bsubvmns_sur,
+     &  ln_bsupumns_sur, ln_bsupvmns_sur
+
 !------------------DEC$ ELSE !to use safe_open_mod in any case (J.Geiger)
 #endif
       USE safe_open_mod
       USE mgrid_mod
+
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -100,7 +111,7 @@
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
       REAL(rprec), PARAMETER :: c1p5 = 1.5_dp
-      LOGICAL :: lnyquist = .FALSE.                               !=false, eliminate nyquist stuff
+      LOGICAL :: lnyquist = .TRUE.                               !=false, eliminate nyquist stuff
 #ifdef NETCDF
       CHARACTER(LEN=*), PARAMETER, DIMENSION(1) ::
      1             r1dim = (/'radius'/), mn1dim = (/'mn_mode'/),
@@ -143,6 +154,19 @@
 #ifdef _ANIMEC
      2  ,sigmn  , taumn  , pparmn , ppermn , pbprmn , ppprmn , hotdmn
 #endif
+
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubumnc_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubvmnc_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupumnc_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupvmnc_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubumns_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubvmns_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupumns_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupvmns_sur
+
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubua_sur, bsubva_sur
+      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupua_sur, bsupva_sur
+
       CHARACTER(LEN=120) :: wout_file, wout2_file         ! wout2_file by J.Geiger
       CHARACTER(LEN=120) :: fort_file   ! fort_file for diagno 1.5
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: xfinal
@@ -150,6 +174,7 @@
 !     ELIMINATE THESE EVENTUALLY
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: 
      1   bsupumnc, bsupumns, bsupvmnc, bsupvmns
+
       LOGICAL :: lcurr
       INTEGER :: nmin0     ! J Geiger:   Added for diagno-file
 
@@ -197,6 +222,20 @@
      5   pbprmn(mnmax_nyq0) , ppprmn(mnmax_nyq0) , hotdmn(mnmax_nyq0) ,
 #endif
      6   stat=istat)
+
+      IF (lfreeb) THEN
+         ALLOCATE (bsubua_sur(nzeta*ntheta2), bsubva_sur(nzeta*ntheta2))
+         ALLOCATE (bsupua_sur(nzeta*ntheta2), bsupva_sur(nzeta*ntheta2))
+
+         ALLOCATE (bsubumnc_sur(mnmax_nyq0), bsubvmnc_sur(mnmax_nyq0))
+         ALLOCATE (bsupumnc_sur(mnmax_nyq0), bsupvmnc_sur(mnmax_nyq0))
+         IF (lasym) THEN
+            ALLOCATE (bsubumns_sur(mnmax_nyq0),                                &
+     &                bsubvmns_sur(mnmax_nyq0))
+            ALLOCATE (bsupumns_sur(mnmax_nyq0),                                &
+     &                bsupvmns_sur(mnmax_nyq0))
+         END IF
+      END IF
 
       ALLOCATE (gmnc(mnmax_nyq0,ns), bmnc(mnmax_nyq0,ns),
      1          bsubumnc(mnmax_nyq0,ns), bsubvmnc(mnmax_nyq0,ns),
@@ -500,6 +539,21 @@
       CALL cdf_define(nwout, vn_bsubsmns, bsubsmns, dimname=r3dim)
       CALL cdf_setatt(nwout, vn_bsubsmns, ln_bsubsmns)
 
+      IF (lfreeb) THEN
+         CALL cdf_define(nwout, vn_bsubumnc_sur, bsubumnc_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsubumnc_sur, ln_bsubumnc_sur)
+         CALL cdf_define(nwout, vn_bsubvmnc_sur, bsubvmnc_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsubvmnc_sur, ln_bsubvmnc_sur)
+         CALL cdf_define(nwout, vn_bsupumnc_sur, bsupumnc_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsupumnc_sur, ln_bsupumnc_sur)
+         CALL cdf_define(nwout, vn_bsupvmnc_sur, bsupvmnc_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsupvmnc_sur, ln_bsupvmnc_sur)
+      END IF
+
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM - CAN COMPUTE FROM GSQRT
       CALL cdf_define(nwout, vn_bsupumnc, bsupumnc, dimname=r3dim)
       CALL cdf_define(nwout, vn_bsupvmnc, bsupvmnc, dimname=r3dim)
@@ -536,6 +590,21 @@
       CALL cdf_setatt(nwout, vn_bsubvmns, ln_bsubvmns)
       CALL cdf_define(nwout, vn_bsubsmnc, bsubsmnc, dimname=r3dim)
       CALL cdf_setatt(nwout, vn_bsubsmnc, ln_bsubsmnc)
+
+      IF (lfreeb) THEN
+         CALL cdf_define(nwout, vn_bsubumns_sur, bsubumns_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsubumns_sur, ln_bsubumns_sur)
+         CALL cdf_define(nwout, vn_bsubvmns_sur, bsubvmns_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsubvmns_sur, ln_bsubvmns_sur)
+         CALL cdf_define(nwout, vn_bsupumns_sur, bsupumns_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsupumns_sur, ln_bsupumns_sur)
+         CALL cdf_define(nwout, vn_bsupvmns_sur, bsupvmns_sur,                 &
+     &                   dimname=mn2dim)
+         CALL cdf_setatt(nwout, vn_bsupvmns_sur, ln_bsupvmns_sur)
+      END IF
 
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM
       CALL cdf_define(nwout, vn_bsupumns, bsupumns, dimname=r3dim)
@@ -840,6 +909,13 @@
      7                   sigma_ana, tau_ana, pbprima, ppprima
 #endif
      8                    )
+
+         IF (lfreeb) THEN
+            CALL symoutput_sur(bsubu_sur, bsubv_sur,                           &
+     &                         bsupu_sur, bsupv_sur,                           &
+     &                         bsubua_sur, bsubva_sur,                         &
+     &                         bsupua_sur, bsupva_sur)
+         END IF
       END IF
 
 !         DO js = 2, ns
@@ -913,7 +989,38 @@
 #endif
       END DO RADIUS2
 
-      gmnc(:,1) = 0; bmnc(:,1) = 0; 
+      IF (lfreeb) THEN
+         bsubumnc_sur = 0
+         bsubvmnc_sur = 0
+         bsupumnc_sur = 0
+         bsupvmnc_sur = 0
+         DO mn = 1, mnmax_nyq0
+            n = NINT(xn_nyq0(mn))/nfp
+            m = NINT(xm_nyq0(mn))
+            n1 = ABS(n)
+            dmult = mscale(m)*nscale(n1)*tmult
+            IF (m.eq.0 .or. n.eq.0) dmult = 2*dmult
+            sgn = SIGN(1, n)
+            lk = 0
+            DO j = 1, ntheta2
+               DO k = 1, nzeta
+                  lk = lk + 1
+                  tcosi = dmult*(cosmui(j,m)*cosnv(k,n1) +
+     1                       sgn*sinmui(j,m)*sinnv(k,n1))
+                  bsubumnc_sur(mn) = bsubumnc_sur(mn)                          &
+     &                             + tcosi*bsubu_sur(lk)
+                  bsubvmnc_sur(mn) = bsubvmnc_sur(mn)                          &
+     &                             + tcosi*bsubv_sur(lk)
+                  bsupumnc_sur(mn) = bsupumnc_sur(mn)                          &
+     &                             + tcosi*bsupu_sur(lk)
+                  bsupvmnc_sur(mn) = bsupvmnc_sur(mn)                          &
+     &                             + tcosi*bsupv_sur(lk)
+               END DO
+            END DO
+         END DO
+      END IF
+
+      gmnc(:,1) = 0; bmnc(:,1) = 0;
       bsubumnc(:,1) = 0
       bsubvmnc(:,1) = 0
       bsubsmns(:,1) = 2*bsubsmns(:,2) - bsubsmns(:,3)
@@ -967,6 +1074,7 @@
                   bsubsmn(mn) = bsubsmn(mn) + tcosi*bsubsa(jlk)
                   bsupumn(mn) = bsupumn(mn) + tsini*bsupua(jlk)
                   bsupvmn(mn) = bsupvmn(mn) + tsini*bsupva(jlk)
+
 #ifdef _ANIMEC
                   pparmn(mn)  = pparmn(mn)  + tsini*ppara(js,lk)
                   ppermn(mn)  = ppermn(mn)  + tsini*pperpa(js,lk)
@@ -1009,6 +1117,39 @@
       pbprmns(:,1)  = 0;  ppprmns(:,1)  = 0
       sigmns(:,1)   = 0;  taumns(:,1)   = 0   
 #endif
+
+      IF (lfreeb) THEN
+         bsubumns_sur = 0
+         bsubvmns_sur = 0
+         bsupumns_sur = 0
+         bsupvmns_sur = 0
+
+         DO mn = 1, mnmax_nyq0
+            n = NINT(xn_nyq0(mn))/nfp
+            m = NINT(xm_nyq0(mn))
+            n1 = ABS(n)
+            dmult = mscale(m)*nscale(n1)*tmult
+            IF (m.eq.0 .or. n.eq.0) dmult = 2*dmult
+            sgn = SIGN(1, n)
+            lk = 0
+            DO j = 1, ntheta2
+               DO k = 1, nzeta
+                  lk = lk + 1
+                  tsini = dmult*(sinmui(j,m)*cosnv(k,n1) -
+     1                       sgn*cosmui(j,m)*sinnv(k,n1))
+                  bsubumns_sur(mn) = bsubumns_sur(mn)                          &
+     &                             + tsini*bsubua_sur(lk)
+                  bsubvmns_sur(mn) = bsubvmns_sur(mn)                          &
+     &                             + tsini*bsubva_sur(lk)
+                  bsupumns_sur(mn) = bsupumns_sur(mn)                          &
+     &                             + tsini*bsupua_sur(lk)
+                  bsupvmns_sur(mn) = bsupvmns_sur(mn)                          &
+     &                             + tsini*bsupva_sur(lk)
+               END DO
+            END DO
+         END DO
+      END IF
+
  200  CONTINUE
 
 #ifdef _DEBUG
@@ -1084,6 +1225,13 @@
 !     GET RID OF THESE EVENTUALLY: DON'T NEED THEM (can express in terms of lambdas)
       CALL cdf_write(nwout, vn_bsupumnc, bsupumnc)
       CALL cdf_write(nwout, vn_bsupvmnc, bsupvmnc)
+
+      IF (lfreeb) THEN
+         CALL cdf_write(nwout, vn_bsubumnc_sur, bsubumnc_sur)
+         CALL cdf_write(nwout, vn_bsubvmnc_sur, bsubvmnc_sur)
+         CALL cdf_write(nwout, vn_bsupumnc_sur, bsupumnc_sur)
+         CALL cdf_write(nwout, vn_bsupvmnc_sur, bsupvmnc_sur)
+      END IF
 
 !     FULL-MESH quantities
 !     NOTE: jdotb is in units_of_A (1/mu0 incorporated in jxbforce...)
@@ -1475,6 +1623,13 @@
 !     GET RID OF THESE EVENTUALLY: DON'T NEED THEM
          CALL cdf_write(nwout, vn_bsupumns, bsupumns)
          CALL cdf_write(nwout, vn_bsupvmns, bsupvmns)
+
+         IF (lfreeb) THEN
+            CALL cdf_write(nwout, vn_bsubumns_sur, bsubumns_sur)
+            CALL cdf_write(nwout, vn_bsubvmns_sur, bsubvmns_sur)
+            CALL cdf_write(nwout, vn_bsupumns_sur, bsupumns_sur)
+            CALL cdf_write(nwout, vn_bsupvmns_sur, bsupvmns_sur)
+         END IF
       END IF
 #endif
  970  CONTINUE   ! J Geiger: need to keep label 970 out of NETCDF defines.
@@ -1518,12 +1673,24 @@
 #endif
      4             stat=istat)
 
+      IF (ALLOCATED(bsubumnc_sur)) THEN
+         DEALLOCATE(bsubumnc_sur, bsubvmnc_sur)
+         DEALLOCATE(bsupumnc_sur, bsupvmnc_sur)
+      END IF
+      IF (ALLOCATED(bsubumns_sur)) THEN
+         DEALLOCATE(bsubumns_sur, bsubvmns_sur)
+         DEALLOCATE(bsupumns_sur, bsupvmns_sur)
+      END IF
+      IF (ALLOCATED(bsubua_sur)) THEN
+         DEALLOCATE(bsubua_sur, bsubva_sur)
+         DEALLOCATE(bsupua_sur, bsupva_sur)
+      END IF
+
 !-----------------------------------------------
 !     FREE BOUNDARY DATA
 !-----------------------------------------------
       IF (lwrite )
      1   CALL freeb_data(rmnc1, zmns1, rmns1, zmnc1, bmodmn, bmodmn1)
-
  1000 CONTINUE
 
       rzl_array = 0

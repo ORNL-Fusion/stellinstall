@@ -35,8 +35,8 @@
          bvec = bvec + bvecsav
       ELSE
 
-       ALLOCATE (gstore(nuv), stat=ip)
-       IF (ip .NE. 0) STOP 'Allocation error in SCALPOT'
+         ALLOCATE (gstore(nuv), stat=ip)
+         IF (ip .NE. 0) STOP 'Allocation error in SCALPOT'
 
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP& PRIVATE(green,greenp)
@@ -111,7 +111,7 @@
       ENDIF
 
       DEALLOCATE (grpmn)
-      
+
 !$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
 !$OMP WORKSHARE
       amatrix(:) = amatsav(:)

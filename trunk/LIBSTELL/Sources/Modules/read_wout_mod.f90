@@ -17,8 +17,8 @@
 !     mse_pitch           user-callable function to compute mse pitch angle
 !                         for the computed equilibrium
 !
-      USE stel_kinds
-      USE vmec_input, ONLY: lrfp, lmove_axis
+
+      USE vmec_input, ONLY: lrfp, lmove_axis, nbfld
       USE mgrid_mod
 
       IMPLICIT NONE
@@ -81,6 +81,14 @@
         vn_bsubumns = 'bsubumns', vn_bsubvmns = 'bsubvmns',             &
         vn_bsubsmnc = 'bsubsmnc', vn_bsupumns = 'bsupumns',             &
         vn_bsupvmns = 'bsupvmns',                                       &
+        vn_bsubumnc_sur = 'bsubumnc_sur',                               &
+        vn_bsubvmnc_sur = 'bsubvmnc_sur',                               &
+        vn_bsupumnc_sur = 'bsupumnc_sur',                               &
+        vn_bsupvmnc_sur = 'bsupvmnc_sur',                               &
+        vn_bsubumns_sur = 'bsubumns_sur',                               &
+        vn_bsubvmns_sur = 'bsubvmns_sur',                               &
+        vn_bsupumns_sur = 'bsupumns_sur',                               &
+        vn_bsupvmns_sur = 'bsupvmns_sur',                               &
         vn_rbc = 'rbc', vn_zbs = 'zbs', vn_rbs = 'rbs', vn_zbc = 'zbc'
 ! Long names (ln_...)
       CHARACTER(LEN=*), PARAMETER :: ln_version = 'VMEC Version',       &
@@ -165,6 +173,11 @@
         ln_bsubvmnc = 'cosmn covariant v-component of B, half mesh',    &
         ln_bsubsmns = 'sinmn covariant s-component of B, full mesh',    &
 
+        ln_bsubumnc_sur = 'cosmn bsubu of B, surface',                  &
+        ln_bsubvmnc_sur = 'cosmn bsubv of B, surface',                  &
+        ln_bsupumnc_sur = 'cosmn bsupu of B, surface',                  &
+        ln_bsupvmnc_sur = 'cosmn bsupv of B, surface',                  &
+
         ln_bsupumnc = 'BSUPUmnc half', ln_bsupvmnc = 'BSUPVmnc half',   & 
 
         ln_rmns = 'sinmn component of cylindrical R, full mesh',        &
@@ -175,6 +188,11 @@
         ln_bsubumns = 'sinmn covariant u-component of B, half mesh',    &
         ln_bsubvmns = 'sinmn covariant v-component of B, half mesh',    &
         ln_bsubsmnc = 'cosmn covariant s-component of B, full mesh',    &
+
+        ln_bsubumns_sur = 'sinmn bsubu of B, surface',                  &
+        ln_bsubvmns_sur = 'sinmn bsubv of B, surface',                  &
+        ln_bsupumns_sur = 'sinmn bsupu of B, surface',                  &
+        ln_bsupvmns_sur = 'sinmn bsupv of B, surface',                  &
 
         ln_bsupumns = 'BSUPUmns half', ln_bsupvmns = 'BSUPVmns half',   &
         ln_rbc = 'Initial boundary R cos(mu-nv) coefficients',          &

@@ -19,7 +19,8 @@
 !-----------------------------------------------
       INTEGER :: mn, n, n1, m, i, info
       REAL(rprec), DIMENSION(:), POINTER :: potcos, potsin
-      REAL(rprec), ALLOCATABLE :: bsubu(:), bsubv(:), potu(:), potv(:)
+      REAL(rprec), ALLOCATABLE :: bsubu(:), bsubv(:)
+      REAL(rprec)              :: potu, potv
       REAL(rprec), ALLOCATABLE :: amatrix(:)
       REAL(rprec):: dn2, dm2, cosmn, sinmn, huv, hvv,
      1    det, bsupu, bsupv, bsubuvac, fac
@@ -38,8 +39,7 @@
 
       IF (.NOT.ALLOCATED(potvac)) STOP 'POTVAC not ALLOCATED in VACCUM'
 
-      ALLOCATE (amatrix(mnpd2*mnpd2), bsubu(nuv2), bsubv(nuv2),
-     1    potu(nuv2), potv(nuv2), stat=i)
+      ALLOCATE (amatrix(mnpd2*mnpd2), bsubu(nuv2), bsubv(nuv2), stat=i)
       IF (i .NE. 0) STOP 'Allocation error in vacuum'
 
       potsin => potvac(1:mnpd)
@@ -91,44 +91,52 @@
 !       compute tangential covariant (sub u,v) and contravariant
 !       (super u,v) magnetic field components on the plasma surface
 !
-      potu(:nuv2) = zero;  potv(:nuv2) = zero
 
-      mn = 0
-      DO n = -nf, nf
-         dn2 = -(n*nfper)
-         n1 = ABS(n)
-         DO m = 0, mf
-            mn = mn + 1
-            dm2 = m
-            DO i = 1, nuv2
-               cosmn = cosu1(i,m)*cosv1(i,n1) + csign(n)*
-     1                 sinu1(i,m)*sinv1(i,n1)
-               potu(i) = potu(i) + dm2*potsin(mn)*cosmn
-               potv(i) = potv(i) + dn2*potsin(mn)*cosmn
-            END DO
-            IF (.NOT.lasym) CYCLE
-            DO i = 1, nuv2
-               sinmn = sinu1(i,m)*cosv1(i,n1) - csign(n)*
-     1                 cosu1(i,m)*sinv1(i,n1)
-               potu(i) = potu(i) - dm2*potcos(mn)*sinmn
-               potv(i) = potv(i) - dn2*potcos(mn)*sinmn
+!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
+!$OMP DO PRIVATE(i,n,dn2,n1,m,mn,dm2,cosmn,sinmn,huv,hvv,det,bsupu,
+!$OMP&           bsupv,potu,potv) SCHEDULE(STATIC)
+      DO i = 1, nuv2
+         potu = 0.0
+         potv = 0.0
+
+         mn = 0
+         DO n = -nf, nf
+            dn2 = -(n*nfper)
+            n1 = ABS(n)
+            DO m = 0, mf
+               mn = mn + 1
+               dm2 = m
+               cosmn = cosu1(i,m)*cosv1(i,n1)                                  &
+     &               + csign(n)*sinu1(i,m)*sinv1(i,n1)
+               potu = potu + dm2*potsin(mn)*cosmn
+               potv = potv + dn2*potsin(mn)*cosmn
+               IF (lasym) THEN
+                  sinmn = sinu1(i,m)*cosv1(i,n1)                               &
+     &                  - csign(n)*cosu1(i,m)*sinv1(i,n1)
+                  potu = potu - dm2*potcos(mn)*sinmn
+                  potv = potv - dn2*potcos(mn)*sinmn
+               END IF
             END DO
          END DO
-      END DO
 
-      DO i = 1, nuv2
-         bsubu(i) = potu(i) + bexu(i)                     !Covariant components
-         bsubv(i) = potv(i) + bexv(i)
+         bsubu(i) = potu + bexu(i)                     !Covariant components
+         bsubv(i) = potv + bexv(i)
+         bsubu_sur(i) = bsubu(i)
+         bsubv_sur(i) = bsubv(i)
          huv = p5*guv_b(i)*(nfper)
          hvv = gvv_b(i)*(nfper*nfper)
          det = one/(guu_b(i)*hvv-huv*huv)
          bsupu = (hvv*bsubu(i)-huv*bsubv(i))*det          !Contravariant components
          bsupv = ((-huv*bsubu(i))+guu_b(i)*bsubv(i))*det
+         bsupu_sur(i) = bsupu
+         bsupv_sur(i) = bsupv
          bsqvac(i) = p5*(bsubu(i)*bsupu + bsubv(i)*bsupv)       !.5*|Bvac|**2
          brv(i) = rub(i)*bsupu + rvb(i)*bsupv
          bphiv(i) = r1b(i)*bsupv
          bzv(i) = zub(i)*bsupu + zvb(i)*bsupv
       END DO
+!$OMP END DO
+!$OMP END PARALLEL
 
 !
 !       PRINT OUT VACUUM PARAMETERS
@@ -160,6 +168,6 @@
      3    rzb2, rcosuv, rsinuv, stat=i)
       IF (i .ne. 0) STOP 'Deallocation error in vacuum'
 
-      DEALLOCATE (amatrix, bsubu, bsubv, potu, potv, stat = i)
+      DEALLOCATE (amatrix, bsubu, bsubv, stat = i)
 
       END SUBROUTINE vacuum

@@ -25,6 +25,29 @@
 !>  Maximum compressed size before uncompressed buffers are stored.
       REAL (rprec), PARAMETER :: compression_max_percentage = 100.0
 
+!>  Bit position for the data_buffer allocated. This means the arrays weren't
+!>  compressed.
+      INTEGER, PARAMETER :: compression_data_buffer_flag = 1
+!>  Bit position for the svd_compressed buffers. This means the data was
+!>  compressed.
+      INTEGER, PARAMETER :: compression_svn_buffers_flag = 2
+!>  Bit position for the zero buffer. This means the data was identically zero
+!>  and only the array dimensions are stored.
+      INTEGER, PARAMETER :: compression_zero_buffer_flag = 3
+
+!>  Postfix for the data buffer.
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   compression_data_buffer_post = "data_buffer"
+!>  Postfix for the data buffer.
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   compression_u_buffer_post = "u_buffer"
+!>  Postfix for the data buffer.
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   compression_wvt_buffer_post = "wvt_buffer"
+!>  Postfix for the data buffer.
+      CHARACTER (len=*), PARAMETER ::                                          &
+     &   compression_data_dim_post = "data_dim"
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) compression base class
@@ -61,7 +84,8 @@
 !*******************************************************************************
       INTERFACE compression_construct
          MODULE PROCEDURE compression_construct_new,                           &
-     &                    compression_construct_mpi
+     &                    compression_construct_mpi,                           &
+     &                    compression_construct_netcdf
       END INTERFACE
 
       CONTAINS
@@ -320,6 +344,79 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref compression_class object by reading from an netcdf.
+!>  file.
+!>
+!>  Constructs data from a precompressed netcdf file.
+!>
+!>  @param[in] ncid A netcdf file id.
+!>  @param[in] name A netcdf variable name id.
+!>  @param[in] name Flag discribing how the data was compressed.
+!>  @returns A pointer to a constructed @ref compression_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION compression_construct_netcdf(ncid, name, flag)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (compression_class), POINTER :: compression_construct_netcdf
+      INTEGER, INTENT(in)               :: ncid
+      CHARACTER (len=*), INTENT(in)     :: name
+      INTEGER, INTENT(in)               :: flag
+
+!  local variables
+      INTEGER, DIMENSION(2)             :: dim_lengths
+      INTEGER                           :: error
+
+!  Start of executable code
+      ALLOCATE(compression_construct_netcdf)
+
+      IF (flag .eq. compression_data_buffer_flag) THEN
+
+         CALL cdf_inquire(ncid,                                                &
+     &                    TRIM(name) // compression_data_buffer_post,          &
+     &                    dim_lengths)
+         ALLOCATE(                                                             &
+     &      compression_construct_netcdf%data_buffer(dim_lengths(1),           &
+     &                                               dim_lengths(2)))
+         CALL cdf_read(ncid,                                                   &
+     &                 TRIM(name) // compression_data_buffer_post,             &
+     &                 compression_construct_netcdf%data_buffer)
+
+      ELSE IF (flag .eq. compression_svn_buffers_flag) THEN
+
+         CALL cdf_inquire(ncid, TRIM(name) // compression_u_buffer_post,       &
+     &                    dim_lengths)
+         ALLOCATE(                                                             &
+     &      compression_construct_netcdf%u_buffer(dim_lengths(1),              &
+     &                                            dim_lengths(2)))
+         CALL cdf_read(ncid, TRIM(name) // compression_u_buffer_post,          &
+     &                 compression_construct_netcdf%u_buffer)
+
+         CALL cdf_inquire(ncid,                                                &
+     &                    TRIM(name) // compression_wvt_buffer_post,           &
+     &                    dim_lengths)
+         ALLOCATE(                                                             &
+     &      compression_construct_netcdf%wvt_buffer(dim_lengths(1),            &
+     &                                              dim_lengths(2)))
+         CALL cdf_read(ncid, TRIM(name) // compression_wvt_buffer_post,        &
+     &                 compression_construct_netcdf%wvt_buffer)
+
+      ELSE
+
+         CALL cdf_inquire(ncid, TRIM(name) // compression_data_dim_post,       &
+     &                    dim_lengths(1:1))
+         ALLOCATE(                                                             &
+     &      compression_construct_netcdf%data_dim(dim_lengths(1)))
+         CALL cdf_read(ncid, TRIM(name) // compression_data_dim_post,          &
+     &                 compression_construct_netcdf%data_dim)
+
+      END IF
+
+      END FUNCTION
+
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -481,6 +578,98 @@
       IF (ASSOCIATED(this%data_dim) .or. ASSOCIATED(this%u_buffer)) THEN
          DEALLOCATE(this%data_buffer)
          this%data_buffer => null()
+      END IF
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Define variables for the compressed data.
+!>
+!>  Defines the netcdf variables for writting compressed data to a netcdf file.
+!>
+!>  @param[in] this A @ref compression_class instance.
+!>  @param[in] ncid Netcdf file id.
+!>  @param[in] name Base name of variables to compress.
+!>  @returns The flag indicating which buffer was stored.
+!-------------------------------------------------------------------------------
+      FUNCTION compression_define(this, ncid, name)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                              :: compression_define
+      TYPE (compression_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: ncid
+      CHARACTER (len=*), INTENT(in)        :: name
+
+!  Start of executable code
+      IF (ASSOCIATED(this%data_buffer)) THEN
+
+         CALL cdf_define(ncid,                                                 &
+     &                   TRIM(name) // compression_data_buffer_post,           &
+     &                   this%data_buffer)
+         compression_define = compression_data_buffer_flag
+
+      ELSE IF (ASSOCIATED(this%u_buffer)) THEN
+
+         CALL cdf_define(ncid, TRIM(name) // compression_u_buffer_post,        &
+     &                   this%u_buffer)
+         CALL cdf_define(ncid,                                                 &
+     &                   TRIM(name) // compression_wvt_buffer_post,            &
+     &                   this%wvt_buffer)
+         compression_define = compression_svn_buffers_flag
+
+      ELSE
+
+         CALL cdf_define(ncid, TRIM(name) // compression_data_dim_post,        &
+     &                   this%data_dim)
+         compression_define = compression_zero_buffer_flag
+
+      END IF
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Cleanup decompressed data.
+!>
+!>  If the data dimensions arrays or the U and WVT is allocated, then delete the
+!>  data buffer. Otherwise the data is stored uncompressed.
+!>
+!>  @param[inout] this A @ref compression_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE compression_write(this, ncid, name)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (compression_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: ncid
+      CHARACTER (len=*), INTENT(in)        :: name
+
+!  Start of executable code
+      IF (ASSOCIATED(this%data_buffer)) THEN
+
+         CALL cdf_write(ncid,                                                  &
+     &                  TRIM(name) // compression_data_buffer_post,            &
+     &                  this%data_buffer)
+
+      ELSE IF (ASSOCIATED(this%u_buffer)) THEN
+
+         CALL cdf_write(ncid, TRIM(name) // compression_u_buffer_post,         &
+     &                  this%u_buffer)
+         CALL cdf_write(ncid, TRIM(name) // compression_wvt_buffer_post,       &
+     &                  this%wvt_buffer)
+
+      ELSE
+
+         CALL cdf_write(ncid, TRIM(name) // compression_data_dim_post,         &
+     &                  this%data_dim)
+
       END IF
 
       END SUBROUTINE
