@@ -403,7 +403,8 @@
 
       IF (use_con_shell) THEN
 !  Set the conducting shell grid differental elements. Reuse the delz as the
-!  grid spaceing in the u direction, Reuse delr as . Reuse i as the number of u grid points.
+!  grid spaceing in the u direction, Reuse delr as value of u. Reuse i as the
+!  number of u grid points.
          i = MAX(INT(nfp_bs*kp_shell*minor_radius/major_radius), 10)
          delz = twopi/i
          delp = fperiod/kp_shell
@@ -427,8 +428,8 @@
                this%phi_grid_shell(k,l) = xcyl(2)
                DO j = 1, i
                   delr = (j - 1)*delz
-                  xcyl(1) = major_radius + minor_radius*cos(delz)
-                  xcyl(3) = minor_radius*sin(delz)
+                  xcyl(1) = major_radius + minor_radius*cos(delr)
+                  xcyl(3) = minor_radius*sin(delr)
                   this%xcart_s_grid_e(j,k,l,1:3) = cyl_to_cart(xcyl)
                END DO ! over j
             END DO ! over l
@@ -636,7 +637,7 @@
 !$OMP& PRIVATE(j,k,l,acart)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO j = 1, SIZE(this%s_response)
+         DO j = 1, SIZE(this%s_response, 1)
             DO k = 1, kp_shell
                this%s_response(j,k,1:3) = 0.0
                DO l = 1, nfp_bs
@@ -657,11 +658,11 @@
 !  same u position on the opposite side of the field perior. For j!=0, the
 !  symmetry point is found by counting indices backwards.
          IF (lstell_sym) THEN
-            DO j = 1, SIZE(this%s_response)
+            DO j = 1, SIZE(this%s_response, 1)
                IF (j .eq. 1) THEN
                   jss = 1
                ELSE
-                  jss = SIZE(this%s_response) + 2 - j
+                  jss = SIZE(this%s_response, 1) + 2 - j
                END IF
                DO k = 1, SIZE(this%s_response_ss, 2)
                IF (k .eq. 1) THEN

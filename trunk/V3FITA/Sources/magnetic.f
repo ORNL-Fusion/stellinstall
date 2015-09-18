@@ -630,36 +630,38 @@
 
       magnetic_get_modeled_signal_coil_pickup = 0.0
 
-      IF (BTEST(this%control_flags, magnetic_force_coil_flag)) THEN
-         num_currents = SIZE(this%response%inductance)
-      ELSE
-         num_currents = -1
-      END IF
-
-!  Calculate the induced signal from external currents.
-      extcur => equilibrium_get_ext_currents(a_model%equilibrium,              &
-     &                                       num_currents,                     &
-     &                                       scale_current)
-
-!  If there are no external current extcur will be a null pointer
-      IF (ASSOCIATED(extcur)) THEN
-
-!  Make sure we don't go out of bounds on any array.
-         num_currents = MIN(SIZE(extcur),                                      &
-     &                      SIZE(this%response%inductance))
-         IF (num_currents .lt. this%response%n_field_cg) THEN
-            CALL err_warn('magnetic_get_modeled_signal_coil: ' //              &
-     &                    'mdsig_file expected more currents')
+      IF (magnetic_response_use_coil(this%response)) THEN
+         IF (BTEST(this%control_flags, magnetic_force_coil_flag)) THEN
+            num_currents = SIZE(this%response%inductance)
+         ELSE
+            num_currents = -1
          END IF
 
-         IF (scale_current) THEN
-            magnetic_get_modeled_signal_coil_pickup = DOT_PRODUCT(             &
-     &         this%response%inductance(1:num_currents),                       &
-     &         extcur(1:num_currents)/this%response%current_scale)
-         ELSE
-            magnetic_get_modeled_signal_coil_pickup = DOT_PRODUCT(             &
-     &         this%response%inductance(1:num_currents),                       &
-     &         extcur(1:num_currents))
+!  Calculate the induced signal from external currents.
+         extcur => equilibrium_get_ext_currents(a_model%equilibrium,           &
+     &                                          num_currents,                  &
+     &                                          scale_current)
+
+!  If there are no external current extcur will be a null pointer.
+         IF (ASSOCIATED(extcur)) THEN
+
+!  Make sure we don't go out of bounds on any array.
+            num_currents = MIN(SIZE(extcur),                                   &
+     &                         SIZE(this%response%inductance))
+            IF (num_currents .lt. this%response%n_field_cg) THEN
+               CALL err_warn('magnetic_get_modeled_signal_coil: ' //           &
+     &                       'mdsig_file expected more currents')
+            END IF
+
+            IF (scale_current) THEN
+               magnetic_get_modeled_signal_coil_pickup = DOT_PRODUCT(          &
+     &            this%response%inductance(1:num_currents),                    &
+     &            extcur(1:num_currents)/this%response%current_scale)
+            ELSE
+               magnetic_get_modeled_signal_coil_pickup = DOT_PRODUCT(          &
+     &            this%response%inductance(1:num_currents),                    &
+     &            extcur(1:num_currents))
+            END IF
          END IF
       END IF
 

@@ -220,7 +220,10 @@
           currumnc, bbc, raxis, zaxis
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::                       &
           bmns, gmns, bsubumns, bsubvmns, bsubsmnc,                     &
-          bsupumns, bsupvmns, currumns, currvmns 
+          bsupumns, bsupvmns, currumns, currvmns
+      REAL(rprec), DIMENSION(:), ALLOCATABLE ::                         &
+          bsubumnc_sur, bsubumns_sur, bsubvmnc_sur, bsubvmns_sur,       &
+          bsupumnc_sur, bsupumns_sur, bsupvmnc_sur, bsupvmns_sur
       REAL(rprec), DIMENSION(:), ALLOCATABLE ::                         &
          iotas, iotaf, presf, phipf, mass, pres, beta_vol, xm, xn,      &
          potsin, potcos, xmpot, xnpot, qfact, chipf, phi, chi,          &
@@ -1000,6 +1003,17 @@
       CALL cdf_inquire(nwout, vn_bsupvmnc, dimlens)
       ALLOCATE (bsupvmnc(dimlens(1),dimlens(2)), stat = ierror)
 
+      IF (lfreeb) THEN
+         CALL cdf_inquire(nwout, vn_bsubumnc_sur, dimlens)
+         ALLOCATE (bsubumnc_sur(dimlens(1)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_bsubvmnc_sur, dimlens)
+         ALLOCATE (bsubvmnc_sur(dimlens(1)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_bsupumnc_sur, dimlens)
+         ALLOCATE (bsupumnc_sur(dimlens(1)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_bsupvmnc_sur, dimlens)
+         ALLOCATE (bsupvmnc_sur(dimlens(1)), stat = ierror)
+      END IF
+
       IF (.NOT. lasym) GO TO 800
 
       CALL cdf_inquire(nwout, vn_rmns, dimlens)
@@ -1024,6 +1038,17 @@
       ALLOCATE (bsupumns(dimlens(1),dimlens(2)), stat = ierror)
       CALL cdf_inquire(nwout, vn_bsupvmns, dimlens)
       ALLOCATE (bsupvmns(dimlens(1),dimlens(2)), stat = ierror)
+
+      IF (lfreeb) THEN
+         CALL cdf_inquire(nwout, vn_bsubumns_sur, dimlens)
+         ALLOCATE (bsubumns_sur(dimlens(1)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_bsubvmns_sur, dimlens)
+         ALLOCATE (bsubvmns_sur(dimlens(1)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_bsupumns_sur, dimlens)
+         ALLOCATE (bsupumns_sur(dimlens(1)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_bsupvmns_sur, dimlens)
+         ALLOCATE (bsupvmns_sur(dimlens(1)), stat = ierror)
+      END IF
 
  800  CONTINUE
 
@@ -1069,6 +1094,14 @@
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM (can express in terms of lambdas)
       CALL cdf_read(nwout, vn_bsupumnc, bsupumnc)
       CALL cdf_read(nwout, vn_bsupvmnc, bsupvmnc)
+
+      IF (lfreeb) THEN
+         CALL cdf_read(nwout, vn_bsubumnc_sur, bsubumnc_sur)
+         CALL cdf_read(nwout, vn_bsubvmnc_sur, bsubvmnc_sur)
+         CALL cdf_read(nwout, vn_bsupumnc_sur, bsupumnc_sur)
+         CALL cdf_read(nwout, vn_bsupvmnc_sur, bsupvmnc_sur)
+      END IF
+
       IF (lasym) THEN
          CALL cdf_read(nwout, vn_racs, raxis_cs)
          CALL cdf_read(nwout, vn_zacc, zaxis_cc) 
@@ -1085,6 +1118,13 @@
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM
          CALL cdf_read(nwout, vn_bsupumns, bsupumns)
          CALL cdf_read(nwout, vn_bsupvmns, bsupvmns)
+
+         IF (lfreeb) THEN
+            CALL cdf_read(nwout, vn_bsubumns_sur, bsubumns_sur)
+            CALL cdf_read(nwout, vn_bsubvmns_sur, bsubvmns_sur)
+            CALL cdf_read(nwout, vn_bsupumns_sur, bsupumns_sur)
+            CALL cdf_read(nwout, vn_bsupvmns_sur, bsupvmns_sur)
+         END IF
       END IF
 
       CALL cdf_read(nwout, vn_am, am)
@@ -1597,6 +1637,16 @@
       IF (ALLOCATED(rmns)) DEALLOCATE (rmns, zmnc, lmnc,                &
           bmns, gmns, bsubumns, bsubvmns, bsubsmnc,                     &
           bsupumns, bsupvmns, stat=istat(5))
+
+      IF (ALLOCATED(bsubumnc_sur)) THEN
+         DEALLOCATE(bsubumnc_sur, bsubvmnc_sur,                         &
+                    bsupumnc_sur, bsupvmnc_sur)
+      END IF
+
+      IF (ALLOCATED(bsubumns_sur)) THEN
+         DEALLOCATE(bsubumns_sur, bsubvmns_sur,                         &
+                    bsupumns_sur, bsupvmns_sur)
+      END IF
 
       IF (ALLOCATED(currumnc)) DEALLOCATE (currumnc)
       IF (ALLOCATED(currumns)) DEALLOCATE (currumns, currvmns)

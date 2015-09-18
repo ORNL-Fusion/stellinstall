@@ -1148,8 +1148,8 @@
 !  data buffer. All shell response function directions should have the same
 !  dimensions.
          ALLOCATE(temp_buffer(1,                                               &
-     &               compression_get_dimension1(this%a_r(1)%p),                &
-     &               compression_get_dimension2(this%a_r(1)%p)))
+     &               compression_get_dimension1(this%a_s_r),                   &
+     &               compression_get_dimension2(this%a_s_r)))
 
          CALL cdf_define(mdsig_iou, nc_a_s_r, temp_buffer(1,:,:))
          CALL cdf_define(mdsig_iou, nc_a_s_f, temp_buffer(1,:,:))
@@ -1260,9 +1260,15 @@
 !  Decompress each shell response function direction then write the data buffer.
          CALL compression_decompress(this%a_s_r)
          CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
-         CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
-         CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
-         CALL compression_cleanup(this%a_s_r)
+         CALL compression_decompress(this%a_s_r)
+
+         CALL compression_decompress(this%a_s_f)
+         CALL cdf_write(mdsig_iou, nc_a_s_f, this%a_s_f%data_buffer)
+         CALL compression_decompress(this%a_s_f)
+
+         CALL compression_decompress(this%a_s_z)
+         CALL cdf_write(mdsig_iou, nc_a_s_z, this%a_s_z%data_buffer)
+         CALL compression_cleanup(this%a_s_z)
       END IF
 
 !  Point Diagnostic Response ---------------------------------------------------

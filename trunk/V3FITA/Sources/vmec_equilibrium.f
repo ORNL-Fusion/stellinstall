@@ -1421,8 +1421,9 @@
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
      &                         currumnc, currvmnc, currumns, currvmns,         &
      &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns,         &
-     &                         bsupumnc, bsupumns, bsupvmnc, bsupvmns,         &
-     &                         nfp, ns, lwout_opened
+     &                         nfp, ns, lwout_opened, lfreeb,                  &
+     &                         bsubumnc_sur, bsubumns_sur,                     &
+     &                         bsubvmnc_sur, bsubvmns_sur
       USE stel_constants, only: mu0
       USE virtual_casing_mod
 
@@ -1635,34 +1636,44 @@
 
       IF (ASSOCIATED(this%magnetic_cache%kruv) .or.                            &
      &    ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
+
+         IF (lfreeb) THEN
+            bsubuc = bsubumnc_sur
+            bsubvc = bsubvmnc_sur
+            IF (lasym) THEN
+               bsubus = bsubumns_sur
+               bsubvs = bsubvmns_sur
+            END IF
+         ELSE
 !  Interpolate the b_u and b_v onto the last closed flux surface. This
 !  interpolation follows what is outlined in tosuvspace. For odd modes
 !  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
-         woddlow = 0.5*SQRT((ns - 1.0)/(ns - 1.5))
-         woddhigh = 1.5*SQRT((ns - 1.0)/(ns - 2.5))
+            woddlow = 0.5*SQRT((ns - 1.0)/(ns - 1.5))
+            woddhigh = 1.5*SQRT((ns - 1.0)/(ns - 2.5))
 
-         ALLOCATE(bsubuc(mnmax_nyq), bsubvc(mnmax_nyq))
-         WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
-            bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
-            bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
-         ELSE WHERE
-            bsubuc = woddhigh*bsubumnc(:,ns)                                   &
-     &             - woddlow*bsubumnc(:,ns - 1)
-            bsubvc = woddhigh*bsubvmnc(:,ns)                                   &
-     &             - woddlow*bsubvmnc(:,ns - 1)
-         END WHERE
-
-         IF (lasym) THEN
-            ALLOCATE(bsubus(mnmax_nyq), bsubvs(mnmax_nyq))
+            ALLOCATE(bsubuc(mnmax_nyq), bsubvc(mnmax_nyq))
             WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
-               bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
-               bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
+               bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
+               bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
             ELSE WHERE
-               bsubus = woddhigh*bsubumns(:,ns)                                &
-     &                - woddlow*bsubumns(:,ns - 1)
-               bsubvs = woddhigh*bsubvmns(:,ns)                                &
-     &                - woddlow*bsubvmns(:,ns - 1)
+               bsubuc = woddhigh*bsubumnc(:,ns)                                &
+     &                - woddlow*bsubumnc(:,ns - 1)
+               bsubvc = woddhigh*bsubvmnc(:,ns)                                &
+     &                - woddlow*bsubvmnc(:,ns - 1)
             END WHERE
+
+            IF (lasym) THEN
+               ALLOCATE(bsubus(mnmax_nyq), bsubvs(mnmax_nyq))
+               WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
+                  bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
+                  bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
+               ELSE WHERE
+                  bsubus = woddhigh*bsubumns(:,ns)                             &
+     &                   - woddlow*bsubumns(:,ns - 1)
+                  bsubvs = woddhigh*bsubvmns(:,ns)                             &
+     &                   - woddlow*bsubvmns(:,ns - 1)
+               END WHERE
+            END IF
          END IF
       END IF
 
@@ -4016,6 +4027,7 @@
 !               recovery.
 !  ictrl_array  Array containing various vmec control parameters.
       REAL (rprec)                       :: delt_local
+      INTEGER                            :: niter_local
       INTEGER, DIMENSION(5)              :: ictrl_array
       INTEGER                            :: recovery_index
       INTEGER                            :: error, num_iter_init
@@ -4026,6 +4038,7 @@
       start_time = profiler_get_start_time()
 
       delt_local = delt
+      niter_local = niter
       num_iter_init = iterc
       recovery_index = 0
 
@@ -4044,7 +4057,7 @@
 
 !  Allow multigrid for the inital convergence only.
          IF (num_iter .gt. 1) THEN
-            ictrl_array(3) = niter
+            ictrl_array(3) = niter_local
             ictrl_array(4) = this%ns_index
          ELSE
 !  This allows the inital convergence to match a stand alone VMEC run.
@@ -4071,14 +4084,32 @@
                CALL vmec_context_set_context(temp_context)
 
                IF (recovery_index .le. 2) THEN
-                  WRITE (*,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
-                  WRITE (*,*) 'delt chnage: old, new:', delt, delt/2.0
-                  WRITE (iou,*) 'VMEC CONVERGENCE ERROR: jac75_flag'
-                  WRITE (iou,*) 'delt chnage: old, new:', delt, delt/2.0
+                  WRITE (*,1000) 'jac75_flag'
+                  WRITE (*,1001) 'delt', delt, delt/2.0
+                  WRITE (iou,1000) 'jac75_flag'
+                  WRITE (iou,1001) 'delt', delt, delt/2.0
                   delt = delt/2.0
                ELSE
                   EXIT
                END IF
+
+            CASE (more_iter_flag)
+
+!  Restore the context to the state it was before runvmec was called.
+            CALL vmec_context_set_context(temp_context)
+
+            IF (recovery_index .le. 2) THEN
+               WRITE (*,1000) 'more_iter_flag'
+               WRITE (*,1002) 'niter', niter_local,                            &
+     &                        niter_local + niter
+               WRITE (iou,1000) 'more_iter_flag'
+               WRITE (iou,1002) 'niter', niter_local,                          &
+     &                          niter_local + niter
+
+               niter_local = niter_local + niter
+            ELSE
+               EXIT
+            END IF
 
             CASE DEFAULT
                EXIT
@@ -4099,7 +4130,7 @@
       vmec_converge = .false.
       SELECT CASE (ictrl_array(2))
 
-         CASE (successful_term_flag, norm_term_flag, more_iter_flag)
+         CASE (successful_term_flag, norm_term_flag)
             CALL read_wout_file(this%wout_file_name, error)
             CALL assert_eq(error, 0, "Error reading wout file.")
             CALL LoadRZL
@@ -4121,6 +4152,10 @@
       delt = delt_local
 
       CALL profiler_set_stop_time('vmec_converge', start_time)
+
+1000  FORMAT('VMEC CONVERGENCE ERROR: ',a)
+1001  FORMAT(a,' change: old, new: ',es12.5,' ',es12.5)
+1002  FORMAT(a,' change: old, new: ',i12,' ',i12)
 
       END FUNCTION
 
