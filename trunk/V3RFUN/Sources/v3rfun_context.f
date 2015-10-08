@@ -535,7 +535,7 @@
       SUBROUTINE v3rfun_context_write_mrf(this, d_coil, id_num)
       USE magnetic_response
       USE v3_utilities
-      USE ezcdf
+      USE bsc_cdf
 
       IMPLICIT NONE
 
@@ -737,7 +737,7 @@
       CALL cdf_define(j, 'diagnostic_desc_units', d_coil%units)
       CALL cdf_define(j, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_define(response, j)
-
+      CALL bsc_cdf_define_coil(d_coil%coil, j, '')
 
 !  Write NetCDF variables. The cdf_write subroutine switches from define mode to
 !  write mode.
@@ -747,6 +747,7 @@
       CALL cdf_write(j, 'diagnostic_desc_units', TRIM(d_coil%units))
       CALL cdf_write(j, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_write(response, j)
+      CALL bsc_cdf_write_coil(d_coil%coil, j, '')
 
 !  Close NetCDF file.
       CALL cdf_close(j)
