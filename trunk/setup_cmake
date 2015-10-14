@@ -147,6 +147,24 @@ then
 	      -DCMAKE_PREFIX_PATH:FILEPATH=/opt/cray/mpt/7.0.4/gni/mpich2-INTEL/140/ \
 	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"
 
+elif [ $MACHINE_ID == "clus45" ]
+then
+
+	# Config for the Stellarator cluster at W7-X. The following modules need
+	# to be loaded before running the setup script and running unit tests.
+	#
+	#	module load cmake/3.1-gnu
+	#	module load gcc/4.6.4
+	#	module load openmpi/1.8-gnu
+	#	module load netcdf/4.3-gnu-ompi18-hdf518
+	#
+	# NOTE: Order matters. Compiler needs to be loaded first.
+
+	cmake -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                 \
+	      -DMPI_Fortran_COMPILER:FILEPATH=$MPI_DIR/bin/mpif90 \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include/              \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib
+
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.
