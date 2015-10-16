@@ -1,4 +1,5 @@
 !#undef NEW_CODE
+#define NEW_CODE
 #ifdef NEW_CODE
 !-------------------------------------------------------------------------------
 !  The @fixed_width, @begin_table, @item2 and @end_table commands are custom
@@ -1831,3 +1832,4 @@
 
       END MODULE diagnostic_dot
 #endif
+

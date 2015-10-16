@@ -2,6 +2,7 @@
 !  compiled by default. The main goal of this cleanup is to allow an extention
 !  D3D style plain magnetic probes.
 !#undef NEW_CODE
+#define NEW_CODE
 #ifdef NEW_CODE
 !-------------------------------------------------------------------------------
 !  The @header2, @begin_table, @item3 and @end_table commands are custom defined

@@ -29,9 +29,9 @@ endif ()
 # Add the ability to auto generate API documentation with Doxygen
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
-	configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile @ONLY)
-	add_custom_target (doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/build/Doxyfile 
-	                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build
+	configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/build/Doxyfile @ONLY)
+	add_custom_target (doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/build/Doxyfile 
+	                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build
 	                   COMMENT "Generating API documentation with Doxygen" VERBATIM)
 endif ()
 
@@ -52,8 +52,8 @@ if (MPI_Fortran_FOUND)
 endif ()
 
 # Set a directories to build all binary files.
-set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
-set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/lib)
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/bin)
+set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/lib)
 
 # Add extra compiler flags to various builds.
 set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} ${EXTRA_RELEASE_FLAGS}")
@@ -62,7 +62,7 @@ set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_FLAGS}")
 
 # Fortran specific settings. The first setting tells the compiler to use the C preprocessor. The second places a common directory to place all of the module files.
 set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp")
-set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build/modules)
+set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build/modules)
 
 # Set Apple specific options. This adds a predefine for DARWIN and adds lapack from the Accelerate framework.
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
