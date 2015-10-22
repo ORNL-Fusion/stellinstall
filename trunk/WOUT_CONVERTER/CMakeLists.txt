@@ -17,6 +17,9 @@ endif ()
 
 target_link_libraries (xwout_converter ${NETCDF_LIBRARIES})
 
+if (MPI_Fortran_FOUND)
+        target_link_libraries (xwout_converter ${MPI_Fortran_LIBRARIES})
+endif ()
 if (BLAS_FOUND)
 	target_link_libraries (xwout_converter ${BLAS_LIBRARIES})
 endif ()

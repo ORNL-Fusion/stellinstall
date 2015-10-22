@@ -234,7 +234,7 @@
 !>  Returns a description of the feedback type for use when writting output
 !>  files.
 !>
-!>  @param[in] this A @ref prior_gaussian_class instance.
+!>  @param[in] this A @ref sxrem_ratio_class instance.
 !>  @returns A string describing the feedback type.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_get_signal_type(this)
@@ -323,7 +323,7 @@
       CALL MPI_BCAST(this%x_cart, 3, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%indices, 2, MPI_INTEGER, 0, intra_comm, error)
 
-      CALL profiler_set_stop_time('prior_gaussian_sync_children',              &
+      CALL profiler_set_stop_time('sxrem_ratio_sync_children',                 &
      &                            start_time)
 
 #endif

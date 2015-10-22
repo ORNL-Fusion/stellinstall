@@ -317,7 +317,7 @@
      &      magnetic_get_modeled_signal_point(2)
       END IF
 
-!  Subtract of the axisymmtric component. When not using the 3D only signal
+!  Subtract off the axisymmtric component. When not using the 3D only signal
 !  the value stored in the forth position is zero so there is no need to check
 !  the flag.
       magnetic_get_modeled_signal_point(1) =                                   &

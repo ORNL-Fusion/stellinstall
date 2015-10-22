@@ -193,7 +193,6 @@
 
 !  Declare Arguments
       TYPE (mse_class), POINTER :: mse_construct_mpi
-
       INTEGER, INTENT(in)       :: intra_comm
 
 #if defined(MPI_OPT)

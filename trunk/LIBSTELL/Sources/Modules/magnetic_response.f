@@ -1257,11 +1257,11 @@
 !  Decompress each shell response function direction then write the data buffer.
          CALL compression_decompress(this%a_s_r)
          CALL cdf_write(mdsig_iou, nc_a_s_r, this%a_s_r%data_buffer)
-         CALL compression_decompress(this%a_s_r)
+         CALL compression_cleanup(this%a_s_r)
 
          CALL compression_decompress(this%a_s_f)
          CALL cdf_write(mdsig_iou, nc_a_s_f, this%a_s_f%data_buffer)
-         CALL compression_decompress(this%a_s_f)
+         CALL compression_cleanup(this%a_s_f)
 
          CALL compression_decompress(this%a_s_z)
          CALL cdf_write(mdsig_iou, nc_a_s_z, this%a_s_z%data_buffer)

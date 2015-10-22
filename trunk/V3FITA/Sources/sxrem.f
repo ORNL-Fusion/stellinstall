@@ -24,7 +24,7 @@
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Base class representing a magnetic signal.
+!>  Base class representing a soft x-ray emissivity signal.
 !>  @par Super Class:
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
@@ -324,15 +324,15 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER(len=1), INTENT(in)          :: context(:)
-      REAL(rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
-      REAL(rprec), INTENT(in)               :: length
-      REAL(rprec), INTENT(in)               :: dx
-      REAL(rprec)                           :: sxr_function
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      REAL (rprec)                           :: sxr_function
 
 ! local variables
-      TYPE(sxrem_context)                   :: sxr_context
-      REAL (rprec)                          :: start_time
+      TYPE (sxrem_context)                   :: sxr_context
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
