@@ -12,9 +12,7 @@
       USE stel_kinds, only : rprec, cprec
       USE stel_constants, only : pi, twopi, one, zero
       USE v3_utilities
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
       USE profiler
 
       IMPLICIT NONE

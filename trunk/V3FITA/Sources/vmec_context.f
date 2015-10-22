@@ -15,9 +15,7 @@
       USE vmec_input, Only: raxis_cc, raxis_cs, zaxis_cc, zaxis_cs
       USE v3f_vmec_comm
       USE profiler
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
 
       IMPLICIT NONE
 

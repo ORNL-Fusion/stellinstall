@@ -11,9 +11,7 @@
 
       MODULE integration_path
       USE stel_kinds
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
 
       IMPLICIT NONE
 

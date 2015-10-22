@@ -38,9 +38,7 @@
       MODULE emission
       USE stel_kinds
       USE profiler
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
 
       IMPLICIT NONE
 

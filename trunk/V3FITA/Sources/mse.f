@@ -16,11 +16,10 @@
       USE stel_kinds, only: rprec, dp
       USE coordinate_utilities
       USE profiler
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
 
       IMPLICIT NONE
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) mse base class

@@ -1,10 +1,12 @@
+#undef MPI_OPT
       MODULE mgrid_mod
+      USE v3_utilities
       USE stel_kinds
       USE vmec_input, ONLY: nbfld, nflxs, lfreeb, lrecon
       USE vsvd0, ONLY: nigroup, nparts, npfcoil, nbcoilsp, nfloops,
      1                 nbctotp
       IMPLICIT NONE
-       
+
       INTEGER, PARAMETER :: nlimset = 2       !number of different limiters
       CHARACTER(LEN=*), PARAMETER :: 
      1   vn_br0 = 'br', vn_bp0 = 'bp', vn_bz0 = 'bz',
@@ -538,10 +540,16 @@ C-----------------------------------------------
 
 
 #if defined(NETCDF)
+!
+!     PARALLEL MPI MODIFICATIONS ADDED BY Mark R. Cianciosa <cianciosamr@ornl.gov>, 092315
+!
       SUBROUTINE read_mgrid_nc (filename, extcur, nv, nfp,
      1                          ier_flag, lscreen)
       USE ezcdf
+      USE mpi_inc
+
       IMPLICIT NONE
+
 C-----------------------------------------------
 C   D u m m y  A r g u m e n t s
 C-----------------------------------------------
@@ -551,15 +559,21 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: 
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::
      1                       brtemp, bztemp, bptemp
       INTEGER :: ier_flag, ngrid
       INTEGER :: istat, ig
       LOGICAL :: lscreen
       INTEGER, DIMENSION(3)   :: dimlens
       CHARACTER(LEN=100) :: temp
-      CHARACTER(LEN=100), ALLOCATABLE, DIMENSION(:) :: 
-     1                 vn_br, vn_bp, vn_bz
+
+#if defined(MPI_OPT)
+      INTEGER :: mpi_rank, mpi_size
+
+      CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, istat)
+      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, istat)
+#endif
+
 C-----------------------------------------------
       call cdf_open(ngrid, filename,'r', istat)
       IF (istat .ne. 0) THEN
@@ -598,12 +612,12 @@ C-----------------------------------------------
       delzb = (zmaxb-zminb)/(nz0b-1)
 
       CALL cdf_inquire(ngrid, vn_coilgrp, dimlens)
-	IF (.NOT. ALLOCATED(curlabel)) THEN
-          ALLOCATE (curlabel(nextcur), stat=istat)
-	ELSE IF (SIZE(curlabel) .ne. nextcur) THEN
-	    DEALLOCATE (curlabel)
-          ALLOCATE (curlabel(nextcur), stat=istat)
-	END IF
+      IF (.NOT. ALLOCATED(curlabel)) THEN
+         ALLOCATE (curlabel(nextcur), stat=istat)
+      ELSE IF (SIZE(curlabel) .ne. nextcur) THEN
+         DEALLOCATE (curlabel)
+         ALLOCATE (curlabel(nextcur), stat=istat)
+      END IF
 !THIS IS A GLITCH WITH cdf_read: must distinguish 1D char array from multi-D
       IF (nextcur .eq. 1) THEN
          IF (istat .eq. 0) 
@@ -612,14 +626,10 @@ C-----------------------------------------------
            CALL cdf_read(ngrid, vn_coilgrp, curlabel(1:nextcur))
       END IF
 
-	IF (istat .ne. 0) STOP 'Error allocating CURLABEL in mgrid_mod'
+      IF (istat .ne. 0) STOP 'Error allocating CURLABEL in mgrid_mod'
 !
 !     READ 3D Br, Bp, Bz ARRAYS FOR EACH COIL GROUP
 !
-      ALLOCATE (vn_br(nextcur), vn_bz(nextcur), vn_bp(nextcur), 
-     1          stat=istat)
-	IF (istat .ne. 0) STOP 'Error allocating vn_bX in mgrid_mod'
-
       nbvac = nr0b*nz0b*np0b
       IF (.NOT. ALLOCATED(bvac)) THEN
          ALLOCATE (bvac(nbvac,3), stat=istat)
@@ -630,31 +640,41 @@ C-----------------------------------------------
 
       bvac = 0
 
+      ALLOCATE (brtemp(nr0b, nz0b, np0b),                                      &
+     &          bptemp(nr0b, nz0b, np0b),                                      &
+     &          bztemp(nr0b, nz0b, np0b), stat=istat)
+      IF (istat .ne. 0)STOP 'Error allocating bXtemp in mgrid_mod'
+      brtemp = 0
+      bptemp = 0
+      bztemp = 0
+
+#if defined(MPI_OPT)
+      DO ig = mpi_rank + 1, nextcur, mpi_size
+#else
       DO ig = 1, nextcur
-         WRITE (temp, '(a,i3.3)') "_",ig
-         vn_br(ig) = vn_br0 // temp
-         vn_bp(ig) = vn_bp0 // temp
-         vn_bz(ig) = vn_bz0 // temp
-         CALL cdf_inquire(ngrid, vn_br(ig), dimlens)
-         IF (.NOT. ALLOCATED(brtemp)) THEN
-            ALLOCATE (brtemp(dimlens(1),dimlens(2),dimlens(3)),
-     1                bptemp(dimlens(1),dimlens(2),dimlens(3)),
-     2                bztemp(dimlens(1),dimlens(2),dimlens(3)),
-     3                stat=istat)
-            IF (istat .ne. 0)STOP 'Error allocating bXtemp in mgrid_mod'
-         END IF
-         CALL cdf_read(ngrid, vn_br(ig), brtemp)
-         CALL cdf_read(ngrid, vn_bp(ig), bptemp)
-         CALL cdf_read(ngrid, vn_bz(ig), bztemp)
+#endif
+         WRITE (temp, 1000) vn_br0, ig
+         CALL cdf_read(ngrid, temp, brtemp)
+
+         WRITE (temp, 1000) vn_bp0, ig
+         CALL cdf_read(ngrid, temp, bptemp)
+
+         WRITE (temp, 1000) vn_bz0, ig
+         CALL cdf_read(ngrid, temp, bztemp)
 
 !
 !        STORE SUMMED BFIELD (OVER COIL GROUPS) IN BVAC
-!         
-         CALL sum_bfield(bvac(1,1), brtemp, extcur(ig), nbvac)
-         CALL sum_bfield(bvac(1,2), bptemp, extcur(ig), nbvac)
-         CALL sum_bfield(bvac(1,3), bztemp, extcur(ig), nbvac)
-
+!
+         CALL sum_bfield(bvac(:,1), brtemp, extcur(ig), nbvac)
+         CALL sum_bfield(bvac(:,2), bptemp, extcur(ig), nbvac)
+         CALL sum_bfield(bvac(:,3), bztemp, extcur(ig), nbvac)
       END DO
+
+#if defined(MPI_OPT)
+      CALL MPI_ALLREDUCE(MPI_IN_PLACE, bvac, SIZE(bvac), MPI_REAL8,            &
+     &                   MPI_SUM, MPI_COMM_WORLD, istat)
+      CALL assert_eq(istat, 0, 'MPI_ALLREDUCE failed in read_mgrid_nc')
+#endif
 
 !
 !     MUST ADD EXTERNAL LOOP STUFF LATER
@@ -683,9 +703,11 @@ C-----------------------------------------------
       CALL cdf_close(ngrid)
 
       IF (ALLOCATED(brtemp))
-     1    DEALLOCATE (vn_br, vn_bz, vn_bp, brtemp, bptemp, bztemp)
+     1    DEALLOCATE (brtemp, bptemp, bztemp)
 
       CALL assign_bptrs(bvac)
+
+1000  FORMAT(a,'_',i3.3)
 
       END SUBROUTINE read_mgrid_nc
 #endif

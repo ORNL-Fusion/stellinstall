@@ -35,9 +35,7 @@
       USE stel_kinds
       USE data_parameters
       USE biotsavart
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
       USE profiler
 
       IMPLICIT NONE

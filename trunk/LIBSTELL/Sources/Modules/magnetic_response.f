@@ -11,9 +11,6 @@
       MODULE magnetic_response
       USE compression
       USE stel_kinds, only: rprec
-#if defined (MPI_OPT)
-      USE mpi
-#endif
       USE profiler
 
       IMPLICIT NONE

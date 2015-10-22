@@ -14,12 +14,11 @@
       MODULE thomson
 
       USE stel_kinds, only: rprec
-#if defined (MPI_OPT)
-      USE mpi
-#endif
+      USE mpi_inc
       USE profiler
 
       IMPLICIT NONE
+
 !*******************************************************************************
 !  diagnostic module parameters
 !*******************************************************************************
