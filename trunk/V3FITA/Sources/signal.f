@@ -144,7 +144,8 @@
 !>  @ref signal_construct_combination or @ref signal_construct_diagnostic_netcdf
 !-------------------------------------------------------------------------------
       INTERFACE signal_construct
-         MODULE PROCEDURE signal_construct_diagnostic,                         &
+         MODULE PROCEDURE signal_construct_new,                                &
+     &                    signal_construct_diagnostic,                         &
      &                    signal_construct_geometric,                          &
      &                    signal_construct_prior,                              &
      &                    signal_construct_feedback,                           &
@@ -157,6 +158,64 @@
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct new @ref signal_class object.
+!>
+!>  Allocates memory and initializes a @ref signal_class object.
+!>
+!>  @param[in] signal_type An instance of a @ref diagnostic subclass.
+!>  @param[in] s_name      The short name of the signal.
+!>  @param[in] l_name      The short name of the signal.
+!>  @param[in] units       The units of the signal.
+!>  @param[in] observed    Observed value of the signal.
+!>  @param[in] sigma       Observed sigma of the signal.
+!>  @param[in] weight            Weight factor of the signal.
+!>  @returns A pointer to a constructed @ref signal_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_construct_new(signal_type, s_name, l_name, units,        &
+     &                              observed, sigma, weight)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), POINTER :: signal_construct_new
+      INTEGER                      :: signal_type
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
+
+!  local variables
+      REAL (rprec)                 :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(signal_construct_new)
+
+!  Warn the user that the signal is missing a non zero sigma.
+      IF (sigma .eq. 0.0) THEN
+         WRITE (*,1000) TRIM(s_name)
+      END IF
+
+      signal_construct_new%type = signal_type
+      signal_construct_new%s_name = s_name
+      signal_construct_new%l_name = l_name
+      signal_construct_new%units = units
+      signal_construct_new%observed = observed
+      signal_construct_new%observed_sigma = sigma
+      signal_construct_new%weight = weight
+      signal_construct_new%modeled = 0.0
+      signal_construct_new%modeled_sigma = 0.0
+
+      CALL profiler_set_stop_time('signal_construct_new', start_time)
+
+1000  FORMAT('Warning: sigma for ',a,' is zero.')
+
+      END FUNCTION
+
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref signal_class containing a @ref diagnostic object.
 !>
@@ -193,18 +252,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(signal_construct_diagnostic)
-
-      signal_construct_diagnostic%type = signal_diagnostic_type
-      signal_construct_diagnostic%s_name = s_name
-      signal_construct_diagnostic%l_name = l_name
-      signal_construct_diagnostic%units = units
-      signal_construct_diagnostic%observed = observed
-      signal_construct_diagnostic%observed_sigma = sigma
-      signal_construct_diagnostic%weight = weight
+      signal_construct_diagnostic =>                                           &
+     &   signal_construct(signal_diagnostic_type, s_name, l_name, units,       &
+     &                    observed, sigma, weight)
       signal_construct_diagnostic%diagnostic => diagnostic_object
-      signal_construct_diagnostic%modeled = 0.0
-      signal_construct_diagnostic%modeled_sigma = 0.0
 
       CALL profiler_set_stop_time('signal_construct_diagnostic',               &
      &                            start_time)
@@ -247,18 +298,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(signal_construct_geometric)
-
-      signal_construct_geometric%type = signal_geometric_type
-      signal_construct_geometric%s_name = s_name
-      signal_construct_geometric%l_name = l_name
-      signal_construct_geometric%units = units
-      signal_construct_geometric%observed = observed
-      signal_construct_geometric%observed_sigma = sigma
-      signal_construct_geometric%weight = weight
+      signal_construct_geometric =>                                            &
+     &   signal_construct(signal_geometric_type, s_name, l_name, units,        &
+     &                    observed, sigma, weight)
       signal_construct_geometric%geometric => geometric_object
-      signal_construct_geometric%modeled = 0.0
-      signal_construct_geometric%modeled_sigma = 0.0
 
       CALL profiler_set_stop_time('signal_construct_geometric',                &
      &                            start_time)
@@ -300,18 +343,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(signal_construct_prior)
-
-      signal_construct_prior%type = signal_prior_type
-      signal_construct_prior%s_name = s_name
-      signal_construct_prior%l_name = l_name
-      signal_construct_prior%units = units
-      signal_construct_prior%observed = observed
-      signal_construct_prior%observed_sigma = sigma
-      signal_construct_prior%weight = weight
+      signal_construct_prior =>                                                &
+     &   signal_construct(signal_prior_type, s_name, l_name, units,            &
+     &                    observed, sigma, weight)
       signal_construct_prior%prior => prior_object
-      signal_construct_prior%modeled = 0.0
-      signal_construct_prior%modeled_sigma = 0.0
 
       CALL profiler_set_stop_time('signal_construct_prior', start_time)
 
@@ -353,18 +388,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(signal_construct_feedback)
-
-      signal_construct_feedback%type = signal_feedback_type
-      signal_construct_feedback%s_name = s_name
-      signal_construct_feedback%l_name = l_name
-      signal_construct_feedback%units = units
-      signal_construct_feedback%observed = observed
-      signal_construct_feedback%observed_sigma = sigma
-      signal_construct_feedback%weight = weight
+      signal_construct_feedback =>                                             &
+     &   signal_construct(signal_feedback_type, s_name, l_name, units,         &
+     &                    observed, sigma, weight)
       signal_construct_feedback%feedback => feedback_object
-      signal_construct_feedback%modeled = 0.0
-      signal_construct_feedback%modeled_sigma = 0.0
 
       CALL profiler_set_stop_time('signal_construct_feedback',                 &
      &                            start_time)
@@ -409,18 +436,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(signal_construct_combination)
-
-      signal_construct_combination%type = signal_combination_type
-      signal_construct_combination%s_name = s_name
-      signal_construct_combination%l_name = l_name
-      signal_construct_combination%units = units
-      signal_construct_combination%observed = observed
-      signal_construct_combination%observed_sigma = sigma
-      signal_construct_combination%weight = weight
+      signal_construct_combination =>                                          &
+     &   signal_construct(signal_combination_type, s_name, l_name,             &
+     &                    units, observed, sigma, weight)
       signal_construct_combination%combination => combination_object
-      signal_construct_combination%modeled = 0.0
-      signal_construct_combination%modeled_sigma = 0.0
 
       CALL profiler_set_stop_time('signal_construct_combination',              &
      &                            start_time)
@@ -808,8 +827,15 @@
      &                                           use_cache)
 
 !  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
-      signal_get_e = (observed_signal - modeled_signal(1))                     &
-     &             * SQRT(this%weight/signal_get_sigma2(this))
+!  Users are can be lax when specifiying the sigma for signals weighted to zero.
+!  Avoid a possible divide by zero by error checking the weight first. If the
+!  weight is zero, set the error vector explicitly to zero.
+      IF (this%weight .eq. 0.0) THEN
+         signal_get_e = 0.0
+      ELSE
+         signal_get_e = (observed_signal - modeled_signal(1))                  &
+     &                * SQRT(this%weight/signal_get_sigma2(this))
+      END IF
 
       CALL profiler_set_stop_time('signal_get_e', start_time)
 
