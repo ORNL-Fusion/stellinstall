@@ -1015,6 +1015,7 @@
 !  Signal Data specification
      &   n_sdata_o, iw_sdo_verbose, sdo_data_a, sdo_sigma_a,                   &
      &   sdo_weight_a, mag_a, mag_3D_a, mag_force_coil,                        &
+     &   sdo_spec_can_overwrite,                                               &
 !  Magnetic integration parameters
      &   pol_rad_ratio,                                                        &
 !  External current signal specification
