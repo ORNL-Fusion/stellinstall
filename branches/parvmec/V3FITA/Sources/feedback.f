@@ -1,0 +1,466 @@
+!*******************************************************************************
+!>  @file feedback.f
+!>  @brief Contains module @ref feedback
+!
+!  Note separating the Doxygen comment block here so detailed decription is
+!  found in the Module not the file.
+!
+!>  Defines the base class of the type @ref prior_class.
+!>  @par Super Class:
+!>  @ref signal
+!>  @par Sub Classes:
+!>  Sub Classes: @ref sxrem_ratio
+!*******************************************************************************
+
+      MODULE feedback
+
+      USE sxrem_ratio
+
+      IMPLICIT NONE
+
+!*******************************************************************************
+!  feedback module parameters
+!*******************************************************************************
+!>  Type descriptor for the @ref feedback_class no sub class.
+      INTEGER, PARAMETER :: feedback_no_type          = -1
+!>  Type descriptor for the @ref diagnostic_class subclass @ref sxrem_ratio
+      INTEGER, PARAMETER :: feedback_sxrem_ratio_type = 0
+
+!*******************************************************************************
+!  DERIVED-TYPE DECLARATIONS
+!  1) feedback base class
+!
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Base class representing a feedback signal.
+!>  @par Super Class:
+!>  @ref signal
+!>  @par Sub Classes:
+!>  @ref sxrem_ratio
+!-------------------------------------------------------------------------------
+      TYPE feedback_class
+!>  Type descirptor of the feedback subclass type.
+!>  @par Possible values are:
+!>  * @ref feedback_no_type
+!>  * @ref feedback_sxrem_ratio_type
+         INTEGER                          :: type = feedback_no_type
+!>  An instance of a @ref sxrem object.
+         TYPE(sxrem_ratio_class), POINTER :: ratio => null()
+      END TYPE feedback_class
+
+!*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref feedback_class types using
+!>  @ref feedback_construct_ratio or @ref feedback_construct_mpi
+!-------------------------------------------------------------------------------
+      INTERFACE feedback_construct
+         MODULE PROCEDURE feedback_construct_ratio,                            &
+     &                    feedback_construct_mpi
+      END INTERFACE
+
+      CONTAINS
+!*******************************************************************************
+!  CONSTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref feedback_class containing a @ref sxrem_ratio object.
+!>
+!>  Allocates memory and initializes a @ref feedback_class object.
+!>
+!>  @param[in] gaussian_object An instance of a @ref sxrem_ratio subclass.
+!>  @returns A pointer to a constructed @ref prior_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_construct_ratio(ratio_object)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (feedback_class), POINTER    :: feedback_construct_ratio
+      TYPE (sxrem_ratio_class), POINTER :: ratio_object
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(feedback_construct_ratio)
+
+      feedback_construct_ratio%type = feedback_sxrem_ratio_type
+      feedback_construct_ratio%ratio => ratio_object
+
+      CALL profiler_set_stop_time('feedback_construct_ratio',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref feedback_class object by syncing through mpi.
+!>
+!>  Allocates memory and initializes a @ref feedback_class object.
+!>
+!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @returns A pointer to a constructed @ref feedback_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_construct_mpi(intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (feedback_class), POINTER :: feedback_construct_mpi
+      INTEGER, INTENT(in)            :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                     :: error
+
+!  Start of executable code
+      ALLOCATE(feedback_construct_mpi)
+
+      CALL MPI_BCAST(feedback_construct_mpi%type, 1, MPI_INTEGER, 0,           &
+     &               intra_comm, error)
+
+      SELECT CASE (feedback_construct_mpi%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            feedback_construct_mpi%ratio =>                                    &
+     &         sxrem_ratio_construct(intra_comm)
+
+      END SELECT
+
+#endif
+
+      END FUNCTION
+
+!*******************************************************************************
+!  DESTRUCTION SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Deconstruct a @ref feedback_class object.
+!>
+!>  Deallocates memory and uninitializes a @ref feedback_class object.
+!>
+!>  @param[inout] this A @ref feedback_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE feedback_destruct(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (feedback_class), POINTER :: this
+
+!  Start of executable code
+      IF (ASSOCIATED(this%ratio)) THEN
+         CALL sxrem_ratio_destruct(this%ratio)
+         this%ratio => null()
+      END IF
+
+      this%type = feedback_no_type
+
+      DEALLOCATE(this)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  GETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_modeled_signal method of the subclass instance
+!>  @ref feedback_class was constructed with.
+!>
+!>  @see sxrem_ratio::sxrem_ratio_get_modeled_signal
+!>
+!>  @param[in]    this    A @ref feedback_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @param[out]   sigma   The modeled sigma.
+!>  @returns The model value.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_get_modeled_signal(this, a_model, sigma)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(rprec), DIMENSION(4) :: feedback_get_modeled_signal
+      TYPE(feedback_class), INTENT(in)        :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
+
+!  local variables
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            feedback_get_modeled_signal =                                      &
+     &         sxrem_ratio_get_modeled_signal(this%ratio, a_model,             &
+     &                                        sigma)
+
+         CASE DEFAULT
+            feedback_get_modeled_signal = 0.0
+            sigma = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('feedback_get_modeled_signal',               &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the observed signal.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_observed_signal method of the subclass instance
+!>  @ref feedback_class was constructed with. This observed value is actually a
+!>  a second model. This is used in the chi^2 minimization for self consistent
+!>  feedback of quanities derived from two different models.
+!>
+!>  @see sxrem_ratio::sxrem_ratio_get_observed_signal
+!>
+!>  @param[in]    this    A @ref feedback_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @returns The observed value.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_get_observed_signal(this, a_model)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL(rprec) :: feedback_get_observed_signal
+      TYPE(feedback_class), INTENT(in)  :: this
+      TYPE (model_class), INTENT(inout) :: a_model
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            feedback_get_observed_signal =                                     &
+     &         sxrem_ratio_get_observed_signal(this%ratio, a_model)
+
+         CASE DEFAULT
+            feedback_get_observed_signal = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('feedback_get_observed_signal',              &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the feedback signal type.
+!>
+!>  This method is meant to be overwritten by a subclass method. As a result,
+!>  returns the get_signal_type method of the subclass instance
+!>  @ref feedback_class was constructed with.
+!>
+!>  @see sxrem_ratio::sxrem_ratio_get_signal_type
+!>
+!>  @param[in] this A @ref feedback_class instance.
+!>  @returns A string describing the feedback type.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_get_signal_type(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length)  :: feedback_get_signal_type
+      TYPE (feedback_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            feedback_get_signal_type = TRIM('feedback ' //                     &
+     &         sxrem_ratio_get_signal_type(this%ratio))
+
+      END SELECT
+
+      CALL profiler_set_stop_time('feedback_get_signal_type',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  This method is meant to be overwritten by a subclass method if need be. As a
+!>  result, returns the get_header method of the subclass instance
+!>  @ref feedback_class was constructed with.
+!>
+!>  @param[in] this A @ref feedback_class instance.
+!>  @returns A string describing the model and model sigma array indices.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_get_header(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(7)                           &
+     &   :: feedback_get_header
+      TYPE (feedback_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE DEFAULT
+            feedback_get_header(1:3) = 'N/A'
+            feedback_get_header(4) = 'model_sig(1)'
+            feedback_get_header(5) = 'model_sig(2)'
+            feedback_get_header(6) = 'model_sig(3)'
+            feedback_get_header(7) = 'model_sig(4)'
+
+      END SELECT
+
+      CALL profiler_set_stop_time('feedback_get_header', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the feedback type.
+!>
+!>  Returns a string describing the feedback subclass.
+!>
+!>  @see sxrem_ratio::sxrem_ratio_get_signal_type
+!>
+!>  @param[in] this A @ref feedback_class instance.
+!>  @returns A string describing the feedback subclass.
+!-------------------------------------------------------------------------------
+      FUNCTION feedback_get_feedback_type(this)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length)  :: feedback_get_feedback_type
+      TYPE (feedback_class), INTENT(in) :: this
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE(this%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            feedback_get_feedback_type =                                       &
+     &         sxrem_ratio_get_signal_type(this%ratio)
+      END SELECT
+
+      CALL profiler_set_stop_time('feedback_get_feedback_type',                &
+     &                            start_time)
+
+      END FUNCTION
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Write out auxiliary signal information to an output file.
+!>
+!>  Writes out the s_name and coefficient of the combined signals.
+!>
+!>  @param[in] this    A @ref feedback_class instance.
+!>  @param[in] iou     A input/output representing the file to write to.
+!>  @param[in] index   A index of this signal.
+!>  @param[in] a_model The equilibrium model.
+!-------------------------------------------------------------------------------
+      SUBROUTINE feedback_write_auxiliary(this, iou, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (feedback_class), INTENT(in) :: this
+      INTEGER, INTENT(in)               :: iou
+      INTEGER, INTENT(in)               :: index
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (iou,*)
+      WRITE (iou,1000) index, feedback_get_feedback_type(this)
+
+      SELECT CASE(this%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            CALL sxrem_ratio_write_auxiliary(this%ratio, iou)
+
+      END SELECT
+
+      CALL profiler_set_stop_time('feedback_write_auxiliary',                  &
+     &                            start_time)
+
+1000  FORMAT('Signal',1x,i4,1x,'is a feedback signal, type: ',a)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize data to children.
+!>
+!>  Syncs data between the parent and child processes. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref feedback_class instance.
+!>  @param[in]    intra_comm A MPI intra_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE feedback_sync_children(this, intra_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (feedback_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                  :: intra_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                              :: error
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
+
+      SELECT CASE (this%type)
+
+         CASE (feedback_sxrem_ratio_type)
+            CALL sxrem_ratio_sync_children(this%ratio, intra_comm)
+
+      END SELECT
+
+      CALL profiler_set_stop_time('prior_sync_children', start_time)
+#endif
+
+      END SUBROUTINE
+
+      END MODULE
