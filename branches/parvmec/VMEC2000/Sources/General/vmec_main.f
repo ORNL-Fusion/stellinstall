@@ -23,7 +23,9 @@ C-----------------------------------------------
      5    blam, clam, dlam, icurv, vpphi, presgrad, 
      6    r01, z01, bdamp, bucof, bvcof, chi
       REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: faclam, faclam0
-
+#if defined(SKS)
+      REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: pfaclam
+#endif
       REAL(rprec), ALLOCATABLE :: xcl0(:)
 
       REAL(rprec), DIMENSION(0:mpol1d,3) :: xmpq

@@ -226,14 +226,14 @@ C-----------------------------------------------
       nmax_jog = ntyptot
 
       bsize = REAL(mblk*mblk, dp2)*3*ns*KIND(block_diag)
-!      IF (bsize .gt. HUGE(mblk)) THEN
-!        WRITE (6, *) ' bsize: ', INT(bsize, SELECTED_INT_KIND(12)), 
-!     1               ' exceeds HUGE(int): ', HUGE(mblk)
-!        WRITE (6, *) ' Blocks will be written to disk.'
-!        lswap2disk = .TRUE.
-!      ELSE
+      IF (bsize .gt. HUGE(mblk)) THEN
+        WRITE (6, *) ' bsize: ', bsize, ' exceeds HUGE(int): ', 
+     1                 HUGE(mblk)
+        WRITE (6, *) ' Blocks will be written to disk.'
+        lswap2disk = .TRUE.
+      ELSE
         lswap2disk = .FALSE.
-!      END IF
+      END IF
 
       IF (bsize .lt. 1.E6_dp2) THEN
           ibsize = bsize/1.E1_dp2
@@ -290,7 +290,7 @@ C-----------------------------------------------
       IF (lswap2disk) THEN
          WRITE (6,'(a,i4,a)') '  Allocation error(1) = ', istat,
      1               ': Not enough memory in compute_blocks'
-         WRITE (6,*) ' Writing blocks to disk file.'
+         WRITE (6,*) ' Writing blocks to disk file'
          ALLOCATE (
      1 block_diag_sw(0:ntor,0:mpol1,ntyptot,0:ntor,0:mpol1,ntyptot),
      2 block_plus_sw(0:ntor,0:mpol1,ntyptot,0:ntor,0:mpol1,ntyptot),
@@ -449,6 +449,7 @@ C-----------------------------------------------
 !     THIS WILL CALL LAMBLKS (SO FAR, ONLY IMPLEMENTED FOR lasym = false)
 !
       ictrl_prec2d = 2                 !Signals funct3d that preconditioner is being initialized
+!      STOP 'In precon2d: not parallelized yet'
       CALL funct3d (lscreen, istat)
       IF (istat .ne. 0) THEN
          PRINT *,' ier_flag = ', istat,
@@ -456,7 +457,7 @@ C-----------------------------------------------
          STOP
       ENDIF
 
-      xstore = xc                      !iotas is saved in xc(lsc00)
+      xstore = xc                      !chips is saved in xc(lsc00)
       ictrl_prec2d = 3                 !Signals funct3d that preconditioner is being computed
 
       gc_save = gc
@@ -587,7 +588,7 @@ C-----------------------------------------------
      1                     DataItem(n_2d,0,ntype_2d) = diag_val(js)
                         IF (n_2d.eq.0 .and. ntype_2d.eq.(zcc+2*ntmax))      !m=0, n=0 lambda not evolved
      1                     DataItem(0,0,ntype_2d) = 1
-                        IF (ntype_2d.eq.(zcc+2*ntmax) .and.             !SPH120808
+                        IF (ntype_2d.eq.(zcc+2*ntmax) .and.                 !SPH120808
      1                      jlam(0).ne. 1 .and. js.eq.1)        
      1                     DataItem(n_2d,0,ntype_2d) = 1
                      END IF
@@ -609,6 +610,15 @@ C-----------------------------------------------
      1                     DataItem(0,m_2d,ntype_2d) = 1
                      END IF
                   END IF
+
+!SPH121912
+                  IF (DataItem(n_2d,m_2d,ntype_2d) .eq. zero) THEN
+                     DataItem(n_2d,m_2d,ntype_2d) = diag_val(js)
+                     IF (diag_val(js) .eq. zero) STOP 'diag_val(js) = 0'
+                  END IF
+
+!                   DataItem(n_2d,m_2d,ntype_2d) = (1+1.E-4_dp)*
+!     1             DataItem(n_2d,m_2d,ntype_2d)
 
                   IF (lswap2disk) THEN
                      !CALL WriteDAItem_RA(DataItem,js,bldia,index)

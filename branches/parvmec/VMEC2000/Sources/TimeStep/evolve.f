@@ -7,6 +7,8 @@
       USE precon2d, ONLY: ictrl_prec2d, l_comp_prec2D, compute_blocks
       USE timer_sub
       USE gmres_mod
+      USE parallel_include_module
+      USE vmec_params, ONLY: ntmax
 !  Comment Out below JDH 2010-08-03
 !      USE vmec_history
       IMPLICIT NONE
@@ -27,6 +29,10 @@ C-----------------------------------------------
       LOGICAL :: lfinal_mesh
       INTEGER :: lcount
       INTEGER, SAVE :: iter_on
+#if defined(SKS)      
+      INTEGER :: i, j, k, l, lk
+      REAL(rprec) :: f3dt1, f3dt2
+#endif
 C-----------------------------------------------
 !     IF TROUBLE CONVERGING, TRY TO RECOMPUTE PRECONDITIONER ONCE MORE...
 !      IF (ictrl_prec2d.eq.1 .and. iter2.eq.(iter_on+40)) 
@@ -41,6 +47,10 @@ C-----------------------------------------------
 !   is always true. Read as "and, if lv3fit, then must also have iter2 - iter1 > 5"
 !      lfinal_mesh = (ns .eq. ns_maxval) .and. (ictrl_prec2d.eq.0)
 !     1              .and. (itype_precon.ne.0)
+
+
+!      CALL second0(skston)
+
       lfinal_mesh = (ns .eq. ns_maxval) .and. (ictrl_prec2d.eq.0)
      1              .and. (itype_precon.ne.0)
      2              .and. ((.not. l_v3fit) .or. iter2 - iter1 .ge. 5)
@@ -75,24 +85,40 @@ C-----------------------------------------------
          IF (lfirst .or. l_comp_prec2D) THEN
             IF (l_v3fit) WRITE(*,*) 'VMEC Evolve:compute_blocks'
             CALL compute_blocks (xc,xcdot,gc)
-            CALL funct3d(lscreen, ier_flag)
          ENDIF
          IF(l_v3fit) WRITE(*,*) 'VMEC Evolve:prec2d_On iter2 =', iter2
          l_comp_prec2D = .FALSE.
          ictrl_prec2d = 1
-         iter1 = iter2-1; fsq = fsqr1 + fsqz1 + fsql1
-         xc = xstore
-         IF (ANY(xstore .NE. xc)) 
-     1      STOP 'XSTORE != XC AFTER COMPUTE_BLOCKS!'
          time_step = 0.50_dp
-         xcdot = 0
+         iter1 = iter2-1; fsq = fsqr1 + fsqz1 + fsql1
+         IF(PARVMEC) THEN
+           pxstore = pxc
+           pxcdot = 0
+         ELSE
+           xstore = xc
+           xcdot = 0
+         END IF
       END IF
+
 !
 !     COMPUTE MHD FORCES
 !     MUST CALL funct3d EVEN WHEN IN 2D PRECONDITIONING MODE, SINCE
 !     INITIAL RESIDUALS MUST BE KNOWN WHEN CALLING gmres_fun, etc.
 !
-      CALL funct3d (lscreen, ier_flag)
+#if defined (SKS)      
+      CALL second0(f3dt1)
+      f3d_num(NS_RESLTN) = f3d_num(NS_RESLTN)+1
+#endif
+      IF (PARVMEC) THEN
+        CALL funct3d_par (lscreen, ier_flag)
+      ELSE
+        CALL funct3d (lscreen, ier_flag)
+      END IF
+#if defined (SKS)      
+      CALL second0(f3dt2)
+      f3d_time(NS_RESLTN) = f3d_time(NS_RESLTN) + (f3dt2-f3dt1)
+      funct3d_time = funct3d_time + (f3dt2-f3dt1)
+#endif        
 
 !
 !     COMPUTE ABSOLUTE STOPPING CRITERION
@@ -117,7 +143,7 @@ C-----------------------------------------------
       ENDIF
 
       IF (ier_flag.ne.norm_term_flag .or. .not.liter_flag) RETURN
-      
+
       IF (lqmr) THEN
          IF (irst .eq. 2) THEN
 !           TRAP IRST=2, CHANGE IN GSQRT SIGN, IF INITIAL PERT TOO LARGE
@@ -185,8 +211,31 @@ C         END IF
 !     THIS IS THE TIME-STEP ALGORITHM. IT IS ESSENTIALLY A CONJUGATE
 !     GRADIENT METHOD, WITHOUT THE LINE SEARCHES (FLETCHER-REEVES),
 !     BASED ON A METHOD GIVEN BY P. GARABEDIAN
-!
-      xcdot = fac*(b1*xcdot + time_step*gc)
-      xc    = xc + time_step*xcdot
 
+!
+
+#if defined (SKS)
+      IF(PARVMEC) THEN
+        IF (lactive) THEN 
+          lk=0
+          DO l=1, 3*ntmax
+            DO i=t2lglob, t2rglob
+              DO k=0, mpol1
+                DO j=0, ntor
+                  lk = j + (ntor+1)*k +
+     1           (ntor+1)*(mpol1+1)*(i-1)+(ntor+1)*(mpol1+1)*ns*(l-1)+1
+                  pxcdot(lk) = fac*(b1*pxcdot(lk) + time_step*pgc(lk))
+                  pxc(lk)    = pxc(lk) + time_step*pxcdot(lk)
+                END DO
+              END DO
+            END DO
+          END DO
+        END IF
+      ELSE
+#endif
+        xcdot = fac*(b1*xcdot + time_step*gc)
+        xc    = xc + time_step*xcdot
+#if defined (SKS)
+      ENDIF
+#endif
       END SUBROUTINE evolve

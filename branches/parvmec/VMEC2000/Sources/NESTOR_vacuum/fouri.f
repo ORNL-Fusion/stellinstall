@@ -1,29 +1,29 @@
-      SUBROUTINE fouri(grpmn, gsource, amatrix, amatsq, bvec, wint, 
-     1                 ndim, ns)
+#if defined(SKS)      
+      SUBROUTINE fouri_par(grpmn, gsource, amatrix, amatsq, bvec, 
+     1                     bvecNS, ndim)
       USE vacmod
+      USE parallel_include_module
       IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(in) :: ns, ndim
-      REAL(rprec), DIMENSION(mnpd,nv,nu3,ndim), INTENT(in) :: grpmn
+C-----------------------------------------------
+C   D u m m y   A r g u m e n t s
+C-----------------------------------------------
+      INTEGER, INTENT(in) :: ndim
+      REAL(rprec), DIMENSION(mnpd2,nuv3), INTENT(in) :: grpmn
       REAL(rprec), DIMENSION(nuv), INTENT(in) :: gsource
       REAL(rprec), DIMENSION(mnpd,mnpd,ndim**2), INTENT(out) :: amatrix
       REAL(rprec), DIMENSION(mnpd2,mnpd2), INTENT(out) :: amatsq
-      REAL(rprec), DIMENSION(0:mf,-nf:nf,ndim), INTENT(inout) :: bvec
-      REAL(rprec), DIMENSION(*) :: wint
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
-!     interior  (int_ext=-1), exterior  (int_ext=+1)  neumann problem
+      REAL(rprec), DIMENSION(mnpd,ndim), INTENT(inout) :: bvec, bvecNS
+C-----------------------------------------------
+C   L o c a l   P a r a m e t e r s
+C-----------------------------------------------
+C     interior  (int_ext=-1), exterior  (int_ext=+1)  neumann problem
       REAL(rprec), PARAMETER :: int_ext = 1
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER :: k, i, j, n, kvi, kui, mn, m, mn0, isym
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: bcos, bsin, source
-      REAL(rprec), ALLOCATABLE :: actemp(:,:,:,:), astemp(:,:,:,:)
-      REAL(rprec) :: cosn, sinn, cosm, sinm
+C-----------------------------------------------
+C   L o c a l   V a r i a b l e s
+C-----------------------------------------------
+      INTEGER :: i, j, k, m, mn, mn0, n
+      REAL, ALLOCATABLE, DIMENSION(:) :: source
+      REAL(rprec) :: skston, skstoff, ton, toff
 !-----------------------------------------------
 !
 !     AMATRIX(,1) = A(Sin)(Sin');  AMATRIX(,2) = A(Sin)(Cos');
@@ -39,11 +39,183 @@
 !     IN CONTRAST, THE INTEGRAL OF THE SOURCE TERM OVER THE PRIMED MESH WAS ALREADY
 !     DONE (IN SCALPOT), SO HERE THE FT ARE OVER THE UNPRIMED MESH FOR THE SOURCE. 
 !  
+      CALL second0(skston)
+
+      ALLOCATE (source(nuv3), stat=i)
+      IF (i .NE. 0) STOP 'Allocation error in fouri'
+
+!
+!     STELLARATOR-SYMMETRIZE SOURCE TERMS (with respect to u,v and -u,-v)
+!     INDEX (1) IS ANTI-SYMMETRIC, INDEX (2) IS SYMMETRIC
+!
+!     GSOURCE = - (2pi)**2 B * dS (h - hsing) * WINT
+!
+!     WINT: needed to normalize integral over angles to unity 
+!
+      IF (lasym) THEN
+         source(nuv3min:nuv3max) = onp*gsource(nuv3min:nuv3max)
+      ELSE
+         k = 0
+         DO i = 1, nu2
+            DO j = 1, nv
+               k = k + 1
+               IF (nuv3min.LE.k .AND. k.LE.nuv3max)
+     1            source(k) = p5*onp*(gsource(k) - gsource(imirr(k)))
+            END DO
+         END DO
+      END IF
+
+!
+!     INITIALIZE RUNNING-SUM ARRAYS
+!
+      bvecNS = 0
+      amatrix = 0
+    
+!
+!     PERFORM M,N TRANSFORMS
+!
+      mn = 0
+      NLOOP2: DO n = -nf, nf
+      MLOOP: DO m = 0, mf
+         mn = mn+1
+         j = 0
+         IF (m.EQ.0 .AND. n.LT.0) CYCLE
+         DO i = nuv3min, nuv3max
+            j = j+1
+            bvecNS(mn,1) = bvecNS(mn,1)
+     1                   + sinmni(j,mn)*source(i)
+ 
+            amatrix(:,mn,1) = amatrix(:,mn,1) 
+     1                      + sinmni(j,mn)*grpmn(:mnpd,i)
+
+            IF (.NOT.lasym) CYCLE
+
+            bvecNS(mn,2) = bvecNS(mn,2) 
+     1                   + cosmni(j,mn)*source(i)
+
+            amatrix(:,mn,2) = amatrix(:,mn,2) 
+     1                      + cosmni(j,mn)*grpmn(:mnpd,i)
+            amatrix(:,mn,3) = amatrix(:,mn,3) 
+     1                      + sinmni(j,mn)*grpmn(mnpd+1:,i)
+            amatrix(:,mn,4) = amatrix(:,mn,4) 
+     1                      + cosmni(j,mn)*grpmn(mnpd+1:,i)
+         END DO
+      END DO MLOOP
+      END DO NLOOP2
+
+      IF (vlactive) THEN
+        CALL second0(ton)
+        CALL MPI_Allreduce(MPI_IN_PLACE,amatrix,SIZE(amatrix),MPI_REAL8,
+     1                     MPI_SUM,VAC_COMM,MPI_ERR)
+        CALL second0(toff)
+        allreduce_time = allreduce_time + (toff - ton)
+      END IF
+!
+!     ADD (still not reduced) ANALYTIC AND NON-SINGULAR PARTS 
+!
+      bvec = bvec + bvecNS
+
+      DEALLOCATE (source, stat=i)
+
+      mn0 = 1+mf1*nf                                            !Index of m,n=(0,0)
+!      bvec(1:mn0-mf1:mf1,:) = 0                                 !Zero m=0,n<0
+
+!
+!     ZERO AMATRIX(0,n,m',n') M = 0 MODES FOR n < 0             
+!
+!      amatrix(1:mn0-mf1:mf1,:,1:ndim*ndim) = 0                 !Moved to fourp SPH08215
+!SANITY CHECKS
+!      IF (ANY(bvec(1:mn0-mf1:mf1,:) .NE. 0._dp)) STOP 'BVEC != 0'
+!      IF (ANY(amatrix(:,1:mn0-mf1:mf1,:) .ne. 0._dp)) STOP 'AMAT1 != 0'
+!      IF (ANY(amatrix(1:mn0-mf1:mf1,:,:) .ne. 0._dp)) STOP 'AMAT2 != 0'
+
+!
+!     ADD DIAGONAL TERMS TO AMATRIX [THE FIRST TERM IN EQ(3.2) OF PKM]
+!
+      DO mn = 1, mnpd
+         amatrix(mn,mn,1) = amatrix(mn,mn,1) + pi3*int_ext
+      END DO
+
+      IF (lasym) THEN
+         DO mn = 1, mnpd
+            amatrix(mn,mn,4) = amatrix(mn,mn,4) + pi3*int_ext
+         END DO
+         amatrix(mn0,mn0,4) = amatrix(mn0,mn0,4) + pi3*int_ext     !!COS(0-0) mode *2
+      END IF
+
+!
+!     PUT ELEMENTS INTO SQUARE MATRIX
+!
+      amatsq(:mnpd,:mnpd) = amatrix(:,:,1)                      !Sin-Sin'
+
+      IF (.NOT.lasym) RETURN
+
+      amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)               !Sin-Cos'
+      amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)               !Cos-Sin'
+      amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)        !Cos-Cos'
+
+      CALL second0(skstoff)
+      fouri_time = fouri_time + (skstoff - skston)
+
+      END SUBROUTINE fouri_par
+#endif
+
+      SUBROUTINE fouri(grpmn, gsource, amatrix, amatsq, bvec,
+     1                  wint, ndim, ns)
+      USE vacmod
+#if defined(SKS)
+      USE parallel_include_module
+#endif
+      IMPLICIT NONE
+C-----------------------------------------------
+C   D u m m y   A r g u m e n t s
+C-----------------------------------------------
+      INTEGER, INTENT(in) :: ns, ndim
+      REAL(rprec), DIMENSION(mnpd,nv,nu3,ndim), INTENT(in) :: grpmn
+      REAL(rprec), DIMENSION(nuv), INTENT(in) :: gsource
+      REAL(rprec), DIMENSION(mnpd,mnpd,ndim**2), INTENT(out) :: amatrix
+      REAL(rprec), DIMENSION(mnpd2,mnpd2), INTENT(out) :: amatsq
+      REAL(rprec), DIMENSION(0:mf,-nf:nf,ndim), INTENT(inout) :: bvec
+      REAL(rprec), DIMENSION(nuv3) :: wint
+C-----------------------------------------------
+C   L o c a l   P a r a m e t e r s
+C-----------------------------------------------
+C     interior  (int_ext=-1), exterior  (int_ext=+1)  neumann problem
+      REAL(rprec), PARAMETER :: int_ext = 1
+C-----------------------------------------------
+C   L o c a l   V a r i a b l e s
+C-----------------------------------------------
+      INTEGER :: k, i, j, n, kvi, kui, mn, m, mn0, isym, l, q
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: bcos, bsin, source
+      REAL(rprec), ALLOCATABLE :: actemp(:,:,:,:), astemp(:,:,:,:)
+      REAL(rprec) :: cosn, sinn, cosm, sinm
+#if defined(SKS)
+      REAL(rprec) :: skston, skstoff
+#endif
+C-----------------------------------------------
+!
+!     AMATRIX(,1) = A(Sin)(Sin');  AMATRIX(,2) = A(Sin)(Cos');
+!     AMATRIX(,3) = A(Cos)(Sin');  AMATRIX(,4) = A(Cos)(Cos')
+!
+!     ARG OF TRIG FUNCTIONS: m'u' - n'v' CORRESPONDING TO THE PRIMED MESH IN
+!     PKM EQ.(2.14), AND mu  - nv (UNPRIMED MESH) IN EQ. (2.16)
+!
+!     ON ENTRY, GRPMN(MN,...) HAS BEEN FOURIER-TRANSFORMED OVER THE UNPRIMED
+!     COORDINATES (IN FOURP), SO THE FIRST INDEX OF GRPMN CORRESPONDS TO THE FIRST 
+!     INDEX OF AMATRIX. THUS, THE FOURIER TRANSFORMS OF GRPMN HERE ARE OVER THE PRIMED MESH.
+!
+!     IN CONTRAST, THE INTEGRAL OF THE SOURCE TERM OVER THE PRIMED MESH WAS ALREADY
+!     DONE (IN SCALPOT), SO HERE THE FT ARE OVER THE UNPRIMED MESH FOR THE SOURCE. 
+!  
+
+#if defined(SKS)
+      CALL second0(skston)
+#endif
+
       ALLOCATE (bcos(nu2,-nf:nf,ndim), bsin(nu2,-nf:nf,ndim),
      1   actemp(mnpd,-nf:nf,nu3,ndim), astemp(mnpd,-nf:nf,nu3,ndim),
      2   source(nv,nu2,ndim), stat = i)
       IF (i .ne. 0) STOP 'allocation error in fouri'
-
 
 !
 !     SYMMETRIZE SOURCE TERMS (with respect to u,v and -u,-v)
@@ -54,20 +226,15 @@
 !     WINT: needed to normalize integral over angles to unity 
 !
       k = 0
-      mn0 = 1 + mf1*nf                                             !!Index of m=0,n=0         
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED)
-!$OMP DO SCHEDULE(STATIC) PRIVATE(i,j,k)
       DO i = 1, nu2
          DO j = 1, nv
-            k = j+nv*(i-1)
+            k = k + 1
             source(j,i,1) = gsource(k) - gsource(imirr(k))      !anti-symmetric part
             IF (lasym)
      1      source(j,i,2) = gsource(k) + gsource(imirr(k))      !symmetric part
          END DO
       END DO
-!$OMP END DO
 
-!$OMP WORKSHARE
       source = p5*onp*source
 
 !
@@ -76,12 +243,10 @@
       bcos = 0;      bsin = 0
       actemp = 0;    astemp = 0
       amatrix = 0
-!$OMP END WORKSHARE
 
 !
 !     PERFORM KV (TOROIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(n,kvi,cosn,sinn)
       DO n = 0, nf
          DO kvi = 1, nv
             cosn = cosv(n,kvi)
@@ -93,21 +258,21 @@
      1                            + cosn*grpmn(:,kvi,:,isym)
                astemp(:,n,:,isym) = astemp(:,n,:,isym) 
      1                            + sinn*grpmn(:,kvi,:,isym)
-               IF (n .NE. 0) THEN
+
+               IF (n .ne. 0) THEN
                   bcos(:,(-n),isym) =  bcos(:,n,isym)
                   bsin(:,(-n),isym) = -bsin(:,n,isym)
                   actemp(:,(-n),:,isym) =  actemp(:,n,:,isym)
                   astemp(:,(-n),:,isym) = -astemp(:,n,:,isym)
                ENDIF
+
             END DO
          END DO
       END DO
-!$OMP END DO
 
 !
 !     PERFORM KU (POLOIDAL ANGLE) TRANSFORM
 !
-!$OMP DO SCHEDULE(STATIC) PRIVATE(m,kui,cosm,sinm)
       DO m = 0, mf
          DO kui = 1, nu2
             cosm = cosui(m,kui)
@@ -119,16 +284,19 @@
      1         bcos(kui,-nf:nf,2)*cosm + bsin(kui,-nf:nf,2)*sinm
             END IF
          END DO
+
 !
 !     RECALL, LAST INDEX OF AS,CTEMP
 !                        = 1 CORRESPONDS TO SIN (UNPRIMED) TRANSFORM (FIRST INDEX OF AMATRIX)
 !                        = 2 CORRESPONDS TO COS (UNPRIMED) TRANSFORM
-          DO kui = 1, nu3
-            cosm = cosu(m,kui)*wint(kui*ns*nv)
-            sinm = sinu(m,kui)*wint(kui*ns*nv)
+         DO kui = 1, nu3
+            cosm = cosu(m,kui)*wint(kui*nv)
+            sinm = sinu(m,kui)*wint(kui*nv)
+
             amatrix(:,m+1:mnpd:mf1,1) = amatrix(:,m+1:mnpd:mf1,1) +
      1         sinm*actemp(:,-nf:nf,kui,1) - cosm*astemp(:,-nf:nf,kui,1)       !SIN SIN'
-            IF (.NOT.lasym) CYCLE
+
+            IF (.not.lasym) CYCLE
             amatrix(:,m+1:mnpd:mf1,2) = amatrix(:,m+1:mnpd:mf1,2) +
      1         cosm*actemp(:,-nf:nf,kui,1) + sinm*astemp(:,-nf:nf,kui,1)       !SIN COS'
             amatrix(:,m+1:mnpd:mf1,3) = amatrix(:,m+1:mnpd:mf1,3) +
@@ -137,52 +305,50 @@
      1         cosm*actemp(:,-nf:nf,kui,2) + sinm*astemp(:,-nf:nf,kui,2)       !COS COS'
          END DO
       END DO
-!$OMP END DO
 
-!$OMP WORKSHARE
-      amatrix(:,:,:) = (pi2*pi2)*amatrix(:,:,:)
+      DEALLOCATE (bcos, bsin, actemp, astemp, source, stat=i)
+
+      amatrix = (pi2*pi2)*amatrix
 !
 !     ZERO BVEC(0,n) FOR n < 0
 !
-      bvec(0,-nf:-1,1:ndim) = 0
+!      bvec(0,:0,1:ndim) = 0
+      bvec(0,:-1,1:ndim) = 0
 
 !
 !     ZERO AMATRIX(0,n,m',n') M = 0 MODES FOR n < 0 
 !
-      amatrix(1:mn0-mf1:mf1,:,1:ndim*ndim) = 0 !SPH082415: mn0-mf1: (m=0,n=-1 index)
-
-!$OMP END WORKSHARE
+      mn0 = 1 + mf1*nf                                             !Index of m=0,n=0         
+      amatrix(1:mn0-1:mf1,:,1:ndim*ndim) = 0
 !
 !     ADD DIAGONAL TERMS TO AMATRIX [THE FIRST TERM IN EQ(3.2) OF PKM]
 !
-!$OMP DO PRIVATE(mn)
       DO mn = 1, mnpd
          amatrix(mn,mn,1) = amatrix(mn,mn,1) + pi3*int_ext
-         IF (lasym) THEN
-            amatrix(mn,mn,4) = amatrix(mn,mn,4) + pi3*int_ext
-         END IF
       END DO
-!$OMP END DO
-!$OMP SINGLE
+
       IF (lasym) THEN
+         DO mn = 1, mnpd
+            amatrix(mn,mn,4) = amatrix(mn,mn,4) + pi3*int_ext
+         END DO
          amatrix(mn0,mn0,4) = amatrix(mn0,mn0,4) + pi3*int_ext     !!COS(0-0) mode *2
       END IF
-!$OMP END SINGLE
+
 !
 !     PUT ELEMENTS INTO SQUARE MATRIX
 !
-!$OMP WORKSHARE
-      amatsq(:mnpd,:mnpd) = amatrix(:mnpd,:mnpd,1)                      !Sin-Sin'
-!$OMP END WORKSHARE
-      IF (lasym) THEN
-!$OMP WORKSHARE
-         amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)            !Sin-Cos'
-         amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)            !Cos-Sin'
-         amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)     !Cos-Cos'
-!$OMP END WORKSHARE
-      END IF
-!$OMP END PARALLEL
+      amatsq(:mnpd,:mnpd) = amatrix(:,:,1)                      !Sin-Sin'
 
-      DEALLOCATE (bcos, bsin, actemp, astemp, source, stat=i)
+      IF (.not.lasym) RETURN
+
+      amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)               !Sin-Cos'
+      amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)               !Cos-Sin'
+      amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)        !Cos-Cos'
+
+#if defined(SKS)
+      CALL second0(skstoff)
+      s_fouri_time = s_fouri_time + (skstoff - skston)
+#endif
 
       END SUBROUTINE fouri
+   

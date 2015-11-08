@@ -8,5 +8,10 @@ C-----------------------------------------------
      1    gc, xcdot, xsave, xstore, scalxc
       REAL(rprec), DIMENSION(:), ALLOCATABLE, TARGET ::
      1    xc
+
+      REAL(rprec), DIMENSION(:), ALLOCATABLE ::
+     1   pgc, pxcdot, pxsave, pxstore, pscalxc
+      REAL(rprec), DIMENSION(:), ALLOCATABLE, TARGET ::
+     1    pxc
 C-----------------------------------------------
       END MODULE xstuff

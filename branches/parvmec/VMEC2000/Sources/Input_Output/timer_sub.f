@@ -1,5 +1,8 @@
       MODULE timer_sub
       USE stel_kinds, ONLY: rprec
+#if defined(SKS)
+      USE parallel_include_module
+#endif      
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
@@ -8,6 +11,12 @@ C-----------------------------------------------
      1                      teqf = 4, tfun = 5, trecon= 6, tfft = 7,
      2                      tffi = 8, tfor = 9, tbcov =10, tres = 11,
      3                      tprec2d = 12
+
+!SPH CHANGE
+      INTEGER, PARAMETER :: tsurf=1, tscal=2, tbext=3, tsolver=4,
+     1                      tallg=5, tfouri=6, tgreenf=7, tfourp=8,
+     2                      tallr=9, tanal=10, tasum=11, tasum2=12, 
+     3                      tallgv=13, tanar=14, tbcast_vac=15
                             
       REAL(rprec) :: tvacon, tvacoff, tfunon, tfunoff,
      1               twouton, twoutoff, teqfon, teqfoff,
@@ -17,6 +26,8 @@ C-----------------------------------------------
      5               treson, tresoff, tprec2don, tprec2doff,
      6               timer_tsum, timer_tfun
       REAL(rprec), DIMENSION(0:12) :: timer
+!SPH CHANGE
+      REAL(rprec), DIMENSION(15) :: timer_vac=0
 
       CONTAINS
       
@@ -85,9 +96,33 @@ C-----------------------------------------------
          END IF
          IF (lprec2d)  WRITE (nform, 20) form(tprec2d), timer(tprec2d)
          WRITE (nform, 20) form(tfun), timer_tfun
+!SPH CHANGE
+         IF (lfreeb) THEN
+            WRITE (nform, 24)
+     1      timer_vac(tbcast_vac), timer_vac(tsurf), timer_vac(tbext), 
+     2      timer_vac(tscal), timer_vac(tanal), timer_vac(tasum), 
+     3      timer_vac(tasum2), timer_vac(tanar), timer_vac(tgreenf), 
+     4      timer_vac(tfourp), timer_vac(tallr), timer_vac(tallg),
+     5      timer_vac(tfouri), timer_vac(tallgv),timer_vac(tsolver)
+         ENDIF
       END DO
 
    20 FORMAT(a35,f12.2,' SECONDS')
+   24 FORMAT(/,4x, 'FUNCT3D BCAST     ',f12.2,
+     1       /,4x, 'VACUUM SURFACE    ',f12.2,
+     1       /,4x, 'VACUUM BEXTERN    ',f12.2,
+     2       /,4x, 'VACUUM SCALPOT    ',f12.2,
+     3       /,4x, '   ANALYT         ',f12.2,
+     3       /,4x, '      ASUM        ',f12.2,
+     3       /,4x, '      ASUM2       ',f12.2,
+     3       /,4x, '      ALLREDUCE   ',f12.2,
+     3       /,4x, '   GREENF         ',f12.2,
+     3       /,4x, '   FOURP          ',f12.2,
+     3       /,4x, '   ALLREDUCE      ',f12.2,
+     3       /,4x, '   ALLGATHER      ',f12.2,
+     3       /,4x, '   FOURI          ',f12.2,
+     3       /,4x, 'VACUUM ALLGATHER  ',f12.2,
+     4       /,4x, 'VACUUM SOLVER     ',f12.2)
 
       END SUBROUTINE write_times
     

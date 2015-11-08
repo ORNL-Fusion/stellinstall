@@ -5,6 +5,7 @@ list (APPEND vmec_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/angle_constraints.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/aspectratio.f
 	${CMAKE_CURRENT_SOURCE_DIR}/bcovar.f
+	${CMAKE_CURRENT_SOURCE_DIR}/blocktridiagonalsolver_bst.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/convert.f
 	${CMAKE_CURRENT_SOURCE_DIR}/csplinx.f
 	${CMAKE_CURRENT_SOURCE_DIR}/directaccess.f90
