@@ -130,13 +130,13 @@ C-----------------------------------------------
 
 #if defined(SKS)
       CALL second0(skston)
-#endif
       IF (PARVMEC) THEN
         CALL profil1d_par (pxc, pxcdot)
       ELSE
-        CALL profil1d (xc, xcdot)
-      END IF
+#endif
+        CALL profil1d (xc, xcdot, lreset_internal)
 #if defined(SKS)
+      END IF
       CALL second0(skstoff)
       profile1d_time = profile1d_time + (skstoff - skston)
 #endif
