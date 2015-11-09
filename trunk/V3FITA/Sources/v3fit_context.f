@@ -305,7 +305,7 @@
 
 !  local variables
       INTEGER                                      :: i
-      INTEGER                                      :: minsize = 0
+      INTEGER                                      :: minsize
       TYPE (signal_pointer), DIMENSION(:), POINTER :: temp_signal
       REAL (rprec)                                 :: start_time
 
@@ -317,6 +317,7 @@
 
 !  Search an array for the first instance of a null pointer.
       IF (ASSOCIATED(this%signals)) THEN
+         minsize = SIZE(this%signals)
          DO i = 1, SIZE(this%signals)
             IF (.not.ASSOCIATED(this%signals(i)%p)) THEN
                minsize = i - 1
