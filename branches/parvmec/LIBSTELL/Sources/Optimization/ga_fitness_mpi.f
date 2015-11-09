@@ -1,11 +1,8 @@
       SUBROUTINE ga_fitness_mpi (np, fvec, nopt, fcn, nfev, funcval)
       USE ga_mod
       USE mpi_params, ONLY: master, myid
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
-      REAL(rprec), DIMENSION(nparam) :: x
-#endif
 
       INTEGER :: np, nopt, nfev
       REAL(rprec), DIMENSION(nopt) :: fvec
@@ -19,7 +16,7 @@
       INTEGER :: numprocs, i                           !mpi stuff
       INTEGER :: numsent, sender, ierr                       !mpi stuff
       INTEGER :: anstype, column                             !mpi stuff
-
+      REAL(rprec), DIMENSION(nparam) :: x
 !******************************************
 !
 !  mpi setup calls; set barrier so ALL processors get here before starting

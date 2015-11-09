@@ -102,18 +102,20 @@ C-----------------------------------------------
           bcastbuf(1:nznt) = dbsq
           bcastbuf(nznt+1:2*nznt) = bsqsav(:,3)
           bcastbuf(2*nznt+1:3*nznt) = rbsq    !NEED THIS WHEN INTERPOLATING MESHES
+          bcastbuf(3*nznt+1) = fedge
+
           CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,
      1                   nranks-1,NS_COMM,MPI_ERR)
 
           dbsq = bcastbuf(1:nznt)
           bsqsav(:,3) = bcastbuf(nznt+1:2*nznt)
           rbsq = bcastbuf(2*nznt+1:3*nznt)
+          fedge = bcastbuf(3*nznt+1)
+          DEALLOCATE(bcastbuf)
 
-!SPH CHANGE: Moved from residue
           CALL MPI_Bcast(fedge,1,MPI_REAL8,nranks-1,NS_COMM,MPI_ERR)
           CALL second0(skstoff)
           broadcast_time = broadcast_time + (skstoff - skston)
-          DEALLOCATE(bcastbuf)
 
           den = SUM(bsqsav(:nznt,3)*pwint(:,2))
           IF (den .ne. zero) delbsq =

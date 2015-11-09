@@ -334,7 +334,7 @@ C-----------------------------------------------
 
            DO l = 1, nznt
              bsqsav(l,3) = 1.5_dp*pbzmn_o(l,ns) -
-     1                       0.5_dp*pbzmn_o(l,ns-1)
+     1                     0.5_dp*pbzmn_o(l,ns-1)
              pgcon(l,ns) = bsqvac(l) + presf_ns
              rbsq(l) = pgcon(l,ns)*(pr1(l,ns,0) + pr1(l,ns,1))*ohs
              dbsq(l) = ABS(pgcon(l,ns)-bsqsav(l,3))  
@@ -343,6 +343,11 @@ C-----------------------------------------------
            IF (ivac .EQ. 1) THEN
              bsqsav(:nznt,1) = pbzmn_o(:,ns)
              bsqsav(:nznt,2) = bsqvac(:nznt)
+             CALL MPI_Bcast(bsqsav(:,1),nznt,MPI_REAL8,
+     1                      nranks-1,NS_COMM,MPI_ERR)
+           ELSE
+             CALL MPI_Bcast(bsqsav(:,1),nznt,MPI_REAL8,
+     1                      0,NS_COMM,MPI_ERR)
            ENDIF
 
            CALL second0 (tvacoff)

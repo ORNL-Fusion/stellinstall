@@ -1,9 +1,7 @@
       SUBROUTINE second0(stime)
       USE stel_kinds
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'
-#endif
 
 !----------------------------------------------
 !   D u m m y   A r g u m e n t s

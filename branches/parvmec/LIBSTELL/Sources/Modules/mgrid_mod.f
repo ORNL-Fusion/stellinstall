@@ -1,4 +1,3 @@
-#undef MPI_OPT
       MODULE mgrid_mod
       USE v3_utilities
       USE stel_kinds
@@ -547,9 +546,7 @@ C-----------------------------------------------
      1                          ier_flag, lscreen)
       USE ezcdf
       USE mpi_inc
-
       IMPLICIT NONE
-
 C-----------------------------------------------
 C   D u m m y  A r g u m e n t s
 C-----------------------------------------------
@@ -566,14 +563,17 @@ C-----------------------------------------------
       LOGICAL :: lscreen
       INTEGER, DIMENSION(3)   :: dimlens
       CHARACTER(LEN=100) :: temp
-
 #if defined(MPI_OPT)
-      INTEGER :: mpi_rank, mpi_size
-
-      CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, istat)
-      CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, istat)
+      INTEGER :: mpi_rank, mpi_size, lMPIInit, MPI_ERR
+      
+      CALL MPI_INITIALIZED(lMPIInit, MPI_ERR)
+      IF (lMPIInit.NE.0) THEN
+         CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, istat)
+         CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, istat)
+      ELSE
+         mpi_rank = 0; mpi_size = 1
+      END IF
 #endif
-
 C-----------------------------------------------
       call cdf_open(ngrid, filename,'r', istat)
       IF (istat .ne. 0) THEN
@@ -671,9 +671,11 @@ C-----------------------------------------------
       END DO
 
 #if defined(MPI_OPT)
-      CALL MPI_ALLREDUCE(MPI_IN_PLACE, bvac, SIZE(bvac), MPI_REAL8,            &
-     &                   MPI_SUM, MPI_COMM_WORLD, istat)
-      CALL assert_eq(istat, 0, 'MPI_ALLREDUCE failed in read_mgrid_nc')
+      IF (lMPIInit.NE.0) THEN
+         CALL MPI_ALLREDUCE(MPI_IN_PLACE, bvac, SIZE(bvac), MPI_REAL8,  &
+     &                      MPI_SUM, MPI_COMM_WORLD, istat)
+         CALL assert_eq(istat,0,'MPI_ALLREDUCE failed in read_mgrid_nc')
+      END IF
 #endif
 
 !

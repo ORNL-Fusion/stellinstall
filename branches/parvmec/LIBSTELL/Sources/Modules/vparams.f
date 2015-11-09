@@ -12,7 +12,7 @@
       INTEGER, PARAMETER :: nsd = 1001     !maximum number of radial nodes
       INTEGER, PARAMETER :: mpold = 101    !maximum number of poloidal harmonics (in r,z,lam fourier series)
       INTEGER, PARAMETER :: ntord = 101    !maximum number of toroidal harmonics
-      INTEGER, PARAMETER :: ndatafmax  = 101
+      INTEGER, PARAMETER :: ndatafmax  = nsd
       INTEGER, PARAMETER :: nstore_seq = 100
 
 !

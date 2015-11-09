@@ -19,7 +19,8 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: iexit, ipoint, n, iunit, ier_flag_init,
-     1   i, ni, m, nsmin, igrid, mj, isgn, ioff, joff
+     1   i, ni, m, nsmin, igrid, mj, isgn, ioff, joff,
+     2   NonZeroLen    
       REAL(rprec), DIMENSION(:,:), POINTER ::
      1  rbcc, rbss, rbcs, rbsc, zbcs, zbsc, zbcc, zbss
       REAL(rprec) :: rtest, ztest, tzc, trc, delta
@@ -432,11 +433,14 @@ C-----------------------------------------------
          SELECT CASE(TRIM(pmass_type))
          CASE ('Akima_spline','cubic_spline')
             WRITE(nthreed,"(' am_aux_s is' )")
-            WRITE(nthreed,135)(am_aux_s(i),i=1, SIZE(am_aux_s))
+            n = NonZeroLen(am_aux_s,SIZE(am_aux_s))
+            WRITE(nthreed,135)(am_aux_s(i),i=1, n)
+            n = NonZeroLen(am_aux_f,SIZE(am_aux_f))
             WRITE(nthreed,"(' am_aux_f is' )")
-            WRITE(nthreed,135)(am_aux_f(i),i=1, SIZE(am_aux_f))
+            WRITE(nthreed,135)(am_aux_f(i),i=1, n)
           CASE DEFAULT
-            WRITE(nthreed,135)(am(i-1),i=1,SIZE(am))
+            n = NonZeroLen(am,SIZE(am))
+            WRITE(nthreed,135)(am(i-1),i=1,n)
           END SELECT
 
       IF (ncurr.eq.0) THEN
@@ -450,11 +454,14 @@ C-----------------------------------------------
           WRITE(nthreed,143) TRIM(piota_type)
           SELECT CASE(TRIM(piota_type))
           CASE ('Akima_spline','cubic_spline')
+             n = NonZeroLen(ai_aux_s,SIZE(ai_aux_s))
              WRITE(nthreed,"(' ai_aux_s is' )")
-             WRITE(nthreed,135)(ai_aux_s(i),i=1, SIZE(ai_aux_s))
+             WRITE(nthreed,135)(ai_aux_s(i),i=1, n)
+             n = NonZeroLen(ai_aux_f,SIZE(ai_aux_f))
              WRITE(nthreed,"(' ai_aux_f is' )")
-             WRITE(nthreed,135)(ai_aux_f(i),i=1, SIZE(ai_aux_f))
+             WRITE(nthreed,135)(ai_aux_f(i),i=1, n)
            CASE DEFAULT
+             n = NonZeroLen(ai,SIZE(ai))
              WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
            END SELECT
       ELSE
@@ -466,11 +473,14 @@ C-----------------------------------------------
           SELECT CASE(TRIM(pcurr_type))
           CASE ('Akima_spline_Ip','Akima_spline_I',                            &
      &           'cubic_spline_Ip','cubic_spline_I')
+             n = NonZeroLen(ac_aux_s,SIZE(ac_aux_s))
              WRITE(nthreed,"(' ac_aux_s is' )")
              WRITE(nthreed,135)(ac_aux_s(i),i=1, SIZE(ac_aux_s))
+             n = NonZeroLen(ac_aux_f,SIZE(ac_aux_f))
              WRITE(nthreed,"(' ac_aux_f is' )")
              WRITE(nthreed,135)(ac_aux_f(i),i=1, SIZE(ac_aux_f))
            CASE DEFAULT
+             n = NonZeroLen(ac,SIZE(ac))
              WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
            END SELECT
          END IF
@@ -486,15 +496,18 @@ C-----------------------------------------------
  147  FORMAT(1x,38('-'))
 
          WRITE(nthreed,150)
-         WRITE(nthreed,135)(aphi(i),i=1, SIZE(aphi))
+         n = NonZeroLen(aphi,SIZE(aphi))
+         WRITE(nthreed,135)(aphi(i),i=1,n)
  150  FORMAT(/' NORMALIZED TOROIDAL FLUX COEFFICIENTS aphi',
      1   ' (EXPANSION IN S):',/,1x,35('-'))
 #ifdef _ANIMEC
          IF (ANY(ah .ne. zero)) THEN
             WRITE(nthreed,160)
-            WRITE(nthreed,135)(ah(i-1),i=1, SIZE(ah))
+            n = NonZeroLen(ah,SIZE(ah))
+            WRITE(nthreed,135)(ah(i-1),i=1, n)
             WRITE(nthreed,165)
-            WRITE(nthreed,135)(at(i-1),i=1, SIZE(at))
+            n = NonZeroLen(at,SIZE(at))
+            WRITE(nthreed,135)(at(i-1),i=1, n)
          END IF
 
  160  FORMAT(' HOT PARTICLE PRESSURE COEFFICIENTS ah',
@@ -712,3 +725,18 @@ C-----------------------------------------------
       timer(tread) = timer(tread) + (treadoff-treadon)
 
       END SUBROUTINE readin
+
+      INTEGER FUNCTION NonZeroLen(array, n)
+      USE vmec_main, ONLY: rprec, zero
+      IMPLICIT NONE
+      INTEGER, INTENT(IN)      :: n
+      REAL(rprec), INTENT(IN)  :: array(n)
+      INTEGER :: k
+
+      DO k=n,1,-1
+         IF (array(k) .NE. zero) EXIT
+      END DO
+
+      NonZeroLen = k
+
+      END FUNCTION NonZeroLen

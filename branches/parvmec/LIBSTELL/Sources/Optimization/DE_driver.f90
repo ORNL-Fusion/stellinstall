@@ -7,11 +7,10 @@
       USE system_mod
       USE mpi_params, ONLY: master, myid
       USE safe_open_mod
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
+
       INTEGER :: ierr
-#endif
       INTEGER, PARAMETER :: iflag_cleanup = -100
       INTEGER :: n_opt, n_var, info, lwa, num_iter_opt, max_processors
       REAL(rprec), DIMENSION(n_opt), TARGET :: fvec
