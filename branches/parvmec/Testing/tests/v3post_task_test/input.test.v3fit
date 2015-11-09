@@ -2,6 +2,7 @@
 my_task = 'v3post',
 vmec_nli_filename = 'input.test.vmec',
 
+na_s_desc = 32,
 sxrch_dot_filename = 'sxrem.dot',
 ipch_dot_filename = 'intpol.dot',
 thscte_dot_filename = 'thomson.dot',
