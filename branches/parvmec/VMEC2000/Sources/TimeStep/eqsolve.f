@@ -10,10 +10,8 @@
       USE xstuff
 ! Add below JDH 2010-08-03
       USE vmec_history
-#if defined (SKS)
       USE parallel_include_module
       USE vacmod, ONLY: nuv, nuv3
-#endif
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -29,8 +27,8 @@
 !-----------------------------------------------
       REAL(rprec) :: w1, r00s, w0, wdota, r0dot
       LOGICAL :: liter_flag, lreset_internal
-#if defined (SKS)
       INTEGER :: i, j, k, l, lk
+#if defined (SKS)
       REAL(rprec) :: skston, skstoff
 #endif
 C-----------------------------------------------
@@ -72,7 +70,6 @@ C-----------------------------------------------
 !     FROM INITIAL PROFILE, BUT WITH A SMALLER TIME-STEP
 !
       IF (irst .EQ. 2) THEN
-#if defined (SKS)
         IF (PARVMEC) THEN
           DO l=1, 3*ntmax
             DO i=t1lglob, t1rglob
@@ -88,12 +85,9 @@ C-----------------------------------------------
           CALL profil3d_par(pxc(1),pxc(1+irzloff),lreset_internal,
      1                       .FALSE.)
         ELSE
-#endif
           xc = 0
           CALL profil3d(xc(1),xc(1+irzloff),lreset_internal,.FALSE.)
-#if defined (SKS)
         END IF
-#endif
         irst = 1
         IF (liter_flag) CALL restart_iter(delt0r)
       END IF
@@ -199,10 +193,8 @@ C-----------------------------------------------
             iter1 = iter2
           ELSE
 !       Increment time step and printout every nstep iterations
-            IF (MOD(iter2,nstep).eq.0 .or. iter2.eq.1 .or.                     &
-     &          .not.liter_flag) THEN
-               CALL printout(iter2, delt0r, w0, lscreen)
-            END IF
+            IF (MOD(iter2,nstep).eq.0 .or. iter2.eq.1 .or.
+     1        .not.liter_flag) CALL printout(iter2, delt0r, w0, lscreen)
             iter2 = iter2 + 1
             iterc = iterc + 1
 ! JDH 2012-06-20 ^^^ iterc is a cumulative iteration counter. Used in V3FIT.
@@ -221,14 +213,12 @@ C-----------------------------------------------
          r00s = r00
          w1 = w0
          IF (ivac .eq. 1) THEN
-#if defined (SKS)
             IF (grank .EQ. 0) THEN
-#endif
               IF (lscreen) PRINT 110, iter2
-              WRITE (nthreed, 110) iter2
 #if defined (SKS)
-            END IF
+              WRITE (nthreed, 110) iter2
 #endif
+            END IF
             ivac = ivac + 1
          ENDIF
 !
@@ -260,18 +250,8 @@ C-----------------------------------------------
 
       IF (lSwap2Disk) CALL DeleteDAFile(ScratchFile)
 
-#if defined (SKS)
-      IF(grank.EQ.0) THEN
-#endif
-         WRITE (nthreed, 60) w0*twopi**2, wdota, r0dot
-#if defined (SKS)
-      END IF
-      IF (lrecon.AND.grank.EQ.0) THEN
-#endif
-         WRITE (nthreed, 70) r00*fsqsum0/wb
-#if defined (SKS)
-      END IF
-#endif
+      IF(grank.EQ.0) WRITE (nthreed, 60) w0*twopi**2, wdota, r0dot
+      IF (lrecon.AND.grank.EQ.0) WRITE (nthreed, 70) r00*fsqsum0/wb
 
    60 FORMAT(/,' MHD Energy = ',1p,e12.6,3x, 'd(ln W)/dt = ',1p,e9.3,
      1         3x,'d(ln R0)/dt = ',e9.3)

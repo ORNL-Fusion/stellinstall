@@ -18,7 +18,8 @@ C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
       CHARACTER(LEN=100), PARAMETER ::
 #if defined(SKS)
-     1   banner = ' THIS IS A  PRE-RELEASE VERSION OF PARVMEC, VERSION ' 
+     1   banner = 
+     2   ' THIS IS A PARVMEC, A PARALLEL VERSION OF VMEC, VERSION ' 
 #else
      1   banner = ' THIS IS VMEC2000, A 3D EQUILIBRIUM CODE, VERSION '
 #endif

@@ -24,9 +24,7 @@ C-----------------------------------------------
       INTEGER :: neqs2_old=0
       LOGICAL :: lreset_internal, linterp
       INTEGER :: nsmin, nsmax, i, j, k, l, lk
-#if defined(SKS)
       REAL(rprec) :: skston, skstoff
-#endif
 C-----------------------------------------------
 !
 !     Allocates memory for radial arrays and initializes radial profiles
@@ -47,7 +45,6 @@ C-----------------------------------------------
       ijacob = 0
       irst = 1
       res0 = -1
-
 !
 !       INITIALIZE MESH-DEPENDENT SCALARS
 !
@@ -91,9 +88,7 @@ C-----------------------------------------------
       lreset_internal = .true.
       linterp = (ns_old.lt.ns .and. ns_old.ne.0)
       IF (ns_old .eq. ns) RETURN
-#if defined(SKS)
       CALL second0(skston)
-#endif
       CALL allocate_ns(linterp, neqs2_old)
 #if defined(SKS)
       CALL second0(skstoff)
@@ -108,7 +103,6 @@ C-----------------------------------------------
          CALL getrz(xstore)
          ns = ns1+1
 #endif
-#if defined(SKS)
          IF(PARVMEC) THEN
 #if defined(MPI_OPT)
            pgc(1:neqs2_old)=pscalxc(1:neqs2_old)*pxstore(1:neqs2_old)
@@ -117,26 +111,21 @@ C-----------------------------------------------
      2                       0,NS_COMM,MPI_ERR)
 #endif
          ELSE
-#endif
            gc(1:neqs2_old)=scalxc(1:neqs2_old)*xstore(1:neqs2_old)
-#if defined(SKS)
          END IF
-#endif
       END IF
 
 !
 !     COMPUTE INITIAL R, Z AND MAGNETIC FLUX PROFILES
 !
 
-#if defined(SKS)
       CALL second0(skston)
       IF (PARVMEC) THEN
-        CALL profil1d_par (pxc, pxcdot)
+        CALL profil1d_par (pxc, pxcdot, lreset_internal)
       ELSE
-#endif
         CALL profil1d (xc, xcdot, lreset_internal)
-#if defined(SKS)
       END IF
+#if defined(SKS)
       CALL second0(skstoff)
       profile1d_time = profile1d_time + (skstoff - skston)
 #endif
@@ -147,15 +136,13 @@ C-----------------------------------------------
      3      reset_file_name)
       END IF
 
-#if defined(sks)
       CALL second0(skston)
       IF (PARVMEC) THEN
         CALL profil3d_par(pxc(1),pxc(1+irzloff),lreset_internal,linterp)
       ELSE
-#endif
         CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, linterp)
-#if defined(sks)
       END IF
+#if defined(SKS)
       CALL second0(skstoff)
       profile3d_time = profile3d_time + (skstoff - skston)
 #endif
@@ -167,15 +154,11 @@ C-----------------------------------------------
 !     INTERPOLATE FROM COARSE (ns_old) TO NEXT FINER (ns) RADIAL GRID
 !
       IF (linterp) THEN
-#if defined(sks)
         IF(PARVMEC) THEN 
           CALL interp_par (pxc, pgc, pscalxc, ns, ns_old)
         ELSE
-#endif
           CALL interp (xc, gc, scalxc, ns, ns_old)
-#if defined(sks)
         END IF
-#endif
 #ifdef _HBANGLE
         CALL store_init_array(xc)
 #endif

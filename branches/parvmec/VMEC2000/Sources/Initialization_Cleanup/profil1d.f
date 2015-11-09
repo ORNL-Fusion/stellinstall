@@ -1,4 +1,4 @@
-      SUBROUTINE profil1d_par(xc, xcdot)
+      SUBROUTINE profil1d_par(xc, xcdot, lreset)
       USE vmec_main
       USE vmec_params, ONLY: signgs, lamscale, rcc, pdamp
       USE vmec_input, ONLY: lRFP
@@ -16,6 +16,7 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       REAL(rprec), DIMENSION(0:ntor,0:mpol1,ns,3*ntmax), INTENT(out) ::
      1             xc, xcdot
+      LOGICAL, INTENT(IN) :: lreset
 #if defined(SKS)
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -203,10 +204,13 @@ C-----------------------------------------------
       sp(0) = 0
       sp(1) = sm(2)
 
-      xc(:,:,t1lglob:t1rglob,:) = 0
+      IF (lreset) THEN
+         xc(:,:,t1lglob:t1rglob,:) = 0
+         IF (lrecon) iresidue = 0
+      END IF
 
       IF (lrecon) THEN
-        iresidue = 0
+        IF (iresidue .GT. 1) iresidue = 1
 !
 !       COMPUTE INDEX ARRAY FOR FINDPHI ROUTINE
 !
@@ -239,7 +243,7 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       REAL(rprec), DIMENSION(neqs2), INTENT(out) :: xc, xcdot
-      LOGICAL, INTENT(in) :: lreset
+      LOGICAL, INTENT(IN) :: lreset
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -276,7 +280,7 @@ C-----------------------------------------------
 !        chips    poloidal flux (same as chip), one-dimensional array
 !        presf    pressure profile on full-grid, mass/phip**gamma
 !        spres_ped value of s beyond which pressure profile is flat (pedestal)
-!
+
 !
 !     COMPUTE PHIP, IOTA PROFILES ON FULL-GRID
 !     COMPUTE MASS PROFILE ON HALF-GRID
@@ -408,12 +412,12 @@ C-----------------------------------------------
       sp(1) = sm(2)
 
       IF (lreset) THEN
-        xc(:neqs1) = 0
-        IF (lrecon) iresidue = 0
+         xc(:neqs1) = 0
+         IF (lrecon) iresidue = 0
       END IF
 
       IF (lrecon) THEN
-        IF (iresidue .gt. 1) iresidue = 1
+        IF (iresidue .GT. 1) iresidue = 1
 !
 !       COMPUTE INDEX ARRAY FOR FINDPHI ROUTINE
 !

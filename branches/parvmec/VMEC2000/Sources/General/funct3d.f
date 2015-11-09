@@ -520,10 +520,8 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(:), POINTER :: lu, lv
       REAL(rprec) :: presf_ns, delr_mse, delt0
       REAL(rprec), EXTERNAL :: pmass
-#if defined(SKS)      
       INTEGER :: i, j, k, nsmin, nsmax, ndim, m
       REAL(rprec) :: skston, skstoff
-#endif
 C-----------------------------------------------
 !
 !     POINTER ALIASES
@@ -657,9 +655,7 @@ C-----------------------------------------------
 !     EITHER PHIEDGE OR THE INITIAL CROSS SECTION ACCORDING
 !     TO THE SCALING LAW  R*BTOR .EQ. PHIEDGE/(R1 * Z1).
 #if defined(MPI_OPT)
-#if defined(SKS)
       CALL second0(skston)
-#endif
 #endif
       IF (lfreeb .and. iter2.gt.1 .and. iequi.eq.0) THEN
          IF (ictrl_prec2d.le.1 .and. (fsqr + fsqz).le.1.e-3_dp) 
@@ -772,10 +768,8 @@ C-----------------------------------------------
          ENDIF
       ENDIF
 #if defined(MPI_OPT)
-#if defined(SKS)
       CALL second0(skstoff)
       s_vacuum_time = s_vacuum_time + (skstoff - skston)
-#endif
 #endif
 
 !

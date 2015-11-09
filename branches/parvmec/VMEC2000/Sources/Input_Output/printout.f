@@ -56,7 +56,7 @@ C-----------------------------------------------
       w = w0*twopi*twopi
       den = zero
       specw(1) = one
-#if defined(SKS)
+
       IF(PARVMEC) THEN 
         lk=0
         DO l=1, 3*ntmax
@@ -71,16 +71,13 @@ C-----------------------------------------------
           END DO
         END DO
       ELSE
-#endif
         gc = xstore
-#if defined(SKS)
       END IF
-#endif
 #ifdef _HBANGLE
       CALL getrz(gc)
 #endif 
 
-      IF(PARVMEC) THEN 
+      IF (PARVMEC) THEN
         CALL spectrum_par (pgc(:irzloff), pgc(1+irzloff:2*irzloff))
         CALL Gather1XArray(vp)
         CALL Gather1XArray(specw)
@@ -92,13 +89,13 @@ C-----------------------------------------------
       avm = DOT_PRODUCT(vp(2:ns),specw(2:ns)+specw(1:ns-1))
       avm = 0.5_dp*avm/den
       IF (ivac .ge. 1) THEN
-#if defined(SKS)
         IF (PARVMEC) THEN
 !SPH CHANGE (MOVE OUT OF FUNCT3D)
 #if defined(MPI_OPT)
+#if defined(SKS)
           ACTIVE1: IF (lactive) THEN
           CALL second0(skston)
-          ALLOCATE(bcastbuf(3*nznt))
+          ALLOCATE(bcastbuf(3*nznt+1))
           bcastbuf(1:nznt) = dbsq
           bcastbuf(nznt+1:2*nznt) = bsqsav(:,3)
           bcastbuf(2*nznt+1:3*nznt) = rbsq    !NEED THIS WHEN INTERPOLATING MESHES
@@ -113,7 +110,6 @@ C-----------------------------------------------
           fedge = bcastbuf(3*nznt+1)
           DEALLOCATE(bcastbuf)
 
-          CALL MPI_Bcast(fedge,1,MPI_REAL8,nranks-1,NS_COMM,MPI_ERR)
           CALL second0(skstoff)
           broadcast_time = broadcast_time + (skstoff - skston)
 
@@ -122,14 +118,12 @@ C-----------------------------------------------
      1     SUM(dbsq(:nznt)*pwint(:,2))/den
           END IF ACTIVE1
 #endif
-        ELSE
 #endif
+        ELSE
           delbsq =
      1     SUM(dbsq(:nznt)*wint(2:nrzt:ns))/
      1     SUM(bsqsav(:nznt,3)*wint(2:nrzt:ns))
-#if defined(SKS)
         END IF
-#endif
       END IF
 
       IF (i0.eq.1 .and. lfreeb) THEN

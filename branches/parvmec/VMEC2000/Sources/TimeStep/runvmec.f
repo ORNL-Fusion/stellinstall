@@ -1,5 +1,5 @@
-      SUBROUTINE runvmec(ictrl_array, input_file0, 
-     1   lscreen, reset_file_name)
+      SUBROUTINE runvmec(ictrl_array, input_file0,
+     1                   lscreen, reset_file_name)
       USE vmec_main
       USE vmec_params, ONLY: bad_jacobian_flag, more_iter_flag,
      1                       norm_term_flag, successful_term_flag,
@@ -12,13 +12,11 @@
 #endif      
       USE vsvd
       USE timer_sub
-#if defined (SKS)
       USE parallel_include_module
       USE parallel_vmec_module, ONLY: InitParallelVariables
       USE parallel_vmec_module, ONLY: SetVacuumCommunicator
       USE blocktridiagonalsolver_bst, ONLY: Initialize_bst, Finalize_bst
       USE xstuff
-#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -145,7 +143,7 @@ C-----------------------------------------------
         CALL second0(skstoff)
         reset_params_time = reset_params_time + (skstoff-skston)
 #endif
-!        res0 = -1  Taken care of in reset_params.
+!       res0 = -1   Done in reset_params
       END IF
 
       IF (IAND(ictrl_flag, reset_jacdt_flag) .ne. 0) THEN
@@ -200,13 +198,7 @@ C-----------------------------------------------
          IF (PRESENT(reset_file_name)) THEN
             IF (LEN_TRIM(reset_file_name) .ne. 0)igrid0 = multi_ns_grid
          END IF
-#if defined(SKS)
-         IF (grank.EQ.0) THEN
-#endif
-            WRITE (nthreed, 30)
-#if defined(SKS)
-         END IF
-#endif
+         IF (grank.EQ.0) WRITE (nthreed, 30)
          delt0r = delt
       ENDIF
 
@@ -396,19 +388,19 @@ C-----------------------------------------------
 !
 !     WRITE OUTPUT TO THREED1, WOUT FILES; FREE MEMORY ALLOCATED GLOBALLY
 !
- 1000 IF(lmoreiter .and. ier_flag.eq.more_iter_flag) then  ! J Geiger
+ 1000 IF(lmoreiter .AND. ier_flag.EQ.more_iter_flag) THEN  ! J Geiger
         PRINT *, "runvmec: Running some more iterations",
      &           " -> Skipping call to fileout!"
-      ELSE
+      ELSE IF (ier_flag.NE.more_iter_flag) THEN
 #if defined(SKS)
         CALL second0(skston)
+#endif
         IF (PARVMEC) THEN
           CALL fileout_par (iseq_count, ictrl_flag, ier_flag, lscreen)
         ELSE
-#endif
           CALL fileout (iseq_count, ictrl_flag, ier_flag, lscreen)
-#if defined(SKS)
         END IF
+#if defined(SKS)
         CALL second0(skstoff)
         fileout_time = fileout_time + (skstoff-skston)
 #endif      
