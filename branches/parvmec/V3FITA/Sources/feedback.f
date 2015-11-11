@@ -56,8 +56,7 @@
 !>  @ref feedback_construct_ratio or @ref feedback_construct_mpi
 !-------------------------------------------------------------------------------
       INTERFACE feedback_construct
-         MODULE PROCEDURE feedback_construct_ratio,                            &
-     &                    feedback_construct_mpi
+         MODULE PROCEDURE feedback_construct_ratio
       END INTERFACE
 
       CONTAINS
@@ -93,44 +92,6 @@
 
       CALL profiler_set_stop_time('feedback_construct_ratio',                  &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref feedback_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref feedback_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref feedback_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION feedback_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (feedback_class), POINTER :: feedback_construct_mpi
-      INTEGER, INTENT(in)            :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                     :: error
-
-!  Start of executable code
-      ALLOCATE(feedback_construct_mpi)
-
-      CALL MPI_BCAST(feedback_construct_mpi%type, 1, MPI_INTEGER, 0,           &
-     &               intra_comm, error)
-
-      SELECT CASE (feedback_construct_mpi%type)
-
-         CASE (feedback_sxrem_ratio_type)
-            feedback_construct_mpi%ratio =>                                    &
-     &         sxrem_ratio_construct(intra_comm)
-
-      END SELECT
-
-#endif
 
       END FUNCTION
 
@@ -418,48 +379,6 @@
      &                            start_time)
 
 1000  FORMAT('Signal',1x,i4,1x,'is a feedback signal, type: ',a)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref feedback_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE feedback_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (feedback_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                  :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                              :: error
-      REAL (rprec)                         :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (feedback_sxrem_ratio_type)
-            CALL sxrem_ratio_sync_children(this%ratio, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('prior_sync_children', start_time)
-#endif
 
       END SUBROUTINE
 

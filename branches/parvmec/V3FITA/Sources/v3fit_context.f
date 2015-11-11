@@ -96,8 +96,12 @@
 
 !--- MPI -----------------------------------------------------------------------
 #if defined (MPI_OPT)
-!>  MPI parent communicator reference.
-         INTEGER :: intra_comm = MPI_COMM_NULL
+!>  MPI communicator reference for full domain.
+         INTEGER :: global_comm = MPI_COMM_NULL
+!>  MPI communicator reference for the equilibrium domain.
+         INTEGER :: equilibrium_comm = MPI_COMM_NULL
+!>  MPI communicator reference for the reconstruction domain.
+         INTEGER :: reconstruction_comm = MPI_COMM_NULL
 #endif
       END TYPE
 
@@ -1151,122 +1155,6 @@
 
       CALL profiler_set_stop_time('v3fit_context_write_step_data',             &
      &                            start_time)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this A @ref v3fit_context_class instance.
-!-------------------------------------------------------------------------------
-      SUBROUTINE v3fit_context_sync_children(this)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: this
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                                   :: error
-      INTEGER                                   :: mpi_rank
-      LOGICAL                                   :: needs_sync
-      INTEGER                                   :: array_size
-      INTEGER                                   :: i
-      REAL (rprec)                              :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BARRIER(this%intra_comm, error)
-
-!  The MPI variables should not be synced. The command line parser, output files
-!  and stoping criteria do not need to be synced. Starting with the signal index
-!  values. MPI_BCAST broad casts from the parent and recieves in the children.
-      CALL MPI_BCAST(this%magnetic_index, 1, MPI_INTEGER, 0,                   &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%sxrem_index, 1, MPI_INTEGER, 0,                      &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%intpol_index, 1, MPI_INTEGER, 0,                     &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%thomson_index, 1, MPI_INTEGER, 0,                    &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%extcurz_index, 1, MPI_INTEGER, 0,                    &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%limiter_index, 1, MPI_INTEGER, 0,                    &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%prior_guassian_index, 1, MPI_INTEGER, 0,             &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%sxrem_ratio_index, 1, MPI_INTEGER, 0,                &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 0,                &
-     &               this%intra_comm, error)
-
-      CALL MPI_COMM_RANK(this%intra_comm, mpi_rank, error)
-
-!  Check if a model object exists in the parent process. If it does tell all
-!  processes to sync.
-      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%model)
-      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
-     &               error)
-      IF (needs_sync) THEN
-         IF (ASSOCIATED(this%model)) THEN
-            CALL model_sync_children(this%model, this%intra_comm)
-         ELSE
-            this%model => model_construct(this%intra_comm)
-         END IF
-      END IF
-
-!  Check if signal objects exists in the parent process. If they do tell all
-!  processes to sync. The size of the array must be synced first.
-      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%signals)
-      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
-     &               error)
-      IF (needs_sync) THEN
-         IF (mpi_rank .eq. 0) THEN
-            array_size = SIZE(this%signals)
-         END IF
-         CALL MPI_BCAST(array_size, 1, MPI_INTEGER, 0, this%intra_comm,        &
-     &                  error)
-
-         IF (ASSOCIATED(this%signals)) THEN
-!  Sync all signals except the combination signals.
-            IF (this%combination_index .gt. 0) THEN
-               DO i = 1, this%combination_index - 1
-                  CALL signal_sync_children(this%signals(i)%p,                 &
-     &                                      this%intra_comm)
-               END DO
-            ELSE
-               DO i = 1, array_size
-                  CALL signal_sync_children(this%signals(i)%p,                 &
-     &                                      this%intra_comm)
-               END DO
-            END IF
-         ELSE
-            ALLOCATE(this%signals(array_size))
-
-!  Sync all signals except the combination signals.
-            IF (this%combination_index .gt. 0) THEN
-               DO i = 1, this%combination_index - 1
-                  this%signals(i)%p => signal_construct(this%intra_comm)
-               END DO
-            ELSE
-               DO i = 1, array_size
-                  this%signals(i)%p => signal_construct(this%intra_comm)
-               END DO
-            END IF
-         END IF
-      END IF
-
-      CALL profiler_set_stop_time('v3fit_context_sync_children',               &
-     &                            start_time)
-#endif
 
       END SUBROUTINE
 

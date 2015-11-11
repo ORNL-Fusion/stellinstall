@@ -177,15 +177,6 @@
      &                    model_get_sxrem_radial
       END INTERFACE
 
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref model_class types using
-!>  @ref model_construct_new or @ref signal_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE model_construct
-         MODULE PROCEDURE model_construct_new,                                 &
-     &                    model_construct_mpi
-      END INTERFACE
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -206,7 +197,7 @@
 !>  @param[in] sxrem_ratio       Soft x-ray ratio function ratio.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION model_construct_new(ne_type, sxrem_type, te_type,               &
+      FUNCTION model_construct(ne_type, sxrem_type, te_type,               &
      &                             ne_unit, ne_min, te_min,                    &
      &                             pressure_fraction, emission,                &
      &                             equilibrium, sxrem_te, sxrem_ratio)
@@ -214,7 +205,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (model_class), POINTER :: model_construct_new
+      TYPE (model_class), POINTER :: model_construct
       CHARACTER (len=data_name_length), INTENT(in)  :: ne_type
       CHARACTER (len=data_name_length), DIMENSION(:), INTENT(in) ::            &
      &   sxrem_type
@@ -235,46 +226,46 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(model_construct_new)
+      ALLOCATE(model_construct)
 
       SELECT CASE (TRIM(ADJUSTL(ne_type)))
 
          CASE ('none')
-            model_construct_new%ne_type = model_none_type
+            model_construct%ne_type = model_none_type
 
          CASE ('pp_ne')
-            model_construct_new%ne_type = model_ne_type
+            model_construct%ne_type = model_ne_type
 
          CASE ('pp_te_p')
-            model_construct_new%ne_type = model_ne_te_p_type
+            model_construct%ne_type = model_ne_te_p_type
 
          CASE DEFAULT
             WRITE (*,*) 'ne type: ' // TRIM(ADJUSTL(ne_type)) //               &
      &                  ' setting type to none.'
-            model_construct_new%ne_type = model_none_type
+            model_construct%ne_type = model_none_type
 
       END SELECT
 
-      ALLOCATE(model_construct_new%sxrem_type(SIZE(sxrem_type)))
+      ALLOCATE(model_construct%sxrem_type(SIZE(sxrem_type)))
       DO i = 1, SIZE(sxrem_type)
 
          SELECT CASE (TRIM(ADJUSTL(sxrem_type(i))))
 
             CASE ('none')
-               model_construct_new%sxrem_type(i) = model_none_type
+               model_construct%sxrem_type(i) = model_none_type
 
             CASE ('pp_sxrem')
-               model_construct_new%sxrem_type(i) = model_sxrem_type
+               model_construct%sxrem_type(i) = model_sxrem_type
 
             CASE ('pp_sxrem_te_ne')
-               model_construct_new%sxrem_type(i) =                             &
+               model_construct%sxrem_type(i) =                                 &
      &            model_sxrem_te_ne_type
 
             CASE DEFAULT
                WRITE (*,*)                                                     &
      &            'sxrem type: ' // TRIM(ADJUSTL(sxrem_type(i))) //            &
      &            ' setting type to none.'
-               model_construct_new%sxrem_type(i) = model_none_type
+               model_construct%sxrem_type(i) = model_none_type
 
          END SELECT
 
@@ -283,156 +274,65 @@
       SELECT CASE (TRIM(ADJUSTL(te_type)))
 
          CASE ('none')
-            model_construct_new%te_type = model_none_type
+            model_construct%te_type = model_none_type
 
          CASE ('pp_te')
-            model_construct_new%te_type = model_te_type
+            model_construct%te_type = model_te_type
 
 !>  @todo FIXME: Name here shouldn't have vmec in it
          CASE ('pp_ne_vmec_p', 'pp_ne_p')
-            model_construct_new%te_type = model_te_ne_p_type
+            model_construct%te_type = model_te_ne_p_type
 
          CASE DEFAULT
             WRITE (*,*) 'te type: ' // TRIM(ADJUSTL(te_type)) //               &
      &                  ' setting type to none.'
-            model_construct_new%te_type = model_none_type
+            model_construct%te_type = model_none_type
 
       END SELECT
 
 !  Cannot have the temperature derived from the denisty at the same time the
 !  density is derived from the temperature.
       CALL assert(.not.(                                                       &
-     &        (model_construct_new%te_type .eq. model_te_ne_p_type)            &
+     &        (model_construct%te_type .eq. model_te_ne_p_type)                &
      &        .and.                                                            &
-     &        (model_construct_new%ne_type .eq. model_ne_te_p_type)),          &
+     &        (model_construct%ne_type .eq. model_ne_te_p_type)),              &
      &        'Cannot derive both the denisty and temperature' //              &
      &        ' from pressure in the same model.')
 
-      model_construct_new%ne_unit = ne_unit
-      model_construct_new%ne_min = ne_min
-      model_construct_new%te_min = te_min
-      model_construct_new%pressure_fraction = pressure_fraction
+      model_construct%ne_unit = ne_unit
+      model_construct%ne_min = ne_min
+      model_construct%te_min = te_min
+      model_construct%pressure_fraction = pressure_fraction
 
-      model_construct_new%emission => emission
-      IF (ASSOCIATED(model_construct_new%emission)) THEN
+      model_construct%emission => emission
+      IF (ASSOCIATED(model_construct%emission)) THEN
 
       END IF
 
-      model_construct_new%equilibrium => equilibrium
+      model_construct%equilibrium => equilibrium
 
       grid_size = equilibrium_get_grid_size(equilibrium)
 
       IF (grid_size .gt. 0) THEN
-         CALL model_set_grid_params(model_construct_new, grid_size)
+         CALL model_set_grid_params(model_construct, grid_size)
 
-         ALLOCATE(model_construct_new%ne_grid(grid_size))
-         ALLOCATE(model_construct_new%sxrem_grid(SIZE(sxrem_type),             &
+         ALLOCATE(model_construct%ne_grid(grid_size))
+         ALLOCATE(model_construct%sxrem_grid(SIZE(sxrem_type),                 &
      &                                           grid_size))
-         ALLOCATE(model_construct_new%te_grid(grid_size))
+         ALLOCATE(model_construct%te_grid(grid_size))
       END IF
 
 !  Find the size of the sxrem ratio arrays.
       grid_size = MINLOC(sxrem_te(2:), dim=1)
       IF (grid_size .gt. 1) THEN
-         ALLOCATE(model_construct_new%sxrem_te(grid_size))
-         model_construct_new%sxrem_te = sxrem_te(1:grid_size)
+         ALLOCATE(model_construct%sxrem_te(grid_size))
+         model_construct%sxrem_te = sxrem_te(1:grid_size)
 
-         ALLOCATE(model_construct_new%sxrem_ratio(grid_size))
-         model_construct_new%sxrem_ratio = sxrem_ratio(1:grid_size)
+         ALLOCATE(model_construct%sxrem_ratio(grid_size))
+         model_construct%sxrem_ratio = sxrem_ratio(1:grid_size)
       END IF
 
-      CALL profiler_set_stop_time('model_construct_new', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref model_class containing an @ref equilibrium by
-!>  syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref model_class object.
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref model_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION model_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (model_class), POINTER :: model_construct_mpi
-      INTEGER, INTENT(in)         :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                     :: error
-      INTEGER                     :: sxrem_size
-      INTEGER                     :: grid_size
-      REAL (rprec)                :: grid_stop
-      LOGICAL                     :: temp_logical
-
-!  Start of executable code
-      ALLOCATE(model_construct_mpi)
-
-      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
-      ALLOCATE(model_construct_mpi%sxrem_type(sxrem_size))
-
-      CALL MPI_BCAST(model_construct_mpi%ne_type, 1, MPI_INTEGER, 0,           &
-     &               intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%sxrem_type, sxrem_size,               &
-     &               MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%te_type, 1, MPI_INTEGER, 0,           &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(model_construct_mpi%ne_unit, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%ne_min, 1, MPI_REAL8, 0,              &
-     &               intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%te_min, 1, MPI_REAL8, 0,              &
-     &               intra_comm, error)
-      CALL MPI_BCAST(model_construct_mpi%pressure_fraction, 1,                 &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-      CALL MPI_BCAST(temp_logical, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (temp_logical) THEN
-         model_construct_mpi%emission => emission_construct(intra_comm)
-      END IF
-
-      model_construct_mpi%equilibrium =>                                       &
-     &   equilibrium_construct(intra_comm)
-
-      grid_size =                                                              &
-     &   equilibrium_get_grid_size(model_construct_mpi%equilibrium)
-
-      IF (grid_size .gt. 0) THEN
-         CALL model_set_grid_params(model_construct_mpi, grid_size)
-
-         ALLOCATE(model_construct_mpi%ne_grid(grid_size))
-         ALLOCATE(model_construct_mpi%te_grid(grid_size))
-         ALLOCATE(model_construct_mpi%sxrem_grid(sxrem_size,grid_size))
-
-         CALL MPI_BCAST(model_construct_mpi%ne_grid, grid_size,                &
-     &                  MPI_REAL8, 0, intra_comm, error)
-         CALL MPI_BCAST(model_construct_mpi%sxrem_grid,                        &
-     &                  grid_size*sxrem_size, MPI_REAL8, 0, intra_comm,        &
-     &                  error)
-         CALL MPI_BCAST(model_construct_mpi%te_grid, grid_size,                &
-     &                  MPI_REAL8, 0, intra_comm, error)
-      END IF
-
-      CALL MPI_BCAST(temp_logical, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (temp_logical) THEN
-         CALL MPI_BCAST(grid_size, 1, MPI_INTEGER, 0, intra_comm, error)
-
-         IF (grid_size .gt. 0) THEN
-            ALLOCATE (model_construct_mpi%sxrem_te(grid_size))
-            CALL MPI_BCAST(model_construct_mpi%sxrem_te, grid_size,            &
-     &                     MPI_REAL8, 0, intra_comm, error)
-
-            ALLOCATE (model_construct_mpi%sxrem_ratio(grid_size))
-            CALL MPI_BCAST(model_construct_mpi%sxrem_ratio, grid_size,         &
-     &                     MPI_REAL8, 0, intra_comm, error)
-         END IF
-      END IF
-#endif
+      CALL profiler_set_stop_time('model_construct', start_time)
 
       END FUNCTION
 
@@ -1291,12 +1191,13 @@
 !>  This solves the equilibirum model and computes modeled values. The modeled
 !>  values computed are the grided model values.
 !>
-!>  @param[inout] this     A @ref model_class instance.
-!>  @param[inout] num_iter Counter to track the number of iterations.
-!>  @param[in]    iou      Input/output unit of the file to write logs to.
+!>  @param[inout] this      A @ref model_class instance.
+!>  @param[inout] num_iter  Counter to track the number of iterations.
+!>  @param[in]    iou       Input/output unit of the file to write logs to.
+!>  @param[in]    vmec_comm MPI communicator pool for the equilibrium.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION model_converge(this, num_iter, iou)
+      FUNCTION model_converge(this, num_iter, iou, eq_comm)
 
       IMPLICIT NONE
 
@@ -1305,17 +1206,23 @@
       TYPE (model_class), INTENT(inout) :: this
       INTEGER, INTENT(inout)            :: num_iter
       INTEGER, INTENT(in)               :: iou
+      INTEGER, INTENT(in)               :: eq_comm
 
 !  local variables
       REAL (rprec)                      :: r, dr
       INTEGER                           :: i, j
+      INTEGER                           :: error
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+#if defined (MPI_OPT)
+      CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0, eq_comm,         &
+     &               error)
+#endif
       model_converge = equilibrium_converge(this%equilibrium, num_iter,        &
-     &                                      iou)
+     &                                      iou, eq_comm)
 
       IF (model_converge) THEN
 
@@ -1714,87 +1621,6 @@
 !*******************************************************************************
 !  MPI SUBROUTINES
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref model_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE model_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (model_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)               :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                           :: error
-      INTEGER                           :: sxrem_size
-      INTEGER                           :: grid_size
-      REAL (rprec)                      :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      sxrem_size = SIZE(this%sxrem_type)
-
-      CALL MPI_BCAST(sxrem_size, 1, MPI_INTEGER, 0, intra_comm, error)
-
-      CALL MPI_BCAST(this%ne_type, 1, MPI_INTEGER, 0, intra_comm,              &
-     &               error)
-      CALL MPI_BCAST(this%sxrem_type, sxrem_size, MPI_INTEGER, 0,              &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%te_type, 1, MPI_INTEGER, 0, intra_comm,              &
-     &               error)
-
-      CALL MPI_BCAST(this%ne_unit, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%ne_min, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%te_min, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%pressure_fraction, 1, MPI_REAL8, 0,                  &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(ASSOCIATED(this%emission), 1, MPI_LOGICAL, 0,             &
-     &               intra_comm, error)
-      IF (ASSOCIATED(this%emission)) THEN
-         CALL emission_sync_children(this%emission, intra_comm)
-      END IF
-
-      CALL equilibrium_sync_children(this%equilibrium, intra_comm)
-
-      grid_size = equilibrium_get_grid_size(this%equilibrium)
-      IF (grid_size .gt. 0) THEN
-         CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
-     &                  intra_comm, error)
-         CALL MPI_BCAST(this%sxrem_grid, grid_size*sxrem_size,                 &
-     &                  MPI_REAL8, 0, intra_comm, error)
-         CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
-     &                  intra_comm, error)
-      END IF
-
-      CALL MPI_BCAST(ASSOCIATED(this%sxrem_te), 1, MPI_LOGICAL, 0,             &
-     &               intra_comm, error)
-      IF (ASSOCIATED(this%sxrem_te)) THEN
-         CALL MPI_BCAST(SIZE(this%sxrem_te), 1, MPI_INTEGER, 0,                &
-     &                  intra_comm, error)
-
-         IF (SIZE(this%sxrem_te) .gt. 0) THEN
-            CALL MPI_BCAST(this%sxrem_te, SIZE(this%sxrem_te),                 &
-     &                     MPI_REAL8, 0, intra_comm, error)
-            CALL MPI_BCAST(this%sxrem_ratio, SIZE(this%sxrem_ratio),           &
-     &                     MPI_REAL8, 0, intra_comm, error)
-         END IF
-      END IF
-
-      CALL profiler_set_stop_time('model_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
-
 !-------------------------------------------------------------------------------
 !>  @brief Syncronize the model state to children.
 !>

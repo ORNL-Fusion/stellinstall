@@ -642,10 +642,11 @@
 !>  @param[inout] a_model  A @ref model instance.
 !>  @param[inout] eq_steps Number of steps for the equilibrium to take.
 !>  @param[in]    iou      Input/output file to write log messages to.
+!>  @param[in]    eq_comm  MPI communicator for the child equilibrium processes.
 !>  @returns True if the equilibrium converged and false if otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_e(this, signals, a_model, eq_steps,         &
-     &                               iou)
+     &                               iou, eq_comm)
 
       IMPLICIT NONE
 
@@ -656,6 +657,7 @@
       TYPE (model_class), INTENT(inout)                  :: a_model
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: eq_comm
 
 !  local arguments
       INTEGER                                            :: i
@@ -665,7 +667,7 @@
       start_time = profiler_get_start_time()
 
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
-      IF (model_converge(a_model, eq_steps, iou)) THEN
+      IF (model_converge(a_model, eq_steps, iou, eq_comm)) THEN
 
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial.
@@ -742,12 +744,16 @@
 !>  @param[inout] params         Array of @ref parameter objects.
 !>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
 !>  @param[in]    iou            Input/output file to write log messages to.
+!>  @param[in]    recon_comm     MPI communicator for the child jacobian
+!>                               processes.
+!>  @param[in]    eq_comm        MPI communicator for the child equilibrium
+!>                               processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_eval_jacobians(this, signals,                  &
      &                                         derived_params, locks,          &
      &                                         a_model, params,                &
      &                                         eq_steps, iou,                  &
-     &                                         intra_comm)
+     &                                         recon_comm, eq_comm)
 
       IMPLICIT NONE
 
@@ -761,7 +767,8 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
-      INTEGER, INTENT(in)                                :: intra_comm
+      INTEGER, INTENT(in)                                :: recon_comm
+      INTEGER, INTENT(in)                                :: eq_comm
 
 !  local arguments
       INTEGER                                            :: i, j
@@ -785,18 +792,18 @@
 !  variable. Syning the model afterwards will bring the internal state up to
 !  sync.
       DO i = 1, SIZE(params)
-         CALL param_sync_value(params(i)%p, a_model, intra_comm)
+         CALL param_sync_value(params(i)%p, a_model, recon_comm)
       END DO
-      CALL model_sync_state(a_model, intra_comm)
-      CALL reconstruction_sync_state(this, intra_comm)
+      CALL model_sync_state(a_model, recon_comm)
+      CALL reconstruction_sync_state(this, recon_comm)
 
 !  Set the locked values.
       DO i = 1, SIZE(locks)
          CALL param_set_lock_value(locks(i)%p, a_model)
       END DO
 
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
 
 #else
       mpi_rank = 0
@@ -843,7 +850,7 @@
 !  Check that model was able to converge. If the model converged proceed as
 !  normal otherwise set the jth index of the jacobian to zero to avoid a step
 !  in that parameter direction.
-         IF (model_converge(a_model, eq_steps, iou)) THEN
+         IF (model_converge(a_model, eq_steps, iou, eq_comm)) THEN
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
@@ -925,7 +932,7 @@
 #if defined(MPI_OPT)
       CALL reconstruction_sync_parent(this, params, SIZE(signals),             &
      &                                SIZE(derived_params), stride,            &
-     &                                offset, intra_comm)
+     &                                offset, recon_comm)
 #endif
 
       DEALLOCATE(stride)
@@ -951,11 +958,16 @@
 !>  @param[inout] params         Array of @ref parameter objects.
 !>  @param[inout] eq_steps       Number of steps for the equilibrium to take.
 !>  @param[in]    iou            Input/output file to write log messages to.
+!>  @param[in]    recon_comm     MPI communicator for the child jacobian
+!>                               processes.
+!>  @param[in]    eq_comm        MPI communicator for the child equilibrium
+!>                               processes.
 !>  @returns The number of singular values to use.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_eval_step(this, signals, derived_params,         &
      &                                  locks, a_model, params,                &
-     &                                  eq_steps, iou, intra_comm)
+     &                                  eq_steps, iou, recon_comm,             &
+     &                                  eq_comm)
 
       IMPLICIT NONE
 
@@ -970,7 +982,8 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
-      INTEGER, INTENT(in)                                :: intra_comm
+      INTEGER, INTENT(in)                                :: recon_comm
+      INTEGER, INTENT(in)                                :: eq_comm
 
 !  local arguments
       INTEGER                                    :: i, j
@@ -989,14 +1002,15 @@
 
 !  Tell the child processes to begin the jacobian task.
 #if defined(MPI_OPT)
-      CALL MPI_BCAST(mpi_jacobian_task, 1, MPI_INTEGER, 0, intra_comm,         &
+      CALL MPI_BCAST(mpi_jacobian_task, 1, MPI_INTEGER, 0, recon_comm,         &
      &               error)
-      CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, recon_comm, error)
 #endif
 
       CALL reconstruction_eval_jacobians(this, signals, derived_params,        &
      &                                   locks, a_model, params,               &
-     &                                   eq_steps, iou, intra_comm)
+     &                                   eq_steps, iou, recon_comm,            &
+     &                                   eq_comm)
 
 !  Compute the positive definite Hessian, matrix. Equation 14 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031
@@ -1475,17 +1489,20 @@
 !>  Advance the reconstruction by a single step. This is the main V3FIT
 !>  algorithm.
 !>
-!>  @param[inout] this     A @ref reconstruction_class instance.
-!>  @param[inout] signals  Array of @ref signal objects.
-!>  @param[inout] a_model  A @ref model instance.
-!>  @param[inout] params   Array of @ref parameter objects.
-!>  @param[inout] eq_steps Number of steps for the equilibrium to take.
-!>  @param[in]    iou      Input/output file to write log messages to.
+!>  @param[inout] this       A @ref reconstruction_class instance.
+!>  @param[inout] signals    Array of @ref signal objects.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[inout] params     Array of @ref parameter objects.
+!>  @param[inout] eq_steps   Number of steps for the equilibrium to take.
+!>  @param[in]    iou        Input/output file to write log messages to.
+!>  @param[in]    recon_comm MPI communicator for the child jacobian processes.
+!>  @param[in]    eq_comm    MPI communicator for the child equilibrium
+!>                           processes.
 !>  @returns True if the step was successfull and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION reconstruction_step(this, signals, derived_params,              &
      &                             locks, a_model, params, eq_steps,           &
-     &                             iou, intra_comm)
+     &                             iou, recon_comm, eq_comm)
 
       IMPLICIT NONE
 
@@ -1500,7 +1517,8 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
       INTEGER, INTENT(in)                                :: iou
-      INTEGER, INTENT(in)                                :: intra_comm
+      INTEGER, INTENT(in)                                :: recon_comm
+      INTEGER, INTENT(in)                                :: eq_comm
 
 !  local variables
       INTEGER                                            :: k_use
@@ -1518,7 +1536,7 @@
 !  Evaluate the quasi-Newton step.
       k_use = reconstruction_eval_step(this, signals, derived_params,          &
      &                                 locks, a_model, params, eq_steps,       &
-     &                                 iou, intra_comm)
+     &                                 iou, recon_comm, eq_comm)
 
       ALLOCATE(param_value(SIZE(params)))
       ALLOCATE(delta_a(SIZE(params)))
@@ -1580,7 +1598,7 @@
 !  reconstruction step should fail for any reason. decrement the step back down.
          this%current_step = this%current_step + 1
          IF (reconstruction_eval_e(this, signals, a_model,                     &
-     &                             eq_steps, iou)) THEN
+     &                             eq_steps, iou, eq_comm)) THEN
 !  Equilibrium converged
             CALL reconstruction_eval_f(this, derived_params, a_model)
 
@@ -1637,7 +1655,7 @@
 !  The signals contain cached values. If the step fails recompute the modeled
 !  signals so that values written to the recout match the result file.
             temp = reconstruction_eval_e(this, signals, a_model,               &
-     &                                   eq_steps, iou)
+     &                                   eq_steps, iou, eq_comm)
 
             WRITE (*,*) 'Reconstruction step failed.'
             WRITE (iou,*) 'Reconstruction step failed.'
@@ -2065,16 +2083,16 @@
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref reconstruction_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[in]    recon_comm A MPI recon_comm handle.
 !-------------------------------------------------------------------------------
-      SUBROUTINE reconstruction_sync_state(this, intra_comm)
+      SUBROUTINE reconstruction_sync_state(this, recon_comm)
       USE file_opts
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (reconstruction_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                        :: intra_comm
+      INTEGER, INTENT(in)                        :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -2084,14 +2102,14 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(this%current_step, 1, MPI_INTEGER, 0, intra_comm,         &
+      CALL MPI_BCAST(this%current_step, 1, MPI_INTEGER, 0, recon_comm,         &
      &               error)
       CALL MPI_BCAST(this%e(this%current_step,:),                              &
      &               SIZE(this%e(this%current_step,:)), MPI_REAL8, 0,          &
-     &               intra_comm, error)
+     &               recon_comm, error)
       CALL MPI_BCAST(this%f(this%current_step,:),                              &
      &               SIZE(this%f(this%current_step,:)), MPI_REAL8, 0,          &
-     &               intra_comm, error)
+     &               recon_comm, error)
 
       CALL profiler_set_stop_time('reconstruction_sync_state',                 &
      &                            start_time)
@@ -2112,11 +2130,11 @@
 !>  @param[in]    num_derived_params Number of derived parameters.
 !>  @param[in]    stride             Length work size for each process.
 !>  @param[in]    offset             Start offset for each process.
-!>  @param[in]    intra_comm         A MPI intra_comm handle.
+!>  @param[in]    recon_comm         A MPI recon_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_sync_parent(this, params, num_signal,          &
      &                                      num_derived_params, stride,        &
-     &                                      offset, intra_comm)
+     &                                      offset, recon_comm)
 
       IMPLICIT NONE
 
@@ -2127,7 +2145,7 @@
       INTEGER, INTENT(in)                        :: num_derived_params
       INTEGER, DIMENSION(:), INTENT(in)          :: stride
       INTEGER, DIMENSION(:), INTENT(in)          :: offset
-      INTEGER, INTENT(in)                        :: intra_comm
+      INTEGER, INTENT(in)                        :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -2141,8 +2159,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
 
 !  Need to be careful here with strides and offsets. The mpi uses C style array
 !  notation but the data is laid out in memory using fortran array notation.
@@ -2160,7 +2178,7 @@
          CALL MPI_GATHERV(MPI_IN_PLACE,                                        &
      &                    num_signal*stride(mpi_rank + 1), MPI_REAL8,          &
      &                    this%jacobian, num_signal*stride,                    &
-     &                    num_signal*offset, MPI_REAL8, 0, intra_comm,         &
+     &                    num_signal*offset, MPI_REAL8, 0, recon_comm,         &
      &                    error)
 
          CALL MPI_GATHERV(MPI_IN_PLACE,                                        &
@@ -2168,12 +2186,12 @@
      &                    MPI_REAL8, this%derived_jacobian,                    &
      &                    num_derived_params*stride,                           &
      &                    num_derived_params*offset, MPI_REAL8, 0,             &
-     &                    intra_comm, error)
+     &                    recon_comm, error)
       ELSE
          CALL MPI_GATHERV(this%jacobian(:,iLow:iHigh),                         &
      &                    num_signal*stride(mpi_rank + 1), MPI_REAL8,          &
      &                    this%jacobian, num_signal*stride,                    &
-     &                    num_signal*offset, MPI_REAL8, 0, intra_comm,         &
+     &                    num_signal*offset, MPI_REAL8, 0, recon_comm,         &
      &                    error)
 
          CALL MPI_GATHERV(this%derived_jacobian(:,iLow:iHigh),                 &
@@ -2181,18 +2199,18 @@
      &                    MPI_REAL8, this%derived_jacobian,                    &
      &                    num_derived_params*stride,                           &
      &                    num_derived_params*offset, MPI_REAL8, 0,             &
-     &                    intra_comm, error)
+     &                    recon_comm, error)
       END IF
 
 !  Sync the delta used to find the jacobians.
       DO i = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
      &                                 stride(mpi_rank + 1)
-         CALL param_send_delta(params(i)%p, i, intra_comm)
+         CALL param_send_delta(params(i)%p, i, recon_comm)
       END DO
 
       IF (mpi_rank .eq. 0) THEN
          DO i = 1, SIZE(params)
-            CALL param_recv_delta(params(i)%p, i, intra_comm)
+            CALL param_recv_delta(params(i)%p, i, recon_comm)
          END DO
       END IF
 

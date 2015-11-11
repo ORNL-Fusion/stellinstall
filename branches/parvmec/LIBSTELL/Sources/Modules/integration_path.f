@@ -35,15 +35,6 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref vertex types using
-!>  @ref path_construct_new or @ref path_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE path_construct
-         MODULE PROCEDURE path_construct_new,                                  &
-     &                    path_construct_mpi
-      END INTERFACE
-
-!-------------------------------------------------------------------------------
 !>  Interface for checking the results of the unit tests
 !-------------------------------------------------------------------------------
       INTERFACE check
@@ -68,56 +59,18 @@
 !>  @param[in] position Cartesian position of the vertex object.
 !>  @returns A pointer to a constructed @ref vertex object.
 !-------------------------------------------------------------------------------
-      FUNCTION path_construct_new(position)
+      FUNCTION path_construct(position)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vertex), POINTER                 :: path_construct_new
+      TYPE (vertex), POINTER                 :: path_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: position
 
 !  Start of executable code
-      ALLOCATE(path_construct_new)
+      ALLOCATE(path_construct)
 
-      path_construct_new%position = position
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref vertex object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref vertex object. This gets called
-!>  recursively until the last object is reached.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref vertex object.
-!-------------------------------------------------------------------------------
-      RECURSIVE FUNCTION path_construct_mpi(intra_comm)                        &
-     &   RESULT(new_vertex)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vertex), POINTER :: new_vertex
-      INTEGER, INTENT(in)    :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                :: error
-      LOGICAL                :: next
-
-!  Start of executable code
-      ALLOCATE(new_vertex)
-
-      CALL MPI_BCAST(next, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (next) THEN
-         new_vertex%next => path_construct_mpi(intra_comm)
-      END IF
-
-      CALL MPI_BCAST(new_vertex%position, 3, MPI_REAL8, 0, intra_comm,         &
-     &               error)
-
-#endif
+      path_construct%position = position
 
       END FUNCTION
 
@@ -229,44 +182,6 @@
       END IF
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref vertex instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      RECURSIVE SUBROUTINE path_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vertex), INTENT(inout) :: this
-      INTEGER, INTENT(in)          :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                      :: error
-      LOGICAL                      :: next
-
-!  Start of executable code
-      next = ASSOCIATED(this%next)
-      CALL MPI_BCAST(next, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (next) THEN
-         CALL path_sync_children(this%next, intra_comm)
-      END IF
-
-      CALL MPI_BCAST(this%position, 3, MPI_REAL8, 0, intra_comm, error)
-
-#endif
-
-      END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE

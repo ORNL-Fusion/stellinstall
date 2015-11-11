@@ -394,8 +394,7 @@
       INTERFACE vmec_set_magnetic_cache
          MODULE PROCEDURE vmec_set_magnetic_cache_responce,                    &
      &                    vmec_set_magnetic_cache_point,                       &
-     &                    vmec_set_magnetic_cache_calc,                        &
-     &                    vmec_set_magnetic_cache_sync
+     &                    vmec_set_magnetic_cache_calc
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -445,15 +444,6 @@
      &                    vmec_get_p_radial
       END INTERFACE
 
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref vmec_construct types using
-!>  @ref vmec_construct_new or @ref vmec_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE vmec_construct
-         MODULE PROCEDURE vmec_construct_new,                                  &
-     &                    vmec_construct_mpi
-      END INTERFACE
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -474,11 +464,12 @@
 !>  @param[in] z_offset   Initial Z offset of the plasma relative to the
 !>                        machine center.
 !>  @param[in] iou        Input/output unit to log messages to.
+!>  @param[in] vmec_comm MPI communicator pool for VMEC.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct_new(file_name, wout_file_name,                   &
-     &                            ne, te, sxrem, phi_offset,                   &
-     &                            z_offset, pol_rad_ratio, iou)
+      FUNCTION vmec_construct(file_name, wout_file_name, ne, te, sxrem,        &
+     &                        phi_offset, z_offset, pol_rad_ratio, iou,        &
+     &                        vmec_comm)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -488,7 +479,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER           :: vmec_construct_new
+      TYPE (vmec_class), POINTER           :: vmec_construct
       CHARACTER (len=*), INTENT(in)        :: file_name
       CHARACTER (len=*), INTENT(in)        :: wout_file_name
       TYPE (pprofile_class), POINTER       :: ne
@@ -498,6 +489,7 @@
       REAL (rprec), INTENT(in)             :: z_offset
       REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
+      INTEGER, INTENT(in)                  :: vmec_comm
 
 !  local variables
       INTEGER, DIMENSION(5)                :: ictrl_array
@@ -513,15 +505,15 @@
       WRITE (iou,*) ' *** Initializing VMEC equilibrium from file ' //         &
      &              TRIM(file_name)
 
-      ALLOCATE(vmec_construct_new)
-      vmec_construct_new%ne => ne
-      vmec_construct_new%te => te
-      vmec_construct_new%sxrem => sxrem
+      ALLOCATE(vmec_construct)
+      vmec_construct%ne => ne
+      vmec_construct%te => te
+      vmec_construct%sxrem => sxrem
 
-      vmec_construct_new%phi_offset = phi_offset
-      vmec_construct_new%z_offset = z_offset
+      vmec_construct%phi_offset = phi_offset
+      vmec_construct%z_offset = z_offset
 
-      vmec_construct_new%pol_rad_ratio = pol_rad_ratio
+      vmec_construct%pol_rad_ratio = pol_rad_ratio
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
@@ -533,15 +525,15 @@
 
       l_v3fit = .true.
 
-      vmec_construct_new%vmec_file_name = TRIM(file_name)
+      vmec_construct%vmec_file_name = TRIM(file_name)
 
       IF (wout_file_name .ne. '') THEN
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
-         vmec_construct_new%wout_file_name = wout_file_name
+         vmec_construct%wout_file_name = wout_file_name
          CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
 
-         CALL read_wout_file(vmec_construct_new%wout_file_name, error)
+         CALL read_wout_file(vmec_construct%wout_file_name, error)
          CALL assert_eq(error, 0, 'Error loading initialized ' //              &
      &                            'wout file.')
          CALL LoadRZL
@@ -557,10 +549,10 @@
             index_dat = INDEX(file_name, 'input.')
             index_end = LEN_TRIM(file_name)
             IF (index_dat .gt. 0) THEN
-               vmec_construct_new%wout_file_name = 'wout_' //                  &
+               vmec_construct%wout_file_name = 'wout_' //                  &
      &            TRIM(file_name(index_dat + 6:index_end)) // '.nc'
             ELSE
-               vmec_construct_new%wout_file_name = 'wout_' //                  &
+               vmec_construct%wout_file_name = 'wout_' //                  &
      &            TRIM(file_name(1:index_end)) // '.nc'
             END IF
 
@@ -570,117 +562,11 @@
 
       END SELECT
 
-      vmec_construct_new%vmec_context_save => vmec_context_construct()
+      vmec_construct%vmec_context_save => vmec_context_construct()
 
-      vmec_construct_new%ns_index = MAXLOC(ns_array, 1)
+      vmec_construct%ns_index = MAXLOC(ns_array, 1)
 
       CALL profiler_set_stop_time('vmec_construct', start_time)
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref vmec_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
-!>  for one iteration to initialize all the input parameters. Defined in
-!>  @ref vmec_input.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref vmec_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION vmec_construct_mpi(intra_comm)
-      USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
-     &                       successful_term_flag, norm_term_flag,             &
-     &                       more_iter_flag
-      USE vmec_input, only: l_v3fit, ns_array
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vmec_class), POINTER :: vmec_construct_mpi
-      INTEGER, INTENT(in)        :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                    :: error
-      INTEGER, DIMENSION(5)      :: ictrl_array
-      INTEGER                    :: index_dat, index_end
-      INTEGER                    :: i, num_sxrem
-      LOGICAL                    :: use_cache
-
-!  Start of executable code
-      ALLOCATE(vmec_construct_mpi)
-
-      CALL MPI_BCAST(vmec_construct_mpi%phi_offset, 1, MPI_REAL8, 0,           &
-     &               intra_comm, error)
-      CALL MPI_BCAST(vmec_construct_mpi%z_offset, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(vmec_construct_mpi%pol_rad_ratio, 1, MPI_REAL8, 0,        &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(vmec_construct_mpi%vmec_file_name,                        &
-     &               data_filename_length, MPI_CHARACTER, 0,                   &
-     &               intra_comm, error)
-
-      vmec_construct_mpi%ne => pprofile_construct(intra_comm)
-      vmec_construct_mpi%te => pprofile_construct(intra_comm)
-
-      CALL MPI_BCAST(num_sxrem, 1, MPI_INTEGER, 0, intra_comm, error)
-      ALLOCATE(vmec_construct_mpi%sxrem(num_sxrem))
-      DO i = 1, num_sxrem
-         vmec_construct_mpi%sxrem(i)%p => pprofile_construct(intra_comm)
-      END DO
-
-      CALL MPI_BCAST(vmec_construct_mpi%ns_index, 1, MPI_INTEGER, 0,           &
-     &               intra_comm, error)
-
-!  Initialize VMEC by taking a single step.
-      ictrl_array = 0
-      ictrl_array(1) = IOR(ictrl_array(1), restart_flag)
-      ictrl_array(1) = IOR(ictrl_array(1), readin_flag)
-      ictrl_array(1) = IOR(ictrl_array(1), timestep_flag)
-      ictrl_array(3) = 1 ! Run for one iteration.
-      ictrl_array(4) = vmec_construct_mpi%ns_index
-
-      l_v3fit = .true.
-
-      CALL runvmec(ictrl_array, vmec_construct_mpi%vmec_file_name,             &
-     &             .false.)
-
-!  Check for errors in runvmec.
-      SELECT CASE (ictrl_array(2))
-
-         CASE (successful_term_flag, norm_term_flag, more_iter_flag)
-!  Set the wout file name.
-            index_dat = INDEX(vmec_construct_mpi%vmec_file_name,               &
-     &                        'input.')
-            index_end = LEN_TRIM(vmec_construct_mpi%vmec_file_name)
-            IF (index_dat .gt. 0) THEN
-               vmec_construct_mpi%wout_file_name = 'wout_' //                  &
-     &            TRIM(vmec_construct_mpi%vmec_file_name(                      &
-     &                    index_dat + 6:index_end)) // '.nc'
-            ELSE
-               vmec_construct_mpi%wout_file_name = 'wout_' //                  &
-     &            TRIM(vmec_construct_mpi%vmec_file_name(                      &
-     &                    1:index_end)) // '.nc'
-            END IF
-
-         CASE DEFAULT
-            CALL err_fatal('vmec_construct runvmec command failed ',           &
-     &                     int = ictrl_array(2))
-
-      END SELECT
-
-      vmec_construct_mpi%vmec_context_save => vmec_context_construct()
-
-      vmec_construct_mpi%ns_index = MAXLOC(ns_array, 1)
-
-      CALL MPI_BCAST(use_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (use_cache) THEN
-         ALLOCATE(vmec_construct_mpi%magnetic_cache)
-         CALL vmec_set_magnetic_cache(vmec_construct_mpi, intra_comm)
-      END IF
-#endif
 
       END FUNCTION
 
@@ -1240,175 +1126,6 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Sync the magnetic cache.
-!>
-!>  This syncronizes the magnetic cache when spawning external mpi processes.
-!>
-!>  @param[inout] this       A @ref vmec_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE vmec_set_magnetic_cache_sync(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vmec_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)              :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER, DIMENSION(3)            :: dim_lengths
-      INTEGER                          :: error
-
-!  Start of executable code.
-
-!  Grid sizes.
-      CALL MPI_BCAST(this%magnetic_cache%ds, 1, MPI_REAL8, 0,                  &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%magnetic_cache%du, 1, MPI_REAL8, 0,                  &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%magnetic_cache%dv, 1, MPI_REAL8, 0,                  &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(this%magnetic_cache%du_a, 1, MPI_REAL8, 0,                &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%magnetic_cache%dv_a, 1, MPI_REAL8, 0,                &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(this%magnetic_cache%du_full, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%magnetic_cache%dv_full, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-
-!  Plasma resonse arrays.
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%rsuv)) THEN
-         dim_lengths = SHAPE(this%magnetic_cache%rsuv)
-      END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      IF (PRODUCT(dim_lengths) .gt. 0) THEN
-         IF (.not.ASSOCIATED(this%magnetic_cache%rsuv)) THEN
-            ALLOCATE(this%magnetic_cache%rsuv(dim_lengths(1),                  &
-     &                                        dim_lengths(2),                  &
-     &                                        dim_lengths(3)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%zsuv)) THEN
-            ALLOCATE(this%magnetic_cache%zsuv(dim_lengths(1),                  &
-     &                                        dim_lengths(2),                  &
-     &                                        dim_lengths(3)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%jrsuv)) THEN
-            ALLOCATE(this%magnetic_cache%jrsuv(dim_lengths(1),                 &
-     &                                         dim_lengths(2),                 &
-     &                                         dim_lengths(3)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%jphisuv)) THEN
-            ALLOCATE(this%magnetic_cache%jphisuv(dim_lengths(1),               &
-     &                                           dim_lengths(2),               &
-     &                                           dim_lengths(3)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%jzsuv)) THEN
-            ALLOCATE(this%magnetic_cache%jzsuv(dim_lengths(1),                 &
-     &                                         dim_lengths(2),                 &
-     &                                         dim_lengths(3)))
-         END IF
-      END IF
-
-!  Conducting shell arrays.
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%kruv)) THEN
-         dim_lengths(1:2) = SHAPE(this%magnetic_cache%kruv)
-      END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,          &
-     &               error)
-      IF (PRODUCT(dim_lengths(1:2)) .gt. 0) THEN
-         IF (.not.ASSOCIATED(this%magnetic_cache%kruv)) THEN
-            ALLOCATE(this%magnetic_cache%kruv(dim_lengths(1),                  &
-     &                                        dim_lengths(2)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%kphiuv)) THEN
-            ALLOCATE(this%magnetic_cache%kphiuv(dim_lengths(1),                &
-     &                                          dim_lengths(2)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%kzuv)) THEN
-            ALLOCATE(this%magnetic_cache%kzuv(dim_lengths(1),                  &
-     &                                        dim_lengths(2)))
-         END IF
-      END IF
-
-!  Point virtual casing arrays.
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
-         dim_lengths(1:2) = SHAPE(this%magnetic_cache%kxuv_full)
-      END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,          &
-     &               error)
-      IF (PRODUCT(dim_lengths(1:2)) .gt. 0) THEN
-         IF (.not.ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
-            ALLOCATE(this%magnetic_cache%kxuv_full(dim_lengths(1),             &
-     &                                           dim_lengths(2)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%kyuv_full)) THEN
-            ALLOCATE(this%magnetic_cache%kyuv_full(dim_lengths(1),             &
-     &                                             dim_lengths(2)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_full)) THEN
-            ALLOCATE(this%magnetic_cache%kzuv_full(dim_lengths(1),             &
-     &                                             dim_lengths(2)))
-         END IF
-      END IF
-
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%x_prime)) THEN
-         dim_lengths = SHAPE(this%magnetic_cache%x_prime)
-      END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      IF (PRODUCT(dim_lengths) .gt. 0 .and.                                    &
-     &    .not.ASSOCIATED(this%magnetic_cache%x_prime)) THEN
-         ALLOCATE(this%magnetic_cache%x_prime(dim_lengths(1),                  &
-     &                                        dim_lengths(2),                  &
-     &                                        dim_lengths(3)))
-      END IF
-
-!  Point axisymmtric virtual casing arrays.
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%kxuv_axi)) THEN
-         dim_lengths(1:2) = SHAPE(this%magnetic_cache%kxuv_axi)
-      END IF
-      CALL MPI_BCAST(dim_lengths(1:2), 2, MPI_INTEGER, 0, intra_comm,          &
-     &               error)
-      IF (PRODUCT(dim_lengths(1:2)) .gt. 0) THEN
-         IF (.not.ASSOCIATED(this%magnetic_cache%kxuv_axi)) THEN
-            ALLOCATE(this%magnetic_cache%kxuv_axi(dim_lengths(1),              &
-     &                                            dim_lengths(2)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%kyuv_axi)) THEN
-            ALLOCATE(this%magnetic_cache%kyuv_axi(dim_lengths(1),              &
-     &                                            dim_lengths(2)))
-         END IF
-         IF (.not.ASSOCIATED(this%magnetic_cache%kzuv_axi)) THEN
-            ALLOCATE(this%magnetic_cache%kzuv_axi(dim_lengths(1),              &
-     &                                            dim_lengths(2)))
-         END IF
-      END IF
-
-      dim_lengths = 0
-      IF (ASSOCIATED(this%magnetic_cache%x_axi)) THEN
-         dim_lengths = SHAPE(this%magnetic_cache%x_axi)
-      END IF
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      IF (PRODUCT(dim_lengths) .gt. 0 .and.                                    &
-     &    .not.ASSOCIATED(this%magnetic_cache%x_axi)) THEN
-         ALLOCATE(this%magnetic_cache%x_axi(dim_lengths(1),                    &
-     &                                      dim_lengths(2),                    &
-     &                                      dim_lengths(3)))
-      END IF
-
-#endif
-
-      END SUBROUTINE
-
-!-------------------------------------------------------------------------------
 !>  @brief Set magnetic cache initialy.
 !>
 !>  After the equilibrium has been converged calculate the r, z, jr, jphi and
@@ -1454,7 +1171,7 @@
 !  Start of executable code.
       start_time = profiler_get_start_time()
 
-!  Only generate the magnetic caches if the woutfile is has been opened. This
+!  Only generate the magnetic caches if the woutfile has been opened. This
 !  prevents a segfaults when the child processes sync the phi_edge and z_offset
 !  parameters before the first reconstruction step when no wout file exists in
 !  the child process working directory.
@@ -3998,12 +3715,13 @@
 !>  vmec equilibrium and loads the resulting wout file in preparation of
 !>  computing modeled signals.
 !>
-!>  @param[inout] this     A @ref vmec_class instance.
-!>  @param[inout] num_iter Counter to track the number of iterations.
-!>  @param[in]    iou      Input/Output unit of the runlog file.
+!>  @param[inout] this      A @ref vmec_class instance.
+!>  @param[inout] num_iter  Counter to track the number of iterations.
+!>  @param[in]    iou       Input/Output unit of the runlog file.
+!>  @param[in]    vmec_comm MPI communicator pool for VMEC.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_converge(this, num_iter, iou)
+      FUNCTION vmec_converge(this, num_iter, iou, vmec_comm)
       USE vmec_input, only: delt, niter, raxis_cc, raxis_cs,                   &
      &                      zaxis_cc, zaxis_cs
       USE vmec_params, only: timestep_flag, output_flag,                       &
@@ -4021,6 +3739,7 @@
       TYPE (vmec_class), INTENT(inout)   :: this
       INTEGER, INTENT(inout)             :: num_iter
       INTEGER, INTENT(in)                :: iou
+      INTEGER, INTENT(in)                :: vmec_comm
 
 !  local variables
 !  delt_local   Value of delt on entry. Store, for restoration after error
@@ -4623,86 +4342,6 @@
 !*******************************************************************************
 !  MPI SUBROUTINES
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref vmec_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE vmec_sync_children(this, intra_comm)
-      USE file_opts
-      USE vmec_input, only: lfreeb, mgrid_file
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vmec_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)              :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                          :: error
-      INTEGER                          :: i
-      INTEGER                          :: num_sxrem
-      INTEGER                          :: mpi_rank
-      INTEGER                          :: mpi_size
-      LOGICAL                          :: sync_cache
-
-!  Start of executable code
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
-
-!  Check all relevant files for relative paths and copy them to the sub process
-!  directories. This should only be handeled by the main process.
-      IF (mpi_rank .eq. 0) THEN
-         IF (.not.is_absolute_path(this%vmec_file_name)) THEN
-            DO i = 2, mpi_size
-               CALL copy_file(this%vmec_file_name, process_dir(i),             &
-     &                        error)
-            END DO
-         END IF
-
-         IF (lfreeb .and. .not.is_absolute_path(mgrid_file)) THEN
-            DO i = 2, mpi_size
-               CALL copy_file(mgrid_file, process_dir(i), error)
-            END DO
-         END IF
-      END IF
-
-      CALL MPI_BCAST(this%phi_offset, 1, MPI_REAL8, 0, intra_comm,             &
-     &               error)
-      CALL MPI_BCAST(this%z_offset, 1, MPI_REAL8, 0, intra_comm, error)
-
-      CALL MPI_BCAST(this%pol_rad_ratio, 1, MPI_REAL8, 0, intra_comm,          &
-     &               error)
-
-      CALL MPI_BCAST(this%vmec_file_name, data_filename_length,                &
-     &               MPI_CHARACTER, 0, intra_comm, error)
-
-      CALL pprofile_sync_children(this%ne, intra_comm)
-      CALL pprofile_sync_children(this%te, intra_comm)
-
-      num_sxrem = SIZE(this%sxrem)
-      CALL MPI_BCAST(num_sxrem, 1, MPI_INTEGER, 0, intra_comm, error)
-      DO i = 1, num_sxrem
-         CALL pprofile_sync_children(this%sxrem(i)%p, intra_comm)
-      END DO
-
-      CALL MPI_BCAST(this%ns_index, 1, MPI_INTEGER, 0, intra_comm,             &
-     &               error)
-
-      sync_cache = ASSOCIATED(this%magnetic_cache)
-      CALL MPI_BCAST(sync_cache, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (sync_cache) THEN
-         CALL vmec_set_magnetic_cache(this, intra_comm)
-      END IF
-#endif
-
-      END SUBROUTINE
-
 !-------------------------------------------------------------------------------
 !>  @brief Syncronize the vmec state to children.
 !>

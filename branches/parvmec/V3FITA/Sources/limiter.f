@@ -66,8 +66,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE limiter_construct
          MODULE PROCEDURE limiter_construct_iso,                               &
-     &                    limiter_construct_polygon,                           &
-     &                    limiter_construct_mpi
+     &                    limiter_construct_polygon
       END INTERFACE
 
       CONTAINS
@@ -144,46 +143,6 @@
 
       CALL profiler_set_stop_time('limiter_construct_polygon',                 &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref limiter_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref limiter_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref limiter_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION limiter_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_class), POINTER :: limiter_construct_mpi
-      INTEGER, INTENT(in)           :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                       :: error
-
-!  Start of executable code
-      ALLOCATE(limiter_construct_mpi)
-
-      CALL MPI_BCAST(limiter_construct_mpi%type, 1, MPI_INTEGER, 0,            &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_construct_mpi%on_edge, 1, MPI_LOGICAL, 0,         &
-     &               intra_comm, error)
-
-      SELECT CASE (limiter_construct_mpi%type)
-
-         CASE (limiter_iso_type)
-            limiter_construct_mpi%iso =>                                       &
-     &         limiter_iso_construct(intra_comm)
-
-      END SELECT
-
-#endif
 
       END FUNCTION
 
@@ -343,49 +302,6 @@
       CALL profiler_set_stop_time('limiter_get_header', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref limiter_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE limiter_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                 :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                             :: error
-      REAL (rprec)                        :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%on_edge, 1, MPI_LOGICAL, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (limiter_iso_type)
-            CALL limiter_iso_sync_children(this%iso, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('limiter_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE

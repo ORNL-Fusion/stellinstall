@@ -64,8 +64,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE intpol_construct
          MODULE PROCEDURE intpol_construct_int,                                &
-     &                    intpol_construct_pol,                                &
-     &                    intpol_construct_mpi
+     &                    intpol_construct_pol
       END INTERFACE
 
       PRIVATE :: int_function, pol_function
@@ -154,43 +153,6 @@
       intpol_construct_pol%in_degrees = in_degrees
 
       CALL profiler_set_stop_time('intpol_construct_pol', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref intpol_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref intpol_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref intpol_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION intpol_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (intpol_class), POINTER :: intpol_construct_mpi
-
-      INTEGER, INTENT(in)          :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                      :: error
-
-!  Start of executable code
-      ALLOCATE(intpol_construct_mpi)
-
-      intpol_construct_mpi%chord_path => path_construct(intra_comm)
-
-      CALL MPI_BCAST(intpol_construct_mpi%type, 1, MPI_INTEGER, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(intpol_construct_mpi%wavelength, 1, MPI_REAL8,            &
-     &               0, intra_comm, error)
-      CALL MPI_BCAST(intpol_construct_mpi%in_degrees, 1, MPI_LOGICAL,          &
-     &               0, intra_comm, error)
-
-#endif
 
       END FUNCTION
 
@@ -323,46 +285,6 @@
       CALL profiler_set_stop_time('intpol_get_signal_type', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref intpol_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE intpol_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (intpol_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                            :: error
-      REAL (rprec)                       :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL path_sync_children(this%chord_path, intra_comm)
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%wavelength, 1, MPI_REAL8, 0, intra_comm,             &
-     &               error)
-      CALL MPI_BCAST(this%in_degrees, 1, MPI_LOGICAL, 0, intra_comm,           &
-     &               error)
-
-      CALL profiler_set_stop_time('intpol_sync_children', start_time)
-#endif
-
-       END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE

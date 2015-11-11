@@ -93,8 +93,7 @@
      &                    diagnostic_construct_intpol,                         &
      &                    diagnostic_construct_thomson,                        &
      &                    diagnostic_construct_extcurz,                        &
-     &                    diagnostic_construct_mse,                            &
-     &                    diagnostic_construct_mpi
+     &                    diagnostic_construct_mse
       END INTERFACE
 
       CONTAINS
@@ -291,60 +290,6 @@
 
       CALL profiler_set_stop_time('diagnostic_construct_mse',                  &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref diagnostic_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref diagnostic_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref diagnostic_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION diagnostic_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (diagnostic_class), POINTER :: diagnostic_construct_mpi
-      INTEGER, INTENT(in)              :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                          :: error
-
-!  Start of executable code
-      ALLOCATE(diagnostic_construct_mpi)
-
-      CALL MPI_BCAST(diagnostic_construct_mpi%type, 1, MPI_INTEGER, 0,         &
-     &               intra_comm, error)
-
-      SELECT CASE (diagnostic_construct_mpi%type)
-
-         CASE (diagnostic_magnetic_type)
-            diagnostic_construct_mpi%magnetic =>                               &
-     &         magnetic_construct(intra_comm)
-
-         CASE (diagnostic_sxrem_type)
-            diagnostic_construct_mpi%sxrem =>                                  &
-     &         sxrem_construct(intra_comm)
-
-         CASE (diagnostic_intpol_type)
-            diagnostic_construct_mpi%intpol =>                                 &
-     &         intpol_construct(intra_comm)
-
-         CASE (diagnostic_thomson_type)
-            diagnostic_construct_mpi%thomson =>                                &
-     &         thomson_construct(intra_comm)
-
-         CASE (diagnostic_extcurz_type)
-            diagnostic_construct_mpi%extcurz =>                                &
-     &         extcurz_construct(intra_comm)
-
-      END SELECT
-
-#endif
 
       END FUNCTION
 
@@ -584,63 +529,5 @@
       CALL profiler_set_stop_time('diagnostic_get_header', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref diagnostic_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE diagnostic_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (diagnostic_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                    :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                                :: error
-      REAL (rprec)                           :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (diagnostic_magnetic_type)
-            CALL magnetic_sync_children(this%magnetic, intra_comm)
-
-         CASE (diagnostic_sxrem_type)
-            CALL sxrem_sync_children(this%sxrem, intra_comm)
-
-         CASE (diagnostic_intpol_type)
-            CALL intpol_sync_children(this%intpol, intra_comm)
-
-         CASE (diagnostic_thomson_type)
-            CALL thomson_sync_children(this%thomson, intra_comm)
-
-         CASE (diagnostic_extcurz_type)
-            CALL extcurz_sync_children(this%extcurz, intra_comm)
-
-		 CASE (diagnostic_mse_type)
-            CALL mse_sync_children(this%mse, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('diagnostic_sync_children',                  &
-     &                            start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE

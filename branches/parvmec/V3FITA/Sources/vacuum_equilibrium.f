@@ -69,15 +69,6 @@
          REAL (rprec), DIMENSION(:), POINTER  :: extcur => null()
       END TYPE
 
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref vacuum_construct types using
-!>  @ref vacuum_construct_new or @ref vacuum_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE vacuum_construct
-         MODULE PROCEDURE vacuum_construct_new,                                &
-     &                    vacuum_construct_mpi
-      END INTERFACE
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -90,13 +81,13 @@
 !>  @param[in] iou       Input/output unit to log messages to.
 !>  @returns A pointer to a constructed @ref vacuum_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vacuum_construct_new(file_name, iou)
+      FUNCTION vacuum_construct(file_name, iou)
       USE vacuum_input
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vacuum_class), POINTER  :: vacuum_construct_new
+      TYPE (vacuum_class), POINTER  :: vacuum_construct
       CHARACTER (len=*), INTENT(in) :: file_name
       INTEGER, INTENT(in)           :: iou
 
@@ -115,17 +106,17 @@
       WRITE (iou,*) ' *** Initializing vacuum equilibrium from file ' //       &
      &              TRIM(file_name)
 
-      ALLOCATE(vacuum_construct_new)
+      ALLOCATE(vacuum_construct)
 
-      vacuum_construct_new%vacuum_file_name = file_name
+      vacuum_construct%vacuum_file_name = file_name
       CALL vacuum_input_read_namelist(file_name)
 
-      ALLOCATE(vacuum_construct_new%extcur(n_extcur))
-      vacuum_construct_new%extcur = extcur(1:n_extcur)
+      ALLOCATE(vacuum_construct%extcur(n_extcur))
+      vacuum_construct%extcur = extcur(1:n_extcur)
 
       CALL parse_coils_file(coils_dot_file)
 
-      DO i = 1, SIZE(vacuum_construct_new%extcur)
+      DO i = 1, SIZE(vacuum_construct%extcur)
 
 !  Compute the current averaged center of the coil group.
          center = 0.0
@@ -157,83 +148,7 @@
          CALL bsc_rot_shift(coil_group(i), bsc_rs_object)
       END DO
 
-      CALL profiler_set_stop_time('vacuum_construct_new', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref vacuum_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref vacuum_class object. This also
-!>  constructs all of the coils.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref vacuum_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION vacuum_construct_mpi(intra_comm)
-      USE vacuum_input
-
-!  Declare Arguments
-      TYPE (vacuum_class), POINTER :: vacuum_construct_mpi
-      INTEGER, INTENT(in)          :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                      :: error
-      TYPE (bsc_rs)                :: bsc_rs_object
-      REAL (rprec), DIMENSION(3)   :: center, mean_r
-      REAL (rprec)                 :: total_current
-      INTEGER                      :: i, j
-
-!  Start of executable code
-      ALLOCATE(vacuum_construct_mpi)
-
-      CALL MPI_BCAST(vacuum_construct_mpi%vacuum_file_name,                    &
-     &               data_filename_length, MPI_CHARACTER, 0,                   &
-     &               intra_comm, error)
-
-      CALL vacuum_input_read_namelist(                                         &
-     &   TRIM(vacuum_construct_mpi%vacuum_file_name))
-      ALLOCATE(vacuum_construct_mpi%extcur(n_extcur))
-
-      CALL MPI_BCAST(vacuum_construct_mpi%extcur, n_extcur,                    &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-      CALL parse_coils_file(coils_dot_file)
-
-      DO i = 1, SIZE(vacuum_construct_mpi%extcur)
-
-!  Compute the current averaged center of the coil group.
-         center = 0.0
-         total_current = 0.0
-         IF (l_rot_coil_center(i)) THEN
-            center = cg_rot_xcent(i,:)
-         ELSE
-            DO j = 1, coil_group(i)%ncoil
-               total_current = total_current                                   &
-     &                       + coil_group(i)%coils(j)%current
-               CALL bsc_mean_r(coil_group(i)%coils(j), mean_r)
-               center = center + mean_r*coil_group(i)%coils(j)%current
-            END DO
-            IF (total_current .ne. 0.0) THEN
-               center = center/total_current
-            END IF
-         END IF
-
-!  Generate bsc_rs for first shift, and apply it.
-         CALL bsc_construct_rs(bsc_rs_object, 0.0_dp, 0.0_dp, 0.0_dp,          &
-     &                         (/ 0.0_dp, 0.0_dp, 0.0_dp /),                   &
-     &                         cg_shift_1(i,:))
-         CALL bsc_rot_shift(coil_group(i), bsc_rs_object)
-
-!  Generate bsc_rs for second shift, and apply it.
-         CALL bsc_construct_rs(bsc_rs_object, cg_rot_theta(i),                 &
-     &                         cg_rot_phi(i), cg_rot_angle(i),                 &
-     &                         center, cg_shift_2(i,:))
-         CALL bsc_rot_shift(coil_group(i), bsc_rs_object)
-      END DO
-
-#endif
+      CALL profiler_set_stop_time('vacuum_construct', start_time)
 
       END FUNCTION
 
@@ -699,69 +614,6 @@
       CALL profiler_set_stop_time('vacuum_write_input', start_time)
 
 1000  FORMAT(a,'_',i0.3)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref vacuum_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE vacuum_sync_children(this, intra_comm)
-      USE file_opts
-      USE vacuum_input
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vacuum_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                            :: error
-      INTEGER                            :: i
-      INTEGER                            :: num_sxrem
-      INTEGER                            :: mpi_rank
-      INTEGER                            :: mpi_size
-      REAL (rprec)                       :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
-
-      IF (mpi_rank .eq. 0) THEN
-         IF (.not.is_absolute_path(this%vacuum_file_name)) THEN
-            DO i = 2, mpi_size
-               CALL copy_file(this%vacuum_file_name, process_dir(i),           &
-     &                        error)
-            END DO
-         END IF
-
-         IF (.not.is_absolute_path(coils_dot_file)) THEN
-            DO i = 2, mpi_size
-               CALL copy_file(coils_dot_file, process_dir(i), error)
-            END DO
-         END IF
-      END IF
-
-      CALL MPI_BCAST(this%vacuum_file_name, data_filename_length,              &
-     &               MPI_CHARACTER, 0, intra_comm, error)
-
-      CALL MPI_BCAST(this%extcur, n_extcur, MPI_REAL8, 0, intra_comm,          &
-     &               error)
-
-      CALL profiler_set_stop_time('vacuum_sync_children', start_time)
-#endif
 
       END SUBROUTINE
 

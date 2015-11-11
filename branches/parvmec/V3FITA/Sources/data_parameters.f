@@ -32,9 +32,11 @@
 
 !  MPI task parameters.
 !>  Compute the jacobian task.
-      INTEGER, PARAMETER :: mpi_jacobian_task = 0
+      INTEGER, PARAMETER           :: mpi_jacobian_task    = 0
+!>  Run the equilibrium task.
+      INTEGER, PARAMETER           :: mpi_equilibrium_task = 1
 !>  Quit child process task.
-      INTEGER, PARAMETER :: mpi_quit_task     = 1
+      INTEGER, PARAMETER           :: mpi_quit_task        = 2
 
 !>  Directory prefix name.
       CHARACTER (len=*), PARAMETER :: dir_prefix = 'process_dir'

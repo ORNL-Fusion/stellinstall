@@ -276,9 +276,9 @@
       END IF
 
 #if defined(WIN32)
-      build_path = TRIM(path) // '\' // name
+      build_path = TRIM(path) // '\' // TRIM(name)
 #else
-      build_path = TRIM(path) // '/' // name
+      build_path = TRIM(path) // '/' // TRIM(name)
 #endif
 
       END FUNCTION

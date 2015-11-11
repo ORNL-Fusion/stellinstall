@@ -20,6 +20,12 @@ project (v3fit_suite Fortran C CXX)
 
 enable_testing ()
 
+# Activate or Deactivate PARVMEC. PARVMEC maybe activated by setting -DUSE_PARVMEC=ON on the cmake command line.
+OPTION (USE_PARVMEC "Activate code parvmec." OFF)
+if (USE_PARVMEC)
+        add_definitions (-DSKS)
+endif ()
+
 # Activate or Deactivate code profiling. The profiler maybe activated by setting -DUSE_PROFILER=ON on the cmake command line.
 OPTION (USE_PROFILER "Activate code profiling." OFF)
 if (USE_PROFILER)
