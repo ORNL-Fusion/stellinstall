@@ -14,10 +14,8 @@
      1     nfev, m, n, iflag, fcn)
       USE fdjac_mod, ONLY: flag_cleanup
       USE mpi_params
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'                                       !mpi stuff
-#endif
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------

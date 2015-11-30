@@ -13,10 +13,8 @@
      1           iflag, ncnt, epsfcn, fnorm_min, x_min, wa)
       USE stel_kinds
       USE mpi_params
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
-#endif
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
@@ -274,10 +272,8 @@ c
      1           iflag, ncnt, epsfcn, fnorm_min, x_min, wa)
       USE stel_kinds
       USE mpi_params
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
-#endif
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------

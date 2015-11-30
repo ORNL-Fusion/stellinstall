@@ -58,10 +58,8 @@
       USE de_mod, ONLY: ui_XC, nopt
       USE gade_mod, ONLY : save_space
       USE mpi_params, ONLY: master, myid
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
-#endif
 
       INTEGER, INTENT(in) :: NP, Dim_XC, itermax, strategy,             &
                              CR_strategy, iwrite, irestart, refresh

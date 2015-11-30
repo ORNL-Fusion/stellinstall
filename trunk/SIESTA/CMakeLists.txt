@@ -1,0 +1,46 @@
+# Create an empty variable to hold all the source files.
+set (siesta_sources "")
+
+find_library (SCALAPACK_LIB NAMES scalapack)
+
+# Add subdirectory for all the sources.
+add_subdirectory (Sources)
+
+# Define an executable and link all libraries.
+add_executable (xsiesta ${siesta_sources})
+add_dependencies (xsiesta stell)
+target_link_libraries (xsiesta stell)
+set_target_properties (xsiesta PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY}/xsiesta)
+set_target_properties (xsiesta PROPERTIES COMPILE_DEFINITIONS "SKS")
+
+if (MPI_Fortran_FOUND)
+        if (CMAKE_VERSION VERSION_GREATER "2.8.8")
+                set_target_properties (xsiesta PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_MODULE_DIRECTORY}/stell;${MPI_Fortran_INCLUDE_PATH}")
+        else ()
+                set (mpi_include "")
+                FOREACH (path ${MPI_Fortran_INLUCDE_PATH})
+                        set (mpi_include "${mpi_include} -I${path}")
+                ENDFOREACH (path)
+                set_target_properties (xsiesta PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell ${mpi_inlcude}")
+        endif ()
+else ()
+        if (CMAKE_VERSION VERSION_GREATER "2.8.8")
+                set_target_properties (xsiesta PROPERTIES INCLUDE_DIRECTORIES "${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+        else ()
+                set_target_properties (xsiesta PROPERTIES COMPILE_FLAGS "-I${CMAKE_Fortran_MODULE_DIRECTORY}/stell")
+        endif ()
+endif ()
+
+target_link_libraries (xsiesta ${NETCDF_LIBRARIES})
+if (MPI_Fortran_FOUND)
+        target_link_libraries (xsiesta ${MPI_Fortran_LIBRARIES})
+endif ()
+if (BLAS_FOUND)
+        target_link_libraries (xsiesta ${BLAS_LIBRARIES})
+endif ()
+if (LAPACK_FOUND)
+        target_link_libraries (xsiesta ${LAPACK_LIBRARIES})
+endif ()
+if (SCALAPACK_LIB)
+        target_link_libraries (xsiesta ${SCALAPACK_LIB})
+endif ()

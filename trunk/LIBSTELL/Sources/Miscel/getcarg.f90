@@ -27,10 +27,12 @@
       INTEGER ipxfargc
       numargs = ipxfargc()
       CALL pxfgetarg(narg, arg, numchars, ier)
+#elif defined(MACOSX)
+      numargs = command_argument_count()
+      CALL get_command_argument(narg,arg)
 #else
       INTEGER iargc, getarg
       numargs = iargc()
       numchars = getarg(narg, arg)
 #endif
-
       END SUBROUTINE getcarg

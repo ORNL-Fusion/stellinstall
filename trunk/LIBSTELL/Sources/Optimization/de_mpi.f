@@ -1,10 +1,8 @@
       SUBROUTINE de_mpi(np, fcn, funcval)
       USE de_mod
       USE mpi_params
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
-#endif
       INTEGER :: np
       REAL(rprec) :: funcval(np)
       EXTERNAL fcn

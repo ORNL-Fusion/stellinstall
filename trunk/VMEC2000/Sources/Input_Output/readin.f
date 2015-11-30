@@ -27,7 +27,8 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: iexit, ipoint, n, iunit, ier_flag_init,
-     1   i, ni, m, nsmin, igrid, mj, isgn, ioff, joff
+     1   i, ni, m, nsmin, igrid, mj, isgn, ioff, joff,
+     2   NonZeroLen
       REAL(rprec), DIMENSION(:,:), POINTER ::
      1  rbcc, rbss, rbcs, rbsc, zbcs, zbsc, zbcc, zbss
       REAL(rprec) :: rtest, ztest, tzc, trc, delta, sumphi
@@ -129,7 +130,7 @@ C-----------------------------------------------
 !                solver is turned on, if requested via type_prec2d
 !
 !   Character parameters
-!  mgrid_file:   full path for vacuum Green''s function data
+!  mgrid_file:   full path for vacuum Green's function data
 !  pcurr_type:   Specifies parameterization type of pcurr function
 !                  'power_series' - I'(s)=Sum[ ac(j) s ** j] - Default
 !                  'gauss_trunc'  - I'(s)=ac(0) (exp(-(s/ac(1)) ** 2) - 
@@ -265,19 +266,6 @@ C-----------------------------------------------
 !
       CALL heading(input_extension, time_slice,
      1             iseq_count, lmac, lscreen)
-
-!     DO NOT CHANGE ENV VARIABLE (IMPORTANT IF VMEC CALLED
-!     EXTERNALLY), RATHER SET IT ON A PER LOOP BASIS
-#ifdef _OPENMP
-!     CALL omp_set_num_threads(OMP_NUM_THREADS)
-!!$OMP PARALLEL
-!         IF (omp_get_thread_num() .EQ. 0) WRITE(*,'(2x,a,i3)')
-!     1   'OPENMP NUMBER THREADS: ',omp_get_num_threads()
-!!$OMP END PARALLEL
-      WRITE(6,'(2x,a,i3)')'OPENMP NUMBER THREADS: ',omp_num_threads
-      WRITE(nthreed,'(1x,a,i3)') 'OPENMP NUMBER THREADS: ',
-     1                            omp_num_threads
-#endif
 
 !
 !     READ IN COMMENTS DEMARKED BY "!"
@@ -443,55 +431,66 @@ C-----------------------------------------------
      1  ' (EXPANSION IN NORMALIZED RADIUS):')
  131  FORMAT(' PMASS parameterization type is ''', a,'''')
  132  FORMAT(1x,35('-'))
-
  135  FORMAT(1p,6e12.3)
-      SELECT CASE(TRIM(pmass_type))
-      CASE ('Akima_spline','cubic_spline')
-         WRITE(nthreed,"(' am_aux_s is' )")
-         WRITE(nthreed,135)(am_aux_s(i),i=1, SIZE(am_aux_s))
-         WRITE(nthreed,"(' am_aux_f is' )")
-         WRITE(nthreed,135)(am_aux_f(i),i=1, SIZE(am_aux_f))
-      CASE DEFAULT
-         WRITE(nthreed,135)(am(i-1),i=1, SIZE(am))
-      END SELECT
 
-      IF (ncurr .EQ. 0) THEN
+         SELECT CASE(TRIM(pmass_type))
+         CASE ('Akima_spline','cubic_spline')
+            WRITE(nthreed,"(' am_aux_s is' )")
+            n = NonZeroLen(am_aux_s,SIZE(am_aux_s))
+            WRITE(nthreed,135)(am_aux_s(i),i=1, n)
+            n = NonZeroLen(am_aux_f,SIZE(am_aux_f))
+            WRITE(nthreed,"(' am_aux_f is' )")
+            WRITE(nthreed,135)(am_aux_f(i),i=1, n)
+          CASE DEFAULT
+            n = NonZeroLen(am,SIZE(am))
+            WRITE(nthreed,135)(am(i-1),i=1,n)
+          END SELECT
+
+      IF (ncurr.eq.0) THEN
           IF (lRFP) THEN
              WRITE (nthreed,142)
           ELSE
              WRITE (nthreed,140)
           END IF
 !  Print out ai array          
+!          WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
           WRITE(nthreed,143) TRIM(piota_type)
           SELECT CASE(TRIM(piota_type))
           CASE ('Akima_spline','cubic_spline')
+             n = NonZeroLen(ai_aux_s,SIZE(ai_aux_s))
              WRITE(nthreed,"(' ai_aux_s is' )")
-             WRITE(nthreed,135)(ai_aux_s(i),i=1, SIZE(ai_aux_s))
+             WRITE(nthreed,135)(ai_aux_s(i),i=1, n)
+             n = NonZeroLen(ai_aux_f,SIZE(ai_aux_f))
              WRITE(nthreed,"(' ai_aux_f is' )")
-             WRITE(nthreed,135)(ai_aux_f(i),i=1, SIZE(ai_aux_f))
-          CASE DEFAULT
-             WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
-          END SELECT
+             WRITE(nthreed,135)(ai_aux_f(i),i=1, n)
+           CASE DEFAULT
+             n = NonZeroLen(ai,SIZE(ai))
+             WRITE(nthreed,135)(ai(i-1),i=1, n)
+           END SELECT
       ELSE
 !  Print out ac array
           WRITE(nthreed,145)
           WRITE(nthreed,146) TRIM(pcurr_type)
           WRITE(nthreed,147)
+!          WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
           SELECT CASE(TRIM(pcurr_type))
           CASE ('Akima_spline_Ip','Akima_spline_I',                            &
      &           'cubic_spline_Ip','cubic_spline_I')
+             n = NonZeroLen(ac_aux_s,SIZE(ac_aux_s))
              WRITE(nthreed,"(' ac_aux_s is' )")
-             WRITE(nthreed,135)(ac_aux_s(i),i=1, SIZE(ac_aux_s))
+             WRITE(nthreed,135)(ac_aux_s(i),i=1, n)
+             n = NonZeroLen(ac_aux_f,SIZE(ac_aux_f))
              WRITE(nthreed,"(' ac_aux_f is' )")
-             WRITE(nthreed,135)(ac_aux_f(i),i=1, SIZE(ac_aux_f))
-          CASE DEFAULT
-             WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
-          END SELECT
-      ENDIF
+             WRITE(nthreed,135)(ac_aux_f(i),i=1, n)
+           CASE DEFAULT
+             n = NonZeroLen(ac,SIZE(ac))
+             WRITE(nthreed,135)(ac(i-1),i=1, n)
+           END SELECT
+         END IF
 
  140  FORMAT(/' IOTA PROFILE COEFFICIENTS',
      1   ' (EXPANSION IN NORMALIZED RADIUS):',/,1x,35('-'))
- 142  FORMAT(/' SAFETY-FACTOR (q) PROFILE COEFFICIENTS',
+ 142  FORMAT(/' SAFETY-FACTOR (q) PROFILE COEFFICIENTS ai',
      1   ' (EXPANSION IN NORMALIZED RADIUS):',/,1x,35('-'))
  143  FORMAT(' PIOTA parameterization type is ''', a,'''')
  145  FORMAT(/' TOROIDAL CURRENT DENSITY (*V'') COEFFICIENTS',
@@ -499,20 +498,20 @@ C-----------------------------------------------
  146  FORMAT(' PCURR parameterization type is ''', a,'''')
  147  FORMAT(1x,38('-'))
 
-      WRITE(nthreed,150)
-!NORMALIZE APHI
-      sumphi=SUM(aphi)
-      IF (sumphi .NE. zero) aphi = aphi/sumphi
-      WRITE(nthreed,135)(aphi(i),i=1, SIZE(aphi))
+         WRITE(nthreed,150)
+         n = NonZeroLen(aphi,SIZE(aphi))
+         WRITE(nthreed,135)(aphi(i),i=1,n)
  150  FORMAT(/' NORMALIZED TOROIDAL FLUX COEFFICIENTS aphi',
      1   ' (EXPANSION IN S):',/,1x,35('-'))
 #ifdef _ANIMEC
-      IF (ANY(ah .ne. zero)) THEN
-         WRITE(nthreed,160)
-         WRITE(nthreed,135)(ah(i-1),i=1, SIZE(ah))
-         WRITE(nthreed,165)
-         WRITE(nthreed,135)(at(i-1),i=1, SIZE(at))
-      END IF
+         IF (ANY(ah .ne. zero)) THEN
+            WRITE(nthreed,160)
+            n = NonZeroLen(ah,SIZE(ah))
+            WRITE(nthreed,135)(ah(i-1),i=1, n)
+            WRITE(nthreed,165)
+            n = NonZeroLen(at,SIZE(at))
+            WRITE(nthreed,135)(at(i-1),i=1, n)
+         END IF
 
  160  FORMAT(' HOT PARTICLE PRESSURE COEFFICIENTS ah',
      1  ' (EXPANSION IN TOROIDAL FLUX):',/,1x,35('-'))
@@ -730,3 +729,18 @@ C-----------------------------------------------
       timer(tread) = timer(tread) + (treadoff-treadon)
 
       END SUBROUTINE readin
+
+      INTEGER FUNCTION NonZeroLen(array, n)
+      USE vmec_main, ONLY: rprec, zero
+      IMPLICIT NONE
+      INTEGER, INTENT(IN)      :: n
+      REAL(rprec), INTENT(IN)  :: array(n)
+      INTEGER :: k
+
+      DO k=n,1,-1
+         IF (array(k) .NE. zero) EXIT
+      END DO
+
+      NonZeroLen = k
+
+      END FUNCTION NonZeroLen

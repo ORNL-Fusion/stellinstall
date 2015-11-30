@@ -117,6 +117,11 @@ add_subdirectory (DESCUR)
 add_subdirectory (Testing)
 
 # Optional extra builds
+OPTION (BUILD_SIESTA "Activate SIESTA." OFF)
+if (BUILD_SIESTA)
+        add_subdirectory (SIESTA)
+endif ()
+
 if (BUILD_GTOVMI)
 	add_subdirectory (GTOVMI)
 endif ()

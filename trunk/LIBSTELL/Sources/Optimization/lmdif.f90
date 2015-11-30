@@ -11,10 +11,8 @@
                            flag_cleanup, fdjac2
 #endif
       USE mpi_params
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'                                       !mpi stuff
-#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

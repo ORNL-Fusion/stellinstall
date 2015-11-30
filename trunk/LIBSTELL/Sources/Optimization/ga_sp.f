@@ -4,9 +4,6 @@
       USE safe_open_mod
       USE mpi_params, ONLY: master
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      include 'mpif.h'                                       !mpi stuff
-#endif
       EXTERNAL fcn
 
       INTEGER :: nopt
