@@ -48,7 +48,7 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: pperp_ns
       REAL(rprec) :: medge, phedg
 #endif
-      REAL(rprec) :: rbtor, rbtor0, ctor, delbsq, res0, delt0r   !DO NOT remove res0, delt0r -> V3FIT
+      REAL(rprec) :: rbtor, rbtor0, ctor, delbsq, res0, res1, delt0r   !DO NOT remove res0, delt0r -> V3FIT
       REAL(rprec), DIMENSION(ndatafmax) ::
      1  spfa, spfa2, hp, sifa, sifa2, hi
       LOGICAL :: lthreed, lconm1

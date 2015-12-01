@@ -77,7 +77,7 @@ C-----------------------------------------------
       CALL getrz(gc)
 #endif 
 
-      IF (PARVMEC) THEN
+      IF (PARVMEC) THEN 
         CALL spectrum_par (pgc(:irzloff), pgc(1+irzloff:2*irzloff))
         CALL Gather1XArray(vp)
         CALL Gather1XArray(specw)
@@ -92,7 +92,6 @@ C-----------------------------------------------
         IF (PARVMEC) THEN
 !SPH CHANGE (MOVE OUT OF FUNCT3D)
 #if defined(MPI_OPT)
-#if defined(SKS)
           ACTIVE1: IF (lactive) THEN
           CALL second0(skston)
           ALLOCATE(bcastbuf(3*nznt+1))
@@ -112,17 +111,17 @@ C-----------------------------------------------
 
           CALL second0(skstoff)
           broadcast_time = broadcast_time + (skstoff - skston)
-
+#if defined(SKS)
           den = SUM(bsqsav(:nznt,3)*pwint(:,2))
           IF (den .ne. zero) delbsq =
      1     SUM(dbsq(:nznt)*pwint(:,2))/den
-          END IF ACTIVE1
 #endif
+          END IF ACTIVE1
 #endif
         ELSE
           delbsq =
      1     SUM(dbsq(:nznt)*wint(2:nrzt:ns))/
-     1     SUM(bsqsav(:nznt,3)*wint(2:nrzt:ns))
+     2     SUM(bsqsav(:nznt,3)*wint(2:nrzt:ns))
         END IF
       END IF
 

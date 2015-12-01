@@ -341,14 +341,16 @@ C-----------------------------------------------
            END DO
 
            IF (ivac .EQ. 1) THEN
+             IF (lActive) THEN
              bsqsav(:nznt,1) = pbzmn_o(:,ns)
              bsqsav(:nznt,2) = bsqvac(:nznt)
              CALL MPI_Bcast(bsqsav(:,1),nznt,MPI_REAL8,
      1                      nranks-1,NS_COMM,MPI_ERR)
+             END IF
            ELSE
              CALL MPI_Bcast(bsqsav(:,1),nznt,MPI_REAL8,
      1                      0,NS_COMM,MPI_ERR)
-           ENDIF
+           END IF
 
            CALL second0 (tvacoff)
            IF (ictrl_prec2d .le. 1) THEN
@@ -501,9 +503,6 @@ C-----------------------------------------------
       USE totzsp_mod
       USE tomnsp_mod
       USE parallel_include_module
-#if defined(SKS)      
-      USE vmec_params, ONLY: ntmax
-#endif
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -520,8 +519,9 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(:), POINTER :: lu, lv
       REAL(rprec) :: presf_ns, delr_mse, delt0
       REAL(rprec), EXTERNAL :: pmass
-      INTEGER :: i, j, k, nsmin, nsmax, ndim, m
+#if defined(MPI_OPT)      
       REAL(rprec) :: skston, skstoff
+#endif
 C-----------------------------------------------
 !
 !     POINTER ALIASES

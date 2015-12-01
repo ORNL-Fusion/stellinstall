@@ -110,6 +110,8 @@ else ()
 	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
 endif ()
 
+find_library (SCALAPACK_LIB NAMES scalapack)
+
 # List all the subdirectories these are in library dependancy order.
 add_subdirectory (LIBSTELL)
 add_subdirectory (VMEC2000)

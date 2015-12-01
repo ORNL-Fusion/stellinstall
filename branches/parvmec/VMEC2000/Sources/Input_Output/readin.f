@@ -462,7 +462,7 @@ C-----------------------------------------------
              WRITE(nthreed,135)(ai_aux_f(i),i=1, n)
            CASE DEFAULT
              n = NonZeroLen(ai,SIZE(ai))
-             WRITE(nthreed,135)(ai(i-1),i=1, SIZE(ai))
+             WRITE(nthreed,135)(ai(i-1),i=1, n)
            END SELECT
       ELSE
 !  Print out ac array
@@ -475,13 +475,13 @@ C-----------------------------------------------
      &           'cubic_spline_Ip','cubic_spline_I')
              n = NonZeroLen(ac_aux_s,SIZE(ac_aux_s))
              WRITE(nthreed,"(' ac_aux_s is' )")
-             WRITE(nthreed,135)(ac_aux_s(i),i=1, SIZE(ac_aux_s))
+             WRITE(nthreed,135)(ac_aux_s(i),i=1, n)
              n = NonZeroLen(ac_aux_f,SIZE(ac_aux_f))
              WRITE(nthreed,"(' ac_aux_f is' )")
-             WRITE(nthreed,135)(ac_aux_f(i),i=1, SIZE(ac_aux_f))
+             WRITE(nthreed,135)(ac_aux_f(i),i=1, n)
            CASE DEFAULT
              n = NonZeroLen(ac,SIZE(ac))
-             WRITE(nthreed,135)(ac(i-1),i=1, SIZE(ac))
+             WRITE(nthreed,135)(ac(i-1),i=1, n)
            END SELECT
          END IF
 

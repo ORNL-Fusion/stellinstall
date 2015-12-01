@@ -1,4 +1,4 @@
-      SUBROUTINE runvmec(ictrl_array, input_file0,
+      SUBROUTINE runvmec(ictrl_array, input_file0, 
      1                   lscreen, reset_file_name)
       USE vmec_main
       USE vmec_params, ONLY: bad_jacobian_flag, more_iter_flag,
@@ -308,7 +308,7 @@ C-----------------------------------------------
             ENDIF
          ELSE                                         ! V3FIT not running here
             IF (ns_old .le. nsval)
-     1         CALL initialize_radial(nsval, ns_old, delt0r,
+     1         CALL initialize_radial(nsval, ns_old, delt0r, 
      2            lscreen, reset_file_name)
          ENDIF
 #if defined (SKS)
