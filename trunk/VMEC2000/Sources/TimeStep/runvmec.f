@@ -254,12 +254,12 @@ C-----------------------------------------------
 !
 !     WRITE OUTPUT TO THREED1, WOUT FILES; FREE MEMORY ALLOCATED GLOBALLY
 !
- 1000 if(ier_flag.eq.more_iter_flag) then  ! J Geiger
+ 1000 IF(ier_flag.eq.more_iter_flag) then  ! J Geiger
 ! 1000 if(lmoreiter .and. ier_flag.eq.more_iter_flag) then  ! J Geiger
         print *, "runvmec: Running some more iterations",
      &           " -> Skipping call to fileout!"
-      else
+      ELSE
         CALL fileout (iseq_count, ictrl_flag, ier_flag, lscreen)
-      endif
+      ENDIF
 
       END SUBROUTINE runvmec

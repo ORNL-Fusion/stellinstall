@@ -23,7 +23,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      REAL(rprec) :: w1, r00s, w0, wdota, r0dot
+      REAL(rprec) :: w1, r00s, w0, wdota, r0dot, fsq0
       LOGICAL :: liter_flag, lreset_internal
 C-----------------------------------------------
 !
@@ -68,7 +68,7 @@ C-----------------------------------------------
          xc = 0
          CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, .FALSE.)
          irst = 1
-         IF (liter_flag) CALL restart_iter(delt0r)    !(OFF IN v8.50)
+         IF (liter_flag) CALL restart_iter(delt0r)  
       END IF
 !v8.50      IF (liter_flag) CALL restart_iter(delt0r)
       liter_flag = .true.
@@ -142,14 +142,22 @@ C-----------------------------------------------
 !
 !       TIME STEP CONTROL
 !
-         IF (iter2.eq.iter1 .or. res0.eq.-1) res0 = fsq
+         fsq0 = fsqr+fsqz+fsql
+         IF (iter2.eq.iter1 .or. res0.eq.-1) THEN
+            res0 = fsq
+            res1 = fsq0
+         END IF
          res0 = MIN(res0,fsq)
+         res1 = MIN(res1,fsq0)
 !       Store current state (irst=1)
          IF (fsq.le.res0 .and. iter2-iter1.gt.10) THEN
             CALL restart_iter(delt0r)
+         ELSE IF (fsq0.le.res1 .and. iter2-iter1.gt.10) THEN
+            CALL restart_iter(delt0r)
 !       Residuals are growing in time, reduce time step
-         ELSE IF (fsq.gt.100*res0 .and. iter2.gt.iter1) THEN
-            irst = 2
+         ELSE IF (fsq.gt.1.D4*res0 .OR. fsq0.gt.1.D4*res1) THEN
+            irst = 3
+            IF (lscreen) PRINT *,' FSQ > 1.E4 * FSQ_min'
          ELSE IF (iter2-iter1.gt.ns4/2 .and. iter2.gt.2*ns4
      1        .and. fsqr+fsqz.gt.c1pm2) THEN
             irst = 3
