@@ -929,55 +929,46 @@
             vmec_set_param = .true.
             ac(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ac_aux_s_id)
             vmec_set_param = .true.
             ac_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ac_aux_f_id)
             vmec_set_param = .true.
             ac_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_id)
             vmec_set_param = .true.
             ai(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_aux_s_id)
             vmec_set_param = .true.
             ai_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_ai_aux_f_id)
             vmec_set_param = .true.
             ai_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_id)
             vmec_set_param = .true.
             am(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_aux_s_id)
             vmec_set_param = .true.
             am_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_am_aux_f_id)
             vmec_set_param = .true.
             am_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
@@ -1031,7 +1022,6 @@
             curtor = value
             currv = mu0*curtor
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_phiedge_id)
             vmec_set_param = .true.
@@ -1052,7 +1042,6 @@
             vmec_set_param = .true.
             pres_scale = value
             CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_bloat_id)
             vmec_set_param = .true.

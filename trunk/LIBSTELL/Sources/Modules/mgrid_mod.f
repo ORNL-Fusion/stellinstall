@@ -1,3 +1,4 @@
+#undef MPI_OPT
       MODULE mgrid_mod
       USE v3_utilities
       USE stel_kinds

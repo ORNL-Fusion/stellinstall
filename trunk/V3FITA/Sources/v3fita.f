@@ -322,7 +322,6 @@
 !  child processes start in the same place.
       CALL MPI_BCAST(num_steps, 1, MPI_INTEGER, 0, context%intra_comm,         &
      &               error)
-      CALL MPI_BARRIER(context%intra_comm, error)
 #endif
 
       WRITE (*,*)
@@ -452,7 +451,6 @@
 !  equilibrium convergence.
       CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, context%intra_comm,          &
      &               error)
-      CALL MPI_BARRIER(context%intra_comm, error)
 
       DO
          CALL MPI_BCAST(task, 1, MPI_INTEGER, 0, context%intra_comm,           &
@@ -1855,6 +1853,8 @@
 !  Start of executable code
       CALL MPI_COMM_SIZE(context%intra_comm, mpi_size, error)
       CALL MPI_COMM_RANK(context%intra_comm, mpi_rank, error)
+
+      CALL MPI_BARRIER(context%intra_comm, error)
 
       CALL MPI_FINALIZE(error)
 
