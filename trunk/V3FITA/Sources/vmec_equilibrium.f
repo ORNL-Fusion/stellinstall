@@ -1005,8 +1005,6 @@
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
             extcur(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             mgrid_path_old = ''
             CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false.,              &
      &                      status)
