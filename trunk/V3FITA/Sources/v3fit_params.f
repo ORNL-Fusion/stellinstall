@@ -344,7 +344,7 @@
 
 !  Declare Arguments
       TYPE (param_class), POINTER            :: param_construct_locking
-      TYPE (model_class), INTENT(in)         :: a_model
+      TYPE (model_class), INTENT(inout)      :: a_model
       CHARACTER (len=*), INTENT(in)          :: param_name
       INTEGER, DIMENSION(2), INTENT(in)      :: indices
       CHARACTER (len=*), DIMENSION(:), INTENT(in) :: set
@@ -382,6 +382,9 @@
 !  Use the correlation array as the array to hold the set coefficients. This
 !  array was allocated by param_construct.
       param_construct_locking%correlation = set_coeff
+
+!  Set the inital value of the locked parameter.
+      CALL param_set_lock_value(param_construct_locking, a_model)
 
       CALL profiler_set_stop_time('param_construct_locking', start_time)
 
@@ -540,10 +543,15 @@
 !  Local variables
       INTEGER                           :: i
       REAL (rprec)                      :: temp
+      REAL (rprec)                      :: inital_value
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      inital_value = model_get_param_value(a_model, this%param_id,             &
+     &                                     this%indices(1),                    &
+     &                                     this%indices(2))
 
       temp = 0.0
       DO i = 0, SIZE(this%locks%ids)
@@ -554,8 +562,11 @@
      &                                       this%locks%indices(i,2))
       END DO
 
-      CALL model_set_param(a_model, this%param_id,                             &
-     &                     this%indices(1), this%indices(2), temp)
+!  Only update the lock value if that value changed.
+      IF (inital_value .ne. temp) THEN
+         CALL model_set_param(a_model, this%param_id,                          &
+     &                        this%indices(1), this%indices(2), temp)
+      END iF
 
       CALL profiler_set_stop_time('param_set_lock_value', start_time)
 
