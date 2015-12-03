@@ -618,10 +618,10 @@
      &               this%pl_response(i,j,k,1) -                               &
      &               this%pl_response(iss,jss,kss,1)
                   this%pl_response_ss(i,j,k,2) =                               &
-     &               this%pl_response(i,j,k,2) -                               &
+     &               this%pl_response(i,j,k,2) +                               &
      &               this%pl_response(iss,jss,kss,2)
                   this%pl_response_ss(i,j,k,3) =                               &
-     &               this%pl_response(i,j,k,3) -                               &
+     &               this%pl_response(i,j,k,3) +                               &
      &               this%pl_response(iss,jss,kss,3)
                END DO ! k
             END DO ! j
@@ -673,10 +673,10 @@
 
                this%s_response_ss(j,k,1) = this%s_response(j,k,1)              &
      &                                   - this%s_response(jss,kss,1)
-               this%s_response_ss(j,k,1) = this%s_response(j,k,2)              &
-     &                                   - this%s_response(jss,kss,2)
-               this%s_response_ss(j,k,1) = this%s_response(j,k,3)              &
-     &                                   - this%s_response(jss,kss,3)
+               this%s_response_ss(j,k,2) = this%s_response(j,k,2)              &
+     &                                   + this%s_response(jss,kss,2)
+               this%s_response_ss(j,k,3) = this%s_response(j,k,3)              &
+     &                                   + this%s_response(jss,kss,3)
                END DO
             END DO
          END IF
