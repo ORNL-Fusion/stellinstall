@@ -770,7 +770,6 @@
          CASE (vmec_rbc_id)
             vmec_set_param = .true.
             rbc(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
@@ -781,7 +780,6 @@
          CASE (vmec_zbs_id)
             vmec_set_param = .true.
             zbs(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
@@ -792,7 +790,6 @@
          CASE (vmec_rbs_id)
             vmec_set_param = .true.
             rbs(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
@@ -803,7 +800,6 @@
          CASE (vmec_zbc_id)
             vmec_set_param = .true.
             zbc(i_index, j_index) = value
-            CALL profil1d(xc, xcdot, .false.)
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
                CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
