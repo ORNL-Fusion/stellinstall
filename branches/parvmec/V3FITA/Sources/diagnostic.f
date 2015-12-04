@@ -517,6 +517,9 @@
          CASE (diagnostic_magnetic_type)
             diagnostic_get_header = magnetic_get_header(this%magnetic)
 
+         CASE (diagnostic_mse_type)
+            diagnostic_get_header = mse_get_header(this%mse)
+
          CASE DEFAULT
             diagnostic_get_header(1:3) = 'N/A'
             diagnostic_get_header(4) = 'model_sig(1)'
