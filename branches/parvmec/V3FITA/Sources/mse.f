@@ -260,8 +260,6 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)              :: b_cyl
-      REAL (rprec)                            :: e_h
-      REAL (rprec)                            :: e_v
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -275,20 +273,26 @@
      &                        equilibrium_get_B_vec(a_model%equilibrium,       &
      &                                              this%point))
 
-      e_h = -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +          &
+      mse_get_modeled_signal(2) =                                              &
+     &      -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +          &
      &        SIN(this%delta)*(b_cyl(1)*SIN(this%omega) -                      &
      &                         b_cyl(2)*COS(this%omega)))
-      e_v = -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
+      mse_get_modeled_signal(3) =                                              &
+     &      -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
      &                                                    this%alpha)          &
      &    + SIN(this%theta)*SIN(this%delta)*(b_cyl(2)*SIN(this%omega) +        &
      &                                       b_cyl(1)*COS(this%omega))         &
      &    + COS(this%theta)*COS(this%delta)*(b_cyl(1)*COS(this%alpha) -        &
      &                                       b_cyl(2)*SIN(this%alpha))
 
-      mse_get_modeled_signal(1) = ATAN2(e_h, e_v)
+      mse_get_modeled_signal(4) = mse_get_modeled_signal(2)                    &
+     &                          / mse_get_modeled_signal(3)
+
+      mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),             &
+     &                                  mse_get_modeled_signal(3))
 
       IF (this%in_degrees) THEN
-		 mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+         mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
       END IF
 
       CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)
@@ -321,6 +325,43 @@
       mse_get_signal_type = 'mse'
 
       CALL profiler_set_stop_time('mse_get_signal_type', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets a discription of the model and model sigma array indices.
+!>
+!>  Returns a description of the array indices for use when writting output
+!>  files.
+!>
+!>  @param[in] this A @ref mse_class instance.
+!>  @returns A string describing the model and model sigma array indices.
+!-------------------------------------------------------------------------------
+      FUNCTION mse_get_header(this)
+      USE data_parameters
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_name_length), DIMENSION(7) :: mse_get_header
+      TYPE (mse_class), INTENT(in)                   :: this
+
+!  local variables
+      REAL (rprec)                                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      mse_get_header(1) = 'e_h'
+      mse_get_header(2) = 'e_v'
+      mse_get_header(3) = 'ratio'
+
+      mse_get_header(4) = 'model_sig(1)'
+      mse_get_header(5) = 'model_sig(2)'
+      mse_get_header(6) = 'model_sig(3)'
+      mse_get_header(7) = 'model_sig(4)'
+
+      CALL profiler_set_stop_time('mse_get_header', start_time)
 
       END FUNCTION
 
