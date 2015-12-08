@@ -249,9 +249,10 @@
 !>  @param[in]    i_index The ith index of the parameter.
 !>  @param[in]    j_index The jth index of the parameter.
 !>  @param[in]    value   The value of the parameter.
+!>  @param[in]    eq_comm MPI communicator pool for the equilibrium.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_param(this, id, i_index, j_index,             &
-     &                                 value)
+     &                                 value, eq_comm)
 
       IMPLICIT NONE
 
@@ -261,6 +262,7 @@
       INTEGER, INTENT(in)                     :: i_index
       INTEGER, INTENT(in)                     :: j_index
       REAL (rprec), INTENT(in)                :: value
+      INTEGER, INTENT(in)                     :: eq_comm
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -276,7 +278,7 @@
          CASE (equilibrium_vmec_type)
             this%not_converged = vmec_set_param(this%vmec, id,                 &
      &                                          i_index, j_index,              &
-     &                                          value)                         &
+     &                                          value, eq_comm)                &
      &                         .or. this%not_converged
 
          CASE (equilibrium_vacuum_type)
@@ -1894,10 +1896,10 @@
 !>  the equilibirum is already in a converged state.
 !>  @see vmec_equilibrium::vmec_converge
 !>
-!>  @param[inout] this      A @ref equilibrium_class instance.
-!>  @param[inout] num_iter  Counter to track the number of iterations.
-!>  @param[in]    iou       Input/output unit of the file to write logs to.
-!>  @param[in]    vmec_comm MPI communicator pool for the equilibrium.
+!>  @param[inout] this     A @ref equilibrium_class instance.
+!>  @param[inout] num_iter Counter to track the number of iterations.
+!>  @param[in]    iou      Input/output unit of the file to write logs to.
+!>  @param[in]    eq_comm  MPI communicator pool for the equilibrium.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm)

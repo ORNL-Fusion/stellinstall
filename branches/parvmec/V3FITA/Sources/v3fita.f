@@ -1665,13 +1665,12 @@
          indices(:,1) = lp_sets_index(i,1:j)
          indices(:,2) = lp_sets_index2(i,1:j)
 
-         context%locks(i)%p => param_construct(context%model,                  &
-     &                                         lp_type(i),                     &
-     &                                         (/ lp_index(i),                 &
-     &                                            lp_index2(i) /),             &
-     &                                         lp_sets(i,1:j),                 &
-     &                                         indices,                        &
-     &                                         lp_sets_coeff(i,1:j))
+         context%locks(i)%p =>                                                 &
+     &      param_construct(context%model, lp_type(i),                         &
+     &                      (/ lp_index(i), lp_index2(i) /),                   &
+     &                      lp_sets(i,1:j), indices,                           &
+     &                      lp_sets_coeff(i,1:j),                              &
+     &                      context%equilibrium_comm)
 
          DEALLOCATE(indices)
       END DO

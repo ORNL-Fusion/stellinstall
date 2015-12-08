@@ -464,7 +464,7 @@
 !>  @param[in] z_offset   Initial Z offset of the plasma relative to the
 !>                        machine center.
 !>  @param[in] iou        Input/output unit to log messages to.
-!>  @param[in] vmec_comm MPI communicator pool for VMEC.
+!>  @param[in] vmec_comm  MPI communicator pool for VMEC.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct(file_name, wout_file_name, ne, te, sxrem,        &
@@ -727,14 +727,16 @@
 !>  parameter is changed, propagate the changes to the VMEC internal state and
 !>  inform the caller that the equilibrium needs reconvergence.
 !>
-!>  @param[inout] this    A @ref vmec_class instance.
-!>  @param[in]    id      ID of the parameter.
-!>  @param[in]    i_index The ith index of the parameter.
-!>  @param[in]    j_index The jth index of the parameter.
-!>  @param[in]    value   The value of the parameter.
+!>  @param[inout] this      A @ref vmec_class instance.
+!>  @param[in]    id        ID of the parameter.
+!>  @param[in]    i_index   The ith index of the parameter.
+!>  @param[in]    j_index   The jth index of the parameter.
+!>  @param[in]    value     The value of the parameter.
+!>  @param[in]    vmec_comm MPI communicator pool for VMEC.
 !>  @returns True if VMEC is left in an unconverged state and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_set_param(this, id, i_index, j_index, value)
+      FUNCTION vmec_set_param(this, id, i_index, j_index, value,               &
+     &                        vmec_comm)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
      &                      ac, ac_aux_s, ac_aux_f,                            &
      &                      ai, ai_aux_s, ai_aux_f,                            &
@@ -756,6 +758,7 @@
       INTEGER, INTENT(in)              :: i_index
       INTEGER, INTENT(in)              :: j_index
       REAL (rprec), INTENT(in)         :: value
+      INTEGER, INTENT(in)              :: vmec_comm
 
 !  local variables
       REAL (rprec)                     :: phiedge_ratio
@@ -772,9 +775,11 @@
             rbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
+     &                           .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
+     &                           .false.)
             END IF
 
          CASE (vmec_zbs_id)
@@ -782,9 +787,11 @@
             zbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
+     &                           .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
+     &                           .false.)
             END IF
 
          CASE (vmec_rbs_id)
@@ -792,9 +799,11 @@
             rbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
+     &                           .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
+     &                           .false.)
             END IF
 
          CASE (vmec_zbc_id)
@@ -802,55 +811,57 @@
             zbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
+     &                           .false.)
             ELSE
-               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
+     &                           .false.)
             END IF
 
          CASE (vmec_ac_id)
             vmec_set_param = .true.
             ac(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_s_id)
             vmec_set_param = .true.
             ac_aux_s(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_f_id)
             vmec_set_param = .true.
             ac_aux_f(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_ai_id)
             vmec_set_param = .true.
             ai(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_s_id)
             vmec_set_param = .true.
             ai_aux_s(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_f_id)
             vmec_set_param = .true.
             ai_aux_f(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_am_id)
             vmec_set_param = .true.
             am(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_s_id)
             vmec_set_param = .true.
             am_aux_s(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_f_id)
             vmec_set_param = .true.
             am_aux_f(i_index) = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
@@ -901,33 +912,33 @@
             vmec_set_param = .true.
             curtor = value
             currv = mu0*curtor
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_phiedge_id)
             vmec_set_param = .true.
-            IF (phiedge .ne. 0.0) THEN
-               phiedge_ratio = value/phiedge
-            ELSE
-               phiedge_ratio = 1.0
-            END IF
+!            IF (phiedge .ne. 0.0) THEN
+!               phiedge_ratio = value/phiedge
+!            ELSE
+!               phiedge_ratio = 1.0
+!            END IF
             phiedge = value
-            IF (aphi(1) .eq. 1.0) THEN
-               xc(1 + 2*irzloff:3*irzloff) =                                   &
-     &            phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
-            END IF
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+!            IF (aphi(1) .eq. 1.0) THEN
+!               xc(1 + 2*irzloff:3*irzloff) =                                   &
+!     &            phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
+!            END IF
+            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil3d_par(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
             vmec_set_param = .true.
             pres_scale = value
-            CALL profil1d(xc, xcdot, .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
 
          CASE (vmec_bloat_id)
             vmec_set_param = .true.
             bloat = value
-            CALL profil1d(xc, xcdot, .false.)
-            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
+            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil3d_par(xc(1), xc(1 + irzloff), .false., .false.)
 
 !  For the phi_offset, the magnetic cache needs to be updated. Since the phi
 !  offset doesn't alter the equilibrium, the magnetics were not getting updated

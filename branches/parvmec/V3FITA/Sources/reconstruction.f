@@ -792,14 +792,15 @@
 !  variable. Syning the model afterwards will bring the internal state up to
 !  sync.
       DO i = 1, SIZE(params)
-         CALL param_sync_value(params(i)%p, a_model, recon_comm)
+         CALL param_sync_value(params(i)%p, a_model, recon_comm,               &
+     &                         eq_comm)
       END DO
       CALL model_sync_state(a_model, recon_comm)
       CALL reconstruction_sync_state(this, recon_comm)
 
 !  Set the locked values.
       DO i = 1, SIZE(locks)
-         CALL param_set_lock_value(locks(i)%p, a_model)
+         CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
       END DO
 
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
@@ -841,10 +842,10 @@
 
 !  Increment the parameter. param_increment checks the bounds and adjust the
 !  step size to keep the parameter in range.
-         CALL param_increment(params(j)%p, a_model)
+         CALL param_increment(params(j)%p, a_model, eq_comm)
 !  Set the locked values.
          DO i = 1, SIZE(locks)
-            CALL param_set_lock_value(locks(i)%p, a_model)
+            CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
          END DO
 
 !  Check that model was able to converge. If the model converged proceed as
@@ -920,11 +921,12 @@
 
 !  Restore the parameter and the equilibrium to it's initial value. Need to sync
 !  the value of param delta back to the parent process.
-         CALL param_set_value(params(j)%p, a_model, param_value)
+         CALL param_set_value(params(j)%p, a_model, param_value,               &
+     &                        eq_comm)
          CALL equilibrium_reset_state(a_model%equilibrium)
 !  Set the locked values.
          DO i = 1, SIZE(locks)
-            CALL param_set_lock_value(locks(i)%p, a_model)
+            CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
          END DO
       END DO
 !  At this point, the computed jacobian rows should be returned to the parent
@@ -1587,10 +1589,10 @@
 !  step size.
          DO j = 1, SIZE(params)
             CALL param_set_value(params(j)%p, a_model, param_value(j) +        &
-     &              delta_a(j)*ABS(params(j)%p%recon%delta))
+     &              delta_a(j)*ABS(params(j)%p%recon%delta), eq_comm)
          END DO
          DO j = 1, SIZE(locks)
-            CALL param_set_lock_value(locks(j)%p, a_model)
+            CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
          END DO
 
 !  Reconverge the equilibrium. Increment the current step so
@@ -1638,10 +1640,11 @@
 !  If the step failed, reset the param values so that they remain in sync with
 !  the step.
          DO j = 1, SIZE(params)
-            CALL param_set_value(params(j)%p, a_model, param_value(j))
+            CALL param_set_value(params(j)%p, a_model, param_value(j),         &
+     &                           eq_comm)
          END DO
          DO j = 1, SIZE(locks)
-            CALL param_set_lock_value(locks(j)%p, a_model)
+            CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
          END DO
 
 !  Reset the equilibrium state back to the last step. The state of the last step
