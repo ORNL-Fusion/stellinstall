@@ -3083,8 +3083,8 @@
       FUNCTION vmec_get_s(this, x_cart)
       USE cyl_flux, only: cyl2flx
       USE coordinate_utilities, only: cart_to_cyl
-      USE read_wout_mod, only: rzl_local, ns, ntmax, lthreed
-      USE vmec_input, only: ntor, mpol, nfp, lasym
+      USE read_wout_mod, only: rzl_local, ns, ntmax, lthreed, ntor,            &
+     &                         mpol, nfp, lasym
 
       IMPLICIT NONE
 
@@ -3143,8 +3143,8 @@
 !>  @returns The number of elements in the r and z arrays.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_plasma_edge(this, phi, r, z)
-      USE vmec_input, only: mpol
-      USE read_wout_mod, only: xm, xn, rmnc, zmns, rmns, zmnc, lasym, ns
+      USE read_wout_mod, only: xm, xn, rmnc, zmns, rmns, zmnc, lasym,          &
+     &                         ns, mpol
       USE stel_constants, only: twopi
 
       IMPLICIT NONE
@@ -3527,9 +3527,8 @@
 !-------------------------------------------------------------------------------
       FUNCTION vmec_get_ext_currents(this, num_currents,                       &
      &                               scale_currents)
-      USE vmec_input, only: lfreeb
+      USE vmec_input, only: lfreeb, extcur
       USE mgrid_mod, only: mgrid_mode, nextcur
-      USE vmec_input, only: extcur
 
       IMPLICIT NONE
 
@@ -3987,8 +3986,7 @@
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_converge(this, num_iter, iou)
-      USE vmec_input, only: delt, niter, raxis_cc, raxis_cs,                   &
-     &                      zaxis_cc, zaxis_cs
+      USE vmec_input, only: delt, niter
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
