@@ -2628,9 +2628,11 @@
 !>
 !>  @param[in] this   A @ref vmec_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
+!>  @param[in] cyl    Flag that specifies if the bfield should be returned in
+!>                    cartesian or cylindical coordinates.
 !>  @returns The magnetic field vector at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_get_B_vec(this, x_cart)
+      FUNCTION vmec_get_B_vec(this, x_cart, cyl)
       USE coordinate_utilities, ONLY : cyl_to_cart_vec, cart_to_cyl
       USE vmec_utils, ONLY : GetBcyl_WOUT
       USE mgrid_mod
@@ -2642,6 +2644,7 @@
       REAL (rprec), DIMENSION(3)             :: vmec_get_B_vec
       TYPE (vmec_class), INTENT(in)          :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      LOGICAL, INTENT(in)                    :: cyl
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
@@ -2748,7 +2751,9 @@
      &                  + vmec_get_B_vec
       END IF
 
-      vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+      IF (.not.cyl) THEN
+         vmec_get_B_vec = cyl_to_cart_vec(r_cyl, vmec_get_B_vec)
+      END IF
 
       CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
 

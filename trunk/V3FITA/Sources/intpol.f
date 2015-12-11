@@ -455,7 +455,7 @@
 
       a_model = TRANSFER(context, a_model)
 
-      bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart)
+      bcart = equilibrium_get_B_vec(a_model%equilibrium, xcart, .false.)
       pol_function =                                                           &
      &   model_get_ne(a_model, xcart)*DOT_PRODUCT(bcart, dxcart)
 

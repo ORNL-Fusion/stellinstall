@@ -310,14 +310,14 @@
       sigma = 0.0
 
 !  Get the magnetic field vector.
-      b_cyl = cart_to_cyl_vec(this%point,                                      &
-     &                        equilibrium_get_B_vec(a_model%equilibrium,       &
-     &                                              this%point))
+      b_cyl = equilibrium_get_B_vec(a_model%equilibrium, this%point,           &
+     &                              .true.)
 
       mse_get_modeled_signal(2) =                                              &
      &      -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +          &
      &        SIN(this%delta)*(b_cyl(1)*SIN(this%omega) -                      &
      &                         b_cyl(2)*COS(this%omega)))
+
       mse_get_modeled_signal(3) =                                              &
      &      -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
      &                                                    this%alpha)          &

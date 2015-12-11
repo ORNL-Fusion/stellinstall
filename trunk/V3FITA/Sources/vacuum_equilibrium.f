@@ -438,9 +438,12 @@
 !>
 !>  @param[in] this   A @ref vacuum_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
+!>  @param[in] cyl    Flag that specifies if the bfield should be returned in
+!>                    cartesian or cylindical coordinates.
 !>  @returns The magnetic field vector at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION vacuum_get_B_vec(this, x_cart)
+      FUNCTION vacuum_get_B_vec(this, x_cart, cyl)
+      USE coordinate_utilities, ONLY : cart_to_cyl_vec
 
       IMPLICIT NONE
 
@@ -448,6 +451,7 @@
       REAL (rprec), DIMENSION(3)             :: vacuum_get_B_vec
       TYPE (vacuum_class), INTENT(in)        :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      LOGICAL, INTENT(in)                    :: cyl
 
 !  local variables
       INTEGER                                :: i
@@ -462,6 +466,10 @@
          CALL bsc_b(coil_group(i), x_cart, b_vec, this%extcur(i))
          vacuum_get_B_vec = vacuum_get_B_vec + b_vec
       END DO
+
+      IF (cyl) THEN
+         vacuum_get_B_vec = cart_to_cyl_vec(x_cart, vacuum_get_B_vec)
+      END IF
 
       CALL profiler_set_stop_time('vacuum_get_B_vec', start_time)
 
@@ -511,7 +519,7 @@
       dphi = 0.001/r_cyl(1)
       DO WHILE (r_cyl(2) .lt. twopi)
          dl = cyl_to_cart_vec(r_cyl, (/ 0.0_dp, dphi, 0.0_dp /))
-         b_cart = vacuum_get_B_vec(this, cyl_to_cart(r_cyl))
+         b_cart = vacuum_get_B_vec(this, cyl_to_cart(r_cyl), .false.)
          vacuum_get_Int_B_dphi = vacuum_get_Int_B_dphi                         &
      &                         + DOT_PRODUCT(b_cart, dl)
          r_cyl(2) = r_cyl(2) + dphi

@@ -941,9 +941,11 @@
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
+!>  @param[in] cyl    Flag that specifies if the bfield should be returned in
+!>                    cartesian or cylindical coordinates.
 !>  @returns The magnetic field vector at x_cart.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_get_B_vec(this, x_cart)
+      FUNCTION equilibrium_get_B_vec(this, x_cart, cyl)
 
       IMPLICIT NONE
 
@@ -951,6 +953,7 @@
       REAL (rprec), DIMENSION(3) :: equilibrium_get_B_vec
       TYPE (equilibrium_class), INTENT(in)   :: this
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+      LOGICAL, INTENT(in)                    :: cyl
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -961,11 +964,12 @@
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            equilibrium_get_B_vec = vmec_get_B_vec(this%vmec, x_cart)
+            equilibrium_get_B_vec = vmec_get_B_vec(this%vmec, x_cart,          &
+     &                                             cyl)
 
          CASE (equilibrium_vacuum_type)
             equilibrium_get_B_vec = vacuum_get_B_vec(this%vacuum,              &
-     &                                               x_cart)
+     &                                               x_cart, cyl)
 
          CASE DEFAULT
             equilibrium_get_B_vec = 0.0
