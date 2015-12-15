@@ -342,6 +342,10 @@
             diagnostic_construct_mpi%extcurz =>                                &
      &         extcurz_construct(intra_comm)
 
+         CASE (diagnostic_mse_type)
+            diagnostic_construct_mpi%mse =>                                    &
+     &         mse_construct(intra_comm)
+
       END SELECT
 
 #endif
@@ -635,7 +639,7 @@
          CASE (diagnostic_extcurz_type)
             CALL extcurz_sync_children(this%extcurz, intra_comm)
 
-		 CASE (diagnostic_mse_type)
+         CASE (diagnostic_mse_type)
             CALL mse_sync_children(this%mse, intra_comm)
 
       END SELECT

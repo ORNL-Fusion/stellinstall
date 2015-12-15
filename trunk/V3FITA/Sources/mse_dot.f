@@ -194,7 +194,7 @@
       mse_keyword(13) = 'end_of_file'
 
 !  Open up the 'mse.' file
-      mse_dot_file_ref = signal_dot_open(TRIM(mse_file), 'ipch')
+      mse_dot_file_ref = signal_dot_open(TRIM(mse_file), 'mse')
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
