@@ -21,6 +21,14 @@
       IMPLICIT NONE
 
 !*******************************************************************************
+!  mse module parameters
+!*******************************************************************************
+!>  Bit position for the use coil response flag.
+      INTEGER, PARAMETER :: mse_degrees_flag = 1
+!>  Bit position for the force coil response flag.
+      INTEGER, PARAMETER :: mse_ratio_flag   = 2
+
+!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) mse base class
 !
@@ -43,8 +51,8 @@
 !>  Pitch angle of the viewing chord with respect to the horizontal.
          REAL (rprec)               :: theta
 
-!>  Controls if the results is computed in degrees or radians.
-         LOGICAL                    :: in_degrees
+!>  Control flags for the signal output
+         INTEGER                    :: flags
       END TYPE
 
 !*******************************************************************************
@@ -81,7 +89,8 @@
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
       FUNCTION mse_construct_vec(point, view_start, view_end,                  &
-     &                           beam_start, beam_end, in_degrees)
+     &                           beam_start, beam_end, in_degrees,             &
+     &                           is_ratio)
 
       IMPLICIT NONE
 
@@ -92,7 +101,8 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: view_end
       REAL (rprec), DIMENSION(3), INTENT(in) :: beam_start
       REAL (rprec), DIMENSION(3), INTENT(in) :: beam_end
-      LOGICAL, INTENT(in)        :: in_degrees
+      LOGICAL, INTENT(in)                    :: in_degrees
+      LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
       REAL (rprec)              :: start_time
@@ -101,6 +111,16 @@
       start_time = profiler_get_start_time()
 
       ALLOCATE(mse_construct_vec)
+
+      mse_construct_vec%flags = 0
+      IF (in_degrees) THEN
+         mse_construct_vec%flags = IBSET(mse_construct_vec%flags,              &
+     &                                   mse_degrees_flag)
+      END IF
+      IF (is_ratio) THEN
+         mse_construct_vec%flags = IBSET(mse_construct_vec%flags,              &
+     &                                   mse_ratio_flag)
+      END IF
 
       mse_construct_vec%point = point
 
@@ -120,8 +140,6 @@
      &   -mse_angle_to_horizontal(beam_end - beam_start)
       mse_construct_vec%theta =                                                &
      &   mse_angle_to_horizontal(view_end - view_start)
-
-      mse_construct_vec%in_degrees = in_degrees
 
       CALL profiler_set_stop_time('mse_construct_vec', start_time)
 
@@ -144,7 +162,7 @@
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
       FUNCTION mse_construct_rad(point, alpha, omega, delta, theta,            &
-     &                           in_degrees)
+     &                           in_degrees, is_ratio)
 
       IMPLICIT NONE
 
@@ -156,6 +174,7 @@
       REAL (rprec), INTENT(in)               :: delta
       REAL (rprec), INTENT(in)               :: theta
       LOGICAL, INTENT(in)                    :: in_degrees
+      LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -165,6 +184,16 @@
 
       ALLOCATE(mse_construct_rad)
 
+      mse_construct_rad%flags = 0
+      IF (in_degrees) THEN
+         mse_construct_rad%flags = IBSET(mse_construct_rad%flags,              &
+     &                                   mse_degrees_flag)
+      END IF
+      IF (is_ratio) THEN
+         mse_construct_rad%flags = IBSET(mse_construct_rad%flags,              &
+     &                                   mse_ratio_flag)
+      END IF
+
       mse_construct_rad%point = point
 
 !  Get the angles with respect to the toroidal field component.
@@ -172,8 +201,6 @@
       mse_construct_rad%omega = omega
       mse_construct_rad%delta = delta
       mse_construct_rad%theta = theta
-
-      mse_construct_rad%in_degrees = in_degrees
 
       CALL profiler_set_stop_time('mse_construct_rad', start_time)
 
@@ -212,7 +239,7 @@
      &               intra_comm, error)
       CALL MPI_BCAST(mse_construct_mpi%theta, 1, MPI_REAL8, 0,                 &
      &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%in_degrees, 1, MPI_LOGICAL, 0,          &
+      CALL MPI_BCAST(mse_construct_mpi%flags, 1, MPI_INTEGER, 0,               &
      &               intra_comm, error)
 
 #endif
@@ -242,7 +269,7 @@
       this%omega = 0.0
       this%delta = 0.0
       this%theta = 0.0
-      this%in_degrees = .false.
+      this%flags = 0
 
 	  DEALLOCATE(this)
 
@@ -329,11 +356,15 @@
       mse_get_modeled_signal(4) = mse_get_modeled_signal(2)                    &
      &                          / mse_get_modeled_signal(3)
 
-      mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),             &
-     &                                  mse_get_modeled_signal(3))
+      IF (BTEST(this%flags, mse_ratio_flag)) THEN
+         mse_get_modeled_signal(1) = mse_get_modeled_signal(4)
+      ELSE
+         mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),          &
+     &                                     mse_get_modeled_signal(3))
 
-      IF (this%in_degrees) THEN
-		 mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+         IF (BTEST(this%flags, mse_degrees_flag)) THEN
+            mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+         END IF
       END IF
 
       CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)
@@ -439,7 +470,7 @@
       CALL MPI_BCAST(this%omega, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%delta, 1, MPI_REAL8, 0, intra_comm, error)
       CALL MPI_BCAST(this%theta, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%in_degrees, 1, MPI_LOGICAL, 0, intra_comm,           &
+      CALL MPI_BCAST(this%flags, 1, MPI_INTEGER, 0, intra_comm,                &
      &               error)
 
       CALL profiler_set_stop_time('mse_sync_children', start_time)
