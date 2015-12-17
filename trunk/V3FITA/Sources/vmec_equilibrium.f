@@ -104,6 +104,7 @@
 !>     @item{betapol,     Poloidal beta.,                                  @ref read_wout_mod::betapol}
 !>     @item{betator,     Toroidal beta.,                                  @ref read_wout_mod::betator}
 !>     @item{betaxis,     Beta on axis.,                                   @ref read_wout_mod::betaxis}
+!>     @item{jcurv,       Toroidal current density.,                       @ref read_wout_mod::jcurv}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
@@ -255,13 +256,15 @@
       INTEGER, PARAMETER :: vmec_betator_id     = 59
 !>  Beta on axis. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_betaxis_id     = 60
+!>  Beta on axis. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 61
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 61
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 62
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 62
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 63
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
@@ -2180,6 +2183,9 @@
          CASE ('betaxis')
             vmec_get_param_id = vmec_betaxis_id
 
+         CASE ('jcurv')
+            vmec_get_param_id = vmec_jcurv_id
+
          CASE ('phi_offset')
             vmec_get_param_id = vmec_phi_offset_id
 
@@ -2222,7 +2228,8 @@
      &                         bsubumns, bsubvmns,                             &
      &                         bsubsmnc, bsupumns, bsupvmns,                   &
      &                         phi, iotaf, iotas,                              &
-     &                         betatot, betapol, betator, betaxis
+     &                         betatot, betapol, betator, betaxis,             &
+     &                         jcurv
       USE v3f_vmec_comm
 
       IMPLICIT NONE
@@ -2403,6 +2410,9 @@
 
          CASE (vmec_betaxis_id)
             vmec_get_param_value = betaxis
+
+         CASE (vmec_jcurv_id)
+            vmec_get_param_value = jcurv(i_index)
 
          CASE (vmec_phi_offset_id)
             vmec_get_param_value = this%phi_offset
@@ -2606,6 +2616,9 @@
 
          CASE (vmec_betaxis_id)
             vmec_get_param_name = 'betaxis'
+
+         CASE (vmec_jcurv_id)
+            vmec_get_param_name = 'jcurv'
 
          CASE (vmec_phi_offset_id)
             vmec_get_param_name = 'phi_offset'
