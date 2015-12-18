@@ -21,6 +21,14 @@
       IMPLICIT NONE
 
 !*******************************************************************************
+!  mse module parameters
+!*******************************************************************************
+!>  Bit position for the use coil response flag.
+      INTEGER, PARAMETER :: mse_degrees_flag = 1
+!>  Bit position for the force coil response flag.
+      INTEGER, PARAMETER :: mse_ratio_flag   = 2
+
+!*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) mse base class
 !
@@ -43,8 +51,8 @@
 !>  Pitch angle of the viewing chord with respect to the horizontal.
          REAL (rprec)               :: theta
 
-!>  Controls if the results is computed in degrees or radians.
-         LOGICAL                    :: in_degrees
+!>  Control flags for the signal output
+         INTEGER                    :: flags
       END TYPE
 
 !*******************************************************************************
@@ -77,10 +85,13 @@
 !>  @param[in] view_end   Ending point of the view vector.
 !>  @param[in] beam_start Starting point of the beam vector.
 !>  @param[in] beam_end   Ending point of the beam vector.
+!>  @param[in] in_degrees Channel measures degrees.
+!>  @param[in] is_ratio   Channel measures ratio.
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
       FUNCTION mse_construct_vec(point, view_start, view_end,                  &
-     &                           beam_start, beam_end, in_degrees)
+     &                           beam_start, beam_end, in_degrees,             &
+     &                           is_ratio)
 
       IMPLICIT NONE
 
@@ -91,15 +102,26 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: view_end
       REAL (rprec), DIMENSION(3), INTENT(in) :: beam_start
       REAL (rprec), DIMENSION(3), INTENT(in) :: beam_end
-      LOGICAL, INTENT(in)        :: in_degrees
+      LOGICAL, INTENT(in)                    :: in_degrees
+      LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
-      REAL (rprec)              :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       ALLOCATE(mse_construct_vec)
+
+      mse_construct_vec%flags = 0
+      IF (in_degrees) THEN
+         mse_construct_vec%flags = IBSET(mse_construct_vec%flags,              &
+     &                                   mse_degrees_flag)
+      END IF
+      IF (is_ratio) THEN
+         mse_construct_vec%flags = IBSET(mse_construct_vec%flags,              &
+     &                                   mse_ratio_flag)
+      END IF
 
       mse_construct_vec%point = point
 
@@ -120,8 +142,6 @@
       mse_construct_vec%theta =                                                &
      &   mse_angle_to_horizontal(view_end - view_start)
 
-      mse_construct_vec%in_degrees = in_degrees
-
       CALL profiler_set_stop_time('mse_construct_vec', start_time)
 
       END FUNCTION
@@ -133,17 +153,19 @@
 !>  Allocates memory and initializes a @ref mse_class object. Uses angle
 !>  representation.
 !>
-!>  @param[in] point Measurement point of the mse diagnostic.
-!>  @param[in] omega Angle between the neutral beam and the toroidal in the
-!>                   horizontal.
-!>  @param[in] alpha Angle between the view chord and the toroidal in the
-!>                   horizontal.
-!>  @param[in] delta Pitch angle to the horizontal and the neutral beam.
-!>  @param[in] theta Pitch angle to the horizontal and the view chord.
+!>  @param[in] point      Measurement point of the mse diagnostic.
+!>  @param[in] omega      Angle between the neutral beam and the toroidal in the
+!>                        horizontal.
+!>  @param[in] alpha      Angle between the view chord and the toroidal in the
+!>                        horizontal.
+!>  @param[in] delta      Pitch angle to the horizontal and the neutral beam.
+!>  @param[in] theta      Pitch angle to the horizontal and the view chord.
+!>  @param[in] in_degrees Channel measures degrees.
+!>  @param[in] is_ratio   Channel measures ratio.
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
       FUNCTION mse_construct_rad(point, alpha, omega, delta, theta,            &
-     &                           in_degrees)
+     &                           in_degrees, is_ratio)
 
       IMPLICIT NONE
 
@@ -155,6 +177,7 @@
       REAL (rprec), INTENT(in)               :: delta
       REAL (rprec), INTENT(in)               :: theta
       LOGICAL, INTENT(in)                    :: in_degrees
+      LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
       REAL (rprec)                           :: start_time
@@ -164,6 +187,16 @@
 
       ALLOCATE(mse_construct_rad)
 
+      mse_construct_rad%flags = 0
+      IF (in_degrees) THEN
+         mse_construct_rad%flags = IBSET(mse_construct_rad%flags,              &
+     &                                   mse_degrees_flag)
+      END IF
+      IF (is_ratio) THEN
+         mse_construct_rad%flags = IBSET(mse_construct_rad%flags,              &
+     &                                   mse_ratio_flag)
+      END IF
+
       mse_construct_rad%point = point
 
 !  Get the angles with respect to the toroidal field component.
@@ -171,8 +204,6 @@
       mse_construct_rad%omega = omega
       mse_construct_rad%delta = delta
       mse_construct_rad%theta = theta
-
-      mse_construct_rad%in_degrees = in_degrees
 
       CALL profiler_set_stop_time('mse_construct_rad', start_time)
 
@@ -201,7 +232,7 @@
       this%omega = 0.0
       this%delta = 0.0
       this%theta = 0.0
-      this%in_degrees = .false.
+      this%flags = 0
 
 	  DEALLOCATE(this)
 
@@ -276,6 +307,7 @@
      &      -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +          &
      &        SIN(this%delta)*(b_cyl(1)*SIN(this%omega) -                      &
      &                         b_cyl(2)*COS(this%omega)))
+
       mse_get_modeled_signal(3) =                                              &
      &      -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
      &                                                    this%alpha)          &
@@ -287,11 +319,15 @@
       mse_get_modeled_signal(4) = mse_get_modeled_signal(2)                    &
      &                          / mse_get_modeled_signal(3)
 
-      mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),             &
-     &                                  mse_get_modeled_signal(3))
+      IF (BTEST(this%flags, mse_ratio_flag)) THEN
+         mse_get_modeled_signal(1) = mse_get_modeled_signal(4)
+      ELSE
+         mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),          &
+     &                                     mse_get_modeled_signal(3))
 
-      IF (this%in_degrees) THEN
-         mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+         IF (BTEST(this%flags, mse_degrees_flag)) THEN
+            mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+         END IF
       END IF
 
       CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)

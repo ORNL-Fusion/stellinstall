@@ -33,18 +33,24 @@
 !>
 !>  @section mse_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{mse_point_XYZ_deg},          A MSE point specified in Cartesian Coordinates outputting the signal in degrees.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg},     A MSE point specified in Cylindrical Coordinates outputting the signal in degrees.}
-!>  @item2{@fixed_width{mse_point_XYZ_rad},          A MSE point specified in Cartesian Coordinates outputting the signal in radians.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad},     A MSE point specified in Cylindrical Coordinates outputting the signal in radians.}
-!>  @item2{@fixed_width{mse_point_XYZ_deg_deg},      A MSE point specified in Cartesian Coordinates outputting the signal in degrees. Direction angles are specifed in degrees.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_deg}, A MSE point specified in Cylindrical Coordinates outputting the signal in degrees. Direction angles are specifed in degrees.}
-!>  @item2{@fixed_width{mse_point_XYZ_rad_deg},      A MSE point specified in Cartesian Coordinates outputting the signal in degrees. Direction angles are specifed in radians.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_deg}, A MSE point specified in Cylindrical Coordinates outputting the signal in degrees. Direction angles are specifed in radians.}
-!>  @item2{@fixed_width{mse_point_XYZ_deg_rad},      A MSE point specified in Cartesian Coordinates outputting the signal in radians. Direction angles are specifed in degrees.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_rad}, A MSE point specified in Cylindrical Coordinates outputting the signal in radians. Direction angles are specifed in degrees.}
-!>  @item2{@fixed_width{mse_point_XYZ_rad_rad},      A MSE point specified in Cartesian Coordinates outputting the signal in radians. Direction angles are specifed in radians.}
-!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_rad}, A MSE point specified in Cylindrical Coordinates outputting the signal in radians. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg},            A MSE point specified in Cartesian Coordinates outputting the signal in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg},       A MSE point specified in Cylindrical Coordinates outputting the signal in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad},            A MSE point specified in Cartesian Coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad},       A MSE point specified in Cylindrical Coordinates outputting the signal in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg_deg},        A MSE point specified in Cartesian Coordinates outputting the signal in degrees. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_deg},   A MSE point specified in Cylindrical Coordinates outputting the signal in degrees. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad_deg},        A MSE point specified in Cartesian Coordinates outputting the signal in degrees. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_deg},   A MSE point specified in Cylindrical Coordinates outputting the signal in degrees. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg_rad},        A MSE point specified in Cartesian Coordinates outputting the signal in radians. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_rad},   A MSE point specified in Cylindrical Coordinates outputting the signal in radians. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad_rad},        A MSE point specified in Cartesian Coordinates outputting the signal in radians. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_rad},   A MSE point specified in Cylindrical Coordinates outputting the signal in radians. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_XYZ_ratio},          A MSE point specified in Cartesian Coordinates outputting the signal ratio.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_ratio},     A MSE point specified in Cylindrical Coordinates outputting the signal ratio.}
+!>  @item2{@fixed_width{mse_point_XYZ_deg_ratio},      A MSE point specified in Cartesian Coordinates outputting the signal ratio. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_deg_ratio}, A MSE point specified in Cylindrical Coordinates outputting the signal ratio. Direction angles are specifed in degrees.}
+!>  @item2{@fixed_width{mse_point_XYZ_rad_ratio},      A MSE point specified in Cartesian Coordinates outputting the signal ratio. Direction angles are specifed in radians.}
+!>  @item2{@fixed_width{mse_point_RPhiDegZ_rad_ratio}, A MSE point specified in Cylindrical Coordinates outputting the signal ratio. Direction angles are specifed in radians.}
 !>  @end_table
 !>
 !>  @section mse_dot_point_spec_sec Point Specification
@@ -166,7 +172,7 @@
 
 !  local parameters
 !  n_mse_keyword        integer - number of mse_keyword s.
-      INTEGER, PARAMETER :: n_mse_keyword = 13
+      INTEGER, PARAMETER :: n_mse_keyword = 19
 
 !  local variables
 !  mse_keyword    character array - keywords for various ipch input types
@@ -191,10 +197,16 @@
       mse_keyword(10) = 'mse_point_RPhiDegZ_deg_rad'
       mse_keyword(11) = 'mse_point_XYZ_rad_rad'
       mse_keyword(12) = 'mse_point_RPhiDegZ_rad_rad'
-      mse_keyword(13) = 'end_of_file'
+      mse_keyword(13) = 'mse_point_XYZ_ratio'
+      mse_keyword(14) = 'mse_point_RPhiDegZ_ratio'
+      mse_keyword(15) = 'mse_point_XYZ_deg_deg'
+      mse_keyword(16) = 'mse_point_RPhiDegZ_deg_ratio'
+      mse_keyword(17) = 'mse_point_XYZ_rad_ratio'
+      mse_keyword(18) = 'mse_point_RPhiDegZ_rad_ratio'
+      mse_keyword(19) = 'end_of_file'
 
 !  Open up the 'mse.' file
-      mse_dot_file_ref = signal_dot_open(TRIM(mse_file), 'ipch')
+      mse_dot_file_ref = signal_dot_open(TRIM(mse_file), 'mse')
 
 !  Infinite Loop
 !  Character variable line should be defined on entry
@@ -212,72 +224,116 @@
             CASE ('mse_point_XYZ_deg')
                CALL mse_dot_parse_vec(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
-     &                                weight, first_index, .true.)
+     &                                weight, first_index, .true.,             &
+     &                                .false.)
 
             CASE ('mse_point_RPhiDegZ_deg')
                CALL mse_dot_parse_vec(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
      &                                observed, sigma, weight,                 &
-     &                                first_index, .true.)
+     &                                first_index, .true., .false.)
 
             CASE ('mse_point_XYZ_rad')
                CALL mse_dot_parse_vec(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
-     &                                weight, first_index, .false.)
+     &                                weight, first_index, .false.,            &
+     &                                .false.)
 
             CASE ('mse_point_RPhiDegZ_rad')
                CALL mse_dot_parse_vec(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
      &                                observed, sigma, weight,                 &
-     &                                first_index, .false.)
+     &                                first_index, .false., .false.)
 
             CASE ('mse_point_XYZ_deg_deg')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
      &                                weight, first_index, .true.,             &
-     &                                .true.)
+     &                                .true., .false.)
 
             CASE ('mse_point_RPhiDegZ_deg_deg')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
      &                                observed, sigma, weight,                 &
-     &                                first_index, .true., .true.)
+     &                                first_index, .true., .true.,             &
+     &                                .false.)
 
             CASE ('mse_point_XYZ_rad_deg')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
      &                                weight, first_index, .false.,            &
-     &                                .true.)
+     &                                .true., .false.)
 
             CASE ('mse_point_RPhiDegZ_rad_deg')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
      &                                observed, sigma, weight,                 &
-     &                                first_index, .false., .true.)
+     &                                first_index, .false., .true.,            &
+     &                                .false.)
 
             CASE ('mse_point_XYZ_deg_rad')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
      &                                weight, first_index, .true.,             &
-     &                                .false.)
+     &                                .false., .false.)
 
             CASE ('mse_point_RPhiDegZ_deg_rad')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
      &                                observed, sigma, weight,                 &
-     &                                first_index, .true., .false.)
+     &                                first_index, .true., .false.,            &
+     &                                .false.)
 
             CASE ('mse_point_XYZ_rad_rad')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
      &                                signals_created, observed, sigma,        &
      &                                weight, first_index, .false.,            &
-     &                                .false.)
+     &                                .false., .false.)
 
             CASE ('mse_point_RPhiDegZ_rad_rad')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
-     &                                observed, sigma, weight,
-     &                                first_index, .false., .false.)
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .false., .false.,           &
+     &                                .false.)
+
+            CASE ('mse_point_XYZ_ratio')
+               CALL mse_dot_parse_vec(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .true.,             &
+     &                                .true.)
+
+            CASE ('mse_point_RPhiDegZ_ratio')
+               CALL mse_dot_parse_vec(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .true., .true.)
+
+            CASE ('mse_point_XYZ_deg_ratio')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .true.,             &
+     &                                .true., .true.)
+
+            CASE ('mse_point_RPhiDegZ_deg_ratio')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .true., .true.,             &
+     &                                .true.)
+
+            CASE ('mse_point_XYZ_rad_ratio')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'XYZ', signals,        &
+     &                                signals_created, observed, sigma,        &
+     &                                weight, first_index, .false.,            &
+     &                                .true., .true.)
+
+            CASE ('mse_point_RPhiDegZ_rad_ratio')
+               CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
+     &                                signals, signals_created,                &
+     &                                observed, sigma, weight,                 &
+     &                                first_index, .false., .true.,            &
+     &                                .true.)
 
          END SELECT
 
@@ -317,11 +373,12 @@
 !>  @param[inout] first_index      Index of the first instance of an mse
 !>                                 signal.
 !>  @param[in]    in_degrees       Signal measures degrees if true.
+!>  @param[in]    is_ratio         Signal measures ratio if true.
 !-------------------------------------------------------------------------------
       SUBROUTINE mse_dot_parse_vec(mse_dot_file_ref, coordinate_type,          &
      &                             signals, signals_created,                   &
      &                             observed, sigma, weight,                    &
-     &                             first_index, in_degrees)
+     &                             first_index, in_degrees, is_ratio)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -339,6 +396,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in) :: weight
       INTEGER, INTENT(inout)                 :: first_index
       LOGICAL, INTENT(in)                    :: in_degrees
+      LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: xcart
@@ -389,7 +447,7 @@
       signals(signals_created + 1)%p => signal_construct(                      &
      &   diagnostic_construct(                                                 &
      &      mse_construct(xcart, view_start, view_end,                         &
-     &                    beam_start, beam_end, in_degrees)),                  &
+     &                    beam_start, beam_end, in_degrees, is_ratio)),        &
      &   point_name, point_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1))
       signals_created = signals_created + 1
@@ -427,12 +485,13 @@
 !>                                 signal.
 !>  @param[in]    in_degrees1      Angles specified in degrees if true.
 !>  @param[in]    in_degrees2      Signal measures degrees if true.
+!>  @param[in]    is_ratio         Signal measures ratio if true.
 !-------------------------------------------------------------------------------
       SUBROUTINE mse_dot_parse_ang(mse_dot_file_ref, coordinate_type,          &
      &                             signals, signals_created,                   &
      &                             observed, sigma, weight,                    &
      &                             first_index, in_degrees1,                   &
-     &                             in_degrees2)
+     &                             in_degrees2, is_ratio)
       USE signal
       USE v3fit_input, only: v3fit_max_diagnostics
       USE v3_utilities, only: err_fatal
@@ -451,6 +510,7 @@
       INTEGER, INTENT(inout)                 :: first_index
       LOGICAL, INTENT(in)                    :: in_degrees1
       LOGICAL, INTENT(in)                    :: in_degrees2
+      LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: xcart
@@ -486,7 +546,8 @@
       signals(signals_created + 1)%p => signal_construct(                      &
      &   diagnostic_construct(                                                 &
      &      mse_construct(xcart, t_angles(1), t_angles(2),                     &
-     &                    h_angles(1), h_angles(2), in_degrees2)),             &
+     &                    h_angles(1), h_angles(2), in_degrees2,               &
+     &                    is_ratio)),                                          &
      &   point_name, point_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1))
       signals_created = signals_created + 1

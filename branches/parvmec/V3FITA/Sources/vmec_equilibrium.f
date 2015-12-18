@@ -3812,20 +3812,20 @@
             CASE (more_iter_flag)
 
 !  Restore the context to the state it was before runvmec was called.
-            CALL vmec_context_set_context(temp_context)
+               CALL vmec_context_set_context(temp_context)
 
-            IF (recovery_index .le. 2) THEN
-               WRITE (*,1000) 'more_iter_flag'
-               WRITE (*,1002) 'niter', niter_local,                            &
-     &                        niter_local + niter
-               WRITE (iou,1000) 'more_iter_flag'
-               WRITE (iou,1002) 'niter', niter_local,                          &
-     &                          niter_local + niter
+               IF (recovery_index .le. 2) THEN
+                  WRITE (*,1000) 'more_iter_flag'
+                  WRITE (*,1002) 'niter', niter_local,                         &
+     &                           niter_local + niter
+                  WRITE (iou,1000) 'more_iter_flag'
+                  WRITE (iou,1002) 'niter', niter_local,                       &
+     &                             niter_local + niter
 
-               niter_local = niter_local + niter
-            ELSE
-               EXIT
-            END IF
+                  niter_local = niter_local + niter
+               ELSE
+                  EXIT
+               END IF
 
             CASE DEFAULT
                EXIT
