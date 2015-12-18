@@ -86,6 +86,8 @@
 !>  @param[in] view_end   Ending point of the view vector.
 !>  @param[in] beam_start Starting point of the beam vector.
 !>  @param[in] beam_end   Ending point of the beam vector.
+!>  @param[in] in_degrees Channel measures degrees.
+!>  @param[in] is_ratio   Channel measures ratio.
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
       FUNCTION mse_construct_vec(point, view_start, view_end,                  &
@@ -105,7 +107,7 @@
       LOGICAL, INTENT(in)                    :: is_ratio
 
 !  local variables
-      REAL (rprec)              :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -159,6 +161,8 @@
 !>                   horizontal.
 !>  @param[in] delta Pitch angle to the horizontal and the neutral beam.
 !>  @param[in] theta Pitch angle to the horizontal and the view chord.
+!>  @param[in] in_degrees Channel measures degrees.
+!>  @param[in] is_ratio   Channel measures ratio.
 !>  @returns A pointer to a constructed @ref mse_class object.
 !-------------------------------------------------------------------------------
       FUNCTION mse_construct_rad(point, alpha, omega, delta, theta,            &

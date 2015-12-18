@@ -172,7 +172,7 @@
 
 !  local parameters
 !  n_mse_keyword        integer - number of mse_keyword s.
-      INTEGER, PARAMETER :: n_mse_keyword = 13
+      INTEGER, PARAMETER :: n_mse_keyword = 19
 
 !  local variables
 !  mse_keyword    character array - keywords for various ipch input types
@@ -197,7 +197,13 @@
       mse_keyword(10) = 'mse_point_RPhiDegZ_deg_rad'
       mse_keyword(11) = 'mse_point_XYZ_rad_rad'
       mse_keyword(12) = 'mse_point_RPhiDegZ_rad_rad'
-      mse_keyword(13) = 'end_of_file'
+      mse_keyword(13) = 'mse_point_XYZ_ratio'
+      mse_keyword(14) = 'mse_point_RPhiDegZ_ratio'
+      mse_keyword(15) = 'mse_point_XYZ_deg_deg'
+      mse_keyword(16) = 'mse_point_RPhiDegZ_deg_ratio'
+      mse_keyword(17) = 'mse_point_XYZ_rad_ratio'
+      mse_keyword(18) = 'mse_point_RPhiDegZ_rad_ratio'
+      mse_keyword(19) = 'end_of_file'
 
 !  Open up the 'mse.' file
       mse_dot_file_ref = signal_dot_open(TRIM(mse_file), 'mse')
@@ -287,7 +293,7 @@
             CASE ('mse_point_RPhiDegZ_rad_rad')
                CALL mse_dot_parse_ang(mse_dot_file_ref, 'RPhiDegZ',            &
      &                                signals, signals_created,                &
-     &                                observed, sigma, weight,
+     &                                observed, sigma, weight,                 &
      &                                first_index, .false., .false.,           &
      &                                .false.)
 
@@ -367,6 +373,7 @@
 !>  @param[inout] first_index      Index of the first instance of an mse
 !>                                 signal.
 !>  @param[in]    in_degrees       Signal measures degrees if true.
+!>  @param[in]    is_ratio         Signal measures ratio if true.
 !-------------------------------------------------------------------------------
       SUBROUTINE mse_dot_parse_vec(mse_dot_file_ref, coordinate_type,          &
      &                             signals, signals_created,                   &
@@ -440,7 +447,7 @@
       signals(signals_created + 1)%p => signal_construct(                      &
      &   diagnostic_construct(                                                 &
      &      mse_construct(xcart, view_start, view_end,                         &
-     &                    beam_start, beam_end, in_degrees, is_ratio)),                  &
+     &                    beam_start, beam_end, in_degrees, is_ratio)),        &
      &   point_name, point_name, 'arb', observed(signals_created + 1),         &
      &   sigma(signals_created + 1), weight(signals_created + 1))
       signals_created = signals_created + 1
@@ -478,6 +485,7 @@
 !>                                 signal.
 !>  @param[in]    in_degrees1      Angles specified in degrees if true.
 !>  @param[in]    in_degrees2      Signal measures degrees if true.
+!>  @param[in]    is_ratio         Signal measures ratio if true.
 !-------------------------------------------------------------------------------
       SUBROUTINE mse_dot_parse_ang(mse_dot_file_ref, coordinate_type,          &
      &                             signals, signals_created,                   &
