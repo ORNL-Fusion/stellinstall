@@ -199,7 +199,7 @@
       mse_keyword(12) = 'mse_point_RPhiDegZ_rad_rad'
       mse_keyword(13) = 'mse_point_XYZ_ratio'
       mse_keyword(14) = 'mse_point_RPhiDegZ_ratio'
-      mse_keyword(15) = 'mse_point_XYZ_deg_deg'
+      mse_keyword(15) = 'mse_point_XYZ_deg_ratio'
       mse_keyword(16) = 'mse_point_RPhiDegZ_deg_ratio'
       mse_keyword(17) = 'mse_point_XYZ_rad_ratio'
       mse_keyword(18) = 'mse_point_RPhiDegZ_rad_ratio'
