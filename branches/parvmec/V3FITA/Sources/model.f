@@ -412,7 +412,7 @@
 !>  @param[in]    i_index The ith index of the parameter.
 !>  @param[in]    j_index The jth index of the parameter.
 !>  @param[in]    value   The value of the parameter.
-!>  @param[in]    eq_comm MPI communicator pool for the equilibrium.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !>  @note Model parameter do not use the indicies. However an equilibrium might.
 !-------------------------------------------------------------------------------
       SUBROUTINE model_set_param(this, id, i_index, j_index, value,            &
@@ -1198,9 +1198,10 @@
 !>  @param[inout] num_iter Counter to track the number of iterations.
 !>  @param[in]    iou      Input/output unit of the file to write logs to.
 !>  @param[in]    eq_comm  MPI communicator pool for the equilibrium.
+!>  @param[in]    param_name Name of the peturbed parameter.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION model_converge(this, num_iter, iou, eq_comm)
+      FUNCTION model_converge(this, num_iter, iou, eq_comm, param_name)
 
       IMPLICIT NONE
 
@@ -1210,6 +1211,7 @@
       INTEGER, INTENT(inout)            :: num_iter
       INTEGER, INTENT(in)               :: iou
       INTEGER, INTENT(in)               :: eq_comm
+      CHARACTER (len=*), INTENT(in)     :: param_name
 
 !  local variables
       REAL (rprec)                      :: r, dr
@@ -1225,7 +1227,7 @@
      &               error)
 #endif
       model_converge = equilibrium_converge(this%equilibrium, num_iter,        &
-     &                                      iou, eq_comm)
+     &                                      iou, eq_comm, param_name)
 
       IF (model_converge) THEN
 
@@ -1631,15 +1633,15 @@
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref model_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE model_sync_state(this, intra_comm)
+      SUBROUTINE model_sync_state(this, recon_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (model_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)               :: intra_comm
+      INTEGER, INTENT(in)               :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -1650,17 +1652,17 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL equilibrium_sync_state(this%equilibrium, intra_comm)
+      CALL equilibrium_sync_state(this%equilibrium, recon_comm)
 
       grid_size = equilibrium_get_grid_size(this%equilibrium)
       IF (grid_size .gt. 0) THEN
          CALL MPI_BCAST(this%ne_grid, grid_size, MPI_REAL8, 0,                 &
-     &                  intra_comm, error)
+     &                  recon_comm, error)
          CALL MPI_BCAST(this%sxrem_grid,                                       &
      &                  grid_size*SIZE(this%sxrem_type), MPI_REAL8, 0,         &
-     &                  intra_comm, error)
+     &                  recon_comm, error)
          CALL MPI_BCAST(this%te_grid, grid_size, MPI_REAL8, 0,                 &
-     &                  intra_comm, error)
+     &                  recon_comm, error)
       END IF
 
       CALL profiler_set_stop_time('model_sync_state', start_time)

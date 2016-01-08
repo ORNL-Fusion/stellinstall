@@ -249,7 +249,7 @@
 !>  @param[in]    i_index The ith index of the parameter.
 !>  @param[in]    j_index The jth index of the parameter.
 !>  @param[in]    value   The value of the parameter.
-!>  @param[in]    eq_comm MPI communicator pool for the equilibrium.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_param(this, id, i_index, j_index,             &
      &                                 value, eq_comm)
@@ -1900,13 +1900,15 @@
 !>  the equilibirum is already in a converged state.
 !>  @see vmec_equilibrium::vmec_converge
 !>
-!>  @param[inout] this     A @ref equilibrium_class instance.
-!>  @param[inout] num_iter Counter to track the number of iterations.
-!>  @param[in]    iou      Input/output unit of the file to write logs to.
-!>  @param[in]    eq_comm  MPI communicator pool for the equilibrium.
+!>  @param[inout] this       A @ref equilibrium_class instance.
+!>  @param[inout] num_iter   Counter to track the number of iterations.
+!>  @param[in]    iou        Input/output unit of the file to write logs to.
+!>  @param[in]    eq_comm    MPI communicator pool for the equilibrium.
+!>  @param[in]    param_name Name of the peturbed parameter.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm)
+      FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm,              &
+     &                              param_name)
 
       IMPLICIT NONE
 
@@ -1916,10 +1918,12 @@
       INTEGER, INTENT(inout)                  :: num_iter
       INTEGER, INTENT(in)                     :: iou
       INTEGER, INTENT(in)                     :: eq_comm
+      CHARACTER (len=*), INTENT(in)           :: param_name
 
 !  local variables
       INTEGER                                 :: init_num_iter
       INTEGER                                 :: error
+      INTEGER                                 :: eq_rank
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -1952,15 +1956,47 @@
          equilibrium_converge = .true.
       ENDIF
 
-      WRITE (*,1000) equilibrium_converge, num_iter,                           &
-     &               num_iter - init_num_iter
-      WRITE (iou,1000) equilibrium_converge, num_iter,                         &
-     &                 num_iter - init_num_iter
-1000  FORMAT('Equilibrium converged ',l,2(2x,i7))
+      CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
+      IF (eq_rank .eq. 0) THEN
+         WRITE (*,1000) equilibrium_converge, num_iter,                        &
+     &                  num_iter - init_num_iter, param_name
+         WRITE (iou,1000) equilibrium_converge, num_iter,                      &
+     &                    num_iter - init_num_iter, param_name
+      END IF
+
+1000  FORMAT('Equilibrium converged ',l,2(2x,i7),' ',a)
 
       CALL profiler_set_stop_time('equilibrium_converge', start_time)
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Loads the vacuum magnetic field file.
+!>
+!>  Loads the vacuum magnetic field file. This will get on multiple processes to
+!>  allow parallel loading of vacuum files.
+!>  @see vmec_equilibrium::vmec_read_vac_file
+!>
+!>  @param[in] this    A @ref vmec_class instance.
+!>  @param[in] eq_comm MPI communicator pool for VMEC.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_read_vac_file(this, eq_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                 :: eq_comm
+
+!  Start of executable code
+       SELECT CASE (this%type)
+
+          CASE (equilibrium_vmec_type)
+             CALL vmec_read_vac_file(this%vmec, eq_comm)
+
+       END SELECT
+
+       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Save the internal state of the equilibrium.
@@ -2240,16 +2276,16 @@
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref equilibrium_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_sync_state(this, intra_comm)
+      SUBROUTINE equilibrium_sync_state(this, recon_comm)
       USE file_opts
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                     :: intra_comm
+      INTEGER, INTENT(in)                     :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -2259,13 +2295,13 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, intra_comm,        &
+      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, recon_comm,        &
      &               error)
 
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
-            CALL vmec_sync_state(this%vmec, intra_comm)
+            CALL vmec_sync_state(this%vmec, recon_comm)
 
       END SELECT
 

@@ -1976,7 +1976,7 @@ SUBROUTINE Initialize_bst( do_mpiinit, inN, inM )
 
   ! SKS
   IF (.NOT.ALLOCATED(selement)) ALLOCATE( selement(N) ) !Have a place for all x; only some will be allocated
-  ! ALLOCATE( selement(N) ) !Have a place for all x; only some will be allocated
+  !ALLOCATE( selement(N) ) !Have a place for all x; only some will be allocated
   CALL ChargeMemory( N*ptrsz )
 
 
@@ -1985,11 +1985,11 @@ SUBROUTINE Initialize_bst( do_mpiinit, inN, inM )
   !---------------------------------------------------------------------------
   DO globrow = startglobrow, endglobrow, 1
     globrowoff = globrow-startglobrow+1
-    ALLOCATE( lelement(1, globrowoff)%L(M,1) )
-    ALLOCATE( lelement(1, globrowoff)%D(M,1) )
-    ALLOCATE( lelement(1, globrowoff)%U(M,1) )
-    ALLOCATE( lelement(1, globrowoff)%b(M,1) )
-    ALLOCATE( lelement(1, globrowoff)%pivot(M) )
+    IF(.NOT.ALLOCATED(lelement(1,globrowoff)%L)) ALLOCATE( lelement(1, globrowoff)%L(M,1) )
+    IF(.NOT.ALLOCATED(lelement(1,globrowoff)%D)) ALLOCATE( lelement(1, globrowoff)%D(M,1) )
+    IF(.NOT.ALLOCATED(lelement(1,globrowoff)%U)) ALLOCATE( lelement(1, globrowoff)%U(M,1) )
+    IF(.NOT.ALLOCATED(lelement(1,globrowoff)%b)) ALLOCATE( lelement(1, globrowoff)%b(M,1) )
+    IF(.NOT.ALLOCATED(lelement(1,globrowoff)%pivot)) ALLOCATE( lelement(1, globrowoff)%pivot(M) )
     lelement(1, globrowoff)%L = 0
     lelement(1, globrowoff)%D = 0
     lelement(1, globrowoff)%U = 0
@@ -2001,13 +2001,13 @@ SUBROUTINE Initialize_bst( do_mpiinit, inN, inM )
   !---------------------------------------------------------------------------
   !Allocate (L,D,U,b) for saving the original problem
   !---------------------------------------------------------------------------
-  ALLOCATE( orig(endglobrow-startglobrow+1) )
+  IF(.NOT.ALLOCATED(orig)) ALLOCATE( orig(endglobrow-startglobrow+1) )
   DO globrow = startglobrow, endglobrow, 1
     globrowoff = globrow-startglobrow+1
-    ALLOCATE( orig(globrowoff)%L(M,1) )
-    ALLOCATE( orig(globrowoff)%D(M,1) )
-    ALLOCATE( orig(globrowoff)%U(M,1) )
-    ALLOCATE( orig(globrowoff)%b(M,1) )
+    IF(.NOT.ALLOCATED(orig(globrowoff)%L)) ALLOCATE( orig(globrowoff)%L(M,1) )
+    IF(.NOT.ALLOCATED(orig(globrowoff)%D)) ALLOCATE( orig(globrowoff)%D(M,1) )
+    IF(.NOT.ALLOCATED(orig(globrowoff)%U)) ALLOCATE( orig(globrowoff)%U(M,1) )
+    IF(.NOT.ALLOCATED(orig(globrowoff)%b)) ALLOCATE( orig(globrowoff)%b(M,1) )
     !-- DONT CHARGE MEMORY COST FOR THIS!!! --
     orig(globrowoff)%L = 0
     orig(globrowoff)%D = 0

@@ -667,7 +667,7 @@
       start_time = profiler_get_start_time()
 
 !  Converge the equilibrium. this%e is initialized to zero in the constructor.
-      IF (model_converge(a_model, eq_steps, iou, eq_comm)) THEN
+      IF (model_converge(a_model, eq_steps, iou, eq_comm, 'All')) THEN
 
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial.
@@ -754,7 +754,7 @@
      &                                         a_model, params,                &
      &                                         eq_steps, iou,                  &
      &                                         recon_comm, eq_comm)
-
+      USE xstuff
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -851,7 +851,8 @@
 !  Check that model was able to converge. If the model converged proceed as
 !  normal otherwise set the jth index of the jacobian to zero to avoid a step
 !  in that parameter direction.
-         IF (model_converge(a_model, eq_steps, iou, eq_comm)) THEN
+         IF (model_converge(a_model, eq_steps, iou, eq_comm,                   &
+     &                      param_get_name(params(j)%p, a_model))) THEN
 
 !  Compute the normalized jacobian. d e_i/d a_j . Equation 12 in Hanson et. al.
 !  doi:10.1088/0029-5515/49/7/075031

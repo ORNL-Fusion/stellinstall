@@ -207,7 +207,6 @@ C-----------------------------------------------
          END DO
 
       END DO planes
-!      CALL STOPMPI(12313)
 
 !
 !     FOURIER TRANSFORM RCOM, ZCOM
@@ -355,7 +354,6 @@ C-----------------------------------------------
          END DO
 
       END DO planes
-!      CALL STOPMPI(12313)
 
 
 !

@@ -59,7 +59,6 @@ C-----------------------------------------------
           END DO
         END DO
       END DO
-
 !
 !     RIGID BODY SHIFT OF RMNCC(JS.GT.1,0,0) BY DELR_MSE= R00-RAXMSE
 !
@@ -190,9 +189,9 @@ C-----------------------------------------------
       END IF ACTIVE1
 
       bbuf(1)=irst; bbuf(2)=iequi; bbuf(3)=ivac; bbuf(4)=iter2
-      CALL MPI_BCast(bbuf,4,MPI_INTEGER,0,MPI_COMM_WORLD,MPI_ERR)
+      CALL MPI_BCast(bbuf,4,MPI_INTEGER,0,RUNVMEC_COMM_WORLD,MPI_ERR)
       irst=bbuf(1); iequi=bbuf(2); ivac=bbuf(3); iter2=bbuf(4)
-      CALL MPI_BCast(lfreeb,1,MPI_LOGICAL,0,MPI_COMM_WORLD,MPI_ERR)
+      CALL MPI_BCast(lfreeb,1,MPI_LOGICAL,0,RUNVMEC_COMM_WORLD,MPI_ERR)
 
       IF (irst.EQ.2 .AND. iequi.EQ.0) GOTO 100
 
@@ -259,7 +258,7 @@ C-----------------------------------------------
               bcastbuf(nzeta+1:2*nzeta) = zaxis_nestor(1:nzeta)
               CALL second0(skston)
               CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,0,
-     1                       MPI_COMM_WORLD,MPI_ERR)
+     1                       RUNVMEC_COMM_WORLD,MPI_ERR)
               CALL second0(skstoff)
               broadcast_time = broadcast_time + (skstoff - skston)
               raxis_nestor(1:nzeta) = bcastbuf(1:nzeta)
@@ -456,7 +455,7 @@ C-----------------------------------------------
         bcastbuf(5) = fsql; bcastbuf(6) = fsql1
         CALL second0(skston)
         CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,0,
-     1                 MPI_COMM_WORLD,MPI_ERR)
+     1                 RUNVMEC_COMM_WORLD,MPI_ERR)
         CALL second0(skstoff)
         broadcast_time = broadcast_time + (skstoff -skston)
         fsqr = bcastbuf(1); fsqr1 = bcastbuf(2)

@@ -337,7 +337,7 @@
 !>  @param[in] set_indices Array of parameters indices for parameters to lock
 !>                         to.
 !>  @param[in] set_coeff   Coefficients for the parameters to lock to.
-!>  @param[in] eq_comm     MPI communicator pool for the equilibrium.
+!>  @param[in] eq_comm MPI communicator for the child equilibrium processes.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
       FUNCTION param_construct_locking(a_model, param_name, indices,           &
@@ -468,7 +468,7 @@
 !>  @param[in]    this    A @ref param_class instance.
 !>  @param[inout] a_model A @ref model instance.
 !>  @param[in]    value   The value to set the parameter to.
-!>  @param[in]    eq_comm MPI communicator pool for the equilibrium.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_set_value(this, a_model, value, eq_comm)
 
@@ -542,7 +542,7 @@
 !>
 !>  @param[in]    this    A @ref param_class instance.
 !>  @param[inout] a_model A @ref model instance.
-!>  @param[in]    eq_comm MPI communicator pool for the equilibrium.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_set_lock_value(this, a_model, eq_comm)
 
@@ -925,7 +925,7 @@
 !>
 !>  @param[in] this    A @ref param_class instance.
 !>  @param[in] a_model A @ref model instance.
-!>  @param[in] eq_comm MPI communicator pool for the equilibrium.
+!>  @param[in] eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_increment(this, a_model, eq_comm)
       USE v3_utilities, only: err_fatal
@@ -1327,8 +1327,8 @@
 !>
 !>  @param[inout] this       A @ref param_class instance.
 !>  @param[inout] a_model    A @ref model instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!>  @param[in]    eq_comm    MPI communicator pool for the equilibrium.
+!>  @param[in]    recon_comm A MPI intra_comm handle.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_sync_value(this, a_model, recon_comm, eq_comm)
 

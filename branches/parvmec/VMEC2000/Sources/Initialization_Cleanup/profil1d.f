@@ -61,6 +61,7 @@ C-----------------------------------------------
 !     BY READING INPUT COEFFICIENTS. PRESSURE CONVERTED TO
 !     INTERNAL UNITS BY MULTIPLICATION BY mu0 = 4*pi*10**-7
 !
+
       IF (ncurr.EQ.1 .AND. lRFP)STOP 'ncurr=1 inconsistent with lRFP=T!'
       torflux_edge = signgs * phifac * phiedge / twopi
       si = torflux(one)
@@ -204,7 +205,7 @@ C-----------------------------------------------
       sp(0) = 0
       sp(1) = sm(2)
 
-      IF (lreset) THEN
+      IF (lreset) THEN      
          xc(:,:,t1lglob:t1rglob,:) = 0
          IF (lrecon) iresidue = 0
       END IF
@@ -315,8 +316,6 @@ C-----------------------------------------------
 !     Compute lamscale factor for "normalizing" lambda (needed for scaling hessian)
 !
       lamscale = SQRT(hs*SUM(phips(2:ns)**2))
-      phips(ns+1) = 2*phips(ns)-phips(ns-1)
-      IF (lamscale .EQ. 0) STOP 'PHIP == 0: ERROR!'
 
       IF (lflip) THEN
          iotas = -iotas

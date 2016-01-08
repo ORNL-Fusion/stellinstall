@@ -5,6 +5,7 @@
         USE mpi_inc
 
         USE parallel_vmec_module, ONLY: PARVMEC
+        USE parallel_vmec_module, ONLY: LV3FITCALL
         USE parallel_vmec_module, ONLY: SKS_ALLGATHER
         USE parallel_vmec_module, ONLY: BCYCLIC
         USE parallel_vmec_module, ONLY: THOMAS
@@ -17,8 +18,8 @@
         USE parallel_vmec_module, ONLY: vgrid_time
         USE parallel_vmec_module, ONLY: f3d_time
         USE parallel_vmec_module, ONLY: f3d_num
+        USE parallel_vmec_module, ONLY: RUNVMEC_COMM_WORLD
         USE parallel_vmec_module, ONLY: NS_COMM
-        USE parallel_vmec_module, ONLY: INTER_COMM
         USE parallel_vmec_module, ONLY: VAC_COMM
         USE parallel_vmec_module, ONLY: TWODCOMM
         USE parallel_vmec_module, ONLY: px, py
@@ -51,6 +52,8 @@
 
         USE parallel_vmec_module, ONLY: Parallel2Serial2X
         USE parallel_vmec_module, ONLY: Parallel2Serial4X
+
+        USE parallel_vmec_module, ONLY: Serial2Parallel4X
 
         USE parallel_vmec_module, ONLY: Gather1XArray
         USE parallel_vmec_module, ONLY: Gather2XArray

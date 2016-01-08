@@ -19,7 +19,7 @@ C-----------------------------------------------
       CHARACTER(LEN=100), PARAMETER ::
 #if defined(SKS)
      1   banner = 
-     2   ' THIS IS A PARVMEC, A PARALLEL VERSION OF VMEC, VERSION ' 
+     2   ' THIS IS PARVMEC FOR LDRD, VERSION ' 
 #else
      1   banner = ' THIS IS VMEC2000, A 3D EQUILIBRIUM CODE, VERSION '
 #endif

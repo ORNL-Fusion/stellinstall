@@ -404,10 +404,11 @@
 !-------------------------------------------------------------------------------
       INTERFACE
          SUBROUTINE runvmec(control_array, vmec_input_file,                    &
-     &                      use_screen, reset_file_name)
+     &                      use_screen, comm, reset_file_name)
          INTEGER, INTENT(inout), TARGET :: control_array(5)
          LOGICAL, INTENT(in)            :: use_screen
          CHARACTER(LEN=*), INTENT(in)   :: vmec_input_file
+         INTEGER, INTENT(in)            :: comm
          CHARACTER(LEN=*), OPTIONAL     :: reset_file_name
          END SUBROUTINE
       END INTERFACE
@@ -464,12 +465,12 @@
 !>  @param[in] z_offset   Initial Z offset of the plasma relative to the
 !>                        machine center.
 !>  @param[in] iou        Input/output unit to log messages to.
-!>  @param[in] vmec_comm  MPI communicator pool for VMEC.
+!>  @param[in] eq_comm    MPI communicator pool for VMEC.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct(file_name, wout_file_name, ne, te, sxrem,        &
      &                        phi_offset, z_offset, pol_rad_ratio, iou,        &
-     &                        vmec_comm)
+     &                        eq_comm)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -489,7 +490,7 @@
       REAL (rprec), INTENT(in)             :: z_offset
       REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
-      INTEGER, INTENT(in)                  :: vmec_comm
+      INTEGER, INTENT(in)                  :: eq_comm
 
 !  local variables
       INTEGER, DIMENSION(5)                :: ictrl_array
@@ -531,14 +532,16 @@
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
          vmec_construct%wout_file_name = wout_file_name
-         CALL runvmec(ictrl_array, file_name, .false., wout_file_name)
+         CALL runvmec(ictrl_array, file_name, .false., eq_comm,                &
+     &                wout_file_name)
 
          CALL read_wout_file(vmec_construct%wout_file_name, error)
          CALL assert_eq(error, 0, 'Error loading initialized ' //              &
      &                            'wout file.')
          CALL LoadRZL
       ELSE
-         CALL runvmec(ictrl_array, file_name, .false.)
+         !print *, '*** Calling runvmec from construct...'
+         CALL runvmec(ictrl_array, file_name, .false., eq_comm)
       END IF
 
 !  Check for errors in runvmec.
@@ -727,27 +730,25 @@
 !>  parameter is changed, propagate the changes to the VMEC internal state and
 !>  inform the caller that the equilibrium needs reconvergence.
 !>
-!>  @param[inout] this      A @ref vmec_class instance.
-!>  @param[in]    id        ID of the parameter.
-!>  @param[in]    i_index   The ith index of the parameter.
-!>  @param[in]    j_index   The jth index of the parameter.
-!>  @param[in]    value     The value of the parameter.
-!>  @param[in]    vmec_comm MPI communicator pool for VMEC.
+!>  @param[inout] this    A @ref vmec_class instance.
+!>  @param[in]    id      ID of the parameter.
+!>  @param[in]    i_index The ith index of the parameter.
+!>  @param[in]    j_index The jth index of the parameter.
+!>  @param[in]    value   The value of the parameter.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !>  @returns True if VMEC is left in an unconverged state and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_set_param(this, id, i_index, j_index, value,               &
-     &                        vmec_comm)
+     &                        eq_comm)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
      &                      ac, ac_aux_s, ac_aux_f,                            &
      &                      ai, ai_aux_s, ai_aux_f,                            &
      &                      am, am_aux_s, am_aux_f,                            &
      &                      extcur, curtor, phiedge, pres_scale,               &
-     &                      bloat, mgrid_file, nfp, lfreeb, aphi
+     &                      bloat, lfreeb, aphi
       USE xstuff, only: xc, xcdot
       USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
-      USE mgrid_mod, only: read_mgrid, mgrid_path_old
-      USE vacmod0, only: nv
 
       IMPLICIT NONE
 
@@ -758,11 +759,11 @@
       INTEGER, INTENT(in)              :: i_index
       INTEGER, INTENT(in)              :: j_index
       REAL (rprec), INTENT(in)         :: value
-      INTEGER, INTENT(in)              :: vmec_comm
+      INTEGER, INTENT(in)              :: eq_comm
 
 !  local variables
       REAL (rprec)                     :: phiedge_ratio
-      INTEGER                          :: status
+      INTEGER                          :: error
       REAL (rprec)                     :: start_time
 
 !  Start of executable code
@@ -775,11 +776,9 @@
             rbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
             ELSE
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_zbs_id)
@@ -787,11 +786,9 @@
             zbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
             ELSE
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_rbs_id)
@@ -799,11 +796,9 @@
             rbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
             ELSE
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_zbc_id)
@@ -811,57 +806,55 @@
             zbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .true.,               &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .true., .false.)
             ELSE
-               CALL profil3d_par(xc(1), xc(1 + irzloff), .false.,              &
-     &                           .false.)
+               CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
             END IF
 
          CASE (vmec_ac_id)
             vmec_set_param = .true.
             ac(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_s_id)
             vmec_set_param = .true.
             ac_aux_s(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_f_id)
             vmec_set_param = .true.
             ac_aux_f(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_id)
             vmec_set_param = .true.
             ai(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_s_id)
             vmec_set_param = .true.
             ai_aux_s(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_f_id)
             vmec_set_param = .true.
             ai_aux_f(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_id)
             vmec_set_param = .true.
             am(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_s_id)
             vmec_set_param = .true.
             am_aux_s(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_f_id)
             vmec_set_param = .true.
             am_aux_f(i_index) = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_pp_ne_b_id)
             vmec_set_param = .false.
@@ -902,43 +895,43 @@
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
             extcur(i_index) = value
-            mgrid_path_old = ''
-            CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false.,              &
-     &                      status)
-            CALL assert_eq(0, status, 'vmec_set_param: failed to ' //          &
-     &                     'read mgrid_file')
+#if defined(MPI_OPT)
+            CALL MPI_BCAST(mpi_mgrid_task, 1, MPI_INTEGER, 0, eq_comm,         &
+     &                     error)
+#endif
+            CALL vmec_read_vac_file(this, eq_comm)
 
          CASE (vmec_curtor_id)
             vmec_set_param = .true.
             curtor = value
             currv = mu0*curtor
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_phiedge_id)
             vmec_set_param = .true.
-!            IF (phiedge .ne. 0.0) THEN
-!               phiedge_ratio = value/phiedge
-!            ELSE
-!               phiedge_ratio = 1.0
-!            END IF
+            IF (phiedge .ne. 0.0) THEN
+               phiedge_ratio = value/phiedge
+            ELSE
+               phiedge_ratio = 1.0
+            END IF
             phiedge = value
-!            IF (aphi(1) .eq. 1.0) THEN
-!               xc(1 + 2*irzloff:3*irzloff) =                                   &
-!     &            phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
-!            END IF
-            CALL profil1d_par(xc, xcdot, .false.)
-            CALL profil3d_par(xc(1), xc(1 + irzloff), .false., .false.)
+            IF (aphi(1) .eq. 1.0) THEN
+               xc(1 + 2*irzloff:3*irzloff) =                                   &
+     &            phiedge_ratio*xc(1 + 2*irzloff:3*irzloff)
+            END IF
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
             vmec_set_param = .true.
             pres_scale = value
-            CALL profil1d_par(xc, xcdot, .false.)
+            CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_bloat_id)
             vmec_set_param = .true.
             bloat = value
-            CALL profil1d_par(xc, xcdot, .false.)
-            CALL profil3d_par(xc(1), xc(1 + irzloff), .false., .false.)
+            CALL profil1d(xc, xcdot, .false.)
+            CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
 !  For the phi_offset, the magnetic cache needs to be updated. Since the phi
 !  offset doesn't alter the equilibrium, the magnetics were not getting updated
@@ -2884,10 +2877,10 @@
 
 !  Declare Arguments
       INTEGER :: vmec_get_plasma_edge
-      TYPE (vmec_class), INTENT(in)                      :: this
-      REAL (rprec), INTENT (in)                          :: phi
-      REAL (rprec), DIMENSION(:), POINTER                :: r
-      REAL (rprec), DIMENSION(:), POINTER                :: z
+      TYPE (vmec_class), INTENT(in)           :: this
+      REAL (rprec), INTENT (in)               :: phi
+      REAL (rprec), DIMENSION(:), POINTER     :: r
+      REAL (rprec), DIMENSION(:), POINTER     :: z
 
 !  local variables
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosv, sinv
@@ -3713,19 +3706,19 @@
 !>  vmec equilibrium and loads the resulting wout file in preparation of
 !>  computing modeled signals.
 !>
-!>  @param[inout] this      A @ref vmec_class instance.
-!>  @param[inout] num_iter  Counter to track the number of iterations.
-!>  @param[in]    iou       Input/Output unit of the runlog file.
-!>  @param[in]    vmec_comm MPI communicator pool for VMEC.
+!>  @param[inout] this     A @ref vmec_class instance.
+!>  @param[inout] num_iter Counter to track the number of iterations.
+!>  @param[in]    iou      Input/Output unit of the runlog file.
+!>  @param[in]    eq_comm  MPI communicator pool for VMEC.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_converge(this, num_iter, iou, vmec_comm)
+      FUNCTION vmec_converge(this, num_iter, iou, eq_comm)
       USE vmec_input, only: delt, niter
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag, restart_flag
-      USE xstuff, only: xcdot
+      USE xstuff, only: xcdot, xc, xstore
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE vmec_main, only: iterc, iter1, iter2
 
@@ -3736,7 +3729,7 @@
       TYPE (vmec_class), INTENT(inout)   :: this
       INTEGER, INTENT(inout)             :: num_iter
       INTEGER, INTENT(in)                :: iou
-      INTEGER, INTENT(in)                :: vmec_comm
+      INTEGER, INTENT(in)                :: eq_comm
 
 !  local variables
 !  delt_local   Value of delt on entry. Store, for restoration after error
@@ -3784,7 +3777,9 @@
          xcdot = 0.0
          xstore = xc
          CALL reset_params
-         CALL runvmec(ictrl_array, this%vmec_file_name, .false.)
+         !print *, '*** Calling runvmec from converge...'
+         CALL runvmec(ictrl_array, this%vmec_file_name, .false.,               &
+     &                eq_comm)
 
 !  Set error flag. (Flags declared in vmec_params.f)
 !
@@ -3874,6 +3869,43 @@
 1002  FORMAT(a,' change: old, new: ',i12,' ',i12)
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Loads the vacuum magnetic field file.
+!>
+!>  Loads the vacuum magnetic field file. This will get on multiple processes to
+!>  allow parallel loading of the mgrid file. The extcur array will need to be
+!>  broadcast to the child processes.
+!>
+!>  @param[in] this    A @ref vmec_class instance.
+!>  @param[in] eq_comm MPI communicator pool for VMEC.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_read_vac_file(this, eq_comm)
+      USE vmec_input, only: extcur, mgrid_file, nfp
+      USE mgrid_mod, only: read_mgrid, mgrid_path_old, nextcur
+      USE vacmod0, only: nv
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: eq_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                       :: error
+
+!  Start of executable code
+      mgrid_path_old = ''
+
+      CALL MPI_BCAST(extcur(1:nextcur), nextcur, MPI_REAL8, 0, eq_comm,        &
+     &               error)
+      CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false., error,             &
+     &                comm = eq_comm)
+      CALL assert_eq(0, error, 'vmec_set_param: failed to read ' //            &
+     &               'mgrid_file')
+#endif
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Save the internal state of the equilibrium.
@@ -4346,9 +4378,9 @@
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref vmec_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_sync_state(this, intra_comm)
+      SUBROUTINE vmec_sync_state(this, recon_comm)
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
 
@@ -4356,18 +4388,18 @@
 
 !  Declare Arguments
        TYPE (vmec_class), INTENT(inout) :: this
-       INTEGER, INTENT(in)              :: intra_comm
+       INTEGER, INTENT(in)              :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
+      INTEGER                           :: i
       INTEGER                           :: error
       INTEGER                           :: mpi_rank
       INTEGER                           :: mpi_size
-      INTEGER                           :: i
 
 !  Start of executable code
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
 !  If this is the parent process, copy the wout file to the children.
       IF (mpi_rank .eq. 0) THEN
@@ -4378,7 +4410,7 @@
          END DO
       END IF
 
-      CALL MPI_BARRIER(intra_comm, error)
+      CALL MPI_BARRIER(recon_comm, error)
 
       IF (mpi_rank .gt. 0) THEN
          CALL read_wout_file(this%wout_file_name, error)
@@ -4390,7 +4422,7 @@
          END IF
       END IF
 
-      CALL vmec_context_sync_state(this%vmec_context_save, intra_comm)
+      CALL vmec_context_sync_state(this%vmec_context_save, recon_comm)
 
 #endif
       END SUBROUTINE

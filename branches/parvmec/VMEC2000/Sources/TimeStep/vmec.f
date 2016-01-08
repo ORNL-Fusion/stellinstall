@@ -32,6 +32,7 @@ C-----------------------------------------------
       CHARACTER(LEN=120) :: log_file
       CHARACTER(LEN=120), DIMENSION(10) :: command_arg
       LOGICAL :: lscreen
+      INTEGER :: V3FIT_COMM
 
 #if defined(SKS)
       REAL(dp) :: ton, toff
@@ -139,11 +140,12 @@ C-----------------------------------------------
 !
       INTERFACE
          SUBROUTINE runvmec(ictrl_array, input_file0, 
-     1                      lscreen, reset_file_name)
+     1                      lscreen, V3FIT_COMM, reset_file_name)
          IMPLICIT NONE
          INTEGER, INTENT(inout), TARGET :: ictrl_array(5)
          LOGICAL, INTENT(in) :: lscreen
          CHARACTER(LEN=*), INTENT(in) :: input_file0
+         INTEGER, INTENT(in), OPTIONAL :: V3FIT_COMM
          CHARACTER(LEN=*), OPTIONAL :: reset_file_name
          END SUBROUTINE runvmec
       END INTERFACE
@@ -151,6 +153,7 @@ C-----------------------------------------------
 #if defined(SKS)
       CALL MyEnvVariables
       CALL InitializeParallel
+      CALL MPI_COMM_DUP(MPI_COMM_WORLD,V3FIT_COMM,MPI_ERR)
       CALL second0(totalton)
       ton = totalton; skston=totalton
 #endif
@@ -330,7 +333,7 @@ C-----------------------------------------------
  100     CONTINUE
 
          CALL runvmec (ictrl, extension(index_seq), 
-     1                 lscreen, reset_file_name)
+     1                 lscreen, V3FIT_COMM, reset_file_name)
 
          ierr_vmec = ictrl(2)
 
@@ -426,7 +429,7 @@ C-----------------------------------------------
       CALL second0(totaltoff)
       total_time = total_time + (totaltoff-totalton)
       toff = totaltoff
-      IF (lactive) CALL PrintTimes
+      IF (.NOT.LV3FITCALL.AND.lactive) CALL PrintTimes
       CALL FinalizeParallel
 #endif
 

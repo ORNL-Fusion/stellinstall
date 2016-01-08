@@ -177,7 +177,7 @@
       CALL init_equilibrium(context)
 
 !  Solve equilibrium
-      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (*,*) ' *** Starting initial equilibrium convergence (eq)'
       WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
      &                             'equilibrium convergence'
 
@@ -186,10 +186,13 @@
      &               context%equilibrium_comm, error)
       converged = equilibrium_converge(context%model%equilibrium,              &
      &                                 num_steps, context%runlog_iou,          &
-     &                                 context%equilibrium_comm)
+     &                                 context%equilibrium_comm, 'All')
+      CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
+     &               context%equilibrium_comm, error)
 #else
       converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps, context%runlog_iou, 0)
+     &                                 num_steps, context%runlog_iou, 0,       &
+     &                                 'All')
 #endif
 
       CALL v3fit_context_init_data(context)
@@ -216,6 +219,7 @@
 
 !  local variables
       INTEGER                                   :: num_steps
+      INTEGER                                   :: error
       LOGICAL                                   :: converged
       INTEGER                                   :: i, last_para_signal
       REAL (rprec)                              :: g2
@@ -234,15 +238,17 @@
       CALL init_signals(context)
 
 !  Solve equilibrium
-      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (*,*) ' *** Starting initial equilibrium convergence (v3p)'
       WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
      &                             'equilibrium convergence'
       converged = model_converge(context%model, num_steps,                     &
      &                           context%runlog_iou,                           &
 #if defined(MPI_OPT)
-     &                           context%equilibrium_comm)
+     &                           context%equilibrium_comm, 'All')
+      CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
+     &               context%equilibrium_comm, error)
 #else
-     &                           0)
+     &                           0, 'All')
 #endif
 
 !  Calculate and display the signals.
@@ -326,7 +332,7 @@
       CALL init_reconstruction(context)
 
 !  Solve equilibrium
-      WRITE (*,*) ' *** Starting initial equilibrium convergence'
+      WRITE (*,*) ' *** Starting initial equilibrium convergence (rec)'
       WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
      &                             'equilibrium convergence'
 
@@ -477,8 +483,10 @@
      &               context%reconstruction_comm, error)
 
       DO
+         CALL processor_idle(context)
          CALL MPI_BCAST(task, 1, MPI_INTEGER, 0,                               &
      &                  context%reconstruction_comm, error)
+         CALL processor_active(context)
 
          SELECT CASE (task)
 
@@ -529,8 +537,10 @@
       CALL init_equilibrium(context)
 
       DO
+         CALL processor_idle(context)
          CALL MPI_BCAST(task, 1, MPI_INTEGER, 0,                               &
      &                  context%equilibrium_comm, error)
+         CALL processor_active(context)
 
          SELECT CASE (task)
 
@@ -538,7 +548,12 @@
                result = equilibrium_converge(context%model%equilibrium,        &
      &                                       num_steps,                        &
      &                                       context%runlog_iou,               &
-     &                                       context%equilibrium_comm)
+     &                                       context%equilibrium_comm,         &
+     &                                       'null')
+
+            CASE (mpi_mgrid_task)
+               CALL equilibrium_read_vac_file(context%model%equilibrium,       &
+     &                                        context%equilibrium_comm)
 
             CASE (mpi_quit_task)
                EXIT
@@ -1992,9 +2007,12 @@
       CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
 
 !  Take the root process of each equilibrium communicator and partition them
-!  from global to the
-      IF (eq_rank .eq. 0) THEN
-         CALL MPI_COMM_SPLIT(context%global_comm, 0, 0,                        &
+!  from global to the reconstuction communicator.
+      IF (eq_rank .gt. 0) THEN
+         CALL MPI_COMM_SPLIT(context%global_comm, MPI_UNDEFINED, 0,            &
+     &                       context%reconstruction_comm, error)
+      ELSE
+         CALL MPI_COMM_SPLIT(context%global_comm, 0, recon_rank,               &
      &                       context%reconstruction_comm, error)
       END IF
 
@@ -2011,7 +2029,8 @@
          END IF
       END IF
 
-      WRITE (*,1003) mpi_rank + 1, recon_rank + 1, eq_rank + 1
+      WRITE (*,1003) mpi_rank + 1, recon_rank + 1, eq_rank + 1,                &
+     &               TRIM(my_task)
 
       CALL MPI_BARRIER(context%global_comm, error)
 #endif
@@ -2025,7 +2044,7 @@
 1002  FORMAT('-para=',i2)
 
 1003  FORMAT('Configured global process ',i2,', recon process ',i2,            &
-     &       ', eq process ',i2)
+     &       ', eq process ',i2,' task ',a)
 
       END SUBROUTINE
 
@@ -2080,5 +2099,67 @@
 !  Support up to 99 directories. need to add leading zeros to avoid spaces.
 1002  FORMAT(a11,'_0',i1)
 1003  FORMAT(a11,'_',i2)
+
+      END SUBROUTINE
+
+      SUBROUTINE processor_active(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: error
+      INTEGER                                   :: global_rank
+      INTEGER                                   :: recon_rank
+      INTEGER                                   :: eq_rank
+
+!  Start of executable code
+      recon_rank = -1
+
+      CALL MPI_COMM_RANK(context%global_comm, global_rank, error)
+      IF (context%reconstruction_comm .ne. MPI_COMM_NULL) THEN
+         CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
+     &                      error)
+      END IF
+      CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
+
+      WRITE (*,1000) global_rank, recon_rank, eq_rank
+
+1000  FORMAT('Global process ',i2,', recon process ',i2,                       &
+     &       ', eq process ',i2,' ACTIVE')
+
+      END SUBROUTINE
+
+      SUBROUTINE processor_idle(context)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+
+!  local variables
+      INTEGER                                   :: error
+      INTEGER                                   :: global_rank
+      INTEGER                                   :: recon_rank
+      INTEGER                                   :: eq_rank
+
+!  Start of executable code
+      recon_rank = -1
+
+      CALL MPI_COMM_RANK(context%global_comm, global_rank, error)
+      IF (context%reconstruction_comm .ne. MPI_COMM_NULL) THEN
+         CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
+     &                      error)
+      END IF
+      CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
+
+      WRITE (*,1000) global_rank, recon_rank, eq_rank
+
+1000  FORMAT('Global process ',i2,', recon process ',i2,                       &
+     &       ', eq process ',i2,' IDLE')
 
       END SUBROUTINE

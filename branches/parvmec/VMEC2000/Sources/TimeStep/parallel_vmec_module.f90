@@ -9,13 +9,14 @@ MODULE parallel_vmec_module
   INTEGER :: grank=0, gnranks=1
   INTEGER :: vrank=0, vnranks=1
   INTEGER :: rank=0, nranks=1
+  INTEGER :: last_ns = -1
   INTEGER :: par_ns, mynsnum, par_nzeta, par_ntheta3
   INTEGER :: par_ntmax, par_ntor, par_mpol1, par_nznt, par_nuv, par_nuv3
   INTEGER :: tlglob, trglob, t1lglob, t1rglob, t2lglob, t2rglob 
   INTEGER :: nuvmin, nuvmax, nuv3min, nuv3max 
   INTEGER :: MPI_ERR
+  INTEGER :: RUNVMEC_COMM_WORLD
   INTEGER :: NS_COMM
-  INTEGER :: INTER_COMM
   INTEGER :: VAC_COMM
   INTEGER :: TWODCOMM, px, py
   INTEGER :: NS_RESLTN=0
@@ -37,6 +38,7 @@ MODULE parallel_vmec_module
   LOGICAL :: SKS_ALLGATHER=.FALSE.
   LOGICAL :: THOMAS=.FALSE.
   LOGICAL :: BCYCLIC=.FALSE.
+  LOGICAL :: LV3FITCALL=.FALSE.
 
   LOGICAL :: lactive=.FALSE.
   LOGICAL :: vlactive=.FALSE.
@@ -67,15 +69,6 @@ CONTAINS
   SUBROUTINE  MyEnvVariables
     IMPLICIT NONE
 
-#ifndef _WIN32
-
-    !PARVMEC=.FALSE.
-    !envvar='PARVMEC'
-    !CALL GETENV(envvar,envval)
-    !IF (envval.EQ.'TRUE') THEN
-    !  PARVMEC=.TRUE.
-    !END IF
-
     PARVMEC=.TRUE.
     envvar='PARVMEC'
     CALL GETENV(envvar,envval)
@@ -98,19 +91,26 @@ CONTAINS
       SKS_ALLGATHER=.TRUE.
     END IF
 
+    LV3FITCALL=.FALSE.
+    envvar='LV3FITCALL'
+    CALL GETENV(envvar,envval)
+    IF (envval.EQ.'TRUE') THEN
+      LV3FITCALL=.TRUE.
+    END IF
+
     BCYCLIC=.FALSE.
     envvar='BCYCLIC'
     CALL GETENV(envvar,envval)
     IF (envval.EQ.'TRUE') THEN
       BCYCLIC=.TRUE.
     END IF
-#endif
 
     ! Default values
     SKS_ALLGATHER=.TRUE.
     THOMAS=.FALSE.
     BCYCLIC=.TRUE.
     PARVMEC=.TRUE.
+    LV3FITCALL=.TRUE.
 
   END SUBROUTINE  MyEnvVariables
   !--------------------------------------------------------------------------
@@ -128,28 +128,32 @@ CONTAINS
     CALL MPI_Comm_size(MPI_COMM_WORLD,gnranks,MPI_ERR) 
 #endif
 
-    IF (gnranks.EQ.1) THEN
+    IF (PARVMEC.EQV..FALSE..AND.gnranks.EQ.1) THEN
       THOMAS=.TRUE.
       BCYCLIC=.FALSE.
       SKS_ALLGATHER=.FALSE.
-      !PARVMEC=.FALSE.
+      PARVMEC=.FALSE.
+      LV3FITCALL=.TRUE.
     END IF
-
-    bcyclic_comp_time=0
-    bcyclic_comm_time=0
-    waitall_time=0
-    dgemm_time=0
-    dgetrf_time=0
-    dgetrs_time=0
-    dgemv_time=0
-    ForwardSolveLoop_time=0
-    t=0
 
   END SUBROUTINE InitializeParallel
   !--------------------------------------------------------------------------
 
   !--------------------------------------------------------------------------
-  SUBROUTINE InitParallelVariables(ns, nzeta, ntheta3, ntmax, ntor, mpol1)
+  SUBROUTINE InitRunVmec(INCOMM)
+    IMPLICIT NONE
+    INTEGER, INTENT(IN)  :: INCOMM
+
+    NS_RESLTN = 0
+    CALL MPI_Comm_dup(INCOMM,RUNVMEC_COMM_WORLD,MPI_ERR)
+    CALL MPI_Comm_rank(RUNVMEC_COMM_WORLD,grank,MPI_ERR) 
+    CALL MPI_Comm_size(RUNVMEC_COMM_WORLD,gnranks,MPI_ERR) 
+
+  END SUBROUTINE InitRunVmec
+  !--------------------------------------------------------------------------
+
+  !--------------------------------------------------------------------------
+  SUBROUTINE InitSurfaceComm(ns, nzeta, ntheta3, ntmax, ntor, mpol1)
     IMPLICIT NONE
 
     INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
@@ -157,50 +161,70 @@ CONTAINS
     INTEGER :: i
     LOGICAL :: FIRSTPASS = .TRUE.
 
-    NS_RESLTN=NS_RESLTN+1
+    IF (LV3FITCALL) THEN
+      NS_RESLTN=NS_RESLTN+1
 
-    par_ns=ns
-    par_nzeta=nzeta
-    par_ntheta3=ntheta3
-    par_ntmax=ntmax
-    par_ntor=ntor
-    par_mpol1=mpol1
-    par_nznt=par_nzeta*par_ntheta3
+      par_ns=ns
+      par_nzeta=nzeta
+      par_ntheta3=ntheta3
+      par_ntmax=ntmax
+      par_ntor=ntor
+      par_mpol1=mpol1
+      par_nznt=par_nzeta*par_ntheta3
 
-    CALL SetSurfaceCommunicator(par_ns)
-    CALL SetSurfacePartitions
-    CALL SetSurfacePartitionArrays
+      IF(last_ns.NE.par_ns) THEN
+        CALL SetSurfaceCommunicator
+        CALL SetSurfacePartitions
+        CALL SetSurfacePartitionArrays
+        last_ns = par_ns
+      END IF
+    ELSE
+      NS_RESLTN=NS_RESLTN+1
 
-    IF (lactive) THEN 
-      IF (grank.EQ.0) THEN 
-        IF (FIRSTPASS) THEN 
-          CALL SetOutputFile(rank,nranks,'parvmecinfo')
-          WRITE(TOFU,*)"============================================================" 
-          WRITE(TOFU,*) 'PARVMEC = ',PARVMEC,'; ALLGATHER = ',SKS_ALLGATHER,&
-            '; THOMAS = ',THOMAS, '; BCYCLIC = ',BCYCLIC
-          WRITE(TOFU,*) "> available processor count:", gnranks
-          WRITE(TOFU,*) '> global rank:', grank
-          WRITE(TOFU,*) '> nzeta:      ', par_nzeta
-          WRITE(TOFU,*) '> ntheta3:    ', par_ntheta3
-          WRITE(TOFU,*) '> ntor:       ', par_ntor
-          WRITE(TOFU,*) '> mpol1:      ', par_mpol1
-          WRITE(TOFU,*) '> ntmax:      ', par_ntmax
-          WRITE(TOFU,*) '> blocksize:  ',(par_mpol1+1)*(par_ntor+1)
-          WRITE(TOFU,*)"============================================================" 
+      par_ns=ns
+      par_nzeta=nzeta
+      par_ntheta3=ntheta3
+      par_ntmax=ntmax
+      par_ntor=ntor
+      par_mpol1=mpol1
+      par_nznt=par_nzeta*par_ntheta3
+
+      CALL SetSurfaceCommunicator
+      CALL SetSurfacePartitions
+      CALL SetSurfacePartitionArrays
+      last_ns = par_ns
+
+      IF (lactive) THEN 
+        IF (grank.EQ.0) THEN 
+          IF (FIRSTPASS) THEN 
+            CALL SetOutputFile(rank,nranks,'parvmecinfo')
+            WRITE(TOFU,*)"============================================================" 
+            WRITE(TOFU,*) 'PARVMEC = ',PARVMEC,'; ALLGATHER = ',SKS_ALLGATHER,&
+              '; THOMAS = ',THOMAS, '; BCYCLIC = ',BCYCLIC
+            WRITE(TOFU,*) "> available processor count:", gnranks
+            WRITE(TOFU,*) '> global rank:', grank
+            WRITE(TOFU,*) '> nzeta:      ', par_nzeta
+            WRITE(TOFU,*) '> ntheta3:    ', par_ntheta3
+            WRITE(TOFU,*) '> ntor:       ', par_ntor
+            WRITE(TOFU,*) '> mpol1:      ', par_mpol1
+            WRITE(TOFU,*) '> ntmax:      ', par_ntmax
+            WRITE(TOFU,*) '> blocksize:  ',(par_mpol1+1)*(par_ntor+1)
+            WRITE(TOFU,*)"============================================================" 
+            WRITE(TOFU,*)
+            CALL FLUSH(TOFU)
+            FIRSTPASS = .FALSE.
+          END IF
+          WRITE(TOFU,*) ">>> grid resolution:   ",par_ns
+          WRITE(TOFU,*) ">>> active processors: ",nranks
+          WRITE(TOFU,*) ">>> xc/gc size:        ", par_ns*(par_ntor+1)*(par_mpol1+1)*3*ntmax
+          WRITE(TOFU,*)"------------------------------------------------------------" 
           WRITE(TOFU,*)
           CALL FLUSH(TOFU)
-          FIRSTPASS = .FALSE.
         END IF
-        WRITE(TOFU,*) ">>> grid resolution:   ",par_ns
-        WRITE(TOFU,*) ">>> active processors: ",nranks
-        WRITE(TOFU,*) ">>> xc/gc size:        ", par_ns*(par_ntor+1)*(par_mpol1+1)*3*ntmax
-        WRITE(TOFU,*)"------------------------------------------------------------" 
-        WRITE(TOFU,*)
-        CALL FLUSH(TOFU)
       END IF
     END IF
     50 FORMAT(3(A,I4))
-  END SUBROUTINE InitParallelVariables
+  END SUBROUTINE InitSurfaceComm
   !------------------------------------------------
 
   !------------------------------------------------
@@ -231,10 +255,9 @@ CONTAINS
   ! Setting up the communicator for parallel surface
   ! computations
   !------------------------------------------------
-  SUBROUTINE SetSurfaceCommunicator(ns)
+  SUBROUTINE SetSurfaceCommunicator
     IMPLICIT NONE
 
-    INTEGER, INTENT(IN) :: ns
     INTEGER :: num_active, color
 
     num_active = MIN(gnranks,par_ns/2)
@@ -245,12 +268,12 @@ CONTAINS
       color=0
     END IF
 #if defined(MPI_OPT)
-    CALL MPI_Comm_split(MPI_COMM_WORLD,color,grank,NS_COMM,MPI_ERR)
+    CALL MPI_Comm_split(RUNVMEC_COMM_WORLD,color,grank,NS_COMM,MPI_ERR)
 
     IF (color .eq. 1) THEN
       CALL MPI_Comm_size(NS_COMM,nranks,MPI_ERR)
       IF (nranks.NE.num_active) THEN
-        STOP 'num_active != nranks in InitParallelVariables!'
+        STOP 'num_active != nranks in InitSurfaceCommunicator!'
       END IF
       lactive=.TRUE.
       CALL MPI_Comm_rank(NS_COMM,rank,MPI_ERR)
@@ -321,6 +344,7 @@ CONTAINS
 
     INTEGER, ALLOCATABLE, DIMENSION(:) :: localpart
     INTEGER :: i, smallpart, largepart
+    INTEGER, SAVE :: lastns
 
     smallpart=par_ns/nranks; largepart = smallpart
     IF(MOD(par_ns,nranks).GT.0) largepart = largepart+1
@@ -338,8 +362,8 @@ CONTAINS
 
     IF(ALLOCATED(tlglob_arr)) DEALLOCATE(tlglob_arr)
     IF(ALLOCATED(trglob_arr)) DEALLOCATE(trglob_arr)
-
     ALLOCATE (tlglob_arr(nranks), trglob_arr(nranks))
+
     tlglob_arr(1)=1
     DO i = 2, nranks
       tlglob_arr(i) = tlglob_arr(i-1) + localpart(i-1)
@@ -352,6 +376,26 @@ CONTAINS
 
   END SUBROUTINE SetSurfacePartitionArrays
   !------------------------------------------------
+
+  !--------------------------------------------------------------------------
+  SUBROUTINE FinalizeSurfaceComm(INCOMM)
+    IMPLICIT NONE
+    INTEGER, INTENT(IN)  :: INCOMM
+
+    CALL MPI_Comm_free(INCOMM,MPI_ERR)
+
+  END SUBROUTINE FinalizeSurfaceComm
+  !--------------------------------------------------------------------------
+
+  !--------------------------------------------------------------------------
+  SUBROUTINE FinalizeRunVmec(INCOMM)
+    IMPLICIT NONE
+    INTEGER, INTENT(IN)  :: INCOMM
+
+    !CALL MPI_Comm_free(INCOMM,MPI_ERR)
+
+  END SUBROUTINE FinalizeRunVmec
+  !--------------------------------------------------------------------------
 
   !------------------------------------------------
   ! Setting up the communicator for parallel vacuum
@@ -376,7 +420,7 @@ CONTAINS
     ELSE
       color=0
     END IF
-    CALL MPI_Comm_split(MPI_COMM_WORLD,color,grank,VAC_COMM,MPI_ERR)
+    CALL MPI_Comm_split(RUNVMEC_COMM_WORLD,color,grank,VAC_COMM,MPI_ERR)
     IF (color .eq. 1) THEN
       CALL MPI_Comm_rank(VAC_COMM,vrank,MPI_ERR) 
       CALL MPI_Comm_size(VAC_COMM,vnranks,MPI_ERR) 
@@ -478,11 +522,8 @@ CONTAINS
         PARVMEC=.TRUE.
       END IF
       WRITE(*,*)
-      WRITE(*,'(A,I4)') 'NO. PROCS:   ', gnranks
+      WRITE(*,'(A,I4)') 'NO. OF PROCS:   ', gnranks
       WRITE(*,100) 'PARVMEC:     ',PARVMEC
-!      WRITE(*,100) 'ALLGATHER:   ',SKS_ALLGATHER
-!      WRITE(*,100) 'THOMAS:      ',THOMAS
-!      WRITE(*,100) 'BCYCLIC:     ',BCYCLIC
     END IF
  100  FORMAT(a,l4)
 
@@ -564,6 +605,31 @@ CONTAINS
   !------------------------------------------------
 
   !------------------------------------------------
+  SUBROUTINE Serial2Parallel4X (inarr,outarr)
+    IMPLICIT NONE
+
+    REAL(rprec), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
+    REAL(rprec), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
+    INTEGER :: i, j, k, l, lk, lks, lkp
+
+    lks=0
+    DO l=1, 3*par_ntmax
+      DO k=0, par_mpol1
+        DO j=0, par_ntor
+          DO i=1, par_ns
+            lks = lks+1
+            lkp = j + (par_ntor+1)*k + (par_ntor+1)*(par_mpol1+1)*(i-1) + &
+              (par_ntor+1)*(par_mpol1+1)*par_ns*(l-1)+1
+            outarr(lkp) = inarr(lks)
+          END DO
+        END DO
+      END DO
+    END DO
+
+  END SUBROUTINE Serial2Parallel4X
+  !------------------------------------------------
+
+  !------------------------------------------------
   SUBROUTINE Parallel2Serial2X(inarr, outarr)
     IMPLICIT NONE
 
@@ -612,7 +678,7 @@ CONTAINS
       END DO
     END DO
 
-    50   FORMAT(4I6,1P,F20.12)
+    50   FORMAT(4I6,1P,F20.8)
 
   END SUBROUTINE PrintOutLinearArray
   !------------------------------------------------
@@ -752,8 +818,12 @@ CONTAINS
     REAL(rprec) :: allgvton, allgvtoff
     !-----------------------------------------------
 
-#if defined(MPI_OPT)
     CALL second0(allgvton)
+
+    IF (nranks.EQ.1) THEN
+      RETURN
+    END IF
+
     blksize=(par_ntor+1)*(par_mpol1+1)*3*par_ntmax
     numjs=trglob-tlglob+1
     ALLOCATE (sendbuf(0:par_ntor,0:par_mpol1,numjs,1:3*par_ntmax))
@@ -783,7 +853,6 @@ CONTAINS
     DEALLOCATE(sendbuf, recvbuf)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
-#endif
   END SUBROUTINE Gather4XArray
   !------------------------------------------------
 
@@ -799,8 +868,12 @@ CONTAINS
     REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
     REAL(rprec) :: allgvton, allgvtoff
     !-----------------------------------------------
-#if defined(MPI_OPT)
     CALL second0(allgvton)
+
+    IF (nranks.EQ.1) THEN
+      RETURN
+    END IF
+
     blksize=par_nznt
     numjs=trglob-tlglob+1
     ALLOCATE (sendbuf(par_nznt,numjs))
@@ -829,7 +902,6 @@ CONTAINS
     DEALLOCATE(sendbuf, recvbuf)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
-#endif
   END SUBROUTINE Gather2XArray
   !------------------------------------------------
 
@@ -845,8 +917,12 @@ CONTAINS
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
     REAL(rprec) :: allgvton, allgvtoff
     !-----------------------------------------------
-#if defined(MPI_OPT)
     CALL second0(allgvton)
+
+    IF (nranks.EQ.1) THEN
+      RETURN
+    END IF
+
     numjs=trglob-tlglob+1
     ALLOCATE (sendbuf(numjs),recvbuf(par_ns))
     ALLOCATE(counts(nranks),disps(nranks))
@@ -869,7 +945,6 @@ CONTAINS
     DEALLOCATE(sendbuf, recvbuf)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
-#endif
   END SUBROUTINE Gather1XArray
   !------------------------------------------------
 

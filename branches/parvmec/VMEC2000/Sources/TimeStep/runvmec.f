@@ -1,22 +1,28 @@
       SUBROUTINE runvmec(ictrl_array, input_file0, 
-     1                   lscreen, reset_file_name)
+     1                   lscreen, COMM_WORLD, reset_file_name)
       USE vmec_main
       USE vmec_params, ONLY: bad_jacobian_flag, more_iter_flag,
      1                       norm_term_flag, successful_term_flag,
      2                       restart_flag, readin_flag,
      3                       timestep_flag, ns_error_flag, 
-     4                       reset_jacdt_flag
+     4                       reset_jacdt_flag, lamscale
 #if defined (SKS)      
+      USE realspace
       USE vmec_params, ONLY: ntmax
       USE vacmod, ONLY: nuv, nuv3
 #endif      
       USE vsvd
       USE timer_sub
       USE parallel_include_module
-      USE parallel_vmec_module, ONLY: InitParallelVariables
+      USE parallel_vmec_module, ONLY: MyEnvVariables
+      USE parallel_vmec_module, ONLY: InitRunVmec
+      USE parallel_vmec_module, ONLY: FinalizeRunVmec
+      USE parallel_vmec_module, ONLY: InitSurfaceComm
+      USE parallel_vmec_module, ONLY: FinalizeSurfaceComm
       USE parallel_vmec_module, ONLY: SetVacuumCommunicator
       USE blocktridiagonalsolver_bst, ONLY: Initialize_bst, Finalize_bst
       USE xstuff
+      USE mpi_inc
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -25,6 +31,8 @@ C-----------------------------------------------
       LOGICAL, INTENT(in) :: lscreen
       CHARACTER(LEN=*), INTENT(in) :: input_file0
       CHARACTER(LEN=*), OPTIONAL :: reset_file_name
+      !INTEGER, INTENT(IN) :: COMM_WORLD
+      INTEGER :: COMM_WORLD
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -41,9 +49,9 @@ C-----------------------------------------------
       REAL(dp) :: gridton, gridtoff
       REAL(dp) :: skston, skstoff
       REAL(dp) :: allgvton, allgvtoff
-      INTEGER :: max_grid_size
+      INTEGER :: max_grid_size, flag
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: bcastarr
-      INTEGER :: blklength, grid_id, i
+      INTEGER :: blklength, grid_id, i, js, nsmin, nsmax
       CHARACTER(LEN=20) :: fname
 #endif
 C-----------------------------------------------
@@ -106,8 +114,17 @@ C-----------------------------------------------
          REAL(rprec), INTENT(out) :: delt0
          END SUBROUTINE initialize_radial
       END INTERFACE
+
 #if defined(SKS)
       CALL second0(rvton)
+      CALL MyEnvVariables
+      IF(LV3FITCALL) THEN
+        CALL Serial2Parallel4X(xc,pxc)
+        CALL Serial2Parallel4X(xcdot,pxcdot)
+        CALL InitRunVmec(COMM_WORLD)
+      END IF
+
+      !print *,"SKS: In runvmec subroutine with gnranks: ",gnranks
 #endif
       ictrl_flag = ictrl_array(1)
       numsteps = ictrl_array(3)
@@ -170,7 +187,8 @@ C-----------------------------------------------
         readin_time = readin_time + (skstoff-skston)
 
         max_grid_size = ns_array(multi_ns_grid)
-        IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3 ,max_grid_size)
+        IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3,
+     1              max_grid_size)
 #endif
         IF (ier_flag .ne. 0) GOTO 1000
 !
@@ -272,21 +290,51 @@ C-----------------------------------------------
              CALL Gather4XArray(pscalxc)
              CALL Gather4XArray(pxc)
            END IF
-           CALL MPI_Comm_free(NS_COMM,MPI_ERR)
+           CALL FinalizeSurfaceComm(NS_COMM)
            
            CALL second0(skston)
 
            CALL MPI_Bcast(pscalxc,SIZE(pscalxc),MPI_REAL8,
-     1                      0,MPI_COMM_WORLD,MPI_ERR)
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
 
            CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
-     1                      0,MPI_COMM_WORLD,MPI_ERR)
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+
+           IF (LV3FITCALL) THEN
+             CALL MPI_Bcast(iotas,SIZE(iotas),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(iotaf,SIZE(iotaf),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(phips,SIZE(phips),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(phipf,SIZE(phipf),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(chips,SIZE(chips),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(chipf,SIZE(chipf),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(mass,SIZE(mass),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(icurv,SIZE(icurv),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+             CALL MPI_Bcast(lamscale,1,MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+
+             nsmin=t1lglob; nsmax=t1rglob
+             DO js = nsmin, nsmax
+               pphip(:,js) = phips(js)
+               pchip(:,js) = chips(js)
+             END DO
+
+             nsmin=t1lglob; nsmax=MIN(t2rglob,ns+1)
+             pres(nsmin:nsmax) = 0
+           END IF
 
            CALL second0(skstoff)
            broadcast_time = broadcast_time + (skstoff -skston)
          END IF
 
-         CALL InitParallelVariables(nsval, nzeta, ntheta3,
+         CALL InitSurfaceComm(nsval, nzeta, ntheta3,
      1        ntmax, ntor, mpol1)
          CALL second0(skstoff)
          init_parallel_time = init_parallel_time + (skstoff-skston)
@@ -395,7 +443,7 @@ C-----------------------------------------------
 #if defined(SKS)
         CALL second0(skston)
 #endif
-        IF (PARVMEC) THEN
+        IF (PARVMEC) THEN 
           CALL fileout_par (iseq_count, ictrl_flag, ier_flag, lscreen)
         ELSE
           CALL fileout (iseq_count, ictrl_flag, ier_flag, lscreen)
@@ -406,6 +454,7 @@ C-----------------------------------------------
 #endif      
       ENDIF
 #if defined(SKS)
+      IF(LV3FITCALL) CALL FinalizeRunVmec(COMM_WORLD)
       CALL second0(rvtoff)
       runvmec_time = runvmec_time + (rvtoff - rvton)
 #endif

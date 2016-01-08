@@ -110,8 +110,9 @@ C-----------------------------------------------
       CONTAINS
 
       SUBROUTINE read_mgrid (mgrid_file, extcur, nv, nfp, lscreen, 
-     1                       ier_flag)
+     1                       ier_flag, comm)
       USE system_mod
+      USE mpi_inc
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   V a r i a b l e s
@@ -121,12 +122,14 @@ C-----------------------------------------------
 !     lscreen   :     logical controlling output to screen
 !     ier_flag  ;     error flag returned to caller
 !     extcur(n)    :  external current multiplier for bfield(n) components
+!     comm      : Optional mpi communicator.
 !
-      INTEGER, INTENT(out) :: ier_flag
-      INTEGER, INTENT(in)  :: nv, nfp
-      LOGICAL, INTENT(in)  :: lscreen
-      REAL(rprec), INTENT(in) :: extcur(:)
-      CHARACTER(len=*), INTENT(in) :: mgrid_file
+      INTEGER, INTENT(out)          :: ier_flag
+      INTEGER, INTENT(in)           :: nv, nfp
+      LOGICAL, INTENT(in)           :: lscreen
+      REAL(rprec), INTENT(in)       :: extcur(:)
+      CHARACTER(len=*), INTENT(in)  :: mgrid_file
+      INTEGER, INTENT(in), OPTIONAL :: comm
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -144,7 +147,14 @@ C-----------------------------------------------
       INTEGER :: istat, ii
       CHARACTER(LEN=200) :: home_dir
       LOGICAL :: lgrid_exist, lfind
+      INTEGER :: mpi_comm
 C-----------------------------------------------
+
+#if defined(MPI_OPT)
+      mpi_comm = MPI_COMM_WORLD
+      IF (PRESENT(comm)) mpi_comm = comm
+#endif
+
       mgrid_path = TRIM(mgrid_file)
 
       IF ((mgrid_path .eq. TRIM(mgrid_path_old)) .and. 
@@ -189,7 +199,7 @@ C-----------------------------------------------
          IF (lfind) THEN
 #if defined(NETCDF)
             CALL read_mgrid_nc (mgrid_path, extcur, nv, nfp, 
-     1                          ier_flag, lscreen)
+     1                          ier_flag, lscreen, comm)
 #else
             lgrid_exist = .false.
 #endif
@@ -543,7 +553,7 @@ C-----------------------------------------------
 !     PARALLEL MPI MODIFICATIONS ADDED BY Mark R. Cianciosa <cianciosamr@ornl.gov>, 092315
 !
       SUBROUTINE read_mgrid_nc (filename, extcur, nv, nfp,
-     1                          ier_flag, lscreen)
+     1                          ier_flag, lscreen, comm)
       USE ezcdf
       USE mpi_inc
       IMPLICIT NONE
@@ -551,8 +561,9 @@ C-----------------------------------------------
 C   D u m m y  A r g u m e n t s
 C-----------------------------------------------
       CHARACTER(LEN=*), INTENT(in) :: filename
-      INTEGER, INTENT(in)     :: nv, nfp
-      REAL(rprec), INTENT(in) :: extcur(:)
+      INTEGER, INTENT(in)          :: nv, nfp
+      REAL(rprec), INTENT(in)      :: extcur(:)
+      INTEGER, INTENT(in)          :: comm
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -565,11 +576,11 @@ C-----------------------------------------------
       CHARACTER(LEN=100) :: temp
 #if defined(MPI_OPT)
       INTEGER :: mpi_rank, mpi_size, lMPIInit, MPI_ERR
-      
+
       CALL MPI_INITIALIZED(lMPIInit, MPI_ERR)
       IF (lMPIInit.NE.0) THEN
-         CALL MPI_COMM_RANK(MPI_COMM_WORLD, mpi_rank, istat)
-         CALL MPI_COMM_SIZE(MPI_COMM_WORLD, mpi_size, istat)
+         CALL MPI_COMM_RANK(comm, mpi_rank, istat)
+         CALL MPI_COMM_SIZE(comm, mpi_size, istat)
       ELSE
          mpi_rank = 0; mpi_size = 1
       END IF
@@ -673,7 +684,7 @@ C-----------------------------------------------
 #if defined(MPI_OPT)
       IF (lMPIInit.NE.0) THEN
          CALL MPI_ALLREDUCE(MPI_IN_PLACE, bvac, SIZE(bvac), MPI_REAL8,  &
-     &                      MPI_SUM, MPI_COMM_WORLD, istat)
+     &                      MPI_SUM, comm, istat)
          CALL assert_eq(istat,0,'MPI_ALLREDUCE failed in read_mgrid_nc')
       END IF
 #endif
