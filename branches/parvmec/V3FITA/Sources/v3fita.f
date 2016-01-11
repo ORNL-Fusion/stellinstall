@@ -553,6 +553,7 @@
 
             CASE (mpi_mgrid_task)
                CALL equilibrium_read_vac_file(context%model%equilibrium,       &
+     &                                        0,                               &
      &                                        context%equilibrium_comm)
 
             CASE (mpi_quit_task)

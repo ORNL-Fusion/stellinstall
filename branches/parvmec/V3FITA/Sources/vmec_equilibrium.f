@@ -899,7 +899,7 @@
             CALL MPI_BCAST(mpi_mgrid_task, 1, MPI_INTEGER, 0, eq_comm,         &
      &                     error)
 #endif
-            CALL vmec_read_vac_file(this, eq_comm)
+            CALL vmec_read_vac_file(this, i_index, eq_comm)
 
          CASE (vmec_curtor_id)
             vmec_set_param = .true.
@@ -3878,9 +3878,10 @@
 !>  broadcast to the child processes.
 !>
 !>  @param[in] this    A @ref vmec_class instance.
+!>  @param[in] index   Index of the changed current.
 !>  @param[in] eq_comm MPI communicator pool for VMEC.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_read_vac_file(this, eq_comm)
+      SUBROUTINE vmec_read_vac_file(this, index, eq_comm)
       USE vmec_input, only: extcur, mgrid_file, nfp
       USE mgrid_mod, only: read_mgrid, mgrid_path_old, nextcur
       USE vacmod0, only: nv
@@ -3889,6 +3890,7 @@
 
 !  Declare Arguments
       TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: index
       INTEGER, INTENT(in)           :: eq_comm
 
 #if defined(MPI_OPT)
@@ -3898,8 +3900,9 @@
 !  Start of executable code
       mgrid_path_old = ''
 
-      CALL MPI_BCAST(extcur(1:nextcur), nextcur, MPI_REAL8, 0, eq_comm,        &
-     &               error)
+      CALL MPI_BCAST(index, 1, MPI_INTEGER, 0, eq_comm, error)
+
+      CALL MPI_BCAST(extcur(index), 1, MPI_REAL8, 0, eq_comm, error)
       CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false., error,             &
      &                comm = eq_comm)
       CALL assert_eq(0, error, 'vmec_set_param: failed to read ' //            &

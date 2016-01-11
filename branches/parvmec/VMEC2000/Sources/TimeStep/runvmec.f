@@ -121,6 +121,7 @@ C-----------------------------------------------
       IF(LV3FITCALL) THEN
         CALL Serial2Parallel4X(xc,pxc)
         CALL Serial2Parallel4X(xcdot,pxcdot)
+        CALL Serial2Parallel4X(xstore,pxstore)
         CALL InitRunVmec(COMM_WORLD)
       END IF
 

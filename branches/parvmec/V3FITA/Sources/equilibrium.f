@@ -1980,19 +1980,20 @@
 !>  @param[in] this    A @ref vmec_class instance.
 !>  @param[in] eq_comm MPI communicator pool for VMEC.
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_read_vac_file(this, eq_comm)
+      SUBROUTINE equilibrium_read_vac_file(this, index, eq_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(in) :: this
-      INTEGER, INTENT(in)                 :: eq_comm
+      INTEGER, INTENT(in)                  :: index
+      INTEGER, INTENT(in)                  :: eq_comm
 
 !  Start of executable code
        SELECT CASE (this%type)
 
           CASE (equilibrium_vmec_type)
-             CALL vmec_read_vac_file(this%vmec, eq_comm)
+             CALL vmec_read_vac_file(this%vmec, index, eq_comm)
 
        END SELECT
 
