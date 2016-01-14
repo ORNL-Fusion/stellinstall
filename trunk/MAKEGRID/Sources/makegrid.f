@@ -1120,7 +1120,7 @@
             cost=COS(twopi*tfrac)
             sint=SIN(twopi*tfrac)
             cosp=COS(twopi*pfrac/fp)
-            sinp=SIN(twopi*pfrac/fp)
+            sinp=SIN(-twopi*pfrac/fp)
             x(1)=(rmajor+aminor*cost)*cosp
             x(2)=(rmajor+aminor*cost)*sinp
             x(3)=aminor*sint
