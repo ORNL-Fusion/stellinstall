@@ -3741,6 +3741,7 @@
       INTEGER                            :: recovery_index
       INTEGER                            :: error, num_iter_init
       TYPE (vmec_context_class), POINTER :: temp_context => null()
+      INTEGER                            :: eq_rank
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
@@ -3834,28 +3835,33 @@
       END DO
 
 !  No longer need the local context array.
-      DEALLOCATE(temp_context)
+      CALL vmec_context_destruct(temp_context)
 
 !  Check for errors, if vmec was successful, load vmec data for use with the
-!  signals. Other wise report the error.
-      vmec_converge = .false.
-      SELECT CASE (ictrl_array(2))
+!  signals. Other wise report the error. This should only be performed on the
+!  head node.
+      CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
 
-         CASE (successful_term_flag, norm_term_flag)
-            CALL read_wout_file(this%wout_file_name, error)
-            CALL assert_eq(error, 0, "Error reading wout file.")
-            CALL LoadRZL
+      IF (eq_rank .eq. 0) THEN
+         vmec_converge = .false.
+         SELECT CASE (ictrl_array(2))
 
-            vmec_converge = .true.
-            IF (ASSOCIATED(this%magnetic_cache)) THEN
-               CALL vmec_set_magnetic_cache(this)
-            END IF
+            CASE (successful_term_flag, norm_term_flag)
+               CALL read_wout_file(this%wout_file_name, error)
+               CALL assert_eq(error, 0, "Error reading wout file.")
+               CALL LoadRZL
 
-         CASE DEFAULT
+               vmec_converge = .true.
+               IF (ASSOCIATED(this%magnetic_cache)) THEN
+                  CALL vmec_set_magnetic_cache(this)
+               END IF
+
+            CASE DEFAULT
 !>  @todo FIXME: Put in error reporting here. For now leave this blank until I
 !>  can figure how v3fit decides if vmec has converged.
 
-      END SELECT
+         END SELECT
+      END IF
 
 !  Increment the number of iterations by the number of iterations used by
 !  runvmec.
@@ -3903,8 +3909,10 @@
       CALL MPI_BCAST(index, 1, MPI_INTEGER, 0, eq_comm, error)
 
       CALL MPI_BCAST(extcur(index), 1, MPI_REAL8, 0, eq_comm, error)
+! FIXME Uncomment when read_mgrid supports running on an eq processes.
       CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false., error,             &
      &                comm = eq_comm)
+!      CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false., error)
       CALL assert_eq(0, error, 'vmec_set_param: failed to read ' //            &
      &               'mgrid_file')
 #endif

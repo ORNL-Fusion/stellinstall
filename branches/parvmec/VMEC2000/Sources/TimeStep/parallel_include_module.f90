@@ -80,6 +80,7 @@
         USE parallel_vmec_module, ONLY: allreduce_time
         USE parallel_vmec_module, ONLY: broadcast_time
         USE parallel_vmec_module, ONLY: sendrecv_time
+        USE parallel_vmec_module, ONLY: scatter_time
 
         LOGICAL :: INFILEOUT=.FALSE.
 
@@ -122,7 +123,6 @@
         REAL(dp) :: fo_prepare_time=0
         REAL(dp) :: fo_par_call_time=0
 
-!SPH CHANGE
         !Vacuum, Scalpot variables
         INTEGER :: blksize_scp, numjs_vac
         INTEGER, ALLOCATABLE, DIMENSION(:) :: counts_scp, disps_scp,    &
@@ -197,6 +197,14 @@
 
         REAL(rprec) :: maxvalue, minvalue
         INTEGER :: maxrank, minrank
+
+        !V3FIT 
+        INTEGER :: RUNVMEC_PASS=0
+
+!        INTEGER :: v3fgcomm, v3freccomm, v3feqcomm
+!        INTEGER :: v3fgnranks, v3frecnranks, v3feqnranks
+!        INTEGER :: v3fgrank, v3frecrank, v3feqrank 
+!        LOGICAL :: lreconactive=.FALSE.
 
 CONTAINS
 

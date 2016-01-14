@@ -120,12 +120,9 @@
 
          CALL v3fit_context_write(context)
 
-         WRITE (context%runlog_iou,'(/,a,f10.2)')                              &
-     &      '  *** V3FIT run time (s): ', time_end - time_start
-         WRITE (context%recout_iou,'(/,a,f10.2)')                              &
-     &      '  *** V3FIT run time (s): ', time_end - time_start
-         WRITE (*,'(/,a,f10.2)')                                               &
-     &      '  *** V3FIT run time (s): ', time_end - time_start
+         WRITE (context%runlog_iou,1000) time_end - time_start
+         WRITE (context%recout_iou,1000) time_end - time_start
+         WRITE (*,1000) time_end - time_start
 
          CALL profiler_write(context%recout_iou)
       END IF
@@ -137,6 +134,8 @@
 #if defined(MPI_OPT)
       CALL MPI_FINALIZE(error)
 #endif
+
+1000  FORMAT('  *** V3FIT run time (s): ',f10.2)
 
       END PROGRAM
 
@@ -483,10 +482,8 @@
      &               context%reconstruction_comm, error)
 
       DO
-         CALL processor_idle(context)
          CALL MPI_BCAST(task, 1, MPI_INTEGER, 0,                               &
      &                  context%reconstruction_comm, error)
-         CALL processor_active(context)
 
          SELECT CASE (task)
 
@@ -537,10 +534,8 @@
       CALL init_equilibrium(context)
 
       DO
-         CALL processor_idle(context)
          CALL MPI_BCAST(task, 1, MPI_INTEGER, 0,                               &
      &                  context%equilibrium_comm, error)
-         CALL processor_active(context)
 
          SELECT CASE (task)
 
@@ -2100,67 +2095,5 @@
 !  Support up to 99 directories. need to add leading zeros to avoid spaces.
 1002  FORMAT(a11,'_0',i1)
 1003  FORMAT(a11,'_',i2)
-
-      END SUBROUTINE
-
-      SUBROUTINE processor_active(context)
-      USE v3fit_context
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: context
-
-!  local variables
-      INTEGER                                   :: error
-      INTEGER                                   :: global_rank
-      INTEGER                                   :: recon_rank
-      INTEGER                                   :: eq_rank
-
-!  Start of executable code
-      recon_rank = -1
-
-      CALL MPI_COMM_RANK(context%global_comm, global_rank, error)
-      IF (context%reconstruction_comm .ne. MPI_COMM_NULL) THEN
-         CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
-     &                      error)
-      END IF
-      CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
-
-      WRITE (*,1000) global_rank, recon_rank, eq_rank
-
-1000  FORMAT('Global process ',i2,', recon process ',i2,                       &
-     &       ', eq process ',i2,' ACTIVE')
-
-      END SUBROUTINE
-
-      SUBROUTINE processor_idle(context)
-      USE v3fit_context
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: context
-
-!  local variables
-      INTEGER                                   :: error
-      INTEGER                                   :: global_rank
-      INTEGER                                   :: recon_rank
-      INTEGER                                   :: eq_rank
-
-!  Start of executable code
-      recon_rank = -1
-
-      CALL MPI_COMM_RANK(context%global_comm, global_rank, error)
-      IF (context%reconstruction_comm .ne. MPI_COMM_NULL) THEN
-         CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
-     &                      error)
-      END IF
-      CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
-
-      WRITE (*,1000) global_rank, recon_rank, eq_rank
-
-1000  FORMAT('Global process ',i2,', recon process ',i2,                       &
-     &       ', eq process ',i2,' IDLE')
 
       END SUBROUTINE

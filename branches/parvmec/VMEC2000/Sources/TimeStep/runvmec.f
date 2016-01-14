@@ -20,6 +20,7 @@
       USE parallel_vmec_module, ONLY: InitSurfaceComm
       USE parallel_vmec_module, ONLY: FinalizeSurfaceComm
       USE parallel_vmec_module, ONLY: SetVacuumCommunicator
+      USE parallel_vmec_module, ONLY: Scatterv4XArray
       USE blocktridiagonalsolver_bst, ONLY: Initialize_bst, Finalize_bst
       USE xstuff
       USE mpi_inc
@@ -49,6 +50,7 @@ C-----------------------------------------------
       REAL(dp) :: gridton, gridtoff
       REAL(dp) :: skston, skstoff
       REAL(dp) :: allgvton, allgvtoff
+      REAL(dp) :: bcastton, bcasttoff
       INTEGER :: max_grid_size, flag
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: bcastarr
       INTEGER :: blklength, grid_id, i, js, nsmin, nsmax
@@ -116,6 +118,7 @@ C-----------------------------------------------
       END INTERFACE
 
 #if defined(SKS)
+      RUNVMEC_PASS = RUNVMEC_PASS + 1
       CALL second0(rvton)
       CALL MyEnvVariables
       IF(LV3FITCALL) THEN
@@ -123,9 +126,36 @@ C-----------------------------------------------
         CALL Serial2Parallel4X(xcdot,pxcdot)
         CALL Serial2Parallel4X(xstore,pxstore)
         CALL InitRunVmec(COMM_WORLD)
+        IF (RUNVMEC_PASS.GT.1) THEN
+          CALL second0(bcastton)
+          CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(pxcdot,SIZE(pxcdot),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(pxstore,SIZE(pxstore),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(iotas,SIZE(iotas),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(iotaf,SIZE(iotaf),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(phips,SIZE(phips),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(phipf,SIZE(phipf),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(chips,SIZE(chips),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(chipf,SIZE(chipf),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(mass,SIZE(mass),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(icurv,SIZE(icurv),MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL MPI_Bcast(lamscale,1,MPI_REAL8,
+     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+          CALL second0(bcasttoff)
+          broadcast_time = broadcast_time + (bcasttoff - bcastton)
+        END IF
       END IF
-
-      !print *,"SKS: In runvmec subroutine with gnranks: ",gnranks
 #endif
       ictrl_flag = ictrl_array(1)
       numsteps = ictrl_array(3)
@@ -295,32 +325,15 @@ C-----------------------------------------------
            
            CALL second0(skston)
 
+           bcastton = skston
            CALL MPI_Bcast(pscalxc,SIZE(pscalxc),MPI_REAL8,
      1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-
            CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
      1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
+           CALL second0(bcasttoff)
+           broadcast_time = broadcast_time + (bcasttoff - bcastton)
 
-           IF (LV3FITCALL) THEN
-             CALL MPI_Bcast(iotas,SIZE(iotas),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(iotaf,SIZE(iotaf),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(phips,SIZE(phips),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(phipf,SIZE(phipf),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(chips,SIZE(chips),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(chipf,SIZE(chipf),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(mass,SIZE(mass),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(icurv,SIZE(icurv),MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-             CALL MPI_Bcast(lamscale,1,MPI_REAL8,
-     1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
-
+           IF (.FALSE..AND.LV3FITCALL) THEN
              nsmin=t1lglob; nsmax=t1rglob
              DO js = nsmin, nsmax
                pphip(:,js) = phips(js)

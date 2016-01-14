@@ -59,6 +59,7 @@ C-----------------------------------------------
           END DO
         END DO
       END DO
+
 !
 !     RIGID BODY SHIFT OF RMNCC(JS.GT.1,0,0) BY DELR_MSE= R00-RAXMSE
 !

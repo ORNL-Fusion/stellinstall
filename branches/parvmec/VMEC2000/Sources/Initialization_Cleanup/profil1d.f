@@ -61,7 +61,6 @@ C-----------------------------------------------
 !     BY READING INPUT COEFFICIENTS. PRESSURE CONVERTED TO
 !     INTERNAL UNITS BY MULTIPLICATION BY mu0 = 4*pi*10**-7
 !
-
       IF (ncurr.EQ.1 .AND. lRFP)STOP 'ncurr=1 inconsistent with lRFP=T!'
       torflux_edge = signgs * phifac * phiedge / twopi
       si = torflux(one)
@@ -91,7 +90,6 @@ C-----------------------------------------------
 !     Compute lamscale factor for "normalizing" lambda (needed for scaling hessian)
 !
       phipslocal=SUM(phips(MAX(2,tlglob):trglob)**2)
-      !IF (nranks.GT.1) THEN
       IF (nranks.GT.1.AND.grank.LT.nranks) THEN
         CALL second0(skston)
         CALL MPI_Allreduce(phipslocal,phipstotal,1,MPI_REAL8,MPI_SUM,

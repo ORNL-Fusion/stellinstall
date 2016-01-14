@@ -60,6 +60,7 @@ MODULE parallel_vmec_module
   REAL(dp) :: allreduce_time=0
   REAL(dp) :: broadcast_time=0
   REAL(dp) :: sendrecv_time=0
+  REAL(dp) :: scatter_time=0
 
 CONTAINS
 
@@ -947,6 +948,86 @@ CONTAINS
     allgather_time = allgather_time + (allgvtoff-allgvton)
   END SUBROUTINE Gather1XArray
   !------------------------------------------------
+
+  !------------------------------------------------
+  SUBROUTINE Scatterv4XArray(arr, COMM)
+    IMPLICIT NONE
+    !-----------------------------------------------
+
+    !-----------------------------------------------
+    INTEGER, INTENT(IN) :: COMM
+    REAL(rprec), DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax), INTENT(INOUT) :: arr
+    !REAL(rprec), DIMENSION((par_ntor+1)*(par_mpol1+1)*par_ns*3*par_ntmax), INTENT(OUT) :: outarr
+    INTEGER :: i, j, k, l, ls, nsmin, nsmax, lks, lkp
+    INTEGER :: blksize, numjs, sendbufsize
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
+    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: sendbuf
+    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
+    REAL(rprec) :: scattervton, scattervtoff
+    !-----------------------------------------------
+
+    CALL second0(scattervton)
+    nsmin = tlglob; nsmax = trglob
+
+    IF (nranks.EQ.1) THEN
+      RETURN
+    END IF
+
+    blksize=(par_ntor+1)*(par_mpol1+1)*3*par_ntmax
+    numjs=nsmax-nsmin+1
+
+    ALLOCATE(counts(nranks),disps(nranks))
+    sendbufsize=0
+    DO i=1,nranks
+      counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blksize
+      sendbufsize = sendbufsize + counts(i)
+    END DO
+
+    disps(1)=0
+    DO i=2,nranks
+      disps(i)=disps(i-1)+counts(i-1)
+    END DO
+
+    ALLOCATE (sendbuf(sendbufsize))
+    ALLOCATE (recvbuf(blksize*numjs))
+
+    ls=0
+    DO l=1, 3*par_ntmax
+      DO k=0, par_mpol1
+        DO j=0, par_ntor
+          !DO i=1, par_ns
+          DO i=nsmin, nsmax
+            ls = ls+1
+            sendbuf(ls) = arr(j,k,l,i)
+          END DO
+        END DO
+      END DO
+    END DO
+
+    CALL MPI_Scatterv(sendbuf,sendbufsize,disps,MPI_REAL8,recvbuf,&
+      numjs*blksize,MPI_REAL8,0,COMM,MPI_ERR)
+
+    lks=0
+    DO l=1, 3*par_ntmax
+      DO k=0, par_mpol1
+        DO j=0, par_ntor
+          !DO i=1, par_ns
+          DO i=nsmin, nsmax
+            lks = lks+1
+!            lkp = j + (par_ntor+1)*k + (par_ntor+1)*(par_mpol1+1)*(i-1) + &
+!              (par_ntor+1)*(par_mpol1+1)*par_ns*(l-1)+1
+            arr(j,k,l,i) = recvbuf(lks)
+          END DO
+        END DO
+      END DO
+    END DO
+
+    DEALLOCATE(sendbuf, recvbuf)
+    CALL second0(scattervtoff)
+    scatter_time = scatter_time + (scattervtoff-scattervton)
+  END SUBROUTINE Scatterv4XArray
+  !------------------------------------------------
+
 
 
 END MODULE parallel_vmec_module
