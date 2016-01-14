@@ -498,6 +498,8 @@
      &                 context%equilibrium_comm)
 
             CASE (mpi_quit_task)
+               CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                &
+     &                        context%equilibrium_comm, error)
                EXIT
 
             CASE DEFAULT
