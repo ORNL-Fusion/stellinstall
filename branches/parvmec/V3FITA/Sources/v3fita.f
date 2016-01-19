@@ -53,6 +53,7 @@
       TYPE (v3fit_context_class), POINTER :: context => null()
       REAL (rprec)                        :: time_start, time_end
       INTEGER                             :: eq_rank
+      INTEGER                             :: recon_rank
 #if defined(MPI_OPT)
       INTEGER                             :: error
 
@@ -121,15 +122,24 @@
 
 !  Clean up memory
       IF (eq_rank .eq. 0) THEN
-         CALL second0(time_end)
+         recon_rank = 0
+#if defined(MPI_OPT)
+         CALL MPI_COMM_RANK(context%reconstruction_comm, recon_rank,           &
+     &                      error)
+#endif
 
-         CALL v3fit_context_write(context)
+         IF (recon_rank .eq. 0) THEN
+            CALL second0(time_end)
 
-         WRITE (context%runlog_iou,1000) time_end - time_start
-         WRITE (context%recout_iou,1000) time_end - time_start
-         WRITE (*,1000) time_end - time_start
+            CALL v3fit_context_write(context)
 
-         CALL profiler_write(context%recout_iou)
+            WRITE (context%runlog_iou,1000) time_end - time_start
+            WRITE (context%recout_iou,1000) time_end - time_start
+            WRITE (*,1000) time_end - time_start
+
+            CALL profiler_write(context%recout_iou)
+
+         END IF
 
          CALL v3fit_context_close_files(context)
       END IF
