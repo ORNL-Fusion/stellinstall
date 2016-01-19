@@ -52,7 +52,7 @@
 !  local variables
       TYPE (v3fit_context_class), POINTER :: context => null()
       REAL (rprec)                        :: time_start, time_end
-      INTEGER                             :: mpi_rank
+      INTEGER                             :: eq_rank
 #if defined(MPI_OPT)
       INTEGER                             :: error
 
@@ -82,8 +82,18 @@
 !  Configure parallel computation.
       CALL config_parallelism(context)
 
-      WRITE (context%recout_iou,*) '  my_task is ', my_task
-      WRITE (context%runlog_iou,*) '  my_task is ', my_task
+      eq_rank = 0
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
+#endif
+
+      IF (eq_rank .eq. 0) THEN
+         CALL v3fit_context_create_files(context)
+
+         WRITE (context%recout_iou,*) '  my_task is ', my_task
+         WRITE (context%runlog_iou,*) '  my_task is ', my_task
+      END IF
+
       SELECT CASE (my_task)
 
          CASE ('equilibrium')
@@ -110,12 +120,7 @@
       END SELECT
 
 !  Clean up memory
-      mpi_rank = 0
-#if defined(MPI_OPT)
-      CALL MPI_COMM_RANK(context%global_comm, mpi_rank, error)
-#endif
-
-      IF (mpi_rank .eq. 0) THEN
+      IF (eq_rank .eq. 0) THEN
          CALL second0(time_end)
 
          CALL v3fit_context_write(context)
@@ -125,6 +130,8 @@
          WRITE (*,1000) time_end - time_start
 
          CALL profiler_write(context%recout_iou)
+
+         CALL v3fit_context_close_files(context)
       END IF
       CALL profiler_destruct
 

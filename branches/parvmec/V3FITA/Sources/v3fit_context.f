@@ -121,7 +121,6 @@
 !>  @returns A pointer to a constructed @ref v3fit_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION v3fit_context_construct(cl_parser)
-      USE safe_open_mod
 
       IMPLICIT NONE
 
@@ -130,50 +129,12 @@
       TYPE (commandline_parser_class), POINTER :: cl_parser
 
 !  local variables
-      CHARACTER (len=data_filename_length) :: filename
-      INTEGER                              :: status
       REAL (rprec)                         :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      filename = commandline_parser_get_string(cl_parser, '-file')
-
       ALLOCATE(v3fit_context_construct)
-
-!  Setup the runlog file.
-!  Initalize a default value of the I\O unit. V3FIT increments from there.
-      v3fit_context_construct%runlog_iou = 0
-      CALL safe_open(v3fit_context_construct%runlog_iou, status,               &
-     &               TRIM('runlog.' // filename_base(filename)),               &
-     &               'replace', 'formatted', delim_in='none')
-      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
-     &               'Safe_open of runlog. ' //                                &
-     &               TRIM(filename_base(filename)) // 'failed')
-
-!  Setup the recout file.
-!  Initalize a default value of the I\O unit. V3FIT increments from there.
-      v3fit_context_construct%recout_iou = 0
-      CALL safe_open(v3fit_context_construct%recout_iou, status,               &
-     &               TRIM('recout.' // filename_base(filename)),               &
-     &               'replace', 'formatted', delim_in='none')
-      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
-     &               'Safe_open of recout. ' //                                &
-     &               TRIM(filename_base(filename)) // 'failed')
-
-!  Create a result file.
-      status = nf_create('result.' // TRIM(filename_base(filename)) //         &
-     &                   '.nc', nf_clobber,                                    &
-     &                   v3fit_context_construct%result_ncid)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
-      WRITE (v3fit_context_construct%runlog_iou, *) 'V3FITA RUN'
-      WRITE (v3fit_context_construct%runlog_iou, *)                            &
-     &   '  Namelist Input from file ', TRIM(filename)
-
-      WRITE (v3fit_context_construct%recout_iou, *) 'V3FITA RUN'
-      WRITE (v3fit_context_construct%recout_iou, *)                            &
-     &   '  Namelist Input from file ', TRIM(filename)
 
       v3fit_context_construct%cl_parser => cl_parser
 
@@ -201,15 +162,8 @@
 
 !  local variables
       INTEGER                             :: i
-      INTEGER                             :: status
 
 !  Start of executable code
-      CLOSE(this%runlog_iou)
-      CLOSE(this%recout_iou)
-
-      status = nf_close(this%result_ncid)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
       IF (ASSOCIATED(this%cl_parser)) THEN
          CALL commandline_parser_destruct(this%cl_parser)
          this%cl_parser => null()
@@ -352,6 +306,103 @@
       END IF
 
       CALL profiler_set_stop_time('v3fit_context_resize', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Create output files.
+!>
+!>  Creates output files that reconstructed results are written to.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_create_files(this)
+      USE safe_open_mod
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+
+!  local variables
+      CHARACTER (len=data_filename_length)      :: filename
+      INTEGER                                   :: status
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      filename = commandline_parser_get_string(this%cl_parser, '-file')
+
+!  Setup the runlog file.
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      this%runlog_iou = 0
+      CALL safe_open(this%runlog_iou, status,                                  &
+     &               TRIM('runlog.' // filename_base(filename)),               &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of runlog. ' //                                &
+     &               TRIM(filename_base(filename)) // 'failed')
+
+!  Setup the recout file.
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      this%recout_iou = 0
+      CALL safe_open(this%recout_iou, status,                                  &
+     &               TRIM('recout.' // filename_base(filename)),               &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of recout. ' //                                &
+     &               TRIM(filename_base(filename)) // 'failed')
+
+!  Create a result file.
+      status = nf_create('result.' // TRIM(filename_base(filename)) //         &
+     &                   '.nc', nf_clobber,                                    &
+     &                   this%result_ncid)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      WRITE (this%runlog_iou, *) 'V3FITA RUN'
+      WRITE (this%runlog_iou, *) '  Namelist Input from file ',                &
+     &                           TRIM(filename)
+
+      WRITE (this%recout_iou, *) 'V3FITA RUN'
+      WRITE (this%recout_iou, *) '  Namelist Input from file ',                &
+     &                           TRIM(filename)
+
+      CALL profiler_set_stop_time('v3fit_context_create_files',                &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Close output files.
+!>
+!>  Closes output files that reconstructed results are written to.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_close_files(this)
+
+      IMPLICIT NONE
+
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+
+!  local variables
+      INTEGER                                   :: status
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CLOSE(this%runlog_iou)
+      CLOSE(this%recout_iou)
+
+      status = nf_close(this%result_ncid)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('v3fit_context_close_files',                 &
+     &                            start_time)
 
       END SUBROUTINE
 
