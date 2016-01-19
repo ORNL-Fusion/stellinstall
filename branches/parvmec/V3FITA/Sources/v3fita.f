@@ -692,13 +692,23 @@
 
 !  local variables
       LOGICAL                                   :: force_solve
+      INTEGER                                   :: eq_rank
+      INTEGER                                   :: error
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      eq_rank = 0
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)
+#endif
+
       WRITE (*,*) ' *** Constructing equilibrium model'
-      WRITE (context%runlog_iou,*) ' *** Constructing equilibrium model'
+      IF (eq_rank .eq. 0) THEN
+         WRITE (context%runlog_iou,*) ' *** Constructing ' //                  &
+     &                                'equilibrium model'
+      END IF
 
       force_solve =                                                            &
      &   commandline_parser_is_flag_set(context%cl_parser, '-force')
