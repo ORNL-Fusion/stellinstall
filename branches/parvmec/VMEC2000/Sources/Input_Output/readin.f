@@ -8,6 +8,7 @@
       USE mgrid_mod, ONLY: nextcur, curlabel, nfper0, read_mgrid
       USE init_geometry
       USE parallel_include_module, ONLY: grank, mgrid_file_read_time
+      USE parallel_vmec_module, ONLY: RUNVMEC_COMM_WORLD
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s

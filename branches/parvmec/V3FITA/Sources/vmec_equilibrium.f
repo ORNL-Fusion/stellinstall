@@ -493,6 +493,7 @@
       INTEGER, INTENT(in)                  :: eq_comm
 
 !  local variables
+      INTEGER                              :: eq_rank
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
       INTEGER                              :: error
@@ -501,10 +502,17 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //           &
-     &            TRIM(file_name)
-      WRITE (iou,*) ' *** Initializing VMEC equilibrium from file ' //         &
-     &              TRIM(file_name)
+      eq_rank = 0
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
+#endif
+
+      IF (eq_rank .eq. 0) THEN
+         WRITE (*,*) ' *** Initializing VMEC equilibrium from file ' //        &
+     &               TRIM(file_name)
+         WRITE (iou,*) ' *** Initializing VMEC equilibrium from ' //           &
+     &                 'file ' // TRIM(file_name)
+      END IF
 
       ALLOCATE(vmec_construct)
       vmec_construct%ne => ne
@@ -535,10 +543,12 @@
          CALL runvmec(ictrl_array, file_name, .false., eq_comm,                &
      &                wout_file_name)
 
-         CALL read_wout_file(vmec_construct%wout_file_name, error)
-         CALL assert_eq(error, 0, 'Error loading initialized ' //              &
-     &                            'wout file.')
-         CALL LoadRZL
+         IF (eq_rank .eq. 0) THEN
+            CALL read_wout_file(vmec_construct%wout_file_name, error)
+            CALL assert_eq(error, 0, 'Error loading initialized ' //           &
+     &                               'wout file.')
+            CALL LoadRZL
+         END IF
       ELSE
          !print *, '*** Calling runvmec from construct...'
          CALL runvmec(ictrl_array, file_name, .false., eq_comm)
@@ -3752,6 +3762,11 @@
       num_iter_init = iterc
       recovery_index = 0
 
+      eq_rank = 0
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
+#endif
+
 !  Store the current VMEC context. This context is different than the one stored
 !  in save/reset state methods. This context needs to be stored so that error
 !  recovery can restore the state to before runvmec was run but after the
@@ -3796,11 +3811,13 @@
                CALL vmec_context_set_context(temp_context)
 
                IF (recovery_index .le. 2) THEN
-                  WRITE (*,1000) 'jac75_flag'
-                  WRITE (*,1001) 'delt', delt, delt/2.0
-                  WRITE (iou,1000) 'jac75_flag'
-                  WRITE (iou,1001) 'delt', delt, delt/2.0
-                  delt = delt/2.0
+                  IF (eq_rank .eq. 0) THEN
+                     WRITE (*,1000) 'jac75_flag'
+                     WRITE (*,1001) 'delt', delt, delt/2.0
+                     WRITE (iou,1000) 'jac75_flag'
+                     WRITE (iou,1001) 'delt', delt, delt/2.0
+                     delt = delt/2.0
+                  END IF
                ELSE
                   EXIT
                END IF
@@ -3811,13 +3828,14 @@
                CALL vmec_context_set_context(temp_context)
 
                IF (recovery_index .le. 2) THEN
-                  WRITE (*,1000) 'more_iter_flag'
-                  WRITE (*,1002) 'niter', niter_local,                         &
-     &                           niter_local + niter
-                  WRITE (iou,1000) 'more_iter_flag'
-                  WRITE (iou,1002) 'niter', niter_local,                       &
-     &                             niter_local + niter
-
+                  IF (eq_rank .eq. 0) THEN
+                     WRITE (*,1000) 'more_iter_flag'
+                     WRITE (*,1002) 'niter', niter_local,                      &
+     &                              niter_local + niter
+                     WRITE (iou,1000) 'more_iter_flag'
+                     WRITE (iou,1002) 'niter', niter_local,                    &
+     &                                niter_local + niter
+                  END IF
                   niter_local = niter_local + niter
                ELSE
                   EXIT
@@ -3828,8 +3846,10 @@
 
          END SELECT
 
-         WRITE (*,*) 'Attempting error recovery'
-         WRITE (iou,*) 'Attempting error recovery'
+         IF (eq_rank .eq. 0) THEN
+            WRITE (*,*) 'Attempting error recovery'
+            WRITE (iou,*) 'Attempting error recovery'
+         END IF
 
          recovery_index = recovery_index + 1
       END DO
@@ -3840,8 +3860,6 @@
 !  Check for errors, if vmec was successful, load vmec data for use with the
 !  signals. Other wise report the error. This should only be performed on the
 !  head node.
-      CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
-
       IF (eq_rank .eq. 0) THEN
          vmec_converge = .false.
          SELECT CASE (ictrl_array(2))

@@ -12,10 +12,11 @@
 ! 1-D
 !
 
+#if defined(NETCDF)
    subroutine EZspline_save1_r8(spline_o, filename, ier, &
         spl_name, fullsave)
-     use ezspline_obj
-     use ezcdf
+     use EZspline_obj
+     use EZcdf
      implicit none
      type(EZspline1_r8) :: spline_o
      character*(*) :: filename
@@ -148,8 +149,8 @@
 
    subroutine EZspline_save2_r8(spline_o, filename, ier, &
         spl_name, fullsave)
-     use ezspline_obj
-     use ezcdf
+     use EZspline_obj
+     use EZcdf
      implicit none
      type(EZspline2_r8) :: spline_o
      character*(*) :: filename
@@ -316,8 +317,8 @@
 
    subroutine EZspline_save3_r8(spline_o, filename, ier, &
         spl_name, fullsave)
-     use ezspline_obj
-     use ezcdf
+     use EZspline_obj
+     use EZcdf
      implicit none
      type(EZspline3_r8) :: spline_o
      character*(*) :: filename
@@ -506,8 +507,8 @@
 
    subroutine EZspline_save1_r4(spline_o, filename, ier, &
         spl_name, fullsave)
-     use ezspline_obj
-     use ezcdf
+     use EZspline_obj
+     use EZcdf
      implicit none
      type(EZspline1_r4) :: spline_o
      character*(*) :: filename
@@ -640,8 +641,8 @@
 
    subroutine EZspline_save2_r4(spline_o, filename, ier, &
         spl_name, fullsave)
-     use ezspline_obj
-     use ezcdf
+     use EZspline_obj
+     use EZcdf
      implicit none
      type(EZspline2_r4) :: spline_o
      character*(*) :: filename
@@ -808,8 +809,8 @@
 
    subroutine EZspline_save3_r4(spline_o, filename, ier, &
         spl_name, fullsave)
-     use ezspline_obj
-     use ezcdf
+     use EZspline_obj
+     use EZcdf
      implicit none
      type(EZspline3_r4) :: spline_o
      character*(*) :: filename
@@ -1022,7 +1023,7 @@
 
    subroutine ezspline_defVar(ncid, name, dimlens, ztype, imodify, ier)
 
-     use ezcdf
+     use EZcdf
      implicit NONE
 
      ! inquire about variable with logic specific to ezspline_save
@@ -1082,3 +1083,4 @@
      endif
 
    end subroutine ezspline_defVar
+#endif
