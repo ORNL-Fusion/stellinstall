@@ -466,11 +466,12 @@
 !>                        machine center.
 !>  @param[in] iou        Input/output unit to log messages to.
 !>  @param[in] eq_comm    MPI communicator pool for VMEC.
+!>  @param[in] recon_comm MPI communicator pool for reconstruction.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct(file_name, wout_file_name, ne, te, sxrem,        &
      &                        phi_offset, z_offset, pol_rad_ratio, iou,        &
-     &                        eq_comm)
+     &                        eq_comm, recon_comm)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -491,9 +492,11 @@
       REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
       INTEGER, INTENT(in)                  :: eq_comm
+      INTEGER, INTENT(in)                  :: recon_comm
 
 !  local variables
       INTEGER                              :: eq_rank
+      INTEGER                              :: recon_rank
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
       INTEGER                              :: error
@@ -503,8 +506,14 @@
       start_time = profiler_get_start_time()
 
       eq_rank = 0
+      recon_rank = 0
 #if defined(MPI_OPT)
       CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
+
+      IF (eq_rank .eq. 0) THEN
+         CALL MPI_COMM_RANK(recon_comm, recon_rank, error)
+      END IF
+      CALL MPI_BCAST(recon_rank, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
 
       IF (eq_rank .eq. 0) THEN
@@ -536,21 +545,43 @@
 
       vmec_construct%vmec_file_name = TRIM(file_name)
 
-      IF (wout_file_name .ne. '') THEN
+!  Only the rank zero reconstruction pool runs the inital convergence. Initalize
+!  VMEC on that pool then broad cast the size of the largest NS value to the
+!  children. This ensures that they are allocated with the correct grid sizes.
+
+      IF (recon_rank .eq. 0) THEN
+         IF (wout_file_name .ne. '') THEN
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
-         vmec_construct%wout_file_name = wout_file_name
-         CALL runvmec(ictrl_array, file_name, .false., eq_comm,                &
-     &                wout_file_name)
+            vmec_construct%wout_file_name = wout_file_name
+            CALL runvmec(ictrl_array, file_name, .false., eq_comm,             &
+     &                   wout_file_name)
 
-         IF (eq_rank .eq. 0) THEN
-            CALL read_wout_file(vmec_construct%wout_file_name, error)
-            CALL assert_eq(error, 0, 'Error loading initialized ' //           &
+            IF (eq_rank .eq. 0) THEN
+               CALL read_wout_file(vmec_construct%wout_file_name, error)
+               CALL assert_eq(error, 0, 'Error loading initialized ' //        &
      &                               'wout file.')
-            CALL LoadRZL
+               CALL LoadRZL
+            END IF
+         ELSE
+            !print *, '*** Calling runvmec from construct...'
+            CALL runvmec(ictrl_array, file_name, .false., eq_comm)
+         END IF
+
+         vmec_construct%ns_index = MAXLOC(ns_array, 1)
+         IF (eq_rank .eq. 0) THEN
+            CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
+     &                     recon_comm, error)
          END IF
       ELSE
-         !print *, '*** Calling runvmec from construct...'
+         IF (eq_rank .eq. 0) THEN
+            CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
+     &                     recon_comm, error)
+         END IF
+         CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,            &
+     &                  eq_comm, error)
+
+         ictrl_array(4) = vmec_construct%ns_index
          CALL runvmec(ictrl_array, file_name, .false., eq_comm)
       END IF
 
@@ -576,8 +607,6 @@
       END SELECT
 
       vmec_construct%vmec_context_save => vmec_context_construct()
-
-      vmec_construct%ns_index = MAXLOC(ns_array, 1)
 
       CALL profiler_set_stop_time('vmec_construct', start_time)
 
@@ -1139,7 +1168,6 @@
      &                         bsubumnc_sur, bsubumns_sur,                     &
      &                         bsubvmnc_sur, bsubvmns_sur
       USE stel_constants, only: mu0
-      USE virtual_casing_mod
 
       IMPLICIT NONE
 

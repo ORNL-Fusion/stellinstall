@@ -141,4 +141,16 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/diagnostic_rotation_test/dia
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/diagnostic_rotation_test/sxrem_rot.dot
       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/diagnostic_rotation_test)
 
+#  Copy common files to the reconstruction seg step test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/sxrem.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/multigrid_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/multigrid_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/multigrid_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/multigrid_test/input.test.v3fit
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/multigrid_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/multigrid_test/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/multigrid_test)
+
 add_subdirectory (tests)

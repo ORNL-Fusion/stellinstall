@@ -788,9 +788,9 @@
      &                            pp_te_as, pp_te_af), sxr,                    &
      &         phi_offset, z_offset, pol_rad_ratio, context%runlog_iou,        &
 #if defined(MPI_OPT)
-     &         context%equilibrium_comm),                                      &
+     &         context%equilibrium_comm, context%reconstruction_comm),         &
 #else
-     &         0),                                                             &
+     &         0, 0),                                                             &
 #endif
      &      force_solve, not_converged),                                       &
      &   sxrem_te_a, sxrem_ratio_a)
