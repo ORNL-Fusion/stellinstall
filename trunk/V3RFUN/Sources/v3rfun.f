@@ -1000,7 +1000,7 @@
 !  When using stellator symmetry, only half of the field period needs to be
 !  stored due to the symmetry. A poloidal point will have the same current as a
 !  the symmetric point below the midplane. The j=1 point corresponds to the
-!  same u position on the opposite side of the field perior. For j!=0, the
+!  same u position on the opposite side of the field period. For j!=0, the
 !  symmetry point is found by counting indices backwards.
             IF (lstell_sym) THEN
                DO j = 1, n_u

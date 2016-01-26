@@ -2934,9 +2934,9 @@
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
       REAL (rprec)                           :: v_norm
-      INTEGER                                :: i_low
-      INTEGER                                :: j_low
-      INTEGER                                :: k_low
+      INTEGER                                :: i_low, i_high
+      INTEGER                                :: j_low, j_high
+      INTEGER                                :: k_low, k_high
       REAL (rprec)                           :: r_low
       REAL (rprec)                           :: phi_low
       REAL (rprec)                           :: z_low
@@ -2984,12 +2984,21 @@
          END DO
 
 !  Need to interpolate the vacuum field grid to get the vacuum field external to
-!  the plasma.
+!  the plasma. Also need to be careful about the axisymmetric case. For those
+!  cases don't interpolate in the phi direction.
          delphib = twopi/(nfp*np0b)
 
          i_low = INT((r_cyl(1) - rminb)/delrb) + 1
          j_low = INT(v_norm/delphib) + 1
          k_low = INT((r_cyl(3) - zminb)/delzb) + 1
+
+         i_high = i_low + 1
+         IF (np0b .eq. 1) THEN
+            j_high = 1
+         ELSE
+            j_high = j_low + 1
+         END IF
+         k_high = k_low + 1
 
          r_low = rminb + (i_low - 1.0)*delrb
          phi_low = (j_low - 1.0)*delphib
@@ -3004,33 +3013,33 @@
 
          vmec_get_B_vec(1)                                                     &
      &      = wrl*wphil*wzl*brvac(i_low,k_low,j_low)                           &
-     &      + wrh*wphil*wzl*brvac(i_low + 1,k_low,j_low)                       &
-     &      + wrl*wphih*wzl*brvac(i_low,k_low,j_low + 1)                       &
-     &      + wrh*wphih*wzl*brvac(i_low + 1,k_low,j_low + 1)                   &
-     &      + wrl*wphil*wzh*brvac(i_low,k_low + 1,j_low)                       &
-     &      + wrh*wphil*wzh*brvac(i_low + 1,k_low + 1,j_low)                   &
-     &      + wrl*wphih*wzh*brvac(i_low,k_low + 1,j_low + 1)                   &
-     &      + wrh*wphih*wzh*brvac(i_low + 1,k_low + 1,j_low + 1)
+     &      + wrh*wphil*wzl*brvac(i_high,k_low,j_low)                          &
+     &      + wrl*wphih*wzl*brvac(i_low,k_low,j_high)                          &
+     &      + wrh*wphih*wzl*brvac(i_high,k_low,j_high)                         &
+     &      + wrl*wphil*wzh*brvac(i_low,k_high,j_low)                          &
+     &      + wrh*wphil*wzh*brvac(i_high,k_high,j_low)                         &
+     &      + wrl*wphih*wzh*brvac(i_low,k_high,j_high)                         &
+     &      + wrh*wphih*wzh*brvac(i_high,k_high,j_high)
 
          vmec_get_B_vec(2)                                                     &
      &      = wrl*wphil*wzl*bpvac(i_low,k_low,j_low)                           &
-     &      + wrh*wphil*wzl*bpvac(i_low + 1,k_low,j_low)                       &
-     &      + wrl*wphih*wzl*bpvac(i_low,k_low,j_low + 1)                       &
-     &      + wrh*wphih*wzl*bpvac(i_low + 1,k_low,j_low + 1)                   &
-     &      + wrl*wphil*wzh*bpvac(i_low,k_low + 1,j_low)                       &
-     &      + wrh*wphil*wzh*bpvac(i_low + 1,k_low + 1,j_low)                   &
-     &      + wrl*wphih*wzh*bpvac(i_low,k_low + 1,j_low + 1)                   &
-     &      + wrh*wphih*wzh*bpvac(i_low + 1,k_low + 1,j_low + 1)
+     &      + wrh*wphil*wzl*bpvac(i_high,k_low,j_low)                          &
+     &      + wrl*wphih*wzl*bpvac(i_low,k_low,j_high)                          &
+     &      + wrh*wphih*wzl*bpvac(i_high,k_low,j_high)                         &
+     &      + wrl*wphil*wzh*bpvac(i_low,k_high,j_low)                          &
+     &      + wrh*wphil*wzh*bpvac(i_high,k_high,j_low)                         &
+     &      + wrl*wphih*wzh*bpvac(i_low,k_high,j_high)                         &
+     &      + wrh*wphih*wzh*bpvac(i_high,k_high,j_high)
 
          vmec_get_B_vec(3)                                                     &
      &      = wrl*wphil*wzl*bzvac(i_low,k_low,j_low)                           &
-     &      + wrh*wphil*wzl*bzvac(i_low + 1,k_low,j_low)                       &
-     &      + wrl*wphih*wzl*bzvac(i_low,k_low,j_low + 1)                       &
-     &      + wrh*wphih*wzl*bzvac(i_low + 1,k_low,j_low + 1)                   &
-     &      + wrl*wphil*wzh*bzvac(i_low,k_low + 1,j_low)                       &
-     &      + wrh*wphil*wzh*bzvac(i_low + 1,k_low + 1,j_low)                   &
-     &      + wrl*wphih*wzh*bzvac(i_low,k_low + 1,j_low + 1)                   &
-     &      + wrh*wphih*wzh*bzvac(i_low + 1,k_low + 1,j_low + 1)
+     &      + wrh*wphil*wzl*bzvac(i_high,k_low,j_low)                          &
+     &      + wrl*wphih*wzl*bzvac(i_low,k_low,j_high)                          &
+     &      + wrh*wphih*wzl*bzvac(i_high,k_low,j_high)                         &
+     &      + wrl*wphil*wzh*bzvac(i_low,k_high,j_low)                          &
+     &      + wrh*wphil*wzh*bzvac(i_high,k_high,j_low)                         &
+     &      + wrl*wphih*wzh*bzvac(i_low,k_high,j_high)                         &
+     &      + wrh*wphih*wzh*bzvac(i_high,k_high,j_high)
 
          vmec_get_B_vec = vmec_get_ext_b_plasma(this, r_cyl, .false.)          &
      &                  + vmec_get_B_vec

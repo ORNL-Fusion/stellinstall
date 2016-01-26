@@ -120,14 +120,14 @@ C-----------------------------------------------
          IF (ijacob .eq. 25) THEN
             irst = 2
             CALL restart_iter(delt0r)
-            delt0r = p98*delt
+!           delt0r = p98*delt   !!Changed in restart!
             IF (lscreen) PRINT 120, delt0r
             irst = 1
             GOTO 1000
          ELSE IF (ijacob .eq. 50) THEN
             irst = 2
             CALL restart_iter(delt0r)
-            delt0r = p96*delt
+!            delt0r = p96*delt
             IF (lscreen) PRINT 120, delt0r
             irst = 1
             GOTO 1000
