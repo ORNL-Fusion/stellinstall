@@ -325,7 +325,7 @@
       TYPE (v3fit_context_class), INTENT(inout) :: this
 
 !  local variables
-      CHARACTER (len=data_filename_length)      :: filename
+      CHARACTER (len=path_length)               :: filename
       INTEGER                                   :: status
       REAL (rprec)                              :: start_time
 

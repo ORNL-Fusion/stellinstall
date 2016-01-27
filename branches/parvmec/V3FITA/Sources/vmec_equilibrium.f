@@ -349,9 +349,9 @@
 !-------------------------------------------------------------------------------
       TYPE vmec_class
 !>  File name of the output of v3fit.
-         CHARACTER (len=data_filename_length)   :: wout_file_name
+         CHARACTER (len=path_length)            :: wout_file_name
 !>  File name of the vmec namelist inout file.
-         CHARACTER (len=data_filename_length)   :: vmec_file_name
+         CHARACTER (len=path_length)            :: vmec_file_name
 
 !>  @ref pprofile_T describing a flux surface constant electron denisty profile.
          TYPE (pprofile_class), POINTER         :: ne => null()
@@ -475,8 +475,9 @@
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit, ns_array
+      USE vmec_input, only: l_v3fit, ns_array, mgrid_file
       USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -495,23 +496,28 @@
       INTEGER, INTENT(in)                  :: recon_comm
 
 !  local variables
+      INTEGER                              :: i
       INTEGER                              :: eq_rank
       INTEGER                              :: recon_rank
+      INTEGER                              :: recon_size
       INTEGER, DIMENSION(5)                :: ictrl_array
       INTEGER                              :: index_dat, index_end
       INTEGER                              :: error
       REAL (rprec)                         :: start_time
+      CHARACTER (len=path_length)          :: mgrid_path
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       eq_rank = 0
       recon_rank = 0
+      recon_size = 1
 #if defined(MPI_OPT)
       CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
 
       IF (eq_rank .eq. 0) THEN
          CALL MPI_COMM_RANK(recon_comm, recon_rank, error)
+         CALL MPI_COMM_SIZE(recon_comm, recon_size, error)
       END IF
       CALL MPI_BCAST(recon_rank, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
@@ -572,6 +578,17 @@
          IF (eq_rank .eq. 0) THEN
             CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
      &                     recon_comm, error)
+         END IF
+
+!  If the mgrid file in a relative path copy it to the sub directories. This
+!  allows the sub directories to read the mgrid file.
+         IF (.not.is_absolute_path(mgrid_file)) THEN
+            mgrid_path = get_path_of_file(mgrid_file)
+            DO i = 2, recon_size
+               CALL copy_file(mgrid_file,                                      &
+     &                        build_path(process_dir(i), mgrid_path),          &
+     &                        error)
+            END DO
          END IF
       ELSE
          IF (eq_rank .eq. 0) THEN
@@ -2679,6 +2696,7 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec), DIMENSION(3)             :: r_cyl_rot
       REAL (rprec)                           :: v_norm
       INTEGER                                :: i_low, i_high
       INTEGER                                :: j_low, j_high
@@ -2690,6 +2708,8 @@
       REAL (rprec)                           :: wrl, wrh
       REAL (rprec)                           :: wphil, wphih
       REAL (rprec)                           :: wzl, wzh
+      REAL (rprec)                           :: s_temp
+      INTEGER                                :: status
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
@@ -2697,15 +2717,18 @@
 
       r_cyl = cart_to_cyl(x_cart)
 
-      vmec_get_B_vec = 0.0
-      IF (vmec_get_s(this, x_cart) .le. 1.0) THEN
-         r_cyl(2) = r_cyl(2) + this%phi_offset
-         r_cyl(3) = r_cyl(3) - this%z_offset
+      r_cyl = cart_to_cyl(x_cart)
+      r_cyl_rot = r_cyl
+      r_cyl_rot(2) = r_cyl(2) + this%phi_offset
+      r_cyl_rot(3) = r_cyl(3) - this%z_offset
 
-         CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                       &
-     &                     vmec_get_B_vec(1), vmec_get_B_vec(2),               &
-     &                     vmec_get_B_vec(3))
-      ELSE IF (lfreeb) THEN
+      vmec_get_B_vec = 0.0
+      s_temp = 0.0
+      CALL GetBcyl_WOUT(r_cyl_rot(1), r_cyl_rot(2), r_cyl_rot(3),              &
+     &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
+     &                  vmec_get_B_vec(3), sflx=s_temp, info=status)
+
+      IF (lfreeb .and. (s_temp .gt. 0.0 .or. status .eq. -3)) THEN
          IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
             STOP 'Radial point outside vacuum grid.'
          END IF
@@ -4119,7 +4142,6 @@
       SUBROUTINE vmec_write_input(this, current_step)
       USE safe_open_mod
       USE vmec_input
-      USE data_parameters
       USE file_opts
 
       IMPLICIT NONE
@@ -4131,7 +4153,7 @@
 !  local variables
       INTEGER                              :: iou_nl
       INTEGER                              :: status
-      CHARACTER (len=data_filename_length) :: filename
+      CHARACTER (len=path_length)          :: filename
       REAL (rprec)                         :: start_time
 
 !  Start of executable code

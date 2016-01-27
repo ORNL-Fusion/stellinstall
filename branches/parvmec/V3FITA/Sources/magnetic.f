@@ -12,7 +12,6 @@
 
       MODULE magnetic
       USE stel_kinds, only: rprec
-      USE data_parameters
       USE magnetic_response
       USE profiler
 

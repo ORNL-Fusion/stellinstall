@@ -951,8 +951,8 @@
       INTEGER                                   :: mdsig_iou
       INTEGER                                   :: status
       INTEGER                                   :: mdsig_index
-      CHARACTER (len=data_filename_length)      :: mdsig_path
-      CHARACTER (len=data_filename_length)      :: mdsig_filename
+      CHARACTER (len=path_length)               :: mdsig_path
+      CHARACTER (len=path_length)               :: mdsig_filename
       INTEGER                                   :: mpi_rank
       TYPE (magnetic_class), POINTER            :: magnetic_object
       REAL (rprec)                              :: start_time
@@ -1818,15 +1818,15 @@
       INTEGER                                   :: recon_rank
       INTEGER, DIMENSION(:), ALLOCATABLE        :: info
       INTEGER, DIMENSION(:), ALLOCATABLE        :: error_array
-      CHARACTER (len=data_filename_length),                                    &
+      CHARACTER (len=path_length),                                             &
      &   DIMENSION(:), ALLOCATABLE              :: commands
-      CHARACTER (len=data_filename_length),                                    &
+      CHARACTER (len=path_length),                                             &
      &   DIMENSION(:,:), ALLOCATABLE            :: args
       INTEGER, DIMENSION(:), ALLOCATABLE        :: max_procs
       INTEGER                                   :: parent_comm
       INTEGER                                   :: child_comm
       CHARACTER (len=dir_prefix_len)            :: directory_name
-      CHARACTER (len=data_filename_length)      :: temp_string
+      CHARACTER (len=path_length)               :: temp_string
 #endif
       REAL (rprec)                              :: start_time
 

@@ -554,31 +554,30 @@
 !*******************************************************************************
 !>  File name for main namelist input.
 !>  @ref namelist_sec
-      CHARACTER (len=data_filename_length) :: main_nli_filename = ''
+      CHARACTER (len=path_length) :: main_nli_filename = ''
 
 !  Equilibrium input files
 !>  File name for VMEC namelist input
-      CHARACTER (len=data_filename_length) :: vmec_nli_filename = ''
+      CHARACTER (len=path_length) :: vmec_nli_filename = ''
 !>  File name for the VMEC wout input.
-      CHARACTER (len=data_filename_length) :: vmec_wout_input = ''
+      CHARACTER (len=path_length) :: vmec_wout_input = ''
 !>  File name for a vacuum namelist input
-      CHARACTER (len=data_filename_length) :: vacuum_nli_filename = ''
+      CHARACTER (len=path_length) :: vacuum_nli_filename = ''
 
 !  Signal input files
 !>  File name for list of MDSIG files
-      CHARACTER (len=data_filename_length) :: mdsig_list_filename = ''
+      CHARACTER (len=path_length) :: mdsig_list_filename = ''
 !>  File holding sxr chord information
-      CHARACTER (len=data_filename_length) :: sxrch_dot_filename = ''
+      CHARACTER (len=path_length) :: sxrch_dot_filename = ''
 !>  File holding interferometry-polarimetry information.
 !>  @ref intpol_dot_sec
-      CHARACTER (len=data_filename_length) :: ipch_dot_filename = ''
+      CHARACTER (len=path_length) :: ipch_dot_filename = ''
 !>  File holding Thomson Scattering information
-      CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
+      CHARACTER (len=path_length) :: thscte_dot_filename = ''
 !>  File holding motional stark effect information
-      CHARACTER (len=data_filename_length) :: mse_dot_filename = ''
+      CHARACTER (len=path_length) :: mse_dot_filename = ''
 !>  File holding soft x-ray ratio information
-      CHARACTER (len=data_filename_length) ::                                  &
-     &   sxrem_ratio_dot_filename = ''
+      CHARACTER (len=path_length) :: sxrem_ratio_dot_filename = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.
 !>  Maximum number of signals to create.

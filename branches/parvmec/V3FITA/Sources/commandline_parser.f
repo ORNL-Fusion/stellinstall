@@ -64,7 +64,7 @@
 
       MODULE commandline_parser
       USE stel_kinds
-      USE data_parameters
+      USE file_opts, only: path_length
       USE profiler
 
       IMPLICIT NONE
@@ -76,7 +76,7 @@
       INTEGER, PARAMETER, PRIVATE :: max_arg_length = 8
 !>  Maximum length of the complete flag. All command line flags take the form of
 !>  '-flag=value'.
-      INTEGER, PARAMETER, PRIVATE :: max_length = data_filename_length         &
+      INTEGER, PARAMETER, PRIVATE :: max_length = path_length                  &
      &                                          + max_arg_length + 1
 
 !  Commandline parser error codes.
@@ -101,7 +101,7 @@
      &      arg => null()
 !>  Array of value corresponding to the flag. A value is everything after the
 !>  '=' character. The value maybe blank indicating there was no value provided.
-         CHARACTER (len=data_filename_length), DIMENSION(:), POINTER ::        &
+         CHARACTER (len=path_length), DIMENSION(:), POINTER ::                 &
      &      value => null()
       END TYPE
 
@@ -179,7 +179,7 @@
 !  Implicity set the argument to -file
             commandline_parser_construct%arg(i) = '-file'
             commandline_parser_construct%value(i) =                            &
-     &         temp(1:data_filename_length)
+     &         temp(1:path_length)
          END IF
       END DO
 
@@ -239,8 +239,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_filename_length) ::                                  &
-     &   commandline_parser_get_string
+      CHARACTER (len=path_length) :: commandline_parser_get_string
       TYPE (commandline_parser_class), INTENT(in) :: this
       CHARACTER (len=*), INTENT(in)               :: arg
 
@@ -297,7 +296,7 @@
       INTEGER, INTENT(in)                         :: default_value
 
 !  Local arguments
-      CHARACTER (len=data_filename_length)        :: value
+      CHARACTER (len=path_length)                 :: value
       INTEGER                                     :: status
       REAL (rprec)                                :: start_time
 
@@ -352,7 +351,7 @@
       REAL (rprec), INTENT(in)                    :: default_value
 
 !  Local arguments
-      CHARACTER (len=data_filename_length)        :: value
+      CHARACTER (len=path_length)                 :: value
       INTEGER                                     :: status
       REAL (rprec)                                :: start_time
 

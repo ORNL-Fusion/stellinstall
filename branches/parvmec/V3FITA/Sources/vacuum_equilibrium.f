@@ -64,7 +64,7 @@
 !-------------------------------------------------------------------------------
       TYPE vacuum_class
 !>  File name of the vacuum namelist inout file.
-         CHARACTER (len=data_filename_length) :: vacuum_file_name
+         CHARACTER (len=path_length) :: vacuum_file_name
 !>  Array of external currents
          REAL (rprec), DIMENSION(:), POINTER  :: extcur => null()
       END TYPE
@@ -606,12 +606,12 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vacuum_class), INTENT(in)      :: this
-      INTEGER, INTENT(in)                  :: current_step
+      TYPE (vacuum_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: current_step
 
 !  local variables
-      CHARACTER (len=data_filename_length) :: filename
-      REAL (rprec)                         :: start_time
+      CHARACTER (len=path_length)     :: filename
+      REAL (rprec)                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

@@ -8,6 +8,7 @@
 !>  This modules contains parameters used by equilibrium models.
 !*******************************************************************************
       MODULE data_parameters
+      USE file_opts, only: path_length
 
       IMPLICIT NONE
 
@@ -18,9 +19,6 @@
       INTEGER, PARAMETER           :: data_short_name_length = 30
 !>  Maximum length of data strings.
       INTEGER, PARAMETER           :: data_name_length = 80
-!>  Maximum length of file name. This needs to be large to accommodate the
-!>  path to the file as well.
-      INTEGER, PARAMETER           :: data_filename_length = 300
 
 !>  Default parameter id specifiying no id.
 !>  @see model
@@ -63,8 +61,8 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_filename_length) :: filename_base
-      CHARACTER (len=*), INTENT(in)        :: filename
+      CHARACTER (len=path_length)   :: filename_base
+      CHARACTER (len=*), INTENT(in) :: filename
 
 !  Start of executable code
       IF ((filename(1:4) .eq. 'v3fi') .and.                                    &

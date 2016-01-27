@@ -81,7 +81,6 @@
 !>  @returns A pointer to a constructed @ref emission_class object.
 !-------------------------------------------------------------------------------
       FUNCTION emission_construct_netcdf(filename)
-      USE data_parameters
       USE ezcdf
       USE v3_utilities
 
@@ -89,13 +88,13 @@
 
 !  Declare Arguments
       TYPE (emission_class), POINTER :: emission_construct_netcdf
-      CHARACTER (len=data_name_length), INTENT(in) :: filename
+      CHARACTER (len=*), INTENT(in)  :: filename
 
 !  local variables
-      REAL (rprec)                                 :: start_time
-      INTEGER                                      :: iou
-      INTEGER                                      :: status
-      INTEGER, DIMENSION(2)                        :: dim_lengths
+      REAL (rprec)                   :: start_time
+      INTEGER                        :: iou
+      INTEGER                        :: status
+      INTEGER, DIMENSION(2)          :: dim_lengths
 
 !  Start of executable code
       start_time = profiler_get_start_time()

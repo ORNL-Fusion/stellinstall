@@ -94,7 +94,7 @@
 !
 !*******************************************************************************
 !>  File name for vacuum namelist input.
-      CHARACTER (len=data_filename_length) :: coils_dot_file = ''
+      CHARACTER (len=path_length) :: coils_dot_file = ''
 
 !>  Number of external currents.
       INTEGER                                      :: n_extcur = 0
