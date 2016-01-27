@@ -574,12 +574,6 @@
             CALL runvmec(ictrl_array, file_name, .false., eq_comm)
          END IF
 
-         vmec_construct%ns_index = MAXLOC(ns_array, 1)
-         IF (eq_rank .eq. 0) THEN
-            CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
-     &                     recon_comm, error)
-         END IF
-
 !  If the mgrid file in a relative path copy it to the sub directories. This
 !  allows the sub directories to read the mgrid file.
          IF (.not.is_absolute_path(mgrid_file)) THEN
@@ -589,6 +583,12 @@
      &                        build_path(process_dir(i), mgrid_path),          &
      &                        error)
             END DO
+         END IF
+
+         vmec_construct%ns_index = MAXLOC(ns_array, 1)
+         IF (eq_rank .eq. 0) THEN
+            CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
+     &                     recon_comm, error)
          END IF
       ELSE
          IF (eq_rank .eq. 0) THEN
