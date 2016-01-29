@@ -475,7 +475,7 @@
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
-      USE vmec_input, only: l_v3fit, ns_array, mgrid_file
+      USE vmec_input, only: l_v3fit, ns_array, mgrid_file, lfreeb
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
 
@@ -576,7 +576,7 @@
 
 !  If the mgrid file in a relative path copy it to the sub directories. This
 !  allows the sub directories to read the mgrid file.
-         IF (.not.is_absolute_path(mgrid_file)) THEN
+         IF (lfreeb .and. .not.is_absolute_path(mgrid_file)) THEN
             mgrid_path = get_path_of_file(mgrid_file)
             DO i = 2, recon_size
                CALL copy_file(mgrid_file,                                      &
@@ -3814,6 +3814,10 @@
       INTEGER                            :: eq_rank
       REAL (rprec)                       :: start_time
 
+!  local parameters
+      REAL (rprec), PARAMETER            :: delt_factor = 2.0
+      INTEGER, PARAMETER                 :: niter_factor = 4
+
 !  Start of executable code
       start_time = profiler_get_start_time()
 
@@ -3873,10 +3877,10 @@
                IF (recovery_index .le. 2) THEN
                   IF (eq_rank .eq. 0) THEN
                      WRITE (*,1000) 'jac75_flag'
-                     WRITE (*,1001) 'delt', delt, delt/2.0
+                     WRITE (*,1001) 'delt', delt, delt/delt_factor
                      WRITE (iou,1000) 'jac75_flag'
-                     WRITE (iou,1001) 'delt', delt, delt/2.0
-                     delt = delt/2.0
+                     WRITE (iou,1001) 'delt', delt, delt/delt_factor
+                     delt = delt/delt_factor
                   END IF
                ELSE
                   EXIT
@@ -3884,19 +3888,22 @@
 
             CASE (more_iter_flag)
 
-!  Restore the context to the state it was before runvmec was called.
+!  Restore the context to the state it was before runvmec was called. Disable
+!  this on the inital convergence. Since the niter and niter_array variables in
+!  the VMEC namelist input don't change, this has no effect on the initial
+!  equilibrium convergence as a consequence of seting the restart_flag.
                CALL vmec_context_set_context(temp_context)
 
-               IF (recovery_index .le. 2) THEN
+               IF (recovery_index .le. 2 .and. num_iter .gt. 1) THEN
                   IF (eq_rank .eq. 0) THEN
                      WRITE (*,1000) 'more_iter_flag'
                      WRITE (*,1002) 'niter', niter_local,                      &
-     &                              niter_local + niter
+     &                              niter_local + niter/niter_factor
                      WRITE (iou,1000) 'more_iter_flag'
                      WRITE (iou,1002) 'niter', niter_local,                    &
-     &                                niter_local + niter
+     &                                niter_local + niter/niter_factor
                   END IF
-                  niter_local = niter_local + niter
+                  niter_local = niter_local + niter/niter_factor
                ELSE
                   EXIT
                END IF

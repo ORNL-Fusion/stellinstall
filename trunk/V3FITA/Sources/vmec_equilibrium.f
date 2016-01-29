@@ -2933,6 +2933,7 @@
 
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec), DIMENSION(3)             :: r_cyl_rot
       REAL (rprec)                           :: v_norm
       INTEGER                                :: i_low, i_high
       INTEGER                                :: j_low, j_high
@@ -2944,22 +2945,25 @@
       REAL (rprec)                           :: wrl, wrh
       REAL (rprec)                           :: wphil, wphih
       REAL (rprec)                           :: wzl, wzh
+      REAL (rprec)                           :: s_temp
+      INTEGER                                :: status
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       r_cyl = cart_to_cyl(x_cart)
+      r_cyl_rot = r_cyl
+      r_cyl_rot(2) = r_cyl(2) + this%phi_offset
+      r_cyl_rot(3) = r_cyl(3) - this%z_offset
 
       vmec_get_B_vec = 0.0
-      IF (vmec_get_s(this, x_cart) .le. 1.0) THEN
-         r_cyl(2) = r_cyl(2) + this%phi_offset
-         r_cyl(3) = r_cyl(3) - this%z_offset
+      s_temp = 0.0
+      CALL GetBcyl_WOUT(r_cyl_rot(1), r_cyl_rot(2), r_cyl_rot(3),              &
+     &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
+     &                  vmec_get_B_vec(3), sflx=s_temp, info=status)
 
-         CALL GetBcyl_WOUT(r_cyl(1), r_cyl(2), r_cyl(3),                       &
-     &                     vmec_get_B_vec(1), vmec_get_B_vec(2),               &
-     &                     vmec_get_B_vec(3))
-      ELSE IF (lfreeb) THEN
+      IF (lfreeb .and. (s_temp .gt. 0.0 .or. status .eq. -3)) THEN
          IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
             STOP 'Radial point outside vacuum grid.'
          END IF
@@ -4042,6 +4046,10 @@
       TYPE (vmec_context_class), POINTER :: temp_context => null()
       REAL (rprec)                       :: start_time
 
+!  local parameters
+      REAL (rprec), PARAMETER            :: delt_factor = 2.0
+      INTEGER, PARAMETER                 :: niter_factor = 4
+
 !  Start of executable code
       start_time = profiler_get_start_time()
 
@@ -4093,10 +4101,10 @@
 
                IF (recovery_index .le. 2) THEN
                   WRITE (*,1000) 'jac75_flag'
-                  WRITE (*,1001) 'delt', delt, delt/2.0
+                  WRITE (*,1001) 'delt', delt, delt/delt_factor
                   WRITE (iou,1000) 'jac75_flag'
-                  WRITE (iou,1001) 'delt', delt, delt/2.0
-                  delt = delt/2.0
+                  WRITE (iou,1001) 'delt', delt, delt/delt_factor
+                  delt = delt/delt_factor
                ELSE
                   EXIT
                END IF
@@ -4109,12 +4117,12 @@
             IF (recovery_index .le. 2) THEN
                WRITE (*,1000) 'more_iter_flag'
                WRITE (*,1002) 'niter', niter_local,                            &
-     &                        niter_local + niter
+     &                        niter_local + niter/niter_factor
                WRITE (iou,1000) 'more_iter_flag'
                WRITE (iou,1002) 'niter', niter_local,                          &
-     &                          niter_local + niter
+     &                          niter_local + niter/niter_factor
 
-               niter_local = niter_local + niter
+               niter_local = niter_local + niter/niter_factor
             ELSE
                EXIT
             END IF
