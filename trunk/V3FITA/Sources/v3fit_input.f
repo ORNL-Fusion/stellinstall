@@ -208,6 +208,7 @@
 !>  @table_section{geometric_sec, Geometric information}
 !>     @item{r_major_radius,    For circular torus geometric,                       v3fit_input::r_major_radius}
 !>     @item{a_minor_radius,    For circular torus geometric,                       v3fit_input::a_minor_radius}
+!>     @item{limiter_grid_file, File to load the limiter grid functions,            v3fit_input::limiter_grid_file}
 !>     @table_subsection{lif_sec, Limiter_Iso Function.
 !>                                First dimension of arrays is dimensioned na_lif}
 !>        @item{n_lif,          number of limiter_iso functions,                    v3fit_input::n_lif}
@@ -872,6 +873,9 @@
 !>  Geometric limiter minor radius.
       REAL (rprec) :: a_minor_radius
 
+!>  Limiter grid netcdf file.
+      CHARACTER (len=data_filename_length) :: limiter_grid_file = ''
+
 !  Limiter iso function specification.
 !>  Number of specified limiter iso functions.
       INTEGER                                       :: n_lif = 0
@@ -1030,7 +1034,7 @@
 !  Magnetic signal specification
      &   mag_spec_imin, mag_spec_imax, mag_spec_use_induced,                   &
 !  Geometric information
-     &   r_major_radius, a_minor_radius,                                       &
+     &   r_major_radius, a_minor_radius, limiter_grid_file,                    &
 !  Limiter iso function specification.
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 &
      &   lif_phi_degree, lif_on_edge,                                          &

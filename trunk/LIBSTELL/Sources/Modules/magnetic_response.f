@@ -23,7 +23,7 @@
 !  FIXME Check if this is true. The versioning should probably be handeled
 !  internally here.
 
-!  Currnet version -------------------------------------------------------------
+!  Current version -------------------------------------------------------------
 !>  Version for the MDSIG files. This version adds the point diagnostics.
       CHARACTER (len=*), PARAMETER ::                                          &
      &   magnetic_response_current = 'MRC 2015-04-27'

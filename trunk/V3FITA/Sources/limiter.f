@@ -16,6 +16,7 @@
 
       USE stel_kinds, only: rprec, dp
       USE limiter_iso_T
+      USE limiter_grid
 
       IMPLICIT NONE
 !*******************************************************************************
@@ -45,12 +46,13 @@
 !>  * @ref limiter_no_type
 !>  * @ref limiter_iso_type
 !>  * @ref limiter_polygon_type
-         INTEGER                     :: type = limiter_no_type
+         INTEGER                            :: type = limiter_no_type
 !>  If true, the reconstruction tries to place the edge on the limiter.
 !>  Otherwise, the plasma edge is kept inside the limiter.
-         LOGICAL                     :: on_edge = .false.
+         LOGICAL                            :: on_edge = .false.
 !>  Iso surface function discribing the limiter. Not use for polygon limiters.
-         TYPE (limiter_iso), POINTER :: iso => null()
+         TYPE (limiter_iso),       POINTER  :: iso => null()
+         TYPE (limiter_grid_class), POINTER :: grid => null()
       END TYPE limiter_class
 
 !*******************************************************************************
@@ -116,20 +118,22 @@
 !>
 !>  Allocates memory and initializes a @ref limiter_class object.
 !>
-!>  @param[in] on_edge     Specifies if the edge should touch the limiter or
-!>                         not. If true, the reconstruction tries to have the
-!>                         limiter touch the limiter. If false, the edge will
-!>                         only just fall inside the limiter.
+!>  @param[in] grid    Grid of limiter contours.
+!>  @param[in] on_edge Specifies if the edge should touch the limiter or not. If
+!>                     true, the reconstruction tries to have the limiter touch
+!>                     the limiter. If false, the edge will only just fall
+!>                     inside the limiter.
 !>  @returns A pointer to a constructed @ref limiter_class object.
 !>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_construct_polygon(on_edge)
+      FUNCTION limiter_construct_polygon(grid, on_edge)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_class), POINTER :: limiter_construct_polygon
-      LOGICAL, POINTER              :: on_edge
+      TYPE (limiter_class), POINTER      :: limiter_construct_polygon
+      TYPE (limiter_grid_class), POINTER :: grid
+      LOGICAL, INTENT(in)                :: on_edge
 
 !  local variables
       REAL (rprec)                  :: start_time
@@ -139,8 +143,10 @@
 
       ALLOCATE(limiter_construct_polygon)
 
-      limiter_construct_polygon%type = limiter_iso_type
+      limiter_construct_polygon%type = limiter_polygon_type
       limiter_construct_polygon%on_edge = on_edge
+
+      limiter_construct_polygon%grid => grid
 
       CALL profiler_set_stop_time('limiter_construct_polygon',                 &
      &                            start_time)
@@ -181,6 +187,10 @@
             limiter_construct_mpi%iso =>                                       &
      &         limiter_iso_construct(intra_comm)
 
+         CASE (limiter_polygon_type)
+            limiter_construct_mpi%grid =>                                      &
+     &         limiter_grid_construct(intra_comm)
+
       END SELECT
 
 #endif
@@ -210,6 +220,11 @@
          this%iso => null()
       END IF
 
+      IF (ASSOCIATED(this%grid)) THEN
+         CALL limiter_grid_destruct(this%grid)
+         this%grid => null()
+      END IF
+
       this%type = limiter_no_type
       this%on_edge = .false.
 
@@ -232,7 +247,6 @@
 !>                        sigma value of @ref limiter_get_modeled_iso_signal.
 !>  @returns If the limiter type is defined by an iso function, return the value
 !>           of @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
-!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -380,6 +394,9 @@
          CASE (limiter_iso_type)
             CALL limiter_iso_sync_children(this%iso, intra_comm)
 
+         CASE (limiter_polygon_type)
+            CALL limiter_grid_sync_children(this%grid, intra_comm)
+
       END SELECT
 
       CALL profiler_set_stop_time('limiter_sync_children', start_time)
@@ -394,7 +411,7 @@
 !>  @brief Calculates the modeled signal from an iso function.
 !>
 !>  If @ref limiter_class::on_edge or the plasma edge extends beyond the
-!>  limiter, returns the R, Phi and Z posiiton of the maximum of the iso
+!>  limiter, returns the R, Phi and Z position of the maximum of the iso
 !>  function value. Otherwise returns zero.
 !>  @par
 !>  The R and Z positions for a fixed toroidal plane are retrived from the the
@@ -404,9 +421,8 @@
 !>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   Returns the value of modeled sigma.
 !>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
-!>  the limiter, returns the R, Phi and Z posiiton of the maximum of the iso
+!>  the limiter, returns the R, Phi and Z position of the maximum of the iso
 !>  function value. Otherwise returns zero.
-!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_iso_signal(this, a_model, sigma)
       USE model
@@ -420,13 +436,13 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
-      INTEGER                                :: phi_index, theta_index
-      INTEGER                                :: num_theta
+      INTEGER                                 :: phi_index, theta_index
+      INTEGER                                 :: num_theta
 !  The r and z arrays will be allocated by the equilibrium.
-      REAL(rprec), DIMENSION(:), POINTER     :: r, z
-      REAL(rprec), DIMENSION(3)              :: rphiz_at_max
-      REAL(rprec)                            :: fval_max, fval
-      REAL (rprec)                           :: start_time
+      REAL(rprec), DIMENSION(:), POINTER      :: r, z
+      REAL(rprec), DIMENSION(3)               :: rphiz_at_max
+      REAL(rprec)                             :: fval_max, fval
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -482,6 +498,128 @@
       sigma = 0.0
 
       CALL profiler_set_stop_time('limiter_get_modeled_iso_signal',            &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Calculates the modeled signal from an iso grid.
+!>
+!>  If @ref limiter_class::on_edge or the plasma edge extends beyond the
+!>  limiter, returns the R, Phi and Z position of the maximum of the iso
+!>  grid value. Otherwise returns zero.
+!>  @par
+!>  The R and Z positions for a fixed toroidal plane are retrived from the the
+!>  @ref equilibrium method @ref equilibrium_get_plasma_edge
+!>
+!>  @param[in]    this    A @ref limiter_class instance.
+!>  @param[inout] a_model A @ref model instance.
+!>  @param[out]   sigma   Returns the value of modeled sigma.
+!>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
+!>  the limiter, returns the R, Phi and Z position of the maximum of the iso
+!>  grid value. Otherwise returns zero.
+!-------------------------------------------------------------------------------
+      FUNCTION limiter_get_modeled_polygon_signal(this, a_model, sigma)
+      USE model
+      USE bivariate
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: limiter_get_modeled_polygon_signal
+      TYPE (limiter_class), INTENT(in)        :: this
+      TYPE (model_class), INTENT(inout)       :: a_model
+      REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+
+!  local variables
+      TYPE (bivariate_type), POINTER          :: bivariate_object
+      INTEGER                                 :: phi_index, index
+      INTEGER                                 :: num_theta
+!  The r and z arrays will be allocated by the equilibrium.
+      REAL (rprec), DIMENSION(:), POINTER     :: r, z
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: rgrid, zgrid
+      REAL (rprec), DIMENSION(:), ALLOCATABLE :: fval
+      INTEGER                                 :: num_r, num_z
+      REAL (rprec), DIMENSION(3)              :: rphiz_at_max
+      REAL(rprec)                             :: fval_max
+      REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      r => null()
+      z => null()
+
+      num_r = limiter_grid_get_num_r(this%grid)
+      num_z = limiter_grid_get_num_z(this%grid)
+
+      ALLOCATE(rgrid(num_r))
+      DO index = 1, num_r
+         rgrid(phi_index) = (phi_index - 1)*this%grid%dr + this%grid%r0
+      END DO
+
+      ALLOCATE(zgrid(num_z))
+      DO index = 1, num_z
+         rgrid(phi_index) = (phi_index - 1)*this%grid%dz + this%grid%z0
+      END DO
+
+!  Get the r and z axis for the limiter grid.
+
+
+      limiter_get_modeled_polygon_signal = 0.0
+      rphiz_at_max = 0.0
+      fval_max = -1.0E10
+
+!  Loop over each phi plane. r, z are allocated by equilibrium_get_plasma_edge.
+!  There is no need to allocate and deallocate r and z for each phi angle.
+      DO phi_index = 1, SIZE(this%grid%phi)
+         num_theta =                                                           &
+     &      equilibrium_get_plasma_edge(a_model%equilibrium,                   &
+     &                                  this%grid%phi(phi_index),              &
+     &                                  r, z)
+
+         ALLOCATE(fval(num_theta))
+         bivariate_object => bivariate_construct(1, num_theta)
+
+         CALL bivariate_set_grids(bivariate_object, r, z, rgrid, zgrid)
+         CALL bivariate_get_4pt(bivariate_object,                              &
+     &                          this%grid%grid(:,:,phi_index), fval)
+
+!  Find the largest distance away from the
+         index = MAXLOC(fval, 1)
+         IF (fval(index) .gt. fval_max) THEN
+            fval_max = fval(index)
+            rphiz_at_max = (/ r(index), this%grid%phi(phi_index),              &
+     &                        z(index) /)
+         END IF
+
+         CALL bivariate_destruct(bivariate_object)
+         DEALLOCATE(fval)
+      END DO
+
+      IF (this%on_edge) THEN
+         limiter_get_modeled_polygon_signal(1) = fval_max
+      ELSE
+         limiter_get_modeled_polygon_signal(1) = MAX(fval_max, 0.0)
+      END IF
+      limiter_get_modeled_polygon_signal(2:4) = rphiz_at_max
+
+!  Dealloctae r and z since they are no longer needed.
+      IF (ASSOCIATED(r)) THEN
+         DEALLOCATE(r)
+      END IF
+      IF (ASSOCIATED(z)) THEN
+         DEALLOCATE(z)
+      END IF
+      r => null()
+      z => null()
+
+      DEALLOCATE(rgrid)
+      DEALLOCATE(zgrid)
+
+      sigma = 0.0
+
+      CALL profiler_set_stop_time('limiter_get_modeled_polygon_signal',        &
      &                            start_time)
 
       END FUNCTION

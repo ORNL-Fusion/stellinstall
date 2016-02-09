@@ -104,7 +104,7 @@ else ()
 	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
 endif ()
 
-# List all the subdirectories these are in library dependancy order.
+# List all the subdirectories these are in library dependency order.
 add_subdirectory (LIBSTELL)
 add_subdirectory (VMEC2000)
 add_subdirectory (V3FITA)
