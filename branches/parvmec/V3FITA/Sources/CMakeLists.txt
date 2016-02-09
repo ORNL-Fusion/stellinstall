@@ -7,6 +7,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/intpol.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ipch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter.f
+	${CMAKE_CURRENT_SOURCE_DIR}/limiter_grid.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_iso_T.f
 	${CMAKE_CURRENT_SOURCE_DIR}/magnetic.f
 	${CMAKE_CURRENT_SOURCE_DIR}/mse.f

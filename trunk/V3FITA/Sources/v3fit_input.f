@@ -28,6 +28,7 @@
 !>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
 !>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_ratio_dot_sec.,         v3fit_input::mse_dot_filename}
 !>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
+!>        @item{limiter_grid_file,        File to load the limiter grid functions.,                                                                                   v3fit_input::limiter_grid_file}
 !>  @end_table
 !>
 !>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
@@ -208,7 +209,6 @@
 !>  @table_section{geometric_sec, Geometric information}
 !>     @item{r_major_radius,    For circular torus geometric,                       v3fit_input::r_major_radius}
 !>     @item{a_minor_radius,    For circular torus geometric,                       v3fit_input::a_minor_radius}
-!>     @item{limiter_grid_file, File to load the limiter grid functions,            v3fit_input::limiter_grid_file}
 !>     @table_subsection{lif_sec, Limiter_Iso Function.
 !>                                First dimension of arrays is dimensioned na_lif}
 !>        @item{n_lif,          number of limiter_iso functions,                    v3fit_input::n_lif}
@@ -580,6 +580,8 @@
 !>  File holding soft x-ray ratio information
       CHARACTER (len=data_filename_length) ::                                  &
      &   sxrem_ratio_dot_filename = ''
+!>  Limiter grid netcdf file.
+      CHARACTER (len=data_filename_length) :: limiter_grid_file = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.
 !>  Maximum number of signals to create.
@@ -873,9 +875,6 @@
 !>  Geometric limiter minor radius.
       REAL (rprec) :: a_minor_radius
 
-!>  Limiter grid netcdf file.
-      CHARACTER (len=data_filename_length) :: limiter_grid_file = ''
-
 !  Limiter iso function specification.
 !>  Number of specified limiter iso functions.
       INTEGER                                       :: n_lif = 0
@@ -987,6 +986,7 @@
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename, mse_dot_filename, sxrem_ratio_dot_filename,        &
+     &   limiter_grid_file,                                                    &
 !  Array allocation sizes
      &   na_s_desc,                                                            &
 !  Task specification and work variables
@@ -1034,7 +1034,7 @@
 !  Magnetic signal specification
      &   mag_spec_imin, mag_spec_imax, mag_spec_use_induced,                   &
 !  Geometric information
-     &   r_major_radius, a_minor_radius, limiter_grid_file,                    &
+     &   r_major_radius, a_minor_radius,                                       &
 !  Limiter iso function specification.
      &   n_lif, n_phi_lif, lif_arz, lif_rc, lif_zc, lif_sigma,                 &
      &   lif_phi_degree, lif_on_edge,                                          &

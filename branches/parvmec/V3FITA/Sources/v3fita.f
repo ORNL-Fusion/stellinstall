@@ -1428,6 +1428,29 @@
 
       END DO
 
+!  Add grid limiters to the end.
+      IF (limiter_grid_file .ne. '') THEN
+         s_name = TRIM(signal_make_short_name('edge_lim_', i))
+         WRITE (l_name,'(a,i4)') 'edge limiter polygon ', i
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      geometric_construct(                                               &
+     &         limiter_construct(                                              &
+     &            limiter_grid_construct(limiter_grid_file),                   &
+     &                                   lif_on_edge(n_lif + 1))),             &
+     &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
+
+         signals_created = signals_created + 1
+
+!  At lease one limiter signal was made. Mark the index of it in the context.
+!  This should only be run once.
+         IF (context%limiter_index .eq. -1) THEN
+            context%limiter_index = signals_created
+         END IF
+
+      END IF
+
       CALL profiler_set_stop_time('init_geometric_signals', start_time)
 
       END SUBROUTINE

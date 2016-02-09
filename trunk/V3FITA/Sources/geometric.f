@@ -25,8 +25,6 @@
       INTEGER, PARAMETER :: geometric_no_type      = -1
 !>  Type descriptor for the @ref geometric_class subclass @ref limiter
       INTEGER, PARAMETER :: geometric_limiter_type = 0
-!>  Type descriptor for the @ref geometric_class subclass @ref limiter
-      INTEGER, PARAMETER :: geometric_limiter_grid_type = 1
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS

@@ -48,7 +48,23 @@
 !>  Upper right interpolation weight.
          REAL(rprec), DIMENSION(:), POINTER :: w22_bi => null()
       END TYPE
-     
+
+*******************************************************************************
+!  INTERFACE BLOCKS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref limiter_class types either using
+!>  @ref limiter_construct_iso, @ref limiter_construct_polygon or
+!>  @ref limiter_construct_mpi
+!>
+!>  @note
+!>  @ref limiter_construct_polygon has not been implemented yet.
+!-------------------------------------------------------------------------------
+      INTERFACE bivariate_set_grids
+         MODULE PROCEDURE bivariate_set_grids_1d,                              &
+     &                    bivariate_set_grids_2d
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -173,7 +189,7 @@
 !>  @param[in]    rgrid R coordinate on a fixed, equally spaced grid
 !>  @param[in]    zgrid Z coordinate on a fixed, equally spaced grid
 !-------------------------------------------------------------------------------
-      SUBROUTINE bivariate_set_grids(this, rsu, zsu, rgrid, zgrid)
+      SUBROUTINE bivariate_set_grids_2d(this, rsu, zsu, rgrid, zgrid)
 
       IMPLICIT NONE
 
@@ -256,7 +272,104 @@
          END DO
       END DO
 
-      CALL profiler_set_stop_time('bivariate_set_grids', start_time)
+      CALL profiler_set_stop_time('bivariate_set_grids_2d', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set up the interpolation grid for a phi plane.
+!>
+!>  Compute the indices (ir_bi, jz_bi) and weight factors (wij_bi) for
+!>  performing bivariate (4 pt) interpolation FROM a rectangular (R X Z) grid TO
+!>  a general (non-orthogonal) grid (s, u). R and Z grids may have different
+!>  mesh sizes.
+!>
+!>  @param[inout] this  A @ref bivariate_type instance.
+!>  @param[in]    rsu   r coordinate at s,u
+!>  @param[in]    zsu   z coordinate at s,u
+!>  @param[in]    rgrid R coordinate on a fixed, equally spaced grid
+!>  @param[in]    zgrid Z coordinate on a fixed, equally spaced grid
+!-------------------------------------------------------------------------------
+      SUBROUTINE bivariate_set_grids_1d(this, rsu, zsu, rgrid, zgrid)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (bivariate_type), INTENT(inout)  :: this
+      REAL(rprec), DIMENSION(:), INTENT(in) :: rsu
+      REAL(rprec), DIMENSION(:), INTENT(in) :: zsu
+      REAL(rprec), DIMENSION(:), INTENT(in) :: rgrid
+      REAL(rprec), DIMENSION(:), INTENT(in) :: zgrid
+
+!  local variables
+      INTEGER                               :: ku
+      INTEGER                               :: ns, nu
+      INTEGER                               :: index1d
+      INTEGER                               :: ir, jz
+      INTEGER                               :: ir1, jz1
+      REAL(rprec)                           :: rad0, zee0
+      REAL(rprec)                           :: ri, zj
+      REAL(rprec)                           :: pr, qz
+      REAL(rprec)                           :: temp
+      REAL(rprec)                           :: delr, delz
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%nrgrid = SIZE(rgrid, 1)
+      this%nzgrid = SIZE(zgrid, 1)
+      ns = 1
+      nu = SIZE(rsu)
+
+      delr = rgrid(2) - rgrid(1)
+      delz = zgrid(2) - zgrid(1)
+
+      index1d = 0
+
+      DO ku = 1, nu
+         index1d = index1d + 1
+!
+!       CHECK THAT BOUNDARY POINTS ARE INSIDE GRID.  IF NOT, STOP!
+!
+         rad0 = rsu(ku)
+         zee0 = zsu(ku)
+
+         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(this%nrgrid) .or.
+     &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(this%nzgrid)) THEN
+            STOP 'Plasma point outside response function grid!'
+         END IF
+!
+!       DETERMINE INTEGER INDICES (IR,JZ) FOR LOWER LEFT R, Z CORNER GRID POINT
+!
+         ir = INT((rad0 - rgrid(1))/delr) + 1
+         jz = INT((zee0 - zgrid(1))/delz) + 1
+         ir1 = MIN(this%nrgrid, ir + 1)
+         jz1 = MIN(this%nzgrid, jz + 1)
+
+!
+!        STORE INDICES IN 1D ARRAYS
+!
+         this%irz11_bi(index1d) = ir  + this%nrgrid*(jz - 1)
+         this%irz22_bi(index1d) = ir1 + this%nrgrid*(jz1 - 1)
+         this%irz12_bi(index1d) = ir  + this%nrgrid*(jz1 - 1)
+         this%irz21_bi(index1d) = ir1 + this%nrgrid*(jz - 1)
+!
+!       COMPUTE RI, ZJ AND PR , QZ AT GRID POINT (IR , JZ)
+!       ALSO, COMPUTE WEIGHTS WIJ FOR 4 CORNER GRID POINTS
+!
+         ri = rgrid(ir)
+         zj = zgrid(jz)
+         pr = (rad0 - ri)/delr
+         qz = (zee0 - zj)/delz
+         temp = pr*qz
+         this%w22_bi(index1d) = temp                   !p*q
+         this%w21_bi(index1d) = pr - temp              !p*(1-q)
+         this%w12_bi(index1d) = qz - temp              !q*(1-p)
+         this%w11_bi(index1d) = 1 + temp - (pr + qz)   !(1-p)*(1-q)
+      END DO
+
+      CALL profiler_set_stop_time('bivariate_set_grids_2d', start_time)
 
       END SUBROUTINE
 

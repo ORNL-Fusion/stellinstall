@@ -50,8 +50,9 @@
 !>  If true, the reconstruction tries to place the edge on the limiter.
 !>  Otherwise, the plasma edge is kept inside the limiter.
          LOGICAL                            :: on_edge = .false.
-!>  Iso surface function discribing the limiter. Not use for polygon limiters.
+!>  Iso surface function discribing the limiter. Not used for polygon limiters.
          TYPE (limiter_iso),       POINTER  :: iso => null()
+!>  Grid function discribing the limiter. Not used for iso limiters.
          TYPE (limiter_grid_class), POINTER :: grid => null()
       END TYPE limiter_class
 
@@ -272,8 +273,8 @@
      &         limiter_get_modeled_iso_signal(this, a_model, sigma)
 
          CASE (limiter_polygon_type)
-            limiter_get_modeled_signal = 0.0
-            sigma = 0.0
+            limiter_get_modeled_signal =                                       &
+     &         limiter_get_modeled_polygon_signal(this, a_model, sigma)
 
       END SELECT
 
@@ -550,21 +551,19 @@
       r => null()
       z => null()
 
+!  Get the r and z axis for the limiter grid.
       num_r = limiter_grid_get_num_r(this%grid)
       num_z = limiter_grid_get_num_z(this%grid)
 
       ALLOCATE(rgrid(num_r))
       DO index = 1, num_r
-         rgrid(phi_index) = (phi_index - 1)*this%grid%dr + this%grid%r0
+         rgrid(index) = (index - 1)*this%grid%dr + this%grid%r0
       END DO
 
       ALLOCATE(zgrid(num_z))
       DO index = 1, num_z
-         rgrid(phi_index) = (phi_index - 1)*this%grid%dz + this%grid%z0
+         zgrid(index) = (index - 1)*this%grid%dz + this%grid%z0
       END DO
-
-!  Get the r and z axis for the limiter grid.
-
 
       limiter_get_modeled_polygon_signal = 0.0
       rphiz_at_max = 0.0

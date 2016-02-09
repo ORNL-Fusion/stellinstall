@@ -28,6 +28,7 @@
 !>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
 !>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_ratio_dot_sec.,         v3fit_input::mse_dot_filename}
 !>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
+!>        @item{limiter_grid_file,        File to load the limiter grid functions.,                                                                                   v3fit_input::limiter_grid_file}
 !>  @end_table
 !>
 !>  @table_section{size_sec, Array allocation sizes\, numbers to allocate}
@@ -578,6 +579,8 @@
       CHARACTER (len=path_length) :: mse_dot_filename = ''
 !>  File holding soft x-ray ratio information
       CHARACTER (len=path_length) :: sxrem_ratio_dot_filename = ''
+!>  Limiter grid netcdf file.
+      CHARACTER (len=path_length) :: limiter_grid_file = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.
 !>  Maximum number of signals to create.
@@ -982,6 +985,7 @@
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename, mse_dot_filename, sxrem_ratio_dot_filename,        &
+     &   limiter_grid_file,                                                    &
 !  Array allocation sizes
      &   na_s_desc,                                                            &
 !  Task specification and work variables

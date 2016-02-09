@@ -109,9 +109,9 @@
       CALL assert_eq(0, status, 'limiter_grid_construct_netcdf: ' //           &
      &               'failed to open ', TRIM(lgrid_file))
 
-      CALL cdf_read(lgrid_iou, nc_dr, limiter_grid_construct_netcdf%r0)
+      CALL cdf_read(lgrid_iou, nc_r0, limiter_grid_construct_netcdf%r0)
       CALL cdf_read(lgrid_iou, nc_dr, limiter_grid_construct_netcdf%dr)
-      CALL cdf_read(lgrid_iou, nc_dz, limiter_grid_construct_netcdf%z0)
+      CALL cdf_read(lgrid_iou, nc_z0, limiter_grid_construct_netcdf%z0)
       CALL cdf_read(lgrid_iou, nc_dz, limiter_grid_construct_netcdf%dz)
 
       CALL cdf_inquire(lgrid_iou, nc_phi_angles, dim_lengths)
@@ -120,15 +120,15 @@
      &              limiter_grid_construct_netcdf%phi)
 
       CALL cdf_inquire(lgrid_iou, nc_iso_grids, dim_lengths)
-      ALLOCATE(limiter_grid_construct_netcdf%grid(dim_lengths(1),         &
-     &                                                 dim_lengths(2),         &
-     &                                                 dim_lengths(3)))
-      CALL cdf_read(lgrid_iou, nc_phi_angles,                                  &
+      ALLOCATE(limiter_grid_construct_netcdf%grid(dim_lengths(1),              &
+     &                                            dim_lengths(2),              &
+     &                                            dim_lengths(3)))
+      CALL cdf_read(lgrid_iou, nc_iso_grids,                                   &
      &              limiter_grid_construct_netcdf%grid)
 
       CALL cdf_close(lgrid_iou)
 
-      CALL profiler_set_stop_time('limiter_iso_construct_new',                 &
+      CALL profiler_set_stop_time('limiter_grid_construct_netcdf',             &
      &                            start_time)
 
       END FUNCTION
