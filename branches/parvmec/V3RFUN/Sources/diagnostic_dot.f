@@ -102,6 +102,8 @@
 !>                                               current enclosed.}
 !>  @item2{@fixed_width{f_rogowski},             Same as a @fixed_width{rogowski} but with
 !>                                               measuing flux in Webers.}
+!>  @item2{@fixed_width{s_rogowski},             A rogowski refined by a series of segments connected
+!>                                               in series to represent a single measurement.
 !>  @item2{@fixed_width{b_point_probe},          Point measurement of the magnetic field in
 !>                                               tesla.\n\n
 !>                                               Lines after ID:\n
@@ -278,6 +280,11 @@
      &            diagnostic_dot_parse_filaments(iou, line, line_number,       &
      &                                           .true., 'Wb')
                new_coil%d_type = 'f_rogowski'
+
+            CASE ('s_rogowski')
+               new_coil => diagnostic_dot_parse_s_rogowski(iou, line,          &
+     &                                                     line_number)
+               new_coil%d_type = 's_rogowski'
 
             CASE ('b_point_probe')
                 new_coil =>                                                    &
@@ -508,7 +515,7 @@
 !>  @param[in]    iou         File handle of diagnostic dot file.
 !>  @param[out]   line        On exit contains the current line of the file.
 !>  @param[inout] line_number The current line number of the file.
-!>  @param[out]   status      THe result of the read attempt.
+!>  @param[out]   status      The result of the read attempt.
 !>  @returns A real.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_dot_parse_node(iou, line, line_number, status)
@@ -537,6 +544,135 @@
      &                            start_time)
 
 1000  FORMAT(a)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Parse a node with sensitivity.
+!>
+!>  Reads a single node and from the diagnostic dot file. Node may be arbitrary
+!>  in length. Leave error handling up to the caller. The node contains a
+!>  sensisitivity value for the calibration as well.
+!>
+!>  @param[in]    iou         File handle of diagnostic dot file.
+!>  @param[out]   line        On exit contains the current line of the file.
+!>  @param[inout] line_number The current line number of the file.
+!>  @param[out]   status      The result of the read attempt.
+!>  @returns A real.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_dot_parse_node4(iou, line, line_number,              &
+     &                                    status)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(4) :: diagnostic_dot_parse_node4
+      INTEGER                                             :: iou
+      CHARACTER (len=diagnostic_dot_line_len), INTENT(out) :: line
+      INTEGER, INTENT(inout)                              :: line_number
+      INTEGER, INTENT(out)                                :: status
+
+!  local variables
+      REAL (rprec)                                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      status = 0
+      READ (iou,1000,iostat=status) line
+      line_number = line_number + 1
+      READ (line,*,iostat=status) diagnostic_dot_parse_node4
+
+      CALL profiler_set_stop_time('diagnostic_dot_parse_node4',                &
+     &                            start_time)
+
+1000  FORMAT(a)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Parse coils defined by filaments connected in series.
+!>
+!>  Parses a diagnostic rogowski defined as a collection of partial rogowskis
+!>  connected in series.
+!>
+!>  @param[in]    iou         File handle of diagnostic dot file.
+!>  @param[out]   line        On exit contains the current line of the file.
+!>  @param[inout] line_number The current line number of the file.
+!>  @returns A constructed @ref diagnostic_dot_coil instance.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_dot_parse_s_rogowski(iou, line, line_number)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (diagnostic_dot_coil), POINTER ::                                   &
+     &   diagnostic_dot_parse_s_rogowski
+      INTEGER                                :: iou
+      CHARACTER (len=diagnostic_dot_line_len), INTENT(out) :: line
+      INTEGER, INTENT(inout)                 :: line_number
+
+!  local variables
+      REAL (rprec), DIMENSION(:,:), POINTER  :: coil
+      REAL (rprec), DIMENSION(:,:), POINTER  :: coil_temp
+      REAL (rprec), DIMENSION(4)             :: node
+      INTEGER                                :: num_coil
+      CHARACTER (len=diagnostic_dot_id_name) :: id_name
+      INTEGER                                :: status
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+! Start with 8 coil nodes. The nodes will get reallocated as the coil fills up.
+      ALLOCATE(coil(4,8))
+      num_coil = 0
+      coil_temp => null()
+
+!  Read the id name.
+      id_name = diagnostic_dot_parse_name(iou, line, line_number,              &
+     &             'diagnostic_dot_parse_s_rogowski')
+
+      status = 0
+      DO WHILE(status .eq. 0)
+         node = diagnostic_dot_parse_node4(iou, line, line_number,             &
+     &                                     status)
+
+         IF (status .eq. 0) THEN
+!  If the coil array is full, double it's size in a new array and copy all the
+!  data. Delete the coil array and point it to the new array.
+            IF (num_coil + 1 .gt. SIZE(coil, 2)) THEN
+               ALLOCATE(coil_temp(4,2*SIZE(coil, 2)))
+               coil_temp(:,1:SIZE(coil, 2)) = coil
+               DEALLOCATE(coil)
+               coil => coil_temp
+               coil_temp => null()
+            END IF
+
+            num_coil = num_coil + 1
+            coil(:,num_coil) = node
+         END IF
+
+      END DO
+
+      ALLOCATE(diagnostic_dot_parse_s_rogowski)
+!  Construct the coil.
+      ALLOCATE(diagnostic_dot_parse_s_rogowski)
+      ALLOCATE(diagnostic_dot_parse_s_rogowski%coil)
+      diagnostic_dot_parse_s_rogowski%next => null()
+      diagnostic_dot_parse_s_rogowski%units = TRIM('wb')
+      diagnostic_dot_parse_s_rogowski%id_name = id_name
+
+      CALL bsc_construct(diagnostic_dot_parse_s_rogowski%coil,                 &
+     &                   'fil_rogo_s', TRIM(id_name), '', 1.0_dp,              &
+     &                   coil(1:3,1:num_coil),                                 &
+     &                   sen=coil(4,1:num_coil - 1))
+      diagnostic_dot_parse_s_rogowski%factor = 1.0
+
+      DEALLOCATE(coil)
+
+      CALL profiler_set_stop_time('diagnostic_dot_parse_s_rogowski',           &
+     &                            start_time)
 
       END FUNCTION
 

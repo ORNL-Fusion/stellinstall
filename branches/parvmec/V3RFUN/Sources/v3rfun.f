@@ -110,7 +110,7 @@
 
             CASE ('flux_loop', 'flux_loop_circular', 'magnetic_probe',         &
      &            'magnetic_probe_tokamak', 'b_rogowski', 'i_rogowski',        &
-     &            'f_rogowski')
+     &            'f_rogowski','s_rogowski')
                CALL v3rfun_context_write_mrf(context, head, id_num)
 
             CASE ('b_point_probe')
