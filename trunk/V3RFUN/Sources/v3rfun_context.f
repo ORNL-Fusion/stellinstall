@@ -565,7 +565,7 @@
 
 !  Coil Response ---------------------------------------------------------------
       IF (l_read_coils_dot) THEN
-         DO i = 1, SIZE(coil_group)
+         DO i = 1, 1!SIZE(coil_group)
             CALL bsc_fluxba(coil_group(i), d_coil%coil,                        &
      &                      len_integrate_ddc, this%rdiag(i))
          END DO
