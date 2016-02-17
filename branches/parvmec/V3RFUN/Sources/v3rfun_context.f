@@ -565,9 +565,16 @@
 
 !  Coil Response ---------------------------------------------------------------
       IF (l_read_coils_dot) THEN
-         DO i = 1, 1!SIZE(coil_group)
-            CALL bsc_fluxba(coil_group(i), d_coil%coil,                        &
-     &                      len_integrate_ddc, this%rdiag(i))
+         DO i = 1, SIZE(coil_group)
+!  Supper conducting coils are steady state and will not induce a signal in
+!  integrated magnetic diagnostics. For those coils set the mutual inductance to
+!  zero.
+            IF (.not.is_super_con(i)) THEN
+               CALL bsc_fluxba(coil_group(i), d_coil%coil,                     &
+     &                         len_integrate_ddc, this%rdiag(i))
+            ELSE
+               this%rdiag(i) = 0.0
+            END IF
          END DO
 
          this%rdiag = this%rdiag*d_coil%factor

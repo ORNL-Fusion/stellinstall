@@ -118,7 +118,8 @@ then
               -DCMAKE_Fortran_COMPILER=gfortran     \
               -DNETCDF_INC_PATH=/usr/local/include/ \
               -DNETCDF_LIB_PATH=/usr/local/lib      \
-              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
+	      -DUSE_PARVMEC=ON
 
 elif [ $MACHINE_ID == "swim.ornl.gov" ]
 then

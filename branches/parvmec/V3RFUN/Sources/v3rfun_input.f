@@ -28,6 +28,12 @@
 !>    @item{len_integrate_ddc, Integration length in meters.,                          v3rfun_input::len_integrate_ddc}
 !>  @end_table
 !>
+!>  @table_section{v3rfun_super_sec, Super Conducting Coils}
+!>    @item{is_super_con, Flags a coil as a super conductor. Super conducting
+!>                        are steady state so integated magnetic won't pick
+!>                        up an induced signal.,                              v3rfun_input::is_super_con}
+!>  @end_table
+!>
 !>  @table_section{v3rfun_grid_sec, Response Grid Variables}
 !>    @item{ir,                  Number of radial grid points.,         v3rfun_input::ir}
 !>    @item{jz,                  Number of vertical grid points.,       v3rfun_input::jz}
@@ -166,6 +172,9 @@
 !>  Integration length in meters.
       REAL (rprec) :: len_integrate_ddc = 0.001
 
+!>  Tag super conducting coils.
+      LOGICAL, DIMENSION(nigroup) :: is_super_con = .false.
+
 !>  Vector to shift all the coils before rotation.
       REAL (rprec), DIMENSION(nigroup,3) :: cg_shift_1 = 0.0
 !>  Vector to shift all the coils after rotation.
@@ -191,6 +200,8 @@
      &   name_coils_dot, name_diagnostic_dot, idrfun,                          &
 !  Control parameters
      &   lstell_sym, l_read_coils_dot, use_con_shell,                          &
+!  Super conductors
+     &   is_super_con,                                                         &
 !  Grid sizes
      &   rmin, rmax, zmin, zmax, major_radius, minor_radius,                   &
      &   ir, jz, kp, kp_shell, n_field_periods_nli, len_integrate_ddc,         &
