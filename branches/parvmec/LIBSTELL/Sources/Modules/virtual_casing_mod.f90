@@ -86,13 +86,16 @@
 !                    flux correctly calculated despite A discrepancy.
 !                    9/10/14 - SAL
 !                    Fixed local deallocations.
+!                    12/17/15 - SAL
+!                    Changed INTEGER to INTEGER(KIND=8) for gfortran and nag
+!                    Change deffinitino of norm_nag to remove factor of nfp
 !-----------------------------------------------------------------------
       MODULE virtual_casing_mod
 !-----------------------------------------------------------------------
 !     Libraries
 !-----------------------------------------------------------------------
-      USE ezspline_obj
-      USE ezspline
+      USE EZspline_obj
+      USE EZspline
 !-----------------------------------------------------------------------
 !     Module Variables
 !-----------------------------------------------------------------------
@@ -108,6 +111,7 @@
       DOUBLE PRECISION, ALLOCATABLE    :: btopx(:),btopy(:),btopz(:),btops(:)
       DOUBLE PRECISION, ALLOCATABLE    :: jx_3d(:), jy_3d(:),jz_3d(:)
       DOUBLE PRECISION, PARAMETER      :: pi2 = 6.283185482025146D+00
+!      INTEGER, PARAMETER               :: IWRK = 67108864 ! 2^26
       INTEGER, PARAMETER               :: IWRK = 16777216 ! 2^24
       CHARACTER(LEN=256)               :: vc_type_str=''
       DOUBLE PRECISION, PRIVATE, PARAMETER      :: zero = 0.0D+0
@@ -233,7 +237,7 @@
       nvp = nv * nfp
       nuvp = nu * nv * nfp
       norm = one/(2*pi2*nuvp)
-      norm_nag = nfp/(pi2*2)
+      norm_nag = one/(pi2*2) 
       vc_type_str='Surface Current'
       ! Alloocations
       ALLOCATE(xu(1:nu),xv(1:nv))
@@ -933,11 +937,11 @@
       INTEGER, INTENT(inout) :: istat
       ! LOCAL VARIABLES
       LOGICAL            :: adapt_rerun
-      INTEGER, PARAMETER :: ndim_nag = 2 ! theta,zeta
-      INTEGER, PARAMETER :: nfun_nag = 3 ! Bx, By, Bz
+      INTEGER(KIND=8), PARAMETER :: ndim_nag = 2 ! theta,zeta
+      INTEGER(KIND=8), PARAMETER :: nfun_nag = 3 ! Bx, By, Bz
       !INTEGER, PARAMETER :: lenwrk_nag = 6*ndim_nag+9*nfun_nag+(ndim_nag+nfun_nag+2)*(1+1)
-      INTEGER, PARAMETER :: lenwrk_nag = IWRK
-      INTEGER :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
+      INTEGER(KIND=8), PARAMETER :: lenwrk_nag = IWRK
+      INTEGER(KIND=8) :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
       !DOUBLE PRECISION :: gf(1:nuvp), gf3(1:nuvp)
       DOUBLE PRECISION :: absreq_nag, relreq_nag
       DOUBLE PRECISION :: wrkstr_nag(lenwrk_nag)
@@ -983,6 +987,11 @@
             maxcls_nag = maxcls_nag*10
             mincls_nag = -1
             restar = 1
+            WRITE(6,*) '!!!!!  WARNING Could not reach desired tollerance  !!!!!'
+            WRITE(6,*) '  BX = ',finest_nag(1),' +/- ',absest_nag(1)
+            WRITE(6,*) '  BY = ',finest_nag(2),' +/- ',absest_nag(2)
+            WRITE(6,*) '  BZ = ',finest_nag(3),' +/- ',absest_nag(3)
+            WRITE(6,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
          ELSE IF (mincls_nag <= 32) THEN
             mincls_nag = 64
             restar = 1
@@ -1155,11 +1164,11 @@
       INTEGER, INTENT(inout) :: istat
       ! LOCAL VARIABLES
       LOGICAL            :: adapt_rerun
-      INTEGER, PARAMETER :: ndim_nag = 2 ! theta,zeta
-      INTEGER, PARAMETER :: nfun_nag = 3 ! Bx, By, Bz
+      INTEGER(KIND=8), PARAMETER :: ndim_nag = 2 ! theta,zeta
+      INTEGER(KIND=8), PARAMETER :: nfun_nag = 3 ! Bx, By, Bz
       !INTEGER, PARAMETER :: lenwrk_nag = 6*ndim_nag+9*nfun_nag+(ndim_nag+nfun_nag+2)*(1+1)
-      INTEGER, PARAMETER :: lenwrk_nag = IWRK
-      INTEGER :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
+      INTEGER(KIND=8), PARAMETER :: lenwrk_nag = IWRK
+      INTEGER(KIND=8) :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
       !DOUBLE PRECISION ::  gf(1:nuvp), gf3(1:nuvp)
       DOUBLE PRECISION :: absreq_nag, relreq_nag
       DOUBLE PRECISION :: wrkstr_nag(lenwrk_nag)
@@ -1203,6 +1212,11 @@
             maxcls_nag = maxcls_nag*10
             mincls_nag = -1
             restar = 1
+            WRITE(6,*) '!!!!!  WARNING Could not reach desired tollerance  !!!!!'
+            WRITE(6,*) '  AX = ',finest_nag(1),' +/- ',absest_nag(1)
+            WRITE(6,*) '  AY = ',finest_nag(2),' +/- ',absest_nag(2)
+            WRITE(6,*) '  AZ = ',finest_nag(3),' +/- ',absest_nag(3)
+            WRITE(6,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
          ELSE IF (mincls_nag <= 32) THEN
             mincls_nag = 64
             restar = 1
@@ -1224,7 +1238,7 @@
             wrklen = ((IWRK-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
             ALLOCATE(vrtwrk(wrklen),STAT=istat)
             IF (istat .ne. 0) THEN
-               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) ' ALLOCATION ERROR IN: vecpot_virtual_casing_adapt_dbl'
                WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
                WRITE(6,*) '   ISTAT: ',istat
                RETURN
@@ -1232,7 +1246,7 @@
          END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_a,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
-         DEALLOCATE(vrtwrk)
+         !DEALLOCATE(vrtwrk)
          IF (istat == 1) THEN
             maxcls_nag = maxcls_nag*10
             mincls_nag = -1
@@ -1330,7 +1344,11 @@
       ! LOCAL VARIABLES
       ! BEGIN SUBROUTINE
       WRITE(iunit,'(A)')                     '----- Virtual Casing Information -----'
-      WRITE(iunit,'(A,A)')                   '   INTEGRAL TYPE: ',TRIM(vc_type_str)
+#ifdef NAG 
+      WRITE(iunit,'(A,A,A)')                   '   INTEGRAL TYPE: ',TRIM(vc_type_str),' (NAG) '
+#else
+      WRITE(iunit,'(A,A,A)')                   '   INTEGRAL TYPE: ',TRIM(vc_type_str),' (DCUHRE) '
+#endif
       WRITE(iunit,'(A,ES11.4)')              '   MIN_GRID_DISTANCE = ',min_delta_x
       WRITE(iunit,'(A,ES11.4)')              '   NORMAL_AREA = ',surf_area
       WRITE(iunit,'(A,I4,A,I4,A,I4,A,I3)')   '   NR = ',nr_vc,';   NU = ',nu_vc,';  NV = ',nv_vc,';  NFP = ',nvp/nv_vc
@@ -1720,9 +1738,9 @@
       DOUBLE PRECISION ::  gf(nuvp*nr_vc)
       ! BEGIN SUBROUTINE
       gf = one/dsqrt((x-xsurf)**2 + (y-ysurf)**2 + (z-zsurf)**2)
-      ax  = norm_3d*SUM(jx_3d*gf)
-      ay  = norm_3d*SUM(jy_3d*gf)
-      az  = norm_3d*SUM(jz_3d*gf)
+      ax  = norm_3d*SUM(jx_3d*gf)/nuvp
+      ay  = norm_3d*SUM(jy_3d*gf)/nuvp
+      az  = norm_3d*SUM(jz_3d*gf)/nuvp
       RETURN
       ! END SUBROUTINE
       END SUBROUTINE vecpot_volint_dbl
@@ -1740,9 +1758,9 @@
       ! BEGIN SUBROUTINE
       gf = one/dsqrt((x-xsurf)**2 + (y-ysurf)**2 + (z-zsurf)**2)
       gf3  = gf*gf*gf
-      bx  = norm_3d*SUM((jy_3d*(z-zsurf)-jz_3d*(y-ysurf))*gf3)
-      by  = norm_3d*SUM((jz_3d*(x-xsurf)-jx_3d*(z-zsurf))*gf3)
-      bz  = norm_3d*SUM((jx_3d*(y-ysurf)-jy_3d*(x-xsurf))*gf3)
+      bx  = norm_3d*SUM((jy_3d*(z-zsurf)-jz_3d*(y-ysurf))*gf3)/nuvp
+      by  = norm_3d*SUM((jz_3d*(x-xsurf)-jx_3d*(z-zsurf))*gf3)/nuvp
+      bz  = norm_3d*SUM((jx_3d*(y-ysurf)-jy_3d*(x-xsurf))*gf3)/nuvp
       RETURN
       ! END SUBROUTINE
       END SUBROUTINE bfield_volint_dbl
@@ -1758,10 +1776,10 @@
       INTEGER, INTENT(inout) :: istat
       ! LOCAL VARIABLES
       LOGICAL            :: adapt_rerun
-      INTEGER, PARAMETER :: ndim_nag = 3 ! theta,zeta,ns
-      INTEGER, PARAMETER :: nfun_nag = 3 ! Ax, Ay, Az
-      INTEGER, PARAMETER :: lenwrk_nag = IWRK
-      INTEGER :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
+      INTEGER(KIND=8), PARAMETER :: ndim_nag = 3 ! theta,zeta,ns
+      INTEGER(KIND=8), PARAMETER :: nfun_nag = 3 ! Ax, Ay, Az
+      INTEGER(KIND=8), PARAMETER :: lenwrk_nag = IWRK
+      INTEGER(KIND=8) :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
       DOUBLE PRECISION :: absreq_nag, relreq_nag
       DOUBLE PRECISION :: wrkstr_nag(lenwrk_nag)
       DOUBLE PRECISION :: a_nag(ndim_nag), b_nag(ndim_nag), &
@@ -1805,6 +1823,11 @@
             maxcls_nag = maxcls_nag*10
             mincls_nag = -1
             restar = 1
+            WRITE(6,*) '!!!!!  WARNING Could not reach desired tollerance  !!!!!'
+            WRITE(6,*) '  AX = ',finest_nag(1),' +/- ',absest_nag(1)
+            WRITE(6,*) '  AY = ',finest_nag(2),' +/- ',absest_nag(2)
+            WRITE(6,*) '  AZ = ',finest_nag(3),' +/- ',absest_nag(3)
+            WRITE(6,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
          ELSE IF (istat < 0) THEN
             ax = zero
             ay = zero
@@ -1822,7 +1845,7 @@
             wrklen = ((IWRK-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
             ALLOCATE(vrtwrk(wrklen),STAT=istat)
             IF (istat .ne. 0) THEN
-               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) ' ALLOCATION ERROR IN: vecpot_volint_adapt_dbl'
                WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
                WRITE(6,*) '   ISTAT: ',istat
                RETURN
@@ -1830,7 +1853,7 @@
          END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_a3d,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
-         DEALLOCATE(vrtwrk)
+         !DEALLOCATE(vrtwrk)
          IF (istat == 1) THEN
             maxcls_nag = maxcls_nag*10
             mincls_nag = -1
@@ -1997,10 +2020,10 @@
       INTEGER, INTENT(inout) :: istat
       ! LOCAL VARIABLES
       LOGICAL            :: adapt_rerun
-      INTEGER, PARAMETER :: ndim_nag = 3 ! theta,zeta,s
-      INTEGER, PARAMETER :: nfun_nag = 3 ! Bx, By, Bz
-      INTEGER, PARAMETER :: lenwrk_nag = IWRK
-      INTEGER :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
+      INTEGER(KIND=8), PARAMETER :: ndim_nag = 3 ! theta,zeta,s
+      INTEGER(KIND=8), PARAMETER :: nfun_nag = 3 ! Bx, By, Bz
+      INTEGER(KIND=8), PARAMETER :: lenwrk_nag = IWRK
+      INTEGER(KIND=8) :: maxcls_nag,mincls_nag, subs, restar, wrklen, rulcls, wrksbs, n, m, funcls
       DOUBLE PRECISION :: absreq_nag, relreq_nag
       DOUBLE PRECISION :: wrkstr_nag(lenwrk_nag)
       DOUBLE PRECISION :: a_nag(ndim_nag), b_nag(ndim_nag), &
@@ -2044,6 +2067,11 @@
             maxcls_nag = maxcls_nag*10
             mincls_nag = -1
             restar = 1
+            WRITE(6,*) '!!!!!  WARNING Could not reach desired tollerance  !!!!!'
+            WRITE(6,*) '  BX = ',finest_nag(1),' +/- ',absest_nag(1)
+            WRITE(6,*) '  BY = ',finest_nag(2),' +/- ',absest_nag(2)
+            WRITE(6,*) '  BZ = ',finest_nag(3),' +/- ',absest_nag(3)
+            WRITE(6,*) '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
          ELSE IF (istat < 0) THEN
             bx = zero
             by = zero
@@ -2061,7 +2089,7 @@
             wrklen = ((IWRK-ndim_nag)/(2*ndim_nag) + 1)*(2*ndim_nag+2*nfun_nag+2) + 17*nfun_nag + 256
             ALLOCATE(vrtwrk(wrklen),STAT=istat)
             IF (istat .ne. 0) THEN
-               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_virtual_casing_adapt_dbl'
+               WRITE(6,*) ' ALLOCATION ERROR IN: bfield_volint_adapt_dbl'
                WRITE(6,*) '   VARIABLE: VRTWRK, SIZE: ',wrklen
                WRITE(6,*) '   ISTAT: ',istat
                RETURN
@@ -2069,7 +2097,7 @@
          END IF
          CALL dcuhre(ndim_nag,nfun_nag,a_nag,b_nag,mincls_nag,maxcls_nag,funsub_nag_b3d,absreq_nag,&
                      relreq_nag,0,wrklen,restar,finest_nag,absest_nag,funcls,istat,vrtwrk)
-         DEALLOCATE(vrtwrk)
+         !DEALLOCATE(vrtwrk)
          IF (istat == 1) THEN
             maxcls_nag = maxcls_nag*10
             mincls_nag = funcls

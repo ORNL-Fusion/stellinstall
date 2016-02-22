@@ -191,7 +191,7 @@
 
       raxis_cs(0) = 0;  zaxis_cs(0) = 0
 
-      IF(max_main_iterations .gt. 1) lmoreiter=.true.  !J Geiger: if more iterations are requested.
+      IF(max_main_iterations .GT. 1) lmoreiter=.true.  !J Geiger: if more iterations are requested.
 
       END SUBROUTINE read_indata_namelist
 

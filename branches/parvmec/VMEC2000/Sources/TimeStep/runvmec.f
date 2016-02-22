@@ -125,7 +125,7 @@ C-----------------------------------------------
         CALL Serial2Parallel4X(xc,pxc)
         CALL Serial2Parallel4X(xcdot,pxcdot)
         CALL Serial2Parallel4X(xstore,pxstore)
-        CALL InitRunVmec(COMM_WORLD)
+        CALL InitRunVmec(COMM_WORLD,lfreeb)
         IF (RUNVMEC_PASS.GT.1) THEN
           CALL second0(bcastton)
           CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
@@ -218,8 +218,8 @@ C-----------------------------------------------
         readin_time = readin_time + (skstoff-skston)
 
         max_grid_size = ns_array(multi_ns_grid)
-        IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3,
-     1              max_grid_size)
+!        IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3,
+!     1              max_grid_size)
 #endif
         IF (ier_flag .ne. 0) GOTO 1000
 !
@@ -234,6 +234,9 @@ C-----------------------------------------------
         fixarray_time = fixarray_time + (skstoff-skston)
 #endif
       END IF
+
+      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3,
+     1              max_grid_size)
 
       IF (lreset) THEN
 !
@@ -468,7 +471,7 @@ C-----------------------------------------------
 #endif      
       ENDIF
 #if defined(SKS)
-      IF(LV3FITCALL) CALL FinalizeRunVmec(COMM_WORLD)
+      IF(LV3FITCALL) CALL FinalizeRunVmec(RUNVMEC_COMM_WORLD)
       CALL second0(rvtoff)
       runvmec_time = runvmec_time + (rvtoff - rvton)
 #endif

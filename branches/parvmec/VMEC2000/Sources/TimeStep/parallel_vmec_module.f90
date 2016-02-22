@@ -39,6 +39,7 @@ MODULE parallel_vmec_module
   LOGICAL :: THOMAS=.FALSE.
   LOGICAL :: BCYCLIC=.FALSE.
   LOGICAL :: LV3FITCALL=.FALSE.
+  LOGICAL :: LIFFREEB=.FALSE.
 
   LOGICAL :: lactive=.FALSE.
   LOGICAL :: vlactive=.FALSE.
@@ -141,11 +142,13 @@ CONTAINS
   !--------------------------------------------------------------------------
 
   !--------------------------------------------------------------------------
-  SUBROUTINE InitRunVmec(INCOMM)
+  SUBROUTINE InitRunVmec(INCOMM, LVALUE)
     IMPLICIT NONE
     INTEGER, INTENT(IN)  :: INCOMM
+    LOGICAL, INTENT(IN)  :: LVALUE
 
     NS_RESLTN = 0
+    LIFFREEB = LVALUE
     CALL MPI_Comm_dup(INCOMM,RUNVMEC_COMM_WORLD,MPI_ERR)
     CALL MPI_Comm_rank(RUNVMEC_COMM_WORLD,grank,MPI_ERR) 
     CALL MPI_Comm_size(RUNVMEC_COMM_WORLD,gnranks,MPI_ERR) 
@@ -393,7 +396,8 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(IN)  :: INCOMM
 
-    !CALL MPI_Comm_free(INCOMM,MPI_ERR)
+    CALL MPI_Comm_free(INCOMM,MPI_ERR)
+    IF(LIFFREEB) CALL MPI_Comm_free(VAC_COMM,MPI_ERR)
 
   END SUBROUTINE FinalizeRunVmec
   !--------------------------------------------------------------------------

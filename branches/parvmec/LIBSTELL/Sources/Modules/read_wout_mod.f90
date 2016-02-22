@@ -65,7 +65,7 @@
         vn_mass = 'mass', vn_presh = 'pres', vn_betah = 'beta_vol',     &
         vn_buco = 'buco', vn_bvco = 'bvco', vn_vp = 'vp',               &
         vn_specw = 'specw', vn_phip = 'phips', vn_jdotb = 'jdotb',      &
-        vn_overr = 'over_r',                                            &
+        vn_bdotb = 'bdotb', vn_overr = 'over_r',                        &
         vn_bgrv = 'bdotgradv', vn_merc = 'DMerc', vn_mshear = 'DShear', &
         vn_mwell = 'DWell', vn_mcurr = 'DCurr', vn_mgeo = 'DGeod',      &
         vn_equif = 'equif', vn_fsq = 'fsqt', vn_wdot = 'wdot',          &
@@ -153,6 +153,7 @@
         ln_specw = 'Spectral width half',                               &
         ln_phip = 'tor flux deriv over 2pi half',                       &
         ln_jdotb = 'J dot B', ln_bgrv = 'B dot grad v',                 &
+        ln_bdotb = 'B dot B',                                           &
         ln_merc = 'Mercier criterion', ln_mshear = 'Shear Mercier',     &
         ln_mwell = 'Well Mercier', ln_mcurr = 'Current Mercier',        &
         ln_mgeo = 'Geodesic Mercier', ln_equif='Average force balance', &
@@ -228,7 +229,7 @@
          iotas, iotaf, presf, phipf, mass, pres, beta_vol, xm, xn,      &
          potsin, potcos, xmpot, xnpot, qfact, chipf, phi, chi,          &
          xm_nyq, xn_nyq, phip, buco, bvco, vp, overr, jcuru, jcurv,     & 
-         specw, jdotb, bdotgradv, fsqt, wdot, am, ac, ai,               & 
+         specw, jdotb, bdotb, bdotgradv, fsqt, wdot, am, ac, ai,        & 
          am_aux_s, am_aux_f, ac_aux_s, ac_aux_f, ai_aux_s, ai_aux_f,    &
          Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, extcur,             &
          sknots, ystark, y2stark, pknots, ythom, y2thom,                &
@@ -446,7 +447,7 @@
         vp(ns), overr(ns), jcuru(ns), jcurv(ns), specw(ns), Dmerc(ns),  &
         Dshear(ns), Dwell(ns), Dcurr(ns), Dgeod(ns), equif(ns),         &
         extcur(nextcur), curlabel(nextcur), raxis(0:ntor,2),            &
-        zaxis(0:ntor,2), jdotb(ns), bdotgradv(ns),                      &
+        zaxis(0:ntor,2), jdotb(ns), bdotb(ns), bdotgradv(ns),           &
         am(0:20), ac(0:20),  ai(0:20),                                  &
         fsqt(nstore_seq), wdot(nstore_seq), stat = istat(6))
 
@@ -631,10 +632,10 @@
       IF ((version_.ge.6.20-eps_w) .and. (version_ .lt. (6.50-eps_w))   &
          .and. (istat(14).eq.0)) THEN  
          READ (iunit, 730, iostat=istat(14), err=1000)                  &
-           (jdotb(js), bdotgradv(js),js=1,ns)
+           (jdotb(js), bdotgradv(js), bdotb(js), js=1,ns)
       ELSE IF (version_ .ge. (6.50-eps_w)) THEN
          READ (iunit, *, iostat=istat(14), err=1000)                    &
-           (jdotb(js), bdotgradv(js),js=1,ns)
+           (jdotb(js), bdotgradv(js), bdotb(js), js=1,ns)
       ELSE
          istat(14) = 0
       END IF
@@ -949,6 +950,8 @@
 
       CALL cdf_inquire(nwout, vn_jdotb, dimlens)
       ALLOCATE (jdotb(dimlens(1)), stat = ierror)
+      CALL cdf_inquire(nwout, vn_bdotb, dimlens)
+      ALLOCATE (bdotb(dimlens(1)), stat = ierror)
       CALL cdf_inquire(nwout, vn_bgrv, dimlens)
       ALLOCATE (bdotgradv(dimlens(1)), stat = ierror)
 
@@ -1164,6 +1167,7 @@
       CALL cdf_read(nwout, vn_specw, specw)
       CALL cdf_read(nwout, vn_phip, phip)
       CALL cdf_read(nwout, vn_jdotb, jdotb)
+      CALL cdf_read(nwout, vn_bdotb, bdotb)
       CALL cdf_read(nwout, vn_bgrv, bdotgradv)
 
 !     MERCIER_CRITERION
