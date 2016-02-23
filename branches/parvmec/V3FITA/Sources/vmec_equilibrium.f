@@ -107,6 +107,10 @@
 !>     @item{jcuru,       Poloidal current density.,                       @ref read_wout_mod::jcuru}
 !>     @item{jcurv,       Toroidal current density.,                       @ref read_wout_mod::jcurv}
 !>     @item{jdotb,       Current density in direction of b field.,        @ref read_wout_mod::jdotb}
+!>     @item{raxis_cc,    Magnetic axis R cosine coeffiecents.,            @ref read_wout_mod::raxis}
+!>     @item{raxis_cs,    Magnetic axis R sine coeffiecents.,              @ref read_wout_mod::raxis}
+!>     @item{zaxis_cc,    Magnetic axis Z cosine coeffiecents.,            @ref read_wout_mod::zaxis}
+!>     @item{zaxis_cs,    Magnetic axis Z sine coeffiecents.,              @ref read_wout_mod::zaxis}
 !>  @end_table
 !*******************************************************************************
 !>  @file vmec_equilibrium.f
@@ -221,56 +225,64 @@
       INTEGER, PARAMETER :: vmec_iotaf_id       = 44
 !>  1D Array of half grid iotabar. Defined in read_wout_mod.
       INTEGER, PARAMETER :: vmec_iotas_id       = 45
+!>  1D Array of magnetic axis R cosine coeffiecents. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 46
+!>  1D Array of magnetic axis R sine coeffiecents. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 47
+!>  1D Array of magnetic axis Z cosine coeffiecents. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 48
+!>  1D Array of magnetic axis Z sine coeffiecents. Defined in read_wout_mod.
+      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 49
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 46
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 50
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 47
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 51
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 48
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 52
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 49
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 53
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 50
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 54
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 51
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 55
 !>  1D Array of function temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 52
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 56
 !>  1D Array of segment temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 53
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 57
 !>  1D Array of segment temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 54
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 58
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 55
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 59
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 56
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 60
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 57
+      INTEGER, PARAMETER :: vmec_betatot_id     = 61
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 58
+      INTEGER, PARAMETER :: vmec_betapol_id     = 62
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 59
+      INTEGER, PARAMETER :: vmec_betator_id     = 63
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 60
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 64
 !>  Poloidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcuru_id       = 61
+      INTEGER, PARAMETER :: vmec_jcuru_id       = 65
 !>  Toroidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcurv_id       = 62
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 66
 !>  Current density in direction of b field. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jdotb_id       = 63
+      INTEGER, PARAMETER :: vmec_jdotb_id       = 67
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 64
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 68
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 65
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 69
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
@@ -1920,6 +1932,18 @@
          CASE ('iotas')
             vmec_get_param_id = vmec_iotas_id
 
+         CASE ('raxis_cc')
+            vmec_get_param_id = vmec_raxis_cc_id
+
+         CASE ('raxis_cs')
+            vmec_get_param_id = vmec_raxis_cs_id
+
+         CASE ('zaxis_cc')
+            vmec_get_param_id = vmec_zaxis_cc_id
+
+         CASE ('zaxis_cs')
+            vmec_get_param_id = vmec_zaxis_cs_id
+
          CASE ('pp_ne_b')
             vmec_get_param_id = vmec_pp_ne_b_id
 
@@ -2017,7 +2041,7 @@
      &                         bsubsmnc, bsupumns, bsupvmns,                   &
      &                         phi, iotaf, iotas,                              &
      &                         betatot, betapol, betator, betaxis,             &
-     &                         jcuru, jcurv, jdotb
+     &                         jcuru, jcurv, jdotb, raxis, zaxis
       USE v3f_vmec_comm
 
       IMPLICIT NONE
@@ -2153,6 +2177,18 @@
 
          CASE (vmec_iotas_id)
             vmec_get_param_value = iotas(i_index)
+
+         CASE (vmec_raxis_cc_id)
+            vmec_get_param_value = raxis(i_index, 1)
+
+         CASE (vmec_raxis_cs_id)
+            vmec_get_param_value = raxis(i_index, 2)
+
+         CASE (vmec_zaxis_cc_id)
+            vmec_get_param_value = zaxis(i_index, 2)
+
+         CASE (vmec_zaxis_cs_id)
+            vmec_get_param_value = zaxis(i_index, 1)
 
          CASE (vmec_pp_ne_b_id)
             vmec_get_param_value = this%ne%b(i_index)
@@ -2365,6 +2401,18 @@
 
          CASE (vmec_iotas_id)
             vmec_get_param_name = 'iotas'
+
+         CASE (vmec_raxis_cc_id)
+            vmec_get_param_name = 'raxis_cc'
+
+         CASE (vmec_raxis_cs_id)
+            vmec_get_param_name = 'raxis_cs'
+
+         CASE (vmec_zaxis_cc_id)
+            vmec_get_param_name = 'zaxis_cc'
+
+         CASE (vmec_zaxis_cs_id)
+            vmec_get_param_name = 'zaxis_cs'
 
          CASE (vmec_pp_ne_b_id)
             vmec_get_param_name = 'pp_ne_b'
@@ -3666,7 +3714,8 @@
      &         vmec_pp_te_b_id, vmec_pp_te_as_id, vmec_pp_te_af_id,            &
      &         vmec_extcur_id, vmec_phi_id, vmec_iotaf_id,                     &
      &         vmec_iotas_id, vmec_jcuru_id, vmec_jcurv_id,                    &
-     &         vmec_jdotb_id)
+     &         vmec_jdotb_id, vmec_raxis_cc_id, vmec_raxis_cs_id,              &
+     &         vmec_zaxis_cc_id, vmec_zaxis_cs_id)
             vmec_is_1d_array = .true.
 
          CASE DEFAULT
