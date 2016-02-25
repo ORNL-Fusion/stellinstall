@@ -1425,9 +1425,7 @@
      &                         mnmax_nyq, rmnc, zmns, rmns, zmnc,              &
      &                         currumnc, currvmnc, currumns, currvmns,         &
      &                         bsubumnc, bsubumns, bsubvmnc, bsubvmns,         &
-     &                         nfp, ns, lwout_opened, lfreeb,                  &
-     &                         bsubumnc_sur, bsubumns_sur,                     &
-     &                         bsubvmnc_sur, bsubvmns_sur
+     &                         nfp, ns, lwout_opened, lfreeb
       USE stel_constants, only: mu0
       USE virtual_casing_mod
 
@@ -1640,44 +1638,34 @@
 
       IF (ASSOCIATED(this%magnetic_cache%kruv) .or.                            &
      &    ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
-
-         IF (lfreeb) THEN
-            bsubuc = bsubumnc_sur
-            bsubvc = bsubvmnc_sur
-            IF (lasym) THEN
-               bsubus = bsubumns_sur
-               bsubvs = bsubvmns_sur
-            END IF
-         ELSE
 !  Interpolate the b_u and b_v onto the last closed flux surface. This
 !  interpolation follows what is outlined in tosuvspace. For odd modes
 !  X ~ SQRT(s) so interpolate Xmn/SQRT(s)
-            woddlow = 0.5*SQRT((ns - 1.0)/(ns - 1.5))
-            woddhigh = 1.5*SQRT((ns - 1.0)/(ns - 2.5))
+         woddlow = 0.5*SQRT((ns - 1.0)/(ns - 1.5))
+         woddhigh = 1.5*SQRT((ns - 1.0)/(ns - 2.5))
 
-            ALLOCATE(bsubuc(mnmax_nyq), bsubvc(mnmax_nyq))
+         ALLOCATE(bsubuc(mnmax_nyq), bsubvc(mnmax_nyq))
+         WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
+            bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
+            bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
+         ELSE WHERE
+            bsubuc = woddhigh*bsubumnc(:,ns)                                   &
+     &             - woddlow*bsubumnc(:,ns - 1)
+            bsubvc = woddhigh*bsubvmnc(:,ns)                                   &
+     &             - woddlow*bsubvmnc(:,ns - 1)
+         END WHERE
+
+         IF (lasym) THEN
+            ALLOCATE(bsubus(mnmax_nyq), bsubvs(mnmax_nyq))
             WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
-               bsubuc = 1.5*bsubumnc(:,ns) - 0.5*bsubumnc(:,ns - 1)
-               bsubvc = 1.5*bsubvmnc(:,ns) - 0.5*bsubvmnc(:,ns - 1)
+               bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
+               bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
             ELSE WHERE
-               bsubuc = woddhigh*bsubumnc(:,ns)                                &
-     &                - woddlow*bsubumnc(:,ns - 1)
-               bsubvc = woddhigh*bsubvmnc(:,ns)                                &
-     &                - woddlow*bsubvmnc(:,ns - 1)
+               bsubus = woddhigh*bsubumns(:,ns)                                &
+     &                - woddlow*bsubumns(:,ns - 1)
+               bsubvs = woddhigh*bsubvmns(:,ns)                                &
+     &                - woddlow*bsubvmns(:,ns - 1)
             END WHERE
-
-            IF (lasym) THEN
-               ALLOCATE(bsubus(mnmax_nyq), bsubvs(mnmax_nyq))
-               WHERE (MOD(NINT(xm_nyq), 2) .eq. 0)
-                  bsubus = 1.5*bsubumns(:,ns) - 0.5*bsubumns(:,ns - 1)
-                  bsubvs = 1.5*bsubvmns(:,ns) - 0.5*bsubvmns(:,ns - 1)
-               ELSE WHERE
-                  bsubus = woddhigh*bsubumns(:,ns)                             &
-     &                   - woddlow*bsubumns(:,ns - 1)
-                  bsubvs = woddhigh*bsubvmns(:,ns)                             &
-     &                   - woddlow*bsubvmns(:,ns - 1)
-               END WHERE
-            END IF
          END IF
       END IF
 
