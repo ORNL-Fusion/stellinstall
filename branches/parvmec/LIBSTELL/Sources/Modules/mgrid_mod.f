@@ -9,6 +9,7 @@
       INTEGER, PARAMETER :: nlimset = 2       !number of different limiters
       CHARACTER(LEN=*), PARAMETER :: 
      1   vn_br0 = 'br', vn_bp0 = 'bp', vn_bz0 = 'bz',
+     2   vn_ar0 = 'ar', vn_ap0 = 'ap', vn_az0 = 'az',
      3   vn_ir = 'ir', vn_jz = 'jz',
      4   vn_kp = 'kp', vn_nfp = 'nfp',
      5   vn_rmin='rmin', vn_rmax='rmax', vn_zmin='zmin', 
