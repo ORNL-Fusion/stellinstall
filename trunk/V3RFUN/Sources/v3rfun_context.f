@@ -566,7 +566,7 @@
 !  Coil Response ---------------------------------------------------------------
       IF (l_read_coils_dot) THEN
          DO i = 1, SIZE(coil_group)
-!  Supper conducting coils are steady state and will not induce a signal in
+!  Super conducting coils are steady state and will not induce a signal in
 !  integrated magnetic diagnostics. For those coils set the mutual inductance to
 !  zero.
             IF (.not.is_super_con(i)) THEN

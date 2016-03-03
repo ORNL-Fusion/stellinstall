@@ -1929,8 +1929,8 @@
 !  Start of executable code
 
 !  Get array of positions at which to evaluate the vector potential
-!  Subroutine also allocates space to the pointers: positions, tangents, and
-!  avecs.
+!  Subroutine also allocates space to the pointers: positions, tangents, avecs
+!  and sens.
       CALL bsc_flux_pos(coil_b,len_integerate,positions,tangents,              &
      &   avecs,sens,npoints)
 
@@ -2106,6 +2106,7 @@
      &         rhohat
             tangents(1:3,i) = coil_b % rcirc * dphi * phihat
          END DO
+         sens = 1.0
       END SELECT
       
       END SUBROUTINE bsc_flux_pos      
