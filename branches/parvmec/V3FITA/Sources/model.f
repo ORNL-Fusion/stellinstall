@@ -148,6 +148,9 @@
          REAL (rprec), DIMENSION(:), POINTER :: sxrem_te => null()
 !>  Soft X-ray emissivity ratio.
          REAL (rprec), DIMENSION(:), POINTER :: sxrem_ratio => null()
+
+!>  ECE resonance range.
+         REAL (rprec) :: resonace_range
       END TYPE
 
 !*******************************************************************************
@@ -195,12 +198,14 @@
 !>  @param[in] equilibrium       An instance of an @ref equilibrium.
 !>  @param[in] sxrem_te          Soft x-ray ratio function te.
 !>  @param[in] sxrem_ratio       Soft x-ray ratio function ratio.
+!>  @param[in] resonace_range    ECE resonance interval.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION model_construct(ne_type, sxrem_type, te_type,               &
-     &                             ne_unit, ne_min, te_min,                    &
-     &                             pressure_fraction, emission,                &
-     &                             equilibrium, sxrem_te, sxrem_ratio)
+      FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
+     &                         ne_unit, ne_min, te_min,                        &
+     &                         pressure_fraction, emission,                    &
+     &                         equilibrium, sxrem_te, sxrem_ratio,             &
+     &                         resonace_range)
 
       IMPLICIT NONE
 
@@ -218,6 +223,7 @@
       TYPE (equilibrium_class), POINTER             :: equilibrium
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_te
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_ratio
+      REAL (rprec), INTENT(in)                      :: resonace_range
 
 !  local variables
       INTEGER                                       :: i, grid_size
@@ -331,6 +337,8 @@
          ALLOCATE(model_construct%sxrem_ratio(grid_size))
          model_construct%sxrem_ratio = sxrem_ratio(1:grid_size)
       END IF
+
+      model_construct%resonace_range = resonace_range
 
       CALL profiler_set_stop_time('model_construct', start_time)
 

@@ -20,6 +20,7 @@
       USE thomson
       USE extcurz
       USE mse
+      USE ece
 
       IMPLICIT NONE
 
@@ -40,6 +41,8 @@
       INTEGER, PARAMETER :: diagnostic_extcurz_type  = 4
 !>  Type descriptor for the @ref diagnostic_class subclass @ref mse
       INTEGER, PARAMETER :: diagnostic_mse_type      = 5
+!>  Type descriptor for the @ref diagnostic_class subclass @ref ece
+      INTEGER, PARAMETER :: diagnostic_ece_type      = 6
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -63,6 +66,7 @@
 !>  * @ref diagnostic_thomson_type
 !>  * @ref diagnostic_extcurz_type
 !>  * @ref diagnostic_mse_type
+!>  * @ref diagnostic_ece_type
          INTEGER                       :: type = diagnostic_no_type
 !>  An instance of a @ref magnetic object. 
          TYPE (magnetic_class), POINTER :: magnetic => null()
@@ -76,6 +80,8 @@
          TYPE (extcurz_class), POINTER  :: extcurz => null()
 !>  An instance of a @ref mse object.
          TYPE (mse_class), POINTER      :: mse => null()
+!>  An instance of a @ref mse object.
+         TYPE (ece_class), POINTER      :: ece => null()
       END TYPE diagnostic_class
 
 !*******************************************************************************
@@ -93,7 +99,8 @@
      &                    diagnostic_construct_intpol,                         &
      &                    diagnostic_construct_thomson,                        &
      &                    diagnostic_construct_extcurz,                        &
-     &                    diagnostic_construct_mse
+     &                    diagnostic_construct_mse,                            &
+     &                    diagnostic_construct_ece
       END INTERFACE
 
       CONTAINS
@@ -293,6 +300,38 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref diagnostic_class containing a @ref ece object.
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
+!>  @param[in] ece_object An instance of a @ref ece subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_ece(ece_object)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_ece
+      TYPE (ece_class), POINTER        :: ece_object
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(diagnostic_construct_ece)
+
+      diagnostic_construct_ece%type = diagnostic_ece_type
+      diagnostic_construct_ece%ece => ece_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_ece',                  &
+     &                            start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -341,6 +380,11 @@
          this%mse => null()
       END IF
 
+      IF (ASSOCIATED(this%ece)) THEN
+         CALL ece_destruct(this%ece)
+         this%ece => null()
+      END IF
+
       this%type = diagnostic_no_type
 
       DEALLOCATE(this)
@@ -363,6 +407,7 @@
 !>  @see thomson::thomson_get_modeled_signal
 !>  @see extcurz::extcurz_get_modeled_signal
 !>  @see mse::mse_get_modeled_signal
+!>  @see ece::ece_get_modeled_signal
 !>
 !>  @param[in]    this    A @ref diagnostic_class instance.
 !>  @param[inout] a_model A @ref model instance.
@@ -412,6 +457,10 @@
             diagnostic_get_modeled_signal =                                    &
      &         mse_get_modeled_signal(this%mse, a_model, sigma)
 
+         CASE (diagnostic_ece_type)
+            diagnostic_get_modeled_signal =                                    &
+     &         ece_get_modeled_signal(this%ece, a_model, sigma)
+
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_modeled_signal',             &
@@ -431,7 +480,8 @@
 !>  @see intpol::intpol_get_signal_type
 !>  @see thomson::thomson_get_signal_type
 !>  @see extcurz::extcurz_get_signal_type
-!>  @see extcurz::mse_get_signal_type
+!>  @see mse::mse_get_signal_type
+!>  @see ece::ece_get_signal_type
 !>
 !>  @param[in] this A @ref diagnostic_class instance.
 !>  @returns A string describing the diagnostic type.
@@ -477,6 +527,10 @@
             diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
      &         mse_get_signal_type(this%mse))
 
+         CASE (diagnostic_ece_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         ece_get_signal_type(this%ece))
+
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_signal_type',                &
@@ -519,6 +573,9 @@
 
          CASE (diagnostic_mse_type)
             diagnostic_get_header = mse_get_header(this%mse)
+
+         CASE (diagnostic_ece_type)
+            diagnostic_get_header = ece_get_header(this%ece)
 
          CASE DEFAULT
             diagnostic_get_header(1:3) = 'N/A'

@@ -21,6 +21,7 @@
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) sxrem base class
+!  2) sxrem context
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
@@ -61,13 +62,14 @@
 !>
 !>  Allocates memory and initializes a @ref sxrem_class object.
 !>
-!>  @param[in] start_path Starting point of a sxrem chord.
-!>  @param[in] end_path   Ending point of a sxrem chord.
-!>  @param[in] geo        Geometric factor of the chord.
+!>  @param[in] start_path     Starting point of a sxrem chord.
+!>  @param[in] end_path       Ending point of a sxrem chord.
+!>  @param[in] geo            Geometric factor of the chord.
+!>  @param[in] profile_number Index of the soft x-ray emissivity profile.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct(start_path, end_path, geo,                  &
-     &                             profile_number)
+      FUNCTION sxrem_construct(start_path, end_path, geo,                      &
+     &                         profile_number)
 
       IMPLICIT NONE
 
@@ -228,7 +230,7 @@
 !>  @param[in] context A @ref sxrem_context for the model.
 !>  @param[in] xcart   The integration point.
 !>  @param[in] dxcart  A vector change in path. Not used in this function.
-!>  @param[in] dx      Length along the integration.
+!>  @param[in] length  Length along the integration.
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The sxrem(x)*dl at point x.
 !>
