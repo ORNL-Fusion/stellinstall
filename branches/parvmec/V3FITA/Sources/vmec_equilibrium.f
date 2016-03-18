@@ -2801,7 +2801,7 @@
      &                  vmec_get_B_vec(1), vmec_get_B_vec(2),                  &
      &                  vmec_get_B_vec(3), sflx=s_temp, info=status)
 
-      IF (lfreeb .and. (s_temp .gt. 0.0 .or. status .eq. -3)) THEN
+      IF (lfreeb .and. (s_temp .gt. 1.0 .or. status .eq. -3)) THEN
          IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
             STOP 'Radial point outside vacuum grid.'
          END IF
