@@ -2495,7 +2495,7 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-      vmec_get_ne_cart = vmec_get_ne(this, vmec_get_s(this, x_cart))
+      vmec_get_ne_cart = vmec_get_ne(this, vmec_get_flux(this, x_cart))
 
       CALL profiler_set_stop_time('vmec_get_ne_cart', start_time)
 
@@ -2560,7 +2560,7 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-      vmec_get_te_cart = vmec_get_te(this, vmec_get_s(this, x_cart))
+      vmec_get_te_cart = vmec_get_te(this, vmec_get_flux(this, x_cart))
 
       CALL profiler_set_stop_time('vmec_get_te_cart', start_time)
 
@@ -2627,7 +2627,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
       vmec_get_sxrem_cart = vmec_get_sxrem(this,                               &
-     &                                     vmec_get_s(this, x_cart),           &
+     &                                     vmec_get_flux(this, x_cart),           &
      &                                     index)
 
       CALL profiler_set_stop_time('vmec_get_sxrem_cart', start_time)
@@ -2695,7 +2695,7 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-      vmec_get_p_cart = vmec_get_p(this, vmec_get_s(this, x_cart))
+      vmec_get_p_cart = vmec_get_p(this, vmec_get_flux(this, x_cart))
 
       CALL profiler_set_stop_time('vmec_get_p_cart', start_time)
 
@@ -2995,6 +2995,44 @@
       END IF
 
       CALL profiler_set_stop_time('vmec_get_s', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets VMEC normalized flux value at position.
+!>
+!>  Converts from cartesian coordinates to VMEC's flux coordinates.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the s position at.
+!>  @returns The normalized flux position at x_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_flux(this, x_cart)
+      USE vmec_input, only: lrfp
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_flux
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  external functions
+      REAL (rprec), EXTERNAL                 :: torflux
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      vmec_get_flux = vmec_get_s(this, x_cart)
+
+      IF (.not.lrfp) THEN
+         vmec_get_flux = torflux(vmec_get_flux)
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_flux', start_time)
 
       END FUNCTION
 

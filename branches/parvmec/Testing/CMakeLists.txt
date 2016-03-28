@@ -153,4 +153,16 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/multigrid_test/input.test.v3
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/multigrid_test/input.test.vmec
       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/multigrid_test)
 
+#  Copy common files to the aphi test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/aphi_test/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/aphi_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/sxrem.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/aphi_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/aphi_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/aphi_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/aphi_test/input.test.v3fit
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/aphi_test)
+
 add_subdirectory (tests)

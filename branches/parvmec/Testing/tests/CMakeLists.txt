@@ -13,4 +13,4 @@ add_subdirectory (z_offset_test)
 add_subdirectory (equilibrium_reset_test)
 add_subdirectory (equilibrium_reset_free_boundary_test)
 add_subdirectory (multigrid_test)
-
+add_subdirectory (aphi_test)

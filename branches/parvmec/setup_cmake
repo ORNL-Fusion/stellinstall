@@ -119,7 +119,8 @@ then
               -DNETCDF_INC_PATH=/usr/local/include/ \
               -DNETCDF_LIB_PATH=/usr/local/lib      \
               -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
-	      -DUSE_PARVMEC=ON
+	      -DUSE_PARVMEC=ON                      \
+	      -DBUILD_SIESTA=ON
 
 elif [ $MACHINE_ID == "swim.ornl.gov" ]
 then
