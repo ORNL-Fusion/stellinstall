@@ -63,11 +63,13 @@
       END DO
 
       nsmin=MAX(2,t2lglob); nsmax=MIN(ns-1,t1rglob)
+      chipf(1)     = c1p5*chips(2) - p5*chips(3)                       !SPH ADDED THIS 4-8-16 (only valid on 1st proc)
       chipf(nsmin:nsmax) = (chips(nsmin:nsmax) + chips(nsmin+1:nsmax+1))/2
-      chipf(ns)    = 2*chips(ns)-chips(ns-1)
+      chipf(ns)    = c1p5*chips(ns)- p5*chips(ns-1)
 
 !     Do not compute iota too near origin
       IF (lrfp) THEN
+!SKS_SPH011116: broad cast needed from 2,3?
          iotaf(1)  = one/(c1p5/iotas(2) - p5/iotas(3))
          iotaf(ns) = one/(c1p5/iotas(ns) - p5/iotas(ns-1))
          DO js = MAX(2,t2lglob), MIN(ns-1,t1rglob)
@@ -150,9 +152,9 @@
          chip(js:nrzt:ns) = chips(js)
       END DO
 
-
+      chipf(1)     = c1p5*chips(2) - p5*chips(3)                       !SPH ADDED THIS 4-8-16
       chipf(2:ns1) = (chips(2:ns1) + chips(3:ns1+1))/2
-      chipf(ns)    = 2*chips(ns)-chips(ns1)
+      chipf(ns)    = c1p5*chips(ns)- p5(ns1)                           !SPH FIXED THIS 4-8-16
 
 !     Do not compute iota too near origin
       IF (lrfp) THEN
