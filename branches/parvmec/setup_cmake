@@ -143,11 +143,14 @@ then
 	# module to get a compatable version first.
 
 	module load cmake
-	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                         \
-	      -DNETCDF_INC_PATH=/opt/cray/netcdf/4.3.2/INTEL/140/include             \
-	      -DNETCDF_LIB_PATH=/opt/cray/netcdf/4.3.2/INTEL/140/lib                 \
-	      -DCMAKE_PREFIX_PATH:FILEPATH=/opt/cray/mpt/7.0.4/gni/mpich2-INTEL/140/ \
-	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"
+	module load cray-netcdf/4.3.3.1
+	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                  \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                           \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                               \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=$CRAY_MPICH2_DIR                   \
+	      -DEXTRA_FLAGS="-openmp -DNEW_CODE"                              \
+	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.so \
+	      -DUSE_PARVMEC=ON
 
 elif [ $MACHINE_ID == "clus45" ]
 then
