@@ -22,10 +22,8 @@
                       endglobrow, rcounts, disp
       USE timer_mod
       USE descriptor_mod, ONLY: iam
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'
-#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -257,8 +255,8 @@
       USE descriptor_mod, ONLY: iam, nprocs
       USE nscalingtools, ONLY: PARSOLVER, MPI_ERR, startglobrow, endglobrow
       USE timer_mod
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 #endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -442,22 +440,25 @@
         END IF
 
         IF (fsq_min .EQ. -1) fsq_min = fsq_nl/0.89_dp
-        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
+!        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
+        IF (jcount .GT. 5) THEN   !!SPH042616
           ! STOPPING CRITERIA (reset max iterations to current iteration)         
           icntl(7)=info(1)
           IF (fsq_nl .LE. ftol) THEN
             IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
             xmin = work(colx:colx+nloc-1)
           END IF
-        ELSE IF (fsq_nl .LT. 0.95_dp*fsq_min) THEN
+        ELSE   !!SPH042616   IF (fsq_nl .LT. 0.95_dp*fsq_min) THEN
           IF (fsq_nl .LE. ftol) icntl(7)=info(1)
-          IF (iam .EQ. 0) THEN
-             PRINT 900, info(1), fsq_nl, fsq_lin
-!            WRITE (36, 900) info(1), fsq_nl, fsq_lin
+          IF (fsq_nl .LE. fsq_min) THEN
+             IF (iam .EQ. 0) THEN
+                PRINT 900, info(1), fsq_nl, fsq_lin
+!               WRITE (36, 900) info(1), fsq_nl, fsq_lin
+             END IF
+             IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
+             xmin = work(colx:colx+nloc-1)
+             fsq_min = fsq_nl
           END IF
-          IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
-          xmin = work(colx:colx+nloc-1)
-          fsq_min = fsq_nl
         END IF
         GOTO 10
 
@@ -520,8 +521,8 @@
       USE stel_kinds
       USE hessian, ONLY: ns, mblk_size, rcounts, disp
       USE timer_mod
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -565,8 +566,8 @@
       USE nscalingtools, ONLY: PARSOLVER, endglobrow, startglobrow,     &
                             MPI_ERR, PARFUNCTISL, rcounts, disp
       USE blocktridiagonalsolver, ONLY: ParMatVec
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -797,10 +798,8 @@
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,      &
                       endglobrow, rcounts, disp
       USE hessian, ONLY: eps_factor
+      USE mpi_inc
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE "mpif.h"
-#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

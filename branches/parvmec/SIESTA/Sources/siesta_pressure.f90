@@ -16,8 +16,8 @@
 !>     \brief Parallel subroutine to advance pressure from t to t+delta_t by updating jpmnch (jacobh*presh)
        SUBROUTINE update_pres_par (delta_t)
        USE nscalingtools, ONLY: startglobrow, endglobrow
+       USE mpi_inc
        IMPLICIT NONE
-       INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -157,7 +157,6 @@
 
        CALL second0(toff)
        time_update_pres = time_update_pres + (toff-ton)
-
 
        END SUBROUTINE update_pres_par
 #endif
