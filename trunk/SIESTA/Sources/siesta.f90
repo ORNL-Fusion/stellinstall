@@ -31,14 +31,12 @@
                             SKSDBG, TOFU, PARGMRES, PARFUNCTISL,        &
                             finalizeRemap, bcyclicMapping, initRemap,   &
                             OUTPUT_TIMINGS, GetTimes, MPI_ERR
+      USE mpi_inc
 #else
       USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER,   &
                             SKSDBG, TOFU, PARGMRES, PARFUNCTISL
 #endif
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'
-#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -54,8 +52,6 @@
 #endif      
 
 !-----------------------------------------------
-      CALL second0(ton)
-      skston=ton
 #if defined(MPI_OPT)
       CALL profinit()
 !     -----------
@@ -63,6 +59,10 @@
 !     -----------
       CALL blacs_pinfo(iam,nprocs)
       CALL blacs_setup(iam,nprocs)
+
+      CALL second0(ton)
+      skston=ton
+
       LSCALAPACK=.TRUE.
       INHESSIAN=.FALSE.
 #if defined(SKS)
@@ -97,6 +97,8 @@
       endif
       END IF   !LSCALAPACK=T
 #else
+      CALL second0(ton)
+      skston=ton
       LSCALAPACK=.FALSE.
       iam = 0
       nprocs = 1

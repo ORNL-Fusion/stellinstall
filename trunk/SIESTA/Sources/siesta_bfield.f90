@@ -1,4 +1,4 @@
-!>  \brief Module contained subroutines for updating magnetic fields as part of the SIESTA project
+!>  \brief Module contained subroutines for updating half-grid magnetic fields as part of the SIESTA project
 !!  \author S. P. Hirshman and R. Sanchez
 !!  \date Aug 21, 2006
        MODULE siesta_bfield
@@ -17,12 +17,13 @@
 !>  \brief Parallel routine for updating B^s, B^u, B^v for ideal (and resistive) perturbations
        SUBROUTINE update_bfield_par (l_add_res)
 !     
-!     PURPOSE: ADVANCES MAGNETIC FIELD FROM T TO T+DELTA_T
-!              Updates values of BSUPMNF and BSUPIJF in QUANTITIES MODULE
+!     PURPOSE: ADVANCES HALF-MESH MAGNETIC FIELD COMPONENTS IN MN SPACE FROM TIME T TO T+DELTA_T
+!              (Used to updates values of BSUPMNF and BSUPIJF in QUANTITIES MODULE) 
+!              DISCRETIZED VERSION OF FARADAY'S LAW dB/dt = -curl(E)
 !
        USE nscalingtools, ONLY: startglobrow, endglobrow 
+       USE mpi_inc
        IMPLICIT NONE
-       INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -154,12 +155,13 @@
        r0 = hs_i/2
        nsmin=MAX(1,startglobrow)
 
-!       IF (nsmin .EQ. 1) THEN
-!!!!!!!IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT
-!          djbsupsmnsh(m1,:,1) = (esubsmnsh(m1,:,2)*r0-esubumnch(m1,:,2))/2
-!          esubsmnsh(m1,:,2) = esubsmnsh(m1,:,2) - djbsupsmnsh(m1,:,1)/r0
-!          esubumnch(m1,:,2) = esubumnch(m1,:,2) + djbsupsmnsh(m1,:,1)
-!       END IF
+!IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
+       IF (nsmin .EQ. 1) THEN
+          djbsupsmnsh(m1,:,1) = (esubsmnsh(m1,:,2)*r0-esubumnch(m1,:,2))/2
+          esubsmnsh(m1,:,2) = esubsmnsh(m1,:,2) - djbsupsmnsh(m1,:,1)/r0
+          esubumnch(m1,:,2) = esubumnch(m1,:,2) + djbsupsmnsh(m1,:,1)
+          work1(m1,:,2) = work1(m1,:,2) - djbsupsmnsh(m1,:,1)/r0   !Preserves div B = 0
+       END IF
 
        DO m = 0, mpol
          DO n = -ntor, ntor
@@ -195,7 +197,8 @@
        DEALLOCATE(work1, work2, esubsmnsh, esubumnch, esubvmnch)    
 !
 !      Calculate INCREMENT of magnetic field harmonics: use Euler scheme with DT given by VSUBMN advance equations.
-!      Results are DBSUP?IJ?F, which is used in the calculation of the force and to advance the B's in UPDATE_STATE
+!      Results computed here for HALF-GRID perturbations in MN space are used in the calculation of the force and
+!      to advance the B's in UPDATE_STATE (in siesta_state module)
 !
 !      B^S (SIN) 
        djbsupsmnsh(:,:,nsmin:nsmax) = delta_t*djbsupsmnsh(:,:,nsmin:nsmax)
@@ -215,8 +218,8 @@
 !>  \brief Serial routine for updating B^s, B^u, B^v for ideal (and resistive) perturbations
        SUBROUTINE update_bfield (l_add_res)
 !     
-!     PURPOSE: ADVANCES MAGNETIC FIELD FROM T TO T+DELTA_T
-!              Updates values of BSUPMNF and BSUPIJF in QUANTITIES MODULE
+!     PURPOSE: ADVANCES HALF-MESH MAGNETIC FIELD COMPONENTS IN MN SPACE FROM TIME T TO T+DELTA_T
+!              (Used to updates values of BSUPMNF and BSUPIJF in QUANTITIES MODULE)
 !
        IMPLICIT NONE
 !-----------------------------------------------
@@ -336,10 +339,11 @@
 !      Compute contravariant components of -curl(E) for right side of Faraday's Equation
 !
        r0 = hs_i/2
-!!!!!!!IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT
-!       djbsupsmnsh(m1,:,1) = (esubsmnsh(m1,:,2)*r0-esubumnch(m1,:,2))/2
-!       esubsmnsh(m1,:,2) = esubsmnsh(m1,:,2) - djbsupsmnsh(m1,:,1)/r0
-!       esubumnch(m1,:,2) = esubumnch(m1,:,2) + djbsupsmnsh(m1,:,1)
+!IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
+       djbsupsmnsh(m1,:,1) = (esubsmnsh(m1,:,2)*r0-esubumnch(m1,:,2))/2
+       esubsmnsh(m1,:,2) = esubsmnsh(m1,:,2) - djbsupsmnsh(m1,:,1)/r0
+       esubumnch(m1,:,2) = esubumnch(m1,:,2) + djbsupsmnsh(m1,:,1)
+       work1(m1,:,2) = work1(m1,:,2) - djbsupsmnsh(m1,:,1)/r0   !Preserves div B = 0
 
        DO m = 0, mpol
          DO n = -ntor, ntor

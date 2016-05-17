@@ -22,13 +22,13 @@
 !     
 !     PURPOSE: UPDATES FORCE using the advanced values of B and p obtained
 !              from calls to UPDATE_PRES and UPDATE_BFIELD
-!              Updates values of FSUB?MNH and stores in QUANTITIES MODULE
+!              Updates values of FSUB?MNF (on the FULL radial mesh) and stores in QUANTITIES MODULE
 !
 !              Linearized force is Flin ~ delta_v has ONLY the linear part (not DC part and not non-linear)
 !
        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+       USE mpi_inc
        IMPLICIT NONE
-       INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -102,7 +102,7 @@
        IF (istat.ne.0) STOP 'Allocation failed in UPDATE_FORCE'
 
 !
-!      Calculate updated FULL-MESH components of BSUPX in real-space
+!      Calculate updated FULL-MESH components of BSUPX in real-space by averaging
 !
        CALL bhalftobfull_par (bsupsijsh, bsupuijch, bsupvijch,          &
                               bsupsijsf1,bsupuijcf1,bsupvijcf1,         &

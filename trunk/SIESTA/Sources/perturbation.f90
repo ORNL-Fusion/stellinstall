@@ -177,7 +177,7 @@
 !     Add helical RESISTIVE flux perturbation on full mesh
 !     Approximate nonideal E|| ~ f(mu+nv) B with B ~ Bsubv
 !
-      IF (ntor .eq. 0) RETURN
+      IF (ntor.EQ.0 .OR. ALL(HelPert.EQ.zero)) RETURN
 
 !     INITIAL STATE
  
@@ -201,8 +201,8 @@
       IF (iam .eq. 0) THEN
       DO iprint = 6,33,27
          WRITE (iprint, '(/,a,/,2a)')                                    &
-         ' Adding helical flux perturbations',                           &
-         '  Phase   10^6 X Del-W    mres    nres    HelPert',            &
+         ' Adding helical magnetic field perturbations',                 &
+         ' Phase   10^6 X Del-W    mres    nres    HelPert',             &
          '     rad   |m*chip+n*phip|'
       END DO
       ENDIF

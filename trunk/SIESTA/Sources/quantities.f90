@@ -10,6 +10,7 @@
       USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,           &
           mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,       &
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
+      USE descriptor_mod, ONLY: iam
       IMPLICIT NONE
 
 !
@@ -113,7 +114,7 @@
 
         CALL to_half_mesh(presif, presih, nuv)
        
-!SPH    Push jacob*(real pressure)
+!       Evolve (internally) jacob*(real pressure)
         presih = presih * jacobh
 
         CALL tomnsp(presih, jpmnch, 0, 1)                                 ! Initialize pressure harmonics (half mesh)
@@ -144,6 +145,17 @@
 !AT FIRST 1/2 GRID PT AT ORIGIN IN JACOBH(1)
         CALL getorigin (jacobh, m0, 0)
         signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
+
+!TO PRESERVE UNPERTURBED (CONSTANT IN s) PART OF PRESSURE, NYQUIST-FILTER JACOBIAN
+!SPH 04-28-16
+        jacobf = jacobh
+        CALL tomnsp(jacobh, jbsupsmnsh, 0, 0)
+        CALL toijsp(jbsupsmnsh, jacobh, 0, 0, 0, 0)
+        IF (ANY(jacobh*signjac .LE. 0)) STOP 'FILTERED JACOBIAN CHANGED SIGN!'
+        sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/     &
+                   (jacobh(:,:,2:)+jacobf(:,:,2:))**2)
+        IF (iam .EQ. 0) PRINT '(a,f6.2,a)',                &
+           ' RMS FILTERED JACOBIAN FIT: ', 100*SQRT(sum1/SIZE(jacobh)),'%'
 
         CALL to_full_mesh(jacobh, jacobf, nuv)
 !Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
@@ -200,10 +212,11 @@
            END DO
         END DO
 
-        jbsupumnch(0,0,:) = chiph(:)
-        jbsupvmnch(0,0,:) = phiph(:)
+        jbsupumnch(m0,0,:) = chiph(:)
+        jbsupvmnch(m0,0,:) = phiph(:)
 
-        jbsupumnch(m1,:,1) = 0                            ! Need to make jbsupsmnsh - r0jbsupumnch = 0 at js=2
+        jbsupumnch(m1,:,1:2) = 0                            ! Need to make jbsupsmnsh - r0*jbsupumnch = 0 at js=2
+        jbsupvmnch(m1,:,1:2) = 0                            ! Need to make divB = 0 at js=2 initially
 
         jbsupumnch = b_factor*jbsupumnch 
         jbsupvmnch = b_factor*jbsupvmnch 

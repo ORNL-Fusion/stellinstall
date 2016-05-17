@@ -53,7 +53,7 @@
       CONTAINS
 
 !>  \brief Performs initial convergence of force residuals using diagonal preconditioner only.
-!!  Terminates when the force residual stops changing by more than a factor of 2
+!!  Terminates when the force residual stops changing by more than a factor of 2 OR if FTOL reached
       SUBROUTINE converge_diagonal (wout_file, ftol)
       USE perturbation, ONLY: add_perturb, ladd_pert, l_output_alliter,  &   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
                               lprecon_diag
@@ -96,7 +96,7 @@
 
          l_iterate = (fsq_ratio.LE.0.5_dp .AND. fsq_total.GT.fsq_block)
 
-         IF (ladd_pert .AND. fsq_total.lt.100*fsq_block) THEN
+         IF (ladd_pert .AND. fsq_total.lt.100*fsq_block .AND. fsq_total.gt.ftol) THEN
             l_init_state=.TRUE.
             CALL second0(t1)
             CALL add_perturb(xc, getwmhd)
@@ -595,11 +595,9 @@
 #if defined(SKS)      
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,         &
                             endglobrow, rcounts, disp
+      USE mpi_inc
 #endif
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'
-#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
