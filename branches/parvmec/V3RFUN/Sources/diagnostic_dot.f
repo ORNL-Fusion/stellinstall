@@ -876,8 +876,13 @@
 !  Parse the magnetic probe spec. Borrow the normal to hold the r, phi, z
 !  position.
          status = 0
-         line = diagnostic_dot_parse_name(iou, line, line_number,              &
-     &             'diagnostic_dot_parse_probe')
+         READ (iou,1000, iostat=status) line
+
+         IF (status .ne. 0) THEN
+            CALL diagnostic_dot_error('spec', line, line_number,               &
+     &              'diagnostic_dot_parse_magnetic_probe_tokamak')
+         END IF
+
          READ (line,*,iostat=status) radius, normal, pitch
          IF (status .ne. 0) THEN
             CALL diagnostic_dot_error('spec', line, line_number,               &
