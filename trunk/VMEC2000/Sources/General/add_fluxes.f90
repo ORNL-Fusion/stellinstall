@@ -68,8 +68,9 @@
          chip(js:nrzt:ns) = chips(js)
       END DO
 
+      chipf(1)     = c1p5*chips(2) - p5*chips(3)                       !SPH ADDED THIS 4-8-16
       chipf(2:ns1) = (chips(2:ns1) + chips(3:ns1+1))/2
-      chipf(ns)    = 2*chips(ns)-chips(ns1)
+      chipf(ns)    = c1p5*chips(ns)- p5*chips(ns1)                     !SPH FIXED THIS 4-8-16
 
 
 !     Do not compute iota too near origin
