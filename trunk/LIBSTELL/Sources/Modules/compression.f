@@ -72,7 +72,6 @@
 !*******************************************************************************
       INTERFACE compression_construct
          MODULE PROCEDURE compression_construct_new,                           &
-     &                    compression_construct_mpi,                           &
      &                    compression_construct_netcdf
       END INTERFACE
 
@@ -264,71 +263,6 @@
       END IF
 
       DEALLOCATE(w_svd)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref compression_class object by syncing through mpi.
-!>
-!>  Constructs the data is already compressed in the parent constructor.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref compression_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION compression_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (compression_class), POINTER :: compression_construct_mpi
-      INTEGER, INTENT(in)               :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER, DIMENSION(2)             :: dim_lengths
-      INTEGER                           :: error
-
-!  Start of executable code
-      ALLOCATE(compression_construct_mpi)
-
-!  Sync data buffer.
-      CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (.not.ANY(dim_lengths .eq. 0)) THEN
-!  Data is uncompressed.
-         ALLOCATE(compression_construct_mpi%data_buffer(dim_lengths(1),        &
-     &                                                  dim_lengths(2)))
-         CALL MPI_BCAST(compression_construct_mpi%data_buffer,                 &
-     &                  PRODUCT(dim_lengths), MPI_REAL8, 0, intra_comm,        &
-     &                  error)
-         RETURN
-      END IF
-
-!  Sync u and wvt buffers.
-      CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (.not.ANY(dim_lengths .eq. 0)) THEN
-!  Data is compressed.
-         ALLOCATE(compression_construct_mpi%u_buffer(dim_lengths(1),           &
-     &                                               dim_lengths(2)))
-         CALL MPI_BCAST(compression_construct_mpi%u_buffer,                    &
-     &                  PRODUCT(dim_lengths), MPI_REAL8, 0, intra_comm,        &
-     &                  error)
-
-         CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm,            &
-     &                  error)
-         ALLOCATE(compression_construct_mpi%wvt_buffer(dim_lengths(1),         &
-     &                                                 dim_lengths(2)))
-         CALL MPI_BCAST(compression_construct_mpi%wvt_buffer,                  &
-     &                  PRODUCT(dim_lengths), MPI_REAL8, 0, intra_comm,        &
-     &                  error)
-         RETURN
-      END IF
-
-!  Data was all zeros
-      ALLOCATE(compression_construct_mpi%data_dim(2))
-      CALL MPI_BCAST(compression_construct_mpi%data_dim, 2, MPI_REAL8,         &
-     &               0, intra_comm, error)
-
-#endif
 
       END FUNCTION
 
@@ -646,74 +580,6 @@
      &                  this%data_dim)
 
       END IF
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref vmec_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE compression_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (compression_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                     :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER, DIMENSION(2)                   :: dim_lengths
-      INTEGER                                 :: error
-
-!  Start of executable code
-
-!  Sync data buffer.
-      IF (ASSOCIATED(this%data_buffer)) THEN
-         dim_lengths = SHAPE(this%data_buffer)
-      ELSE
-         dim_lengths = 0
-      END IF
-      CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (.not.ANY(dim_lengths .eq. 0)) THEN
-!  Data is uncompressed.
-         CALL MPI_BCAST(this%data_buffer, PRODUCT(dim_lengths),                &
-     &                  MPI_REAL8, 0, intra_comm, error)
-         RETURN
-      END IF
-
-!  Sync u and wvt buffers.
-      IF (ASSOCIATED(this%u_buffer)) THEN
-         dim_lengths = SHAPE(this%u_buffer)
-      ELSE
-         dim_lengths = 0
-      END IF
-      CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-      IF (.not.ANY(dim_lengths .eq. 0)) THEN
-!  Data is compressed.
-         CALL MPI_BCAST(this%u_buffer, PRODUCT(dim_lengths), MPI_REAL8,        &
-     &                  0, intra_comm, error)
-
-         dim_lengths = SHAPE(this%wvt_buffer)
-         CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm,            &
-     &                  error)
-         CALL MPI_BCAST(this%wvt_buffer, PRODUCT(dim_lengths),                 &
-     &                  MPI_REAL8, 0, intra_comm, error)
-         RETURN
-      END IF
-
-!  Data was all zeros
-      CALL MPI_BCAST(this%data_dim, 2, MPI_REAL8, 0, intra_comm, error)
-
-#endif
 
       END SUBROUTINE
 

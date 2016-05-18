@@ -4,7 +4,6 @@
       INTEGER :: nfcn = 0
       INTEGER :: ier_flag_res
       LOGICAL :: lqmr, lfirst
-
 !
 !     nfcn :  number of calls to function (funct3d)
 !     lqmr :  logical, used by external programs to control calling these routines
@@ -48,6 +47,7 @@ C-----------------------------------------------
 
       SUBROUTINE gmres_fun (ier_flag, itype)
       USE xstuff
+      USE parallel_include_module
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -63,6 +63,7 @@ C-----------------------------------------------
       REAL(rprec) :: cntl(5)
       CHARACTER(LEN=*), PARAMETER :: qmr_message = 
      1                              'Beginning GMRES iterations'
+      REAL(rprec) :: gmreston, gmrestoff
 C-----------------------------------------------
       EXTERNAL gmres
 C-----------------------------------------------
@@ -70,6 +71,7 @@ C-----------------------------------------------
 !     STORE INITIAL POINT AND INITIAL RESIDUES (AT INIT PT)
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
+      CALL second0(gmreston)
       xcdot = gc
       xsave = xc
       n     = neqs
@@ -140,6 +142,10 @@ C-----------------------------------------------
 !      ier_flag = info(1)
       ier_flag = 0
       xc(1:n) = xsave(1:n) + xcdot(1:n)
+
+      CALL second0(gmrestoff)
+      gmres_time = gmres_time + (gmrestoff - gmreston)
+      s_gmres_time = gmres_time
 
       END SUBROUTINE gmres_fun
 

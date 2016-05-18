@@ -38,7 +38,7 @@
          INTEGER                              :: number_of_calls = 0
 !>  Total time spent in that function.
          REAL (rprec)                         :: total_time = 0.0
-!>  Average time spent in that function.
+!>  Total time spent in that function.
          REAL (rprec)                         :: average_time = 0.0
 !>  Symbol name of that function.
          CHARACTER (len=profiler_string_size) :: symbol_name = ''

@@ -58,18 +58,6 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: grid => null()
       END TYPE limiter_grid_class
 
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref limiter_grid types using
-!>  @ref limiter_grid_construct_netcdf or @ref limiter_grid_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE limiter_grid_construct
-         MODULE PROCEDURE limiter_grid_construct_netcdf,                           &
-     &                    limiter_grid_construct_mpi
-      END INTERFACE
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -83,15 +71,14 @@
 !>  @param[in] lgrid_file
 !>  @returns A pointer to a constructed @ref limiter_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_grid_construct_netcdf(lgrid_file)
+      FUNCTION limiter_grid_construct(lgrid_file)
       USE ezcdf
       USE v3_utilities
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_grid_class), POINTER ::                                    &
-     &   limiter_grid_construct_netcdf
+      TYPE (limiter_grid_class), POINTER :: limiter_grid_construct
       CHARACTER (len=*), INTENT(in)      :: lgrid_file
 
 !  local variables
@@ -103,84 +90,32 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(limiter_grid_construct_netcdf)
+      ALLOCATE(limiter_grid_construct)
 
       CALL cdf_open(lgrid_iou, TRIM(lgrid_file), 'r', status)
-      CALL assert_eq(0, status, 'limiter_grid_construct_netcdf: ' //           &
+      CALL assert_eq(0, status, 'limiter_grid_construct: ' //                  &
      &               'failed to open ', TRIM(lgrid_file))
 
-      CALL cdf_read(lgrid_iou, nc_r0, limiter_grid_construct_netcdf%r0)
-      CALL cdf_read(lgrid_iou, nc_dr, limiter_grid_construct_netcdf%dr)
-      CALL cdf_read(lgrid_iou, nc_z0, limiter_grid_construct_netcdf%z0)
-      CALL cdf_read(lgrid_iou, nc_dz, limiter_grid_construct_netcdf%dz)
+      CALL cdf_read(lgrid_iou, nc_r0, limiter_grid_construct%r0)
+      CALL cdf_read(lgrid_iou, nc_dr, limiter_grid_construct%dr)
+      CALL cdf_read(lgrid_iou, nc_z0, limiter_grid_construct%z0)
+      CALL cdf_read(lgrid_iou, nc_dz, limiter_grid_construct%dz)
 
       CALL cdf_inquire(lgrid_iou, nc_phi_angles, dim_lengths)
-      ALLOCATE(limiter_grid_construct_netcdf%phi(dim_lengths(1)))
+      ALLOCATE(limiter_grid_construct%phi(dim_lengths(1)))
       CALL cdf_read(lgrid_iou, nc_phi_angles,                                  &
-     &              limiter_grid_construct_netcdf%phi)
+     &              limiter_grid_construct%phi)
 
       CALL cdf_inquire(lgrid_iou, nc_iso_grids, dim_lengths)
-      ALLOCATE(limiter_grid_construct_netcdf%grid(dim_lengths(1),              &
-     &                                            dim_lengths(2),              &
-     &                                            dim_lengths(3)))
+      ALLOCATE(limiter_grid_construct%grid(dim_lengths(1),                     &
+     &                                     dim_lengths(2),                     &
+     &                                     dim_lengths(3)))
       CALL cdf_read(lgrid_iou, nc_iso_grids,                                   &
-     &              limiter_grid_construct_netcdf%grid)
+     &              limiter_grid_construct%grid)
 
       CALL cdf_close(lgrid_iou)
 
-      CALL profiler_set_stop_time('limiter_grid_construct_netcdf',             &
-     &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref limiter_grid_class.
-!>
-!>  Allocates memory and initializes a @ref limiter_grid_class object by
-!>  syncing through mpi.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref limiter_grid_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION limiter_grid_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_grid_class), POINTER :: limiter_grid_construct_mpi
-      INTEGER, INTENT(in)                :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                            :: error
-      INTEGER, DIMENSION(3)              :: dim_lengths
-
-!  Start of executable code
-      ALLOCATE(limiter_grid_construct_mpi)
-
-      CALL MPI_BCAST(limiter_grid_construct_mpi%r0, 1, MPI_REAL8, 0,           &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_grid_construct_mpi%dr, 1, MPI_REAL8, 0,           &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_grid_construct_mpi%z0, 1, MPI_REAL8, 0,           &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_grid_construct_mpi%dz, 1, MPI_REAL8, 0,           &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(dim_lengths(1), 1, MPI_INTEGER, 0, intra_comm,            &
-     &               error)
-      ALLOCATE(limiter_grid_construct_mpi%phi(dim_lengths(1)))
-      CALL MPI_BCAST(limiter_grid_construct_mpi%phi, dim_lengths(1),           &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      ALLOCATE(limiter_grid_construct_mpi%grid(dim_lengths(1),                 &
-     &                                         dim_lengths(2),                 &
-     &                                         dim_lengths(3)))
-      CALL MPI_BCAST(limiter_grid_construct_mpi%grid,                          &
-     &               PRODUCT(dim_lengths), MPI_REAL8, 0, intra_comm,           &
-     &               error)
-#endif
+      CALL profiler_set_stop_time('limiter_grid_construct', start_time)
 
       END FUNCTION
 
@@ -224,25 +159,25 @@
 !>  @param[in] this A @ref limiter_grid_class instance.
 !>  @returns Number of radial grid points.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_grid_get_num_r(this)
+       FUNCTION limiter_grid_get_num_r(this)
 
-      IMPLICIT NONE
+       IMPLICIT NONE
 
 !  Declare Arguments
-      INTEGER                               :: limiter_grid_get_num_r
-      TYPE (limiter_grid_class), INTENT(in) :: this
+       INTEGER                               :: limiter_grid_get_num_r
+       TYPE (limiter_grid_class), INTENT(in) :: this
 
 !  local variables
-      REAL (rprec)                          :: start_time
+       REAL (rprec)                          :: start_time
 
 !  Start of executable code
-      start_time = profiler_get_start_time()
+       start_time = profiler_get_start_time()
 
-      limiter_grid_get_num_r = SIZE(this%grid, 1)
+       limiter_grid_get_num_r = SIZE(this%grid, 1)
 
-      CALL profiler_set_stop_time('limiter_grid_get_num_r', start_time)
+       CALL profiler_set_stop_time('limiter_grid_get_num_r', start_time)
 
-      END FUNCTION
+       END FUNCTION
 
 !-------------------------------------------------------------------------------
 !>  @brief Find the number of vertical points in the grid.
@@ -253,74 +188,24 @@
 !>  @param[in] this A @ref limiter_grid_class instance.
 !>  @returns Number of radial grid points.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_grid_get_num_z(this)
+       FUNCTION limiter_grid_get_num_z(this)
 
-      IMPLICIT NONE
-
-!  Declare Arguments
-      INTEGER                               :: limiter_grid_get_num_z
-      TYPE (limiter_grid_class), INTENT(in) :: this
-
-!  local variables
-      REAL (rprec)                          :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      limiter_grid_get_num_z = SIZE(this%grid, 2)
-
-      CALL profiler_set_stop_time('limiter_grid_get_num_z', start_time)
-
-      END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref limiter_grid_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE limiter_grid_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
+       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (limiter_grid_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                      :: intra_comm
+       INTEGER                               :: limiter_grid_get_num_z
+       TYPE (limiter_grid_class), INTENT(in) :: this
 
-#if defined(MPI_OPT)
 !  local variables
-      INTEGER                                  :: error
-      REAL (rprec)                             :: start_time
-      REAL (rprec), DIMENSION(3)               :: dim_lengths
+       REAL (rprec)                          :: start_time
 
 !  Start of executable code
-      start_time = profiler_get_start_time()
+       start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(this%r0, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%dr, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%z0, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%dz, 1, MPI_REAL8, 0, intra_comm, error)
+       limiter_grid_get_num_z = SIZE(this%grid, 2)
 
-      CALL MPI_BCAST(SIZE(this%phi), 1, MPI_INTEGER, 0, intra_comm,            &
-     &               error)
-      CALL MPI_BCAST(this%phi, SIZE(this%phi), MPI_REAL8, 0, intra_comm,       &
-     &               error)
+       CALL profiler_set_stop_time('limiter_grid_get_num_z', start_time)
 
-      dim_lengths = SHAPE(this%grid)
-      CALL MPI_BCAST(dim_lengths, 3, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%grid, PRODUCT(dim_lengths), MPI_REAL8, 0,            &
-     &               intra_comm, error)
+       END FUNCTION
 
-      CALL profiler_set_stop_time('limiter_grid_sync_children',                &
-     &                            start_time)
-#endif
-
-      END SUBROUTINE
-
-      END MODULE
+       END MODULE

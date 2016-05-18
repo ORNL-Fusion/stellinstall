@@ -46,12 +46,12 @@
 !>  * @ref limiter_no_type
 !>  * @ref limiter_iso_type
 !>  * @ref limiter_polygon_type
-         INTEGER                            :: type = limiter_no_type
+         INTEGER                     :: type = limiter_no_type
 !>  If true, the reconstruction tries to place the edge on the limiter.
 !>  Otherwise, the plasma edge is kept inside the limiter.
-         LOGICAL                            :: on_edge = .false.
-!>  Iso surface function discribing the limiter. Not used for polygon limiters.
-         TYPE (limiter_iso),       POINTER  :: iso => null()
+         LOGICAL                     :: on_edge = .false.
+!>  Iso surface function discribing the limiter. Not use for polygon limiters.
+         TYPE (limiter_iso), POINTER :: iso => null()
 !>  Grid function discribing the limiter. Not used for iso limiters.
          TYPE (limiter_grid_class), POINTER :: grid => null()
       END TYPE limiter_class
@@ -69,8 +69,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE limiter_construct
          MODULE PROCEDURE limiter_construct_iso,                               &
-     &                    limiter_construct_polygon,                           &
-     &                    limiter_construct_mpi
+     &                    limiter_construct_polygon
       END INTERFACE
 
       CONTAINS
@@ -154,50 +153,6 @@
 
       END FUNCTION
 
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref limiter_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref limiter_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref limiter_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION limiter_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_class), POINTER :: limiter_construct_mpi
-      INTEGER, INTENT(in)           :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                       :: error
-
-!  Start of executable code
-      ALLOCATE(limiter_construct_mpi)
-
-      CALL MPI_BCAST(limiter_construct_mpi%type, 1, MPI_INTEGER, 0,            &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_construct_mpi%on_edge, 1, MPI_LOGICAL, 0,         &
-     &               intra_comm, error)
-
-      SELECT CASE (limiter_construct_mpi%type)
-
-         CASE (limiter_iso_type)
-            limiter_construct_mpi%iso =>                                       &
-     &         limiter_iso_construct(intra_comm)
-
-         CASE (limiter_polygon_type)
-            limiter_construct_mpi%grid =>                                      &
-     &         limiter_grid_construct(intra_comm)
-
-      END SELECT
-
-#endif
-
-      END FUNCTION
-
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -248,6 +203,7 @@
 !>                        sigma value of @ref limiter_get_modeled_iso_signal.
 !>  @returns If the limiter type is defined by an iso function, return the value
 !>           of @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
+!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_signal(this, a_model, sigma)
       USE model
@@ -360,59 +316,13 @@
       END FUNCTION
 
 !*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref limiter_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE limiter_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                 :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                             :: error
-      REAL (rprec)                        :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%on_edge, 1, MPI_LOGICAL, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (limiter_iso_type)
-            CALL limiter_iso_sync_children(this%iso, intra_comm)
-
-         CASE (limiter_polygon_type)
-            CALL limiter_grid_sync_children(this%grid, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('limiter_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
-
-!*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  @brief Calculates the modeled signal from an iso function.
 !>
 !>  If @ref limiter_class::on_edge or the plasma edge extends beyond the
-!>  limiter, returns the R, Phi and Z position of the maximum of the iso
+!>  limiter, returns the R, Phi and Z posiiton of the maximum of the iso
 !>  function value. Otherwise returns zero.
 !>  @par
 !>  The R and Z positions for a fixed toroidal plane are retrived from the the
@@ -422,8 +332,9 @@
 !>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   Returns the value of modeled sigma.
 !>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
-!>  the limiter, returns the R, Phi and Z position of the maximum of the iso
+!>  the limiter, returns the R, Phi and Z posiiton of the maximum of the iso
 !>  function value. Otherwise returns zero.
+!>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_iso_signal(this, a_model, sigma)
       USE model
@@ -437,13 +348,13 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
-      INTEGER                                 :: phi_index, theta_index
-      INTEGER                                 :: num_theta
+      INTEGER                                :: phi_index, theta_index
+      INTEGER                                :: num_theta
 !  The r and z arrays will be allocated by the equilibrium.
-      REAL(rprec), DIMENSION(:), POINTER      :: r, z
-      REAL(rprec), DIMENSION(3)               :: rphiz_at_max
-      REAL(rprec)                             :: fval_max, fval
-      REAL (rprec)                            :: start_time
+      REAL(rprec), DIMENSION(:), POINTER     :: r, z
+      REAL(rprec), DIMENSION(3)              :: rphiz_at_max
+      REAL(rprec)                            :: fval_max, fval
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

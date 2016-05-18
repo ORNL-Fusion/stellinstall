@@ -64,8 +64,7 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
       INTERFACE emission_construct
-         MODULE PROCEDURE emission_construct_netcdf,                           &
-     &                    emission_construct_mpi
+         MODULE PROCEDURE emission_construct_netcdf
       END INTERFACE
 
       CONTAINS
@@ -82,7 +81,6 @@
 !>  @returns A pointer to a constructed @ref emission_class object.
 !-------------------------------------------------------------------------------
       FUNCTION emission_construct_netcdf(filename)
-      USE data_parameters
       USE ezcdf
       USE v3_utilities
 
@@ -90,13 +88,13 @@
 
 !  Declare Arguments
       TYPE (emission_class), POINTER :: emission_construct_netcdf
-      CHARACTER (len=data_name_length), INTENT(in) :: filename
+      CHARACTER (len=*), INTENT(in)  :: filename
 
 !  local variables
-      REAL (rprec)                                 :: start_time
-      INTEGER                                      :: iou
-      INTEGER                                      :: status
-      INTEGER, DIMENSION(2)                        :: dim_lengths
+      REAL (rprec)                   :: start_time
+      INTEGER                        :: iou
+      INTEGER                        :: status
+      INTEGER, DIMENSION(2)          :: dim_lengths
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -119,46 +117,6 @@
 
       CALL profiler_set_stop_time('emission_construct_netcdf',                 &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref emission_class object.
-!>
-!>  Allocates memory and initialized a @ref emission_class object mpi.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref emission_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION emission_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (emission_class), POINTER :: emission_construct_mpi
-      INTEGER, INTENT(in)            :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                        :: error
-      INTEGER, DIMENSION(2)          :: dim_lengths
-
-!  Start of executable code
-      ALLOCATE(emission_construct_mpi)
-
-      CALL MPI_BCAST(emission_construct_mpi%te_start, 1, MPI_REAL8, 0,         &
-     &               intra_comm, error)
-      CALL MPI_BCAST(emission_construct_mpi%te_step, 1, MPI_REAL8, 0,          &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-
-      ALLOCATE(emission_construct_mpi%emissivity(dim_lengths(1),               &
-     &                                           dim_lengths(2)))
-      CALL MPI_BCAST(emission_construct_mpi%emissivity,                        &
-     &               dim_lengths(1)*dim_lengths(2), MPI_REAL8, 0,              &
-     &               intra_comm, error)
-#endif
 
       END FUNCTION
 
@@ -269,49 +227,5 @@
       CALL profiler_set_stop_time('emission_get_emission', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref emission_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE emission_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (emission_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                  :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                              :: error
-      INTEGER, DIMENSION(2)                :: dim_lengths
-      REAL (rprec)                         :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%te_start, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%te_step, 1, MPI_REAL8, 0, intra_comm, error)
-
-      dim_lengths(1) = SIZE(this%emissivity, 1)
-      dim_lengths(2) = SIZE(this%emissivity, 2)
-      CALL MPI_BCAST(dim_lengths, 2, MPI_INTEGER, 0, intra_comm, error)
-
-      CALL MPI_BCAST(this%emissivity, dim_lengths(1)*dim_lengths(2),           &
-     &               MPI_REAL8, 0, intra_comm, error)
-
-      CALL profiler_set_stop_time('magnetic_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE

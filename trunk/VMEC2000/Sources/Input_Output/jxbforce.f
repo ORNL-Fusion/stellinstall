@@ -17,6 +17,8 @@
 #ifdef NETCDF
       USE ezcdf
 #endif
+      USE xstuff, ONLY: xc 
+      USE parallel_include_module
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -140,7 +142,7 @@
          legend(2) = " U = VMEC poloidal angle (0 - 2*pi, FULL period)"
       ELSE
          legend(2) = " U = VMEC poloidal angle (0 - pi, HALF a period)"
-	END IF
+      END IF
       legend(3) = " V = VMEC (geometric) toroidal angle (0 - 2*pi)"
       legend(4) = " SQRT(g') = |SQRT(g-VMEC)| / VOL':" //
      1  " Cylindrical-to-s,u,v Jacobian normed to volume derivative"
@@ -649,9 +651,9 @@
 !        jpar2 = <j||**2>, jperp2 = <j-perp**2>,  with <...> = flux surface average
 
          jdotb(js) = dnorm1*tjnorm*SUM(bdotk(js,:nznt)*wint(2:nrzt:ns)
-     1                        / sigma_an(js,:nznt))
+     1                               / sigma_an(js,:nznt))
          bdotb(js) = dnorm1*tjnorm*SUM(sqgb2(:nznt)*wint(2:nrzt:ns)
-     1                        / sigma_an(js,:nznt))
+     1                               / sigma_an(js,:nznt))
               
          bdotgradv(js) = p5*dnorm1*tjnorm*(phip(js) + phip(js+1))
          jpar2(js) = dnorm1*tjnorm*
@@ -686,8 +688,8 @@ C                 lu (js,lz,lt ) =  lt
 #else
             WRITE (njxbout, 200) phi(js), avforce(js), jdotb(js),
      1         bdotgradv(js), pprime(1), one/ovp, 
-     2         dnorm1*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
-     3         dnorm1*tjnorm*SUM(izeta (js,:)*wint(js:nrzt:ns)),
+     2         (twopi**2)*tjnorm*SUM(itheta(js,:)*wint(js:nrzt:ns)),
+     3         (twopi**2)*tjnorm*SUM(izeta (js,:)*wint(js:nrzt:ns)),
      4         amaxfor(js), aminfor(js)
             WRITE (njxbout, 90)
             DO lz = 1, nzeta, nv_skip

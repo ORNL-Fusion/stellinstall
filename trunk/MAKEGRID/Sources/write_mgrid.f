@@ -3,7 +3,7 @@
       USE mgrid_mod, ONLY: vn_nextcur, vn_mgmode, vn_ir,
      1    vn_jz, vn_kp, vn_nfp, vn_rmin, vn_rmax,
      2    vn_zmin, vn_zmax, vn_coilgrp, vn_coilcur, 
-     3    vn_br0, vn_bz0, vn_bp0
+     3    vn_br0, vn_bz0, vn_bp0, vn_ar0, vn_az0, vn_ap0
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -21,6 +21,7 @@ C-----------------------------------------------
       INTEGER     :: iextc, nfp, nextcur, istat
       INTEGER     :: kp, kp2, jz2, kp_odd, jz_odd
       REAL(rprec), ALLOCATABLE, DIMENSION(:, :, :) :: br, bz, bp
+      REAL(rprec), ALLOCATABLE, DIMENSION(:, :, :) :: ar, az, ap
       REAL(rprec), ALLOCATABLE, DIMENSION(:) :: extcur
       REAL(rprec) :: rmin, rmax, zmin, zmax
       REAL(rprec) :: fperiod, delr, delz, delp
@@ -44,6 +45,8 @@ C-----------------------------------------------
       CHARACTER(LEN=100) :: temp
       CHARACTER(LEN=100), ALLOCATABLE, DIMENSION(:) :: 
      1                    vn_br, vn_bp, vn_bz
+      CHARACTER(LEN=100), ALLOCATABLE, DIMENSION(:) ::
+     1                    vn_ar, vn_ap, vn_az
 C-----------------------------------------------
       mgrid_file = TRIM(mgrid_file) // '.nc'
 
@@ -75,6 +78,7 @@ C-----------------------------------------------
 !     STORED AS 3D ARRAYS (ACTUALLY 4D, BUT CUT THROUGH IG)
 !
       ALLOCATE (vn_br(nextcur), vn_bz(nextcur), vn_bp(nextcur))
+      ALLOCATE (vn_ar(nextcur), vn_az(nextcur), vn_ap(nextcur))
 
       DO ig = 1, nextcur
          write (temp, '(a,i3.3)') "_",ig
@@ -84,6 +88,13 @@ C-----------------------------------------------
          CALL cdf_define(ngrid, vn_br(ig), br, dimname=cylcoord)
          CALL cdf_define(ngrid, vn_bp(ig), bp, dimname=cylcoord)
          CALL cdf_define(ngrid, vn_bz(ig), bz, dimname=cylcoord)
+
+         vn_ar(ig) = vn_ar0 // temp
+         vn_ap(ig) = vn_ap0 // temp
+         vn_az(ig) = vn_az0 // temp
+         CALL cdf_define(ngrid, vn_ar(ig), ar, dimname=cylcoord)
+         CALL cdf_define(ngrid, vn_ap(ig), ap, dimname=cylcoord)
+         CALL cdf_define(ngrid, vn_az(ig), az, dimname=cylcoord)
       END DO
 
 
@@ -108,7 +119,7 @@ C-----------------------------------------------
 !
 !     SET UP CYLINDRICAL COMPONENTS OF MAGNETIC FIELD ON GRID
 !     SUM OVER CURRENT GROUPS IG = 1,NEXTCUR
-!     NOTE: USER MUST SUPPLY SUBROUTINE "BFIELD" TO COMPUTE THESE VALUES
+!     NOTE: USER MUST SUPPLY SUBROUTINE "	" TO COMPUTE THESE VALUES
 !
       GROUPS: DO ig = 1,nextcur
 
@@ -118,7 +129,11 @@ C-----------------------------------------------
          CALL cdf_write(ngrid, vn_bp(ig), bp)
          CALL cdf_write(ngrid, vn_bz(ig), bz)
 
-      END DO GROUPS 
+         CALL cdf_write(ngrid, vn_ar(ig), ar)
+         CALL cdf_write(ngrid, vn_ap(ig), ap)
+         CALL cdf_write(ngrid, vn_az(ig), az)
+
+      END DO GROUPS
 
       CALL cdf_write(ngrid, vn_mgmode, mgrid_mode)
       CALL cdf_write(ngrid, vn_coilcur, extcur(1:nextcur))
@@ -126,6 +141,7 @@ C-----------------------------------------------
       CALL cdf_close(ngrid)
 
       DEALLOCATE (vn_br, vn_bz, vn_bp)
+      DEALLOCATE (vn_ar, vn_az, vn_ap)
 
       END SUBROUTINE write_mgrid_nc
 #endif
@@ -173,6 +189,7 @@ C-----------------------------------------------
 
 
          WRITE (igrid, iostat=istat) br, bp, bz
+         WRITE (igrid, iostat=istat) ar, ap, az
 !        WRITE(igrid,'(1p,9e12.4)') (((br(i,j,k), bz(i,j,k),              !OLD STYLE
 !    1         bp(i,j,k), i=1,ir), j=1,jz),k=1,kp)
          IF (istat .ne. 0) STOP ' Error writing bfield components'
@@ -234,7 +251,7 @@ C-----------------------------------------------
       k = 1                     ! this is always a symmetry plane
       phi = (k-1)*delp
 
-!$omp parallel do private(zee, rad)
+!$omp parallel do private(i, j, zee, rad)
       DO j=1,jz2 + jz_odd
          zee = zmin + (j-1)*delz
          DO i=1,ir
@@ -247,13 +264,23 @@ C-----------------------------------------------
                bz(i,jz+1-j,k) =  bz(i,j,k)
                bp(i,jz+1-j,k) =  bp(i,j,k)
             END IF
+
+            CALL afield (rad, phi, zee, ar(i,j,k),
+     1                   ap(i,j,k), az(i,j,k), ig)
+
+            IF (lstell_sym) THEN
+               ar(i,jz+1-j,k) = -ar(i,j,k)
+               az(i,jz+1-j,k) =  az(i,j,k)
+               ap(i,jz+1-j,k) =  ap(i,j,k)
+            END IF
+
          END DO
       END DO
 !$omp end parallel do
-      IF (kp .ne. 1) 
+      IF (kp .ne. 1)
      1   WRITE (6, '(a,i4,a,i4,a)') ' K = ',k,' (OUT OF ',KP,')'
 
-!$omp parallel do private(zee, rad, phi)
+!$omp parallel do private(i, j, k, zee, rad, phi)
       DO k=2,kp2+kp_odd
          phi = (k-1)*delp
          DO j=1,jz
@@ -267,6 +294,14 @@ C-----------------------------------------------
                   bz(i,jz+1-j,kp+2-k) =  bz(i,j,k)
                   bp(i,jz+1-j,kp+2-k) =  bp(i,j,k)
                END IF
+
+               CALL afield (rad, phi, zee, ar(i,j,k),
+     1                      ap(i,j,k), az(i,j,k), ig)
+               IF (lstell_sym) THEN
+                  ar(i,jz+1-j,kp+2-k) = -ar(i,j,k)
+                  az(i,jz+1-j,kp+2-k) =  az(i,j,k)
+                  ap(i,jz+1-j,kp+2-k) =  ap(i,j,k)
+               END IF
             END DO
          END DO
          WRITE (6,'(a,i4)') ' K = ',k
@@ -276,7 +311,7 @@ C-----------------------------------------------
       IF ((kp_odd == 0) .and. lstell_sym) THEN       ! another symmetry plane
          k = kp2 + 1
          phi = (k-1)*delp
-!$omp parallel do private(zee, rad)
+!$omp parallel do private(i, j, zee, rad)
          DO j=1,jz2 + jz_odd
             zee = zmin + (j-1)*delz
             DO i=1,ir
@@ -286,6 +321,12 @@ C-----------------------------------------------
                br(i,jz+1-j,k) = -br(i,j,k)
                bz(i,jz+1-j,k) =  bz(i,j,k)
                bp(i,jz+1-j,k) =  bp(i,j,k)
+
+               CALL afield (rad, phi, zee, ar(i,j,k),
+     1                      ap(i,j,k), az(i,j,k), ig)
+               ar(i,jz+1-j,k) = -ar(i,j,k)
+               az(i,jz+1-j,k) =  az(i,j,k)
+               ap(i,jz+1-j,k) =  ap(i,j,k)
             END DO
          END DO
 !$omp end parallel do
@@ -307,7 +348,10 @@ C-----------------------------------------------
 !         extcur_ig_inv = 1. / MAX(extcur_ig, 1.E-100)
          br = br*extcur_ig_inv;  bp = bp*extcur_ig_inv; 
          bz = bz*extcur_ig_inv                                 ! "Scaled" fields
-!  JDH 2011-08-16. end addition 
+
+         ar = ar*extcur_ig_inv;  ap = ap*extcur_ig_inv;
+         az = az*extcur_ig_inv                                 ! "Scaled" fields
+!  JDH 2011-08-16. end addition
          IF (ig .lt. 10) WRITE (iextc, 210) ig, extcur_ig      ! currents for "scaled" mode
          IF (ig .ge. 10) WRITE (iextc, 215) ig, extcur_ig
       END IF

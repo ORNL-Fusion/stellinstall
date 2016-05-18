@@ -23,7 +23,9 @@ C-----------------------------------------------
      5    blam, clam, dlam, icurv, vpphi, presgrad, 
      6    r01, z01, bdamp, bucof, bvcof, chi
       REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: faclam, faclam0
-
+#if defined(SKS)
+      REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: pfaclam
+#endif
       REAL(rprec), ALLOCATABLE :: xcl0(:)
 
       REAL(rprec), DIMENSION(0:mpol1d,3) :: xmpq
@@ -46,7 +48,7 @@ C-----------------------------------------------
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: pperp_ns
       REAL(rprec) :: medge, phedg
 #endif
-      REAL(rprec) :: rbtor, rbtor0, ctor, delbsq, res0, res1, delt0r
+      REAL(rprec) :: rbtor, rbtor0, ctor, delbsq, res0, res1, delt0r   !DO NOT remove res0, delt0r -> V3FIT
       REAL(rprec), DIMENSION(ndatafmax) ::
      1  spfa, spfa2, hp, sifa, sifa2, hi
       LOGICAL :: lthreed, lconm1

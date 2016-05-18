@@ -55,18 +55,6 @@
          REAL(rprec), DIMENSION(:), POINTER :: vgrid => null()
       END TYPE limiter_iso
 
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref limiter_iso types using
-!>  @ref limiter_iso_construct_new or @ref limiter_iso_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE limiter_iso_construct
-         MODULE PROCEDURE limiter_iso_construct_new,                           &
-     &                    limiter_iso_construct_mpi
-      END INTERFACE
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -83,11 +71,11 @@
 !>  @param[in] vgrid Values of toroidal angle at which to compute s=1 surface.
 !>  @returns A pointer to a constructed @ref limiter_iso object.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_iso_construct_new(arz, rc, zc, numin, vgrid)
+      FUNCTION limiter_iso_construct(arz, rc, zc, numin, vgrid)
       IMPLICIT NONE
 
 !  Declare Arguments 
-      TYPE (limiter_iso), POINTER :: limiter_iso_construct_new
+      TYPE (limiter_iso), POINTER :: limiter_iso_construct
       REAL(rprec), DIMENSION(0:4,0:4), INTENT(in) :: arz
       REAL(rprec), INTENT(in)                     :: rc
       REAL(rprec), INTENT(in)                     :: zc
@@ -101,60 +89,17 @@
       start_time = profiler_get_start_time()
 
 !  First, destroy this
-      ALLOCATE(limiter_iso_construct_new)
+      ALLOCATE(limiter_iso_construct)
       
-      limiter_iso_construct_new%arz = arz
-      limiter_iso_construct_new%rc = rc
-      limiter_iso_construct_new%zc = zc
-      limiter_iso_construct_new%numin = numin
+      limiter_iso_construct%arz = arz
+      limiter_iso_construct%rc = rc
+      limiter_iso_construct%zc = zc
+      limiter_iso_construct%numin = numin
 
-      ALLOCATE(limiter_iso_construct_new%vgrid(SIZE(vgrid)))
-      limiter_iso_construct_new%vgrid = vgrid
+      ALLOCATE(limiter_iso_construct%vgrid(SIZE(vgrid)))
+      limiter_iso_construct%vgrid = vgrid
 
-      CALL profiler_set_stop_time('limiter_iso_construct_new',                 &
-     &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref limiter_iso object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref limiter_iso object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref limiter_iso object.
-!-------------------------------------------------------------------------------
-      FUNCTION limiter_iso_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_iso), POINTER :: limiter_iso_construct_mpi
-      INTEGER, INTENT(in)         :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                     :: error
-      INTEGER                     :: num_v
-
-!  Start of executable code
-      ALLOCATE(limiter_iso_construct_mpi)
-
-      CALL MPI_BCAST(limiter_iso_construct_mpi%arz, 25, MPI_REAL8, 0,          &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_iso_construct_mpi%rc, 1, MPI_REAL8, 0,            &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_iso_construct_mpi%zc, 1, MPI_REAL8, 0,            &
-     &               intra_comm, error)
-      CALL MPI_BCAST(limiter_iso_construct_mpi%numin, 1, MPI_INTEGER, 0,       &
-     &               intra_comm, error)
-
-      CALL MPI_BCAST(num_v, 1, MPI_INTEGER, 0, intra_comm, error)
-      ALLOCATE(limiter_iso_construct_mpi%vgrid(num_v))
-      CALL MPI_BCAST(limiter_iso_construct_mpi%vgrid, num_v, MPI_REAL8,        &
-     &               0, intra_comm, error)
-
-#endif
+      CALL profiler_set_stop_time('limiter_iso_construct', start_time)
 
       END FUNCTION
 
@@ -256,48 +201,5 @@
       CALL profiler_set_stop_time('limiter_iso_value', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref limiter_iso instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE limiter_iso_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (limiter_iso), INTENT(inout) :: this
-      INTEGER, INTENT(in)               :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                           :: error
-      INTEGER                           :: num_v
-      REAL (rprec)                      :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%arz, 25, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%rc, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%zc, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%numin, 1, MPI_INTEGER, 0, intra_comm, error)
-
-      num_v = SIZE(this%vgrid)
-      CALL MPI_BCAST(num_v, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%vgrid, num_v, MPI_REAL8, 0, intra_comm, error)
-
-      CALL profiler_set_stop_time('limiter_iso_value', start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE

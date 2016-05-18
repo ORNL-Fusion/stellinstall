@@ -330,14 +330,19 @@
 !>  @ref model or the @ref equilibrium. This version is used to construct
 !>  locking parameters.
 !>
-!>  @param[in] a_model    An instance of a @ref model object.
-!>  @param[in] param_name The name of the parameter.
-!>  @param[in] indices    The array indices of the parameter.
-!>  @param[in] sets       Array of parameters to lock to.
+!>  @param[in] a_model     An instance of a @ref model object.
+!>  @param[in] param_name  The name of the parameter.
+!>  @param[in] indices     The array indices of the parameter.
+!>  @param[in] sets        Array of parameters to lock to.
+!>  @param[in] set_indices Array of parameters indices for parameters to lock
+!>                         to.
+!>  @param[in] set_coeff   Coefficients for the parameters to lock to.
+!>  @param[in] eq_comm MPI communicator for the child equilibrium processes.
 !>  @returns A pointer to a constructed @ref param_class object.
 !-------------------------------------------------------------------------------
       FUNCTION param_construct_locking(a_model, param_name, indices,           &
-     &                                 set, set_indices, set_coeff)
+     &                                 set, set_indices, set_coeff,            &
+     &                                 eq_comm)
       USE v3_utilities
 
       IMPLICIT NONE
@@ -350,6 +355,7 @@
       CHARACTER (len=*), DIMENSION(:), INTENT(in) :: set
       INTEGER, DIMENSION(:,:), INTENT(in)    :: set_indices
       REAL (rprec), DIMENSION(:), INTENT(in) :: set_coeff
+      INTEGER, INTENT(in)                    :: eq_comm
 
 !  local variables
       INTEGER                                :: i
@@ -384,7 +390,8 @@
       param_construct_locking%correlation = set_coeff
 
 !  Set the inital value of the locked parameter.
-      CALL param_set_lock_value(param_construct_locking, a_model)
+      CALL param_set_lock_value(param_construct_locking, a_model,              &
+     &                          eq_comm)
 
       CALL profiler_set_stop_time('param_construct_locking', start_time)
 
@@ -461,8 +468,9 @@
 !>  @param[in]    this    A @ref param_class instance.
 !>  @param[inout] a_model A @ref model instance.
 !>  @param[in]    value   The value to set the parameter to.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_set_value(this, a_model, value)
+      SUBROUTINE param_set_value(this, a_model, value, eq_comm)
 
       IMPLICIT NONE
 
@@ -470,6 +478,7 @@
       TYPE (param_class), INTENT(in)    :: this
       TYPE (model_class), INTENT(inout) :: a_model
       REAL (rprec), INTENT(in)          :: value
+      INTEGER, INTENT(in)               :: eq_comm
 
 !  Local variables
       REAL (rprec)                      :: set_value
@@ -489,7 +498,8 @@
 
          IF (set_value .lt. lower_value) THEN
             CALL model_set_param(a_model, this%param_id,                       &
-     &              this%indices(1), this%indices(2), lower_value)
+     &                           this%indices(1), this%indices(2),             &
+     &                           lower_value, eq_comm)
             set_value = lower_value
 
             CALL profiler_set_stop_time('profiler_get_start_time',             &
@@ -505,7 +515,8 @@
 
          IF (set_value .gt. upper_value) THEN
             CALL model_set_param(a_model, this%param_id,                       &
-     &              this%indices(1), this%indices(2), upper_value)
+     &                           this%indices(1), this%indices(2),             &
+     &                           upper_value, eq_comm)
             set_value = upper_value
 
             CALL profiler_set_stop_time('profiler_get_start_time',             &
@@ -517,7 +528,7 @@
 !  The value is in range. Set the value to this.
       CALL model_set_param(a_model, this%param_id,                             &
      &                     this%indices(1), this%indices(2),                   &
-     &                     set_value)
+     &                     set_value, eq_comm)
 
       CALL profiler_set_stop_time('profiler_get_start_time', start_time)
 
@@ -531,14 +542,16 @@
 !>
 !>  @param[in]    this    A @ref param_class instance.
 !>  @param[inout] a_model A @ref model instance.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_set_lock_value(this, a_model)
+      SUBROUTINE param_set_lock_value(this, a_model, eq_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(in)    :: this
       TYPE (model_class), INTENT(inout) :: a_model
+      INTEGER, INTENT(in)               :: eq_comm
 
 !  Local variables
       INTEGER                           :: i
@@ -565,7 +578,8 @@
 !  Only update the lock value if that value changed.
       IF (inital_value .ne. temp) THEN
          CALL model_set_param(a_model, this%param_id,                          &
-     &                        this%indices(1), this%indices(2), temp)
+     &                        this%indices(1), this%indices(2),                &
+     &                        temp, eq_comm)
       END iF
 
       CALL profiler_set_stop_time('param_set_lock_value', start_time)
@@ -911,8 +925,9 @@
 !>
 !>  @param[in] this    A @ref param_class instance.
 !>  @param[in] a_model A @ref model instance.
+!>  @param[in] eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_increment(this, a_model)
+      SUBROUTINE param_increment(this, a_model, eq_comm)
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
@@ -920,6 +935,7 @@
 !  Declare Arguments
       TYPE (param_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout) :: a_model
+      INTEGER, INTENT(in)               :: eq_comm
 
 !  local variables
       REAL (rprec)                      :: new_value
@@ -950,7 +966,7 @@
          IF (param_is_in_upper_range(this, a_model, new_value)) THEN
             CALL model_set_param(a_model, this%param_id,                       &
      &                           this%indices(1), this%indices(2),             &
-     &                           new_value)
+     &                           new_value, eq_comm)
 !  Store the actual change in value.
             this%recon%delta = step
             RETURN
@@ -961,7 +977,7 @@
          IF (param_is_in_lower_range(this, a_model, new_value)) THEN
             CALL model_set_param(a_model, this%param_id,                       &
      &                           this%indices(1), this%indices(2),             &
-     &                           new_value)
+     &                           new_value, eq_comm)
 !  Store the actual change in value.
             this%recon%delta = -step
             RETURN
@@ -1311,16 +1327,18 @@
 !>
 !>  @param[inout] this       A @ref param_class instance.
 !>  @param[inout] a_model    A @ref model instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[in]    recon_comm A MPI intra_comm handle.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_sync_value(this, a_model, intra_comm)
+      SUBROUTINE param_sync_value(this, a_model, recon_comm, eq_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout) :: a_model
-      INTEGER, INTENT(in)               :: intra_comm
+      INTEGER, INTENT(in)               :: recon_comm
+      INTEGER, INTENT(in)               :: eq_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -1332,16 +1350,16 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
       IF (mpi_rank .eq. 0) THEN
          value = param_get_value(this, a_model)
       END IF
 
-      CALL MPI_BCAST(value, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(value, 1, MPI_REAL8, 0, recon_comm, error)
 
       IF (mpi_rank .gt. 0) THEN
-         CALL param_set_value(this, a_model, value)
+         CALL param_set_value(this, a_model, value, eq_comm)
       END IF
 
       CALL profiler_set_stop_time('param_sync_value', start_time)
@@ -1360,14 +1378,14 @@
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[in]    intra_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_send_delta(this, index, intra_comm)
+      SUBROUTINE param_send_delta(this, index, recon_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(inout) :: this
       INTEGER, INTENT(in)               :: index
-      INTEGER, INTENT(in)               :: intra_comm
+      INTEGER, INTENT(in)               :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -1379,13 +1397,13 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_COMM_SIZE(intra_comm, mpi_size, error)
+      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
 
 !  Must use a non blocking send here because we are sending messages from the
 !  main process to itself or need to send multiple sends before the first
 !  recieve. Other wise it could block until a recieve request is called.
       CALL MPI_ISEND(this%recon%delta, 1, MPI_REAL8, 0, index,                 &
-     &               intra_comm, mpi_request, error)
+     &               recon_comm, mpi_request, error)
 
       CALL profiler_set_stop_time('param_send_delta', start_time)
 #endif
@@ -1402,14 +1420,14 @@
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[in]    intra_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_recv_delta(this, index, intra_comm)
+      SUBROUTINE param_recv_delta(this, index, recon_comm)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (param_class), INTENT(inout)   :: this
       INTEGER, INTENT(in)                 :: index
-      INTEGER, INTENT(in)                 :: intra_comm
+      INTEGER, INTENT(in)                 :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -1421,7 +1439,7 @@
       start_time = profiler_get_start_time()
 
       CALL MPI_RECV(this%recon%delta, 1, MPI_REAL8, MPI_ANY_SOURCE,            &
-     &              index, intra_comm, status, error)
+     &              index, recon_comm, status, error)
 
       CALL profiler_set_stop_time('param_recv_delta', start_time)
 

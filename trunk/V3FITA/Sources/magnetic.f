@@ -12,7 +12,6 @@
 
       MODULE magnetic
       USE stel_kinds, only: rprec
-      USE data_parameters
       USE magnetic_response
       USE profiler
 
@@ -51,13 +50,9 @@
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref magnetic_class types using
 !>  @ref magnetic_construct_netcdf
-!>
-!>  @note @ref magnetic_construct_mpi cannot be included since netcdf handel and
-!>  mpi comm have the dsame base type. Keep magnetic_construct for style.
 !-------------------------------------------------------------------------------
       INTERFACE magnetic_construct
-         MODULE PROCEDURE magnetic_construct_netcdf,                           &
-     &                    magnetic_construct_mpi
+         MODULE PROCEDURE magnetic_construct_netcdf
       END INTERFACE
 
       CONTAINS
@@ -139,38 +134,6 @@
 
       CALL profiler_set_stop_time('magnetic_construct_netcdf',                 &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref magnetic_class by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref equilibrium_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref magnetic_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION magnetic_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (magnetic_class), POINTER :: magnetic_construct_mpi
-      INTEGER, INTENT(in)            :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                        :: error
-      INTEGER                        :: total_length
-
-!  Start of executable code
-      ALLOCATE(magnetic_construct_mpi)
-
-      CALL MPI_BCAST(magnetic_construct_mpi%control_flags, 1,                  &
-     &               MPI_INTEGER, 0, intra_comm, error)
-      magnetic_construct_mpi%response =>                                       &
-     &   magnetic_response_construct_mpi(intra_comm)
-#endif
 
       END FUNCTION
 
@@ -744,44 +707,5 @@
       CALL profiler_set_stop_time('magnetic_get_header', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref magnetic_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE magnetic_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (magnetic_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                  :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                              :: error
-      INTEGER, DIMENSION(3)                :: dim_lengths
-      INTEGER                              :: total_length
-      REAL (rprec)                         :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%control_flags, 1, MPI_INTEGER, 0, intra_comm,        &
-     &               error)
-      CALL magnetic_response_sync_children(this%response, intra_comm)
-
-      CALL profiler_set_stop_time('magnetic_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE

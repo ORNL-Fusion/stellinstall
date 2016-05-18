@@ -1,7 +1,103 @@
+#if defined(SKS)      
+      SUBROUTINE add_fluxes_par(overg, bsupu, bsupv, lcurrent)
+      USE vmec_main
+      USE realspace, ONLY: pwint, pguu, pguv, pchip, pphip
+      USE precon2d, ONLY: ictrl_prec2d
+      USE vmec_input, ONLY: nzeta
+      USE vmec_dim, ONLY: ntheta3
+      USE parallel_include_module
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(rprec), DIMENSION(nznt,ns), INTENT(in)    :: overg
+      REAL(rprec), DIMENSION(nznt,ns), INTENT(inout) :: bsupu, bsupv
+      LOGICAL, INTENT(in) :: lcurrent
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+      REAL(rprec), PARAMETER :: p5=0.5_dp, c1p5=1.5_dp
+      REAL(rprec), PARAMETER :: iotaped = 0.10
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER :: js, l
+      REAL(rprec) :: top, bot
+
+      INTEGER :: i, j, k, nsmin, nsmax, lnsnum, istat
+!-----------------------------------------------
+!
+!     ADD MAGNETIC FLUX (CHIP, PHIP) TERMS TO BSUPU=-OVERG*LAM_V, BSUPV=OVERG*LAM_U
+!     COMPUTE FLUX FROM ITOR = <B_u>, ITOR(s) = integrated toroidal current (icurv)
+!     IF ncurr == 1
+!
+
+      IF (.not.lcurrent .or. ncurr.eq.0) GOTO 100
+
+      nsmin=MAX(2,t2lglob); nsmax=t2rglob
+      DO js = nsmin, nsmax
+        top = icurv(js)
+        bot = 0
+        DO j=1,nznt
+          top = top - pwint(j,js)*(pguu(j,js)*bsupu(j,js) &
+            + pguv(j,js)*bsupv(j,js))
+          bot = bot + pwint(j,js)*overg(j,js)*pguu(j,js)
+        END DO
+        IF (bot.ne.zero) chips(js) = top/bot
+        IF (phips(js).ne.zero)  iotas(js) = chips(js)/phips(js)
+      END DO
+
+ 100  CONTINUE
+
+      nsmin=MAX(2,t2lglob); nsmax=t2rglob
+!     CHANGE THIS FOR lRFP = T  (solve for phips?)
+      IF (ncurr .eq. 0) THEN
+         chips(nsmin:nsmax) = iotas(nsmin:nsmax)*phips(nsmin:nsmax)
+      ELSE IF (.not.lcurrent) THEN
+         WHERE (phips(nsmin:nsmax) .ne. zero) &
+           iotas(nsmin:nsmax) = chips(nsmin:nsmax)/phips(nsmin:nsmax)
+      END IF
+
+      DO js = nsmin, nsmax
+         pchip(:,js) = chips(js)
+      END DO
+
+      nsmin=MAX(2,t2lglob); nsmax=MIN(ns-1,t1rglob)
+      chipf(1)     = c1p5*chips(2) - p5*chips(3)                       !SPH ADDED THIS 4-8-16 (only valid on 1st proc)
+      chipf(nsmin:nsmax) = (chips(nsmin:nsmax) + chips(nsmin+1:nsmax+1))/2
+      chipf(ns)    = c1p5*chips(ns)- p5*chips(ns-1)
+
+!     Do not compute iota too near origin
+      IF (lrfp) THEN
+!SKS_SPH011116: broad cast needed from 2,3?
+         iotaf(1)  = one/(c1p5/iotas(2) - p5/iotas(3))
+         iotaf(ns) = one/(c1p5/iotas(ns) - p5/iotas(ns-1))
+         DO js = MAX(2,t2lglob), MIN(ns-1,t1rglob)
+            iotaf(js) = 2.0_dp/(one/iotas(js) + one/iotas(js+1))
+         END DO
+      ELSE
+         iotaf(1)  = c1p5*iotas(2) - p5*iotas(3)               !zero gradient near axis
+         iotaf(ns) = c1p5*iotas(ns) - p5*iotas(ns-1)
+         DO js = MAX(2,t2lglob), MIN(ns-1,t1rglob)
+            iotaf(js) = p5*(iotas(js) + iotas(js+1))
+         END DO
+      END IF
+
+      nsmin=t2lglob; nsmax=t1rglob
+      bsupu(:,nsmin:nsmax) = bsupu(:,nsmin:nsmax)+pchip(:,nsmin:nsmax)*overg(:,nsmin:nsmax)
+
+      END SUBROUTINE add_fluxes_par
+#endif
+
       SUBROUTINE add_fluxes(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
-      USE realspace, ONLY: wint, guu, guv, chip, phip, sigma_an 
+      USE realspace, ONLY: wint, guu, guv, chip, phip
       USE precon2d, ONLY: ictrl_prec2d
+#if defined(SKS)      
+      USE vmec_input, ONLY: nzeta
+      USE vmec_dim, ONLY: ntheta3
+      USE parallel_include_module
+#endif
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -17,9 +113,11 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: js, l, ub, lb
-      REAL(rprec), DIMENSION(2:ns) :: top, bot
-      REAL(rprec) :: tops, bots
+      INTEGER :: js, l
+      REAL(rprec) :: top, bot
+#if defined(SKS)      
+      INTEGER :: i, j, k, nsmin, nsmax, lnsnum, istat
+#endif      
 !-----------------------------------------------
 !
 !     ADD MAGNETIC FLUX (CHIP, PHIP) TERMS TO BSUPU=-OVERG*LAM_V, BSUPV=OVERG*LAM_U
@@ -28,31 +126,18 @@
 !
       IF (.not.lcurrent .or. ncurr.eq.0) GOTO 100
 
-      top = icurv(2:ns)
-      bot = 0
-!$OMP PARALLEL NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) 
-!$OMP DO PRIVATE(js,lb) 
+!      nsmin=MAX(2,tlglob); nsmax=trglob
+
       DO js = 2, ns
-         DO l=1,nznt
-         lb=js+ns*(l-1)
-!         ub=ns*l
-#ifdef _ANIMEC
-         top(js) = top(js)-wint(lb)*(guu(lb)*bsupu(lb)                &
-                               +guv(lb)*bsupv(lb))*sigma_an(lb)
-         bot(js) = bot(js) + wint(lb)*sigma_an(lb)*overg(lb)*guu(lb)
-#else
-         top(js) = top(js) - wint(lb)*(guu(lb)*bsupu(lb)              &
-             +                  guv(lb)*bsupv(lb))
-         bot(js) = bot(js) + wint(lb)*overg(lb)*guu(lb)
-#endif
+         top = icurv(js)
+         bot = 0
+         DO l = js, nrzt, ns
+            top = top - wint(l)*(guu(l)*bsupu(l) + guv(l)*bsupv(l))
+            bot = bot + wint(l)*overg(l)*guu(l)
          END DO
+         IF (bot .ne. zero) chips(js) = top/bot
+         IF (phips(js) .ne. zero) iotas(js) = chips(js)/phips(js)
       END DO
-!$OMP END DO
-!$OMP WORKSHARE
-      WHERE (bot .ne. zero) chips(2:ns) = top/bot
-      WHERE (phips(2:ns) .ne. zero) iotas(2:ns) = chips(2:ns)/phips(2:ns)
-!$OMP END WORKSHARE
-!$OMP END PARALLEL
 
  100  CONTINUE
 
@@ -62,7 +147,6 @@
       ELSE IF (.not.lcurrent) THEN
          WHERE (phips .ne. zero) iotas = chips/phips
       END IF
-!!      IF (.not.lcurrent) chips = iotas*phips
 
       DO js = 2, ns
          chip(js:nrzt:ns) = chips(js)
@@ -71,7 +155,6 @@
       chipf(1)     = c1p5*chips(2) - p5*chips(3)                       !SPH ADDED THIS 4-8-16
       chipf(2:ns1) = (chips(2:ns1) + chips(3:ns1+1))/2
       chipf(ns)    = c1p5*chips(ns)- p5*chips(ns1)                     !SPH FIXED THIS 4-8-16
-
 
 !     Do not compute iota too near origin
       IF (lrfp) THEN
@@ -89,14 +172,6 @@
          END DO
       END IF
 
-!$OMP PARALLEL DO NUM_THREADS(OMP_NUM_THREADS) DEFAULT(SHARED) &
-!$OMP PRIVATE(l,lb,ub)
-      DO l=1,nznt
-         lb=ns*(l-1)+1
-         ub=ns*l
-         chip(lb+1:ub) = chips(2:ns)
-         bsupu(lb:ub) = bsupu(lb:ub)+chip(lb:ub)*overg(lb:ub)
-      END DO
-!$OMP END PARALLEL DO
+      bsupu(:nrzt) = bsupu(:nrzt)+chip(:nrzt)*overg(:nrzt)
 
       END SUBROUTINE add_fluxes

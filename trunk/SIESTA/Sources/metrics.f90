@@ -8,7 +8,8 @@
       USE island_params
       USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor, &
           rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,            &
-          xm_vmec=>xm, xn_vmec=>xn, iotaf_vmec=>iotaf,                  &
+!          xm_vmec=>xm, xn_vmec=>xn, iotaf_vmec=>iotaf,                  &
+          xm_vmec=>xm, xn_vmec=>xn, chipf_vmec=>chipf,                  &
           phipf_vmec=>phipf, presf_vmec=>presf, nfp_vmec=>nfp,          &
           wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,                  &
           volume_vmec=>volume
@@ -151,7 +152,8 @@
 !     EVENTUALLY, WE SHOULD UPDATE WOUT TO WRITE OUT CHIPF. FOR NOW, WE COMPUTE IT
 !     AND STORE IT IN IOTAF_VMEC
 !
-      iotaf_vmec = iotaf_vmec*phipf_vmec
+!      iotaf_vmec = iotaf_vmec*phipf_vmec
+
 !
 !     SPLINE R, Z. L FOURIER COMPONENTS in s FROM ORIGINAL VMEC MESH (s ~ phi, ns_vmec points) 
 !     TO A "POLAR" MESH [s ~ sqrt(phi), ns_i POINTS] WITH BETTER AXIS RESOLUTION
@@ -211,7 +213,7 @@
 #if defined(SKS) 
       CALL second0(skston)
 #endif
-      CALL Spline_OneD_Array (iotaf_vmec, chipf_i, istat)
+      CALL Spline_OneD_Array (chipf_vmec, chipf_i, istat)
       CALL Spline_OneD_Array (phipf_vmec, phipf_i, istat)
       presf_vmec = mu0 * presf_vmec
       CALL Spline_OneD_Array (presf_vmec, presf_i, istat)

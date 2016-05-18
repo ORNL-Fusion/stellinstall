@@ -35,15 +35,6 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref vertex types using
-!>  @ref path_construct_new or @ref path_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE path_construct
-         MODULE PROCEDURE path_construct_new,                                  &
-     &                    path_construct_mpi
-      END INTERFACE
-
-!-------------------------------------------------------------------------------
 !>  Interface for checking the results of the unit tests
 !-------------------------------------------------------------------------------
       INTERFACE check
@@ -53,7 +44,7 @@
       PUBLIC :: path_construct, path_append_vertex, path_destruct,             &
      &          path_test, path_integrate
       PRIVATE :: check, check_real, check_log, check_int,                      &
-     &           integrate, test_function
+     &           integrate, search, test_function
 
       CONTAINS
 
@@ -68,56 +59,18 @@
 !>  @param[in] position Cartesian position of the vertex object.
 !>  @returns A pointer to a constructed @ref vertex object.
 !-------------------------------------------------------------------------------
-      FUNCTION path_construct_new(position)
+      FUNCTION path_construct(position)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vertex), POINTER                 :: path_construct_new
+      TYPE (vertex), POINTER                 :: path_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: position
 
 !  Start of executable code
-      ALLOCATE(path_construct_new)
+      ALLOCATE(path_construct)
 
-      path_construct_new%position = position
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref vertex object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref vertex object. This gets called
-!>  recursively until the last object is reached.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref vertex object.
-!-------------------------------------------------------------------------------
-      RECURSIVE FUNCTION path_construct_mpi(intra_comm)                        &
-     &   RESULT(new_vertex)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vertex), POINTER :: new_vertex
-      INTEGER, INTENT(in)    :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                :: error
-      LOGICAL                :: next
-
-!  Start of executable code
-      ALLOCATE(new_vertex)
-
-      CALL MPI_BCAST(next, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (next) THEN
-         new_vertex%next => path_construct_mpi(intra_comm)
-      END IF
-
-      CALL MPI_BCAST(new_vertex%position, 3, MPI_REAL8, 0, intra_comm,         &
-     &               error)
-
-#endif
+      path_construct%position = position
 
       END FUNCTION
 
@@ -196,7 +149,7 @@
 !>                                     integrand.
 !>  @param[in]    context              Generic object that contains data for the
 !>                                     integration function.
-!>  The total integrated path to the end.
+!>  @returns The total integrated path to the end.
 !-------------------------------------------------------------------------------
       RECURSIVE FUNCTION path_integrate(this, integration_function,            &
      &                                  context) RESULT(total)
@@ -230,43 +183,52 @@
 
       END FUNCTION
 
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
+!>  @brief Search along the path.
 !>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
+!>  Recursively runs through the next vertex to find the last vertex. Once the
+!>  last vertex is found, a new vertex is allocated and appended to the path.
+!>  The integrand is proveded by means of call back function.
 !>
-!>  @param[inout] this       A @ref vertex instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[inout] this            Starting vertex to begin search.
+!>  @param        search_function Function pointer that defines the search
+!>                                criteria.
+!>  @param[in]    context         Generic object that contains data for the
+!>                                integration function.
+!>  @param[out]   found           Signals if the condition was met.
+!>  @returns The vertex position along the path where the search condition was
+!>           found.
 !-------------------------------------------------------------------------------
-      RECURSIVE SUBROUTINE path_sync_children(this, intra_comm)
+      RECURSIVE FUNCTION path_search(this, search_function, context,           &
+     &                               found) RESULT(xcart)
 
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (vertex), INTENT(inout) :: this
-      INTEGER, INTENT(in)          :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                      :: error
-      LOGICAL                      :: next
+      REAL (rprec), DIMENSION(3)    :: xcart
+      TYPE (vertex), INTENT(inout)  :: this
+      CHARACTER (len=1), INTENT(in) :: context(:)
+      LOGICAL, INTENT(out)          :: found
+      INTERFACE
+         FUNCTION search_function(context, xcart1, xcart2)
+         USE stel_kinds
+         LOGICAL                                :: search_function
+         CHARACTER (len=1), INTENT(in)          :: context(:)
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart1
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart2
+         END FUNCTION
+      END INTERFACE
 
 !  Start of executable code
-      next = ASSOCIATED(this%next)
-      CALL MPI_BCAST(next, 1, MPI_LOGICAL, 0, intra_comm, error)
-      IF (next) THEN
-         CALL path_sync_children(this%next, intra_comm)
+      found = .false.
+
+      IF (ASSOCIATED(this%next)) THEN
+         found = search(context, this, this%next, search_function,             &
+     &                  xcart)
+         IF (.not.found) THEN
+            xcart = path_search(this%next, search_function, context,           &
+     &                          found)
+         END IF
       END IF
 
-      CALL MPI_BCAST(this%position, 3, MPI_REAL8, 0, intra_comm, error)
-
-#endif
-
-      END SUBROUTINE
+      END FUNCTION
 
 !*******************************************************************************
 !  PRIVATE
@@ -339,6 +301,86 @@
      &             + integration_function(context, xcart, dxcart,              &
      &                                    length, dx)
       ENDDO
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Search line between to points.
+!>
+!>  This divides the straight line path defined by two vertices and searched for
+!>  a condition. The search criteria is proveded by means of call back function.
+!>
+!>  @param[in] context          Generic object that contains data for the search
+!>                              function.
+!>  @param[in]  vertex1         Starting point.
+!>  @param[in]  vertex2         Ending point.
+!>  @param      search_function Function pointer that defines the search
+!>                              criteria.
+!>  @param[out] xcart           Point where the search criteria was found.
+!>  @returns True if the criteria was met between vertex1 and vertex2.
+!-------------------------------------------------------------------------------
+      FUNCTION search(context, vertex1, vertex2, search_function, xcart)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                                 :: search
+      CHARACTER(len=1), INTENT(in)            :: context(:)
+      TYPE (vertex), INTENT(in)               :: vertex1
+      TYPE (vertex), INTENT(in)               :: vertex2
+      REAL (rprec), DIMENSION(3), INTENT(out) :: xcart
+      INTERFACE
+         FUNCTION search_function(context, xcart1, xcart2)
+         USE stel_kinds
+         LOGICAL                                :: search_function
+         CHARACTER (len=1), INTENT(in)          :: context(:)
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart1
+         REAL (rprec), DIMENSION(3), INTENT(in) :: xcart2
+         END FUNCTION
+      END INTERFACE
+
+!  local variables
+      REAL (rprec), DIMENSION(3) :: dxcart
+      REAL (rprec)               :: dx
+      INTEGER                    :: i, nsteps
+
+!  local parameters
+      REAL(rprec), PARAMETER     :: dxCourse = 0.01
+      REAL(rprec), PARAMETER     :: dxFine = 1.0E-20
+
+!  Start of executable code
+!  Determine the number of integration steps to take by dividing the path length
+!  by the step length and rounding to the nearest integer.
+      dxcart = vertex2%position - vertex1%position
+      nsteps = INT(SQRT(DOT_PRODUCT(dxcart, dxcart))/dxCourse)
+
+!  Choose the actual step size.
+      dxcart = dxcart/nsteps
+
+      search = .false.
+      xcart = vertex1%position
+
+!  Linearly search the line until an interval containing the point is detected.
+      DO i = 1, nsteps
+         search = search_function(context, xcart, xcart + dxcart)
+         IF (search) THEN
+
+!  Found an interval. Bisect the interval until the length is machine precision.
+            DO WHILE (SQRT(DOT_PRODUCT(dxcart, dxcart)) .gt. dxFine)
+               dxcart = dxcart/2.0
+               IF (.not.search_function(context, xcart,                        &
+     &                                  xcart + dxcart)) THEN
+                  xcart = xcart + dxcart
+               END IF
+            END DO
+
+            xcart = xcart + dxcart/2.0
+            RETURN
+
+         END IF
+
+         xcart = xcart + dxcart
+      END DO
 
       END FUNCTION
 

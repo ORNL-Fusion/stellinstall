@@ -56,8 +56,7 @@
 !>  @ref geometric_construct_limiter
 !-------------------------------------------------------------------------------
       INTERFACE geometric_construct
-         MODULE PROCEDURE geometric_construct_limiter,                         &
-     &                    geometric_construct_mpi
+         MODULE PROCEDURE geometric_construct_limiter
       END INTERFACE
 
       CONTAINS
@@ -94,44 +93,6 @@
 
       CALL profiler_set_stop_time('geometric_construct_limiter',               &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref geometric_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref geometric_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref geometric_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION geometric_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (geometric_class), POINTER :: geometric_construct_mpi
-      INTEGER, INTENT(in)             :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                         :: error
-
-!  Start of executable code
-      ALLOCATE(geometric_construct_mpi)
-
-      CALL MPI_BCAST(geometric_construct_mpi%type, 1, MPI_INTEGER, 0,          &
-     &               intra_comm, error)
-
-      SELECT CASE (geometric_construct_mpi%type)
-
-         CASE (geometric_limiter_type)
-            geometric_construct_mpi%limiter =>                                 &
-     &         limiter_construct(intra_comm)
-
-      END SELECT
-
-#endif
 
       END FUNCTION
 
@@ -292,47 +253,5 @@
       CALL profiler_set_stop_time('geometric_get_header', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref geometric_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE geometric_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (geometric_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                   :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                               :: error
-      REAL (rprec)                          :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (geometric_limiter_type)
-            CALL limiter_sync_children(this%limiter, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('geometric_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE

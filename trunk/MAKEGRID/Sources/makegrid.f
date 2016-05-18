@@ -559,7 +559,8 @@
 
       ALLOCATE (br(ir,jz,kp), bz(ir,jz,kp), bp(ir,jz,kp), stat=istat)
       IF (istat .ne. 0) STOP ' allocation error in xgrid'
-
+      ALLOCATE (ar(ir,jz,kp), az(ir,jz,kp), ap(ir,jz,kp), stat=istat)
+      IF (istat .ne. 0) STOP ' allocation error in xgrid'
 
       IF (lstell_sym) THEN
          kp2 = kp/2;  jz2 = jz/2
@@ -671,6 +672,7 @@
       CALL cleanup_biotsavart
 
       DEALLOCATE (br, bp, bz)
+      DEALLOCATE (ar, ap, az)
 
       IF (mgrid_mode .eq. 'R') THEN
          WRITE (6, 205)
@@ -775,7 +777,8 @@
 
       ALLOCATE (br(ir,jz,kp), bz(ir,jz,kp), bp(ir,jz,kp), stat=istat)
       IF (istat .ne. 0) STOP ' allocation error in xgrid'
-
+      ALLOCATE (ar(ir,jz,kp), az(ir,jz,kp), ap(ir,jz,kp), stat=istat)
+      IF (istat .ne. 0) STOP ' allocation error in xgrid'
 
       IF (lstell_sym) THEN
          kp2 = kp/2;  jz2 = jz/2
@@ -956,6 +959,7 @@
       CALL cleanup_biotsavart
 
       DEALLOCATE (br, bp, bz)
+      DEALLOCATE (ar, ap, az)
 
       IF (mgrid_mode .eq. 'R') THEN
          WRITE (6, 205)

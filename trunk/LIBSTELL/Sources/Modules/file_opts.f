@@ -15,6 +15,12 @@
 
       IMPLICIT NONE
 
+!*******************************************************************************
+!  file_opts module parameters
+!*******************************************************************************
+!>  Length of file paths.
+      INTEGER, PARAMETER :: path_length = 300
+
       CONTAINS
 
 !-------------------------------------------------------------------------------
@@ -237,7 +243,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=300)           :: get_path_of_file
+      CHARACTER (len=path_length)   :: get_path_of_file
       CHARACTER (len=*), INTENT(in) :: file
 
 !  Start of executable code
@@ -265,7 +271,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=300)           :: build_path
+      CHARACTER (len=path_length)   :: build_path
       CHARACTER (len=*), INTENT(in) :: path
       CHARACTER (len=*), INTENT(in) :: name
 
@@ -276,9 +282,9 @@
       END IF
 
 #if defined(WIN32)
-      build_path = TRIM(path) // '\' // name
+      build_path = TRIM(path) // '\' // TRIM(name)
 #else
-      build_path = TRIM(path) // '/' // name
+      build_path = TRIM(path) // '/' // TRIM(name)
 #endif
 
       END FUNCTION

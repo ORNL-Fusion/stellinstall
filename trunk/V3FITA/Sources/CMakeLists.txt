@@ -6,6 +6,8 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/geometric.f
 	${CMAKE_CURRENT_SOURCE_DIR}/intpol.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ipch_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ece_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ece.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_grid.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_iso_T.f

@@ -162,7 +162,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_filename_length), INTENT(in)   :: mse_file
+      CHARACTER (len=path_length), INTENT(in)            :: mse_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created
       REAL (rprec), DIMENSION(:), INTENT(in)             :: observed

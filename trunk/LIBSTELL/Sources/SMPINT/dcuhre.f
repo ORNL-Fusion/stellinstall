@@ -2377,6 +2377,8 @@ C    with greatest estimated error from the heap.
 C
       IF (DVFLAG.EQ.1) THEN
           SBRGNS = SBRGNS - 1
+!SPH110-20-14
+          SBRGNS = MAX(SBRGNS,1)
           SUBRGN = 1
 20        SUBTMP = 2*SUBRGN
           IF (SUBTMP.LE.SBRGNS) THEN

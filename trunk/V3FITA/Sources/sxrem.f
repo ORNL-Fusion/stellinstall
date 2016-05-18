@@ -21,6 +21,7 @@
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) sxrem base class
+!  2) sxrem context
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
@@ -50,15 +51,6 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref sxrem_class types using
-!>  @ref sxrem_construct_new or @ref sxrem_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE sxrem_construct
-         MODULE PROCEDURE sxrem_construct_new,                                 &
-     &                    sxrem_construct_mpi
-      END INTERFACE
-
       PRIVATE :: sxr_function
 
       CONTAINS
@@ -70,18 +62,19 @@
 !>
 !>  Allocates memory and initializes a @ref sxrem_class object.
 !>
-!>  @param[in] start_path Starting point of a sxrem chord.
-!>  @param[in] end_path   Ending point of a sxrem chord.
-!>  @param[in] geo        Geometric factor of the chord.
+!>  @param[in] start_path     Starting point of a sxrem chord.
+!>  @param[in] end_path       Ending point of a sxrem chord.
+!>  @param[in] geo            Geometric factor of the chord.
+!>  @param[in] profile_number Index of the soft x-ray emissivity profile.
 !>  @returns A pointer to a constructed @ref sxrem_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct_new(start_path, end_path, geo,                  &
-     &                             profile_number)
+      FUNCTION sxrem_construct(start_path, end_path, geo,                      &
+     &                         profile_number)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (sxrem_class), POINTER            :: sxrem_construct_new
+      TYPE (sxrem_class), POINTER            :: sxrem_construct
       REAL (rprec), DIMENSION(3), INTENT(in) :: start_path
       REAL (rprec), DIMENSION(3), INTENT(in) :: end_path
       REAL (rprec), INTENT(in)               :: geo
@@ -93,50 +86,15 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(sxrem_construct_new)
+      ALLOCATE(sxrem_construct)
 
-      CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
-     &                        start_path)
-      CALL path_append_vertex(sxrem_construct_new%chord_path,                  &
-     &                        end_path)
+      CALL path_append_vertex(sxrem_construct%chord_path, start_path)
+      CALL path_append_vertex(sxrem_construct%chord_path, end_path)
 
-      sxrem_construct_new%geo = geo
-      sxrem_construct_new%profile_number = profile_number
+      sxrem_construct%geo = geo
+      sxrem_construct%profile_number = profile_number
 
-      CALL profiler_set_stop_time('sxrem_construct_new', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref sxrem_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref sxrem_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref sxrem_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION sxrem_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (sxrem_class), POINTER :: sxrem_construct_mpi
-      INTEGER, INTENT(in)         :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                     :: error
-
-!  Start of executable code
-      ALLOCATE(sxrem_construct_mpi)
-
-      sxrem_construct_mpi%chord_path => path_construct(intra_comm)
-      CALL MPI_BCAST(sxrem_construct_mpi%geo, 1, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(sxrem_construct_mpi%profile_number, 1, MPI_INTEGER,       &
-     &               0, intra_comm, error)
-
-#endif
+      CALL profiler_set_stop_time('sxrem_construct', start_time)
 
       END FUNCTION
 
@@ -258,44 +216,6 @@
       END FUNCTION
 
 !*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref sxrem_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE sxrem_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (sxrem_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)               :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                           :: error
-      REAL (rprec)                      :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL path_sync_children(this%chord_path, intra_comm)
-      CALL MPI_BCAST(this%geo, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%profile_number, 1, MPI_INTEGER, 0, intra_comm,       &
-     &               error)
-
-      CALL profiler_set_stop_time('sxrem_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
-
-!*******************************************************************************
 !  PRIVATE
 !*******************************************************************************
 !-------------------------------------------------------------------------------
@@ -310,7 +230,7 @@
 !>  @param[in] context A @ref sxrem_context for the model.
 !>  @param[in] xcart   The integration point.
 !>  @param[in] dxcart  A vector change in path. Not used in this function.
-!>  @param[in] dx      Length along the integration.
+!>  @param[in] length  Length along the integration.
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The sxrem(x)*dl at point x.
 !>

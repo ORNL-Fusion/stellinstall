@@ -114,7 +114,7 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Read an soft x-ray diagnostic dot file.
+!>  @brief Read a soft x-ray diagnostic dot file.
 !>
 !>  Parses the structure of a dignostic dot file and constructs a @ref sxrem
 !>  object. Each chord is parsed by @ref sxrch_dot_parse_chord.
@@ -138,7 +138,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=data_filename_length), INTENT(in)   :: sxrch_file
+      CHARACTER (len=path_length), INTENT(in)            :: sxrch_file
       TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       INTEGER, INTENT(inout) :: signals_created
       REAL (rprec), DIMENSION(:), INTENT(in)             :: observed
@@ -240,7 +240,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Parse soft x-ray diagnostic chord.
 !>
-!>  Parses a signle chord. Chords are laid out as,
+!>  Parses a single chord. Chords are laid out as,
 !>
 !>  * chord_name
 !>  * Starting point as three reals.
@@ -255,6 +255,7 @@
 !>  @param[in]    observed           Array of observed values.
 !>  @param[in]    sigma              Array of observed sigma values
 !>  @param[in]    weight             Array of signal weight values
+!>  @param[in]    current_profile    Index of sxrem profile used.
 !>  @param[inout] first_index        Index of the first instance of an intpol
 !>                                   signal.
 !>  @param[in]    use_geo            Chord contains geomtric factor.
@@ -307,7 +308,7 @@
 
 !  Default the geometric factor to 1.
       geo = 1.0
-      IF (use_geo) THEn
+      IF (use_geo) THEN
          geo = signal_dot_parse_real(sxrch_dot_file_ref,                       &
      &            'Expected geometric factor for sxrem chord')
       END IF

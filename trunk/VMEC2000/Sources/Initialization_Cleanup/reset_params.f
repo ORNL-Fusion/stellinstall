@@ -1,6 +1,6 @@
       SUBROUTINE reset_params
       USE precon2d, ONLY: ictrl_prec2d
-      USE vmec_main, ONLY: iequi, ivac, ftolv, fsqr, fsqz, fsq, 
+      USE vmec_main, ONLY: iequi, ivac, ftolv, fsqr, fsqz, fsq,
      1                     res0, delt0r, iter1, iter2, ijacob, irst
       USE vmec_input, ONLY: delt
       USE vsvd, ONLY: pfac, phifac

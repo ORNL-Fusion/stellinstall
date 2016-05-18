@@ -77,14 +77,6 @@
 !*******************************************************************************
 ! SECTION III. INTERFACE BLOCKS
 !*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref model_class types using
-!>  @ref model_construct_new or @ref signal_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE pprofile_construct
-         MODULE PROCEDURE pprofile_construct_new,                              &
-     &                    pprofile_construct_mpi
-      END INTERFACE
 
       PRIVATE findMaxIndex
 
@@ -103,12 +95,12 @@
 !>  @param[in] af_arg Array of segmented profile values.
 !>  @returns A pointer to a constructed @ref pprofile_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION pprofile_construct_new(p_type_arg, b_arg, as_arg, af_arg)
+      FUNCTION pprofile_construct(p_type_arg, b_arg, as_arg, af_arg)
 
       IMPLICIT NONE
 
 !  Declare Arguments 
-      TYPE (pprofile_class), POINTER :: pprofile_construct_new
+      TYPE (pprofile_class), POINTER :: pprofile_construct
       CHARACTER (len=*), INTENT(in)         :: p_type_arg
       REAL(rprec), DIMENSION(:), INTENT(in) :: b_arg
       REAL(rprec), DIMENSION(:), INTENT(in) :: as_arg
@@ -121,15 +113,15 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(pprofile_construct_new)
+      ALLOCATE(pprofile_construct)
 
 ! Store profile coeffients.
-      pprofile_construct_new%b = b_arg
+      pprofile_construct%b = b_arg
 
 ! Find and store the maximum s index if specifying splines.
-      pprofile_construct_new%maxSplineIndex = findMaxIndex(as_arg)
-      pprofile_construct_new%as = as_arg
-      pprofile_construct_new%af = af_arg
+      pprofile_construct%maxSplineIndex = findMaxIndex(as_arg)
+      pprofile_construct%as = as_arg
+      pprofile_construct%af = af_arg
 
 !  Convert the type to lower case, and truncate
       p_type_lc = p_type_arg
@@ -137,84 +129,45 @@
       SELECT CASE(TRIM(p_type_lc))
       
          CASE ('two_power')
-            pprofile_construct_new%p_type = pprofile_two_power_type
+            pprofile_construct%p_type = pprofile_two_power_type
 
          CASE ('two_power_gs')
-            pprofile_construct_new%p_type = pprofile_two_power_gs_type
+            pprofile_construct%p_type = pprofile_two_power_gs_type
 
          CASE ('cubic_spline')
-            IF (pprofile_construct_new%maxSplineIndex .lt. 4) THEN
+            IF (pprofile_construct%maxSplineIndex .lt. 4) THEN
                WRITE(*,*) 'pprofile:cubic spline: too few as values'
                WRITE(*,*) 'maxSplineIndex, as = ',                             &
-     &                    pprofile_construct_new%maxSplineIndex
-               WRITE(*,*) pprofile_construct_new%as
+     &                    pprofile_construct%maxSplineIndex
+               WRITE(*,*) pprofile_construct%as
                CALL EXIT(1)
             ENDIF
-            pprofile_construct_new%p_type = pprofile_cubic_spline_type
+            pprofile_construct%p_type = pprofile_cubic_spline_type
 
          CASE ('akima_spline')
-            IF (pprofile_construct_new%maxSplineIndex .lt. 4) THEN
+            IF (pprofile_construct%maxSplineIndex .lt. 4) THEN
                WRITE(*,*) 'pprofile:akima spline: too few as values'
                WRITE(*,*) 'maxSplineIndex, as = ',                             &
-     &                    pprofile_construct_new%maxSplineIndex
-               WRITE(*,*) pprofile_construct_new%as
+     &                    pprofile_construct%maxSplineIndex
+               WRITE(*,*) pprofile_construct%as
                CALL EXIT(1)
             ENDIF
-            pprofile_construct_new%p_type = pprofile_akima_spline_type
+            pprofile_construct%p_type = pprofile_akima_spline_type
 
          CASE ('line_segment')
-            pprofile_construct_new%p_type = pprofile_line_segment_type
+            pprofile_construct%p_type = pprofile_line_segment_type
 
          CASE ('none')
-            pprofile_construct_new%p_type = pprofile_none_type
+            pprofile_construct%p_type = pprofile_none_type
 
          CASE DEFAULT
-            pprofile_construct_new%p_type = pprofile_none_type
+            pprofile_construct%p_type = pprofile_none_type
             WRITE(*,*) 'Unrecognized p_type:', p_type_lc
             WRITE(*,*) ' *** CHECK YOUR INPUT ***'
          
       END SELECT
 
-      CALL profiler_set_stop_time('pprofile_construct_new', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref pprofile_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref pprofile_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref pprofile_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION pprofile_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (pprofile_class), POINTER :: pprofile_construct_mpi
-      INTEGER, INTENT(in)            :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                        :: error
-
-!  Start of executable code
-      ALLOCATE(pprofile_construct_mpi)
-
-      CALL MPI_BCAST(pprofile_construct_mpi%p_type, 1, MPI_INTEGER, 0,         &
-     &               intra_comm, error)
-      CALL MPI_BCAST(pprofile_construct_mpi%b,                                 &
-     &               SIZE(pprofile_construct_mpi%b), MPI_REAL8, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(pprofile_construct_mpi%as, iub_asf, MPI_REAL8, 0,         &
-     &               intra_comm, error)
-      CALL MPI_BCAST(pprofile_construct_mpi%af, iub_asf, MPI_REAL8, 0,         &
-     &               intra_comm, error)
-
-      pprofile_construct_mpi%maxSplineIndex =                                  &
-     &   findMaxIndex(pprofile_construct_mpi%as)
-#endif
+      CALL profiler_set_stop_time('pprofile_construct', start_time)
 
       END FUNCTION
 
@@ -470,47 +423,6 @@
 1230  FORMAT(' i       as(i)           af(i)')
 1231  FORMAT(1x,i3,2x,es15.8,2x,es15.8)
 1300  FORMAT(4(2x,es15.8))
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref pprofile_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE pprofile_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (pprofile_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                  :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                              :: error
-      REAL (rprec)                         :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%p_type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%b, SIZE(this%b), MPI_REAL8, 0,                &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%as, iub_asf, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%af, iub_asf, MPI_REAL8, 0, intra_comm, error)
-
-      this%maxSplineIndex = findMaxIndex(this%as)
-
-      CALL profiler_set_stop_time('pprofile_sync_children', start_time)
-#endif
 
       END SUBROUTINE
 

@@ -27,6 +27,7 @@
 !>        @item{thscte_dot_filename,      File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
 !>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
 !>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_ratio_dot_sec.,         v3fit_input::mse_dot_filename}
+!>        @item{ece_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref ece_ratio_dot_sec.,         v3fit_input::ece_dot_filename}
 !>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
 !>        @item{limiter_grid_file,        File to load the limiter grid functions.,                                                                                   v3fit_input::limiter_grid_file}
 !>  @end_table
@@ -96,6 +97,7 @@
 !>     @item{te_min,              Minimum electron temperature\, eV.,                                                                                           v3fit_input::te_min}
 !>     @item{e_pressure_fraction, Electron pressure fraction of the total pressure. Used when model_te_type = 'pp_ne_vmec_p' or model_ne_type = 'pp_te_vmec_p', v3fit_input::e_pressure_fraction}
 !>     @item{emission_file,       Path to file defining the soft x-ray emission. @see @ref emission_file_sec ,                                                  v3fit_input::emission_file}
+!>     @item{ece_resonance_range, Range to find the ECE resonance within.,                                                                                      v3fit_input::ece_resonance_range}
 !>  @end_table
 !>
 !>  @table_section{recon_con_sec, Reconstruction constraints (DEPRECATED)}
@@ -555,33 +557,34 @@
 !*******************************************************************************
 !>  File name for main namelist input.
 !>  @ref namelist_sec
-      CHARACTER (len=data_filename_length) :: main_nli_filename = ''
+      CHARACTER (len=path_length) :: main_nli_filename = ''
 
 !  Equilibrium input files
 !>  File name for VMEC namelist input
-      CHARACTER (len=data_filename_length) :: vmec_nli_filename = ''
+      CHARACTER (len=path_length) :: vmec_nli_filename = ''
 !>  File name for the VMEC wout input.
-      CHARACTER (len=data_filename_length) :: vmec_wout_input = ''
+      CHARACTER (len=path_length) :: vmec_wout_input = ''
 !>  File name for a vacuum namelist input
-      CHARACTER (len=data_filename_length) :: vacuum_nli_filename = ''
+      CHARACTER (len=path_length) :: vacuum_nli_filename = ''
 
 !  Signal input files
 !>  File name for list of MDSIG files
-      CHARACTER (len=data_filename_length) :: mdsig_list_filename = ''
+      CHARACTER (len=path_length) :: mdsig_list_filename = ''
 !>  File holding sxr chord information
-      CHARACTER (len=data_filename_length) :: sxrch_dot_filename = ''
+      CHARACTER (len=path_length) :: sxrch_dot_filename = ''
 !>  File holding interferometry-polarimetry information.
 !>  @ref intpol_dot_sec
-      CHARACTER (len=data_filename_length) :: ipch_dot_filename = ''
+      CHARACTER (len=path_length) :: ipch_dot_filename = ''
 !>  File holding Thomson Scattering information
-      CHARACTER (len=data_filename_length) :: thscte_dot_filename = ''
+      CHARACTER (len=path_length) :: thscte_dot_filename = ''
 !>  File holding motional stark effect information
-      CHARACTER (len=data_filename_length) :: mse_dot_filename = ''
+      CHARACTER (len=path_length) :: mse_dot_filename = ''
+!>  File holding ECE information
+      CHARACTER (len=path_length) :: ece_dot_filename = ''
 !>  File holding soft x-ray ratio information
-      CHARACTER (len=data_filename_length) ::                                  &
-     &   sxrem_ratio_dot_filename = ''
+      CHARACTER (len=path_length) :: sxrem_ratio_dot_filename = ''
 !>  Limiter grid netcdf file.
-      CHARACTER (len=data_filename_length) :: limiter_grid_file = ''
+      CHARACTER (len=path_length) :: limiter_grid_file = ''
 
 !  Array allocation sizes. These should be set to the maxmium size.
 !>  Maximum number of signals to create.
@@ -711,6 +714,8 @@
       REAL (rprec)                     :: e_pressure_fraction = 0.5
 !>  Specifies the path to the file contain the soft x-ray emission function.
       CHARACTER (len=data_name_length) :: emission_file = ''
+!>  ECE resonance search range
+      REAL (rprec) :: ece_resonance_range = 0.0
 
 !  Reconstruction constraints
 !>  Not implemented.
@@ -985,8 +990,8 @@
      &   vmec_nli_filename, vmec_wout_input, vacuum_nli_filename,              &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
-     &   ipch_dot_filename, mse_dot_filename, sxrem_ratio_dot_filename,        &
-     &   limiter_grid_file,                                                    &
+     &   ipch_dot_filename, mse_dot_filename, ece_dot_filename,                &
+     &   sxrem_ratio_dot_filename, limiter_grid_file,                          &
 !  Array allocation sizes
      &   na_s_desc,                                                            &
 !  Task specification and work variables
@@ -1005,7 +1010,7 @@
 !  Model Specification Variables
      &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
      &   model_te_type, ne_pp_unit, ne_min, te_min, e_pressure_fraction,       &
-     &   emission_file,                                                        &
+     &   emission_file, ece_resonance_range,                                   &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters

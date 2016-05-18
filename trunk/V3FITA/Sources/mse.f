@@ -64,8 +64,7 @@
 !-------------------------------------------------------------------------------
       INTERFACE mse_construct
 		 MODULE PROCEDURE mse_construct_vec,                                   &
-     &                    mse_construct_rad,                                   &
-     &                    mse_construct_mpi
+     &                    mse_construct_rad
       END INTERFACE
 
       PRIVATE :: mse_angle_to_bt_proj, mse_angle_to_horizontal
@@ -154,13 +153,13 @@
 !>  Allocates memory and initializes a @ref mse_class object. Uses angle
 !>  representation.
 !>
-!>  @param[in] point Measurement point of the mse diagnostic.
-!>  @param[in] omega Angle between the neutral beam and the toroidal in the
-!>                   horizontal.
-!>  @param[in] alpha Angle between the view chord and the toroidal in the
-!>                   horizontal.
-!>  @param[in] delta Pitch angle to the horizontal and the neutral beam.
-!>  @param[in] theta Pitch angle to the horizontal and the view chord.
+!>  @param[in] point      Measurement point of the mse diagnostic.
+!>  @param[in] omega      Angle between the neutral beam and the toroidal in the
+!>                        horizontal.
+!>  @param[in] alpha      Angle between the view chord and the toroidal in the
+!>                        horizontal.
+!>  @param[in] delta      Pitch angle to the horizontal and the neutral beam.
+!>  @param[in] theta      Pitch angle to the horizontal and the view chord.
 !>  @param[in] in_degrees Channel measures degrees.
 !>  @param[in] is_ratio   Channel measures ratio.
 !>  @returns A pointer to a constructed @ref mse_class object.
@@ -207,46 +206,6 @@
       mse_construct_rad%theta = theta
 
       CALL profiler_set_stop_time('mse_construct_rad', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref mse_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref mse_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref mse_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION mse_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (mse_class), POINTER :: mse_construct_mpi
-      INTEGER, INTENT(in)       :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                   :: error
-
-!  Start of executable code
-      ALLOCATE(mse_construct_mpi)
-
-      CALL MPI_BCAST(mse_construct_mpi%point, 3, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%alpha, 1, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%omega, 1, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%delta, 1, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%theta, 1, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(mse_construct_mpi%flags, 1, MPI_INTEGER, 0,               &
-     &               intra_comm, error)
-
-#endif
 
       END FUNCTION
 
@@ -440,47 +399,6 @@
       CALL profiler_set_stop_time('mse_get_header', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref mse_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE mse_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (mse_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)             :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                         :: error
-      REAL (rprec)                    :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%point, 3, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%alpha, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%omega, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%delta, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%theta, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%flags, 1, MPI_INTEGER, 0, intra_comm,                &
-     &               error)
-
-      CALL profiler_set_stop_time('mse_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
 
 !*******************************************************************************
 !  PRIVATE

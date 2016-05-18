@@ -227,9 +227,9 @@
 !>  variables directly.
 !>
 !>  @param[inout] this       A @ref vmec_context_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vmec_context_sync_state(this, intra_comm)
+      SUBROUTINE vmec_context_sync_state(this, recon_comm)
       USE v3_utilities
       USE vsvd
 
@@ -237,7 +237,7 @@
 
 !  Declare Arguments
       TYPE (vmec_context_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                      :: intra_comm
+      INTEGER, INTENT(in)                      :: recon_comm
 
 #if defined(MPI_OPT)
 !  local variables
@@ -246,30 +246,30 @@
       INTEGER                                  :: mpi_rank
 
 !  Start of executable code
-      CALL MPI_COMM_RANK(intra_comm, mpi_rank, error)
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
 !  If the size of the xc array changed reallocate the child processes to the
 !  parent process size.
       temp_size = SIZE(xc)
-      CALL MPI_BCAST(temp_size, 1, MPI_INTEGER, 0, intra_comm, error)
+      CALL MPI_BCAST(temp_size, 1, MPI_INTEGER, 0, recon_comm, error)
 
       IF (mpi_rank .gt. 0) THEN
          CALL assert_eq(temp_size, SIZE(xc),                                   &
      &                  'Cannot sync xc arrays. Arrays changed size.')
       END IF
-      CALL MPI_BCAST(xc, temp_size, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(xc, temp_size, MPI_REAL8, 0, recon_comm, error)
 
-      CALL MPI_BCAST(raxis_cc, SIZE(raxis_cc), MPI_REAL8, 0, intra_comm,       &
+      CALL MPI_BCAST(raxis_cc, SIZE(raxis_cc), MPI_REAL8, 0, recon_comm,       &
      &               error)
-      CALL MPI_BCAST(raxis_cs, SIZE(raxis_cs), MPI_REAL8, 0, intra_comm,       &
+      CALL MPI_BCAST(raxis_cs, SIZE(raxis_cs), MPI_REAL8, 0, recon_comm,       &
      &               error)
-      CALL MPI_BCAST(zaxis_cc, SIZE(zaxis_cc), MPI_REAL8, 0, intra_comm,       &
+      CALL MPI_BCAST(zaxis_cc, SIZE(zaxis_cc), MPI_REAL8, 0, recon_comm,       &
      &               error)
-      CALL MPI_BCAST(zaxis_cs, SIZE(zaxis_cs), MPI_REAL8, 0, intra_comm,       &
+      CALL MPI_BCAST(zaxis_cs, SIZE(zaxis_cs), MPI_REAL8, 0, recon_comm,       &
      &               error)
 
-      CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(vvc_kappa_p, 1, MPI_REAL8, 0, intra_comm, error)
+      CALL MPI_BCAST(vvc_smaleli, 1, MPI_REAL8, 0, recon_comm, error)
+      CALL MPI_BCAST(vvc_kappa_p, 1, MPI_REAL8, 0, recon_comm, error)
 
 #endif
       END SUBROUTINE

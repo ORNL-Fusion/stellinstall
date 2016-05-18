@@ -150,8 +150,7 @@
      &                    signal_construct_prior,                              &
      &                    signal_construct_feedback,                           &
      &                    signal_construct_combination,                        &
-     &                    signal_construct_diagnostic_netcdf,                  &
-     &                    signal_construct_mpi
+     &                    signal_construct_diagnostic_netcdf
       END INTERFACE
 
       CONTAINS 
@@ -493,74 +492,6 @@
 
       CALL profiler_set_stop_time('signal_construct_diagnostic_netcdf',        &
      &                            start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref signal_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref prior_class object. Combination
-!>  signals do not get synced because they reference pointers to previously
-!>  constructed signals. These pointers cannot be sinced since each process will
-!>  contain unique memory addresses.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref signal_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION signal_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (signal_class), POINTER :: signal_construct_mpi
-      INTEGER, INTENT(in)          :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                      :: error
-
-!  Start of executable code
-      ALLOCATE(signal_construct_mpi)
-
-      CALL MPI_BCAST(signal_construct_mpi%type, 1, MPI_INTEGER, 0,             &
-     &               intra_comm, error)
-      CALL MPI_BCAST(signal_construct_mpi%s_name,                              &
-     &               data_short_name_length, MPI_CHARACTER, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(signal_construct_mpi%l_name, data_name_length,            &
-     &               MPI_CHARACTER, 0, intra_comm, error)
-      CALL MPI_BCAST(signal_construct_mpi%units, data_short_name_length,       &
-     &               MPI_CHARACTER, 0, intra_comm, error)
-
-!  Sync the observed and weight values. Modeled values will get computed in the
-!  child process.
-      CALL MPI_BCAST(signal_construct_mpi%observed, 1, MPI_REAL8, 0,           &
-     &               intra_comm, error)
-      CALL MPI_BCAST(signal_construct_mpi%observed_sigma, 1, MPI_REAL8,        &
-     &               0, intra_comm, error)
-      CALL MPI_BCAST(signal_construct_mpi%weight, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-
-      SELECT CASE (signal_construct_mpi%type)
-
-         CASE (signal_diagnostic_type)
-            signal_construct_mpi%diagnostic =>                                 &
-     &         diagnostic_construct(intra_comm)
-
-         CASE (signal_geometric_type)
-            signal_construct_mpi%geometric =>                                  &
-     &         geometric_construct(intra_comm)
-
-         CASE (signal_prior_type)
-            signal_construct_mpi%prior => prior_construct(intra_comm)
-
-         CASE (signal_feedback_type)
-            signal_construct_mpi%feedback =>                                  &
-     &         feedback_construct(intra_comm)
-
-      END SELECT
-
-#endif
 
       END FUNCTION
 
@@ -1238,72 +1169,6 @@
       END SELECT
 
       CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op. Combination signals do not
-!>  get synced because they are constructed directly in the child processes.
-!>  Combinations also don't change.
-!>
-!>  @param[inout] this       A @ref signal_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE signal_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (signal_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                            :: error
-      REAL (rprec)                       :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-      CALL MPI_BCAST(this%s_name, data_short_name_length, MPI_CHARACTER,       &
-     &               0, intra_comm, error)
-      CALL MPI_BCAST(this%l_name, data_name_length, MPI_CHARACTER, 0,          &
-     &               intra_comm, error)
-      CALL MPI_BCAST(this%units, data_short_name_length, MPI_CHARACTER,        &
-     &               0, intra_comm, error)
-
-!  Sync the observed and weight values. Modeled values will get computed in the
-!  child process.
-      CALL MPI_BCAST(this%observed, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%observed_sigma, 1, MPI_REAL8, 0, intra_comm,         &
-     &               error)
-      CALL MPI_BCAST(this%weight, 1, MPI_REAL8, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (signal_diagnostic_type)
-            CALL diagnostic_sync_children(this%diagnostic, intra_comm)
-
-         CASE (signal_geometric_type)
-            CALL geometric_sync_children(this%geometric, intra_comm)
-
-         CASE (signal_prior_type)
-            CALL prior_sync_children(this%prior, intra_comm)
-
-         CASE (signal_feedback_type)
-            CALL feedback_sync_children(this%feedback, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('signal_sync_children', start_time)
-#endif
 
       END SUBROUTINE
 

@@ -9,6 +9,9 @@
      2    restart_flag, readin_flag, timestep_flag,
      3    output_flag, cleanup_flag,
      4    norm_term_flag, successful_term_flag ! J Geiger: for more iterations and full 3D1-output
+      USE parallel_include_module
+      USE parallel_vmec_module, ONLY: MyEnvVariables, 
+     1    InitializeParallel, FinalizeParallel
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -29,6 +32,13 @@ C-----------------------------------------------
       CHARACTER(LEN=120) :: log_file
       CHARACTER(LEN=120), DIMENSION(10) :: command_arg
       LOGICAL :: lscreen
+      INTEGER :: V3FIT_COMM
+
+#if defined(SKS)
+      REAL(dp) :: ton, toff
+      REAL(dp) :: skston, skstoff
+      REAL(dp) :: totalton, totaltoff 
+#endif
 C-----------------------------------------------
 !***
 !                              D   I   S   C   L   A   I   M   E   R
@@ -130,21 +140,33 @@ C-----------------------------------------------
 !
       INTERFACE
          SUBROUTINE runvmec(ictrl_array, input_file0, 
-     1                      lscreen, reset_file_name)
+     1                      lscreen, V3FIT_COMM, reset_file_name)
          IMPLICIT NONE
          INTEGER, INTENT(inout), TARGET :: ictrl_array(5)
          LOGICAL, INTENT(in) :: lscreen
          CHARACTER(LEN=*), INTENT(in) :: input_file0
+         INTEGER, INTENT(in), OPTIONAL :: V3FIT_COMM
          CHARACTER(LEN=*), OPTIONAL :: reset_file_name
          END SUBROUTINE runvmec
       END INTERFACE
 
+#if defined(SKS)
+      CALL MyEnvVariables
+      CALL InitializeParallel
+      CALL MPI_COMM_DUP(MPI_COMM_WORLD,V3FIT_COMM,MPI_ERR)
+      CALL second0(totalton)
+      ton = totalton; skston=totalton
+#endif
       CALL getcarg(1, command_arg(1), numargs)
       DO iseq = 2, numargs
          CALL getcarg(iseq, command_arg(iseq), numargs)
       END DO
-
-      lscreen = .true.
+#if defined(SKS)
+      CALL second0(skstoff)
+      get_args_time = get_args_time + (skstoff -skston)
+#endif
+      lscreen = .false.
+      IF(grank.EQ.0) lscreen = .true.
       reset_file_name = " "
 
       IF (numargs .lt. 1) THEN
@@ -224,20 +246,41 @@ C-----------------------------------------------
          ELSE
            arg = seq_ext
          END IF
+#if defined(SKS)
+         CALL second0(skston)
+#endif
          CALL safe_open(iunit, iopen, TRIM(arg), 'old', 'formatted')
+#if defined(SKS)
+         CALL second0(skstoff)
+         safe_open_time = safe_open_time + (skstoff - skston)
+#endif
          IF (iopen .eq. 0) THEN
            DO ncount = 1, nseqmax
               nseq_select(ncount) = ncount
            END DO
+#if defined(SKS)
+           CALL second0(skston)
+#endif
            CALL read_namelist (iunit, isnml, 'vseq')
+#if defined(SKS)
+           CALL second0(skstoff)
+           read_namelist_time = read_namelist_time + (skstoff - skston)
+#endif
 !
 !       OPEN FILE FOR STORING SEQUENTIAL RUN HISTORY
 !
            IF (isnml .eq. 0) THEN
               IF (nseq .gt. nseqmax) STOP 'NSEQ>NSEQMAX'
               log_file = 'log.'//seq_ext
+#if defined(SKS)
+              CALL second0(skston)
+#endif
               CALL safe_open(nlog, iread, log_file, 'replace',
      1           'formatted')
+#if defined(SKS)
+              CALL second0(skstoff)
+              safe_open_time = safe_open_time + (skstoff - skston)
+#endif
               IF (iread .ne. 0) THEN
                  PRINT *, log_file,
      1           ' LOG FILE IS INACCESSIBLE: IOSTAT= ',iread
@@ -290,12 +333,17 @@ C-----------------------------------------------
  100     CONTINUE
 
          CALL runvmec (ictrl, extension(index_seq), 
-     1                 lscreen, reset_file_name)
+     1                 lscreen, V3FIT_COMM, reset_file_name)
+
          ierr_vmec = ictrl(2)
+
+
          SELECT CASE (ierr_vmec)
          CASE (more_iter_flag)                                !Need a few more iterations to converge
-            IF (lscreen) WRITE (6, '(1x,a)') increase_niter
-            WRITE (nthreed, '(1x,a)') increase_niter
+            IF (grank .EQ. 0) THEN
+               IF(lscreen ) WRITE (6, '(1x,a)') increase_niter
+               WRITE (nthreed, '(1x,a)') increase_niter
+            END IF
 ! J Geiger: if lmoreiter and lfull3d1out are false
 !           the o-lines (original) are the only
 !           ones to be executed.
@@ -304,27 +352,37 @@ C-----------------------------------------------
                 ictrl(1) = timestep_flag                        ! some more iterations if requested
                 ictrl(3) = niter                                ! - this is the number of iterations
                 CALL runvmec (ictrl, extension(1), lscreen)     ! - the second iteration run with ictrl(3) iterations
-                IF (ictrl(2).eq.more_iter_flag) then
-                  WRITE (nthreed, '(1x,a)') increase_niter
-                  IF (lscreen) WRITE (6, '(1x,a)') increase_niter
+                IF (ictrl(2).EQ.more_iter_flag) THEN
+                  IF (grank .EQ. 0) THEN
+                    WRITE (nthreed, '(1x,a)') increase_niter
+                    IF(lscreen) WRITE (6, '(1x,a)') 
+     1                            increase_niter
+                  ENDIF
                 ENDIF
               ENDDO
+              ictrl(1) = output_flag+cleanup_flag               ! - Output, cleanup
+              IF(ictrl(2).ne.successful_term_flag)
+     &                ictrl(2)=successful_term_flag             ! - force success flag to get full threed1-output!
+              ictrl(3) = 0                                      ! - this is the number of iterations
+              CALL runvmec (ictrl, extension(1), lscreen)       ! - final call.
+            ELSE                                                ! else-branch contains original code.
+              ictrl(1) = output_flag+cleanup_flag               !Output, cleanup  ! o-lines
+              ictrl(2) = 0                                      ! o-lines
+              IF(lfull3d1out) THEN
+                ictrl(2)=successful_term_flag
+                IF (grank .EQ. 0) THEN
+                  WRITE(6,'(1x,a)') full_3d1output_request
+                  WRITE(nthreed,'(1x,a)') full_3d1output_request
+                END IF
+              ENDIF
+              CALL runvmec (ictrl, extension(1), lscreen)        ! o-lines
             ENDIF                                                ! J Geiger: -- end --
-            ictrl(1) = output_flag+cleanup_flag                  !Output, cleanup  ! o-lines
-                                                                 ! J Geiger: --start--
-            IF(ictrl(2) .NE. successful_term_flag) ictrl(2) = 0  ! o-line was without if-clause.
-                                                                 ! The if-clause was added to not spoil the
-                                                                 ! successful termination by not getting full 3d1 output
-            IF(lfull3d1out) THEN                                 ! in case full 3d1-output is requested
-              ictrl(2)=successful_term_flag                      ! This forces the full 3d1-output in eqfor.
-              WRITE(6,'(1x,a)') full_3d1output_request
-              WRITE(nthreed,'(1x,a)') full_3d1output_request
-            ENDIF                                                ! J Geiger: -- end --
-            CALL runvmec (ictrl, extension(1), lscreen)          ! o-lines
 
          CASE (bad_jacobian_flag)                             !Bad jacobian even after axis reset and ns->3
-            IF (lscreen) WRITE (6, '(/,1x,a)') bad_jacobian
-            WRITE (nthreed, '(/,1x,a)') bad_jacobian
+           IF(grank.EQ.0) THEN
+             IF (lscreen) WRITE (6, '(/,1x,a)') bad_jacobian
+             WRITE (nthreed, '(/,1x,a)') bad_jacobian
+           END IF
          CASE DEFAULT
          END SELECT
       END DO SEQ
@@ -366,5 +424,13 @@ C-----------------------------------------------
 !         OPEN(unit=20, file=ScratchFile, iostat=iopen)
 !         IF (iopen .eq. 0) CLOSE (20, status='delete')
 !      END IF
+
+#if defined(SKS)
+      CALL second0(totaltoff)
+      total_time = total_time + (totaltoff-totalton)
+      toff = totaltoff
+      IF (.NOT.LV3FITCALL.AND.lactive) CALL PrintTimes
+      CALL FinalizeParallel
+#endif
 
       END PROGRAM vmec

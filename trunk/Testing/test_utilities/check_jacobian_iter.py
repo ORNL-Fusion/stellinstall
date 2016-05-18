@@ -6,7 +6,7 @@ import sys
 def get_num_iter(lines, start, offset):
 	if (start + offset >= len(lines)):
 		return -1
-	if (len(lines[start+offset].split()) != 5):
+	if (len(lines[start+offset].split()) != 6):
 		return -1
 	return int(lines[start+offset].split()[4])
 

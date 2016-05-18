@@ -78,6 +78,9 @@
 !>  Index of the first instance of a @ref mse signal. The default -1
 !>  represents no @ref mse signal created.
          INTEGER :: mse_index = -1
+!>  Index of the first instance of a @ref ece signal. The default -1
+!>  represents no @ref ece signal created.
+         INTEGER :: ece_index = -1
 !>  Index of the first instance of a @ref limiter signal. The default -1
 !>  represents no @ref limiter signal created.
          INTEGER :: limiter_index = -1
@@ -96,8 +99,12 @@
 
 !--- MPI -----------------------------------------------------------------------
 #if defined (MPI_OPT)
-!>  MPI parent communicator reference.
-         INTEGER :: intra_comm = MPI_COMM_NULL
+!>  MPI communicator reference for full domain.
+         INTEGER :: global_comm = MPI_COMM_NULL
+!>  MPI communicator reference for the equilibrium domain.
+         INTEGER :: equilibrium_comm = MPI_COMM_NULL
+!>  MPI communicator reference for the reconstruction domain.
+         INTEGER :: reconstruction_comm = MPI_COMM_NULL
 #endif
       END TYPE
 
@@ -117,7 +124,6 @@
 !>  @returns A pointer to a constructed @ref v3fit_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION v3fit_context_construct(cl_parser)
-      USE safe_open_mod
 
       IMPLICIT NONE
 
@@ -126,50 +132,12 @@
       TYPE (commandline_parser_class), POINTER :: cl_parser
 
 !  local variables
-      CHARACTER (len=data_filename_length) :: filename
-      INTEGER                              :: status
       REAL (rprec)                         :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      filename = commandline_parser_get_string(cl_parser, '-file')
-
       ALLOCATE(v3fit_context_construct)
-
-!  Setup the runlog file.
-!  Initalize a default value of the I\O unit. V3FIT increments from there.
-      v3fit_context_construct%runlog_iou = 0
-      CALL safe_open(v3fit_context_construct%runlog_iou, status,               &
-     &               TRIM('runlog.' // filename_base(filename)),               &
-     &               'replace', 'formatted', delim_in='none')
-      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
-     &               'Safe_open of runlog. ' //                                &
-     &               TRIM(filename_base(filename)) // 'failed')
-
-!  Setup the recout file.
-!  Initalize a default value of the I\O unit. V3FIT increments from there.
-      v3fit_context_construct%recout_iou = 0
-      CALL safe_open(v3fit_context_construct%recout_iou, status,               &
-     &               TRIM('recout.' // filename_base(filename)),               &
-     &               'replace', 'formatted', delim_in='none')
-      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
-     &               'Safe_open of recout. ' //                                &
-     &               TRIM(filename_base(filename)) // 'failed')
-
-!  Create a result file.
-      status = nf_create('result.' // TRIM(filename_base(filename)) //         &
-     &                   '.nc', nf_clobber,                                    &
-     &                   v3fit_context_construct%result_ncid)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
-      WRITE (v3fit_context_construct%runlog_iou, *) 'V3FITA RUN'
-      WRITE (v3fit_context_construct%runlog_iou, *)                            &
-     &   '  Namelist Input from file ', TRIM(filename)
-
-      WRITE (v3fit_context_construct%recout_iou, *) 'V3FITA RUN'
-      WRITE (v3fit_context_construct%recout_iou, *)                            &
-     &   '  Namelist Input from file ', TRIM(filename)
 
       v3fit_context_construct%cl_parser => cl_parser
 
@@ -197,15 +165,8 @@
 
 !  local variables
       INTEGER                             :: i
-      INTEGER                             :: status
 
 !  Start of executable code
-      CLOSE(this%runlog_iou)
-      CLOSE(this%recout_iou)
-
-      status = nf_close(this%result_ncid)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-
       IF (ASSOCIATED(this%cl_parser)) THEN
          CALL commandline_parser_destruct(this%cl_parser)
          this%cl_parser => null()
@@ -276,6 +237,7 @@
       this%thomson_index = -1
       this%extcurz_index = -1
 	  this%mse_index = -1
+	  this%ece_index = -1
       this%limiter_index = -1
       this%prior_guassian_index = -1
       this%sxrem_ratio_index = -1
@@ -348,6 +310,103 @@
       END IF
 
       CALL profiler_set_stop_time('v3fit_context_resize', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Create output files.
+!>
+!>  Creates output files that reconstructed results are written to.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_create_files(this)
+      USE safe_open_mod
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+
+!  local variables
+      CHARACTER (len=path_length)               :: filename
+      INTEGER                                   :: status
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      filename = commandline_parser_get_string(this%cl_parser, '-file')
+
+!  Setup the runlog file.
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      this%runlog_iou = 0
+      CALL safe_open(this%runlog_iou, status,                                  &
+     &               TRIM('runlog.' // filename_base(filename)),               &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of runlog. ' //                                &
+     &               TRIM(filename_base(filename)) // 'failed')
+
+!  Setup the recout file.
+!  Initalize a default value of the I\O unit. V3FIT increments from there.
+      this%recout_iou = 0
+      CALL safe_open(this%recout_iou, status,                                  &
+     &               TRIM('recout.' // filename_base(filename)),               &
+     &               'replace', 'formatted', delim_in='none')
+      CALL assert_eq(0, status, 'v3fit_context_construct: ' //                 &
+     &               'Safe_open of recout. ' //                                &
+     &               TRIM(filename_base(filename)) // 'failed')
+
+!  Create a result file.
+      status = nf_create('result.' // TRIM(filename_base(filename)) //         &
+     &                   '.nc', nf_clobber,                                    &
+     &                   this%result_ncid)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      WRITE (this%runlog_iou, *) 'V3FITA RUN'
+      WRITE (this%runlog_iou, *) '  Namelist Input from file ',                &
+     &                           TRIM(filename)
+
+      WRITE (this%recout_iou, *) 'V3FITA RUN'
+      WRITE (this%recout_iou, *) '  Namelist Input from file ',                &
+     &                           TRIM(filename)
+
+      CALL profiler_set_stop_time('v3fit_context_create_files',                &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Close output files.
+!>
+!>  Closes output files that reconstructed results are written to.
+!>
+!>  @param[inout] this A @ref v3fit_context_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_context_close_files(this)
+
+      IMPLICIT NONE
+
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+
+!  local variables
+      INTEGER                                   :: status
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CLOSE(this%runlog_iou)
+      CLOSE(this%recout_iou)
+
+      status = nf_close(this%result_ncid)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('v3fit_context_close_files',                 &
+     &                            start_time)
 
       END SUBROUTINE
 
@@ -542,6 +601,7 @@
      &          (this%thomson_index .eq. i) .or.                               &
      &          (this%extcurz_index .eq. i) .or.                               &
      &          (this%mse_index .eq. i) .or.                                   &
+     &          (this%ece_index .eq. i) .or.                                   &
      &          (this%limiter_index .eq. i) .or.                               &
      &          (this%prior_guassian_index .eq. i) .or.                        &
      &          (this%sxrem_ratio_index .eq. i) .or.                           &
@@ -1151,122 +1211,6 @@
 
       CALL profiler_set_stop_time('v3fit_context_write_step_data',             &
      &                            start_time)
-
-      END SUBROUTINE
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this A @ref v3fit_context_class instance.
-!-------------------------------------------------------------------------------
-      SUBROUTINE v3fit_context_sync_children(this)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (v3fit_context_class), INTENT(inout) :: this
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                                   :: error
-      INTEGER                                   :: mpi_rank
-      LOGICAL                                   :: needs_sync
-      INTEGER                                   :: array_size
-      INTEGER                                   :: i
-      REAL (rprec)                              :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BARRIER(this%intra_comm, error)
-
-!  The MPI variables should not be synced. The command line parser, output files
-!  and stoping criteria do not need to be synced. Starting with the signal index
-!  values. MPI_BCAST broad casts from the parent and recieves in the children.
-      CALL MPI_BCAST(this%magnetic_index, 1, MPI_INTEGER, 0,                   &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%sxrem_index, 1, MPI_INTEGER, 0,                      &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%intpol_index, 1, MPI_INTEGER, 0,                     &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%thomson_index, 1, MPI_INTEGER, 0,                    &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%extcurz_index, 1, MPI_INTEGER, 0,                    &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%limiter_index, 1, MPI_INTEGER, 0,                    &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%prior_guassian_index, 1, MPI_INTEGER, 0,             &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%sxrem_ratio_index, 1, MPI_INTEGER, 0,                &
-     &               this%intra_comm, error)
-      CALL MPI_BCAST(this%combination_index, 1, MPI_INTEGER, 0,                &
-     &               this%intra_comm, error)
-
-      CALL MPI_COMM_RANK(this%intra_comm, mpi_rank, error)
-
-!  Check if a model object exists in the parent process. If it does tell all
-!  processes to sync.
-      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%model)
-      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
-     &               error)
-      IF (needs_sync) THEN
-         IF (ASSOCIATED(this%model)) THEN
-            CALL model_sync_children(this%model, this%intra_comm)
-         ELSE
-            this%model => model_construct(this%intra_comm)
-         END IF
-      END IF
-
-!  Check if signal objects exists in the parent process. If they do tell all
-!  processes to sync. The size of the array must be synced first.
-      needs_sync = (mpi_rank .eq. 0) .and. ASSOCIATED(this%signals)
-      CALL MPI_BCAST(needs_sync, 1, MPI_LOGICAL, 0, this%intra_comm,           &
-     &               error)
-      IF (needs_sync) THEN
-         IF (mpi_rank .eq. 0) THEN
-            array_size = SIZE(this%signals)
-         END IF
-         CALL MPI_BCAST(array_size, 1, MPI_INTEGER, 0, this%intra_comm,        &
-     &                  error)
-
-         IF (ASSOCIATED(this%signals)) THEN
-!  Sync all signals except the combination signals.
-            IF (this%combination_index .gt. 0) THEN
-               DO i = 1, this%combination_index - 1
-                  CALL signal_sync_children(this%signals(i)%p,                 &
-     &                                      this%intra_comm)
-               END DO
-            ELSE
-               DO i = 1, array_size
-                  CALL signal_sync_children(this%signals(i)%p,                 &
-     &                                      this%intra_comm)
-               END DO
-            END IF
-         ELSE
-            ALLOCATE(this%signals(array_size))
-
-!  Sync all signals except the combination signals.
-            IF (this%combination_index .gt. 0) THEN
-               DO i = 1, this%combination_index - 1
-                  this%signals(i)%p => signal_construct(this%intra_comm)
-               END DO
-            ELSE
-               DO i = 1, array_size
-                  this%signals(i)%p => signal_construct(this%intra_comm)
-               END DO
-            END IF
-         END IF
-      END IF
-
-      CALL profiler_set_stop_time('v3fit_context_sync_children',               &
-     &                            start_time)
-#endif
 
       END SUBROUTINE
 

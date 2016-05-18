@@ -20,6 +20,7 @@
       USE thomson
       USE extcurz
       USE mse
+      USE ece
 
       IMPLICIT NONE
 
@@ -40,6 +41,8 @@
       INTEGER, PARAMETER :: diagnostic_extcurz_type  = 4
 !>  Type descriptor for the @ref diagnostic_class subclass @ref mse
       INTEGER, PARAMETER :: diagnostic_mse_type      = 5
+!>  Type descriptor for the @ref diagnostic_class subclass @ref ece
+      INTEGER, PARAMETER :: diagnostic_ece_type      = 6
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -63,6 +66,7 @@
 !>  * @ref diagnostic_thomson_type
 !>  * @ref diagnostic_extcurz_type
 !>  * @ref diagnostic_mse_type
+!>  * @ref diagnostic_ece_type
          INTEGER                       :: type = diagnostic_no_type
 !>  An instance of a @ref magnetic object. 
          TYPE (magnetic_class), POINTER :: magnetic => null()
@@ -76,6 +80,8 @@
          TYPE (extcurz_class), POINTER  :: extcurz => null()
 !>  An instance of a @ref mse object.
          TYPE (mse_class), POINTER      :: mse => null()
+!>  An instance of a @ref mse object.
+         TYPE (ece_class), POINTER      :: ece => null()
       END TYPE diagnostic_class
 
 !*******************************************************************************
@@ -94,7 +100,7 @@
      &                    diagnostic_construct_thomson,                        &
      &                    diagnostic_construct_extcurz,                        &
      &                    diagnostic_construct_mse,                            &
-     &                    diagnostic_construct_mpi
+     &                    diagnostic_construct_ece
       END INTERFACE
 
       CONTAINS
@@ -295,60 +301,34 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref diagnostic_class object by syncing through mpi.
+!>  @brief Construct a @ref diagnostic_class containing a @ref ece object.
 !>
 !>  Allocates memory and initializes a @ref diagnostic_class object.
 !>
-!>  @param[in] intra_comm A MPI intra_comm handle.
+!>  @param[in] ece_object An instance of a @ref ece subclass.
 !>  @returns A pointer to a constructed @ref diagnostic_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION diagnostic_construct_mpi(intra_comm)
+      FUNCTION diagnostic_construct_ece(ece_object)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (diagnostic_class), POINTER :: diagnostic_construct_mpi
-      INTEGER, INTENT(in)              :: intra_comm
+      TYPE (diagnostic_class), POINTER :: diagnostic_construct_ece
+      TYPE (ece_class), POINTER        :: ece_object
 
-#if defined(MPI_OPT)
 !  local variables
-      INTEGER                          :: error
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
-      ALLOCATE(diagnostic_construct_mpi)
+      start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(diagnostic_construct_mpi%type, 1, MPI_INTEGER, 0,         &
-     &               intra_comm, error)
+      ALLOCATE(diagnostic_construct_ece)
 
-      SELECT CASE (diagnostic_construct_mpi%type)
+      diagnostic_construct_ece%type = diagnostic_ece_type
+      diagnostic_construct_ece%ece => ece_object
 
-         CASE (diagnostic_magnetic_type)
-            diagnostic_construct_mpi%magnetic =>                               &
-     &         magnetic_construct(intra_comm)
-
-         CASE (diagnostic_sxrem_type)
-            diagnostic_construct_mpi%sxrem =>                                  &
-     &         sxrem_construct(intra_comm)
-
-         CASE (diagnostic_intpol_type)
-            diagnostic_construct_mpi%intpol =>                                 &
-     &         intpol_construct(intra_comm)
-
-         CASE (diagnostic_thomson_type)
-            diagnostic_construct_mpi%thomson =>                                &
-     &         thomson_construct(intra_comm)
-
-         CASE (diagnostic_extcurz_type)
-            diagnostic_construct_mpi%extcurz =>                                &
-     &         extcurz_construct(intra_comm)
-
-         CASE (diagnostic_mse_type)
-            diagnostic_construct_mpi%mse =>                                    &
-     &         mse_construct(intra_comm)
-
-      END SELECT
-
-#endif
+      CALL profiler_set_stop_time('diagnostic_construct_ece',                  &
+     &                            start_time)
 
       END FUNCTION
 
@@ -400,6 +380,11 @@
          this%mse => null()
       END IF
 
+      IF (ASSOCIATED(this%ece)) THEN
+         CALL ece_destruct(this%ece)
+         this%ece => null()
+      END IF
+
       this%type = diagnostic_no_type
 
       DEALLOCATE(this)
@@ -422,6 +407,7 @@
 !>  @see thomson::thomson_get_modeled_signal
 !>  @see extcurz::extcurz_get_modeled_signal
 !>  @see mse::mse_get_modeled_signal
+!>  @see ece::ece_get_modeled_signal
 !>
 !>  @param[in]    this    A @ref diagnostic_class instance.
 !>  @param[inout] a_model A @ref model instance.
@@ -471,6 +457,10 @@
             diagnostic_get_modeled_signal =                                    &
      &         mse_get_modeled_signal(this%mse, a_model, sigma)
 
+         CASE (diagnostic_ece_type)
+            diagnostic_get_modeled_signal =                                    &
+     &         ece_get_modeled_signal(this%ece, a_model, sigma)
+
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_modeled_signal',             &
@@ -490,7 +480,8 @@
 !>  @see intpol::intpol_get_signal_type
 !>  @see thomson::thomson_get_signal_type
 !>  @see extcurz::extcurz_get_signal_type
-!>  @see extcurz::mse_get_signal_type
+!>  @see mse::mse_get_signal_type
+!>  @see ece::ece_get_signal_type
 !>
 !>  @param[in] this A @ref diagnostic_class instance.
 !>  @returns A string describing the diagnostic type.
@@ -536,6 +527,10 @@
             diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
      &         mse_get_signal_type(this%mse))
 
+         CASE (diagnostic_ece_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         ece_get_signal_type(this%ece))
+
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_signal_type',                &
@@ -579,6 +574,9 @@
          CASE (diagnostic_mse_type)
             diagnostic_get_header = mse_get_header(this%mse)
 
+         CASE (diagnostic_ece_type)
+            diagnostic_get_header = ece_get_header(this%ece)
+
          CASE DEFAULT
             diagnostic_get_header(1:3) = 'N/A'
             diagnostic_get_header(4) = 'model_sig(1)'
@@ -591,63 +589,5 @@
       CALL profiler_set_stop_time('diagnostic_get_header', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref diagnostic_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE diagnostic_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (diagnostic_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                    :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                                :: error
-      REAL (rprec)                           :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%type, 1, MPI_INTEGER, 0, intra_comm, error)
-
-      SELECT CASE (this%type)
-
-         CASE (diagnostic_magnetic_type)
-            CALL magnetic_sync_children(this%magnetic, intra_comm)
-
-         CASE (diagnostic_sxrem_type)
-            CALL sxrem_sync_children(this%sxrem, intra_comm)
-
-         CASE (diagnostic_intpol_type)
-            CALL intpol_sync_children(this%intpol, intra_comm)
-
-         CASE (diagnostic_thomson_type)
-            CALL thomson_sync_children(this%thomson, intra_comm)
-
-         CASE (diagnostic_extcurz_type)
-            CALL extcurz_sync_children(this%extcurz, intra_comm)
-
-         CASE (diagnostic_mse_type)
-            CALL mse_sync_children(this%mse, intra_comm)
-
-      END SELECT
-
-      CALL profiler_set_stop_time('diagnostic_sync_children',                  &
-     &                            start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE

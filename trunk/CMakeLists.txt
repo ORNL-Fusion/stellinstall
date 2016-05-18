@@ -20,6 +20,12 @@ project (v3fit_suite Fortran C CXX)
 
 enable_testing ()
 
+# Activate or Deactivate PARVMEC. PARVMEC maybe activated by setting -DUSE_PARVMEC=ON on the cmake command line.
+OPTION (USE_PARVMEC "Activate code parvmec." OFF)
+if (USE_PARVMEC)
+        add_definitions (-DSKS)
+endif ()
+
 # Activate or Deactivate code profiling. The profiler maybe activated by setting -DUSE_PROFILER=ON on the cmake command line.
 OPTION (USE_PROFILER "Activate code profiling." OFF)
 if (USE_PROFILER)
@@ -104,7 +110,9 @@ else ()
 	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
 endif ()
 
-# List all the subdirectories these are in library dependency order.
+find_library (SCALAPACK_LIB NAMES scalapack)
+
+# List all the subdirectories these are in library dependancy order.
 add_subdirectory (LIBSTELL)
 add_subdirectory (VMEC2000)
 add_subdirectory (V3FITA)
@@ -123,6 +131,7 @@ if (BUILD_SIESTA)
 	add_subdirectory (SIESTA)
 endif ()
 
+# Optional extra builds
 if (BUILD_GTOVMI)
 	add_subdirectory (GTOVMI)
 endif ()

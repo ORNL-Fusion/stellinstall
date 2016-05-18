@@ -36,18 +36,6 @@
          REAL (rprec) :: theta
       END TYPE extcurz_class
 
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref extcurz_class types using
-!>  @ref extcurz_construct_new or @ref extcurz_construct_mpi
-!-------------------------------------------------------------------------------
-      INTERFACE extcurz_construct
-         MODULE PROCEDURE extcurz_construct_new,                               &
-     &                    extcurz_construct_mpi
-      END INTERFACE
-
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -61,12 +49,12 @@
 !>  @param[in] theta The poloidal angle to integrate at.
 !>  @returns A pointer to a constructed @ref thomson_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION extcurz_construct_new(r, theta)
+      FUNCTION extcurz_construct(r, theta)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (extcurz_class), POINTER  :: extcurz_construct_new
+      TYPE (extcurz_class), POINTER  :: extcurz_construct
       REAL(rprec), INTENT(in)        :: r
       REAL(rprec), INTENT(in)        :: theta
 
@@ -76,43 +64,11 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ALLOCATE(extcurz_construct_new)
-      extcurz_construct_new%r = r
-      extcurz_construct_new%theta = theta
+      ALLOCATE(extcurz_construct)
+      extcurz_construct%r = r
+      extcurz_construct%theta = theta
 
-      CALL profiler_set_stop_time('extcurz_construct_new', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Construct a @ref extcurz_class object by syncing through mpi.
-!>
-!>  Allocates memory and initializes a @ref extcurz_class object.
-!>
-!>  @param[in] intra_comm A MPI intra_comm handle.
-!>  @returns A pointer to a constructed @ref extcurz_class object.
-!-------------------------------------------------------------------------------
-      FUNCTION extcurz_construct_mpi(intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (extcurz_class), POINTER :: extcurz_construct_mpi
-      INTEGER, INTENT(in)           :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                       :: error
-
-!  Start of executable code
-      ALLOCATE(extcurz_construct_mpi)
-
-      CALL MPI_BCAST(extcurz_construct_mpi%r, 1, MPI_REAL8, 0,                 &
-     &               intra_comm, error)
-      CALL MPI_BCAST(extcurz_construct_mpi%theta, 1, MPI_REAL8, 0,             &
-     &               intra_comm, error)
-
-#endif
+      CALL profiler_set_stop_time('extcurz_construct', start_time)
 
       END FUNCTION
 
@@ -215,41 +171,5 @@
       CALL profiler_set_stop_time('extcurz_get_signal_type', start_time)
 
       END FUNCTION
-
-!*******************************************************************************
-!  MPI SUBROUTINES
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief Syncronize data to children.
-!>
-!>  Syncs data between the parent and child processes. If MPI support is not
-!>  compiled in this subroutine reduces to a no op.
-!>
-!>  @param[inout] this       A @ref extcurz_class instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
-!-------------------------------------------------------------------------------
-      SUBROUTINE extcurz_sync_children(this, intra_comm)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      TYPE (extcurz_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                 :: intra_comm
-
-#if defined(MPI_OPT)
-!  local variables
-      INTEGER                            :: error
-      REAL (rprec)                       :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      CALL MPI_BCAST(this%r, 1, MPI_REAL8, 0, intra_comm, error)
-      CALL MPI_BCAST(this%theta, 1, MPI_REAL8, 0, intra_comm, error)
-
-      CALL profiler_set_stop_time('extcurz_sync_children', start_time)
-#endif
-
-      END SUBROUTINE
 
       END MODULE
