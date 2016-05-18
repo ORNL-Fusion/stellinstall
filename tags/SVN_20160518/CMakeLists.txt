@@ -1,0 +1,128 @@
+# cmake build system was created by Mark Cianciosa. Current this only supports Mac OS X and Linux.
+#
+# All options can be define by using -DOPTION_NAME="Definition of option"
+#
+# Options:
+# EXTRA_FLAGS         -- Compiler flags added to all builds.
+# EXTRA_RELEASE_FLAGS -- Compiler flags added to release builds.
+# EXTRA_DEBUG_FLAGS   -- Compiler flags added to debug builds.
+#
+# NETCDF_LIB_PATH     -- Path to the netcdf libraries.
+# NETCDF_INC_PATH     -- Path to the netcdf include files.
+#
+# BUILD_GTOVMI        -- Optionally builds GTOVMI
+#
+
+cmake_minimum_required (VERSION 2.8.7)
+
+# Start Project and note the language used. The BLAS and LAPACK libraries for ifort require a working C and C++ compiler.
+project (v3fit_suite Fortran C CXX)
+
+enable_testing ()
+
+# Activate or Deactivate code profiling. The profiler maybe activated by setting -DUSE_PROFILER=ON on the cmake command line.
+OPTION (USE_PROFILER "Activate code profiling." OFF)
+if (USE_PROFILER)
+        add_definitions (-DPROFILE_ON)
+endif ()
+
+# Add the ability to auto generate API documentation with Doxygen
+find_package (Doxygen)
+if (DOXYGEN_FOUND)
+	configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/build/Doxyfile @ONLY)
+	add_custom_target (doc ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/build/Doxyfile 
+	                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build
+	                   COMMENT "Generating API documentation with Doxygen" VERBATIM)
+endif ()
+
+# Configure MPI
+# If using the compiler wrapper, there is no need to find the MPI libraries.
+get_filename_component (compiler ${CMAKE_Fortran_COMPILER} NAME)
+if (${compiler} STREQUAL mpiifort)
+	add_definitions (-DMPI_OPT)
+else ()
+	find_package (MPI)
+endif ()
+
+if (MPI_Fortran_FOUND)
+	add_definitions (-DMPI_OPT)
+	set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MPI_Fortran_COMPILE_FLAGS}")
+	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_Fortran_LINK_FLAGS}")
+	include_directories (${MPI_Fortran_INCLUDE_PATH})
+endif ()
+
+# Set a directories to build all binary files.
+set (EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/bin)
+set (LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/lib)
+
+# Add extra compiler flags to various builds.
+set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} ${EXTRA_RELEASE_FLAGS}")
+set (CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} ${EXTRA_DEBUG_FLAGS}")
+set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${EXTRA_FLAGS}")
+
+# Fortran specific settings. The first setting tells the compiler to use the C preprocessor. The second places a common directory to place all of the module files.
+set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp")
+set (CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build/modules)
+
+# Set Apple specific options. This adds a predefine for DARWIN and adds lapack from the Accelerate framework.
+if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	add_definitions (-DDARWIN)
+	set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
+endif ()
+
+# Set Linux specific options. This adds a predefine for LINUX.
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	add_definitions (-DLINUX)
+	find_package (BLAS REQUIRED)
+	find_package (LAPACK REQUIRED)
+endif ()
+
+# Use netcdf if libraries are found. The values of NETCDF_LIB_PATH and NETCDF_INC_PATH should be set from the command line or Cmake GUI. Convert path from native format to cmake internal format.
+if (NETCDF_INC_PATH)
+	file (TO_NATIVE_PATH ${NETCDF_INC_PATH} NETCDF_INC_PATH)
+	find_file (NETCDF_I netcdf.inc ${NETCDF_INC_PATH} NO_DEFAULT_PATH)
+endif ()
+
+if (NETCDF_LIB_PATH)
+	file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
+        find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+        find_library (NETCDF_C NAMES netcdf PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+endif ()
+
+if (NETCDF_I AND (NETCDF_F OR NETCDF_C))
+	message (STATUS "Using netcdf")
+	add_definitions (-DNETCDF)
+	include_directories (${NETCDF_INC_PATH})
+
+	if (NETCDF_F)
+		list (APPEND NETCDF_LIBRARIES ${NETCDF_F})
+	endif ()
+	if (NETCDF_C)
+		list (APPEND NETCDF_LIBRARIES ${NETCDF_C})
+	endif ()
+else ()
+	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
+endif ()
+
+# List all the subdirectories these are in library dependency order.
+add_subdirectory (LIBSTELL)
+add_subdirectory (VMEC2000)
+add_subdirectory (V3FITA)
+add_subdirectory (MAKEGRID)
+add_subdirectory (V3RFUN)
+add_subdirectory (BOOZ_XFORM)
+add_subdirectory (WOUT_CONVERTER)
+add_subdirectory (BOOTSJ)
+add_subdirectory (DESCUR)
+add_subdirectory (Testing)
+
+# Optional extra builds
+OPTION (BUILD_SIESTA "Activate SIESTA." OFF)
+if (BUILD_SIESTA)
+	add_subdirectory (POINCARE)
+	add_subdirectory (SIESTA)
+endif ()
+
+if (BUILD_GTOVMI)
+	add_subdirectory (GTOVMI)
+endif ()
