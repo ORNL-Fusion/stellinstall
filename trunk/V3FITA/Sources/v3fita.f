@@ -423,7 +423,8 @@
 
 !  Test for convergence.
             IF (reconstruction_get_dg2(context%recon) .le.                     &
-     &          context%recon_stop) THEN
+     &          context%recon_stop .or.                                        &
+     &          reconstruction_get_g2(context%recon) .eq. 0.0) THEN
                WRITE (*,*)
                WRITE (*,*) ' *** Equilibrium reconstructed'
                WRITE (*,1000) context%recon_stop,                              &

@@ -2661,7 +2661,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      IF (ASSOCIATED(this%sxrem)) THEN
+      IF (ASSOCIATED(this%sxrem) .and. SIZE(this%sxrem) .le. index) THEN
          vmec_get_sxrem_radial =                                               &
      &      pprofile_get_value(this%sxrem(index)%p, s)
       ELSE
