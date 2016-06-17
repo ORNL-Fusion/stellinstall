@@ -1588,9 +1588,12 @@
 !  Set the new parameter values. ABS(params(j)%p%delta) is the normalization
 !  factor. This is not vrnc because the increment function can take a non vrnc
 !  step size.
+         WRITE (iou,1002)
          DO j = 1, SIZE(params)
             CALL param_set_value(params(j)%p, a_model, param_value(j) +        &
      &              delta_a(j)*ABS(params(j)%p%recon%delta), eq_comm)
+            WRITE (iou,1003) delta_a(j), param_get_name(params(j)%p,           &
+     &                                                  a_model)
          END DO
          DO j = 1, SIZE(locks)
             CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
@@ -1626,8 +1629,17 @@
             ELSE
 !  Equilibrium converged but g^2 increased
                WRITE (*,*) 'Equilibrium converged but g2 increased'
+               WRITE (*,1000)
+               WRITE (*,1001) reconstruction_get_lastg2(this),                 &
+     &                        reconstruction_get_g2(this),                     &
+     &                        reconstruction_get_dg2(this)
                WRITE (iou,*) 'Equilibrium converged but g2 increased'
+               WRITE (iou,1000)
+               WRITE (iou,1001) reconstruction_get_lastg2(this),               &
+     &                          reconstruction_get_g2(this),                   &
+     &                          reconstruction_get_dg2(this)
             END IF
+
          ELSE
 !  Equilibrium did not converge
             WRITE (*,*) 'Equilibrium did not converge'
@@ -1679,6 +1691,8 @@
 
 1000  FORMAT('g^2 old',7x,'g^2 new',7x,'g^2 diff')
 1001  FORMAT(es12.5,2x,es12.5,2x,es12.5)
+1002  FORMAT('Normalized Step',2x,'param_name')
+1003  FORMAT(es12.5,5x,a)
 
       END FUNCTION
 
