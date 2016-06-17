@@ -1633,11 +1633,13 @@
                WRITE (*,1001) reconstruction_get_lastg2(this),                 &
      &                        reconstruction_get_g2(this),                     &
      &                        reconstruction_get_dg2(this)
+               WRITE (*,1004) MAXLOC(ABS(delta_a))
                WRITE (iou,*) 'Equilibrium converged but g2 increased'
                WRITE (iou,1000)
                WRITE (iou,1001) reconstruction_get_lastg2(this),               &
      &                          reconstruction_get_g2(this),                   &
      &                          reconstruction_get_dg2(this)
+               WRITE (iou,1004) MAXLOC(ABS(delta_a))
             END IF
 
          ELSE
@@ -1693,6 +1695,7 @@
 1001  FORMAT(es12.5,2x,es12.5,2x,es12.5)
 1002  FORMAT('Normalized Step',2x,'param_name')
 1003  FORMAT(es12.5,5x,a)
+1004  FORMAT('Change vrnc value for rp number ',i4)
 
       END FUNCTION
 
