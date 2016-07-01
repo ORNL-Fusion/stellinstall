@@ -1,0 +1,534 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1187\cocoasubrtf340
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-Bold;
+}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww38140\viewh19520\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\qc
+
+\f0\b\fs48 \cf0 V3FIT User Manual
+\fs36 \
+
+\b0 12/10/2012\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\b\fs28 \cf0 I. Introduction
+\b0\fs24 \
+\pard\tx529\pardeftab529\pardirnatural
+\cf0 V3fit uses diagnostic data to reconstruct a VMEC equilibrium.\
+\
+
+\f1 xv3fit <namelist_input_file>
+\f0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+
+\b\fs28 II. Signals
+\fs24 \
+
+\b0 A. Diagnostics\
+This is a class of signals that comes from experimentally measured data.\
+\
+1. Magnetics\
+\
+2. SXR\
+Soft x-ray chords are specified in a diagnostic dot file.\
+\
+Namelist input values:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f1 \cf0 sxrch_dot_filename
+\f0 	Path to the SXR scattering diagnostic dot file.\
+\
+Diagnostic Dot File Keywords:\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 end_of_file
+\f0 								\
+Specifies the end of the diagnostic dot file.\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature1 \
+sxrchd_XYZ
+\f0 ,				\
+Specifies a SXR chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers.\
+
+\f1 \
+sxrchd_RPhiDegZ
+\f0 	\
+Specifies a SXR chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers. Phi is in degrees.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 sxrchd_RPhiDegZ\
+ip001\
+1.0 0.0 0.0\
+0.5 0.0 0.0\
+\
+sxrchd_RPhiDegZ\
+ip002\
+1.0 0.0 0.0\
+0.5 0.0 0.0\
+\
+end_of_file
+\f0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+3. Interferometer Polarimetry\
+Interferometer and polarimetry chords are specified in a diagnostic dot file.\
+\
+Namelist input values:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f1 \cf0 ipch_dot_filename
+\f0 	Path to the interferometer polarimetry diagnostic dot file.\
+\
+Diagnostic Dot File Keywords:\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 end_of_file
+\f0 								\
+Specifies the end of the diagnostic dot file.\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature1 \
+ip_chord_XYZ
+\f0 , 
+\f1 ip_chord_XYZ_int
+\f0 				\
+Specifies an interferometer chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers.\
+
+\f1 \
+ip_chord_RPhiDegZ
+\f0 , 
+\f1 ip_chord_RPhiDegZ_int
+\f0 	\
+Specifies an interferometer chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers. Phi is in degrees.\
+
+\f1 \
+ip_chord_XYZ_pol_rad
+\f0 							\
+Specifies a polarimetry chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Data is specified as the faraday rotation angle in radians.\
+
+\f1 \
+ip_chord_RPhiDegZ_pol_rad					
+\f0 	\
+Specifies a polarimetry chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Phi is in degrees. Data is specified as the faraday rotation angle in radians.\
+\
+
+\f1 ip_chord_XYZ_pol_deg
+\f0 							\
+Specifies a polarimetry chord in xyz coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Data is specified as the faraday rotation angle in degrees.\
+
+\f1 \
+ip_chord_RPhiDegZ_pol_deg					
+\f0 	\
+Specifies a polarimetry chord in cylindrical coordinates. Must be followed by a chord name then two lines of three real numbers and third line of beam wavelength in meters. Phi is in degrees. Data is specified as the faraday rotation angle in degrees.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+Example diagnostic dot file.\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 ip_chord_RPhiDegZ_int\
+ip001\
+1.0 0.0 0.0\
+0.5 0.0 0.0\
+\
+ip_chord_RPhiDegZ_pol\
+ip002\
+1.0 0.0 0.0\
+0.5 0.0 0.0
+\f0 \
+
+\f1 1E-4\
+\
+end_of_file
+\f0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+4. Thomson Scattering\
+Thomson Scattering points are specified in a diagnostic dot file.\
+\
+Namelist input values:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f1 \cf0 thscte_dot_filename
+\f0 	Path to the Thomson scattering diagnostic dot file.\
+\
+Diagnostic Dot File Keywords:\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 end_of_file
+\f0 								\
+Specifies the end of the diagnostic dot file.\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature1 \
+thscte_XYZ
+\f0 , 
+\f1 thscte_XYZ_te
+\f0 				\
+Specifies a Thomson Scattering point for measuring te in xyz coordinates. Must be followed by a point name then a line three real numbers.\
+
+\f1 \
+thscte_RPhiDegZ
+\f0 , 
+\f1 thscted_RPhiDegZ_te
+\f0 	\
+Specifies a Thomson Scattering point for measuring te in cylindrical coordinates. Must be followed by a point name then a line three real numbers.  Phi is in degrees.\
+
+\f1 \
+thscte_XYZ_ne
+\f0 							\
+Specifies a Thomson Scattering point for measuring ne in xyz coordinates. Must be followed by a point name then a line three real numbers.\
+
+\f1 \
+thscte_RPhiDegZ_ne					
+\f0 	\
+Specifies a Thomson Scattering point for measuring ne in cylindrical coordinates. Must be followed by a point name then a line three real numbers.  Phi is in degrees.\
+\
+
+\f1 thscte_XYZ_pres
+\f0 							\
+Specifies a Thomson Scattering point for measuring pressure in xyz coordinates. Must be followed by a point name then a line three real numbers.\
+
+\f1 \
+thscte_RPhiDegZ_pres					
+\f0 	\
+Specifies a Thomson Scattering point for measuring pressure in cylindrical coordinates. Must be followed by a point name then a line three real numbers.  Phi is in degrees.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+Example diagnostic dot file.\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 thscte_XYZ_te\
+ts001\
+0.75 0.0 0.0\
+\
+thscte_XYZ_ne\
+ts002\
+1.0 0.0 0.0\
+\
+thscte_XYZ_pres\
+ts003\
+1.0 0.0 0.0\
+\
+end_of_file
+\f0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+5. External Z currents\
+As a way of specifying external current when operated in fixed boundary mode, this diagnostic integrates the magnetic field on the inside of the torus to determine the enclosed current in the Z direction in A.\
+\
+Namelist input values:\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f1 \cf0 extcurz_s0
+\f0 	S position to integrate about.
+\f1 \
+extcurz_u0
+\f0 	U position to integrate about.\
+\
+B. Geometric\
+1. Bar Limiters\
+2. Circular Limiters\
+\
+C. Combination\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\b \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\fs28 \cf0 III. Models
+\fs24 \
+
+\b0 Each signal is calculated from a model of that signal. Some signals can be determined directly from VMEC. Other signals need additional models imposed on top of the equilibrium in the form of a flux surface constant profile. Data is specified as total enclosed current in the Z direction.
+\b \
+
+\b0 \
+A. VMEC\
+The VMEC model provides magnetic field information and geometry. Profiles of the plasma pressure and plasma current.\
+\
+B. Auxiliary\
+1. Electron Density\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 pp_ne_ptype			STRING\
+
+\f0 Possible Values: 
+\f2\b none
+\f0\b0 , 
+\f1 two_power
+\f0 , 
+\f1 two_power_gs
+\f0 , 
+\f1 power_series
+\f0 , 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0 , 
+\f1 line_segment\
+
+\f0 Notes: Sets the profile type for the density.
+\f1 \
+\
+pp_ne_b					REAL[0:21]\
+
+\f0 Notes: Array of parameters for the 
+\f1 two_power
+\f0 ,
+\f1  two_power_gs 
+\f0 and
+\f1  power_series 
+\f0 profiles
+\f1 .\
+\
+pp_ne_as				REAL[1:101]\
+
+\f0 Notes: Array of s positions for the 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0  and 
+\f1 line_segment
+\f0  profiles. For must be specified in increasing value of s.
+\f1 \
+\
+pp_ne_af				REAL[1:101]\
+
+\f0 Notes: Array of f(s) values for the 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0  and 
+\f1 line_segment
+\f0  profiles.
+\f1 \
+\
+ne_pp_unit				REAL\
+
+\f0 Notes: Scaling unit of the density. Defaults to 1.0E18.
+\f1 \
+\
+ne_min					REAL
+\f0 \CocoaLigature1 \
+\CocoaLigature0 Notes: Minimum densit\'e9 value. Defaults to 1.0E15.\CocoaLigature1 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+2. Electron Temperature\
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 pp_te_ptype			STRING\
+
+\f0 Possible Values: 
+\f2\b none
+\f0\b0 , 
+\f1 two_power
+\f0 , 
+\f1 two_power_gs
+\f0 , 
+\f1 power_series
+\f0 , 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0 , 
+\f1 line_segment\
+
+\f0 Notes: Sets the profile type for the density.
+\f1 \
+\
+pp_te_b					REAL[0:21]\
+
+\f0 Notes: Array of parameters for the 
+\f1 two_power
+\f0 ,
+\f1  two_power_gs 
+\f0 and
+\f1  power_series 
+\f0 profiles
+\f1 .\
+\
+pp_te_as				REAL[1:101]\
+
+\f0 Notes: Array of s positions for the 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0  and 
+\f1 line_segment
+\f0  profiles. For must be specified in increasing value of s.
+\f1 \
+\
+pp_te_af				REAL[1:101]\
+
+\f0 Notes: Array of f(s) values for the 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0  and 
+\f1 line_segment
+\f0  profiles.
+\f1 \
+\
+model_te_type			STRING\
+
+\f0 Possible Values: 
+\f2\b none
+\f0\b0 , 
+\f1 pp_te
+\f0 , 
+\f1 pp_ne_vmec_p
+\f0  \CocoaLigature1 \
+\CocoaLigature0 Notes: When using 
+\f1 pp_ne_vmec_p
+\f0 , a model for the density must be specified.\CocoaLigature1 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 e_pressure_fraction	REAL\
+
+\f0 Notes: Fractional component of the electron pressure from the total pressure. Defaults to 0.5.\CocoaLigature1 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+\cf0 \
+3. SXR emissivity
+\b \
+\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1\b0 \cf0 \CocoaLigature0 pp_sxrem_ptype			STRING\
+
+\f0 Possible Values: 
+\f2\b none
+\f0\b0 , 
+\f1 two_power
+\f0 , 
+\f1 two_power_gs
+\f0 , 
+\f1 power_series
+\f0 , 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0 , 
+\f1 line_segment\
+
+\f0 Notes: Sets the profile type for the density.
+\f1 \
+\
+pp_sxrem_b				REAL[0:21]\
+
+\f0 Notes: Array of parameters for the 
+\f1 two_power
+\f0 ,
+\f1  two_power_gs 
+\f0 and
+\f1  power_series 
+\f0 profiles
+\f1 .\
+\
+pp_sxrem_as			REAL[1:101]\
+
+\f0 Notes: Array of s positions for the 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0  and 
+\f1 line_segment
+\f0  profiles. For must be specified in increasing value of s.
+\f1 \
+\
+pp_sxrem_af			REAL[1:101]\
+
+\f0 Notes: Array of f(s) values for the 
+\f1 cubic_spline
+\f0 , 
+\f1 akima_spline
+\f0  and 
+\f1 line_segment
+\f0  profiles.
+\f1 \
+\
+model_sxrem_type		STRING\
+
+\f0 Possible Values: 
+\f2\b none
+\f0\b0 , 
+\f1 pp_sxrem
+\f0 , 
+\f1 pp_ne_vmec_p
+\f0  \CocoaLigature1 \
+\CocoaLigature0 Notes: When using 
+\f1 pp_ne_vmec_p
+\f0 , a model for the density must be specified.\CocoaLigature1 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\b \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\fs28 \cf0 IV. Parameters
+\fs24 \
+
+\b0 Any model parameter may be specified as a reconstruction parameter.\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\b \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\b0 \cf0 A. VMEC\
+\pard\tx529\pardeftab529\pardirnatural
+
+\f1 \cf0 \CocoaLigature0 ac						REAL[0:20]\
+ac_aux_s				REAL[1:101]\
+ac_aux_f				REAL[1:101]\
+am						REAL[0:20]\
+am_aux_s				REAL[1:101]\
+am_aux_f				REAL[1:101]\
+ai						REAL[0:20]\
+ai_aux_s				REAL[1:101]\
+ai_aux_f				REAL[1:101]\
+bloat					REAL\
+pres_scale				REAL\
+phiedge					REAL
+\f0 \CocoaLigature1 \
+
+\f1 \CocoaLigature0 extcur					REAL[-101:101, 0:100]\
+rbc						REAL[-101:101, 0:100]\
+rbs						REAL[-101:101, 0:100]\
+zbc						REAL[-101:101, 0:100]\
+zbs						REAL[-101:101, 0:100]\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0 \cf0 \CocoaLigature1 B. VMEC constraints
+\f1 \CocoaLigature0 \
+\pard\tx529\pardeftab529\pardirnatural
+\cf0 ac_edge					REAL\
+am_edge					REAL\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0 \cf0 \CocoaLigature1 \
+C. Auxiliary
+\f1 \CocoaLigature0 \
+\pard\tx529\pardeftab529\pardirnatural
+\cf0 pp_ne_b					REAL[0:21]\
+pp_ne_as				REAL[1:101]\
+pp_ne_af				REAL[1:101]\
+pp_te_b					REAL[0:21]\
+pp_te_as				REAL[1:101]\
+pp_te_af				REAL[1:101]\
+pp_sxrem_b				REAL[0:21]\
+pp_sxrem_as			REAL[1:101]\
+pp_sxrem_af			REAL[1:101]
+\f0\b \CocoaLigature1 \
+}
