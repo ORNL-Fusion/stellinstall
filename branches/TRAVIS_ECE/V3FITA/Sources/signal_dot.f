@@ -16,7 +16,9 @@
       USE stel_constants
       USE data_parameters
       USE profiler
-
+!ech-ece IS this needed?   
+      USE file_opts, only: path_length
+      
       IMPLICIT NONE
 
 !*******************************************************************************
@@ -318,6 +320,46 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
+!>  @brief Parse one integer from a diagnostic dot file.
+!>
+!>  Reads one integer from the diagnostic dot file. This is used to be able to
+!>  get extra information about a diagnostic in the diagnostic dot file.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message             Error message to report back if there was
+!>                                    a problem.
+!>  @returns The parsed real value.
+!-------------------------------------------------------------------------------
+      FUNCTION signal_dot_parse_int(signal_dot_file_ref, message)
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                               :: signal_dot_parse_int
+      TYPE (signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)         :: message
+
+!  local variables
+      INTEGER                               :: status
+      CHARACTER (len=signal_dot_line_len)   :: line
+      REAL (rprec)                          :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            'Error ', message)
+!  Reread the line, looking for a single real
+      READ(line, *, iostat=status) signal_dot_parse_int
+      CALL signal_dot_check_status(status, signal_dot_file_ref,                &
+     &                             'Error ', message)
+
+      CALL profiler_set_stop_time('signal_dot_parse_int', start_time)
+
+      END FUNCTION      
+      
+!-------------------------------------------------------------------------------
 !>  @brief Parse two integers from a diagnostic dot file.
 !>
 !>  Reads two integers from the diagnostic dot file. This is used to be able to
@@ -407,6 +449,92 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Read a filename from the diagnostic dot file.
+!>
+!>  Read lines until a valid keyword is reached ot the end of the file is
+!>  reached.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message            Error message to report back if there
+!>                                   was a problem      
+!>  @returns The parsed filename
+!-------------------------------------------------------------------------------
+      FUNCTION signal_dot_parse_filename(signal_dot_file_ref, message)
+
+!  Start of executable code
+      
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=path_length)     :: signal_dot_parse_filename
+      TYPE(signal_dot_file), INTENT(inout) :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)         :: message
+
+!  local variables
+      INTEGER                              :: i
+      CHARACTER (len=signal_dot_line_len)  :: line
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+
+!  Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            'Error ', message)
+
+      signal_dot_parse_filename = TRIM(line)
+      CALL profiler_set_stop_time('signal_dot_parse_filename',                 &
+     &                               start_time)
+
+      END FUNCTION
+      
+
+!-------------------------------------------------------------------------------
+!>  @brief Read a id from the diagnostic dot file.
+!>
+!>  Read lines until a valid keyword is reached ot the end of the file is
+!>  reached.
+!>
+!>  @param[inout] signal_dot_file_ref An instance of a @ref signal_dot_file
+!>                                    object.
+!>  @param[in]    message            Error message to report back if there
+!>                                   was a problem      
+!>  @returns The id
+!-------------------------------------------------------------------------------
+      FUNCTION signal_dot_parse_id(signal_dot_file_ref, message)
+
+
+!  Start of executable code
+      
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=data_short_name_length) :: signal_dot_parse_id
+      TYPE(signal_dot_file), INTENT(inout)   :: signal_dot_file_ref
+      CHARACTER (len=*), INTENT(in)           :: message
+
+!  local variables
+      CHARACTER (len=signal_dot_line_len)  :: line
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+
+!  Read the start position.
+      line = signal_dot_read_line(signal_dot_file_ref,                         &
+     &                            'Error ', message)
+
+      signal_dot_parse_id = TRIM(line)
+
+      CALL profiler_set_stop_time('signal_dot_parse_id', start_time)
+
+      END FUNCTION
+
+      
 !*******************************************************************************
 !  Private Functions and Subroutines.
 !*******************************************************************************

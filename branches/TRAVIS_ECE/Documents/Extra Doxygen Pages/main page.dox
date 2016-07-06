@@ -35,6 +35,8 @@
  * * @ref thomson_dot_sec "Thomson Scattering Diagnostic Dot File" User manual for the Thomson scattering diagnostic dot file.
  * * @ref mse_dot_sec "Motional Stark Effect Diagnostic Dot File" User manual for the motional stark effect diagnostic dot file.
  * * @ref sxrem_ratio_dot_sec "Soft X-ray Ratio Diagnostic Dot File" User manual for the soft x-ray ratio diagnostic dot file.
+ * * @ref ece_dot_sec "Electron Cyclotron Emission Diagnostic Dot File" User manual for the ECE diagnostic dot file.
+ * * @ref ece_travis_dot_sec "TRAIVS ECE Diagnostic Dot File" User manunal for ECE diagnostic dot file for use with the TRAVIS ECE library.
  *
  * @subsubsection user_v3rfun V3RFUN manuals.
  * Magnetic diagnostics require a preprocessing code V3RFUN to generate the input discription files.

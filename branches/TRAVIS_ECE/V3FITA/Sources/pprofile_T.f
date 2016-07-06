@@ -1,6 +1,6 @@
 !*******************************************************************************
-!>  @file pprofile_T.f
-!>  @brief Contains module @ref pprofile_T.
+!>  @file pprofile_t.f
+!>  @brief Contains module @ref pprofile_t.
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.

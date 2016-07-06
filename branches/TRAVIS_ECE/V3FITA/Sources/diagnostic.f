@@ -21,7 +21,8 @@
       USE extcurz
       USE mse
       USE ece
-
+      USE ece_travis
+      
       IMPLICIT NONE
 
 !*******************************************************************************
@@ -43,7 +44,9 @@
       INTEGER, PARAMETER :: diagnostic_mse_type      = 5
 !>  Type descriptor for the @ref diagnostic_class subclass @ref ece
       INTEGER, PARAMETER :: diagnostic_ece_type      = 6
-
+!>  Type descriptor for the @ref diagnostic_class subclass @ref ece_travis
+      INTEGER, PARAMETER :: diagnostic_ece_travis_type = 7
+      
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) diagnostic base class
@@ -67,6 +70,7 @@
 !>  * @ref diagnostic_extcurz_type
 !>  * @ref diagnostic_mse_type
 !>  * @ref diagnostic_ece_type
+!>  * @ref diagnostic_ece_travis_type
          INTEGER                       :: type = diagnostic_no_type
 !>  An instance of a @ref magnetic object. 
          TYPE (magnetic_class), POINTER :: magnetic => null()
@@ -80,8 +84,10 @@
          TYPE (extcurz_class), POINTER  :: extcurz => null()
 !>  An instance of a @ref mse object.
          TYPE (mse_class), POINTER      :: mse => null()
-!>  An instance of a @ref mse object.
+!>  An instance of a @ref ece object.
          TYPE (ece_class), POINTER      :: ece => null()
+!>  An instance of a @ref ece_travis object
+         TYPE (ece_travis_class), POINTER  :: ece_travis => null()
       END TYPE diagnostic_class
 
 !*******************************************************************************
@@ -100,7 +106,8 @@
      &                    diagnostic_construct_thomson,                        &
      &                    diagnostic_construct_extcurz,                        &
      &                    diagnostic_construct_mse,                            &
-     &                    diagnostic_construct_ece
+     &                    diagnostic_construct_ece,                            &
+     &                    diagnostic_construct_ece_travis
       END INTERFACE
 
       CONTAINS
@@ -331,7 +338,39 @@
      &                            start_time)
 
       END FUNCTION
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref diagnostic_class containing a @ref ece_travis object
+!>
+!>  Allocates memory and initializes a @ref diagnostic_class object.
+!>
+!>  @param[in] ece_travis_object An instance of a @ref ece subclass.
+!>  @returns A pointer to a constructed @ref diagnostic_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION diagnostic_construct_ece_travis(ece_travis_object)
 
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (diagnostic_class), POINTER ::diagnostic_construct_ece_travis
+      TYPE (ece_travis_class), POINTER        :: ece_travis_object
+
+!  local variables
+      REAL (rprec)                     :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(diagnostic_construct_ece_travis)
+
+      diagnostic_construct_ece_travis%type = diagnostic_ece_travis_type
+      diagnostic_construct_ece_travis%ece_travis => ece_travis_object
+
+      CALL profiler_set_stop_time('diagnostic_construct_travis_ece',           &
+     &                            start_time)
+
+      END FUNCTION
+
+      
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -385,6 +424,11 @@
          this%ece => null()
       END IF
 
+      IF (ASSOCIATED(this%ece_travis)) THEN
+         CALL ece_travis_destruct(this%ece_travis)
+         this%ece => null()
+      END IF
+
       this%type = diagnostic_no_type
 
       DEALLOCATE(this)
@@ -408,6 +452,7 @@
 !>  @see extcurz::extcurz_get_modeled_signal
 !>  @see mse::mse_get_modeled_signal
 !>  @see ece::ece_get_modeled_signal
+!>  @see ece_travis::ece_travis_get_modeled_signal      
 !>
 !>  @param[in]    this    A @ref diagnostic_class instance.
 !>  @param[inout] a_model A @ref model instance.
@@ -461,6 +506,11 @@
             diagnostic_get_modeled_signal =                                    &
      &         ece_get_modeled_signal(this%ece, a_model, sigma)
 
+         CASE (diagnostic_ece_travis_type)
+            diagnostic_get_modeled_signal =                                    &
+     &          ece_travis_get_modeled_signal(this%ece_travis, a_model,        &
+     &                                         sigma)
+   
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_modeled_signal',             &
@@ -482,6 +532,7 @@
 !>  @see extcurz::extcurz_get_signal_type
 !>  @see mse::mse_get_signal_type
 !>  @see ece::ece_get_signal_type
+!>  @see ece_travis::ece_travis_get_signal_type
 !>
 !>  @param[in] this A @ref diagnostic_class instance.
 !>  @returns A string describing the diagnostic type.
@@ -531,6 +582,10 @@
             diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
      &         ece_get_signal_type(this%ece))
 
+         CASE (diagnostic_ece_travis_type)
+            diagnostic_get_signal_type = TRIM('diagnostic ' //                 &
+     &         ece_travis_get_signal_type(this%ece_travis))
+
       END SELECT
 
       CALL profiler_set_stop_time('diagnostic_get_signal_type',                &
@@ -577,6 +632,9 @@
          CASE (diagnostic_ece_type)
             diagnostic_get_header = ece_get_header(this%ece)
 
+         CASE (diagnostic_ece_travis_type)
+            diagnostic_get_header=ece_travis_get_header(this%ece_travis)
+   
          CASE DEFAULT
             diagnostic_get_header(1:3) = 'N/A'
             diagnostic_get_header(4) = 'model_sig(1)'

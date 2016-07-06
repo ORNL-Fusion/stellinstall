@@ -7,7 +7,7 @@
 !
 !>  @page v3rfun_namelist_sec Namelist v3r_coils definition
 !>
-!>  @tableofcentents
+!>  @tableofcontents
 !>  @section v3rfun_namelist_intro_sec Introduction
 !>  This page documents the contents of a namelist input file. V3RFUN namelist
 !>  variables are defined in the @fixed_width{v3r_coils} common block.

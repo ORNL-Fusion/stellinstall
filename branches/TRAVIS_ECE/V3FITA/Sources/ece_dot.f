@@ -37,6 +37,8 @@
 !>  @fixed_width{x2(REAL) y2(REAL) z2(REAL)\n}
 !>  @fixed_width{frequency(REAL)}
 !>
+!> Here the "frequencey" is the magnitude of the magnetic field in Tesla at the ECE resonance.
+!>      
 !>  @section ece_dot_exam_sec Example File
 !>  @code
 !>  !  An ECE chord specified in Cartesian coordinates.

@@ -170,6 +170,16 @@ then
 	      -DNETCDF_INC_PATH=$NETCDF_DIR/include/              \
 	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib
 
+elif [ $MACHINE_ID == "Erics-iMac.local" ]
+then
+	# Config for Mark Cianciosa's ORNL machine.
+
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
+              -DCMAKE_Fortran_COMPILER=gfortran     \
+              -DNETCDF_INC_PATH=/usr/local/include/ \
+              -DNETCDF_LIB_PATH=/usr/local/lib      \
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
+	      -DUSE_PARVMEC=ON                      
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
 	echo $MACHINE_ID not suported by this script.

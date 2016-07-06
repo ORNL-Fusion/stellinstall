@@ -1,6 +1,6 @@
 !*******************************************************************************
-!>  @file limiter_iso_T.f
-!>  @brief Contains module @ref limiter_iso_T
+!>  @file limiter_iso_t.f
+!>  @brief Contains module @ref limiter_iso_t
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.

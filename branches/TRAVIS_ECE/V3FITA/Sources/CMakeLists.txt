@@ -40,5 +40,7 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/commandline_parser.f
 	${CMAKE_CURRENT_SOURCE_DIR}/reconstruction.f
 	${CMAKE_CURRENT_SOURCE_DIR}/emission.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis.f
 )
 set (v3fit_sources "${v3fit_sources}" PARENT_SCOPE)
