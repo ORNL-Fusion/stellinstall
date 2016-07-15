@@ -110,7 +110,14 @@ else ()
 	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
 endif ()
 
-find_library (SCALAPACK_LIB NAMES scalapack)
+find_library (SCALAPACK_LIB NAMES scalapack libscalapack-openmpi.so.1)
+
+# Some builds of SCALAPACK require linking to external BLACS Libraries
+find_library (BLACS_LIB NAMES blacs libblacs-openmpi.so.1)
+find_library (BLACSCinit_LIB NAMES blacsCinit libblacsCinit-openmpi.so.1)
+find_library (BLACSF77init_LIB NAMES blacsF77init libblacsF77init-openmpi.so.1)
+
+SET(SCALAPACK_LIB ${SCALAPACK_LIB} ${BLACS_LIB} ${BLACSCinit_LIB} ${BLACSF77init_LIB})
 
 # List all the subdirectories these are in library dependancy order.
 add_subdirectory (LIBSTELL)
