@@ -92,15 +92,15 @@ then
 	# in a non standard location. Variables for these will need 
 	# to be set manually.
 
-	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                         \
-	      -DCMAKE_Fortran_COMPILER=gfortran44                                           \
-	      -DNETCDF_INC_PATH=/usr/include/                                               \
-	      -DNETCDF_LIB_PATH=/usr/lib                                                    \
-	      -DEXTRA_FLAGS=-fopenmp                                                        \
-	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3" \
-	      -DBLAS_blas_LIBRARY:FILEPATH="/usr/local/lapack-3.4.2/librefblas.a"           \
-	      -DLAPACK_lapack_LIBRARY="/usr/local/lapack-3.4.2/liblapack.a"                 \
-	      -DCMAKE_PREFIX_PATH:FILEPATH="/usr/local/openmpi"
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                                                 \
+	      -DCMAKE_Fortran_COMPILER=gfortran44                                                                   \
+	      -DNETCDF_INC_PATH=/usr/include/                                                                       \
+	      -DNETCDF_LIB_PATH=/usr/lib                                                                            \
+	      -DEXTRA_FLAGS=-fopenmp                                                                                \
+	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"                         \
+	      -DBLAS_blas_LIBRARY:FILEPATH="/usr/local/lapack-3.4.2/librefblas.a"                                   \
+	      -DCMAKE_PREFIX_PATH:FILEPATH="/usr/local/openmpi;/usr/local/lapack-3.4.2/;/usr/local/scalapack-2.0.2" \
+	      -DUSE_PARVMEC=ON
 
 elif [ $MACHINE_ID == "venusa" ]
 then
