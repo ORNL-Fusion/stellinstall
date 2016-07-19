@@ -32,6 +32,12 @@ if (USE_PROFILER)
         add_definitions (-DPROFILE_ON)
 endif ()
 
+# Activate or Deactivate fast copies. The fast copies maybe activated by setting -DUSE_FAST_COPY=ON on the cmake command line.
+OPTION (USE_FAST_COPY "Activate code fast copies." OFF)
+if (USE_FAST_COPY)
+add_definitions (-DFAST_COPY)
+endif ()
+
 # Add the ability to auto generate API documentation with Doxygen
 find_package (Doxygen)
 if (DOXYGEN_FOUND)
@@ -111,13 +117,25 @@ else ()
 endif ()
 
 find_library (SCALAPACK_LIB NAMES scalapack libscalapack-openmpi.so.1)
-
+if (SCALAPACK_LIB)
 # Some builds of SCALAPACK require linking to external BLACS Libraries
-find_library (BLACS_LIB NAMES blacs libblacs-openmpi.so.1)
-find_library (BLACSCinit_LIB NAMES blacsCinit libblacsCinit-openmpi.so.1)
-find_library (BLACSF77init_LIB NAMES blacsF77init libblacsF77init-openmpi.so.1)
-
-SET(SCALAPACK_LIB ${SCALAPACK_LIB} ${BLACS_LIB} ${BLACSCinit_LIB} ${BLACSF77init_LIB})
+	find_library (BLACS_LIB NAMES blacs libblacs-openmpi.so.1)
+	if (BLACS_LIB)
+		list (APPEND SCALAPAK_LIB ${BLACS_LIB})
+	endif ()
+	find_library (BLACSCinit_LIB NAMES blacsCinit libblacsCinit-openmpi.so.1)
+	if (BLACSCinit_LIB)
+		list (APPEND SCALAPAK_LIB ${BLACSCinit_LIB})
+	endif ()
+	find_library (BLACSF77init_LIB NAMES blacsF77init libblacsF77init-openmpi.so.1)
+	if (BLACSF77init_LIB)
+		list (APPEND SCALAPAK_LIB ${BLACSF77init_LIB})
+	endif ()
+else ()
+	if (USE_PARVMEC)
+		message (FATAL_ERROR "PARVMEC requires a SCALAPACK library. A suitable library was not found.")
+	endif ()
+endif ()
 
 # List all the subdirectories these are in library dependancy order.
 add_subdirectory (LIBSTELL)
