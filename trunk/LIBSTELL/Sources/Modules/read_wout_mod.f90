@@ -80,6 +80,8 @@
         vn_lmnc = 'lmnc', vn_gmns = 'gmns', vn_bmns = 'bmns',           &
         vn_bsubumns = 'bsubumns', vn_bsubvmns = 'bsubvmns',             &
         vn_bsubsmnc = 'bsubsmnc', vn_bsupumns = 'bsupumns',             &
+        vn_currumnc = 'currumnc', vn_currumns = 'currumns',             &
+        vn_currvmnc = 'currvmnc', vn_currvmns = 'currvmns',             &
         vn_bsupvmns = 'bsupvmns',                                       &
         vn_bsubumnc_sur = 'bsubumnc_sur',                               &
         vn_bsubvmnc_sur = 'bsubvmnc_sur',                               &
@@ -189,6 +191,11 @@
         ln_bsubumns = 'sinmn covariant u-component of B, half mesh',    &
         ln_bsubvmns = 'sinmn covariant v-component of B, half mesh',    &
         ln_bsubsmnc = 'cosmn covariant s-component of B, full mesh',    &
+
+        ln_currumnc = 'cosmn covariant u-component of J, full mesh',    &
+        ln_currumns = 'sinmn covariant u-component of J, full mesh',    &
+        ln_currvmnc = 'cosmn covariant v-component of J, full mesh',    &
+        ln_currvmns = 'sinmn covariant v-component of J, full mesh',    &
 
         ln_bsubumns_sur = 'sinmn bsubu of B, surface',                  &
         ln_bsubvmns_sur = 'sinmn bsubv of B, surface',                  &
@@ -444,12 +451,15 @@
         bsupvmnc(mnmax_nyq,ns), currvmnc(mnmax_nyq,ns),                 &
         iotas(ns), mass(ns), pres(ns), beta_vol(ns), phip(ns),          &
         buco(ns), bvco(ns), phi(ns), iotaf(ns), presf(ns), phipf(ns),   &
+        chipf(ns),                                                      &
         vp(ns), overr(ns), jcuru(ns), jcurv(ns), specw(ns), Dmerc(ns),  &
         Dshear(ns), Dwell(ns), Dcurr(ns), Dgeod(ns), equif(ns),         &
-        extcur(nextcur), curlabel(nextcur), raxis(0:ntor,2),            &
-        zaxis(0:ntor,2), jdotb(ns), bdotb(ns), bdotgradv(ns),           &
-        am(0:20), ac(0:20),  ai(0:20),                                  &
+        raxis(0:ntor,2), zaxis(0:ntor,2), jdotb(ns), bdotb(ns),         &
+        bdotgradv(ns), am(0:20), ac(0:20),  ai(0:20),                   &
         fsqt(nstore_seq), wdot(nstore_seq), stat = istat(6))
+
+      IF (nextcur .GT. 0) ALLOCATE(extcur(nextcur), curlabel(nextcur),  &
+        stat = istat(6))
 
       IF (lasym)                                                        &
          ALLOCATE (rmns(mnmax,ns), zmnc(mnmax,ns), lmnc(mnmax,ns),      &
@@ -594,7 +604,6 @@
            VolAvgB, RBtor0, RBtor, Itor, Aminor, Rmajor, Volume
       END IF
 
-
 !-----------------------------------------------
 !     MERCIER CRITERION
 !-----------------------------------------------
@@ -640,6 +649,7 @@
          istat(14) = 0
       END IF
 
+      chipf = iotaf*phipf
 !
 !     CONVERT FROM INTERNAL UNITS TO PHYSICAL UNITS IF NEEDED
 !
@@ -761,7 +771,7 @@
 !------------------------------------------------
       INTEGER :: nwout, ierror
       INTEGER, DIMENSION(3)   :: dimlens
-      REAL(rprec) :: ohs
+!      REAL(rprec) :: ohs
       REAL(rprec), DIMENSION(:), ALLOCATABLE :: raxis_cc, raxis_cs,     &
                                                 zaxis_cs, zaxis_cc
 !------------------------------------------------
@@ -919,9 +929,9 @@
 
       CALL cdf_inquire(nwout, vn_phipf, dimlens)
       ALLOCATE (phipf(dimlens(1)), stat = ierror)
-      CALL cdf_inquire(nwout, vn_chipf, dimlens)
-
+!OLD VERSION MAY NOT HAVE THIS!      CALL cdf_inquire(nwout, vn_chipf, dimlens)
       ALLOCATE (chipf(dimlens(1)), stat = ierror)
+      chipf = 1.E30_dp
 
       CALL cdf_inquire(nwout, vn_jcuru, dimlens)
       ALLOCATE (jcuru(dimlens(1)), stat = ierror)
@@ -1006,6 +1016,13 @@
       CALL cdf_inquire(nwout, vn_bsupvmnc, dimlens)
       ALLOCATE (bsupvmnc(dimlens(1),dimlens(2)), stat = ierror)
 
+      IF (version_ .ge. 9.0) THEN
+         CALL cdf_inquire(nwout, vn_currumnc, dimlens)
+         ALLOCATE (currumnc(dimlens(1),dimlens(2)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_currvmnc, dimlens)
+         ALLOCATE (currvmnc(dimlens(1),dimlens(2)), stat = ierror)
+      END IF
+
       IF (lfreeb) THEN
          CALL cdf_inquire(nwout, vn_bsubumnc_sur, dimlens)
          ALLOCATE (bsubumnc_sur(dimlens(1)), stat = ierror)
@@ -1041,6 +1058,13 @@
       ALLOCATE (bsupumns(dimlens(1),dimlens(2)), stat = ierror)
       CALL cdf_inquire(nwout, vn_bsupvmns, dimlens)
       ALLOCATE (bsupvmns(dimlens(1),dimlens(2)), stat = ierror)
+
+      IF (version_ .ge. 9.0) THEN
+         CALL cdf_inquire(nwout, vn_currumns, dimlens)
+         ALLOCATE (currumns(dimlens(1),dimlens(2)), stat = ierror)
+         CALL cdf_inquire(nwout, vn_currvmns, dimlens)
+         ALLOCATE (currvmns(dimlens(1),dimlens(2)), stat = ierror)
+      END IF
 
       IF (lfreeb) THEN
          CALL cdf_inquire(nwout, vn_bsubumns_sur, dimlens)
@@ -1098,6 +1122,11 @@
       CALL cdf_read(nwout, vn_bsupumnc, bsupumnc)
       CALL cdf_read(nwout, vn_bsupvmnc, bsupvmnc)
 
+      IF (version_ .ge. 9.0) THEN
+         CALL cdf_read(nwout, vn_currumnc, currumnc)
+         CALL cdf_read(nwout, vn_currvmnc, currvmnc)
+      END IF
+
       IF (lfreeb) THEN
          CALL cdf_read(nwout, vn_bsubumnc_sur, bsubumnc_sur)
          CALL cdf_read(nwout, vn_bsubvmnc_sur, bsubvmnc_sur)
@@ -1121,6 +1150,11 @@
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM
          CALL cdf_read(nwout, vn_bsupumns, bsupumns)
          CALL cdf_read(nwout, vn_bsupvmns, bsupvmns)
+
+         IF (version_ .ge. 9.0) THEN
+            CALL cdf_read(nwout, vn_currumns, currumns)
+            CALL cdf_read(nwout, vn_currvmns, currvmns)
+         END IF
 
          IF (lfreeb) THEN
             CALL cdf_read(nwout, vn_bsubumns_sur, bsubumns_sur)
@@ -1150,6 +1184,9 @@
       CALL cdf_read(nwout, vn_chi, chi) 
 
       CALL cdf_read(nwout, vn_chipf, chipf)
+      IF (ALL(chipf .EQ. 1.E30_dp)) THEN
+         chipf = iotaf*phipf
+      END IF
 
       CALL cdf_read(nwout, vn_jcuru, jcuru)
       CALL cdf_read(nwout, vn_jcurv, jcurv)
@@ -1198,10 +1235,9 @@
 !     CURRU = SQRT(G) * J dot grad(u)
 !     CURRV = SQRT(G) * J dot grad(v)
 !
-      ohs = (ns-1)
-     
-
-      IF (ierror .eq. 0) CALL Compute_Currents(ierror)
+      IF (version_ .lt. 9.0) THEN
+         IF (ierror .eq. 0) CALL Compute_Currents(ierror)
+      END IF
 
       IF (ierr .ne. 0)   PRINT *,'in read_wout_nc ierr=',ierr
       IF (ierror .ne. 0) PRINT *,'in read_wout_nc ierror=',ierror
@@ -1619,10 +1655,11 @@
 
       IF (ALLOCATED(xm)) DEALLOCATE (xm, xn, xm_nyq, xn_nyq,            &
         rmnc, zmns, lmns, bmnc, gmnc, bsubumnc, iotaf, presf, phipf,    &
+        chipf,                                                          &
         bsubvmnc, bsubsmns, bsupumnc, bsupvmnc, currvmnc, iotas, mass,  &
         pres, beta_vol, phip, buco, bvco, phi, vp, jcuru, am, ac, ai,   &
         jcurv, specw, Dmerc, Dshear, Dwell, Dcurr, Dgeod, equif, jdotb, &
-        bdotgradv, raxis, zaxis, fsqt, wdot, stat=istat(3))
+        bdotb, bdotgradv, raxis, zaxis, fsqt, wdot, stat=istat(3))
  
       IF (ALLOCATED(potsin)) DEALLOCATE (potsin)
       IF (ALLOCATED(potcos)) DEALLOCATE (potcos)
@@ -1652,6 +1689,7 @@
                     bsupumns_sur, bsupvmns_sur)
       END IF
 
+!  Note currvmnc deallocated above.
       IF (ALLOCATED(currumnc)) DEALLOCATE (currumnc)
       IF (ALLOCATED(currumns)) DEALLOCATE (currumns, currvmns)
       IF (ALLOCATED(rzl_local)) DEALLOCATE (rzl_local)

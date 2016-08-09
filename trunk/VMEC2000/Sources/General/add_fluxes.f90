@@ -159,7 +159,7 @@
 !     Do not compute iota too near origin
       IF (lrfp) THEN
          iotaf(1)  = one/(c1p5/iotas(2) - p5/iotas(3))
-         iotaf(ns) = one/(c1p5/iotas(ns) - p5/iotas(ns-1))
+         iotaf(ns) = one/(c1p5/iotas(ns) - p5/iotas(ns1))
          DO js = 2, ns-1
             iotaf(js) = 2.0_dp/(one/iotas(js) + one/iotas(js+1))
          END DO

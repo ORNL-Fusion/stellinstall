@@ -725,7 +725,7 @@
        REAL(dp) auxHjj, auxHjp1j
 
        integer, parameter  :: noPrec = 0, leftPrec = 1, rightPrec = 2, 
-     &                        dblePrec = 3  
+     &                        dblePrec = 3, peek = 5
 
        REAL(dp), PARAMETER     :: ZERO=0, ONE=1
 !       parameter (ZERO = 0.0d0, ONE = 1.0d0)
@@ -1258,7 +1258,7 @@
        if (mod(iterOut*m+jH,itMod).eq.0) then
           call dcopy(n,x,1,xCurrent,1)
           call daxpy(n,ONE,r0,1,xCurrent,1)
-          irc(1)   = 5
+          irc(1)   = peek
           irc(2)   = xcuptr
           info(1)  = iterOut*m+jH
           rinfo(1) = bea

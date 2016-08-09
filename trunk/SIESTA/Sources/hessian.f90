@@ -17,13 +17,11 @@
         SetBlockTriDataStruct, GetFullSolution
       USE blocktridiagonalsolver, ONLY: Initialize, ForwardSolve,        &
         SetMatrixRHS, BackwardSolve, GetSolutionVector, CheckSymmetry
+      USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU
 #endif
       IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'
-#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -211,7 +209,7 @@
 
             MESH_3PT_LG: DO mesh = 1, 3
 
-              xc = 0
+!SKS          xc = 0
 
               DO js = mystart(mesh), myend(mesh), 3
                  xc(icol,js) = eps
@@ -282,7 +280,13 @@
                 END IF
 
               END DO SKIP3_MESH_LG
-            END DO MESH_3PT_LG
+            
+!SKS            
+              DO js = mystart(mesh), myend(mesh), 3
+                 xc(icol,js) = 0
+              END DO
+
+              END DO MESH_3PT_LG
           END DO VAR_M_LG
         END DO VAR_N_LG
       END DO VAR_TYPE_LG
@@ -465,7 +469,7 @@
 
                   MESH_3PT: DO mesh = 1, 3
 
-                  xc = 0
+!SKS                  xc = 0
 
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
@@ -552,6 +556,11 @@
                      END IF !JS < NS
 
                   END DO SKIP3_MESH
+!SKS              
+                  DO js = mystart(mesh), myend(mesh), 3
+                     xc(icol,js) = 0
+                  END DO
+
                END DO MESH_3PT
                ENDIF
             END DO VAR_M

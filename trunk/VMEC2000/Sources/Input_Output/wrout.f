@@ -56,6 +56,7 @@
      &  vn_bsupumnc_sur, vn_bsupvmnc_sur,
      &  vn_bsubumns_sur, vn_bsubvmns_sur,
      &  vn_bsupumns_sur, vn_bsupvmns_sur,
+     &  vn_currumnc, vn_currumns, vn_currvmnc, vn_currvmns,
      1  ln_magen, ln_therm, ln_gam, ln_maxr, ln_minr, ln_maxz, ln_fp,
      2  ln_radnod, ln_polmod, ln_tormod, ln_maxmod, ln_maxit, ln_actit,
      3  ln_asym, ln_recon, ln_free, ln_error, ln_aspect, ln_beta, 
@@ -79,7 +80,8 @@
      &  ln_bsubumnc_sur, ln_bsubvmnc_sur,          !MRC 10-15-15
      &  ln_bsupumnc_sur, ln_bsupvmnc_sur,
      &  ln_bsubumns_sur, ln_bsubvmns_sur,
-     &  ln_bsupumns_sur, ln_bsupvmns_sur
+     &  ln_bsupumns_sur, ln_bsupvmns_sur,
+     &  ln_currumnc, ln_currumns, ln_currvmnc, ln_currvmns
 
 !------------------DEC$ ELSE !to use safe_open_mod in any case (J.Geiger)
 #endif
@@ -132,7 +134,8 @@
      1   zmnc, lmns, lmnc
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: 
      1   gmnc, bmnc, gmns, bmns, 
-     2   bsubumnc, bsubvmnc, bsubsmns, bsubumns, bsubvmns, bsubsmnc
+     2   bsubumnc, bsubvmnc, bsubsmns, bsubumns, bsubvmns, bsubsmnc,
+     3   currumnc, currvmnc, currumns, currvmns
 #ifdef _ANIMEC
      3  ,sigmnc  , taumnc  , pparmnc , ppermnc , pbprmnc , ppprmnc ,
      4   hotdmnc , hotdmns ,
@@ -167,6 +170,40 @@
      1   bsupumnc, bsupumns, bsupvmnc, bsupvmns
       LOGICAL :: lcurr
       INTEGER :: nmin0     ! J Geiger:   Added for diagno-file
+
+!-----------------------------------------------
+!   Interfaces
+!-----------------------------------------------
+      INTERFACE
+         SUBROUTINE Compute_Currents(bsubsmnc, bsubsmns,                       &
+     &                               bsubumnc, bsubumns,                       &
+     &                               bsubvmnc, bsubvmns,                       &
+     &                               xm_nyq, xn_nyq, mnmax_nyq, lasym,         &
+     &                               ns, currumnc, currvmnc,                   &
+     &                               currumns, currvmns)
+         USE vmec_params
+         IMPLICIT NONE
+
+         REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubsmnc
+         REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubsmns
+         REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubumnc
+         REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubumns
+         REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubvmnc
+         REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubvmns
+
+         REAL(rprec), DIMENSION(:), INTENT(in)    :: xm_nyq
+         REAL(rprec), DIMENSION(:), INTENT(in)    :: xn_nyq
+
+         INTEGER, INTENT(in)                      :: mnmax_nyq
+         LOGICAL, INTENT(in)                      :: lasym
+         INTEGER, INTENT(in)                      :: ns
+
+         REAL(rprec), DIMENSION(:,:), INTENT(out) :: currumnc
+         REAL(rprec), DIMENSION(:,:), INTENT(out) :: currvmnc
+         REAL(rprec), DIMENSION(:,:), INTENT(out) :: currumns
+         REAL(rprec), DIMENSION(:,:), INTENT(out) :: currvmns
+         END SUBROUTINE
+      END INTERFACE
 
 !-----------------------------------------------
 !
@@ -230,26 +267,28 @@
       ALLOCATE (gmnc(mnmax_nyq0,ns), bmnc(mnmax_nyq0,ns),
      1          bsubumnc(mnmax_nyq0,ns), bsubvmnc(mnmax_nyq0,ns),
      2          bsubsmns(mnmax_nyq0,ns), bsupumnc(mnmax_nyq0,ns),
-     3          bsupvmnc(mnmax_nyq0,ns), 
+     3          bsupvmnc(mnmax_nyq0,ns),
+     4          currumnc(mnmax_nyq0,ns), currvmnc(mnmax_nyq0,ns),
 #ifdef _ANIMEC
-     4          sigmnc(mnmax_nyq0,ns)  ,
-     5          taumnc(mnmax_nyq0,ns)  , pparmnc(mnmax_nyq0,ns) ,
-     6          ppermnc(mnmax_nyq0,ns) , pbprmnc(mnmax_nyq0,ns) ,
-     7          ppprmnc(mnmax_nyq0,ns) , hotdmnc(mnmax_nyq0,ns) ,
+     5          sigmnc(mnmax_nyq0,ns)  ,
+     6          taumnc(mnmax_nyq0,ns)  , pparmnc(mnmax_nyq0,ns) ,
+     7          ppermnc(mnmax_nyq0,ns) , pbprmnc(mnmax_nyq0,ns) ,
+     8          ppprmnc(mnmax_nyq0,ns) , hotdmnc(mnmax_nyq0,ns) ,
 #endif
-     8          stat=istat)
+     9          stat=istat)
       IF (lasym) THEN
       ALLOCATE (gmns(mnmax_nyq0,ns), bmns(mnmax_nyq0,ns),
      1          bsubumns(mnmax_nyq0,ns), bsubvmns(mnmax_nyq0,ns),
      2          bsubsmnc(mnmax_nyq0,ns), bsupumns(mnmax_nyq0,ns),
-     3          bsupvmns(mnmax_nyq0,ns), 
+     3          bsupvmns(mnmax_nyq0,ns),
+     4          currumns(mnmax_nyq0,ns), currvmns(mnmax_nyq0,ns),
 #ifdef _ANIMEC
-     4          sigmns(mnmax_nyq0,ns)  ,
-     5          taumns(mnmax_nyq0,ns)  , pparmns(mnmax_nyq0,ns) ,
-     6          ppermns(mnmax_nyq0,ns) , pbprmns(mnmax_nyq0,ns) ,
-     7          ppprmns(mnmax_nyq0,ns) , hotdmns(mnmax_nyq0,ns) ,
+     5          sigmns(mnmax_nyq0,ns)  ,
+     6          taumns(mnmax_nyq0,ns)  , pparmns(mnmax_nyq0,ns) ,
+     7          ppermns(mnmax_nyq0,ns) , pbprmns(mnmax_nyq0,ns) ,
+     8          ppprmns(mnmax_nyq0,ns) , hotdmns(mnmax_nyq0,ns) ,
 #endif
-     8          stat=istat)
+     9          stat=istat)
 #ifdef _ANIMEC
       ALLOCATE (sigma_ana(ns,nznt) ,tau_ana(ns,nznt) ,densita(ns,nznt),
      1          ppara(ns,nznt)     ,pperpa(ns,nznt)  ,pbprima(ns,nznt),
@@ -513,6 +552,11 @@
       CALL cdf_define(nwout, vn_bsubsmns, bsubsmns, dimname=r3dim)
       CALL cdf_setatt(nwout, vn_bsubsmns, ln_bsubsmns)
 
+      CALL cdf_define(nwout, vn_currumnc, currumnc, dimname=r3dim)
+      CALL cdf_setatt(nwout, vn_currumnc, ln_currumnc)
+      CALL cdf_define(nwout, vn_currvmnc, currvmnc, dimname=r3dim)
+      CALL cdf_setatt(nwout, vn_currvmnc, ln_currvmnc)
+
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM - CAN COMPUTE FROM GSQRT
       CALL cdf_define(nwout, vn_bsupumnc, bsupumnc, dimname=r3dim)
       CALL cdf_define(nwout, vn_bsupvmnc, bsupvmnc, dimname=r3dim)
@@ -549,6 +593,12 @@
       CALL cdf_setatt(nwout, vn_bsubvmns, ln_bsubvmns)
       CALL cdf_define(nwout, vn_bsubsmnc, bsubsmnc, dimname=r3dim)
       CALL cdf_setatt(nwout, vn_bsubsmnc, ln_bsubsmnc)
+
+      CALL cdf_define(nwout, vn_currumns, currumns, dimname=r3dim)
+      CALL cdf_setatt(nwout, vn_currumns, ln_currumns)
+      CALL cdf_define(nwout, vn_currvmns, currvmns, dimname=r3dim)
+      CALL cdf_setatt(nwout, vn_currvmns, ln_currvmns)
+
 
 !     ELIMINATE THESE EVENTUALLY: DON'T NEED THEM
       CALL cdf_define(nwout, vn_bsupumns, bsupumns, dimname=r3dim)
@@ -1091,6 +1141,11 @@
 
  200  CONTINUE
 
+      CALL Compute_Currents(bsubsmnc, bsubsmns, bsubumnc, bsubumns,            &
+     &                      bsubvmnc, bsubvmns,                                &
+     &                      xm_nyq0, xn_nyq0, mnmax_nyq0, lasym, ns,           &
+     &                      currumnc, currvmnc, currumns, currvmns)
+
 #ifdef _DEBUG
       WRITE (333, *) '    JS     M*B_S     GRAD(B_U)    J^V'
       DO mn = 1, mnmax_nyq0
@@ -1107,7 +1162,7 @@
       END DO
 #endif
 !!#ifdef _DEBUG
-      WRITE(333,*)' VMEC2000 V8.51'
+      WRITE(333,*)' VMEC2000 V9.0'
       WRITE(333,*)'    MN       GMNC         GMNS           BMNC' //
      1            '          BMNS'
       IF (.NOT.lasym) THEN
@@ -1139,6 +1194,9 @@
 !     GET RID OF THESE EVENTUALLY: DON'T NEED THEM (can express in terms of lambdas)
       CALL cdf_write(nwout, vn_bsupumnc, bsupumnc)
       CALL cdf_write(nwout, vn_bsupvmnc, bsupvmnc)
+
+      CALL cdf_write(nwout, vn_currumnc, currumnc)
+      CALL cdf_write(nwout, vn_currvmnc, currvmnc)
 
       IF (lfreeb) THEN        !MRC    10-15-15
          CALL cdf_write(nwout, vn_bsubumnc_sur, bsubumnc_sur)
@@ -1537,7 +1595,9 @@
 !     GET RID OF THESE EVENTUALLY: DON'T NEED THEM
          CALL cdf_write(nwout, vn_bsupumns, bsupumns)
          CALL cdf_write(nwout, vn_bsupvmns, bsupvmns)
-      END IF
+
+         CALL cdf_write(nwout, vn_currumns, currumns)
+         CALL cdf_write(nwout, vn_currvmns, currvmns)
 
          IF (lfreeb) THEN     !MRC    10-15-15
             CALL cdf_write(nwout, vn_bsubumns_sur, bsubumns_sur)
@@ -1545,6 +1605,8 @@
             CALL cdf_write(nwout, vn_bsupumns_sur, bsupumns_sur)
             CALL cdf_write(nwout, vn_bsupvmns_sur, bsupvmns_sur)
          END IF
+      END IF
+
 #endif
  970  CONTINUE   ! J Geiger: need to keep label 970 out of NETCDF defines.
 
@@ -1563,17 +1625,19 @@
 ! DEALLOCATIONS ! J Geiger: these have been moved downwards.
 !
       IF (ALLOCATED(gmnc)) DEALLOCATE(gmnc, bmnc, bsubumnc, bsubvmnc,
-     1                                bsubsmns, bsupumnc, bsupvmnc
+     1                                bsubsmns, bsupumnc, bsupvmnc,
+     2                                currumnc, currvmnc
 #ifdef _ANIMEC
-     2   ,sigmnc,taumnc,pparmnc,ppermnc,pbprmnc,ppprmnc,hotdmnc
+     3   ,sigmnc,taumnc,pparmnc,ppermnc,pbprmnc,ppprmnc,hotdmnc
 #endif
-     3                                )
+     4                                )
       IF (ALLOCATED(gmns)) DEALLOCATE(gmns, bmns, bsubumns, bsubvmns,
-     1                                bsubsmnc, bsupumns, bsupvmns
+     1                                bsubsmnc, bsupumns, bsupvmns,
+     2                                currumns, currvmns
 #ifdef _ANIMEC
-     2   ,sigmns,taumns,pparmns,ppermns,pbprmns,ppprmns,hotdmns
+     3   ,sigmns,taumns,pparmns,ppermns,pbprmns,ppprmns,hotdmns
 #endif
-     3                                )
+     4                                )
 #ifdef _ANIMEC
       IF (ALLOCATED(tau_ana)) DEALLOCATE(sigma_ana, tau_ana, ppara,
      1                        pperpa, pbprima, ppprima, densita)
@@ -1612,3 +1676,121 @@
       rzl_array = 0
 
       END SUBROUTINE wrout
+
+      SUBROUTINE Compute_Currents(bsubsmnc, bsubsmns,                          &
+     &                            bsubumnc, bsubumns,                          &
+     &                            bsubvmnc, bsubvmns,                          &
+     &                            xm_nyq, xn_nyq, mnmax_nyq, lasym, ns,        &
+     &                            currumnc, currvmnc,                          &
+     &                            currumns, currvmns)
+      USE stel_constants, ONLY: mu0
+      USE vmec_params
+      IMPLICIT NONE
+
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubsmnc
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubsmns
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubumnc
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubumns
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubvmnc
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubvmns
+
+      REAL(rprec), DIMENSION(:), INTENT(in)    :: xm_nyq
+      REAL(rprec), DIMENSION(:), INTENT(in)    :: xn_nyq
+
+      INTEGER, INTENT(in)                      :: mnmax_nyq
+      LOGICAL, INTENT(in)                      :: lasym
+      INTEGER, INTENT(in)                      :: ns
+
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currumnc
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currvmnc
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currumns
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currvmns
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER :: js
+      REAL(rprec) :: ohs, hs, shalf(ns), sfull(ns)
+      REAL(rprec), DIMENSION(mnmax_nyq) :: bu1, bu0, bv1, bv0, t1, t2,         &
+     &                                     t3
+!-----------------------------------------------
+!
+!     Computes current harmonics for currXmn == sqrt(g)*JsupX, X = u,v
+!     [Corrected above "JsubX" to "JsupX", JDH 2010-08-16]
+
+!     NOTE: bsub(s,u,v)mn are on HALF radial grid
+!          (in earlier versions, bsubsmn was on FULL radial grid)
+
+!
+      ohs = (ns-1)
+      hs  = 1._dp/ohs
+
+      DO js = 2, ns
+         shalf(js) = SQRT(hs*(js-1.5_dp))
+         sfull(js) = SQRT(hs*(js-1))
+      END DO
+
+      DO js = 2, ns-1
+         WHERE (MOD(INT(xm_nyq),2) .EQ. 1)
+            t1 = 0.5_dp*(shalf(js+1)*bsubsmns(:,js+1)                          &
+     &         +         shalf(js)  *bsubsmns(:,js)) /sfull(js)
+            bu0 = bsubumnc(:,js  )/shalf(js)
+            bu1 = bsubumnc(:,js+1)/shalf(js+1)
+            t2 = ohs*(bu1-bu0)*sfull(js)+0.25_dp*(bu0+bu1)/sfull(js)
+            bv0 = bsubvmnc(:,js  )/shalf(js)
+            bv1 = bsubvmnc(:,js+1)/shalf(js+1)
+            t3 = ohs*(bv1-bv0)*sfull(js)+0.25_dp*(bv0+bv1)/sfull(js)
+         ELSEWHERE
+            t1 = 0.5_dp*(bsubsmns(:,js+1)+bsubsmns(:,js))
+            t2 = ohs*(bsubumnc(:,js+1)-bsubumnc(:,js))
+            t3 = ohs*(bsubvmnc(:,js+1)-bsubvmnc(:,js))
+         ENDWHERE
+         currumnc(:,js) = -xn_nyq(:)*t1 - t3
+         currvmnc(:,js) = -xm_nyq(:)*t1 + t2
+      END DO
+
+      WHERE (xm_nyq .LE. 1)
+         currvmnc(:,1) =  2*currvmnc(:,2) - currvmnc(:,3)
+         currumnc(:,1) =  2*currumnc(:,2) - currumnc(:,3)
+      ELSEWHERE
+         currvmnc(:,1) = 0
+         currumnc(:,1) = 0
+      ENDWHERE
+
+      currumnc(:,ns) = 2*currumnc(:,ns-1) - currumnc(:,ns-2)
+      currvmnc(:,ns) = 2*currvmnc(:,ns-1) - currvmnc(:,ns-2)
+      currumnc = currumnc/mu0;   currvmnc = currvmnc/mu0
+
+      IF (.NOT.lasym) RETURN
+
+      DO js = 2, ns-1
+         WHERE (MOD(INT(xm_nyq),2) .EQ. 1)
+            t1 = 0.5_dp*(shalf(js+1)*bsubsmnc(:,js+1)                          &
+     &         +         shalf(js)  *bsubsmnc(:,js)) / sfull(js)
+            bu0 = bsubumns(:,js  )/shalf(js+1)
+            bu1 = bsubumns(:,js+1)/shalf(js+1)
+            t2 = ohs*(bu1-bu0)*sfull(js) + 0.25_dp*(bu0+bu1)/sfull(js)
+            bv0 = bsubvmns(:,js  )/shalf(js)
+            bv1 = bsubvmns(:,js+1)/shalf(js+1)
+            t3 = ohs*(bv1-bv0)*sfull(js)+0.25_dp*(bv0+bv1)/sfull(js)
+         ELSEWHERE
+            t1 = 0.5_dp*(bsubsmnc(:,js+1) + bsubsmnc(:,js))
+            t2 = ohs*(bsubumns(:,js+1)-bsubumns(:,js))
+            t3 = ohs*(bsubvmns(:,js+1)-bsubvmns(:,js))
+         END WHERE
+         currumns(:,js) =  xn_nyq(:)*t1 - t3
+         currvmns(:,js) =  xm_nyq(:)*t1 + t2
+      END DO
+
+      WHERE (xm_nyq .LE. 1)
+         currvmns(:,1) =  2*currvmns(:,2) - currvmns(:,3)
+         currumns(:,1) =  2*currumns(:,2) - currumns(:,3)
+      ELSEWHERE
+         currvmns(:,1) = 0
+         currumns(:,1) = 0
+      END WHERE
+      currumns(:,ns) = 2*currumns(:,ns-1) - currumns(:,ns-2)
+      currvmns(:,ns) = 2*currvmns(:,ns-1) - currvmns(:,ns-2)
+      currumns = currumns/mu0;   currvmns = currvmns/mu0
+
+      END SUBROUTINE Compute_Currents
