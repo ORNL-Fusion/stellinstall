@@ -13,7 +13,6 @@
      2                     phipf, vpphi, presgrad, ohs
       USE vmec_params, ONLY: signgs
       USE vmec_dim, ONLY: ns, nrzt, nznt, ns1
-      USE vmec_input, ONLY: lrfp
       USE realspace, ONLY: pwint, phip
       USE vmec_input, ONLY: nzeta
       USE vmec_dim, ONLY: ntheta3
@@ -63,7 +62,6 @@
 #endif
       USE vmec_params, ONLY: signgs
       USE vmec_dim, ONLY: ns, nrzt, nznt, ns1
-      USE vmec_input, ONLY: lrfp
       USE realspace, ONLY: wint, phip
 #ifdef _ANIMEC
      1                    ,pperp, ppar, onembc, sigma_an,

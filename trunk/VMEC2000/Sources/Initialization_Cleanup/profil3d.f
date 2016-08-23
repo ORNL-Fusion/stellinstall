@@ -28,7 +28,6 @@
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: bcast_buf
       REAL(rprec) :: skston, skstoff
       REAL(rprec) :: allgvton, allgvtoff
-!      INTEGER, SAVE :: PASSNO=0
 
 !-----------------------------------------------
 !                INDEX OF LOCAL VARIABLES
@@ -191,7 +190,6 @@
      1       u1_pb, nk_pb, ipnodes, ns)
       ENDIF
 #endif
-      !CALL PrintOutLinearArray(pxc, 1, ns, .TRUE., 2000+PASSNO)
       END SUBROUTINE profil3d_par
 
       SUBROUTINE profil3d(rmn, zmn, lreset, linterp)
