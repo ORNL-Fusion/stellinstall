@@ -228,18 +228,19 @@
          write(*,*) rho(n), ne(n),  te(n)
          Zeff(n)=1.0
       ENDDO
+
 !> @todo make sure v3fit label is toroidal flux
 !      labelType = 'tor_rho'
       labelType = 'tor'
 !
-     CALL set_nTZ_profs_f77(ns,rho,ne,Te,Zeff,labelType)
+      CALL set_nTZ_profs_f77(ns,rho,ne,Te,Zeff,labelType)
       
 !> @todo Fix to use all of TRAVIS output
 ! Is there a reason not to use all of the beam info?
 ! I can make a flag or set to true
 !      IF (.false.) THEN
       IF (.true.) THEN
-         CALL run_ECE_BEAM_f77c(1,this%freq,this%wmode,Tece,nresmax,    &
+         CALL run_ECE_BEAM_f77c(1,this%freq,this%wmode,Tece,nresmax,           &
      &            tau,Rcy,rhocy,Receb,rhoeceb,ueceb)
          Tece = Tece*1.0e3_rprec ! covernt KeV to eV
 !> @todo Debug output all information for debugging
