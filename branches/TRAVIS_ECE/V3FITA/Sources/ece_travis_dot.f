@@ -103,7 +103,7 @@
      &                        observed, sigma, weight, first_index)
       USE signal
       USE data_parameters
-
+ 
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -131,7 +131,7 @@
       start_time = profiler_get_start_time()
 
 !  Initialize the keywords
-      travis_keyword(1) = 'ece_travis_channels'
+      travis_keyword(1) = 'ece_travis_channel'
       travis_keyword(2) = 'end_of_file'
 
 !  Open up the 'ece_travis.' file
@@ -150,7 +150,7 @@
             CASE ('end_of_file')
                EXIT ! Exit out of infinte loop.
 
-            CASE ('ece_travis_channels')
+            CASE ('ece_travis_channel')
                CALL  ece_travis_dot_parse_chord(travis_dot_file_ref,     &
      &                                  signals, signals_created,        &
      &                                  observed, sigma, weight,         &
@@ -194,10 +194,12 @@
      &                               signals, signals_created, observed,       &
      &                               sigma, weight, first_index)
       USE signal
-      USE v3fit_input, only: v3fit_max_diagnostics
+!     USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3fit_input
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
+
 
 !  Declare Arguments
       TYPE (signal_dot_file), INTENT(inout)  :: travis_dot_file_ref
@@ -209,54 +211,70 @@
       INTEGER, INTENT(inout)                 :: first_index
 
 !  local variables
-      CHARACTER (len=data_short_name_length) :: base_name
       CHARACTER (len=data_short_name_length) :: name
-      CHARACTER (len=data_short_name_length) :: temp
-      CHARACTER (len=path_length)            :: data_filename
       REAL (rprec)                           :: start_time
-      INTEGER                                :: num_channels
-      INTEGER                                :: index
-      INTEGER, SAVE                          :: counter=0
-      CHARACTER (len=8)                      :: fmt
-!  Start of executable code
+      INTEGER                                :: antenna_id
+      INTEGER                                :: wmode
+      CHARACTER (len=data_short_name_length) :: cmode
+      REAL(rprec),DIMENSION(2)               :: freq
+      INTEGER                                :: disc
+
+! Start of executable code
       start_time = profiler_get_start_time()
 
-      base_name = signal_dot_parse_id(travis_dot_file_ref,                     &
-     &               'Expected the id for TRAVIS ECE CHANNELS')
 
-      data_filename = signal_dot_parse_filename(travis_dot_file_ref,           &
-     &               'Expected the TRAVIS data filename for ECE')
-
-      num_channels = signal_dot_parse_int(travis_dot_file_ref,                 &
-     &               'Expected the number of channels for TRAVIS ECE')
       
-!  Check if there are two many signals.
-      IF (signals_created +num_channels .gt. v3fit_max_diagnostics) THEN
+      name = signal_dot_parse_id(travis_dot_file_ref,                        &
+     &               'Expected the id for TRAVIS ECE channel')
+
+      antenna_id = signal_dot_parse_int(travis_dot_file_ref,                 &
+     &               'Expected the TRAVIS ECE channel antenna')
+
+      cmode =  signal_dot_parse_id(travis_dot_file_ref,                      &
+     &     'Expected the ece mode type')
+
+
+!> @TODO TRAVIS add check to reconize a space before x or o
+
+      IF ((cmode(1:1)=='x') .OR. (cmode(1:1)=='X')) THEN
+         wmode = 1
+      ELSE IF ((cmode(1:1)=='o') .OR. (cmode(1:1)=='O')) THEN
+         wmode = 0
+      ELSE
+         WRITE(*,*) "ERROR creating TRAVIS ECE CHANNEL"
+         WRITE(*,*) "The mode type is not reconized "
+         STOP
+      END IF
+      
+      freq  =  signal_dot_parse_2_real(travis_dot_file_ref,                 &
+     &           'Expected the TRAVIS channel frequeny and band width')
+      disc =  signal_dot_parse_int(travis_dot_file_ref,                   &
+     &                'Expected the ece mode band discritization')
+
+! Check if there are two many signals.
+      IF (signals_created +1 .gt. v3fit_max_diagnostics) THEN
          CALL err_fatal('ece_travis_dot_parse_chord_new:' //                   &
      &                 'created signals exceeds v3fit_max_diagnostics')
       END IF
 
-      fmt='(I3.3)'
-      DO index = 1, num_channels
-! Give each ece measurement a unique name
-! Counter stores the last index of a ece diagnostic incase multiple 
-! antennas are used with the same id
-         counter = counter+1
-         WRITE(temp,fmt) counter 
-         name = trim(base_name)// trim(temp) 
          signals(signals_created + 1)%p => signal_construct(                    &
      &        diagnostic_construct(                                             &
-     &        ece_travis_construct(data_filename,index)),                       &
+     &     ece_travis_construct(antenna_id,wmode,freq(1),freq(2),
+     &                          disc ) ),                                       &
      &        name, name, 'arb', observed(signals_created +1),                  &
      &        sigma(signals_created + 1), weight(signals_created + 1))
          signals_created = signals_created + 1
-
-!  At lease one ece signal was made. Set the first index. This should only be
-!  run once.
+!  Set the first index of an travis ece channel. This should only be run once.
          IF (first_index .eq. -1) THEN
             first_index = signals_created
+#if defined(TRAV)
+#else
+         WRITE(*,*) "V3FIT must be linked to the TRAVIS library to use "       &
+     &            //"the ece travis diagnostic! This build of V3FIT is "       &
+     &           // " not linked to TRAVIS."
+         STOP
+#endif
          END IF
-      ENDDO   
 
 
       CALL profiler_set_stop_time('ece_dot_parse_chord', start_time)

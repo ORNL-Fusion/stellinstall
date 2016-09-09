@@ -26,7 +26,15 @@ C-----------------------------------------------
      2                      cleanup_flag=16, reset_jacdt_flag=32
     
       REAL(rprec), PARAMETER :: pdamp = 0.05_dp  
-      CHARACTER(LEN=*), PARAMETER :: version_ = '1.0'
+
+!> @todo TRAVIS I'm not sure why version_ was set to 1.0
+! ECH
+! I'm setting version_=8.48 so MCLOAD can read WOUT.txt files
+! This is helpful for debugging purposes.
+! May need to change back.
+!     CHARACTER(LEN=*), PARAMETER :: version_ = '1.0'
+      CHARACTER(LEN=*), PARAMETER :: version_ = '8.48'
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------

@@ -1,5 +1,6 @@
 # Append all source files to variable v3fit_sources. As new files are added this must be updated.
 list (APPEND v3fit_sources
+	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis_parameters.f
 	${CMAKE_CURRENT_SOURCE_DIR}/bivariate.f
 	${CMAKE_CURRENT_SOURCE_DIR}/diagnostic.f
 	${CMAKE_CURRENT_SOURCE_DIR}/extcurz.f
@@ -8,6 +9,8 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/ipch_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ece_dot.f
 	${CMAKE_CURRENT_SOURCE_DIR}/ece.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis_dot.f
+	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_grid.f
 	${CMAKE_CURRENT_SOURCE_DIR}/limiter_iso_T.f
@@ -40,7 +43,5 @@ list (APPEND v3fit_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/commandline_parser.f
 	${CMAKE_CURRENT_SOURCE_DIR}/reconstruction.f
 	${CMAKE_CURRENT_SOURCE_DIR}/emission.f
-	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis_dot.f
-	${CMAKE_CURRENT_SOURCE_DIR}/ece_travis.f
 )
 set (v3fit_sources "${v3fit_sources}" PARENT_SCOPE)

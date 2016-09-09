@@ -12,6 +12,9 @@
 #
 # BUILD_GTOVMI        -- Optionally builds GTOVMI
 #
+# TRAVIS_LIB_PATH     -- Path to TRAVIS LIBRARY
+# TRAVIS_INC_PATH     -- Path to TRAVIS MOD Files
+# MCONF_LIB_PATH      -- Path to MCONF LIBRARY
 
 cmake_minimum_required (VERSION 2.8.7)
 
@@ -40,6 +43,7 @@ if (DOXYGEN_FOUND)
 	                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/build
 	                   COMMENT "Generating API documentation with Doxygen" VERBATIM)
 endif ()
+
 
 # Configure MPI
 # If using the compiler wrapper, there is no need to find the MPI libraries.
@@ -111,6 +115,21 @@ else ()
 endif ()
 
 find_library (SCALAPACK_LIB NAMES scalapack)
+
+# Link to the TRAVIS ece library if a path is given
+if (TRAVIS_LIB_PATH)
+   find_file (TRAVIS_LIB NAMES libtravis.a libtravis64.a libtravis_dbg.a libtravis64_dbg.a PATHS ${TRAVIS_LIB_PATH} NO_DEFAULT_PATH)
+   find_file (MCONF_LIB NAMES libmconf64.a PATHS ${MCONF_LIB_PATH} NO_DEFAULT_PATH)
+   set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -lstdc++ -lcurl -lz -ldl -lm")
+   if (TRAVIS_LIB AND MCONF_LIB)
+      message (STATUS "Linking to Travis Library")
+      add_definitions(-DTRAV)
+    else()
+# ech-temp force a fatal error if I can not find travis library     
+      message (FATAL_ERROR "Could not find the TRAVIS Library")    
+#      message (STATUS "Could not find the TRAVIS Library")
+    endif ()
+endif ()
 
 # List all the subdirectories these are in library dependancy order.
 add_subdirectory (LIBSTELL)

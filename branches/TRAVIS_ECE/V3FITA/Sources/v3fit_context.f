@@ -81,6 +81,9 @@
 !>  Index of the first instance of a @ref ece signal. The default -1
 !>  represents no @ref ece signal created.
          INTEGER :: ece_index = -1
+!>  Index of the first instance of a @ref ece_travis signal. The default -1
+!>  represents no @ref ece_travis signal created.
+         INTEGER :: ece_travis_index = -1
 !>  Index of the first instance of a @ref limiter signal. The default -1
 !>  represents no @ref limiter signal created.
          INTEGER :: limiter_index = -1
@@ -238,6 +241,7 @@
       this%extcurz_index = -1
 	  this%mse_index = -1
 	  this%ece_index = -1
+          this%ece_travis_index=-1
       this%limiter_index = -1
       this%prior_guassian_index = -1
       this%sxrem_ratio_index = -1
@@ -602,6 +606,7 @@
      &          (this%extcurz_index .eq. i) .or.                               &
      &          (this%mse_index .eq. i) .or.                                   &
      &          (this%ece_index .eq. i) .or.                                   &
+     &          (this%ece_travis_index .eq. i) .or.                            &
      &          (this%limiter_index .eq. i) .or.                               &
      &          (this%prior_guassian_index .eq. i) .or.                        &
      &          (this%sxrem_ratio_index .eq. i) .or.                           &

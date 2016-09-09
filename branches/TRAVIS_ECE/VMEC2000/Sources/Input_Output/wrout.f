@@ -168,6 +168,21 @@
       LOGICAL :: lcurr
       INTEGER :: nmin0     ! J Geiger:   Added for diagno-file
 
+
+! ech Travis debug
+!> @todo Fix
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! TRAVIS uses the MConf lib to read equilibrium magnetic field
+! However MConf does not return the correct values of B when
+! lnyquist = .TRUE.   
+! Set lnyquist to false for this version until bugs are fixed
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#if defined (TRAV)
+      lnyquist = .FALSE.
+# else
+      lnyquist = .TRUE.
+#endif
+
 !-----------------------------------------------
 !
 !  Pointer assignments for storage arrays

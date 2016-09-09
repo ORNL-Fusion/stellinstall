@@ -101,6 +101,19 @@
 !>     @item{ece_resonance_range, Range to find the ECE resonance within.,                                                                                      v3fit_input::ece_resonance_range}
 !>  @end_table
 !>
+!>  @table_section{travis_input_sec, Specifications for the TRAVIS code}
+!>     @item{travisOutTemp, Integer flag telling TRAVIS to save results in directory TEMP.
+!>        -# @fixed_width{'0'}   Do not write TRAVIS output to file 
+!>        -# @fixed_width{'1'}   Write TRAVIS output to file, 
+!>        v3fit_input::travisouttemp}
+!>     @item{travisScrOut, Integer flag telling TRAVIS to write output to Screen.
+!>        -# @fixed_width{'0'}   Do not write TRAVIS output to file screen
+!>        -# @fixed_width{'1'}   Write TRAVIS output to screen, 
+!>        v3fit_input::travisscrout}
+
+
+!>  @end_table      
+      
 !>  @table_section{recon_con_sec, Reconstruction constraints (DEPRECATED)}
 !>     @item{n_rc,     Number of reconstruction constraints,       v3fit_input::n_rc}
 !>     @item{rc_type,  Array of reconstruction constraint types,   v3fit_input::rc_type}
@@ -506,7 +519,8 @@
       USE data_parameters
       USE signal
       USE pprofile_T
-
+      USE travis_parameters
+      
       IMPLICIT NONE
 
 !*******************************************************************************
@@ -551,6 +565,9 @@
 !>  Maximum number of sxrem profiles.
       INTEGER, PARAMETER :: v3fit_max_sxrem_profiles = 10
 
+!> Maximum number of TRAVIS antenna arrays
+!      INTEGER, PARAMETER :: v3fit_max_travis = 10
+      
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) v3fit_namelist_class
@@ -720,6 +737,56 @@
 !>  ECE resonance search range
       REAL (rprec) :: ece_resonance_range = 0.0
 
+!******************************************************************************
+!     TRAVIS input parameters
+!****************************************************************************** 
+!> Option to write travis output to temp folder    
+!      INTEGER :: travisOutTemp = 0
+!> Option to write travis output to screen
+!      INTEGER :: travisScrOut = 0
+!> Folder for TRAVIS OUPUT in travisOutTemp=1
+!      CHARACTER (len=trav_fnl) :: TempDirectory = "TEMP/"
+!> Vessel Configuration file
+!      CHARACTER (len=trav_fnl) :: Vessel_Configuration = 'nofile'
+!> Mirror Configuration file
+!      CHARACTER (len=trav_fnl) :: Mirror_Configuration = 'nofile'
+!> Normalization of B
+!      CHARACTER (len=trav_isl) :: B0_type = 'do not scale'
+      
+!      REAL(rprec) :: B0_ref = 1
+      
+!      REAL(rprec) :: phi_ref = 0
+
+!      REAL(rprec) :: B_scale = 1
+
+!      REAL(rprec) :: hgrid = 0.021
+
+!      REAL(rprec) :: dphi = 2
+!*****************************************************************************
+!     TRAVIS antenna inputs
+!*****************************************************************************
+!>    Array of antenna positions
+!      REAL(rprec),DIMENSION(v3fit_max_travis,3) :: antenna_position=0.0
+!>    Array of antenna positions
+!      REAL(rprec),DIMENSION(v3fit_max_travis,3) :: target_position =0.0
+!>    Coordinate type of the antenna (assume all antenna use the same coord)
+!      CHARACTER (len=trav_isl) :: antenna_coordinate = 'cyl'
+!>    Coordinate type of the targer (assume all targets use the same coord)
+!      CHARACTER (len=trav_isl) :: target_coordinate = 'cyl'
+!>    Beam radiuses
+!      REAL(rprec),DIMENSION(v3fit_max_travis,2) :: rbeam = 0.0
+!>    Beam-ellipse rotation with respect to the equator plan (deg)
+!      REAL(8),DIMENSION(v3fit_max_travis) :: phibx =0
+!>    Beam focal lengths
+!      REAL(rprec),DIMENSION(v3fit_max_travis,2) :: rfocus = 0.0
+!>    whether to emulate quasi-optical definition
+!      INTEGER(8),DIMENSION(v3fit_max_travis) :: QOemul =0
+!>    whether to emulate quasi-optical definition
+!      INTEGER(8),DIMENSION(v3fit_max_travis) :: nra =0
+!>    whether to emulate quasi-optical definition
+!      INTEGER(8),DIMENSION(v3fit_max_travis) :: nphi =0
+ 
+      
 !  Reconstruction constraints
 !>  Not implemented.
       INTEGER                            :: n_rc = 0
@@ -1015,6 +1082,13 @@
      &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
      &   model_te_type, ne_pp_unit, ne_min, te_min, e_pressure_fraction,       &
      &   emission_file, ece_resonance_range,                                   &
+!  ECE TRAVIS inputs
+!> @todo TRAVIS: need to add travis input parameters to the namelist
+     &   travisOutTemp, travisScrOut, TempDirectory,                           &
+     &   Vessel_configuration, Mirror_configuration, B0_type, B0_ref,          &
+     &   phi_ref, B_scale, hgrid, dphi, antenna_position,                      &
+     &   target_position, antenna_coordinate, target_coordinate,               &
+     &   rbeam, phibx, rfocus, QOemul, nra, nphi,                              &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters

@@ -1,4 +1,4 @@
-      FUNCTION ERF(x)
+      FUNCTION LIBSTELL_ERF(x)
       USE stel_kinds, ONLY: rprec
 !-------------------------------------------------------------------------------
 !ERF evaluates the error function erf(x)
@@ -39,4 +39,4 @@
      3          + ( a4 
      4          +   a5*t)*t)*t)*t)*t*EXP(-x**2)
 
-      END FUNCTION ERF
+      END FUNCTION LIBSTELL_ERF

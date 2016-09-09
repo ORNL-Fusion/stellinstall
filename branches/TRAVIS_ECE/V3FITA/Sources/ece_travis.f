@@ -13,10 +13,11 @@
       MODULE ece_travis
 
       USE stel_kinds, only: rprec
-      USE integration_path
+      USE travis_parameters
       USE model
 
       IMPLICIT NONE
+      
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -30,26 +31,25 @@
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
       TYPE ece_travis_class
-!>  TRAVIS Data File name
-         CHARACTER (len=path_length) :: file
-!>  The index of the ece signal in the TRAVIS data_file
-         INTEGER                     :: index
+!>  ID of the Antenna for this ECE signal 
+         INTEGER                     :: antenna_id
+!>  ECE mode type (0 is O mode a 1 is X mode)
+         INTEGER                     :: wmode
+!>  ECE Frequency in GHz
+         REAL (rprec)                :: freq
+!> I need to figure out what this does
+         REAL (rprec)                :: band
+!> I need to figure out what this does
+         INTEGER                     :: disc
       END TYPE ece_travis_class
 
-!-------------------------------------------------------------------------------
-!> Structure to hold all memory needed to be sent to the callback function.
-!-------------------------------------------------------------------------------
-      TYPE ece_travis_context
-!>  The index of the emissivity profile model.
-         REAL (rprec)                :: resonance
-!>  Reference to a @ref model_class object.
-         TYPE (model_class), POINTER :: model => null()
-      END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
-      PRIVATE :: ece_function, is_in_range
+!> @TODO these functions were defined for OLD_TRAVIS
+ !     PRIVATE ::  travis_set_tracingoutput, travis_set_VesselMirrors,          &
+ !    &            travis_set_Antenna, travis_initEquilibr
 
       CONTAINS
 !*******************************************************************************
@@ -64,14 +64,17 @@
 !>  @param[in] index Index of ECE signal in TRAVIS data file.
 !>  @returns A pointer to a constructed @ref ece_travis_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_travis_construct(data_file, index)
+      FUNCTION ece_travis_construct(antenna_id, wmode,freq, band, disc)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (ece_travis_class), POINTER        :: ece_travis_construct
-      CHARACTER (len=path_length), INTENT(in) :: data_file
-      INTEGER, INTENT(in)                     :: index
+      INTEGER, INTENT(in)                     :: antenna_id
+      INTEGER, INTENT(in)                     :: wmode
+      REAL (rprec), INTENT(in)                :: freq
+      REAL (rprec), INTENT(in)                :: band
+      INTEGER, INTENT(in)                     :: disc
 !  local variables
       REAL (rprec)                           :: start_time
 
@@ -80,8 +83,11 @@
 
       ALLOCATE(ece_travis_construct)
 
-      ece_travis_construct%file = data_file
-      ece_travis_construct%index = index
+      ece_travis_construct%antenna_id = antenna_id
+      ece_travis_construct%wmode = wmode
+      ece_travis_construct%freq = freq
+      ece_travis_construct%band = band
+      ece_travis_construct%disc = disc
 
       CALL profiler_set_stop_time('ece_travis_construct', start_time)
 
@@ -124,6 +130,11 @@
 !-------------------------------------------------------------------------------
       FUNCTION ece_travis_get_modeled_signal(this, a_model, sigma)
 
+#if defined (TRAV)
+      USE head
+      USE inout_data
+      USE travis_inout
+#endif
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -133,38 +144,129 @@
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 ! local variables
-      CHARACTER(len=1), ALLOCATABLE           :: context(:)
-      INTEGER                                 :: context_length
-      TYPE (ece_travis_context)                      :: temp_context
-      LOGICAL                                 :: found
       REAL (rprec)                            :: start_time
+      CHARACTER(len=trav_fnl) :: wout_fnm
+!> @todo read this variables for a_model
+      INTEGER(4) :: n,ns
+      REAL (8), ALLOCATABLE :: rho(:), ne(:), Te(:), Zeff(:)
+      REAL(8) :: r,dr,df !TODO TEMP?
+      CHARACTER(Len=256) :: labelType !TODO TEMP
+      CHARACTER(len=5) :: hedi
+      REAL(8) :: Tece
+      INTEGER(4):: nresmax
+      REAL(8) :: tau
+      REAL(8) :: rhocy
+      REAL(8) :: Rcy
+      REAL(8),DIMENSION(3) :: rhoeceb
+      REAL(8),DIMENSION(3) :: Receb
+      REAL(8),DIMENSION(3) :: ueceb
+!> @todo clenan local variables list
+      INTEGER(4) :: ier
+      INTEGER(8) :: mconf8=0
+      INTEGER(8) :: mVessel=0
+
+#if defined (TRAV)
+      TYPE(Scenario) :: this_scen
+      TYPE(type_EC_Antenna) :: this_antenna
+#endif
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-
       ece_travis_get_modeled_signal = 0.0
 
-!  The relevant data for the ece context.
-!      temp_context%resonance = this%resonance
-!      temp_context%model => a_model
 
-!  Cast model into a data to a context. This is the equivalent to casting to a
-!  void pointer in C.
-!      context_length = SIZE(TRANSFER(temp_context, context))
-!      ALLOCATE(context(context_length))
-!      context = TRANSFER(temp_context, context)
-!         ece_get_modeled_signal(2:4) = path_search(this%chord_path,            &
-!     &                                             ece_function,               &
-!     &                                             context, found)
+#if defined (TRAV)
 
-!      IF (found) THEN
-!         ece_get_modeled_signal(1) =                                           &
-!     &      model_get_te(a_model, ece_get_modeled_signal(2:4))
-!      END IF
+!> @todo I need to think about parallelization
+!
+      hedi='ece'
+!> Set the travis hearder
+      wout_fnm = a_model%equilibrium%vmec%wout_file_name
+!> @TODO DEBUG 
+      ier = mcLoad(mconf8,wout_fnm)
+      write(*,*) "ier = ", ier
+      IF (.NOT.(ier==1)) THEN
+         write(*,*) "Error in Travis MCLOAD"
+         write(*,*) "ier = ", ier
+         ece_travis_get_modeled_signal = 0.0
+         RETURN
+       ENDIF
 
+      
+!> Set the TRAVIS OUTPUT (setting these to 0 disables the output)      
+      CALL set_TracingOutput_f77(travisOutTemp,travisScrOut) 
+!> Set Travis vessel and mirror      
+      CALL set_VesselMirrors_f77(Vessel_configuration,
+     &                            Mirror_Configuration)
+!> Set The Travis Antenna
+      CALL set_Antenna_f77(rbeam(this%antenna_id,:),                    &
+     &                 rfocus(this%antenna_id,:),                       &
+     &                 phibx(this%antenna_id),                          &
+     &                 QOemul(this%antenna_id),                         &
+     &                 nra(this%antenna_id),                            &
+     &                 nphi(this%antenna_id),                           &
+     &                 antenna_position(this%antenna_id,:),             &
+     &                 target_position(this%antenna_id,:),              &
+     &                 antenna_coordinate,                              &
+     &                 target_coordinate)
+!> Setup the equilibrium in TRAVIS  
+      CALL initEquilibr_f77(hgrid,dphi,b0_ref,phi_ref,b_scale,B0_type)
+
+      CALL set_magconfig_f77(mConf8,mVessel)
+
+!> @todo ns should be changed to an input 
+      ns =50
+      ALLOCATE(rho(ns),ne(ns),Te(ns),Zeff(ns))
+      dr = 1.0/(1.0*ns-1.0)
+      DO n=1,ns
+         r=(n-1)*dr !r/a
+         rho(n) = r
+         ne(n) = model_get_ne(a_model,rho(n))
+         Te(n) = model_get_te(a_model,rho(n))/1.0e3_rprec
+!> @todo write statements are for debugging
+         write(*,*) "rho    ne     Te(keV)"
+         write(*,*) rho(n), ne(n),  te(n)
+         Zeff(n)=1.0
+      ENDDO
+!> @todo make sure v3fit label is toroidal flux
+!      labelType = 'tor_rho'
+      labelType = 'tor'
+!
+     CALL set_nTZ_profs_f77(ns,rho,ne,Te,Zeff,labelType)
+      
+!> @todo Fix to use all of TRAVIS output
+! Is there a reason not to use all of the beam info?
+! I can make a flag or set to true
+!      IF (.false.) THEN
+      IF (.true.) THEN
+         CALL run_ECE_BEAM_f77c(1,this%freq,this%wmode,Tece,nresmax,    &
+     &            tau,Rcy,rhocy,Receb,rhoeceb,ueceb)
+         Tece = Tece*1.0e3_rprec ! covernt KeV to eV
+!> @todo Debug output all information for debugging
+         write(*,*) "After run ece beam"
+         write(*,*) "freq, wmode, Tece, nresmax"
+         write(*,*) this%freq, this%wmode, Tece, nresmax
+         write(*,*) "tau, Rcy, rhocy"
+         write(*,*) tau, Rcy, rhocy
+      ELSE
+         CALL run_ECE_BEAM_f77m(1,this%freq,this%wmode, Tece)
+         Tece = Tece*1.0e3_rprec ! covernt KeV to eV
+      ENDIF
+
+       DEALLOCATE(rho,ne,Te,Zeff)
+       ece_travis_get_modeled_signal = Tece
+       
+#else
+!> Exit if V3FIT is not linked to Travis
+         WRITE(*,*) "V3FIT must be linked to the TRAVIS library to use "       &
+     &            //"the ece Travis diagnostic! This build of V3FIT is "       &
+     &           // " not linked to TRAVIS."
+         STOP 
+#endif
+
+!> @todo is there a good way to get sigma from Travis?
       sigma = 0.0
-!      DEALLOCATE(context)
-
+      
       CALL profiler_set_stop_time('ece_travis_get_modeled_signal',             &
      &                            start_time)
 
@@ -224,6 +326,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+!> @todo These hearders are wrong!
       ece_travis_get_header(1) = 'x (m)'
       ece_travis_get_header(2) = 'y (m)'
       ece_travis_get_header(3) = 'z (m)'
@@ -234,98 +337,6 @@
       ece_travis_get_header(7) = 'model_sig(4)'
 
       CALL profiler_set_stop_time('ece_travis_get_header', start_time)
-
-      END FUNCTION
-
-!*******************************************************************************
-!  PRIVATE
-!*******************************************************************************
-!-------------------------------------------------------------------------------
-!>  @brief ECE callback function.
-!>
-!>  Returns true if the magnetic field resonance if found with in a specified
-!>  range.
-!>
-!>  @see integration_path
-!>
-!>  @param[in] context A @ref ece_context for the model.
-!>  @param[in] xcart   The search point.
-!>  @returns True if the resonace was found.
-!>
-!>  @note context in this case if not that same as @ref context. It refers to
-!>  generic passed to the function. This is the fortran eqivalent to a void
-!>  pointer in C.
-!-------------------------------------------------------------------------------
-      FUNCTION ece_function(context, xcart1, xcart2)
-      USE coordinate_utilities
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      CHARACTER (len=1), INTENT(in)          :: context(:)
-      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart1
-      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart2
-      LOGICAL                                :: ece_function
-
-! local variables
-      TYPE (ece_travis_context)                     :: temp_context
-      REAL (rprec), DIMENSION(3)             :: bcart1
-      REAL (rprec), DIMENSION(3)             :: bcart2
-      REAL (rprec)                           :: bmod1
-      REAL (rprec)                           :: bmod2
-      REAL (rprec)                           :: start_time
-
-!  Start of executable code
-      start_time = profiler_get_start_time()
-
-      ece_function = .false.
-
-      temp_context = TRANSFER(context, temp_context)
-
-      bcart1 = equilibrium_get_B_vec(temp_context%model%equilibrium,           &
-     &                               xcart1, .false.)
-      bcart2 = equilibrium_get_B_vec(temp_context%model%equilibrium,           &
-     &                               xcart2, .false.)
-
-      bmod1 = SQRT(DOT_PRODUCT(bcart1, bcart1))
-      bmod2 = SQRT(DOT_PRODUCT(bcart2, bcart2))
-
-      IF (ABS(bmod1 - bmod2) .lt.                                              &
-     &    temp_context%model%resonace_range) THEN
-         ece_function = is_in_range(temp_context%resonance,                    &
-     &                              bmod1, bmod2)
-      END IF
-
-      CALL profiler_set_stop_time('ece_function', start_time)
-
-      END FUNCTION
-
-!-------------------------------------------------------------------------------
-!>  @brief Check if values is in range.
-!>
-!>  Returns true the value if x_low <= xp <= x_high
-!>
-!>  @param[in] xp Value to see if it is in range.
-!>  @param[in] x1 First bounding point to check.
-!>  @param[in] x2 Second bounding point to check.
-!>  @returns True if the resonace was found.
-!-------------------------------------------------------------------------------
-      PURE FUNCTION is_in_range(xp, x1, x2)
-
-      IMPLICIT NONE
-
-!  Declare Arguments
-      LOGICAL                 :: is_in_range
-      REAL(rprec), INTENT(in) :: xp
-      REAL(rprec), INTENT(in) :: x1
-      REAL(rprec), INTENT(in) :: x2
-
-!  Start of executable code
-      IF (x1 .gt. x2) THEN
-         is_in_range = xp .ge. x2 .and. xp .le. x1
-      ELSE
-         is_in_range = xp .ge. x1 .and. xp .le. x2
-      END IF
 
       END FUNCTION
 

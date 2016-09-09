@@ -911,6 +911,11 @@
          CALL init_ece_signals(context, signals_created)
       END IF
 
+!  If an ece TRAVIS filename is given, construct the diagnostics contained inside it.
+      IF (ece_travis_dot_filename .ne. '') THEN
+         CALL init_ece_travis_signals(context, signals_created)
+      END IF
+
       CALL init_geometric_signals(context, signals_created)
 
       CALL init_prior_signals(context, signals_created)
@@ -1417,6 +1422,70 @@
       END IF
 
       CALL profiler_set_stop_time('init_ece_signals', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Constructs @ref travis_ece signals.
+!>
+!>  This constructs all @ref travis_ece signals from the specified
+!>  @ref v3fit_input::ece_travis_dot_filename.
+!>
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_ece_travis_signals(context, signals_created)
+      USE v3fit_context
+      USE ece_travis_dot
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: mpi_rank
+      INTEGER                                   :: error
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      mpi_rank = 0
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(context%reconstruction_comm, mpi_rank, error)
+#endif
+      IF (mpi_rank .gt. 0) THEN
+         IF (.not.is_absolute_path(ece_travis_dot_filename)) THEN
+!  Child jacobian processes run in a sub directory.
+            ece_travis_dot_filename =                                          & 
+     &           build_path('..', ece_travis_dot_filename)
+         END IF
+      END IF
+
+      WRITE (*,*) ' *** Constructing ece TRAVIS signals from ' //              &
+     &            TRIM(ece_travis_dot_filename)
+      WRITE (context%runlog_iou,*) ' *** Constructing ece ' //                 &
+     &                             'TRAVIS signals from ' //                   &
+     &                             TRIM(ece_travis_dot_filename)
+
+!  The setting of the travis_index for travis  happens inside dot_parse_chord
+      CALL ece_travis_dot_read(ece_travis_dot_filename, context%signals,       &
+     &                  signals_created, sdo_data_a, sdo_sigma_a,              &
+     &                  sdo_weight_a, context%ece_travis_index)
+
+! &todo FIXME Eric I need to figure out what this is doing
+      IF (context%ece_travis_index .gt. 0 .and.                                &
+     &    .not.equilibrium_is_using_point(                                     &
+     &            context%model%equilibrium)) THEN
+         CALL equilibrium_set_magnetic_cache(context%model%equilibrium,        &
+     &                                       .false.)
+      END IF
+
+      CALL profiler_set_stop_time('init_ece_travis_signals', start_time)
 
       END SUBROUTINE
 

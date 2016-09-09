@@ -16,8 +16,6 @@
       USE stel_constants
       USE data_parameters
       USE profiler
-!ech-ece IS this needed?   
-      USE file_opts, only: path_length
       
       IMPLICIT NONE
 
