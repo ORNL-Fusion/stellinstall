@@ -17,9 +17,9 @@
       INTEGER, PARAMETER, PUBLIC :: trav_isl = 32
 !> Maximum number of TRAVIS antenna arrays
       INTEGER, PARAMETER :: v3fit_max_travis = 10
-!********************************************************************************    
+!******************************************************************************
 !     TRAVIS input parameters
-!********************************************************************************      
+!******************************************************************************
 !> Option to write travis output to temp folder    
       INTEGER :: travisOutTemp = 0
 !> Option to write travis output to screen
@@ -32,16 +32,18 @@
       CHARACTER (len=trav_fnl) :: Mirror_Configuration = 'nofile'
 !> Normalization of B
       CHARACTER (len=trav_isl) :: B0_type = 'do not scale'
-      
+!> Refence value of B used when B0_type = B00, min, I_pol, or at angle     
       REAL(rprec) :: B0_ref = 1
-      
+!> Reference angle when B0_type = 'at angle'     
       REAL(rprec) :: phi_ref = 0
-
+!> Scale factor when B0_type = scale
       REAL(rprec) :: B_scale = 1
-
+!> mesh size [m] of travis mesh
       REAL(rprec) :: hgrid = 0.021
-
+!> mesh size [deg] in toroidal direction of travis grid
       REAL(rprec) :: dphi = 2
+!> Number of surfaces used to represent n,T,Z profiles that are sent to TRAVIS
+      INTEGER :: travis_ns = 50
 !*****************************************************************************
 !     TRAVIS antenna inputs
 !*****************************************************************************
@@ -63,9 +65,9 @@
       REAL(rprec),DIMENSION(v3fit_max_travis,2) :: rfocus = 10.0
 !>    whether to emulate quasi-optical definition
       INTEGER(4),DIMENSION(v3fit_max_travis) :: QOemul =0
-!>    whether to emulate quasi-optical definition
-      INTEGER(4),DIMENSION(v3fit_max_travis) :: nra =0
-!>    whether to emulate quasi-optical definition
+!>    number of circles around central ray 
+      INTEGER(4),DIMENSION(v3fit_max_travis) :: nra =5
+!>    number of start-points at each circle
       INTEGER(4),DIMENSION(v3fit_max_travis) :: nphi =8
  
       END MODULE

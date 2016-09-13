@@ -22,11 +22,9 @@
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) ece_travis base class
-!  2) ece_travis context
-!
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Base class representing an ECE signal.
+!>  Base class representing an ECE Travis signal.
 !>  @par Super Class:
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
@@ -37,19 +35,7 @@
          INTEGER                     :: wmode
 !>  ECE Frequency in GHz
          REAL (rprec)                :: freq
-!> I need to figure out what this does
-         REAL (rprec)                :: band
-!> I need to figure out what this does
-         INTEGER                     :: disc
       END TYPE ece_travis_class
-
-
-!*******************************************************************************
-!  INTERFACE BLOCKS
-!*******************************************************************************
-!> @TODO these functions were defined for OLD_TRAVIS
- !     PRIVATE ::  travis_set_tracingoutput, travis_set_VesselMirrors,          &
- !    &            travis_set_Antenna, travis_initEquilibr
 
       CONTAINS
 !*******************************************************************************
@@ -60,11 +46,12 @@
 !>
 !>  Allocates memory and initializes a @ref ece_travis_class object.
 !>
-!>  @param[in] data_file TRAVIS data file where ece signal is defined.
-!>  @param[in] index Index of ECE signal in TRAVIS data file.
+!>  @param[in] antenna_id antenna id for this travis channel.
+!>  @param[in] wmode Mode type for travis channel (X or O)
+!>  @param[in] freq  Frequency of ece channel
 !>  @returns A pointer to a constructed @ref ece_travis_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_travis_construct(antenna_id, wmode,freq, band, disc)
+      FUNCTION ece_travis_construct(antenna_id, wmode,freq)
 
       IMPLICIT NONE
 
@@ -73,8 +60,6 @@
       INTEGER, INTENT(in)                     :: antenna_id
       INTEGER, INTENT(in)                     :: wmode
       REAL (rprec), INTENT(in)                :: freq
-      REAL (rprec), INTENT(in)                :: band
-      INTEGER, INTENT(in)                     :: disc
 !  local variables
       REAL (rprec)                           :: start_time
 
@@ -86,8 +71,6 @@
       ece_travis_construct%antenna_id = antenna_id
       ece_travis_construct%wmode = wmode
       ece_travis_construct%freq = freq
-      ece_travis_construct%band = band
-      ece_travis_construct%disc = disc
 
       CALL profiler_set_stop_time('ece_travis_construct', start_time)
 
@@ -99,7 +82,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Deconstruct a @ref ece_travis_class object.
 !>
-!>  Deallocates memory and uninitializes a @ref ece_class object.
+!>  Deallocates memory and uninitializes a @ref ece_travis_class object.
 !>
 !>  @param[inout] this A @ref ece_travis_class instance.
 !-------------------------------------------------------------------------------
@@ -120,21 +103,14 @@
 !-------------------------------------------------------------------------------
 !>  @brief Calculates the modeled signal.
 !>
-!>  Calculates the ECE signal by searching along the chord for the resonance.
-!>  The search criteria is provided by the @ref ece_function.
+!>  Calculates the ECE signal by calling the TRAVIS library.
 !>
-!>  @param[in]    this    A @ref ece_class instance.
+!>  @param[in]    this    A @ref ece_travis_class instance.
 !>  @param[inout] a_model A @ref model instance.
 !>  @param[out]   sigma   The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION ece_travis_get_modeled_signal(this, a_model, sigma)
-
-#if defined (TRAV)
-      USE head
-      USE inout_data
-      USE travis_inout
-#endif
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -146,12 +122,10 @@
 ! local variables
       REAL (rprec)                            :: start_time
       CHARACTER(len=trav_fnl) :: wout_fnm
-!> @todo read this variables for a_model
-      INTEGER(4) :: n,ns
+      INTEGER :: n
       REAL (8), ALLOCATABLE :: rho(:), ne(:), Te(:), Zeff(:)
-      REAL(8) :: r,dr,df !TODO TEMP?
+      REAL(8) :: dr
       CHARACTER(Len=256) :: labelType !TODO TEMP
-      CHARACTER(len=5) :: hedi
       REAL(8) :: Tece
       INTEGER(4):: nresmax
       REAL(8) :: tau
@@ -160,29 +134,31 @@
       REAL(8),DIMENSION(3) :: rhoeceb
       REAL(8),DIMENSION(3) :: Receb
       REAL(8),DIMENSION(3) :: ueceb
-!> @todo clenan local variables list
       INTEGER(4) :: ier
       INTEGER(8) :: mconf8=0
       INTEGER(8) :: mVessel=0
 
 #if defined (TRAV)
-      TYPE(Scenario) :: this_scen
-      TYPE(type_EC_Antenna) :: this_antenna
+
+!=======================================================================
+      INTERFACE
+       INTEGER(4) FUNCTION mcload(mconf,name) 
+         INTEGER(8)   :: mconf
+         CHARACTER(*) :: name
+        END FUNCTION mcLoad
+      END INTERFACE
+!=======================================================================
 #endif
 
 !  Start of executable code
       start_time = profiler_get_start_time()
       ece_travis_get_modeled_signal = 0.0
 
-
 #if defined (TRAV)
-
 !> @todo I need to think about parallelization
-!
-      hedi='ece'
-!> Set the travis hearder
+
       wout_fnm = a_model%equilibrium%vmec%wout_file_name
-!> @TODO DEBUG 
+
       ier = mcLoad(mconf8,wout_fnm)
       write(*,*) "ier = ", ier
       IF (.NOT.(ier==1)) THEN
@@ -191,7 +167,6 @@
          ece_travis_get_modeled_signal = 0.0
          RETURN
        ENDIF
-
       
 !> Set the TRAVIS OUTPUT (setting these to 0 disables the output)      
       CALL set_TracingOutput_f77(travisOutTemp,travisScrOut) 
@@ -214,49 +189,52 @@
 
       CALL set_magconfig_f77(mConf8,mVessel)
 
-!> @todo ns should be changed to an input 
-      ns =50
-      ALLOCATE(rho(ns),ne(ns),Te(ns),Zeff(ns))
-      dr = 1.0/(1.0*ns-1.0)
-      DO n=1,ns
-         r=(n-1)*dr !r/a
-         rho(n) = r
+!> Load the n,T,Z profiles onto a radial mesh
+      ALLOCATE(rho(travis_ns),ne(travis_ns),Te(travis_ns),              &
+     &        Zeff(travis_ns))
+      dr = 1.0/(1.0*travis_ns-1.0)
+      DO n=1,travis_ns
+         rho(n)=(n-1)*dr !r/a
          ne(n) = model_get_ne(a_model,rho(n))
          Te(n) = model_get_te(a_model,rho(n))/1.0e3_rprec
 !> @todo write statements are for debugging
-         write(*,*) "rho    ne     Te(keV)"
-         write(*,*) rho(n), ne(n),  te(n)
+!         write(*,*) "rho    ne     Te(keV)"
+!         write(*,*) rho(n), ne(n),  te(n)
+!> @todo create a model for Zeff
          Zeff(n)=1.0
       ENDDO
 
 !> @todo make sure v3fit label is toroidal flux
 !      labelType = 'tor_rho'
       labelType = 'tor'
-!
-      CALL set_nTZ_profs_f77(ns,rho,ne,Te,Zeff,labelType)
+
+!> Setup the nTz progiles in travis
+      CALL set_nTZ_profs_f77(travis_ns,rho,ne,Te,Zeff,labelType)
       
-!> @todo Fix to use all of TRAVIS output
-! Is there a reason not to use all of the beam info?
-! I can make a flag or set to true
-!      IF (.false.) THEN
-      IF (.true.) THEN
-         CALL run_ECE_BEAM_f77c(1,this%freq,this%wmode,Tece,nresmax,           &
+!> Run travis to calculate the ece temperature
+      CALL run_ECE_BEAM_f77c(1,this%freq,this%wmode,Tece,nresmax,              &
      &            tau,Rcy,rhocy,Receb,rhoeceb,ueceb)
-         Tece = Tece*1.0e3_rprec ! covernt KeV to eV
+      Tece = Tece*1.0e3_rprec ! covernt KeV to eV
+
 !> @todo Debug output all information for debugging
-         write(*,*) "After run ece beam"
-         write(*,*) "freq, wmode, Tece, nresmax"
-         write(*,*) this%freq, this%wmode, Tece, nresmax
-         write(*,*) "tau, Rcy, rhocy"
-         write(*,*) tau, Rcy, rhocy
-      ELSE
-         CALL run_ECE_BEAM_f77m(1,this%freq,this%wmode, Tece)
-         Tece = Tece*1.0e3_rprec ! covernt KeV to eV
-      ENDIF
+      write(*,*) "After run ece beam"
+      write(*,*) "freq, wmode, Tece, nresmax"
+      write(*,*) this%freq, this%wmode, Tece, nresmax
+      write(*,*) "tau, Rcy, rhocy"
+      write(*,*) tau, Rcy, rhocy
 
        DEALLOCATE(rho,ne,Te,Zeff)
-       ece_travis_get_modeled_signal = Tece
+       ece_travis_get_modeled_signal(1) = Tece
+
+!> @todo what should I write out
+! Currently I write the optical depth and res locations
+! Other options include freq, wmode, nres
+! Or antenna information
+       ece_travis_get_modeled_signal(2) = tau
+       ece_travis_get_modeled_signal(3) = Rcy
+       ece_travis_get_modeled_signal(4) = rhocy
        
+
 #else
 !> Exit if V3FIT is not linked to Travis
          WRITE(*,*) "V3FIT must be linked to the TRAVIS library to use "       &
@@ -274,12 +252,12 @@
       END FUNCTION
 
 !-------------------------------------------------------------------------------
-!>  @brief Gets a discription of the ece type.
+!>  @brief Gets a discription of the ece_travis type.
 !>
-!>  Returns a description of the ece type for use when writting output files.
+!>  Returns a description of the ece_travis type for writting output files.
 !>
-!>  @param[in] this A @ref ece_class instance.
-!>  @returns A string describing the ece type.
+!>  @param[in] this A @ref ece_travis_class instance.
+!>  @returns A string describing the ece_travis type.
 !-------------------------------------------------------------------------------
       FUNCTION ece_travis_get_signal_type(this)
       USE data_parameters
@@ -308,7 +286,7 @@
 !>  Returns a description of the array indices for use when writting output
 !>  files.
 !>
-!>  @param[in] this A @ref ece_class instance.
+!>  @param[in] this A @ref ece_travis_class instance.
 !>  @returns A string describing the model and model sigma array indices.
 !-------------------------------------------------------------------------------
       FUNCTION ece_travis_get_header(this)
@@ -327,15 +305,20 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-!> @todo These hearders are wrong!
-      ece_travis_get_header(1) = 'x (m)'
-      ece_travis_get_header(2) = 'y (m)'
-      ece_travis_get_header(3) = 'z (m)'
+!> @todo What information should we print out
+! Currently we write the optical depth, and the resonsance location
+! Or I could write the frequency, the mode type, and nres
+! Or I could write antenna information
+
+      ece_travis_get_header(1) = 'tau'
+      ece_travis_get_header(2) = 'Rcy'
+      ece_travis_get_header(3) = 'rhocy'
 
       ece_travis_get_header(4) = 'model_sig(1)'
       ece_travis_get_header(5) = 'model_sig(2)'
       ece_travis_get_header(6) = 'model_sig(3)'
-      ece_travis_get_header(7) = 'model_sig(4)'
+      ece_travis_get_header(6) = 'model_sig(4)'
+
 
       CALL profiler_set_stop_time('ece_travis_get_header', start_time)
 

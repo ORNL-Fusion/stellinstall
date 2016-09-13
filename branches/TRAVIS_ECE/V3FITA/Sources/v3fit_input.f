@@ -105,15 +105,55 @@
 !>     @item{travisOutTemp, Integer flag telling TRAVIS to save results in directory TEMP.
 !>        -# @fixed_width{'0'}   Do not write TRAVIS output to file 
 !>        -# @fixed_width{'1'}   Write TRAVIS output to file, 
-!>        v3fit_input::travisouttemp}
+!>        travis_parameters::travisouttemp}
 !>     @item{travisScrOut, Integer flag telling TRAVIS to write output to Screen.
 !>        -# @fixed_width{'0'}   Do not write TRAVIS output to file screen
 !>        -# @fixed_width{'1'}   Write TRAVIS output to screen, 
-!>        v3fit_input::travisscrout}
-
-
+!>        travis_parameters::travisscrout}
+!>     @item{TempDirectory, Directory to write Traivs output to, travis_parameters::tempdirectory}   
+!>     @item{Vessel_Configuration, Travis vessel configuration file, travis_parameters::vessel_configuration}   
+!>     @item{Mirror_Configuration, Travis mirror configuration file, travis_parameters::mirror_configuration}   
+!>     @item{B0_type, Normalization of B for TRAVIS.
+!>        -# @fixed_width{'do not scale'}  don't scale or set new value of B
+!>        -# @fixed_width{'scale'}  scale B by B_scale
+!>        -# @fixed_width{'B00'}  set B_00 on mag axis to B_ref
+!>        -# @fixed_width{'min'}  set min B on mag axis to B_ref
+!>        -# @fixed_width{'I_pol'}  B0_ref is the poloidal current at LCMS in MA
+!>        -# @fixed_width{'at angle'} set B on mag axis at phi=phi_ref to B0_ref,
+!>         travis_parameters::b0_type}  
+!>     @item{B0_ref, Refence value used to set B, travis_parameters::b0_ref}   
+!>     @item{phi_ref,Refence angle phi [deg] to use when B_scale='at angle' , travis_parameters::phi_ref}   
+!>     @item{B_scale, Scale B by B_scale when B0_type='scale', travis_parameters::b_scale}   
+!>     @item{hgrid, Mesh size[m] of travis grid, travis_parameters::hgrid}   
+!>     @item{dphi , Mesh size[deg] of travis grid in toroidal direction, travis_parameters::dphi}
+!>     @item{travis_ns, number of flux surface used to model n T and Z in TRAVIS, travis_parameters::travis_ns}
+!>     @item{antenna_position, 2D array indicating the location of an ece antenna
+!>                             1st index is the antenna index 
+!>                             2nd index is the physical coordinate, travis_parameters::antenna_position}
+!>     @item{target_position, 2D array indicating the ece target position  
+!>                             1st index is the antenna index
+!>                             2nd index is the physical coordinate, travis_parameters::target_position}
+!>     @item{antenna_coordinate, coordinate system of the antenna_position
+!>        -# @fixed_width{'cart'}  
+!>        -# @fixed_width{'cyl'}, 
+!>                               travis_parameters::antenna_coordinate}
+!>     @item{target_coordinate,  coordinate system of the target_position
+!>        -# @fixed_width{'cart'}  
+!>        -# @fixed_width{'cyl'}
+!>        -# @fixed_width{'W7X-angles'}  
+!>        -# @fixed_width{'ITER-angles'}, 
+!>                               travis_parameters::target_coordinate}
+!>     @item{rbeam, 2D array of radii for ellipse beams
+!>                             1st index in the antenna index
+!>                             2nd index is the major or minor radii of the beam, travis_parameters::rbeam}
+!>     @item{phibx, 1D arry of beam rotation angles in deg (index is antenna id), travis_parameters::phibx}
+!>     @item{rfocus, 1D arry of beam focal lengths (index is antenna id), travis_parameters::rfocus}
+!>     @item{QOemul, 1D array of interger flags telling TRAVIS to use quasi-optical definition (index is antenna id) 
+!>        -# @fixed_width{'0'}   Do not use quasi-optical definition
+!>        -# @fixed_width{'1'}   USe quasi-optical definition, travis_parameters::qoemul}
+!>     @item{nra,1D arrary indicating the number circles around central ray (index is antenna id), travis_parameters::nra}
+!>     @item{nphi,1D array indicating the number of start-points at each circle (index is antenna id), travis_parameters::nphi}
 !>  @end_table      
-      
 !>  @table_section{recon_con_sec, Reconstruction constraints (DEPRECATED)}
 !>     @item{n_rc,     Number of reconstruction constraints,       v3fit_input::n_rc}
 !>     @item{rc_type,  Array of reconstruction constraint types,   v3fit_input::rc_type}
@@ -564,9 +604,6 @@
 
 !>  Maximum number of sxrem profiles.
       INTEGER, PARAMETER :: v3fit_max_sxrem_profiles = 10
-
-!> Maximum number of TRAVIS antenna arrays
-!      INTEGER, PARAMETER :: v3fit_max_travis = 10
       
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -1088,7 +1125,7 @@
      &   Vessel_configuration, Mirror_configuration, B0_type, B0_ref,          &
      &   phi_ref, B_scale, hgrid, dphi, antenna_position,                      &
      &   target_position, antenna_coordinate, target_coordinate,               &
-     &   rbeam, phibx, rfocus, QOemul, nra, nphi,                              &
+     &   rbeam, phibx, rfocus, QOemul, nra, nphi, travis_ns,                   &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters

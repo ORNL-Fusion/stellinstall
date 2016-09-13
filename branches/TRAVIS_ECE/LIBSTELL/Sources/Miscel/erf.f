@@ -18,7 +18,7 @@
       REAL(rprec), INTENT(IN) :: x                   !argument of error function [-]
 
 !Declaration of output variables
-      REAL(rprec) ::  ERF                            !value of error function [-]
+      REAL(rprec) ::  LIBSTELL_ERF                    !value of error function [-]
 
 !Declaration of local variables
       REAL(rprec) :: t

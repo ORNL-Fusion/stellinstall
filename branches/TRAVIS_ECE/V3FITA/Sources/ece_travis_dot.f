@@ -19,36 +19,40 @@
 !>
 !>  TRAVIS is an external Ray-tracing code for electron cyclotron calculations. 
 !>  [N.B. Marushchenko et al., CPC 185(2015)]. This document contains information
-!>  about the specification of ECE diagnostics that use TRAVIS to calculate the
+!>  about the specification of a ECE diagnostics that use TRAVIS to calculate the
 !>  ECE signal.      
 !>
-!>  The ECE signals are specified in a structured text file. This file is read in by the
+!>  The ece_travis signals are specified in a structured text file. This file is read in by the
 !>  @ref v3fit_input::ece_travis_dot_filename variable of the name list input file.
 !>
 !>  @section ece_travis_dot_key_sec Keywords
 !>  @begin_table
-!>  @item2{@fixed_width{ece_travis_channels}, A set of ECE channels specified by a TRAVIS ece_data file.}
+!>  @item2{@fixed_width{ece_travis_channel}, A set of ECE channels specified by a TRAVIS ece_data file.}
 !>  @end_table
 !>
 !>  @section ece_travis_dot_sig_spec_sec Channel Specification
 !>  All TRAVIS ECE channels are specified in the following manner.
 !>
 !>  @fixed_width{key_word\n}
-!>  @fixed_width{base_name(STRING len:@ref data_parameters::data_short_name_length)\n}
-!>  @fixed_width{TRAVIS_data_file(STRING len:@ref file_opts::path_length)\n}
-!>  @fixed_width{channels(INTEGER)\n}
+!>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
+!>  @fixed_width{antenna index (INTEGER)\n}
+!>  @fixed_width{mode type ( STRING len:1 (x/o))\n}
+!>  @fixed_width{freq (GHz) (REAL)\n}
 !>
-!> This will create a signal for each channel in the TRAVIS data file.
-!> Channels must match the number of channels in the TRAVIS data file
 !>
 !>  @section ece_travis_dot_exam_sec Example File
 !>  @code
-!>  !  A set of ECE channels.
-!>  ece_travis_channels
-!>  eceray
-!>  travisinput_ece.data
-!>  32
-!>      
+!>  !  Sample TRAVIS ECE DOT FILE.
+!>  ece_travis_channel
+!>  ece001
+!>  01
+!>  x
+!>  18.0
+!>  ece_travis_channel
+!>  ece002
+!>  01
+!>  o
+!>  19.0
 !>  !  All files must end with
 !>  end_of_file
 !>  @endcode
@@ -59,7 +63,7 @@
 !-------------------------------------------------------------------------------
 !*******************************************************************************
 !>  @file ece_travis_dot.f
-!>  @brief Contains module @ref ece_dot
+!>  @brief Contains module @ref ece_travis_dot
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
@@ -82,12 +86,12 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Read an ECE diagnostic dot file.
+!>  @brief Read an ECE TRAVIS diagnostic dot file.
 !>
 !>  Parses the structure of a dignostic dot file and constructs a @ref ece
 !>  object. Each chord is parsed by @ref ece_dot_parse_chord.
 !>
-!>  @param[in]    ece_file        Name of the ece. file.
+!>  @param[in]    travis_file     Name of the ece_travis. file.
 !>  @param[inout] signals         Array of pointers to the a signal
 !>  @param[inout] signals_created Number valid signals in the array, or index of
 !>                                the last signal created.
@@ -160,7 +164,7 @@
 
       END DO
 
-!  Close the 'ece.' file
+!  Close the 'ece_travis.' file
       CALL signal_dot_close(travis_dot_file_ref)
 
       CALL profiler_set_stop_time('ece_travis_dot_read', start_time)
@@ -171,30 +175,29 @@
 !  PARSING SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Parse ECE diagnostic chord.
+!>  @brief Parse ECE TRAVIS channel info.
 !>
-!>  Parses a single chord. Chords are laid out as,
+!>  Parses a single ECE Channel. Channels are laid out as,
 !>
-!>  * chord_name
-!>  * Resonance as a single real.
-!>  * Starting point as three reals.
-!>  * Ending point as three reals.
+!>  * channel name
+!>  * index of ece travis antenna as a integer
+!>  * mode type as a character (x or o)
+!>  * mode frequency in GHZ as a real
 !>
-!>  @param[in]    ece_dot_file_ref Reference to the ece. file.
-!>  @param[inout] signals          Array of pointers to the a signal
-!>  @param[inout] signals_created  Number valid signals in the array, or index
-!>                                 of the last signal created.
-!>  @param[in]    observed         Array of observed values.
-!>  @param[in]    sigma            Array of observed sigma values
-!>  @param[in]    weight           Array of signal weight values
-!>  @param[inout] first_index      Index of the first instance of an intpol
-!>                                 signal.
+!>  @param[in]    travis_dot_file_ref Reference to the ece_travis. file.
+!>  @param[inout] signals             Array of pointers to the a signal
+!>  @param[inout] signals_created     Number valid signals in the array, or index
+!>                                    of the last signal created.
+!>  @param[in]    observed            Array of observed values.
+!>  @param[in]    sigma               Array of observed sigma values
+!>  @param[in]    weight              Array of signal weight values
+!>  @param[inout] first_index         Index of the first instance of an intpol
+!>                                    signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE ece_travis_dot_parse_chord(travis_dot_file_ref,
      &                               signals, signals_created, observed,       &
      &                               sigma, weight, first_index)
       USE signal
-!     USE v3fit_input, only: v3fit_max_diagnostics
       USE v3fit_input
       USE v3_utilities, only: err_fatal
 
@@ -216,8 +219,7 @@
       INTEGER                                :: antenna_id
       INTEGER                                :: wmode
       CHARACTER (len=data_short_name_length) :: cmode
-      REAL(rprec),DIMENSION(2)               :: freq
-      INTEGER                                :: disc
+      REAL(rprec)                            :: freq
 
 ! Start of executable code
       start_time = profiler_get_start_time()
@@ -246,10 +248,8 @@
          STOP
       END IF
       
-      freq  =  signal_dot_parse_2_real(travis_dot_file_ref,                 &
-     &           'Expected the TRAVIS channel frequeny and band width')
-      disc =  signal_dot_parse_int(travis_dot_file_ref,                   &
-     &                'Expected the ece mode band discritization')
+      freq  =  signal_dot_parse_real(travis_dot_file_ref,                 &
+     &           'Expected the TRAVIS channel frequeny')
 
 ! Check if there are two many signals.
       IF (signals_created +1 .gt. v3fit_max_diagnostics) THEN
@@ -259,8 +259,7 @@
 
          signals(signals_created + 1)%p => signal_construct(                    &
      &        diagnostic_construct(                                             &
-     &     ece_travis_construct(antenna_id,wmode,freq(1),freq(2),
-     &                          disc ) ),                                       &
+     &     ece_travis_construct(antenna_id,wmode,freq) ),                       &
      &        name, name, 'arb', observed(signals_created +1),                  &
      &        sigma(signals_created + 1), weight(signals_created + 1))
          signals_created = signals_created + 1

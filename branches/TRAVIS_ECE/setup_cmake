@@ -181,7 +181,6 @@ then
               -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
 	      -DUSE_PARVMEC=ON                      \
 	      -DTRAVIS_LIB_PATH=/Users/erichowell/lib/TRAVIS/TRAVIS-src/lib \
-	      -DTRAVIS_INC_PATH=/Users/erichowell/lib/TRAVIS/TRAVIS-src/makeunix/obj \
 	      -DMCONF_LIB_PATH=/Users/erichowell/lib/TRAVIS/TRAVIS-src/mag_conf/lib
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.

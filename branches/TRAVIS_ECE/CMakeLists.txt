@@ -13,7 +13,6 @@
 # BUILD_GTOVMI        -- Optionally builds GTOVMI
 #
 # TRAVIS_LIB_PATH     -- Path to TRAVIS LIBRARY
-# TRAVIS_INC_PATH     -- Path to TRAVIS MOD Files
 # MCONF_LIB_PATH      -- Path to MCONF LIBRARY
 
 cmake_minimum_required (VERSION 2.8.7)
@@ -125,9 +124,7 @@ if (TRAVIS_LIB_PATH)
       message (STATUS "Linking to Travis Library")
       add_definitions(-DTRAV)
     else()
-# ech-temp force a fatal error if I can not find travis library     
-      message (FATAL_ERROR "Could not find the TRAVIS Library")    
-#      message (STATUS "Could not find the TRAVIS Library")
+      message (STATUS "Could not find the TRAVIS Library")
     endif ()
 endif ()
 
