@@ -1956,7 +1956,11 @@
          equilibrium_converge = .true.
       ENDIF
 
+#if defined(MPI_OPT)
       CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
+#else
+      eq_rank = 0
+#endif
       IF (eq_rank .eq. 0) THEN
          WRITE (*,1000) equilibrium_converge, num_iter,                        &
      &                  num_iter - init_num_iter, param_name
@@ -1964,9 +1968,9 @@
      &                    num_iter - init_num_iter, param_name
       END IF
 
-1000  FORMAT('Equilibrium converged ',l,2(2x,i7),' ',a)
-
       CALL profiler_set_stop_time('equilibrium_converge', start_time)
+
+1000  FORMAT('Equilibrium converged ',l,2(2x,i7),' ',a)
 
       END FUNCTION
 

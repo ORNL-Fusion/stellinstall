@@ -14,4 +14,8 @@ add_subdirectory (SMPINT)
 add_subdirectory (SVDpack)
 add_subdirectory (Track)
 
+if (USE_FAST_COPY)
+    add_subdirectory (C)
+endif ()
+
 set (stell_sources "${stell_sources}" PARENT_SCOPE)

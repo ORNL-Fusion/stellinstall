@@ -598,13 +598,18 @@
             CALL runvmec(ictrl_array, file_name, .false., eq_comm)
          END IF
 
-!  If the mgrid file in a relative path copy it to the sub directories. This
+!  If the mgrid file is a relative path copy it to the sub directories. This
 !  allows the sub directories to read the mgrid file.
          IF (lfreeb .and. .not.is_absolute_path(mgrid_file)) THEN
             mgrid_path = get_path_of_file(mgrid_file)
             DO i = 2, recon_size
+               IF (TRIM(mgrid_path) .ne. '') THEN
+                  CALL create_directory(build_path(process_dir(i),             &
+     &                                             mgrid_file), error)
+               END IF
                CALL copy_file(mgrid_file,                                      &
-     &                        build_path(process_dir(i), mgrid_path),          &
+     &                        build_path(process_dir(i),                       &
+     &                                   mgrid_file) // mgrid_file,            &
      &                        error)
             END DO
          END IF
@@ -4624,8 +4629,9 @@
 !  If this is the parent process, copy the wout file to the children.
       IF (mpi_rank .eq. 0) THEN
          DO i = 2, mpi_size
-            CALL copy_file(TRIM(this%wout_file_name), process_dir(i),          &
-     &                     error)
+            CALL copy_file(TRIM(this%wout_file_name),                          &
+     &                     build_path(process_dir(i),                          &
+     &                                this%wout_file_name), error)
             CALL assert_eq(error, 0, 'Error syncing wout file.')
          END DO
       END IF

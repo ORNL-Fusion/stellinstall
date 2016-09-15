@@ -638,28 +638,28 @@
 
 ! Line segment tests
       IF (line_seg_test()) THEN
-         WRITE(*,*) 'Line Segment Test Passed'
+         WRITE (*,*) 'Line Segment Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
 ! Coordinate tests
       IF (cood_utils_test()) THEN
-         WRITE(*,*) 'Coord Utilites Test Passed'
+         WRITE (*,*) 'Coord Utilites Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
 ! Profile function tests
       IF (function_test()) THEN
-         WRITE(*,*) 'Functions Test Passed'
+         WRITE (*,*) 'Functions Test Passed'
       ELSE
          tests_failed = .true.
       END IF
 
 ! Integration path tests
       IF (path_test()) THEN
-         WRITE(*,*) 'Integration Path Test Passed'
+         WRITE (*,*) 'Integration Path Test Passed'
       ELSE
          tests_failed = .true.
       END IF
@@ -2044,19 +2044,26 @@
             CALL create_directory(process_dir(i), error)
 
             IF (.not.is_absolute_path(temp_string)) THEN
-               CALL copy_file(temp_string, process_dir(i), error)
+               CALL copy_file(temp_string,                                     &
+     &                        build_path(process_dir(i), temp_string),         &
+     &                        error)
             END IF
 
 !  Copy the equilibrium inputs.
             IF (.not.is_absolute_path(vmec_nli_filename)) THEN
-               CALL copy_file(vmec_nli_filename, process_dir(i), error)
+               CALL copy_file(vmec_nli_filename,                               &
+     &                        build_path(process_dir(i),                       &
+     &                                   vmec_nli_filename), error)
             END IF
             IF (.not.is_absolute_path(vmec_wout_input)) THEN
-               CALL copy_file(vmec_wout_input, process_dir(i), error)
+               CALL copy_file(vmec_wout_input,                                 &
+     &                        build_path(process_dir(i),                       &
+     &                                   vmec_wout_input), error)
             END IF
             IF (.not.is_absolute_path(vacuum_nli_filename)) THEN
-               CALL copy_file(vacuum_nli_filename, process_dir(i),             &
-     &                        error)
+               CALL copy_file(vacuum_nli_filename,                             &
+     &                        build_path(process_dir(i),                       &
+     &                                   vacuum_nli_filename), error)
             END IF
          END DO
       END IF
@@ -2159,8 +2166,8 @@
 1001  FORMAT('-para=',i1)
 1002  FORMAT('-para=',i2)
 
-1003  FORMAT('Configured global process ',i2,', recon process ',i2,            &
-     &       ', eq process ',i2,' task ',a)
+1003  FORMAT('Configured global process ',i5,', recon process ',i5,            &
+     &       ', eq process ',i5,' task ',a)
 
       END SUBROUTINE
 

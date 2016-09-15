@@ -9,8 +9,8 @@
 #if defined (SKS)      
       USE realspace
       USE vmec_params, ONLY: ntmax
-      USE vacmod, ONLY: nuv, nuv3
 #endif      
+      USE vacmod, ONLY: nuv, nuv3
       USE vsvd
       USE timer_sub
       USE parallel_include_module
@@ -43,6 +43,7 @@ C-----------------------------------------------
       INTEGER :: igrid, index_end, index_dat,
      1           jacob_off, niter_store
       INTEGER, SAVE :: igrid0
+      INTEGER :: max_grid_size, flag
       CHARACTER(LEN=120) :: input_file
       LOGICAL :: lreset 
 #if defined(SKS)
@@ -51,7 +52,6 @@ C-----------------------------------------------
       REAL(dp) :: skston, skstoff
       REAL(dp) :: allgvton, allgvtoff
       REAL(dp) :: bcastton, bcasttoff
-      INTEGER :: max_grid_size, flag
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: bcastarr
       INTEGER :: blklength, grid_id, i, js, nsmin, nsmax
       CHARACTER(LEN=20) :: fname
@@ -235,8 +235,7 @@ C-----------------------------------------------
 #endif
       END IF
 
-      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3,
-     1              max_grid_size)
+      IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size)
 
       IF (lreset) THEN
 !

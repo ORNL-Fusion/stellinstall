@@ -34,6 +34,9 @@
 !>  @param[out] error       The result of the move.
 !-------------------------------------------------------------------------------
       SUBROUTINE move_file(file_source, file_dest, error)
+#if defined(__INTEL_COMPILER)
+      USE IFLPORT
+#endif
 
       IMPLICIT NONE
 
@@ -53,9 +56,12 @@
 
 !  Start of executable code
 
+#if defined(__GFORTRAN__) || defined(__INTEL_COMPILER)
+      error = RENAME(TRIM(file_source), TRIM(file_dest))
+#else
       CALL system(cmd // TRIM(file_source) // ' ' // file_dest,           &
-     &                 error)
-
+     &            error)
+#endif
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -69,6 +75,9 @@
 !>  @param[out] error       The result of the copy.
 !-------------------------------------------------------------------------------
       SUBROUTINE copy_file(file_source, file_dest, error)
+#if defined(FAST_COPY)
+      USE, INTRINSIC :: ISO_C_BINDING
+#endif
 
       IMPLICIT NONE
 
@@ -76,6 +85,23 @@
       CHARACTER (len=*), INTENT(in) :: file_source
       CHARACTER (len=*), INTENT(in) :: file_dest
       INTEGER, INTENT(out)          :: error
+
+#if defined(FAST_COPY)
+      INTERFACE
+         FUNCTION copy_file_c(src, dest) BIND(C)
+         USE, INTRINSIC :: ISO_C_BINDING
+
+         IMPLICIT NONE
+
+         INTEGER, PARAMETER :: length = 300
+         INTEGER (c_int)    :: copy_file_c
+         CHARACTER (kind=c_char,len=1), DIMENSION(length), INTENT(in) ::       &
+     &      src
+         CHARACTER (kind=c_char,len=1), DIMENSION(length), INTENT(in) ::       &
+     &      dest
+         END FUNCTION
+      END INTERFACE
+#endif
 
 !  local parameters
 !  To avoid any possible interactive command lines, make sure the command
@@ -87,10 +113,12 @@
 #endif
 
 !  Start of executable code
-
-      CALL system(cmd // TRIM(file_source) // ' ' // file_dest,           &
-     &                 error)
-
+#if defined(FAST_COPY)
+      error = copy_file_c(TRIM(file_source) // C_NULL_CHAR,                    &
+     &                    TRIM(file_dest) // C_NULL_CHAR)
+#else
+      CALL system(cmd // TRIM(file_source) // ' ' // file_dest, error)
+#endif
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
@@ -103,6 +131,9 @@
 !>  @param[out] error       The result of the copy.
 !-------------------------------------------------------------------------------
       SUBROUTINE delete_file(file_source, error)
+#if defined(__INTEL_COMPILER)
+      USE IFLPORT
+#endif
 
       IMPLICIT NONE
 
@@ -120,8 +151,11 @@
 #endif
 
 !  Start of executable code
-
+#if defined(__GFORTRAN__) || defined(__INTEL_COMPILER)
+      error = UNLINK(file_source)
+#else
       CALL system(cmd // TRIM(file_source), error)
+#endif
 
       END SUBROUTINE
 
@@ -298,7 +332,6 @@
 !>  @param[in] path Path of the working directory to change to.
 !-------------------------------------------------------------------------------
       SUBROUTINE change_directory(path, error)
-  
 #if defined(__INTEL_COMPILER)
       USE IFLPORT
 #endif

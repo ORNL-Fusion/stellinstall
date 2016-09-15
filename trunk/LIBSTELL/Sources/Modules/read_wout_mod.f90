@@ -449,6 +449,7 @@
         bsubumnc(mnmax_nyq,ns), bsubvmnc(mnmax_nyq,ns),                 &
         bsubsmns(mnmax_nyq,ns), bsupumnc(mnmax_nyq,ns),                 &
         bsupvmnc(mnmax_nyq,ns), currvmnc(mnmax_nyq,ns),                 &
+        currumnc(mnmax_nyq,ns),                                         &
         iotas(ns), mass(ns), pres(ns), beta_vol(ns), phip(ns),          &
         buco(ns), bvco(ns), phi(ns), iotaf(ns), presf(ns), phipf(ns),   &
         chipf(ns),                                                      &
@@ -467,6 +468,7 @@
                    bsubumns(mnmax_nyq,ns),                              &
                    bsubvmns(mnmax_nyq,ns), bsubsmnc(mnmax_nyq,ns),      &
                    bsupumns(mnmax_nyq,ns), bsupvmns(mnmax_nyq,ns),      &
+                   currumns(mnmax_nyq,ns), currvmns(mnmax_nyq,ns),      &
                    stat=istat(6))
 
       fsqt = 0; wdot = 0; raxis = 0; zaxis = 0
@@ -545,8 +547,14 @@
       END DO
 
 !     Compute current coefficients on full mesh
-      IF (version_ .gt. (8.0+eps_w)) CALL Compute_Currents(ierr)
-
+      IF (version_ .gt. (8.0+eps_w)) THEN
+         CALL Compute_Currents(bsubsmnc, bsubsmns,                             &
+     &                         bsubumnc, bsubumns,                             &
+     &                         bsubvmnc, bsubvmns,                             &
+     &                         xm_nyq, xn_nyq, mnmax_nyq, lasym, ns,           &
+     &                         currumnc, currvmnc,                             &
+     &                         currumns, currvmns)
+      END IF
 
       mnyq = INT(MAXVAL(xm_nyq));  nnyq = INT(MAXVAL(ABS(xn_nyq)))/nfp
 
@@ -1016,12 +1024,10 @@
       CALL cdf_inquire(nwout, vn_bsupvmnc, dimlens)
       ALLOCATE (bsupvmnc(dimlens(1),dimlens(2)), stat = ierror)
 
-      IF (version_ .ge. 9.0) THEN
-         CALL cdf_inquire(nwout, vn_currumnc, dimlens)
-         ALLOCATE (currumnc(dimlens(1),dimlens(2)), stat = ierror)
-         CALL cdf_inquire(nwout, vn_currvmnc, dimlens)
-         ALLOCATE (currvmnc(dimlens(1),dimlens(2)), stat = ierror)
-      END IF
+!  The curr*mn* arrays have the same dimensions as the bsu**mn* arrays. No need
+!  to inquire about the dimension sizes.
+      ALLOCATE (currumnc(dimlens(1),dimlens(2)), stat = ierror)
+      ALLOCATE (currvmnc(dimlens(1),dimlens(2)), stat = ierror)
 
       IF (lfreeb) THEN
          CALL cdf_inquire(nwout, vn_bsubumnc_sur, dimlens)
@@ -1059,12 +1065,10 @@
       CALL cdf_inquire(nwout, vn_bsupvmns, dimlens)
       ALLOCATE (bsupvmns(dimlens(1),dimlens(2)), stat = ierror)
 
-      IF (version_ .ge. 9.0) THEN
-         CALL cdf_inquire(nwout, vn_currumns, dimlens)
-         ALLOCATE (currumns(dimlens(1),dimlens(2)), stat = ierror)
-         CALL cdf_inquire(nwout, vn_currvmns, dimlens)
-         ALLOCATE (currvmns(dimlens(1),dimlens(2)), stat = ierror)
-      END IF
+!  The curr*mn* arrays have the same dimensions as the bsu**mn* arrays. No need
+!  to inquire about the dimension sizes.
+      ALLOCATE (currumns(dimlens(1),dimlens(2)), stat = ierror)
+      ALLOCATE (currvmns(dimlens(1),dimlens(2)), stat = ierror)
 
       IF (lfreeb) THEN
          CALL cdf_inquire(nwout, vn_bsubumns_sur, dimlens)
@@ -1236,7 +1240,14 @@
 !     CURRV = SQRT(G) * J dot grad(v)
 !
       IF (version_ .lt. 9.0) THEN
-         IF (ierror .eq. 0) CALL Compute_Currents(ierror)
+         IF (ierror .eq. 0) THEN
+            CALL Compute_Currents(bsubsmnc, bsubsmns,                          &
+     &                            bsubumnc, bsubumns,                          &
+     &                            bsubvmnc, bsubvmns,                          &
+     &                            xm_nyq, xn_nyq, mnmax_nyq, lasym, ns,        &
+     &                            currumnc, currvmnc,                          &
+     &                            currumns, currvmns)
+         END IF
       END IF
 
       IF (ierr .ne. 0)   PRINT *,'in read_wout_nc ierr=',ierr
@@ -1540,16 +1551,41 @@
 
       END SUBROUTINE
 
-      SUBROUTINE Compute_Currents(ierror)
+      SUBROUTINE Compute_Currents(bsubsmnc_, bsubsmns_,                          &
+     &                            bsubumnc_, bsubumns_,                          &
+     &                            bsubvmnc_, bsubvmns_,                          &
+     &                            xm_nyq_, xn_nyq_, mnmax_nyq_,                  &
+     &                            lasym_, ns_,     &
+     &                            currumnc_, currvmnc_,                          &
+     &                            currumns_, currvmns_)
       USE stel_constants, ONLY: mu0
       IMPLICIT NONE
-      INTEGER, INTENT(out) :: ierror
+
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubsmnc_
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubsmns_
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubumnc_
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubumns_
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubvmnc_
+      REAL(rprec), DIMENSION(:,:), INTENT(in)  :: bsubvmns_
+
+      REAL(rprec), DIMENSION(:), INTENT(in)    :: xm_nyq_
+      REAL(rprec), DIMENSION(:), INTENT(in)    :: xn_nyq_
+
+      INTEGER, INTENT(in)                      :: mnmax_nyq_
+      LOGICAL, INTENT(in)                      :: lasym_
+      INTEGER, INTENT(in)                      :: ns_
+
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currumnc_
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currvmnc_
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currumns_
+      REAL(rprec), DIMENSION(:,:), INTENT(out) :: currvmns_
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: js
-      REAL(rprec) :: ohs, hs, shalf(ns), sfull(ns)
-      REAL(rprec), DIMENSION(mnmax_nyq) :: bu1, bu0, bv1, bv0, t1, t2, t3
+      REAL(rprec) :: ohs, hs, shalf(ns_), sfull(ns_)
+      REAL(rprec), DIMENSION(mnmax_nyq_) :: bu1, bu0, bv1, bv0, t1, t2, t3
 !-----------------------------------------------
 !
 !     Computes current harmonics for currXmn == sqrt(g)*JsupX, X = u,v
@@ -1559,83 +1595,77 @@
 !          (in earlier versions, bsubsmn was on FULL radial grid)
 
 !
-      ohs = (ns-1)
+
+      ohs = (ns_-1)
       hs  = 1._dp/ohs
 
-      DO js = 2, ns
+      DO js = 2, ns_
          shalf(js) = SQRT(hs*(js-1.5_dp))
          sfull(js) = SQRT(hs*(js-1))
       END DO
 
-      ALLOCATE (currumnc(mnmax_nyq,ns), currvmnc(mnmax_nyq,ns),         &
-                stat=ierror)
-      IF (ierror .ne. 0) RETURN
-      
-      DO js = 2, ns-1
-         WHERE (MOD(INT(xm_nyq),2) .EQ. 1) 
-            t1 = 0.5_dp*(shalf(js+1)*bsubsmns(:,js+1)                  &
-               +         shalf(js)  *bsubsmns(:,js)) /sfull(js)
-            bu0 = bsubumnc(:,js  )/shalf(js)
-            bu1 = bsubumnc(:,js+1)/shalf(js+1)
+      DO js = 2, ns_-1
+         WHERE (MOD(INT(xm_nyq_),2) .EQ. 1)
+            t1 = 0.5_dp*(shalf(js+1)*bsubsmns_(:,js+1)                         &
+               +         shalf(js)  *bsubsmns_(:,js)) /sfull(js)
+            bu0 = bsubumnc_(:,js  )/shalf(js)
+            bu1 = bsubumnc_(:,js+1)/shalf(js+1)
             t2 = ohs*(bu1-bu0)*sfull(js)+0.25_dp*(bu0+bu1)/sfull(js)
-            bv0 = bsubvmnc(:,js  )/shalf(js)
-            bv1 = bsubvmnc(:,js+1)/shalf(js+1)
+            bv0 = bsubvmnc_(:,js  )/shalf(js)
+            bv1 = bsubvmnc_(:,js+1)/shalf(js+1)
             t3 = ohs*(bv1-bv0)*sfull(js)+0.25_dp*(bv0+bv1)/sfull(js)
          ELSEWHERE
-            t1 = 0.5_dp*(bsubsmns(:,js+1)+bsubsmns(:,js))
-            t2 = ohs*(bsubumnc(:,js+1)-bsubumnc(:,js))
-            t3 = ohs*(bsubvmnc(:,js+1)-bsubvmnc(:,js))
+            t1 = 0.5_dp*(bsubsmns_(:,js+1)+bsubsmns_(:,js))
+            t2 = ohs*(bsubumnc_(:,js+1)-bsubumnc_(:,js))
+            t3 = ohs*(bsubvmnc_(:,js+1)-bsubvmnc_(:,js))
          ENDWHERE
-         currumnc(:,js) = -xn_nyq(:)*t1 - t3
-         currvmnc(:,js) = -xm_nyq(:)*t1 + t2
+         currumnc_(:,js) = -xn_nyq_(:)*t1 - t3
+         currvmnc_(:,js) = -xm_nyq_(:)*t1 + t2
       END DO         
    
-      WHERE (xm_nyq .LE. 1)
-         currvmnc(:,1) =  2*currvmnc(:,2) - currvmnc(:,3)
-         currumnc(:,1) =  2*currumnc(:,2) - currumnc(:,3)
+      WHERE (xm_nyq_ .LE. 1)
+         currvmnc_(:,1) =  2*currvmnc_(:,2) - currvmnc_(:,3)
+         currumnc_(:,1) =  2*currumnc_(:,2) - currumnc_(:,3)
       ELSEWHERE
-         currvmnc(:,1) = 0
-         currumnc(:,1) = 0
+         currvmnc_(:,1) = 0
+         currumnc_(:,1) = 0
       ENDWHERE
 
-      currumnc(:,ns) = 2*currumnc(:,ns-1) - currumnc(:,ns-2)
-      currvmnc(:,ns) = 2*currvmnc(:,ns-1) - currvmnc(:,ns-2)
-      currumnc = currumnc/mu0;   currvmnc = currvmnc/mu0
+      currumnc_(:,ns_) = 2*currumnc_(:,ns_-1) - currumnc_(:,ns_-2)
+      currvmnc_(:,ns_) = 2*currvmnc_(:,ns_-1) - currvmnc_(:,ns_-2)
+      currumnc_ = currumnc_ /mu0;   currvmnc_ = currvmnc_/mu0
 
-      IF (.NOT.lasym) RETURN
+      IF (.NOT.lasym_) RETURN
 
-      ALLOCATE (currumns(mnmax_nyq,ns), currvmns(mnmax_nyq,ns),         &
-                stat=ierror)
-
-      DO js = 2, ns-1
-         WHERE (MOD(INT(xm_nyq),2) .EQ. 1) 
-            t1 = 0.5_dp*(shalf(js+1)*bsubsmnc(:,js+1)                   &
-               +         shalf(js)  *bsubsmnc(:,js)) / sfull(js)
-            bu0 = bsubumns(:,js  )/shalf(js+1)
-            bu1 = bsubumns(:,js+1)/shalf(js+1)
+      DO js = 2, ns_-1
+         WHERE (MOD(INT(xm_nyq_),2) .EQ. 1)
+            t1 = 0.5_dp*(shalf(js+1)*bsubsmnc_(:,js+1)                         &
+               +         shalf(js)  *bsubsmnc_(:,js)) / sfull(js)
+            bu0 = bsubumns_(:,js  )/shalf(js+1)
+            bu1 = bsubumns_(:,js+1)/shalf(js+1)
             t2 = ohs*(bu1-bu0)*sfull(js) + 0.25_dp*(bu0+bu1)/sfull(js)
-            bv0 = bsubvmns(:,js  )/shalf(js)
-            bv1 = bsubvmns(:,js+1)/shalf(js+1)
+            bv0 = bsubvmns_(:,js  )/shalf(js)
+            bv1 = bsubvmns_(:,js+1)/shalf(js+1)
             t3 = ohs*(bv1-bv0)*sfull(js)+0.25_dp*(bv0+bv1)/sfull(js)
          ELSEWHERE
-            t1 = 0.5_dp*(bsubsmnc(:,js+1) + bsubsmnc(:,js))
-            t2 = ohs*(bsubumns(:,js+1)-bsubumns(:,js))
-            t3 = ohs*(bsubvmns(:,js+1)-bsubvmns(:,js))
+            t1 = 0.5_dp*(bsubsmnc_(:,js+1) + bsubsmnc_(:,js))
+            t2 = ohs*(bsubumns_(:,js+1)-bsubumns_(:,js))
+            t3 = ohs*(bsubvmns_(:,js+1)-bsubvmns_(:,js))
          END WHERE
-         currumns(:,js) =  xn_nyq(:)*t1 - t3
-         currvmns(:,js) =  xm_nyq(:)*t1 + t2
+         currumns_(:,js) =  xn_nyq_(:)*t1 - t3
+         currvmns_(:,js) =  xm_nyq_(:)*t1 + t2
       END DO         
 
-      WHERE (xm_nyq .LE. 1)
-         currvmns(:,1) =  2*currvmns(:,2) - currvmns(:,3)
-         currumns(:,1) =  2*currumns(:,2) - currumns(:,3)
+      WHERE (xm_nyq_ .LE. 1)
+         currvmns_(:,1) =  2*currvmns_(:,2) - currvmns_(:,3)
+         currumns_(:,1) =  2*currumns_(:,2) - currumns_(:,3)
       ELSEWHERE
-         currvmns(:,1) = 0
-         currumns(:,1) = 0
+         currvmns_(:,1) = 0
+         currumns_(:,1) = 0
       END WHERE
-      currumns(:,ns) = 2*currumns(:,ns-1) - currumns(:,ns-2)
-      currvmns(:,ns) = 2*currvmns(:,ns-1) - currvmns(:,ns-2)
-      currumns = currumns/mu0;   currvmns = currvmns/mu0
+      currumns_(:,ns_) = 2*currumns_(:,ns_-1) - currumns_(:,ns_-2)
+      currvmns_(:,ns_) = 2*currvmns_(:,ns_-1) - currvmns_(:,ns_-2)
+      currumns_ = currumns_/mu0;   currvmns_ = currvmns_/mu0
 
       END SUBROUTINE Compute_Currents
 

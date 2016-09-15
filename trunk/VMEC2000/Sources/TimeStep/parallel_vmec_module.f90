@@ -149,10 +149,11 @@ CONTAINS
 
     NS_RESLTN = 0
     LIFFREEB = LVALUE
+#if defined(MPI_OPT)
     CALL MPI_Comm_dup(INCOMM,RUNVMEC_COMM_WORLD,MPI_ERR)
     CALL MPI_Comm_rank(RUNVMEC_COMM_WORLD,grank,MPI_ERR) 
     CALL MPI_Comm_size(RUNVMEC_COMM_WORLD,gnranks,MPI_ERR) 
-
+#endif
   END SUBROUTINE InitRunVmec
   !--------------------------------------------------------------------------
 
@@ -385,9 +386,9 @@ CONTAINS
   SUBROUTINE FinalizeSurfaceComm(INCOMM)
     IMPLICIT NONE
     INTEGER, INTENT(IN)  :: INCOMM
-
+#if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM,MPI_ERR)
-
+#endif
   END SUBROUTINE FinalizeSurfaceComm
   !--------------------------------------------------------------------------
 
@@ -395,10 +396,10 @@ CONTAINS
   SUBROUTINE FinalizeRunVmec(INCOMM)
     IMPLICIT NONE
     INTEGER, INTENT(IN)  :: INCOMM
-
+#if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM,MPI_ERR)
     IF(LIFFREEB) CALL MPI_Comm_free(VAC_COMM,MPI_ERR)
-
+#endif
   END SUBROUTINE FinalizeRunVmec
   !--------------------------------------------------------------------------
 
@@ -843,7 +844,7 @@ CONTAINS
     DO i=2,nranks
       disps(i)=disps(i-1)+counts(i-1)
     END DO
-
+#if defined(MPI_OPT)
     sendbuf(0:par_ntor,0:par_mpol1,1:numjs,1:3*par_ntmax)=&
       arr(0:par_ntor,0:par_mpol1,tlglob:trglob,1:3*par_ntmax)
     CALL MPI_Allgatherv(sendbuf,numjs*blksize,MPI_REAL8,recvbuf,&
@@ -854,7 +855,7 @@ CONTAINS
         =RESHAPE(recvbuf(disps(i)+1:disps(i)+counts(i)),&
         (/par_ntor+1,par_mpol1+1,numjs,3*par_ntmax/))
     END DO
-
+#endif
     DEALLOCATE(sendbuf, recvbuf)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
@@ -894,6 +895,7 @@ CONTAINS
       disps(i)=disps(i-1)+counts(i-1)
     END DO
 
+#if defined(MPI_OPT)
     sendbuf(1:par_nznt,1:numjs)=arr(1:par_nznt,tlglob:trglob)
     CALL MPI_Allgatherv(sendbuf,numjs*blksize,MPI_REAL8,recvbuf,&
       counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
@@ -903,7 +905,7 @@ CONTAINS
         =RESHAPE(recvbuf(disps(i)+1:disps(i)+counts(i)),&
         (/par_nznt,numjs/))
     END DO
-
+#endif
     DEALLOCATE(sendbuf, recvbuf)
     CALL second0(allgvtoff)
     allgather_time = allgather_time + (allgvtoff-allgvton)
@@ -941,10 +943,11 @@ CONTAINS
       disps(i)=disps(i-1)+counts(i-1)
     END DO
 
+#if defined(MPI_OPT)
     sendbuf(1:numjs)=arr(tlglob:trglob)
     CALL MPI_Allgatherv(sendbuf,numjs,MPI_REAL8,recvbuf,&
       counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
-
+#endif
     arr=recvbuf
 
     DEALLOCATE(sendbuf, recvbuf)
@@ -1008,9 +1011,10 @@ CONTAINS
       END DO
     END DO
 
+#if defined(MPI_OPT)
     CALL MPI_Scatterv(sendbuf,sendbufsize,disps,MPI_REAL8,recvbuf,&
       numjs*blksize,MPI_REAL8,0,COMM,MPI_ERR)
-
+#endif
     lks=0
     DO l=1, 3*par_ntmax
       DO k=0, par_mpol1

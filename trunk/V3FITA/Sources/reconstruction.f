@@ -755,6 +755,7 @@
      &                                         eq_steps, iou,                  &
      &                                         recon_comm, eq_comm)
       USE xstuff
+
       IMPLICIT NONE
 
 !  Declare Arguments

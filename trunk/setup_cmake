@@ -130,7 +130,8 @@ then
               -DNETCDF_LIB_PATH=/usr/local/lib      \
               -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
 	      -DUSE_PARVMEC=ON                      \
-	      -DBUILD_SIESTA=ON
+	      -DBUILD_SIESTA=ON                     \
+	      -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "swim.ornl.gov" ]
 then
