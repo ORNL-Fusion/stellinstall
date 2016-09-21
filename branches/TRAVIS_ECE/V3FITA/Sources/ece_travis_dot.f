@@ -236,7 +236,8 @@
      &     'Expected the ece mode type')
 
 
-!> @TODO TRAVIS add check to reconize a space before x or o
+! remove any leading spaces in the mode type
+      cmode = adjustl(cmode)
 
       IF ((cmode(1:1)=='x') .OR. (cmode(1:1)=='X')) THEN
          wmode = 1

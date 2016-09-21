@@ -317,7 +317,7 @@
       ece_travis_get_header(4) = 'model_sig(1)'
       ece_travis_get_header(5) = 'model_sig(2)'
       ece_travis_get_header(6) = 'model_sig(3)'
-      ece_travis_get_header(6) = 'model_sig(4)'
+      ece_travis_get_header(7) = 'model_sig(4)'
 
 
       CALL profiler_set_stop_time('ece_travis_get_header', start_time)
