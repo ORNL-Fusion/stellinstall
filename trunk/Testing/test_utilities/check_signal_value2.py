@@ -24,7 +24,7 @@ value2 = 0.0
 
 if option.s_name1 == option.s_name2:
 	recout_file.close
-	print "Cannot test the value of {0} aganist itself.".format(option.s_name1)
+	print("Cannot test the value of {0} aganist itself.".format(option.s_name1))
 	sys.exit(1)
 
 for line in recout_file.readlines():
@@ -48,5 +48,5 @@ for line in recout_file.readlines():
 recout_file.close
 
 if not test_passed:
-	print "{0} for signal {1} is not with in {2} of {0} for signal {3} in file {4}.".format(option.attribute, option.s_name1, option.range, option.s_name2, option.filename)
+	print("{0} for signal {1} is not with in {2} of {0} for signal {3} in file {4}.".format(option.attribute, option.s_name1, option.range, option.s_name2, option.filename))
 	sys.exit(1)

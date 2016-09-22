@@ -36,5 +36,5 @@ for line in recout_file.readlines():
 recout_file.close
 
 if not test_passed:
-	print "{0} for signal {1} is not equal to {2} +- {3} in file {4}.".format(option.attribute, option.s_name, option.value, option.range, option.filename)
+	print("{0} for signal {1} is not equal to {2} +- {3} in file {4}.".format(option.attribute, option.s_name, option.value, option.range, option.filename))
 	sys.exit(1)

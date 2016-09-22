@@ -36,8 +36,8 @@ recout_file.close
 for j in range(0,index - 1):
 	for i in range(0, index - 1):
 		if (i == j) and (matrix[i][j] != "1.00000E+00"):
-			print "Diagonal elemet {0} is not equal to 1.00000E+00. {1}".format(i, matrix[i][j])
+			print("Diagonal elemet {0} is not equal to 1.00000E+00. {1}".format(i, matrix[i][j]))
 			sys.exit(1)
 		elif (float(matrix[i][j]) < (float(matrix[j][i]) - 1.0E-15)) and (float(matrix[i][j]) > (float(matrix[j][i]) + 1.0E-15)):
-			print "Offdiagonal elements {0} {1} are not equal. {2} {3}".format(i, j, matrix[i][j], matrix[j][i])
+			print("Offdiagonal elements {0} {1} are not equal. {2} {3}".format(i, j, matrix[i][j], matrix[j][i]))
 			sys.exit(1)

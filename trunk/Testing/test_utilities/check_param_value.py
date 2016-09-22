@@ -34,5 +34,5 @@ if start != -1:
 recout_file.close
 
 if not test_passed:
-	print "Value for p_type {0}({1},{2}) is not equal to {3} +- {4} in file {5}.".format(option.p_type, option.index1, option.index2, option.value, option.range, option.filename)
+	print("Value for p_type {0}({1},{2}) is not equal to {3} +- {4} in file {5}.".format(option.p_type, option.index1, option.index2, option.value, option.range, option.filename))
 	sys.exit(1)

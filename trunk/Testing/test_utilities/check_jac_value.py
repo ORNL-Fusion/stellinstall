@@ -34,5 +34,5 @@ while i < len(lines):
 runlog_file.close
 
 if not test_passed:
-	print "Jacobian value is not equal to {0} +- {1} in file {2}.".format(option.value, option.range, option.filename)
+	print("Jacobian value is not equal to {0} +- {1} in file {2}.".format(option.value, option.range, option.filename))
 	sys.exit(1)

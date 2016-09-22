@@ -19,6 +19,5 @@ for line in recout_file.readlines():
 recout_file.close
 
 if not test_passed:
-	print "Signal effectiveness totals in file {0} are not all equal to 1.0.".format(option.filename)
+	print("Signal effectiveness totals in file {0} are not all equal to 1.0.".format(option.filename))
 	sys.exit(1)
-

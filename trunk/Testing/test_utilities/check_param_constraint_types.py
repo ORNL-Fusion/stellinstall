@@ -38,5 +38,5 @@ if start != -1:
 recout_file.close
 
 if not test_passed:
-	print "Range for p_type {0}({1},{2}) not correct for file {3}".format(option.p_type, option.index1, option.index2, option.filename)
+	print("Range for p_type {0}({1},{2}) not correct for file {3}".format(option.p_type, option.index1, option.index2, option.filename))
 	sys.exit(1)
