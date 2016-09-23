@@ -85,10 +85,27 @@ elif [ "${MACHINE_ID#*.}" == "igi.cnr.it" ]; then
 	&&   echo " `basename $0`: cmake succeeded."       \
 	|| ( echo " `basename $0`: cmake failed." && exit 2 )
 
+elif [ $MACHINE_ID == "rat.rfx.local" ]
+then
+# the machine is hosted on RFX's network:
+
+	echo " `basename $0`: running cmake."
+	cmake -DEXTRA_FLAGS=-openmp                                                \
+	      -DCMAKE_C_COMPILER=/usr/local/intel/impi_latest/bin64/mpiicc         \
+	      -DCMAKE_CXX_COMPILER=/usr/local/intel/impi_latest/bin64/mpiicpc      \
+	      -DCMAKE_Fortran_COMPILER=/usr/local/intel/impi_latest/bin64/mpiifort \
+	      -DNETCDF_INC_PATH=/usr/local/netcdf-fortran/include/                 \
+	      -DNETCDF_LIB_PATH=/usr/local/netcdf-fortran/lib/                     \
+	      -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                       \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=/usr/local/intel/impi_latest/lib64      \
+	      -DMPI_Fortran_INCLUDE_PATH=/usr/local/intel/impi_latest/include64    \
+	&&   echo " `basename $0`: cmake succeeded."                               \
+	|| ( echo " `basename $0`: cmake failed." && exit 2 )
+
 elif [ $MACHINE_ID == "r2d2.gat.com" ]
 then
 
-	# r2d2 at General Atomics has the LAPACK and BLAS libraries 
+	# r2d2 at General Atomics has the LAPACK and BLAS libraries
 	# in a non standard location. Variables for these will need 
 	# to be set manually.
 
