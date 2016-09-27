@@ -8,13 +8,17 @@
       USE island_params
       USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor, &
           rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,            &
-!          xm_vmec=>xm, xn_vmec=>xn, iotaf_vmec=>iotaf,                  &
-          xm_vmec=>xm, xn_vmec=>xn, chipf_vmec=>chipf,                  &
+!          xm_vmec=>xm, xn_vmec=>xn, iotaf_vmec=>iotaf,                  &   MRC 4/1/2016
+#if defined(MRC)
+          rmns_vmec=>rmns, zmnc_vmec=>zmnc, lmnc_vmec=>lmnc,            &
+#endif
+          xm_vmec=>xm, xn_vmec=>xn, chipf_vmec=>chipf,                  &  ! MRC 4/1/2016
           phipf_vmec=>phipf, presf_vmec=>presf, nfp_vmec=>nfp,          &
           wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,                  &
-          volume_vmec=>volume
+          volume_vmec=>volume, raxis_vmec=>raxis
       USE descriptor_mod, ONLY: iam
       USE timer_mod
+      USE fourier
 
       IMPLICIT NONE
 !     
@@ -38,6 +42,14 @@
 
       REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::                     &
                    rmnc_i, zmns_i, lmns_i
+
+#if defined(MRC)
+      REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::                       &
+                   rmns_spline, zmnc_spline, lmnc_spline
+
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::                     &
+                   rmns_i, zmnc_i, lmnc_i
+#endif
 
       REAL(rprec) :: rmax, rmin, zmax, zmin
 
@@ -70,9 +82,12 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       REAL(rprec),ALLOCATABLE  :: lmns_half(:,:)
+#if defined(MRC)
+      REAL(rprec),ALLOCATABLE  :: lmnc_half(:,:)
+#endif
 !-----------------------------------------------
 !
-!     LOADS VALUES FOR MESHES TO BE USED IN VMECPP ISLAND SOLVER
+!     LOADS VALUES FOR MESHES TO BE USED IN SIESTA
 !     (GENERALLY DIFFERENT FROM VMEC MESHES. USE SUBSCRIPT _i FOR ISLAND VARIABLES)
 !     READS wout_file FROM VMEC TO GET FOURIER COMPONENTS ON VMEC MESH
 !     SPLINES THE VMEC COMPONENTS TO RADIAL ISLAND MESH (PHI->SQRT(PHI))
@@ -88,6 +103,21 @@
       CALL second0(skstoff)
       init_timers_time=init_timers_time+(skstoff-skston)
 #endif
+
+!
+!     READ-IN DATA FROM VMEC-PRODUCED WOUT FILE (LIBSTELL ROUTINE)
+!
+#if defined(SKS)
+      CALL second0(skston)
+#endif
+      CALL read_wout_file(wout_file, istat)
+#if defined(SKS)
+      CALL second0(skstoff)
+      read_wout_file_time=read_wout_file_time+(skstoff-skston)
+#endif
+      IF (istat .ne. 0) STOP 'Read-wout error in INIT_METRIC_ELEMENTS'
+
+      l_force_asym = lasym
 
       IF (iScale .NE. 0) THEN
       PRINT *,'RESET ISCALE=0 AFTER TESTING!'
@@ -108,6 +138,10 @@
       nu_i = 3*nu_i/2
       nu_i = nu_i+MOD(nu_i,2)
 
+#if defined(MRC)
+      IF (l_force_asym) nu_i = 2*nu_i
+#endif
+
       nv_i = 3*nv_i/2
       nv_i = nv_i+MOD(nv_i,2)
 
@@ -118,23 +152,11 @@
 !      mpol32_i = nu_i                                  ! Extended mesh dims for evolved jpmnch
 !      ntor32_i = nv_i/2
 
-!
-!     READ-IN DATA FROM VMEC-PRODUCED WOUT FILE (LIBSTELL ROUTINE)
-!
-#if defined(SKS) 
-      CALL second0(skston)
-#endif
-      CALL read_wout_file(wout_file, istat)
-#if defined(SKS) 
-      CALL second0(skstoff)
-      read_wout_file_time=read_wout_file_time+(skstoff-skston)
-#endif
-      IF (istat .ne. 0) STOP 'Read-wout error in INIT_METRIC_ELEMENTS'
-
       nfp_i = nfp_vmec
       wb_i  = (twopi*twopi)*wb_vmec
       wp_i  = (twopi*twopi)*wp_vmec
       volume_i = volume_vmec
+      rmajor_i = raxis_vmec(0,1)
 
       IF (wb_i .eq. 0._dp) STOP 'wb_vmec = 0!'
       gnorm_i = wb_i + wp_i/(gamma-1)
@@ -149,11 +171,9 @@
                chipf_i(ns_i), presf_i(ns_i), stat=istat)
       IF (istat .ne. 0) STOP 'Allocation error 1 in INIT_METRIC_ELEMENTS'
 
-!     EVENTUALLY, WE SHOULD UPDATE WOUT TO WRITE OUT CHIPF. FOR NOW, WE COMPUTE IT
-!     AND STORE IT IN IOTAF_VMEC
+!     UPDATED WOUT TO WRITE OUT CHIPF (SPH) 
 !
-!      iotaf_vmec = iotaf_vmec*phipf_vmec
-
+!      iotaf_vmec = iotaf_vmec*phipf_vmec                 MRC 4/1/2016
 !
 !     SPLINE R, Z. L FOURIER COMPONENTS in s FROM ORIGINAL VMEC MESH (s ~ phi, ns_vmec points) 
 !     TO A "POLAR" MESH [s ~ sqrt(phi), ns_i POINTS] WITH BETTER AXIS RESOLUTION
@@ -206,6 +226,38 @@
             DEALLOCATE(lmns_half)
          END IF
       END DO
+
+#if defined(MRC)
+!
+!     Allocate space for splined arrays
+!     NOTE: keep lmns_spline on half mesh->ghost points at js=1, js=ns+1
+!
+      IF (l_force_asym) THEN
+         ALLOCATE(rmns_spline(mnmax,ns_i), zmnc_spline(mnmax,ns_i),        &
+                  lmnc_spline(mnmax,ns_i+1), stat=istat)
+         IF (istat .ne. 0) STOP 'Allocation error 2 in INIT_METRIC_ELEMENTS'
+
+         DO ntype = 1, 3
+            IF (ntype .eq. 1) THEN
+               istat = 0
+               CALL Spline_Fourier_Modes(rmns_vmec, rmns_spline, ns_vmec, ns_i, istat)
+               IF (istat .ne. 0) STOP 'Error splining rmns'
+
+            ELSE IF (ntype .eq. 2) THEN
+               CALL Spline_Fourier_Modes(zmnc_vmec, zmnc_spline, ns_vmec, ns_i, istat)
+               IF (istat .ne. 0) STOP 'Error splining zmnc'
+
+            ELSE
+               ALLOCATE(lmnc_half(mnmax,ns_vmec+1), stat=istat)
+               CALL Add_Ghost_Points(lmnc_vmec, lmnc_half)
+               CALL Spline_Fourier_Modes(lmnc_half, lmnc_spline, ns_vmec+1, ns_i+1, istat)
+               IF (istat .ne. 0) STOP 'Error splining lmns'
+               DEALLOCATE(lmnc_half)
+            END IF
+         END DO
+      END IF
+#endif
+
 !
 !     Spline 1-D arrays: careful -> convert phipf VMEC and multiply
 !     by ds-vmec/ds-island, since phipf_i = d(PHI)/ds-island
@@ -213,7 +265,8 @@
 #if defined(SKS) 
       CALL second0(skston)
 #endif
-      CALL Spline_OneD_Array (chipf_vmec, chipf_i, istat)
+!      CALL Spline_OneD_Array (iotaf_vmec, chipf_i, istat)                       MRC 4/1/2016
+      CALL Spline_OneD_Array (chipf_vmec, chipf_i, istat)                      ! MRC 4/1/2016
       CALL Spline_OneD_Array (phipf_vmec, phipf_i, istat)
       presf_vmec = mu0 * presf_vmec
       CALL Spline_OneD_Array (presf_vmec, presf_i, istat)
@@ -264,6 +317,8 @@
       LoadRZL_VMEC_time=LoadRZL_VMEC_time+(skstoff-skston)
 #endif
       IF (istat .ne. 0) STOP 'LoadRZL error in INIT_METRIC_ELEMENTS'
+
+      IF (lwout_opened) CALL read_wout_deallocate
 
       END SUBROUTINE init_metric_elements
       
@@ -471,6 +526,7 @@
 
 
 !     4. Initialize spline for each mode amplitude (factor out sqrt(s) factor for odd-m)
+!        (spline routines in LIBSTELL/Miscel folder)
 !
       yp1 = -1.e30_dp;  ypn = -1.e30_dp
       CALL spline (snodes_vmec, y_vmec, ns_vmec, yp1, ypn, y2_vmec)
@@ -532,7 +588,7 @@
       REAL(rprec), DIMENSION(ns_vmec)  :: fac1, fac2
       INTEGER                          :: iparity
       REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE    ::                  &
-                   r1_i, z1_i, ru_i, zu_i, rv_i, zv_i
+                   r1_i, z1_i, ru_i, zu_i, rv_i, zv_i, tempij
 !-----------------------------------------------
 !
 !     1. LOAD FOURIER FACTORS USING VMEC mpol,ntor AND ISLAND nu,nv
@@ -563,11 +619,39 @@
       CALL toijsp (rmnc_i, r1_i, 0, 0, iparity, 0)
       CALL toijsp (rmnc_i, ru_i, 1, 0, iparity, 0)
       CALL toijsp (rmnc_i, rv_i, 0, 1, iparity, 0)
-      
+
       iparity = 1
       CALL toijsp (zmns_i, z1_i, 0, 0, iparity, 0)
       CALL toijsp (zmns_i, zu_i, 1, 0, iparity, 0)
       CALL toijsp (zmns_i, zv_i, 0, 1, iparity, 0)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         ALLOCATE(tempij(nu_i, nv_i, ns_i), stat = istat)
+         IF (istat .ne. 0) STOP 'Allocation failed in LoadRZL_VMEC'
+
+         CALL toijsp (rmns_i, tempij, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid)
+         r1_i = r1_i + tempij
+
+         CALL toijsp (rmns_i, tempij, fourier_du, fourier_none, fourier_parity_odd, fourier_full_grid)
+         ru_i = ru_i + tempij
+
+         CALL toijsp (rmns_i, tempij, fourier_none, fourier_dv, fourier_parity_odd, fourier_full_grid)
+         rv_i = rv_i + tempij
+
+
+         CALL toijsp (zmnc_i, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
+         z1_i = z1_i + tempij
+
+         CALL toijsp (zmnc_i, tempij, fourier_du, fourier_none, fourier_parity_even, fourier_full_grid)
+         zu_i = zu_i + tempij
+
+         CALL toijsp (zmnc_i, tempij, fourier_none, fourier_dv, fourier_parity_even, fourier_full_grid)
+         zv_i = zv_i + tempij
+
+         DEALLOCATE(tempij)
+      END IF
+#endif
 
       rmax = MAXVAL(r1_i);      rmin = MINVAL(r1_i)
       zmax = MAXVAL(z1_i);      zmin = MINVAL(z1_i)
@@ -620,6 +704,15 @@
                lmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                  &
                stat=istat)
 
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         ALLOCATE(rmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                    &
+                  zmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                    &
+                  lmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                  &
+                  stat=istat)
+      END IF
+#endif
+
       IF (istat .ne. 0) STOP 'Allocation error in REPACK'
       rmnc_i = 0;  zmns_i = 0;  lmns_i = 0
       
@@ -648,11 +741,29 @@
                            -SIGN(1,n)*zmns_spline(modes,:)
             lmns_i(m,n1,:) = lmns_i(m,n1,:)                            &  
                            -SIGN(1,n)*lmns_spline(modes,:)*iflipj
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               rmns_i(m,n1,:) = rmns_i(m,n1,:)                            &
+                              -SIGN(1,n)*rmns_spline(modes,:)
+               zmnc_i(m,n1,:) = zmnc_i(m,n1,:)                            &
+                              + zmnc_spline(modes,:)
+               lmnc_i(m,n1,:) = lmnc_i(m,n1,:)                            &
+                              + lmnc_spline(modes,:)*iflipj
+            END IF
+#endif
          ELSE
             rmnc_i(m,-n*iflipj,:) = rmnc_spline(modes,:)
             zmns_i(m,-n*iflipj,:) = zmns_spline(modes,:)*iflipj
             lmns_i(m,-n*iflipj,:) = lmns_spline(modes,:)            !Implied phip in here?
-         ENDIF
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               rmns_i(m,-n*iflipj,:) = rmns_spline(modes,:)
+               zmnc_i(m,-n*iflipj,:) = zmnc_spline(modes,:)*iflipj
+               lmnc_i(m,-n*iflipj,:) = lmnc_spline(modes,:)            !Implied phip in here?
+            END IF
+#endif
+         END IF
       END DO
 !
 ! RS (10/03/06)  Divide out "orthonorm" factor used in Island FFT routines
@@ -664,6 +775,18 @@
       END DO
 
       DEALLOCATE (rmnc_spline, zmns_spline, lmns_spline, stat=istat)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         DO js = 1, ns_i
+            rmns_i(:,:,js) = rmns_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
+            zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
+            lmnc_i(:,:,js) = lmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
+         END DO
+
+         DEALLOCATE (rmns_spline, zmnc_spline, lmnc_spline, stat=istat)
+      END IF
+#endif
 
       END SUBROUTINE repack
 
@@ -860,8 +983,14 @@
                  phipf_i, chipf_i, presf_i, stat=istat)
 
       CALL dealloc_fourier
-      DEALLOCATE(rmnc_i, zmns_i)     ! Used by output subroutines.        
-	
+      DEALLOCATE(rmnc_i, zmns_i)     ! Used by output subroutines.
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         DEALLOCATE(rmns_i, zmnc_i)
+      END IF
+#endif
+
       END SUBROUTINE cleanup_metric_elements
 
        

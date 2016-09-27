@@ -7,7 +7,7 @@
 !-------------------------------------------------------------------------------
 MODULE blocktridiagonalsolver
 #if defined(MPI_OPT)
-INCLUDE 'mpif.h'
+USE mpi_inc
 #endif
 
 !-------------------------------------------------------------------------------
@@ -114,6 +114,7 @@ INTEGER :: totmatsolcount !<Total count of matrix solutions
 !<
 !-------------------------------------------------------------------------------
 REAL(dp), ALLOCATABLE :: OrigDiagElement(:)
+REAL(dp), ALLOCATABLE :: TopScaleFac(:), BotScaleFac(:)
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
@@ -5071,7 +5072,186 @@ END DO
 
 END SUBROUTINE ParMatVec
 !------------------------------------------------------------------------------
-#endif
 
+!-------------------------------------------------------------------------------
+SUBROUTINE GetColSum(cs)
+IMPLICIT NONE
+REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(INOUT) :: cs
+INTEGER :: js
+
+CALL InitScaleFactors
+DO js = startglobrow, endglobrow
+  CALL GetScaleFactors(js,cs(:,js))
+END DO
+CALL FinalizeScaleFactors
+END SUBROUTINE GetColSum
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE InitScaleFactors
+IMPLICIT NONE
+
+INTEGER :: top, bot, MPI_ERR, ic, j, k
+INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
+REAL(dp), DIMENSION(:), ALLOCATABLE :: tmp1, tmp2
+INTEGER :: numBlockRows
+
+numBlockRows = endglobrow-startglobrow+1
+
+top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
+bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
+
+ALLOCATE (TopScaleFac(M),BotScaleFac(M))
+ALLOCATE (tmp1(M),tmp2(M))
+
+DO ic=1, M
+  tmp1(ic)=SUM(orig(1)%L(:,ic)**2)
+  tmp2(ic)=SUM(orig(numBlockRows)%U(:,ic)**2)
+END DO
+
+CALL MPI_Sendrecv(tmp1,M,MPI_REAL8,top,1,&
+  BotScaleFac,M,MPI_REAL8,bot,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+
+CALL MPI_Sendrecv(tmp2,M,MPI_REAL8,bot,1,&
+  TopScaleFac,M,MPI_REAL8,top,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+
+DEALLOCATE(tmp1, tmp2)
+
+END SUBROUTINE InitScaleFactors
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE GetScaleFactors(js,scalevector)
+IMPLICIT NONE
+
+INTEGER, INTENT(IN) :: js
+REAL(dp), DIMENSION(M), INTENT(INOUT) :: scalevector
+INTEGER :: ic, ir, numBlockRows
+
+numBlockRows = endglobrow-startglobrow+1
+
+IF(js.EQ.startglobrow) THEN
+  IF (js.EQ.1) THEN
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(1)%D(:,ic)*orig(1)%D(:,ic)) + &
+        SUM(orig(2)%L(:,ic)*orig(2)%L(:,ic)) 
+    END DO
+  ELSE
+    ir = js-startglobrow+1
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(ir)%D(:,ic)*orig(ir)%D(:,ic)) + &
+        TopScaleFac(ic) + SUM(orig(ir+1)%L(:,ic)*orig(ir+1)%L(:,ic)) 
+    END DO
+  END IF
+ELSE IF(js.EQ.endglobrow) THEN
+  IF (js.EQ.N) THEN
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(numBlockRows)%D(:,ic)*orig(numBlockRows)%D(:,ic)) + &
+        SUM(orig(numBlockRows-1)%U(:,ic)*orig(numBlockRows-1)%U(:,ic))
+    END DO
+  ELSE
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(numBlockRows)%D(:,ic)*orig(numBlockRows)%D(:,ic)) + &
+        SUM(orig(numBlockRows-1)%U(:,ic)*orig(numBlockRows-1)%U(:,ic)) + BotScaleFac(ic)
+    END DO
+  END IF
+ELSE
+  ir = js-startglobrow+1
+  DO ic=1, M
+    scalevector(ic)=SUM(orig(ir)%D(:,ic)*orig(ir)%D(:,ic)) + &
+      SUM(orig(ir-1)%U(:,ic)*orig(ir-1)%U(:,ic)) + &
+      SUM(orig(ir+1)%L(:,ic)*orig(ir+1)%L(:,ic)) 
+  END DO
+END IF
+
+IF (ANY(scalevector.LT.0)) STOP 'scalevector less than zero'
+scalevector=1/SQRT(SQRT(scalevector))
+
+END SUBROUTINE GetScaleFactors
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE FinalizeScaleFactors
+  DEALLOCATE (TopScaleFac,BotScaleFac)
+END SUBROUTINE FinalizeScaleFactors
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ParallelScaling(lmp,colsum,maxeigen)
+IMPLICIT NONE
+
+REAL(dp), INTENT(IN) :: lmp
+REAL(dp), INTENT(OUT):: maxeigen
+REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(IN) :: colsum
+
+INTEGER  :: js, icol, ir, top, bot, MPI_ERR, i4, i3, dcnt
+REAL(dp) :: eps, s1(1), r1(1)
+REAL(dp), DIMENSION(:), ALLOCATABLE :: toprow, botrow
+INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
+
+top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
+bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
+ALLOCATE (toprow(M),botrow(M))
+
+CALL MPI_Sendrecv(colsum(:,endglobrow),M,MPI_REAL8,bot,1,&
+  toprow,M,MPI_REAL8,top,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+
+CALL MPI_Sendrecv(colsum(:,startglobrow),M,MPI_REAL8,top,1,&
+  botrow,M,MPI_REAL8,bot,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+
+dcnt=0
+maxeigen=0
+DO js = startglobrow, endglobrow
+  ir=js-startglobrow+1
+  DO icol = 1, M
+    lelement(1,ir)%D(:,icol) = colsum(:,js)*orig(ir)%D(:,icol)*colsum(icol,js)
+    IF (js .GT. 1) THEN
+      IF (ir.EQ.1) THEN
+        lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*toprow(icol)
+      ELSE
+        lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*colsum(icol,js-1)
+      END IF
+      orig(ir)%L(:,icol) = lelement(1,ir)%L(:,icol)
+    END IF
+    IF (js .LT. N) THEN
+      IF (ir.EQ.(endglobrow-startglobrow+1)) THEN
+        lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*botrow(icol)
+      ELSE
+        lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*colsum(icol,js+1)
+      END IF
+      orig(ir)%U(:,icol) = lelement(1,ir)%U(:,icol)
+    END IF
+    eps = lelement(1,ir)%D(icol,icol) 
+    dcnt=dcnt+1
+    OrigDiagElement(dcnt) = lelement(1,ir)%D(icol,icol)
+    lelement(1,ir)%D(icol,icol) = eps*(1 + ABS(lmp))
+    orig(ir)%D(:,icol) = lelement(1,ir)%D(:,icol)
+  END DO
+  !Gerschgorin Theorem to estimate max eigenvalue
+  DO icol = 1, M
+    maxeigen = MAX(maxeigen, SUM(ABS(orig(ir)%L(icol,:)) + ABS(orig(ir)%D(icol,:))   &
+      + ABS(orig(ir)%U(icol,:))))
+  END DO
+END DO
+DEALLOCATE (toprow,botrow)
+s1(1)=maxeigen
+CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX,                 &
+  MPI_COMM_WORLD,MPI_ERR)
+maxeigen=r1(1)
+END SUBROUTINE ParallelScaling
+!-------------------------------------------------------------------------------
+
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ComputeTranspose
+  IMPLICIT NONE
+
+
+
+END SUBROUTINE ComputeTranspose
+!-------------------------------------------------------------------------------
+
+
+#endif
 END MODULE blocktridiagonalsolver
 !-------------------------------------------------------------------------------

@@ -29,8 +29,8 @@
       SUBROUTINE GradientFull_par(gradientf, vectorh, Mblk, nsmin, nsmax)
       USE stel_kinds
       USE quantities, ONLY: ns, ohs
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -137,62 +137,114 @@
       USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,           &
                          mpol=>mpol_i, ntor=>ntor_i
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
+#if defined(MRC)
+                            fsubsmnsf, fsubumncf, fsubvmncf,            &
+                            fsupsmnsf, fsupumncf, fsupvmncf,            &
+#endif
                             fsupsmncf, fsupumnsf, fsupvmnsf 
-      USE fourier, ONLY: toijsp_par, tomnsp_par
+      USE fourier, ONLY: toijsp_par, tomnsp_par, fourier_none,          &
+                         fourier_parity_odd, fourier_parity_even,       &
+                         fourier_full_grid
       USE nscalingtools, ONLY: startglobrow, endglobrow
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                     &
-         work1, work2, work3, work4, work5, work6, work7
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                            &
+                                          fsubsijf, fsubuijf, fsubvijf,        &
+                                          fsupsijf, fsupuijf, fsupvijf,        &
+                                          tempmn, tempij
 !-----------------------------------------------
       INTEGER :: nsmin, nsmax, ns_span, istat, js
 !-----------------------------------------------
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
       ns_span=nsmax-nsmin+1
 
-      ALLOCATE(work1(ntheta,nzeta,nsmin:nsmax),                         & 
-               work2(ntheta,nzeta,nsmin:nsmax),                         & 
-               work3(ntheta,nzeta,nsmin:nsmax),                         &
-               work4(ntheta,nzeta,nsmin:nsmax),                         &
-               work5(ntheta,nzeta,nsmin:nsmax),                         &
-               work6(ntheta,nzeta,nsmin:nsmax),                         &
-               work7(0:mpol,-ntor:ntor, nsmin:nsmax), stat=istat)
+      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                         &
+               fsubuijf(ntheta,nzeta,nsmin:nsmax),                         &
+               fsubvijf(ntheta,nzeta,nsmin:nsmax),                         &
+               fsupsijf(ntheta,nzeta,nsmin:nsmax),                         &
+               fsupuijf(ntheta,nzeta,nsmin:nsmax),                         &
+               fsupvijf(ntheta,nzeta,nsmin:nsmax),                         &
+               tempmn(0:mpol,-ntor:ntor, nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) STOP ' Allocation error in toupper_forces_par'
 
       DO js=nsmin, nsmax
-         work7(:,:,js) = fsubsmncf(:,:,js)
+         tempmn(:,:,js) = fsubsmncf(:,:,js)
       END DO
-      CALL toijsp_par(work7, work1, 0, 0, 0, 0, 1, ns_span)        
+      CALL toijsp_par(tempmn, fsubsijf, 0, 0, 0, 0, 1, ns_span)
       DO js=nsmin, nsmax
-         work7(:,:,js) = fsubumnsf(:,:,js)
+         tempmn(:,:,js) = fsubumnsf(:,:,js)
       END DO
-      CALL toijsp_par(work7, work2, 0, 0, 1, 0, 1, ns_span)   
+      CALL toijsp_par(tempmn, fsubuijf, 0, 0, 1, 0, 1, ns_span)
       DO js=nsmin, nsmax
-         work7(:,:,js) = fsubvmnsf(:,:,js)
+         tempmn(:,:,js) = fsubvmnsf(:,:,js)
       END DO
-      CALL toijsp_par(work7, work3, 0, 0, 1, 0, 1, ns_span)
-!      
+      CALL toijsp_par(tempmn, fsubvijf, 0, 0, 1, 0, 1, ns_span)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         ALLOCATE(tempij(ntheta,nzeta,nsmin:nsmax))
+
+         DO js=nsmin, nsmax
+            tempmn(:,:,js) = fsubsmnsf(:,:,js)
+         END DO
+         CALL toijsp_par(tempmn, tempij, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid, 1, ns_span)
+         fsubsijf = fsubsijf + tempij
+
+         DO js=nsmin, nsmax
+         tempmn(:,:,js) = fsubumncf(:,:,js)
+         END DO
+         CALL toijsp_par(tempmn, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid, 1, ns_span)
+         fsubuijf = fsubuijf + tempij
+
+         DO js=nsmin, nsmax
+         tempmn(:,:,js) = fsubsmncf(:,:,js)
+         END DO
+         CALL toijsp_par(tempmn, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid, 1, ns_span)
+         fsubvijf = fsubvijf + tempij
+
+         DEALLOCATE(tempij)
+      END IF
+#endif
+
+!
 !     GET CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
 !
-      CALL toupper_par(work1, work2, work3, work4, work5, work6) 
-      DEALLOCATE(work1, work2, work3)
+      CALL toupper_par(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf)
+      DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
-      CALL tomnsp_par(work4, work7, 0, 0, 1, ns_span)
+      CALL tomnsp_par(fsupsijf, tempmn, 0, 0, 1, ns_span)
       DO js=nsmin, nsmax
-         fsupsmncf(:,:,js) = work7(:,:,js)
+         fsupsmncf(:,:,js) = tempmn(:,:,js)
       END DO
-      CALL tomnsp_par(work5, work7, 1, 0, 1, ns_span)
+      CALL tomnsp_par(fsupuijf, tempmn, 1, 0, 1, ns_span)
       DO js=nsmin, nsmax
-         fsupumnsf(:,:,js) = work7(:,:,js)
+         fsupumnsf(:,:,js) = tempmn(:,:,js)
       END DO
-      CALL tomnsp_par(work6, work7, 1, 0, 1, ns_span)
+      CALL tomnsp_par(fsupvijf, tempmn, 1, 0, 1, ns_span)
       DO js=nsmin, nsmax
-         fsupvmnsf(:,:,js) = work7(:,:,js)
+         fsupvmnsf(:,:,js) = tempmn(:,:,js)
       END DO
 
-      DEALLOCATE(work4, work5, work6, work7, stat=istat)
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL tomnsp_par(fsupsijf, tempmn, fourier_parity_even, fourier_full_grid, 1, ns_span)
+         DO js=nsmin, nsmax
+            fsupsmnsf(:,:,js) = tempmn(:,:,js)
+         END DO
+         CALL tomnsp_par(fsupuijf, tempmn, fourier_parity_odd, fourier_full_grid, 1, ns_span)
+         DO js=nsmin, nsmax
+            fsupumncf(:,:,js) = tempmn(:,:,js)
+         END DO
+         CALL tomnsp_par(fsupvijf, tempmn, fourier_parity_odd, fourier_full_grid, 1, ns_span)
+         DO js=nsmin, nsmax
+            fsupvmncf(:,:,js) = tempmn(:,:,js)
+         END DO
+      END IF
+#endif
+
+      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, tempmn, stat=istat)
 
       END SUBROUTINE toupper_forces_par
 !---------------------------------------------------------------------------------------------
@@ -462,37 +514,71 @@
       SUBROUTINE toupper_forces
       USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,        &
+#if defined(MRC)
+                            fsubsmnsf, fsubumncf, fsubvmncf,        &
+                            fsupsmnsf, fsupumncf, fsupvmncf,        &
+#endif
                             fsupsmncf, fsupumnsf, fsupvmnsf 
-      USE fourier, ONLY: toijsp, tomnsp
+      USE fourier, ONLY: toijsp, tomnsp, fourier_none, fourier_full_grid,      &
+                         fourier_parity_odd, fourier_parity_even
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: istat
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
-         work1, work2, work3, work4, work5, work6
+         fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf, tempij
 !-----------------------------------------------
-      ALLOCATE(work1(ntheta,nzeta,ns), work2(ntheta,nzeta,ns),      & 
-               work3(ntheta,nzeta,ns), work4(ntheta,nzeta,ns),      &
-               work5(ntheta,nzeta,ns), work6(ntheta,nzeta,ns),      &
+      ALLOCATE(fsubsijf(ntheta,nzeta,ns),                           &
+               fsubuijf(ntheta,nzeta,ns),                           &
+               fsubvijf(ntheta,nzeta,ns),                           &
+               fsupsijf(ntheta,nzeta,ns),                           &
+               fsupuijf(ntheta,nzeta,ns),                           &
+               fsupvijf(ntheta,nzeta,ns),                           &
                stat=istat)
       IF (istat .ne. 0) STOP ' Allocation error in toupper_forces'
 
-      CALL toijsp(fsubsmncf, work1, 0, 0, 0, 0)        
-      CALL toijsp(fsubumnsf, work2, 0, 0, 1, 0)   
-      CALL toijsp(fsubvmnsf, work3, 0, 0, 1, 0)
+      CALL toijsp(fsubsmncf, fsubsijf, 0, 0, 0, 0)
+      CALL toijsp(fsubumnsf, fsubuijf, 0, 0, 1, 0)
+      CALL toijsp(fsubvmnsf, fsubvijf, 0, 0, 1, 0)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         ALLOCATE(tempij(ntheta,nzeta,ns))
+
+         CALL toijsp(fsubsmnsf, tempij, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid)
+         fsubsijf = fsubsijf + tempij
+
+         CALL toijsp(fsubumncf, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
+         fsubsijf = fsubsijf + tempij
+
+         CALL toijsp(fsubvmncf, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
+         fsubsijf = fsubsijf + tempij
+
+         DEALLOCATE(tempij)
+      END IF
+#endif
+
 !      
 !     GET CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
 !
-      CALL toupper(work1, work2, work3, work4, work5, work6) 
-      DEALLOCATE(work1, work2, work3)
+      CALL toupper(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf)
+      DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
       IF (istat .ne. 0) STOP ' Allocation error in check_forces'
-      CALL tomnsp(work4, fsupsmncf, 0, 0)
-      CALL tomnsp(work5, fsupumnsf, 1, 0)
-      CALL tomnsp(work6, fsupvmnsf, 1, 0)
+      CALL tomnsp(fsupsijf, fsupsmncf, 0, 0)
+      CALL tomnsp(fsupuijf, fsupumnsf, 1, 0)
+      CALL tomnsp(fsupvijf, fsupvmnsf, 1, 0)
 
-      DEALLOCATE(work4, work5, work6)
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL tomnsp(fsupsijf, fsupsmnsf, fourier_parity_odd, fourier_full_grid)
+         CALL tomnsp(fsupuijf, fsupumncf, fourier_parity_even, fourier_full_grid)
+         CALL tomnsp(fsupvijf, fsupvmncf, fourier_parity_even, fourier_full_grid)
+      END IF
+#endif
+
+      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf)
 
       END SUBROUTINE toupper_forces
 
@@ -561,6 +647,25 @@
 
       END SUBROUTINE ZeroHalfPoint
 
+      SUBROUTINE FluxAverage(average, q3d, nsmin, nsmax)
+      USE stel_kinds, ONLY: dp
+      USE fourier, ONLY: cosmui
+      USE island_params, ONLY: ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
+      IMPLICIT NONE
+      INTEGER, PARAMETER    :: m0=0
+      INTEGER, INTENT(in)   :: nsmin, nsmax
+      REAL(dp), INTENT(out) :: average(nsmin:nsmax)
+      REAL(dp), INTENT(in)  :: q3d(ntheta,nzeta,nsmin:nsmax)
+      INTEGER               :: js, l
+
+      average(nsmin:nsmax) = 0
+      DO js = nsmin, nsmax
+         DO l = 1, ntheta
+              average(js) = average(js) + SUM(q3d(l,:,js))*cosmui(l,m0)
+         END DO                                                         
+      END DO
+
+      END SUBROUTINE FluxAverage
  
       SUBROUTINE truncate(num, iprec0)
       USE stel_kinds, ONLY: dp
@@ -576,9 +681,10 @@
       INTEGER*8  :: i1, ilog
 !-----------------------------------------------
 !
-!     TRUNCATES double-precision to precision 8 digitis, keeping exponent range of double
+!     TRUNCATES double-precision to precision 8 digits, keeping exponent range of double
 !
-    
+      RETURN    !052316 - SPH - do not need this - converges better without it
+
       ilog = 0
       IF (ABS(num) .GT. 1.E-30_dp) ilog = NINT(LOG10(ABS(1._dp/num)))
       ilog = ilog+iprec0

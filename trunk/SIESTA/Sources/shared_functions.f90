@@ -1,4 +1,3 @@
-
 !>  \brief Module contained subroutines and functions updating MHD forces and Wmhd
 !!  \author S. P. Hirshman
 !!  \date July, 2014
@@ -8,8 +7,12 @@
                                 in_hess_nfunct, out_hess_nfunct
       USE island_params, ns=>ns_i, hs=>hs_i
       USE hessian, ONLY: apply_precond, l_Compute_Hessian
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, fsupsmncf,  &
-                            fsupumnsf, fsupvmnsf, wb, wp
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,             &
+#if defined(MRC)
+                            fsubsmnsf, fsubumncf, fsubvmncf,             &
+                            fsupsmnsf, fsupumncf, fsupvmncf,             &
+#endif
+                            fsupsmncf, fsupumnsf, fsupvmnsf, wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
 
       CONTAINS
@@ -26,8 +29,8 @@
       USE siesta_pressure, ONLY: update_pres_par
       USE siesta_force, ONLY: update_force_par
       USE siesta_displacement, ONLY: update_upperv_par
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -65,8 +68,8 @@
       gc = gnorm_i*gc
 
 !     CALLED FROM GMRES: ADD BACK INITIAL FORCE gc0 or STORE UNPRECONDITIONED FORCES
-      IF (ALLOCATED(gc0) .AND. l_getfsq .AND. l_linearize .AND.         &
-         .NOT.l_Compute_Hessian) THEN
+      IF (ALLOCATED(gc0) .AND. l_linearize .AND.         &
+         .NOT.l_Compute_Hessian .AND. l_getfsq) THEN
          gc = gc+gc0
       END IF
 
@@ -74,11 +77,6 @@
 
 !     COMPUTE UN-PRECONDITIONED FORCE RESIDUES
       IF (l_getfsq) THEN
-         stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)*fsubsmncf(:,:,nsmin:nsmax))
-         stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)*fsubumnsf(:,:,nsmin:nsmax))
-         stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)*fsubvmnsf(:,:,nsmin:nsmax))
-         CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
-         fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
          CALL toupper_forces_par
 !     VOLUME-AVERAGE |F|**2
          stmp(1) = 0
@@ -87,31 +85,91 @@
                           fsupsmncf(:,:,js)*fsubsmncf(:,:,js)           & 
                         + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)           &
                         + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               stmp(1) = stmp(1) + vp_f(js)*SUM(                           &
+                             fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)           &
+                           + fsupumncf(:,:,js)*fsubumncf(:,:,js)           &
+                           + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
+            END IF
+#endif
          END DO
          stmp(2) = SUM(vp_f(nsmin:nsmax))
          CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
-         fsq_total = rtmp(1)/rtmp(2);  CALL truncate(fsq_total,10)
+         fsq_total = rtmp(1)/rtmp(2)  !  CALL truncate(fsq_total,10)
+         IF (ANY(col_scale .NE. one)) THEN
+            fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)/col_scale(:,:,1,nsmin:nsmax)
+            fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)/col_scale(:,:,2,nsmin:nsmax)
+            fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)/col_scale(:,:,3,nsmin:nsmax)
 
-         IF (scale_s.NE.one .OR. scale_u.NE. one) THEN
-            fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)/scale_s
-            fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)/scale_u
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               fsubsmnsf(:,:,nsmin:nsmax)=fsubsmnsf(:,:,nsmin:nsmax)/col_scale(:,:,4,nsmin:nsmax)
+               fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)/col_scale(:,:,5,nsmin:nsmax)
+               fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)/col_scale(:,:,6,nsmin:nsmax)
+            END IF
+#endif
+
             CALL toupper_forces_par
 !     VOLUME-AVERAGE |F|**2
             stmp(1) = 0
             DO js = nsmin,nsmax
-              stmp(1) = stmp(1) + vp_f(js)*SUM(                         &
-                          fsupsmncf(:,:,js)*fsubsmncf(:,:,js)           & 
-                        + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)           &
-                        + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
+               stmp(1) = stmp(1) + vp_f(js)*SUM(                         &
+                           fsupsmncf(:,:,js)*fsubsmncf(:,:,js)           &
+                         + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)           &
+                         + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
+
+#if defined(MRC)
+               IF (l_force_asym) THEN
+                  stmp(1) = stmp(1) + vp_f(js)*SUM(                         &
+                              fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)           &
+                            + fsupumncf(:,:,js)*fsubumncf(:,:,js)           &
+                            + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
+               END IF
+#endif
             END DO
             stmp(2) = SUM(vp_f(nsmin:nsmax))
             CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
             fsq_total1 = rtmp(1)/rtmp(2)
-            fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)*scale_s
-            fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)*scale_u
-            fsqvs = fsqvs/scale_s**2
-            fsqvu = fsqvu/scale_u**2
+            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)*fsubsmncf(:,:,nsmin:nsmax))
+            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)*fsubumnsf(:,:,nsmin:nsmax))
+            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)*fsubvmnsf(:,:,nsmin:nsmax))
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)*fsubsmnsf(:,:,nsmin:nsmax))
+               stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)*fsubumncf(:,:,nsmin:nsmax))
+               stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)*fsubvmncf(:,:,nsmin:nsmax))
+            END IF
+#endif
+            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
+            fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
+            fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)*col_scale(:,:,1,nsmin:nsmax)
+            fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)*col_scale(:,:,2,nsmin:nsmax)
+            fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)*col_scale(:,:,3,nsmin:nsmax)
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               fsubsmnsf(:,:,nsmin:nsmax)=fsubsmnsf(:,:,nsmin:nsmax)*col_scale(:,:,4,nsmin:nsmax)
+               fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)*col_scale(:,:,5,nsmin:nsmax)
+               fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)*col_scale(:,:,6,nsmin:nsmax)
+            END IF
+#endif
          ELSE
+            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)*fsubsmncf(:,:,nsmin:nsmax))
+            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)*fsubumnsf(:,:,nsmin:nsmax))
+            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)*fsubvmnsf(:,:,nsmin:nsmax))
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)*fsubsmnsf(:,:,nsmin:nsmax))
+               stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)*fsubumncf(:,:,nsmin:nsmax))
+               stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)*fsubvmncf(:,:,nsmin:nsmax))
+            END IF
+#endif
+            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
+            fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
             fsq_total1 = fsq_total
          END IF
       END IF
@@ -181,9 +239,6 @@
 
 !     COMPUTE UN-PRECONDITIONED FORCE RESIDUES
       IF (l_getfsq) THEN
-         fsqvs = hs*SUM(fsubsmncf*fsubsmncf)
-         fsqvu = hs*SUM(fsubumnsf*fsubumnsf)
-         fsqvv = hs*SUM(fsubvmnsf*fsubvmnsf)
          CALL toupper_forces
          fsq_total = 0
          DO js = 1, ns
@@ -191,27 +246,76 @@
                       +  SUM(fsupsmncf(:,:,js)*fsubsmncf(:,:,js)        &
                       +      fsupumnsf(:,:,js)*fsubumnsf(:,:,js)        &
                       +      fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))*vp_f(js)
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               fsq_total = fsq_total                                       &
+                         +  SUM(fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)        &
+                         +      fsupumncf(:,:,js)*fsubumncf(:,:,js)        &
+                         +      fsupvmncf(:,:,js)*fsubvmncf(:,:,js))*vp_f(js)
+            END IF
+#endif
          END DO
-         fsq_total = fsq_total/SUM(vp_f);  CALL truncate(fsq_total, 10)
-         IF (scale_s.NE.one .OR. scale_u.NE. one) THEN
-            fsubsmncf=fsubsmncf/scale_s
-            fsubumnsf=fsubumnsf/scale_u
+         fsq_total = fsq_total/SUM(vp_f)  !CALL truncate(fsq_total, 10)
+         IF (ANY(col_scale .NE. one)) THEN
+            fsubsmncf(:,:,:)=fsubsmncf(:,:,:)/col_scale(:,:,1,:)
+            fsubumnsf(:,:,:)=fsubumnsf(:,:,:)/col_scale(:,:,2,:)
+            fsubvmnsf(:,:,:)=fsubvmnsf(:,:,:)/col_scale(:,:,3,:)
+
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               fsubsmnsf(:,:,:)=fsubsmnsf(:,:,:)/col_scale(:,:,4,:)
+               fsubumncf(:,:,:)=fsubumncf(:,:,:)/col_scale(:,:,5,:)
+               fsubvmncf(:,:,:)=fsubvmncf(:,:,:)/col_scale(:,:,6,:)
+            END IF
+#endif
             CALL toupper_forces
             fsq_total1 = 0
 !     VOLUME-AVERAGE |F|**2
             DO js = 1, ns
-              fsq_total1 = fsq_total1                                    & 
-                        + SUM(fsupsmncf(:,:,js)*fsubsmncf(:,:,js)       & 
-                        +     fsupumnsf(:,:,js)*fsubumnsf(:,:,js)       &
-                        +     fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))*vp_f(js)
+               fsq_total1 = fsq_total1                                     &
+                          + SUM(fsupsmncf(:,:,js)*fsubsmncf(:,:,js)        &
+                          +     fsupumnsf(:,:,js)*fsubumnsf(:,:,js)        &
+                          +     fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))*vp_f(js)
+
+#if defined(MRC)
+               IF (l_force_asym) THEN
+                  fsq_total1 = fsq_total1                                     &
+                             + SUM(fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)        &
+                             +     fsupumncf(:,:,js)*fsubumncf(:,:,js)        &
+                             +     fsupvmncf(:,:,js)*fsubvmncf(:,:,js))*vp_f(js)
+               END IF
+#endif
             END DO
             fsq_total1 = fsq_total1/SUM(vp_f)
-            fsubsmncf=fsubsmncf*scale_s
-            fsubumnsf=fsubumnsf*scale_u
-            fsqvs = fsqvs/scale_s**2
-            fsqvu = fsqvu/scale_u**2
+            fsqvs = hs*SUM(fsubsmncf*fsubsmncf)
+            fsqvu = hs*SUM(fsubumnsf*fsubumnsf)
+            fsqvv = hs*SUM(fsubvmnsf*fsubvmnsf)
+            fsubsmncf(:,:,:)=fsubsmncf(:,:,:)*col_scale(:,:,1,:)
+            fsubumnsf(:,:,:)=fsubumnsf(:,:,:)*col_scale(:,:,2,:)
+            fsubvmnsf(:,:,:)=fsubvmnsf(:,:,:)*col_scale(:,:,3,:)
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               fsqvs = fsqvs + hs*SUM(fsubsmnsf*fsubsmnsf)
+               fsqvu = fsqvu + hs*SUM(fsubumncf*fsubumncf)
+               fsqvv = fsqvv + hs*SUM(fsubvmncf*fsubvmncf)
+               fsubsmnsf(:,:,:)=fsubsmnsf(:,:,:)*col_scale(:,:,4,:)
+               fsubumncf(:,:,:)=fsubumncf(:,:,:)*col_scale(:,:,5,:)
+               fsubvmncf(:,:,:)=fsubvmncf(:,:,:)*col_scale(:,:,6,:)
+            END IF
+#endif
          ELSE
             fsq_total1 = fsq_total
+            fsqvs = hs*SUM(fsubsmncf*fsubsmncf)
+            fsqvu = hs*SUM(fsubumnsf*fsubumnsf)
+            fsqvv = hs*SUM(fsubvmnsf*fsubvmnsf)
+#if defined(MRC)
+            IF (l_force_asym) THEN
+               fsqvs = fsqvs + hs*SUM(fsubsmnsf*fsubsmnsf)
+               fsqvu = fsqvu + hs*SUM(fsubumncf*fsubumncf)
+               fsqvv = fsqvv + hs*SUM(fsubvmncf*fsubvmncf)
+            END IF
+#endif
          END IF
       END IF
 !

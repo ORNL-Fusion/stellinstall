@@ -751,7 +751,7 @@
       CALL cdf_write(j, 'diagnostic_desc_d_type', d_coil%d_type)
       CALL cdf_write(j, 'diagnostic_desc_s_name', d_coil%id_name)
       CALL cdf_write(j, 'diagnostic_desc_l_name', d_coil%id_name)
-      CALL cdf_write(j, 'diagnostic_desc_units', TRIM(d_coil%units))
+      CALL cdf_write(j, 'diagnostic_desc_units', d_coil%units)
       CALL cdf_write(j, 'diagnostic_desc_sigma_default', 0.0)
       CALL magnetic_response_write(response, j)
       CALL bsc_cdf_write_coil(d_coil%coil, j, '')

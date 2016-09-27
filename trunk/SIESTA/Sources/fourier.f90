@@ -4,7 +4,7 @@
 !     
 !     PURPOSE: CONVERTS QUANTITIES FROM FOURIER SPACE TO REAL SPACE AND VICEVERSA
 !
-!       NOTE: CALL FIXARRAY must be used once before calling any of the Fourier subroutines
+!       NOTE: CALL INIT_FOURIER must be used once before calling any of the Fourier subroutines
 !       to calculate all necessary cosine/sine factors on fixed mesh of collocation angles
 !       NS, NTOR, MPOL and NFP used as in the wout.file
 !
@@ -19,8 +19,20 @@
 !     VARIABLE DECLARATIONS  
 !
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: orthonorm
+
+!  Parameters
+      INTEGER, PARAMETER :: fourier_parity_even = 0
+      INTEGER, PARAMETER :: fourier_parity_odd = 1
+
+      INTEGER, PARAMETER :: fourier_full_grid = 0
+      INTEGER, PARAMETER :: fourier_half_grid = 1
+
+      INTEGER, PARAMETER :: fourier_none = 0
+      INTEGER, PARAMETER :: fourier_du   = 1
+      INTEGER, PARAMETER :: fourier_dv   = 1
+
       CONTAINS
- 
+
 #if defined(SKS)
       SUBROUTINE TOIJSP_PAR(XMN, XUV, UFLAG, VFLAG, IPARITY, IHALF, nsmin, nsmax)
 !
@@ -33,8 +45,8 @@
 !
       USE stel_kinds
       USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -64,83 +76,83 @@
 
       NS_LOOP: DO js = nsmin, nsmax
 
-      work0(:,:) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,js)
-      work1 = zero; work2 = zero 
+         work0(:,:) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,js)
+         work1 = zero; work2 = zero
 
-      DO jk = 1, ntheta
-        DO m = 0, mpol                                           ! First DO sum over poloidal modes
-          IF (uflag == 0) THEN
-            work1(jk,:) = work1(jk,:) + work0(m,:)*cosmu(jk, m)
-            work2(jk,:) = work2(jk,:) + work0(m,:)*sinmu(jk, m)
-          ELSE IF (uflag == 1) THEN                              ! Poloidal derivative requested: USE COSMUM, SINMUM
-            work1(jk,:) = work1(jk,:) - work0(m,:)*sinmum(jk, m)
-            work2(jk,:) = work2(jk,:) + work0(m,:)*cosmum(jk, m)
-          ELSE
-            STOP 'UFLAG > 1 in TOIJSP subroutine'
-          ENDIF
+        DO jk = 1, ntheta
+          DO m = 0, mpol                                           ! First DO sum over poloidal modes
+            IF (uflag == 0) THEN
+              work1(jk,:) = work1(jk,:) + work0(m,:)*cosmu(jk, m)
+              work2(jk,:) = work2(jk,:) + work0(m,:)*sinmu(jk, m)
+            ELSE IF (uflag == 1) THEN                              ! Poloidal derivative requested: USE COSMUM, SINMUM
+              work1(jk,:) = work1(jk,:) - work0(m,:)*sinmum(jk, m)
+              work2(jk,:) = work2(jk,:) + work0(m,:)*cosmum(jk, m)
+            ELSE
+              STOP 'UFLAG > 1 in TOIJSP subroutine'
+            ENDIF
+          ENDDO
         ENDDO
-      ENDDO
- 
-      xuv1 = zero                                                 ! Make sure that SPATIAL variable is zeroed
 
-      DO lk = 1, nzeta
+        xuv1 = zero                                                 ! Make sure that SPATIAL variable is zeroed
 
-        IF (iparity == 0) THEN                                   ! Do first N=0 mode
+        DO lk = 1, nzeta
 
-          IF (vflag == 0) THEN
-            xuv1(:,lk) = work1(:,0) 
-          ELSEIF (vflag == 1) THEN
-            xuv1(:,lk) = zero
-          ELSE        
-            STOP 'VFLAG > 1 in TOIJSP subroutine'            
-          ENDIF
-
-        ELSE
-
-          IF (vflag == 0) THEN
-            xuv1(:,lk) = work2(:,0) 
-          ELSEIF (vflag == 1) THEN
-            xuv1(:,lk) = zero
-          ELSE
-            STOP 'VFLAG > 1 in TOUVSP subroutine' 
-          ENDIF          
-
-        ENDIF          
-
-        DO n = 1, ntor                                            ! Then sum over N>0 and N<0 toroidal modes                                                     
-          IF (iparity == 0) THEN                                  ! COSINE series
+          IF (iparity == 0) THEN                                   ! Do first N=0 mode
 
             IF (vflag == 0) THEN
-              xuv1(:,lk) =  xuv1(:,lk)                          &
-              + (work1(:,n) + work1(:,-n))*cosnv(lk, n)         &
-              - (work2(:,n) - work2(:,-n))*sinnv(lk, n)
-            ELSEIF (vflag == 1) THEN                              ! First toroidal derivative requested
-              xuv1(:,lk) =  xuv1(:,lk)                          &
-              - (work1(:,n) + work1(:,-n))*sinnvn(lk, n)        &
-              - (work2(:,n) - work2(:,-n))*cosnvn(lk, n)
+              xuv1(:,lk) = work1(:,0)
+            ELSEIF (vflag == 1) THEN
+              xuv1(:,lk) = zero
             ELSE
               STOP 'VFLAG > 1 in TOIJSP subroutine'
             ENDIF
 
-          ELSE                                                    ! SINE series
+          ELSE
 
             IF (vflag == 0) THEN
-              xuv1(:,lk) =  xuv1(:,lk)                          &
-              + (work1(:,n) - work1(:,-n))*sinnv(lk, n)         &
-              + (work2(:,n) + work2(:,-n))*cosnv(lk, n)
-            ELSEIF (vflag == 1) THEN                              ! First toroidal derivative requested
-              xuv1(:,lk) =  xuv1(:,lk)                          &
-              + (work1(:,n) - work1(:,-n))*cosnvn(lk, n)        &
-              - (work2(:,n) + work2(:,-n))*sinnvn(lk, n)
+              xuv1(:,lk) = work2(:,0)
+            ELSEIF (vflag == 1) THEN
+              xuv1(:,lk) = zero
             ELSE
-              STOP 'VFLAG > 1 in TOIJSP subroutine'
+              STOP 'VFLAG > 1 in TOUVSP subroutine'
             ENDIF
 
           ENDIF
-        ENDDO
-      ENDDO
 
-      xuv(:,:,js) = xuv1(:,:)
+          DO n = 1, ntor                                            ! Then sum over N>0 and N<0 toroidal modes
+            IF (iparity == 0) THEN                                  ! COSINE series
+
+              IF (vflag == 0) THEN
+                xuv1(:,lk) =  xuv1(:,lk)                          &
+                + (work1(:,n) + work1(:,-n))*cosnv(lk, n)         &
+                - (work2(:,n) - work2(:,-n))*sinnv(lk, n)
+              ELSEIF (vflag == 1) THEN                              ! First toroidal derivative requested
+                xuv1(:,lk) =  xuv1(:,lk)                          &
+                - (work1(:,n) + work1(:,-n))*sinnvn(lk, n)        &
+                - (work2(:,n) - work2(:,-n))*cosnvn(lk, n)
+              ELSE
+                STOP 'VFLAG > 1 in TOIJSP subroutine'
+              ENDIF
+
+            ELSE                                                    ! SINE series
+
+              IF (vflag == 0) THEN
+                xuv1(:,lk) =  xuv1(:,lk)                          &
+                + (work1(:,n) - work1(:,-n))*sinnv(lk, n)         &
+                + (work2(:,n) + work2(:,-n))*cosnv(lk, n)
+              ELSEIF (vflag == 1) THEN                              ! First toroidal derivative requested
+                xuv1(:,lk) =  xuv1(:,lk)                          &
+                + (work1(:,n) - work1(:,-n))*cosnvn(lk, n)        &
+                - (work2(:,n) + work2(:,-n))*sinnvn(lk, n)
+              ELSE
+                STOP 'VFLAG > 1 in TOIJSP subroutine'
+              ENDIF
+
+            ENDIF
+          ENDDO
+        ENDDO
+
+        xuv(:,:,js) = xuv1(:,:)
 
       END DO NS_LOOP
 
@@ -165,8 +177,8 @@
 !
       USE stel_kinds
       USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE mpi_inc
       IMPLICIT NONE
-      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -827,14 +839,25 @@
 !-----------------------------------------------
         REAL(rprec), PARAMETER :: nfactor = 1.41421356237310_dp          ! RS: Normalization of m=0/n=0 Fourier modes.
         INTEGER        :: jk, m, n, lk, istat, ntheta1
-        REAL(rprec)    :: arg, cosi, sini
+        REAL(rprec)    :: arg, cosi, sini, pinorm
 !-----------------------------------------------
 !       TO CHANGE TO FULL u-GRID
 !       1) nu_i = 2*nu_i
 !       2) ntheta1 = ntheta
 !       3) arg = twopi*(jk-1)/ntheta1
-        
-        ntheta1 = ntheta-1
+
+#if defined(MRC)
+        IF (l_force_asym) THEN
+           ntheta1 = ntheta
+           pinorm = twopi
+        ELSE
+#endif
+           ntheta1 = ntheta-1
+           pinorm = pi
+#if defined(MRC)
+        END IF
+#endif
+
 !       EXTEND mpol, ntor FOR POST-PROCESSING OF PRESSURE B dot GRAD P
 !        mpol = mpol32_i;  ntor = ntor32_i
 
@@ -844,12 +867,12 @@
                  cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),             &
                  sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor), stat=istat)
 
-        IF (istat .ne. 0) STOP 'Allocation error in fixarray'
+        IF (istat .ne. 0) STOP 'Allocation error in INIT_FOURIER'
         
         dnorm_i = one/(ntheta1*nzeta)                              ! ST:Norm for Fourier-Space -> UV-Space
 
         DO jk = 1, ntheta
-          arg = pi*(jk-1)/ntheta1                                  ! Poloidal collocation points*m
+          arg = pinorm*(jk-1)/ntheta1                              ! Poloidal collocation points*m
           DO m = 0, mpol
             cosi = COS(m*arg)
             sini = SIN(m*arg)
@@ -862,7 +885,12 @@
             sinmu (jk, m)  = sini                                 ! Used in UV-SPace to Fourier-space
             sinmum(jk, m)  = m*sini                               ! Used in UV-SPace to Fourier-space
             sinmui(jk, m) = dnorm_i*sini                          ! Used in Fourier-Space to UV-space
+#if defined(MRC)
+            IF ((jk == 1 .or. jk == ntheta) .and.                         &
+                .not.l_force_asym) THEN
+#else
             IF (jk == 1 .or. jk == ntheta) THEN
+#endif
                cosmui(jk, m) = 0.5_dp*cosmui(jk, m)               ! 0, pi poloidal points are divided by 2 when integrating
                sinmui(jk, m) = 0.5_dp*sinmui(jk, m)
             ENDIF
@@ -891,9 +919,11 @@
 !BE SURE TO FIX THIS WHEN DOING ASYMMETRIC CASE!
 
         ALLOCATE (orthonorm(0:mpol,-ntor:ntor), stat=istat)
-        IF (istat .ne. 0) STOP 'Allocate ORTHONORM failed in FIXARRAY!'
+        IF (istat .ne. 0) STOP 'Allocate ORTHONORM failed in INIT_FOURIER!'
+
         orthonorm = nfactor                                       ! SQRT(2)
         orthonorm(0,0) = 1
+
         IF (ntheta .eq. (mpol+1)) orthonorm(mpol,:) = 1
 
         CALL Test_Fourier
@@ -936,7 +966,7 @@
 
       DEALLOCATE(cosmu, cosmum, cosmui, sinmu, sinmum, sinmui,          &
                  cosnv, cosnvn, sinnv, sinnvn, orthonorm, stat=istat) 
-      IF (istat .ne. 0) STOP 'Allocation error in dealloc_fixarray'
+      IF (istat .ne. 0) STOP 'Allocation error in DEALLOC_FOURIER'
          
       END SUBROUTINE DEALLOC_FOURIER
 
@@ -1015,7 +1045,6 @@
             PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
             STOP
           END IF
-
 
 !TEST U and V DERIVATIVES (sin(mu+nv))
           testi = 0
@@ -1117,7 +1146,7 @@
        CALL second0(toff)
 #if defined(SKS)
        test_fourier_time=toff-ton
-#endif       
+#endif
        IF (iam .eq. 0) THEN
           PRINT 100,'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
           WRITE (33, 100) 'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'

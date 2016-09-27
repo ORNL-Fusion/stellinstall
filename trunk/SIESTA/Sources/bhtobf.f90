@@ -10,13 +10,13 @@
 !              bsups,u_f at s=0 (js=1), as computed in UPDATE_BFIELD
 !
        USE stel_kinds
-       USE quantities, ONLY: ns, ntheta, nzeta, jacobf_p, jacobh_p
+       USE quantities, ONLY: ns, ntheta, nzeta, jacobf, jacobh
 
        USE descriptor_mod,ONLY: iam, nprocs
        USE nscalingtools, ONLY: startglobrow, endglobrow
        USE timer_mod, ONLY: bhtobf_time
+       USE mpi_inc
        IMPLICIT NONE
-       INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -48,8 +48,8 @@
 
        IF (nsmax .EQ. ns) bsupsijsf(:,:,ns) = 0
 
-       bsupuijcf = bsupuijcf/jacobf_p(:,:,nsmin:nsmax)
-       bsupuijch = bsupuijch/jacobh_p(:,:,nsmin:nsmax)
+       bsupuijcf = bsupuijcf/jacobf(:,:,nsmin:nsmax)
+       bsupuijch = bsupuijch/jacobh(:,:,nsmin:nsmax)
 
        CALL second0(skstoff)
        bhtobf_time=bhtobf_time+(skstoff-skston)

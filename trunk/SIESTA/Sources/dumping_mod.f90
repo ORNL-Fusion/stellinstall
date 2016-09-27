@@ -139,10 +139,10 @@
         USE read_wout_mod, ns_w => ns, ntor_w => ntor, mpol_w => mpol,  &
           ntmax_w => ntmax, lthreed_w => lthreed, lasym_w => lasym,     &
           nfp_w => nfp
-        IMPLICIT NONE     
 #if defined(MPI_OPT)
-        INCLUDE 'mpif.h'
+        USE mpi_inc
 #endif
+        IMPLICIT NONE     
 !-----------------------------------------------
         CHARACTER(LEN=*), INTENT(IN) :: wout_file
         INTEGER, INTENT(IN):: iter
@@ -196,12 +196,12 @@
         ENDIF
 #endif
         IF (iam .EQ. 0) THEN
-        WRITE(*,*)
-        WRITE(*,*) '    >> Starting dumping of graphic data..'
-        WRITE(*,*) '         Creating plot box between:'
-        WRITE(*,*) '         RMAX = ', rmaxx, 'RMIN = ', rminx
-        WRITE(*,*) '         ZMAX = ', zmaxx, 'ZMIN = ', zminx
-        WRITE(*,*) '         Toroidal sections computed:', nphis                
+           WRITE(*,*)
+           WRITE(*,'(4x,a)') '>> Starting dumping of graphic data...'
+           WRITE(*,'(10x,a)') 'Creating plot box between:'
+           WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'RMAX = ', rmaxx, 'RMIN = ', rminx
+           WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'ZMAX = ', zmaxx, 'ZMIN = ', zminx
+           WRITE(*,'(10x,a,i4)') 'Toroidal sections computed: ', nphis                
         END IF
 
         nmpi=0
@@ -411,10 +411,10 @@
 
 
         SUBROUTINE write_pressure_data(nunit, ndum1, maxprocs)
-        IMPLICIT NONE
 #if defined(MPI_OPT)
-        INCLUDE 'mpif.h'
+        USE mpi_inc
 #endif
+        IMPLICIT NONE
         INTEGER, INTENT(IN) :: nunit, ndum1, maxprocs
         INTEGER             :: ndum, to=0, from, tag, ik, lk, mpi_err
 
@@ -447,10 +447,10 @@
 
 
         SUBROUTINE write_bfield_data(nunit, ndum1, maxprocs)
-        IMPLICIT NONE
 #if defined(MPI_OPT)
-        INCLUDE 'mpif.h'
+        USE mpi_inc
 #endif
+        IMPLICIT NONE
         INTEGER, INTENT(IN) :: nunit, ndum1, maxprocs
         INTEGER             :: ndum, to=0, from, tag, ik, lk, mpi_err
 
@@ -669,14 +669,14 @@
         USE stel_kinds
         USE fourier, ONLY: toijsp, tomnsp
         USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,      &
-                                   bdotjijch
+                                   bdotjijh
         USE perturbation, ONLY: lresistive
-        USE quantities, ONLY: pijch, jacobh,                           &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
+        USE quantities, ONLY: pijh, jacobh,                            &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
           b_factor, p_factor, jvsupsmncf,                              &
-          bsupsijsh0, bsupuijch0, bsupvijch0,                          &
+          bsupsijh0, bsupuijh0, bsupvijh0,                             &
           ksupsmnsf,  ksupumncf, ksupvmncf,                            &
-          bsubsijsf,  bsubuijcf, bsubvijcf,                            &
-          ksubsijsf,  ksubuijcf, ksubvijcf
+          bsubsijf,  bsubuijf, bsubvijf,                               &
+          ksubsijf,  ksubuijf, ksubvijf
         IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -684,7 +684,7 @@
         INTEGER :: istat, nblock
         LOGICAL :: lresist
         REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                     &
-                   bsubsijsh , bsubuijch , bsubvijch
+                   bsubsijh , bsubuijh , bsubvijh
 
 !-----------------------------------------------
 !
@@ -709,38 +709,38 @@
         lresistive = lresist
 
 !       SCALE FIELDS TO PHYSICAL UNITS
-        pijch = pijch/p_factor                                            ! Remove normalization (restore at end)
+        pijh = pijh/p_factor                                              ! Remove normalization (restore at end)
 
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)                 ! ... and then recompute harmonics
         IF (istat .NE. 0) STOP 'Allocation failed in DUMP_PRESSURE'       ! which are stored in PMNCH       
-        CALL tomnsp(pijch, pmnch, 0, 1); pmnch(:,:,1) = zero
+        CALL tomnsp(pijh, pmnch, 0, 1); pmnch(:,:,1) = zero
 
         IF (l_tracing .OR. l_silo_output) THEN
 
-           bsupsijsh0 = bsupsijsh0/b_factor
-           bsupuijch0 = bsupuijch0/b_factor
-           bsupvijch0 = bsupvijch0/b_factor
+           bsupsijh0 = bsupsijh0/b_factor
+           bsupuijh0 = bsupuijh0/b_factor
+           bsupvijh0 = bsupvijh0/b_factor
            ALLOCATE(bsupsmnsh(0:mpol,-ntor:ntor,ns),                   &
             bsupumnch(0:mpol,-ntor:ntor,ns),                           &
             bsupvmnch(0:mpol,-ntor:ntor,ns), stat=istat)
           IF (istat .NE. 0) STOP 'Allocation failed in PREPARE_QUANTITIES'
-          CALL tomnsp(bsupsijsh0, bsupsmnsh, 1, 1); bsupsmnsh(:,:,1) = zero    ! compute harmonics
-          CALL tomnsp(bsupuijch0, bsupumnch, 0, 1); bsupumnch(:,:,1) = zero
-          CALL tomnsp(bsupvijch0, bsupvmnch, 0, 1); bsupvmnch(:,:,1) = zero
+          CALL tomnsp(bsupsijh0, bsupsmnsh, 1, 1); bsupsmnsh(:,:,1) = zero    ! compute harmonics
+          CALL tomnsp(bsupuijh0, bsupumnch, 0, 1); bsupumnch(:,:,1) = zero
+          CALL tomnsp(bsupvijh0, bsupvmnch, 0, 1); bsupvmnch(:,:,1) = zero
 
         END IF
         
 #if defined(SILO_AVAIL)
         IF (l_silo_output) THEN
-           ALLOCATE (bsubsijsh(ntheta,nzeta,ns),                       &
-                     bsubuijch(ntheta,nzeta,ns),                       &
-                     bsubvijch(ntheta,nzeta,ns), stat=istat)
+           ALLOCATE (bsubsijh(ntheta,nzeta,ns),                       &
+                     bsubuijh(ntheta,nzeta,ns),                        &
+                     bsubvijh(ntheta,nzeta,ns), stat=istat)
            IF (istat .NE. 0) STOP 'Allocation failed in DUMPING PREPARE_QUANTITIES' 
-           CALL tolowerh(bsupsijsh0, bsupuijch0, bsupvijch0,           &
-                         bsubsijsh , bsubuijch , bsubvijch)
-           ksupsmnsf = ksupsmnsf/b_factor; ksubsijsf = ksubsijsf/b_factor
-           ksupumncf = ksupumncf/b_factor; ksubuijcf = ksubuijcf/b_factor
-           ksupvmncf = ksupvmncf/b_factor; ksubvijcf = ksubvijcf/b_factor
+           CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,           &
+                         bsubsijh , bsubuijh , bsubvijh)
+           ksupsmnsf = ksupsmnsf/b_factor; ksubsijf = ksubsijf/b_factor
+           ksupumncf = ksupumncf/b_factor; ksubuijf = ksubuijf/b_factor
+           ksupvmncf = ksupvmncf/b_factor; ksubvijf = ksubvijf/b_factor
 
            ALLOCATE(bsubsmnsh(0:mpol,-ntor:ntor,ns),                   &
                     bsubumnch(0:mpol,-ntor:ntor,ns),                   &
@@ -749,14 +749,14 @@
                     ksubumncf(0:mpol,-ntor:ntor,ns),                   &
                     ksubvmncf(0:mpol,-ntor:ntor,ns), stat=istat)
            IF (istat .ne. 0) STOP 'Allocation failed in DUMPING PREPARE_QUANTITIES' 
-           CALL tomnsp(bsubsijsh, bsubsmnsh, 1, 0)                        ! compute harmonics
-           CALL tomnsp(bsubuijch, bsubumnch, 0, 0)                      
-           CALL tomnsp(bsubvijch, bsubvmnch, 0, 0)                      
-           CALL tomnsp(ksubsijsf, ksubsmnsf, 1, 0)                        ! compute harmonics
-           CALL tomnsp(ksubuijcf, ksubumncf, 0, 0)                      
-           CALL tomnsp(ksubvijcf, ksubvmncf, 0, 0)                      
+           CALL tomnsp(bsubsijh, bsubsmnsh, 1, 0)                        ! compute harmonics
+           CALL tomnsp(bsubuijh, bsubumnch, 0, 0)                      
+           CALL tomnsp(bsubvijh, bsubvmnch, 0, 0)                      
+           CALL tomnsp(ksubsijf, ksubsmnsf, 1, 0)                        ! compute harmonics
+           CALL tomnsp(ksubuijf, ksubumncf, 0, 0)                      
+           CALL tomnsp(ksubvijf, ksubvmncf, 0, 0)                      
 
-           DEALLOCATE (bsubsijsh, bsubuijch, bsubvijch)
+           DEALLOCATE (bsubsijh, bsubuijh, bsubvijh)
 
            IF (MAXVAL(jvsupsmncf) == zero) THEN                            ! Decide whether to dump displacement vector or not
               l_dodisplacement = .FALSE.
@@ -768,8 +768,8 @@
            lcurr_init=.TRUE.
            CALL divb
            CALL divj
-           CALL bdotj(bdotjijch)
-           DEALLOCATE(bdotjijch)
+           CALL bdotj(bdotjijh)
+           DEALLOCATE(bdotjijh)
         END IF
 #endif
         END SUBROUTINE prepare_quantities
@@ -1235,10 +1235,10 @@
 
 
         SUBROUTINE get_tmp_SILO(index0, nchunk_in, nlast_in)
-        IMPLICIT NONE
 #if defined(MPI_OPT)
-        INCLUDE 'mpif.h' 
+        USE mpi_inc
 #endif
+        IMPLICIT NONE
 !
 !       STORES pack_silo(:,index) chunks into tmp_silo on processor 0
 !

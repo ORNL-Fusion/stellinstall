@@ -227,11 +227,11 @@
          WRITE (I, *)               'OUTPUT_TIMINGS :', OUTPUT_TIMINGS
 #endif
          WRITE (I, *)
-         WRITE (I, '(a,1p,e12.4)')' TIME DIVB  : ',time_divb
-         WRITE (I, '(a,1p,e12.4)')' TIME DIVJ  : ',time_divj
-         WRITE (I, '(a,1p,e12.4)')' TIME BGRADP: ',time_bgradp
-         WRITE (I, '(a,1p,e12.4)')' TIME BDOTJ : ',time_bdotj
-         WRITE (I, *)
+         WRITE (I, '(a,3x,1p,e10.3)')' TIME DIVB  : ',time_divb
+         WRITE (I, '(a,3x,1p,e10.3)')' TIME DIVJ  : ',time_divj
+         WRITE (I, '(a,3x,1p,e10.3)')' TIME BGRADP: ',time_bgradp
+         WRITE (I, '(a,3x,1p,e10.3)')' TIME BDOTJ : ',time_bdotj
+		 WRITE (I, *)
          WRITE(I, *) 'M (block size)         :',mblk_size
          WRITE(I, *) 'N (block rows)         :',nsin
          WRITE(I, *) 'P (processors)         :',nprocs

@@ -4,28 +4,31 @@
       USE stel_constants
 
       INTEGER, PARAMETER :: ngmres_steps = 100      !<max number of gmres steps (10-100)
-      INTEGER, PARAMETER :: ngmres_type = 2         !<=1, no "peek" improvement, =2 "peek" performance improvement
       INTEGER, PARAMETER :: PREDIAG=1               !<diagonal preconditioning
       INTEGER, PARAMETER :: PREBLOCK=2              !<block preconditioning
       INTEGER            :: neqs !<No. elements in xc array
       INTEGER            :: nprecon
       INTEGER            :: nprecon_type
       INTEGER            :: niter
-
+!TEMPORARY: PUT IN NAMELIST FOR RAPID TESTING
+      INTEGER            :: ngmres_type             !=1, no "peek" improvement (lin), =2 "peek" (nl) performance improvement
+      INTEGER            :: iortho                  !controls orthogonalization in GMRES
+      INTEGER            :: hessPass_Test=-1        !for dumping block and data files (testing)
+      
       REAL(rprec),PARAMETER :: fsq_res = 1.E-16_dp  !<threshold force for turning off resistive perturbations
       REAL(rprec), DIMENSION(:), ALLOCATABLE, TARGET :: gc  !<1D Array of Fourier mode MHD force components
       REAL(rprec), DIMENSION(:), ALLOCATABLE         :: xc  !<1D array of Fourier mode displacement components
       REAL(rprec), DIMENSION(:), ALLOCATABLE         :: xc0, gc0
+      REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE   :: col_scale  !<column scaling factor
 
-      REAL(rprec)        :: fsq_total, fsq_total1, fsq_lin, etak_tol
+      REAL(rprec)        :: fsq_total, fsq_total1, fsq_gmres, fsq_lin, etak_tol
       REAL(rprec)        :: wtotal, wtotal0
       REAL(rprec)        :: delta_t
       REAL(rprec)        :: fsqvs, fsqvu, fsqvv
       REAL(rprec)        :: xPosDef
-      REAL(rprec)        :: ste(4)                  !<Spectral Truncation RMS Error    
+      REAL(rprec)        :: ste(4)                  !<Spectral Truncation RMS Error
       REAL(rprec)        :: bs0(6), bu0(6)
       REAL(rprec)        :: bsbu_ratio, jsju_ratio
-      REAL(rprec)        :: scale_s, scale_u        !<Scale forces to account for dependence on h_s
 
 !Logicals for evolving origin and edge
 !      LOGICAL, PARAMETER :: l_push_edge=.TRUE.     !<=TRUE, u,v components of forces IS solved at s=1
@@ -41,5 +44,6 @@
       LOGICAL            :: l_init_state
       LOGICAL            :: l_update_state=.FALSE.  !<=TRUE before funct_island called to get ste array
       LOGICAL            :: l_par_state             !<=TRUE if parallel allocation state (in init_state_par)
+      LOGICAL            :: lcolscale               !Apply col-scaling to Hessian
 
       END MODULE shared_data

@@ -1,6 +1,6 @@
       SUBROUTINE add_resistive_E
       USE stel_kinds
-      USE evolution, ONLY: nprecon, fsq_total, xc, l_update_state
+      USE evolution, ONLY: nprecon, fsq_total, xc
       USE perturbation, ONLY: ftol, eta_factor
       USE descriptor_mod, ONLY: iam
       USE siesta_bfield      

@@ -25,8 +25,8 @@
 ///  <a href="http://stackoverflow.com/questions/2180079/how-can-i-copy-a-file-on-unix-using-c/2180157#2180157">sendfile(2)</a>
 ///  function.
 ///
-///  @param src[in] Path to the source file to copy.
-///  @param src[in] Path to the destination file to copy.
+///  @param src[in]      Path to the source file to copy.
+///  @param dest[in]     Path to the destination file to copy.
 ///  @param unused_1[in] Unused argument.
 ///  @param unused_2[in] Unused argument.
 ///  @return Error status.
@@ -61,8 +61,8 @@ size_t copyfile(char *src, char *dest, int unused_1, int unused_2) {
 ///  Copy file returns the error status. Check errno to see the error that
 ///  occurred.
 ///
-///  @param src[in] Path to the source file to copy.
-///  @param src[in] Path to the destination file to copy.
+///  @param src[in]  Path to the source file to copy.
+///  @param dest[in] Path to the destination file to copy.
 ///  @return Error code.
 //------------------------------------------------------------------------------
 int copy_file_c(char *src, char *dest) {

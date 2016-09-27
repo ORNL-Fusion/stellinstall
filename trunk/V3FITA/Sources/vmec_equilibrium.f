@@ -1759,23 +1759,25 @@
 !  Update the boundary from the free boundary solution.
       IF (lfreeb) THEN
          DO i = 1, mnmax
-            rbc(INT(xn(i)),INT(xm(i))) = rmnc(i,ns_array(this%ns_index))
-            zbs(INT(xn(i)),INT(xm(i))) = zmns(i,ns_array(this%ns_index))
+            rbc(INT(xn(i)/nfp),INT(xm(i))) =                                   &
+     &         rmnc(i,ns_array(this%ns_index))
+            zbs(INT(xn(i)/nfp),INT(xm(i))) =                                   &
+     &         zmns(i,ns_array(this%ns_index))
             IF (lasym) THEN
-               rbs(INT(xn(i)),INT(xm(i))) =                                    &
+               rbs(INT(xn(i)/nfp),INT(xm(i))) =                                &
      &            rmns(i,ns_array(this%ns_index))
-               zbc(INT(xn(i)),INT(xm(i))) =                                    &
+               zbc(INT(xn(i)/nfp),INT(xm(i))) =                                &
      &            zmnc(i,ns_array(this%ns_index))
             END IF
          END DO
       END IF
 
 !  Update the magnetic axis.
-      raxis_cc(0:ntor) = rmnc(1,1:ntor + 1)
-      zaxis_cs(0:ntor) = zmns(1,1:ntor + 1)
+      raxis_cc(0:ntor) = rmnc(1:ntor + 1,1)
+      zaxis_cs(0:ntor) = zmns(1:ntor + 1,1)
       IF (lasym) THEN
-         raxis_cs(0:ntor) = rmns(1,1:ntor + 1)
-         zaxis_cc(0:ntor) = zmnc(1,1:ntor + 1)
+         raxis_cs(0:ntor) = rmns(1:ntor + 1,1)
+         zaxis_cc(0:ntor) = zmnc(1:ntor + 1,1)
       END IF
 
       CALL profiler_set_stop_time('vmec_set_namelist', start_time)

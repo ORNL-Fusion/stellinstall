@@ -14,6 +14,7 @@
                                 in_hess_nfunct, out_hess_nfunct
       USE nscalingtools, ONLY: SKSDBG, TOFU, PARSOLVER, PARFUNCTISL,    &
                  startglobrow, endglobrow, leftproc, rightproc, MPI_ERR
+
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -94,9 +95,9 @@
 #endif         
          IF (l_output_alliter) CALL write_output (wout_file, niter) 
 
-         l_iterate = (fsq_ratio.LE.0.5_dp .AND. fsq_total.GT.fsq_block)
+         l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
 
-         IF (ladd_pert .AND. fsq_total.lt.100*fsq_block .AND. fsq_total.gt.ftol) THEN
+         IF (ladd_pert .AND. fsq_total1.lt.100*fsq_block .AND. fsq_total1.gt.ftol) THEN
             l_init_state=.TRUE.
             CALL second0(t1)
             CALL add_perturb(xc, getwmhd)
@@ -197,6 +198,10 @@
       SUBROUTINE init_evolution
       USE hessian, ONLY: levmarq_param0, levmarq_param, l_Compute_Hessian
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
+#if defined(MRC)
+                            fsubsmnsf, fsubumncf, fsubvmncf,            &
+                            jvsupsmnsf,jvsupumncf,jvsupvmncf,           &
+#endif
                             jvsupsmncf,jvsupumnsf,jvsupvmnsf
       IMPLICIT NONE
 !-----------------------------------------------
@@ -218,10 +223,6 @@
          l_push_v = .FALSE.   !.TRUE.
       END IF
 
-      scale_s = hs
-!      scale_s = 1        !Default - no scaling
-      scale_u = SQRT(scale_s)
-
       ste = 0
       l_EPAR = .FALSE.
 
@@ -232,7 +233,6 @@
       niter    = 0
       nprecon  = 0
       wtotal0  = -1
-      etak_tol = 1.E-01_dp            !initial Newton tolerance parameter
       delta_t = 1
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
@@ -245,14 +245,45 @@
       n1 = ns*mnmax
       neqs = 3*n1
 
-      ALLOCATE(xc(neqs), stat=istat)
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         neqs = 2*neqs
+         ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,6,ns), stat=istat)
+      ELSE
+         ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,3,ns), stat=istat)
+      END IF
+#else
+      ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,3,ns), stat=istat)
+#endif
       IF (istat .ne. 0) STOP 'Allocate xc failed!'
-      xc = 0
-      CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf)
 
+	  col_scale = 1
+
+      xc = 0
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL init_ptrs_asym(xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf,           &
+                                 jvsupsmnsf, jvsupumncf, jvsupvmncf)
+      ELSE
+         CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf)
+      END IF
+#else
+      CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf)
+#endif
       ALLOCATE(gc(neqs), stat=istat)
       IF (istat .ne. 0) STOP 'Allocate gc failed!'
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL init_ptrs_asym (gc, fsubsmncf, fsubumnsf, fsubvmnsf,             &
+                                  fsubsmnsf, fsubumncf, fsubvmncf)
+      ELSE
+         CALL init_ptrs (gc, fsubsmncf, fsubumnsf, fsubvmnsf)
+      END IF
+#else
       CALL init_ptrs (gc, fsubsmncf, fsubumnsf, fsubvmnsf)
+#endif
 
       l_Compute_Hessian = .FALSE.
 
@@ -277,6 +308,34 @@
       ptr3 => xtarget(:,:,3,:)
 
       END SUBROUTINE init_ptrs
+
+#if defined(MRC)
+!>    \brief Initializes pointers for xc (dependent variables) and gc (force) arrays
+
+      SUBROUTINE init_ptrs_asym (xtarget, ptr1, ptr2, ptr3, ptr4, ptr5, ptr6)
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(rprec), TARGET, INTENT(inout)     :: xtarget(0:mpol,-ntor:ntor,6,ns) !<input 3D, 6 component array
+      REAL(rprec), POINTER, DIMENSION(:,:,:) :: ptr1  !<first (s) array subsection
+      REAL(rprec), POINTER, DIMENSION(:,:,:) :: ptr2  !<second (u) array subsection
+      REAL(rprec), POINTER, DIMENSION(:,:,:) :: ptr3  !<third (v) array subsection
+      REAL(rprec), POINTER, DIMENSION(:,:,:) :: ptr4  !<first (s) array subsection
+      REAL(rprec), POINTER, DIMENSION(:,:,:) :: ptr5  !<second (u) array subsection
+      REAL(rprec), POINTER, DIMENSION(:,:,:) :: ptr6  !<third (v) array subsection
+!-----------------------------------------------
+      xtarget = 0
+
+      ptr1 => xtarget(:,:,1,:)
+      ptr2 => xtarget(:,:,2,:)
+      ptr3 => xtarget(:,:,3,:)
+      ptr4 => xtarget(:,:,4,:)
+      ptr5 => xtarget(:,:,5,:)
+      ptr6 => xtarget(:,:,6,:)
+
+      END SUBROUTINE init_ptrs_asym
+#endif
 
 !>   \brief Evolves one step toward MHD equilibrium
       SUBROUTINE evolve
@@ -303,7 +362,7 @@
       REAL(dp)    :: skston, skstoff
       INTEGER     :: iprint, m1, i
       INTEGER     :: imaxloc(3), ilbound(3)
-      REAL(rprec) :: v2tot, f1, r0, fmax, decay_exp
+      REAL(rprec) :: v2tot, f1, fmax, decay_exp
       REAL(rprec) :: vmaxs, vmaxu, vmaxv, t1, t2
       LOGICAL     :: lprint, ldiagonal, lblock
       CHARACTER(18) :: str_resistive
@@ -326,18 +385,24 @@
 !
       IF (nprecon .GT. 1) THEN
 !        PSEUDO-TRANSIENT CONTINUATION: TURN OFF FOR CONSTANT levmarq_param, muPar option
-         f1 = fsq_total*1.E10_dp
+         f1 = fsq_total1*1.E10_dp
          IF (ngmres_type .eq. 1) THEN
             decay_exp = 0.5_dp
          ELSE IF (ngmres_type .eq. 2) THEN
             decay_exp = 0.75_dp  
          END IF
-         f1 = f1**decay_exp
-         levmarq_param = (levmarq_param0-levm_ped)*MIN(one, f1) + levm_ped
-         muPar = (muPar0-mu_ped)*MIN(one,f1) + mu_ped
+         f1 = MIN(one, f1**decay_exp)
+         levmarq_param = (levmarq_param0-levm_ped)*f1 + levm_ped
+         muPar = (muPar0-mu_ped)*f1 + mu_ped
+         fmax = SQRT(ftol)
+!ORIGINAL etak_tol = MIN(0.1_dp, 1.E8_dp*fsq_total), with GMRES residue normed to |b| ctrl(3,5)=0
+         etak_tol = fmax + f1*(.1_dp*SQRT(fsq_total)-fmax)  !use with ctrl(3) = ctrl(5) = 1 in GMRES
      
 !         IF (levmarq_param0 .EQ. zero) levmarq_param=0            !!Improves convergence a bit, levm_ped=10^(-8)
          IF (muPar0 .EQ. zero) muPar=0
+
+         f1 = MIN(one,fsq_gmres/fsq_total1)
+         muPar = muPar*MAX(f1, one/8)                 !GMRES includes mupar term
 
          fmax = fsq_total1*1.E12_dp               !SPH: raise this if convergence problem occurs
          xPosDef = MAX(1.E-3_dp, fmax/(1+fmax))
@@ -346,6 +411,7 @@
          xPosDef = 1
          levmarq_param = levmarq_param0
          muPar = muPar0
+         etak_tol = 0.1_dp*SQRT(fsq_total)               !initial Newton tolerance parameter (=.1 for ctrl(3,5) = 0)
       END IF
 
       IF (.NOT.lposDef) xPosDef=0
@@ -355,20 +421,19 @@
 !     ARE NEEDED) COMPUTE FULL (OR DIAGONAL APPROXIMATION) HESSIAN
 !
       IF (niter .GT. 1) THEN
-         l_linearize = .TRUE.
          l_getfsq = .FALSE.
          l_ApplyPrecon = .FALSE.
          l_getwmhd = .FALSE.
-         ldiagonal=(nprecon_type.eq.PREDIAG .AND. niter.eq.2)
+         ldiagonal=(nprecon_type.EQ.PREDIAG .AND. niter.EQ.2)
          lblock   =(nprecon_type .EQ. PREBLOCK)
 
          IF (ldiagonal .OR. lblock) THEN
 
             CALL second0(skston)
             IF (PARFUNCTISL) THEN
-               CALL Compute_Hessian_Blocks (xc, gc, funct_island_par, l_Hess_sym, ldiagonal)
+               CALL Compute_Hessian_Blocks (funct_island_par, l_Hess_sym, ldiagonal)
             ELSE
-               CALL Compute_Hessian_Blocks (xc, gc, funct_island, l_Hess_sym, ldiagonal)
+               CALL Compute_Hessian_Blocks (funct_island, l_Hess_sym, ldiagonal)
             END IF
             CALL second0(skstoff)
             IF (ldiagonal) comp_diag_elements_time=comp_diag_elements_time+(skstoff-skston)
@@ -383,7 +448,6 @@
 
       l_init_state = .TRUE.   
       l_ApplyPrecon = .FALSE.
-      l_linearize = .FALSE.
       l_getfsq = .TRUE.
       fsq_lin = -1
 
@@ -397,41 +461,27 @@
 !
       IF (niter .EQ. 1) THEN
          l_init_state=.TRUE.
+         CALL second0(skston)
          IF (PARFUNCTISL) THEN
             l_getwmhd=.TRUE.
-            CALL second0(skston)
             CALL funct_island_par
-            CALL second0(skstoff)
-            evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
             l_getwmhd=.FALSE.
          ELSE
-            CALL second0(skston)
             CALL funct_island
-            CALL second0(skstoff)
-            evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
          END IF
-      ELSE IF (nprecon .EQ. 1) THEN
-         IF (l_Gmres) THEN
-           CALL second0(skston)
-           CALL gmres_fun
-           CALL second0(skstoff)
-           gmres_time=gmres_time+(skstoff-skston)
-         END IF
-      ELSE 
-         etak_tol = MIN(0.1_dp, 1.E8_dp*fsq_total)
-         IF (fsq_total <= 0) etak_tol = 0.1_dp
-         IF (l_Gmres) THEN
-           CALL second0(skston)
-           CALL gmres_fun
-           CALL second0(skstoff)
-           gmres_time=gmres_time+(skstoff-skston)
-         END IF
+         CALL second0(skstoff)
+         evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
+      ELSE IF (l_Gmres) THEN
+         CALL second0(skston)
+         CALL gmres_fun
+         CALL second0(skstoff)
+         gmres_time=gmres_time+(skstoff-skston)
       END IF
 
 !SPH042808  TRY TO IMPROVE FSQ_TOTAL: BEFORE RESISTIVE E-field added!
       lprint = (MOD(niter, nprint_step).EQ.0 .OR. niter.EQ.1)
       lblock = (nprecon_type.EQ.PREBLOCK .AND. niter.GT.1)
-      IF (lblock) THEN 
+      IF (lblock .OR. .NOT.l_Gmres) THEN 
          CALL second0(skston)
          CALL Conjugate_Grad(ftol)
          CALL second0(skstoff)
@@ -592,11 +642,6 @@
       SUBROUTINE Conjugate_Grad (ftol)
       USE stel_kinds
       USE hessian, ONLY: mblk_size, ns
-#if defined(SKS)      
-      USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,         &
-                            endglobrow, rcounts, disp
-      USE mpi_inc
-#endif
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -605,27 +650,15 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER     :: icount, nloc, myrowstart, myrowend
+      INTEGER     :: icount
       REAL(rprec) :: b1, fsq_start, fsq_min0, fsq_save,                 &
                      wmhd_min, wmhd_start
-      REAL(rprec), ALLOCATABLE :: xcsave(:), gc1(:)
       LOGICAL     :: lpar=.FALSE.
 !-----------------------------------------------
       l_getfsq = .TRUE.
       l_linearize = .FALSE.
       l_ApplyPrecon = .TRUE.
       l_init_state = .TRUE.
-
-#if defined(SKS)      
-      lpar=PARFUNCTISL
-      IF (lpar) THEN
-         l_getwmhd=.TRUE.
-         nloc=(endglobrow-startglobrow+1)*mblk_size
-         myrowstart=(startglobrow-1)*mblk_size+1
-         myrowend=myrowstart+nloc-1
-         ALLOCATE(gc1(neqs))
-      END IF
-#endif
 
 !
 !     Linearize perturbations around B0 and p0
@@ -635,19 +668,26 @@
 !     NON-LINEAR forces 
 !     J = J0+dJ,  B = B0+dB, p = p0+dp
 !
-      IF (nprecon .EQ. 0) THEN
-         CALL funct_island
+      IF (nprecon.EQ.0 .AND. l_Gmres) THEN
+#if defined(SKS)
+         IF (PARFUNCTISL) THEN
+            CALL funct_island_par
+         ELSE
+#endif
+            CALL funct_island
+#if defined(SKS)
+         END IF
+#endif
          RETURN
       END IF
 
 !TESTING      lpar=.FALSE.
 
-      ALLOCATE(xcdot(neqs), xc0(neqs), xcsave(neqs), stat=icount) 
+      ALLOCATE(xcdot(neqs), xc0(neqs), stat=icount)
       IF (icount .NE. 0) STOP 'ALLOCATION FAILED IN CONJ_GRAD'
 
-      xcsave = xc
-      xcdot = 0
       xc = 0
+      xcdot = 0
       xc0 = 0
 
       delt_cg = 0.5_dp
@@ -660,11 +700,8 @@
 !     LOOP OVER delt_cg TO FIND MINIMUM F(xc)
 !
 #if defined(SKS)
-         IF (lpar) THEN
+         IF (PARFUNCTISL) THEN
             CALL funct_island_par
-            gc1 = gc
-            CALL MPI_Allgatherv(gc1(myrowstart:myrowend),nloc,MPI_REAL8,   &
-                     gc,rcounts,disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
          ELSE
 #endif
             CALL funct_island
@@ -697,6 +734,8 @@
             IF (fsq_total1.GT.100*fsq_min0 .or. delt_cg.LT.0.02_dp) EXIT
             xc = xc0
             xcdot = 0
+         ELSE IF (fsq_total1 .LE. ftol) THEN
+            EXIT
          END IF
 
          IF (l_linearize) STOP 'LINEARIZATION TURNED ON!'
@@ -717,7 +756,7 @@
 
 !      IF (fsq_min0.lt.fsq_start .or. wmhd_min.lt.wmhd_start) THEN
       IF (.NOT.l_Gmres) l_PrintOriginForces = .TRUE.
-      l_conjmin = (fsq_min0 .lt. fsq_start)
+      l_conjmin = (fsq_min0 .lt. 0.95_dp*fsq_start)
 
       IF (l_conjmin) THEN
          xc=xc0
@@ -727,13 +766,14 @@
 
       l_init_state=.TRUE.
       l_update_state=.TRUE.
-      IF (lpar) THEN
+      IF (PARFUNCTISL) THEN
          CALL funct_island_par
-         DEALLOCATE(gc1)
       ELSE
          CALL funct_island
       END IF
+
       l_update_state=.FALSE.
+      l_PrintOriginForces = .FALSE.
 
       IF (l_conjmin) THEN
          IF (iam .EQ. 0) THEN
@@ -742,13 +782,17 @@
             WRITE (6, 100) icount, fsq_start, fsq_min0
             WRITE (33,100) icount, fsq_start, fsq_min0
          END IF
-      ELSE
-         xc = xcsave
-      END IF
 
-      l_PrintOriginForces = .FALSE.
+         xc = 0
+         l_init_state=.TRUE.
+         IF (PARFUNCTISL) THEN
+            CALL funct_island_par
+         ELSE
+            CALL funct_island
+         END IF
+       END IF
 
-      DEALLOCATE (xcdot, xc0, xcsave)
+      DEALLOCATE (xcdot, xc0)
  100  FORMAT(' ITER_CG: ', i3,' FSQ (START CG): ',1p,e12.3,' FSQ (END CG): ', 1pe12.3)
 
       END SUBROUTINE Conjugate_Grad

@@ -9,6 +9,7 @@
       USE shared_functions, ONLY: funct_island, funct_island_par
       USE siesta_state, ONLY: update_state, update_state_par
       IMPLICIT NONE
+      REAL(dp) :: gnorm, xnorm
 
       CONTAINS
 
@@ -23,6 +24,7 @@
       USE timer_mod
       USE descriptor_mod, ONLY: iam
       USE mpi_inc
+      USE perturbation, ONLY: lresistive
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -32,7 +34,7 @@
       INTEGER :: j, n, m, imin(1)
       INTEGER :: icntl(9), info(3), iflag
       INTEGER :: nsteps, nloc, myrowstart, myrowend
-      REAL(rprec) :: cntl(5), facmin, res, resid, wmhd, fmhd, gnorm,   &
+      REAL(rprec) :: cntl(5), facmin, res, resid, wmhd, fmhd,      &
                      skston, skstoff
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: work
 !-----------------------------------------------
@@ -48,12 +50,16 @@
 !     STORE INITIAL POINT (XC0) AND INITIAL UNPRECONDITIONED RESIDUE (GC0 AT INIT PT)
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
+
       ALLOCATE(xc0(neqs), gc0(neqs), stat=j)
       IF (j .NE. 0) STOP 'Allocation error in gmres_fun'
 
       l_getfsq =.TRUE.
+      l_init_state=.TRUE.
 
       CALL second0(skston)
+      fmhd=fsq_total1
+
       IF (PARFUNCTISL) THEN
 #if defined(SKS)
          l_getwmhd=.TRUE.
@@ -64,7 +70,6 @@
          myrowend=myrowstart+nloc-1
          CALL MPI_ALLGATHERV(gc(myrowstart:myrowend),nloc,MPI_REAL8,gc0,   &
                              rcounts,disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
-         l_init_state=.TRUE.
 #endif
       ELSE
          CALL funct_island
@@ -74,6 +79,8 @@
       CALL second0(skstoff)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
 #endif
+      IF (lresistive .AND. iam.EQ.0) PRINT '(a,1p2e12.3)',     &
+         ' JUMP IN FSQ DUE TO RESISTIVE DIFFUSION: ', fmhd, fsq_total1
 
       wmhd = wtotal
       fmhd = fsq_total
@@ -83,6 +90,8 @@
       n   = neqs
       l_linearize = .TRUE.
       l_getfsq = .FALSE.         !So call to funct in matvec does not include gc0
+      gnorm = SQRT(SUM(gc0*gc0))
+      xnorm = 1
 
 !******************************************************
 !*  Initialize control parameters
@@ -111,8 +120,8 @@
 !      icntl(4) = leftPrec
       icntl(4) = rightPrec 
 !      icntl(4) = dblePrec
-!! ICGS orthogonalization
-      icntl(5) = 3
+!!ICGS orthogonalization (3) is recommended for parallel environment
+      icntl(5) = iortho
 ! Initial guess
       icntl(6) = 0
 !      icntl(6) = 1
@@ -132,12 +141,7 @@
       m = 200
 
 !     RHS, b = -gc
-      gnorm = SQRT(SUM(gc0*gc0))
-      IF (gnorm .EQ. 0) THEN
-         IF (iam .EQ. 0) PRINT *,' GNORM = 0 in GMRES! SOMETHING WRONG!'
-         STOP
-      END IF
-      gc = -gc0/gnorm
+      gc = -gc0/xnorm
       gc0= 0
 !
 !     THIS IS USUAL GMRES CALL
@@ -145,7 +149,7 @@
 #if defined (SKS)
       CALL second0(skston)
 #endif
-      CALL gmres_wrap (n, m, icntl, cntl, matvec, xc, gc, gnorm, info)
+      CALL gmres_wrap (n, m, icntl, cntl, matvec, xc, gc, info)
 #if defined (SKS)
       CALL second0(skstoff)
       gmres_wrap_time=gmres_wrap_time+(skstoff-skston)
@@ -170,10 +174,7 @@
 
  1000 CONTINUE
       
-!     PRINT *,' XC-NORM: ', SQRT(SUM(XC*XC)), ' GNORM: ', gnorm
-!     PAUSE
-
-      xc0 = xc*gnorm
+      xc0 = xc*xnorm
       l_getfsq = .TRUE.                                                 !Include gc0 in fsq_total calc
       facmin = 1
 
@@ -235,7 +236,7 @@
       END IF
 
       gc=0
-
+      
 !     Recompute Newton tolerance parameter: not working YET
 !
 !      IF (fsqprev_total > zero) CALL get_etak(fsq_total, fsqprev_total, &
@@ -245,7 +246,7 @@
 
       END SUBROUTINE gmres_fun
 
-      SUBROUTINE gmres_wrap_par (n, m, icntl, cntl, x0, b, gnorm, info)
+      SUBROUTINE gmres_wrap_par (n, m, icntl, cntl, x0, b, info)
       USE stel_kinds, ONLY: dp
 #if defined(SKS)
       USE stel_constants, ONLY: one, zero
@@ -262,7 +263,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: n, m,  icntl(9), info(3)
-      REAL(dp), INTENT(IN)    :: b(n), gnorm
+      REAL(dp), INTENT(IN)    :: b(n)
       REAL(dp), INTENT(INOUT) :: x0(n)
       REAL(dp), INTENT(IN)    :: cntl(5)
 #if defined(SKS)
@@ -272,7 +273,7 @@
       INTEGER, PARAMETER :: matveci=1, precondLeft=2,                    &
                             precondRight=3, dotProd=4, peek=5
       INTEGER  :: revcom, colx, coly, colz, nbscal
-      INTEGER  :: irc(5), jcount, icount, icntl_s(9)
+      INTEGER  :: irc(5), jcount, icount
       INTEGER  :: nout, lwork
       INTEGER, ALLOCATABLE :: itest(:)
       REAL(dp) :: rinfo(2), fsq_nl, fsq_min, fsq_last, delfsq, fsq_lin
@@ -293,7 +294,6 @@
 !         NOTE: it is not overwritten UNTIL the end of this routine
 
       fsq_min = -1; fsq_nl = fsq_total1
-      delfsq = 1
       jcount = 0; icount = 0
 
       nloc=(endglobrow-startglobrow+1)*mblk_size
@@ -337,14 +337,12 @@
         CALL ParyAx (work(colx), work(colz), nloc)
         GOTO 10
 
-      ELSE IF (revcom .EQ. precondLeft) THEN
+      ELSE IF (revcom.EQ.precondLeft .OR. revcom.EQ.precondRight) THEN
         ! perform the left preconditioning work(colz) <-- M^{-1} * work(colx)
-        CALL dcopy(nloc,work(colx),1,work(colz),1)
-        GOTO 10
 
-      ELSE IF (revcom .EQ. precondRight) THEN
-!!!        IF (IAM.EQ.0) PRINT *,' CALL PRECONDR'        
-        ! perform the right preconditioning
+        ! perform the right preconditioning  work(colz) -> work(colx)*M^{-1} == M^{-1}' * work(colx), ' == Transpose
+        ! since M is supposed to be Hermitian, we model this the same as the left preconditioner
+
         CALL second0(skston)
         CALL dcopy(nloc,work(colx),1,work(colz),1)
         CALL second0(skstoff)
@@ -408,7 +406,7 @@
 
         DO nout = 0,nbscal-1
            lwork = 6
-           IF (ABS(work(colz+nout)) .LT. 1.E-6_dp) lwork = 4
+           IF (ABS(xnorm*work(colz+nout)) .LT. 1.E-6_dp) lwork = 4
            CALL truncate(work(colz+nout),lwork)
         END DO
 
@@ -424,7 +422,7 @@
         gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
 
         CALL second0(skston)
-        CALL GetNLForce(aux, fsq_nl, gnorm)                               !get nonlinear force
+        CALL GetNLForce(aux, fsq_nl)                                     !get nonlinear force
         CALL second0(skstoff)
         getnlforce_time=getnlforce_time+(skstoff-skston)
 
@@ -432,7 +430,7 @@
         icount = icount+1
         IF (fsq_lin .LT. 1.E-30_dp) icntl(7)=info(1)
         IF (ngmres_type .EQ. 1) GOTO 10                                !OLDSTYLE:IGNORE LOGIC BELOW
-        delfsq = (fsq_last-fsq_nl)/fsq_min                             !SPH053014: REMOVE ABS()
+        delfsq = (fsq_min-fsq_nl)/fsq_min                              !SPH053014: REMOVE ABS(); 051016: Replace fsq_last->fsq_min
         IF (delfsq .LT. 0.05_dp) THEN
           jcount = jcount+1
         ELSE
@@ -463,8 +461,6 @@
         GOTO 10
 
       ENDIF
-
-900  FORMAT(1x,'GMRES Iteration ',i4,2x,'FSQ_NL = ',1pe12.3,2x,'FSQ_ARN: ',1pe12.3)
 !*******************************
 ! end reverse loop: dump the solution to a file for debugging
 !******************************
@@ -506,12 +502,21 @@
         gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
       END IF
 
+      IF (ngmres_type .EQ. 1) THEN
+         CALL GetNLForce(tmpbuf, fsq_min)
+      END IF
+
+!SPH: SINCE X0 == XC, AND GetNLForce CHANGES XC, MUST PUT AFTER CALL  
       x0 = tmpbuf
+  
+      fsq_gmres = fsq_min
+      IF (iam .EQ. 0) THEN 
+         PRINT 900, icount, fsq_gmres, fsq_lin
+         WRITE (33, 900) icount, fsq_gmres, fsq_lin
+      ENDIF
+900   FORMAT(1x,'GMRES Iteration ',i4,2x,'FSQ_NL = ',1pe12.3,2x,'FSQ_LIN: ',1pe12.3)
 
       DEALLOCATE (work, tmpbuf, aux, itest)
-
-      IF (iam .EQ. 0) PRINT 110, icntl(7)
- 110  FORMAT(1x,'Total GMRES Iterations: ',i4)
 #endif 
      END SUBROUTINE gmres_wrap_par
 
@@ -575,7 +580,7 @@
       REAL(dp), INTENT(IN), DIMENSION(ndim)  :: p
       REAL(dp), INTENT(OUT), DIMENSION(nloc) :: Ap
 !-----------------------------------------------
-      LOGICAL, PARAMETER :: LPARMATVEC=.FALSE.
+      LOGICAL, PARAMETER :: LPARMATVEC=.TRUE.
       INTEGER            :: myrowstart, myrowend
       REAL(dp)           :: delta
 !-----------------------------------------------
@@ -611,7 +616,7 @@
 #endif
 
 
-      SUBROUTINE gmres_wrap (n, m, icntl, cntl, yAx, x0, b, gnorm, info)
+      SUBROUTINE gmres_wrap (n, m, icntl, cntl, yAx, x0, b, info)
       USE stel_kinds, ONLY: dp
       USE stel_constants, ONLY: one, zero
       USE perturbation, ONLY: ftol
@@ -623,7 +628,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: n, m,  icntl(9), info(3)
-      REAL(dp), INTENT(IN)    :: b(n), gnorm
+      REAL(dp), INTENT(IN)    :: b(n)
       REAL(dp), INTENT(INOUT) :: x0(n)
       REAL(dp) :: cntl(5)
 !-----------------------------------------------
@@ -647,12 +652,11 @@
 !         NOTE: it is not overwritten UNTIL the end of this routine
 
       IF(PARSOLVER .AND. PARGMRES) THEN
-         CALL gmres_wrap_par (n, m, icntl, cntl, x0, b, gnorm, info)
+         CALL gmres_wrap_par (n, m, icntl, cntl, x0, b, info)
          RETURN
       END IF
 
       fsq_min = -1; fsq_nl = fsq_total1
-      delfsq = 1
       jcount = 0; icount = 0
 
       lwork = m**2 + m*(n+6) + 6*n + 1    !Additional space for peek revcom (5 -> 6)
@@ -714,12 +718,12 @@
       ELSE IF (revcom .EQ. peek) THEN
 
         fsq_last = fsq_nl                                              !need for delfsq criteria
-        CALL GetNLForce(work(colx), fsq_nl, gnorm)                     !get nonlinear force
+        CALL GetNLForce(work(colx), fsq_nl)                            !get nonlinear force
         fsq_lin = (rinfo(1)*gnorm)**2
         icount = icount+1
         IF (fsq_lin .LT. 1.E-30_dp) icntl(7)=info(1)
         IF (ngmres_type .EQ. 1) GOTO 10                                !OLDSTYLE:IGNORE LOGIC BELOW
-        delfsq = (fsq_last-fsq_nl)/fsq_min                             !SPH053014: remove ABS()
+        delfsq = (fsq_min-fsq_nl)/fsq_min                              !SPH053014: remove ABS()
         IF (delfsq .LT. 0.05_dp) THEN
           jcount = jcount+1
         ELSE
@@ -727,8 +731,9 @@
         END IF
 
         IF (fsq_min .EQ. -1) fsq_min = fsq_nl/0.89_dp
-        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
-          !        STOPPING CRITERIA (reset max iterations to current iteration)         
+!        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
+        IF (jcount .GT. 5) THEN   !!SPH042616
+          !STOPPING CRITERIA (reset max iterations to current iteration)         
           icntl(7)=info(1)
           IF (fsq_nl .LE. ftol) THEN
             IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(n))
@@ -748,7 +753,6 @@
 
       ENDIF
 
-900  FORMAT(1x,'GMRES Iteration ',i4,2x,'FSQ_NL = ',1pe12.3,2x,'FSQ_ARN: ',1pe12.3)
 !*******************************
 ! end reverse loop: dump the solution to a file for debugging
 !******************************
@@ -777,17 +781,25 @@
 
  100  CONTINUE
 
+      IF (ngmres_type .EQ. 1) THEN
+         CALL GetNLForce(work, fsq_min)
+      END IF
+
+!SPH: SINCE X0 == XC, AND GetNLForce CHANGES XC, MUST PUT AFTER CALL  
       IF (ALLOCATED (xmin)) THEN
         x0(1:n) = xmin(1:n)
         DEALLOCATE (xmin)
       ELSE
         x0(1:n) = work(1:n)
       END IF
+  
+      fsq_gmres = fsq_min
+
+      PRINT 900, icount, fsq_gmres, fsq_lin
+      WRITE (33, 900) icount, fsq_gmres, fsq_lin
+ 900  FORMAT(1x,'GMRES Iteration ',i4,2x,'FSQ_NL = ',1pe12.3,2x,'FSQ_LIN: ',1pe12.3)
 
       DEALLOCATE (work)
-
-      IF (iam .EQ. 0) PRINT 110, icntl(7)
- 110  FORMAT(1x,'Total GMRES Iterations: ',i4)
 
       END SUBROUTINE gmres_wrap
 
@@ -885,13 +897,13 @@
       END SUBROUTINE get_etak
  
 
-      SUBROUTINE GetNLForce(xcstate, fsq_nl, gnorm)
+      SUBROUTINE GetNLForce(xcstate, fsq_nl)
       USE stel_kinds
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp),INTENT(IN)  :: xcstate(neqs), gnorm
+      REAL(dp),INTENT(IN)  :: xcstate(neqs)
       REAL(dp),INTENT(OUT) :: fsq_nl
 !     REAL(dp) :: ton, toff, time_nl=0
 !-----------------------------------------------
@@ -907,7 +919,7 @@
       l_initloc = l_init_state
 
 !Set state variables
-      xc = gnorm*xcstate     !undo internal gmres normalization
+      xc = xcstate*xnorm     !undo internal gmres normalization
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
       l_init_state = .NOT.l_par_state
@@ -938,7 +950,7 @@
       INTEGER :: ndim, nlen, nlim, ierr, info(4), j
       INTEGER :: revcom, colx, colb
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: vecs
-      REAL(rprec) :: tol = 1.E-4_dp, gnorm
+      REAL(rprec) :: tol = 1.E-4_dp
 !-----------------------------------------------
 !
 !     STORE INITIAL POINT AND INITIAL RESIDUE (AT INIT PT)
@@ -964,10 +976,8 @@
 !
 !     INITIALIZE vecs
 !
-      gnorm = SUM(gc*gc)
-      gnorm = SQRT(gnorm)
-      vecs(:ndim,2) = -gc(:ndim)/gnorm
-      vecs(:ndim,3) =  gc(:ndim)/gnorm
+      vecs(:ndim,2) = -gc(:ndim)
+      vecs(:ndim,3) =  gc(:ndim)
     
       ierr = 100000
       info = 0
@@ -982,7 +992,7 @@
          GO TO 10
       END IF
 
-      xc(1:ndim) = xc0(1:ndim) + gnorm*vecs(:,1)
+      xc(1:ndim) = xc0(1:ndim) + vecs(:,1)
 
 !
 !     RECOMPUTE delta current,pressure prior to update_state call

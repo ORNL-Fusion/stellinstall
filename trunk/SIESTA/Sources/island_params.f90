@@ -12,11 +12,15 @@
       INTEGER :: nfp_i, mnmax_i
       INTEGER :: nsh                                                     ! Number of points in half mesh  
       REAL(rprec) :: hs_i, ohs_i, dnorm_i, gnorm_i, wb_i, wp_i,         &
-     &               volume_i                                            
+     &               volume_i, rmajor_i                                            
       REAL(rprec), PARAMETER :: gamma = 5._dp/3._dp                      ! Adiabatic constant
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: cosmu, cosmum,        &
      &    cosmui, sinmu, sinmum, sinmui, cosnv, cosnvn, sinnv, sinnvn
       REAL(rprec), ALLOCATABLE, DIMENSION(:)   :: phipf_i, chipf_i, presf_i, vp_f
 !-----------------------------------------------
+
+#if defined(MRC)
+      LOGICAL :: l_force_asym = .FALSE.                               ! Integrate from 0 - 2Pi in theta instead of 0 - Pi
+#endif
 
       END MODULE island_params

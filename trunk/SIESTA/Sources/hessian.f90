@@ -5,18 +5,23 @@
       USE DirectAccess
       USE stel_constants, ONLY: pi
       USE descriptor_mod
+      USE shared_data, ONLY: col_scale, neqs, lcolscale, l_ApplyPrecon, &
+                             l_linearize, fsq_total1, l_getfsq,         &
+                             HessPass_Test, gc0
 #if defined(MPI_OPT)
       USE prof_mod
       USE ptrd_mod
 #endif
 #if defined(SKS)
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL,                   &
-        rcounts, disp, startglobrow, endglobrow,                         &
+        rcounts, disp, startglobrow, endglobrow, nranks, rank,           &
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,               &
         SYMMETRYCHECK, totRecvs, PACKSIZE, WriteTime, send, receive,     &
         SetBlockTriDataStruct, GetFullSolution
       USE blocktridiagonalsolver, ONLY: Initialize, ForwardSolve,        &
-        SetMatrixRHS, BackwardSolve, GetSolutionVector, CheckSymmetry
+        SetMatrixRHS, BackwardSolve, GetSolutionVector, CheckSymmetry,   &
+        InitScaleFactors, GetScaleFactors, FinalizeScaleFactors, orig,   &
+        lelement, ParallelScaling, GetColSum
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU
@@ -33,7 +38,8 @@
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: ublk, dblk, lblk
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: ublk_s, dblk_s, lblk_s
       REAL(rprec), ALLOCATABLE :: mupar_norm(:)
-      REAL(rprec)  :: levmarq_param, levmarq_param0, asym_index, mupar, mupar0
+      REAL(rprec)  :: levmarq_param, levmarq_param0, asym_index,     &
+                      mupar, mupar0, maxeigen
       REAL(rprec), PARAMETER :: eps_factor = 1._dp 
       CHARACTER*10 :: string
 
@@ -46,33 +52,35 @@
       INTEGER, PARAMETER :: blmin=3, bldia=2, blpls=1
       REAL(rprec), ALLOCATABLE, DIMENSION(:) :: DataItem
       INTEGER :: iunit_dacess=10
+      INTEGER :: HESSPASS=0
       LOGICAL :: lswap2disk=.FALSE.
 #if defined(SKS)
-      INTEGER :: HESSPASS=0
-      INTEGER :: myStartBlock, myEndBlock, myNumBlocks 
+      INTEGER :: myStartBlock, myEndBlock, mynumBlockRows 
       INTEGER :: mystart(3), myend(3)
       REAL(rprec), ALLOCATABLE, DIMENSION(:) :: SavedDiag
 #endif
-      PRIVATE :: block_precond             !diag_precond 
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: colsum
+      PRIVATE :: block_precond             !diag_precond
+      PRIVATE :: colsum 
       PUBLIC  :: apply_precond
 !-----------------------------------------------
 
       CONTAINS
 
-      SUBROUTINE Compute_Hessian_Blocks (xc, gc, func,                  &
-                 l_Hess_sym, ldiagonal)
+      SUBROUTINE Compute_Hessian_Blocks (func, l_Hess_sym, ldiagonal)
+      USE shared_data, ONLY: xc, gc, l_linearize
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(ns*(1+mpol)*(2*ntor+1)*3),                 &
-               INTENT(OUT)    :: xc, gc
       LOGICAL, INTENT(IN)     :: l_Hess_sym
       LOGICAL, INTENT(IN)     :: ldiagonal
       EXTERNAL                :: func
 !-----------------------------------------------
       l_Compute_Hessian = .TRUE.
       l_Diagonal_Only   = ldiagonal
+      l_linearize = .TRUE.
+      col_scale = 1
 
       IF (l_Diagonal_Only .AND. iam.EQ.0) THEN
          WRITE (6, '(/,a)') ' Computing diagonal preconditioner!'
@@ -89,10 +97,24 @@
         END IF 
       ELSE 
         IF(SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_Thomas'; CALL FLUSH(TOFU)
+        IF (iam.EQ.0 .AND. HESSPASS.EQ.0) PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
         CALL Compute_Hessian_Blocks_Thomas (xc, gc, func, l_Hess_sym)
       END IF
       l_Diagonal_Only   = .FALSE.
       l_Compute_Hessian = .FALSE.
+      l_linearize = .FALSE.
+      HESSPASS = HESSPASS+1
+
+      IF (iam .EQ. 0) THEN
+        WRITE (6, 100) levmarq_param, muPar, asym_index
+        WRITE (33,110) levmarq_param, muPar, asym_index
+      ENDIF
+
+ 100  FORMAT(' LM parameter: ',1pe9.2,                                  & 
+             ' mu||: ',1pe9.2, ' Asym index: ',1pe9.2)
+ 110  FORMAT (/,' Computing block preconditioner: ',                    &
+              ' LM parameter: ',1pe9.2,' mu||: ',1pe9.2,                &
+              ' Asym index: ',1pe9.2)
 
       END SUBROUTINE Compute_Hessian_Blocks
 
@@ -119,6 +141,8 @@
       LOGICAL :: lfirst
       INTEGER :: nsmin, nsmax
       REAL(dp) :: skston, skstoff, temp
+
+      INTEGER :: icolmpi, i1, i2, i3, i4
 !----------------------------------------------
 
       starttime=0; endtime=0; usedtime=0; 
@@ -128,8 +152,8 @@
       !     COMPUTE (U)pper, (D)iagonal, and (L)ower Block matrices
       !------------------------------------------------------------
 
-      IF (iam .eq. 0 .AND. (.not. l_diagonal_only)) WRITE (6, 50)
-      50   FORMAT (/,' Computing block preconditioner')
+      IF (iam .EQ. 0 .AND. (.NOT. l_diagonal_only)) WRITE (6, 50)
+ 50   FORMAT (/,' Computing block preconditioner')
 
       CALL second0(ton)
 
@@ -168,17 +192,12 @@
 
       END IF
 
-      CALL second0(skston)
-      xc = 0
-      CALL func
-      CALL second0(skstoff)
-      hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
       nsmin = MAX(1, startglobrow-1);  nsmax = MIN(ns, endglobrow+1)
 
       IF (HESSPASS .EQ. 0) THEN
         myStartBlock=startglobrow
         myEndBlock=endglobrow
-        myNumBlocks=myEndBlock-myStartBlock+1
+        mynumBlockRows=myEndBlock-myStartBlock+1
         CALL Initialize(.FALSE.,ns,mblk_size) 
         DO mesh = 1, 3
            lfirst = .TRUE.
@@ -209,7 +228,7 @@
 
             MESH_3PT_LG: DO mesh = 1, 3
 
-!SKS          xc = 0
+              xc = 0
 
               DO js = mystart(mesh), myend(mesh), 3
                  xc(icol,js) = eps
@@ -249,7 +268,6 @@
                 END IF
 
                 !dblk(js)
-
                 IF (startglobrow.LE.js .AND. js.LE.endglobrow) THEN
                    DataItem = gc(:,js)/eps
                    IF (l_diagonal_only) THEN
@@ -262,7 +280,7 @@
                       DataItem(icol) = -one
                    END IF
 
-                   DataItem(icol) = DataItem(icol) + SIGN(lmdamp,DataItem(icol))
+                   IF (.NOT. lColScale) DataItem(icol) = DataItem(icol) + SIGN(lmdamp,DataItem(icol))
                    CALL SetBlockTriDataStruct(DIAG,js,icol,DataItem) 
                 END IF
 
@@ -280,22 +298,11 @@
                 END IF
 
               END DO SKIP3_MESH_LG
-            
-!SKS            
-              DO js = mystart(mesh), myend(mesh), 3
-                 xc(icol,js) = 0
-              END DO
-
-              END DO MESH_3PT_LG
+            END DO MESH_3PT_LG
           END DO VAR_M_LG
         END DO VAR_N_LG
       END DO VAR_TYPE_LG
 
-      CALL second0(colendtime)
-      construct_hessian_time=construct_hessian_time+(colendtime-colstarttime)
-
-!      STOP 'END HESSIAN LOOP TEST WRITE FORT.3000'
-      
       DEALLOCATE (DataItem, stat=istat)
       IF (istat .NE. 0) STOP 'DataItem deallocation error!'
       DEALLOCATE (SavedDiag, stat=istat)
@@ -306,9 +313,18 @@
 
       !IF(DIAGONALDONE) CALL WriteBlocks (HESSPASS)
 
-      !
+      CALL second0(colendtime)
+      construct_hessian_time=construct_hessian_time+(colendtime-colstarttime)
+
+      IF (lColScale) THEN
+         ALLOCATE (colsum(mblk_size,startglobrow:endglobrow))
+         CALL GetColSum(colsum)
+         CALL VectorCopyPar (colsum, col_scale)
+         CALL ParallelScaling(levmarq_param,colsum,maxeigen)
+         DEALLOCATE(colsum)
+      END IF
+
       !     CHECK SYMMETRY OF BLOCKS 
-      !
 
       IF (SYMMETRYCHECK) THEN
         CALL second0(skston)
@@ -316,17 +332,6 @@
         CALL second0(skstoff)
         asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
       ENDIF      
-
-      IF (iam .EQ. 0) THEN
-        WRITE (6, 100) levmarq_param, muPar, asym_index
-        WRITE (33,110) levmarq_param, muPar, asym_index
-      ENDIF
-
- 100  FORMAT(' LM parameter: ',1pe9.2,                                  & 
-             ' mu||: ',1pe9.2, ' Asym index: ',1pe9.2)
- 110  FORMAT (/,' Computing block preconditioner: ',                    &
-              ' LM parameter: ',1pe9.2,' mu||: ',1pe9.2,                &
-              ' Asym index: ',1pe9.2)
 
       !
       !     SYMMETRIZE BLOCKS
@@ -354,10 +359,52 @@
       skstoff=toff
       block_factorization_time=block_factorization_time+(skstoff-skston)
 
-      HESSPASS = HESSPASS+1
       time_factor_blocks = time_factor_blocks + (toff-ton)
 #endif
       END SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist
+
+#if defined(SKS)
+      SUBROUTINE VectorCopyPar (colsum, colscale)
+      USE nscalingtools, ONLY: rank, nranks, MPI_ERR
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(IN)  :: &
+        colsum(mblk_size,startglobrow:endglobrow)
+      REAL(dp), INTENT(OUT) :: colscale(mblk_size,ns)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER               :: js, top, bot
+      INTEGER               :: MPI_STAT(MPI_STATUS_SIZE)
+!-----------------------------------------------
+ 
+      DO js = startglobrow, endglobrow 
+        colscale(:,js) = colsum(:,js)
+      END DO
+
+      ! Get top boundary elements
+      IF (rank.LT.nranks-1) THEN
+        CALL MPI_Send(colsum(:,endglobrow-1:endglobrow),2*mblk_size,MPI_REAL8,&
+          rank+1,1,MPI_COMM_WORLD,MPI_ERR)
+      END IF
+      IF (rank.GT.0) THEN
+        CALL MPI_Recv(colscale(:,startglobrow-2:startglobrow-1),2*mblk_size,MPI_REAL8,&
+          rank-1,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+      END IF
+
+      ! Get bot boundary elements
+      IF (rank.GT.0) THEN
+        CALL MPI_Send(colsum(:,startglobrow:startglobrow+1),2*mblk_size,MPI_REAL8,&
+          rank-1,1,MPI_COMM_WORLD,MPI_ERR)
+      END IF
+      IF (rank.LT.nranks-1) THEN
+        CALL MPI_Recv(colscale(:,endglobrow+1:endglobrow+2),2*mblk_size,MPI_REAL8,&
+          rank+1,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+      END IF
+
+      END SUBROUTINE VectorCopyPar
+#endif
 
       SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func,   &
                  l_Hess_sym)
@@ -432,20 +479,14 @@
          iprec_flag = 1
       END IF
 
-      xc = 0
-
       icolmpi = 0
       icol=0
-
-      CALL second0(skston)
-      CALL func
-      CALL second0(skstoff)
-      hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
+      xc = 0
 
       IF (HESSPASS.EQ.0) THEN
         myStartBlock=startglobrow
         myEndBlock=endglobrow
-        myNumBlocks=myEndBlock-myStartBlock+1
+        mynumBlockRows=myEndBlock-myStartBlock+1
         CALL Initialize(.FALSE.,ns,mblk_size) 
       ENDIF
 
@@ -468,8 +509,6 @@
                   icolmpi = icolmpi+1
 
                   MESH_3PT: DO mesh = 1, 3
-
-!SKS                  xc = 0
 
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
@@ -556,7 +595,7 @@
                      END IF !JS < NS
 
                   END DO SKIP3_MESH
-!SKS              
+
                   DO js = mystart(mesh), myend(mesh), 3
                      xc(icol,js) = 0
                   END DO
@@ -649,8 +688,6 @@
       usedtime=endtime-starttime
 
       time_factor_blocks = time_factor_blocks + (toff-ton)
-
-      HESSPASS = HESSPASS+1
 #endif
       END SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist
 
@@ -668,13 +705,12 @@
 !----------------------------------------------
       REAL(rprec), PARAMETER    :: zero=0, one=1, p5=0.5_dp
       INTEGER  :: n, m, js, js1, mesh, ntype, istat, iunit, icol, icolmpi
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:)  :: gc1, gcswap
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:)  :: gc1
       REAL(rprec) :: eps, ton, toff, bsize, lmdamp, skston, skstoff, temp
       CHARACTER(LEN=3) :: label
       EXTERNAL :: func
 #if defined(MPI_OPT)
       INTEGER  :: neqtotal, numroc
-      REAL(rprec), ALLOCATABLE, DIMENSION (:,:) :: idsendBuf(:,:)
       REAL(dp) :: starttime, endtime, usedtime
       REAL(dp) :: colstarttime, colendtime, colusedtime
       EXTERNAL :: numroc
@@ -831,19 +867,13 @@
 
       END IF
 
-      xc = 0
 
 #if defined(MPI_OPT)
       icolmpi = 0
 #endif
       icol=0
+      xc = 0
 
-      CALL second0(skston)
-      CALL func
-      CALL second0(skstoff)
-#if defined(SKS)
-      hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
-#endif
 #if defined(MPI_OPT)
       CALL second0(colstarttime) !Added by SKS for timing comparisons
 #endif
@@ -864,8 +894,6 @@
 #endif
                   MESH_3PT: DO mesh = 1, 3
 
-                  xc = 0
-
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
                   END DO
@@ -881,10 +909,9 @@
 #if defined(MPI_OPT)
 #endif
 
-!OFF FOR l_linearize=T                  gc = gc-gc1
 
 !              COMPUTE PRECONDITIONER (HESSIAN) ELEMENTS. LINEARIZED EQUATIONS
-!              OF TRI-DIAGONAL (IN S) FORM 
+!              OF TRI-DIAGONAL (IN S) FORM, a=lblk, d=dblk, b=ublk
 !
 !              F(j-1) = a(j-1)x(j-2) + d(j-1)x(j-1) + b(j-1)x(j)
 !              F(j)   =                a(j)x(j-1)   + d(j)  x(j)  + b(j)  x(j+1)
@@ -915,6 +942,7 @@
                         END IF
                      END IF
 
+                     
 !                    WRITE (6, 120) lmdamp,js,m,n,ntype
 !120 FORMAT('lmdamp=',1p,e10.2,' js: ',i4,' m: ',i4,' n: ',i4,' ntype: ',i4)
  
@@ -950,8 +978,7 @@
                         DataItem(icol) = -one
                      END IF
 
-!                    IF (ntype.eq.3 .and. js.eq.ns) lmdamp = levmarq_param0/10
-
+                     IF (.NOT. lColScale)             &
                      DataItem(icol) = DataItem(icol) + SIGN(lmdamp,DataItem(icol))
 
                      IF (l_Diagonal_Only) THEN
@@ -970,7 +997,6 @@
                      js1=js+1
                      IF (js .LT. ns) THEN
                         DataItem = gc(:,js1)/eps
-!                     IF (l_Viscous) DataItem(icol) = DataItem(icol)-p5*lmdamp
                      !m=0 constraint for n<0
                         IF (m.eq.0 .and. n.lt.0) DataItem = 0
                         IF (l_Diagonal_Only) THEN
@@ -986,6 +1012,11 @@
                      END IF
 
                   END DO SKIP3_MESH
+
+                  DO js = jstart(mesh), ns, 3
+                     xc(icol,js) = 0
+                  END DO
+
                END DO MESH_3PT
 #if defined(MPI_OPT)
                ENDIF
@@ -1002,8 +1033,12 @@
          time_block_prec = time_block_prec+(toff-ton)
       END IF
 
+!SPH 071416 ADD COLUMN SCALING
+      IF (lColScale) CALL ThomasColScaling
+!
+!SPH 053116 COMPUTE 2-NORMS OF EACH COLUMN FOR SCALING
+!
       ton = toff
-
 #if defined(SKS)
       CALL second0(colendtime)
       colusedtime=colendtime-colstarttime
@@ -1015,23 +1050,37 @@
       IF (.FALSE.) THEN
 !       IF (.not. l_Diagonal_Only) THEN
 !      IF (iam.eq.0 .and. nprecon .eq. 2) THEN
-         OPEN(UNIT=20,FILE='LBLK.txt',STATUS='REPLACE',FORM='FORMATTED')
-         WRITE (20, *) mblk_size, ns
-         WRITE (20, *) lblk
+1001  FORMAT (2i6)
+2001  FORMAT (1p,10e16.8)
+
+!       IF (.not. l_Diagonal_Only) THEN
+!      IF (iam.eq.0 .and. nprecon .eq. 2) THEN
+         OPEN(UNIT=20,FILE='LBLK.bin',STATUS='REPLACE',FORM='FORMATTED')
+         WRITE (20, 1001) mblk_size, ns
+         DO js = 2, ns
+            WRITE (20, 2001) lblk(:,:,js)
+         END DO
          CLOSE (20)
 
-         OPEN(UNIT=20,FILE='DBLK.txt',STATUS='REPLACE',FORM='FORMATTED')
-         WRITE (20, *) mblk_size, ns
-         WRITE (20, *) dblk
+         OPEN(UNIT=20,FILE='DBLK.bin',STATUS='REPLACE',FORM='FORMATTED')
+         WRITE (20, 1001) mblk_size, ns
+         DO js = 1, ns
+            WRITE (20, 2001) dblk(:,:,js)
+         END DO
          CLOSE (20)
 
-         OPEN(UNIT=20,FILE='UBLK.txt',STATUS='REPLACE',FORM='FORMATTED')
-         WRITE (20, *) mblk_size, ns
-         WRITE (20, *) ublk
+         OPEN(UNIT=20,FILE='UBLK.bin',STATUS='REPLACE',FORM='FORMATTED')
+         WRITE (20, 1001) mblk_size, ns
+         DO js = 1, ns-1
+            WRITE (20, 2001) ublk(:,:,js)
+         END DO
          CLOSE (20)
 
-         OPEN(UNIT=20,FILE='RHS.txt',STATUS='REPLACE',FORM='FORMATTED')
-	     WRITE (20, *) gc
+         OPEN(UNIT=20,FILE='RHS.bin',STATUS='REPLACE',FORM='FORMATTED')
+         DO js = 1, ns
+            WRITE (20, 2001) gc(:, js)
+         END DO
+         CLOSE (20)
 
          PRINT *, 'HESSIAN BLOCKS WRITTEN OUT'
 
@@ -1059,18 +1108,6 @@
 #endif
 
  900  CONTINUE
-
-      IF (iam .eq. 0) THEN
-         WRITE (6, 100) levmarq_param, muPar, asym_index
-         IF (.not. l_diagonal_only)                                      &
-         WRITE (33,110) levmarq_param, muPar, asym_index
-      ENDIF
-
- 100  FORMAT(' LM parameter: ',1pe9.2,                                 &
-             ' mu||: ',1pe9.2, ' Asym index: ',1pe9.2)
- 110  FORMAT (/,' Computing block preconditioner: ',                   &
-              ' LM parameter: ',1pe9.2,' mu||: ',1pe9.2,               &
-              ' Asym index: ',1pe9.2)
 
 !
 !     SYMMETRIZE BLOCKS
@@ -1158,6 +1195,70 @@
       time_factor_blocks = time_factor_blocks + (toff-ton)
 
       END SUBROUTINE Compute_Hessian_Blocks_Thomas
+
+      
+      SUBROUTINE ThomasColScaling
+      IMPLICIT NONE
+      REAL(rprec), PARAMETER    :: zero=0, one=1, p5=0.5_dp
+      INTEGER       :: js, icol
+      REAL(dp)      :: eps
+
+      ALLOCATE(colsum(mblk_size,ns))
+
+      BLOCK_ROW: DO js = 1, ns    !sum over block rows
+      COLS: DO icol = 1, mblk_size
+         colsum(icol,js) = SUM(dblk(:,icol,js)**2)
+         IF (js .GT. 1) THEN
+            colsum(icol,js) = colsum(icol,js) + SUM(ublk(:,icol,js-1)**2)         
+         END IF
+         IF (js .LT. ns) THEN
+            colsum(icol,js) = colsum(icol,js) + SUM(lblk(:,icol,js+1)**2)         
+         END IF
+      ENDDO COLS
+      ENDDO BLOCK_ROW
+
+      IF (ANY(colsum .EQ. zero)) STOP 'COLSUM = 0'
+      COLSUM = SQRT(one/SQRT(COLSUM))
+
+      CALL VECTOR_COPY_SER (colsum, col_scale)
+
+ !    SCALE BLOCKS AND ADD LM PARAMETER TO DIAGONAL
+      BLOCK_ROW2: DO js = 1, ns
+      COLS2: DO icol = 1, mblk_size
+         dblk(:,icol,js) = colsum(:,js)*dblk(:,icol,js)*colsum(icol,js)
+         IF (js .GT. 1) THEN
+             lblk(:,icol,js) = colsum(:,js)*lblk(:,icol,js)*colsum(icol,js-1)
+         END IF
+         IF (js .LT. ns) THEN
+             ublk(:,icol,js) = colsum(:,js)*ublk(:,icol,js)*colsum(icol,js+1)
+         END IF
+!SPH061016: ADD LM SCALING HERE? - CHECK THIS
+         eps = dblk(icol,icol,js) 
+         dblk(icol,icol,js) = eps*(1+ ABS(levmarq_param))
+      END DO COLS2
+      END DO BLOCK_ROW2
+
+      DEALLOCATE(colsum)
+
+      END SUBROUTINE ThomasColScaling
+
+      SUBROUTINE VECTOR_COPY_SER(colsum, colscale)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(IN)  :: COLSUM(mblk_size,ns)
+      REAL(dp), INTENT(OUT) :: COLSCALE(mblk_size,ns)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER               :: js
+!-----------------------------------------------
+ 
+      DO js = 1, ns
+        COLSCALE(:,js) = COLSUM(:,js)
+      END DO
+
+      END SUBROUTINE
 
 !#define SVD_ON
 !#undef SVD_ON
@@ -1542,9 +1643,7 @@
 #endif
 #if defined(SKS)
       REAL(rprec) :: starttime, endtime, usedtime
-      INTEGER :: PRECONDPASS
-      SAVE PRECONDPASS
-      DATA PRECONDPASS /0/
+      INTEGER :: PRECONDPASS=0
       INTEGER :: globrow, cnt
       !Might need to make it allocatable - just a test right now.
       REAL(dp), DIMENSION (:,:), ALLOCATABLE :: solvec
@@ -1565,7 +1664,7 @@
         
         CALL BackwardSolve
        
-        ALLOCATE (solvec(mblk_size,myNumBlocks), stat=istat)
+        ALLOCATE (solvec(mblk_size,mynumBlockRows), stat=istat)
         IF (istat .ne. 0) STOP 'Allocation error in block_precond before gather'
 
         cnt=1
@@ -1574,7 +1673,7 @@
           cnt = cnt + 1
         END DO
 
-        CALL MPI_Allgatherv(solvec,myNumBlocks*mblk_size,MPI_REAL8,gc, &
+        CALL MPI_Allgatherv(solvec,mynumBlockRows*mblk_size,MPI_REAL8,gc, &
              rcounts, disp, MPI_REAL8, MPI_COMM_WORLD, MPI_ERR)
 
 !!        CALL GetFullSolution(temp,gc)

@@ -152,6 +152,7 @@ add_subdirectory (Testing)
 # Optional extra builds
 OPTION (BUILD_SIESTA "Activate SIESTA." OFF)
 if (BUILD_SIESTA)
+        add_definitions (-DMRC)
 	add_subdirectory (POINCARE)
 	add_subdirectory (SIESTA)
 endif ()

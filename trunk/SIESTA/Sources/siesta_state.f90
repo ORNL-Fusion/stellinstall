@@ -16,10 +16,8 @@
       SUBROUTINE update_state_par (lprint, fsq_total, ftol)
        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,         &
                              mnspcounts,mnspdisps
+       USE mpi_inc
        IMPLICIT NONE
-#if defined(MPI_OPT)
-       INCLUDE 'mpif.h'
-#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -31,36 +29,71 @@
 !-----------------------------------------------
        LOGICAL, PARAMETER :: lpar=.FALSE.
        REAL(rprec) :: ton, toff
-       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: tmps, tmpu, tmpv, tmpp
+       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: tmpss, tmpuc, tmpvc, tmppc
+#if defined(MRC)
+       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: tmpsc, tmpus, tmpvs, tmpps
+#endif
        INTEGER :: nsmin, nsmax, nloc, js, istat
 !-----------------------------------------------
       CALL second0(ton)
       nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
 
-      ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns), &
-                tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns), &
+      nloc = (nsmax-nsmin+1)*(mpol + 1)*(2*ntor + 1)
+
+      ALLOCATE (tmpss(0:mpol,-ntor:ntor,ns), tmpuc(0:mpol,-ntor:ntor,ns), &
+                tmpvc(0:mpol,-ntor:ntor,ns), tmppc(0:mpol,-ntor:ntor,ns), &
                 stat=js)
       IF (js .NE. 0) STOP 'Allocation error in update_state_par'
 
-      nloc = (nsmax-nsmin+1)*SIZE(tmps,1)*SIZE(tmps,2)
-      
+      nloc = (nsmax-nsmin+1)*SIZE(tmpss,1)*SIZE(tmpss,2)
+
+
       CALL MPI_ALLGATHERV(djbsupsmnsh(:,:,nsmin:nsmax),nloc,MPI_REAL8,  &
-                         tmps,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+                         tmpss,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
       CALL MPI_ALLGATHERV(djbsupumnch(:,:,nsmin:nsmax),nloc,MPI_REAL8,  &
-                         tmpu,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+                         tmpuc,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
       CALL MPI_ALLGATHERV(djbsupvmnch(:,:,nsmin:nsmax),nloc,MPI_REAL8,  &
-                         tmpv,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+                         tmpvc,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
       CALL MPI_ALLGATHERV(djpmnch(:,:,nsmin:nsmax),nloc,MPI_REAL8,      &
-                         tmpp,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+                         tmppc,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         ALLOCATE (tmpsc(0:mpol,-ntor:ntor,ns), tmpus(0:mpol,-ntor:ntor,ns), &
+                   tmpvs(0:mpol,-ntor:ntor,ns), tmpps(0:mpol,-ntor:ntor,ns), &
+                   stat=js)
+         IF (js .NE. 0) STOP 'Allocation error in update_state_par'
+
+         CALL MPI_ALLGATHERV(djbsupsmnch(:,:,nsmin:nsmax),nloc,MPI_REAL8,  &
+                             tmpsc,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+         CALL MPI_ALLGATHERV(djbsupumnsh(:,:,nsmin:nsmax),nloc,MPI_REAL8,  &
+                             tmpus,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+         CALL MPI_ALLGATHERV(djbsupvmnsh(:,:,nsmin:nsmax),nloc,MPI_REAL8,  &
+                             tmpvs,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+         CALL MPI_ALLGATHERV(djpmnsh(:,:,nsmin:nsmax),nloc,MPI_REAL8,      &
+                             tmpps,mnspcounts,mnspdisps,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+      END IF
+#endif
 
       CALL Init_Allocate_Arrays (lpar)
 
-      djbsupsmnsh = tmps
-      djbsupumnch = tmpu
-      djbsupvmnch = tmpv
-      djpmnch     = tmpp
+      djbsupsmnsh = tmpss
+      djbsupumnch = tmpuc
+      djbsupvmnch = tmpvc
+      djpmnch     = tmppc
 
-      DEALLOCATE (tmps, tmpu, tmpv, tmpp)
+      DEALLOCATE (tmpss, tmpuc, tmpvc, tmppc)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         djbsupsmnch = tmpsc
+         djbsupumnsh = tmpus
+         djbsupvmnsh = tmpvs
+         djpmnsh     = tmpps
+         DEALLOCATE (tmpsc, tmpus, tmpvs, tmpps)
+      END IF
+#endif
+
       CALL second0(toff)
       time_update_state = time_update_state + (toff-ton)
 
@@ -124,26 +157,35 @@
        REAL(rprec) :: ton, toff, r0, xFSQ
        REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: work4
 !-----------------------------------------------
-       CALL second0(ton)
+      CALL second0(ton)
 
-!      Update BSUP?MN?H*jacobh, pressure-h*jacobh harmonics based on vsup?mn?f perturbations
+!     Update BSUP?MN?H*jacobh, pressure-h*jacobh harmonics based on vsup?mn?f perturbations
 !  
-       jbsupsmnsh = jbsupsmnsh + djbsupsmnsh                ! update B^s harmonics  (half mesh)     
-       jbsupumnch = jbsupumnch + djbsupumnch                ! update B^u harmonics  (half mesh)  
-       jbsupvmnch = jbsupvmnch + djbsupvmnch                ! update B^v harmonics  (half mesh) 
-       jpmnch     = jpmnch     + djpmnch                    ! update pressure harmonics  (half mesh) 
+      jbsupsmnsh = jbsupsmnsh + djbsupsmnsh                ! update B^s harmonics  (half mesh)     
+      jbsupumnch = jbsupumnch + djbsupumnch                ! update B^u harmonics  (half mesh)  
+      jbsupvmnch = jbsupvmnch + djbsupvmnch                ! update B^v harmonics  (half mesh) 
+      jpmnch     = jpmnch     + djpmnch                    ! update pressure harmonics  (half mesh)
 
-      
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         jbsupsmnch = jbsupsmnch + djbsupsmnch                ! update B^s harmonics  (half mesh)
+         jbsupumnsh = jbsupumnsh + djbsupumnsh                ! update B^u harmonics  (half mesh)
+         jbsupvmnsh = jbsupvmnsh + djbsupvmnsh                ! update B^v harmonics  (half mesh)
+         jpmnsh     = jpmnsh     + djpmnsh                    ! update pressure harmonics  (half mesh)
+      END IF
+#endif
+
+
 !      Reset perturbations
-       CALL Clear_Field_Perts
+      CALL Clear_Field_Perts
 
-       CALL second0(toff)
-       time_update_state = time_update_state + (toff-ton)
+      CALL second0(toff)
+      time_update_state = time_update_state + (toff-ton)
 
 !      fsq_total == 0 when updating from add_resistivity
-       IF (fsq_total.NE.zero .AND. fsq_total.LT.10*ftol) THEN
-          CALL write_profiles(fsq_total)                    ! SPH: write pmn, jbsupsmn profiles
-       END IF
+      IF (fsq_total.NE.zero .AND. fsq_total.LT.10*ftol) THEN
+         CALL write_profiles(fsq_total)                    ! SPH: write pmn, jbsupsmn profiles
+      END IF
 
       r0 = hs_i/2
 
@@ -170,8 +212,8 @@
       CALL divj                                            ! (RS) Added, 09/10/07  = compute rms of divergence of J
       CALL bgradp
       CALL tflux
-      CALL bdotj(bdotjijch)                                ! (RS) Added, 08/30/07  = compute rms of parallel current
-      DEALLOCATE(bdotjijch)
+      CALL bdotj(bdotjijh)                                ! (RS) Added, 08/30/07  = compute rms of parallel current
+      DEALLOCATE(bdotjijh)
       CALL beta
       lcurr_init=.FALSE.                             
 
@@ -207,6 +249,15 @@
       djbsupumnch = 0
       djbsupvmnch = 0
       djpmnch     = 0
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         djbsupsmnch = 0
+         djbsupumnsh = 0
+         djbsupvmnsh = 0
+         djpmnsh     = 0
+      END IF
+#endif
 
       END SUBROUTINE Clear_Field_Perts
 

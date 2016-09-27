@@ -2,7 +2,7 @@
       USE quantities
       USE descriptor_mod, ONLY: iam
       USE siesta_state, ONLY: update_state, update_state_par
-      
+      USE shared_data, ONLY: ngmres_type, iortho, lcolscale, hesspass_test
       INTEGER  :: nsin=101, mpolin=12, ntorin=3
       INTEGER  :: mres1, nres1, mres2, nres2                          !Backwards compat
       INTEGER  :: mres(10)
@@ -20,15 +20,18 @@
       REAL(dp), ALLOCATABLE :: buv_res(:,:,:)
 
 !NETCDF PARAMETERS
-      CHARACTER(LEN=*), PARAMETER :: vn_nsin='nrad', vn_mpolin='mpol',  &
-         vn_ntorin='ntor', vn_wout='wout file', vn_bsups='Bsups(m,n,r)',&
-         vn_bsupu='Bsupu(m,n,r)', vn_bsupv='Bsupv(m,n,r)',              &
-         vn_pres='pres(m,n,r)'
+      CHARACTER(LEN=*), PARAMETER :: vn_nsin='nrad', vn_mpolin='mpol',                         &
+         vn_ntorin='ntor', vn_wout='wout file', vn_lasym="lasym",                              &
+         vn_bsupss='JBsupss(m,n,r)', vn_bsupus='JBsupus(m,n,r)', vn_bsupvs='JBsupvs(m,n,r)',   &
+         vn_bsupsc='JBsupsc(m,n,r)', vn_bsupuc='JBsupuc(m,n,r)', vn_bsupvc='JBsupvc(m,n,r)',   &
+         vn_presc='presc(m,n,r)', vn_press='press(m,n,r)'
       CHARACTER(LEN=*), DIMENSION(3), PARAMETER ::                      &
                   r3dim = (/'m-mode','n-mode','radius'/)
 
 !SCRATCH ARRAYS
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp1, temp2, temp3, temp4
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::                            &
+         jbsupsmnshtemp, jbsupumnchtemp, jbsupvmnchtemp, jpmnchtemp,           &
+         jbsupsmnchtemp, jbsupumnshtemp, jbsupvmnshtemp, jpmnshtemp
 
 !OUTPUT FILE PARAMETERS
       INTEGER:: nrs=200, nzs=200, nphis=2                             ! BField resolution (CYL):  R and Z
@@ -56,9 +59,13 @@
                mres1, nres1, rad1, helpert1, mres2, nres2, rad2, helpert2, &
                mres, HelPert, levmarq_param, mupar, eta_factor,        &
                nphis, nrs, nzs, nvs, nus, nss, l_tracing,              &
-               lprecon_diag, lPosDef,                                  &
+               lprecon_diag, lPosDef, ngmres_type, iortho, lcolscale,  &
                l_silo_output, l_silo3D, nprecon, l_output_alliter      & ! If l_output_alliter, dump info (SILO or TRACING) on file at every iteration (RS, Jul'10)
+#if defined(MRC)
+               ,l_VMEC_Uniform, l_force_asym
+#else
                ,l_VMEC_Uniform
+#endif
 
 !-----------------------------------------------
 !     
@@ -72,6 +79,10 @@
       mres          = 0
       HelPert       = 0
       lresistive    = .TRUE.
+      ngmres_type   = 2                 !2 = nl "peek" performance enhancement; 1 = lin
+      iortho        = 3                 !controls orthogonalization in GMRES
+                                        !3: ICGS (recommended); 2: CGS; 1: IMGS; 0: MGS
+      lcolscale     = .TRUE.
 
       OPEN (unit=33, file='siesta.jcf', delim='apostrophe', iostat=istat)
       IF (istat .ne. 0) STOP 'SIESTA.JCF file not found'
@@ -85,6 +96,9 @@
          END IF
       END IF
       CLOSE (unit=33)
+
+      ngmres_type = MIN(2, MAX(1,ngmres_type))
+      iortho = MIN(3, MAX(0,iortho))
 
       nss = nsin
       levmarq_param0 = levmarq_param
@@ -148,14 +162,16 @@
          END IF
       END DO
 
+      WRITE (33, 32) ngmres_type, iortho, lColScale
+
 30    FORMAT(i2,' mres: ',i4,' HelPert: ',1pe9.2)
+32    FORMAT(/,' ngmres_type: ', i4,' iOrtho: ', i4, ' lColScale: ', l2)
 
       END SUBROUTINE init_data
 
       SUBROUTINE add_perturb (xc, getwmhd)
       USE nscalingtools, ONLY: startglobrow, endglobrow
       IMPLICIT NONE
-      INTEGER     :: neqs
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -203,7 +219,7 @@
          WRITE (iprint, '(/,a,/,2a)')                                    &
          ' Adding helical magnetic field perturbations',                 &
          ' Phase   10^6 X Del-W    mres    nres    HelPert',             &
-         '     rad   |m*chip+n*phip|'
+         '     rad   |m*chip+n*phip|     iota'
       END DO
       ENDIF
 
@@ -217,12 +233,13 @@
          IF (HelPert0.EQ.zero .or. mres0.GT.mpol) CYCLE
 
 !Scan in radius to determine primary resonance
-         jstart = 4
 
- 100     CONTINUE
-         CALL FindResonance(mres0, nres0, rad, jstart)
-!SPH: OFF 030314         IF (rad .EQ. zero) CYCLE
-         IF (rad .EQ. zero) CYCLE
+         NRES_TEST: DO nres0=-ntor,ntor
+
+         jstart = 3
+         JSURF_TEST: DO WHILE (jstart .LT. ns-1) 
+         
+         IF (.NOT.FindResonance(mres0, nres0, rad, jstart)) EXIT
 
       PERT_SIGN: DO isign = 1, 2
 #if defined(SKS)
@@ -259,9 +276,9 @@
          END IF
 
          DO iprint = 6, 33, 27
-            WRITE (iprint, '(4x,a,1p,e16.3,2(i8),3x,1pe9.2,0p,f8.2,f11.2)') &
-                chsign,10**6*(wmhd-w0), mres0, nres0, HelPert0*normal,  &
-                rad, ABS(mres0*chip0+nres0*nfp*phip0)
+            WRITE (iprint, '(4x,a,1p,e16.3,2(i8),3x,1pe9.2,0p,f8.2,f11.2,4x,f11.2)') &
+                chsign,10**6*(wmhd-w0), mres0, nres0, HelPert0*normal,       &
+                rad, ABS(mres0*chip0+nres0*nfp*phip0), chip0/phip0
          END DO
          END IF
          CALL GetResPert(irscale, isign, mres0, nres0,                  &
@@ -278,16 +295,12 @@
          w0 = wmhd
 !      END IF
  
- 1001 CONTINUE
-
-         IF (jstart .lt. (ns-10)) THEN
-            jstart = jstart+10             !!Avoid flat iota multiples
-            GOTO 100                       !!Look for multiple resonances
-         END IF
-
+         jstart = jstart+MAX(1,ns/20)                          !Avoid flat resonance
+         END DO JSURF_TEST                                     !Look for multiple resonances
+         END DO NRES_TEST
       END DO RES_TEST
 
-      IF (iam .eq. 0) THEN
+      IF (iam .EQ. 0) THEN
          DO iprint = 6, 33, 27
             WRITE (iprint, *)
          END DO
@@ -300,48 +313,40 @@
       END SUBROUTINE add_perturb
 
 
-      SUBROUTINE FindResonance(mres0, nres0, resrad, jstart)
+      LOGICAL FUNCTION FindResonance(mres0, nres0, resrad, jstart)
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)      :: mres0
-      INTEGER, INTENT(out)     :: nres0
+      INTEGER, INTENT(in)     :: nres0
       INTEGER, INTENT(inout)   :: jstart
       REAL(rprec), INTENT(out) :: resrad
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER                   :: js, nmin, jmin, nres02
+      INTEGER                   :: js, jmin
       REAL(rprec)               :: del1, del2, rho1, rho2, delmin
-      LOGICAL                   :: lZero
 !-----------------------------------------------
+!
+!     Starting at jstart, find place where mres0*chip+n*nfp*phip is minimum (changes sign)
+!
       del2 = 0
       resrad = 0
       delmin = -1
-      lZero = .FALSE.
+      IF (mres0*nres0 .EQ. 0) THEN
+          FindResonance=.FALSE.; RETURN
+      END IF
       DO js = jstart, ns-1
-         del1 = mres0*(chipf_i(js)/nfp)
-         IF (del1 .eq. zero) CYCLE
-         IF (phipf_i(js) .ne. zero) THEN
-            nres0 = -NINT(del1/phipf_i(js))
-         ELSE 
-            nres0 = 0
-         ENDIF
-         del1 = del1 + nres0*phipf_i(js)
-         del1 = del1/MAX(ABS(chipf_i(js)),ABS(phipf_i(js)),1.E-3_dp)
-         IF (delmin.eq.-1 .or. ABS(del1).lt.delmin) THEN
+         del1 = mres0*chipf_i(js)+nres0*nfp*phipf_i(js)
+         del1 = del1/MAX(ABS(mres0*chipf_i(js)),ABS(nres0*nfp*phipf_i(js)),1.E-20_dp)
+         IF (delmin.eq.-1 .OR. ABS(del1).lt.delmin) THEN
+            IF (delmin .EQ. -1) del2 = del1
             delmin = ABS(del1)
-            nmin = nres0
             jmin = js
          END IF
          
-         IF (del2 .ne. zero) THEN     !!adjust del2 to SAME value nres0
-            del2 = del2 + (nres0-nres02)
-         END IF
-            
          IF (del1*del2 < zero) THEN
-            lZero = .TRUE.
             jstart = js+1
             rho2 = hs_i*(js-2)
             rho1 = hs_i*(js-1)
@@ -350,22 +355,19 @@
             EXIT
          END IF
          del2 = del1
-         nres02 = nres0
       END DO 
 
-      IF (delmin.lt.ABS(nmin)*1.E-2_dp .AND. ABS(nmin).le.ntor) THEN
+      IF (delmin .LT. 1.E-3_dp) THEN
          jstart = jmin
-         nres0 = nmin
          resrad = hs_i*(jmin-1)
+         FindResonance=.TRUE.
       ELSE
          jstart=ns-1
          resrad = 0
+         FindResonance=.FALSE.
       END IF
 
-!Do not search for multiple roots if no crossings occurred
-      IF (.not.lZero) jstart=ns-1
-
-      END SUBROUTINE FindResonance
+      END FUNCTION FindResonance
 
 
       SUBROUTINE GetResPert(irscale, isign, mres0, nres0, rad,          &
@@ -452,23 +454,39 @@
 !     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
 !     EVENTUALLY USE FOR MULTIGRIDDING
 !
+#if defined(MRC)
+      WRITE (15, 400) l_force_asym
+#endif
+
       WRITE (15,100) nsin, mpolin, ntorin
       WRITE (15,200) wout_file
 
       DO js=1,nsin
-      DO m =0,mpolin
-      DO n = -ntorin,ntorin
-      WRITE (15,300) jbsupsmnsh(m,n,js), jbsupumnch(m,n,js),            &
-     &               jbsupvmnch(m,n,js), jpmnch(m,n,js)
+         DO m =0,mpolin
+            DO n = -ntorin,ntorin
+               WRITE (15,300) jbsupsmnsh(m,n,js), jbsupumnch(m,n,js),            &
+     &                        jbsupvmnch(m,n,js), jpmnch(m,n,js)
+            ENDDO
+         ENDDO
       ENDDO
+
+#if defined(MRC)
+      DO js=1,nsin
+         DO m =0,mpolin
+            DO n = -ntorin,ntorin
+               WRITE (15,300) jbsupsmnch(m,n,js), jbsupumnsh(m,n,js),            &
+     &                        jbsupvmnsh(m,n,js), jpmnsh(m,n,js)
+            ENDDO
+         ENDDO
       ENDDO
-      ENDDO
+#endif
 
       CLOSE (unit=15)
 
  100  FORMAT(3i8)
  200  FORMAT(a256)
  300  FORMAT(1p4e24.16)
+ 400  FORMAT(L1)
 
       END SUBROUTINE write_restart_file
      
@@ -500,29 +518,55 @@
 ! Define Variables
 !================================
 !  Scalars 
+#if defined(MRC)
+      CALL cdf_define(ncdf, vn_lasym, l_force_asym)
+#endif
+
       CALL cdf_define(ncdf, vn_nsin, nsin)
       CALL cdf_define(ncdf, vn_mpolin, mpolin)
       CALL cdf_define(ncdf, vn_ntorin, ntorin)
       CALL cdf_define(ncdf, vn_wout, wout_file)
 
 !  3D arrays
-      CALL cdf_define(ncdf, vn_bsups, jbsupsmnsh, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_bsupu, jbsupumnch, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_bsupv, jbsupvmnch, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_pres,  jpmnch,     dimname=r3dim)
+      CALL cdf_define(ncdf, vn_bsupss, jbsupsmnsh, dimname=r3dim)
+      CALL cdf_define(ncdf, vn_bsupuc, jbsupumnch, dimname=r3dim)
+      CALL cdf_define(ncdf, vn_bsupvc, jbsupvmnch, dimname=r3dim)
+      CALL cdf_define(ncdf, vn_presc,  jpmnch,     dimname=r3dim)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL cdf_define(ncdf, vn_bsupsc, jbsupsmnch, dimname=r3dim)
+         CALL cdf_define(ncdf, vn_bsupus, jbsupumnsh, dimname=r3dim)
+         CALL cdf_define(ncdf, vn_bsupvs, jbsupvmnsh, dimname=r3dim)
+         CALL cdf_define(ncdf, vn_press,  jpmnsh,     dimname=r3dim)
+      END IF
+#endif
 
 !================================
 ! Write Variables
 !================================
+#if defined(MRC)
+      CALL cdf_write(ncdf, vn_lasym, l_force_asym)
+#endif
+
       CALL cdf_write(ncdf, vn_nsin, nsin)
       CALL cdf_write(ncdf, vn_mpolin, mpolin)
       CALL cdf_write(ncdf, vn_ntorin, ntorin)
       CALL cdf_write(ncdf, vn_wout, wout_file)
 
-      CALL cdf_write(ncdf, vn_bsups, jbsupsmnsh)
-      CALL cdf_write(ncdf, vn_bsupu, jbsupumnch)
-      CALL cdf_write(ncdf, vn_bsupv, jbsupvmnch)
-      CALL cdf_write(ncdf, vn_pres,  jpmnch)
+      CALL cdf_write(ncdf, vn_bsupss, jbsupsmnsh)
+      CALL cdf_write(ncdf, vn_bsupuc, jbsupumnch)
+      CALL cdf_write(ncdf, vn_bsupvc, jbsupvmnch)
+      CALL cdf_write(ncdf, vn_presc,  jpmnch)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL cdf_write(ncdf, vn_bsupsc, jbsupsmnch)
+         CALL cdf_write(ncdf, vn_bsupus, jbsupumnsh)
+         CALL cdf_write(ncdf, vn_bsupvs, jbsupvmnsh)
+         CALL cdf_write(ncdf, vn_press,  jpmnsh)
+      END IF
+#endif
 
       CALL cdf_close(ncdf)
 
@@ -562,22 +606,46 @@
 !     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
 !     EVENTUALLY USE FOR MULTIGRIDDING
 !
+#if defined(MRC)
+      READ (15,400) l_force_asym
+#endif
+
       READ (15,100) ns, mpol, ntor
-      ALLOCATE (temp1(0:mpol,-ntor:ntor,ns), temp2(0:mpol,-ntor:ntor,ns), &
-                temp3(0:mpol,-ntor:ntor,ns), temp4(0:mpol,-ntor:ntor,ns), &
-                stat=istat)
+      ALLOCATE (jbsupsmnshtemp(0:mpol,-ntor:ntor,ns),                          &
+                jbsupumnchtemp(0:mpol,-ntor:ntor,ns),                          &
+                jbsupvmnchtemp(0:mpol,-ntor:ntor,ns),                          &
+                jpmnchtemp(0:mpol,-ntor:ntor,ns), stat=istat)
       IF (istat .ne. 0) STOP 'Allocation error in read_restart_file'
 
       READ (15,200) wout_file
 
       DO js=1,ns
-      DO m=0,mpol
-      DO n=-ntor,ntor
-      READ (15,300) temp1(m,n,js), temp2(m,n,js),                       &
-                    temp3(m,n,js), temp4(m,n,js)
+         DO m=0,mpol
+            DO n=-ntor,ntor
+               READ (15,300) jbsupsmnshtemp(m,n,js), jbsupumnchtemp(m,n,js),   &
+                             jbsupvmnchtemp(m,n,js), jpmnchtemp(m,n,js)
+            ENDDO
+         ENDDO
       ENDDO
-      ENDDO
-      ENDDO
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         ALLOCATE (jbsupsmnchtemp(0:mpol,-ntor:ntor,ns),                          &
+                   jbsupumnshtemp(0:mpol,-ntor:ntor,ns),                          &
+                   jbsupvmnshtemp(0:mpol,-ntor:ntor,ns),                          &
+                   jpmnshtemp(0:mpol,-ntor:ntor,ns), stat=istat)
+         IF (istat .ne. 0) STOP 'Allocation error in read_restart_file'
+
+         DO js=1,ns
+            DO m=0,mpol
+               DO n=-ntor,ntor
+                  READ (15,300) jbsupsmnshtemp(m,n,js), jbsupumnchtemp(m,n,js),   &
+                                jbsupvmnchtemp(m,n,js), jpmnchtemp(m,n,js)
+               ENDDO
+            ENDDO
+         ENDDO
+      END IF
+#endif
 
  111  CONTINUE
 
@@ -586,21 +654,38 @@
       jbsupvmnch(:,:,1) = 0
       jpmnch(:,:,1) = 0
 
-      CALL interpit(temp1, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(jbsupsmnshtemp, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
-      CALL interpit(temp2, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(jbsupumnchtemp, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
-      CALL interpit(temp3, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(jbsupvmnchtemp, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
-      CALL interpit(temp4, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
+      CALL interpit(jpmnchtemp, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
 
-      DEALLOCATE (temp1, temp2, temp3, temp4, stat=istat)
+      DEALLOCATE (jbsupsmnshtemp, jbsupumnchtemp, jbsupvmnchtemp, jpmnchtemp, stat=istat)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL interpit(jbsupsmnchtemp, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+         jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
+         CALL interpit(jbsupumnshtemp, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+         jbsupumnch(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
+         CALL interpit(jbsupvmnshtemp, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+         jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
+         CALL interpit(jpmnshtemp, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
+         jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
+
+         DEALLOCATE (jbsupsmnchtemp, jbsupumnshtemp, jbsupvmnshtemp, jpmnshtemp, stat=istat)
+      END IF
+#endif
+
       CLOSE (unit=15)
 
  100  FORMAT(3i8)
  200  FORMAT(a256)
  300  FORMAT(1p4e24.16)
+ 400  FORMAT(L1)
 
       END SUBROUTINE read_restart_file
 
@@ -623,13 +708,17 @@
       CALL cdf_open(ncdf,filename,'r',istat)
       IF (istat .ne. 0) RETURN
 
+#if defined(MRC)
+      CALL cdf_read(ncdf, vn_lasym, l_force_asym)
+#endif
+
       CALL cdf_read(ncdf, vn_nsin, ns)
       CALL cdf_read(ncdf, vn_mpolin, mpol)
       CALL cdf_read(ncdf, vn_ntorin, ntor)
       CALL cdf_read(ncdf, vn_wout, wout_file)
 
-      ALLOCATE (temp1(0:mpol,-ntor:ntor,ns), temp2(0:mpol,-ntor:ntor,ns), &
-                temp3(0:mpol,-ntor:ntor,ns), temp4(0:mpol,-ntor:ntor,ns), &
+      ALLOCATE (jbsupsmnshtemp(0:mpol,-ntor:ntor,ns), jbsupumnchtemp(0:mpol,-ntor:ntor,ns), &
+                jbsupvmnchtemp(0:mpol,-ntor:ntor,ns), jpmnchtemp(0:mpol,-ntor:ntor,ns), &
                 stat=istat)
       IF (istat .ne. 0) STOP 'Memory allocation error in read_restart_ncfile'
 
@@ -637,10 +726,19 @@
 ! Read Variables
 !================================
 
-      CALL cdf_read(ncdf, vn_bsups, temp1)
-      CALL cdf_read(ncdf, vn_bsupu, temp2)
-      CALL cdf_read(ncdf, vn_bsupv, temp3)
-      CALL cdf_read(ncdf, vn_pres,  temp4)
+      CALL cdf_read(ncdf, vn_bsupss, jbsupsmnshtemp)
+      CALL cdf_read(ncdf, vn_bsupuc, jbsupumnchtemp)
+      CALL cdf_read(ncdf, vn_bsupvc, jbsupvmnchtemp)
+      CALL cdf_read(ncdf, vn_presc,  jpmnchtemp)
+
+#if defined(MRC)
+      IF (l_force_asym) THEN
+         CALL cdf_read(ncdf, vn_bsupsc, jbsupsmnchtemp)
+         CALL cdf_read(ncdf, vn_bsupus, jbsupumnshtemp)
+         CALL cdf_read(ncdf, vn_bsupvs, jbsupvmnshtemp)
+         CALL cdf_read(ncdf, vn_press,  jpmnshtemp)
+      END IF
+#endif
 
       CALL cdf_close(ncdf)
 
@@ -742,8 +840,7 @@
          DO nres=-ntor,ntor
             jstart = 2
             DO WHILE (jstart .lt. ns-1)
-               CALL FindResonance(mres, nres, rad, jstart)
-               IF (jstart .ge. ns-1) EXIT
+               IF (.NOT.FindResonance(mres, nres, rad, jstart)) EXIT
                CALL AddResonantE (eparmn(:,mres,nres), rad, jstart)
             END DO
          END DO

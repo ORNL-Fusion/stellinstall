@@ -195,6 +195,9 @@
       SUBROUTINE check3d_symmetry_serial(dblk,lblk,ublk,mpol,ntor,      &
                                          mblk,nblocks,asym_index)
       USE stel_kinds
+#if defined(MRC)
+      USE island_params, ONLY: l_force_asym
+#endif
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -206,7 +209,7 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER              :: ntype, m, n, icol
+      INTEGER              :: ntype, m, n, icol, ntype_end
       REAL(dp)             :: w1, w2
 !-----------------------------------------------
 !
@@ -214,8 +217,14 @@
 !
       icol = 0
 
+      IF (l_force_asym) THEN
+         ntype_end = 6
+      ELSE
+         ntype_end = 3
+      END IF
+
       w1 = 0;  w2 = 0
-      DO ntype = 1,3
+      DO ntype = 1, ntype_end
         DO n = -ntor, ntor
           DO m = 0, mpol
             icol = icol+1
@@ -244,8 +253,12 @@
       SUBROUTINE CheckForces(xc, gc, eps, func)
       USE stel_kinds, ONLY: dp
       USE shared_data, ONLY: wtotal, l_linearize
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
+      USE quantities, ONLY: mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
+#if defined(MRC)
+      USE island_params, ONLY: l_force_asym
+#endif
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -256,7 +269,7 @@
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
       REAL(dp), ALLOCATABLE :: gc1(:,:)
-      INTEGER  :: ntype, n, m, icol, js, mblk
+      INTEGER  :: ntype, n, m, icol, js, mblk, ntype_end
       REAL(dp) ::  wplus, wmins, force, eps1
       LOGICAL  :: lsave, lsave2
       CHARACTER*(10) :: force_array(3) = (/' FORCE-S: ',' FORCE-U: ',' FORCE-V: '/)
@@ -282,7 +295,13 @@
 
       js = ns/2
 
-      DO ntype = 1, 3
+      IF (l_force_asym) THEN
+         ntype_end = 6
+      ELSE
+         ntype_end = 3
+      END IF
+
+      DO ntype = 1, ntype_end
          DO n = -ntor, ntor
             DO m = 0, mpol
             icol = icol+1
@@ -317,17 +336,20 @@
 
 
       SUBROUTINE TriDiag_Test (xc, gc, eps)
+#if defined(MRC)
+      USE island_params, ONLY: l_force_asym
+#endif
 !
 !     TESTS Tridiagonal STRUCTURE OF HESSIAN!
 !
       USE stel_kinds, ONLY: dp
       USE evolution, ONLY: l_linearize, l_init_state, l_ApplyPrecon, funct_island
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
+      USE quantities, ONLY: mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
       IMPLICIT NONE
       REAL(dp), PARAMETER :: zero = 0
       REAL(dp) :: xc(3*(1+mpol)*(2*ntor+1),ns), gc(3*(1+mpol)*(2*ntor+1),ns), eps
-      INTEGER :: js, icol, ntype, n, m
+      INTEGER :: js, icol, ntype, n, m, ntype_end
       REAL(dp), ALLOCATABLE :: gc0(:,:)
       LOGICAL :: l_save, lPass, l_AppSave
 
@@ -345,7 +367,14 @@
 
       icol = 0
       lPass = .TRUE.
-      DO ntype = 1, 3
+
+      IF (l_force_asym) THEN
+         ntype_end = 6
+      ELSE
+         ntype_end = 3
+      END IF
+
+      DO ntype = 1, ntype_end
          DO n = -ntor, ntor
             DO m = 0, mpol
                icol = icol+1

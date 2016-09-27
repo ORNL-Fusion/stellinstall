@@ -12,10 +12,9 @@ USE blocktridiagonalsolver, ONLY: &
 & GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU, &
 & GetMatrixRHS, StoreDiagonal
 #endif
+USE mpi_inc
+
 IMPLICIT NONE
-#if defined(MPI_OPT)
-INCLUDE 'mpif.h'
-#endif
 
 !------------------------------------------------
 ! User controlled logicals

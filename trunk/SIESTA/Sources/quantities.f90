@@ -11,6 +11,7 @@
           mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,       &
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
       USE descriptor_mod, ONLY: iam
+
       IMPLICIT NONE
 
 !
@@ -20,7 +21,7 @@
 !           ii.  The next three letters maybe "SUB" or "SUP", to distinguish covariant/contravariant 
 !           ii.  The next letter maybe "s", "u" or "v" to distinguish radial/poloidal/toroidal components
 !           iii. The next two letters maybe "MN" or "IJ", to distinguish Fourier harmonics or angular values 
-!           iv.  The next letter maybe "C" or "S" to distinguish COSINE or SINE parity
+!           iv.  The next letter maybe "C" or "S" to distinguish COSINE or SINE parity, Only on Fourier Components
 !           v.   The last letter maybe "F" or "H" to distinguish FULL or HALF radial mesh
 !
 !       Radial meshes
@@ -34,37 +35,61 @@
        REAL(rprec) :: b_factor, w_factor, p_factor                     ! Scale internal energy <wb+wp/(gam-1)> to 1
        REAL(rprec) :: signjac
        REAL(rprec) :: wp, wb
-       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:)::                 &  ! Fourier harmonics= BSUP?, VSUB?, P
-        fsupsmncf, fsupumnsf, fsupvmnsf,                            &
-        jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,                 & 
-        djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,             &  ! Those starting with "d" represent increments.  
-        jbsupsmnsh_p, jbsupumnch_p, jbsupvmnch_p, jpmnch_p             ! _p == PARALLEL (ns index reversed)        
+
+!---- Fourier Values -----------------------------------------------------------
+       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                &
+          fsupsmncf, fsupumnsf, fsupvmnsf,                          &
+          jbsupsmnsh, jbsupumnch, jbsupvmnch,                       &
+          djbsupsmnsh, djbsupumnch, djbsupvmnch,                    &
+          jpmnch, djpmnch
 
 !      Pointers are subsections of xc, gc (copied, do NOT use pointers!)
-       REAL(rprec), POINTER, DIMENSION(:,:,:) ::                    &  ! Fourier harmonics= JVSUP?mn?F
+       REAL(rprec), POINTER, DIMENSION(:,:,:) ::                    &
 !      Evolved quantities
-        jvsupsmncf, jvsupumnsf, jvsupvmnsf,                         &
+          jvsupsmncf, jvsupumnsf, jvsupvmnsf,                       &
 !      Computed forces
-        fsubsmncf, fsubumnsf, fsubvmnsf                           
-
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupsijcf,     &  ! all these are needed to compute convolutions
-        jvsupuijsf, jvsupvijsf, jacobh, jacobf,                     &  ! in pressure and magn. field evolution equations.
-        jacobh_p, jacobf_p
+          fsubsmncf, fsubumnsf, fsubvmnsf
 
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
-        bsupsijsf0, bsupuijcf0, bsupvijcf0,                         &
-        bsupsijsh0, bsupuijch0, bsupvijch0,                         &
-        bsubsijsf,  bsubuijcf,  bsubvijcf, bsq
+         ksupsmnsf,  ksupumncf,  ksupvmncf
+
+#if defined(MRC)
+!  Asym
+       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                &
+          fsupsmnsf, fsupumncf, fsupvmncf,                          &
+          jbsupsmnch, jbsupumnsh, jbsupvmnsh,                       &
+          djbsupsmnch, djbsupumnsh, djbsupvmnsh,                    &
+          jpmnsh, djpmnsh
+
+!      Pointers are subsections of xc, gc (copied, do NOT use pointers!)
+       REAL(rprec), POINTER, DIMENSION(:,:,:) ::                    &
+!      Evolved quantities
+          jvsupsmnsf, jvsupumncf, jvsupvmncf,                       &
+!      Computed forces
+          fsubsmnsf, fsubumncf, fsubvmncf
+
+       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                &
+          ksupsmncf,  ksupumnsf,  ksupvmnsf
+#endif
+!---- Real Values --------------------------------------------------------------
+
+
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupsijf,      &  ! all these are needed to compute convolutions
+        jvsupuijf, jvsupvijf, jacobh, jacobf                           ! in pressure and magn. field evolution equations.
 
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
-        pijch, pijcf, pijcf_ds, pijcf_du, pijcf_dv
+        bsupsijf0, bsupuijf0, bsupvijf0,                            &
+        bsupsijh0, bsupuijh0, bsupvijh0,                            &
+        bsubsijf,  bsubuijf,  bsubvijf, bsq
 
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
-        ksupsijsf0, ksupuijcf0, ksupvijcf0,                         &
-        ksupsmnsf,  ksupumncf,  ksupvmncf
+        pijh, pijf, pijf_ds, pijf_du, pijf_dv
 
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
-        ksubsijsf, ksubuijcf, ksubvijcf                                 
+        ksupsijf0, ksupuijf0, ksupvijf0
+
+      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
+        ksubsijf, ksubuijf, ksubvijf
 
       REAL(rprec) :: fbdy(13)                
 !
@@ -80,7 +105,8 @@
       CONTAINS
 
         SUBROUTINE init_quantities
-        USE fourier, ONLY: tomnsp, toijsp
+        USE fourier, ONLY: tomnsp, toijsp, fourier_parity_even, fourier_parity_odd, &
+                           fourier_half_grid
         IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -117,9 +143,17 @@
 !       Evolve (internally) jacob*(real pressure)
         presih = presih * jacobh
 
-        CALL tomnsp(presih, jpmnch, 0, 1)                                 ! Initialize pressure harmonics (half mesh)
+        CALL tomnsp(presih, jpmnch, fourier_parity_even, fourier_half_grid)   ! Initialize pressure harmonics (half mesh)
         jpmnch(:,:,1) = 0
         jpmnch(m0,:,1) = jpmnch(m0,:,2)
+
+#if defined(MRC)
+        IF (l_force_asym) THEN
+           CALL tomnsp(presih, jpmnsh, fourier_parity_odd, fourier_half_grid) ! Initialize pressure harmonics (half mesh)
+           jpmnsh(:,:,1) = 0
+           jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
+        END IF
+#endif
 
         DEALLOCATE(presif, presih, stat=istat)
         IF (istat .ne. 0) STOP "Deallocate error #2 in init_quantities"
@@ -128,8 +162,10 @@
 
 
         SUBROUTINE init_bcovar
-        USE metrics, ONLY: lmns_i, sqrtg, iflipj
-        USE fourier, ONLY: getorigin, tomnsp, toijsp
+        USE metrics, ONLY: lmns_i, lmnc_i, sqrtg, iflipj
+        USE fourier, ONLY: getorigin, tomnsp, toijsp, fourier_full_grid,       &
+                           fourier_parity_even, fourier_parity_odd, fourier_none
+
         IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -138,7 +174,14 @@
         INTEGER  :: istat, js, l, m, n
         REAL(rprec) :: sum1
         REAL(rprec), DIMENSION(:), ALLOCATABLE :: phiph, chiph
+
+#if defined(MRC)
+        REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: work
+
 !-----------------------------------------------
+
+        ALLOCATE(work(SIZE(jacobh, 1), SIZE(jacobh, 1), SIZE(jacobh, 3)))
+#endif
         jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))                           ! Reshapes sqrtg in local form
 
 !AVOID DIVIDE BY ZERO AND STORE AVERAGED VALUE (OVER THETA) 
@@ -149,23 +192,34 @@
 !TO PRESERVE UNPERTURBED (CONSTANT IN s) PART OF PRESSURE, NYQUIST-FILTER JACOBIAN
 !SPH 04-28-16
         jacobf = jacobh
+
+#if defined(MRC)
+!  Un modified version show parity and grid missmatch with variable label.
+        CALL tomnsp(jacobh, jbsupsmnsh, fourier_parity_even, fourier_full_grid)
+        IF (l_force_asym) THEN
+           CALL tomnsp(jacobh, jbsupsmnch, fourier_parity_odd, fourier_full_grid)
+        END IF
+
+        CALL toijsp(jbsupsmnsh, jacobh, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
+        IF (l_force_asym) THEN
+           CALL toijsp(jbsupsmnch, work, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid)
+           jacobh = jacobh + work
+        END IF
+#else
         CALL tomnsp(jacobh, jbsupsmnsh, 0, 0)
         CALL toijsp(jbsupsmnsh, jacobh, 0, 0, 0, 0)
+#endif
+
         IF (ANY(jacobh*signjac .LE. 0)) STOP 'FILTERED JACOBIAN CHANGED SIGN!'
         sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/     &
                    (jacobh(:,:,2:)+jacobf(:,:,2:))**2)
-        IF (iam .EQ. 0) PRINT '(a,f6.2,a)',                &
-           ' RMS FILTERED JACOBIAN FIT: ', 100*SQRT(sum1/SIZE(jacobh)),'%'
+        IF (iam .EQ. 0) PRINT '(a,1pe8.2)',                &
+           ' JACOBIAN SPECTRAL TRUNCATION ERROR: ', SQRT(sum1/SIZE(jacobh))
 
         CALL to_full_mesh(jacobh, jacobf, nuv)
 !Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
         jacobf(:,:,1) = jacobh(:,:,1)
         jacobf(:,:,ns)= jacobh(:,:,ns)
-
-        DO l=1,ns
-           jacobf_p(:,:,l) = jacobf(:,:,l)
-           jacobh_p(:,:,l) = jacobh(:,:,l)
-        END DO
 
         ALLOCATE (vp_f(ns), stat=istat)
         IF (istat .ne. 0) STOP 'Allocation error in init_bcovar'        
@@ -225,6 +279,31 @@
         jbsupvmnch(m0,:,1) = jbsupvmnch(m0,:,2) 
         jbsupvmnch(m1:,:,1) = 0
 
+#if defined(MRC)
+        IF (l_force_asym) THEN
+           jbsupsmnch = 0
+
+           DO m = 0,mpol
+              DO n = -ntor, ntor
+                 jbsupumnsh(m,n,:) = phiph(:)*(-n*nfp*lmnc_i(m,n,1:ns))
+                 jbsupvmnsh(m,n,:) = phiph(:)*( m    *lmnc_i(m,n,1:ns))
+              END DO
+           END DO
+
+           jbsupumnsh(m0,0,:) = chiph(:)
+           jbsupvmnsh(m0,0,:) = phiph(:)
+
+           jbsupumnsh(m1,:,1:2) = 0                            ! Need to make jbsupsmnsh - r0*jbsupumnch = 0 at js=2
+           jbsupvmnsh(m1,:,1:2) = 0                            ! Need to make divB = 0 at js=2 initially
+
+           jbsupumnsh = b_factor*jbsupumnsh
+           jbsupvmnsh = b_factor*jbsupvmnsh
+
+!STORE m=0 component of jbsupvmnch at origin in half-grid js=1
+           jbsupvmnsh(m0,:,1) = jbsupvmnsh(m0,:,2)
+           jbsupvmnsh(m1:,:,1) = 0
+        END IF
+#endif
         DEALLOCATE (phiph, chiph, stat=istat)
         IF (istat .ne. 0) STOP "Deallocate error in init_bcovar"
         
@@ -236,7 +315,7 @@
         SUBROUTINE alloc_quantities
 !
 !       Allocates variables that will be needed through the advancing subroutines. 
-!       More maybe added in the future. 
+!       More may be added in the future. 
 !       All variables allocated here are then deallocated in DEALLOC_QUANTITIES, 
 !       which should be called at the end of the run.
 ! 
@@ -251,22 +330,38 @@
                  jbsupumnch(0:mpol,-ntor:ntor,ns),                      &  ! B^s (sine), B^u (cosine), B^v (cosine)
                  jbsupvmnch(0:mpol,-ntor:ntor,ns),                      & 
                  jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'     ! CONTRAVARIANT MAGNETIC FIELD
+        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'     ! CONTRAVARIANT MAGNETIC FIELDS
         jbsupsmnsh = zero; jbsupumnch = zero; jbsupvmnch = zero        
         jpmnch = zero
-
-        ALLOCATE(bsq(ntheta,nzeta,ns), stat=istat)  
-        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITES'
 
         ALLOCATE(fsupsmncf(0:mpol,-ntor:ntor,ns),                       &  ! Full mesh quantities (harmonics)
                  fsupumnsf(0:mpol,-ntor:ntor,ns),                       &  ! F_s (cosine), F_u (sine), F_v (sine)
                  fsupvmnsf(0:mpol,-ntor:ntor,ns), stat=istat) 
-        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'     ! COVARIANT MHD FORCE
-                
+        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'     ! CONTRVARIANT MHD FORCES
+
+#if defined (MRC)
+        IF (l_force_asym) THEN
+!       Half mesh quantities (harmonics) evolved: 3 magnetic field components and pressure
+           ALLOCATE(jbsupsmnch(0:mpol,-ntor:ntor,ns),                      &  ! Half mesh quantities (harmonics)
+                    jbsupumnsh(0:mpol,-ntor:ntor,ns),                      &  ! B^s (cosine), B^u (sine), B^v (sine)
+                    jbsupvmnsh(0:mpol,-ntor:ntor,ns),                      &
+                    jpmnsh    (0:mpol,-ntor:ntor,ns), stat=istat)
+           IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'     ! CONTRAVARIANT MAGNETIC FIELDS
+           jbsupsmnch = zero; jbsupumnsh = zero; jbsupvmnsh = zero
+           jpmnsh = zero
+
+           ALLOCATE(fsupsmnsf(0:mpol,-ntor:ntor,ns),                       &  ! Full mesh quantities (harmonics)
+                    fsupumncf(0:mpol,-ntor:ntor,ns),                       &  ! F_s (sine), F_u (cosine), F_v (cosine)
+                    fsupvmncf(0:mpol,-ntor:ntor,ns), stat=istat)
+           IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'     ! CONTRVARIANT MHD FORCES
+        END IF
+#endif
+
+        ALLOCATE(bsq(ntheta,nzeta,ns), stat=istat)
+        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITES'
+
         ALLOCATE(jacobh(ntheta,nzeta,ns),                               &
-                 jacobf(ntheta,nzeta,ns),                               &
-                 jacobh_p(ntheta,nzeta,ns),                             &
-                 jacobf_p(ntheta,nzeta,ns), stat=istat)
+                 jacobf(ntheta,nzeta,ns), stat=istat)
         IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'
 
         END SUBROUTINE alloc_quantities
@@ -279,21 +374,33 @@
 !        
         IMPLICIT NONE
         INTEGER :: istat
-        
-        DEALLOCATE(jpmnch, jbsupsmnsh, jbsupumnch, jbsupvmnch, djpmnch, &
-          djbsupsmnsh, djbsupumnch, djbsupvmnch, jacobh, jacobf, vp_f,  &
-          jacobh_p, jacobf_p, jvsupsijcf, jvsupuijsf, jvsupvijsf,       &
-          ksubsijsf, ksubuijcf, ksubvijcf, pijch, pijcf,                &
-          pijcf_ds, fsupsmncf, fsupumnsf, fsupvmnsf, bsupuijcf0,        &
-          bsupvijcf0, bsupsijsf0, bsq, pijcf_du, pijcf_dv,              &
-          ksupsmnsf,  ksupumncf, ksupvmncf, stat=istat)
 
-        IF(ALLOCATED(jpmnch_p))   DEALLOCATE(jpmnch_p, jbsupsmnsh_p,    &
-                                             jbsupumnch_p, jbsupvmnch_p)
-        IF(ALLOCATED(bsupsijsf0)) DEALLOCATE(bsupsijsf0, bsupuijcf0, bsupvijcf0)
-        IF(ALLOCATED(bsupsijsh0)) DEALLOCATE(bsupsijsh0, bsupuijch0, bsupvijch0)
-        IF(ALLOCATED(ksupsijsf0)) DEALLOCATE(ksupsijsf0, ksupuijcf0, ksupvijcf0)
-        IF(ALLOCATED(bsubsijsf))  DEALLOCATE(bsubsijsf,  bsubuijcf, bsubvijcf)
+        DEALLOCATE(jbsupsmnsh, jbsupumnch, jbsupvmnch,                         &
+                   djbsupsmnsh, djbsupumnch, djbsupvmnch,                      &
+                   fsupsmncf, fsupumnsf, fsupvmnsf,                            &
+                   ksupsmnsf, ksupumncf, ksupvmncf,                            &
+                   jpmnch, djpmnch, stat=istat)
+
+#if defined(MRC)
+        IF (l_force_asym) THEN
+           DEALLOCATE(jbsupsmnch, jbsupumnsh, jbsupvmnsh,                      &
+                      djbsupsmnch, djbsupumnsh, djbsupvmnsh,                   &
+                      fsupsmnsf, fsupumncf, fsupvmncf,                         &
+                      ksupsmncf, ksupumnsf, ksupvmnsf,                         &
+                      jpmnsh, djpmnsh, stat=istat)
+        END IF
+#endif
+
+        DEALLOCATE(jvsupsijf, jvsupuijf, jvsupvijf,                            &
+                   ksubsijf, ksubuijf, ksubvijf,                               &
+                   pijh, pijf, pijf_ds, pijf_du, pijf_dv,                      &
+                   bsupuijf0, bsupvijf0, bsupsijf0,                            &
+                   jacobh, jacobf, vp_f, bsq, stat=istat)
+
+        IF(ALLOCATED(bsupsijf0)) DEALLOCATE(bsupsijf0, bsupuijf0, bsupvijf0)
+        IF(ALLOCATED(bsupsijh0)) DEALLOCATE(bsupsijh0, bsupuijh0, bsupvijh0)
+        IF(ALLOCATED(ksupsijf0)) DEALLOCATE(ksupsijf0, ksupuijf0, ksupvijf0)
+        IF(ALLOCATED(bsubsijf))  DEALLOCATE(bsubsijf,  bsubuijf, bsubvijf)
         IF(ALLOCATED(lmns_i)) DEALLOCATE(lmns_i)
  
         IF (istat .NE. 0) STOP 'Deallocation failed in Quantities!'
