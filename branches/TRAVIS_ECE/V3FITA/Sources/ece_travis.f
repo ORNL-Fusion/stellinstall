@@ -197,9 +197,6 @@
          rho(n)=(n-1)*dr !r/a
          ne(n) = model_get_ne(a_model,rho(n))
          Te(n) = model_get_te(a_model,rho(n))/1.0e3_rprec
-!> @todo write statements are for debugging
-!         write(*,*) "rho    ne     Te(keV)"
-!         write(*,*) rho(n), ne(n),  te(n)
 !> @todo create a model for Zeff
          Zeff(n)=1.0
       ENDDO
@@ -209,7 +206,7 @@
       labelType = 'tor'
 
 !> Setup the nTz progiles in travis
-      CALL set_nTZ_profs_f77(travis_ns,rho,ne,Te,Zeff,labelType)
+      CALL set_nTZ_profs_f77(travis_ns,rho,ne,Te,Zeff,TRIM(labelType))
       
 !> Run travis to calculate the ece temperature
       CALL run_ECE_BEAM_f77c(1,this%freq,this%wmode,Tece,nresmax,              &
