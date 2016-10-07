@@ -2124,7 +2124,7 @@
 
 !  The global set of communicators exists at this point. Partition the
 !  equilibrium communicators.
-      recon_rank = MOD(mpi_rank, MAX(1, n_rp))
+      recon_rank = MOD(mpi_rank, MAX(1, num_recon_processes))
       CALL MPI_COMM_SPLIT(context%global_comm, recon_rank, 0,                  &
      &                    context%equilibrium_comm, error)
       CALL MPI_COMM_RANK(context%equilibrium_comm, eq_rank, error)

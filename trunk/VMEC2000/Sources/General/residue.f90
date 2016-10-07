@@ -112,12 +112,7 @@
       jedge = 0    
       delIter = iter2-iter1
 
-      IF (l_v3fit) THEN
-         IF (iter2-iter1.lt.50) jedge = 1
-      ELSE
-         IF (delIter.lt.50 .and.                                        &
-            (fsqr+fsqz).lt.1.E-6_dp) jedge = 1
-      ENDIF
+      IF (delIter.lt.50 .and. (fsqr+fsqz).lt.1.E-6_dp) jedge = 1
 
       CALL second0(skston)
       CALL getfsq_par (gcr, gcz, fsqr, fsqz, r1*fnorm, jedge)
