@@ -9,6 +9,17 @@
 #
 # NETCDF_LIB_PATH     -- Path to the netcdf libraries.
 # NETCDF_INC_PATH     -- Path to the netcdf include files.
+# NETCDF_F_LIB_NAME   -- Name of Netcdf_f library if nonstandard
+# NETCDF_C_LIB_NAME   -- Name of netcdf_c library if nonstandard
+#
+# SCALAPACK_LIB_NAME  -- Name of Sscalapack library if nonstandard
+#
+# Some builds of SCALAPACK require linking to external BLACS LIBS
+# These options allow you to define nonstandard BLACS LIB NAMES if needed
+#
+# BLACS_LIB_NAME      -- Name of BLACS library
+# BLACS_CINIT_NAME    -- Name of BLACS Cinit library
+# BLACS_F77INIT_NAME  -- Name of BLACS F77init library
 #
 # BUILD_GTOVMI        -- Optionally builds GTOVMI
 #
@@ -97,8 +108,8 @@ endif ()
 
 if (NETCDF_LIB_PATH)
 	file (TO_NATIVE_PATH ${NETCDF_LIB_PATH} NETCDF_LIB_PATH)
-        find_library (NETCDF_F NAMES netcdff PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
-        find_library (NETCDF_C NAMES netcdf PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+        find_library (NETCDF_F NAMES netcdff ${NETCDF_F_LIB_NAME} PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
+        find_library (NETCDF_C NAMES netcdf ${NETCDF_C_LIB_NAME} PATHS ${NETCDF_LIB_PATH} NO_DEFAULT_PATH)
 endif ()
 
 if (NETCDF_I AND (NETCDF_F OR NETCDF_C))
@@ -116,20 +127,20 @@ else ()
 	message (FATAL_ERROR "Failed to find the required netcdf libraries. These must be found by setting the NETCDF_INC_PATH and NETCDF_LIB_PATH variables.")
 endif ()
 
-find_library (SCALAPACK_LIB NAMES scalapack libscalapack-openmpi.so.1)
+find_library (SCALAPACK_LIB NAMES scalapack ${SCALAPACK_LIB_NAME})
 if (SCALAPACK_LIB)
 # Some builds of SCALAPACK require linking to external BLACS Libraries
-	find_library (BLACS_LIB NAMES blacs libblacs-openmpi.so.1)
+	find_library (BLACS_LIB NAMES blacs ${BLACS_LIB_NAME})
 	if (BLACS_LIB)
-		list (APPEND SCALAPAK_LIB ${BLACS_LIB})
+		list (APPEND SCALAPACK_LIB ${BLACS_LIB})
 	endif ()
-	find_library (BLACSCinit_LIB NAMES blacsCinit libblacsCinit-openmpi.so.1)
+	find_library (BLACSCinit_LIB NAMES blacsCinit ${BLACS_CINIT_NAME})
 	if (BLACSCinit_LIB)
-		list (APPEND SCALAPAK_LIB ${BLACSCinit_LIB})
+		list (APPEND SCALAPACK_LIB ${BLACSCinit_LIB})
 	endif ()
-	find_library (BLACSF77init_LIB NAMES blacsF77init libblacsF77init-openmpi.so.1)
+	find_library (BLACSF77init_LIB NAMES blacsF77init ${BLACS_F77INIT_NAME})
 	if (BLACSF77init_LIB)
-		list (APPEND SCALAPAK_LIB ${BLACSF77init_LIB})
+		list (APPEND SCALAPACK_LIB ${BLACSF77init_LIB})
 	endif ()
 else ()
 	if (USE_PARVMEC)
