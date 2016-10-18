@@ -2003,6 +2003,7 @@
             CALL MPI_COMM_RANK(context%global_comm, mpi_rank, error)
             CALL MPI_COMM_SIZE(context%global_comm, mpi_size, error)
          END IF
+         num_processes = mpi_size
       END IF
 
 !  MPI parallelization is only implemented for specific tasks. If the root task
