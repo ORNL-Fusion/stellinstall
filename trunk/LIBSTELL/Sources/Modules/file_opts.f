@@ -75,6 +75,7 @@
 !>  @param[out] error       The result of the copy.
 !-------------------------------------------------------------------------------
       SUBROUTINE copy_file(file_source, file_dest, error)
+      USE safe_open_mod
 #if defined(FAST_COPY)
       USE, INTRINSIC :: ISO_C_BINDING
 #endif
@@ -82,9 +83,23 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      CHARACTER (len=*), INTENT(in) :: file_source
-      CHARACTER (len=*), INTENT(in) :: file_dest
-      INTEGER, INTENT(out)          :: error
+      CHARACTER (len=*), INTENT(in)                :: file_source
+      CHARACTER (len=*), INTENT(in)                :: file_dest
+      INTEGER, INTENT(out)                         :: error
+
+!  local variables
+      LOGICAL                                      :: l_exists
+      LOGICAL                                      :: l_opened
+      INTEGER                                      :: file_size
+      INTEGER                                      :: max_block_size
+      INTEGER                                      :: io_source
+      INTEGER                                      :: io_dest
+      INTEGER                                      :: n_rec
+      INTEGER                                      :: i_rec
+      CHARACTER (len=1), ALLOCATABLE, DIMENSION(:) :: buffer
+
+!  local parameters
+      INTEGER, PARAMETER            :: block_size = 1024
 
 #if defined(FAST_COPY)
       INTERFACE
@@ -103,21 +118,87 @@
       END INTERFACE
 #endif
 
-!  local parameters
-!  To avoid any possible interactive command lines, make sure the command
-!  overwrites the file if it exists.
-#if defined(WIN32)
-      CHARACTER (len=*), PARAMETER :: cmd = 'copy /y '
-#else
-      CHARACTER (len=*), PARAMETER :: cmd = 'cp -f '
-#endif
-
 !  Start of executable code
 #if defined(FAST_COPY)
       error = copy_file_c(TRIM(file_source) // C_NULL_CHAR,                    &
      &                    TRIM(file_dest) // C_NULL_CHAR)
 #else
-      CALL system(cmd // TRIM(file_source) // ' ' // file_dest, error)
+
+!  Check source file.
+      INQUIRE (file=file_source, exist=l_exists, opened=l_opened,              &
+     &         size=file_size)
+
+      IF (.not.l_exists) THEN
+         WRITE (*,1001) TRIM(file_source)
+         error = -1
+         RETURN
+      ELSE IF (l_opened) THEN
+         WRITE (*,1000) TRIM(file_source)
+         error = -1
+         RETURN
+      END IF
+
+!  Check destination file.
+      INQUIRE (file=file_dest, exist=l_exists, opened=l_opened)
+      IF (l_opened) THEN
+         WRITE (*,1000) TRIM(file_dest)
+         error = -1
+         RETURN
+      ELSE
+         CALL delete_file(file_dest, error)
+      END IF
+
+      io_source = 10
+      io_dest = 11
+
+      max_block_size = MIN(block_size, file_size)
+
+      CALL safe_open(io_source, error, file_source, 'old',                     &
+     &               'unformatted', record_in=max_block_size,                  &
+     &               access_in='direct')
+      IF (error .ne. 0) WRITE (*,1002) TRIM(file_source)
+
+      CALL safe_open(io_dest, error, file_dest, 'new', 'unformatted',          &
+     &               record_in=max_block_size, access_in='direct')
+      IF (error .ne. 0) WRITE (*,1003) TRIM(file_dest)
+
+      ALLOCATE (buffer(max_block_size), stat=error)
+      IF (error .ne. 0) WRITE (*,1004)
+
+!  Write file in block sized chunks.
+      n_rec = MAX(1, file_size/max_block_size)
+      DO i_rec = 1, n_rec
+         READ (io_source, rec=i_rec) buffer
+         WRITE (io_dest, rec=i_rec) buffer
+      END DO
+
+      CLOSE (io_source)
+      CLOSE (io_dest)
+
+!  The block size may not bet an even multiple of the file size. Copy the
+!  remaining part in 1 byte chunks.
+      IF (file_size - (i_rec - 1)*max_block_size .gt. 0) THEN
+         OPEN (unit=io_source, file=file_source, status='old',                 &
+     &         access='direct', recl=1)
+         OPEN (unit=io_dest, file=file_dest, status='old',                     &
+     &         access='direct', recl=1)
+
+         DO i_rec = i_rec, file_size
+            READ (io_source, rec=i_rec) buffer(1)
+            WRITE (io_dest, rec=i_rec) buffer(1)
+         END DO
+
+         CLOSE (io_source)
+         CLOSE (io_dest)
+      END IF
+
+      DEALLOCATE (buffer)
+
+1000  FORMAT('ERROR: File ',a,' is already opened.')
+1001  FORMAT('ERROR: File ',a,' does not exist.')
+1002  FORMAT('ERROR: Fail to open ',a,'.')
+1003  FORMAT('ERROR: Fail to create ',a,'.')
+1004  FORMAT('ERROR: Fail to allocate copy buffer.')
 #endif
       END SUBROUTINE
 
@@ -134,6 +215,7 @@
 #if defined(__INTEL_COMPILER)
       USE IFLPORT
 #endif
+      USE safe_open_mod
 
       IMPLICIT NONE
 
@@ -141,20 +223,16 @@
       CHARACTER (len=*), INTENT(in) :: file_source
       INTEGER, INTENT(out)          :: error
 
-!  local parameters
-!  To avoid any possible interactive command lines, make sure the command
-!  forces execution.
-#if defined(WIN32)
-      CHARACTER (len=*), PARAMETER :: cmd = 'del /f '
-#else
-      CHARACTER (len=*), PARAMETER :: cmd = 'rm -f '
-#endif
+!  local variables
+      INTEGER                       :: io_unit
 
 !  Start of executable code
 #if defined(__GFORTRAN__) || defined(__INTEL_COMPILER)
       error = UNLINK(file_source)
 #else
-      CALL system(cmd // TRIM(file_source), error)
+      io_unit = 10
+      CALL safe_open(io_unit, error, file_source, 'old', 'formatted')
+      CLOSE (io_unit, iostat=error, status='delete')
 #endif
 
       END SUBROUTINE
