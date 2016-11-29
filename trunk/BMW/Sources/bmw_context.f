@@ -63,9 +63,7 @@
 !  local variables
       REAL (rprec)                      :: start_time
       INTEGER                           :: status
-      INTEGER                           :: num_r
       INTEGER                           :: num_p
-      INTEGER                           :: num_z
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -76,21 +74,14 @@
 
       bmw_context_construct%m_grid => m_grid_construct(mgrid_file_name)
 
-      num_r = SIZE(bmw_context_construct%m_grid%a_r, 1)
       num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
-      num_z = SIZE(bmw_context_construct%m_grid%a_z, 2)
 
       bmw_context_construct%p_grid =>                                          &
      &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp)
       bmw_context_construct%up_grid =>                                         &
-     &   unprimed_grid_construct(num_r,                                        &
-     &                           bmw_context_construct%m_grid%dr,              &
-     &                           bmw_context_construct%m_grid%rmin,            &
-     &                           num_z,                                        &
-     &                           bmw_context_construct%m_grid%dz,              &
-     &                           bmw_context_construct%m_grid%zmin,            &
-     &                           num_p,                                        &
+     &   unprimed_grid_construct(bmw_context_construct%m_grid,                 &                                        &
      &                           bmw_context_construct%p_grid)
+
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
 
       END FUNCTION
@@ -195,11 +186,11 @@
       CALL cdf_define(result_iou, 'zmin', this%m_grid%zmin)
       CALL cdf_define(result_iou, 'zmax', this%m_grid%zmax)
 
-      CALL cdf_define(result_iou, 'ar_grid', this%m_grid%a_r,                  &
+      CALL cdf_define(result_iou, 'ar_grid', this%up_grid%a_r,                 &
      &                dimname=dims)
-      CALL cdf_define(result_iou, 'ap_grid', this%m_grid%a_p,                  &
+      CALL cdf_define(result_iou, 'ap_grid', this%up_grid%a_p,                 &
      &                dimname=dims)
-      CALL cdf_define(result_iou, 'az_grid', this%m_grid%a_z,                  &
+      CALL cdf_define(result_iou, 'az_grid', this%up_grid%a_z,                 &
      &                dimname=dims)
 
       CALL cdf_write(result_iou, 'series', series)
@@ -211,9 +202,9 @@
       CALL cdf_write(result_iou, 'zmin', this%m_grid%zmin)
       CALL cdf_write(result_iou, 'zmax', this%m_grid%zmax)
 
-      CALL cdf_write(result_iou, 'ar_grid', this%m_grid%a_r)
-      CALL cdf_write(result_iou, 'ap_grid', this%m_grid%a_p)
-      CALL cdf_write(result_iou, 'az_grid', this%m_grid%a_z)
+      CALL cdf_write(result_iou, 'ar_grid', this%up_grid%a_r)
+      CALL cdf_write(result_iou, 'ap_grid', this%up_grid%a_p)
+      CALL cdf_write(result_iou, 'az_grid', this%up_grid%a_z)
 
       CALL cdf_close(result_iou)
 

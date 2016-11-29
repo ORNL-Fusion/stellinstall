@@ -41,26 +41,19 @@
 !>  Allocates memory and initializes a @ref unprimed_grid_class object with an
 !>  This computes the vector potential and positions on the unprimed grid.
 !>
-!>  @param[in] num_r Number of radial grid points.
-!>  @param[in] num_p Number of toroidal grid points.
-!>  @param[in] num_z Number of vertical grid points.
+!>  @param[in] mgrid A @ref m_grid_class object.
+!>  @param[in] pgrid A @ref primed_grid_class object.
 !>  @returns A pointer to a constructed @ref unprimed_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION unprimed_grid_construct(num_r, dr, rmin,                        &
-     &                                 num_z, dz, zmin, num_p, pgrid)
+      FUNCTION unprimed_grid_construct(mgrid, pgrid)
       USE primed_grid
+      USE m_grid
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (unprimed_grid_class), POINTER :: unprimed_grid_construct
-      INTEGER, INTENT(in)                         :: num_r
-      REAL (rprec), INTENT(in)                    :: dr
-      REAL (rprec), INTENT(in)                    :: rmin
-      INTEGER, INTENT(in)                         :: num_z
-      REAL (rprec), INTENT(in)                    :: dz
-      REAL (rprec), INTENT(in)                    :: zmin
-      INTEGER, INTENT(in)                         :: num_p
+      TYPE (m_grid_class), INTENT(in)             :: mgrid
       TYPE (primed_grid_class), INTENT(in)        :: pgrid
 
 !  local variables
@@ -68,6 +61,9 @@
       INTEGER                                     :: i
       INTEGER                                     :: j
       INTEGER                                     :: k
+      INTEGER                                     :: num_r
+      INTEGER                                     :: num_p
+      INTEGER                                     :: num_z
       REAL (rprec)                                :: x
       REAL (rprec)                                :: y
       REAL (rprec)                                :: r
@@ -84,6 +80,10 @@
 
       ALLOCATE(unprimed_grid_construct)
 
+      num_r = SIZE(mgrid%a_r, 1)
+      num_p = SIZE(mgrid%a_p, 3)
+      num_z = SIZE(mgrid%a_z, 2)
+
       ALLOCATE(unprimed_grid_construct%a_r(num_r, num_z, num_p))
       ALLOCATE(unprimed_grid_construct%a_p(num_r, num_z, num_p))
       ALLOCATE(unprimed_grid_construct%a_z(num_r, num_z, num_p))
@@ -92,7 +92,9 @@
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i, j, k, v, r, z, x, y, ax, ay, rp, cosv, sinv)
 
-      ALLOCATE(rp(num_r, num_z, num_p))
+      ALLOCATE(rp(SIZE(pgrid%x, 1),                                            &
+     &            SIZE(pgrid%x, 2),                                            &
+     &            SIZE(pgrid%x, 3)))
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
@@ -105,10 +107,10 @@
          sinv = SIN(v)
 
          DO j = 1, num_z
-            z = (j - 1.0)*dz + zmin
+            z = (j - 1.0)*mgrid%dz + mgrid%zmin
 
             DO i = 1, num_r
-               r = (i - 1.0)*dr + rmin
+               r = (i - 1.0)*mgrid%dr + mgrid%rmin
 
                x = r*cosv
                y = r*sinv
@@ -120,10 +122,13 @@
                ax = SUM(pgrid%j_x/rp)*pgrid%dvol
                ay = SUM(pgrid%j_y/rp)*pgrid%dvol
 
-               unprimed_grid_construct%a_r(i,j,k) =  x/r*ax + y/r*ay
-               unprimed_grid_construct%a_p(i,j,k) = -y/r*ax + x/r*ay
+               unprimed_grid_construct%a_r(i,j,k) =  x/r*ax + y/r*ay           &
+     &                                            + mgrid%a_r(i,j,k)
+               unprimed_grid_construct%a_p(i,j,k) = -y/r*ax + x/r*ay           &
+     &                                            + mgrid%a_p(i,j,k)
                unprimed_grid_construct%a_z(i,j,k) = SUM(pgrid%j_z/rp)          &
-     &                                            * pgrid%dvol
+     &                                            * pgrid%dvol                 &
+     &                                            + mgrid%a_z(i,j,k)
             END DO
          END DO
       END DO

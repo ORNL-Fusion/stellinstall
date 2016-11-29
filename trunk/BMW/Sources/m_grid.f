@@ -130,6 +130,8 @@
 
       CALL cdf_close(mgrid_ncid)
 
+      DEALLOCATE(temp_buffer)
+
       WRITE (*,2000)
 
       CALL profiler_set_stop_time('m_grid_construct', start_time)
