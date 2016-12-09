@@ -186,6 +186,55 @@ then
 	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.so \
 	      -DUSE_PARVMEC=ON
 
+elif [ $MACHINE_ID == "titan-ext1" ] || \
+     [ $MACHINE_ID == "titan-ext2" ] || \
+     [ $MACHINE_ID == "titan-ext3" ] || \
+     [ $MACHINE_ID == "titan-ext4" ] || \
+     [ $MACHINE_ID == "titan-ext5" ] || \
+     [ $MACHINE_ID == "titan-ext6" ] || \
+     [ $MACHINE_ID == "titan-ext7" ]
+then
+
+        # Config for ORNL OLCF Machines. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
+        # module to get a compatable version first.                               
+        module swap PrgEnv-pgi PrgEnv-gnu
+        module load cray-netcdf
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \
+              -DNETCDF_INC_PATH=$NETCDF_DIR/include                              \
+              -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                                  \
+              -DCMAKE_PREFIX_PATH:FILEPATH=$CRAY_MPICH2_DIR                      \
+              -DEXTRA_FLAGS="-openmp -DNEW_CODE"                                 \
+              -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so      \
+              -DBLAS_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so     \
+              -DLAPACK_LIBRARIES=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_gnu_mpi.so   \
+              -DUSE_PARVMEC=ON                                                   \
+              -DUSE_FAST_COPY=ON
+
+elif [ $MACHINE_ID == "edison01" ] || \
+     [ $MACHINE_ID == "edison02" ] || \
+     [ $MACHINE_ID == "edison03" ] || \
+     [ $MACHINE_ID == "edison04" ] || \
+     [ $MACHINE_ID == "edison05" ] || \
+     [ $MACHINE_ID == "edison06" ] || \
+     [ $MACHINE_ID == "edison07" ] || \
+     [ $MACHINE_ID == "edison08" ] || \
+     [ $MACHINE_ID == "edison09" ] || \
+     [ $MACHINE_ID == "edison10" ] || \
+     [ $MACHINE_ID == "edison11" ]
+then
+
+        # Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
+        # module to get a compatable version first.                               
+        module load netcdf
+        module load cmake
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \
+	      -DNETCDF_INC_PATH=$NETCDF_DIR/include                              \
+	      -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                                  \
+	      -DSCALAPACK_LIB=$CRAY_LIBSCI_PREFIX_DIR/lib/libsci_intel_mpi.a     \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=$MPICH_DIR                            \
+              -DUSE_PARVMEC=ON                                                   \
+              -DUSE_FAST_COPY=ON
+
 elif [ $MACHINE_ID == "clus45" ]
 then
 
