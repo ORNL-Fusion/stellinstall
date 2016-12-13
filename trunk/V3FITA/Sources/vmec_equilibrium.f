@@ -2941,17 +2941,17 @@
 !  local variables
       REAL (rprec)                  :: bsubv00c, ds
       INTEGER                       :: i
-      REAL (rprec), DIMENSION(ns)   :: s
+      REAL (rprec), DIMENSION(2)    :: s
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
       ds = 1.0/(ns - 1)
-      DO i = 0, ns - 1
-         s(i + 1) = i*ds
-      END DO
 
-      CALL line_seg(r, bsubv00c, s, bsubvmnc(1,:), ns)
+      s(1) = 1.0 - 1.5*ds
+      s(2) = 1.0 - 0.5*ds
+
+      CALL line_seg(r, bsubv00c, s, bsubvmnc(1,ns - 1:ns), 2)
 
       vmec_get_Int_B_dphi = twopi*bsubv00c
 
@@ -4260,7 +4260,7 @@
       iou_nl = 0
       CALL safe_open(iou_nl, status,                                           &
      &               TRIM(this%vmec_file_name) // '_out',                      &
-     &               'replace', 'formatted', delim_in='none')
+     &               'replace', 'formatted', delim_in='quote')
       WRITE (iou_nl, nml=indata)
       CLOSE (iou_nl, iostat=status)
 
