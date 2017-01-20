@@ -102,8 +102,9 @@
 !>                                               current enclosed.}
 !>  @item2{@fixed_width{f_rogowski},             Same as a @fixed_width{rogowski} but with
 !>                                               measuing flux in Webers.}
-!>  @item2{@fixed_width{s_rogowski},             A rogowski refined by a series of segments connected
-!>                                               in series to represent a single measurement.
+!>  @item2{@fixed_width{s_rogowski},             A rogowski defined by a series of segments
+!>                                               connected in series to represent a single
+!>                                               measurement.}
 !>  @item2{@fixed_width{b_point_probe},          Point measurement of the magnetic field in
 !>                                               tesla.\n\n
 !>                                               Lines after ID:\n
