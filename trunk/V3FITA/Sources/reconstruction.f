@@ -111,6 +111,9 @@
 !>  Cutoff value for pseudo inverse singular values
 !>  @see v3fit_input::cut_inv_svd
          REAL (rprec) :: cut_inv_svd
+
+!>  Ratio of singular values to the Levenberg-Marquardt lambda.
+         REAL (rprec), DIMENSION(:,:), POINTER :: lm_ratio => null()
       END TYPE
 
 !*******************************************************************************
@@ -193,11 +196,14 @@
 
       ALLOCATE(reconstruction_construct)
 
+      num_svd = MIN(num_signals, num_parameters)
+
       SELECT CASE (TRIM(step_type))
 
          CASE ('lm')
             reconstruction_construct%step_type =                               &
      &         reconstruction_lm_step_type
+            ALLOCATE(reconstruction_construct%lm_ratio(num_svd,3))
 
          CASE ('seg')
             reconstruction_construct%step_type =                               &
@@ -220,8 +226,6 @@
       reconstruction_construct%last_para_signal = last_para_signal
 
       reconstruction_construct%cut_inv_svd = cut_inv_svd
-
-      num_svd = MIN(num_signals, num_parameters)
 
       ALLOCATE(reconstruction_construct%e(0:num_steps,num_signals))
       ALLOCATE(reconstruction_construct%f(0:num_steps,                         &
@@ -356,6 +360,11 @@
          this%num_sv => null()
       END IF
 
+      IF (ASSOCIATED(this%lm_ratio)) THEN
+         DEALLOCATE(this%lm_ratio)
+         this%lm_ratio => null()
+      END IF
+
       DEALLOCATE(this)
 
       END SUBROUTINE
@@ -398,7 +407,7 @@
       ALLOCATE(exp_eff(0:num_sv))
       ALLOCATE(marg_exp_eff(0:num_sv))
 
-!  Esstimate the expected changes in g^2. Equation 22 in Hanson et. al.
+!  Estimate the expected changes in g^2. Equation 22 in Hanson et. al.
 !  doi: 10.1088/0029-5515/49/7/075031
       DO k = 0, num_sv
          dg2exp(k) = reconstruction_get_exp_dg2(this,                          &
@@ -1258,6 +1267,8 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      this%lm_ratio = 0.0
+
       IF ((step_size .ge. 0.0) .and.                                           &
      &    (this%delta_a_len(k_use) .gt. step_size)) THEN
 
@@ -1273,11 +1284,16 @@
      &                                       step_size, utdote)
 
 !  Find the step
-         utdote(1:k_use) =                                                     &
-     &      utdote(1:k_use)*this%j_svd_w/(this%j_svd_w**2.0 + lambda)
+         utdote(1:k_use) = utdote(1:k_use)*this%j_svd_w(1:k_use)               &
+     &                   / (this%j_svd_w(1:k_use)**2.0 + lambda)
 
          delta_a = MATMUL(utdote(1:k_use), this%j_svd_vt(1:k_use,:))
          reconstruction_lm_step = SQRT(DOT_PRODUCT(delta_a, delta_a))
+
+         this%lm_ratio(1:k_use,1) = lambda
+         this%lm_ratio(1:k_use,2) = this%j_svd_w(1:k_use)**2.0
+         this%lm_ratio(1:k_use,3) = this%lm_ratio(1:k_use,1)                   &
+     &                            / this%lm_ratio(1:k_use,2)
 
          DEALLOCATE(utdote)
       ELSE
@@ -2019,7 +2035,7 @@
       WRITE (iou,1001) step_type, this%step_size(this%current_step + 1)
       WRITE (iou,1002) this%exp_g2(this%current_step + 1)
 
-      CALL profiler_set_stop_time('reconstruction_write_step1',                 &
+      CALL profiler_set_stop_time('reconstruction_write_step1',                &
      &                            start_time)
 
 1000  FORMAT('Number of singular values used: ',i3)
@@ -2061,6 +2077,14 @@
          WRITE (iou,jac_format) i, this%jacobian(i,:)
       END DO
 
+      IF (this%step_type .eq. reconstruction_lm_step_type) THEN
+         WRITE (iou,*)
+         WRITE (iou,*) ' *** Levenberg-Marquardt Parameters'
+         DO i = 1, this%num_sv(this%current_step)
+            WRITE (iou,1003) i, this%lm_ratio(i,:)
+         END DO
+      END IF
+
       WRITE (iou,*)
       WRITE (iou,*) ' *** Jacobian Singular Values'
       WRITE (iou,1001)
@@ -2086,12 +2110,14 @@
       END DO
       WRITE (iou,*)
 
-      CALL profiler_set_stop_time('reconstruction_write_step',                 &
+      CALL profiler_set_stop_time('reconstruction_write_step2',                &
      &                            start_time)
 
 1000  FORMAT('(i4,',i3,'(2x,es12.5))')
 1001  FORMAT('svd value',5x,'used')
 1002  FORMAT(es12.5,2x,l)
+1003  FORMAT(i3,' lambda = ',es12.5,' W_i^2 = ',es12.5,' ratio = ',            &
+     &       es12.5)
 
       END SUBROUTINE
 
