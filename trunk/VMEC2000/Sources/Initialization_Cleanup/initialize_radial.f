@@ -146,9 +146,6 @@ C-----------------------------------------------
       CALL second0(skstoff)
       profile3d_time = profile3d_time + (skstoff - skston)
 #endif
-      irst = 1
-      CALL restart_iter(delt)
-
 
 !
 !     INTERPOLATE FROM COARSE (ns_old) TO NEXT FINER (ns) RADIAL GRID
@@ -163,6 +160,10 @@ C-----------------------------------------------
         CALL store_init_array(xc)
 #endif
       END IF
+
+!SPH 012417: move this AFTER interpolation call
+      irst = 1
+      CALL restart_iter(delt)
 
       ns_old = ns
       neqs2_old = neqs2
