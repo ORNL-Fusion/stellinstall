@@ -174,7 +174,7 @@
         ln_bmnc = 'cosmn component of mod-B, half mesh',                &
         ln_bsubumnc = 'cosmn covariant u-component of B, half mesh',    &
         ln_bsubvmnc = 'cosmn covariant v-component of B, half mesh',    &
-        ln_bsubsmns = 'sinmn covariant s-component of B, full mesh',    &
+        ln_bsubsmns = 'sinmn covariant s-component of B, half mesh',    &
 
         ln_bsubumnc_sur = 'cosmn bsubu of B, surface',                  &
         ln_bsubvmnc_sur = 'cosmn bsubv of B, surface',                  &
@@ -190,7 +190,7 @@
         ln_bmns = 'sinmn component of mod-B, half mesh',                &
         ln_bsubumns = 'sinmn covariant u-component of B, half mesh',    &
         ln_bsubvmns = 'sinmn covariant v-component of B, half mesh',    &
-        ln_bsubsmnc = 'cosmn covariant s-component of B, full mesh',    &
+        ln_bsubsmnc = 'cosmn covariant s-component of B, half mesh',    &
 
         ln_currumnc = 'cosmn covariant u-component of J, full mesh',    &
         ln_currumns = 'sinmn covariant u-component of J, full mesh',    &
@@ -1594,6 +1594,8 @@
 !     NOTE: bsub(s,u,v)mn are on HALF radial grid
 !          (in earlier versions, bsubsmn was on FULL radial grid)
 
+!     NOTE: near the axis, b_s is dominated by the m=1 component of gsv ~ cos(u)/sqrt(s)
+!           we average it with a weight-factor of sqrt(s)
 !
 
       ohs = (ns_-1)

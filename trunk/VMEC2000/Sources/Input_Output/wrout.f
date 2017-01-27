@@ -6,7 +6,6 @@
 #endif
      4                 )
 ! ... from SPH 2009-10-05; changes for modB sine-harmonics included
-      USE vparams 
       USE vmec_input, ONLY: ns_array, ftol_array, lwouttxt
       USE vmec_params
       USE vmec_main, p5 => cp5, two => c2p0
@@ -33,7 +32,7 @@
 #ifdef NETCDF      
       USE ezcdf
       USE read_wout_mod, ONLY: Compute_Currents,
-	1  vn_version, vn_extension, vn_mgrid,
+     1  vn_version, vn_extension, vn_mgrid,
      1  vn_magen, vn_therm, vn_gam, vn_maxr, vn_minr, vn_maxz, vn_fp,
      2  vn_radnod, vn_polmod, vn_tormod, vn_maxmod, vn_maxit, vn_actit,
      3  vn_asym, vn_recon, vn_free, vn_error, vn_aspect, vn_beta, 
@@ -1172,67 +1171,16 @@
 
  200  CONTINUE
 
+!
+!     ALL bsubXmn's are on the HALF-radial mesh
+!         currXmn   are on the FULL-radial mesh
+!
+
       CALL Compute_Currents(bsubsmnc, bsubsmns, bsubumnc, bsubumns,            &
      &                      bsubvmnc, bsubvmns,                                &
      &                      xm_nyq0, xn_nyq0, mnmax_nyq0, lasym, ns,           &
      &                      currumnc, currvmnc, currumns, currvmns)
 
-#ifdef _DEBUG
-      WRITE (333, *) '    JS     M*B_S     GRAD(B_U)    J^V'
-      DO mn = 1, mnmax_nyq0
-         WRITE (333,'(2(a,i4))') 'm=',  INT(xm_nyq0(mn)),
-     1                           ' n=', INT(xn_nyq0(mn))/nfp
-         DO js = 2,ns-1
-            tmult=-xm_nyq0(mn)*bsubsmns(mn,js) +
-     1                    ohs*(bsubumnc(mn,js+1)-bsubumnc(mn,js))
-            WRITE (333,'(i6,1p,3e12.4)') js, 
-     1                  bsubsmns(mn,js)*xm_nyq0(mn),
-     2             ohs*(bsubumnc(mn,js+1)-bsubumnc(mn,js)),
-     3             tmult
-         END DO
-      END DO
-
-      WRITE(333,*) version_
-      IF (lasym) THEN
-         WRITE(333,2002) 'mn', 'rmnc', 'rmns', 'zmnc', 'zmns',                 &
-     &                         'lmnc', 'lmns', 'gmnc', 'gmns',                 &
-     &                         'bmnc', 'bmns',                                 &
-     &                         'bsubumnc', 'bsubumns',                         &
-     &                         'bsubvmnc', 'bsubvmns',                         &
-     &                         'bsubsmnc', 'bsubsmns',                         &
-     &                         'bsupumnc', 'bsupumns',                         &
-     &                         'bsupvmnc', 'bsupvmns'
-      ELSE
-         WRITE(333,2000) 'mn', 'rmnc', 'lmns', 'gmnc', 'bmnc',                 &
-     &                         'bsubumnc', 'bsubvmnc',                         &
-     &                         'bsubsmns',                                     &
-     &                         'bsupumnc', 'bsupvmnc'
-      END IF
-      DO mn = 1, mnmax
-         IF (lasym) THEN
-            WRITE(333,2003) mn, rmnc(mn,ns/2), rmns(mn,ns/2),                  &
-     &                          zmnc(mn,ns/2), zmns(mn,ns/2),                  &
-     &                          lmnc(mn,ns/2), lmns(mn,ns/2),                  &
-     &                          gmnc(mn,ns/2), gmns(mn,ns/2),                  &
-     &                          bmnc(mn,ns/2), bmns(mn,ns/2),                  &
-     &                          bsubumnc(mn,ns/2), bsubumns(mn,ns/2),          &
-     &                          bsubvmnc(mn,ns/2), bsubvmns(mn,ns/2),          &
-     &                          bsubsmnc(mn,ns/2), bsubsmns(mn,ns/2),          &
-     &                          bsupumnc(mn,ns/2), bsupumns(mn,ns/2),          &
-     &                          bsupvmnc(mn,ns/2), bsupvmns(mn,ns/2)
-         ELSE
-            WRITE(333,2001) mn, rmnc(mn,ns/2), lmns(mn,ns/2),                  &
-     &                          gmnc(mn,ns/2), bmnc(mn,ns/2),                  &
-     &                          bsubumnc(mn,ns/2), bsubvmnc(mn,ns/2),          &
-     &                          bsubsmns(mn,ns/2),                             &
-     &                          bsupumnc(mn,ns/2), bsupvmnc(mn,ns/2)
-         END IF
-      END DO
-2000  FORMAT(a2,10(2x,a12))
-2001  FORMAT(i2,10(2x,e12.5))
-2002  FORMAT(a2,20(2x,a12))
-2003  FORMAT(i2,20(2x,es12.5))
-#endif
 !
 !     WRITE OUT ARRAYS
 !
