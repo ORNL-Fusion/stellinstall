@@ -17,6 +17,7 @@
 !>  @author Lang Lao
 !>  @author Steve Knowlton
 !>  @author Gregorio L. Trevisan
+!>  @author Eric C. Howell
 !>
 !>  The theory behind V3FIT is outlined in
 !>     Hanson et. al. doi:10.1088/0029-5515/49/7/075031
@@ -238,6 +239,7 @@
       INTEGER                                   :: error
       LOGICAL                                   :: converged
       INTEGER                                   :: i, last_para_signal
+      INTEGER                                   :: first_para_signal
       REAL (rprec)                              :: g2
       REAL (rprec)                              :: start_time
 
@@ -282,12 +284,25 @@
          last_para_signal = context%combination_index - 1
       END IF
 
+! The gaussian process signals have to be computed before all the other signals
+! in principle they could also depend on each other. So let's do them first in
+! serial
+      IF (context%gaussp_index .eq. -1) THEN
+         first_para_signal = 1
+      ELSE 
+         first_para_signal = context%gaussp_last_index+1
+         DO i =1, context%gaussp_last_index
+           g2 = g2 + signal_get_g2(context%signals(i)%p,                       &
+     &                           context%model, .false.)
+         END DO
+      END IF 
+
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
 !$OMP& REDUCTION(+:g2)
-      DO i = 1, last_para_signal
+      DO i = first_para_signal, last_para_signal
          g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
      &                           context%model, .false.)
       END DO
@@ -752,6 +767,7 @@
 
 !  local variables
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
+      TYPE (gpkernel_pointer), DIMENSION(:), POINTER :: gpker => null()
       INTEGER                                        :: i
       LOGICAL                                        :: not_converged
       REAL (rprec)                                   :: start_time
@@ -768,6 +784,14 @@
      &                                  pp_sxrem_af_a(i,:))
       END DO
 
+!  I'm assuming that the number of gp signals and gp kernels is the same
+!  There are no checks to ensure that this is true
+      ALLOCATE(gpker(n_gpsig))
+      DO i = 1, n_gpsig
+         gpker(i)%p => gpkernel_construct(TRIM(gpker_ktype(i)),                &
+     &                                  gpker_b(i,:))
+      END DO
+
 !  Create a emission object if an emission file was provided.
       IF (TRIM(emission_file) .ne. '') THEN
          emission_func => emission_construct(emission_file)
@@ -777,6 +801,7 @@
 !  equilibrium is converged.
       not_converged = TRIM(vmec_wout_input) .eq. ''
 
+! ERIC GP TODO ADD GP MODEL ( I THINK THIS IS DONE with gpker)
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
@@ -786,7 +811,7 @@
      &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
      &                            pp_ne_as, pp_ne_af),                         &
      &         pprofile_construct(TRIM(pp_te_ptype), pp_te_b,                  &
-     &                            pp_te_as, pp_te_af), sxr,                    &
+     &                            pp_te_as, pp_te_af), sxr, gpker,             &
      &         phi_offset, z_offset, pol_rad_ratio, context%runlog_iou,        &
 #if defined(MPI_OPT)
      &         context%equilibrium_comm, context%reconstruction_comm),         &
@@ -918,6 +943,8 @@
       IF (sxrem_ratio_dot_filename .ne. '') THEN
          CALL init_sxrem_ratio_signals(context, signals_created)
       END IF
+! Gaussian process signals
+      CALL init_gaussian_process_signals(context, signals_created)
 
       CALL init_combination_signals(context, signals_created)
 
@@ -1648,6 +1675,87 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
+!>  @brief Constructs @ref signal::gaussp_class signals.
+!>
+!>  @param[inout] context         An instance of a @ref v3fit_context object.
+!>  @param[inout] signals_created Count of the current number of signals
+!>                                constructed.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_gaussian_process_signals(context, signals_created)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout) :: context
+      INTEGER, INTENT(inout)                    :: signals_created
+
+!  local variables
+      INTEGER                                   :: i, j
+      TYPE (gaussp_class), POINTER              :: gaussp_signal
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      WRITE (*,*) ' *** Constructing Gaussian process signals'
+      WRITE (context%runlog_iou,*) ' *** Constructing ' //                     &
+     &                             'Gaussian process signals'
+
+      DO i = 1, n_gpsig
+!  Check if there are too many signals
+         IF (signals_created + 1 .gt. v3fit_max_signals) THEN
+            CALL err_fatal('init_gaussian_process_signals: created ' //        &
+     &                     'signals exceeds v3fit_max_signals')
+         END IF
+
+!  Check if there are too many gaussian process signals.
+         IF (i .gt. v3fit_max_gaussprocess) THEN
+            CALL err_fatal('init_gaussian_process_signals: created ' //        &
+     &                     'signals exceeds v3fit_max_gaussprocess')
+         END IF
+
+         gaussp_signal => gaussp_construct(n_sig_gpsig(i),                     &
+     &                   n_gpsig_model_pts(i), gpsig_kernel_id(i),             &
+     &                   gpsig_model_type(i), gpsig_model_id(i),               &
+     &                   gp_cholesky_fact(i))
+
+         DO j = 1, n_sig_gpsig(i)
+            IF (gpsig_indices(i,j) .gt. signals_created) THEN
+               CALL err_fatal('init_gaussian_process_signals: cannot '//       &
+     &                        'create signal with ' //                         &
+     &                        'uninitalized signal')
+            END IF
+
+            CALL gaussp_set_signal(gaussp_signal,                              &
+     &              context%signals(gpsig_indices(i,j))%p,                    &
+     &              gpsig_weight(i,j), j)
+         END DO
+
+         context%signals(signals_created + 1)%p => signal_construct(           &
+     &      gaussp_signal, gpsig_name(i), gpsig_name(i),                       &
+     &      gpsig_units(i), sdo_data_a(signals_created + 1),                   &
+     &      sdo_sigma_a(signals_created + 1),                                  &
+     &      sdo_weight_a(signals_created + 1))
+
+         signals_created = signals_created + 1
+
+!  At lease one gaussian process signal was made. Mark the index of it in the
+!  context. This should only be run once.
+         IF (context%gaussp_index .eq. -1) THEN
+            context%gaussp_index = signals_created
+         END IF
+!  In order to reorder the signals I need to know the index of last gauss p
+!  signal created        
+         context%gaussp_last_index = signals_created
+      END DO
+
+      CALL profiler_set_stop_time('init_gaussian_process_signals',            &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Constructs @ref signal::combination_class signals.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
@@ -1825,6 +1933,7 @@
 
 !  local variables
       INTEGER                                   :: last_para_signal
+      INTEGER                                   :: first_para_signal
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
@@ -1839,6 +1948,14 @@
          last_para_signal = context%combination_index - 1
       END IF
 
+! The gaussian process signals have to be computed before all the other signals
+! in principle they could also depend on each other. So let's do them first in
+! serial
+      IF (context%gaussp_index .eq. -1) THEN
+         first_para_signal = 1
+      ELSE 
+         first_para_signal = context%gaussp_last_index+1
+      END IF 
       context%recon_stop = dg2_stop
       context%recon => reconstruction_construct(nrstep,                        &
      &                    SIZE(context%signals),                               &
@@ -1846,7 +1963,8 @@
      &                    SIZE(context%params),                                &
      &                    step_type, astep_max, cut_svd, cut_eff,              &
      &                    cut_marg_eff, cut_delta_a, cut_dg2,                  &
-     &                    last_para_signal, cut_inv_svd)
+     &                    last_para_signal, first_para_signal,                 &
+     &                    cut_inv_svd)
 
       CALL profiler_set_stop_time('init_reconstruction', start_time)
 

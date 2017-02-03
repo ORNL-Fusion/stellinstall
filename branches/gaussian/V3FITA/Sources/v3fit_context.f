@@ -90,6 +90,12 @@
 !>  Index of the first instance of a @ref prior_guassian signal. The default -1
 !>  represents no @ref prior_guassian signal created.
          INTEGER :: sxrem_ratio_index = -1
+!>  Index of the first instance of a @ref gaussp_class signal. The default
+!>  -1 represents no @ref gaussp_class signal created.
+         INTEGER :: gaussp_index = -1
+!>  Index of the last instance of a @ref gaussp_class signal. The default
+!>  -1 represents no @ref gaussp_class signal created.
+         INTEGER :: gaussp_last_index = -1
 !>  Index of the first instance of a @ref combination_class signal. The default
 !>  -1 represents no @ref combination_class signal created.
          INTEGER :: combination_index = -1
@@ -270,7 +276,8 @@
       INTEGER                                      :: minsize
       TYPE (signal_pointer), DIMENSION(:), POINTER :: temp_signal
       REAL (rprec)                                 :: start_time
-
+      INTEGER                                      :: num_gaussp
+      
 !  Start of executable code
       start_time = profiler_get_start_time()
 
@@ -297,12 +304,110 @@
      &                                  start_time)
 
             RETURN
-         ELSE IF (minsize .lt. SIZE(this%signals)) THEN
+         ELSE IF ( (minsize .lt. SIZE(this%signals)) .OR.                      &
+     &           (this%gaussp_index > 0) ) THEN
             ALLOCATE(temp_signal(minsize))
-            DO i = 1, minsize
-                temp_signal(i)%p => this%signals(i)%p
-            END DO
 
+            IF (this%gaussp_index <= 0) THEN
+! There are no gaussian processes so we don't have to reorder the signals
+             DO i = 1, minsize
+                temp_signal(i)%p => this%signals(i)%p
+             END DO
+
+            ELSE
+! Reorder signals putting the  gaussian processes first
+              num_gaussp = this%gaussp_last_index-this%gaussp_index+1
+              DO i = 1, num_gaussp
+                 temp_signal(i)%p =>                                           &
+     &                           this%signals(this%gaussp_index+i-1)%p
+              END DO
+! Next place the signals that were initialized before the gaussian process
+! after the gaussian process 
+              IF (this%gaussp_index /= 1) THEN
+                DO i = 1, this%gaussp_index - 1
+                    temp_signal(i+num_gaussp)%p => this%signals(i)%p
+                END DO
+              END IF
+
+! Add the signals that were initalized after the gaussian process
+! to the temp_signal list. Their index should not change.
+              IF (this%gaussp_last_index /= minsize) THEN
+                 DO i = this%gaussp_last_index +1 , minsize
+                   temp_signal(i)%p => this%signals(i)%p
+                 END DO
+              END IF
+
+! Finally we need to adjust the signal index to reflect their reordering
+
+              IF ( (this%magnetic_index /= -1) .and.                          &
+     &             (this%magnetic_index < this%gaussp_index)) THEN
+                 this%magnetic_index =                                        &
+     &           this%magnetic_index + num_gaussp
+              ENDIF
+
+              IF ( (this%sxrem_index /= -1) .and.                          &
+     &             (this%sxrem_index < this%gaussp_index)) THEN
+                 this%sxrem_index =                                        &
+     &           this%sxrem_index + num_gaussp
+              ENDIF
+
+              IF ( (this%intpol_index /= -1) .and.                          &
+     &             (this%intpol_index < this%gaussp_index)) THEN
+                 this%intpol_index =                                        &
+     &           this%intpol_index + num_gaussp
+              ENDIF
+
+              IF ( (this%thomson_index /= -1) .and.                          &
+     &             (this%thomson_index < this%gaussp_index)) THEN
+                 this%thomson_index =                                        &
+     &           this%thomson_index + num_gaussp
+              ENDIF
+
+              IF ( (this%extcurz_index /= -1) .and.                          &
+     &             (this%extcurz_index < this%gaussp_index)) THEN
+                 this%extcurz_index =                                        &
+     &           this%extcurz_index + num_gaussp
+              ENDIF
+
+              IF ( (this%mse_index /= -1) .and.                          &
+     &             (this%mse_index < this%gaussp_index)) THEN
+                 this%mse_index =                                        &
+     &           this%mse_index + num_gaussp
+              ENDIF
+
+              IF ( (this%ece_index /= -1) .and.                          &
+     &             (this%ece_index < this%gaussp_index)) THEN
+                 this%ece_index =                                        &
+     &           this%ece_index + num_gaussp
+              ENDIF
+
+              IF ( (this%limiter_index /= -1) .and.                          &
+     &             (this%limiter_index < this%gaussp_index)) THEN
+                 this%limiter_index =                                        &
+     &           this%limiter_index + num_gaussp
+              ENDIF
+
+              IF ( (this%prior_guassian_index /= -1) .and.                          &
+     &             (this%prior_guassian_index < this%gaussp_index)) THEN
+                 this%prior_guassian_index =                                        &
+     &           this%prior_guassian_index + num_gaussp
+              ENDIF
+
+              IF ( (this%sxrem_ratio_index /= -1) .and.                          &
+     &             (this%sxrem_ratio_index < this%gaussp_index)) THEN
+                 this%sxrem_ratio_index =                                        &
+     &           this%sxrem_ratio_index + num_gaussp
+              ENDIF
+
+             IF ( (this%combination_index /= -1) .and.                          &
+     &            (this%combination_index < this%gaussp_index)) THEN
+                 this%combination_index =                                        &
+     &           this%combination_index + num_gaussp
+              ENDIF
+              this%gaussp_index = 1
+              this%gaussp_last_index = num_gaussp
+             
+            END IF ! End of gaussp reordering
             DEALLOCATE(this%signals)
             this%signals => temp_signal
          END IF

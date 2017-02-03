@@ -106,6 +106,15 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
+!>  Interface for the equilibrium gp kernel function values.
+!-------------------------------------------------------------------------------
+      INTERFACE equilibrium_get_gpker
+         MODULE PROCEDURE equilibrium_get_gpker_cart,                          &
+     &                    equilibrium_get_gpker_radial,                        &
+     &                    equilibrium_get_gpker_cart_radial  
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface for the equilibrium pressure profile values.
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_get_p
@@ -799,6 +808,150 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the gp kernel function for the two cartesian positions. 
+!>
+!>  This method is virtual. The actual getting of the kernel function
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gpker
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x1_cart 1st Cartesian position used in evaluating the kernel.
+!>  @param[in] x2_cart 2nd Cartesian position used in evaluating the kernel.
+!>  @param[in] index  Index of the gp kernel function to use.
+!>  @returns The value of the gp kernel function for x1, x2.
+!>  @note Note the gp kernel is not implmented for all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gpker_cart(this, x1_cart, x2_cart, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_gpker_cart
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x1_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x2_cart
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gpker_cart = vmec_get_gpker(this%vmec,             &
+     &                                       x1_cart, x2_cart, index)
+
+         CASE DEFAULT
+            equilibrium_get_gpker_cart = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_gpker_cart',                &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the gp kernel function for the two radial positions.
+!>
+!>  This method is virtual. The actual getting of the kernel function
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gpker
+!>
+!>  @param[in] this  A @ref equilibrium_class instance.
+!>  @param[in] r1    1st radial position used in evaluating the kernel.
+!>  @param[in] r2    2nd radial position used in evaluating the kernel
+!>  @param[in] index Index of the gp kernel function to use.
+!>  @returns The value of the gp kernel function for r1, r2.
+!>  @note Note the gp kernel is not implmented for all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gpker_radial(this, r1, r2, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_gpker_radial
+      TYPE (equilibrium_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)             :: r1
+      REAL (rprec), INTENT(in)             :: r2
+      INTEGER, INTENT(in)                  :: index
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gpker_radial = vmec_get_gpker(this%vmec,           &
+     &                                                    r1, r2, index)
+
+         CASE DEFAULT
+            equilibrium_get_gpker_radial = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_gpker_radial',              &
+     &                            start_time)
+
+      END FUNCTION
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the gp kernel function for the two positions of mixed type. 
+!>
+!>  This method is virtual. The actual getting of the kernel function
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_get_gpker
+!>
+!>  @param[in] this   A @ref equilibrium_class instance.
+!>  @param[in] x1_cart 1st Cartesian position used in evaluating the kernel.
+!>  @param[in] s2_rad  2nd radial position used in evaluating the kernel.
+!>  @param[in] index  Index of the gp kernel function to use.
+!>  @returns The value of the gp kernel function for x1, s2.
+!>  @note Note the gp kernel is not implmented for all equilibrium
+!>  types. For instance, vacuum equilibrium should not override this method.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_get_gpker_cart_radial(this, x1_cart, s2_rad, &
+     &                                           index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec) :: equilibrium_get_gpker_cart_radial
+      TYPE (equilibrium_class), INTENT(in)   :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x1_cart
+      REAL (rprec), INTENT(in)               :: s2_rad
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            equilibrium_get_gpker_cart_radial =                               &
+     &                                  vmec_get_gpker(this%vmec,             &
+     &                                       x1_cart, s2_rad, index)
+
+         CASE DEFAULT
+            equilibrium_get_gpker_cart_radial = 0.0
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_get_gpker_cart_radial',         &
+     &                            start_time)
+
+      END FUNCTION
 !-------------------------------------------------------------------------------
 !>  @brief Gets the plasma pressure at a cartesian position.
 !>

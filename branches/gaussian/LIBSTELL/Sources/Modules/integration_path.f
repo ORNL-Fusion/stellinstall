@@ -149,10 +149,11 @@
 !>                                     integrand.
 !>  @param[in]    context              Generic object that contains data for the
 !>                                     integration function.
+!>  @param[in] dxinput              optional input allowing user to define dx
 !>  @returns The total integrated path to the end.
 !-------------------------------------------------------------------------------
       RECURSIVE FUNCTION path_integrate(this, integration_function,            &
-     &                                  context) RESULT(total)
+     &                                  context,dxinput) RESULT(total)
 
       IMPLICIT NONE
 
@@ -160,6 +161,7 @@
       REAL (rprec)                  :: total
       TYPE (vertex), INTENT(inout)  :: this
       CHARACTER (len=1), INTENT(in) :: context(:)
+      REAL (rprec), INTENT(in), OPTIONAL :: dxinput
       INTERFACE
          FUNCTION integration_function(context, xcart, dxcart,                 &
      &                                 length, dx)
@@ -173,10 +175,17 @@
 
 !  Start of executable code
       If (ASSOCIATED(this%next)) THEN
+       IF (present(dxinput)) THEN
+         total = path_integrate(this%next, integration_function,               &
+     &                          context,dxinput)
+         total = total + integrate(context, this, this%next,                   &
+     &                             integration_function,dxinput)
+       ELSE
          total = path_integrate(this%next, integration_function,               &
      &                          context)
          total = total + integrate(context, this, this%next,                   &
      &                             integration_function)
+       ENDIF
       ELSE
          total = 0.0
       END IF
@@ -244,12 +253,13 @@
 !>                                  integration function.
 !>  @param[in] vertex1              Starting point.
 !>  @param[in] vertex2              Ending point.
+!>  @param[in] dxinput              optional input allowing user to define dx
 !>  @param     integration_function Function pointer that defines the
 !>                                  integrand.
 !>  @returns The path integrated value between the vertex1 and vertex2.
 !-------------------------------------------------------------------------------
       FUNCTION integrate(context, vertex1, vertex2,                            &
-     &                   integration_function)
+     &                   integration_function, dxinput)
 
       IMPLICIT NONE
 
@@ -258,6 +268,7 @@
       CHARACTER(len=1), INTENT(in) :: context(:)
       TYPE (vertex), INTENT(in)    :: vertex1
       TYPE (vertex), INTENT(in)    :: vertex2
+      REAL(rprec), INTENT(in), OPTIONAL :: dxinput
       INTERFACE
          FUNCTION integration_function(context, xcart, dxcart,                 &
      &                                 length, dx)
@@ -284,8 +295,11 @@
 !  by the step length and rounding to the nearest integer.
       dxcart = vertex2%position - vertex1%position
       length = SQRT(DOT_PRODUCT(dxcart, dxcart))
-      nsteps = INT(length/dxOptimal)
-
+      IF (present(dxinput)) THEN
+         nsteps = INT(length/dxinput)
+      ELSE
+         nsteps = INT(length/dxOptimal)
+      END IF
 !  Choose the actual step size.
       dxcart = dxcart/nsteps
       dx = SQRT(DOT_PRODUCT(dxcart, dxcart))

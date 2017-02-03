@@ -48,6 +48,24 @@
          TYPE (model_class), POINTER :: model => null()
       END TYPE
 
+!-------------------------------------------------------------------------------
+!> Structure to hold all memory needed to be sent to the callback function.
+!-------------------------------------------------------------------------------
+      TYPE gpsxrem_context
+!>  The index of the kernel function
+         INTEGER                     :: kernel_id = -1
+!>  Reference to a @ref model_class object.
+         TYPE (model_class), POINTER :: model => null()
+!>  Cartesian position of the 1st position when integrating the 2nd chord
+         REAL (rprec), DIMENSION(3)  :: xpoint = 0.0
+!>  Radial position of the model position when integrating chord in KLS eval
+         REAL (rprec)                :: spoint = 0.0
+!>  Geometric chord factor of the 2nd chord
+         REAL (rprec)                :: geo = 0.0
+!>  The complete path of the 2nd chord
+         TYPE (vertex), POINTER :: chord_path => null()
+      END TYPE
+
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
@@ -215,6 +233,164 @@
 
       END FUNCTION
 
+!*******************************************************************************
+!  CALL BACK FUNCTIONS
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Soft x-ray callback function for the gaussian process integration
+!>
+!>  Returns the value of the gaussian process kernel functon times the change in
+!>  the path length. This function is passed to @ref path_integrate to act as a
+!>  callback. The kernel function is provided by @ref model::model_get_gpker.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref gpsxrem_context for the model and 2nd point
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The gpker(x,s1)*dl at point x. s1 i
+!>
+!>  @note context in this case if not that same as @ref context. It refers to
+!>  generic passed to the function. This is the fortran eqivalent to a void
+!>  pointer in C. 
+!-------------------------------------------------------------------------------
+      FUNCTION gpsxr_kls_function(context, xcart, dxcart, length, dx)
+      USE coordinate_utilities
+
+      IMPLICIT NONE
+
+!     Declare Arguments
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      REAL (rprec)                           :: gpsxr_kls_function
+
+! local variable
+      TYPE(gpsxrem_context)                  :: gpsxr_context
+      REAL(rprec)                            :: start_time
+
+      gpsxr_context = TRANSFER(context, gpsxr_context)
+      gpsxr_kls_function = model_get_gpker(gpsxr_context%model,         &
+     &                    xcart, gpsxr_context%spoint,                  &
+     &                    gpsxr_context%kernel_id)*dx
+
+      CALL profiler_set_stop_time('gpsxr_kls_function', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Soft x-ray callback function for the gaussian process integration
+!>
+!>  Returns the value of the gaussian process kernel functon integrated along
+!>  a second chord times the change in path lenth times the 2nd chords geometric
+!>  factor. This function is passed to @ref path_integrate to act as a
+!>  callback. The kernel function is provided by @ref model::model_get_gpker.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref gpsxrem_context for the model and 2nd integration 
+!>  path.
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The integral gpker(x,x2)*dl*geo at point x along the path x2.
+!>
+!>  @note context in this case if not that same as @ref context. It refers to
+!>  generic passed to the function. This is the fortran eqivalent to a void
+!>  pointer in C. 
+!-------------------------------------------------------------------------------
+      FUNCTION gpsxr_kll1_function(context, xcart, dxcart, length, dx)
+      USE coordinate_utilities
+
+      IMPLICIT NONE
+
+!     Declare Arguments
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      REAL (rprec)                           :: gpsxr_kll1_function
+
+! local variable
+      TYPE(gpsxrem_context)                  :: gpsxr_context
+      INTEGER                                :: context2_length
+      CHARACTER(len=1), ALLOCATABLE          :: context2(:)
+      REAL(rprec)                            :: start_time
+
+      REAL(rprec), PARAMETER                 :: dxinput = 0.005
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      gpsxr_kll1_function = 0.0
+
+! Add the current position to gp soft x-ray context. And then recast into a new
+! context
+      gpsxr_context = TRANSFER(context, gpsxr_context)
+      gpsxr_context%xpoint = xcart
+
+      context2_length = SIZE(TRANSFER(gpsxr_context, context2))
+      ALLOCATE(context2(context2_length))
+      context2 = TRANSFER(gpsxr_context, context2)
+! ech temp increase step size to speed up integration
+      gpsxr_kll1_function = path_integrate(gpsxr_context%chord_path,    &
+     &                                             gpsxr_kll2_function, &
+!     &                                             context2)            &
+     &                                             context2,dxinput)     &
+     &                            * gpsxr_context%geo*dx
+
+      DEALLOCATE(context2)
+
+      CALL profiler_set_stop_time('gpsxr_kll1_function', start_time)
+
+      END FUNCTION
+!-------------------------------------------------------------------------------
+!>  @brief Soft x-ray callback function for the gaussian process integration
+!>
+!>  Returns the value of the gaussian process kernel functon times the change in
+!>  the path length. This function is passed to @ref path_integrate to act as a
+!>  callback. The kernel function is provided by @ref model::model_get_gpker.
+!>
+!>  @see integration_path
+!>
+!>  @param[in] context A @ref gpsxrem_context for the model and 2nd point
+!>  @param[in] xcart   The integration point.
+!>  @param[in] dxcart  A vector change in path. Not used in this function.
+!>  @param[in] length  Length along the integration.
+!>  @param[in] dx      A scalar change in path.
+!>  @returns The gpker(x,x2)*dl at point x. s2 is the 2nd point
+!>
+!>  @note context in this case if not that same as @ref context. It refers to
+!>  generic passed to the function. This is the fortran eqivalent to a void
+!>  pointer in C. 
+!-------------------------------------------------------------------------------
+      FUNCTION gpsxr_kll2_function(context, xcart, dxcart, length, dx)
+      USE coordinate_utilities
+
+      IMPLICIT NONE
+
+!     Declare Arguments
+      CHARACTER (len=1), INTENT(in)          :: context(:)
+      REAL (rprec), DIMENSION(3), INTENT(in) :: xcart, dxcart
+      REAL (rprec), INTENT(in)               :: length
+      REAL (rprec), INTENT(in)               :: dx
+      REAL (rprec)                           :: gpsxr_kll2_function
+
+! local variable
+      TYPE(gpsxrem_context)                  :: gpsxr_context
+      REAL(rprec)                            :: start_time
+
+      gpsxr_context = TRANSFER(context, gpsxr_context)
+      gpsxr_kll2_function = model_get_gpker(gpsxr_context%model,        &
+     &                    xcart, gpsxr_context%xpoint,                  &
+     &                    gpsxr_context%kernel_id)*dx
+
+      CALL profiler_set_stop_time('gpsxr_kll2_function', start_time)
+
+      END FUNCTION
 !*******************************************************************************
 !  PRIVATE
 !*******************************************************************************

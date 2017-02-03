@@ -57,6 +57,8 @@
          INTEGER                               :: current_step = 0
 !>  Index of the last parallelable signal.
          INTEGER                               :: last_para_signal = 0
+!>  Index of the first parallelable signal.
+         INTEGER                               :: first_para_signal = 0
 !>  Array of all e vectors for each reconstruction step.
 !>  @see signal::signal_get_e
          REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
@@ -154,6 +156,8 @@
 !>                                    @ref v3fit_input::cut_dg2
 !>  @param[in] last_para_signal       Index of the last signal that can be
 !>                                    parallelized.
+!>  @param[in] first_para_signal      Index of the first signal that can be
+!>                                    parallelized.
 !>  @param[in] cut_inv_svd            Cutoff value for the pseudo inverse
 !>                                    singular values.
 !>  @returns A pointer to a constructed @ref reconstruction_class object.
@@ -164,7 +168,7 @@
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
      &                                  cut_dg2, last_para_signal,             &
-     &                                  cut_inv_svd)
+     &                                  first_para_signal, cut_inv_svd)
 
       IMPLICIT NONE
 
@@ -182,6 +186,7 @@
       REAL (rprec), INTENT(in)             :: cut_delta_a
       REAL (rprec), INTENT(in)             :: cut_dg2
       INTEGER, INTENT(in)                  :: last_para_signal
+      INTEGER, INTENT(in)                  :: first_para_signal
       REAL (rprec), INTENT(in)             :: cut_inv_svd
 
 !  local variables
@@ -218,6 +223,7 @@
       reconstruction_construct%cut_dg2 = cut_dg2
 
       reconstruction_construct%last_para_signal = last_para_signal
+      reconstruction_construct%first_para_signal = first_para_signal
 
       reconstruction_construct%cut_inv_svd = cut_inv_svd
 
@@ -671,11 +677,18 @@
 
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial.
+
+         IF (this%first_para_signal > 1) THEN
+            DO i = 1, this%first_para_signal -1
+               this%e(this%current_step,i) =                                   &
+     &         signal_get_e(signals(i)%p, a_model, .false.)
+            END DO
+         END IF
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-         DO i = 1, this%last_para_signal
+         DO i = this%first_para_signal, this%last_para_signal
             this%e(this%current_step,i) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
          END DO
@@ -878,11 +891,19 @@
 
 !  Certian signals cannot be parallelized. Compute all the signals up to that
 !  point in parallel then continue in serial.
+
+           IF (this%first_para_signal > 1) THEN
+             DO i =1, this%first_para_signal
+               this%jacobian(i,j) =                                            &
+     &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
+     &            - this%e(this%current_step,i))
+             END DO
+           END IF
 !$OMP PARALLEL DO
 !$OMP& SCHEDULE(DYNAMIC)
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
-            DO i = 1, this%last_para_signal
+            DO i = this%first_para_signal, this%last_para_signal
                this%jacobian(i,j) =                                            &
      &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
      &            - this%e(this%current_step,i))

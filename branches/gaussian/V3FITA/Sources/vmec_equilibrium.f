@@ -71,6 +71,7 @@
 !>     @item{pp_te_af,      1D Array of segment temperature profile f values.,    @ref pprofile_T::pprofile_class::af}
 !>     @item{phi_offset,    Phi angle offset in radians,                          @ref vmec_equilibrium::vmec_class::phi_offset}
 !>     @item{z_offset,      Z offset in meters,                                   @ref vmec_equilibrium::vmec_class::z_offset}
+!>     @item{gp_k_b,        1D Array of gp kernel function parameters.,           @ref gp_kernel::gpkernel_class::b}
 !>  @end_table
 !>
 !>  @section vmec_equilibrium_derive_param_sec VMEC Derived Parameters
@@ -130,6 +131,7 @@
       USE stel_kinds
       USE data_parameters
       USE pprofile_T
+      USE gp_kernel
       USE vmec_context
 
       IMPLICIT NONE
@@ -259,33 +261,36 @@
 !>  1D Array of segment temperature profile f values. Defined in
 !>  @ref pprofile_T.
       INTEGER, PARAMETER :: vmec_pp_te_af_id    = 59
+!>  1D Array of kernel function parameters. Defined in @ref gp_kernel.
+      INTEGER, PARAMETER :: vmec_gp_k_b_id     = 60
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 60
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 70
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 61
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 71
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 62
+      INTEGER, PARAMETER :: vmec_betatot_id     = 72
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 63
+      INTEGER, PARAMETER :: vmec_betapol_id     = 73
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 64
+      INTEGER, PARAMETER :: vmec_betator_id     = 74
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 65
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 75
 !>  Poloidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcuru_id       = 66
+      INTEGER, PARAMETER :: vmec_jcuru_id       = 76
 !>  Toroidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcurv_id       = 67
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 77
 !>  Current density in direction of b field. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jdotb_id       = 68
+      INTEGER, PARAMETER :: vmec_jdotb_id       = 78
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 69
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 79
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 70
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 80
+
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101
@@ -386,6 +391,9 @@
 !>  profile.
          TYPE (pprofile_pointer), DIMENSION(:), POINTER ::                     &
      &      sxrem => null()
+!>  @ref gp_kernel describing the kernel function for gaussian process
+         TYPE (gpkernel_pointer), DIMENSION(:), POINTER ::                     &
+     &      gpker => null()
 
 !>  Ratio of the poloidal grid points to the poloidal grid points.
          REAL (rprec)                           :: pol_rad_ratio
@@ -462,6 +470,15 @@
       END INTERFACE
 
 !-------------------------------------------------------------------------------
+!>  Interface for the vmec gp kernel values.
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_get_gpker
+         MODULE PROCEDURE vmec_get_gpker_cart,                                 &
+     &                    vmec_get_gpker_radial,                               &
+     &                    vmec_get_gpker_cart_radial
+      END INTERFACE
+
+!-------------------------------------------------------------------------------
 !>  Interface for the vmec pressure profile values.
 !-------------------------------------------------------------------------------
       INTERFACE vmec_get_p
@@ -484,6 +501,7 @@
 !>  @param[in] ne         @ref pprofile_T for the electron density.
 !>  @param[in] te         @ref pprofile_T for the electron temperature.
 !>  @param[in] sxrem      @ref pprofile_T for the soft x-ray emissivity.
+!>  @param[in] gp_ker     @ref gp_kernel for the gaussian process kernel.
 !>  @param[in] phi_offset Initial phi offset of the plasma relative to the
 !>                        diagnostics in radians.
 !>  @param[in] z_offset   Initial Z offset of the plasma relative to the
@@ -494,8 +512,8 @@
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct(file_name, wout_file_name, ne, te, sxrem,        &
-     &                        phi_offset, z_offset, pol_rad_ratio, iou,        &
-     &                        eq_comm, recon_comm)
+     &                        gpker, phi_offset, z_offset,                     &
+     &                        pol_rad_ratio, iou, eq_comm, recon_comm)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -512,6 +530,7 @@
       TYPE (pprofile_class), POINTER       :: ne
       TYPE (pprofile_class), POINTER       :: te
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
+      TYPE (gpkernel_pointer), DIMENSION(:), POINTER :: gpker
       REAL (rprec), INTENT(in)             :: phi_offset
       REAL (rprec), INTENT(in)             :: z_offset
       REAL (rprec), INTENT(in)             :: pol_rad_ratio
@@ -557,6 +576,7 @@
       vmec_construct%ne => ne
       vmec_construct%te => te
       vmec_construct%sxrem => sxrem
+      vmec_construct%gpker => gpker
 
       vmec_construct%phi_offset = phi_offset
       vmec_construct%z_offset = z_offset
@@ -700,6 +720,17 @@
          END DO
          DEALLOCATE(this%sxrem)
          this%sxrem => null()
+      END IF
+
+      IF (ASSOCIATED(this%gpker)) THEN
+         DO i = 1, SIZE(this%gpker)
+            IF (ASSOCIATED(this%gpker(i)%p)) THEN
+               CALL gpkernel_destruct(this%gpker(i)%p)
+               this%gpker(i)%p => null()
+            END IF
+         END DO
+         DEALLOCATE(this%gpker)
+         this%gpker => null()
       END IF
 
       IF (ASSOCIATED(this%magnetic_cache)) THEN
@@ -976,6 +1007,10 @@
          CASE (vmec_pp_sxrem_af_id)
             vmec_set_param = .false.
             this%sxrem(i_index)%p%af(j_index) = value
+
+         CASE (vmec_gp_k_b_id)
+            vmec_set_param = .false.
+            this%gpker(i_index)%p%b(j_index) = value
 
          CASE (vmec_extcur_id)
             vmec_set_param = .true.
@@ -2005,6 +2040,10 @@
          CASE ('z_offset')
             vmec_get_param_id = vmec_z_offset_id
 
+         CASE ('gp_kernel_b')
+            vmec_get_param_id = vmec_gp_k_b_id
+
+
          CASE DEFAULT
             WRITE (*,1000) TRIM(param_name)
             CALL EXIT(1)
@@ -2254,6 +2293,9 @@
          CASE (vmec_z_offset_id)
             vmec_get_param_value = this%z_offset
 
+         CASE (vmec_gp_k_b_id)
+            vmec_get_param_value = this%gpker(i_index)%p%b(j_index)
+
          CASE DEFAULT
             vmec_get_param_value = 0.0
 
@@ -2481,6 +2523,10 @@
          CASE (vmec_z_offset_id)
             vmec_get_param_name = 'z_offset'
 
+         CASE (vmec_gp_k_b_id)
+            vmec_get_param_name = 'gp_kernel_b'
+
+
          CASE DEFAULT
             STOP 'Invalid VMEC parameter id.'
 
@@ -2688,6 +2734,120 @@
       END IF
 
       CALL profiler_set_stop_time('vmec_get_sxrem_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the GP kernel function for 2 cartesian positions.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gpker. If no gp
+!>  kernel was created, return zero.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x1_cart First Cartesian position.
+!>  @param[in] x2_cart Second Cartesian position.
+!>  @param[in] index  Index of the gp kernel function
+!>  @returns The gp kernel function for the two positions.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gpker_cart(this, x1_cart, x2_cart, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: vmec_get_gpker_cart
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x1_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x2_cart
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_gpker_cart = vmec_get_gpker(this,                               &
+     &                                     vmec_get_flux(this, x1_cart),       &
+     &                                     vmec_get_flux(this, x2_cart),       &
+     &                                     index)
+
+      CALL profiler_set_stop_time('vmec_get_gpker_cart', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the GP kernel function for 2 radial positions.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gpker. If no gp
+!>  kernel was created, return zero.
+!>
+!>  @param[in] this  A @ref vmec_class instance.
+!>  @param[in] s1    First radial position. 
+!>  @param[in] s2    Second radial position. 
+!>  @param[in] index Index of the gp kernel function
+!>  @returns The gp kernel function for the two positions.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gpker_radial(this, s1, s2, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                  :: vmec_get_gpker_radial
+      TYPE (vmec_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)      :: s1
+      REAL (rprec), INTENT(in)      :: s2
+
+      INTEGER, INTENT(in)           :: index
+
+!  local variables
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (ASSOCIATED(this%gpker) .and. SIZE(this%gpker) .le. index) THEN
+         vmec_get_gpker_radial =                                               &
+     &      gpkernel_get_value(this%gpker(index)%p, s1, s2)
+      ELSE
+         vmec_get_gpker_radial = 0.0
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_gpker_radial', start_time)
+
+      END FUNCTION
+!-------------------------------------------------------------------------------
+!>  @brief Evaluate the GP kernel function for 2 positions of mixed type.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_get_gpker. If no gp
+!>  kernel was created, return zero.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x1_cart First Cartesian position.
+!>  @param[in] s2_rad Second radial position.
+!>  @param[in] index  Index of the gp kernel function
+!>  @returns The gp kernel function for the two positions.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_gpker_cart_radial(this, x1_cart, s2_rad, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                         :: vmec_get_gpker_cart_radial
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x1_cart
+      REAL (rprec), INTENT(in)               :: s2_rad
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+      vmec_get_gpker_cart_radial = vmec_get_gpker(this,                        &
+     &                                     vmec_get_flux(this, x1_cart),       &
+     &                                     s2_rad, index)
+
+      CALL profiler_set_stop_time('vmec_get_gpker_cart_radial',                &
+     &                              start_time)
 
       END FUNCTION
 
@@ -3805,7 +3965,7 @@
      &         vmec_bsubumns_id, vmec_bsubvmns_id,                             &
      &         vmec_bsubsmnc_id, vmec_bsupumns_id, vmec_bsupvmns_id,           &
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
-     &         vmec_pp_sxrem_af_id)
+     &         vmec_pp_sxrem_af_id, vmec_gp_k_b_id)
             vmec_is_2d_array = .true.
 
          CASE DEFAULT
@@ -3852,7 +4012,7 @@
      &         vmec_pp_sxrem_b_id, vmec_pp_sxrem_as_id,                        &
      &         vmec_pp_sxrem_af_id, vmec_extcur_id, vmec_curtor_id,            &
      &         vmec_phiedge_id, vmec_pres_scale_id, vmec_bloat_id,             &
-     &         vmec_phi_offset_id, vmec_z_offset_id)
+     &         vmec_phi_offset_id, vmec_z_offset_id, vmec_gp_k_b_id)
             vmec_is_recon_param = .true.
 
          CASE DEFAULT
@@ -4250,6 +4410,10 @@
 
       DO i = 1, SIZE(this%sxrem)
          CALL pprofile_write(this%sxrem(i)%p, 'pp_sxrem', iou)
+      END DO
+
+      DO i = 1, SIZE(this%gpker)
+         CALL gpkernel_write(this%gpker(i)%p, 'gp_kernel', iou)
       END DO
 
       CALL pprofile_write(this%te, 'pp_te', iou)

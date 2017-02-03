@@ -505,6 +505,7 @@
       USE data_parameters
       USE signal
       USE pprofile_T
+      USE gp_kernel
 
       IMPLICIT NONE
 
@@ -519,11 +520,14 @@
       INTEGER, PARAMETER :: v3fit_max_priors = 1000
 !>  Maximum number of combination signals.
       INTEGER, PARAMETER :: v3fit_max_combinations = 1000
+!>  Maximum number of Gaussian Process signals.
+      INTEGER, PARAMETER :: v3fit_max_gaussprocess = 1000
 !>  Maximum number of total signals.
       INTEGER, PARAMETER :: v3fit_max_signals = v3fit_max_diagnostics          &
      &                                        + v3fit_max_geometrics           &
      &                                        + v3fit_max_priors               &
-     &                                        + v3fit_max_combinations
+     &                                        + v3fit_max_combinations         &
+     &                                        + v3fit_max_gaussprocess
 
 !>  Maximum number of reconstruction parameters.
       INTEGER, PARAMETER :: v3fit_max_parameters = 100
@@ -543,6 +547,9 @@
 
 !>  Maximum number of signals a combination signal can refer to.
       INTEGER, PARAMETER :: v3fit_max_cos_size = 100
+
+!>  Maximum number of signals a gaussian process can use.
+      INTEGER, PARAMETER :: v3fit_max_gp_size = 100
 
 !>  Reconstruction step name length.
       INTEGER, PARAMETER :: v3fit_step_name_length = 4
@@ -716,6 +723,19 @@
       CHARACTER (len=data_name_length) :: emission_file = ''
 !>  ECE resonance search range
       REAL (rprec) :: ece_resonance_range = 0.0
+
+!HERE2
+!  Gaussian Process Kernel Function Specification Variables
+!> Model Gaussian Process Function Type.
+!>  -# @fixed_width{'none'}     Not part of the model.
+!>  -# @fixed_width{'sq_exp_1d'} 1D squared Expnential Kernel
+!>  @see gp_kernel
+      CHARACTER (len=k_type_len), DIMENSION(v3fit_max_gp_size)                 &
+     &   :: gpker_ktype = 'none'
+!>  Array of b_coefficients for the gaussian process kerenl function
+!>  @see gp_kernel
+      REAL (rprec), DIMENSION(v3fit_max_gp_size,ilb_gp:iub_gp)                 &
+     &   :: gpker_b = 0.0
 
 !  Reconstruction constraints
 !>  Not implemented.
@@ -944,6 +964,44 @@
       CHARACTER (len=data_short_name_length),                                  &
      &   DIMENSION(v3fit_max_combinations) :: coosig_units = ''
 
+! ERIC HERE
+!  Gaussian Process Signals specification.
+!>  Number of gaussian process signals.
+      INTEGER :: n_gpsig = 0
+!>  Number of signals in a gaussian process signal.
+      INTEGER, DIMENSION(v3fit_max_gaussprocess) :: n_sig_gpsig = 0
+!>  Indices of the number signals to include in the GP. Number of indices needs
+!> to match @ref n_sig_gpsig.
+      INTEGER, DIMENSION(v3fit_max_gaussprocess,v3fit_max_gp_size) ::         &
+     &   gpsig_indices = 0
+!>  Weights of the signals used by the GP. Number of weights needs to match
+!>  @ref n_sig_gpsig. 
+      REAL (rprec),                                                            &
+     &   DIMENSION(v3fit_max_gaussprocess,v3fit_max_gp_size) ::                &
+     &   gpsig_weight = 0.0
+!>  Gaussian process model type. @see signal
+      CHARACTER(len=gaussp_type_length),                                       &
+     &   DIMENSION(v3fit_max_gaussprocess) :: gpsig_model_type = 'sxrem'
+!>  Gaussian process model type ID for models with multiple profiles
+      INTEGER, DIMENSION(v3fit_max_gaussprocess) :: gpsig_model_id = 0
+!>  Number of sample points for Gaussian process to sample
+! ERIC GP TODO add to namelist or calculate automatically
+      INTEGER,                                                                 &
+     &     DIMENSION(v3fit_max_gaussprocess) :: n_gpsig_model_pts = 0
+!>  Name of the Gaussian Process
+      CHARACTER (len=data_name_length),                                        &
+     &   DIMENSION(v3fit_max_gaussprocess) :: gpsig_name = ''
+!>  Units of the Gausssian Process
+      CHARACTER (len=data_short_name_length),                                  &
+     &   DIMENSION(v3fit_max_gaussprocess) :: gpsig_units = ''
+!>  Kernel ID for the Gaussian Process
+      INTEGER, DIMENSION(v3fit_max_gaussprocess) :: gpsig_kernel_id = 0
+!> The Gaussian process uses a cholesky decompositions to factor a matrix. It
+!> assumes that the matrix is positive def. Which is true analytically. This
+!> input can be used to add a small offset to the matrix to insure positive def.
+      REAL(rprec), DIMENSION(v3fit_max_gaussprocess) ::                        &
+     &                                             gp_cholesky_fact =0.0
+
 !  Initial Plasma Offsets
 !>  Offset of plasma relative to the diagnostics.
       REAL (rprec) :: phi_offset = 0
@@ -1011,6 +1069,8 @@
      &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
      &   model_te_type, ne_pp_unit, ne_min, te_min, e_pressure_fraction,       &
      &   emission_file, ece_resonance_range,                                   &
+!> Model Gaussian Process Kernel Function Specification
+     &   gpker_ktype, gpker_b, 
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters
@@ -1049,6 +1109,11 @@
 !  Combinations of other signals specification.
      &   n_coosig, n_sig_coosig, coosig_indices, coosig_coeff,                 &
      &   coosig_type, coosig_name, coosig_units,                               &
+!  Gaussian Process Signals specification.
+     &   n_gpsig, n_sig_gpsig, gpsig_indices, gpsig_weight,                    &
+     &   gpsig_model_type, gpsig_model_id, gpsig_name,                         &
+     &   gpsig_units, gpsig_kernel_id, n_gpsig_model_pts,                      &
+     &   gp_cholesky_fact,                                                     &
 !  Initial PLasma Offsets
      &   phi_offset, z_offset,                                                 &
 !  Reconstruction step control specification.

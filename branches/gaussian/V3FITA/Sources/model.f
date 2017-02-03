@@ -179,6 +179,15 @@
          MODULE PROCEDURE model_get_sxrem_cart,                                &
      &                    model_get_sxrem_radial
       END INTERFACE
+!-------------------------------------------------------------------------------
+!>  Interface for the model gp kernel function values.
+!-------------------------------------------------------------------------------
+      INTERFACE model_get_gpker
+         MODULE PROCEDURE model_get_gpker_cart,                                &
+     &                    model_get_gpker_radial,                              &
+     &                    model_get_gpker_cart_radial
+      END INTERFACE
+
 
       CONTAINS
 !*******************************************************************************
@@ -998,6 +1007,119 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_get_sxrem_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets gaussian process kernel for the two cartesian positions.
+!>
+! ERIC GP TODO (Is this function needed?)
+!>  Gets the gaussian process kernel function for the two  cartesian positions.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x1_cart First Cartesian position 
+!>  @param[in] x2_cart Second Cartesian position 
+!>  @param[in] index  Index of the gaussian process kernel function
+!>  @returns The gaussian process kernel function for x1_cart and x2_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gpker_cart(this, x1_cart, x2_cart, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                           :: model_get_gpker_cart
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x1_cart
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x2_cart
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gpker_cart = equilibrium_get_gpker(this%equilibrium,           &
+     &         x1_cart, x2_cart, index)
+
+      CALL profiler_set_stop_time('model_get_gpker_cart', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets gaussian process kernel for the two radial positions.
+!>
+!>  Gets the gaussian process kernel function for the two  cartesian positions.
+!
+! ERIC GP TODO (Is this function needed?)
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] r1 First radial position 
+!>  @param[in] r2 Second radial position 
+!>  @param[in] index  Index of the the gaussian process kernel function.
+!>  @returns The gaussian process kernel function for r1 and r2.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gpker_radial(this, r1, r2, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_gpker_radial
+      TYPE (model_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)       :: r1
+      REAL (rprec), INTENT(in)       :: r2
+      INTEGER, INTENT(in)            :: index
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gpker_radial =                                           &
+     &         equilibrium_get_gpker(this%equilibrium, r1, r2, index)
+
+ 
+      CALL profiler_set_stop_time('model_get_gpker_radial', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets gaussian process kernel for one cartesian positions and one 
+!> radial position.
+!>
+!>  Gets the gaussian process kernel function given a cartesian and a radial
+!>  position.
+!>
+!>  @param[in] this   A @ref model_class instance.
+!>  @param[in] x1_cart First position 
+!>  @param[in] s2_rad Second position 
+!>  @param[in] index  Index of the gaussian process kernel function
+!>  @returns The gaussian process kernel function for x1_cart and s2_rad.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_gpker_cart_radial(this, x1_cart, s2_rad, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                        :: model_get_gpker_cart_radial
+      TYPE (model_class), INTENT(in)         :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x1_cart
+      REAL (rprec), INTENT(in)               :: s2_rad
+      INTEGER, INTENT(in)                    :: index
+
+!  local variables
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      model_get_gpker_cart_radial =                                            &
+     &         equilibrium_get_gpker(this%equilibrium, x1_cart,                &
+     &                               s2_rad, index)
+
+      CALL profiler_set_stop_time('model_get_gpker_cart_radial',               &
+     &                             start_time)
 
       END FUNCTION
 
