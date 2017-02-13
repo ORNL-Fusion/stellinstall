@@ -12,8 +12,9 @@ USE blocktridiagonalsolver, ONLY: &
 & GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU, &
 & GetMatrixRHS, StoreDiagonal
 #endif
+#if defined(MPI_OPT)
 USE mpi_inc
-
+#endif
 IMPLICIT NONE
 
 !------------------------------------------------
@@ -49,24 +50,16 @@ INTEGER :: startglobrow, endglobrow, numBlocks
 INTEGER, ALLOCATABLE, DIMENSION (:) :: bcyclicStartBlockProc, bcyclicEndBlockProc
 INTEGER, ALLOCATABLE, DIMENSION (:) :: tagBlock, tagColInBlock
 INTEGER, ALLOCATABLE, DIMENSION (:) :: rcounts, disp
+INTEGER, ALLOCATABLE, DIMENSION (:) :: rcountsNS, dispNS     !SPH 092116
 INTEGER :: a, b, c, flag, cnt, totRecvs, nrecd
 INTEGER :: icol, itype, block_row, irow, procID, ierror, localbrow
 INTEGER :: activeranks, rank, nranks, leftproc, rightproc
 INTEGER :: tag, MPI_ERR, SYSMAXTAG, APPMAXTAG
 INTEGER :: PACKSIZE
 
-! TOIJSP_PAR related variables
-INTEGER :: angblksize, NZETA_SKS, NTHETA_SKS
-INTEGER, ALLOCATABLE, DIMENSION(:) :: ijspcounts, ijspdisps
-REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: sbuf
-REAL(rprec), ALLOCATABLE, DIMENSION(:) :: prbuf
-LOGICAL, SAVE :: SetUpTOIJSPAllGatherDONE=.FALSE.
-
-! TOMNSP_PAR related variables
+! HESSIAN MN-SPACE GATHER-related variables
 INTEGER :: linblksize
 INTEGER, ALLOCATABLE, DIMENSION(:) :: mnspcounts, mnspdisps
-REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: mnsbuf
-REAL(rprec), ALLOCATABLE, DIMENSION(:) :: mnprbuf
 LOGICAL, SAVE :: SetUpTOMNSPAllGatherDONE=.FALSE.
 
 #if defined(MPI_OPT)
@@ -151,6 +144,7 @@ END SUBROUTINE SetOutputFile
 ! module
 !------------------------------------------------
 SUBROUTINE initRemap (mpol_in,ntor_in,blkrownum,numprocs,myrank)
+USE shared_data, ONLY: ndims, l_asym
 IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: mpol_in,ntor_in,blkrownum,numprocs,myrank 
@@ -164,17 +158,10 @@ IF(INITREMAPDONE) RETURN
 
 MPOL=mpol_in
 NTOR=ntor_in
-M=3*(MPOL+1)*(2*NTOR+1)
+M=ndims*(MPOL+1)*(2*NTOR+1)
 N=blkrownum
 
-NTHETA_SKS=mpol_in+2 
-NTHETA_SKS=3*NTHETA_SKS/2
-NTHETA_SKS=NTHETA_SKS+MOD(NTHETA_SKS,2)
-
-NZETA_SKS=2*ntor_in+2
-NZETA_SKS=3*NZETA_SKS/2
-NZETA_SKS=NZETA_SKS+MOD(NZETA_SKS,2)
-IF(ntor_in.EQ.0) NZETA_SKS=1
+IF(M.EQ.0 .OR. N.EQ.0) STOP 'M, N = 0 IN initRemap!'
 
 nranks=numprocs
 rank=myrank
@@ -213,17 +200,17 @@ IF (BUFFERED) THEN
   IF (nBuffsize.LE.0) THEN
     CALL MPI_Barrier(MPI_COMM_WORLD,MPI_ERR)
     IF (rank.EQ.0) THEN
-      WRITE(7000+rank,*), '>>> N                  : ', N; CALL FLUSH(7000+rank)
-      WRITE(7000+rank,*), '>>> M                  : ', M; CALL FLUSH(7000+rank)
-      WRITE(7000+rank,*), '>>> PACKSIZE           : ', PACKSIZE; CALL FLUSH(7000+rank)
-      WRITE(7000+rank,*), '>>> MPI_BSEND_OVERHEAD : ', MPI_BSEND_OVERHEAD; CALL FLUSH(7000+rank)
-      WRITE(7000+rank,*), '>>> nBuffsize          : ', nBuffsize; CALL FLUSH(7000+rank)
+      WRITE(7000+rank,*) '>>> N                  : ', N; CALL FLUSH(7000+rank)
+      WRITE(7000+rank,*) '>>> M                  : ', M; CALL FLUSH(7000+rank)
+      WRITE(7000+rank,*) '>>> PACKSIZE           : ', PACKSIZE; CALL FLUSH(7000+rank)
+      WRITE(7000+rank,*) '>>> MPI_BSEND_OVERHEAD : ', MPI_BSEND_OVERHEAD; CALL FLUSH(7000+rank)
+      WRITE(7000+rank,*) '>>> nBuffsize          : ', nBuffsize; CALL FLUSH(7000+rank)
     END IF
     STOP 666
   END IF
 
   ALLOCATE(remapBuffer(nBuffsize), stat=i)
-  IF (i .ne. 0) STOP 'MPI remapBuffer allocation failed in initRemap!'
+  IF (i .NE. 0) STOP 'MPI remapBuffer allocation failed in initRemap!'
   CALL MPI_BUFFER_ATTACH(remapBuffer, nBuffsize, MPI_ERR)
 END IF
 
@@ -232,7 +219,6 @@ IF (.NOT.ALLOCATED(bcyclicEndBlockProc)) ALLOCATE (bcyclicEndBlockProc(nranks))
 INITREMAPDONE=.TRUE.
 
 CALL bcyclicMapping
-CALL SetUpTOIJSPAllGather
 CALL SetUpTOMNSPAllGather
 CALL computeAllGatherParameters
 
@@ -342,15 +328,17 @@ INTEGER :: i
 
 IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
 
-IF(.NOT.ALLOCATED(rcounts)) ALLOCATE(rcounts(activeranks))
-IF(.NOT.ALLOCATED(disp)) ALLOCATE(disp(activeranks))
+IF(.NOT.ALLOCATED(rcounts)) ALLOCATE(rcounts(activeranks), rcountsNS(activeranks))
+IF(.NOT.ALLOCATED(disp)) ALLOCATE(disp(activeranks),dispNS(activeranks))
 
 DO i=1,activeranks
-  rcounts(i)=(bcyclicEndBlockProc(i)-bcyclicStartBlockProc(i)+1)*M
+  rcountsNS(i)=(bcyclicEndBlockProc(i)-bcyclicStartBlockProc(i)+1)
+  rcounts(i)  =(bcyclicEndBlockProc(i)-bcyclicStartBlockProc(i)+1)*M
 END DO
 
-disp(1)=0
+disp(1)=0; dispNS(1)=0
 DO i=2,activeranks
+  dispNS(i)=dispNS(i-1)+rcountsNS(i-1)
   disp(i)=disp(i-1)+rcounts(i-1)
 END DO
 
@@ -585,36 +573,6 @@ END SUBROUTINE WriteTime
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
-SUBROUTINE SetUpTOIJSPAllGather
-IMPLICIT NONE
-INTEGER :: i
-
-SetUpTOIJSPAllGatherDONE=.FALSE.
-
-angblksize=NTHETA_SKS*NZETA_SKS
-
-IF (.NOT.ALLOCATED(ijspcounts)) ALLOCATE (ijspcounts(nranks))
-IF (.NOT.ALLOCATED(ijspdisps)) ALLOCATE (ijspdisps(nranks))
-
-IF(.NOT.MAPPINGDONE) CALL bcyclicMapping 
-DO i=1,nranks
-  ijspcounts(i)=(bcyclicEndBlockProc(i)-bcyclicStartBlockProc(i)+1)*angblksize
-END DO
-
-ijspdisps(1)=0
-DO i=2,nranks
-  ijspdisps(i)=ijspdisps(i-1)+ijspcounts(i-1)
-END DO
-
-IF (.NOT.ALLOCATED(sbuf)) ALLOCATE(sbuf(1:numBlocks,1:NTHETA_SKS,1:NZETA_SKS))
-IF (.NOT.ALLOCATED(prbuf)) ALLOCATE(prbuf(N*NTHETA_SKS*NZETA_SKS))
-
-SetUpTOIJSPAllGatherDONE=.TRUE.
-
-END SUBROUTINE SetUpTOIJSPAllGather
-!-------------------------------------------------------------------------------
-
-!-------------------------------------------------------------------------------
 SUBROUTINE SetUpTOMNSPAllGather
 IMPLICIT NONE
 INTEGER :: i
@@ -634,9 +592,6 @@ mnspdisps(1)=0
 DO i=2,nranks
   mnspdisps(i)=mnspdisps(i-1)+mnspcounts(i-1)
 END DO
-
-IF (.NOT.ALLOCATED(mnsbuf)) ALLOCATE(mnsbuf(1:numBlocks,1:(MPOL+1),1:(2*NTOR+1)))
-IF (.NOT.ALLOCATED(mnprbuf)) ALLOCATE(mnprbuf(N*(MPOL+1)*(2*NTOR+1)))
 
 SetUpTOMNSPAllGatherDONE=.TRUE.
 

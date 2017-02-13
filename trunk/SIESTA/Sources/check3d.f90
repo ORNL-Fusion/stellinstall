@@ -17,9 +17,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in) :: nblocks, mblk, mblkc
-      REAL(dp), TARGET, DIMENSION(mblk,mblkc,nblocks), INTENT(inout) :: &
+      REAL(dp), TARGET, DIMENSION(mblk,mblkc,nblocks), INTENT(inout) ::  &
      &                       a, b, c
-      REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks), INTENT(inout) ::  &
+      REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks), INTENT(inout) ::   &
      &                       ap
       REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks-1), INTENT(inout) :: &
      &                       bp, cp
@@ -163,7 +163,7 @@
          mm = descAtmp(M_)
          nn = descAtmp(N_)
          CALL pdgeadd('Transpose', mm,nn,                                &
-     &                alpha,Csrc,1,1,descAtmp,                          &
+     &                alpha,Csrc,1,1,descAtmp,                           &
      &                beta,Atmp,1,1,descAtmp )
 
 
@@ -192,24 +192,22 @@
       END SUBROUTINE check3d_symmetry
 
 
-      SUBROUTINE check3d_symmetry_serial(dblk,lblk,ublk,mpol,ntor,      &
+      SUBROUTINE check3d_symmetry_serial(dblk,lblk,ublk,mpol,ntor,       &
                                          mblk,nblocks,asym_index)
       USE stel_kinds
-#if defined(MRC)
-      USE island_params, ONLY: l_force_asym
-#endif
+      USE shared_data, ONLY: ndims
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)  :: mblk, nblocks, mpol, ntor
       REAL(dp), INTENT(inout)  :: asym_index
-      REAL(dp), INTENT(in), DIMENSION(mblk,mblk,nblocks) ::             &
+      REAL(dp), INTENT(in), DIMENSION(mblk,mblk,nblocks) ::              &
      &   dblk, lblk, ublk
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      INTEGER              :: ntype, m, n, icol, ntype_end
+      INTEGER              :: ntype, m, n, icol
       REAL(dp)             :: w1, w2
 !-----------------------------------------------
 !
@@ -217,31 +215,25 @@
 !
       icol = 0
 
-      IF (l_force_asym) THEN
-         ntype_end = 6
-      ELSE
-         ntype_end = 3
-      END IF
-
       w1 = 0;  w2 = 0
-      DO ntype = 1, ntype_end
+      DO ntype = 1, ndims
         DO n = -ntor, ntor
           DO m = 0, mpol
             icol = icol+1
-            IF (m.eq.0 .and. n.lt.0) CYCLE
-               w1 = w1 +                                                &
-                  SUM((ublk(icol,:,1:nblocks-1)                         &
+            IF (m.EQ.0 .AND. n.LT.0) CYCLE
+               w1 = w1 +                                                 &
+                  SUM((ublk(icol,:,1:nblocks-1)                          &
                     -  lblk(:,icol,2:nblocks))**2)
-               w2 = w2 + SUM(ublk(icol,:,1:nblocks-1)**2                &
+               w2 = w2 + SUM(ublk(icol,:,1:nblocks-1)**2                 &
                        +     lblk(:,icol,2:nblocks)**2)
-               w1 = w1 + SUM((dblk(icol,:,:) -                          &
+               w1 = w1 + SUM((dblk(icol,:,:) -                           &
                               dblk(:,icol,:))**2)
                w2 = w2 + SUM(dblk(icol,:,:)**2)
             END DO
          END DO
       END DO
 
-      IF (w2 .ne. 0) THEN
+      IF (w2 .NE. 0) THEN
          asym_index = SQRT(w1/w2)
       ELSE
          asym_index = -1
@@ -252,24 +244,20 @@
 
       SUBROUTINE CheckForces(xc, gc, eps, func)
       USE stel_kinds, ONLY: dp
-      USE shared_data, ONLY: wtotal, l_linearize
-      USE quantities, ONLY: mpol, ntor, ns
+      USE shared_data, ONLY: wtotal, l_linearize, ndims
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
-#if defined(MRC)
-      USE island_params, ONLY: l_force_asym
-#endif
-
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp) :: xc(3*(1+mpol)*(2*ntor+1),ns), gc(3*(1+mpol)*(2*ntor+1),ns)
+      REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns), gc(ndims*(1+mpol)*(2*ntor+1),ns)
       REAL(dp) ::  eps
       EXTERNAL :: func
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
       REAL(dp), ALLOCATABLE :: gc1(:,:)
-      INTEGER  :: ntype, n, m, icol, js, mblk, ntype_end
+      INTEGER  :: ntype, n, m, icol, js, mblk, nt1
       REAL(dp) ::  wplus, wmins, force, eps1
       LOGICAL  :: lsave, lsave2
       CHARACTER*(10) :: force_array(3) = (/' FORCE-S: ',' FORCE-U: ',' FORCE-V: '/)
@@ -295,13 +283,7 @@
 
       js = ns/2
 
-      IF (l_force_asym) THEN
-         ntype_end = 6
-      ELSE
-         ntype_end = 3
-      END IF
-
-      DO ntype = 1, ntype_end
+      DO ntype = 1, ndims
          DO n = -ntor, ntor
             DO m = 0, mpol
             icol = icol+1
@@ -317,9 +299,11 @@
             force = -(wplus-wmins)/(2*eps1)
 
             xc(icol,js) = 0
-            
-            PRINT 100,m,n, force,force_array(ntype),gc1(icol,js)
-            WRITE (66,100) m,n, force,force_array(ntype),gc1(icol,js)
+
+            nt1 = ntype
+            IF (ntype .GT. 3) nt1 = ntype-3            
+            PRINT 100, m, n, force, force_array(nt1), gc1(icol,js)
+            WRITE (66,100) m, n, force, force_array(nt1), gc1(icol,js)
 
             END DO
          END DO
@@ -336,20 +320,18 @@
 
 
       SUBROUTINE TriDiag_Test (xc, gc, eps)
-#if defined(MRC)
-      USE island_params, ONLY: l_force_asym
-#endif
 !
 !     TESTS Tridiagonal STRUCTURE OF HESSIAN!
 !
       USE stel_kinds, ONLY: dp
       USE evolution, ONLY: l_linearize, l_init_state, l_ApplyPrecon, funct_island
-      USE quantities, ONLY: mpol, ntor, ns
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
+      USE shared_data, ONLY: ndims
       IMPLICIT NONE
       REAL(dp), PARAMETER :: zero = 0
-      REAL(dp) :: xc(3*(1+mpol)*(2*ntor+1),ns), gc(3*(1+mpol)*(2*ntor+1),ns), eps
-      INTEGER :: js, icol, ntype, n, m, ntype_end
+      REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns), gc(ndims*(1+mpol)*(2*ntor+1),ns), eps
+      INTEGER :: js, icol, ntype, n, m
       REAL(dp), ALLOCATABLE :: gc0(:,:)
       LOGICAL :: l_save, lPass, l_AppSave
 
@@ -367,14 +349,7 @@
 
       icol = 0
       lPass = .TRUE.
-
-      IF (l_force_asym) THEN
-         ntype_end = 6
-      ELSE
-         ntype_end = 3
-      END IF
-
-      DO ntype = 1, ntype_end
+      DO ntype = 1, ndims
          DO n = -ntor, ntor
             DO m = 0, mpol
                icol = icol+1

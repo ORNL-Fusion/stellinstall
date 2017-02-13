@@ -9,7 +9,7 @@ MODULE blocktridiagonalsolver
 #if defined(MPI_OPT)
 USE mpi_inc
 #endif
-
+IMPLICIT NONE
 !-------------------------------------------------------------------------------
 ! Precision settings
 !-------------------------------------------------------------------------------
@@ -17,6 +17,7 @@ INTEGER, PARAMETER :: rprec = SELECTED_REAL_KIND(12,100)
 INTEGER, PARAMETER :: iprec = SELECTED_INT_KIND(8)
 INTEGER, PARAMETER :: cprec = KIND((1.0_rprec,1.0_rprec))
 INTEGER, PARAMETER :: dp = rprec
+INTEGER :: MPI_ERR
 
 !-------------------------------------------------------------------------------
 !>
@@ -27,7 +28,6 @@ TYPE LevelElement
   REAL(dp), ALLOCATABLE :: L(:,:), D(:,:), U(:,:), b(:,:)
   INTEGER, ALLOCATABLE :: pivot(:)
 END TYPE LevelElement
-
 !-------------------------------------------------------------------------------
 !>
 !! Solution of selected rows of interest to this rank
@@ -90,6 +90,9 @@ REAL :: intsz !<Byte size of an integer variable
 REAL :: ptrsz !<Byte size of a pointer variable
 REAL(dp) :: ONE !<1.0
 REAL(dp) :: ZERO !<0.0
+REAL(dp) :: MAXEIGEN_TRI  !<maximum eigenvalue from Gerschgorin theorem
+REAL(dp) :: DMIN_TRI  !<minimum non-zero diagonal element, used to scale Levenberg parameter (SPH 08-31-16)
+LOGICAL(dp) :: L_COLSCALE=.FALSE.  !<set true if column scaling is applied
 
 !-------------------------------------------------------------------------------
 LOGICAL :: use_mpiwtime !<Use MPI's timer function?
@@ -4744,7 +4747,7 @@ END SUBROUTINE VerifySolution
 SUBROUTINE CheckSymmetry (asymIndx)
 IMPLICIT NONE
 
-REAL(dp), INTENT (OUT) :: asymIndx
+REAL(dp), INTENT (OUT) :: asymIndx                                       !On Processor 0 only
 REAL(dp) :: diff, partdiff, norm, eij, eji, tdiff, tnorm, summ
 REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: sendBuf, bottomLeftMatrix
 
@@ -4755,12 +4758,12 @@ INTEGER :: blkrow,blktype,i,j,k
 
 IF (.NOT.ALLOCATED(bottomLeftMatrix)) THEN 
   ALLOCATE(bottomLeftMatrix(M,M))
-  bottomLeftMatrix=0.0
+  bottomLeftMatrix=0
 END IF
 
 IF (.NOT.ALLOCATED(sendBuf)) THEN 
   ALLOCATE(sendBuf(M,M))
-  sendBuf=0.0
+  sendBuf=0
 END IF
 
 IF(nranks.EQ.1) THEN
@@ -4788,15 +4791,17 @@ CALL MPI_Sendrecv(sendBuf,M*M,MPI_REAL8,topNeighbor,1,&
 IF (ALLOCATED(sendBuf)) DEALLOCATE(sendBuf)
 IF (rank.EQ.nranks-1) bottomLeftMatrix=0.0
 
-summ=0.0; diff=0.0; norm=0.0
+summ=0; diff=0; norm=0
+
 DO blkrow=1,endglobrow-startglobrow+1
   ! Compute contributions from the main diagonal blocks
-  partdiff=0.0
+  partdiff=0
   DO i=1,M
     DO j=i,M
       eij=lelement(1,blkrow)%D(i,j)
       eji=lelement(1,blkrow)%D(j,i)
       partdiff = partdiff+(eij-eji)*(eij-eji)
+
       IF (i.NE.j) THEN
         ! Contribution from the off-diagonal elements of 
         ! this main diagonal block
@@ -4828,7 +4833,10 @@ DO blkrow=1,endglobrow-startglobrow+1
       END IF
     END DO
   END DO
+
 END DO
+
+CALL FLUSH(360+rank)
 
 IF (ALLOCATED(bottomLeftMatrix)) DEALLOCATE(bottomLeftMatrix)
 
@@ -5125,12 +5133,14 @@ SUBROUTINE GetScaleFactors(js,scalevector)
 IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: js
-REAL(dp), DIMENSION(M), INTENT(INOUT) :: scalevector
+REAL(dp), INTENT(INOUT) :: scalevector(M)
 INTEGER :: ic, ir, numBlockRows
+
+INTEGER, SAVE :: ICOUNT = 0
 
 numBlockRows = endglobrow-startglobrow+1
 
-IF(js.EQ.startglobrow) THEN
+IF (js.EQ.startglobrow) THEN
   IF (js.EQ.1) THEN
     DO ic=1, M
       scalevector(ic)=SUM(orig(1)%D(:,ic)*orig(1)%D(:,ic)) + &
@@ -5143,7 +5153,7 @@ IF(js.EQ.startglobrow) THEN
         TopScaleFac(ic) + SUM(orig(ir+1)%L(:,ic)*orig(ir+1)%L(:,ic)) 
     END DO
   END IF
-ELSE IF(js.EQ.endglobrow) THEN
+ELSE IF (js.EQ.endglobrow) THEN
   IF (js.EQ.N) THEN
     DO ic=1, M
       scalevector(ic)=SUM(orig(numBlockRows)%D(:,ic)*orig(numBlockRows)%D(:,ic)) + &
@@ -5164,8 +5174,14 @@ ELSE
   END DO
 END IF
 
-IF (ANY(scalevector.LT.0)) STOP 'scalevector less than zero'
-scalevector=1/SQRT(SQRT(scalevector))
+!NEED THIS IF FOURIER MODES m=0 or n=0 ARE NOT SET TO ONE ON DIAGONAL
+WHERE (scalevector .LE. ZERO) scalevector = ONE
+
+!DO ic = 1,M
+!   CALL truncate(scalevector(ic),6)
+!END DO
+
+scalevector=one/SQRT(SQRT(scalevector))
 
 END SUBROUTINE GetScaleFactors
 !-------------------------------------------------------------------------------
@@ -5177,11 +5193,10 @@ END SUBROUTINE FinalizeScaleFactors
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
-SUBROUTINE ParallelScaling(lmp,colsum,maxeigen)
+SUBROUTINE ParallelScaling(lmp,colsum)
 IMPLICIT NONE
 
 REAL(dp), INTENT(IN) :: lmp
-REAL(dp), INTENT(OUT):: maxeigen
 REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(IN) :: colsum
 
 INTEGER  :: js, icol, ir, top, bot, MPI_ERR, i4, i3, dcnt
@@ -5193,18 +5208,22 @@ top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
 bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
 ALLOCATE (toprow(M),botrow(M))
 
+L_COLSCALE = .TRUE.
+
 CALL MPI_Sendrecv(colsum(:,endglobrow),M,MPI_REAL8,bot,1,&
   toprow,M,MPI_REAL8,top,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
 
 CALL MPI_Sendrecv(colsum(:,startglobrow),M,MPI_REAL8,top,1,&
   botrow,M,MPI_REAL8,bot,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
 
-dcnt=0
-maxeigen=0
+dcnt = 0
 DO js = startglobrow, endglobrow
   ir=js-startglobrow+1
   DO icol = 1, M
     lelement(1,ir)%D(:,icol) = colsum(:,js)*orig(ir)%D(:,icol)*colsum(icol,js)
+    orig(ir)%D(:,icol) = lelement(1,ir)%D(:,icol)
+    dcnt=dcnt+1
+    OrigDiagElement(dcnt) = orig(ir)%D(icol,icol)
     IF (js .GT. 1) THEN
       IF (ir.EQ.1) THEN
         lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*toprow(icol)
@@ -5221,26 +5240,112 @@ DO js = startglobrow, endglobrow
       END IF
       orig(ir)%U(:,icol) = lelement(1,ir)%U(:,icol)
     END IF
-    eps = lelement(1,ir)%D(icol,icol) 
-    dcnt=dcnt+1
-    OrigDiagElement(dcnt) = lelement(1,ir)%D(icol,icol)
-    lelement(1,ir)%D(icol,icol) = eps*(1 + ABS(lmp))
-    orig(ir)%D(:,icol) = lelement(1,ir)%D(:,icol)
-  END DO
-  !Gerschgorin Theorem to estimate max eigenvalue
-  DO icol = 1, M
-    maxeigen = MAX(maxeigen, SUM(ABS(orig(ir)%L(icol,:)) + ABS(orig(ir)%D(icol,:))   &
-      + ABS(orig(ir)%U(icol,:))))
   END DO
 END DO
 DEALLOCATE (toprow,botrow)
-s1(1)=maxeigen
-CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX,                 &
-  MPI_COMM_WORLD,MPI_ERR)
-maxeigen=r1(1)
+
+!Find DMIN_TRI, MAXEIGEN_TRI used for scaling
+CALL FindMinMax_TRI(lmp)
+
 END SUBROUTINE ParallelScaling
 !-------------------------------------------------------------------------------
 
+
+!-------------------------------------------------------------------------------
+SUBROUTINE FindMinMax_TRI(lmp)
+!SPH 091616: Find min diagonal element and max eigenvalue (Gerschgorin Theorem)
+REAL(dp), INTENT(IN) :: lmp
+INTEGER  :: js, icol, ir, dcnt
+REAL(dp) :: eps, s1(1), r1(1)
+dcnt=0
+maxeigen_tri = 0
+Dmin_TRI = HUGE(Dmin_TRI)
+DO js = startglobrow, endglobrow
+  ir=js-startglobrow+1
+  DO icol = 1, M
+    dcnt = dcnt+1
+    eps = OrigDiagElement(dcnt)
+
+    IF (eps .EQ. ZERO) THEN    !Can happen for lcolscale=FALSE
+       IF (ANY(orig(ir)%D(icol,:) .NE. ZERO)) PRINT *,                  &
+          'IN FindMinMax, RANK: ',rank,' ROW != 0'
+       eps = -1
+       OrigDiagElement(dcnt) = eps
+       orig(ir)%D(icol,icol) = eps
+       lelement(1,ir)%D(icol,icol) = eps
+    ELSE
+       IF (js .LT. N) Dmin_TRI = MIN(MAX(1.E-12_dp,ABS(eps)), Dmin_TRI)
+    END IF
+
+    maxeigen_tri = MAX(maxeigen_tri, SUM(ABS(orig(ir)%L(icol,:)) + ABS(orig(ir)%D(icol,:))   &
+                 + ABS(orig(ir)%U(icol,:))))
+  END DO
+END DO
+
+s1(1)=Dmin_TRI
+CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MIN, MPI_COMM_WORLD,MPI_ERR)
+Dmin_TRI=SIGN(r1(1), eps)
+
+s1(1)=maxeigen_tri
+CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX, MPI_COMM_WORLD,MPI_ERR)
+maxeigen_tri=r1(1)
+
+!ADD LEVENBERG PARAMETER LM*DMIN TO DIAGONAL [OR D*(1+LM) IF NO COL-SCALING]
+CALL ResetDiagonal(lmp, .FALSE.)
+
+END SUBROUTINE FindMinMax_TRI
+!-------------------------------------------------------------------------------
+
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ResetDiagonal(lmp, bReset)
+REAL(dp), INTENT(IN) :: lmp
+LOGICAL,  INTENT(IN) :: bReset
+REAL(dp)             :: DminL, eps
+INTEGER              :: dcnt, js, ir, icol
+
+!ADD CONSTANT (SCALED BY DMIN) LEVENBERG PARAMETER TO DIAGONAL [NOT D*(1+LM)]
+!ENHANCE CONSTANT (X 10) NEAR AXIS TO IMPROVE PRESSURE BALANCE (SPH11-01-16)
+DminL = Dmin_TRI*lmp
+dcnt = 0
+DO js = startglobrow, endglobrow
+  ir=js-startglobrow+1
+  DO icol = 1, M
+    dcnt=dcnt+1
+    eps = OrigDiagElement(dcnt)
+!SPH 11-14-16: remove redundancy of edge force K^s=0? Works better without this
+!    IF (js.EQ.N .AND. icol.GT.(M/3)) DminL = Dmin_TRI*MAX(ABS(lmp),1.E-7_dp)
+    IF (L_COLSCALE) THEN
+       lelement(1,ir)%D(icol,icol) = eps + SIGN(DminL,eps)
+    ELSE
+       lelement(1,ir)%D(icol,icol) = eps*(1 + ABS(lmp))
+    END IF
+    orig(ir)%D(icol,icol) = lelement(1,ir)%D(icol,icol)
+  END DO
+
+  IF (bReset) THEN
+     lelement(1,ir)%L = orig(ir)%L  
+     lelement(1,ir)%D = orig(ir)%D 
+     lelement(1,ir)%U = orig(ir)%U
+     lelement(1,ir)%pivot = 0
+  END IF
+END DO
+
+END SUBROUTINE ResetDiagonal
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE RefactorHessian(lmp)
+!SPH 08-31-16
+!Routine to reset Hessian block prior to refactoring it with a new levenberg parameter (lmp)
+!
+REAL(dp), INTENT(IN) :: lmp
+
+CALL ResetDiagonal(lmp, .TRUE.)
+CALL ForwardSolve
+
+END SUBROUTINE RefactorHessian
+!-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
 SUBROUTINE ComputeTranspose

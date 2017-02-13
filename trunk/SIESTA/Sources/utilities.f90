@@ -1,4 +1,4 @@
-#if defined(SKS)
+!#if defined(SKS)
 !---------------------------------------------------------------------------------------------
       SUBROUTINE GradientHalf_par(gradienth, vectorf, n2, nsmin, nsmax)
       USE stel_kinds
@@ -8,8 +8,8 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)      :: n2, nsmin, nsmax
-      REAL(rprec), INTENT(IN)  :: vectorf(1+n2*(nsmin-1):n2*nsmax)   
-      REAL(rprec), INTENT(OUT) :: gradienth(1+n2*(nsmin-1):n2*nsmax)      
+      REAL(dp), INTENT(IN)  :: vectorf(1+n2*(nsmin-1):n2*nsmax)   
+      REAL(dp), INTENT(OUT) :: gradienth(1+n2*(nsmin-1):n2*nsmax)      
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -70,14 +70,14 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(in)      :: n2, nsmin, nsmax
-      REAL(rprec), INTENT(IN)  :: vecf(1+n2*(nsmin-1):n2*nsmax)   
-      REAL(rprec), INTENT(OUT) :: vech(1+n2*(nsmin-1):n2*nsmax)      
+      INTEGER, INTENT(in)   :: n2, nsmin, nsmax
+      REAL(dp), INTENT(IN)  :: vecf(1+n2*(nsmin-1):n2*nsmax)   
+      REAL(dp), INTENT(OUT) :: vech(1+n2*(nsmin-1):n2*nsmax)      
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER                  :: lstart, lend
-      REAL(rprec), PARAMETER  :: p5 = 0.5_dp
+      INTEGER                 :: lstart, lend
+      REAL(dp), PARAMETER  :: p5 = 0.5_dp
 !-----------------------------------------------
 !     Contraction map
 !     INPUT (vecf)   : [nsmin:nsmax]
@@ -105,12 +105,12 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)      :: n2, nsmin, nsmax
-      REAL(rprec), INTENT(IN)  :: vech(1+n2*(nsmin-1):n2*nsmax)      
-      REAL(rprec), INTENT(OUT) :: vecf(1+n2*(nsmin-1):n2*nsmax)   
+      REAL(dp), INTENT(IN)  :: vech(1+n2*(nsmin-1):n2*nsmax)      
+      REAL(dp), INTENT(OUT) :: vecf(1+n2*(nsmin-1):n2*nsmax)   
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: p5 = 0.5_dp
+      REAL(dp), PARAMETER :: p5 = 0.5_dp
       INTEGER     :: lstart, lend
 !-----------------------------------------------
 !     Contraction map
@@ -134,127 +134,78 @@
 
 !---------------------------------------------------------------------------------------------
       SUBROUTINE toupper_forces_par
-      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,           &
+      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,            &
                          mpol=>mpol_i, ntor=>ntor_i
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
-#if defined(MRC)
-                            fsubsmnsf, fsubumncf, fsubvmncf,            &
-                            fsupsmnsf, fsupumncf, fsupvmncf,            &
-#endif
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,             &
+                            fsubsmnsf, fsubumncf, fsubvmncf,             &
+                            fsupsmnsf, fsupumncf, fsupvmncf,             &
                             fsupsmncf, fsupumnsf, fsupvmnsf 
-      USE fourier, ONLY: toijsp_par, tomnsp_par, fourier_none,          &
-                         fourier_parity_odd, fourier_parity_even,       &
-                         fourier_full_grid
+      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,   &
+                         f_sum, f_full
       USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE shared_data, ONLY: l_asym
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                            &
-                                          fsubsijf, fsubuijf, fsubvijf,        &
-                                          fsupsijf, fsupuijf, fsupvijf,        &
-                                          tempmn, tempij
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
+                                    fsubsijf, fsubuijf, fsubvijf,        &
+                                    fsupsijf, fsupuijf, fsupvijf
 !-----------------------------------------------
       INTEGER :: nsmin, nsmax, ns_span, istat, js
 !-----------------------------------------------
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
       ns_span=nsmax-nsmin+1
 
-      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                         &
-               fsubuijf(ntheta,nzeta,nsmin:nsmax),                         &
-               fsubvijf(ntheta,nzeta,nsmin:nsmax),                         &
-               fsupsijf(ntheta,nzeta,nsmin:nsmax),                         &
-               fsupuijf(ntheta,nzeta,nsmin:nsmax),                         &
-               fsupvijf(ntheta,nzeta,nsmin:nsmax),                         &
-               tempmn(0:mpol,-ntor:ntor, nsmin:nsmax), stat=istat)
+      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsubuijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsubvijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsupsijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsupuijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) STOP ' Allocation error in toupper_forces_par'
 
-      DO js=nsmin, nsmax
-         tempmn(:,:,js) = fsubsmncf(:,:,js)
-      END DO
-      CALL toijsp_par(tempmn, fsubsijf, 0, 0, 0, 0, 1, ns_span)
-      DO js=nsmin, nsmax
-         tempmn(:,:,js) = fsubumnsf(:,:,js)
-      END DO
-      CALL toijsp_par(tempmn, fsubuijf, 0, 0, 1, 0, 1, ns_span)
-      DO js=nsmin, nsmax
-         tempmn(:,:,js) = fsubvmnsf(:,:,js)
-      END DO
-      CALL toijsp_par(tempmn, fsubvijf, 0, 0, 1, 0, 1, ns_span)
+      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos, f_full, 1, ns_span)
+      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin, f_full, 1, ns_span)
+      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin, f_full, 1, ns_span)
+ 
+      IF (l_asym) THEN
 
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         ALLOCATE(tempij(ntheta,nzeta,nsmin:nsmax))
-
-         DO js=nsmin, nsmax
-            tempmn(:,:,js) = fsubsmnsf(:,:,js)
-         END DO
-         CALL toijsp_par(tempmn, tempij, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid, 1, ns_span)
-         fsubsijf = fsubsijf + tempij
-
-         DO js=nsmin, nsmax
-         tempmn(:,:,js) = fsubumncf(:,:,js)
-         END DO
-         CALL toijsp_par(tempmn, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid, 1, ns_span)
-         fsubuijf = fsubuijf + tempij
-
-         DO js=nsmin, nsmax
-         tempmn(:,:,js) = fsubsmncf(:,:,js)
-         END DO
-         CALL toijsp_par(tempmn, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid, 1, ns_span)
-         fsubvijf = fsubvijf + tempij
-
-         DEALLOCATE(tempij)
+      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin, f_full, 1, ns_span)
+      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos, f_full, 1, ns_span)
+      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos, f_full, 1, ns_span)
+ 
       END IF
-#endif
 
-!
+!      
 !     GET CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
 !
-      CALL toupper_par(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf)
+      CALL toupper_par(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf) 
       DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
-      CALL tomnsp_par(fsupsijf, tempmn, 0, 0, 1, ns_span)
-      DO js=nsmin, nsmax
-         fsupsmncf(:,:,js) = tempmn(:,:,js)
-      END DO
-      CALL tomnsp_par(fsupuijf, tempmn, 1, 0, 1, ns_span)
-      DO js=nsmin, nsmax
-         fsupumnsf(:,:,js) = tempmn(:,:,js)
-      END DO
-      CALL tomnsp_par(fsupvijf, tempmn, 1, 0, 1, ns_span)
-      DO js=nsmin, nsmax
-         fsupvmnsf(:,:,js) = tempmn(:,:,js)
-      END DO
+      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos, f_full, 1, ns_span)
+      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin, f_full, 1, ns_span)
+      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin, f_full, 1, ns_span)
 
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         CALL tomnsp_par(fsupsijf, tempmn, fourier_parity_even, fourier_full_grid, 1, ns_span)
-         DO js=nsmin, nsmax
-            fsupsmnsf(:,:,js) = tempmn(:,:,js)
-         END DO
-         CALL tomnsp_par(fsupuijf, tempmn, fourier_parity_odd, fourier_full_grid, 1, ns_span)
-         DO js=nsmin, nsmax
-            fsupumncf(:,:,js) = tempmn(:,:,js)
-         END DO
-         CALL tomnsp_par(fsupvijf, tempmn, fourier_parity_odd, fourier_full_grid, 1, ns_span)
-         DO js=nsmin, nsmax
-            fsupvmncf(:,:,js) = tempmn(:,:,js)
-         END DO
+      IF (l_asym) THEN
+
+      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin, f_full, 1, ns_span)
+      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos, f_full, 1, ns_span)
+      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos, f_full, 1, ns_span)
+
       END IF
-#endif
 
-      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, tempmn, stat=istat)
+      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)
 
       END SUBROUTINE toupper_forces_par
 !---------------------------------------------------------------------------------------------
 
 !---------------------------------------------------------------------------------------------
-      SUBROUTINE tolowerh_par(xsupsij, xsupuij, xsupvij,                &
+      SUBROUTINE tolowerh_par(xsupsij, xsupuij, xsupvij,                 &
                               xsubsij, xsubuij, xsubvij, nsmin, nsmax)
       USE stel_kinds
       USE island_params, ns=>ns_i, nuv=>nuv_i
-      USE metrics, ONLY: gss, gsu, gsv, guu, guv, gvv               ! LOWER METRIC ELEMENTS (ON half mesh)
+      USE metrics, ONLY: gss, gsu, gsv, guu, guv, gvv                     ! LOWER METRIC ELEMENTS (ON half mesh)
       IMPLICIT NONE        
 !
 !     Moves contravariant (upper) to covariant (lower) magnetic field
@@ -263,33 +214,33 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !----------------------------------------------
-      INTEGER, INTENT(IN) :: nsmin, nsmax
-      REAL(rprec), DIMENSION(nuv,nsmin:nsmax), INTENT(IN)  ::           &
+      INTEGER, INTENT(IN) :: nsmin, nsmax  
+      REAL(dp), DIMENSION(nuv,nsmin:nsmax), INTENT(IN)  ::               &
                    xsupsij, xsupuij, xsupvij 
-      REAL(rprec), DIMENSION(nuv,nsmin:nsmax), INTENT(OUT) ::           &
+      REAL(dp), DIMENSION(nuv,nsmin:nsmax), INTENT(OUT) ::               &
                    xsubsij, xsubuij, xsubvij
 !-----------------------------------------------
-      INTEGER :: js
+!      INTEGER :: js
 !-----------------------------------------------
-      DO js = nsmin,nsmax
-      xsubsij(:,js) = gss(:,js)*xsupsij(:,js)                           &
-                    + gsu(:,js)*xsupuij(:,js)                           &
-                    + gsv(:,js)*xsupvij(:,js)
+!      DO js = nsmin,nsmax
+      xsubsij(:,nsmin:nsmax) = gss(:,nsmin:nsmax)*xsupsij(:,nsmin:nsmax) &
+                             + gsu(:,nsmin:nsmax)*xsupuij(:,nsmin:nsmax) &
+                             + gsv(:,nsmin:nsmax)*xsupvij(:,nsmin:nsmax)
 
-      xsubuij(:,js) = gsu(:,js)*xsupsij(:,js)                           &
-                    + guu(:,js)*xsupuij(:,js)                           &
-                    + guv(:,js)*xsupvij(:,js)
+      xsubuij(:,nsmin:nsmax) = gsu(:,nsmin:nsmax)*xsupsij(:,nsmin:nsmax) &
+                             + guu(:,nsmin:nsmax)*xsupuij(:,nsmin:nsmax) &
+                             + guv(:,nsmin:nsmax)*xsupvij(:,nsmin:nsmax)
       
-      xsubvij(:,js) = gsv(:,js)*xsupsij(:,js)                           &
-                    + guv(:,js)*xsupuij(:,js)                           &
-                    + gvv(:,js)*xsupvij(:,js)
-      END DO
+      xsubvij(:,nsmin:nsmax) = gsv(:,nsmin:nsmax)*xsupsij(:,nsmin:nsmax) &
+                             + guv(:,nsmin:nsmax)*xsupuij(:,nsmin:nsmax) &
+                             + gvv(:,nsmin:nsmax)*xsupvij(:,nsmin:nsmax)
+!      END DO
 
       END SUBROUTINE tolowerh_par
 !---------------------------------------------------------------------------------------------
 
 !---------------------------------------------------------------------------------------------
-      SUBROUTINE tolowerf_par(xsupsij, xsupuij, xsupvij,                &
+      SUBROUTINE tolowerf_par(xsupsij, xsupuij, xsupvij,                 &
                               xsubsij,xsubuij, xsubvij, nsmin, nsmax)
       USE stel_kinds
       USE island_params, ns=>ns_i, nuv=>nuv_i
@@ -303,23 +254,23 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN) :: nsmin, nsmax
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(IN)  :: xsupsij, xsupuij, xsupvij 
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(OUT) :: xsubsij, xsubuij, xsubvij
+      REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  :: xsupsij, xsupuij, xsupvij 
+      REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) :: xsubsij, xsubuij, xsubvij
 !-----------------------------------------------
       INTEGER :: js, js1
 !-----------------------------------------------
       DO js=nsmin,nsmax
       js1 = js-nsmin+1
-      xsubsij(:,js1) = gssf(:,js)*xsupsij(:,js1)                        &
-                     + gsuf(:,js)*xsupuij(:,js1)                        &
+      xsubsij(:,js1) = gssf(:,js)*xsupsij(:,js1)                         &
+                     + gsuf(:,js)*xsupuij(:,js1)                         &
                      + gsvf(:,js)*xsupvij(:,js1) 
 
-      xsubuij(:,js1) = gsuf(:,js)*xsupsij(:,js1)                        &
-                     + guuf(:,js)*xsupuij(:,js1)                        &
+      xsubuij(:,js1) = gsuf(:,js)*xsupsij(:,js1)                         &
+                     + guuf(:,js)*xsupuij(:,js1)                         &
                      + guvf(:,js)*xsupvij(:,js1) 
 
-      xsubvij(:,js1) = gsvf(:,js)*xsupsij(:,js1)                        &
-                     + guvf(:,js)*xsupuij(:,js1)                        &
+      xsubvij(:,js1) = gsvf(:,js)*xsupsij(:,js1)                         &
+                     + guvf(:,js)*xsupuij(:,js1)                         &
                      + gvvf(:,js)*xsupvij(:,js1)       
       END DO
 
@@ -327,11 +278,11 @@
 !---------------------------------------------------------------------------------------------
 
 !---------------------------------------------------------------------------------------------
-        SUBROUTINE toupper_par(xsubsij, xsubuij, xsubvij,              &
+        SUBROUTINE toupper_par(xsubsij, xsubuij, xsubvij,                &
                                xsupsij, xsupuij, xsupvij)
         USE stel_kinds
         USE island_params, ns=>ns_i, nuv=>nuv_i
-        USE metrics, ONLY: hss, hsu, hsv, huu, huv, hvv          ! UPPER METRIC ELEMENTS (ON full mesh)
+        USE metrics, ONLY: hss, hsu, hsv, huu, huv, hvv                   ! UPPER METRIC ELEMENTS (ON full mesh)
         USE nscalingtools, ONLY: startglobrow, endglobrow
         IMPLICIT NONE        
 !
@@ -341,9 +292,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
         INTEGER :: istat
-        REAL(rprec), DIMENSION(nuv,ns), INTENT(IN)  ::                  &
-        xsubsij, xsubuij, xsubvij
-        REAL(rprec), DIMENSION(nuv,ns), INTENT(OUT) ::                  &
+        REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                      &
+        xsubsij, xsubuij, xsubvij 
+        REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                      &
         xsupsij, xsupuij, xsupvij        
 !-----------------------------------------------
         INTEGER :: nsmin, nsmax, js, js1
@@ -352,20 +303,20 @@
         nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
         DO js=nsmin, nsmax
            js1 = js+1-nsmin
-        xsupsij(:,js1) = hss(:,js)*xsubsij(:,js1)                       &
-                       + hsu(:,js)*xsubuij(:,js1)                       &
+        xsupsij(:,js1) = hss(:,js)*xsubsij(:,js1)                        &
+                       + hsu(:,js)*xsubuij(:,js1)                        &
                        + hsv(:,js)*xsubvij(:,js1)
-        xsupuij(:,js1) = hsu(:,js)*xsubsij(:,js1)                       &
-                       + huu(:,js)*xsubuij(:,js1)                       &
+        xsupuij(:,js1) = hsu(:,js)*xsubsij(:,js1)                        &
+                       + huu(:,js)*xsubuij(:,js1)                        &
                        + huv(:,js)*xsubvij(:,js1)
-        xsupvij(:,js1) = hsv(:,js)*xsubsij(:,js1)                       &
-                       + huv(:,js)*xsubuij(:,js1)                       &
+        xsupvij(:,js1) = hsv(:,js)*xsubsij(:,js1)                        &
+                       + huv(:,js)*xsubuij(:,js1)                        &
                        + hvv(:,js)*xsubvij(:,js1)       
         END DO
 
         END SUBROUTINE toupper_par
 !---------------------------------------------------------------------------------------------
-#endif
+!#endif
         SUBROUTINE to_half_mesh(vecf, vech, n2)
         USE stel_kinds
         USE island_params, ns=>ns_i
@@ -377,8 +328,8 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
         INTEGER, INTENT(IN)                        :: n2
-        REAL(rprec), DIMENSION(n2,ns), INTENT(IN)  :: vecf    
-        REAL(rprec), DIMENSION(n2,ns), INTENT(OUT) :: vech  
+        REAL(dp), DIMENSION(n2,ns), INTENT(IN)  :: vecf    
+        REAL(dp), DIMENSION(n2,ns), INTENT(OUT) :: vech  
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -407,14 +358,14 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        INTEGER, INTENT(IN)                        :: n2
-        REAL(rprec), DIMENSION(n2,ns), INTENT(IN)  :: vech      
-        REAL(rprec), DIMENSION(n2,ns), INTENT(OUT) :: vecf   
+        INTEGER, INTENT(IN)                     :: n2
+        REAL(dp), DIMENSION(n2,ns), INTENT(IN)  :: vech      
+        REAL(dp), DIMENSION(n2,ns), INTENT(OUT) :: vecf   
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER, PARAMETER     :: i1=2, i2=i1+1
-        REAL(rprec), PARAMETER :: p5 = 0.5_dp
+        REAL(dp), PARAMETER :: p5 = 0.5_dp
         REAL(dp) :: skston, skstoff
 !-----------------------------------------------
         CALL second0(skston)
@@ -432,11 +383,11 @@
         END SUBROUTINE to_full_mesh
 
         
-        SUBROUTINE toupper(xsubsij, xsubuij, xsubvij, xsupsij,          &
+        SUBROUTINE toupper(xsubsij, xsubuij, xsubvij, xsupsij,           &
                            xsupuij, xsupvij)
         USE stel_kinds
         USE island_params, ns=>ns_i, nuv=>nuv_i
-        USE metrics, ONLY: hss, hsu, hsv, huu, huv, hvv          ! UPPER METRIC ELEMENTS (ON full mesh)
+        USE metrics, ONLY: hss, hsu, hsv, huu, huv, hvv                   ! UPPER METRIC ELEMENTS (ON full mesh)
         IMPLICIT NONE        
 !
 !     This subroutine moves from lower to upper components on the FULL mesh
@@ -445,9 +396,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
         INTEGER :: istat
-        REAL(rprec), DIMENSION(nuv,ns), INTENT(IN)  ::                  &
+        REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                      &
           xsubsij, xsubuij, xsubvij
-        REAL(rprec), DIMENSION(nuv,ns), INTENT(OUT) ::                  &
+        REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                      &
           xsupsij, xsupuij, xsupvij        
 !-----------------------------------------------
 
@@ -457,11 +408,11 @@
         
         END SUBROUTINE toupper
 
-      SUBROUTINE tolowerh(xsupsij, xsupuij, xsupvij, xsubsij,           &
+      SUBROUTINE tolowerh(xsupsij, xsupuij, xsupvij, xsubsij,            &
                           xsubuij, xsubvij)
       USE stel_kinds
       USE island_params, ns=>ns_i, nuv=>nuv_i
-      USE metrics, ONLY: gss, gsu, gsv, guu, guv, gvv               ! LOWER METRIC ELEMENTS (ON half mesh)
+      USE metrics, ONLY: gss, gsu, gsv, guu, guv, gvv                     ! LOWER METRIC ELEMENTS (ON half mesh)
       IMPLICIT NONE        
 !
 !     Moves contravariant (upper) to covariant (lower) magnetic field
@@ -471,9 +422,9 @@
 !   D u m m y   A r g u m e n t s
 !----------------------------------------------
       INTEGER :: istat
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(IN)  ::                    &
+      REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                        &
           xsupsij, xsupuij, xsupvij 
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(OUT) ::                    &
+      REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                        &
           xsubsij, xsubuij, xsubvij
 !-----------------------------------------------
 
@@ -484,7 +435,7 @@
       END SUBROUTINE tolowerh
 
 
-      SUBROUTINE tolowerf(xsupsij, xsupuij, xsupvij, xsubsij,           &
+      SUBROUTINE tolowerf(xsupsij, xsupuij, xsupvij, xsubsij,            &
                           xsubuij, xsubvij)
       USE stel_kinds
       USE island_params, ns=>ns_i, nuv=>nuv_i
@@ -498,9 +449,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: istat
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(IN)  ::                    &
+      REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                        &
           xsupsij, xsupuij, xsupvij 
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(OUT) ::                    &
+      REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                        &
           xsubsij, xsubuij, xsubvij
 !-----------------------------------------------
 
@@ -512,73 +463,8 @@
 
 
       SUBROUTINE toupper_forces
-      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,        &
-#if defined(MRC)
-                            fsubsmnsf, fsubumncf, fsubvmncf,        &
-                            fsupsmnsf, fsupumncf, fsupvmncf,        &
-#endif
-                            fsupsmncf, fsupumnsf, fsupvmnsf 
-      USE fourier, ONLY: toijsp, tomnsp, fourier_none, fourier_full_grid,      &
-                         fourier_parity_odd, fourier_parity_even
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER :: istat
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) ::                 &
-         fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf, tempij
-!-----------------------------------------------
-      ALLOCATE(fsubsijf(ntheta,nzeta,ns),                           &
-               fsubuijf(ntheta,nzeta,ns),                           &
-               fsubvijf(ntheta,nzeta,ns),                           &
-               fsupsijf(ntheta,nzeta,ns),                           &
-               fsupuijf(ntheta,nzeta,ns),                           &
-               fsupvijf(ntheta,nzeta,ns),                           &
-               stat=istat)
-      IF (istat .ne. 0) STOP ' Allocation error in toupper_forces'
 
-      CALL toijsp(fsubsmncf, fsubsijf, 0, 0, 0, 0)
-      CALL toijsp(fsubumnsf, fsubuijf, 0, 0, 1, 0)
-      CALL toijsp(fsubvmnsf, fsubvijf, 0, 0, 1, 0)
-
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         ALLOCATE(tempij(ntheta,nzeta,ns))
-
-         CALL toijsp(fsubsmnsf, tempij, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid)
-         fsubsijf = fsubsijf + tempij
-
-         CALL toijsp(fsubumncf, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
-         fsubsijf = fsubsijf + tempij
-
-         CALL toijsp(fsubvmncf, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
-         fsubsijf = fsubsijf + tempij
-
-         DEALLOCATE(tempij)
-      END IF
-#endif
-
-!      
-!     GET CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
-!
-      CALL toupper(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf)
-      DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
-
-      IF (istat .ne. 0) STOP ' Allocation error in check_forces'
-      CALL tomnsp(fsupsijf, fsupsmncf, 0, 0)
-      CALL tomnsp(fsupuijf, fsupumnsf, 1, 0)
-      CALL tomnsp(fsupvijf, fsupvmnsf, 1, 0)
-
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         CALL tomnsp(fsupsijf, fsupsmnsf, fourier_parity_odd, fourier_full_grid)
-         CALL tomnsp(fsupuijf, fsupumncf, fourier_parity_even, fourier_full_grid)
-         CALL tomnsp(fsupvijf, fsupvmncf, fourier_parity_even, fourier_full_grid)
-      END IF
-#endif
-
-      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf)
+      CALL toupper_forces_par
 
       END SUBROUTINE toupper_forces
 
@@ -589,9 +475,9 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(in)      :: n2
-      REAL(rprec), INTENT(in)  :: vectorf(n2,ns)
-      REAL(rprec), INTENT(out) :: gradienth(n2,ns)
+      INTEGER, INTENT(IN)   :: n2
+      REAL(dp), INTENT(IN)  :: vectorf(n2,ns)
+      REAL(dp), INTENT(OUT) :: gradienth(n2,ns)
 !-----------------------------------------------
 
       gradienth(:,2:ns) = ohs*(vectorf(:,2:ns) - vectorf(:,1:nsh))  
@@ -606,8 +492,8 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)      :: n2
-      REAL(rprec), INTENT(in)  :: vectorh(n2,ns)
-      REAL(rprec), INTENT(out) :: gradientf(n2,ns)
+      REAL(dp), INTENT(in)  :: vectorh(n2,ns)
+      REAL(dp), INTENT(out) :: gradientf(n2,ns)
 !-----------------------------------------------
 
       gradientf(:,2:nsh) = ohs*(vectorh(:,3:ns) - vectorh(:,2:nsh))  
@@ -627,9 +513,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN) :: jspoint, iparity, mcut
-      REAL(rprec), INTENT(INOUT) :: array(0:mpol,-ntor:ntor,ns)
-      REAL(rprec)                :: work(ntheta,nzeta,ns)
-      REAL(rprec), ALLOCATABLE   :: temp(:,:)
+      REAL(dp), INTENT(INOUT) :: array(0:mpol,-ntor:ntor,ns)
+      REAL(dp)                :: work(ntheta,nzeta,ns)
+      REAL(dp), ALLOCATABLE   :: temp(:,:)
 !-----------------------------------------------
       ALLOCATE (temp(0:mpol,-ntor:ntor))
 
@@ -647,26 +533,35 @@
 
       END SUBROUTINE ZeroHalfPoint
 
-      SUBROUTINE FluxAverage(average, q3d, nsmin, nsmax)
+
+      SUBROUTINE SurfAverage(average, q3d, nsmin, nsmax)
       USE stel_kinds, ONLY: dp
       USE fourier, ONLY: cosmui
       USE island_params, ONLY: ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
       IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)   :: nsmin, nsmax
+      REAL(dp), INTENT(OUT) :: average(nsmin:nsmax)
+      REAL(dp), INTENT(IN)  :: q3d(ntheta,nzeta,nsmin:nsmax)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       INTEGER, PARAMETER    :: m0=0
-      INTEGER, INTENT(in)   :: nsmin, nsmax
-      REAL(dp), INTENT(out) :: average(nsmin:nsmax)
-      REAL(dp), INTENT(in)  :: q3d(ntheta,nzeta,nsmin:nsmax)
       INTEGER               :: js, l
+!-----------------------------------------------
 
       average(nsmin:nsmax) = 0
       DO js = nsmin, nsmax
          DO l = 1, ntheta
-              average(js) = average(js) + SUM(q3d(l,:,js))*cosmui(l,m0)
-         END DO                                                         
+            average(js) = average(js) + SUM(q3d(l,:,js))*cosmui(l,m0)
+         END DO                                    
       END DO
 
-      END SUBROUTINE FluxAverage
- 
+      END SUBROUTINE SurfAverage
+
+
       SUBROUTINE truncate(num, iprec0)
       USE stel_kinds, ONLY: dp
       IMPLICIT NONE
@@ -678,19 +573,19 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER*8  :: i1, ilog
+      CHARACTER*24 :: chnum, tchnum
 !-----------------------------------------------
 !
-!     TRUNCATES double-precision to precision 8 digits, keeping exponent range of double
+!     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
+!     USE INTERNAL FILE TO DO TRUNCATION
 !
-      RETURN    !052316 - SPH - do not need this - converges better without it
+!     RETURN    !052316 - SPH - do not need this - converges better without it
 
-      ilog = 0
-      IF (ABS(num) .GT. 1.E-30_dp) ilog = NINT(LOG10(ABS(1._dp/num)))
-      ilog = ilog+iprec0
-      num = num*(10._dp**ilog)
-      i1 = NINT(num, 8)
-      num = REAL(i1,dp)/10._dp**ilog
+      WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
+      WRITE (tchnum, chnum) num
+
+      READ (tchnum, chnum) num
 
       END SUBROUTINE truncate
+
 

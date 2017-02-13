@@ -6,19 +6,16 @@
       USE stel_kinds
       USE stel_constants
       USE island_params
-      USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor, &
-          rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,            &
-!          xm_vmec=>xm, xn_vmec=>xn, iotaf_vmec=>iotaf,                  &   MRC 4/1/2016
-#if defined(MRC)
-          rmns_vmec=>rmns, zmnc_vmec=>zmnc, lmnc_vmec=>lmnc,            &
-#endif
-          xm_vmec=>xm, xn_vmec=>xn, chipf_vmec=>chipf,                  &  ! MRC 4/1/2016
-          phipf_vmec=>phipf, presf_vmec=>presf, nfp_vmec=>nfp,          &
-          wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,                  &
-          volume_vmec=>volume, raxis_vmec=>raxis
+      USE shared_data, ONLY: l_asym
+      USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor,  &
+          rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,             &
+          xm_vmec=>xm, xn_vmec=>xn, chipf_vmec=>chipf,                   &  ! MRC 4/1/2016
+          rmns_vmec=>rmns, zmnc_vmec=>zmnc, lmnc_vmec=>lmnc,             &  ! MRC 12/1/2016
+          phipf_vmec=>phipf, presf_vmec=>presf, nfp_vmec=>nfp,           &
+          wb_vmec=>wb, wp_vmec=>wp, gamma_vmec=>gamma,                   &
+          volume_vmec=>volume, raxis_vmec=>raxis, l_asym_vmec=>lasym
       USE descriptor_mod, ONLY: iam
       USE timer_mod
-      USE fourier
 
       IMPLICIT NONE
 !     
@@ -32,36 +29,30 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::                       &
-                   sqrtg,                                               & !sqrt(g): Jacobian on half grid
-                   gss, gsu, gsv, guu, guv, gvv,                        & !symmetric elements of lower metric tensor (half mesh)
-                   hss, hsu, hsv, huu, huv, hvv                           !symmetric elements of upper metric tensor (full mesh)
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE ::                           &
+                   sqrtg,                                                & !sqrt(g): Jacobian on half grid
+                   gss, gsu, gsv, guu, guv, gvv,                         & !elements of lower metric tensor (half mesh)
+                   hss, hsu, hsv, huu, huv, hvv                            !elements of upper metric tensor (full mesh)
 
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::                       &
-                   rmnc_spline, zmns_spline, lmns_spline
-
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::                     &
-                   rmnc_i, zmns_i, lmns_i
-
-#if defined(MRC)
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE ::                       &
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE ::                           &
+                   rmnc_spline, zmns_spline, lmns_spline,                &
                    rmns_spline, zmnc_spline, lmnc_spline
 
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::                     &
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                         &
+                   rmnc_i, zmns_i, lmns_i,                               &
                    rmns_i, zmnc_i, lmnc_i
-#endif
 
-      REAL(rprec) :: rmax, rmin, zmax, zmin
+      REAL(dp) :: rmax, rmin, zmax, zmin
 
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE:: gssf, guuf, gvvf,      & !Lower Metric elements (full)
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE:: gssf, guuf, gvvf,          & !Lower Metric elements (full)
                    gsuf, gsvf, guvf   
 
-      INTEGER :: iflipj=1                                                 !=-1 to flip sign of vmec jac
+      INTEGER :: iflipj=1                                                  !=-1 to flip sign of vmec jac
 !
 !     LOCAL (PRIVATE) HELPER ROUTINES (NOT ACCESSIBLE FROM OUTSIDE THIS MODULE)
 !
       PRIVATE spline_fourier_modes, loadrzl_vmec, add_ghost_points
-      INTEGER, PARAMETER, PRIVATE :: iScale=0                             !=0, s ~ SQRT(PHI) - default; = 1, s ~ PHI (VMEC)
+      INTEGER, PARAMETER, PRIVATE :: iScale=0                              !=0, s ~ SQRT(PHI) - default; = 1, s ~ PHI (VMEC)
 
       REAL(dp) :: skston, skstoff
 
@@ -74,20 +65,17 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       CHARACTER*(*)            :: wout_file
-      INTEGER, INTENT(in)      :: ns_in, mpol_in, ntor_in
+      INTEGER, INTENT(IN)      :: ns_in, mpol_in, ntor_in
       INTEGER                  :: istat, ntype, imesh, js
-      REAL(rprec)              :: t1, t2
+      REAL(dp)                 :: t1, t2
       INTEGER                  :: m, n, mn
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec),ALLOCATABLE  :: lmns_half(:,:)
-#if defined(MRC)
-      REAL(rprec),ALLOCATABLE  :: lmnc_half(:,:)
-#endif
+      REAL(dp),ALLOCATABLE     :: lmns_half(:,:), lmnc_half(:,:)
 !-----------------------------------------------
 !
-!     LOADS VALUES FOR MESHES TO BE USED IN SIESTA
+!     LOADS VALUES FOR MESHES TO BE USED IN VMECPP ISLAND SOLVER
 !     (GENERALLY DIFFERENT FROM VMEC MESHES. USE SUBSCRIPT _i FOR ISLAND VARIABLES)
 !     READS wout_file FROM VMEC TO GET FOURIER COMPONENTS ON VMEC MESH
 !     SPLINES THE VMEC COMPONENTS TO RADIAL ISLAND MESH (PHI->SQRT(PHI))
@@ -104,25 +92,40 @@
       init_timers_time=init_timers_time+(skstoff-skston)
 #endif
 
-!
-!     READ-IN DATA FROM VMEC-PRODUCED WOUT FILE (LIBSTELL ROUTINE)
-!
-#if defined(SKS)
-      CALL second0(skston)
-#endif
-      CALL read_wout_file(wout_file, istat)
-#if defined(SKS)
-      CALL second0(skstoff)
-      read_wout_file_time=read_wout_file_time+(skstoff-skston)
-#endif
-      IF (istat .ne. 0) STOP 'Read-wout error in INIT_METRIC_ELEMENTS'
-
-      l_force_asym = lasym
-
       IF (iScale .NE. 0) THEN
       PRINT *,'RESET ISCALE=0 AFTER TESTING!'
       !PAUSE
       END IF
+
+!
+!     READ-IN DATA FROM VMEC WOUT FILE (LIBSTELL ROUTINE)
+!
+#if defined(SKS) 
+      CALL second0(skston)
+#endif
+      CALL read_wout_file(wout_file, istat)
+#if defined(SKS) 
+      CALL second0(skstoff)
+      read_wout_file_time=read_wout_file_time+(skstoff-skston)
+#endif
+      IF (istat .NE. 0) STOP 'Read-wout error in INIT_METRIC_ELEMENTS'
+
+!  Asymmetric terms may be overriden in the namelist input file.
+!      l_asym = l_asym .OR. l_asym_vmec
+
+      nfp_i = nfp_vmec
+      wb_i  = (twopi*twopi)*wb_vmec
+      wp_i  = (twopi*twopi)*wp_vmec
+      volume_i = volume_vmec
+
+      IF (nfp_i.EQ.0 .OR. .NOT.ALLOCATED(raxis_vmec))                    &
+         STOP 'ERROR INITIALIZING FROM WOUT_FILE IN METRICS!'
+
+      rmajor_i = raxis_vmec(0,1)
+
+      IF (wb_i .eq. 0._dp) STOP 'wb_vmec = 0!'
+      gnorm_i = wb_i + wp_i/(gamma-1)
+      gnorm_i = 1._dp/gnorm_i
 
       ns_i = ns_in
       nsh  = ns_i-1
@@ -137,10 +140,8 @@
 !Suppresses RADIAL grid separation in pressure
       nu_i = 3*nu_i/2
       nu_i = nu_i+MOD(nu_i,2)
+      IF (l_asym) nu_i = 2*nu_i
 
-#if defined(MRC)
-      IF (l_force_asym) nu_i = 2*nu_i
-#endif
 
       nv_i = 3*nv_i/2
       nv_i = nv_i+MOD(nv_i,2)
@@ -152,24 +153,14 @@
 !      mpol32_i = nu_i                                  ! Extended mesh dims for evolved jpmnch
 !      ntor32_i = nv_i/2
 
-      nfp_i = nfp_vmec
-      wb_i  = (twopi*twopi)*wb_vmec
-      wp_i  = (twopi*twopi)*wp_vmec
-      volume_i = volume_vmec
-      rmajor_i = raxis_vmec(0,1)
-
-      IF (wb_i .eq. 0._dp) STOP 'wb_vmec = 0!'
-      gnorm_i = wb_i + wp_i/(gamma-1)
-      gnorm_i = 1._dp/gnorm_i
-
 !
 !     Allocate space for splined arrays
 !     NOTE: keep lmns_spline on half mesh->ghost points at js=1, js=ns+1
 !
-      ALLOCATE(rmnc_spline(mnmax,ns_i), zmns_spline(mnmax,ns_i),        &
-               lmns_spline(mnmax,ns_i+1), phipf_i(ns_i),                &
+      ALLOCATE(rmnc_spline(mnmax,ns_i), zmns_spline(mnmax,ns_i),         &
+               lmns_spline(mnmax,ns_i+1), phipf_i(ns_i),                 &
                chipf_i(ns_i), presf_i(ns_i), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error 1 in INIT_METRIC_ELEMENTS'
+      IF (istat .NE. 0) STOP 'Allocation error 1 in INIT_METRIC_ELEMENTS'
 
 !     UPDATED WOUT TO WRITE OUT CHIPF (SPH) 
 !
@@ -178,85 +169,76 @@
 !     SPLINE R, Z. L FOURIER COMPONENTS in s FROM ORIGINAL VMEC MESH (s ~ phi, ns_vmec points) 
 !     TO A "POLAR" MESH [s ~ sqrt(phi), ns_i POINTS] WITH BETTER AXIS RESOLUTION
 !
-      DO ntype = 1, 3
-         IF (ntype .eq. 1) THEN
-            istat = 0
-#if defined(SKS) 
-            CALL second0(skston)
-#endif
-            CALL Spline_Fourier_Modes(rmnc_vmec, rmnc_spline,ns_vmec, ns_i, istat)
-#if defined(SKS) 
-            CALL second0(skstoff)
-            Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
-#endif
-            IF (istat .ne. 0) STOP 'Error splining rmnc'
-         ELSE IF (ntype .eq. 2) THEN
-            istat = 0
-#if defined(SKS) 
-            CALL second0(skston)
-#endif
-            CALL Spline_Fourier_Modes(zmns_vmec, zmns_spline,           &
-                                      ns_vmec, ns_i, istat)   
-#if defined(SKS) 
-            CALL second0(skstoff)
-            Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
-#endif
-            IF (istat .ne. 0) STOP 'Error splining zmns'
-         ELSE 
-            ALLOCATE(lmns_half(mnmax,ns_vmec+1), stat=istat)
-#if defined(SKS) 
-            CALL second0(skston)
-#endif
-            CALL Add_Ghost_Points(lmns_vmec, lmns_half)
-#if defined(SKS) 
-            CALL second0(skstoff)
-            Add_Ghost_Points_time=Add_Ghost_Points_time+(skstoff-skston)
-#endif
-            istat = 0
-#if defined(SKS) 
-            CALL second0(skston)
-#endif
-            CALL Spline_Fourier_Modes(lmns_half, lmns_spline,           &
-                                      ns_vmec+1, ns_i+1, istat)   
-#if defined(SKS) 
-            CALL second0(skstoff)
-            Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
-#endif
-            IF (istat .ne. 0) STOP 'Error splining lmns'
-            DEALLOCATE(lmns_half)
-         END IF
-      END DO
 
-#if defined(MRC)
-!
-!     Allocate space for splined arrays
-!     NOTE: keep lmns_spline on half mesh->ghost points at js=1, js=ns+1
-!
-      IF (l_force_asym) THEN
-         ALLOCATE(rmns_spline(mnmax,ns_i), zmnc_spline(mnmax,ns_i),        &
-                  lmnc_spline(mnmax,ns_i+1), stat=istat)
-         IF (istat .ne. 0) STOP 'Allocation error 2 in INIT_METRIC_ELEMENTS'
+      istat = 0
+#if defined(SKS) 
+      CALL second0(skston)
+#endif
+      CALL Spline_Fourier_Modes(rmnc_vmec, rmnc_spline, ns_vmec, ns_i, istat)
+#if defined(SKS) 
+      CALL second0(skstoff)
+      Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
+#endif
+      IF (istat .NE. 0) STOP 'Error splining rmnc'
 
-         DO ntype = 1, 3
-            IF (ntype .eq. 1) THEN
-               istat = 0
-               CALL Spline_Fourier_Modes(rmns_vmec, rmns_spline, ns_vmec, ns_i, istat)
-               IF (istat .ne. 0) STOP 'Error splining rmns'
+      istat = 0
+#if defined(SKS) 
+      CALL second0(skston)
+#endif
+      CALL Spline_Fourier_Modes(zmns_vmec, zmns_spline, ns_vmec, ns_i, istat)
+#if defined(SKS) 
+      CALL second0(skstoff)
+      Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
+#endif
+      IF (istat .NE. 0) STOP 'Error splining zmns'
 
-            ELSE IF (ntype .eq. 2) THEN
-               CALL Spline_Fourier_Modes(zmnc_vmec, zmnc_spline, ns_vmec, ns_i, istat)
-               IF (istat .ne. 0) STOP 'Error splining zmnc'
+      ALLOCATE(lmns_half(mnmax,ns_vmec+1), stat=istat)
+#if defined(SKS) 
+      CALL second0(skston)
+#endif
+      CALL Add_Ghost_Points(lmns_vmec, lmns_half)
+#if defined(SKS) 
+      CALL second0(skstoff)
+      Add_Ghost_Points_time=Add_Ghost_Points_time+(skstoff-skston)
+#endif
+      istat = 0
+#if defined(SKS) 
+      CALL second0(skston)
+#endif
+      CALL Spline_Fourier_Modes(lmns_half, lmns_spline, ns_vmec+1, ns_i+1, istat)
+#if defined(SKS) 
+      CALL second0(skstoff)
+      Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
+#endif
+      IF (istat .NE. 0) STOP 'Error splining lmns'
+      DEALLOCATE(lmns_half)
 
-            ELSE
-               ALLOCATE(lmnc_half(mnmax,ns_vmec+1), stat=istat)
-               CALL Add_Ghost_Points(lmnc_vmec, lmnc_half)
-               CALL Spline_Fourier_Modes(lmnc_half, lmnc_spline, ns_vmec+1, ns_i+1, istat)
-               IF (istat .ne. 0) STOP 'Error splining lmns'
-               DEALLOCATE(lmnc_half)
-            END IF
-         END DO
+      IF (.NOT.l_asym) GOTO 1000
+
+      ALLOCATE(rmns_spline(mnmax,ns_i), zmnc_spline(mnmax,ns_i),         &
+               lmnc_spline(mnmax,ns_i+1), stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation error 2 in INIT_METRIC_ELEMENTS'
+
+      IF (l_asym_vmec .and. l_asym) THEN
+
+      istat = 0
+      CALL Spline_Fourier_Modes(rmns_vmec, rmns_spline, ns_vmec, ns_i, istat)
+      IF (istat .NE. 0) STOP 'Error splining rmns'
+
+      CALL Spline_Fourier_Modes(zmnc_vmec, zmnc_spline, ns_vmec, ns_i, istat)
+      IF (istat .NE. 0) STOP 'Error splining zmnc'
+
+      ALLOCATE(lmnc_half(mnmax,ns_vmec+1), stat=istat)
+      CALL Add_Ghost_Points(lmnc_vmec, lmnc_half)
+      CALL Spline_Fourier_Modes(lmnc_half, lmnc_spline, ns_vmec+1, ns_i+1, istat)
+      IF (istat .NE. 0) STOP 'Error splining lmnc'
+      DEALLOCATE(lmnc_half)
+
+      ELSE
+         rmns_spline = 0; zmnc_spline = 0; lmnc_spline = 0
       END IF
-#endif
+
+ 1000 CONTINUE
 
 !
 !     Spline 1-D arrays: careful -> convert phipf VMEC and multiply
@@ -279,29 +261,34 @@
 !
       phipf_i = phipf_i / (2*pi)
       chipf_i = chipf_i / (2*pi)
+
+!Mapping s_vmec = (s_siesta)^2, so d(s_vmec)/d(s_siesta) = 2 s_siesta, where
+!s_siesta = hs_i*(js-1)
+
       IF (iScale == 0) THEN
          DO js = 1, ns_i
             phipf_i(js) = 2 * hs_i*(js-1) * phipf_i(js)
             chipf_i(js) = 2 * hs_i*(js-1) * chipf_i(js)
          END DO
       END IF
+121   FORMAT(a,i4, 4(a,1p,e12.3))
 
       t1 = twopi*hs_i*(SUM(phipf_i(2:ns_i)) + SUM(phipf_i(1:ns_i-1)))/2
-      IF (iam .eq. 0) THEN
-         WRITE (33, 100) volume_i, 1.E-6_dp*(wb_i+wp_i/(gamma-1))/mu0,  &
-         1.E-6_dp*wp_i/mu0,                                             &
-         t1,wp_i/wb_i,chipf_i(2)/phipf_i(2),                            &
+      IF (iam .EQ. 0) THEN
+         WRITE (33, 100) volume_i, 1.E-6_dp*(wb_i+wp_i/(gamma-1))/mu0,   &
+         1.E-6_dp*wp_i/mu0,                                              &
+         t1,wp_i/wb_i,chipf_i(2)/phipf_i(2),                             &
          chipf_i(ns_i)/phipf_i(ns_i), gamma
       ENDIF
 
- 100  FORMAT(/,' INITIAL PARAMETERS (FROM VMEC)',/,                     &
-               ' PHYSICS QUANTITIES',/,                                 &
-               ' PLASMA VOLUME (M^3): ',1pE12.4,                        &
-               ' TOTAL MHD ENERGY (MJ):   ', 1pE12.4,/,                 &
-               ' THERMAL ENERGY (MJ): ', 1pE12.4,                       &
-               ' EDGE TOROIDAL FLUX (Wb): ', 1pE12.4,/,                 &
-               ' DIMENSIONLESS QUANTITIES',/,                           &
-               ' <BETA>: ',1pE12.4, ' IOTA(0): ',1pE12.4,               &
+ 100  FORMAT(/,' INITIAL PARAMETERS (FROM VMEC)',/,                      &
+               ' PHYSICS QUANTITIES',/,                                  &
+               ' PLASMA VOLUME (M^3): ',1pE12.4,                         &
+               ' TOTAL MHD ENERGY (MJ):   ', 1pE16.8,/,                  &
+               ' THERMAL ENERGY (MJ): ', 1pE12.4,                        &
+               ' EDGE TOROIDAL FLUX (Wb): ', 1pE12.4,/,                  &
+               ' DIMENSIONLESS QUANTITIES',/,                            &
+               ' <BETA>: ',1pE12.4, ' IOTA(0): ',1pE12.4,                &
                ' IOTA(1) ',1pE12.4, ' GAMMA: ',1pE12.4,/, 21('-'),/)
 
 !
@@ -316,31 +303,31 @@
       CALL second0(skstoff)
       LoadRZL_VMEC_time=LoadRZL_VMEC_time+(skstoff-skston)
 #endif
-      IF (istat .ne. 0) STOP 'LoadRZL error in INIT_METRIC_ELEMENTS'
+      IF (istat .NE. 0) STOP 'LoadRZL error in INIT_METRIC_ELEMENTS'
 
       IF (lwout_opened) CALL read_wout_deallocate
 
       END SUBROUTINE init_metric_elements
       
-      SUBROUTINE Spline_Fourier_Modes(ymn_vmec, ymn_spline, nsv, nsi,   &
+      SUBROUTINE Spline_Fourier_Modes(ymn_vmec, ymn_spline, nsv, nsi,    &
                                       istat)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(iN)        :: nsv, nsi
-      INTEGER, INTENT(inout)     :: istat
-      REAL(rprec), DIMENSION(mnmax, nsv), TARGET,                       &
-                   INTENT(in)  :: ymn_vmec
-      REAL(rprec), DIMENSION(mnmax, nsi), TARGET,                       &
-                   INTENT(out) :: ymn_spline
+      INTEGER, INTENT(IN)        :: nsv, nsi
+      INTEGER, INTENT(INOUT)     :: istat
+      REAL(dp), DIMENSION(mnmax, nsv), TARGET,                           &
+                   INTENT(IN)  :: ymn_vmec
+      REAL(dp), DIMENSION(mnmax, nsi), TARGET,                           &
+                   INTENT(OUT) :: ymn_spline
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER          :: one=1
+      REAL(dp), PARAMETER             :: one=1
       INTEGER                         :: js, modes, ntype, mp
-      REAL(rprec), DIMENSION(nsv)     :: snodes_vmec, y2_vmec, y_save, fac1, y_vmec
-      REAL(rprec), DIMENSION(nsi)     :: snodes, fac2, y_spline
-      REAL(rprec)                     :: hsv, yp1, ypn, expm=0
+      REAL(dp), DIMENSION(nsv)        :: snodes_vmec, y2_vmec, y_save, fac1, y_vmec
+      REAL(dp), DIMENSION(nsi)        :: snodes, fac2, y_spline
+      REAL(dp)                        :: hsv, yp1, ypn, expm=0
       LOGICAL                         :: lfull, lscale
 !-----------------------------------------------
 !
@@ -380,7 +367,7 @@
 !     2. Set up s-nodes on final (snodes, splined) mesh [s_siesta(sfinal) ~ sfinal**2]
 !        if s_siesta ~ sfinal, this is then the original vmec mesh
 !
-      IF (ns_i .le. 1) THEN
+      IF (ns_i .LE. 1) THEN
          istat = 2
          RETURN
       END IF
@@ -395,9 +382,9 @@
             fac2(js) = hs_i*(js-1.5_dp)
          END IF
          IF (lscale) THEN
-            snodes(js) = fac2(js)*fac2(js)      !SIESTA s==fac2 ~ sqrt(s-vmec) mesh
+            snodes(js) = fac2(js)*fac2(js)                                 !SIESTA s==fac2 ~ sqrt(s-vmec) mesh
          ELSE
-            snodes(js) = fac2(js)               !SIESTA s==fac2 ~ s-vmec mesh
+            snodes(js) = fac2(js)                                          !SIESTA s==fac2 ~ s-vmec mesh
          END IF
          fac2(js) = SQRT(snodes(js))
       END DO
@@ -411,7 +398,7 @@
          y_vmec = ymn_vmec(modes,:)
          mp = xm_vmec(modes)
 
-         IF (istat.eq.0 .and. mp.gt.0) THEN
+         IF (istat.EQ.0 .and. mp.GT.0) THEN
             IF (MOD(mp,2) .eq. 1) THEN 
                expm = 1
             ELSE
@@ -423,6 +410,7 @@
 
 !
 !      3. Initialize spline for each mode amplitude (factor out sqrt(s) factor for odd-m)
+!         (spline routines in LIBSTELL Miscel folder)
 !
          yp1 = -1.e30_dp;  ypn = -1.e30_dp
          CALL spline (snodes_vmec, y_vmec, nsv, yp1, ypn, y2_vmec)
@@ -431,7 +419,7 @@
 !      4. Interpolate onto snodes mesh
 !
          DO js = 1, nsi
-            CALL splint (snodes_vmec, y_vmec, y2_vmec, nsv,             &
+            CALL splint (snodes_vmec, y_vmec, y2_vmec, nsv,              &
                          snodes(js), y_spline(js))
          END DO
 
@@ -444,7 +432,7 @@
 
 !IDENTITY TEST THAT INTERPOLATION WORKS
          IF (nsi == nsv .and. .not.lscale) THEN
-            IF (ANY(ABS(ymn_vmec(modes,2:) - ymn_spline(modes,2:)).gt.1.E-10_dp)) THEN
+            IF (ANY(ABS(ymn_vmec(modes,2:) - ymn_spline(modes,2:)).GT.1.E-10_dp)) THEN
                PRINT *,'MODE: ',modes,'y_vmec .ne. y_spline'
             ENDIF
          END IF
@@ -474,17 +462,17 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(out)     :: istat
-      REAL(rprec), DIMENSION(ns_vmec), INTENT(in)  :: y_vmec
-      REAL(rprec), DIMENSION(ns_i)   , INTENT(out) :: y_spline
+      INTEGER, INTENT(OUT)     :: istat
+      REAL(dp), DIMENSION(ns_vmec), INTENT(IN)  :: y_vmec
+      REAL(dp), DIMENSION(ns_i)   , INTENT(OUT) :: y_spline
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER          :: one = 1
+      REAL(dp), PARAMETER          :: one = 1
       INTEGER                         :: js, modes, ntype, mp
-      REAL(rprec), DIMENSION(ns_vmec) :: snodes_vmec, y2_vmec
-      REAL(rprec), DIMENSION(ns_i)    :: snodes, fac2
-      REAL(rprec)                     :: hs_vmec, yp1, ypn
+      REAL(dp), DIMENSION(ns_vmec) :: snodes_vmec, y2_vmec
+      REAL(dp), DIMENSION(ns_i)    :: snodes, fac2
+      REAL(dp)                     :: hs_vmec, yp1, ypn
 !-----------------------------------------------
 !
 !     CALL LIBRARY SPLINE ROUTINES TO SPLINE FROM VMEC (s~phi) TO s~sqrt(phi) MESH
@@ -507,7 +495,7 @@
 !     2. Set up s-nodes on final (snodes, splined) mesh [s_siesta(sfinal) ~ sfinal**2]
 !        if s_siesta ~ sfinal, this is then the original vmec mesh
 !
-      IF (ns_i .le. 1) THEN
+      IF (ns_i .LE. 1) THEN
          istat = 2
          RETURN
       END IF
@@ -526,7 +514,6 @@
 
 
 !     4. Initialize spline for each mode amplitude (factor out sqrt(s) factor for odd-m)
-!        (spline routines in LIBSTELL/Miscel folder)
 !
       yp1 = -1.e30_dp;  ypn = -1.e30_dp
       CALL spline (snodes_vmec, y_vmec, ns_vmec, yp1, ypn, y2_vmec)
@@ -535,7 +522,7 @@
 !     5. Interpolate onto snodes mesh
 !
       DO js = 1, ns_i
-         CALL splint (snodes_vmec, y_vmec, y2_vmec, ns_vmec,         &
+         CALL splint (snodes_vmec, y_vmec, y2_vmec, ns_vmec,             &
                       snodes(js), y_spline(js))
       END DO
 
@@ -548,14 +535,14 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), INTENT(in)            :: ymn_vmec(mnmax,ns_vmec)
-      REAL(rprec), INTENT(out)           :: ymn_ghost(mnmax,ns_vmec+1)
+      REAL(dp), INTENT(in)            :: ymn_vmec(mnmax,ns_vmec)
+      REAL(dp), INTENT(out)           :: ymn_ghost(mnmax,ns_vmec+1)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER             :: p5 = 0.5_dp
+      REAL(dp), PARAMETER             :: p5 = 0.5_dp
       INTEGER                            :: modes, js, mp
-      REAL(rprec), DIMENSION(ns_vmec)    :: y_vmec
+      REAL(dp), DIMENSION(ns_vmec)    :: y_vmec
 !-----------------------------------------------
 
       ymn_ghost(:,2:ns_vmec) = ymn_vmec(:,2:ns_vmec)
@@ -576,19 +563,20 @@
       END SUBROUTINE
 
 
-      SUBROUTINE LoadRZL_VMEC(istat)
-      USE fourier, ONLY: toijsp, init_fourier
+      SUBROUTINE LoadRZL_VMEC (istat)
+      USE fourier, ONLY: toijsp, init_fourier, f_cos, f_sin, f_full,     &
+                         f_none, f_sum, f_du, f_dv
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(out)     :: istat
+      INTEGER, INTENT(OUT)     :: istat
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(ns_vmec)  :: fac1, fac2
-      INTEGER                          :: iparity
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE    ::                  &
-                   r1_i, z1_i, ru_i, zu_i, rv_i, zv_i, tempij
+      INTEGER    ::  m, n
+      REAL(dp), DIMENSION(ns_vmec)  :: fac1, fac2
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE    ::                      &
+                   r1_i, z1_i, ru_i, zu_i, rv_i, zv_i
 !-----------------------------------------------
 !
 !     1. LOAD FOURIER FACTORS USING VMEC mpol,ntor AND ISLAND nu,nv
@@ -600,58 +588,41 @@
 !
 !     COMPUTE R, Z (Metric elements, jacobian), LAMBDA (For initializing B)
 !
-!     FIRST, REPACK SPLINED ARRAYS FROM VMEC-ORDERING TO ISLAND-ORDERING
-!     AND SWAP THE N->-N MODES TO BE CONSISTENT WITH mu+nv ISLAND ARGUMENT
+!     FIRST, REPACK SPLINED ARRAYS FROM VMEC-ORDERING TO SIESTA-ORDERING
+!     AND SWAP THE N->-N MODES TO BE CONSISTENT WITH mu+nv SIESTA ARGUMENT
 !
       CALL repack (istat)
 
 !
 !     COMPUTE AND STORE R, Z AND THEIR ANGULAR DERIVATIVES, AND LAMBDA (NEED FOR VECTOR POT)
 !
-      ALLOCATE (r1_i(nu_i, nv_i, ns_i), z1_i(nu_i, nv_i, ns_i),         &
-                ru_i(nu_i, nv_i, ns_i), zu_i(nu_i, nv_i, ns_i),         &
-                rv_i(nu_i, nv_i, ns_i), zv_i(nu_i, nv_i, ns_i),         &
+      ALLOCATE (r1_i(nu_i, nv_i, ns_i), z1_i(nu_i, nv_i, ns_i),          &
+                ru_i(nu_i, nv_i, ns_i), zu_i(nu_i, nv_i, ns_i),          &
+                rv_i(nu_i, nv_i, ns_i), zv_i(nu_i, nv_i, ns_i),          &
                 stat = istat)
 
-      IF (istat .ne. 0) STOP 'Allocation failed in LoadRZL_VMEC'
+      IF (istat .NE. 0) STOP 'Allocation failed in LoadRZL_VMEC'
 
-      iparity = 0
-      CALL toijsp (rmnc_i, r1_i, 0, 0, iparity, 0)
-      CALL toijsp (rmnc_i, ru_i, 1, 0, iparity, 0)
-      CALL toijsp (rmnc_i, rv_i, 0, 1, iparity, 0)
+      CALL toijsp (rmnc_i, r1_i, f_none, f_cos, f_full)
+      CALL toijsp (rmnc_i, ru_i, f_du,   f_cos, f_full)
+      CALL toijsp (rmnc_i, rv_i, f_dv,   f_cos, f_full)
 
-      iparity = 1
-      CALL toijsp (zmns_i, z1_i, 0, 0, iparity, 0)
-      CALL toijsp (zmns_i, zu_i, 1, 0, iparity, 0)
-      CALL toijsp (zmns_i, zv_i, 0, 1, iparity, 0)
+      CALL toijsp (zmns_i, z1_i, f_none, f_sin, f_full)
+      CALL toijsp (zmns_i, zu_i, f_du,   f_sin, f_full)
+      CALL toijsp (zmns_i, zv_i, f_dv,   f_sin, f_full)
 
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         ALLOCATE(tempij(nu_i, nv_i, ns_i), stat = istat)
-         IF (istat .ne. 0) STOP 'Allocation failed in LoadRZL_VMEC'
+      IF (.NOT.l_asym) GOTO 1000
 
-         CALL toijsp (rmns_i, tempij, fourier_none, fourier_none, fourier_parity_odd, fourier_full_grid)
-         r1_i = r1_i + tempij
+      m = IOR(f_sum, f_du);  n = IOR(f_sum, f_dv)
+      CALL toijsp (rmns_i, r1_i, f_sum, f_sin, f_full)
+      CALL toijsp (rmns_i, ru_i, m,     f_sin, f_full)
+      CALL toijsp (rmns_i, rv_i, n,     f_sin, f_full)
 
-         CALL toijsp (rmns_i, tempij, fourier_du, fourier_none, fourier_parity_odd, fourier_full_grid)
-         ru_i = ru_i + tempij
+      CALL toijsp (zmnc_i, z1_i, f_sum, f_cos, f_full)
+      CALL toijsp (zmnc_i, zu_i, m,     f_cos, f_full)
+      CALL toijsp (zmnc_i, zv_i, n,     f_cos, f_full)
 
-         CALL toijsp (rmns_i, tempij, fourier_none, fourier_dv, fourier_parity_odd, fourier_full_grid)
-         rv_i = rv_i + tempij
-
-
-         CALL toijsp (zmnc_i, tempij, fourier_none, fourier_none, fourier_parity_even, fourier_full_grid)
-         z1_i = z1_i + tempij
-
-         CALL toijsp (zmnc_i, tempij, fourier_du, fourier_none, fourier_parity_even, fourier_full_grid)
-         zu_i = zu_i + tempij
-
-         CALL toijsp (zmnc_i, tempij, fourier_none, fourier_dv, fourier_parity_even, fourier_full_grid)
-         zv_i = zv_i + tempij
-
-         DEALLOCATE(tempij)
-      END IF
-#endif
+ 1000 CONTINUE
 
       rmax = MAXVAL(r1_i);      rmin = MINVAL(r1_i)
       zmax = MAXVAL(z1_i);      zmin = MINVAL(z1_i)
@@ -679,7 +650,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(out)     :: istat
+      INTEGER, INTENT(OUT)     :: istat
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -699,27 +670,28 @@
 !     KEEP lmns_i ON HALF MESH AND ADD EXTRAPOLATION POINTS AT 1 (rho=0)
 !          AND NS+1 (=1)!
 !
-      ALLOCATE(rmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                    & 
-               zmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                    &
-               lmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                  &
+      ALLOCATE(rmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                     & 
+               zmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                     &
+               lmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                   &
                stat=istat)
-
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         ALLOCATE(rmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                    &
-                  zmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                    &
-                  lmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                  &
-                  stat=istat)
-      END IF
-#endif
-
-      IF (istat .ne. 0) STOP 'Allocation error in REPACK'
+      IF (istat .NE. 0) STOP 'Allocation error in REPACK'
       rmnc_i = 0;  zmns_i = 0;  lmns_i = 0
-      
-      IF (iam .eq. 0) THEN
-         IF (MAXVAL(xm_vmec).gt.mpol_i .or.                            &
-            MAXVAL(ABS(xn_vmec))/nfp_vmec.gt.ntor_i)                   & 
-            PRINT *,'It is recommended to increase the number of ',    &
+
+      IF (.NOT.l_asym) GOTO 1000
+
+      ALLOCATE(rmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                     & 
+               zmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                     &
+               lmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                   &
+               stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation error in REPACK'
+      rmns_i = 0;  zmnc_i = 0;  lmnc_i = 0
+
+ 1000 CONTINUE      
+
+      IF (iam .EQ. 0) THEN
+         IF (MAXVAL(xm_vmec).GT.mpol_i .OR.                              &
+            MAXVAL(ABS(xn_vmec))/nfp_vmec.GT.ntor_i)                     & 
+            PRINT *,'It is recommended to increase the number of ',      &
                     'modes to at least VMEC values!'
       ENDIF
 !
@@ -729,41 +701,35 @@
       DO modes = 1,mnmax
          m = xm_vmec(modes)
          n = xn_vmec(modes)/nfp_vmec
-         IF (m.gt.mpol_i .or. ABS(n).gt.ntor_i) CYCLE
+         IF (m.GT.mpol_i .OR. ABS(n).GT.ntor_i) CYCLE
 !
 !     LOAD n>=0 ONLY FOR M=0
 !
-         IF (m .eq. 0) THEN
+         IF (m .EQ. 0) THEN
             n1 = ABS(n)
-            rmnc_i(m,n1,:) = rmnc_i(m,n1,:)                            &
+            rmnc_i(m,n1,:) = rmnc_i(m,n1,:)                              &
                            + rmnc_spline(modes,:)
-            zmns_i(m,n1,:) = zmns_i(m,n1,:)                            &
+            zmns_i(m,n1,:) = zmns_i(m,n1,:)                              &
                            -SIGN(1,n)*zmns_spline(modes,:)
-            lmns_i(m,n1,:) = lmns_i(m,n1,:)                            &  
+            lmns_i(m,n1,:) = lmns_i(m,n1,:)                              &  
                            -SIGN(1,n)*lmns_spline(modes,:)*iflipj
-#if defined(MRC)
-            IF (l_force_asym) THEN
-               rmns_i(m,n1,:) = rmns_i(m,n1,:)                            &
-                              -SIGN(1,n)*rmns_spline(modes,:)
-               zmnc_i(m,n1,:) = zmnc_i(m,n1,:)                            &
-                              + zmnc_spline(modes,:)
-               lmnc_i(m,n1,:) = lmnc_i(m,n1,:)                            &
-                              + lmnc_spline(modes,:)*iflipj
-            END IF
-#endif
+            IF (.NOT.l_asym) CYCLE
+            rmns_i(m,n1,:) = rmns_i(m,n1,:)                              &
+                           -SIGN(1,n)*rmns_spline(modes,:)
+            zmnc_i(m,n1,:) = zmnc_i(m,n1,:)                              &
+                           + zmnc_spline(modes,:)
+            lmnc_i(m,n1,:) = lmnc_i(m,n1,:)                              &
+                           + lmnc_spline(modes,:)*iflipj
+
          ELSE
             rmnc_i(m,-n*iflipj,:) = rmnc_spline(modes,:)
             zmns_i(m,-n*iflipj,:) = zmns_spline(modes,:)*iflipj
-            lmns_i(m,-n*iflipj,:) = lmns_spline(modes,:)            !Implied phip in here?
-
-#if defined(MRC)
-            IF (l_force_asym) THEN
-               rmns_i(m,-n*iflipj,:) = rmns_spline(modes,:)
-               zmnc_i(m,-n*iflipj,:) = zmnc_spline(modes,:)*iflipj
-               lmnc_i(m,-n*iflipj,:) = lmnc_spline(modes,:)            !Implied phip in here?
-            END IF
-#endif
-         END IF
+            lmns_i(m,-n*iflipj,:) = lmns_spline(modes,:)
+            IF (.NOT.l_asym) CYCLE
+            rmns_i(m,-n*iflipj,:) = rmns_spline(modes,:)
+            zmnc_i(m,-n*iflipj,:) = zmnc_spline(modes,:)*iflipj            !SPH: CHECK THIS FOR IFLIPJ != 1
+            lmnc_i(m,-n*iflipj,:) = lmnc_spline(modes,:)
+         ENDIF
       END DO
 !
 ! RS (10/03/06)  Divide out "orthonorm" factor used in Island FFT routines
@@ -772,21 +738,16 @@
          rmnc_i(:,:,js) = rmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
          zmns_i(:,:,js) = zmns_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
          lmns_i(:,:,js) = lmns_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
+         IF (.NOT.l_asym) CYCLE
+         rmns_i(:,:,js) = rmns_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
+         zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
+         lmnc_i(:,:,js) = lmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
       END DO
 
       DEALLOCATE (rmnc_spline, zmns_spline, lmns_spline, stat=istat)
-
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         DO js = 1, ns_i
-            rmns_i(:,:,js) = rmns_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
-            zmnc_i(:,:,js) = zmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
-            lmnc_i(:,:,js) = lmnc_i(:,:,js)/orthonorm(0:mpol_i,-ntor_i:ntor_i)
-         END DO
-
-         DEALLOCATE (rmns_spline, zmnc_spline, lmnc_spline, stat=istat)
+      IF (l_asym) THEN
+      DEALLOCATE (rmns_spline, zmnc_spline, lmnc_spline, stat=istat)
       END IF
-#endif
 
       END SUBROUTINE repack
 
@@ -797,22 +758,22 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(nuv,ns), INTENT(in) ::                    &
+      REAL(dp), DIMENSION(nuv,ns), INTENT(in) ::                         &
          r1_i, ru_i, rv_i, z1_i, zu_i, zv_i
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: p5 = 1.d0/2.d0, zero = 0
-      INTEGER  :: js, lk, js1, istat
-      REAL(rprec)            :: mintest, maxtest
-      REAL(rprec), DIMENSION(nuv) ::                                    &
+      REAL(dp), PARAMETER :: p5 = 1.d0/2.d0, zero = 0
+      INTEGER             :: js, lk, js1, istat
+      REAL(dp)            :: mintest, maxtest
+      REAL(dp), DIMENSION(nuv) ::                                        &
                    r12, ru12, rv12, zu12, zv12, rs12, zs12
 !-----------------------------------------------
 !
 !     ALLOCATE METRIC ELEMENT ARRAYS
 !
-      ALLOCATE(sqrtg(nuv,ns),                                           &
-               gss(nuv,ns), gsu(nuv,ns), gsv(nuv,ns),                   &
+      ALLOCATE(sqrtg(nuv,ns),                                            &
+               gss(nuv,ns), gsu(nuv,ns), gsv(nuv,ns),                    &
                guu(nuv,ns), guv(nuv,ns), gvv(nuv,ns), stat=istat)
       IF (istat .ne. 0) STOP 'ALLOCATION ERROR1 IN HALF_MESH_METRICS'
 
@@ -872,9 +833,9 @@
 !     This subroutine gets the lower metric elements on the full mesh
 !     Preserves positive definiteness of metric tensor
 !
-      ALLOCATE(gssf(nuv,ns), guuf(nuv,ns), gvvf(nuv,ns),                &
-               gsuf(nuv,ns), gsvf(nuv,ns), guvf(nuv,ns),                &
-               hss(nuv,ns),  huu(nuv,ns),  hvv(nuv,ns),                 & 
+      ALLOCATE(gssf(nuv,ns), guuf(nuv,ns), gvvf(nuv,ns),                 &
+               gsuf(nuv,ns), gsvf(nuv,ns), guvf(nuv,ns),                 &
+               hss(nuv,ns),  huu(nuv,ns),  hvv(nuv,ns),                  & 
                hsu(nuv,ns),  hsv(nuv,ns),  huv(nuv,ns), stat=istat)
 
       IF (istat .ne. 0) STOP 'ALLOCATION ERROR IN FULL_MESH_METRICS'
@@ -895,9 +856,10 @@
       huu(:,1) = 0;  huv(:,1) = 0;  hvv(1,:) = 0
 
       DO js = 2, ns
-         det(:) = gssf(:,js)*(guuf(:,js)*gvvf(:,js)-guvf(:,js)*guvf(:,js)) &
-                + gsuf(:,js)*(guvf(:,js)*gsvf(:,js)-gsuf(:,js)*gvvf(:,js)) &
-                + gsvf(:,js)*(gsuf(:,js)*guvf(:,js)-gsvf(:,js)*guuf(:,js))
+         det(:) =                                                        &
+                gssf(:,js)*(guuf(:,js)*gvvf(:,js)-guvf(:,js)*guvf(:,js)) &
+              + gsuf(:,js)*(guvf(:,js)*gsvf(:,js)-gsuf(:,js)*gvvf(:,js)) &
+              + gsvf(:,js)*(gsuf(:,js)*guvf(:,js)-gsvf(:,js)*guuf(:,js))
          IF (ANY(det .le. zero)) THEN
             IF (iam .eq. 0)PRINT *,'Determinant |gijf| <= 0 at js = ',js
             IF (js .eq. ns) THEN
@@ -914,17 +876,17 @@
             END IF
          END IF
          det = one/det
-         hss(:,js) = det(:)*                                            &
+         hss(:,js) = det(:)*                                             &
                     (guuf(:,js)*gvvf(:,js) - guvf(:,js)*guvf(:,js))
-         hsu(:,js) = det(:)*                                            &
+         hsu(:,js) = det(:)*                                             &
                     (guvf(:,js)*gsvf(:,js) - gsuf(:,js)*gvvf(:,js))
-         hsv(:,js) = det(:)*                                            &
+         hsv(:,js) = det(:)*                                             &
                     (gsuf(:,js)*guvf(:,js) - gsvf(:,js)*guuf(:,js))
-         huu(:,js) = det(:)*                                            &
+         huu(:,js) = det(:)*                                             &
                     (gssf(:,js)*gvvf(:,js) - gsvf(:,js)*gsvf(:,js))
-         huv(:,js) = det(:)*                                            &
+         huv(:,js) = det(:)*                                             &
                     (gsvf(:,js)*gsuf(:,js) - gssf(:,js)*guvf(:,js))
-         hvv(:,js) = det(:)*                                            &
+         hvv(:,js) = det(:)*                                             &
                     (gssf(:,js)*guuf(:,js) - gsuf(:,js)*gsuf(:,js))
 
       END DO
@@ -934,8 +896,8 @@
 !
       eps = 0.01_dp*SQRT(EPSILON(eps))
 
-      ALLOCATE(temps(ntheta,nzeta,ns),                                  &
-               tempu(ntheta,nzeta,ns),                                  &
+      ALLOCATE(temps(ntheta,nzeta,ns),                                   &
+               tempu(ntheta,nzeta,ns),                                   &
                tempv(ntheta,nzeta,ns), stat=istat)
 
 !     gijf * hj1   (first column of hij matrix)
@@ -973,31 +935,26 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-	  INTEGER         :: istat
+      INTEGER         :: istat
 !-----------------------------------------------
 	
 !     Note: sqrtg is deallocated in init_bcovar and stored in jacob variable
 
-      DEALLOCATE(gss, gsu, gsv, guu, guv, gvv,                          &
-                 hss, hsu, hsv, huu, huv, hvv,                          &
+      DEALLOCATE(gss, gsu, gsv, guu, guv, gvv,                           &
+                 hss, hsu, hsv, huu, huv, hvv,                           &
                  phipf_i, chipf_i, presf_i, stat=istat)
 
       CALL dealloc_fourier
-      DEALLOCATE(rmnc_i, zmns_i)     ! Used by output subroutines.
-
-#if defined(MRC)
-      IF (l_force_asym) THEN
-         DEALLOCATE(rmns_i, zmnc_i)
-      END IF
-#endif
-
+      DEALLOCATE(rmnc_i, zmns_i)     ! Used by output subroutines.        
+      IF (l_asym) DEALLOCATE(rmns_i, zmnc_i)
+	
       END SUBROUTINE cleanup_metric_elements
 
        
-        SUBROUTINE dealloc_full_lower_metrics
-        USE stel_kinds
-        IMPLICIT NONE
-        INTEGER :: istat
+      SUBROUTINE dealloc_full_lower_metrics
+      USE stel_kinds
+      IMPLICIT NONE
+      INTEGER :: istat
        
         DEALLOCATE(gssf, guuf, gvvf, gsuf, gsvf, guvf, stat = istat)
         IF (istat .ne. 0) STOP 'Problem dealloc. in LOWER_METRIC_FULL'

@@ -1,4 +1,3 @@
-!>  \brief Module for solving linearized force balance Ax=b using GMRES method
 !!  \author S. P. Hirshman and S. K. Seal
 !!  \date Jan, 2014
 
@@ -6,10 +5,12 @@
       USE stel_kinds
       USE stel_constants, ONLY: zero, one
       USE shared_data, etak=>etak_tol
-      USE shared_functions, ONLY: funct_island, funct_island_par
+      USE shared_functions, ONLY: funct_island, funct_island_par, LineSearch
       USE siesta_state, ONLY: update_state, update_state_par
+      USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, MPI_ERR, startglobrow,     &
+                               endglobrow
+      USE timer_mod
       IMPLICIT NONE
-      REAL(dp) :: gnorm, xnorm
 
       CONTAINS
 
@@ -18,25 +19,28 @@
 
       SUBROUTINE gmres_fun
 
-      USE hessian, ONLY: mblk_size, ns
-      USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,     &
-                      endglobrow, rcounts, disp
-      USE timer_mod
+      USE hessian, ONLY: ns, levmarq_param, Dmin=>mindiag, Apply_Precond, &
+                         levmarq_param0, l_diagonal_only, gather_array, maxeigen, muPar
+      USE blocktridiagonalsolver, ONLY: RefactorHessian
+      USE perturbation, ONLY: lresistive, ftol
       USE descriptor_mod, ONLY: iam
-      USE mpi_inc
-      USE perturbation, ONLY: lresistive
       IMPLICIT NONE
+#if defined(MPI_OPT)
+      INCLUDE 'mpif.h'
+#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER     :: noPrec=0, leftPrec=1, rightPrec=2, dblePrec=3
-      REAL(rprec), PARAMETER :: ftol = 1.E-20_dp
-      INTEGER :: j, n, m, imin(1)
-      INTEGER :: icntl(9), info(3), iflag
-      INTEGER :: nsteps, nloc, myrowstart, myrowend
-      REAL(rprec) :: cntl(5), facmin, res, resid, wmhd, fmhd,      &
-                     skston, skstoff
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: work
+      INTEGER :: j, iter, istat
+      INTEGER :: nsteps
+      REAL(dp), PARAMETER :: levscan(1) = (/16._dp/)           !!007C
+!      REAL(dp), PARAMETER :: levscan(2) = (/4._dp, 16._dp/)   !!007B
+      REAL(dp) :: cntl(5), facmin, res, resid, wmhd, fmhd, gnorm, lm_ped,  &
+                  skston, skstoff, eps, lm0, fsq_min, xmax_lin, scale_fac, &
+                  muparS
+      REAL(dp), ALLOCATABLE :: work(:,:)
+      REAL(dp), ALLOCATABLE :: xc1(:), xcmin(:), brhs(:)
+      LOGICAL               :: bTerm
 !-----------------------------------------------
 
 !     SPH: ONLY works with 0 restart each time
@@ -44,66 +48,223 @@
 
       xc = 0
       l_linearize = .FALSE.
-      l_ApplyPrecon = .FALSE.    !GMRES APPLIES IT
-
+      l_ApplyPrecon = .FALSE.    !GMRES APPLIES PRECONDITIONER ITSELF
+      muParS = muPar
+      
 !
-!     STORE INITIAL POINT (XC0) AND INITIAL UNPRECONDITIONED RESIDUE (GC0 AT INIT PT)
+!     STORE INITIAL UNPRECONDITIONED RESIDUE (BRHS AT INIT PT)
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
-
-      ALLOCATE(xc0(neqs), gc0(neqs), stat=j)
+      ALLOCATE(brhs(neqs), stat=j)
       IF (j .NE. 0) STOP 'Allocation error in gmres_fun'
 
       l_getfsq =.TRUE.
       l_init_state=.TRUE.
+      fmhd=fsq_total1               !!initial fsq BEFORE application of resistive diffusion
 
       CALL second0(skston)
-      fmhd=fsq_total1
-
+      l_getwmhd=.TRUE.
       IF (PARFUNCTISL) THEN
-#if defined(SKS)
-         l_getwmhd=.TRUE.
          CALL funct_island_par
-         l_getwmhd=.FALSE.
-         nloc=(endglobrow-startglobrow+1)*mblk_size
-         myrowstart=(startglobrow-1)*mblk_size+1
-         myrowend=myrowstart+nloc-1
-         CALL MPI_ALLGATHERV(gc(myrowstart:myrowend),nloc,MPI_REAL8,gc0,   &
-                             rcounts,disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
-#endif
+         brhs = -gc 
+         CALL gather_array(brhs)     
       ELSE
          CALL funct_island
-         gc0 = gc
+         brhs = -gc
       END IF
+      l_getwmhd=.FALSE.
+
+      gnorm = SQRT(SUM(brhs*brhs))
+      IF (gnorm .EQ. 0) THEN
+         IF (iam .EQ. 0) PRINT *,' GNORM = 0 in GMRES!'
+         RETURN
+      END IF
+      brhs = brhs/gnorm
+
 #if defined(SKS)
       CALL second0(skstoff)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
 #endif
-      IF (lresistive .AND. iam.EQ.0) PRINT '(a,1p2e12.3)',     &
-         ' JUMP IN FSQ DUE TO RESISTIVE DIFFUSION: ', fmhd, fsq_total1
 
       wmhd = wtotal
-      fmhd = fsq_total
+      fsq_min = HUGE(fsq_min)   !Capture one xc at least
 
-      xc0 = 0
-      xc  = 0                    !DO NOT INITIALIZE FOR GMRES...
-      n   = neqs
-      l_linearize = .TRUE.
-      l_getfsq = .FALSE.         !So call to funct in matvec does not include gc0
-      gnorm = SQRT(SUM(gc0*gc0))
-      xnorm = 1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FAST CONVERGENCE - SPH 083016 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ALLOCATE(xc1(neqs), xcmin(neqs), stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation error in GMRES'
+      xcmin = 0
 
-!******************************************************
-!*  Initialize control parameters
-!*******************************************************
+      iter = 0
+      lm0 = levmarq_param
+
+      scale_fac = 1
+      IF (iam.EQ.0 .AND. .NOT.l_Diagonal_Only) PRINT '(a,1pe12.3)',' DMIN: ', dmin
+
+920   CONTINUE
+      IF (.NOT.l_Diagonal_Only .AND. lcolscale) THEN
+
+      IF (iam .EQ. 0) PRINT 925
+925   FORMAT(1x,'FAST CONVERGENCE SUMMARY',/,' -------------',/,1x,'ITER',7x,'FSQ_NL',   &
+             10x,'||X||',9x,'MAX|X|')
+
+      xc = 0; l_getfsq=.TRUE.
+      l_linearize = .FALSE.
+      IF (PARFUNCTISL) THEN
+         CALL funct_island_par
+      ELSE
+         CALL funct_island
+      END IF
+      xc = -gc
+      eps = (0 - levmarq_param)*Dmin
+      CALL Apply_Precond(xc)
+      xc1 = xc
+      DO j = 1, 10
+         IF (j .GT. 1) THEN
+            gc = -xc1
+            CALL Apply_Precond(gc)
+            xc1 = eps*gc            !nth partial sum
+            xc = xc + xc1
+         END IF
+         IF (PARFUNCTISL) THEN
+            CALL funct_island_par
+         ELSE
+            CALL funct_island
+         END IF
+
+         IF (fsq_total1 .GT. fsq_min) THEN
+            bTerm = (J .GT. 1) 
+         ELSE
+            xcmin = xc
+            bTerm = (fsq_total1 .GE. 0.95_dp*fsq_min)
+            fsq_min = fsq_total1
+            scale_fac = levmarq_param/lm0
+         END IF
+         IF (iam .EQ. 0) PRINT 912, j, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
+         IF (fsq_min.LE.ftol .OR. bTerm) EXIT
+      END DO
+      ENDIF
+
+      IF (fsq_min.GT.ftol .AND. fsq_min.GT.fmhd/10) THEN
+
+!!!START GMRES CONVERGENCE
+!     RHS, brhs = -gc/gnorm
+      gc = brhs
+!
+!     THIS IS STANDARD GMRES CALL
+!
 #if defined (SKS)
       CALL second0(skston)
 #endif
-      CALL init_dgmres(icntl,cntl)
+      CALL gmres_wrap (matvec, xc, gc, gnorm)
+#if defined (SKS)
+      CALL second0(skstoff)
+      gmres_wrap_time=gmres_wrap_time+(skstoff-skston)
+#endif
+
+      IF (fsq_total1 .LT. fsq_min) THEN
+         xcmin = xc*gnorm
+         fsq_min = fsq_total1
+         scale_fac = levmarq_param/lm0
+      END IF
+!!!END GMRES CONVERGENCE
+
+      IF (.NOT.l_Diagonal_Only) THEN
+         IF (fsq_min.GE.0.95_dp*fmhd .AND. iter.LT.SIZE(levscan)) THEN
+            iter = iter+1
+            levmarq_param = lm0*levscan(iter)
+            IF (levmarq_param .LT. levm_ped) levmarq_param = 100*levm_ped
+            IF (levmarq_param .GE. levmarq_param0) levmarq_param = levmarq_param0/10._dp**iter
+            IF (iam .EQ. 0) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
+            CALL RefactorHessian(levmarq_param)
+            GOTO 920
+         END IF
+
+      END IF
+
+      END IF
+
+ 912  FORMAT(i5,3(3x,1pe12.3))
+ 930  FORMAT (/,a,1pe12.3)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ 1000 CONTINUE
+
+
+      DEALLOCATE(xc1)
+      l_getfsq = .TRUE.
+
+ 1100 CONTINUE
+
+      xmax_lin = MAXVAL(ABS(xcmin))
+      IF (iam .EQ. 0) THEN
+!         PRINT 1020,' ||X||-GMRES = ', SQRT(SUM(xcmin*xcmin)), ' MAX(|X|) = ',xmax_lin
+         WRITE (33, 1020) ' ||X||-GMRES = ', SQRT(SUM(xcmin*xcmin)), ' MAX(|X|) = ',xmax_lin
+      END IF
+ 1020 FORMAT(2(a,1p,e11.3))
+
+      fsq_lin = fsq_total
+      l_linearize = .FALSE.
+
+      IF (fsq_min .GT. ftol) THEN
+
+!     TURN OFF NEXT 2 LINES FOR TESTING f1=levm IN EVOLUTION
+      levm_scale = levm_scale*scale_fac  
+      levm_scale = MIN(100._dp, levm_scale)      
+!
+!     SIMPLE LINE SEARCH SCAN OF |F| FOR VARIOUS |X| 
+      muPar = 0
+      CALL LineSearch(xcmin, fsq_min)
+
+      END IF
+
+      xc = xcmin
+!
+!     RECOMPUTE PERTURBED FIELDS, PRESSURE FOR MINIMUM STATE
+!     THEN UPDATE NONLINEAR STATE BY ADDING XC (PERTURBATION)
+!
+
+      l_PrintOriginForces=.TRUE.
+      l_init_state=.TRUE.
+      l_getwmhd= .TRUE.
+      CALL second0(skston)
+      IF (PARFUNCTISL) THEN
+         CALL funct_island_par
+         CALL update_state_par(.FALSE., zero, zero)
+      ELSE
+         CALL funct_island
+         CALL update_state(.FALSE., zero, zero)
+      END IF
+      
+#if defined (SKS)
+      CALL second0(skstoff)
+      gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
+#endif
+      l_PrintOriginForces=.FALSE.
+
+      muPar = muParS
+!      gc = 0  !Need this to print out max forces
+
+      DEALLOCATE (xcmin, brhs)
+
+      END SUBROUTINE gmres_fun
+
+
+      SUBROUTINE init_gmres0 (icntl, cntl, etak, m, n)
+      IMPLICIT NONE
+      INTEGER, INTENT(OUT) :: icntl(9), m, n
+      REAL(dp),INTENT(OUT) :: cntl(5)
+      REAL(dp), INTENT(IN) :: etak
+      REAL(dp)             :: skston, skstoff
+      INTEGER, PARAMETER   :: noPrec=0, leftPrec=1, rightPrec=2, dblePrec=3
+
+#if defined (SKS)
+      CALL second0(skston)
+#endif
+      CALL init_dgmres(icntl ,cntl)
 #if defined (SKS)
       CALL second0(skstoff)
       gmres_init_dgmres_time=gmres_init_dgmres_time+(skstoff-skston)
 #endif
+
 !*************************
 !*  Tune some parameters
 !*************************
@@ -120,8 +281,8 @@
 !      icntl(4) = leftPrec
       icntl(4) = rightPrec 
 !      icntl(4) = dblePrec
-!!ICGS orthogonalization (3) is recommended for parallel environment
-      icntl(5) = iortho
+!! ICGS orthogonalization
+      icntl(5) = 3
 ! Initial guess
       icntl(6) = 0
 !      icntl(6) = 1
@@ -138,132 +299,29 @@
 !
 !     m <= n
 !
+      n   = neqs
       m = 200
 
-!     RHS, b = -gc
-      gc = -gc0/xnorm
-      gc0= 0
-!
-!     THIS IS USUAL GMRES CALL
-!
-#if defined (SKS)
-      CALL second0(skston)
-#endif
-      CALL gmres_wrap (n, m, icntl, cntl, matvec, xc, gc, info)
-#if defined (SKS)
-      CALL second0(skstoff)
-      gmres_wrap_time=gmres_wrap_time+(skstoff-skston)
-#endif
-!TEST GMRESR INSTEAD OF GMRES_WRAP
-      GOTO 1000
-      j = 10
-      nsteps = ngmres_steps
-      ALLOCATE (work(n,0:(2*m + j + 2)), stat=iflag)
-      IF (iflag .ne. 0) STOP 'ALLOCATION ERROR IN gmres_fun'
-#if defined (SKS)
-      CALL second0(skston)
-#endif
-      CALL gmresr(.FALSE., n, m, j, gc, xc, work, etak, "rel", nsteps,  &
-                  resid, matvec, iflag)
-#if defined (SKS)
-      CALL second0(skstoff)
-      gmresr_time=gmresr_time+(skstoff-skston)
-#endif
-      DEALLOCATE (work)
-      PRINT *,' IFLAG: ', iflag, ' RESIDUAL: ', resid, ' FUNCTION EVALS: ', nsteps
+      END SUBROUTINE init_gmres0
 
- 1000 CONTINUE
-      
-      xc0 = xc*xnorm
-      l_getfsq = .TRUE.                                                 !Include gc0 in fsq_total calc
-      facmin = 1
 
-!SKIP LINE SEARCH
-      GOTO 1100  
-
-!BEGIN LINE SEARCH MINIMIZATION
-!!      IF (nprecon .gt. 1) THEN
-!!         l_linearize = .FALSE.
-
-         !For minimum residue, type = 2 and pass fsq_total
-         !For minimum energy,  type = 1 and pass wmhd
-!         CALL findDamping (wmhd, facmin, 1)
-!         CALL findDamping (fmhd, facmin, 2)
-!!         facmin = MAX(facmin, 1.E-2_dp)
-!!         IF (facmin .ne. 1._dp) WRITE (6,'(a10,1pe10.2)') ' facmin = ', facmin
-!        l_linearize = .TRUE.
-!!      END IF
-
-!
-!     RECOMPUTE delta current,pressure prior to update_state call
-!
- 1100 CONTINUE
-
-!DO NOT NEED THIS "TEST"
-!!      xc = xc0
-!!      l_linearize = .TRUE.
-!!      CALL funct_island
-      fsq_lin = fsq_total
-
-!     COMPUTE NONLINEAR SOLUTION: NEEDED TO ADD xc INDUCED PERTURBATION IN UPDATE_STATE
-
-      xc = facmin*xc0
-      l_linearize = .FALSE.
-      l_PrintOriginForces=.TRUE.
-      l_getfsq=.TRUE.
-      l_init_state=.TRUE.
-      CALL second0(skston)
-      IF (PARFUNCTISL) THEN
-         l_getwmhd= .TRUE.
-         CALL funct_island_par
-      ELSE
-         CALL funct_island
-      END IF
-
-#if defined (SKS)
-      CALL second0(skstoff)
-      gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-#endif
-      l_PrintOriginForces=.FALSE.
-
-!
-!     Add v-induced changes to B components, p 
-!
-      IF (PARFUNCTISL) THEN
-         CALL update_state_par(.FALSE., zero, zero)
-      ELSE
-         CALL update_state(.FALSE., zero, zero)
-      END IF
-
-      gc=0
-      
-!     Recompute Newton tolerance parameter: not working YET
-!
-!      IF (fsqprev_total > zero) CALL get_etak(fsq_total, fsqprev_total, &
-!          ftol, etak)
-
-      DEALLOCATE (xc0, gc0)
-
-      END SUBROUTINE gmres_fun
-
-      SUBROUTINE gmres_wrap_par (n, m, icntl, cntl, x0, b, info)
+      SUBROUTINE gmres_wrap_par (n, m, icntl, cntl, x0, b, gnorm, info)
       USE stel_kinds, ONLY: dp
 #if defined(SKS)
       USE stel_constants, ONLY: one, zero
-      USE hessian, ONLY: apply_precond, mblk_size, ns, rcounts, disp
+      USE hessian, ONLY: apply_precond, gather_array, ns
       USE perturbation, ONLY: ftol
-
+      USE nscalingtools, ONLY:  rcounts, disp
       USE descriptor_mod, ONLY: iam, nprocs
-      USE nscalingtools, ONLY: PARSOLVER, MPI_ERR, startglobrow, endglobrow
-      USE timer_mod
-      USE mpi_inc
       IMPLICIT NONE
+      INCLUDE 'mpif.h'
 #endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER :: n, m,  icntl(9), info(3)
-      REAL(dp), INTENT(IN)    :: b(n)
+      INTEGER, INTENT(IN)     :: n, m
+      INTEGER                 :: info(3), icntl(9)
+      REAL(dp), INTENT(IN)    :: b(n), gnorm
       REAL(dp), INTENT(INOUT) :: x0(n)
       REAL(dp), INTENT(IN)    :: cntl(5)
 #if defined(SKS)
@@ -273,28 +331,26 @@
       INTEGER, PARAMETER :: matveci=1, precondLeft=2,                    &
                             precondRight=3, dotProd=4, peek=5
       INTEGER  :: revcom, colx, coly, colz, nbscal
-      INTEGER  :: irc(5), jcount, icount
-      INTEGER  :: nout, lwork
+      INTEGER  :: irc(5), jcount, icount, icntl_s(9)
+      INTEGER  :: nout, lwork, kout, kprint
       INTEGER, ALLOCATABLE :: itest(:)
-      REAL(dp) :: rinfo(2), fsq_nl, fsq_min, fsq_last, delfsq, fsq_lin
+      REAL(dp) :: rinfo(2), fsq_nl, fsq_min, fsq_last, delfsq, fsq_lin, fsq_min_lin
       REAL(dp), ALLOCATABLE :: work(:), xmin(:)
       INTEGER  :: nloc, myrowstart, myrowend
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: aux, tmpbuf
-      REAL(dp) :: skston, skstoff
-      INTEGER  :: gmres_count=0
+      REAL(dp) :: skston, skstoff, xmax, xmod
+      LOGICAL, PARAMETER :: lfast=.FALSE.
 !-----------------------------------------------
-      gmres_count = gmres_count+1
-!      IF (iam.EQ.0) WRITE(300+iam,'(/,a,i3)')'Starting gmres_wrap_par: ',gmres_count
-
 !
-!     EASY-TO-USE WRAPPER FOR GMRES DRIVER CALL
+!     EASY-TO-USE WRAPPER FOR GMRES PARALLEL DRIVER CALL
 !
 !     X0: on input, initial guess if icntl(6) == 1
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
 
-      fsq_min = -1; fsq_nl = fsq_total1
-      jcount = 0; icount = 0
+      fsq_min = -1; fsq_nl = fsq_total1; fsq_min_lin = -1
+      delfsq = 1
+      jcount = 0; icount = 0; kout = 0; kprint = 0
 
       nloc=(endglobrow-startglobrow+1)*mblk_size
       myrowstart=(startglobrow-1)*mblk_size+1
@@ -314,6 +370,11 @@
 
       work(nloc+1:2*nloc) = b(myrowstart:myrowend)
 
+      IF (iam .EQ. 0) PRINT 900
+900   FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,1x,'ITER',7x,'FSQ_NL',   &
+             10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
+
+
       !****************************************
       !* Reverse communication implementation
       !****************************************
@@ -331,31 +392,31 @@
       colz   = irc(4)
       nbscal = irc(5)
 
+
       IF (revcom .EQ. matveci) THEN
 !!!        IF (IAM.EQ.0) PRINT *,' CALL MATVECI'
         ! perform the matrix vector product work(colz) <-- A * work(colx)
         CALL ParyAx (work(colx), work(colz), nloc)
         GOTO 10
 
-      ELSE IF (revcom.EQ.precondLeft .OR. revcom.EQ.precondRight) THEN
+      ELSE IF (revcom .EQ. precondLeft) THEN
         ! perform the left preconditioning work(colz) <-- M^{-1} * work(colx)
+        CALL dcopy(nloc,work(colx),1,work(colz),1)
+        GOTO 10
 
-        ! perform the right preconditioning  work(colz) -> work(colx)*M^{-1} == M^{-1}' * work(colx), ' == Transpose
-        ! since M is supposed to be Hermitian, we model this the same as the left preconditioner
-
+      ELSE IF (revcom .EQ. precondRight) THEN
+!!!        IF (IAM.EQ.0) PRINT *,' CALL PRECONDR'        
+        ! perform the right preconditioning
         CALL second0(skston)
         CALL dcopy(nloc,work(colx),1,work(colz),1)
         CALL second0(skstoff)
         dcopy_time=dcopy_time+(skstoff-skston)
 
         CALL second0(skston)
-        CALL MPI_ALLGATHERV(work(colz),nloc,MPI_REAL8,aux,rcounts,disp, &
-                            MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+        aux(myrowstart:myrowend) = work(colz:colz+nloc-1)
         CALL second0(skstoff)
         gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
-
         CALL apply_precond(aux)
-
         work(colz:colz+nloc-1)=aux(myrowstart:myrowend)
         GOTO 10
 
@@ -363,7 +424,7 @@
         ! perform the scalar product (uses nbscal columns of A starting at work(colx))
         ! work(colz) <-- work(colx) work(coly)
 
-        !MAKE SURE nbscal is the same on all processors
+        !MAKE SURE nbscal is the same on all processors -
         CALL MPI_ALLGATHER(nbscal,1,MPI_INTEGER,itest,1,MPI_INTEGER,MPI_COMM_WORLD,MPI_ERR)
         IF (IAM.EQ.0 .AND. ANY(itest(1:nprocs) .NE. nbscal)) THEN
            PRINT *,'itest: ',itest(1:nprocs)
@@ -373,9 +434,10 @@
         CALL second0(skston)
 !       THIS IS FASTER THAN ALLGATHERV LOOP, BUT MAY LEAD TO SLIGHTLY DIFFERENT CONVERGENCE
 !       SEQUENCES FOR DIFFERENT # PROCESSORS. THE DGEMV CALL IS SLIGHTLY SLOWER THAN THE LOOP
-        IF (.TRUE.) THEN
+        IF (lFast) THEN
 
-!        CALL dgemv('C',nloc,nbscal,one,work(colx),nloc,work(coly),1,zero,aux,1)
+!!        CALL dgemv('C',nloc,nbscal,one,work(colx),nloc,work(coly),1,zero,aux,1)
+
         DO nout=1,nbscal
            aux(nout) = SUM(work(colx:colx+nloc-1)*work(coly:coly+nloc-1))
            colx = colx+nloc
@@ -389,78 +451,79 @@
         CALL second0(skstoff)
         gmres_wrap_allreduce_time=gmres_wrap_allreduce_time+(skstoff-skston)
 
-        END IF
+        ELSE
 
-!       THIS DOES NOT SCALE WELL WITH # PROCESSORS, BUT LEADS TO A CONVERGENCE SEQUENCE
+
+!       THIS DOES NOT SCALE AS WELL WITH # PROCESSORS, BUT LEADS TO A CONVERGENCE SEQUENCE
 !       THAT IS INDEPENDENT OF # PROCESSORS
-!        IF (.FALSE.) THEN
 !        CALL MPI_ALLGATHERV(work(coly),nloc,MPI_REAL8,aux,rcounts,      &
 !                            disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
-!        DO nout=0,nbscal-1
+        CALL MPI_GATHERV(work(coly),nloc,MPI_REAL8,aux,rcounts,         &
+                         disp,MPI_REAL8,0,MPI_COMM_WORLD,MPI_ERR)
+
+        DO nout=0,nbscal-1
 !           CALL MPI_ALLGATHERV(work(colx),nloc,MPI_REAL8,tmpbuf,rcounts, &
 !                               disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
-!          work(colz+nout) = SUM(tmpbuf*aux)
-!          colx = colx+nloc
-!        END DO
-!        END IF
+           CALL MPI_GATHERV(work(colx),nloc,MPI_REAL8,tmpbuf,rcounts,    &
+                            disp,MPI_REAL8,0,MPI_COMM_WORLD,MPI_ERR)
+           IF (iam .EQ. 0) work(colz+nout) = SUM(tmpbuf*aux)              !DO FOR ALL PROCS IF ALLGATHER FORM USED
+           colx = colx+nloc
+        END DO
+
+        CALL MPI_BCAST(work(colz), nbscal, MPI_REAL8, 0, MPI_COMM_WORLD, MPI_ERR)
+
+        END IF
 
         DO nout = 0,nbscal-1
-           lwork = 6
-           IF (ABS(xnorm*work(colz+nout)) .LT. 1.E-6_dp) lwork = 4
-           CALL truncate(work(colz+nout),lwork)
+           CALL Truncate(work(colz+nout), 15)
         END DO
 
         GOTO 10
 
       ELSE IF (revcom .EQ. peek) THEN
-!!!        IF (IAM.EQ.0) PRINT *,' PEEK'
         fsq_last = fsq_nl                                                 !need for delfsq criteria
         CALL second0(skston)
-        CALL MPI_ALLGATHERV(work(colx),nloc,MPI_REAL8,aux,rcounts,      &
-                            disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+        aux(myrowstart:myrowend) = work(colx:colx+nloc-1)
         CALL second0(skstoff)
         gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
 
         CALL second0(skston)
-        CALL GetNLForce(aux, fsq_nl)                                     !get nonlinear force
+        CALL GetNLForce(aux, fsq_nl, gnorm)                               !get nonlinear force
         CALL second0(skstoff)
         getnlforce_time=getnlforce_time+(skstoff-skston)
 
         fsq_lin = (rinfo(1)*gnorm)**2
         icount = icount+1
         IF (fsq_lin .LT. 1.E-30_dp) icntl(7)=info(1)
-        IF (ngmres_type .EQ. 1) GOTO 10                                !OLDSTYLE:IGNORE LOGIC BELOW
-        delfsq = (fsq_min-fsq_nl)/fsq_min                              !SPH053014: REMOVE ABS(); 051016: Replace fsq_last->fsq_min
+        IF (fsq_min .EQ. -1) fsq_min = fsq_nl/0.89_dp
+!        IF (ngmres_type .EQ. 1) GOTO 10                                !OLDSTYLE:IGNORE LOGIC BELOW
+        delfsq = (fsq_last-fsq_nl)/fsq_min                              
         IF (delfsq .LT. 0.05_dp) THEN
           jcount = jcount+1
         ELSE
           jcount = 0
         END IF
 
-        IF (fsq_min .EQ. -1) fsq_min = fsq_nl/0.89_dp
-!        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
-        IF (jcount .GT. 5) THEN   !!SPH042616
+        IF (fsq_nl .LT. fsq_min) THEN
+          kout = info(1); xmod = gnorm*SQRT(SUM(aux*aux))
+          xmax = gnorm*MAXVAL(ABS(aux))
+          IF (iam.EQ.0 .AND. (icount.EQ.1 .OR. MOD(icount,10).EQ.0)) THEN
+             kprint = kout
+             PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+          END IF
+          IF (fsq_nl .LE. ftol) icntl(7)=info(1)
+          IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
+          xmin = work(colx:colx+nloc-1)
+          fsq_min = fsq_nl; fsq_min_lin = fsq_lin
+        ELSE IF (fsq_nl .GT. (3*fsq_min) .OR. jcount.GT.3) THEN
           ! STOPPING CRITERIA (reset max iterations to current iteration)         
           icntl(7)=info(1)
-          IF (fsq_nl .LE. ftol) THEN
-            IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
-            xmin = work(colx:colx+nloc-1)
-          END IF
-        ELSE   !!SPH042616   IF (fsq_nl .LT. 0.95_dp*fsq_min) THEN
-          IF (fsq_nl .LE. ftol) icntl(7)=info(1)
-          IF (fsq_nl .LE. fsq_min) THEN
-             IF (iam .EQ. 0) THEN
-                PRINT 900, info(1), fsq_nl, fsq_lin
-!               WRITE (36, 900) info(1), fsq_nl, fsq_lin
-             END IF
-             IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
-             xmin = work(colx:colx+nloc-1)
-             fsq_min = fsq_nl
-          END IF
         END IF
         GOTO 10
-
       ENDIF
+
+910  FORMAT(i5, 4(3x,1pe12.3))
+
 !*******************************
 ! end reverse loop: dump the solution to a file for debugging
 !******************************
@@ -491,32 +554,27 @@
 
       IF (ALLOCATED (xmin)) THEN
         CALL second0(skston)
-        CALL MPI_ALLGATHERV(xmin,nloc,MPI_REAL8,tmpbuf,rcounts,disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+        CALL gather_array(xmin, tmpbuf)
         CALL second0(skstoff)
         gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
         DEALLOCATE (xmin)
       ELSE
         CALL second0(skston)
-        CALL MPI_ALLGATHERV(work,nloc,MPI_REAL8,tmpbuf,rcounts,disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+        CALL gather_array(work, tmpbuf)
         CALL second0(skstoff)
         gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
       END IF
 
-      IF (ngmres_type .EQ. 1) THEN
-         CALL GetNLForce(tmpbuf, fsq_min)
-      END IF
-
-!SPH: SINCE X0 == XC, AND GetNLForce CHANGES XC, MUST PUT AFTER CALL  
+      fsq_total1 = fsq_min
       x0 = tmpbuf
-  
-      fsq_gmres = fsq_min
-      IF (iam .EQ. 0) THEN 
-         PRINT 900, icount, fsq_gmres, fsq_lin
-         WRITE (33, 900) icount, fsq_gmres, fsq_lin
-      ENDIF
-900   FORMAT(1x,'GMRES Iteration ',i4,2x,'FSQ_NL = ',1pe12.3,2x,'FSQ_LIN: ',1pe12.3)
+
+      IF (iam.EQ.0 .AND. kprint.NE.kout) &
+          PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
       DEALLOCATE (work, tmpbuf, aux, itest)
+
+!      IF (iam .EQ. 0) PRINT 110, icount
+! 110  FORMAT(1x,'Total GMRES Iterations: ',i4)
 #endif 
      END SUBROUTINE gmres_wrap_par
 
@@ -524,10 +582,9 @@
 
       SUBROUTINE ParyAx (p, locAp, nloc)
       USE stel_kinds
-      USE hessian, ONLY: ns, mblk_size, rcounts, disp
-      USE timer_mod
-      USE mpi_inc
+      USE hessian, ONLY: ns, gather_array
       IMPLICIT NONE
+      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -537,7 +594,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: MPI_ERR, istat
+      INTEGER :: istat
       REAL(dp), ALLOCATABLE,  DIMENSION(:)   :: fullvec
       REAL(dp)                               :: skston, skstoff
 !-----------------------------------------------
@@ -546,8 +603,7 @@
       ALLOCATE (fullvec(ns*mblk_size), stat=istat)
       IF (istat .NE. 0) STOP 'Allocation error in ParyAx'
 
-      CALL MPI_ALLGATHERV(p,nloc,MPI_REAL8,fullvec,rcounts,disp,        &
-                          MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+      CALL gather_array(p, fullvec)
 
       CALL second0(skstoff)
       gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
@@ -564,15 +620,12 @@
 
 
       SUBROUTINE matvec_par (p, Ap, ndim, nloc)
-      USE timer_mod
       USE stel_kinds
       USE stel_constants, ONLY: zero
-      USE hessian, ONLY: eps_factor, mblk_size, mupar
-      USE nscalingtools, ONLY: PARSOLVER, endglobrow, startglobrow,     &
-                            MPI_ERR, PARFUNCTISL, rcounts, disp
+      USE hessian, ONLY: eps_factor, mupar
       USE blocktridiagonalsolver, ONLY: ParMatVec
-      USE mpi_inc
       IMPLICIT NONE
+      INCLUDE 'mpif.h'
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -580,7 +633,7 @@
       REAL(dp), INTENT(IN), DIMENSION(ndim)  :: p
       REAL(dp), INTENT(OUT), DIMENSION(nloc) :: Ap
 !-----------------------------------------------
-      LOGICAL, PARAMETER :: LPARMATVEC=.TRUE.
+      LOGICAL, PARAMETER :: LPARMATVEC=.FALSE.
       INTEGER            :: myrowstart, myrowend
       REAL(dp)           :: delta
 !-----------------------------------------------
@@ -616,34 +669,43 @@
 #endif
 
 
-      SUBROUTINE gmres_wrap (n, m, icntl, cntl, yAx, x0, b, info)
+      SUBROUTINE gmres_wrap (yAx, x0, b, gnorm)
       USE stel_kinds, ONLY: dp
       USE stel_constants, ONLY: one, zero
       USE perturbation, ONLY: ftol
       USE descriptor_mod, ONLY: iam
       USE nscalingtools, ONLY: PARSOLVER, PARGMRES
-      USE hessian, ONLY: apply_precond, mblk_size
+      USE hessian, ONLY: apply_precond
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER :: n, m,  icntl(9), info(3)
-      REAL(dp), INTENT(IN)    :: b(n)
-      REAL(dp), INTENT(INOUT) :: x0(n)
-      REAL(dp) :: cntl(5)
+      REAL(dp), INTENT(IN)    :: b(:), gnorm
+      REAL(dp), INTENT(INOUT) :: x0(:)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER, PARAMETER :: matveci=1, precondLeft=2,                    &
                             precondRight=3, dotProd=4, peek=5
+      INTEGER :: m, n, icntl(9), info(3)
       INTEGER :: revcom, colx, coly, colz, nbscal
       INTEGER :: irc(5), jcount, icount
       INTEGER :: nout, lwork
-      REAL(dp)  :: rinfo(2), fsq_nl, fsq_min, fsq_last, delfsq, fsq_lin
+      REAL(dp)  :: rinfo(2), cntl(5), fsq_nl, fsq_min, fsq_last, delfsq, &
+                   fsq_lin
       REAL(dp), ALLOCATABLE :: work(:), xmin(:)
 !-----------------------------------------------
       EXTERNAL yAx
 !-----------------------------------------------
+
+      x0  = 0 
+      l_linearize = .TRUE.
+      l_getfsq = .FALSE.         !So call to funct in matvec does not include gc0
+!******************************************************
+!*  Initialize GMRES control parameters
+!*******************************************************
+      CALL init_gmres0(icntl, cntl, etak, m, n)
+
 !
 !     EASY-TO-USE WRAPPER FOR GMRES DRIVER CALL
 !
@@ -651,12 +713,13 @@
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
 
-      IF(PARSOLVER .AND. PARGMRES) THEN
-         CALL gmres_wrap_par (n, m, icntl, cntl, x0, b, info)
+      IF (PARSOLVER .AND. PARGMRES) THEN
+         CALL gmres_wrap_par (n, m, icntl, cntl, x0, b, gnorm, info)
          RETURN
       END IF
 
       fsq_min = -1; fsq_nl = fsq_total1
+      delfsq = 1
       jcount = 0; icount = 0
 
       lwork = m**2 + m*(n+6) + 6*n + 1    !Additional space for peek revcom (5 -> 6)
@@ -665,6 +728,10 @@
       work = 0
       IF (icntl(6) .EQ. 1) work(1:n) = x0
       work(n+1:2*n) = b(1:n)
+
+      PRINT 900
+900   FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,1x,'ITER',7x,'FSQ_NL',   &
+             10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
 
       !****************************************
       !  Reverse communication implementation
@@ -711,48 +778,43 @@
         END DO
 
         DO nout = 0, nbscal-1
-          CALL truncate(work(colz+nout),5)
+          CALL truncate(work(colz+nout),15)
         END DO
         GOTO 10
 
       ELSE IF (revcom .EQ. peek) THEN
 
         fsq_last = fsq_nl                                              !need for delfsq criteria
-        CALL GetNLForce(work(colx), fsq_nl)                            !get nonlinear force
+        CALL GetNLForce(work(colx), fsq_nl, gnorm)                     !get nonlinear force
         fsq_lin = (rinfo(1)*gnorm)**2
         icount = icount+1
         IF (fsq_lin .LT. 1.E-30_dp) icntl(7)=info(1)
+        IF (fsq_min .EQ. -1) fsq_min = fsq_nl/0.89_dp
         IF (ngmres_type .EQ. 1) GOTO 10                                !OLDSTYLE:IGNORE LOGIC BELOW
-        delfsq = (fsq_min-fsq_nl)/fsq_min                              !SPH053014: remove ABS()
+        delfsq = (fsq_last-fsq_nl)/fsq_min                             !SPH053014: remove ABS()
         IF (delfsq .LT. 0.05_dp) THEN
           jcount = jcount+1
         ELSE
           jcount = 0
         END IF
 
-        IF (fsq_min .EQ. -1) fsq_min = fsq_nl/0.89_dp
-!        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
-        IF (jcount .GT. 5) THEN   !!SPH042616
-          !STOPPING CRITERIA (reset max iterations to current iteration)         
-          icntl(7)=info(1)
-          IF (fsq_nl .LE. ftol) THEN
-            IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(n))
-            xmin(1:n) = work(colx:colx+n-1)
-          END IF
-        ELSE IF (fsq_nl .LT. 0.95_dp*fsq_min) THEN
+        IF (fsq_nl .LT. fsq_min) THEN
+          IF (iam .EQ. 0)    &
+          PRINT 910, info(1), fsq_nl, gnorm*SQRT(SUM(work(colx:colx+n-1)**2)), &
+                                       gnorm*MAXVAL(ABS(work(colx:colx+n-1))), fsq_lin
           IF (fsq_nl .LE. ftol) icntl(7)=info(1)
-          IF (iam .EQ. 0) THEN
-            PRINT 900, info(1), fsq_nl, fsq_lin
-!            WRITE (36, 900) info(1), fsq_nl, fsq_lin
-          END IF
           IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(n))  !XXX:SKS
           xmin(1:n) = work(colx:colx+n-1)               !XXX:SKS
           fsq_min = fsq_nl
+        ELSE IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3) THEN
+          !        STOPPING CRITERIA (reset max iterations to current iteration)         
+          icntl(7)=info(1)
         END IF
         GOTO 10
 
       ENDIF
 
+910  FORMAT(i5, 4(3x,1pe12.3))
 !*******************************
 ! end reverse loop: dump the solution to a file for debugging
 !******************************
@@ -781,37 +843,29 @@
 
  100  CONTINUE
 
-      IF (ngmres_type .EQ. 1) THEN
-         CALL GetNLForce(work, fsq_min)
-      END IF
-
-!SPH: SINCE X0 == XC, AND GetNLForce CHANGES XC, MUST PUT AFTER CALL  
       IF (ALLOCATED (xmin)) THEN
         x0(1:n) = xmin(1:n)
         DEALLOCATE (xmin)
       ELSE
         x0(1:n) = work(1:n)
       END IF
-  
-      fsq_gmres = fsq_min
 
-      PRINT 900, icount, fsq_gmres, fsq_lin
-      WRITE (33, 900) icount, fsq_gmres, fsq_lin
- 900  FORMAT(1x,'GMRES Iteration ',i4,2x,'FSQ_NL = ',1pe12.3,2x,'FSQ_LIN: ',1pe12.3)
-
+      fsq_total1 = fsq_min
       DEALLOCATE (work)
+
+!      IF (iam .EQ. 0) PRINT 110, icount
+! 110  FORMAT(1x,'Total GMRES Iterations: ',i4)
 
       END SUBROUTINE gmres_wrap
 
 
       SUBROUTINE matvec (p, Ap, ndim)
       USE stel_kinds
-      USE hessian, ONLY: mblk_size, ns, eps_factor
-      USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,      &
-                      endglobrow, rcounts, disp
-      USE hessian, ONLY: eps_factor
-      USE mpi_inc
+      USE hessian, ONLY: ns, eps_factor, gather_array
       IMPLICIT NONE
+#if defined(MPI_OPT)
+      INCLUDE "mpif.h"
+#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -849,8 +903,7 @@
       nloc=(endglobrow-startglobrow+1)*mblk_size
       myrowstart=(startglobrow-1)*mblk_size+1
       myrowend=myrowstart+nloc-1
-      CALL MPI_ALLGATHERV(gc(myrowstart:myrowend),nloc,MPI_REAL8,gc1,   &
-                          rcounts,disp,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+      CALL gather_array(gc(myrowstart:myrowend), gc1)
       gc = gc1
       DEALLOCATE (gc1)
 #endif
@@ -897,13 +950,13 @@
       END SUBROUTINE get_etak
  
 
-      SUBROUTINE GetNLForce(xcstate, fsq_nl)
+      SUBROUTINE GetNLForce(xcstate, fsq_nl, gnorm)
       USE stel_kinds
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp),INTENT(IN)  :: xcstate(neqs)
+      REAL(dp),INTENT(IN)  :: xcstate(neqs), gnorm
       REAL(dp),INTENT(OUT) :: fsq_nl
 !     REAL(dp) :: ton, toff, time_nl=0
 !-----------------------------------------------
@@ -919,7 +972,7 @@
       l_initloc = l_init_state
 
 !Set state variables
-      xc = xcstate*xnorm     !undo internal gmres normalization
+      xc = gnorm*xcstate     !undo internal gmres normalization
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
       l_init_state = .NOT.l_par_state
@@ -950,7 +1003,7 @@
       INTEGER :: ndim, nlen, nlim, ierr, info(4), j
       INTEGER :: revcom, colx, colb
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: vecs
-      REAL(rprec) :: tol = 1.E-4_dp
+      REAL(rprec) :: tol = 1.E-4_dp, gnorm
 !-----------------------------------------------
 !
 !     STORE INITIAL POINT AND INITIAL RESIDUE (AT INIT PT)
@@ -976,8 +1029,10 @@
 !
 !     INITIALIZE vecs
 !
-      vecs(:ndim,2) = -gc(:ndim)
-      vecs(:ndim,3) =  gc(:ndim)
+      gnorm = SUM(gc*gc)
+      gnorm = SQRT(gnorm)
+      vecs(:ndim,2) = -gc(:ndim)/gnorm
+      vecs(:ndim,3) =  gc(:ndim)/gnorm
     
       ierr = 100000
       info = 0
@@ -992,7 +1047,7 @@
          GO TO 10
       END IF
 
-      xc(1:ndim) = xc0(1:ndim) + vecs(:,1)
+      xc(1:ndim) = xc0(1:ndim) + gnorm*vecs(:,1)
 
 !
 !     RECOMPUTE delta current,pressure prior to update_state call

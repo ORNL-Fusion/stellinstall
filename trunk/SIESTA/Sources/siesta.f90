@@ -9,15 +9,16 @@
 !
 !     READS siesta.jcf INPUT FILE
 !
-      USE evolution, ONLY: bsbu_ratio, jsju_ratio, bs0, bu0, niter,     &
+      USE evolution, ONLY: niter,                                        &
                            init_evolution, converge_diagonal, converge_blocks
-      USE shared_data, ONLY: nprecon, ngmres_type, xc, gc, fsq_total1
-      USE metrics, ONLY: init_metric_elements, cleanup_metric_elements, &
+      USE shared_data, ONLY: nprecon, ngmres_type, xc, gc, fsq_total1,   &
+                             ndims, mblk_size
+      USE metrics, ONLY: init_metric_elements, cleanup_metric_elements,  &
                          dealloc_full_lower_metrics
-      USE quantities, ONLY: init_quantities, dealloc_quantities,        &
-                            djpmnch, fbdy
-      USE hessian, ONLY: levmarq_param, mupar, asym_index, removedafile,&
-                         dealloc_hessian
+      USE quantities, ONLY: init_quantities, dealloc_quantities,         &
+                            djpmnch, fbdy, init_fields
+      USE hessian, ONLY: levmarq_param, mupar, asym_index, removedafile, &
+                         dealloc_hessian, InitHess
       USE perturbation, ONLY: nsin, mpolin, ntorin, wout_file, lrestart, &
                          ftol, lresistive, init_data, read_restart_file
       USE diagnostics_mod, ONLY: dealloc_diagnostics, write_profiles
@@ -27,13 +28,13 @@
       USE timer_mod
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i
 #if defined(SKS)
-      USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER,   &
-                            SKSDBG, TOFU, PARGMRES, PARFUNCTISL,        &
-                            finalizeRemap, bcyclicMapping, initRemap,   &
+      USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER, &
+                            SKSDBG, TOFU, PARGMRES, PARFUNCTISL,         &
+                            finalizeRemap, bcyclicMapping, initRemap,    &
                             OUTPUT_TIMINGS, GetTimes, MPI_ERR
       USE mpi_inc
 #else
-      USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER,   &
+      USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER, &
                             SKSDBG, TOFU, PARGMRES, PARFUNCTISL
 #endif
       IMPLICIT NONE
@@ -45,7 +46,6 @@
       REAL(rprec)   :: ton, skston, t1           !<timer counter (on)
       REAL(rprec)   :: toff, skstoff, t2         !<timer counter (off)
       REAL(rprec), ALLOCATABLE :: work2(:,:,:)   !<work array
-      INTEGER       :: mblk_size
 #if defined(SKS)
       REAL(rprec)   :: starttime, endtime, usedtime, rvar
       CHARACTER*10  :: envval
@@ -149,12 +149,24 @@
       CALL second0(t1)
 #endif
       CALL init_evolution
+      mblk_size = ndims*(mpol+1)*(2*ntor+1)
 #if defined(SKS)
-      CALL second0(t2)
-      init_evolution_time=init_evolution_time+(t2-t1)
       CALL initRemap(mpolin,ntorin,nsin,nprocs,iam)
 #endif
-      mblk_size=3*(mpol+1)*(2*ntor+1)
+      CALL InitHess
+      CALL second0(t2)
+      init_evolution_time=init_evolution_time+(t2-t1)
+
+#if defined(SKS)
+      CALL second0(t1)
+#endif
+      IF (.NOT.lrestart) CALL Init_Fields
+#if defined(SKS)
+      CALL second0(t2)
+      init_quantities_time=init_quantities_time+(t2-t1)
+#endif
+
+      CALL second0(t2)
 !
 !     Converge initial residues with diagonal preconditioner
       DIAGONALDONE=.FALSE.
@@ -196,22 +208,20 @@
 #if defined(SKS)
          WRITE (I, '(a,i5)') ' Number processors: ', nprocs
 #endif
-         IF (I .NE. 6) WRITE (I,120) bsbu_ratio, jsju_ratio,            &
-                       (bs0(j), j=2,6), (bu0(j), j=2,6)
          WRITE (I, 100)
          WRITE (I, 105)
          WRITE (I, 100)
-         WRITE (I, 110) time_total, fbdy(1), time_init, fbdy(2),        &
-                        time_diag_prec, fbdy(3), time_block_prec,       & 
-                        fbdy(4), time_factor_blocks, fbdy(5),           &
-                        time_toijsp, fbdy(6), time_tomnsp, gmres_time,  &
-                        conj_grad_time, time_update_pres, fbdy(7),      &
-                        time_update_bfield, fbdy(8), time_current,      &
-                        fbdy(9), get_force_harmonics_time, fbdy(10),    &
-                        time_update_force, fbdy(11), time_update_upperv,&
-                        fbdy(12), time_update_state, fbdy(13),          &
-                        time_funci, time_apply_precon,                  &
-                        (diag_add_pert_time+block_add_pert_time),       &
+         WRITE (I, 110) time_total, fbdy(1), time_init, fbdy(2),         &
+                        time_diag_prec, fbdy(3), time_block_prec,        & 
+                        fbdy(4), time_factor_blocks, fbdy(5),            &
+                        time_toijsp, fbdy(6), time_tomnsp, gmres_time,   &
+                        conj_grad_time, time_update_pres, fbdy(7),       &
+                        time_update_bfield, fbdy(8), time_current,       &
+                        fbdy(9), get_force_harmonics_time, fbdy(10),     &
+                        time_update_force, fbdy(11), time_update_upperv, &
+                        fbdy(12), time_update_state, fbdy(13),           &
+                        time_funci, time_apply_precon,                   &
+                        (diag_add_pert_time+block_add_pert_time),        &
                         time_init_state
          WRITE (I, 115)
 !----------------------------------------------
@@ -222,7 +232,7 @@
            WRITE (I, *)             'PARSOLVER      : ScaLAPACK'
          END IF
          WRITE (I, *)               'PARFUNCTISL    :', PARFUNCTISL
-         WRITE (I, '(1x,a,L2,a,I2)')'PARGMRES       :', PARGMRES , ', GMRES_TYPE:', ngmres_type
+         WRITE (I, '(1x,a,L2)')     'PARGMRES       :', PARGMRES
 #if defined(SKS)
          WRITE (I, *)               'OUTPUT_TIMINGS :', OUTPUT_TIMINGS
 #endif
@@ -231,7 +241,7 @@
          WRITE (I, '(a,3x,1p,e10.3)')' TIME DIVJ  : ',time_divj
          WRITE (I, '(a,3x,1p,e10.3)')' TIME BGRADP: ',time_bgradp
          WRITE (I, '(a,3x,1p,e10.3)')' TIME BDOTJ : ',time_bdotj
-		 WRITE (I, *)
+         WRITE (I, *)
          WRITE(I, *) 'M (block size)         :',mblk_size
          WRITE(I, *) 'N (block rows)         :',nsin
          WRITE(I, *) 'P (processors)         :',nprocs
@@ -242,8 +252,8 @@
       END DO
       ENDIF
 
- 95   FORMAT (/,' nprecon: ',i3, ' LM parameter: ',1pe9.2,              &
-     &        ' mu||: ', 1pe9.2, ' Asym Index: ',1pe9.2)
+ 95   FORMAT (/,' nprecon: ',i3, ' LM parameter: ',1pe9.2,               &
+     &        ' mu||: ', 1pe9.2, ' Symmetry Index: ',1pe9.2)
 
  100  FORMAT(/'==============================              =======================')
  105  FORMAT(/,' TIMING INFORMATION                          RMS BOUNDARY FORCES')
@@ -255,8 +265,8 @@
              ' Toijsp         : ',0pf12.3,'               fu(2,m!=1) :', 1pe10.2/,    &
              ' Tomnsp         : ',0pf12.3,                                      /,    &
              ' GMRES          : ',0pf12.3,                                      /,    &
-             ' Conj Gradient  : ',0pf12.3,//,  &
-             ' SUBROUTINES     ',/,            &
+             ' Conj Gradient  : ',0pf12.3,//,                                         &
+             ' SUBROUTINES     ',/,                                                   &
              ' Update Pressure: ',0pf12.3,'               fv(1,m=0)  :', 1pe10.2/,    &
              ' Update Bfield  : ',0pf12.3,'               fv(2,m=0)  :', 1pe10.2/,    &
              ' CV Currents    : ',0pf12.3,'               fv(2,m!=0) :', 1pe10.2/,    &
@@ -264,16 +274,12 @@
              ' Update Force   : ',0pf12.3,'               fu(ns-1)   :', 1pe10.2/,    &
              ' Update UpperV  : ',0pf12.3,'               fv(ns)     :', 1pe10.2/,    &
              ' Update State   : ',0pf12.3,'               fv(ns-1)   :', 1pe10.2/,    &
-             ' Funct Island   : ',0pf12.3/,    &
-             ' Apply Precon   : ',0pf12.3/,    &
-             ' Add Perturb    : ',0pf12.3/,    &
-             ' Init State     : ',0pf12.3      &
+             ' Funct Island   : ',0pf12.3/,                              &
+             ' Apply Precon   : ',0pf12.3/,                              &
+             ' Add Perturb    : ',0pf12.3/,                              &
+             ' Init State     : ',0pf12.3                                &
      )
  115  FORMAT('==============================              =======================')
- 120  FORMAT(' |B^s-r0*B^u|/|B^s+r0*B^u| (m=1,r->0): ',1pe10.3,/,                     &
-             ' |J^s-r0*J^u|/|J^s+r0*J^u| (m=1,r->0): ',1pe10.3,/,                     &
-             ' JBSUPSH(JS=2-6,M=1)/R0 : ',1p5e10.3,/,                                 &
-             ' JBSUPUH(JS=2-6,M=1)    : ',1p5e10.3,/)
 
       CALL write_output (wout_file, niter)
       CALL write_profiles(fsq_total1)                 ! SPH: write jpmn, jbsupXmn, kbsubXmn, jvsupXmn profiles
@@ -303,7 +309,7 @@
 
       IF (iam .EQ. 0) THEN
       PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
-      CLOSE (unit=33)
+      CLOSE (UNIT=33)
       ENDIF
 #endif
 
