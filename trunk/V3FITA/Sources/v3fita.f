@@ -106,8 +106,8 @@
          CASE ('reconstruct', 'reconstruct_a1')
             CALL task_reconstruct(context)
 
-         CASE ('child_jacobian')
-            CALL task_child_jacobian(context)
+         CASE ('child_recon')
+            CALL task_child_recon(context)
 
          CASE ('child_equilibrium')
             CALL task_child_equilibrium(context)
@@ -389,7 +389,7 @@
 
       CALL v3fit_context_init_data(context)
 
-      DO i = 1, SIZE(context%recon%e, 1) - 1
+      DO i = 1, SIZE(context%recon%e, 2) - 1
          WRITE (*,*)
          WRITE (*,1002) i
 
@@ -438,7 +438,7 @@
                EXIT
             END IF
 
-            IF (i .eq. SIZE(context%recon%e, 1) - 1) THEN
+            IF (i .eq. SIZE(context%recon%e, 2) - 1) THEN
               WRITE (*,*)
               WRITE (*,1001) i
 
@@ -473,7 +473,7 @@
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
-      SUBROUTINE task_child_jacobian(context)
+      SUBROUTINE task_child_recon(context)
       USE v3fit_context
 
 !  Declare Arguments
@@ -485,7 +485,6 @@
       INTEGER                                   :: task
       INTEGER                                   :: error
       INTEGER                                   :: eq_steps
-      INTEGER                                   :: num_steps
 
 !  Start of executable code
       CALL init_equilibrium(context)
@@ -2149,7 +2148,7 @@
          IF (eq_rank .gt. 0) THEN
             my_task = 'child_equilibrium'
          ELSE
-            my_task = 'child_jacobian'
+            my_task = 'child_recon'
          END IF
       END IF
 

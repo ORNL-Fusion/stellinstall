@@ -248,8 +248,7 @@
 !  Start of executable code
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
-!  If the size of the xc array changed reallocate the child processes to the
-!  parent process size.
+!  If the size of the xc array changed size we cannot sync.
       temp_size = SIZE(xc)
       CALL MPI_BCAST(temp_size, 1, MPI_INTEGER, 0, recon_comm, error)
 

@@ -227,9 +227,9 @@
 
       reconstruction_construct%cut_inv_svd = cut_inv_svd
 
-      ALLOCATE(reconstruction_construct%e(0:num_steps,num_signals))
-      ALLOCATE(reconstruction_construct%f(0:num_steps,                         &
-     &                                    num_derived_parameters))
+      ALLOCATE(reconstruction_construct%e(num_signals,0:num_steps))
+      ALLOCATE(reconstruction_construct%f(num_derived_parameters,              &
+     &                                    0:num_steps))
       ALLOCATE(reconstruction_construct%jacobian(num_signals,                  &
      &                                           num_parameters))
       ALLOCATE(reconstruction_construct%derived_jacobian(                      &
@@ -237,8 +237,8 @@
       ALLOCATE(reconstruction_construct%hessian(num_parameters,                &
      &                                          num_parameters))
       ALLOCATE(reconstruction_construct%gradient(num_parameters))
-      ALLOCATE(reconstruction_construct%delta_a(0:num_svd,                     &
-     &                                          num_parameters))
+      ALLOCATE(reconstruction_construct%delta_a(num_parameters,                &
+     &                                          0:num_svd))
       ALLOCATE(reconstruction_construct%j_svd_w(num_svd))
       ALLOCATE(reconstruction_construct%j_svd_u(num_signals,                   &
      &                                          num_signals))
@@ -411,10 +411,10 @@
 !  doi: 10.1088/0029-5515/49/7/075031
       DO k = 0, num_sv
          dg2exp(k) = reconstruction_get_exp_dg2(this,                          &
-     &                                          this%delta_a(k,:))
+     &                                          this%delta_a(:,k))
 
-         this%delta_a_len(k) = SQRT(DOT_PRODUCT(this%delta_a(k,:),             &
-     &                                          this%delta_a(k,:)))
+         this%delta_a_len(k) = SQRT(DOT_PRODUCT(this%delta_a(:,k),             &
+     &                                          this%delta_a(:,k)))
 
 !  Equation 23 in Hanson et. al. doi: 10.1088/0029-5515/49/7/075031
          exp_eff(k) = ABS(dg2exp(k))/this%delta_a_len(k)
@@ -501,7 +501,7 @@
 
 !  2e * A * da  
       dg2exp_lin =                                                             &
-     &   2.0*DOT_PRODUCT(this%e(this%current_step,:),                          &
+     &   2.0*DOT_PRODUCT(this%e(:,this%current_step),                          &
      &                   MATMUL(this%jacobian, delta_a))
 
 !  da * A^T * A * da = da * alpha * da where alpha is the hessian matrix.
@@ -571,8 +571,8 @@
       start_time = profiler_get_start_time()
 
       reconstruction_get_g2 =                                                  &
-     &   DOT_PRODUCT(this%e(this%current_step,:),                              &
-     &               this%e(this%current_step,:))
+     &   DOT_PRODUCT(this%e(:,this%current_step),                              &
+     &               this%e(:,this%current_step))
 
       CALL profiler_set_stop_time('reconstruction_get_g2', start_time)
 
@@ -601,8 +601,8 @@
       start_time = profiler_get_start_time()
 
       reconstruction_get_lastg2 =                                              &
-     &   DOT_PRODUCT(this%e(this%current_step - 1,:),                          &
-     &               this%e(this%current_step - 1,:))
+     &   DOT_PRODUCT(this%e(:,this%current_step - 1),                          &
+     &               this%e(:,this%current_step - 1))
 
       CALL profiler_set_stop_time('reconstruction_get_lastg2',                 &
      &                            start_time)
@@ -685,13 +685,13 @@
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
          DO i = 1, this%last_para_signal
-            this%e(this%current_step,i) =                                      &
+            this%e(i,this%current_step) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
          END DO
 !$OMP END PARALLEL DO
 
          DO i = this%last_para_signal + 1, SIZE(signals)
-            this%e(this%current_step,i) =                                      &
+            this%e(i,this%current_step) =                                      &
      &         signal_get_e(signals(i)%p, a_model, .false.)
          END DO
 
@@ -732,7 +732,7 @@
       start_time = profiler_get_start_time()
 
       DO i = 1, SIZE(derived_params)
-         this%f(this%current_step,i) =                                         &
+         this%f(i,this%current_step) =                                         &
      &      param_get_value(derived_params(i)%p, a_model)
       END DO
 
@@ -894,14 +894,14 @@
             DO i = 1, this%last_para_signal
                this%jacobian(i,j) =                                            &
      &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
-     &            - this%e(this%current_step,i))
+     &            - this%e(i,this%current_step))
             END DO
 !$OMP END PARALLEL DO
 
             DO i = this%last_para_signal + 1, SIZE(signals)
                this%jacobian(i,j) =                                            &
      &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
-     &            - this%e(this%current_step,i))
+     &            - this%e(i,this%current_step))
             END DO
             this%jacobian(:,j) = this%jacobian(:,j)                            &
      &                         * SIGN(1.0_rprec,                               &
@@ -917,7 +917,7 @@
             DO i = 1, SIZE(derived_params)
                this%derived_jacobian(i,j) =                                    &
      &            -(param_get_value(derived_params(i)%p, a_model)              &
-     &            - this%f(this%current_step,i))
+     &            - this%f(i,this%current_step))
             END DO
             this%derived_jacobian(:,j) = this%derived_jacobian(:,j)            &
      &                                 * SIGN(1.0_rprec,                       &
@@ -1039,12 +1039,12 @@
 !
 !    beta = A^T * e                                                          (2)
       this%gradient = MATMUL(TRANSPOSE(this%jacobian),                         &
-     &                       this%e(this%current_step,:))
+     &                       this%e(:,this%current_step))
 
 !  Compute the steepest descent step size in normalized parameter space.
 !
 !    da = beta * beta * beta / (beta * alpha * beta)                         (3)
-      this%delta_a(0,:) = this%gradient*DOT_PRODUCT(this%gradient,             &
+      this%delta_a(:,0) = this%gradient*DOT_PRODUCT(this%gradient,             &
      &                                              this%gradient)             &
      &                  / DOT_PRODUCT(this%gradient,                           &
      &                                MATMUL(this%hessian,                     &
@@ -1083,13 +1083,13 @@
 
 !  U^T * e
       temp_work2 = MATMUL(TRANSPOSE(this%j_svd_u),                             &
-     &                    this%e(this%current_step,:))
+     &                    this%e(:,this%current_step))
 
 !  Peform pseudo-inversion for successive numbers of singular values retained
       DO i = 1, SIZE(this%j_svd_w)
          temp_work3(1:i) = temp_work(1:i)*temp_work2(1:i)
          temp_work3(i + 1:SIZE(params)) = 0.0
-         this%delta_a(i,:) = MATMUL(TRANSPOSE(this%j_svd_vt),                  &
+         this%delta_a(:,i) = MATMUL(TRANSPOSE(this%j_svd_vt),                  &
      &                              temp_work3)
       END DO
 
@@ -1136,10 +1136,10 @@
       IF ((step_size .ge. 0.0) .and.                                           &
      &    (this%delta_a_len(k_use) .gt. step_size)) THEN
          delta_a = this%step_max/this%delta_a_len(k_use)                       &
-     &           * this%delta_a(k_use,:)
+     &           * this%delta_a(:,k_use)
          reconstruction_sl_step = SQRT(DOT_PRODUCT(delta_a, delta_a))
       ELSE
-         delta_a = this%delta_a(k_use,:)
+         delta_a = this%delta_a(:,k_use)
          reconstruction_sl_step = this%delta_a_len(k_use)
       END IF
 
@@ -1192,11 +1192,11 @@
          END DO
 
 !  Set up the quadratic
-         ysq = DOT_PRODUCT(this%delta_a(k_min,:), this%delta_a(k_min,:))
-         zsq = DOT_PRODUCT(this%delta_a(k_min + 1,:),                          &
-     &                     this%delta_a(k_min + 1,:))
-         ydz = DOT_PRODUCT(this%delta_a(k_min,:),                              &
-     &                     this%delta_a(k_min + 1,:))
+         ysq = DOT_PRODUCT(this%delta_a(:,k_min), this%delta_a(:,k_min))
+         zsq = DOT_PRODUCT(this%delta_a(:,k_min + 1),                          &
+     &                     this%delta_a(:,k_min + 1))
+         ydz = DOT_PRODUCT(this%delta_a(:,k_min),                              &
+     &                     this%delta_a(:,k_min + 1))
 
 !  Special case when (k_min .eq. 0) - reconstruction arrays contain SD step, but
 !  use the zero step for (kmin .eq. 0)
@@ -1221,14 +1221,14 @@
             xx = 0.0
          END IF
 
-         delta_a = xx*this%delta_a(k_min + 1,:)
+         delta_a = xx*this%delta_a(:,k_min + 1)
          IF (k_min .ne. 0) THEN
-            delta_a = this%delta_a(k_min,:)*(1.0 - xx) + delta_a
+            delta_a = this%delta_a(:,k_min)*(1.0 - xx) + delta_a
          END IF
 
          reconstruction_seg_step = SQRT(DOT_PRODUCT(delta_a, delta_a))
       ELSE
-         delta_a = this%delta_a(k_use,:)
+         delta_a = this%delta_a(:,k_use)
          reconstruction_seg_step = this%delta_a_len(k_use)
       END IF
 
@@ -1276,8 +1276,8 @@
          lambda =                                                              &
      &      (this%j_svd_w(1)*this%delta_a_len(k_use)/step_size)**2.0
 
-         ALLOCATE(utdote(SIZE(this%e, 2)))
-         utdote = MATMUL(this%e(this%current_step,:), this%j_svd_u)
+         ALLOCATE(utdote(SIZE(this%e, 1)))
+         utdote = MATMUL(this%e(:,this%current_step), this%j_svd_u)
 
 !  Find the L-M parameter lambda that corresponds to a step length of step_size.
          lambda = reconstruction_lm_rootfind(this, k_use, lambda,              &
@@ -1297,7 +1297,7 @@
 
          DEALLOCATE(utdote)
       ELSE
-         delta_a = this%delta_a(k_use,:)
+         delta_a = this%delta_a(:,k_use)
          reconstruction_lm_step = this%delta_a_len(k_use)
       END IF
 
@@ -1979,12 +1979,12 @@
       WRITE (*,1000)
       WRITE (iou,1000)
 
-      temp_g2 = DOT_PRODUCT(this%e(0,:), this%e(0,:))
+      temp_g2 = DOT_PRODUCT(this%e(:,0), this%e(:,0))
       WRITE (*,1001) 0, temp_g2
       WRITE (iou,1001) 0, temp_g2
 
       DO i = 1, this%current_step
-         temp_g2 = DOT_PRODUCT(this%e(i,:), this%e(i,:))
+         temp_g2 = DOT_PRODUCT(this%e(:,i), this%e(:,i))
          WRITE (*,1001) i, temp_g2, this%exp_g2(i), this%num_sv(i),            &
      &                  this%step_size(i)
          WRITE (iou,1001) i, temp_g2, this%exp_g2(i), this%num_sv(i),          &
@@ -2152,12 +2152,10 @@
 
       CALL MPI_BCAST(this%current_step, 1, MPI_INTEGER, 0, recon_comm,         &
      &               error)
-      CALL MPI_BCAST(this%e(this%current_step,:),                              &
-     &               SIZE(this%e(this%current_step,:)), MPI_REAL8, 0,          &
-     &               recon_comm, error)
-      CALL MPI_BCAST(this%f(this%current_step,:),                              &
-     &               SIZE(this%f(this%current_step,:)), MPI_REAL8, 0,          &
-     &               recon_comm, error)
+      CALL MPI_BCAST(this%e(:,this%current_step), SIZE(this%e, 1),             &
+     &               MPI_REAL8, 0, recon_comm, error)
+      CALL MPI_BCAST(this%f(:,this%current_step), SIZE(this%f, 1),             &
+     &               MPI_REAL8, 0, recon_comm, error)
 
       CALL profiler_set_stop_time('reconstruction_sync_state',                 &
      &                            start_time)

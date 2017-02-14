@@ -2284,7 +2284,6 @@
 !>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_sync_state(this, recon_comm)
-      USE file_opts
 
       IMPLICIT NONE
 

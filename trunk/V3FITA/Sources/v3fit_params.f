@@ -1375,8 +1375,8 @@
 !>  MPI support is not compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref param_class instance.
-!>  @param[inout] a_model    A @ref model instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[inout] index      Index of the reconstruction parameter.
+!>  @param[in]    recon_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_send_delta(this, index, recon_comm)
 
@@ -1417,8 +1417,8 @@
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref param_class instance.
-!>  @param[inout] a_model    A @ref model instance.
-!>  @param[in]    intra_comm A MPI intra_comm handle.
+!>  @param[inout] index      Index of the reconstruction parameter.
+!>  @param[in]    recon_comm A MPI recon_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_recv_delta(this, index, recon_comm)
 
@@ -1432,14 +1432,13 @@
 #if defined(MPI_OPT)
 !  local variables
       INTEGER                             :: error
-      INTEGER, DIMENSION(MPI_STATUS_SIZE) :: status
       REAL (rprec)                        :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       CALL MPI_RECV(this%recon%delta, 1, MPI_REAL8, MPI_ANY_SOURCE,            &
-     &              index, recon_comm, status, error)
+     &              index, recon_comm, MPI_STATUS_IGNORE, error)
 
       CALL profiler_set_stop_time('param_recv_delta', start_time)
 

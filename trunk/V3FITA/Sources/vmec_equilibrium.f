@@ -1222,16 +1222,16 @@
       INTEGER                                   :: s, u, v, i
       INTEGER                                   :: numU, numV
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz, sinz
-      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu, sinu
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv, sinv
-      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosphi, sinphi
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu, sinu
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosv, sinv
+      REAL (rprec)                              :: cosphi, sinphi
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosz_nyq, sinz_nyq
-      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosu_nyq, sinu_nyq
-      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosv_nyq, sinv_nyq
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE :: cosu_nyq, sinu_nyq
+      REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosv_nyq, sinv_nyq
       REAL (rprec)                              :: ru, rv, zu, zv, r, z
       REAL (rprec)                              :: ju, jv, bu, bv
       REAL (rprec)                              :: kr, kphi
-      REAL (rprec)                              :: phi
+      REAL (rprec)                              :: theta, phi
       REAL (rprec)                              :: start_time
       REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubuc, bsubus
       REAl (rprec), DIMENSION(:), ALLOCATABLE   :: bsubvc, bsubvs
@@ -1255,8 +1255,8 @@
          numU = SIZE(this%magnetic_cache%rsuv, 2)
          numV = SIZE(this%magnetic_cache%rsuv, 3)
 
-         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
-         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+         ALLOCATE(cosu(mnmax, numU), sinu(mnmax, numU))
+         ALLOCATE(cosu_nyq(mnmax_nyq, numU), sinu_nyq(mnmax_nyq, numU))
 
 !  U grid is square with the s grid.
 !>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
@@ -1267,17 +1267,27 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(s,u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,ju,jv,
-!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
+!$OMP&         cosv,sinv,cosv_nyq,sinv_nyq,phi,theta)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO v = 1, numV
-            phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
-            cosv(:,v) = COS(xn*phi)
-            sinv(:,v) = SIN(xn*phi)
-            cosv_nyq(:,v) = COS(xn_nyq*phi)
-            sinv_nyq(:,v) = SIN(xn_nyq*phi)
+         DO u = 1, numU
+            theta = (u - 1)*this%magnetic_cache%du
+            cosu(:,u) = COS(xm*theta)
+            sinu(:,u) = SIN(xm*theta)
+            cosu_nyq(:,u) = COS(xm_nyq*theta)
+            sinu_nyq(:,u) = SIN(xm_nyq*theta)
          END DO
 !$OMP END DO
+
+!  Arrays need to be allocated within the parallel section since each thread
+!  requires its own allocation.
+         ALLOCATE(cosv(mnmax), sinv(mnmax))
+         ALLOCATE(cosz(mnmax), sinz(mnmax))
+         ALLOCATE(cosv_nyq(mnmax_nyq), sinv_nyq(mnmax_nyq))
+         ALLOCATE(cosz_nyq(mnmax_nyq))
+         IF (lasym) THEN
+            ALLOCATE(sinz_nyq(mnmax_nyq))
+         END IF
 
 !  Set the suv grids
 !
@@ -1293,26 +1303,21 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO u = 1, numU
-            ALLOCATE(cosu(mnmax), sinu(mnmax))
-            ALLOCATE(cosz(mnmax), sinz(mnmax))
-            ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
-            ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+         DO v = 1, numV
+            phi = (v - 1)*this%magnetic_cache%dv + this%phi_offset
 
-            cosu = COS(xm*(u - 1)*this%magnetic_cache%du)
-            sinu = SIN(xm*(u - 1)*this%magnetic_cache%du)
-            cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du)
-            sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du)
+            cosv = COS(xn*phi)
+            sinv = SIN(xn*phi)
+            cosv_nyq = COS(xn_nyq*phi)
+            sinv_nyq = SIN(xn_nyq*phi)
 
-            DO v = 1, numV
+            DO u = 1, numU
 
-               cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
-               sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
+               cosz = cosu(:,u)*cosv + sinu(:,u)*sinv
+               sinz = sinu(:,u)*cosv - cosu(:,u)*sinv
 
-               cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
-     &                  + sinu_nyq*sinv_nyq(:,v)
-               sinz_nyq = sinu_nyq*cosv_nyq(:,v)                               &
-     &                  - cosu_nyq*sinv_nyq(:,v)
+               cosz_nyq = cosu_nyq(:,u)*cosv_nyq                               &
+     &                  + sinu_nyq(:,u)*sinv_nyq
 
                DO s = 1, ns
 
@@ -1327,6 +1332,9 @@
                   jv = SUM(currvmnc(:,s)*cosz_nyq)
 
                   IF (lasym) THEN
+                     sinz_nyq = sinu_nyq(:,u)*cosv_nyq                         &
+     &                        - cosu_nyq(:,u)*sinv_nyq
+
                      this%magnetic_cache%rsuv(s,u,v) =                         &
      &                  this%magnetic_cache%rsuv(s,u,v) +                      &
      &                  SUM(rmns(:,s)*sinz)
@@ -1348,20 +1356,24 @@
                   this%magnetic_cache%jzsuv(s,u,v) = ju*zu + jv*zv
                END DO
             END DO
-
-            DEALLOCATE(cosu, sinu)
-            DEALLOCATE(cosz, sinz)
-            DEALLOCATE(cosu_nyq, sinu_nyq)
-            DEALLOCATE(cosz_nyq, sinz_nyq)
          END DO
 !$OMP END DO
+
+         DEALLOCATE(cosv, sinv)
+         DEALLOCATE(cosz, sinz)
+         DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(cosz_nyq)
+         IF (lasym) THEN
+            DEALLOCATE(sinz_nyq)
+         END IF
+
 !$OMP END PARALLEL
 
          this%magnetic_cache%zsuv = this%magnetic_cache%zsuv                   &
      &                            + this%z_offset
 
-         DEALLOCATE(cosv, sinv)
-         DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(cosu, sinu)
+         DEALLOCATE(cosu_nyq, sinu_nyq)
       END IF
 
 !  Compute the conducting shell if needed. If the kruv array is associated, the
@@ -1457,8 +1469,8 @@
          numU = SIZE(this%magnetic_cache%kruv, 1)
          numV = SIZE(this%magnetic_cache%kruv, 2)
 
-         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
-         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+         ALLOCATE(cosu(mnmax, numU), sinu(mnmax, numU))
+         ALLOCATE(cosu_nyq(mnmax_nyq, numU), sinu_nyq(mnmax_nyq, numU))
 
 !  U grid is square with the s grid.
 !>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
@@ -1469,43 +1481,48 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r,
-!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi)
+!$OMP&         cosv,sinv,cosv_nyq,sinv_nyq,phi,theta)
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO v = 1, numV
-            phi = (v - 1)*this%magnetic_cache%dv_a + this%phi_offset
-            cosv(:,v) = COS(xn*phi)
-            sinv(:,v) = SIN(xn*phi)
-            cosv_nyq(:,v) = COS(xn_nyq*phi)
-            sinv_nyq(:,v) = SIN(xn_nyq*phi)
+         DO u = 1, numU
+            theta = (u - 1)*this%magnetic_cache%du_a
+            cosu(:,u) = COS(xm*theta)
+            sinu(:,u) = SIN(xm*theta)
+            cosu_nyq(:,u) = COS(xm_nyq*theta)
+            sinu_nyq(:,u) = SIN(xm_nyq*theta)
          END DO
 !$OMP END DO
+
+!  Arrays need to be allocated within the parallel section since each thread
+!  requires its own allocation.
+         ALLOCATE(cosv(mnmax), sinv(mnmax))
+         ALLOCATE(cosz(mnmax), sinz(mnmax))
+         ALLOCATE(cosv_nyq(mnmax_nyq), sinv_nyq(mnmax_nyq))
+         ALLOCATE(cosz_nyq(mnmax_nyq))
+         IF (lasym) THEN
+            ALLOCATE(sinz_nyq(mnmax_nyq))
+         END IF
 
 !  U grid is square with the v grid.
 !>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
 !>  component arrays every time.
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO u = 1, numU
-!  Arrays need to be allocated within the loop since each thread requires its
-!  own allocation.
-            ALLOCATE(cosu(mnmax), sinu(mnmax))
-            ALLOCATE(cosz(mnmax), sinz(mnmax))
-            ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
-            ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+         DO v = 1, numV
+            phi = (v - 1)*this%magnetic_cache%dv_a + this%phi_offset
 
-            cosu = COS(xm*(u - 1)*this%magnetic_cache%du_a)
-            sinu = SIN(xm*(u - 1)*this%magnetic_cache%du_a)
-            cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du_a)
-            sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du_a)
+            cosv = COS(xn*phi)
+            sinv = SIN(xn*phi)
+            cosv_nyq = COS(xn_nyq*phi)
+            sinv_nyq = SIN(xn_nyq*phi)
 
-            DO v = 1, numV
+            DO u = 1, numU
 
-               cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
-               sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
+               cosz = cosu(:,u)*cosv + sinu(:,u)*sinv
+               sinz = sinu(:,u)*cosv - cosu(:,u)*sinv
 
-               cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
-     &                  + sinu_nyq*sinv_nyq(:,v)
+               cosz_nyq = cosu_nyq(:,u)*cosv_nyq                               &
+     &                  + sinu_nyq(:,u)*sinv_nyq
 
                ru = -SUM(xm*rmnc(:,ns)*sinz)
                zu = SUM(xm*zmns(:,ns)*cosz)
@@ -1517,8 +1534,8 @@
                bv = SUM(bsubvc*cosz_nyq)
 
                IF (lasym) THEN
-                  sinz_nyq = sinu_nyq*cosv_nyq(:,v)                            &
-     &                     - cosu_nyq*sinv_nyq(:,v)
+                  sinz_nyq = sinu_nyq(:,u)*cosv_nyq                            &
+     &                     - cosu_nyq(:,u)*sinv_nyq
 
                   ru = ru + SUM(xm*rmns(:,ns)*cosz)
                   zu = zu - SUM(xm*zmnc(:,ns)*sinz)
@@ -1534,26 +1551,29 @@
                this%magnetic_cache%kphiuv(u,v) = -1.0/mu0*bu*r
                this%magnetic_cache%kzuv(u,v) = -1.0/mu0*(bu*zv - bv*zu)
             END DO
-
-            DEALLOCATE(cosu, sinu)
-            DEALLOCATE(cosz, sinz)
-            DEALLOCATE(cosu_nyq, sinu_nyq)
-            DEALLOCATE(cosz_nyq, sinz_nyq)
          END DO
 !$OMP END DO
-!$OMP END PARALLEL
 
          DEALLOCATE(cosv, sinv)
+         DEALLOCATE(cosz, sinz)
          DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(cosz_nyq)
+         IF (lasym) THEN
+            DEALLOCATE(sinz_nyq)
+         END IF
+
+!$OMP END PARALLEL
+
+         DEALLOCATE(cosu, sinu)
+         DEALLOCATE(cosu_nyq, sinu_nyq)
       END IF
 
       IF (ASSOCIATED(this%magnetic_cache%kxuv_full)) THEN
          numU = SIZE(this%magnetic_cache%kxuv_full, 1)
          numV = SIZE(this%magnetic_cache%kxuv_full, 2)
 
-         ALLOCATE(cosv(mnmax, numV), sinv(mnmax, numV))
-         ALLOCATE(cosphi(numV), sinphi(numV))
-         ALLOCATE(cosv_nyq(mnmax_nyq, numV), sinv_nyq(mnmax_nyq, numV))
+         ALLOCATE(cosu(mnmax, numU), sinu(mnmax, numU))
+         ALLOCATE(cosu_nyq(mnmax_nyq, numU), sinu_nyq(mnmax_nyq, numU))
 
 !>  @todo FIXME: There is no reason to recalculate the sin and cosin for the u
 !>  component arrays every time. The v components can change if phi_offset is
@@ -1563,46 +1583,52 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r, z,
-!$OMP&         cosu,sinu,cosu_nyq,sinu_nyq,phi,kr,kphi,i)
+!$OMP&         cosv,sinv,cosv_nyq,sinv_nyq,phi,theta,kr,kphi,i,
+!$OMP&         cosphi,sinphi)
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO u = 1, numU
+            theta = (u - 1)*this%magnetic_cache%du_full
+            cosu(:,u) = COS(xm*theta)
+            sinu(:,u) = SIN(xm*theta)
+            cosu_nyq(:,u) = COS(xm_nyq*theta)
+            sinu_nyq(:,u) = SIN(xm_nyq*theta)
+         END DO
+!$OMP END DO
+
+!  Arrays need to be allocated within the parallel section since each thread
+!  requires its own allocation.
+         ALLOCATE(cosv(mnmax), sinv(mnmax))
+         ALLOCATE(cosz(mnmax), sinz(mnmax))
+         ALLOCATE(cosv_nyq(mnmax_nyq), sinv_nyq(mnmax_nyq))
+         ALLOCATE(cosz_nyq(mnmax_nyq))
+         IF (lasym) THEN
+            ALLOCATE(sinz_nyq(mnmax_nyq))
+         END IF
+
+!>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
+!>  component arrays every time.
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
          DO v = 1, numV
 !  Rotate the signal with respect to a fixed plasma. The phi and z offsets are
 !  applied in vmec_get_ext_b_plasma.
             phi = (v - 1)*this%magnetic_cache%dv_full
-            cosphi(v) = COS(phi)
-            sinphi(v) = SIN(phi)
-            cosv(:,v) = COS(xn*phi)
-            sinv(:,v) = SIN(xn*phi)
-            cosv_nyq(:,v) = COS(xn_nyq*phi)
-            sinv_nyq(:,v) = SIN(xn_nyq*phi)
-         END DO
-!$OMP END DO
 
-!>  @todo FIXME: There is no reason to recompute the sine and cosine for the u
-!>  component arrays every time.
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-         DO u = 1, numU
-!  Arrays need to be allocated within the loop since each thread requires its
-!  own allocation.
-            ALLOCATE(cosu(mnmax), sinu(mnmax))
-            ALLOCATE(cosz(mnmax), sinz(mnmax))
-            ALLOCATE(cosu_nyq(mnmax_nyq), sinu_nyq(mnmax_nyq))
-            ALLOCATE(cosz_nyq(mnmax_nyq), sinz_nyq(mnmax_nyq))
+            cosphi = COS(phi)
+            sinphi = SIN(phi)
+            cosv = COS(xn*phi)
+            sinv = SIN(xn*phi)
+            cosv_nyq = COS(xn_nyq*phi)
+            sinv_nyq = SIN(xn_nyq*phi)
 
-            cosu = COS(xm*(u - 1)*this%magnetic_cache%du_full)
-            sinu = SIN(xm*(u - 1)*this%magnetic_cache%du_full)
-            cosu_nyq = COS(xm_nyq*(u - 1)*this%magnetic_cache%du_full)
-            sinu_nyq = SIN(xm_nyq*(u - 1)*this%magnetic_cache%du_full)
+            DO u = 1, numU
 
-            DO v = 1, numV
+               cosz = cosu(:,u)*cosv + sinu(:,u)*sinv
+               sinz = sinu(:,u)*cosv - cosu(:,u)*sinv
 
-               cosz = cosu*cosv(:,v) + sinu*sinv(:,v)
-               sinz = sinu*cosv(:,v) - cosu*sinv(:,v)
-
-               cosz_nyq = cosu_nyq*cosv_nyq(:,v)                               &
-     &                  + sinu_nyq*sinv_nyq(:,v)
+               cosz_nyq = cosu_nyq(:,u)*cosv_nyq                               &
+     &                  + sinu_nyq(:,u)*sinv_nyq
 
                ru = -SUM(xm*rmnc(:,ns)*sinz)
                zu = SUM(xm*zmns(:,ns)*cosz)
@@ -1615,8 +1641,8 @@
                bv = SUM(bsubvc*cosz_nyq)
 
                IF (lasym) THEN
-                  sinz_nyq = sinu_nyq*cosv_nyq(:,v)                            &
-     &                     - cosu_nyq*sinv_nyq(:,v)
+                  sinz_nyq = sinu_nyq(:,u)*cosv_nyq                            &
+     &                     - cosu_nyq(:,u)*sinv_nyq
 
                   ru = ru + SUM(xm*rmns(:,ns)*cosz)
                   zu = zu - SUM(xm*zmnc(:,ns)*sinz)
@@ -1632,15 +1658,15 @@
                kr = -1.0/mu0*(bu*rv - bv*ru)
                kphi = -1.0/mu0*bu*r
 
-               this%magnetic_cache%kxuv_full(u,v) = kr*cosphi(v)               &
-     &                                            - kphi*sinphi(v)
-               this%magnetic_cache%kyuv_full(u,v) = kr*sinphi(v)               &
-     &                                            + kphi*cosphi(v)
+               this%magnetic_cache%kxuv_full(u,v) = kr*cosphi                  &
+     &                                            - kphi*sinphi
+               this%magnetic_cache%kyuv_full(u,v) = kr*sinphi                  &
+     &                                            + kphi*cosphi
                this%magnetic_cache%kzuv_full(u,v) = -1.0/mu0*(bu*zv -          &
      &                                                        bv*zu)
 
-               this%magnetic_cache%x_prime(u,v,1) = r*cosphi(v)
-               this%magnetic_cache%x_prime(u,v,2) = r*sinphi(v)
+               this%magnetic_cache%x_prime(u,v,1) = r*cosphi
+               this%magnetic_cache%x_prime(u,v,2) = r*sinphi
                this%magnetic_cache%x_prime(u,v,3) = z
 
                IF (ASSOCIATED(this%magnetic_cache%kxuv_axi)) THEN
@@ -1689,30 +1715,33 @@
                   kr = 1.0/mu0*bv*ru
                   kphi = -1.0/mu0*bu*r
 
-                  this%magnetic_cache%kxuv_axi(u,v) = kr*cosphi(v)             &
-     &                                              - kphi*sinphi(v)
-                  this%magnetic_cache%kyuv_axi(u,v) = kr*sinphi(v)             &
-     &                                              + kphi*cosphi(v)
+                  this%magnetic_cache%kxuv_axi(u,v) = kr*cosphi                &
+     &                                              - kphi*sinphi
+                  this%magnetic_cache%kyuv_axi(u,v) = kr*sinphi                &
+     &                                              + kphi*cosphi
                   this%magnetic_cache%kzuv_axi(u,v) = 1.0/mu0*bv*zu
 
-                  this%magnetic_cache%x_axi(u,v,1) = r*cosphi(v)
-                  this%magnetic_cache%x_axi(u,v,2) = r*sinphi(v)
+                  this%magnetic_cache%x_axi(u,v,1) = r*cosphi
+                  this%magnetic_cache%x_axi(u,v,2) = r*sinphi
                   this%magnetic_cache%x_axi(u,v,3) = z
 
                END IF
             END DO
-
-            DEALLOCATE(cosu, sinu)
-            DEALLOCATE(cosz, sinz)
-            DEALLOCATE(cosu_nyq, sinu_nyq)
-            DEALLOCATE(cosz_nyq, sinz_nyq)
          END DO
 !$OMP END DO
-!$OMP END PARALLEL
 
          DEALLOCATE(cosv, sinv)
-         DEALLOCATE(cosphi, sinphi)
+         DEALLOCATE(cosz, sinz)
          DEALLOCATE(cosv_nyq, sinv_nyq)
+         DEALLOCATE(cosz_nyq)
+         IF (lasym) THEN
+            DEALLOCATE(sinz_nyq)
+         END IF
+
+!$OMP END PARALLEL
+
+         DEALLOCATE(cosu, sinu)
+         DEALLOCATE(cosu_nyq, sinu_nyq)
       END IF
 
       IF (ASSOCIATED(this%magnetic_cache%kruv) .or.                            &
@@ -1723,8 +1752,6 @@
             DEALLOCATE(bsubus, bsubvs)
          END IF
       END IF
-
-!  Setup the virtual casing arrays.
 
       CALL profiler_set_stop_time('vmec_set_magnetic_cache_calc',              &
      &                            start_time)
@@ -4623,25 +4650,15 @@
       INTEGER                           :: i
       INTEGER                           :: error
       INTEGER                           :: mpi_rank
-      INTEGER                           :: mpi_size
 
 !  Start of executable code
-      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
-!  If this is the parent process, copy the wout file to the children.
-      IF (mpi_rank .eq. 0) THEN
-         DO i = 2, mpi_size
-            CALL copy_file(TRIM(this%wout_file_name),                          &
-     &                     build_path(process_dir(i),                          &
-     &                                this%wout_file_name), error)
-            CALL assert_eq(error, 0, 'Error syncing wout file.')
-         END DO
-      END IF
-
-      CALL MPI_BARRIER(recon_comm, error)
-
+!  If this is the child process, load the wout file.
       IF (mpi_rank .gt. 0) THEN
+         CALL copy_file(build_path('..', this%wout_file_name),                 &
+     &                  TRIM(this%wout_file_name), error)
+
          CALL read_wout_file(this%wout_file_name, error)
          CALL assert_eq(error, 0, 'Error reading synced wout file.')
          CALL LoadRZL
