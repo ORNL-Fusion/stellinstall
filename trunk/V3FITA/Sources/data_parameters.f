@@ -35,8 +35,12 @@
       INTEGER, PARAMETER           :: mpi_equilibrium_task = 1
 !>  Run the mgrid task.
       INTEGER, PARAMETER           :: mpi_mgrid_task       = 2
+!>  Run the sync task.
+      INTEGER, PARAMETER           :: mpi_sync_task        = 3
+!>  Run the step task.
+      INTEGER, PARAMETER           :: mpi_step_task        = 4
 !>  Quit child process task.
-      INTEGER, PARAMETER           :: mpi_quit_task        = 3
+      INTEGER, PARAMETER           :: mpi_quit_task        = 5
 
 !>  Directory prefix name.
       CHARACTER (len=*), PARAMETER :: dir_prefix = 'process_dir'

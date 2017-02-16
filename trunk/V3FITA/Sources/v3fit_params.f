@@ -1375,7 +1375,7 @@
 !>  MPI support is not compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref param_class instance.
-!>  @param[inout] index      Index of the reconstruction parameter.
+!>  @param[in]    index      Index of the reconstruction parameter.
 !>  @param[in]    recon_comm A MPI intra_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_send_delta(this, index, recon_comm)
@@ -1417,7 +1417,7 @@
 !>  compiled in this subroutine reduces to a no op.
 !>
 !>  @param[inout] this       A @ref param_class instance.
-!>  @param[inout] index      Index of the reconstruction parameter.
+!>  @param[in]    index      Index of the reconstruction parameter.
 !>  @param[in]    recon_comm A MPI recon_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_recv_delta(this, index, recon_comm)
@@ -1441,6 +1441,93 @@
      &              index, recon_comm, MPI_STATUS_IGNORE, error)
 
       CALL profiler_set_stop_time('param_recv_delta', start_time)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sync the delta used.
+!>
+!>  Syncs the value of delta from the parent process to the child. If MPI
+!>  support is not compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[in]    recon_comm A MPI recon_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_sync_delta(this, recon_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout)   :: this
+      INTEGER, INTENT(in)                 :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                             :: error
+      REAL (rprec)                        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BCAST(this%recon%delta, 1, MPI_REAL8, 0, recon_comm,            &
+     &               error)
+
+      CALL profiler_set_stop_time('param_sync_delta', start_time)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Sync the parameter value from a child to the parent.
+!>
+!>  Syncs the value of delta from a child process to the parent. If MPI
+!>  support is not compiled in this subroutine reduces to a no op.
+!>
+!>
+!>  @param[inout] this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    index      Index of the reconstruction parameter.
+!>  @param[in]    recon_comm A MPI intra_comm handle.
+!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_sync_child(this, a_model, index, recon_comm,            &
+     &                            eq_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
+      INTEGER, INTENT(in)               :: index
+      INTEGER, INTENT(in)               :: recon_comm
+      INTEGER, INTENT(in)               :: eq_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      REAL (rprec)                      :: value
+      INTEGER                           :: mpi_rank
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+      IF (mpi_rank .eq. index) THEN
+         value = param_get_value(this, a_model)
+         CALL MPI_SEND(value, 1, MPI_REAL8, 0, mpi_rank, recon_comm,           &
+     &                 error)
+      ELSE IF (mpi_rank .eq. 0) THEN
+         CALL MPI_RECV(value, 1, MPI_REAL8, index, index, recon_comm,          &
+     &                 MPI_STATUS_IGNORE, error)
+         CALL param_set_value(this, a_model, value, eq_comm)
+      END IF
+
+      CALL profiler_set_stop_time('param_sync_child', start_time)
 
 #endif
 

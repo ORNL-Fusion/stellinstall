@@ -52,11 +52,11 @@
 !>  Maximum number of reconstruction steps.
 !>  @see v3fit_input::nrstep
          REAL (rprec)                          :: step_max
-
 !>  Counter to track the step number.
          INTEGER                               :: current_step = 0
 !>  Index of the last parallelable signal.
          INTEGER                               :: last_para_signal = 0
+
 !>  Array of all e vectors for each reconstruction step.
 !>  @see signal::signal_get_e
          REAL (rprec), DIMENSION(:,:), POINTER :: e => null()
@@ -1511,6 +1511,7 @@
 !>
 !>  @param[inout] this       A @ref reconstruction_class instance.
 !>  @param[inout] signals    Array of @ref signal objects.
+!>  @param[inout] locks      Array of @ref lock objects.
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[inout] params     Array of @ref parameter objects.
 !>  @param[inout] eq_steps   Number of steps for the equilibrium to take.
@@ -1544,10 +1545,10 @@
       INTEGER                                            :: k_use
       INTEGER                                            :: i, j
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: param_value
-      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: delta_a
       REAL (rprec)                                       :: step_use
       REAL (rprec)                                       :: start_time
       LOGICAL                                            :: temp
+      INTEGER                                            :: error
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -1557,9 +1558,20 @@
       k_use = reconstruction_eval_step(this, signals, derived_params,          &
      &                                 locks, a_model, params, eq_steps,       &
      &                                 iou, recon_comm, eq_comm)
+      this%num_sv(this%current_step + 1) = k_use
+
+!  Sync the results of the jacobian and singular value decomposition to the
+!  child processes.
+#if defined(MPI_OPT)
+      CALL MPI_BCAST(mpi_sync_task, 1, MPI_INTEGER, 0, recon_comm,             &
+     &               error)
+      CALL reconstruction_sync_svd(this, recon_comm)
+      DO i = 1, SIZE(params)
+         CALL param_sync_delta(params(i)%p, recon_comm)
+      END DO
+#endif
 
       ALLOCATE(param_value(SIZE(params)))
-      ALLOCATE(delta_a(SIZE(params)))
 
 !  Save the parameter values.
       DO i = 1, SIZE(params)
@@ -1570,62 +1582,23 @@
       step_use = this%step_max
 
       DO i = 1, reconstruction_max_step_try
-!  Step the parameters using the specified step method.
-         SELECT CASE (this%step_type)
 
-            CASE (reconstruction_sl_step_type)
-               step_use = reconstruction_sl_step(this, k_use, step_use,        &
-     &                                           delta_a)
-               this%exp_g2(this%current_step + 1) =                            &
-     &            reconstruction_get_exp_g2(this, delta_a)
-               this%step_size(this%current_step + 1) = step_use
-               this%num_sv(this%current_step + 1) = k_use
-               CALL reconstruction_write_step(this, 'sl', iou)
+#if defined(MPI_OPT)
+         CALL MPI_BCAST(mpi_step_task, 1, MPI_INTEGER, 0, recon_comm,          &
+     &                  error)
+         CALL MPI_BCAST(step_use, 1, MPI_REAL8, 0, recon_comm, error)
+         CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, recon_comm, error)
+#endif
 
-            CASE (reconstruction_lm_step_type)
-               step_use = reconstruction_lm_step(this, k_use, step_use,        &
-     &                                           delta_a)
-               this%exp_g2(this%current_step + 1) =
-     &            reconstruction_get_exp_g2(this, delta_a)
-               this%step_size(this%current_step + 1) = step_use
-               this%num_sv(this%current_step + 1) = k_use
-               CALL reconstruction_write_step(this, 'lm', iou)
+         IF (reconstruction_try_step(this, signals, derived_params,            &
+     &          locks, a_model, params, eq_steps, step_use, iou,               &
+     &          recon_comm, eq_comm)) THEN
 
-            CASE (reconstruction_seg_step_type)
-               step_use = reconstruction_seg_step(this, k_use, step_use,       &
-     &                                            delta_a)
-               this%exp_g2(this%current_step + 1) =
-     &            reconstruction_get_exp_g2(this, delta_a)
-               this%step_size(this%current_step + 1) = step_use
-               this%num_sv(this%current_step + 1) = k_use
-               CALL reconstruction_write_step(this, 'seg', iou)
-
-         END SELECT
-
-!  Set the new parameter values. ABS(params(j)%p%delta) is the normalization
-!  factor. This is not vrnc because the increment function can take a non vrnc
-!  step size.
-         WRITE (iou,1002)
-         DO j = 1, SIZE(params)
-            CALL param_set_value(params(j)%p, a_model, param_value(j) +        &
-     &              delta_a(j)*ABS(params(j)%p%recon%delta), eq_comm)
-            WRITE (iou,1003) delta_a(j), param_get_name(params(j)%p,           &
-     &                                                  a_model)
-         END DO
-         DO j = 1, SIZE(locks)
-            CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
-         END DO
-
-!  Reconverge the equilibrium. Increment the current step so
-!  reconstruction_eval_e writes the e array to the correct index. If the
-!  reconstruction step should fail for any reason. decrement the step back down.
-         this%current_step = this%current_step + 1
-         IF (reconstruction_eval_e(this, signals, a_model,                     &
-     &                             eq_steps, iou, eq_comm)) THEN
 !  Equilibrium converged
-            CALL reconstruction_eval_f(this, derived_params, a_model)
 
             IF (reconstruction_get_dg2(this) .ge. 0.0) THEN
+               CALL reconstruction_eval_f(this, derived_params, a_model)
+
                reconstruction_step = .true.
                WRITE (*,*)
                WRITE (*,*) ' *** Step succeeded'
@@ -1650,13 +1623,13 @@
                WRITE (*,1001) reconstruction_get_lastg2(this),                 &
      &                        reconstruction_get_g2(this),                     &
      &                        reconstruction_get_dg2(this)
-               WRITE (*,1004) MAXLOC(ABS(delta_a))
+!               WRITE (*,1002) MAXLOC(ABS(delta_a))
                WRITE (iou,*) 'Equilibrium converged but g2 increased'
                WRITE (iou,1000)
                WRITE (iou,1001) reconstruction_get_lastg2(this),               &
      &                          reconstruction_get_g2(this),                   &
      &                          reconstruction_get_dg2(this)
-               WRITE (iou,1004) MAXLOC(ABS(delta_a))
+!               WRITE (iou,1002) MAXLOC(ABS(delta_a))
             END IF
 
          ELSE
@@ -1704,15 +1677,280 @@
       END DO
 
       DEALLOCATE(param_value)
-      DEALLOCATE(delta_a)
 
       CALL profiler_set_stop_time('reconstruction_step', start_time)
 
 1000  FORMAT('g^2 old',7x,'g^2 new',7x,'g^2 diff')
 1001  FORMAT(es12.5,2x,es12.5,2x,es12.5)
-1002  FORMAT('Normalized Step',2x,'param_name')
-1003  FORMAT(es12.5,5x,a)
-1004  FORMAT('Change vrnc value for rp number ',i4)
+1002  FORMAT('Change vrnc value for rp number ',i4)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Try step size.
+!>
+!>  Sample reconstruction by trying to take a specified step size.
+!>
+!>  @param[inout] this        A @ref reconstruction_class instance.
+!>  @param[inout] signals     Array of @ref signal objects.
+!>  @param[inout] locks       Array of @ref lock objects.
+!>  @param[inout] a_model     A @ref model instance.
+!>  @param[inout] params      Array of @ref parameter objects.
+!>  @param[inout] eq_steps    Number of steps for the equilibrium to take.
+!>  @param[in]    max_step    Upper limit of the step size to attemp.
+!>  @param[in]    iou         Input/output file to write log messages to.
+!>  @param[in]    recon_comm  MPI communicator for the child jacobian processes.
+!>  @param[in]    eq_comm     MPI communicator for the child equilibrium
+!>                            processes.
+!>  @param[out]   param_value Parameter corresponding to the smallest g^2
+!>                             value.
+!>  @returns The lowest q^2 value.
+!-------------------------------------------------------------------------------
+      FUNCTION reconstruction_try_step(this, signals, derived_params,          &
+     &                                 locks, a_model, params, eq_steps,       &
+     &                                 max_step, iou, recon_comm,              &
+     &                                 eq_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL :: reconstruction_try_step
+      TYPE (reconstruction_class), INTENT(inout)         :: this
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     ::                    &
+     &   derived_params
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)     :: locks
+      TYPE (model_class), INTENT(inout)                  :: a_model
+      TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
+      INTEGER, INTENT(inout)                             :: eq_steps
+      REAL (rprec), INTENT(in)                           :: max_step
+      INTEGER, INTENT(in)                                :: iou
+      INTEGER, INTENT(in)                                :: recon_comm
+      INTEGER, INTENT(in)                                :: eq_comm
+
+!  local variables
+      INTEGER                                            :: i
+      INTEGER                                            :: mpi_rank
+      INTEGER                                            :: mpi_size
+      INTEGER                                            :: error
+      LOGICAL                                            :: converged
+      INTEGER                                            :: k_use
+      REAL (rprec)                                       :: step_use
+      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: delta_a
+      REAL (rprec)                                       :: best_g2
+      REAL (rprec)                                       :: temp_g2
+      INTEGER                                            :: best_index
+      REAL (rprec), DIMENSION(:), ALLOCATABLE            :: param_value
+      REAL (rprec)                                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
+#else
+      mpi_rank = 0
+      mpi_size = 1
+#endif
+
+      k_use = this%num_sv(this%current_step + 1)
+
+!  Change the step to use based on the mpi_rank. This heuristic sub divids the
+!  max step size to one step just under half the size. For instance if the max
+!  step size is 100 and their are two processes, each process will use the
+!  following step sizes.
+!
+!    Process   Step Size
+!          0       100.0
+!          1        75.0
+!
+!  If the are 4 processes, the step sizes will become.
+!
+!    Process   Step Size
+!          0       100.0
+!          1        87.5
+!          2        75.0
+!          3        62.5
+!
+!  If none of the processes manages to lower g^2, the max step size is halved in
+!  reconstruction and the process repeats on the trucated step size. Step size
+!  cannot be increased beyond the max step size due to the check in the step
+!  types. See the reconstruction_**_step functions.
+      step_use = max_step - mpi_rank*max_step/(2*mpi_size)
+
+      ALLOCATE(param_value(SIZE(params)))
+      ALLOCATE(delta_a(SIZE(params)))
+
+!  Save the parameter values.
+      DO i = 1, SIZE(params)
+         param_value(i) = param_get_value(params(i)%p, a_model)
+      END DO
+
+!  Step the parameters using the specified step method.
+      SELECT CASE (this%step_type)
+
+         CASE (reconstruction_sl_step_type)
+            step_use = reconstruction_sl_step(this, k_use, step_use,           &
+     &                                        delta_a)
+            this%exp_g2(this%current_step + 1) =                               &
+     &         reconstruction_get_exp_g2(this, delta_a)
+            this%step_size(this%current_step + 1) = step_use
+            CALL reconstruction_write_step(this, 'sl', iou)
+
+         CASE (reconstruction_lm_step_type)
+            step_use = reconstruction_lm_step(this, k_use, step_use,           &
+     &                                        delta_a)
+            this%exp_g2(this%current_step + 1) =                               &
+     &         reconstruction_get_exp_g2(this, delta_a)
+            this%step_size(this%current_step + 1) = step_use
+            CALL reconstruction_write_step(this, 'lm', iou)
+
+         CASE (reconstruction_seg_step_type)
+            step_use = reconstruction_seg_step(this, k_use, step_use,          &
+     &                                         delta_a)
+            this%exp_g2(this%current_step + 1) =                               &
+     &         reconstruction_get_exp_g2(this, delta_a)
+            this%step_size(this%current_step + 1) = step_use
+            CALL reconstruction_write_step(this, 'seg', iou)
+
+      END SELECT
+
+!  Set the new parameter values. ABS(params(j)%p%delta) is the normalization
+!  factor. This is not vrnc because the increment function can take a non vrnc
+!  step size.
+      WRITE (iou,1000)
+      DO i = 1, SIZE(params)
+         CALL param_set_value(params(i)%p, a_model, param_value(i) +           &
+     &           delta_a(i)*ABS(params(i)%p%recon%delta), eq_comm)
+         WRITE (iou,1001) delta_a(i), param_get_name(params(i)%p,              &
+     &                                               a_model)
+      END DO
+      DO i = 1, SIZE(locks)
+         CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
+      END DO
+
+!  Reconverge the equilibrium. Increment the current step so
+!  reconstruction_eval_e writes the e array to the correct index.
+      this%current_step = this%current_step + 1
+      converged = reconstruction_eval_e(this, signals, a_model,                &
+     &                                  eq_steps, iou, eq_comm)
+
+!  Search all the processes for the lowest value of g^2.
+      best_index = -1
+#if defined(MPI_OPT)
+      IF (mpi_rank .gt. 0) THEN
+         CALL MPI_SEND(converged, 1, MPI_LOGICAL, 0, mpi_rank,                 &
+     &                 recon_comm, error)
+
+!  If the equilibrium converged send the value of g^2.
+         IF (converged) THEN
+            best_g2 = reconstruction_get_g2(this)
+            WRITE (*,1002) mpi_rank, best_g2, step_use
+            CALL MPI_SEND(best_g2, 1, MPI_REAL8, 0, mpi_rank,                  &
+     &                    recon_comm, error)
+         END IF
+
+      ELSE
+#endif
+         IF (converged) THEN
+            best_index = 0
+            best_g2 = reconstruction_get_g2(this)
+            WRITE (*,1002) mpi_rank, best_g2, step_use
+         END IF
+
+#if defined(MPI_OPT)
+         DO i = 1, mpi_size - 1
+            CALL MPI_RECV(converged, 1, MPI_LOGICAL, i, i, recon_comm,         &
+     &                    MPI_STATUS_IGNORE, error)
+
+!  If the equilibrium on that processor converged, receive the value of g^2 and
+!  reset the best index if g^2 is lower.
+            IF (converged) THEN
+               CALL MPI_RECV(temp_g2, 1, MPI_REAL8, i, i, recon_comm,          &
+     &                       MPI_STATUS_IGNORE, error)
+               IF (temp_g2 .lt. best_g2) THEN
+                  best_index = i
+                  best_g2 = temp_g2
+               END IF
+            END IF
+         END DO
+      END IF
+
+!  Now that we identified the best index, broadcast that values to all the
+!  processes.
+      CALL MPI_BCAST(best_index, 1, MPI_INTEGER, 0, recon_comm, error)
+
+      IF (mpi_rank .eq. 0) THEN
+         WRITE (*,1003) best_index
+         IF (best_index .gt. 0) THEN
+!  Recieve the best parameters from the best process and sync the model. Store
+!  these into param_value. For the zeroth rank, the old parameters were saved in
+!  reconstruction_step.
+            DO i = 1, SIZE(params)
+               CALL param_sync_child(params(i)%p, a_model, best_index,         &
+     &                               recon_comm, eq_comm)
+            END DO
+            CALL MPI_RECV(this%e(:,this%current_step), SIZE(this%e, 1),        &
+     &                    MPI_REAL8, best_index, best_index, recon_comm,                  &
+     &                    MPI_STATUS_IGNORE, error)
+            CALL MPI_RECV(this%exp_g2(this%current_step), 1, MPI_REAL8,        &
+     &                    best_index, best_index, recon_comm,                  &
+     &                    MPI_STATUS_IGNORE, error)
+
+!  FIXME: Not sure if the model needs to be updated before the lock values are
+!         are set.
+            DO i = 1, SIZE(locks)
+               CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
+            END DO
+
+!  Sync the model from the best index.
+            CALL model_sync_child(a_model, best_index, recon_comm)
+         END IF
+
+      ELSE
+
+         IF (mpi_rank .eq. best_index) THEN
+!  Send the best result back to the parent process.
+            DO i = 1, SIZE(params)
+               CALL param_sync_child(params(i)%p, a_model, best_index,         &
+     &                               recon_comm, eq_comm)
+            END DO
+            CALL MPI_SEND(this%e(:,this%current_step), SIZE(this%e, 1),        &
+     &                    MPI_REAL8, 0, mpi_rank, recon_comm, error)
+            CALL MPI_SEND(this%exp_g2(this%current_step), 1, MPI_REAL8,        &
+     &                    0, mpi_rank, recon_comm, error)
+
+            CALL model_sync_child(a_model, mpi_rank, recon_comm)
+         END IF
+
+!  Reset everything in case this step failed. When the next jacobian is
+!  computed, this will be resynced.
+         DO i = 1, SIZE(params)
+            CALL param_set_value(params(i)%p, a_model, param_value(i),         &
+     &                           eq_comm)
+         END DO
+         DO i = 1, SIZE(locks)
+            CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
+         END DO
+
+         CALL equilibrium_reset_state(a_model%equilibrium)
+         this%current_step = this%current_step - 1
+
+      END IF
+#endif
+
+      reconstruction_try_step = best_index .ge. 0
+
+      DEALLOCATE(param_value)
+      DEALLOCATE(delta_a)
+
+      CALL profiler_set_stop_time('reconstruction_try_step', start_time)
+
+1000  FORMAT('Normalized Step',2x,'param_name')
+1001  FORMAT(es12.5,5x,a)
+1002  FORMAT('  Tring rank: ',i3,' g^2: ',es12.5, ' step size: ',es12.5)
+1003  FORMAT('  Best index ',i3)
 
       END FUNCTION
 
@@ -2134,7 +2372,6 @@
 !>  @param[in]    recon_comm A MPI recon_comm handle.
 !-------------------------------------------------------------------------------
       SUBROUTINE reconstruction_sync_state(this, recon_comm)
-      USE file_opts
 
       IMPLICIT NONE
 
@@ -2159,6 +2396,59 @@
 
       CALL profiler_set_stop_time('reconstruction_sync_state',                 &
      &                            start_time)
+
+#endif
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize svd.
+!>
+!>  Syncs the svd information to the child processes so these processes can
+!>  sample parameter space for the step sizes.
+!>
+!>  @param[inout] this       A @ref reconstruction_class instance.
+!>  @param[in]    recon_comm A MPI recon_comm handle.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_sync_svd(this, recon_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                        :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      REAL (rprec)                               :: start_time
+      INTEGER                                    :: error
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_BCAST(this%j_svd_w, SIZE(this%j_svd_w), MPI_REAL8, 0,           &
+     &               recon_comm, error)
+      CALL MPI_BCAST(this%j_svd_u, SIZE(this%j_svd_u), MPI_REAL8, 0,           &
+     &               recon_comm, error)
+      CALL MPI_BCAST(this%j_svd_vt, SIZE(this%j_svd_vt), MPI_REAL8, 0,         &
+     &               recon_comm, error)
+
+      CALL MPI_BCAST(this%delta_a_len, SIZE(this%delta_a_len),                 &
+     &               MPI_REAL8, 0, recon_comm, error)
+      CALL MPI_BCAST(this%delta_a, SIZE(this%delta_a), MPI_REAL8, 0,           &
+     &               recon_comm, error)
+
+      CALL MPI_BCAST(this%jacobian, SIZE(this%jacobian), MPI_REAL8, 0,         &
+     &               recon_comm, error)
+      CALL MPI_BCAST(this%hessian, SIZE(this%hessian), MPI_REAL8, 0,           &
+     &               recon_comm, error)
+
+!  Number of signular values has been stored in the next step but the
+!  step hasn't been updated yet.
+      CALL MPI_BCAST(this%num_sv(this%current_step + 1), 1, MPI_REAL8,         &
+     &               0, recon_comm, error)
+
+      CALL profiler_set_stop_time('reconstruction_sync_svd', start_time)
 
 #endif
 
@@ -2197,7 +2487,6 @@
 !  local variables
       REAL (rprec)                               :: start_time
       INTEGER                                    :: error
-      INTEGER                                    :: mpi_size
       INTEGER                                    :: mpi_rank
       INTEGER                                    :: i
       INTEGER                                    :: iLow, iHigh
@@ -2206,7 +2495,6 @@
       start_time = profiler_get_start_time()
 
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
-      CALL MPI_COMM_SIZE(recon_comm, mpi_size, error)
 
 !  Need to be careful here with strides and offsets. The mpi uses C style array
 !  notation but the data is laid out in memory using fortran array notation.

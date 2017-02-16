@@ -2314,4 +2314,50 @@
 #endif
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize a child equilibrium state to the parent.
+!>
+!>  Syncs data between a child and the parent process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref equilibrium_class instance.
+!>  @param[in]    index      Reconstruction rank to sync.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_sync_child(this, index, recon_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                     :: index
+      INTEGER, INTENT(in)                     :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      REAL (rprec)                            :: start_time
+      INTEGER                                 :: mpi_rank
+      INTEGER                                 :: error
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+      IF (mpi_rank .eq. 0) THEN
+         this%not_converged = .false.
+      END IF
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_sync_child(this%vmec, index, recon_comm)
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_sync_child', start_time)
+
+#endif
+      END SUBROUTINE
+
       END MODULE

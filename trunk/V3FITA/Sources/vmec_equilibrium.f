@@ -4654,6 +4654,11 @@
 !  Start of executable code
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
+!  The barrier ensures that the wout is ready to be copied from the parent
+!  directory. Otherwise a child process can try to copy a wout file that does
+!  not exist.
+      CALL MPI_BARRIER(recon_comm, error)
+
 !  If this is the child process, load the wout file.
       IF (mpi_rank .gt. 0) THEN
          CALL copy_file(build_path('..', this%wout_file_name),                 &
@@ -4669,6 +4674,57 @@
       END IF
 
       CALL vmec_context_sync_state(this%vmec_context_save, recon_comm)
+
+#endif
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize a child  vmec state to the parent.
+!>
+!>  Syncs data between a child and the parent process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref vmec_class instance.
+!>  @param[in]    index      Reconstruction rank to sync.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_sync_child(this, index, recon_comm)
+      USE read_wout_mod, only: read_wout_file, LoadRZL
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)              :: index
+      INTEGER, INTENT(in)              :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: i
+      INTEGER                           :: error
+      INTEGER                           :: mpi_rank
+
+!  Start of executable code
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+!  If this is the parent process, load the wout file.
+      IF (mpi_rank .eq. 0) THEN
+         CALL copy_file(build_path(process_dir(mpi_rank + 1),                  &
+     &                             this%wout_file_name),                       &
+     &                  TRIM(this%wout_file_name), error)
+
+         CALL read_wout_file(this%wout_file_name, error)
+         CALL assert_eq(error, 0, 'Error reading synced wout file.')
+         CALL LoadRZL
+
+         IF (ASSOCIATED(this%magnetic_cache)) THEN
+            CALL vmec_set_magnetic_cache(this)
+         END IF
+      END IF
+
+      CALL vmec_context_sync_child(this%vmec_context_save, index,              &
+     &                             recon_comm)
 
 #endif
       END SUBROUTINE

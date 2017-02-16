@@ -1678,4 +1678,68 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize a child model state to the parent.
+!>
+!>  Syncs data between a child and the parent process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref model_class instance.
+!>  @param[in]    index      Reconstruction rank to sync.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_sync_child(this, index, recon_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: index
+      INTEGER, INTENT(in)               :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                           :: error
+      INTEGER                           :: grid_size
+      INTEGER                           :: mpi_rank
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL equilibrium_sync_child(this%equilibrium, index, recon_comm)
+
+      grid_size = equilibrium_get_grid_size(this%equilibrium)
+      IF (grid_size .gt. 0) THEN
+         CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+         IF (mpi_rank .eq. index) THEN
+
+            CALL MPI_SEND(this%ne_grid, grid_size, MPI_REAL8, 0,               &
+     &                    mpi_rank, recon_comm, error)
+            CALL MPI_SEND(this%sxrem_grid,                                     &
+     &                    grid_size*SIZE(this%sxrem_type), MPI_REAL8, 0,       &
+     &                    mpi_rank, recon_comm, error)
+            CALL MPI_SEND(this%te_grid, grid_size, MPI_REAL8, 0,               &
+     &                    mpi_rank, recon_comm, error)
+
+         ELSE IF (mpi_rank .eq. 0) THEN
+
+            CALL MPI_RECV(this%ne_grid, grid_size, MPI_REAL8, index,           &
+     &                    index, recon_comm, MPI_STATUS_IGNORE, error)
+            CALL MPI_RECV(this%sxrem_grid,                                     &
+     &                    grid_size*SIZE(this%sxrem_type), MPI_REAL8,          &
+     &                    index, index, recon_comm, MPI_STATUS_IGNORE,         &
+     &                    error)
+            CALL MPI_RECV(this%te_grid, grid_size, MPI_REAL8, index,           &
+     &                    index, recon_comm, MPI_STATUS_IGNORE, error)
+
+         END IF
+      END IF
+
+      CALL profiler_set_stop_time('model_sync_child', start_time)
+#endif
+
+      END SUBROUTINE
+
       END MODULE

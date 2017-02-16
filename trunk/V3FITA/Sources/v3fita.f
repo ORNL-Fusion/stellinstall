@@ -481,10 +481,13 @@
 
 #if defined(MPI_OPT)
 !  local variables
+      INTEGER                                   :: i
       INTEGER                                   :: signals_created
       INTEGER                                   :: task
       INTEGER                                   :: error
       INTEGER                                   :: eq_steps
+      REAL (rprec)                              :: step_use
+      LOGICAL                                   :: temp
 
 !  Start of executable code
       CALL init_equilibrium(context)
@@ -513,6 +516,26 @@
      &                 eq_steps, context%runlog_iou,                           &
      &                 context%reconstruction_comm,                            &
      &                 context%equilibrium_comm)
+
+            CASE (mpi_sync_task)
+               CALL reconstruction_sync_svd(context%recon,                     &
+     &                                      context%reconstruction_comm)
+               DO i = 1, SIZE(context%params)
+                  CALL param_sync_delta(context%params(i)%p,                   &
+     &                                  context%reconstruction_comm)
+               END DO
+
+            CASE (mpi_step_task)
+               CALL MPI_BCAST(step_use, 1, MPI_REAL8, 0,                       &
+     &                        context%reconstruction_comm, error)
+               CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0,                     &
+     &                        context%reconstruction_comm, error)
+               temp = reconstruction_try_step(context%recon,                   &
+     &                   context%signals, context%derived_params,              &
+     &                   context%locks, context%model, context%params,         &
+     &                   eq_steps, step_use, context%runlog_iou,               &
+     &                   context%reconstruction_comm,                          &
+     &                   context%equilibrium_comm)
 
             CASE (mpi_quit_task)
                CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                &

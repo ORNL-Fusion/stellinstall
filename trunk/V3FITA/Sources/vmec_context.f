@@ -273,4 +273,86 @@
 #endif
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize a child vmec_context to the parent.
+!>
+!>  Syncs data between a child and the parent process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op. This syncs the VMEC
+!>  variables directly.
+!>
+!>  @param[inout] this       A @ref vmec_context_class instance.
+!>  @param[in]    index      Reconstruction rank to sync.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_context_sync_child(this, index, recon_comm)
+      USE v3_utilities
+      USE vsvd
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                      :: index
+      INTEGER, INTENT(in)                      :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                                  :: error
+      INTEGER                                  :: temp_size
+      INTEGER                                  :: mpi_rank
+
+!  Start of executable code
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+!  If the size of the xc array changed size we cannot sync.
+      temp_size = SIZE(xc)
+      IF (mpi_rank .eq. index) THEN
+         CALL MPI_SEND(temp_size, 1, MPI_INTEGER, 0, mpi_rank,                 &
+     &                 recon_comm, error)
+
+         CALL MPI_SEND(xc, temp_size, MPI_REAL8, 0, mpi_rank,                  &
+     &                 recon_comm, error)
+
+         CALL MPI_SEND(raxis_cc, SIZE(raxis_cc), MPI_REAL8, 0, mpi_rank,       &
+     &                 recon_comm, error)
+         CALL MPI_SEND(raxis_cs, SIZE(raxis_cs), MPI_REAL8, 0, mpi_rank,       &
+     &                 recon_comm, error)
+         CALL MPI_SEND(zaxis_cc, SIZE(zaxis_cc), MPI_REAL8, 0, mpi_rank,       &
+     &                 recon_comm, error)
+         CALL MPI_SEND(zaxis_cs, SIZE(zaxis_cs), MPI_REAL8, 0, mpi_rank,       &
+     &                 recon_comm, error)
+
+         CALL MPI_SEND(vvc_smaleli, 1, MPI_REAL8, 0, mpi_rank,                 &
+     &                 recon_comm, error)
+         CALL MPI_SEND(vvc_kappa_p, 1, MPI_REAL8, 0, mpi_rank,                 &
+     &                 recon_comm, error)
+
+      ELSE IF (mpi_rank .eq. 0) THEN
+         CALL MPI_RECV(temp_size, 1, MPI_INTEGER, index, index,                &
+     &                 recon_comm, MPI_STATUS_IGNORE, error)
+         CALL assert_eq(temp_size, SIZE(xc),                                   &
+     &                  'Cannot sync xc arrays. Arrays changed size.')
+
+         CALL MPI_RECV(xc, temp_size, MPI_REAL8, index, index,                 &
+     &                 recon_comm, MPI_STATUS_IGNORE, error)
+
+         CALL MPI_RECV(raxis_cc, SIZE(raxis_cc), MPI_REAL8, index,             &
+     &                 index, recon_comm, MPI_STATUS_IGNORE, error)
+         CALL MPI_RECV(raxis_cs, SIZE(raxis_cs), MPI_REAL8, index,             &
+     &                 index, recon_comm, MPI_STATUS_IGNORE, error)
+         CALL MPI_RECV(zaxis_cc, SIZE(zaxis_cc), MPI_REAL8, index,             &
+     &                 index, recon_comm, MPI_STATUS_IGNORE, error)
+         CALL MPI_RECV(zaxis_cs, SIZE(zaxis_cs), MPI_REAL8, index,             &
+     &                 index, recon_comm, MPI_STATUS_IGNORE, error)
+
+         CALL MPI_RECV(vvc_smaleli, 1, MPI_REAL8, index, index,                &
+     &                 recon_comm, MPI_STATUS_IGNORE, error)
+         CALL MPI_RECV(vvc_kappa_p, 1, MPI_REAL8, index, index,                &
+     &                 recon_comm, MPI_STATUS_IGNORE, error)
+
+      END IF
+
+#endif
+      END SUBROUTINE
+
       END MODULE
