@@ -1949,7 +1949,7 @@
 
 1000  FORMAT('Normalized Step',2x,'param_name')
 1001  FORMAT(es12.5,5x,a)
-1002  FORMAT('  Trying rank: ',i3,' g^2: ',es12.5, ' step size: ',es12.5)
+1002  FORMAT('  Trying rank: ',i3,' g^2: ',es12.5,' step size: ',es12.5)
 1003  FORMAT('  Best index ',i3)
 
       END FUNCTION
