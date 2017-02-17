@@ -4710,7 +4710,7 @@
 
 !  If this is the parent process, load the wout file.
       IF (mpi_rank .eq. 0) THEN
-         CALL copy_file(build_path(process_dir(mpi_rank + 1),                  &
+         CALL copy_file(build_path(process_dir(index + 1),                  &
      &                             this%wout_file_name),                       &
      &                  TRIM(this%wout_file_name), error)
 

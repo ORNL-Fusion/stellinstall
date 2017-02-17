@@ -1908,6 +1908,9 @@
             CALL model_sync_child(a_model, best_index, recon_comm)
          END IF
 
+!  Ensure that parent had a chance sync the child equilibrium before it gets
+!  reset. See below.
+         CALL MPI_BARRIER(recon_comm, error)
       ELSE
 
          IF (mpi_rank .eq. best_index) THEN
@@ -1921,6 +1924,8 @@
             CALL MPI_SEND(this%exp_g2(this%current_step), 1, MPI_REAL8,        &
      &                    0, mpi_rank, recon_comm, error)
 
+!  Sync the model from the best index. The barrier ensures that child's wout
+!  file was copied before the child resets it. See model sync above.
             CALL model_sync_child(a_model, mpi_rank, recon_comm)
          END IF
 
@@ -1934,6 +1939,9 @@
             CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
          END DO
 
+!  Ensure that parent had a chance sync the child equilibrium before it gets
+!  reset. See above.
+         CALL MPI_BARRIER(recon_comm, error)
          CALL equilibrium_reset_state(a_model%equilibrium)
          this%current_step = this%current_step - 1
 
