@@ -29,6 +29,13 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_p => null()
 !>  Vector potential in the Z direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
+
+!>  B field in the R direction.
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: b_r => null()
+!>  B field in the Phi direction.
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: b_p => null()
+!>  B field in the Z direction.
+         REAL (rprec), DIMENSION(:,:,:), POINTER :: b_z => null()
       END TYPE
 
       CONTAINS
@@ -39,7 +46,10 @@
 !>  @brief Construct a @ref unprimed_grid_class object.
 !>
 !>  Allocates memory and initializes a @ref unprimed_grid_class object with an
-!>  This computes the vector potential and positions on the unprimed grid.
+!>  This computes the vector potential, magnetic field and positions on the
+!>  unprimed grid. Magnetic field components are provided on a truncated grid.
+!>  Due to the central differencing, field componetents cannot be provided for
+!>  first and last points on the r and z grids.
 !>
 !>  @param[in] mgrid A @ref m_grid_class object.
 !>  @param[in] pgrid A @ref primed_grid_class object.
@@ -67,13 +77,23 @@
       REAL (rprec)                                :: x
       REAL (rprec)                                :: y
       REAL (rprec)                                :: r
-      REAL (rprec)                                :: z
       REAL (rprec)                                :: v
       REAL (rprec)                                :: ax
       REAL (rprec)                                :: ay
+      REAL (rprec)                                :: ar_p
+      REAL (rprec)                                :: ar_m
+      REAL (rprec)                                :: ap_p
+      REAL (rprec)                                :: ap_m
+      REAL (rprec)                                :: az_p
+      REAL (rprec)                                :: az_m
+      REAL (rprec)                                :: r_p
+      REAL (rprec)                                :: r_m
+      INTEGER                                     :: k_p
+      INTEGER                                     :: k_m
       REAL (rprec)                                :: cosv
       REAL (rprec)                                :: sinv
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: rp
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: zp
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -88,12 +108,21 @@
       ALLOCATE(unprimed_grid_construct%a_p(num_r, num_z, num_p))
       ALLOCATE(unprimed_grid_construct%a_z(num_r, num_z, num_p))
 
+      ALLOCATE(unprimed_grid_construct%b_r(num_r, num_z, num_p))
+      ALLOCATE(unprimed_grid_construct%b_p(num_r, num_z, num_p))
+      ALLOCATE(unprimed_grid_construct%b_z(num_r, num_z, num_p))
+
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, j, k, v, r, z, x, y, ax, ay, rp, cosv, sinv)
+!$OMP& PRIVATE(i, j, k, v, r, zp, x, y, ax, ay, rp, cosv, sinv, ar_p,
+!$OMP&         ar_m, ap_p, ap_m, az_p, az_m, r_p, r_m, k_p, k_m)
 
       ALLOCATE(rp(SIZE(pgrid%x, 1),                                            &
      &            SIZE(pgrid%x, 2),                                            &
+     &            SIZE(pgrid%x, 3)))
+
+      ALLOCATE(zp(SIZE(pgrid%x, 1),                                             &
+     &            SIZE(pgrid%x, 2),                                             &
      &            SIZE(pgrid%x, 3)))
 
 !$OMP DO
@@ -107,7 +136,7 @@
          sinv = SIN(v)
 
          DO j = 1, num_z
-            z = (j - 1.0)*mgrid%dz + mgrid%zmin
+            zp = (pgrid%z - ((j - 1.0)*mgrid%dz + mgrid%zmin))**2.0
 
             DO i = 1, num_r
                r = (i - 1.0)*mgrid%dr + mgrid%rmin
@@ -117,7 +146,7 @@
 
                rp = SQRT((pgrid%x - x)**2.0 +                                  &
      &                   (pgrid%y - y)**2.0 +                                  &
-     &                   (pgrid%z - z)**2.0)
+     &                   zp)
 
                ax = SUM(pgrid%j_x/rp)*pgrid%dvol
                ay = SUM(pgrid%j_y/rp)*pgrid%dvol
@@ -135,6 +164,70 @@
 !$OMP END DO
 
       DEALLOCATE(rp)
+      DEALLOCATE(zp)
+
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+      DO k = 1, num_p
+         IF (k .eq. 1) THEN
+            k_p = k + 1
+            k_m = num_p
+         ELSE IF (k .eq. num_p) THEN
+            k_p = 1
+            k_m = k - 1
+         ELSE
+            k_p = k + 1
+            k_m = k - 1
+         END IF
+
+         DO j = 2, num_z - 1
+
+            DO i = 2, num_r - 1
+               r_p = i*mgrid%dr + mgrid%rmin
+               r_m = (i - 2.0)*mgrid%dr + mgrid%rmin
+               r = (i - 1.0)*mgrid%dr + mgrid%rmin
+
+               ar_p = unprimed_grid_construct%a_r(i + 1,j,k)
+               ar_m = unprimed_grid_construct%a_r(i - 1,j,k)
+
+               az_p = unprimed_grid_construct%a_z(i,j + 1,k)
+               az_m = unprimed_grid_construct%a_z(i,j - 1,k)
+
+               ap_p = unprimed_grid_construct%a_p(i,j,k_p)
+               ap_m = unprimed_grid_construct%a_p(i,j,k_m)
+
+               unprimed_grid_construct%b_r(i,j,k) =                            & ! 1/rdazdp - dapdz
+     &            (az_p - az_m)/(2.0*pgrid%dv*r) -                             &
+     &            (ap_p - ap_m)/(2.0*mgrid%dz)
+
+               unprimed_grid_construct%b_p(i,j,k) =                            & ! dardz - dazdr
+     &            (ar_p - ar_m)/(2.0*mgrid%dz) -                               &
+     &            (az_p - az_m)/(2.0*mgrid%dr)
+
+               unprimed_grid_construct%b_z(i,j,k) =                            & ! 1/r(drapdr - dardp)
+     &            (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r) -                     &
+     &            (ar_p - ar_m)/(2.0*pgrid%dv*r)
+
+            END DO
+         END DO
+      END DO
+!$OMP END DO
+
+!$OMP WORKSHARE
+      unprimed_grid_construct%b_r(1,:,:) = 0.0
+      unprimed_grid_construct%b_p(1,:,:) = 0.0
+      unprimed_grid_construct%b_z(1,:,:) = 0.0
+      unprimed_grid_construct%b_r(num_r,:,:) = 0.0
+      unprimed_grid_construct%b_p(num_r,:,:) = 0.0
+      unprimed_grid_construct%b_z(num_r,:,:) = 0.0
+
+      unprimed_grid_construct%b_r(:,1,:) = 0.0
+      unprimed_grid_construct%b_p(:,1,:) = 0.0
+      unprimed_grid_construct%b_z(:,1,:) = 0.0
+      unprimed_grid_construct%b_r(:,num_z,:) = 0.0
+      unprimed_grid_construct%b_p(:,num_z,:) = 0.0
+      unprimed_grid_construct%b_z(:,num_z,:) = 0.0
+!$OMP END WORKSHARE
 
 !$OMP END PARALLEL
 
@@ -178,6 +271,21 @@
       IF (ASSOCIATED(this%a_z)) THEN
          DEALLOCATE(this%a_z)
          this%a_z => null()
+      END IF
+
+      IF (ASSOCIATED(this%b_r)) THEN
+         DEALLOCATE(this%b_r)
+         this%b_r => null()
+      END IF
+
+      IF (ASSOCIATED(this%b_p)) THEN
+         DEALLOCATE(this%b_p)
+         this%b_p => null()
+      END IF
+
+      IF (ASSOCIATED(this%b_z)) THEN
+         DEALLOCATE(this%b_z)
+         this%b_z => null()
       END IF
 
       DEALLOCATE(this)

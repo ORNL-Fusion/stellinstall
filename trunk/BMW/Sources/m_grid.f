@@ -109,6 +109,7 @@
       ALLOCATE(m_grid_construct%a_r(num_r, num_z, num_p))
       ALLOCATE(m_grid_construct%a_p(num_r, num_z, num_p))
       ALLOCATE(m_grid_construct%a_z(num_r, num_z, num_p))
+
       ALLOCATE(temp_buffer(num_r, num_z, num_p))
 
       DO i = 1, SIZE(extcur)
@@ -128,9 +129,9 @@
      &                        + temp_buffer*extcur(i)
       END DO
 
-      CALL cdf_close(mgrid_ncid)
-
       DEALLOCATE(temp_buffer)
+
+      CALL cdf_close(mgrid_ncid)
 
       WRITE (*,2000)
 

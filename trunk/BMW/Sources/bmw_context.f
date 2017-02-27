@@ -48,9 +48,13 @@
 !>
 !>  Allocates memory and initializes a @ref bmw_context_class object.
 !>
+!>  @param[in] mgrid_file_name Path and name of the mgrid file.
+!>  @param[in] wout_file_name  Path and name of the wout file.
+!>  @param[in] flags           Option flags.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name)
+      FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name,          &
+     &                               flags)
       USE read_wout_mod, Only: read_wout_file
 
       IMPLICIT NONE
@@ -59,6 +63,7 @@
       TYPE (bmw_context_class), POINTER :: bmw_context_construct
       CHARACTER (len=*), INTENT(in)     :: mgrid_file_name
       CHARACTER (len=*), INTENT(in)     :: wout_file_name
+      INTEGER, INTENT(in)               :: flags
 
 !  local variables
       REAL (rprec)                      :: start_time
@@ -77,7 +82,8 @@
       num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
 
       bmw_context_construct%p_grid =>                                          &
-     &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp)
+     &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp,         &
+     &                         flags)
       bmw_context_construct%up_grid =>                                         &
      &   unprimed_grid_construct(bmw_context_construct%m_grid,                 &                                        &
      &                           bmw_context_construct%p_grid)
@@ -193,6 +199,13 @@
       CALL cdf_define(result_iou, 'az_grid', this%up_grid%a_z,                 &
      &                dimname=dims)
 
+      CALL cdf_define(result_iou, 'br_grid', this%up_grid%b_r,                 &
+     &                dimname=dims)
+      CALL cdf_define(result_iou, 'bp_grid', this%up_grid%b_p,                 &
+     &                dimname=dims)
+      CALL cdf_define(result_iou, 'bz_grid', this%up_grid%b_z,                 &
+     &                dimname=dims)
+
       CALL cdf_write(result_iou, 'series', series)
 
       CALL cdf_write(result_iou, 'nfp', this%m_grid%nfp)
@@ -205,6 +218,10 @@
       CALL cdf_write(result_iou, 'ar_grid', this%up_grid%a_r)
       CALL cdf_write(result_iou, 'ap_grid', this%up_grid%a_p)
       CALL cdf_write(result_iou, 'az_grid', this%up_grid%a_z)
+
+      CALL cdf_write(result_iou, 'br_grid', this%up_grid%b_r)
+      CALL cdf_write(result_iou, 'bp_grid', this%up_grid%b_p)
+      CALL cdf_write(result_iou, 'bz_grid', this%up_grid%b_z)
 
       CALL cdf_close(result_iou)
 

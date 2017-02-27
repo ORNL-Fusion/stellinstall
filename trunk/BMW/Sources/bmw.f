@@ -44,8 +44,10 @@
       TYPE (bmw_context_class), POINTER            :: context => null()
       TYPE (bmw_commandline_parser_class), POINTER ::                          &
      &   cl_parser => null()
-      INTEGER                                      :: num_threads
+!$    INTEGER                                      :: num_threads
+      INTEGER                                      :: flags
       REAL (rprec)                                 :: start_time
+
 !  Start of executable code
       CALL profiler_construct
 
@@ -56,6 +58,14 @@
       WRITE (*,*)
 
       cl_parser => bmw_commandline_parser_construct()
+
+      flags = 0
+      IF (bmw_commandline_parser_is_flag_set(cl_parser, 'ju')) THEN
+         flags = IBSET(flags, primed_grid_ju_flag)
+      END IF
+      IF (bmw_commandline_parser_is_flag_set(cl_parser, 'jv')) THEN
+         flags = IBSET(flags, primed_grid_jv_flag)
+      END IF
 
 !  Configure the number of threeds to use.
 !$    num_threads = bmw_commandline_parser_get_integer(cl_parser,              &
@@ -71,7 +81,8 @@
 
       context => bmw_context_construct(                                        &
      &   bmw_commandline_parser_get_string(cl_parser, '-mgridf'),              &
-     &   bmw_commandline_parser_get_string(cl_parser, '-woutf'))
+     &   bmw_commandline_parser_get_string(cl_parser, '-woutf'),               &
+     &   flags)
       CALL bmw_context_write(context,                                          &
      &        bmw_commandline_parser_get_string(cl_parser, '-outf'))
 
