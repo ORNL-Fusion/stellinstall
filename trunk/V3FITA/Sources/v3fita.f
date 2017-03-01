@@ -1868,7 +1868,8 @@
      &                    SIZE(context%params),                                &
      &                    step_type, astep_max, cut_svd, cut_eff,              &
      &                    cut_marg_eff, cut_delta_a, cut_dg2,                  &
-     &                    last_para_signal, cut_inv_svd)
+     &                    last_para_signal, cut_inv_svd,                       &
+     &                    use_central_diff)
 
       CALL profiler_set_stop_time('init_reconstruction', start_time)
 

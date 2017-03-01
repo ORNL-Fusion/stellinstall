@@ -28,6 +28,11 @@
 !>  Parameter value is bounded by another parameter.
       INTEGER, PARAMETER :: param_range_parameter_type = 2
 
+!>  Maximum number of attemps to change the parameter increment size.
+      INTEGER, PARAMETER :: param_max_increment_steps = 5
+!>  Division factor to decrease the step size.
+      INTEGER, PARAMETER :: param_div_factor = 10.0
+
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
 !  1) parameter base class
@@ -465,12 +470,22 @@
 !>  The resulting bounded parameter value is set by ethier the @ref model or
 !>  the @ref equilibrium.
 !>
-!>  @param[in]    this    A @ref param_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[in]    value   The value to set the parameter to.
-!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
+!>  If central differencing is used, both the upper and lower bounds must be
+!>  checked. In this case both the upper and lower bounds need to be with in
+!>  half the vrnc values. This ensures there is enough room to increment and
+!>  decrement the values. If the bounds are so narrow such that the set value
+!>  plus/minus half the vrnc is out of range of both bounds, then split the
+!>  difference.
+!>
+!>  @param[in]    this       A @ref param_class instance.
+!>  @param[inout] a_model    A @ref model instance.
+!>  @param[in]    value      The value to set the parameter to.
+!>  @param[in]    eq_comm    MPI communicator for the child equilibrium
+!>                           processes.
+!>  @param[in]    is_central Central differencing is being used.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_set_value(this, a_model, value, eq_comm)
+      SUBROUTINE param_set_value(this, a_model, value, eq_comm,                &
+     &                           is_central)
 
       IMPLICIT NONE
 
@@ -479,9 +494,11 @@
       TYPE (model_class), INTENT(inout) :: a_model
       REAL (rprec), INTENT(in)          :: value
       INTEGER, INTENT(in)               :: eq_comm
+      LOGICAL, INTENT(in)               :: is_central
 
 !  Local variables
       REAL (rprec)                      :: set_value
+      REAL (rprec)                      :: off_set_value
       REAL (rprec)                      :: upper_value
       REAL (rprec)                      :: lower_value
       REAL (rprec)                      :: start_time
@@ -491,16 +508,38 @@
 
       set_value = value
 
+      IF (is_central) THEN
+         off_set_value = this%recon%vrnc/2.0
+      ELSE
+         off_set_value = 0.0
+      END IF
+
 !  Check if the value is within the lower range. If the value is outside,
 !  truncate the value to the lower range.
       IF (this%recon%range_type(1) .ne. param_range_infinity_type) THEN
          lower_value = param_get_lower_range_value(this, a_model)
 
-         IF (set_value .lt. lower_value) THEN
+         IF (set_value - off_set_value .lt. lower_value) THEN
+
+!  The set value must be at least the lower value plus the offset value. When
+!  not using central differencing, the the offset is zero.
+            set_value = lower_value + off_set_value
+
+!  Need to check the upper range if using central differencing.
+            IF (is_central .and. (this%recon%range_type(2) .ne.                               &
+     &                            param_range_infinity_type)) THEN
+
+               upper_value = param_get_upper_range_value(this, a_model)
+
+               IF (set_value + off_set_value .gt. upper_value) THEN
+!  Both bounds are two narrow to fit the new value. Split the difference.
+                  set_value = (upper_value + lower_value)/2.0
+               END IF
+            END IF
+
             CALL model_set_param(a_model, this%param_id,                       &
      &                           this%indices(1), this%indices(2),             &
-     &                           lower_value, eq_comm)
-            set_value = lower_value
+     &                           set_value, eq_comm)
 
             CALL profiler_set_stop_time('profiler_get_start_time',             &
      &                                  start_time)
@@ -513,11 +552,17 @@
       IF (this%recon%range_type(2) .ne. param_range_infinity_type) THEN
          upper_value = param_get_upper_range_value(this, a_model)
 
-         IF (set_value .gt. upper_value) THEN
+         IF (set_value + off_set_value .gt. upper_value) THEN
+
+!  The set value must be no more than the upper value minus the offset value.
+!  When not using central differencing, the the offset is zero. There is no need
+!  to check the lower range because it has already been confirmed that the lower
+!  range is negative infinity.
+            set_value = upper_value - off_set_value
+
             CALL model_set_param(a_model, this%param_id,                       &
      &                           this%indices(1), this%indices(2),             &
-     &                           upper_value, eq_comm)
-            set_value = upper_value
+     &                           set_value, eq_comm)
 
             CALL profiler_set_stop_time('profiler_get_start_time',             &
      &                                  start_time)
@@ -923,11 +968,17 @@
 !>  successful, the actual step size used is cached in @ref param_class::delta
 !>  for normalization purposes.
 !>
-!>  @param[in] this    A @ref param_class instance.
-!>  @param[in] a_model A @ref model instance.
-!>  @param[in] eq_comm MPI communicator for the child equilibrium processes.
+!>  If central differencing is used, both the upper and lower bounds must be
+!>  checked. Starting with half the parameter vrnc, the change in parameter is
+!>  divided until the change in parameter fits into both the upper and lower
+!>  bounds.
+!>
+!>  @param[in] this       A @ref param_class instance.
+!>  @param[in] a_model    A @ref model instance.
+!>  @param[in] eq_comm    MPI communicator for the child equilibrium processes.
+!>  @param[in] is_central Central differencing is being used.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_increment(this, a_model, eq_comm)
+      SUBROUTINE param_increment(this, a_model, eq_comm, is_central)
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
@@ -936,6 +987,7 @@
       TYPE (param_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(inout) :: a_model
       INTEGER, INTENT(in)               :: eq_comm
+      LOGICAL, INTENT(in)               :: is_central
 
 !  local variables
       REAL (rprec)                      :: new_value
@@ -948,50 +1000,105 @@
       start_time = profiler_get_start_time()
 
       value = param_get_value(this, a_model)
-!  Take the absolute value here to control the direction of the step.
-      step = ABS(this%recon%vrnc)
 
-!  There are 5 attempts to increment the parameter before giving up.
-      DO itry = 1, 5
+!  Take the absolute value here to control the direction of the step.
+      IF (is_central) THEN
+         step = ABS(this%recon%vrnc)/2.0
+      ELSE
+         step = ABS(this%recon%vrnc)
+      END IF
+
+      DO itry = 1, param_max_increment_steps
 
 !  Test to make sure there is a step
          IF (step .eq. 0.0) THEN
-            CALL err_fatal('param_increment_single: tried to take ' //         &
-     &                     'a step size of 0')
+            CALL err_fatal('param_increment: tried to take a ' //              &
+     &                     'step size of 0')
          END IF
+
+         IF (is_central) THEN
+!  Test both upper and lower range.
+            IF (param_is_in_upper_range(this, a_model,                         &
+     &                                  value + step) .and.                    &
+     &          param_is_in_lower_range(this, a_model,                         &
+     &                                  value - step)) THEN
+               new_value = value + step
+
+!  Store the actual change in value.
+               this%recon%delta = step
+               EXIT
+            END IF
+
+         ELSE
 
 !  Try a step in the positive direction. If the parameter is still in range set
 !  otherwise.
-         new_value = value + step
-         IF (param_is_in_upper_range(this, a_model, new_value)) THEN
-            CALL model_set_param(a_model, this%param_id,                       &
-     &                           this%indices(1), this%indices(2),             &
-     &                           new_value, eq_comm)
+            new_value = value + step
+            IF (param_is_in_upper_range(this, a_model, new_value)) THEN
 !  Store the actual change in value.
-            this%recon%delta = step
-            RETURN
-         END IF
+               this%recon%delta = step
+               EXIT
+            END IF
 
 !  Try a step in the negative direction.
-         new_value = value - step
-         IF (param_is_in_lower_range(this, a_model, new_value)) THEN
-            CALL model_set_param(a_model, this%param_id,                       &
-     &                           this%indices(1), this%indices(2),             &
-     &                           new_value, eq_comm)
+            new_value = value - step
+            IF (param_is_in_lower_range(this, a_model, new_value)) THEN
 !  Store the actual change in value.
-            this%recon%delta = -step
-            RETURN
-         END IF
+               this%recon%delta = -step
+               EXIT
+            END IF
+      END IF
 
 !  Decrease the step and try again.
-         step = step/10.0
+         step = step/param_div_factor
       END DO
 
-      CALL err_fatal('param_increment: failed to change ' //                   &
-     &               'reconstruction. Try decreaing rp_vrnc or ' //            &
-     &               'expanding the range.')
+      CALL model_set_param(a_model, this%param_id, this%indices(1),            &
+     &                     this%indices(2), new_value, eq_comm)
+
+      IF (itry .gt. param_max_increment_steps) THEN
+         CALL err_fatal('param_increment: failed to change ' //                &
+     &                  'reconstruction. Try decreaing rp_vrnc ' //            &
+     &                  'or expanding the range.')
+      END IF
 
       CALL profiler_set_stop_time('param_increment', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Decrements the parameter value.
+!>
+!>  The value is decremented by the delta. The incrementing function has already
+!>  performed the bounds checking so there is no need to do that here.
+!>
+!>  @param[in] this       A @ref param_class instance.
+!>  @param[in] a_model    A @ref model instance.
+!>  @param[in] eq_comm    MPI communicator for the child equilibrium processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_decrement(this, a_model, eq_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
+      INTEGER, INTENT(in)               :: eq_comm
+
+!  local variables
+      REAL (rprec)                      :: value
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      value = param_get_value(this, a_model)
+      value = value - this%recon%delta
+
+      CALL model_set_param(a_model, this%param_id, this%indices(1),            &
+     &                     this%indices(2), value, eq_comm)
+
+      CALL profiler_set_stop_time('param_decrement', start_time)
 
       END SUBROUTINE
 
@@ -1328,9 +1435,12 @@
 !>  @param[inout] this       A @ref param_class instance.
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[in]    recon_comm A MPI intra_comm handle.
-!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
+!>  @param[in]    eq_comm    MPI communicator for the child equilibrium
+!>                           processes.
+!>  @param[in]    is_central Central differencing is being used.
 !-------------------------------------------------------------------------------
-      SUBROUTINE param_sync_value(this, a_model, recon_comm, eq_comm)
+      SUBROUTINE param_sync_value(this, a_model, recon_comm, eq_comm,          &
+     &                            is_central)
 
       IMPLICIT NONE
 
@@ -1339,6 +1449,7 @@
       TYPE (model_class), INTENT(inout) :: a_model
       INTEGER, INTENT(in)               :: recon_comm
       INTEGER, INTENT(in)               :: eq_comm
+      LOGICAL, INTENT(in)               :: is_central
 
 #if defined(MPI_OPT)
 !  local variables
@@ -1359,7 +1470,7 @@
       CALL MPI_BCAST(value, 1, MPI_REAL8, 0, recon_comm, error)
 
       IF (mpi_rank .gt. 0) THEN
-         CALL param_set_value(this, a_model, value, eq_comm)
+         CALL param_set_value(this, a_model, value, eq_comm, is_central)
       END IF
 
       CALL profiler_set_stop_time('param_sync_value', start_time)
@@ -1491,10 +1602,12 @@
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[in]    index      Index of the reconstruction parameter.
 !>  @param[in]    recon_comm A MPI intra_comm handle.
-!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
+!>  @param[in]    eq_comm    MPI communicator for the child equilibrium
+!>                           processes.
+!>  @param[in]    is_central Central differencing is being used.
 !-------------------------------------------------------------------------------
       SUBROUTINE param_sync_child(this, a_model, index, recon_comm,            &
-     &                            eq_comm)
+     &                            eq_comm, is_central)
 
       IMPLICIT NONE
 
@@ -1504,6 +1617,7 @@
       INTEGER, INTENT(in)               :: index
       INTEGER, INTENT(in)               :: recon_comm
       INTEGER, INTENT(in)               :: eq_comm
+      LOGICAL, INTENT(in)               :: is_central
 
 #if defined(MPI_OPT)
 !  local variables
@@ -1524,7 +1638,7 @@
       ELSE IF (mpi_rank .eq. 0) THEN
          CALL MPI_RECV(value, 1, MPI_REAL8, index, index, recon_comm,          &
      &                 MPI_STATUS_IGNORE, error)
-         CALL param_set_value(this, a_model, value, eq_comm)
+         CALL param_set_value(this, a_model, value, eq_comm, is_central)
       END IF
 
       CALL profiler_set_stop_time('param_sync_child', start_time)

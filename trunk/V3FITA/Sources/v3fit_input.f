@@ -263,27 +263,28 @@
 !>                       to the center. This value is in meters.,                 v3fit_input::z_offset}
 !>  @end_table
 !>
-!>  @table_section{recon_sec, Reconstruction step control NLI variables}
-!>     @item{nrstep,       max number of reconstruction steps to perform,      v3fit_input::nrstep}
-!>     @item{dg2_stop,     Stopping criterion on change in g^2,                v3fit_input::dg2_stop}
-!>     @item{cut_svd,      cutoff value for relative Singular Values of the
-!>                         Jacobian,                                           v3fit_input::cut_svd}
-!>     @item{cut_eff,      cutoff value for expected step efficiency,          v3fit_input::cut_eff}
-!>     @item{cut_marg_eff, cutoff value for expected marginal step efficiency, v3fit_input::coosig_units}
-!>     @item{cut_delta_a,  cutoff value for expected step size,                v3fit_input::cut_delta_a}
-!>     @item{cut_dg2,      cutoff value for expected change in g^2,            v3fit_input::cut_dg2}
-!>     @item{astep_max,    maximum allowable normalized step size,             v3fit_input::astep_max}
-!>     @item{step_type,    character specification of reconstruction step type
+!>  @table_section{recon_sec,  Reconstruction step control NLI variables}
+!>     @item{nrstep,           max number of reconstruction steps to perform,        v3fit_input::nrstep}
+!>     @item{dg2_stop,         Stopping criterion on change in g^2,                  v3fit_input::dg2_stop}
+!>     @item{cut_svd,          cutoff value for relative Singular Values of the
+!>                             Jacobian,                                             v3fit_input::cut_svd}
+!>     @item{cut_eff,          cutoff value for expected step efficiency,            v3fit_input::cut_eff}
+!>     @item{cut_marg_eff,     cutoff value for expected marginal step efficiency,   v3fit_input::coosig_units}
+!>     @item{cut_delta_a,      cutoff value for expected step size,                  v3fit_input::cut_delta_a}
+!>     @item{cut_dg2,          cutoff value for expected change in g^2,              v3fit_input::cut_dg2}
+!>     @item{astep_max,        maximum allowable normalized step size,               v3fit_input::astep_max}
+!>     @item{step_type,        character specification of reconstruction step type
 !>        -# @fixed_width{'sl'}  - straight line
 !>        -# @fixed_width{'seg'} - segmented
 !>        -# @fixed_width{'lm'}  - Levenberg-Marquardt,
 !>        v3fit_input::step_type}
-!>     @item{cut_inv_svd,  Cut off value for the singular values used for the
-!>                         pseudo matrix inverse of the parameter covariance
-!>                         Matrix.,                                            v3fit_input::cut_inv_svd}
-!>     @item{cut_comp_svd, cutoff value for the energy deficit in the number
-!>                         of singular values to keep for the magnet response
-!>                         function data compression. Zero is no compression., v3fit_input::cut_comp_svd}
+!>     @item{cut_inv_svd,      Cut off value for the singular values used for the
+!>                             pseudo matrix inverse of the parameter covariance
+!>                             Matrix.,                                              v3fit_input::cut_inv_svd}
+!>     @item{cut_comp_svd,     cutoff value for the energy deficit in the number
+!>                             of singular values to keep for the magnet response
+!>                             function data compression. Zero is no compression.,   v3fit_input::cut_comp_svd}
+!>     @item{use_central_diff, Use central difference for the jacobian derivatives., v3fit_input::use_central_diff}
 !>  @end_table
 !>
 !>  @table_section{xcdot_sec, VMEC zero out xcdot control}
@@ -978,6 +979,8 @@
       REAL (rprec)                           :: cut_inv_svd = 1.0E-10
 !>  Cutoff value for singular values used in the magnetic data compression.
       REAL (rprec)                           :: cut_comp_svd = 0.0
+!>  Use central differencing to compute the jacobian.
+      LOGICAL :: use_central_diff = .false.
 
 !>  Zero out vmec xcdot array
 !>  @todo FIXME: VMEC specific. Not implemented.
@@ -1054,6 +1057,7 @@
 !  Reconstruction step control specification.
      &   nrstep, dg2_stop, cut_svd, cut_eff, cut_marg_eff, cut_delta_a,        &
      &   cut_dg2, astep_max, step_type, cut_inv_svd, cut_comp_svd,             &
+     &   use_central_diff,                                                     &
 !>  @todo FIXME: The implementation is VMEC specific.
      &   l_zero_xcdot
 

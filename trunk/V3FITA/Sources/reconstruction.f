@@ -52,6 +52,8 @@
 !>  Maximum number of reconstruction steps.
 !>  @see v3fit_input::nrstep
          REAL (rprec)                          :: step_max
+!>  Controls if central differencing is used.
+         LOGICAL                               :: use_central = .false.
 !>  Counter to track the step number.
          INTEGER                               :: current_step = 0
 !>  Index of the last parallelable signal.
@@ -167,7 +169,7 @@
      &                                  step_max, cut_svd, cut_eff,            &
      &                                  cut_marg_eff, cut_delta_a,             &
      &                                  cut_dg2, last_para_signal,             &
-     &                                  cut_inv_svd)
+     &                                  cut_inv_svd, use_central)
 
       IMPLICIT NONE
 
@@ -186,6 +188,7 @@
       REAL (rprec), INTENT(in)             :: cut_dg2
       INTEGER, INTENT(in)                  :: last_para_signal
       REAL (rprec), INTENT(in)             :: cut_inv_svd
+      LOGICAL, INTENT(in)                  :: use_central
 
 !  local variables
       INTEGER                              :: num_svd
@@ -226,6 +229,8 @@
       reconstruction_construct%last_para_signal = last_para_signal
 
       reconstruction_construct%cut_inv_svd = cut_inv_svd
+
+      reconstruction_construct%use_central = use_central
 
       ALLOCATE(reconstruction_construct%e(num_signals,0:num_steps))
       ALLOCATE(reconstruction_construct%f(num_derived_parameters,              &
@@ -803,7 +808,7 @@
 !  sync.
       DO i = 1, SIZE(params)
          CALL param_sync_value(params(i)%p, a_model, recon_comm,               &
-     &                         eq_comm)
+     &                         eq_comm, this%use_central)
       END DO
       CALL model_sync_state(a_model, recon_comm)
       CALL reconstruction_sync_state(this, recon_comm)
@@ -852,7 +857,8 @@
 
 !  Increment the parameter. param_increment checks the bounds and adjust the
 !  step size to keep the parameter in range.
-         CALL param_increment(params(j)%p, a_model, eq_comm)
+         CALL param_increment(params(j)%p, a_model, eq_comm,                   &
+     &                        this%use_central)
 !  Set the locked values.
          DO i = 1, SIZE(locks)
             CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
@@ -884,44 +890,123 @@
 !
 !  In this coding e_i = Sqrt(signal_get_g2)
 !  and |pi_j|/pi_j = SIGN(1,delta_param)
-
-!  Certian signals cannot be parallelized. Compute all the signals up to that
-!  point in parallel then continue in serial.
-!$OMP PARALLEL DO
-!$OMP& SCHEDULE(DYNAMIC)
-!$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i)
-            DO i = 1, this%last_para_signal
-               this%jacobian(i,j) =                                            &
-     &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
-     &            - this%e(i,this%current_step))
-            END DO
-!$OMP END PARALLEL DO
-
-            DO i = this%last_para_signal + 1, SIZE(signals)
-               this%jacobian(i,j) =                                            &
-     &            -(signal_get_e(signals(i)%p, a_model, .false.)               &
-     &            - this%e(i,this%current_step))
-            END DO
-            this%jacobian(:,j) = this%jacobian(:,j)                            &
-     &                         * SIGN(1.0_rprec,                               &
-     &                                params(j)%p%recon%delta)
-
-!  Compute the derived parameter jacobian. d f_i/d a_j . This will parallel the
+!
+!  For the derived parameter jacobian. d f_i/d a_j . This will parallel the
 !  signal jacobian with the exception that the parameters aren't normalized.
 !  Using equation (3) above the derived jacobian becomes
 !
 !    d f_i/d a_j = (f'_i - f_i)*|pi_j|/pi_j                                  (5)
 !
 !  Again in this coding |pi_j|/pi_j = SIGN(1,delta_param)
-            DO i = 1, SIZE(derived_params)
-               this%derived_jacobian(i,j) =                                    &
-     &            -(param_get_value(derived_params(i)%p, a_model)              &
-     &            - this%f(i,this%current_step))
-            END DO
-            this%derived_jacobian(:,j) = this%derived_jacobian(:,j)            &
-     &                                 * SIGN(1.0_rprec,                       &
-     &                                        params(j)%p%recon%delta)
+
+            IF (this%use_central) THEN
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial. Store half the finite difference
+!  in the jacobian. Central difference only takes steps in a single direction so
+!  there is no need to normaize the direction.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+               DO i = 1, this%last_para_signal
+                  this%jacobian(i,j) =                                         &
+     &               signal_get_e(signals(i)%p, a_model, .false.)
+               END DO
+!$OMP END PARALLEL DO
+               DO i = this%last_para_signal + 1, SIZE(signals)
+                  this%jacobian(i,j) =                                         &
+     &               signal_get_e(signals(i)%p, a_model, .false.)
+               END DO
+
+!  Derived Jacobian.
+               DO i = 1, SIZE(derived_params)
+                  this%derived_jacobian(i,j) =                                 &
+     &               param_get_value(derived_params(i)%p, a_model)
+               END DO
+
+!  Reset the parameters and equilibrium to prepare for the backward step.
+               CALL param_set_value(params(j)%p, a_model, param_value,         &
+     &                              eq_comm, this%use_central)
+               CALL equilibrium_reset_state(a_model%equilibrium)
+!  Set the locked values.
+               DO i = 1, SIZE(locks)
+                  CALL param_set_lock_value(locks(i)%p, a_model,               &
+     &                                      eq_comm)
+               END DO
+
+!  Decrement the parameter.
+               CALL param_decrement(params(j)%p, a_model, eq_comm)
+
+               IF (model_converge(a_model, eq_steps, iou, eq_comm,             &
+     &                            param_get_name(params(j)%p,                  &
+     &                            a_model))) THEN
+
+!  Find other half of the finite difference. Negate the jacobian to obtain a
+!  direction down hill.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+                  DO i = 1, this%last_para_signal
+                     this%jacobian(i,j) = -this%jacobian(i,j)                  &
+     &                                  + signal_get_e(signals(i)%p,           &
+     &                                                 a_model, .false.)
+                  END DO
+!$OMP END PARALLEL DO
+                  DO i = this%last_para_signal + 1, SIZE(signals)
+                     this%jacobian(i,j) = -this%jacobian(i,j)                  &
+     &                                  + signal_get_e(signals(i)%p,           &
+     &                                                 a_model, .false.)
+                  END DO
+
+!  Derived Jacobian.
+                  DO i = 1, SIZE(derived_params)
+                     this%derived_jacobian(i,j) =                              &
+     &                  -this%derived_jacobian(i,j) +                          &
+     &                   param_get_value(derived_params(i)%p, a_model)
+                  END DO
+
+               ELSE
+!  Warn the user that the model failed to converge on the jth parameter.
+                  WRITE (*,1000) j
+
+                  this%jacobian(:,j) = 0.0
+                  this%derived_jacobian(:,j) = 0.0
+               END IF
+            ELSE
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial. When using a single sided
+!  difference, the step may be taken in either direction. Normalize by the sign
+!  of the parameter delta.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+               DO i = 1, this%last_para_signal
+                  this%jacobian(i,j) =                                         &
+     &               -(signal_get_e(signals(i)%p, a_model, .false.)            &
+     &               - this%e(i,this%current_step))
+               END DO
+!$OMP END PARALLEL DO
+               DO i = this%last_para_signal + 1, SIZE(signals)
+                  this%jacobian(i,j) =                                         &
+     &               -(signal_get_e(signals(i)%p, a_model, .false.)            &
+     &               - this%e(i,this%current_step))
+               END DO
+               this%jacobian(:,j) = this%jacobian(:,j)                         &
+     &                            * SIGN(1.0_rprec,                            &
+     &                                   params(j)%p%recon%delta)
+
+!  Derived Jacobian.
+               DO i = 1, SIZE(derived_params)
+                  this%derived_jacobian(i,j) =                                 &
+     &               -(param_get_value(derived_params(i)%p, a_model)           &
+     &               - this%f(i,this%current_step))
+               END DO
+               this%derived_jacobian(:,j) =                                    &
+     &            this%derived_jacobian(:,j) *                                 &
+     &            SIGN(1.0_rprec, params(j)%p%recon%delta)
+            END IF
          ELSE
 !  Warn the user that the model failed to converge on the jth parameter.
             WRITE (*,1000) j
@@ -933,7 +1018,7 @@
 !  Restore the parameter and the equilibrium to it's initial value. Need to sync
 !  the value of param delta back to the parent process.
          CALL param_set_value(params(j)%p, a_model, param_value,               &
-     &                        eq_comm)
+     &                        eq_comm, this%use_central)
          CALL equilibrium_reset_state(a_model%equilibrium)
 !  Set the locked values.
          DO i = 1, SIZE(locks)
@@ -1591,8 +1676,9 @@
 #endif
 
          IF (reconstruction_try_step(this, signals, derived_params,            &
-     &          locks, a_model, params, eq_steps, step_use, iou,               &
-     &          recon_comm, eq_comm)) THEN
+     &                               locks, a_model, params, eq_steps,         &
+     &                               step_use, iou, recon_comm,                &
+     &                               eq_comm)) THEN
 
 !  Equilibrium converged
 
@@ -1646,7 +1732,7 @@
 !  the step.
          DO j = 1, SIZE(params)
             CALL param_set_value(params(j)%p, a_model, param_value(j),         &
-     &                           eq_comm)
+     &                           eq_comm, this%use_central)
          END DO
          DO j = 1, SIZE(locks)
             CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
@@ -1736,6 +1822,7 @@
       LOGICAL                                            :: converged
       INTEGER                                            :: k_use
       REAL (rprec)                                       :: step_use
+      REAL (rprec)                                       :: delta_norm
       REAL (rprec), DIMENSION(:), ALLOCATABLE            :: delta_a
       REAL (rprec)                                       :: best_g2
       REAL (rprec)                                       :: temp_g2
@@ -1745,6 +1832,12 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      IF (this%use_central) THEN
+         delta_norm = 2.0
+      ELSE
+         delta_norm = 1.0
+      END IF
 
 #if defined(MPI_OPT)
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
@@ -1822,7 +1915,8 @@
       WRITE (iou,1000)
       DO i = 1, SIZE(params)
          CALL param_set_value(params(i)%p, a_model, param_value(i) +           &
-     &           delta_a(i)*ABS(params(i)%p%recon%delta), eq_comm)
+     &           delta_a(i)*delta_norm*ABS(params(i)%p%recon%delta),           &
+     &           eq_comm, this%use_central)
          WRITE (iou,1001) delta_a(i), param_get_name(params(i)%p,              &
      &                                               a_model)
       END DO
@@ -1889,7 +1983,8 @@
 !  reconstruction_step.
             DO i = 1, SIZE(params)
                CALL param_sync_child(params(i)%p, a_model, best_index,         &
-     &                               recon_comm, eq_comm)
+     &                               recon_comm, eq_comm,                      &
+     &                               this%use_central)
             END DO
             CALL MPI_RECV(this%e(:,this%current_step), SIZE(this%e, 1),        &
      &                    MPI_REAL8, best_index, best_index, recon_comm,                  &
@@ -1917,7 +2012,8 @@
 !  Send the best result back to the parent process.
             DO i = 1, SIZE(params)
                CALL param_sync_child(params(i)%p, a_model, best_index,         &
-     &                               recon_comm, eq_comm)
+     &                               recon_comm, eq_comm,                      &
+     &                               this%use_central)
             END DO
             CALL MPI_SEND(this%e(:,this%current_step), SIZE(this%e, 1),        &
      &                    MPI_REAL8, 0, mpi_rank, recon_comm, error)
@@ -1933,7 +2029,7 @@
 !  computed, this will be resynced.
          DO i = 1, SIZE(params)
             CALL param_set_value(params(i)%p, a_model, param_value(i),         &
-     &                           eq_comm)
+     &                           eq_comm, this%use_central)
          END DO
          DO i = 1, SIZE(locks)
             CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
@@ -1991,6 +2087,7 @@
       INTEGER                                            :: j, i
       REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
+      REAL (rprec)                                       :: delta_norm
       REAL (rprec)                                       :: start_time
 
 !  local parameters
@@ -1999,6 +2096,12 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      IF (this%use_central) THEN
+         delta_norm = 2.0
+      ELSE
+         delta_norm = 1.0
+      END IF
 
 !  Since the jacobian that will be used is normalized, the signal covaiance
 !  must be normalized as well. This results in an idenity matrix of
@@ -2038,10 +2141,12 @@
 !  Store the parameter covariance. Since the normalized signal covariance matrix
 !  was used, the parameter covariance needs to be denormalized.
       DO j = 1, SIZE(params)
-         params(j)%p%sigma = SQRT(cp(j,j)*params(j)%p%recon%delta**2.0)
+         params(j)%p%sigma =                                                   &
+     &      SQRT(cp(j,j)*(delta_norm*params(j)%p%recon%delta)**2.0)
          DO i = 1, SIZE(params)
             params(j)%p%correlation(i) =                                       &
-     &         cp(j,i)*params(j)%p%recon%delta*params(i)%p%recon%delta
+     &         cp(j,i)*delta_norm*params(j)%p%recon%delta *                    &
+     &                 delta_norm*params(i)%p%recon%delta
          END DO
       END DO
 
@@ -2063,9 +2168,9 @@
 !
 !    (A * cp_n)^2 * pi^2 / sigma_p^2                                         (4)
       DO j = 1, SIZE(params)
-         params(j)%p%recon%sem = (j_dot_cp(:,j)**2.0)                          &
-     &                         * params(j)%p%recon%delta**2.0                  &
-     &                         / params(j)%p%sigma**2.0
+         params(j)%p%recon%sem = (j_dot_cp(:,j)**2.0) *                        &
+     &      (delta_norm*params(j)%p%recon%delta)**2.0 /                        &
+     &      params(j)%p%sigma**2.0
       END DO
 
       DEALLOCATE(j_dot_cp, cp)
