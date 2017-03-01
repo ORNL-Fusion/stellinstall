@@ -812,7 +812,7 @@
 
       IF (ASSOCIATED(this%recon)) THEN
          status = nf_def_dim(this%result_ncid, 'maxnsteps',                    &
-     &                       SIZE(this%recon%e, 2), maxnsteps_dim_id)
+     &                       nf_unlimited, maxnsteps_dim_id)
       ELSE
          status = nf_def_dim(this%result_ncid, 'maxnsteps',                    &
      &                       1, maxnsteps_dim_id)

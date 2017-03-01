@@ -4429,9 +4429,11 @@
       start_time = profiler_get_start_time()
 
 !  Define dimensions.
-      status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,                &
-     &                    vmec_nextcur_dim_id)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      IF (nextcur .gt. 0) THEN
+         status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,             &
+     &                       vmec_nextcur_dim_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
 
       status = nf_def_dim(result_ncid, 'vmec_boundary_m', mpol1 + 1,           &
      &                    vmec_boundary_m_dim_id)
@@ -4442,9 +4444,11 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
 !  Define variables.
-      status = nf_def_var(result_ncid, 'vmec_extcur', nf_double, 1,            &
-     &                    (/ vmec_nextcur_dim_id /), vmec_extcur_id)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      IF (nextcur .gt. 0) THEN
+         status = nf_def_var(result_ncid, 'vmec_extcur', nf_double, 1,         &
+     &                       (/ vmec_nextcur_dim_id /), vmec_extcur_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
 
       status = nf_def_var(result_ncid, 'vmec_curtor', nf_double, 0, 0,         &
      &                    vmec_curtor_id)
@@ -4522,11 +4526,14 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      status = nf_inq_varid(result_ncid, 'vmec_extcur', vmec_extcur_id)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
-      status = nf_put_var_double(result_ncid, vmec_extcur_id,                  &
+      IF (nextcur .gt. 0) THEN
+         status = nf_inq_varid(result_ncid, 'vmec_extcur',                     &
+     &                         vmec_extcur_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_put_var_double(result_ncid, vmec_extcur_id,               &
      &                           extcur(1:nextcur))
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
 
       status = nf_inq_varid(result_ncid, 'vmec_curtor', vmec_curtor_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
