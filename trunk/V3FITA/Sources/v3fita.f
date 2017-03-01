@@ -1861,6 +1861,10 @@
          last_para_signal = context%combination_index - 1
       END IF
 
+!  Override from command line if set.
+      use_central_diff = use_central_diff .or.                                 &
+     &   commandline_parser_is_flag_set(context%cl_parser, '-c_diff')
+
       context%recon_stop = dg2_stop
       context%recon => reconstruction_construct(nrstep,                        &
      &                    SIZE(context%signals),                               &

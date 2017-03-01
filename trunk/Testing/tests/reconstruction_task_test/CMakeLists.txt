@@ -254,11 +254,262 @@ add_test (NAME    reconstruction_task_test_check_point3_probe3
 add_test (NAME    reconstruction_task_test_check_point4_probe4
           COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name1=probe4 --s_name2=point4 --attribute=plasma --range=1.0E-5)
 
+#  Test central differencing.
+
+add_test (NAME    reconstruction_task_test_c_diff
+          COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1 -c_diff)
+
+#  Since the reconstruction task test was run, Check the output files for correct values.
+
+#  Check that the reconstruction parameter reconstructed to the correct values.
+add_test (NAME    reconstruction_task_test_pp_ne_af_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=pp_ne_af --value=1.0 --range=0.1 --index1=2)
+add_test (NAME    reconstruction_task_test_am_aux_f_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=am_aux_f --value=1.0 --range=0.1 --index1=2)
+add_test (NAME    reconstruction_task_test_pp_te_af_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=pp_te_af --value=15.0 --range=0.1 --index1=2)
+add_test (NAME    reconstruction_task_test_pp_sxrem_af_a_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af_a --value=1.0 --range=0.1 --index1=1 --index2=1)
+add_test (NAME    reconstruction_task_test_rbc00_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=rbc --value=0.75 --range=0.1 --index1=0 --index2=0)
+add_test (NAME    reconstruction_task_test_rbc01_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=rbc --value=0.25 --range=0.1 --index1=0 --index2=1)
+add_test (NAME    reconstruction_task_test_zbs01_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=zbs --value=0.25 --range=0.1 --index1=0 --index2=1)
+
+#  Check that the signal effectiveness total.
+add_test (NAME    reconstruction_task_test_sem_totals_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_sem_total.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit)
+
+#  Check the jacobians for the the correct values.
+add_test (NAME    reconstruction_task_test_jac_1-4:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_1-4:3-3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=0 --ihigh=3 --jlow=2 jhigh=2 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_5-16:3-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=4 --ihigh=15 --jlow=2 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_17-20:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_17-20:4-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=16 --ihigh=19 --jlow=3 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_21-28:3-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=20 --ihigh=27 --jlow=2 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_25-28:1-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=24 --ihigh=27 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=28 --jlow=1 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_2-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=0 jhigh=0 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_2-2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=29 --ihigh=29 --jlow=2 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_3-1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=0 jhigh=1 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_3-2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=30 --ihigh=30 --jlow=3 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=31 --ihigh=31 --jlow=0 jhigh=2 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_5-7:1-4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=34 --jlow=0 jhigh=3 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_1-4:5-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=28 --ihigh=31 --jlow=4 jhigh=6 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_5:6-7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=32 --ihigh=32 --jlow=5 jhigh=6 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_6:5_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=4 jhigh=4 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_6:7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=33 --ihigh=33 --jlow=6 jhigh=6 --value=0.0)
+add_test (NAME    reconstruction_task_test_jac_prior_7:5-6_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_jac_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/runlog.input.test.v3fit --ilow=34 --ihigh=34 --jlow=4 jhigh=5 --value=0.0)
+
+#  Check that the observed signal was written correctly.
+add_test (NAME    reconstruction_task_test_check_observed_sxr001_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr001 --attribute=observed --value=0.5 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_sxr002_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr002 --attribute=observed --value=0.5 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_sxr003_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr003 --attribute=observed --value=0.5 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_sxr004_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr004 --attribute=observed --value=0.5 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int001_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int001 --attribute=observed --value=5.0E17 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_int002_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int002 --attribute=observed --value=5.0E17 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_int003_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int003 --attribute=observed --value=5.0E17 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_int004_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int004 --attribute=observed --value=5.0E17 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_int005_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int005 --attribute=observed --value=0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int006_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int006 --attribute=observed --value=0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int007_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int007 --attribute=observed --value=0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int008_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int008 --attribute=observed --value=0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int009_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int009 --attribute=observed --value=-5.52983E-05 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int010_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int010 --attribute=observed --value=-5.52983E-05 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int011_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int011 --attribute=observed --value=-5.52983E-05 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_int012_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int012 --attribute=observed --value=-5.52983E-05 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_thm001_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm001 --attribute=observed --value=15 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_thm002_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm002 --attribute=observed --value=15 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_thm003_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm003 --attribute=observed --value=15 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_thm004_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm004 --attribute=observed --value=15 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_thm005_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm005 --attribute=observed --value=1.0E18 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_thm006_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm006 --attribute=observed --value=1.0E18 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_thm007_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm007 --attribute=observed --value=1.0E18 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_thm008_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm008 --attribute=observed --value=1.0E18 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_thm009_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm009 --attribute=observed --value=400 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_thm010_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm010 --attribute=observed --value=400 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_thm011_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm011 --attribute=observed --value=400 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_thm012_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm012 --attribute=observed --value=400 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_observed_prior_1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_1 --attribute=observed --value=1 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_prior_2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=observed --value=1 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_prior_3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=observed --value=15 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_prior_4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=observed --value=1 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_prior_5_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_5 --attribute=observed --value=0.75 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_prior_6_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_6 --attribute=observed --value=0.25 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_observed_prior_7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_7 --attribute=observed --value=0.25 --range=1.0E-10)
+
+#  Check that the observed sigma was written correctly.
+add_test (NAME    reconstruction_task_test_check_sigma_sxr001_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr001 --attribute=sigma --value=5.00000E-03 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_sxr002_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr002 --attribute=sigma --value=5.00000E-03 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_sxr003_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr003 --attribute=sigma --value=5.00000E-03 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_sxr004_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=sxr004 --attribute=sigma --value=5.00000E-03 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int001_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int001 --attribute=sigma --value=5.00000E+15 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_int002_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int002 --attribute=sigma --value=5.00000E+15 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_int003_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int003 --attribute=sigma --value=5.00000E+15 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_int004_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int004 --attribute=sigma --value=5.00000E+15 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_int005_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int005 --attribute=sigma --value=1.00000E-10 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int006_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int006 --attribute=sigma --value=1.00000E-10 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int007_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int007 --attribute=sigma --value=1.00000E-10 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int008_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int008 --attribute=sigma --value=1.00000E-10 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int009_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int009 --attribute=sigma --value=5.52983E-07 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int010_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int010 --attribute=sigma --value=5.52983E-07 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int011_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int011 --attribute=sigma --value=5.52983E-07 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_int012_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=int012 --attribute=sigma --value=5.52983E-07 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_thm001_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm001 --attribute=sigma --value=1.50000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_thm002_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm002 --attribute=sigma --value=1.50000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_thm003_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm003 --attribute=sigma --value=1.50000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_thm004_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm004 --attribute=sigma --value=1.50000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_thm005_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm005 --attribute=sigma --value=1.0E16 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_thm006_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm006 --attribute=sigma --value=1.0E16 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_thm007_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm007 --attribute=sigma --value=1.0E16 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_thm008_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm008 --attribute=sigma --value=1.0E16 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_thm009_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm009 --attribute=sigma --value=4 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_thm010_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm010 --attribute=sigma --value=4 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_thm011_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm011 --attribute=sigma --value=4 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_thm012_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=thm012 --attribute=sigma --value=4 --range=1.0)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_1 --attribute=sigma --value=1.00000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_2 --attribute=sigma --value=1.00000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_3 --attribute=sigma --value=1.50000E-01 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_4 --attribute=sigma --value=1.00000E-02 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_5_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_5 --attribute=sigma --value=0.0001 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_6_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_6 --attribute=sigma --value=0.0001 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_sigma_prior_7_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=prior_7 --attribute=sigma --value=0.0001 --range=1.0E-10)
+
+#  Check parameter constraint types for the correct values.
+add_test (NAME    reconstruction_task_test_check_pp_ne_af_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=pp_ne_af --index1=2 --range_l=value)
+add_test (NAME    reconstruction_task_test_check_am_aux_f_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=am_aux_f --index1=2 --range_l=value)
+add_test (NAME    reconstruction_task_test_check_pp_te_af_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=pp_te_af --index1=2 --range_l=value)
+add_test (NAME    reconstruction_task_test_check_pp_sxrem_af_a_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=pp_sxrem_af_a --index1=1 --index2=1 --range_l=value)
+add_test (NAME    reconstruction_task_test_check_rbc00_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=rbc --index1=0 --index2=0 --range_l=value --range_h=value)
+add_test (NAME    reconstruction_task_test_check_rbc01_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=rbc --index1=0 --index2=1 --range_l=value)
+add_test (NAME    reconstruction_task_test_check_zbs01_constraint_type_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_param_constraint_types.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --p_type=zbs --index1=0 --index2=1 --range_l=value)
+
+#  Check correlation matrix values.
+add_test (NAME reconstruction_task_test_check_reconstruction_correlation_matrix_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --param=Reconstruction)
+add_test (NAME reconstruction_task_test_check_derived_correlation_matrix_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_correlation_matrix.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --param=Derived)
+
+#  Check point magnetic diagnostics values.
+add_test (NAME    reconstruction_task_test_check_point1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=point1 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=point2 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=point3 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name=point4 --attribute=model --value=0.0 --range=1.0E-10)
+add_test (NAME    reconstruction_task_test_check_point1_probe1_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name1=probe1 --s_name2=point1 --attribute=plasma --range=1.0E-5)
+add_test (NAME    reconstruction_task_test_check_point2_probe2_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name1=probe2 --s_name2=point2 --attribute=plasma --range=1.0E-5)
+add_test (NAME    reconstruction_task_test_check_point3_probe3_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name1=probe3 --s_name2=point3 --attribute=plasma --range=1.0E-5)
+add_test (NAME    reconstruction_task_test_check_point4_probe4_c_diff
+          COMMAND ${PYTHON_EXECUTABLE} ${TEST_SCRIPT_DIR}/check_signal_value2.py --file=${CMAKE_CURRENT_BINARY_DIR}/recout.input.test.v3fit --s_name1=probe4 --s_name2=point4 --attribute=plasma --range=1.0E-5)
+
 #  Rerun reconstruction to test that MPI parallel version works. This is only run if MPI support was compiled in.
 
 if (MPI_Fortran_FOUND)
-#  Run the reconstruction task. This just tests if the reconstruction executes correctly. 
-#  Subsequent tests will examine the results of the reconstruction for correct 
+#  Run the reconstruction task. This just tests if the reconstruction executes correctly.
+#  Subsequent tests will examine the results of the reconstruction for correct
 #  results.
 	add_test (NAME    reconstruction_task_test_mpi
         	  COMMAND ${EXECUTABLE_OUTPUT_PATH}/xv3fit input.test.v3fit -para=-1 -mpi=auto)
