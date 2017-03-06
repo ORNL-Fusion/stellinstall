@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['seval',['seval',['../interfacepspline__calls_1_1seval.html',1,'pspline_calls']]],
+  ['seval2',['seval2',['../interfacepspline__calls_1_1seval2.html',1,'pspline_calls']]],
+  ['seval3',['seval3',['../interfacepspline__calls_1_1seval3.html',1,'pspline_calls']]],
+  ['shiftx',['shiftx',['../interfacederiv_1_1shiftx.html',1,'deriv']]],
+  ['shiftx',['shiftx',['../interfaceshiftx.html',1,'']]],
+  ['signal_5fclass',['signal_class',['../structsignal_1_1signal__class.html',1,'signal']]],
+  ['signal_5fconstruct',['signal_construct',['../interfacesignal_1_1signal__construct.html',1,'signal']]],
+  ['signal_5fdot_5ffile',['signal_dot_file',['../structsignal__dot_1_1signal__dot__file.html',1,'signal_dot']]],
+  ['signal_5fpointer',['signal_pointer',['../structsignal_1_1signal__pointer.html',1,'signal']]],
+  ['signals',['signals',['../structv3post__rfun_1_1signals.html',1,'v3post_rfun']]],
+  ['solutionelement',['solutionelement',['../structblocktridiagonalsolver__bst_1_1solutionelement.html',1,'blocktridiagonalsolver_bst']]],
+  ['solutionelement',['solutionelement',['../structblocktridiagonalsolver_1_1solutionelement.html',1,'blocktridiagonalsolver']]],
+  ['speval',['speval',['../interfacepspline__calls_1_1speval.html',1,'pspline_calls']]],
+  ['spgrid',['spgrid',['../interfacepspline__calls_1_1spgrid.html',1,'pspline_calls']]],
+  ['splaan',['splaan',['../interfacepspline__calls_1_1splaan.html',1,'pspline_calls']]],
+  ['splbrk',['splbrk',['../interfacepspline__calls_1_1splbrk.html',1,'pspline_calls']]],
+  ['spleen',['spleen',['../interfacepspline__calls_1_1spleen.html',1,'pspline_calls']]],
+  ['splinck',['splinck',['../interfacepspline__calls_1_1splinck.html',1,'pspline_calls']]],
+  ['spline',['spline',['../interfacepspline__calls_1_1spline.html',1,'pspline_calls']]],
+  ['spvec',['spvec',['../interfacepspline__calls_1_1spvec.html',1,'pspline_calls']]],
+  ['sxrch_5fdesc',['sxrch_desc',['../structsxrch__t_1_1sxrch__desc.html',1,'sxrch_t']]],
+  ['sxrem_5fclass',['sxrem_class',['../structsxrem_1_1sxrem__class.html',1,'sxrem']]],
+  ['sxrem_5fcontext',['sxrem_context',['../structsxrem_1_1sxrem__context.html',1,'sxrem']]],
+  ['sxrem_5fratio_5fclass',['sxrem_ratio_class',['../structsxrem__ratio_1_1sxrem__ratio__class.html',1,'sxrem_ratio']]],
+  ['system',['system',['../interfacesystem__mod_1_1system.html',1,'system_mod']]]
+];
