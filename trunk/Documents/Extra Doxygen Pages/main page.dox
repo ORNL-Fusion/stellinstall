@@ -34,6 +34,7 @@
  * * @ref intpol_dot_sec "Inteferometry/Polarimetry Diagnostic Dot File" User manual for the inteferometry/polarimetry diagnostic dot file.
  * * @ref thomson_dot_sec "Thomson Scattering Diagnostic Dot File" User manual for the Thomson scattering diagnostic dot file.
  * * @ref mse_dot_sec "Motional Stark Effect Diagnostic Dot File" User manual for the motional stark effect diagnostic dot file.
+ * * @ref ece_dot_sec "ECE Diagnostic Dot File" User manual for the ECE diagnostic dot file.
  * * @ref sxrem_ratio_dot_sec "Soft X-ray Ratio Diagnostic Dot File" User manual for the soft x-ray ratio diagnostic dot file.
  *
  * @subsubsection user_v3rfun V3RFUN manuals.
