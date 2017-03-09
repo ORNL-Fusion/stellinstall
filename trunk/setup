@@ -9,7 +9,7 @@
 #
 #---------------------------------------------------------------------------------------------------------------------------------------------
 #                      |           vmec_setup => makes all directories, makefiles    |        |         |        |         |         |
-#                      |                                                             |        |         |        |         |         |
+#                      |                                                  f           |        |         |        |         |         |
 #                      |            |           |            |           |           |        |         |        |         |         |
 #                      |            |           |            |           |           |        |         |        |         |         |
 #                  LIBSTELL        VMEC      STELLOPT   BOOZ_XFORM    NESCOIL      BNORM    BOOTSJ   J_INVAR    PROUT  PGPROUT    BD_MATCH
@@ -36,7 +36,7 @@ uname -a | grep IRIX64 && computer=orig2000
 uname -a | grep OSF1   && computer=osf1
 uname -a | grep HP-UX  && computer=HPUX
 uname -a | grep SunOS  && computer=Sun
-uname -a | grep SX-5   && computer=SX-5
+uname -a | grep SX-5   && computer=SX-5/
 uname -a | grep Linux  && computer=linux
 uname -a | grep Linux  | grep x86_64 && computer=linux64
 uname -a | grep rfplasma && computer=risc6000
@@ -50,14 +50,17 @@ uname -n | grep davinci && computer=davinci
 #uname -n | grep nid && nersc=franklin
 #uname -n | grep freedom && nersc=franklin
 uname -n | grep hopper && nersc=hopper
+uname -n | grep edison && nersc=edison
 uname -n | grep cvrsvc && nersc=carver
-
+uname -n | grep eos && olcf=eos
 
 ZIP_FILE=stellinstall.zip
 INIT_UMASK=`umask`
 INSTALL_DIR=$HOME
 MY_HOME=$INSTALL_DIR/bin
 MACHINE_ID=`uname -n`
+uname -a | grep hydra | grep x86_64 && MACHINE_ID=hydra
+uname -a | grep jf29l | grep x86_64 && MACHINE_ID=jf29l
 uname -a | grep clus | grep x86_64 && MACHINE_ID=ipp_stel_cluster64
 uname -a | grep clus | grep i[3-6]86 && MACHINE_ID=ipp_stel_cluster32
 [ "$MACHINE_ID" = "falcon0" ] && MY_HOME=$INSTALL_DIR"/falcon"
@@ -104,11 +107,12 @@ $ECHO  "  Machine ID = $MACHINE_ID"
 	MKDIR="mkdir -m 755"
 	processors_per_node=1
 	AWK="awk"
-	LOG_OR="||"
-	LOG_AND="\\\&\\\&"
 	PREPROC="/lib/cpp -P -C "
+	PREPROC_NOC="/lib/cpp -P "
 	NETCDF_DIREC="/usr/local"
 	LIBNETCDF="libnetcdf.a"
+	LTIME=`which time`
+	WSED=`which sed`
 	NETCDF_INC=$NETCDF_DIREC/include
 	NETCDF_LIB=$NETCDF_DIREC/lib/$LIBNETCDF
 	FFTW_INC="/usr/include"
@@ -469,6 +473,53 @@ then
 	ZIP="zip"
 	UNCOMPRESS="gunzip"
 	UNZIP="unzip"
+elif [ $MACHINE_ID = "hydra" ]
+then
+	$ECHO "Found hydra"
+# MKLROOT is already declared if the mkl-module is loaded
+# NETCDF_HOME is declared by loading the appropriate module
+	LOCAL_MAKE="make"
+	COMPILE="ifort"
+	LINK="ifort"
+        MKL_DIREC="$MKLROOT"
+	LIB="-Wl,--start-group  ${MKL_DIREC}/lib/intel64/libmkl_intel_lp64.a ${MKL_DIREC}/lib/intel64/libmkl_sequential.a ${MKL_DIREC}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm"
+	FREE_FORM=""
+	FLAGS_R=" -I${MKL_DIREC}/include"
+	FLAGS_D="-g -I${MKL_DIREC}/include"
+	PREPROC=" "
+	LIBNETCDF="-lnetcdf -lnetcdff"
+	NETCDF_DIREC="$NETCDF_HOME"
+	NETCDF_INC="$NETCDF_DIREC/include"
+	NETCDF_LIB="-L$NETCDF_DIREC/lib $LIBNETCDF"
+        LIB="$LIB -Xlinker -rpath=${MKL_DIREC}/lib/intel64 -Xlinker -rpath=$NETCDF_DIREC/lib"
+	COMPRESS="gzip"
+	ZIP="zip"
+	UNCOMPRESS="gunzip"
+	UNZIP="unzip"
+elif [ $MACHINE_ID = "jf29l" ]
+then
+	$ECHO "Found HPC-FF environment"
+# MKLPATH is already declared if the mkl-module is loaded
+# No declaration of netcdf or hdf5 related environment variables holding the paths.
+	LOCAL_MAKE="make"
+	COMPILE="ifort"
+	LINK="ifort"
+        MKL_DIREC="$MKLPATH"
+	LIB=" -L${MKL_DIREC} -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread"
+	FREE_FORM=""
+	FLAGS_R=" -I${MKLINCLUDE}"
+	FLAGS_D="-g -I${MKLINCLUDE}"
+	PREPROC=" "
+	LIBNETCDF="-lnetcdf -lnetcdff"
+	NETCDF_DIREC="/usr/local/netcdf/v4.2"
+	HDF_DIREC="/usr/local/hdf5/v1.8.9"
+	NETCDF_INC="$NETCDF_DIREC/include"
+	NETCDF_LIB="-L$NETCDF_DIREC/lib $LIBNETCDF -L$HDF_DIREC/lib -lhdf5_hl -lhdf5"
+        LIB=" ${LIB}  -Xlinker -rpath=${MKL_DIREC}/lib/intel64 -Xlinker -rpath=$HDF_DIREC/lib -Xlinker -rpath=$NETCDF_DIREC/lib"
+	COMPRESS="gzip"
+	ZIP="zip"
+	UNCOMPRESS="gunzip"
+	UNZIP="unzip"
 elif [ $MACHINE_ID = "euler01.ciemat.es" ] || [ $MACHINE_ID = "euler02.ciemat.es" ] 
 then 
 	LOCAL_MAKE="gmake"
@@ -489,74 +540,214 @@ then
 	UNCOMPRESS="gunzip" 
 	UNZIP="unzip" 
 	precomp=$PREPROC"-traditional -DLINUX -DNEED_BLAS"
+elif [ $MACHINE_ID = "r2d2.gat.com" ]
+then
+	COMPILE="gfortran -fno-sign-zero -I$SILO_SERIAL/include -I$FFTW_INC"
+	FLAGS_R="-O3 -I../Sources"
+	FLAGS_D="-g -I../Sources"
+	FREE_FORM=""
+	NETCDF_DIREC=/usr
+	NETCDF_INC=$NETCDF_DIREC/include
+	NETCDF_L=$NETCDF_DIREC/lib64
+	NETCDF_LIB="-lnetcdff"
+	LINK=gfortran
+	LAPACK_LIB="-L/usr/lib64 -llapack"
+	LIB=$LAPACK_LIB
+	MPI_COMPILE="mpif90"
+	MPI_LINK=mpif90
+	BLACS_PATH=-L/usr/lib64
+	BLACS_LIB=$BLACS_PATH" -lmpiblacs"
+	SCALAPACK_PATH=-L/usr/lib64
+	SCALAPACK_LIB=$SCALAPACK_PATH" -lscalapack -lrefblas "
+	precomp=$precomp" -DSKS"
+
 elif [ $MACHINE_ID = "siesta.ornl.gov" ] || [ $MACHINE_ID = "swim.ornl.gov" ]
 then
-	SILO_SERIAL="/usr/src/silo060605"
-	SILO_PAR="/usr/local/silo/gfortran/parallel"
+#
+#   ADD (TO COMPILE) -fcheck=all for array checking in non-production runs
+#
+	precomp=$PREPROC_NOC"-traditional -DLINUX -DNEED_BLAS"
+	SILO_PAR="/usr/local/src/silo-4.8/silo-4.8-gcc-4.8.3"
+	SILO_SERIAL=$SILO_PAR
+	[ $MACHINE_ID = "siesta.ornl.gov" ] && SILO_PAR="/usr/local/src/silo-4.8/silo-4.8-gcc-4.8.2"
 	VISIT_DIR="/usr/local/visit/2.2.0/linux-x86_64"
-	COMPILE="gfortran -fno-realloc-lhs -I$SILO_SERIAL/include -I$FFTW_INC"
+	COMPILE="gfortran -fno-realloc-lhs -fno-sign-zero -I$SILO_SERIAL/include -I$FFTW_INC"
 	PGPLOT_DIR=""
 	PGALL=$PGPLOT_DIR" -lpgplot"
-	NETCDF_DIR=/usr
-	NETCDF_INC=$NETCDF_DIR/include
-	NETCDF_L=$NETCDF_DIR/lib64
+	NETCDF_DIREC=/usr
+	NETCDF_INC=$NETCDF_DIREC/include
+	NETCDF_L=$NETCDF_DIREC/lib64
  	NETCDF_LIB="-lnetcdff"
 	LINK=gfortran
-	HDF5="$SILO_SERIAL/lib/libsilo.a -lhdf5 -lz"
+	HDF5="$SILO_SERIAL/lib/libsiloh5.a -lhdf5 -lz"
 	FFTW_LIB=usr/lib64
 	LAPACK_LIB="-llapack -lblas"
 
 #add these lines for mpi and add scalapack reference
 	precomp=$precomp" -DSKS -DSILO_AVAIL -DH5_USE_16_API"
-	MPI_COMPILE="mpif90 -fno-realloc-lhs -I$SILO_PAR/include -I$FFTW_INC"
+	MPI_COMPILE="mpif90 -fno-realloc-lhs -I$FFTW_INC"
 	MPI_LINK=mpif90
-	HDF5="$SILO_PAR/lib/libsilo.a -lhdf5 -lz"
+	HDF5="$SILO_PAR/lib/libsiloh5.a -lhdf5 -lz"
 	SCALAPACK_PATH=-L/usr/lib64/scalapack-openmpi
 	SCALAPACK_LIB=$SCALAPACK_PATH" -lscalapack "
 	BLACS_PATH=-L/usr/lib64/openmpi/lib
-	BLACS_LIB=$BLACS_PATH" -lmpiblacs -lmpiblacsF77init"
+	BLACS_LIB=$BLACS_PATH" -lmpiblacs"
 	LIB=$LAPACK_LIB
 #	LIB=$LIB" -L$FFTW_LIB -lfftw3"
 	FLAGS_R="-O3 -I../Sources"
 	FLAGS_D="-g -I../Sources"
 	FREE_FORM="" 
+elif [ $MACHINE_ID = "fusion2.ornl.gov" ]
+then
+#
+#\A0\A0 ADD (TO COMPILE) -fcheck=all for array checking in non-production runs
+#
+	precomp=$PREPROC_NOC"-traditional -DLINUX -DNEED_BLAS"
+	COMPILE="gfortran -fno-realloc-lhs -fno-sign-zero -I$FFTW_INC"
+	PGPLOT_DIR=""
+	PGALL=$PGPLOT_DIR" -lpgplot"
+	NETCDF_DIREC=/usr
+	NETCDF_INC=$NETCDF_DIREC/include
+	NETCDF_L=$NETCDF_DIREC/lib
+	NETCDF_LIB="-lnetcdff -lnetcdf"
+	LINK=gfortran
+	HDF5="-lhdf5 -lz"
+	FFTW_LIB=/usr/lib64
+	LAPACK_LIB="-llapack -lblas"
+
+#add these lines for mpi and add scalapack reference
+	precomp=$precomp" -DSKS -DH5_USE_16_API"
+	MPI_COMPILE="mpif90 -fno-realloc-lhs -I$FFTW_INC"
+	MPI_LINK=mpif90
+	HDF5="-lhdf5 -lz"
+	SCALAPACK_PATH=-L/usr/lib64
+	SCALAPACK_LIB=$SCALAPACK_PATH" -lscalapack "
+	BLACS_PATH=-L/usr/lib64
+	BLACS_LIB=$BLACS_PATH" -lmpiblacs"
+	LIB=$LAPACK_LIB
+	FLAGS_R="-O3 -I../Sources"
+	FLAGS_D="-g -I../Sources"
+	FREE_FORM=""
+
 elif [ "$nersc" = "hopper" ]
 then
-        COMPILE="ftn"
-        LINK="ftn"
-        FREE_FORM=""
-        LIB=""
-        FLAGS_R="-O2"
-        FLAGS_D="-g"
-        module load netcdf
-        precomp=$PREPROC"-traditional -DSILO_AVAIL -DH5_USE_16_API -DSKS"
-        HDF5="-L/usr/common/usg/silo/4.8/gcc/lib/ -lsiloh5 -lz"
-        NETCDF_DIREC="/opt/cray/netcdf/4.1.3/pgi/109"
-        NETCDF_INC="/opt/cray/netcdf/4.1.3/pgi/109/include"
-        NETCDF_LIB="-L/opt/cray/netcdf/4.1.3/pgi/109/lib -lnetcdff"
-        COMPRESS="gzip -S .Z"
-        ZIP="zip"
-        UNCOMPRESS="gunzip -S .Z"
-        UNZIP="unzip"
-        MPI_COMPILE="ftn"
-	MPI_LINK=$MPI_COMPILE
-elif [ "$nersc" = "carver" ]
-then
-	module load mkl
 	module load netcdf
-	COMPILE="mpif90"
-	LINK="mpif90"
+	module load silo
+	module swap hdf5 hdf5-parallel
+	module swap PrgEnv-pgi PrgEnv-gnu
+	SILO_INC="/usr/common/usg/silo/4.10.2/gnu/include/"
+	COMPILE="ftn -I$SILO_INC"
+	LINK="ftn"
 	FREE_FORM=""
-	LIB="$MKL -lmkl_lapack"
-	FLAGS_R="-fast"
+	LIB=""
+	FLAGS_R="-O2"
 	FLAGS_D="-g"
-	NETCDF_DIREC="/usr/common/usg/netcdf/4.0.1"
-	NETCDF_INC="/usr/common/usg/netcdf/4.0.1/include"
-	NETCDF_LIB="-L/usr/common/usg/netcdf/4.0.1/lib -lnetcdf"
+	precomp=$PREPROC"-traditional -DLINUX -DSILO_AVAIL -DH5_USE_16_API -DSKS"
+	HDF5="-L/usr/common/usg/silo/4.8/gcc/lib/ -lsiloh5 -lz"
+	NETCDF_DIREC="/opt/cray/netcdf/4.3.2/gnu/49"
+	NETCDF_INC="/opt/cray/netcdf/4.3.2/gnu/49/include"
+	NETCDF_LIB="-L/opt/cray/netcdf/4.3.2/gnu/49/lib"
 	COMPRESS="gzip -S .Z"
 	ZIP="zip"
 	UNCOMPRESS="gunzip -S .Z"
 	UNZIP="unzip"
+	MPI_COMPILE="ftn -I$SILO_INC"
+	MPI_LINK="ftn"
+
+elif [ "$nersc" = "edison" ]
+then
+	module load netcdf
+	module load silo
+	module swap hdf5 hdf5-parallel
+	module swap PrgEnv-pgi PrgEnv-gnu
+	SILO_INC="/usr/common/usg/silo/4.10.2/gnu/include/"
+	COMPILE="ftn -I$SILO_INC"
+	LINK="ftn"
+	FREE_FORM=""
+	LIB=""
+	FLAGS_R="-O2"
+	FLAGS_D="-g"
+	precomp=$PREPROC"-traditional -DLINUX -DSILO_AVAIL -DH5_USE_16_API -DSKS"
+	HDF5="-L/usr/common/usg/silo/4.8/gcc/lib/ -lsiloh5 -lz"
+	NETCDF_DIREC="/opt/cray/netcdf/4.3.2/gnu/49"
+	NETCDF_INC="/opt/cray/netcdf/4.3.2/gnu/49/include"
+	NETCDF_LIB="-L/opt/cray/netcdf/4.3.2/gnu/49/lib"
+	COMPRESS="gzip -S .Z"
+	ZIP="zip"
+	UNCOMPRESS="gunzip -S .Z"
+	UNZIP="unzip"
+	MPI_COMPILE="ftn -I$SILO_INC"
+	MPI_LINK="ftn"
+
+elif [ "$nersc" = "carver" ]
+then
+#       The following assumes that you are using the GNU (gcc) compiler on Carver.
+#       Note that SIESTA will ONLY work correctly on Carver with the gcc compiler.
+#       This is not the default, so in order to remove the default PGI compiler, you must
+#
+#       ADD -fcheck=all TO CHECK FOR ARRAY MISMATCHES
+#
+#       FOR INTEL, source envint.rc, where envint.rc contains the lines:
+#       module purge
+#       module load intel openmpi-intel netcdf-intel mkl hdf5-intel
+#       must add to the qsub batch script
+#       source ~/Stellarator-INTEL/envintel.rc
+#
+#       FOR GNU, source envgnu.rc, where envgnu.rc contains the lines:
+#       module purge
+#       module load gcc openmpi-gcc netcdf-gnu mkl hdf5-gnu
+#       must add to the qsub batch script
+#       source ~/Stellarator-GNU/envgnu.rc
+#
+	precomp=$PREPROC"-traditional -DLINUX -DH5_USE_16_API -DSKS"  #       SILO_INC="/usr/common/usg/silo/4.7.2/include"
+	COMPILE="mpif90"
+	LINK="mpif90 -fno-sign-zero"
+	MPI_COMPILE="mpif90"
+	MPI_LINK="mpif90"
+	echo "MYCOMPILER: "$MYCOMPILER
+
+	COMPILE="$COMPILE -I\$(MKL_INC)"  #  -I$SILO_INC"
+	LINK="LINK -I\$(MKL_INC)"  # -I$SILO_INC"
+	MPI_COMPILE="$MPI_COMPILE -I\$(MKL_INC)" # -I$SILO_INC"
+	MPI_LINK="$MPI_LINK -I\$(MKL_INC)" # -I$SILO_INC"
+	LIB="\$(MKL) -lmkl_scalapack_lp64 -lmkl_blacs_openmpi_lp64 \$(NETCDF)"
+	FREE_FORM=""
+	HDF5="\$(HDF5)"
+	FLAGS_R=""
+	FLAGS_D="-g"
+	NETCDF_DIREC=$NETCDF_DIR
+	NETCDF_INC="$NETCDF_DIR/include"
+	NETCDF_LIB=""
+	COMPRESS="gzip -S .Z"
+	ZIP="zip"
+	UNCOMPRESS="gunzip -S .Z"
+	UNZIP="unzip"
+	PGLIB="-L/usr/common/usg/pgplot/5.2 -lpgplot -lpng"
+	PGPLOT_DIR="/usr/common/usg/pgplot/5.2"
+
+elif [ "$olcf" = "eos" ]
+then
+	#COMPILE="ftn $SILO_INC"
+	COMPILE="ftn"
+	LINK="ftn"
+	FREE_FORM=""
+	LIB=""
+	FLAGS_R="-O2"
+	FLAGS_D="-g"
+	#precomp=$PREPROC"-traditional -DLINUX -DSILO_AVAIL -DH5_USE_16_API -DSKS"
+	precomp=$PREPROC"-traditional -DLINUX -DH5_USE_16_API -DSKS"
+	HDF5="-L/usr/common/usg/silo/4.8/gcc/lib/ -lsiloh5 -lz"
+	NETCDF_DIREC=$NETCDF_DIR
+	NETCDF_INC="$NETCDF_DIR/include"
+	NETCDF_LIB="-L$NETCDF_DIR/lib"
+	COMPRESS="gzip -S .Z"
+	ZIP="zip"
+	UNCOMPRESS="gunzip -S .Z"
+	UNZIP="unzip"
+	#MPI_COMPILE="ftn $SILO_INC"
+	MPI_COMPILE="ftn"
+	MPI_LINK="ftn"
+
 elif [ $MACHINE_ID = "gongora.ornl.gov" ] || [ $MACHINE_ID = "quevedo.ornl.gov" ]
 then
 	NETCDF_DIREC="/usr/lib64"
@@ -1015,19 +1206,20 @@ macosx)
 #   all source code onto this image. Next, use the command line cd to /Volumes and then to the
 #   newly created UFS area.  Everytime the machine is rebooted, you will need to double click on
 #   the disk image to remount it, but all of the files should still be there.
-
+          
 	PREPROC="cpp -E -P -C "
-	FLAGS_R="-O2 -vec-report0"
+	FLAGS_R="-O2"
 	FLAGS_D="-g"
 	FREE_FORM="-free"
-	MKLPATH="/Library/Frameworks/Intel_MKL.framework/Versions/Current/lib/em64t"
-	MKLINCLUDE="/Library/Frameworks/Intel_MKL.framework/Versions/Current/include"
-	MKLFLAG="-L$MKLPATH -I$MKLINCLUDE -lmkl_intel_lp64 -lmkl_lapack -lmkl_sequential -lmkl_core -lpthread"
+	LTIME=""
+	WSED=`which gsed`
+	MKLINCLUDE="-I${MKLROOT}/include"
+	MKLFLAG="${MKLROOT}/lib/libmkl_intel_lp64.a ${MKLROOT}/lib/libmkl_core.a ${MKLROOT}/lib/libmkl_sequential.a -lpthread -lm"
 	LIBNETCDF="libnetcdf.a"
 	NETCDF_DIREC="/Users/dsp/Applications/netcdf-4.0.1_install"
 	NETCDF_INC=$NETCDF_DIREC/include
 	NETCDF_LIB="$NETCDF_DIREC/lib/$LIBNETCDF $MKFLAG"
-	precomp=$PREPROC"-DMACOSX -DNEED_BLAS -DIFORT"
+	precomp=$PREPROC"-DMACOSX -DNEED_BLAS -DIFORT -DDARWIN"
 	COMPILE="ifort"
 	LINK="ifort"
 	ARCHIVE="ar -ruvs"
@@ -1050,7 +1242,7 @@ esac
 #   End platform identification
 #   Next, query user about type of update/distribution/make he desires
 #   First ascertain that the required installation ZIP file (stellinstall.zip)
-#   or compressed tar file (stellunix.tar.Z) exists in the current user directory. 
+#   exists in the current user directory. 
 #   "Unmask" dependency files that may already exist from prior installation.
 #   Set umask so ONLY the user and his group can read files (user can write to
 #   the "Sources" directory files, too...) but should NOT write over certain 
@@ -1061,21 +1253,11 @@ if [ -s $ZIP_FILE ]
 then
     $ECHO "unzipping stellinstall"
     $UNZIP -oqUu $ZIP_FILE
-    $UNZIP -aoqUu $ZIP_FILE README tarstell zipstell setup
+    $UNZIP -aoqUu $ZIP_FILE README setup
     UNZIP1="$UNZIP -Uaoq"
     UNTAR=""
-elif [ -s stellunix.tar.Z ] || [ -s stellunix.tar ]
-then
-    if [ -s stellunix.tar.Z ]
-    then
-       $ECHO "uncompressing stellunix"
-       $UNCOMPRESS stellunix.tar.Z
-    fi
-    UNTAR="tar -xof stellunix.tar "
-    $UNTAR README tarstell
-    UNZIP1=""
 else
-    $ECHO "  The required distribution files (stellinstall.zip or stellunix.tar.Z) were NOT found"
+    $ECHO "  The required distribution file (stellinstall.zip) was NOT found"
     $ECHO "  Installation will be halted"; exit
 fi
 
@@ -1102,16 +1284,16 @@ $ECHO
 $ECHO '  Specify project(s) to make from the following list: '
 $ECHO
 $ECHO '  all animec bd_match booz_xform bootsj bnorm cobra cobravmec coilopt'
-$ECHO '  descur dkes inductance j_invariant lib makegrid nbj neo nescoil pgplot'
-$ECHO '  pgprout poincare propack prout siesta stellopt vacopt vmec2000'
+$ECHO '  descur diagno dkes inductance j_invariant lib makegrid nbj neo nescoil'
+$ECHO '  parvmec pgplot pgprout poincare propack prout qrcholesky siesta stellopt vacopt vmec2000'
 $ECHO '  v3fita v3post v3rfun'
 $ECHO
 read v_in
 FILES_TO_MAKE=`echo $v_in | tr "[:upper:]" "[:lower:]"`
 if [ "$FILES_TO_MAKE" = "all" ]
 then
-   FILES_TO_MAKE="animec bd_match booz_xform bootsj bnorm cobra cobravmec coilopt descur dkes inductance j_invariant \
-    makegrid nbj neo nescoil pgplot pgprout poincare propack prout siesta vacopt vmec2000 v3fita v3post v3rfun stellopt"
+   FILES_TO_MAKE="animec bd_match booz_xform bootsj bnorm cobra cobravmec coilopt descur diagno dkes inductance j_invariant \
+    makegrid nbj neo nescoil parvmec pgplot pgprout poincare propack prout qrcholesky siesta vacopt vmec2000 v3fita v3post v3rfun stellopt"
 fi
 [ "$FILES_TO_MAKE" = "lib" ] && FILES_TO_MAKE=""
 
@@ -1219,98 +1401,141 @@ then
    fi
 fi
 
+#Set up StellObject awk and sh files
+
 #---------------------------------------------------------------
-#   awk_dep  converts the dependency file (*.dep)  into UNIX compatible form.
 #
 #   NOTE: QUOTES AROUND EOF CAN BE USED TO AVOID HAVING TO ESCAPE (\) ALL
 #   THE $ CHARACTERS. THIS WORKS ONLY WHEN THERE ARE NO SHELL SUBSTITUTIONS IN THE CAT-ED SCRIPT.
 #
-#   09-22-04: Removed tolower on file names. Make sure the name of the mod file in the
-#             .dsp file is the same as the *.f file name, then all will be fine EVEN with
-#             a mixture of caps, lower cases
 #---------------------------------------------------------------
-cat > awk_dep.awk << "EOF"
-#Written by S. P. Hirshman (02/26/02)
-#This script converts a Windows (compaq Fortran) generated dependency file
-#into UNIX readable form
+AWKFILE=StellObj.awk
+STELLSH=StellObj.sh
+cat > $STELLSH <<EOF
+#!/bin/sh
+#    Run this script: script_name <FOLDERNAME>, where FOLDERNAME is the top-level child
+#    folder name in the stellinstall tree
+#    Written by S. P. Hirshman (03/14/16)
+     FOLDERNAME=\$1
+     DEPEND_FILE=\$FOLDERNAME.dep
+     LIST_FILE=ObjectList
+     TEMP_FILE=TempList
+     OBJ_LIST=ObjectL.txt
+     CDIR=\$0
 
-#Remove all occurences of .\Sources\..\ and .\Release\
-#Convert all WIN "\" to UNIX "/"
-#Change ".mod" with ".o" and ".f,.f90" to ".o"
-#Change ..\LIBSTELL to ../../LIBSTELL
-#Also, for V3FIT, will need to change ..\VMEC2000 to ../../VMEC2000
-#Later, will change "Release" to "Debug" as required
-#Eliminate tabs and "\" at end of each dependency group of lines
+     rm -f \$LIST_FILE
+     find ./Sources \( -iname \*.f -or -iname \*.f90 \) > \$LIST_FILE
+     sort \$LIST_FILE > \$TEMP_FILE
 
-BEGIN {ntabs = 0; nsource = 0}
+#    Load list of filenames into array and strip path/extension
+#    shellarr=( \`cat "\$OBJ_LIST"\` )
 
-#Convert upper case *.mod files names into lower case
-$1 ~ /[A-Z]*\.mod/  { n = split ($1, path, "\\");
-mypath=""
-for (i = 1; i < n-1; i++) mypath = mypath sprintf("%s\\", path[i]);
-transtring = path[n-1]"\\";
-#transtring = tolower(path[n-1])"\\";
-$0 = "\t" mypath transtring;
+     c1=0
+     while read line
+     do
+# Get the file name
+#       base="\`basename \$line\`"
+        base="\${line##*/}"  #~2X faster than basename
+        var=\${base%.*}   #remove extension including '.'
+        c1=\$(expr \$c1 + 1)
+        shellarr[\$c1]=\$var
+     done < \$TEMP_FILE  
+
+# Save filename list to OBJ_LIST file
+     printf "%s\n" "\${shellarr[@]}" > \$OBJ_LIST
+
+# Generate dep file: NOTE IN AWK, \$0 IS THE COMPLETE RECORD, NOT THE COMMAND LINE ARG[0]
+     awk -v var1="\$c1" -v var2="\${shellarr[*]}" '{ command="./StellObj.awk "\$0" "var1" "var2; command | getline; close(command);}' \$TEMP_FILE
+     mv "test.dep" \$DEPEND_FILE
+
+# Generate the ObjectList file (LIST_FILE)
+     awk '{print \$0".o \\\\";}' \$OBJ_LIST > \$LIST_FILE
+# Add line to beginning of sorted file and remove \ from last line
+     sort \$LIST_FILE > \$TEMP_FILE
+     $WSED '1i\ObjectFiles = \\\\' \$TEMP_FILE > \$LIST_FILE
+     sed '\$s/\\\\//' \$LIST_FILE > \$TEMP_FILE
+     mv \$TEMP_FILE \$LIST_FILE
+     rm \$OBJ_LIST
+EOF
+
+chmod u+x $STELLSH
+
+LOC_AWK="#!"`which awk`
+cat > $AWKFILE << EOF
+$LOC_AWK -f
+#AWK script to generate dependency (*.dep) file named DEPFILE in current directory
+#NOTE ON USE: test.awk <path to filename.f(90)> to get dependencies from the controlling
+#setup script; replace DEPFILE="test.dep" with name of dependency file
+#Written by S. P. Hirshman (03/14/16)
+
+function strip_extension(filename) {
+#assumes only "." in filename (basename) precedes extension
+     split(filename, vara, ".");
+     return vara[1];
 }
 
-#Lines with ONLY tabs separate dependency. Store previous line in TabLine array
-#so that continuation symbol (\) can be eliminated. Also, replace ALL tabs with 6 blanks
-{if ($0 == "\t") TabLine[++ntabs] = NR-1;  gsub(/\t/,"      ")}
-{sub(/\.f : /,".o : ")}
-{sub(/\.f90 : /,".o : ")}
+BEGIN {
+     iout= 0;
+     DEPFILE="test.dep"   #renamed in setup script
+# ARGV[2] is the number of elements in the shell array (each element appears as a separate commandline arg)
+     arrlen=ARGV[2]; 
+# debug print "Len: "arrlen" ARGC: "ARGC;
+# store in associative array for easy lookup
+     for (i = 1; i<=arrlen; i++) {
+        usename=ARGV[i+2]; upname=toupper(usename);
+        usearray[upname] = usename; }
+# clean up:reset ARGC to 2
+     ARGC = 2
+}
+{    
+     if (NR == 1) {
+        myfile = "basename "FILENAME
+        myfile | getline name;
+#name of parent object-file in dependency list
+        name  = strip_extension(name)".o: \\\\";
+#debug  print "Filename: "FILENAME" BaseName: "name;
+     }
+     uctest = toupper(\$1)
+     if (uctest == "USE") 
+     {
+#        parse possible comma in USE, ONLY: ... statements
+         split(\$2, a, ",");
+         uctest=toupper(a[1]);
+#        do not store duplicates - use associative array "seen", initialized to 0
+         bool = !seen[uctest];
+         if (!seen[uctest]++) {
+            record[++iout] = uctest;
+         }
+#debug   else print "uctest already exists: "uctest      
+     }
+}
+END {
+     if (iout == 0) exit;
+     icollect = 0;
+#    remove filename if it appears more than once in list
+     for (icheck = 1; icheck<=iout; icheck++) {
+        dep=record[icheck];
 
-
-$1 ~ /\.\\Sources\\/ {n = split($1,path,"\\"); $0=path[n]" : \\"; SourceLine[++nsource] = NR}
-{sub(/\".\\Release\\/,"");  sub(/\.mod/,".o")}
-#{sub(/\"\.\.\\LIBSTELL\\Release\\/,"../../LIBSTELL/Release/")}
-#{sub(/\"\.\.\\VMEC2000\\Release\\/,"../../VMEC2000/Release/")}
-{sub(/\"\.\.\\/,"../../")}
-{sub(/\\Release\\/,"/Release/")}
-{sub(/\"\\/," \\")}
-{record[NR] = $0}
-
-#strip trailing "\" between on last dependency line for each source
-#strip netcdf.inc and eliminate entire source line record if that is the ONLY dependency line
-END {j = 1; k = 1; for (i = 1; i <= NR; i++) {
-    if (i == SourceLine[k])
-    {
-       k++; i1 = i+1
-       if (record[i1] ~ /netcdf.inc/)
-       {
-           if (i1 >= NR) exit;
-           if (i1 == TabLine[j]) {j++; i += 3}
-       }
-    }
-    if (i == TabLine[j]) {if (j < ntabs) j++; $0 = record[i]; gsub(/\\/,"");record[i] = $0}
-    if (record[i] !~ /netcdf.inc/) print record[i]}
-    }
+#    check if file exists in this folder and get correct case
+#    (otherwise it is in a library, no need to include here)
+#        dep = find_file(dep);
+        dep = usearray[dep];
+        if (dep == "") continue;
+        dep = "      "dep".o";
+        collect[++icollect] = dep;
+     }
+     if (icollect == 0) exit;  
+     print name >> DEPFILE;
+     for (i2=1; i2<=icollect; i2++) {
+        dep=collect[i2];
+        if (i2 != icollect)
+           dep = dep" \\\\";
+        print dep >> DEPFILE;
+     }
+     print "" >> DEPFILE;    #blank line separator at end
+}
 EOF
-
-#Written by S. P. Hirshman (01/23/08)
-#script for removing Debug *.f/*.f90 files if Sources version is newer
-cat > touch_debug << EOF
-#!/bin/sh
-cd Debug
-for file in *.f*
-do
-#   echo \$file
-   cd ..
-   file2=\`find Sources -name \$file\`
-   ! [ -f "\$file2" ] && continue
-   file3='Debug/'\$file
-#   echo 'file2: '\$file2 'file3: '\$file3
-   if [ \$file2 -nt \$file3 ]
-   then
-      rm \$file3
-   fi
-   cd Debug
-done
-EOF
-
-rm -f $MY_HOME/touch_debug
-chmod u+x touch_debug
-mv touch_debug $MY_HOME
-
+chmod u+x $AWKFILE
 TOP_LEVEL_DIR=`pwd`
 
 #---------------------------------------------------------------
@@ -1424,6 +1649,12 @@ $ECHO "$MPI_LIB"
          LINK_FILE=$NCARGSYM" -o"
          LINK_LIB="$LINK_LIB $NCARGLIB"
   ;;
+  diagno)
+         EXE_FILE='xdiagno'
+         actual_precomp=$precomp" -DNTCC"
+#        MOD_PATH="$MOD_PATH $NETCDF_INC $NTCC_INC "
+#        LINK_LIB="$LINK_LIB $MPI_LIB $NTCC_LIB $HDF_LIB $NAG_LIB "
+  ;;
   inductance)
          EXE_FILE="xinduct"
   ;;
@@ -1498,10 +1729,8 @@ $ECHO PGPLOT_DIR=$PGPLOT_DIR
   fi
 #---------------------------------------------------------------
 #   The original UNZIP call (if executed) makes all the required directories.
-#   Alternatively, if using tar file, then untar this directory.
 #   First check if "clean" build is requested, then remove "Sources" files.
 #---------------------------------------------------------------
-   [ "$UNTAR" != "" ] && FILE_EXISTS=`tar -tf stellunix.tar $DIR`
    CLEAN_LIBMAKE='N'
    if [ "$CLEAN" = "clean" ] && [ -d ./$DIR ]
    then
@@ -1591,7 +1820,7 @@ $ECHO ">>>>>>>>>>>>> " FILES_TO_MAKE $files_to_make
         exit
      else
         $UNZIP1 $DIR.zip
-	  $ECHO "Unzipping: $UNZIP1 $DIR.zip"
+	  $ECHO "  Unzipping: $UNZIP1 $DIR.zip"
 #       MAKE SURE ALL CR/LF ARE PROPERLY ACCOUNTED FOR
 	  $ZIP -rq test Sources $DIR.dep
 	  $UNZIP1 test; rm test.zip
@@ -1611,36 +1840,8 @@ $ECHO ">>>>>>>>>>>>> " FILES_TO_MAKE $files_to_make
   [ "$DIR" = "COILGEOM" ] && cd ../COILGEOM && SPATH="../../COILOPT/Sources"
 
 #---------------------------------------------------------------
-#   Convert Windows *.dep dependency files into UNIX compatible form
-#   Remove trailing "\" using sed
-#   Must replace "Release" with "Debug" paths in all files (except libstell).
-#   Give subsequent files r (x) privelege, but do not allow user to write to them.
+#   Generate "test.dep" depency file in Unix style, and save it in Release/Debug folders
 #
-#   If distribution is through a .tar file (preferred mode), the $DIR.dep
-#   does NOT exist in this directory so the awk below will NOT be performed. Rather,
-#   $DIR.dep is already in the Release and Debug directories
-#---------------------------------------------------------------
-  if [ "$DIR" != "COILGEOM" ] && [ -f $DIR.dep ]
-  then
-     rm -f tempfile
-     $AWK -f ../awk_dep.awk $DIR.dep > tempfile
-     chmod u-w tempfile
-     cp tempfile Release/$DIR.dep
-     rm -f $DIR.dep
-
-     if [ "$DIR" = LIBSTELL ]
-     then
-        mv tempfile Debug/LIBSTELL.dep
-     else
-        $AWK '$0 !~ /\Release\// {print $0}
-             $0 ~ /\/Release\// {sub(/Release/,"Debug"); print $0}' tempfile > $DIR.dep
-        chmod u-w $DIR.dep
-        mv $DIR.dep Debug
-     fi
-
-     rm -f tempfile
-  fi
-#---------------------------------------------------------------
 #   Generate ObjectList file containing all the object files (*.o) to be built
 #   Change suffixes *.f (and *.f90, free format) to *.o and add \ for line continuation
 #   (needed so makefile can read it). Remove the "\" from the final line.
@@ -1650,34 +1851,37 @@ $ECHO ">>>>>>>>>>>>> " FILES_TO_MAKE $files_to_make
   if [ "$DIR" != "COILGEOM" ]
   then
      LIST_FILE=ObjectList
-     rm -f $LIST_FILE
-     $ECHO "ObjectFiles = \\" > $LIST_FILE
-     find ./Sources \( -name '*.f' -o -name '*.f90' \) -exec basename {} \; >> $LIST_FILE
-     $AWK '/\.f90/ {gsub(/\.f90/,".o")} \
-           /\.f/   {gsub(/\.f/,".o")} {records[NR] = $0} \
-           END {{print records[1]}; for (i = 2; i <= NR; i++) \
-            {if (i < NR) printf "%s \\\n",records[i];
-             else printf "%s \n",records[i]}}' $LIST_FILE > TEMP_FILE
-
-     mv TEMP_FILE $LIST_FILE
+     cp ../$STELLSH .
+     cp ../$AWKFILE .
+     DEPEND_FILE=$DIR.dep
+     rm -f Release/$DEPEND_FILE Debug/$DEPEND_FILE
+     $ECHO
+     $ECHO "  Creating dependency file in "$DIR" folder"
+     chmod u+x $STELLSH
+     if [ "$LTIME" != "" ]
+     then
+        $LTIME -f '  Creation time: %e s' ./$STELLSH $DIR
+     else
+        ./$STELLSH $DIR
+     fi
      chmod u-w,og-rw $LIST_FILE
-  else
-     rm -f ObjectList; cp ../COILOPT/ObjectList .
+     cp $DEPEND_FILE Release
+     mv $DEPEND_FILE Debug
+     rm $STELLSH $AWKFILE
   fi
-
 #---------------------------------------------------------------
 #   Create primary make file (makefile) and place in $DIR
 #   Remove old one(s) first
 #---------------------------------------------------------------
   $ECHO
-  $ECHO "  Creating make file in "$DIR
+  $ECHO "  Creating make file in "$DIR" folder"
   MAKEFILE=make$FILES
   [ "$FILES" = "makegrid" ] && MAKEFILE="makemgrid"
 
   rm -f makefile
 
 cat > makefile << EOF
-#Type "make release(debug)" at command line to make release(debug) version
+#Type "make CFG=release or CFG=debug" at the command line to make release or debug version. Add CLEAN=1 to command line to make clean version.
 #DO NOT alter the directory structure or move this makefile (must be in first subdirectory below top_level_dir)
   SHELL = /bin/sh
   DBG = Debug
@@ -1693,75 +1897,53 @@ cat > makefile << EOF
   MYHOME = $MY_HOME
   LIB_DIR = \$(MYHOME)/$LIBDIR
 
-release:
-	@echo "$BANNER_REL"
-	@cd \$(REL); rm -f *.f *.f90 *.c; rm -f \$(MAKE); ln -fs ../\$(MAKE) .; $LOCAL_MAKE -f \$(MAKE) \$(EXE_F) FLAGS="\$(FLAGS_R) \$(MOD1_PATH)" TYPE="release" LOCTYPE="Release"
-	@rm -f \$(REL)\*.f; rm -f \$(REL)\*.f90
-	@rm -f \$(MYHOME)/\$(EXE_F)
-	@-(umask 022; rm -f \$(MYHOME)/\$(EXE_F); ln -fs \$(REL_PATH)/\$(EXE_F) \$(MYHOME) 2> /dev/null; umask 077)
-EOF
-if [ "$FILES" = "libstell" ]
-then
-cat >> makefile << EOF
-	@-(umask 022; rm -f \$(LIB_DIR); ln -fs \$(REL_PATH) \$(LIB_DIR) 2> /dev/null; umask 077)
-EOF
-fi
-cat >> makefile << EOF
-	@echo "Release version - $EXE_FILE - is now updated"
-	@echo "To free up space, delete all *.o files from Release"
-	@echo ""
+#Make "release" the default configuration if invoked with just "make"
+ifeq (\$(CFG),)
+  CFG=release
+endif
 
-debug:
-	@echo "$BANNER_DBG"
-	@touch_debug
-	@cd \$(DBG); rm -f *.f90 *.c; rm -f \$(MAKE); ln -fs ../\$(MAKE) .; $LOCAL_MAKE -f \$(MAKE) \$(EXE_F) FLAGS="\$(FLAGS_D) \$(MOD1_PATH)" TYPE="debug" LOCTYPE="Debug"
-	@rm -f \$(MYHOME)/\$(EXE_F)
-	@-(umask 022; rm -f \$(MYHOME)/\$(EXE_F); ln -fs \$(DBG_PATH)/\$(EXE_F) \$(MYHOME) 2> /dev/null; umask 077)
-EOF
-if [ "$FILES" = "libstell" ]
-then
-cat >> makefile << EOF
-	@-(umask 022; rm -f \$(LIB_DIR); ln -fs \$(DBG_PATH) \$(LIB_DIR) 2> /dev/null; umask 077)
-EOF
-fi
-cat >> makefile << EOF
-	@echo "Debug version - $EXE_FILE - is now updated"
-	@echo "To free up space, delete all *.o files from Debug"
-	@echo ""
+ifeq (\$(CFG), release)
+  FFLAGS=\$(FLAGS_R)
+  MTYPE=release
+  LTYPE=\$(REL)
+  LPATH=\$(REL_PATH)
+  MBANNER=\$(BANNER_REL)
+else
+  FFLAGS=\$(FLAGS_D)
+  MTYPE=debug
+  LTYPE=\$(DBG)
+  LPATH=\$(DBG_PATH)
+  MBANNER=\$(BANNER_DBG)
+endif
 
-clean_release:
+all:
+ifdef CLEAN
 	@echo "CLEAN REMAKE IN PROGRESS"
-	@cd \$(REL); $LOCAL_MAKE -f \$(MAKE) clean
-	@$LOCAL_MAKE release
-
-clean_debug:
-	@echo "CLEAN REMAKE IN PROGRESS"
-	@cd \$(DBG); $LOCAL_MAKE -f \$(MAKE) clean
-	@$LOCAL_MAKE debug
-
-static_release:
-	@echo "MAKING STATIC (RELEASE) EXECUTABLE"
-	@cd \$(REL); rm -f *.f *.f90 *.c; rm -f \$(MAKE); ln -fs ../\$(MAKE) .; $LOCAL_MAKE -f \$(MAKE) \$(EXE_F) FLAGS="\$(FLAGS_R) \$(MOD1_PATH)" SFLAGS="$STATIC_FLAG" TYPE="release"
+	@cd \$(LTYPE); make -f \$(MAKE) clean TYPE="\$(MTYPE)"
+endif
+	@echo "$MBANNER"
+	@cd \$(LTYPE); rm -f *.f *.f90 *.c; rm -f \$(MAKE); ln -fs ../\$(MAKE) .; \\
+$LOCAL_MAKE -f \$(MAKE) \$(EXE_F) FLAGS="\$(FFLAGS) \$(MOD1_PATH)" TYPE="\$(MTYPE)" LOCTYPE="\$(LTYPE)"
+	@rm -f \$(LTYPE)\*.f; rm -f \$(LTYPE)\*.f90
 	@rm -f \$(MYHOME)/\$(EXE_F)
-	@-(umask 022; rm -f \$(MYHOME)/\$(EXE_F); ln -fs \$(REL_PATH)/\$(EXE_F) \$(MYHOME) 2> /dev/null; umask 077)
+	@-(umask 022; rm -f \$(MYHOME)/\$(EXE_F); ln -fs \$(LPATH)/\$(EXE_F) \$(MYHOME) 2> /dev/null; umask 077)
 EOF
 if [ "$FILES" = "libstell" ]
 then
 cat >> makefile << EOF
-	@-(umask 022; rm -f \$(LIB_DIR); ln -fs \$(REL_PATH) \$(LIB_DIR) 2> /dev/null; umask 077)
+	@-(umask 022; rm -f \$(LIB_DIR); ln -fs \$(LPATH) \$(LIB_DIR) 2> /dev/null; umask 077)
 EOF
 fi
 cat >> makefile << EOF
-	@echo "Static Release version - $EXE_FILE - is now updated"
-	@echo "To free up space, delete all *.o files from Release"
+	@echo ""
+	@echo "\$(LTYPE) version - $EXE_FILE - has been successfully updated"
 	@echo ""
 EOF
 
 chmod u+x-w makefile
 
 #---------------------------------------------------------------
-#   Create recursively-called make file (make$FILES) to go into 
-#   $DIR/Release  or $DIR/Debug directories
+#   Create make files (make$FILES) invoked by top-level makefile #   to go into $DIR/Release or $DIR/Debug directories
 #   Note: because some compilers do not recognize .f90 extension,
 #   the make file copies the *.f90 files to *.f and compiles them
 #   in free format
@@ -1792,7 +1974,6 @@ CFILE   = $FILE_C
 F90FILE = $FILE_F90
 LINK    = $LINK_FILE
 CLEAN_ARCH = $RANLIB
-# HOME_BIN= $MY_HOME_BIN   # MY_HOME_BIN is not set!
 HOME_BIN= ${INSTALL_DIR}/bin
 MOD_PATH= $MODULE_PATH
 INC_PATH= -I$NETCDF_INC
@@ -1839,11 +2020,11 @@ $EXE_FILE : \$(ObjectFiles)
          \$(COMPILE_FREE) \$(FLAGS) \$(MOD_PATH).. \$(INC_PATH) -c \$< ; \\
       fi
 clean:
-	- rm -f *.o *.mod *.a
+	- rm -f *.o *.mod *.a *.f *.f90
 EOF
 
   else
-# making makexxxxxxx files that are driven by the file "makefile"
+# making $MAKEFILE that is invoked from "makefile" on $DIR
 
 cat > $MAKEFILE << EOF
 #This makefile goes in dirs Debug and Release (first level below $DIR)
@@ -1858,8 +2039,10 @@ then
 # JDH 2008-05-13
 #   COMPILE1=$COMPILE1" -I\$(VMEC_DIR)/\$(LOCTYPE)"
     COMPILE1=$COMPILE1" $MODULE_PATH\$(VMEC_DIR)/\$(LOCTYPE)"
+# SPH 2015-10-22
+#VMEC_DIR= ../../VMEC2000
 cat >> $MAKEFILE << EOF
-VMEC_DIR= ../../VMEC2000
+VMEC_DIR= ../../PARVMEC
 LIB_VMEC= libvmec.a
 LIB_LINK= \$(VMEC_DIR)/\$(LOCTYPE)/\$(LIB_VMEC) \$(HOME_BIN)/$LINK_LIB $NETCDF_LIB
 EOF
@@ -1946,12 +2129,12 @@ cat >> $MAKEFILE << EOF
          \$(COMPILE_FREE) \$(FLAGS) \$(MOD_PATH).. -c \$<; \\
       fi
 
-#Check that library files are current.
+#Check that library files are current but do NOT make clean version
 \$(LIB) :
-	@cd \$(LIB_DIR); $LOCAL_MAKE \$(TYPE)
+	@cd \$(LIB_DIR); $LOCAL_MAKE CFG=\$(TYPE) CLEAN=
 
 clean:
-	- rm -f *.o *.mod
+	- rm -f *.o *.mod *.f *.f90
 EOF
 
 if [ "$FILES" = "v3fita" ]
@@ -1981,7 +2164,7 @@ fi
 
 $ECHO
 $ECHO "  $DIR directory tree completed"
-$ECHO "  Type 'make release (debug)' to make a release (debug) version of $EXE_FILE"
+$ECHO "  Type 'make CFG=release' or 'make CFG=debug' to make a release (debug) version of $EXE_FILE"
 $ECHO
 $ECHO "  ======================================================================="
 $ECHO "  IMPORTANT: FOR STELLOPT (STELLARATOR OPTIMIZER) TO WORK PROPERLY"
@@ -2004,9 +2187,9 @@ $ECHO "  End $DIR creation loop"
   then
      if [ "$CLEAN" = "clean" ] && [ "$CLEAN_LIBMAKE" = 'Y' ]
      then
-        make clean_$VERSION
+        make CLEAN=1 CFG=$VERSION
      else
-        make $VERSION
+        make CFG=$VERSION
      fi
 
   else
@@ -2017,9 +2200,9 @@ $ECHO "  End $DIR creation loop"
 #---------------------------------------------------------------
      if [ "$CLEAN" = "clean" ]
      then
-        make clean_$VERSION
+        make CLEAN=1 CFG=$VERSION
      else
-        make $VERSION
+        make CFG=$VERSION
      fi
   fi
 
@@ -2081,9 +2264,5 @@ done
 #   Clean-up: make *.dep read only
 #---------------------------------------------------------------
 cd $TOP_LEVEL_DIR
-rm awk_dep.awk
-find "." -name '*.dep' -exec chmod u-w {} \;
+rm $STELLSH $AWKFILE
 umask $INIT_UMASK
-chmod u+xw tarstell
-./tarstell
-[ -f stellunix.tar ] && $COMPRESS stellunix.tar
