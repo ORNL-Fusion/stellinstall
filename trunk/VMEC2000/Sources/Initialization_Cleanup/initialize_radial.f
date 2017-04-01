@@ -130,10 +130,14 @@ C-----------------------------------------------
       profile1d_time = profile1d_time + (skstoff - skston)
 #endif
       IF (PRESENT(reset_file_name)) THEN
-         IF (LEN_TRIM(reset_file_name) .ne. 0)
-     1      CALL load_xc_from_wout(xc(1), xc(1+irzloff), 
-     2      xc(1+2*irzloff), lreset_internal, ntor, mpol1, ns, 
-     3      reset_file_name)
+         IF (LEN_TRIM(reset_file_name) .ne. 0) THEN
+            CALL load_xc_from_wout(xc(1), xc(1+irzloff),
+     &                             xc(1+2*irzloff), lreset_internal,
+     &                             ntor, mpol1, ns, reset_file_name)
+            IF (PARVMEC) THEN
+               CALL Serial2Parallel4X(xc,pxc)
+            END IF
+         END IF
       END IF
 
       CALL second0(skston)
