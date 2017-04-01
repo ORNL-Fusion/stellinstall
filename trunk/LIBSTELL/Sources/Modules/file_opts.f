@@ -125,8 +125,8 @@
 #else
 
 !  Check source file.
-      INQUIRE (file=file_source, exist=l_exists, opened=l_opened,              &
-     &         size=file_size)
+      INQUIRE (file=file_source, exist=l_exists, opened=l_opened)
+      CALL getfilesize(file_source, file_size)
 
       IF (.not.l_exists) THEN
          WRITE (*,1001) TRIM(file_source)
