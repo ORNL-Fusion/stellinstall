@@ -127,8 +127,6 @@
 !*******************************************************************************
 
       MODULE vmec_equilibrium
-      USE stel_kinds
-      USE data_parameters
       USE pprofile_T
       USE vmec_context
 
@@ -372,7 +370,7 @@
 !>  @ref equilibrium
 !-------------------------------------------------------------------------------
       TYPE vmec_class
-!>  File name of the output of v3fit.
+!>  File name of the output of vmec.
          CHARACTER (len=path_length)            :: wout_file_name
 !>  File name of the vmec namelist inout file.
          CHARACTER (len=path_length)            :: vmec_file_name
@@ -411,6 +409,15 @@
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref vmec_class types using
+!>  @ref vmec_construct_full or @ref vmec_construct_wout
+!-------------------------------------------------------------------------------
+      INTERFACE vmec_construct
+         MODULE PROCEDURE vmec_construct_eq,                                   &
+     &                    vmec_construct_full
+      END INTERFACE
+
 !-------------------------------------------------------------------------------
 !>  Interface for the setting the @ref vmec_magnetic_cache types using
 !>  @ref vmec_set_magnetic_cache_init or @ref vmec_set_magnetic_cache_calc. 
@@ -480,22 +487,15 @@
 !>  for one iteration to initialize all the input parameters. Defined in
 !>  @ref vmec_input.
 !>
-!>  @param[in] file_name  Filename of the vmec namelist input file.
-!>  @param[in] ne         @ref pprofile_T for the electron density.
-!>  @param[in] te         @ref pprofile_T for the electron temperature.
-!>  @param[in] sxrem      @ref pprofile_T for the soft x-ray emissivity.
-!>  @param[in] phi_offset Initial phi offset of the plasma relative to the
-!>                        diagnostics in radians.
-!>  @param[in] z_offset   Initial Z offset of the plasma relative to the
-!>                        machine center.
-!>  @param[in] iou        Input/output unit to log messages to.
-!>  @param[in] eq_comm    MPI communicator pool for VMEC.
-!>  @param[in] recon_comm MPI communicator pool for reconstruction.
+!>  @param[in] file_name      Filename of the vmec namelist input file.
+!>  @param[in] wout_file_name Filename of the vmec wout input file.
+!>  @param[in] iou            Input/output unit to log messages to.
+!>  @param[in] eq_comm        MPI communicator pool for VMEC.
+!>  @param[in] recon_comm     MPI communicator pool for reconstruction.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_construct(file_name, wout_file_name, ne, te, sxrem,        &
-     &                        phi_offset, z_offset, pol_rad_ratio, iou,        &
-     &                        eq_comm, recon_comm)
+      FUNCTION vmec_construct_eq(file_name, wout_file_name, iou,               &
+     &                           eq_comm, recon_comm)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
@@ -506,15 +506,9 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), POINTER           :: vmec_construct
+      TYPE (vmec_class), POINTER           :: vmec_construct_eq
       CHARACTER (len=*), INTENT(in)        :: file_name
       CHARACTER (len=*), INTENT(in)        :: wout_file_name
-      TYPE (pprofile_class), POINTER       :: ne
-      TYPE (pprofile_class), POINTER       :: te
-      TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
-      REAL (rprec), INTENT(in)             :: phi_offset
-      REAL (rprec), INTENT(in)             :: z_offset
-      REAL (rprec), INTENT(in)             :: pol_rad_ratio
       INTEGER, INTENT(in)                  :: iou
       INTEGER, INTENT(in)                  :: eq_comm
       INTEGER, INTENT(in)                  :: recon_comm
@@ -553,15 +547,7 @@
      &                 'file ' // TRIM(file_name)
       END IF
 
-      ALLOCATE(vmec_construct)
-      vmec_construct%ne => ne
-      vmec_construct%te => te
-      vmec_construct%sxrem => sxrem
-
-      vmec_construct%phi_offset = phi_offset
-      vmec_construct%z_offset = z_offset
-
-      vmec_construct%pol_rad_ratio = pol_rad_ratio
+      ALLOCATE(vmec_construct_eq)
 
 !  Initialize VMEC by taking a single step.
       ictrl_array = 0
@@ -573,7 +559,7 @@
 
       l_v3fit = .true.
 
-      vmec_construct%vmec_file_name = TRIM(file_name)
+      vmec_construct_eq%vmec_file_name = TRIM(file_name)
 
 !  Only the rank zero reconstruction pool runs the inital convergence. Initalize
 !  VMEC on that pool then broad cast the size of the largest NS value to the
@@ -583,12 +569,13 @@
          IF (wout_file_name .ne. '') THEN
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
-            vmec_construct%wout_file_name = wout_file_name
+            vmec_construct_eq%wout_file_name = wout_file_name
             CALL runvmec(ictrl_array, file_name, .false., eq_comm,             &
      &                   wout_file_name)
 
             IF (eq_rank .eq. 0) THEN
-               CALL read_wout_file(vmec_construct%wout_file_name, error)
+               CALL read_wout_file(vmec_construct_eq%wout_file_name,           &
+     &                             error)
                CALL assert_eq(error, 0, 'Error loading initialized ' //        &
      &                               'wout file.')
                CALL LoadRZL
@@ -614,21 +601,34 @@
             END DO
          END IF
 
-         vmec_construct%ns_index = MAXLOC(ns_array, 1)
+         vmec_construct_eq%ns_index = MAXLOC(ns_array, 1)
          IF (eq_rank .eq. 0) THEN
-            CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
-     &                     recon_comm, error)
+            CALL MPI_BCAST(vmec_construct_eq%ns_index, 1, MPI_INTEGER,         &
+     &                     0, recon_comm, error)
          END IF
       ELSE
          IF (eq_rank .eq. 0) THEN
-            CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,         &
-     &                     recon_comm, error)
+            CALL MPI_BCAST(vmec_construct_eq%ns_index, 1, MPI_INTEGER,         &
+     &                     0, recon_comm, error)
          END IF
-         CALL MPI_BCAST(vmec_construct%ns_index, 1, MPI_INTEGER, 0,            &
+         CALL MPI_BCAST(vmec_construct_eq%ns_index, 1, MPI_INTEGER, 0,         &
      &                  eq_comm, error)
 
-         ictrl_array(4) = vmec_construct%ns_index
-         CALL runvmec(ictrl_array, file_name, .false., eq_comm)
+         ictrl_array(4) = vmec_construct_eq%ns_index
+         IF (wout_file_name .ne. '') THEN
+            vmec_construct_eq%wout_file_name = wout_file_name
+            CALL runvmec(ictrl_array, file_name, .false., eq_comm,             &
+     &                   wout_file_name)
+            IF (eq_rank .eq. 0) THEN
+               CALL read_wout_file(vmec_construct_eq%wout_file_name,           &
+     &                             error)
+               CALL assert_eq(error, 0, 'Error loading initialized ' //        &
+     &                               'wout file.')
+               CALL LoadRZL
+            END IF
+         ELSE
+            CALL runvmec(ictrl_array, file_name, .false., eq_comm)
+         END IF
       END IF
 
 !  Check for errors in runvmec.
@@ -639,10 +639,10 @@
             index_dat = INDEX(file_name, 'input.')
             index_end = LEN_TRIM(file_name)
             IF (index_dat .gt. 0) THEN
-               vmec_construct%wout_file_name = 'wout_' //                  &
+               vmec_construct_eq%wout_file_name = 'wout_' //                   &
      &            TRIM(file_name(index_dat + 6:index_end)) // '.nc'
             ELSE
-               vmec_construct%wout_file_name = 'wout_' //                  &
+               vmec_construct_eq%wout_file_name = 'wout_' //                   &
      &            TRIM(file_name(1:index_end)) // '.nc'
             END IF
 
@@ -652,9 +652,73 @@
 
       END SELECT
 
-      vmec_construct%vmec_context_save => vmec_context_construct()
+      vmec_construct_eq%vmec_context_save => vmec_context_construct()
 
-      CALL profiler_set_stop_time('vmec_construct', start_time)
+      CALL profiler_set_stop_time('vmec_construct_eq', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref vmec_class object.
+!>
+!>  Allocates memory and initializes a @ref vmec_class object. Runs vmec
+!>  for one iteration to initialize all the input parameters. Defined in
+!>  @ref vmec_input.
+!>
+!>  @param[in] file_name      Filename of the vmec namelist input file.
+!>  @param[in] wout_file_name Filename of the vmec wout input file.
+!>  @param[in] ne             @ref pprofile_T for the electron density.
+!>  @param[in] te             @ref pprofile_T for the electron temperature.
+!>  @param[in] sxrem          @ref pprofile_T for the soft x-ray emissivity.
+!>  @param[in] phi_offset     Initial phi offset of the plasma relative to the
+!>                            diagnostics in radians.
+!>  @param[in] z_offset       Initial Z offset of the plasma relative to the
+!>                            machine center.
+!>  @param[in] iou            Input/output unit to log messages to.
+!>  @param[in] eq_comm        MPI communicator pool for VMEC.
+!>  @param[in] recon_comm     MPI communicator pool for reconstruction.
+!>  @returns A pointer to a constructed @ref vmec_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_construct_full(file_name, wout_file_name, ne, te,          &
+     &                             sxrem, phi_offset, z_offset,                &
+     &                             pol_rad_ratio, iou, eq_comm,                &
+     &                             recon_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), POINTER           :: vmec_construct_full
+      CHARACTER (len=*), INTENT(in)        :: file_name
+      CHARACTER (len=*), INTENT(in)        :: wout_file_name
+      TYPE (pprofile_class), POINTER       :: ne
+      TYPE (pprofile_class), POINTER       :: te
+      TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxrem
+      REAL (rprec), INTENT(in)             :: phi_offset
+      REAL (rprec), INTENT(in)             :: z_offset
+      REAL (rprec), INTENT(in)             :: pol_rad_ratio
+      INTEGER, INTENT(in)                  :: iou
+      INTEGER, INTENT(in)                  :: eq_comm
+      INTEGER, INTENT(in)                  :: recon_comm
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      vmec_construct_full => vmec_construct(file_name, wout_file_name,         &
+     &                                      iou, eq_comm, recon_comm)
+
+      vmec_construct_full%ne => ne
+      vmec_construct_full%te => te
+      vmec_construct_full%sxrem => sxrem
+
+      vmec_construct_full%phi_offset = phi_offset
+      vmec_construct_full%z_offset = z_offset
+
+      vmec_construct_full%pol_rad_ratio = pol_rad_ratio
+
+      CALL profiler_set_stop_time('vmec_construct_full', start_time)
 
       END FUNCTION
 
@@ -1171,7 +1235,7 @@
 
       u_size = MAX(INT(twopi*MAX(rbc(0,1), zbs(0,1))/                          &
      &                 magnetic_cache_vc_grid_dim),                            &
-     &                magnetic_cache_vc_min_grid_points)
+     &             magnetic_cache_vc_min_grid_points)
       IF (MOD(u_size, 2) .eq. 0) THEN
          u_size = u_size + 1
       END IF
@@ -2567,7 +2631,7 @@
       REAL (rprec), INTENT(in)      :: s
 
 !  local variables
-      REAL (rprec)                           :: start_time
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -2817,25 +2881,12 @@
 !  local variables
       REAL (rprec), DIMENSION(3)             :: r_cyl
       REAL (rprec), DIMENSION(3)             :: r_cyl_rot
-      REAL (rprec)                           :: v_norm
-      INTEGER                                :: i_low, i_high
-      INTEGER                                :: j_low, j_high
-      INTEGER                                :: k_low, k_high
-      REAL (rprec)                           :: r_low
-      REAL (rprec)                           :: phi_low
-      REAL (rprec)                           :: z_low
-      REAL (rprec)                           :: delphib
-      REAL (rprec)                           :: wrl, wrh
-      REAL (rprec)                           :: wphil, wphih
-      REAL (rprec)                           :: wzl, wzh
       REAL (rprec)                           :: s_temp
       INTEGER                                :: status
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-
-      r_cyl = cart_to_cyl(x_cart)
 
       r_cyl = cart_to_cyl(x_cart)
       r_cyl_rot = r_cyl
@@ -2849,89 +2900,11 @@
      &                  vmec_get_B_vec(3), sflx=s_temp, info=status)
 
       IF (lfreeb .and. (s_temp .gt. 1.0 .or. status .eq. -3)) THEN
-         IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
-            STOP 'Radial point outside vacuum grid.'
-         END IF
-         IF (r_cyl(3) .gt. zmaxb .or. r_cyl(3) .lt. zminb) THEN
-            STOP 'Vertical point outside vacuum grid.'
-         END IF
-
-!  Normalize phi position to fall within 0 - 2Pi.
-         v_norm = r_cyl(2)
-         DO WHILE(v_norm .gt. twopi .or. v_norm .lt. 0)
-            IF (v_norm .gt. twopi) THEN
-               v_norm = v_norm - twopi
-            ELSE
-               v_norm = v_norm + twopi
-            END IF
-         END DO
-
-!  Normalize phi position to fall within the first field period. We already
-!  made sure that v_norm is greater than zero degrees.
-         DO WHILE(v_norm .gt. twopi/nfp)
-            v_norm = v_norm - twopi/nfp
-         END DO
-
-!  Need to interpolate the vacuum field grid to get the vacuum field external to
-!  the plasma. Also need to be careful about the axisymmetric case. For those
-!  cases don't interpolate in the phi direction.
-         delphib = twopi/(nfp*np0b)
-
-         i_low = INT((r_cyl(1) - rminb)/delrb) + 1
-         j_low = INT(v_norm/delphib) + 1
-         k_low = INT((r_cyl(3) - zminb)/delzb) + 1
-
-         i_high = i_low + 1
-         IF (np0b .eq. 1) THEN
-            j_high = 1
-         ELSE
-            j_high = j_low + 1
-         END IF
-         k_high = k_low + 1
-
-         r_low = rminb + (i_low - 1.0)*delrb
-         phi_low = (j_low - 1.0)*delphib
-         z_low = zminb + (k_low - 1.0)*delzb
-
-         wrh = (r_cyl(1) - r_low)/delrb
-         wrl = (delrb - r_cyl(1) + r_low)/delrb
-         wphih = (v_norm - phi_low)/delphib
-         wphil = (delphib - v_norm + phi_low)/delphib
-         wzh = (r_cyl(3) - z_low)/delzb
-         wzl = (delzb - r_cyl(3) + z_low)/delzb
-
-         vmec_get_B_vec(1)                                                     &
-     &      = wrl*wphil*wzl*brvac(i_low,k_low,j_low)                           &
-     &      + wrh*wphil*wzl*brvac(i_high,k_low,j_low)                          &
-     &      + wrl*wphih*wzl*brvac(i_low,k_low,j_high)                          &
-     &      + wrh*wphih*wzl*brvac(i_high,k_low,j_high)                         &
-     &      + wrl*wphil*wzh*brvac(i_low,k_high,j_low)                          &
-     &      + wrh*wphil*wzh*brvac(i_high,k_high,j_low)                         &
-     &      + wrl*wphih*wzh*brvac(i_low,k_high,j_high)                         &
-     &      + wrh*wphih*wzh*brvac(i_high,k_high,j_high)
-
-         vmec_get_B_vec(2)                                                     &
-     &      = wrl*wphil*wzl*bpvac(i_low,k_low,j_low)                           &
-     &      + wrh*wphil*wzl*bpvac(i_high,k_low,j_low)                          &
-     &      + wrl*wphih*wzl*bpvac(i_low,k_low,j_high)                          &
-     &      + wrh*wphih*wzl*bpvac(i_high,k_low,j_high)                         &
-     &      + wrl*wphil*wzh*bpvac(i_low,k_high,j_low)                          &
-     &      + wrh*wphil*wzh*bpvac(i_high,k_high,j_low)                         &
-     &      + wrl*wphih*wzh*bpvac(i_low,k_high,j_high)                         &
-     &      + wrh*wphih*wzh*bpvac(i_high,k_high,j_high)
-
-         vmec_get_B_vec(3)                                                     &
-     &      = wrl*wphil*wzl*bzvac(i_low,k_low,j_low)                           &
-     &      + wrh*wphil*wzl*bzvac(i_high,k_low,j_low)                          &
-     &      + wrl*wphih*wzl*bzvac(i_low,k_low,j_high)                          &
-     &      + wrh*wphih*wzl*bzvac(i_high,k_low,j_high)                         &
-     &      + wrl*wphil*wzh*bzvac(i_low,k_high,j_low)                          &
-     &      + wrh*wphil*wzh*bzvac(i_high,k_high,j_low)                         &
-     &      + wrl*wphih*wzh*bzvac(i_low,k_high,j_high)                         &
-     &      + wrh*wphih*wzh*bzvac(i_high,k_high,j_high)
-
-         vmec_get_B_vec = vmec_get_ext_b_plasma(this, r_cyl, .false.)          &
-     &                  + vmec_get_B_vec
+!  The measurement point stays fixed relative to the field coils so there should
+!  be no rotation or offset here. vmec_get_ext_b_plasma handles shift of the
+!  plasma internally.
+         vmec_get_B_vec = vmec_get_B_vac(this, r_cyl)                      &
+     &                  + vmec_get_ext_b_plasma(this, r_cyl, .false.)
       END IF
 
       IF (.not.cyl) THEN
@@ -2983,7 +2956,67 @@
 
       vmec_get_Int_B_dphi = twopi*bsubv00c
 
-      CALL profiler_set_stop_time('vmec_get_B_vec', start_time)
+      CALL profiler_set_stop_time('vmec_get_Int_B_dphi', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets VMEC suv position.
+!>
+!>  Converts from cartesian coordinates to vmec's flux coordinates.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] x_cart Cartesian position to get the s position at.
+!>  @returns The s position at x_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_suv(this, x_cart)
+      USE cyl_flux, only: cyl2flx
+      USE coordinate_utilities, only: cart_to_cyl
+      USE read_wout_mod, only: rzl_local, ns, ntmax, lthreed, ntor,            &
+     &                         mpol, nfp, lasym
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3)             :: vmec_get_suv
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
+
+!  local variables
+      REAL (rprec), DIMENSION(3)             :: r_cyl
+      REAL (rprec)                           :: fmin
+      INTEGER                                :: info
+      INTEGER                                :: nfe
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      vmec_get_suv = 0.0
+      fmin = 0.0
+      info = 0
+      nfe = 0
+
+      r_cyl = cart_to_cyl(x_cart)
+      r_cyl(2) = nfp*(r_cyl(2) + this%phi_offset)
+      r_cyl(3) = r_cyl(3) - this%z_offset
+
+      CALL cyl2flx(rzl_local, r_cyl, vmec_get_suv, ns, ntor, mpol,             &
+     &             ntmax, lthreed, lasym, info, nfe, fmin)
+
+      IF (vmec_get_suv(1) .le. 1.0) THEN
+         IF (fmin .gt.  1.0E-8_rprec) THEN
+            WRITE(*,*) "Warn: VMEC could not converge to flux position."       &
+            WRITE(*,*) info, fmin, vmec_get_s
+         END IF
+      END IF
+
+!  If The point was outside the plasma, ensure s is greater than one.
+      IF (info .eq. -3) THEN
+         vmec_get_suv = (/ 2.0, 0.0, 0.0 /)
+      END IF
+
+      CALL profiler_set_stop_time('vmec_get_suv', start_time)
 
       END FUNCTION
 
@@ -3010,36 +3043,14 @@
       REAL (rprec), DIMENSION(3), INTENT(in) :: x_cart
 
 !  local variables
-      REAL (rprec), DIMENSION(3)             :: r_cyl
       REAL (rprec), DIMENSION(3)             :: s_flux
-      REAL (rprec)                           :: fmin
-      INTEGER                                :: info
-      INTEGER                                :: nfe
       REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      s_flux = 0.0
-      fmin = 0.0
-      info = 0
-      nfe = 0
-
-      r_cyl = cart_to_cyl(x_cart)
-      r_cyl(2) = nfp*(r_cyl(2) + this%phi_offset)
-      r_cyl(3) = r_cyl(3) - this%z_offset
-
-      CALL cyl2flx(rzl_local, r_cyl, s_flux, ns, ntor, mpol, ntmax,            &
-     &             lthreed, lasym, info, nfe, fmin)
-
+      s_flux = vmec_get_suv(this, x_cart)
       vmec_get_s = s_flux(1)
-
-      IF (vmec_get_s .le. 1.0) THEN
-         IF (fmin .gt.  1.0E-8_rprec) THEN
-            WRITE(*,*) "Warn: VMEC could not converge to flux position."       &
-            WRITE(*,*) info, fmin, vmec_get_s
-         END IF
-      END IF
 
       CALL profiler_set_stop_time('vmec_get_s', start_time)
 
@@ -3489,7 +3500,7 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(:), POINTER :: vmec_get_ext_currents
       TYPE (vmec_class), INTENT(in)       :: this
-      INTEGER                             :: num_currents
+      INTEGER, INTENT(in)                 :: num_currents
       LOGICAL, INTENT(out)                :: scale_currents
 
 !  local variables
@@ -3518,6 +3529,131 @@
       END IF
 
       CALL profiler_set_stop_time('vmec_get_ext_currents', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Gets the vacuum magnetic field vector at a position.
+!>
+!>  This interpolated the mgrid field on to the position. This should not be
+!>  called if free boundary modes was not used.
+!>
+!>  @param[in] this   A @ref vmec_class instance.
+!>  @param[in] r_cyl Cartesian position to get the magnetic field vector at.
+!>  @returns The vaccum magnetic field vector at x_cart.
+!-------------------------------------------------------------------------------
+      FUNCTION vmec_get_B_vac(this, r_cyl)
+      USE coordinate_utilities, ONLY : cyl_to_cart_vec, cart_to_cyl
+      USE vmec_utils, ONLY : GetBcyl_WOUT
+      USE mgrid_mod
+      USE vmec_input, ONLY: nfp
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec), DIMENSION(3)             :: vmec_get_B_vac
+      TYPE (vmec_class), INTENT(in)          :: this
+      REAL (rprec), DIMENSION(3), INTENT(in) :: r_cyl
+
+!  local variables
+      REAL (rprec)                           :: v_norm
+      INTEGER                                :: i_low, i_high
+      INTEGER                                :: j_low, j_high
+      INTEGER                                :: k_low, k_high
+      REAL (rprec)                           :: r_low
+      REAL (rprec)                           :: phi_low
+      REAL (rprec)                           :: z_low
+      REAL (rprec)                           :: delphib
+      REAL (rprec)                           :: wrl, wrh
+      REAL (rprec)                           :: wphil, wphih
+      REAL (rprec)                           :: wzl, wzh
+      REAL (rprec)                           :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (r_cyl(1) .gt. rmaxb .or. r_cyl(1) .lt. rminb) THEN
+         STOP 'Radial point outside vacuum grid.'
+      END IF
+         IF (r_cyl(3) .gt. zmaxb .or. r_cyl(3) .lt. zminb) THEN
+         STOP 'Vertical point outside vacuum grid.'
+      END IF
+
+!  Normalize phi position to fall within 0 - 2Pi.
+      v_norm = r_cyl(2)
+      DO WHILE(v_norm .gt. twopi .or. v_norm .lt. 0)
+         IF (v_norm .gt. twopi) THEN
+            v_norm = v_norm - twopi
+         ELSE
+            v_norm = v_norm + twopi
+         END IF
+      END DO
+
+!  Normalize phi position to fall within the first field period. We already
+!  made sure that v_norm is greater than zero degrees.
+      DO WHILE(v_norm .gt. twopi/nfp)
+         v_norm = v_norm - twopi/nfp
+      END DO
+
+!  Need to interpolate the vacuum field grid to get the vacuum field external to
+!  the plasma. Also need to be careful about the axisymmetric case. For those
+!  cases don't interpolate in the phi direction.
+      delphib = twopi/(nfp*np0b)
+
+      i_low = INT((r_cyl(1) - rminb)/delrb) + 1
+      j_low = INT(v_norm/delphib) + 1
+      k_low = INT((r_cyl(3) - zminb)/delzb) + 1
+
+      i_high = i_low + 1
+      IF (np0b .eq. 1) THEN
+         j_high = 1
+      ELSE
+         j_high = j_low + 1
+      END IF
+         k_high = k_low + 1
+
+      r_low = rminb + (i_low - 1.0)*delrb
+      phi_low = (j_low - 1.0)*delphib
+      z_low = zminb + (k_low - 1.0)*delzb
+
+      wrh = (r_cyl(1) - r_low)/delrb
+      wrl = (delrb - r_cyl(1) + r_low)/delrb
+      wphih = (v_norm - phi_low)/delphib
+      wphil = (delphib - v_norm + phi_low)/delphib
+      wzh = (r_cyl(3) - z_low)/delzb
+      wzl = (delzb - r_cyl(3) + z_low)/delzb
+
+      vmec_get_B_vac(1)                                                        &
+     &   = wrl*wphil*wzl*brvac(i_low,k_low,j_low)                              &
+     &   + wrh*wphil*wzl*brvac(i_high,k_low,j_low)                             &
+     &   + wrl*wphih*wzl*brvac(i_low,k_low,j_high)                             &
+     &   + wrh*wphih*wzl*brvac(i_high,k_low,j_high)                            &
+     &   + wrl*wphil*wzh*brvac(i_low,k_high,j_low)                             &
+     &   + wrh*wphil*wzh*brvac(i_high,k_high,j_low)                            &
+     &   + wrl*wphih*wzh*brvac(i_low,k_high,j_high)                            &
+     &   + wrh*wphih*wzh*brvac(i_high,k_high,j_high)
+
+      vmec_get_B_vac(2)                                                        &
+     &   = wrl*wphil*wzl*bpvac(i_low,k_low,j_low)                              &
+     &   + wrh*wphil*wzl*bpvac(i_high,k_low,j_low)                             &
+     &   + wrl*wphih*wzl*bpvac(i_low,k_low,j_high)                             &
+     &   + wrh*wphih*wzl*bpvac(i_high,k_low,j_high)                            &
+     &   + wrl*wphil*wzh*bpvac(i_low,k_high,j_low)                             &
+     &   + wrh*wphil*wzh*bpvac(i_high,k_high,j_low)                            &
+     &   + wrl*wphih*wzh*bpvac(i_low,k_high,j_high)                            &
+     &   + wrh*wphih*wzh*bpvac(i_high,k_high,j_high)
+
+      vmec_get_B_vac(3)                                                        &
+     &   = wrl*wphil*wzl*bzvac(i_low,k_low,j_low)                              &
+     &   + wrh*wphil*wzl*bzvac(i_high,k_low,j_low)                             &
+     &   + wrl*wphih*wzl*bzvac(i_low,k_low,j_high)                             &
+     &   + wrh*wphih*wzl*bzvac(i_high,k_low,j_high)                            &
+     &   + wrl*wphil*wzh*bzvac(i_low,k_high,j_low)                             &
+     &   + wrh*wphil*wzh*bzvac(i_high,k_high,j_low)                            &
+     &   + wrl*wphih*wzh*bzvac(i_low,k_high,j_high)                            &
+     &   + wrh*wphih*wzh*bzvac(i_high,k_high,j_high)
+
+      CALL profiler_set_stop_time('vmec_get_B_vac', start_time)
 
       END FUNCTION
 
@@ -3698,7 +3834,7 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAl (rprec)                  :: vmec_get_grid_stop
+      REAL (rprec)                  :: vmec_get_grid_stop
       TYPE (vmec_class), INTENT(in) :: this
 
 !  local variables
@@ -4274,13 +4410,21 @@
       start_time = profiler_get_start_time()
       WRITE (iou,*)
       WRITE (iou,*) 'Equilibrium Type : VMEC'
-      CALL pprofile_write(this%ne, 'pp_ne', iou)
+      IF (ASSOCIATED(this%ne)) THEN
+         CALL pprofile_write(this%ne, 'pp_ne', iou)
+      END IF
 
-      DO i = 1, SIZE(this%sxrem)
-         CALL pprofile_write(this%sxrem(i)%p, 'pp_sxrem', iou)
-      END DO
+      IF (ASSOCIATED(this%sxrem)) THEN
+         DO i = 1, SIZE(this%sxrem)
+            IF (ASSOCIATED(this%sxrem(i)%p)) THEN
+               CALL pprofile_write(this%sxrem(i)%p, 'pp_sxrem', iou)
+            END IF
+         END DO
+      END IF
 
-      CALL pprofile_write(this%te, 'pp_te', iou)
+      IF (ASSOCIATED(this%te)) THEN
+         CALL pprofile_write(this%te, 'pp_te', iou)
+      END IF
 
 !  Update the namelist input variables from the equilibrium solution.
       CALL vmec_set_namelist(this)
@@ -4314,14 +4458,14 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (vmec_class), INTENT(in)        :: this
-      INTEGER, INTENT(in)                  :: current_step
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: current_step
 
 !  local variables
-      INTEGER                              :: iou_nl
-      INTEGER                              :: status
-      CHARACTER (len=path_length)          :: filename
-      REAL (rprec)                         :: start_time
+      INTEGER                       :: iou_nl
+      INTEGER                       :: status
+      CHARACTER (len=path_length)   :: filename
+      REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -4423,7 +4567,6 @@
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
       REAL (rprec)                  :: start_time
-
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -4597,6 +4740,8 @@
       SUBROUTINE vmec_write_step_data(this, result_ncid, current_step)
       USE v3f_vmec_comm
       USE ezcdf
+
+      IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (vmec_class), INTENT(in) :: this

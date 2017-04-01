@@ -1,3 +1,67 @@
+!-------------------------------------------------------------------------------
+!  The @header, @table_section, @table_subsection, @item and @end_table commands
+!  are custom defined commands in Doxygen.in. They are defined under ALIASES.
+!  For the page created here, the 80 column limit is exceeded. Arguments of
+!  aliases are separated by ','. If you intended ',' to be a string you must use
+!  an escaped comma '\,'.
+!
+!>  @page profile_sec Profiles types.
+!>
+!>  @tableofcontents
+!>  @section namelist_intro_sec Introduction
+!>  This page contains discriptions of the types of profiles that can be used
+!>  for parameterized profiles. Profiles are tagged in the
+!>  @ref model_profile_sec, as @fixed_width{pp_*_} where @fixed_width{*} refers
+!>  to the specific profile.
+!>
+!>  @section profile_types_sec Profile types
+!>  Profiles can be defined as any of the following types.
+!>
+!>  @subsection profile_none @fixed_width{'none'}
+!>  No profile is used in this instance.
+!>
+!>  @subsection profile_two_power @fixed_width{'two_power'}
+!>  Profile is defined as a two power poly nomical with 4 coeffiecents.
+!>  Coefficients are defined as in the first 4 indicies of the
+!>  @fixed_width{'_b'} array. The profile is defined as follows.
+!>
+!>     a(x) = b[0] + b[1]*(1 - x^b[2])^b[3]
+!>
+!>  where x is valid from zero to one.
+!>
+!>  @subsection profile_two_power_gs @fixed_width{'two_power_gs'}
+!>  Profile is defined as a two power poly nomical with 4 coefficients plus
+!>  and an arbitrary number of additional guassian functions. The number of
+!>  giassian functions if limited to the size of the @fixed_width{'_b'} array.
+!>  The two power part is defined the same as @ref profile_two_power. The
+!>  remaining guassian bits are defined as
+!>
+!>     a(x) = b[i]*Exp(-(x - b[i + 1])^2/b[i + 2]^2)
+!>
+!>  @subsection profile_two_power_r @fixed_width{'two_power_r'}
+!>  Reversed Two power profile defined the same as @ref profile_two_power except
+!>  the arguments is reversed do the function is maximum at x = 1 and minimum at
+!>  x = 0.
+!>
+!>  @subsection profile_power_series_gs @fixed_width{'power_series'}
+!>  Profile is defined as a power series with @fixed_width{'_b'} array
+!>  coefficients.
+!>
+!>     a(x) = b[0] + b[1]*x + b[2]*x^2 + b[3]*x^3 + etc...
+!>
+!>  @subsection profile_cubic_spline @fixed_width{'cubic_spline'}
+!>  Profile defined as cubic spline segments. Splines knots are defined by the
+!>  position, @fixed_width{'_as'} array, and amplitude, @fixed_width{'_af'}
+!>  array.
+!>
+!>  @subsection profile_akima_spline @fixed_width{'akima_spline'}
+!>  Profile defined as akima spline segments. Splines knots are defined by the
+!>  position, @fixed_width{'_as'} array, and amplitude, @fixed_width{'_af'}
+!>  array.
+!>
+!>  @subsection profile_line_segment @fixed_width{'line_segment'}
+!>  Profile defined as line segments. Segment knots are defined by the position,
+!>  @fixed_width{'_as'} array, and amplitude, @fixed_width{'_af'} array.
 !*******************************************************************************
 !>  @file pprofile_T.f
 !>  @brief Contains module @ref pprofile_T.
@@ -44,6 +108,8 @@
       INTEGER, PARAMETER, PRIVATE :: pprofile_akima_spline_type = 4
 !>  Line Segment profile type.
       INTEGER, PARAMETER, PRIVATE :: pprofile_line_segment_type = 5
+!>  Reverse Two Power profile type.
+      INTEGER, PARAMETER, PRIVATE :: pprofile_two_power_r_type  = 6
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -133,6 +199,12 @@
 
          CASE ('two_power_gs')
             pprofile_construct%p_type = pprofile_two_power_gs_type
+
+         CASE ('two_power_r')
+            pprofile_construct%p_type = pprofile_two_power_r_type
+
+         CASE ('power_series')
+            pprofile_construct%p_type = pprofile_power_series_type
 
          CASE ('cubic_spline')
             IF (pprofile_construct%maxSplineIndex .lt. 4) THEN
@@ -249,6 +321,17 @@
             ENDIF
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
+! one index shorter than what two_power takes. This profile reverses the s
+! argument so that the maximum amplitude is at s=1 and the minimum is at s = 0.
+         CASE (pprofile_two_power_r_type)
+            pprofile_get_value = this%b(0)
+            IF (l_01) THEN
+               s_use = 1.0 - s_arg
+               pprofile_get_value = pprofile_get_value                         &
+     &                            + two_power(s_use, this%b(1:iub_b))
+      ENDIF
+
+! v3fit uses an extra varible as an offset than vmec as a result the b array is
 ! one index shorter than what two_power_gs takes. As a result only 5 guassian
 ! peaks maybe specified instead of the 6 vmec can use.
          CASE (pprofile_two_power_gs_type)
@@ -341,6 +424,9 @@
          CASE (pprofile_two_power_gs_type)
             pprofile_get_p_type_name = 'two_power_gs'
 
+         CASE (pprofile_two_power_r_type)
+            pprofile_get_p_type_name = 'two_power_r'
+
          CASE (pprofile_power_series_type)
             pprofile_get_p_type_name = 'power_series'
 
@@ -395,7 +481,8 @@
       
       SELECT CASE(this%p_type)
          
-         CASE (pprofile_two_power_type)
+         CASE (pprofile_two_power_type,                                        &
+     &         pprofile_two_power_r_type)
             WRITE(iou,1210)
             WRITE(iou,1300) this%b(0:3)
 

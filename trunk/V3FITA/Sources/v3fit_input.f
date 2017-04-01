@@ -21,6 +21,8 @@
 !>        @item{vmec_nli_filename,        File name for VMEC namelist input.,                                                                                         v3fit_input::vmec_nli_filename}
 !>        @item{vmec_wout_input,          File name for the VMEC wout file to start from.,                                                                            v3fit_input::vmec_wout_input}
 !>        @item{vacuum_nli_filename,      File name for a vacuum namelist input. The file specification is described in the @ref vacuum_namelist_sec.,                v3fit_input::vacuum_nli_filename}
+!>        @item{siesta_nli_filename,      File name for siesta namelist input.,                                                                                       v3fit_input::siesta_nli_filename}
+!>        @item{siesta_restart_filename,  File name for a siesta restart file.,                                                                                       v3fit_input::siesta_restart_filename}
 !>     @table_subsection{signal_filename_sec, Singnal Filename variables}
 !>        @item{mdsig_list_filename,      File name for list of MDSIG files.,                                                                                         v3fit_input::mdsig_list_filename}
 !>        @item{sxrch_dot_filename,       File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
@@ -71,6 +73,11 @@
 !>  @end_table
 !>
 !>  @table_section{model_spec_sec, Model Specification Variables}
+!>     @item{model_eq_type, Character variable to specify the underlying equilibrium mode.
+!>        -# @fixed_width{'vmec'}   Vmec equilibrium model. Default
+!>        -# @fixed_width{'vacuum'} Vacuum equilibrium model.
+!>        -# @fixed_width{'siesta'} Siesta equilibrium model.,
+!>        v3fit_input::model_eq_type}
 !>     @item{model_ne_type, Character variable to specify how the electron density will be calculated by the model.
 !>        -# @fixed_width{'none'}    Not part of the model.
 !>        -# @fixed_width{'pp_ne'}   Calculated from the parameterized profile pp_ne.
@@ -565,8 +572,12 @@
       CHARACTER (len=path_length) :: vmec_nli_filename = ''
 !>  File name for the VMEC wout input.
       CHARACTER (len=path_length) :: vmec_wout_input = ''
-!>  File name for a vacuum namelist input
+!>  File name for a vacuum namelist input.
       CHARACTER (len=path_length) :: vacuum_nli_filename = ''
+!>  File name for a siesta namelist input.
+      CHARACTER (len=path_length) :: siesta_nli_filename = ''
+!>  File name for a siesta restart file.
+      CHARACTER (len=path_length) :: siesta_restart_filename = ''
 
 !  Signal input files
 !>  File name for list of MDSIG files
@@ -687,6 +698,8 @@
       REAL (rprec), DIMENSION(iub_asf) :: sxrem_ratio_a = 0.0
 
 !  Model Specification Variables
+!>  Specify wich equilibrium to use.
+      CHARACTER (len=data_name_length) :: model_eq_type = 'vmec'
 !>  Specify how electron density is computed by the model.
 !>  @see model
 !>  @todo FIXME: New coding contains a model_ne_type that old code did not have.
@@ -991,6 +1004,7 @@
      &   main_nli_filename,                                                    &
 !  Equilibrium input files
      &   vmec_nli_filename, vmec_wout_input, vacuum_nli_filename,              &
+     &   siesta_nli_filename, siesta_restart_filename,                         &
 !  Signal input files
      &   mdsig_list_filename, sxrch_dot_filename, thscte_dot_filename,         &
      &   ipch_dot_filename, mse_dot_filename, ece_dot_filename,                &
@@ -1011,9 +1025,9 @@
 !  Soft x-ray ratio
      &   sxrem_te_a, sxrem_ratio_a,                                            &
 !  Model Specification Variables
-     &   model_ne_type, model_sxrem_type, model_sxrem_type_a,                  &
-     &   model_te_type, ne_pp_unit, ne_min, te_min, e_pressure_fraction,       &
-     &   emission_file, ece_resonance_range,                                   &
+     &   model_eq_type, model_ne_type, model_sxrem_type,                       &
+     &   model_sxrem_type_a, model_te_type, ne_pp_unit, ne_min, te_min,        &
+     &   e_pressure_fraction, emission_file, ece_resonance_range,              &
 !  Reconstruction constraints
      &   n_rc, rc_type, rc_index, rc_value,                                    &
 !  Derived parameters

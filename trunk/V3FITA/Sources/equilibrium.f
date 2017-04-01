@@ -17,8 +17,8 @@
 !*******************************************************************************
 
       MODULE equilibrium
-      USE vmec_equilibrium
       USE vacuum_equilibrium
+      USE siesta_equilibrium
 
       IMPLICIT NONE
 
@@ -33,6 +33,9 @@
 !>  Type descriptor for the @ref equilibrium_class subclass
 !>  @ref vacuum_equilibrium.
       INTEGER, PARAMETER :: equilibrium_vacuum_type = 1
+!>  Type descriptor for the @ref equilibrium_class subclass
+!>  @ref siesta_equilibrium.
+      INTEGER, PARAMETER :: equilibrium_siesta_type = 2
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -58,6 +61,8 @@
          TYPE (vmec_class), POINTER   :: vmec => null()
 !>  An instance of a @ref vacuum_equilibrium object.
          TYPE (vacuum_class), POINTER :: vacuum => null()
+!>  An instance of a @ref vacuum_equilibrium object.
+         TYPE (siesta_class), POINTER :: siesta => null()
       END TYPE
 
 !*******************************************************************************
@@ -70,7 +75,8 @@
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_construct
          MODULE PROCEDURE equilibrium_construct_vmec,                          &
-     &                    equilibrium_construct_vacuum
+     &                    equilibrium_construct_vacuum,                        &
+     &                    equilibrium_construct_siesta
       END INTERFACE
 
 !-------------------------------------------------------------------------------
@@ -196,6 +202,44 @@
 
       END FUNCTION
 
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref equilibrium_class containing a
+!>  @ref siesta_equilibrium object.
+!>
+!>  Allocates memory and initializes a @ref equilibrium_class object.
+!>
+!>  @param[in] vacuum_object An instance of a @ref siesta_equilibrium subclass.
+!>  @param[in] force_solve   If true, forces the equilbirum to resolve every
+!>                           time.
+!>  @returns A pointer to a constructed @ref equilibrium_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION equilibrium_construct_siesta(siesta_object, force_solve)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), POINTER :: equilibrium_construct_siesta
+      TYPE (siesta_class), POINTER      :: siesta_object
+      LOGICAL, INTENT(in)               :: force_solve
+
+!  local variables
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(equilibrium_construct_siesta)
+
+      equilibrium_construct_siesta%type = equilibrium_siesta_type
+      equilibrium_construct_siesta%siesta => siesta_object
+      equilibrium_construct_siesta%not_converged = .false.
+      equilibrium_construct_siesta%force_solve = force_solve
+
+      CALL profiler_set_stop_time('equilibrium_construct_siesta',              &
+     &                            start_time)
+
+      END FUNCTION
+
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
@@ -222,6 +266,11 @@
       IF (ASSOCIATED(this%vacuum)) THEN
          CALL vacuum_destruct(this%vacuum)
          this%vacuum => null()
+      END IF
+
+      IF (ASSOCIATED(this%siesta)) THEN
+         CALL siesta_destruct(this%siesta)
+         this%siesta => null()
       END IF
 
       this%type = equilibrium_no_type
@@ -287,6 +336,12 @@
      &                                            value)                       &
      &                         .or. this%not_converged
 
+         CASE (equilibrium_siesta_type)
+            this%not_converged = siesta_set_param(this%siesta, id,             &
+     &                                            i_index, j_index,            &
+     &                                            value, eq_comm)              &
+     &                         .or. this%not_converged
+
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_set_param', start_time)
@@ -335,6 +390,14 @@
                CALL vmec_set_magnetic_cache(this%vmec)
             END IF
 
+         CASE (equilibrium_siesta_type)
+            CALL siesta_set_magnetic_cache(this%siesta, response_object)
+
+!  If the equilibrium is already converged, compute the magnetic cache as well.
+            IF (.not.this%not_converged) THEN
+               CALL siesta_set_magnetic_cache(this%siesta)
+            END IF
+
       END SELECT
 
       CALL profiler_set_stop_time(                                             &
@@ -379,6 +442,14 @@
          IF (.not.this%not_converged) THEN
             CALL vmec_set_magnetic_cache(this%vmec)
          END IF
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_set_magnetic_cache(this%siesta, use_axi)
+
+!  If the equilibrium is already converged, compute the magnetic cache as well.
+            IF (.not.this%not_converged) THEN
+               CALL siesta_set_magnetic_cache(this%siesta)
+            END IF
 
       END SELECT
 
@@ -426,6 +497,10 @@
          CASE (equilibrium_vacuum_type)
             equilibrium_get_param_id =                                         &
      &         vacuum_get_param_id(this%vacuum, param_name)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_param_id =                                         &
+     &         siesta_get_param_id(this%siesta, param_name)
 
          CASE DEFAULT
             equilibrium_get_param_id = data_no_id
@@ -478,6 +553,10 @@
             equilibrium_get_param_value =                                      &
      &         vacuum_get_param_value(this%vacuum, id, i_index, j_index)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_param_value =                                      &
+     &         siesta_get_param_value(this%siesta, id, i_index, j_index)
+
          CASE DEFAULT
             equilibrium_get_param_value = 0.0
 
@@ -525,6 +604,10 @@
             equilibrium_get_param_name =                                       &
      &         vacuum_get_param_name(this%vacuum, id)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_param_name =                                       &
+     &         siesta_get_param_name(this%siesta, id)
+
          CASE DEFAULT
             equilibrium_get_param_name = ''
 
@@ -567,6 +650,9 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_ne_cart = vmec_get_ne(this%vmec, x_cart)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ne_cart = siesta_get_ne(this%siesta, x_cart)
 
          CASE DEFAULT
             equilibrium_get_ne_cart = 0.0
@@ -611,6 +697,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_ne_radial = vmec_get_ne(this%vmec, r)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ne_radial = siesta_get_ne(this%siesta, r)
+
          CASE DEFAULT
             equilibrium_get_ne_radial = 0.0
 
@@ -654,6 +743,9 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_te_cart = vmec_get_te(this%vmec, x_cart)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_te_cart = siesta_get_te(this%siesta, x_cart)
+
          CASE DEFAULT
             equilibrium_get_te_cart = 0.0
 
@@ -696,6 +788,9 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_te_radial = vmec_get_te(this%vmec, r)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_te_radial = siesta_get_te(this%siesta, r)
 
          CASE DEFAULT
             equilibrium_get_te_radial = 0.0
@@ -743,6 +838,10 @@
             equilibrium_get_sxrem_cart = vmec_get_sxrem(this%vmec,             &
      &                                                  x_cart, index)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_sxrem_cart = siesta_get_sxrem(this%siesta,         &
+     &                                                    x_cart, index)
+
          CASE DEFAULT
             equilibrium_get_sxrem_cart = 0.0
 
@@ -789,6 +888,10 @@
             equilibrium_get_sxrem_radial = vmec_get_sxrem(this%vmec,           &
      &                                                    r, index)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_sxrem_radial = siesta_get_sxrem(this%siesta,       &
+     &                                                      r, index)
+
          CASE DEFAULT
             equilibrium_get_sxrem_radial = 0.0
 
@@ -832,6 +935,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_p_cart = vmec_get_p(this%vmec, x_cart)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_p_cart = siesta_get_p(this%siesta, x_cart,         &
+     &                                            .false.)
+
          CASE DEFAULT
             equilibrium_get_p_cart = 0.0
 
@@ -873,6 +980,10 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_p_radial = vmec_get_p(this%vmec, r)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_p_radial = siesta_get_p(this%siesta, r,            &
+     &                                              .false.)
 
          CASE DEFAULT
             equilibrium_get_p_radial = 0.0
@@ -924,6 +1035,10 @@
             equilibrium_get_B_vec = vacuum_get_B_vec(this%vacuum,              &
      &                                               x_cart, cyl)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_B_vec = siesta_get_B_vec(this%siesta,              &
+     &                                               x_cart, cyl)
+
          CASE DEFAULT
             equilibrium_get_B_vec = 0.0
 
@@ -972,6 +1087,10 @@
          CASE (equilibrium_vacuum_type)
             equilibrium_get_Int_B_dphi =                                       &
      &         vacuum_get_Int_B_dphi(this%vacuum, r, theta)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_Int_B_dphi =                                       &
+     &         siesta_get_Int_B_dphi(this%siesta, r, theta)
 
          CASE DEFAULT
             equilibrium_get_Int_B_dphi = 0.0
@@ -1027,6 +1146,10 @@
             equilibrium_get_plasma_edge =                                      &
      &         vmec_get_plasma_edge(this%vmec, phi, r, z)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_plasma_edge =                                      &
+     &         siesta_get_plasma_edge(this%siesta, phi, r, z)
+
          CASE DEFAULT
             equilibrium_get_plasma_edge = 0
             r => null()
@@ -1070,6 +1193,10 @@
             equilibrium_get_magnetic_volume_rgrid =>                           &
      &         vmec_get_magnetic_volume_rgrid(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_magnetic_volume_rgrid =>                           &
+     &         siesta_get_magnetic_volume_rgrid(this%siesta)
+
          CASE DEFAULT
             equilibrium_get_magnetic_volume_rgrid => null()
 
@@ -1110,6 +1237,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_magnetic_volume_zgrid =>                           &
      &         vmec_get_magnetic_volume_zgrid(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_magnetic_volume_zgrid =>                           &
+     &         siesta_get_magnetic_volume_zgrid(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_magnetic_volume_zgrid => null()
@@ -1152,6 +1283,10 @@
             equilibrium_get_magnetic_volume_jrgrid =>                          &
      &         vmec_get_magnetic_volume_jrgrid(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_magnetic_volume_jrgrid =>                          &
+     &         siesta_get_magnetic_volume_jrgrid(this%siesta)
+
          CASE DEFAULT
             equilibrium_get_magnetic_volume_jrgrid => null()
 
@@ -1192,6 +1327,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_magnetic_volume_jphigrid =>                        &
      &         vmec_get_magnetic_volume_jphigrid(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_magnetic_volume_jphigrid =>                        &
+     &         siesta_get_magnetic_volume_jphigrid(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_magnetic_volume_jphigrid => null()
@@ -1234,6 +1373,10 @@
             equilibrium_get_magnetic_volume_jzgrid =>                          &
      &         vmec_get_magnetic_volume_jzgrid(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_magnetic_volume_jzgrid =>                          &
+     &         siesta_get_magnetic_volume_jzgrid(this%siesta)
+
          CASE DEFAULT
             equilibrium_get_magnetic_volume_jzgrid => null()
 
@@ -1273,6 +1416,10 @@
         CASE (equilibrium_vmec_type)
             equilibrium_get_volume_int_element =                               &
      &         vmec_get_volume_int_element(this%vmec)
+
+        CASE (equilibrium_siesta_type)
+           equilibrium_get_volume_int_element =                               &
+     &         siesta_get_volume_int_element(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_volume_int_element = 0.0
@@ -1315,6 +1462,10 @@
             equilibrium_get_con_surface_krgrid =>                              &
      &         vmec_get_con_surface_krgrid(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_con_surface_krgrid =>                              &
+     &         siesta_get_con_surface_krgrid(this%siesta)
+
          CASE DEFAULT
             equilibrium_get_con_surface_krgrid => null()
 
@@ -1355,6 +1506,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_con_surface_kphigrid =>                            &
      &         vmec_get_con_surface_kphigrid(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_con_surface_kphigrid =>                            &
+     &         siesta_get_con_surface_kphigrid(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_con_surface_kphigrid => null()
@@ -1397,6 +1552,10 @@
             equilibrium_get_con_surface_kzgrid =>                              &
      &         vmec_get_con_surface_kzgrid(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_con_surface_kzgrid =>                              &
+     &         siesta_get_con_surface_kzgrid(this%siesta)
+
          CASE DEFAULT
             equilibrium_get_con_surface_kzgrid => null()
 
@@ -1436,6 +1595,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_area_int_element =                                 &
      &         vmec_get_area_int_element(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_area_int_element =                                 &
+     &         siesta_get_area_int_element(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_area_int_element = 0.0
@@ -1497,6 +1660,11 @@
             equilibrium_get_ext_currents =>                                    &
      &         vacuum_get_ext_currents(this%vacuum, scale_currents)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ext_currents =>                                    &
+     &         siesta_get_ext_currents(this%siesta, num_currents,              &
+     &                                 scale_currents)
+
          CASE DEFAULT
             scale_currents = .false.
             equilibrium_get_ext_currents => null()
@@ -1543,6 +1711,10 @@
             equilibrium_get_ext_b_plasma =                                     &
      &         vmec_get_ext_b_plasma(this%vmec, position, axi_only)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_ext_b_plasma =                                     &
+     &         siesta_get_ext_b_plasma(this%siesta, position, axi_only)
+
          CASE DEFAULT
             equilibrium_get_ext_b_plasma = 0.0
 
@@ -1581,6 +1753,10 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_grid_size = vmec_get_grid_size(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_grid_size =                                        &
+     &         siesta_get_grid_size(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_grid_size = 0
@@ -1621,6 +1797,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_get_grid_start = vmec_get_grid_start(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_grid_start =                                       &
+     &         siesta_get_grid_start(this%siesta)
+
          CASE DEFAULT
             equilibrium_get_grid_start = 0.0
 
@@ -1659,6 +1839,10 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_get_grid_stop = vmec_get_grid_stop(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_get_grid_stop =                                        &
+     &         siesta_get_grid_stop(this%siesta)
 
          CASE DEFAULT
             equilibrium_get_grid_stop = 0.0
@@ -1704,6 +1888,10 @@
          CASE (equilibrium_vmec_type)
             equilibrium_is_scaler_value =                                      &
      &         vmec_is_scaler_value(this%vmec, id)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_is_scaler_value =                                      &
+     &         siesta_is_scaler_value(this%siesta, id)
 
          CASE DEFAULT
             equilibrium_is_scaler_value = .false.
@@ -1751,6 +1939,10 @@
             equilibrium_is_1d_array = vacuum_is_1d_array(this%vacuum,          &
      &                                                   id)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_is_1d_array = siesta_is_1d_array(this%siesta,          &
+     &                                                   id)
+
          CASE DEFAULT
             equilibrium_is_1d_array = .false.
 
@@ -1790,6 +1982,10 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_is_2d_array = vmec_is_2d_array(this%vmec, id)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_is_2d_array = siesta_is_2d_array(this%siesta,          &
+     &                                                   id)
 
          CASE DEFAULT
             equilibrium_is_2d_array = .false.
@@ -1838,6 +2034,10 @@
             equilibrium_is_recon_param =                                       &
      &         vacuum_is_recon_param(this%vacuum, id)
 
+         CASE (equilibrium_siesta_type)
+            equilibrium_is_recon_param =                                       &
+     &         siesta_is_recon_param(this%siesta, id)
+
          CASE DEFAULT
             equilibrium_is_recon_param = .false.
 
@@ -1876,6 +2076,10 @@
 
          CASE (equilibrium_vmec_type)
             equilibrium_is_using_point = vmec_is_using_point(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_is_using_point =                                       &
+     &         siesta_is_using_point(this%siesta)
 
          CASE DEFAULT
             equilibrium_is_using_point = .false.
@@ -1999,6 +2203,9 @@
           CASE (equilibrium_vmec_type)
              CALL vmec_read_vac_file(this%vmec, index, eq_comm)
 
+          CASE (equilibrium_siesta_type)
+             CALL siesta_read_vac_file(this%siesta, index, eq_comm)
+
        END SELECT
 
        END SUBROUTINE
@@ -2107,6 +2314,9 @@
          CASE (equilibrium_vacuum_type)
             CALL vacuum_write(this%vacuum, iou)
 
+         CASE (equilibrium_siesta_type)
+            CALL siesta_write(this%siesta, iou)
+
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_write', start_time)
@@ -2145,6 +2355,9 @@
 
          CASE (equilibrium_vacuum_type)
             CALL vacuum_write_input(this%vacuum, current_step)
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_write_input(this%siesta, current_step)
 
       END SELECT
 
@@ -2189,6 +2402,10 @@
             CALL vmec_def_result(this%vmec, result_ncid,                       &
      &                           maxnsetps_dim_id)
 
+         CASE (equilibrium_siesta_type)
+            CALL siesta_def_result(this%siesta, result_ncid,                   &
+     &                             maxnsetps_dim_id)
+
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_def_result', start_time)
@@ -2223,6 +2440,9 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_write_init_data(this%vmec, result_ncid)
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_write_init_data(this%siesta, result_ncid)
 
       END SELECT
 
@@ -2263,6 +2483,10 @@
          CASE (equilibrium_vmec_type)
             CALL vmec_write_step_data(this%vmec, result_ncid,                  &
      &                                current_step)
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_write_step_data(this%siesta, result_ncid,              &
+     &                                  current_step)
 
       END SELECT
 
@@ -2306,6 +2530,9 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_sync_state(this%vmec, recon_comm)
+
+!         CASE (equilibrium_siesta_type)
+!            CALL siesta_sync_state(this%siesta, recon_comm)
 
       END SELECT
 

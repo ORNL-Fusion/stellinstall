@@ -736,21 +736,25 @@
       force_solve =                                                            &
      &   commandline_parser_is_flag_set(context%cl_parser, '-force')
 
-      IF (vmec_nli_filename .ne. '') THEN
-         CALL init_vmec_equilibrium(context, force_solve)
-         CALL profiler_set_stop_time('init_equilibrium', start_time)
-         RETURN
-      END IF
+      SELECT CASE (model_eq_type)
 
-      IF (vacuum_nli_filename .ne. '') THEN
-         CALL init_vacuum_equilibrium(context, force_solve)
-         CALL profiler_set_stop_time('init_equilibrium', start_time)
-         RETURN
-      END IF
+         CASE ('vmec')
+            CALL init_vmec_equilibrium(context, force_solve)
 
-      WRITE (*,*) 'Equilibrium not initialized. Please specify the ' //        &
-     &            'correct namelist input file.'
-      CALL EXIT(1)
+         CASE ('vacuum')
+            CALL init_vacuum_equilibrium(context, force_solve)
+
+         CASE ('siesta')
+            CALL init_siesta_equilibrium(context, force_solve)
+
+         CASE DEFAULT
+           WRITE (*,*) 'Equilibrium not initialized. Please ' //               &
+     &                 'specify a vaild equilibrium type.'
+           CALL EXIT(1)
+
+      END SELECT
+
+      CALL profiler_set_stop_time('init_equilibrium', start_time)
 
       END SUBROUTINE
 
@@ -813,7 +817,7 @@
 #if defined(MPI_OPT)
      &         context%equilibrium_comm, context%reconstruction_comm),         &
 #else
-     &         0, 0),                                                             &
+     &         0, 0),                                                          &
 #endif
      &      force_solve, not_converged),                                       &
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range)
@@ -862,6 +866,78 @@
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range)
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Initialize a siests equilibrium.
+!>
+!>  This constructs and initializes a @ref siesta_equilibrium.
+!>
+!>  @param[inout] context     An instance of a @ref v3fit_context object.
+!>  @param[in]    force_solve If true, forces the equilbirum to resolve every
+!>                            time.
+!-------------------------------------------------------------------------------
+      SUBROUTINE init_siesta_equilibrium(context, force_solve)
+      USE v3fit_context
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (v3fit_context_class), INTENT(inout)      :: context
+      LOGICAL, INTENT(in)                            :: force_solve
+
+!  local variables
+      REAL (rprec)                                   :: start_time
+      TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
+      INTEGER                                        :: i
+      TYPE (emission_class), POINTER :: emission_func => null()
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      ALLOCATE(sxr(num_sxrem_p))
+      DO i = 1, num_sxrem_p
+         sxr(i)%p => pprofile_construct(TRIM(pp_sxrem_ptype_a(i)),             &
+     &                                  pp_sxrem_b_a(i,:),                     &
+     &                                  pp_sxrem_as_a(i,:),                    &
+     &                                  pp_sxrem_af_a(i,:))
+      END DO
+
+!  Create a emission object if an emission file was provided.
+      IF (TRIM(emission_file) .ne. '') THEN
+         emission_func => emission_construct(emission_file)
+      END IF
+
+      context%model => model_construct(model_ne_type,                          &
+     &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
+     &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
+     &   emission_func,                                                        &
+     &   equilibrium_construct_siesta(                                         &
+     &      siesta_construct(siesta_nli_filename,                              &
+     &                       siesta_restart_filename,                          &
+     &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
+     &                            pp_ne_as, pp_ne_af),                         &
+     &         pprofile_construct(TRIM(pp_te_ptype), pp_te_b,                  &
+     &                            pp_te_as, pp_te_af), sxr,                    &
+     &         phi_offset, z_offset, pol_rad_ratio, context%runlog_iou,        &
+#if defined(MPI_OPT)
+     &         context%equilibrium_comm, context%reconstruction_comm,          &
+#else
+     &         0, 0,                                                           &                                                        &
+#endif
+     &         vmec_construct(vmec_nli_filename, vmec_wout_input,              &
+     &                        context%runlog_iou,                              &
+#if defined(MPI_OPT)
+     &                        context%equilibrium_comm,                        &
+     &                        context%reconstruction_comm)),                   &
+#else
+     &         0, 0)),                                                         &                                                        &
+#endif
+     &      force_solve),                                                      &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range)
+
+      CALL profiler_set_stop_time('init_siesta_equilibrium', start_time)
 
       END SUBROUTINE
 
@@ -2092,6 +2168,17 @@
                CALL copy_file(vacuum_nli_filename,                             &
      &                        build_path(process_dir(i),                       &
      &                                   vacuum_nli_filename), error)
+            END IF
+            IF (.not.is_absolute_path(siesta_nli_filename)) THEN
+               CALL copy_file(siesta_nli_filename,                             &
+     &                        build_path(process_dir(i),                       &
+     &                                   siesta_nli_filename), error)
+            END IF
+            IF (.not.is_absolute_path(siesta_restart_filename)) THEN
+               CALL copy_file(siesta_restart_filename,                         &
+     &                        build_path(process_dir(i),                       &
+     &                                   siesta_restart_filename),             &
+     &                        error)
             END IF
          END DO
       END IF
