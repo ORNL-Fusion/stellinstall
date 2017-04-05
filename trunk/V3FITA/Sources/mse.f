@@ -273,21 +273,23 @@
 !>  * theta: Angle between the view and the horizontal. Defined such that 90 is
 !>    in the positive z direction.
 !>
-!>  @param[in]    this    A @ref mse_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref mse_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION mse_get_modeled_signal(this, a_model, sigma)
+      FUNCTION mse_get_modeled_signal(this, a_model, sigma, last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: mse_get_modeled_signal
-      TYPE (mse_class), INTENT(inout)         :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (mse_class), INTENT(in)            :: this
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec), DIMENSION(3)              :: b_cyl
@@ -296,37 +298,42 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      mse_get_modeled_signal = 0.0
+      mse_get_modeled_signal = last_value
       sigma = 0.0
 
+      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+
 !  Get the magnetic field vector.
-      b_cyl = equilibrium_get_B_vec(a_model%equilibrium, this%point,           &
-     &                              .true.)
+         b_cyl = equilibrium_get_B_vec(a_model%equilibrium, this%point,        &
+     &                                 .true.)
 
-      mse_get_modeled_signal(2) =                                              &
-     &      -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +          &
-     &        SIN(this%delta)*(b_cyl(1)*SIN(this%omega) -                      &
-     &                         b_cyl(2)*COS(this%omega)))
+         mse_get_modeled_signal(2) =                                           &
+     &         -(b_cyl(3)*COS(this%delta)*COS(this%omega + this%alpha) +       &
+     &           SIN(this%delta)*(b_cyl(1)*SIN(this%omega) -                   &
+     &                            b_cyl(2)*COS(this%omega)))
 
-      mse_get_modeled_signal(3) =                                              &
-     &      -b_cyl(3)*SIN(this%theta)*COS(this%delta)*SIN(this%omega +         &
-     &                                                    this%alpha)          &
-     &    + SIN(this%theta)*SIN(this%delta)*(b_cyl(2)*SIN(this%omega) +        &
-     &                                       b_cyl(1)*COS(this%omega))         &
-     &    + COS(this%theta)*COS(this%delta)*(b_cyl(1)*COS(this%alpha) -        &
-     &                                       b_cyl(2)*SIN(this%alpha))
+         mse_get_modeled_signal(3) =                                           &
+     &         -b_cyl(3)*SIN(this%theta)*COS(this%delta)*                      &
+     &          SIN(this%omega +  this%alpha)                                  &
+     &       + SIN(this%theta)*SIN(this%delta)*                                &
+     &         (b_cyl(2)*SIN(this%omega) + b_cyl(1)*COS(this%omega))           &
+     &       + COS(this%theta)*COS(this%delta)*                                &
+     &         (b_cyl(1)*COS(this%alpha) - b_cyl(2)*SIN(this%alpha))
 
-      mse_get_modeled_signal(4) = mse_get_modeled_signal(2)                    &
-     &                          / mse_get_modeled_signal(3)
+         mse_get_modeled_signal(4) = mse_get_modeled_signal(2)                 &
+     &                             / mse_get_modeled_signal(3)
 
-      IF (BTEST(this%flags, mse_ratio_flag)) THEN
-         mse_get_modeled_signal(1) = mse_get_modeled_signal(4)
-      ELSE
-         mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),          &
-     &                                     mse_get_modeled_signal(3))
+         IF (BTEST(this%flags, mse_ratio_flag)) THEN
+            mse_get_modeled_signal(1) = mse_get_modeled_signal(4)
+         ELSE
+            mse_get_modeled_signal(1) = ATAN2(mse_get_modeled_signal(2),       &
+     &                                        mse_get_modeled_signal(3))
 
-         IF (BTEST(this%flags, mse_degrees_flag)) THEN
-            mse_get_modeled_signal(1) = mse_get_modeled_signal(1)/degree
+            IF (BTEST(this%flags, mse_degrees_flag)) THEN
+               mse_get_modeled_signal(1) = mse_get_modeled_signal(1)           &
+     &                                   / degree
+            END IF
          END IF
       END IF
 

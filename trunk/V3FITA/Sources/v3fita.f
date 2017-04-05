@@ -198,17 +198,14 @@
      &                             'equilibrium convergence'
 
 #if defined (MPI_OPT)
-      CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0,                  &
-     &               context%equilibrium_comm, error)
-      converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps, context%runlog_iou,          &
-     &                                 context%equilibrium_comm, 'All')
+      converged = model_converge(context%model, num_steps,                     &
+     &                           context%runlog_iou,                           &
+     &                           context%equilibrium_comm, 'All')
       CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
      &               context%equilibrium_comm, error)
 #else
-      converged = equilibrium_converge(context%model%equilibrium,              &
-     &                                 num_steps, context%runlog_iou, 0,       &
-     &                                 'All')
+      converged = model_converge(context%model, num_steps,                     &
+     &                           context%runlog_iou, 0, 'All')
 #endif
 
       CALL v3fit_context_init_data(context)
@@ -240,6 +237,9 @@
       INTEGER                                   :: i, last_para_signal
       REAL (rprec)                              :: g2
       REAL (rprec)                              :: start_time
+
+!  local parameters
+      REAL (rprec), DIMENSION(4), PARAMETER     :: dummy_value = 0.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -289,13 +289,13 @@
 !$OMP& REDUCTION(+:g2)
       DO i = 1, last_para_signal
          g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
-     &                           context%model, .false.)
+     &                           context%model, .false., dummy_value)
       END DO
 !$OMP END PARALLEL DO
 
       DO i = last_para_signal + 1, SIZE(context%signals)
          g2 = g2 + signal_get_g2(context%signals(i)%p,                         &
-     &                           context%model, .false.)
+     &                           context%model, .false., dummy_value)
       END DO
 
       WRITE (*,1000) g2
@@ -585,8 +585,7 @@
                result = equilibrium_converge(context%model%equilibrium,        &
      &                                       num_steps,                        &
      &                                       context%runlog_iou,               &
-     &                                       context%equilibrium_comm,         &
-     &                                       'null')
+     &                                       context%equilibrium_comm)
 
             CASE (mpi_mgrid_task)
                CALL equilibrium_read_vac_file(context%model%equilibrium,       &
@@ -819,8 +818,8 @@
 #else
      &         0, 0),                                                          &
 #endif
-     &      force_solve, not_converged),                                       &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range)
+     &      force_solve),                                                      &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, not_converged)
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
 
@@ -863,7 +862,7 @@
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve),                                   &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range)
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, .false.)
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
 
@@ -935,7 +934,7 @@
      &         0, 0)),                                                         &                                                        &
 #endif
      &      force_solve),                                                      &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range)
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, .false.)
 
       CALL profiler_set_stop_time('init_siesta_equilibrium', start_time)
 
@@ -1141,14 +1140,16 @@
      &          magnetic_object%response)) THEN
             plasma_index = signals_created
             CALL equilibrium_set_magnetic_cache(                               &
-     &              context%model%equilibrium, magnetic_object%response)
+     &              context%model%equilibrium, magnetic_object%response,       &
+     &              context%model%state_flags)
          END IF
 
          IF (.not.use_point .and.                                              &
      &       magnetic_response_is_point(magnetic_object%response)) THEN
             use_point = .true.
             CALL equilibrium_set_magnetic_cache(                               &
-     &              context%model%equilibrium, ANY(mag_3D_a))
+     &              context%model%equilibrium, ANY(mag_3D_a),                  &
+     &              context%model%state_flags)
          END IF
       END DO
 
@@ -1275,7 +1276,8 @@
      &    .not.equilibrium_is_using_point(                                     &
      &            context%model%equilibrium)) THEN
          CALL equilibrium_set_magnetic_cache(context%model%equilibrium,        &
-     &                                       .false.)
+     &                                       .false.,                          &
+     &                                       context%model%state_flags)
       END IF
 
       CALL profiler_set_stop_time('init_intpol_signals', start_time)
@@ -1449,7 +1451,8 @@
      &    .not.equilibrium_is_using_point(                                     &
      &            context%model%equilibrium)) THEN
          CALL equilibrium_set_magnetic_cache(context%model%equilibrium,        &
-     &                                       .false.)
+     &                                       .false.,                          &
+     &                                       context%model%state_flags)
       END IF
 
       CALL profiler_set_stop_time('init_mse_signals', start_time)
@@ -1511,7 +1514,8 @@
      &    .not.equilibrium_is_using_point(                                     &
      &            context%model%equilibrium)) THEN
          CALL equilibrium_set_magnetic_cache(context%model%equilibrium,        &
-     &                                       .false.)
+     &                                       .false.,                          &
+     &                                       context%model%state_flags)
       END IF
 
       CALL profiler_set_stop_time('init_ece_signals', start_time)

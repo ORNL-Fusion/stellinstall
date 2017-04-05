@@ -137,12 +137,14 @@
 !>
 !>  @see limiter::limiter_get_modeled_signal
 !>
-!>  @param[in]    this    A @ref geometric_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref geometric_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION geometric_get_modeled_signal(this, a_model, sigma)
+      FUNCTION geometric_get_modeled_signal(this, a_model, sigma,              &
+     &                                      last_value)
       USE model
 
       IMPLICIT NONE
@@ -150,8 +152,9 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)       :: geometric_get_modeled_signal
       TYPE (geometric_class), INTENT(in)      :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -160,10 +163,11 @@
       start_time = profiler_get_start_time()
 
       SELECT CASE(this%type)
+
          CASE (geometric_limiter_type)
             geometric_get_modeled_signal =                                     &
      &         limiter_get_modeled_signal(this%limiter, a_model,               &
-     &                                    sigma)
+     &                                    sigma, last_value)
 
       END SELECT
 

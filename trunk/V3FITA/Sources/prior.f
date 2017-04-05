@@ -136,9 +136,9 @@
 !>
 !>  @see prior_guassian::prior_guassian_get_modeled_signal
 !>
-!>  @param[in]    this    A @ref prior_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref prior_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION prior_get_modeled_signal(this, a_model, sigma)
@@ -148,7 +148,7 @@
 !  Declare Arguments
       REAL(rprec), DIMENSION(4) :: prior_get_modeled_signal
       TYPE(prior_class), INTENT(in)           :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
 
 !  local variables
@@ -163,10 +163,6 @@
             prior_get_modeled_signal =                                         &
      &         prior_gaussian_get_modeled_signal(this%gaussian,                &
      &                                           a_model, sigma)
-
-         CASE DEFAULT
-            prior_get_modeled_signal = 0.0
-            sigma = 0.0
 
       END SELECT
 

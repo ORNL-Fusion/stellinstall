@@ -53,8 +53,6 @@
 !>  * @ref equilibrium_no_type
 !>  * @ref equilibrium_vmec_type
          INTEGER                      :: type = equilibrium_no_type
-!>  Controls if an equilibrium needs to be resolved or not.
-         LOGICAL                      :: not_converged
 !>  Controls if an equilibrium is forced to be resolved or not.
          LOGICAL                      :: force_solve
 !>  An instance of a @ref vmec_equilibrium object.
@@ -131,12 +129,9 @@
 !>
 !>  @param[in] vmec_object An instance of a @ref vmec_equilibrium subclass.
 !>  @param[in] force_solve If true, forces the equilbirum to resolve every time.
-!>  @param[in] converged   If true the equilibrium was constructed in a
-!>                         converged state.
 !>  @returns A pointer to a constructed @ref equilibrium_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_construct_vmec(vmec_object, force_solve,            &
-     &                                    not_converged)
+      FUNCTION equilibrium_construct_vmec(vmec_object, force_solve)
 
       IMPLICIT NONE
 
@@ -144,7 +139,6 @@
       TYPE (equilibrium_class), POINTER :: equilibrium_construct_vmec
       TYPE (vmec_class), POINTER        :: vmec_object
       LOGICAL, INTENT(in)               :: force_solve
-      LOGICAL, INTENT(in)               :: not_converged
 
 !  local variables
       REAL (rprec)                      :: start_time
@@ -156,7 +150,6 @@
 
       equilibrium_construct_vmec%type = equilibrium_vmec_type
       equilibrium_construct_vmec%vmec => vmec_object
-      equilibrium_construct_vmec%not_converged = not_converged
       equilibrium_construct_vmec%force_solve = force_solve
 
       CALL profiler_set_stop_time('equilibrium_construct_vmec',                &
@@ -194,7 +187,6 @@
 
       equilibrium_construct_vacuum%type = equilibrium_vacuum_type
       equilibrium_construct_vacuum%vacuum => vacuum_object
-      equilibrium_construct_vacuum%not_converged = .false.
       equilibrium_construct_vacuum%force_solve = force_solve
 
       CALL profiler_set_stop_time('equilibrium_construct_vacuum',              &
@@ -232,7 +224,6 @@
 
       equilibrium_construct_siesta%type = equilibrium_siesta_type
       equilibrium_construct_siesta%siesta => siesta_object
-      equilibrium_construct_siesta%not_converged = .false.
       equilibrium_construct_siesta%force_solve = force_solve
 
       CALL profiler_set_stop_time('equilibrium_construct_siesta',              &
@@ -274,7 +265,6 @@
       END IF
 
       this%type = equilibrium_no_type
-      this%not_converged = .true.
       this%force_solve = .false.
 
       DEALLOCATE(this)
@@ -288,20 +278,22 @@
 !>  @brief Sets the value of a reconstruction equilibrium parameter.
 !>
 !>  This method is virtual. The actual setting of the parameter should be
-!>  handled by a subclass method. The subclass is responsible for informing the
-!>  equilibirum if the equilibrium needs to be reconverged/resolved.
+!>  handled by a subclass method. The subclass is responsible updating the
+!>  state flags.
 !>  @see vmec_equilibrium::vmec_set_param
 !>  @see vacuum_equilibrium::vacuum_set_param
 !>
-!>  @param[inout] this    A @ref equilibrium_class instance.
-!>  @param[in]    id      ID of the parameter.
-!>  @param[in]    i_index The ith index of the parameter.
-!>  @param[in]    j_index The jth index of the parameter.
-!>  @param[in]    value   The value of the parameter.
-!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
+!>  @param[inout] this        A @ref equilibrium_class instance.
+!>  @param[in]    id          ID of the parameter.
+!>  @param[in]    i_index     The ith index of the parameter.
+!>  @param[in]    j_index     The jth index of the parameter.
+!>  @param[in]    value       The value of the parameter.
+!>  @param[in]    eq_comm     MPI communicator for the child equilibrium processes.
+!>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_param(this, id, i_index, j_index,             &
-     &                                 value, eq_comm)
+     &                                 value, eq_comm, state_flags)
 
       IMPLICIT NONE
 
@@ -312,6 +304,7 @@
       INTEGER, INTENT(in)                     :: j_index
       REAL (rprec), INTENT(in)                :: value
       INTEGER, INTENT(in)                     :: eq_comm
+      INTEGER, INTENT(inout)                  :: state_flags
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -325,22 +318,16 @@
 !  this%not_converged was true, the expression will evaluate to false all the
 !  time and not bother calling vmec_set_param.
          CASE (equilibrium_vmec_type)
-            this%not_converged = vmec_set_param(this%vmec, id,                 &
-     &                                          i_index, j_index,              &
-     &                                          value, eq_comm)                &
-     &                         .or. this%not_converged
+            CALL vmec_set_param(this%vmec, id, i_index, j_index, value,        &
+     &                          eq_comm, state_flags)
 
          CASE (equilibrium_vacuum_type)
-            this%not_converged = vacuum_set_param(this%vacuum, id,             &
-     &                                            i_index, j_index,            &
-     &                                            value)                       &
-     &                         .or. this%not_converged
+            CALL vacuum_set_param(this%vacuum, id, i_index, j_index,           &
+     &                            value, state_flags)
 
          CASE (equilibrium_siesta_type)
-            this%not_converged = siesta_set_param(this%siesta, id,             &
-     &                                            i_index, j_index,            &
-     &                                            value, eq_comm)              &
-     &                         .or. this%not_converged
+            CALL siesta_set_param(this%siesta, id, i_index, j_index,           &
+     &                            value, eq_comm, state_flags)
 
       END SELECT
 
@@ -363,16 +350,21 @@
 !>  @param[in]    response_object A @ref magnetic_response_class instance.
 !>  @param[in]    use_axi         Magnetics can subtract off axisymmetric
 !>                                components.
+!>  @param[in]    state_flags     Bitwise flags to indicate which parts of the
+!>                                model changed.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_set_magnetic_cache_response(this,                 &
-     &                                                  response_object)
+     &                                                  response_object,       &
+     &                                                  state_flags)
       USE magnetic_response
+      USE model_state
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout)    :: this
       TYPE (magnetic_response_class), INTENT(in) :: response_object
+      INTEGER, INTENT(in)                        :: state_flags
 
 !  local variables
       REAL (rprec)                               :: start_time
@@ -386,7 +378,8 @@
             CALL vmec_set_magnetic_cache(this%vmec, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.this%not_converged) THEN
+            IF (BTEST(state_flags, model_state_eq_flag) .or.                   &
+     &          BTEST(state_flags, model_state_shift_flag)) THEN
                CALL vmec_set_magnetic_cache(this%vmec)
             END IF
 
@@ -394,7 +387,8 @@
             CALL siesta_set_magnetic_cache(this%siesta, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.this%not_converged) THEN
+            IF (BTEST(state_flags, model_state_eq_flag) .or.                   &
+     &          BTEST(state_flags, model_state_shift_flag)) THEN
                CALL siesta_set_magnetic_cache(this%siesta)
             END IF
 
@@ -416,16 +410,22 @@
 !>  called once to tell the equilibrium it needs to use a magnetic cache.
 !>  @see vmec_equilibrium::vmec_set_magnetic_cache
 !>
-!>  @param[inout] this    A @ref equilibrium_class instance.
-!>  @param[in]    use_axi Magnetics can subtract off axisymmetric components.
+!>  @param[inout] this        A @ref equilibrium_class instance.
+!>  @param[in]    use_axi     Magnetics can subtract off axisymmetric
+!>                            components.
+!>  @param[in]    state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
 !-------------------------------------------------------------------------------
-      SUBROUTINE equilibrium_set_magnetic_cache_point(this, use_axi)
+      SUBROUTINE equilibrium_set_magnetic_cache_point(this, use_axi,           &
+     &                                                state_flags)
+      USE model_state
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (equilibrium_class), INTENT(inout) :: this
       LOGICAL, INTENT(in)                     :: use_axi
+      INTEGER, INTENT(in)                     :: state_flags
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -439,7 +439,8 @@
          CALL vmec_set_magnetic_cache(this%vmec, use_axi)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-         IF (.not.this%not_converged) THEN
+         IF (BTEST(state_flags, model_state_eq_flag) .or.                      &
+     &       BTEST(state_flags, model_state_shift_flag)) THEN
             CALL vmec_set_magnetic_cache(this%vmec)
          END IF
 
@@ -447,7 +448,8 @@
             CALL siesta_set_magnetic_cache(this%siesta, use_axi)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.this%not_converged) THEN
+            IF (BTEST(state_flags, model_state_eq_flag) .or.                   &
+     &          BTEST(state_flags, model_state_shift_flag)) THEN
                CALL siesta_set_magnetic_cache(this%siesta)
             END IF
 
@@ -2108,11 +2110,9 @@
 !>  @param[inout] num_iter   Counter to track the number of iterations.
 !>  @param[in]    iou        Input/output unit of the file to write logs to.
 !>  @param[in]    eq_comm    MPI communicator pool for the equilibrium.
-!>  @param[in]    param_name Name of the peturbed parameter.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm,              &
-     &                              param_name)
+      FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm)
 
       IMPLICIT NONE
 
@@ -2122,10 +2122,8 @@
       INTEGER, INTENT(inout)                  :: num_iter
       INTEGER, INTENT(in)                     :: iou
       INTEGER, INTENT(in)                     :: eq_comm
-      CHARACTER (len=*), INTENT(in)           :: param_name
 
 !  local variables
-      INTEGER                                 :: init_num_iter
       INTEGER                                 :: error
       INTEGER                                 :: eq_rank
       REAL (rprec)                            :: start_time
@@ -2133,48 +2131,21 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      init_num_iter = num_iter
 #if defined(MPI_OPT)
-      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, eq_comm,           &
-     &               error)
       CALL MPI_BCAST(num_iter, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
-      IF (this%not_converged .or. this%force_solve) THEN
-         SELECT CASE (this%type)
+      SELECT CASE (this%type)
 
-            CASE (equilibrium_vmec_type)
-               equilibrium_converge = vmec_converge(this%vmec, num_iter,       &
-     &                                              iou, eq_comm)
-               this%not_converged = .not.equilibrium_converge
+         CASE (equilibrium_vmec_type)
+            equilibrium_converge = vmec_converge(this%vmec, num_iter,          &
+     &                                           iou, eq_comm)
 
-            CASE (equilibrium_vacuum_type)
-               equilibrium_converge = .true.
-               this%not_converged = .false.
+         CASE DEFAULT
+            equilibrium_converge = .false.
 
-            CASE DEFAULT
-               equilibrium_converge = .false.
-               this%not_converged = .true.
-
-         END SELECT
-      ELSE
-         equilibrium_converge = .true.
-      ENDIF
-
-#if defined(MPI_OPT)
-      CALL MPI_COMM_RANK(eq_comm, eq_rank, error)
-#else
-      eq_rank = 0
-#endif
-      IF (eq_rank .eq. 0) THEN
-         WRITE (*,1000) equilibrium_converge, num_iter,                        &
-     &                  num_iter - init_num_iter, param_name
-         WRITE (iou,1000) equilibrium_converge, num_iter,                      &
-     &                    num_iter - init_num_iter, param_name
-      END IF
+      END SELECT
 
       CALL profiler_set_stop_time('equilibrium_converge', start_time)
-
-1000  FORMAT('Equilibrium converged ',l,2(2x,i7),' ',a)
 
       END FUNCTION
 
@@ -2272,9 +2243,6 @@
             CALL vmec_reset_state(this%vmec)
 
       END SELECT
-
-!  Reseting should set the equilibrium to a converged state.
-      this%not_converged = .false.
 
       CALL profiler_set_stop_time('equilibrium_reset_state',                   &
      &                            start_time)
@@ -2523,9 +2491,6 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL MPI_BCAST(this%not_converged, 1, MPI_LOGICAL, 0, recon_comm,        &
-     &               error)
-
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
@@ -2570,10 +2535,6 @@
       start_time = profiler_get_start_time()
 
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
-
-      IF (mpi_rank .eq. 0) THEN
-         this%not_converged = .false.
-      END IF
 
       SELECT CASE (this%type)
 

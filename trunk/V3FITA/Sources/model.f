@@ -51,6 +51,7 @@
       MODULE model
       USE equilibrium
       USE emission
+      USE model_state
 
       IMPLICIT NONE
 
@@ -107,6 +108,9 @@
 !>  Base class representing a model.
 !-------------------------------------------------------------------------------
       TYPE model_class
+!>  State flags indicating with parts of the model have changes.
+         INTEGER      :: state_flags = model_state_all_off
+
 !>  Type decritption of the electron denisty. Possible values are
 !>  @ref model_none_type, @ref model_ne_type and @ref model_ne_te_p_type.
          INTEGER      :: ne_type = model_none_type
@@ -199,13 +203,16 @@
 !>  @param[in] sxrem_te          Soft x-ray ratio function te.
 !>  @param[in] sxrem_ratio       Soft x-ray ratio function ratio.
 !>  @param[in] resonace_range    ECE resonance interval.
+!>  @param[in] not_converged     If true the equilibrium was constructed in an
+!>                               unconverged state.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
       FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
      &                         ne_unit, ne_min, te_min,                        &
      &                         pressure_fraction, emission,                    &
      &                         equilibrium, sxrem_te, sxrem_ratio,             &
-     &                         resonace_range)
+     &                         resonace_range, not_converged)
+      USE model_state
 
       IMPLICIT NONE
 
@@ -224,6 +231,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_te
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_ratio
       REAL (rprec), INTENT(in)                      :: resonace_range
+      LOGICAL, INTENT(in)                           :: not_converged
 
 !  local variables
       INTEGER                                       :: i, grid_size
@@ -233,6 +241,12 @@
       start_time = profiler_get_start_time()
 
       ALLOCATE(model_construct)
+
+      model_construct%state_flags = model_state_all_off
+      IF (not_converged) THEN
+         model_construct%state_flags =                                         &
+     &      IBSET(model_construct%state_flags, model_state_eq_flag)
+      END IF
 
       SELECT CASE (TRIM(ADJUSTL(ne_type)))
 
@@ -437,6 +451,7 @@
       INTEGER, INTENT(in)               :: eq_comm
 
 !  local variables
+      INTEGER                           :: i
       REAL (rprec)                      :: start_time
 
 !  Start of executable code
@@ -445,12 +460,18 @@
       SELECT CASE (id)
 
          CASE (model_ne_unit_id)
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_ne_flag)
             this%ne_unit = value
 
          CASE (model_ne_min_id)
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_ne_flag)
             this%ne_min = value
 
          CASE (model_te_min_id)
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_te_flag)
             this%te_min = value
 
          CASE (model_pressure_fraction_id)
@@ -458,9 +479,35 @@
 
          CASE DEFAULT
             CALL equilibrium_set_param(this%equilibrium, id,                   &
-     &                                 i_index, j_index, value, eq_comm)
+     &                                 i_index, j_index, value, eq_comm,       &
+     &                                 this%state_flags)
 
       END SELECT
+
+!  Some parts of the model depend on different parts of the model. Update the
+!  state flags to refect these changes.
+      IF ((this%ne_type .eq. model_ne_te_p_type) .and.                         &
+     &    (BTEST(this%state_flags, model_state_te_flag) .or.                   &
+     &     BTEST(this%state_flags, model_state_eq_flag))) THEN
+         this%state_flags = IBSET(this%state_flags, model_state_ne_flag)
+      END IF
+
+!  There are multiple sxrem profiles. State flags bit position needs to be
+!  off set by the i index.
+      DO i = 1, SIZE(this%sxrem_type)
+         IF ((this%sxrem_type(i) .eq. model_sxrem_te_ne_type) .and.            &
+     &       (BTEST(this%state_flags, model_state_te_flag) .or.                &
+     &        BTEST(this%state_flags, model_state_ne_flag))) THEN
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_sxrem_flag + (i - 1))
+         END IF
+      END DO
+
+      IF ((this%te_type .eq. model_te_ne_p_type) .and.                         &
+     &    (BTEST(this%state_flags, model_state_eq_flag) .or.                   &
+     &     BTEST(this%state_flags, model_state_ne_flag))) THEN
+         this%state_flags = IBSET(this%state_flags, model_state_te_flag)
+      END IF
 
       CALL profiler_set_stop_time('model_set_param', start_time)
 
@@ -1197,6 +1244,33 @@
 !  UTILITY SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
+!>  @brief Reset the internal state of the model.
+!>
+!>  Clears out the model state flags then resets the equilibrium.
+!>
+!>  @param[inout] this A @ref equilibrium_class instance.
+!-------------------------------------------------------------------------------
+       SUBROUTINE model_reset_state(this)
+
+       IMPLICIT NONE
+
+!  Declare Arguments
+       TYPE (model_class), INTENT(inout) :: this
+
+!  local variables
+       REAL (rprec)                            :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%state_flags = model_state_all_off
+      CALL equilibrium_reset_state(this%equilibrium)
+
+      CALL profiler_set_stop_time('model_reset_state', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
 !>  @brief Solves the model.
 !>
 !>  This solves the equilibirum model and computes modeled values. The modeled
@@ -1222,6 +1296,7 @@
       CHARACTER (len=*), INTENT(in)     :: param_name
 
 !  local variables
+      INTEGER                           :: init_num_iter
       REAL (rprec)                      :: r, dr
       INTEGER                           :: i, j
       INTEGER                           :: error
@@ -1230,16 +1305,38 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      IF (this%equilibrium%force_solve) THEN
+         this%state_flags = model_state_all_on
+      END IF
+
+      init_num_iter = num_iter
+
+      IF (BTEST(this%state_flags, model_state_eq_flag)) THEN
 #if defined (MPI_OPT)
-      CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0, eq_comm,         &
-     &               error)
+         CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0,               &
+     &                  eq_comm, error)
 #endif
-      model_converge = equilibrium_converge(this%equilibrium, num_iter,        &
-     &                                      iou, eq_comm, param_name)
+
+         model_converge = equilibrium_converge(this%equilibrium,               &
+     &                                         num_iter, iou, eq_comm)
+      ELSE
+         model_converge = .true.
+      END IF
+
+!  If this is the first time running make sure all signals are computed.
+      IF (init_num_iter .eq. 1) THEN
+         this%state_flags = model_state_all_on
+      END IF
 
       IF (model_converge) THEN
 
-         IF (ASSOCIATED(this%ne_grid)) THEN
+         WRITE (*,1000) model_converge, num_iter,                              &
+     &                  num_iter - init_num_iter, TRIM(param_name)
+         WRITE (iou,1000) model_converge, num_iter,                            &
+     &                    num_iter - init_num_iter, TRIM(param_name)
+
+         IF (ASSOCIATED(this%ne_grid) .and.                                    &
+     &       BTEST(this%state_flags, model_state_ne_flag)) THEN
             DO i = 1, SIZE(this%ne_grid)
                r = (i - 1)*this%grid_step + this%grid_start
                this%ne_grid(i) = model_get_ne(this, r)
@@ -1248,16 +1345,20 @@
 
          IF (ASSOCIATED(this%sxrem_grid)) THEN
             DO i = 1, SIZE(this%sxrem_grid, 2)
-               r = (i - 1)*this%grid_step + this%grid_start
-               DO j = 1, SIZE(this%sxrem_grid, 1)
+               IF (BTEST(this%state_flags, model_state_ne_flag -               &
+     &                                     (i - 1))) THEN
+                  r = (i - 1)*this%grid_step + this%grid_start
+                  DO j = 1, SIZE(this%sxrem_grid, 1)
 !  The length to the camera is not really known here so use 1 here. Since this
 !  is meant to map out the emission profile this is ok.
-                   this%sxrem_grid(j,i) = model_get_sxrem(this, r, j)
-               END DO
+                     this%sxrem_grid(j,i) = model_get_sxrem(this, r, j)
+                  END DO
+               END IF
             END DO
          END IF
 
-         IF (ASSOCIATED(this%te_grid)) THEN
+         IF (ASSOCIATED(this%te_grid) .and.                                    &
+     &       BTEST(this%state_flags, model_state_ne_flag)) THEN
             DO i = 1, SIZE(this%te_grid)
                r = (i - 1)*this%grid_step + this%grid_start
                this%te_grid(i) = model_get_te(this, r)
@@ -1267,6 +1368,8 @@
       END IF
 
       CALL profiler_set_stop_time('model_converge', start_time)
+
+1000  FORMAT('Model converged ',l,2(2x,i7),' ',a)
 
       END FUNCTION
 
@@ -1661,6 +1764,9 @@
       start_time = profiler_get_start_time()
 
       CALL equilibrium_sync_state(this%equilibrium, recon_comm)
+
+      CALL MPI_BCAST(this%state_flags, 1, MPI_INTEGER, 0, recon_comm,          &
+     &               error)
 
       grid_size = equilibrium_get_grid_size(this%equilibrium)
       IF (grid_size .gt. 0) THEN

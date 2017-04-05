@@ -197,21 +197,24 @@
 !>  integration function is provided by @ref int_function for interferometer
 !>  diagnostics and @ ref pol_function for polarimetry diagnostics.
 !>
-!>  @param[in]    this    A @ref intpol_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref intpol_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION intpol_get_modeled_signal(this, a_model, sigma)
+      FUNCTION intpol_get_modeled_signal(this, a_model, sigma,                 &
+     &                                   last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: intpol_get_modeled_signal
-      TYPE (intpol_class), INTENT(inout)      :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (intpol_class), INTENT(in)         :: this
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -224,33 +227,38 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      intpol_get_modeled_signal = 0.0
+      intpol_get_modeled_signal = last_value
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_ne_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
-      context_length = SIZE(TRANSFER(a_model, context))
-      ALLOCATE(context(context_length))
-      context = TRANSFER(a_model, context)
+         context_length = SIZE(TRANSFER(a_model, context))
+         ALLOCATE(context(context_length))
+         context = TRANSFER(a_model, context)
 
-      SELECT CASE (this%type)
+         SELECT CASE (this%type)
 
-         CASE (intpol_interferometry_type)
-            intpol_get_modeled_signal(1) =                                     &
-     &         path_integrate(this%chord_path, int_function, context)
+            CASE (intpol_interferometry_type)
+               intpol_get_modeled_signal(1) =                                  &
+     &            path_integrate(this%chord_path, int_function, context)
 
-         CASE (intpol_polarimetry_type)
-            intpol_get_modeled_signal(1) = polar_constant *                    &
-     &         (this%wavelength**2.0_dp) *                                     &
-     &         path_integrate(this%chord_path, pol_function, context)
-            IF (this%in_degrees) THEN
-                intpol_get_modeled_signal(1) =                                 &
-     &             intpol_get_modeled_signal(1)/degree
-            ENDIF
+            CASE (intpol_polarimetry_type)
+               intpol_get_modeled_signal(1) = polar_constant *                 &
+     &            (this%wavelength**2.0_dp) *                                  &
+     &            path_integrate(this%chord_path, pol_function, context)
+               IF (this%in_degrees) THEN
+                   intpol_get_modeled_signal(1) =                              &
+     &                intpol_get_modeled_signal(1)/degree
+               ENDIF
 
-      END SELECT
+         END SELECT
 
-      sigma = 0.0
-      DEALLOCATE(context)
+         DEALLOCATE(context)
+      END IF
 
       CALL profiler_set_stop_time('intpol_get_modeled_signal',                 &
      &                            start_time)

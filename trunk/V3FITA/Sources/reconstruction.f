@@ -116,6 +116,9 @@
 
 !>  Ratio of singular values to the Levenberg-Marquardt lambda.
          REAL (rprec), DIMENSION(:,:), POINTER :: lm_ratio => null()
+
+!>  Last signals.
+         REAL (rprec), DIMENSION(:,:), POINTER :: last_values => null()
       END TYPE
 
 !*******************************************************************************
@@ -257,6 +260,9 @@
       ALLOCATE(reconstruction_construct%step_size(num_steps))
       ALLOCATE(reconstruction_construct%num_sv(num_steps))
 
+      ALLOCATE(reconstruction_construct%last_values(4,num_signals))
+      reconstruction_construct%last_values = 0.0
+
       CALL profiler_set_stop_time('reconstruction_construct',                  &
      &                            start_time)
 
@@ -367,6 +373,11 @@
 
       IF (ASSOCIATED(this%lm_ratio)) THEN
          DEALLOCATE(this%lm_ratio)
+         this%lm_ratio => null()
+      END IF
+
+      IF (ASSOCIATED(this%last_values)) THEN
+         DEALLOCATE(this%last_values)
          this%lm_ratio => null()
       END IF
 
@@ -691,14 +702,19 @@
 !$OMP& PRIVATE(i)
          DO i = 1, this%last_para_signal
             this%e(i,this%current_step) =                                      &
-     &         signal_get_e(signals(i)%p, a_model, .false.)
+     &         signal_get_e(signals(i)%p, a_model, .false.,                    &
+     &                      this%last_values(:,i))
          END DO
 !$OMP END PARALLEL DO
 
          DO i = this%last_para_signal + 1, SIZE(signals)
             this%e(i,this%current_step) =                                      &
-     &         signal_get_e(signals(i)%p, a_model, .false.)
+     &         signal_get_e(signals(i)%p, a_model, .false.,                    &
+     &                      this%last_values(:,i))
          END DO
+
+!  All signals are computed reset the model state.
+         a_model%state_flags = model_state_all_off
 
          !  Write out the step information.
          reconstruction_eval_e = .true.
@@ -910,12 +926,14 @@
 !$OMP& PRIVATE(i)
                DO i = 1, this%last_para_signal
                   this%jacobian(i,j) =                                         &
-     &               signal_get_e(signals(i)%p, a_model, .false.)
+     &               signal_get_e(signals(i)%p, a_model, .false.,              &
+     &                            this%last_values(:,i))
                END DO
 !$OMP END PARALLEL DO
                DO i = this%last_para_signal + 1, SIZE(signals)
                   this%jacobian(i,j) =                                         &
-     &               signal_get_e(signals(i)%p, a_model, .false.)
+     &               signal_get_e(signals(i)%p, a_model, .false.,              &
+     &                            this%last_values(:,i))
                END DO
 
 !  Derived Jacobian.
@@ -927,7 +945,7 @@
 !  Reset the parameters and equilibrium to prepare for the backward step.
                CALL param_set_value(params(j)%p, a_model, param_value,         &
      &                              eq_comm, this%use_central)
-               CALL equilibrium_reset_state(a_model%equilibrium)
+               CALL model_reset_state(a_model)
 !  Set the locked values.
                DO i = 1, SIZE(locks)
                   CALL param_set_lock_value(locks(i)%p, a_model,               &
@@ -948,15 +966,17 @@
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i)
                   DO i = 1, this%last_para_signal
-                     this%jacobian(i,j) = -this%jacobian(i,j)                  &
-     &                                  + signal_get_e(signals(i)%p,           &
-     &                                                 a_model, .false.)
+                     this%jacobian(i,j) =                                      &
+     &                  -this%jacobian(i,j) +                                  &
+     &                   signal_get_e(signals(i)%p, a_model, .false.,          &
+     &                                this%last_values(:,i))
                   END DO
 !$OMP END PARALLEL DO
                   DO i = this%last_para_signal + 1, SIZE(signals)
-                     this%jacobian(i,j) = -this%jacobian(i,j)                  &
-     &                                  + signal_get_e(signals(i)%p,           &
-     &                                                 a_model, .false.)
+                     this%jacobian(i,j) =                                      &
+     &                  -this%jacobian(i,j) +                                  &
+     &                   signal_get_e(signals(i)%p, a_model, .false.,          &
+     &                                this%last_values(:,i))
                   END DO
 
 !  Derived Jacobian.
@@ -984,14 +1004,16 @@
 !$OMP& PRIVATE(i)
                DO i = 1, this%last_para_signal
                   this%jacobian(i,j) =                                         &
-     &               -(signal_get_e(signals(i)%p, a_model, .false.)            &
-     &               - this%e(i,this%current_step))
+     &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
+     &                              this%last_values(:,i)) -                   &
+     &                this%e(i,this%current_step))
                END DO
 !$OMP END PARALLEL DO
                DO i = this%last_para_signal + 1, SIZE(signals)
                   this%jacobian(i,j) =                                         &
-     &               -(signal_get_e(signals(i)%p, a_model, .false.)            &
-     &               - this%e(i,this%current_step))
+     &               -(signal_get_e(signals(i)%p, a_model, .false.,            &
+     &                              this%last_values(:,i)) -                   &
+     &                this%e(i,this%current_step))
                END DO
                this%jacobian(:,j) = this%jacobian(:,j)                         &
      &                            * SIGN(1.0_rprec,                            &
@@ -1019,7 +1041,7 @@
 !  the value of param delta back to the parent process.
          CALL param_set_value(params(j)%p, a_model, param_value,               &
      &                        eq_comm, this%use_central)
-         CALL equilibrium_reset_state(a_model%equilibrium)
+         CALL model_reset_state(a_model)
 !  Set the locked values.
          DO i = 1, SIZE(locks)
             CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
@@ -1633,6 +1655,7 @@
       REAL (rprec)                                       :: step_use
       REAL (rprec)                                       :: start_time
       LOGICAL                                            :: temp
+      REAL (rprec), DIMENSION(4)                         :: temp_array
       INTEGER                                            :: error
 
 !  Start of executable code
@@ -1684,6 +1707,11 @@
 
             IF (reconstruction_get_dg2(this) .ge. 0.0) THEN
                CALL reconstruction_eval_f(this, derived_params, a_model)
+
+!  The signal cache holds the next set of good signal values.
+               DO j = 1, SIZE(signals)
+                  this%last_values(:,j) = signals(j)%p%modeled
+               END DO
 
                reconstruction_step = .true.
                WRITE (*,*)
@@ -1738,12 +1766,12 @@
             CALL param_set_lock_value(locks(j)%p, a_model, eq_comm)
          END DO
 
-!  Reset the equilibrium state back to the last step. The state of the last step
-!  was saved before the jacobian was computed. This needs to be called after the
-!  parameters are reset so that the equilibrium is flagged to the converged
-!  state. Otherwise the equilibirum will try to converge again producing an
-!  incorrect wout file.
-         CALL equilibrium_reset_state(a_model%equilibrium)
+!  Reset the model state back to the last step. The state of the last step was
+!  saved before the jacobian was computed. This needs to be called after the
+!  parameters are reset so that the model is flagged to the converged state.
+!  Otherwise the model will try to converge again producing an incorrect wout
+!  file.
+         CALL model_reset_state(a_model)
 
          IF (i .eq. reconstruction_max_step_try) THEN
 !  The signals contain cached values. If the step fails recompute the modeled
@@ -1987,11 +2015,18 @@
      &                               this%use_central)
             END DO
             CALL MPI_RECV(this%e(:,this%current_step), SIZE(this%e, 1),        &
-     &                    MPI_REAL8, best_index, best_index, recon_comm,                  &
+     &                    MPI_REAL8, best_index, best_index, recon_comm,       &
      &                    MPI_STATUS_IGNORE, error)
             CALL MPI_RECV(this%exp_g2(this%current_step), 1, MPI_REAL8,        &
      &                    best_index, best_index, recon_comm,                  &
      &                    MPI_STATUS_IGNORE, error)
+
+!  For some reason, this needs to be before the model is synced or it can dead
+!  lock.
+            DO i = 1, SIZE(signals)
+               CALL signal_sync_child(signals(i)%p, best_index,                &
+     &                                recon_comm)
+            END DO
 
 !  FIXME: Not sure if the model needs to be updated before the lock values are
 !         are set.
@@ -2001,6 +2036,7 @@
 
 !  Sync the model from the best index.
             CALL model_sync_child(a_model, best_index, recon_comm)
+            a_model%state_flags = model_state_all_off
          END IF
 
 !  Ensure that parent had a chance sync the child equilibrium before it gets
@@ -2020,6 +2056,13 @@
             CALL MPI_SEND(this%exp_g2(this%current_step), 1, MPI_REAL8,        &
      &                    0, mpi_rank, recon_comm, error)
 
+!  For some reason, this needs to be before the model is synced or it can dead
+!  lock.
+            DO i = 1, SIZE(signals)
+               CALL signal_sync_child(signals(i)%p, best_index,                &
+     &                                recon_comm)
+            END DO
+
 !  Sync the model from the best index. The barrier ensures that child's wout
 !  file was copied before the child resets it. See model sync above.
             CALL model_sync_child(a_model, mpi_rank, recon_comm)
@@ -2038,7 +2081,7 @@
 !  Ensure that parent had a chance sync the child equilibrium before it gets
 !  reset. See above.
          CALL MPI_BARRIER(recon_comm, error)
-         CALL equilibrium_reset_state(a_model%equilibrium)
+         CALL model_reset_state(a_model)
          this%current_step = this%current_step - 1
 
       END IF
@@ -2506,6 +2549,8 @@
      &               MPI_REAL8, 0, recon_comm, error)
       CALL MPI_BCAST(this%f(:,this%current_step), SIZE(this%f, 1),             &
      &               MPI_REAL8, 0, recon_comm, error)
+      CALL MPI_BCAST(this%last_values, 4*SIZE(this%e, 1), MPI_REAL8, 0,        &
+     &               recon_comm, error)
 
       CALL profiler_set_stop_time('reconstruction_sync_state',                 &
      &                            start_time)

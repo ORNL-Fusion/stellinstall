@@ -136,20 +136,23 @@
 !>
 !>  @see sxrem_ratio::sxrem_ratio_get_modeled_signal
 !>
-!>  @param[in]    this    A @ref feedback_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref feedback_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION feedback_get_modeled_signal(this, a_model, sigma)
+      FUNCTION feedback_get_modeled_signal(this, a_model, sigma,               &
+     &                                     last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL(rprec), DIMENSION(4) :: feedback_get_modeled_signal
       TYPE(feedback_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -162,11 +165,7 @@
          CASE (feedback_sxrem_ratio_type)
             feedback_get_modeled_signal =                                      &
      &         sxrem_ratio_get_modeled_signal(this%ratio, a_model,             &
-     &                                        sigma)
-
-         CASE DEFAULT
-            feedback_get_modeled_signal = 0.0
-            sigma = 0.0
+     &                                        sigma, last_value)
 
       END SELECT
 
@@ -186,8 +185,8 @@
 !>
 !>  @see sxrem_ratio::sxrem_ratio_get_observed_signal
 !>
-!>  @param[in]    this    A @ref feedback_class instance.
-!>  @param[inout] a_model A @ref model instance.
+!>  @param[in] this    A @ref feedback_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns The observed value.
 !-------------------------------------------------------------------------------
       FUNCTION feedback_get_observed_signal(this, a_model)
@@ -196,11 +195,11 @@
 
 !  Declare Arguments
       REAL(rprec) :: feedback_get_observed_signal
-      TYPE(feedback_class), INTENT(in)  :: this
-      TYPE (model_class), INTENT(inout) :: a_model
+      TYPE(feedback_class), INTENT(in) :: this
+      TYPE (model_class), INTENT(in)   :: a_model
 
 !  local variables
-      REAL (rprec)                      :: start_time
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()

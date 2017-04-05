@@ -879,16 +879,18 @@
 !>  parameter is changed, propagate the changes to the VMEC internal state and
 !>  inform the caller that the equilibrium needs reconvergence.
 !>
-!>  @param[inout] this    A @ref vmec_class instance.
-!>  @param[in]    id      ID of the parameter.
-!>  @param[in]    i_index The ith index of the parameter.
-!>  @param[in]    j_index The jth index of the parameter.
-!>  @param[in]    value   The value of the parameter.
-!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
-!>  @returns True if VMEC is left in an unconverged state and false otherwise.
+!>  @param[inout] this        A @ref vmec_class instance.
+!>  @param[in]    id          ID of the parameter.
+!>  @param[in]    i_index     The ith index of the parameter.
+!>  @param[in]    j_index     The jth index of the parameter.
+!>  @param[in]    value       The value of the parameter.
+!>  @param[in]    eq_comm     MPI communicator for the child equilibrium
+!>                            processes.
+!>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
 !-------------------------------------------------------------------------------
-      FUNCTION vmec_set_param(this, id, i_index, j_index, value,               &
-     &                        eq_comm)
+      SUBROUTINE vmec_set_param(this, id, i_index, j_index, value,             &
+     &                          eq_comm, state_flags)
       USE vmec_input, only: rbc, zbs, rbs, zbc,                                &
      &                      ac, ac_aux_s, ac_aux_f,                            &
      &                      ai, ai_aux_s, ai_aux_f,                            &
@@ -898,17 +900,18 @@
       USE xstuff, only: xc, xcdot
       USE vmec_main, only: irzloff, currv, ivac
       USE stel_constants, only: mu0
+      USE model_state
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL                          :: vmec_set_param
       TYPE (vmec_class), INTENT(inout) :: this
       INTEGER, INTENT(in)              :: id
       INTEGER, INTENT(in)              :: i_index
       INTEGER, INTENT(in)              :: j_index
       REAL (rprec), INTENT(in)         :: value
       INTEGER, INTENT(in)              :: eq_comm
+      INTEGER, INTENT(inout)           :: state_flags
 
 !  local variables
       REAL (rprec)                     :: phiedge_ratio
@@ -921,7 +924,7 @@
       SELECT CASE (id)
 
          CASE (vmec_rbc_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             rbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -931,7 +934,7 @@
             END IF
 
          CASE (vmec_zbs_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             zbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -941,7 +944,7 @@
             END IF
 
          CASE (vmec_rbs_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             rbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -951,7 +954,7 @@
             END IF
 
          CASE (vmec_zbc_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             zbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -961,88 +964,93 @@
             END IF
 
          CASE (vmec_ac_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             ac(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_s_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             ac_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_f_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             ac_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             ai(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_s_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             ai_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_f_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             ai_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             am(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_s_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             am_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_f_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             am_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_pp_ne_b_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_ne_flag)
             this%ne%b(i_index) = value
 
          CASE (vmec_pp_ne_as_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_ne_flag)
             this%ne%as(i_index) = value
 
          CASE (vmec_pp_ne_af_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_ne_flag)
             this%ne%af(i_index) = value
 
          CASE (vmec_pp_te_b_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%b(i_index) = value
 
          CASE (vmec_pp_te_as_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%as(i_index) = value
 
          CASE (vmec_pp_te_af_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%af(i_index) = value
 
+!  There are multiple soft x-ray emission profiles. These need to be offset by
+!  the array index.
          CASE (vmec_pp_sxrem_b_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_sxrem_flag +          &
+     &                          (i_index - 1))
             this%sxrem(i_index)%p%b(j_index) = value
 
          CASE (vmec_pp_sxrem_as_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_sxrem_flag +          &
+     &                          (i_index - 1))
             this%sxrem(i_index)%p%as(j_index) = value
 
          CASE (vmec_pp_sxrem_af_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_sxrem_flag +          &
+     &                          (i_index - 1))
             this%sxrem(i_index)%p%af(j_index) = value
 
          CASE (vmec_extcur_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             extcur(i_index) = value
 #if defined(MPI_OPT)
             CALL MPI_BCAST(mpi_mgrid_task, 1, MPI_INTEGER, 0, eq_comm,         &
@@ -1051,13 +1059,13 @@
             CALL vmec_read_vac_file(this, i_index, eq_comm)
 
          CASE (vmec_curtor_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             curtor = value
             currv = mu0*curtor
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_phiedge_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             IF (phiedge .ne. 0.0) THEN
                phiedge_ratio = value/phiedge
             ELSE
@@ -1072,12 +1080,12 @@
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             pres_scale = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_bloat_id)
-            vmec_set_param = .true.
+            state_flags = IBSET(state_flags, model_state_eq_flag)
             bloat = value
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
@@ -1087,14 +1095,14 @@
 !  since the equilibrium was not reconverged. Call vmec_set_magnetic_cache_calc
 !  to update the magnetic cache without reconverging VMEC.
          CASE (vmec_phi_offset_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_shift_flag)
             this%phi_offset = value
             IF (ASSOCIATED(this%magnetic_cache)) THEN
                CALL vmec_set_magnetic_cache(this)
             END IF
 
          CASE (vmec_z_offset_id)
-            vmec_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_shift_flag)
             this%z_offset = value
             IF (ASSOCIATED(this%magnetic_cache)) THEN
                CALL vmec_set_magnetic_cache(this)
@@ -1103,13 +1111,13 @@
          CASE DEFAULT
 !>  @todo FIXME: Consider throwing a fatal error here instead of silently doing
 !>  nothing.
-            vmec_set_param = .true.
+            state_flags = state_flags
 
       END SELECT
 
       CALL profiler_set_stop_time('vmec_set_param', start_time)
 
-      END FUNCTION
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Set magnetic cache for plasma resonce.
@@ -4153,6 +4161,7 @@
          xcdot = 0.0
          xstore = xc
          CALL reset_params
+
          !print *, '*** Calling runvmec from converge...'
          CALL runvmec(ictrl_array, this%vmec_file_name, .false.,               &
      &                eq_comm)

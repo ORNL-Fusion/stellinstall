@@ -107,12 +107,14 @@
 !>  of the magnetic field. The loop integrated magnetic field is provided by
 !>  @ref equilibrium_get_Int_B_dphi
 !>
-!>  @param[in]    this    A @ref extcurz_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref extcurz_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION extcurz_get_modeled_signal(this, a_model, sigma)
+      FUNCTION extcurz_get_modeled_signal(this, a_model, sigma,                &
+     &                                    last_value)
       USE model
       USE stel_constants, only: mu0
 
@@ -121,8 +123,9 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: extcurz_get_modeled_signal
       TYPE (extcurz_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -130,13 +133,15 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      extcurz_get_modeled_signal = 0.0
-
-      extcurz_get_modeled_signal(1) =                                          &
-     &   equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,               &
-     &                              this%theta)/mu0
-
+      extcurz_get_modeled_signal = last_value
       sigma = 0
+
+      IF (BTEST(a_model%state_flags, model_state_eq_flag)) THEN
+
+         extcurz_get_modeled_signal(1) =                                       &
+     &      equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,            &
+     &                                 this%theta)/mu0
+      END IF
 
       CALL profiler_set_stop_time('extcurz_get_modeled_signal',                &
      &                            start_time)

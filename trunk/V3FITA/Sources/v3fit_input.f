@@ -555,7 +555,8 @@
 !>  Reconstruction step name length.
       INTEGER, PARAMETER :: v3fit_step_name_length = 4
 
-!>  Maximum number of sxrem profiles.
+!>  Maximum number of sxrem profiles. Warning do not change this value before
+!>  reading @ref model_state::model_state_sxrem_flag.
       INTEGER, PARAMETER :: v3fit_max_sxrem_profiles = 10
 
 !*******************************************************************************
