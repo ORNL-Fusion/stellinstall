@@ -378,8 +378,7 @@
             CALL vmec_set_magnetic_cache(this%vmec, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (BTEST(state_flags, model_state_eq_flag) .or.                   &
-     &          BTEST(state_flags, model_state_shift_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
                CALL vmec_set_magnetic_cache(this%vmec)
             END IF
 
@@ -387,8 +386,7 @@
             CALL siesta_set_magnetic_cache(this%siesta, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (BTEST(state_flags, model_state_eq_flag) .or.                   &
-     &          BTEST(state_flags, model_state_shift_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
                CALL siesta_set_magnetic_cache(this%siesta)
             END IF
 
@@ -433,23 +431,23 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      WRITE (*,'(B32)') state_flags
+
       SELECT CASE (this%type)
 
-      CASE (equilibrium_vmec_type)
-         CALL vmec_set_magnetic_cache(this%vmec, use_axi)
+         CASE (equilibrium_vmec_type)
+            CALL vmec_set_magnetic_cache(this%vmec, use_axi)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-         IF (BTEST(state_flags, model_state_eq_flag) .or.                      &
-     &       BTEST(state_flags, model_state_shift_flag)) THEN
-            CALL vmec_set_magnetic_cache(this%vmec)
-         END IF
+            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
+               CALL vmec_set_magnetic_cache(this%vmec)
+            END IF
 
          CASE (equilibrium_siesta_type)
             CALL siesta_set_magnetic_cache(this%siesta, use_axi)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (BTEST(state_flags, model_state_eq_flag) .or.                   &
-     &          BTEST(state_flags, model_state_shift_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
                CALL siesta_set_magnetic_cache(this%siesta)
             END IF
 
