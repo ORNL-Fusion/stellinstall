@@ -103,6 +103,9 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a <a class="el" href="namespacevmec__equilibrium.html" title="Defines the base class of the type vmec_class. This module contains all the code necessary to interfa...">vmec_equilibrium</a>.  <a href="structvmec__equilibrium_1_1vmec__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacevmec__equilibrium_1_1vmec__construct.html">vmec_construct</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> types using <a class="el" href="interfacevmec__equilibrium_1_1vmec__construct.html#a7cc40d6686f048212119fc3e43f67088">vmec_construct_full</a> or vmec_construct_wout.  <a href="interfacevmec__equilibrium_1_1vmec__construct.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacevmec__equilibrium_1_1vmec__get__ne.html">vmec_get_ne</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the vmec density profile values.  <a href="interfacevmec__equilibrium_1_1vmec__get__ne.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -124,15 +127,18 @@ Data Types</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a526fb361d790733e839920cda4401e03"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a526fb361d790733e839920cda4401e03">vmec_construct</a> (file_name, wout_file_name, ne, te, sxrem, phi_offset, z_offset, pol_rad_ratio, iou, eq_comm, recon_comm)</td></tr>
-<tr class="memdesc:a526fb361d790733e839920cda4401e03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#a526fb361d790733e839920cda4401e03">More...</a><br /></td></tr>
-<tr class="separator:a526fb361d790733e839920cda4401e03"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a332570b17f9b04a4106d7fd220c3f97c"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a332570b17f9b04a4106d7fd220c3f97c">vmec_construct_eq</a> (file_name, wout_file_name, iou, eq_comm, recon_comm)</td></tr>
+<tr class="memdesc:a332570b17f9b04a4106d7fd220c3f97c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#a332570b17f9b04a4106d7fd220c3f97c">More...</a><br /></td></tr>
+<tr class="separator:a332570b17f9b04a4106d7fd220c3f97c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a7d675354eaa051628bf61a77be0c33"><td class="memItemLeft" align="right" valign="top">type(<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a4a7d675354eaa051628bf61a77be0c33">vmec_construct_full</a> (file_name, wout_file_name, ne, te, sxrem, phi_offset, z_offset, pol_rad_ratio, iou, eq_comm, recon_comm)</td></tr>
+<tr class="memdesc:a4a7d675354eaa051628bf61a77be0c33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#a4a7d675354eaa051628bf61a77be0c33">More...</a><br /></td></tr>
+<tr class="separator:a4a7d675354eaa051628bf61a77be0c33"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac74c89608f1ab1ba7efa6a6a80bd9d5"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#aac74c89608f1ab1ba7efa6a6a80bd9d5">vmec_destruct</a> (this)</td></tr>
 <tr class="memdesc:aac74c89608f1ab1ba7efa6a6a80bd9d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#aac74c89608f1ab1ba7efa6a6a80bd9d5">More...</a><br /></td></tr>
 <tr class="separator:aac74c89608f1ab1ba7efa6a6a80bd9d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab5f7ca21ca82f94832ed90b877c8ef09"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#ab5f7ca21ca82f94832ed90b877c8ef09">vmec_set_param</a> (this, id, i_index, j_index, value, eq_comm)</td></tr>
-<tr class="memdesc:ab5f7ca21ca82f94832ed90b877c8ef09"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the value of a reconstruction equilibrium parameter.  <a href="#ab5f7ca21ca82f94832ed90b877c8ef09">More...</a><br /></td></tr>
-<tr class="separator:ab5f7ca21ca82f94832ed90b877c8ef09"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08a558e21fb005492c9c4102dfa80ebc"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a08a558e21fb005492c9c4102dfa80ebc">vmec_set_param</a> (this, id, i_index, j_index, value, eq_comm, state_flags)</td></tr>
+<tr class="memdesc:a08a558e21fb005492c9c4102dfa80ebc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the value of a reconstruction equilibrium parameter.  <a href="#a08a558e21fb005492c9c4102dfa80ebc">More...</a><br /></td></tr>
+<tr class="separator:a08a558e21fb005492c9c4102dfa80ebc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6cb68ce3c68bfd6d867d22b054eb7ef0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a6cb68ce3c68bfd6d867d22b054eb7ef0">vmec_set_magnetic_cache_responce</a> (this, response_object)</td></tr>
 <tr class="memdesc:a6cb68ce3c68bfd6d867d22b054eb7ef0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set magnetic cache for plasma resonce.  <a href="#a6cb68ce3c68bfd6d867d22b054eb7ef0">More...</a><br /></td></tr>
 <tr class="separator:a6cb68ce3c68bfd6d867d22b054eb7ef0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -184,6 +190,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:aa3d210c6391e7b482a8f0d731eb1ff77"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#aa3d210c6391e7b482a8f0d731eb1ff77">vmec_get_int_b_dphi</a> (this, r, theta)</td></tr>
 <tr class="memdesc:aa3d210c6391e7b482a8f0d731eb1ff77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the loop integrated magnetic field at a position.  <a href="#aa3d210c6391e7b482a8f0d731eb1ff77">More...</a><br /></td></tr>
 <tr class="separator:aa3d210c6391e7b482a8f0d731eb1ff77"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7b4ef3ae9bb37c5dbdac077d64a7f36"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(3)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#ab7b4ef3ae9bb37c5dbdac077d64a7f36">vmec_get_suv</a> (this, x_cart)</td></tr>
+<tr class="memdesc:ab7b4ef3ae9bb37c5dbdac077d64a7f36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets VMEC suv position.  <a href="#ab7b4ef3ae9bb37c5dbdac077d64a7f36">More...</a><br /></td></tr>
+<tr class="separator:ab7b4ef3ae9bb37c5dbdac077d64a7f36"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab972cec76da4119a8904190c6ef1c625"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#ab972cec76da4119a8904190c6ef1c625">vmec_get_s</a> (this, x_cart)</td></tr>
 <tr class="memdesc:ab972cec76da4119a8904190c6ef1c625"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets VMEC s value at position.  <a href="#ab972cec76da4119a8904190c6ef1c625">More...</a><br /></td></tr>
 <tr class="separator:ab972cec76da4119a8904190c6ef1c625"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -226,6 +235,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a0a0f36d6a4d31de871ed1f0430e9317e"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a0a0f36d6a4d31de871ed1f0430e9317e">vmec_get_ext_currents</a> (this, num_currents, scale_currents)</td></tr>
 <tr class="memdesc:a0a0f36d6a4d31de871ed1f0430e9317e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get external current.  <a href="#a0a0f36d6a4d31de871ed1f0430e9317e">More...</a><br /></td></tr>
 <tr class="separator:a0a0f36d6a4d31de871ed1f0430e9317e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96e24113a75f37fbf54fd62109a9d18f"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(3)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a96e24113a75f37fbf54fd62109a9d18f">vmec_get_b_vac</a> (this, r_cyl)</td></tr>
+<tr class="memdesc:a96e24113a75f37fbf54fd62109a9d18f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the vacuum magnetic field vector at a position.  <a href="#a96e24113a75f37fbf54fd62109a9d18f">More...</a><br /></td></tr>
+<tr class="separator:a96e24113a75f37fbf54fd62109a9d18f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8fc30f3af769bb9675e9e6588ec01a4"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(3)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#aa8fc30f3af769bb9675e9e6588ec01a4">vmec_get_ext_b_plasma</a> (this, position, axi_only)</td></tr>
 <tr class="memdesc:aa8fc30f3af769bb9675e9e6588ec01a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get external plasma magnetic field.  <a href="#aa8fc30f3af769bb9675e9e6588ec01a4">More...</a><br /></td></tr>
 <tr class="separator:aa8fc30f3af769bb9675e9e6588ec01a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -561,12 +573,72 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 <div class="textblock"><p>Defines the base class of the type <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>. This module contains all the code necessary to interface V3FIT with VMEC. </p>
 <dl class="section user"><dt>Super Class:</dt><dd><a class="el" href="namespaceequilibrium.html">equilibrium</a> </dd></dl>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a class="anchor" id="a526fb361d790733e839920cda4401e03"></a>
+<a class="anchor" id="a332570b17f9b04a4106d7fd220c3f97c"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">type (<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>) function, pointer vmec_equilibrium::vmec_construct </td>
+          <td class="memname">type (<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>) function, pointer vmec_equilibrium::vmec_construct_eq </td>
+          <td>(</td>
+          <td class="paramtype">character (len=*), intent(in)&#160;</td>
+          <td class="paramname"><em>file_name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">character (len=*), intent(in)&#160;</td>
+          <td class="paramname"><em>wout_file_name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>iou</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>eq_comm</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>recon_comm</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object. </p>
+<p>Allocates memory and initializes a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object. Runs vmec for one iteration to initialize all the input parameters. Defined in vmec_input.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>Filename of the vmec namelist input file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">wout_file_name</td><td>Filename of the vmec wout input file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">iou</td><td>Input/output unit to log messages to. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">eq_comm</td><td>MPI communicator pool for VMEC. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">recon_comm</td><td>MPI communicator pool for reconstruction. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object. </dd></dl>
+
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00499">499</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a4a7d675354eaa051628bf61a77be0c33"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">type (<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>) function, pointer vmec_equilibrium::vmec_construct_full </td>
           <td>(</td>
           <td class="paramtype">character (len=*), intent(in)&#160;</td>
           <td class="paramname"><em>file_name</em>, </td>
@@ -644,6 +716,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>Filename of the vmec namelist input file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">wout_file_name</td><td>Filename of the vmec wout input file. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">ne</td><td>pprofile_T for the electron density. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">te</td><td>pprofile_T for the electron temperature. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sxrem</td><td>pprofile_T for the soft x-ray emissivity. </td></tr>
@@ -657,7 +730,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00499">499</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00686">686</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -698,7 +771,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div><div class="memdoc">
 
 <p>Solves the VMEC equilibrium. </p>
-<p>This method overrides <a class="el" href="namespaceequilibrium.html#a2a454a7ccf7189a91e38152368b3c4fc">equilibrium::equilibrium_converge</a>. Solves the vmec equilibrium and loads the resulting wout file in preparation of computing modeled signals.</p>
+<p>This method overrides <a class="el" href="namespaceequilibrium.html#a79fef4f255be2306bb53eb49988a59f0">equilibrium::equilibrium_converge</a>. Solves the vmec equilibrium and loads the resulting wout file in preparation of computing modeled signals.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> instance. </td></tr>
@@ -709,9 +782,9 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the convergece was sucessful and false otherwise. </dd></dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000021">Todo:</a></b></dt><dd>FIXME: Put in error reporting here. For now leave this blank until I can figure how v3fit decides if vmec has converged. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000023">Todo:</a></b></dt><dd>FIXME: Put in error reporting here. For now leave this blank until I can figure how v3fit decides if vmec has converged. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03946">3946</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04090">4090</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -756,7 +829,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04399">4399</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04552">4552</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -783,7 +856,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00672">672</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00736">736</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -815,7 +888,46 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The area integration element. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03446">3446</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03465">3465</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a96e24113a75f37fbf54fd62109a9d18f"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function, dimension(3) vmec_equilibrium::vmec_get_b_vac </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(3), intent(in)&#160;</td>
+          <td class="paramname"><em>r_cyl</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets the vacuum magnetic field vector at a position. </p>
+<p>This interpolated the mgrid field on to the position. This should not be called if free boundary modes was not used.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">r_cyl</td><td>Cartesian position to get the magnetic field vector at. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The vaccum magnetic field vector at x_cart. </dd></dl>
+
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03554">3554</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -861,7 +973,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The magnetic field vector at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02804">2804</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02876">2876</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -889,7 +1001,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03380">3380</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03399">3399</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -917,7 +1029,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03350">3350</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03369">3369</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -945,7 +1057,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03410">3410</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03429">3429</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -991,7 +1103,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The external currents. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03540">3540</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03684">3684</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1008,7 +1120,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">integer&#160;</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
           <td class="paramname"><em>num_currents</em>, </td>
         </tr>
         <tr>
@@ -1037,7 +1149,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The external currents. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03484">3484</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03503">3503</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1076,7 +1188,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The normalized flux position at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03058">3058</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03077">3077</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1104,7 +1216,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Size of the radial grid. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03644">3644</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03788">3788</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1132,7 +1244,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Start of the radial grid. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03671">3671</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03815">3815</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1160,7 +1272,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Size of the radial grid. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03697">3697</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03841">3841</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1206,7 +1318,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The loop integrated magnetic field at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02957">2957</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02938">2938</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1234,7 +1346,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03252">3252</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03271">3271</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1262,7 +1374,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03222">3222</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03241">3241</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1290,7 +1402,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03282">3282</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03301">3301</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1318,7 +1430,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03162">3162</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03181">3181</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1346,7 +1458,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The radial grid points. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03192">3192</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03211">3211</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1385,7 +1497,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The electron density at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02531">2531</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02603">2603</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1424,7 +1536,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The electron density at s. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02561">2561</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02633">2633</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1463,7 +1575,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The plasma pressure at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02732">2732</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02804">2804</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1502,7 +1614,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The plasma pressure at s. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02761">2761</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02833">2833</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1541,7 +1653,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The id for a reconstruction parameter. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01827">1827</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01899">1899</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1580,7 +1692,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The name of the parameter. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02303">2303</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02375">2375</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1633,7 +1745,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The value of the parameter. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02059">2059</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02131">2131</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1686,7 +1798,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The number of elements in the r and z arrays. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03100">3100</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03119">3119</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1725,7 +1837,46 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The s position at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03000">3000</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03041">3041</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ab7b4ef3ae9bb37c5dbdac077d64a7f36"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real (rprec) function, dimension(3) vmec_equilibrium::vmec_get_suv </td>
+          <td>(</td>
+          <td class="paramtype">type (<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>), intent(in)&#160;</td>
+          <td class="paramname"><em>this</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(3), intent(in)&#160;</td>
+          <td class="paramname"><em>x_cart</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Gets VMEC suv position. </p>
+<p>Converts from cartesian coordinates to vmec's flux coordinates.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">this</td><td>A <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">x_cart</td><td>Cartesian position to get the s position at. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The s position at x_cart. </dd></dl>
+
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02981">2981</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1771,7 +1922,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The soft x-ray emissivity at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02661">2661</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02733">2733</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1817,7 +1968,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The soft x-ray emissivity at s. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02695">2695</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02767">2767</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1856,7 +2007,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The electron temperature at x_cart. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02596">2596</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02668">2668</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1895,7 +2046,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The electron temperature at s. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02626">2626</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l02698">2698</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1928,7 +2079,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The volume integration element. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03318">3318</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03337">3337</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -1967,7 +2118,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the parameter is a 1d array and false if otherwise. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03768">3768</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03912">3912</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2006,7 +2157,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the parameter is a 2d array and false if otherwise. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03813">3813</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03957">3957</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2045,7 +2196,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the parameter is a reconstruction parameter and false if otherwise. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03859">3859</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04003">4003</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2084,7 +2235,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the parameter is a scaler and false if otherwise. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03727">3727</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03871">3871</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2112,7 +2263,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the point magnetic are being used. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l03904">3904</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04048">4048</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2157,7 +2308,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04136">4136</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04281">4281</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2184,7 +2335,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04751">4751</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04905">4905</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2211,7 +2362,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04213">4213</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04358">4358</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2238,7 +2389,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04174">4174</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04319">4319</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2264,13 +2415,13 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </table>
   </dd>
 </dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000016">Todo:</a></b></dt><dd>FIXME: There is no reason to recalculate the sin and cosin for the u component arrays every time. The v components can change if phi_offset is being reconstructed. The u components can be cached in the <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> and calculated once in vmec_set_magnetic_cache_init. </dd></dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000017">Todo:</a></b></dt><dd>FIXME: There is no reason to recalculate the sin and cosin for the u component arrays every time. The v components can change if phi_offset is being reconstructed. The u components can be cached in the <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> and calculated once in vmec_set_magnetic_cache_init. </dd></dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000018">Todo:</a></b></dt><dd>FIXME: There is no reason to recompute the sine and cosine for the u component arrays every time. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000018">Todo:</a></b></dt><dd>FIXME: There is no reason to recalculate the sin and cosin for the u component arrays every time. The v components can change if phi_offset is being reconstructed. The u components can be cached in the <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> and calculated once in vmec_set_magnetic_cache_init. </dd></dl>
 <dl class="todo"><dt><b><a class="el" href="todo.html#_todo000019">Todo:</a></b></dt><dd>FIXME: There is no reason to recalculate the sin and cosin for the u component arrays every time. The v components can change if phi_offset is being reconstructed. The u components can be cached in the <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> and calculated once in vmec_set_magnetic_cache_init. </dd></dl>
 <dl class="todo"><dt><b><a class="el" href="todo.html#_todo000020">Todo:</a></b></dt><dd>FIXME: There is no reason to recompute the sine and cosine for the u component arrays every time. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000021">Todo:</a></b></dt><dd>FIXME: There is no reason to recalculate the sin and cosin for the u component arrays every time. The v components can change if phi_offset is being reconstructed. The u components can be cached in the <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> and calculated once in vmec_set_magnetic_cache_init. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000022">Todo:</a></b></dt><dd>FIXME: There is no reason to recompute the sine and cosine for the u component arrays every time. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01209">1209</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01281">1281</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2308,7 +2459,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01145">1145</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01217">1217</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2346,7 +2497,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01061">1061</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01133">1133</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2373,16 +2524,16 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01770">1770</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l01842">1842</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="ab5f7ca21ca82f94832ed90b877c8ef09"></a>
+<a class="anchor" id="a08a558e21fb005492c9c4102dfa80ebc"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">logical function vmec_equilibrium::vmec_set_param </td>
+          <td class="memname">subroutine vmec_equilibrium::vmec_set_param </td>
           <td>(</td>
           <td class="paramtype">type (<a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a>), intent(inout)&#160;</td>
           <td class="paramname"><em>this</em>, </td>
@@ -2415,7 +2566,13 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">integer, intent(in)&#160;</td>
-          <td class="paramname"><em>eq_comm</em>&#160;</td>
+          <td class="paramname"><em>eq_comm</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(inout)&#160;</td>
+          <td class="paramname"><em>state_flags</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -2426,7 +2583,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div><div class="memdoc">
 
 <p>Sets the value of a reconstruction equilibrium parameter. </p>
-<p>This method overrides <a class="el" href="namespaceequilibrium.html#aad83e76f74696f531efe40f02bda970e">equilibrium::equilibrium_set_param</a>. When a VMEC parameter is changed, propagate the changes to the VMEC internal state and inform the caller that the equilibrium needs reconvergence.</p>
+<p>This method overrides <a class="el" href="namespaceequilibrium.html#ae25254f1165258631e26d4a34b34c206">equilibrium::equilibrium_set_param</a>. When a VMEC parameter is changed, propagate the changes to the VMEC internal state and inform the caller that the equilibrium needs reconvergence.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> instance. </td></tr>
@@ -2435,13 +2592,13 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
     <tr><td class="paramdir">[in]</td><td class="paramname">j_index</td><td>The jth index of the parameter. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>The value of the parameter. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">eq_comm</td><td>MPI communicator for the child equilibrium processes. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">state_flags</td><td>Bitwise flags to indicate which parts of the model changed. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>True if VMEC is left in an unconverged state and false otherwise. </dd></dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000015">Todo:</a></b></dt><dd>FIXME: Consider throwing a fatal error here instead of silently doing nothing. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000017">Todo:</a></b></dt><dd>FIXME: Consider throwing a fatal error here instead of silently doing nothing. </dd></dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00828">828</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l00894">894</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2486,7 +2643,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04699">4699</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04853">4853</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2524,7 +2681,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04646">4646</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04800">4800</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2562,7 +2719,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04258">4258</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04403">4403</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2600,7 +2757,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04502">4502</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04654">4654</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2638,7 +2795,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04310">4310</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04463">4463</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
@@ -2683,14 +2840,14 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04598">4598</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
+<p>Definition at line <a class="el" href="vmec__equilibrium_8f_source.html#l04750">4750</a> of file <a class="el" href="vmec__equilibrium_8f_source.html">vmec_equilibrium.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Mar 6 2017 15:16:15 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 8 2017 12:22:15 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

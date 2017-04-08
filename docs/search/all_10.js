@@ -188,6 +188,7 @@ var searchData=
   ['resonace_5frange',['resonace_range',['../structmodel_1_1model__class.html#a82be6dde7d49e42791481574384553f9',1,'model::model_class']]],
   ['resonance',['resonance',['../structece_1_1ece__class.html#a5e9b4d1348955282fb207a38381db18b',1,'ece::ece_class::resonance()'],['../structece_1_1ece__context.html#a3f618bc8f24be9ec823f96ca8a962bab',1,'ece::ece_context::resonance()']]],
   ['response',['response',['../structmagnetic_1_1magnetic__class.html#abc1bab11526f89415a17836014839198',1,'magnetic::magnetic_class']]],
+  ['restart_5ffile_5fname',['restart_file_name',['../structsiesta__equilibrium_1_1siesta__class.html#a13072e00583bf4a02054abb0ffd4136f',1,'siesta_equilibrium::siesta_class']]],
   ['result_20file',['Result File',['../result_file_main.html',1,'']]],
   ['result_5fncid',['result_ncid',['../structv3fit__context_1_1v3fit__context__class.html#a0ecd6a771db5ffa06e9b2137d7df23e2',1,'v3fit_context::v3fit_context_class']]],
   ['rhsdirtied',['rhsdirtied',['../namespaceblocktridiagonalsolver.html#a589f3643d34b3c9d21aea74276916de5',1,'blocktridiagonalsolver']]],
@@ -200,7 +201,7 @@ var searchData=
   ['rp_5frange_5fvalue',['rp_range_value',['../namespacev3fit__input.html#a1cd8831eb51c75138324c8617f3addaf',1,'v3fit_input']]],
   ['rp_5ftype',['rp_type',['../namespacev3fit__input.html#afbcb33671b5363e966f6155d12925e2a',1,'v3fit_input']]],
   ['rp_5fvrnc',['rp_vrnc',['../namespacev3fit__input.html#a2b70e391fc06040c923c580b881bbd28',1,'v3fit_input']]],
-  ['rsuv',['rsuv',['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a8f3b85605560b72198dd347454d7c930',1,'vmec_equilibrium::vmec_magnetic_cache']]],
+  ['rsuv',['rsuv',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#af0561c8f68bad0c5d897909594cfc6af',1,'siesta_equilibrium::siesta_magnetic_cache::rsuv()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a8f3b85605560b72198dd347454d7c930',1,'vmec_equilibrium::vmec_magnetic_cache::rsuv()']]],
   ['rszs',['rszs',['../structmapout_1_1rszs.html',1,'mapout']]],
   ['runlog_5fiou',['runlog_iou',['../structv3fit__context_1_1v3fit__context__class.html#a24b105bf00095130783ab312e27f8774',1,'v3fit_context::v3fit_context_class']]],
   ['runvmec',['runvmec',['../interfacevmec__equilibrium_1_1runvmec.html',1,'vmec_equilibrium']]]

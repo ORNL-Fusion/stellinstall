@@ -5,7 +5,7 @@ var searchData=
   ['magnetic_5fconstruct_5fnetcdf',['magnetic_construct_netcdf',['../interfacemagnetic_1_1magnetic__construct.html#a23c72684867cdc83f132ba7d369f9585',1,'magnetic::magnetic_construct::magnetic_construct_netcdf()'],['../namespacemagnetic.html#aabc178ff7de3a40a4c7b47799739afe2',1,'magnetic::magnetic_construct_netcdf()']]],
   ['magnetic_5fdestruct',['magnetic_destruct',['../namespacemagnetic.html#a6c8629127f9b0470d1313868c59b6982',1,'magnetic']]],
   ['magnetic_5fget_5fheader',['magnetic_get_header',['../namespacemagnetic.html#a3f7ce71744c90c6be8b8df54843f27aa',1,'magnetic']]],
-  ['magnetic_5fget_5fmodeled_5fsignal',['magnetic_get_modeled_signal',['../namespacemagnetic.html#aea8c0c116c3741c28bba592e6d9f7b39',1,'magnetic']]],
+  ['magnetic_5fget_5fmodeled_5fsignal',['magnetic_get_modeled_signal',['../namespacemagnetic.html#aaa11a4bdaae2647f6546a9f9c331057b',1,'magnetic']]],
   ['magnetic_5fget_5fmodeled_5fsignal_5fcoil',['magnetic_get_modeled_signal_coil',['../namespacemagnetic.html#adf463be6bae38afa96d325a0a0bcae5c',1,'magnetic']]],
   ['magnetic_5fget_5fmodeled_5fsignal_5fcoil_5fpickup',['magnetic_get_modeled_signal_coil_pickup',['../namespacemagnetic.html#a7e2ec298bb1b6eed9875fc7cb944b429',1,'magnetic']]],
   ['magnetic_5fget_5fmodeled_5fsignal_5fpoint',['magnetic_get_modeled_signal_point',['../namespacemagnetic.html#a6afde045b078bf8c5a3230ecf9b9ccce',1,'magnetic']]],
@@ -28,7 +28,7 @@ var searchData=
   ['masterrecvvector',['masterrecvvector',['../namespaceblocktridiagonalsolver.html#a5ac3288f9d10057860424414c219adf2',1,'blocktridiagonalsolver']]],
   ['mastersendmatrix',['mastersendmatrix',['../namespaceblocktridiagonalsolver.html#a4240cfb879a2d94b6fd5f48d973dac26',1,'blocktridiagonalsolver']]],
   ['mnbrak',['mnbrak',['../namespacef1dim__mod.html#a049bf2059df595d81c8c403edece0f23',1,'f1dim_mod']]],
-  ['model_5fconstruct',['model_construct',['../namespacemodel.html#a1cc74801d48fc998e9229e0cea4271e8',1,'model']]],
+  ['model_5fconstruct',['model_construct',['../namespacemodel.html#a45ebbbfcec979b827a40dbbd0ccc0e95',1,'model']]],
   ['model_5fconverge',['model_converge',['../namespacemodel.html#ae40d3eb6e7863b5ca97a108a8b6eec45',1,'model']]],
   ['model_5fdef_5fresult',['model_def_result',['../namespacemodel.html#aaf5b18436f431c1bd3243d7e12fba98b',1,'model']]],
   ['model_5fdestruct',['model_destruct',['../namespacemodel.html#a2a265c388bc36a30cc61a1635f9353d6',1,'model']]],
@@ -46,6 +46,7 @@ var searchData=
   ['model_5fget_5fte_5fradial',['model_get_te_radial',['../interfacemodel_1_1model__get__te.html#a7ec47de60946a8bd2364d4ac2b37e1ad',1,'model::model_get_te::model_get_te_radial()'],['../namespacemodel.html#a125d3aa05cbe81640802d4e443e05fe6',1,'model::model_get_te_radial()']]],
   ['model_5fget_5fte_5ftype',['model_get_te_type',['../namespacemodel.html#a75ad061f96afc97aeb8b46b0c283036b',1,'model']]],
   ['model_5fis_5frecon_5fparam',['model_is_recon_param',['../namespacemodel.html#ae92f9c0950727e71610455ca8498fca1',1,'model']]],
+  ['model_5freset_5fstate',['model_reset_state',['../namespacemodel.html#a039d5b9b4b15952e126981a5793751af',1,'model']]],
   ['model_5fset_5fgrid_5fparams',['model_set_grid_params',['../namespacemodel.html#a8740a84b3eca0851c05d4727043bdd3d',1,'model']]],
   ['model_5fset_5fparam',['model_set_param',['../namespacemodel.html#a5b5f5493e6eaa17053a53bdfb6efcfdb',1,'model']]],
   ['model_5fsync_5fchild',['model_sync_child',['../namespacemodel.html#a53ef30c317240b59f4dd0fc23378ec55',1,'model']]],
@@ -63,6 +64,6 @@ var searchData=
   ['mse_5fdot_5fparse_5fvec',['mse_dot_parse_vec',['../namespacemse__dot.html#a5b120e22a13d0b73c4bab0b585e7c5db',1,'mse_dot']]],
   ['mse_5fdot_5fread',['mse_dot_read',['../namespacemse__dot.html#a7850d8ee3f5183c45c8fdd8bdbcc9bbc',1,'mse_dot']]],
   ['mse_5fget_5fheader',['mse_get_header',['../namespacemse.html#a11c4d001ed31bafb33b00cad45afeda2',1,'mse']]],
-  ['mse_5fget_5fmodeled_5fsignal',['mse_get_modeled_signal',['../namespacemse.html#a3370ab77a7cc05743031ec60f24d31db',1,'mse']]],
+  ['mse_5fget_5fmodeled_5fsignal',['mse_get_modeled_signal',['../namespacemse.html#a3a078696f20855ea14f591c8f5f66db7',1,'mse']]],
   ['mse_5fget_5fsignal_5ftype',['mse_get_signal_type',['../namespacemse.html#aa1994e229443826305fbe144a6117ace',1,'mse']]]
 ];

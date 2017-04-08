@@ -82,8 +82,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#namelist_intro_sec">Introduction</a></li>
-<li class="level1"><a href="#namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#filename_sec">Filename variables</a><ul><li class="level3"><a href="#eq_filename_sec">Equilibrium Filename variables</a></li>
+<ul><li class="level1"><a href="#namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#filename_sec">Filename variables</a><ul><li class="level3"><a href="#eq_filename_sec">Equilibrium Filename variables</a></li>
 <li class="level3"><a href="#signal_filename_sec">Singnal Filename variables</a></li>
 </ul>
 </li>
@@ -143,6 +142,10 @@ Equilibrium Filename variables</h3>
 <td width="20%"><code>vmec_wout_input</code></td><td width="50%">File name for the VMEC wout file to start from.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af43c8cf4a63999f530db578544ef50bd">v3fit_input::vmec_wout_input</a> </td></tr>
 <tr>
 <td width="20%"><code>vacuum_nli_filename</code></td><td width="50%">File name for a vacuum namelist input. The file specification is described in the <a class="el" href="vacuum_namelist_sec.html">Namelist vacuum_main_nli definition</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ab3d7f3dfd9add7dbc482aeb1a1a63cd5">v3fit_input::vacuum_nli_filename</a> </td></tr>
+<tr>
+<td width="20%"><code>siesta_nli_filename</code></td><td width="50%">File name for siesta namelist input.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#afb389a447b59890dce1eddceb64cce01">v3fit_input::siesta_nli_filename</a> </td></tr>
+<tr>
+<td width="20%"><code>siesta_restart_filename</code></td><td width="50%">File name for a siesta restart file.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a2d40e6ec26c58cffa367843b0491d5aa">v3fit_input::siesta_restart_filename</a> </td></tr>
 </table>
 <h3><a class="anchor" id="signal_filename_sec"></a>
 Singnal Filename variables</h3>
@@ -227,6 +230,13 @@ Model profile specification</h2>
 <h2><a class="anchor" id="model_spec_sec"></a>
 Model Specification Variables</h2>
 <table  border="1px" width="80%">
+<tr>
+<td width="20%"><code>model_eq_type</code></td><td width="50%">Character variable to specify the underlying equilibrium mode.<ol type="1">
+<li><code>'vmec'</code> Vmec equilibrium model. Default</li>
+<li><code>'vacuum'</code> Vacuum equilibrium model.</li>
+<li><code>'siesta'</code> Siesta equilibrium model.</li>
+</ol>
+</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a4f1b83d2c8ed6f395bc810bc09660b71">v3fit_input::model_eq_type</a> </td></tr>
 <tr>
 <td width="20%"><code>model_ne_type</code></td><td width="50%">Character variable to specify how the electron density will be calculated by the model.<ol type="1">
 <li><code>'none'</code> Not part of the model.</li>
@@ -425,7 +435,7 @@ Magnetic signal parameters</h2>
 <tr>
 <td width="20%"><code>pol_rad_ratio</code></td><td width="50%">Ratio of the radial grid points to the poloidal grid points for the plasma only volumn integration.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7a3cf3ce87524d4a927e44343ff6690a">v3fit_input::pol_rad_ratio</a> </td></tr>
 </table>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000008">Todo:</a></b></dt><dd>FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000010">Todo:</a></b></dt><dd>FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle. </dd></dl>
 <h2><a class="anchor" id="extcurz_sec"></a>
 These two are used by the extcurz diagnostic signal.</h2>
 <table  border="1px" width="80%">
@@ -746,7 +756,7 @@ Programmers Reference</h1>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Mar 6 2017 15:16:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 8 2017 12:22:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

@@ -10,8 +10,8 @@ var searchData=
   ['tcspvec',['tcspvec',['../interfacepspline__calls_1_1tcspvec.html',1,'pspline_calls']]],
   ['thomson_5fclass',['thomson_class',['../structthomson_1_1thomson__class.html',1,'thomson']]],
   ['thscte_5fdesc',['thscte_desc',['../structthscte__t_1_1thscte__desc.html',1,'thscte_t']]],
-  ['timecount',['timecount',['../structblocktridiagonalsolver__bst_1_1timecount.html',1,'blocktridiagonalsolver_bst']]],
   ['timecount',['timecount',['../structblocktridiagonalsolver_1_1timecount.html',1,'blocktridiagonalsolver']]],
+  ['timecount',['timecount',['../structblocktridiagonalsolver__bst_1_1timecount.html',1,'blocktridiagonalsolver_bst']]],
   ['tpsplinb',['tpsplinb',['../interfacepspline__calls_1_1tpsplinb.html',1,'pspline_calls']]],
   ['tpspline',['tpspline',['../interfacepspline__calls_1_1tpspline.html',1,'pspline_calls']]]
 ];

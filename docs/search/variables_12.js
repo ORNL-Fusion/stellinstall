@@ -1,7 +1,7 @@
 var searchData=
 [
   ['t2',['t2',['../structblocktridiagonalsolver_1_1timecount.html#a3543ff5f48ece66ce21b95b7db617044',1,'blocktridiagonalsolver::timecount::t2()'],['../structblocktridiagonalsolver__bst_1_1timecount.html#a86085e83044a5543608188e4ca2037a8',1,'blocktridiagonalsolver_bst::timecount::t2()']]],
-  ['te',['te',['../structvmec__equilibrium_1_1vmec__class.html#a0dfd08d4f237fae503c7b27513cfee02',1,'vmec_equilibrium::vmec_class']]],
+  ['te',['te',['../structsiesta__equilibrium_1_1siesta__class.html#a86eece6a6e99f6c1909ab32593c1f3af',1,'siesta_equilibrium::siesta_class::te()'],['../structvmec__equilibrium_1_1vmec__class.html#a0dfd08d4f237fae503c7b27513cfee02',1,'vmec_equilibrium::vmec_class::te()']]],
   ['te_5fgrid',['te_grid',['../structmodel_1_1model__class.html#a9aeefdd06df09cf6343f105c02e13556',1,'model::model_class']]],
   ['te_5fmin',['te_min',['../structmodel_1_1model__class.html#ae4e71bd5e8b60924c3c289b7dcbd3410',1,'model::model_class::te_min()'],['../namespacev3fit__input.html#a084d31503aaa6c68d046a1d41a9eaf63',1,'v3fit_input::te_min()']]],
   ['te_5fstart',['te_start',['../structemission_1_1emission__class.html#a8c9e94a46561f055181fe240ba242f4a',1,'emission::emission_class']]],
