@@ -12,7 +12,7 @@ cut_dg2 = 0.0,
 astep_max = 100.0,
 step_type = 'lm',
 
-n_rp = 24,
+n_rp = 28,
 
 rp_type(1) = 'rbc',
 rp_vrnc(1) = 0.001,
@@ -117,6 +117,26 @@ rp_type(24) = 'am_aux_f',
 rp_vrnc(24) = 0.1,
 rp_index(24) = 2,
 rp_index2(24) = 0,
+
+rp_type(25) = 'zbc',
+rp_vrnc(25) = 0.001,
+rp_index(25) = 0,
+rp_index2(25) = 0,
+
+rp_type(26) = 'zbc',
+rp_vrnc(26) = 0.001,
+rp_index(26) = 0,
+rp_index2(26) = 0,
+
+rp_type(27) = 'zbc',
+rp_vrnc(27) = 0.001,
+rp_index(27) = 0,
+rp_index2(27) = 0,
+
+rp_type(28) = 'zbc',
+rp_vrnc(28) = 0.001,
+rp_index(28) = 0,
+rp_index2(28) = 0,
 
 sdo_data_a(1:4) = 0.5, 0.5, 0.5, 0.5,
 sdo_s_spec_imin(1) = 1,

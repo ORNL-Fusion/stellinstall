@@ -14,7 +14,7 @@ NTOR = 0,
 MPOL = 5,
 NZETA = 1,
 NVACSKIP = 9,
-LASYM = F,
+LASYM = T,
 OMP_NUM_THREADS = 1,
 
 ! Fitting parameters.

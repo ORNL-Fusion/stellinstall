@@ -4963,10 +4963,10 @@
 
       IF (lasym) THEN
          rbsc => rmn_bdy(:,:,rsc)
-         zbcc => rmn_bdy(:,:,zcc)
+         zbcc => zmn_bdy(:,:,zcc)
          IF (lthreed) THEN
             rbcs => rmn_bdy(:,:,rcs)
-            zbss => rmn_bdy(:,:,zss)
+            zbss => zmn_bdy(:,:,zss)
          END IF
       END IF
 
