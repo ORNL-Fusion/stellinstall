@@ -173,7 +173,6 @@ then
 	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                                           \
 	      -DCMAKE_PREFIX_PATH:FILEPATH=/usr/lib64/openmpi/lib                           \
 	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3" \
-	      -DBUILD_SIESTA=ON                                                             \
               -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "r2d2" ]
