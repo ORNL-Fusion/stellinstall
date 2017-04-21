@@ -24,6 +24,6 @@ var searchData=
   ['diagnostic_5fdot_5fparse_5freal',['diagnostic_dot_parse_real',['../namespacediagnostic__dot.html#ae7ebddaddbf62a1fddf8e671671732cc',1,'diagnostic_dot']]],
   ['diagnostic_5fdot_5fparse_5fs_5frogowski',['diagnostic_dot_parse_s_rogowski',['../namespacediagnostic__dot.html#a4e5a8aaf7ad89030127eac8463199dc4',1,'diagnostic_dot']]],
   ['diagnostic_5fget_5fheader',['diagnostic_get_header',['../namespacediagnostic.html#a45212cd773cc062f72c39220ce0e2c93',1,'diagnostic']]],
-  ['diagnostic_5fget_5fmodeled_5fsignal',['diagnostic_get_modeled_signal',['../namespacediagnostic.html#adc76ce43a0f7f440c321de6ae026498c',1,'diagnostic']]],
+  ['diagnostic_5fget_5fmodeled_5fsignal',['diagnostic_get_modeled_signal',['../namespacediagnostic.html#ab16c1e3643f6260edc94aabd5912caa0',1,'diagnostic']]],
   ['diagnostic_5fget_5fsignal_5ftype',['diagnostic_get_signal_type',['../namespacediagnostic.html#af668d7f5c2bf3d538b9b78c261b87242',1,'diagnostic']]]
 ];

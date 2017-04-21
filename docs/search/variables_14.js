@@ -21,7 +21,7 @@ var searchData=
   ['value',['value',['../structbmw__commandline__parser_1_1bmw__commandline__parser__class.html#ad6093a6bb0b850a71b024c6e96afa843',1,'bmw_commandline_parser::bmw_commandline_parser_class::value()'],['../structcommandline__parser_1_1commandline__parser__class.html#a623e9db9cb0a72b1d578e6f3437c79b4',1,'commandline_parser::commandline_parser_class::value()']]],
   ['version',['version',['../structmagnetic__response_1_1magnetic__response__class.html#a5c64ee1dbf0b2c2d95cd6a066f0fc755',1,'magnetic_response::magnetic_response_class']]],
   ['vgrid',['vgrid',['../structlimiter__iso__t_1_1limiter__iso.html#a7543d2bb487e3f4dafaca3dc44a27f2b',1,'limiter_iso_t::limiter_iso']]],
-  ['vmec',['vmec',['../structequilibrium_1_1equilibrium__class.html#a1b49b51783ebcb239c007a931fca27c8',1,'equilibrium::equilibrium_class']]],
+  ['vmec',['vmec',['../structequilibrium_1_1equilibrium__class.html#a1b49b51783ebcb239c007a931fca27c8',1,'equilibrium::equilibrium_class::vmec()'],['../structsiesta__context_1_1siesta__context__class.html#a2e496f8af615c7495a255c2960504723',1,'siesta_context::siesta_context_class::vmec()']]],
   ['vmec_5fac_5faux_5ff_5fid',['vmec_ac_aux_f_id',['../namespacevmec__equilibrium.html#aa96a6846381c0590d45dc62f01623071',1,'vmec_equilibrium']]],
   ['vmec_5fac_5faux_5fs_5fid',['vmec_ac_aux_s_id',['../namespacevmec__equilibrium.html#a0eb05159129a5788d1a98abca4bc79e4',1,'vmec_equilibrium']]],
   ['vmec_5fac_5fid',['vmec_ac_id',['../namespacevmec__equilibrium.html#a0d27af7c84f2f2a969807eb35f71080e',1,'vmec_equilibrium']]],

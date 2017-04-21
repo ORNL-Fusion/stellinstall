@@ -12,7 +12,7 @@ cut_dg2 = 0.0,
 astep_max = 100.0,
 step_type = 'lm',
 
-n_rp = 24,
+n_rp = 28,
 
 rp_type(1) = 'extcur',
 rp_vrnc(1) = 0.05,
@@ -109,6 +109,26 @@ rp_type(24) = 'am',
 rp_vrnc(24) = 0.01,
 rp_index(24) = 1,
 rp_index2(24) = 0,
+
+rp_type(25) = 'extcur',
+rp_vrnc(25) = 0.05,
+rp_index(25) = 2,
+rp_index2(25) = 0,
+
+rp_type(26) = 'extcur',
+rp_vrnc(26) = 0.05,
+rp_index(26) = 2,
+rp_index2(26) = 0,
+
+rp_type(27) = 'extcur',
+rp_vrnc(27) = 0.05,
+rp_index(27) = 2,
+rp_index2(27) = 0,
+
+rp_type(28) = 'extcur',
+rp_vrnc(28) = 0.05,
+rp_index(28) = 2,
+rp_index2(28) = 0,
 
 n_prior = 6,
 

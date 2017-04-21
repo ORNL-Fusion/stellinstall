@@ -136,20 +136,23 @@
 !>  Calculates the soft x-ray emissivity signal by integrating along the chord
 !>  path. The emissivity is provided by the @ref sxr_function.
 !>
-!>  @param[in]    this    A @ref sxrem_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref sxrem_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_get_modeled_signal(this, a_model, sigma)
+      FUNCTION sxrem_get_modeled_signal(this, a_model, sigma,                  &
+     &                                  last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: sxrem_get_modeled_signal
-      TYPE (sxrem_class), INTENT(inout)       :: this
+      TYPE (sxrem_class), INTENT(in)          :: this
       TYPE (model_class), TARGET, INTENT(in)  :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -160,24 +163,30 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      sxrem_get_modeled_signal = 0.0
+      sxrem_get_modeled_signal = last_value
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_shift_flag) .or.              &
+     &    BTEST(a_model%state_flags, model_state_sxrem_flag +                  &
+     &                               (this%profile_number - 1))) THEN
 
 !  The relevant data for the soft x-ray context.
-      sxr_context%profile_number = this%profile_number
-      sxr_context%model => a_model
+         sxr_context%profile_number = this%profile_number
+         sxr_context%model => a_model
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
-      context_length = SIZE(TRANSFER(sxr_context, context))
-      ALLOCATE(context(context_length))
-      context = TRANSFER(sxr_context, context)
-      sxrem_get_modeled_signal(1) = path_integrate(this%chord_path,            &
-     &                                             sxr_function,               &
-     &                                             context)                    &
-     &                            * this%geo
+         context_length = SIZE(TRANSFER(sxr_context, context))
+         ALLOCATE(context(context_length))
+         context = TRANSFER(sxr_context, context)
+         sxrem_get_modeled_signal(1) = path_integrate(this%chord_path,         &
+     &                                                sxr_function,            &
+     &                                                context)                 &
+     &                               * this%geo
 
-      sigma = 0.0
-      DEALLOCATE(context)
+         DEALLOCATE(context)
+      END IF
 
       CALL profiler_set_stop_time('sxrem_get_modeled_signal',                  &
      &                            start_time)

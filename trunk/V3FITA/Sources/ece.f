@@ -128,20 +128,22 @@
 !>  Calculates the ECE signal by searching along the chord for the resonance.
 !>  The search criteria is provided by the @ref ece_function.
 !>
-!>  @param[in]    this    A @ref ece_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref ece_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_modeled_signal(this, a_model, sigma)
+      FUNCTION ece_get_modeled_signal(this, a_model, sigma, last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: ece_get_modeled_signal
-      TYPE (ece_class), INTENT(inout)         :: this
+      TYPE (ece_class), INTENT(in)            :: this
       TYPE (model_class), TARGET, INTENT(in)  :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -153,28 +155,33 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      ece_get_modeled_signal = 0.0
+      ece_get_modeled_signal = last_value
+      sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_te_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
 
 !  The relevant data for the ece context.
-      temp_context%resonance = this%resonance
-      temp_context%model => a_model
+         temp_context%resonance = this%resonance
+         temp_context%model => a_model
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
-      context_length = SIZE(TRANSFER(temp_context, context))
-      ALLOCATE(context(context_length))
-      context = TRANSFER(temp_context, context)
-         ece_get_modeled_signal(2:4) = path_search(this%chord_path,            &
-     &                                             ece_function,               &
-     &                                             context, found)
+         context_length = SIZE(TRANSFER(temp_context, context))
+         ALLOCATE(context(context_length))
+         context = TRANSFER(temp_context, context)
+            ece_get_modeled_signal(2:4) = path_search(this%chord_path,         &
+     &                                                ece_function,            &
+     &                                                context, found)
 
-      IF (found) THEN
-         ece_get_modeled_signal(1) =                                           &
-     &      model_get_te(a_model, ece_get_modeled_signal(2:4))
+         IF (found) THEN
+            ece_get_modeled_signal(1) =                                        &
+     &         model_get_te(a_model, ece_get_modeled_signal(2:4))
+         END IF
+
+         DEALLOCATE(context)
       END IF
-
-      sigma = 0.0
-      DEALLOCATE(context)
 
       CALL profiler_set_stop_time('ece_get_modeled_signal', start_time)
 

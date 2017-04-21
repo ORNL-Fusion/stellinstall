@@ -1,6 +1,7 @@
 var searchData=
 [
   ['l_5fapplyprecon',['l_applyprecon',['../namespaceshared__data.html#a630151e498a686706cdbf9bed14e4618',1,'shared_data']]],
+  ['l_5fasym',['l_asym',['../structsiesta__context_1_1siesta__context__class.html#ac9ec478b7ebcfaa628c4ecb3ab652b47',1,'siesta_context::siesta_context_class']]],
   ['l_5fcolscale',['l_colscale',['../namespaceblocktridiagonalsolver.html#adc8fcb49e2c8f5856fcb36459672bc7f',1,'blocktridiagonalsolver']]],
   ['l_5fconjmin',['l_conjmin',['../namespaceevolution.html#af308456e02e18fab1a54f149829e42cc',1,'evolution']]],
   ['l_5fepar',['l_epar',['../namespaceevolution.html#a4dbc81c69b7b28fcc07b0db6efe43777',1,'evolution']]],
@@ -18,6 +19,7 @@ var searchData=
   ['l_5fupdate_5fstate',['l_update_state',['../namespaceshared__data.html#a8756c915c86bf2e2cdcdbf5738cd47b2',1,'shared_data']]],
   ['l_5fzero_5fxcdot',['l_zero_xcdot',['../namespacev3fit__input.html#a3516a594cb5e51020f4aa30ef8e20aa4',1,'v3fit_input']]],
   ['last_5fpara_5fsignal',['last_para_signal',['../structreconstruction_1_1reconstruction__class.html#a34b2f2cd175f7dbf61254ddc16a7f154',1,'reconstruction::reconstruction_class']]],
+  ['last_5fvalues',['last_values',['../structreconstruction_1_1reconstruction__class.html#ae4291628caa90b014f2c29e75678c794',1,'reconstruction::reconstruction_class']]],
   ['lcolscale',['lcolscale',['../namespaceshared__data.html#acd61b4f909ffaba70b0084fb06fdc4df',1,'shared_data']]],
   ['lelement',['lelement',['../namespaceblocktridiagonalsolver.html#ae3c14e7c8c92d4501752d4d7e330279f',1,'blocktridiagonalsolver']]],
   ['len_5fintegrate_5fddc',['len_integrate_ddc',['../namespacev3rfun__input.html#a57bdfad3feca2863ab8b49024560a468',1,'v3rfun_input']]],

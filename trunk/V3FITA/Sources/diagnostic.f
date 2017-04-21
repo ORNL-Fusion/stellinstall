@@ -409,21 +409,25 @@
 !>  @see mse::mse_get_modeled_signal
 !>  @see ece::ece_get_modeled_signal
 !>
-!>  @param[in]    this    A @ref diagnostic_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref diagnostic_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[out] changed    Indicates if there was a change in the signal.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION diagnostic_get_modeled_signal(this, a_model, sigma)
+      FUNCTION diagnostic_get_modeled_signal(this, a_model, sigma,             &
+     &                                       last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: diagnostic_get_modeled_signal
-      TYPE (diagnostic_class), INTENT(inout)  :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (diagnostic_class), INTENT(in)     :: this
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -435,31 +439,37 @@
          CASE (diagnostic_magnetic_type)
             diagnostic_get_modeled_signal =                                    &
      &         magnetic_get_modeled_signal(this%magnetic, a_model,             &
-     &                                     sigma)
+     &                                     sigma, last_value)
 
          CASE (diagnostic_sxrem_type)
             diagnostic_get_modeled_signal =                                    &
-     &         sxrem_get_modeled_signal(this%sxrem, a_model, sigma)
+     &         sxrem_get_modeled_signal(this%sxrem, a_model, sigma,            &
+     &                                  last_value)
 
          CASE (diagnostic_intpol_type)
             diagnostic_get_modeled_signal =                                    &
-     &         intpol_get_modeled_signal(this%intpol, a_model, sigma)
+     &         intpol_get_modeled_signal(this%intpol, a_model, sigma,          &
+     &                                   last_value)
 
          CASE (diagnostic_thomson_type)
             diagnostic_get_modeled_signal =                                    &
-     &         thomson_get_modeled_signal(this%thomson, a_model, sigma)
+     &         thomson_get_modeled_signal(this%thomson, a_model, sigma,        &
+     &                                    last_value)
 
          CASE (diagnostic_extcurz_type)
             diagnostic_get_modeled_signal =                                    &
-     &         extcurz_get_modeled_signal(this%extcurz, a_model, sigma)
+     &         extcurz_get_modeled_signal(this%extcurz, a_model, sigma,        &
+     &                                    last_value)
 
          CASE (diagnostic_mse_type)
             diagnostic_get_modeled_signal =                                    &
-     &         mse_get_modeled_signal(this%mse, a_model, sigma)
+     &         mse_get_modeled_signal(this%mse, a_model, sigma,                &
+     &                                last_value)
 
          CASE (diagnostic_ece_type)
             diagnostic_get_modeled_signal =                                    &
-     &         ece_get_modeled_signal(this%ece, a_model, sigma)
+     &         ece_get_modeled_signal(this%ece, a_model, sigma,                &
+     &                                last_value)
 
       END SELECT
 

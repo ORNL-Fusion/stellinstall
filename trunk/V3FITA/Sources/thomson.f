@@ -208,12 +208,14 @@
 !>  @ref model::model_get_te. Denisty is provided by @ref model::model_get_ne.
 !>  Pressure is provided by @ref equilibrium::equilibrium_get_p.
 !>
-!>  @param[in]    this    A @ref thomson_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref thomson_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION thomson_get_modeled_signal(this, a_model, sigma)
+      FUNCTION thomson_get_modeled_signal(this, a_model, sigma,                &
+     &                                    last_value)
       USE model
       USE coordinate_utilities
 
@@ -222,8 +224,9 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: thomson_get_modeled_signal
       TYPE (thomson_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -231,25 +234,35 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      thomson_get_modeled_signal = 0.0
+      thomson_get_modeled_signal = last_value
+      sigma = 0.0
 
       SELECT CASE(this%type)
 
          CASE (thomson_temperature_type)
-            thomson_get_modeled_signal(1) =                                    &
-     &         model_get_te(a_model, this%xcart)
+            IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.           &
+     &          BTEST(a_model%state_flags, model_state_ne_flag) .or.           &
+     &          BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+               thomson_get_modeled_signal(1) =                                 &
+     &            model_get_te(a_model, this%xcart)
+            END IF
 
          CASE (thomson_density_type)
-            thomson_get_modeled_signal(1) =                                    &
-     &         model_get_ne(a_model, this%xcart)
+            IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.           &
+     &          BTEST(a_model%state_flags, model_state_ne_flag) .or.           &
+     &          BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+               thomson_get_modeled_signal(1) =                                 &
+     &            model_get_ne(a_model, this%xcart)
+            END IF
 
          CASE (thomson_pressure_type)
-            thomson_get_modeled_signal(1) =                                    &
-     &         equilibrium_get_p(a_model%equilibrium, this%xcart)
+            IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.           &
+     &          BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+               thomson_get_modeled_signal(1) =                                 &
+     &            equilibrium_get_p(a_model%equilibrium, this%xcart)
+            END IF
 
       END SELECT
-
-      sigma = 0.0
 
       CALL profiler_set_stop_time('thomson_get_modeled_signal',                &
      &                            start_time)

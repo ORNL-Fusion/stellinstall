@@ -38,6 +38,7 @@ if start != -1:
 	test_passed = test_passed and check_num_iter(lines, start + 12, 1) and check_num_iter(lines, start + 12, 2) and check_num_iter(lines, start + 12, 3)
 	test_passed = test_passed and check_num_iter(lines, start + 16, 1) and check_num_iter(lines, start + 16, 2) and check_num_iter(lines, start + 16, 3)
 	test_passed = test_passed and check_num_iter(lines, start + 20, 1) and check_num_iter(lines, start + 20, 2) and check_num_iter(lines, start + 20, 3)
+	test_passed = test_passed and check_num_iter(lines, start + 24, 1) and check_num_iter(lines, start + 24, 2) and check_num_iter(lines, start + 24, 3)
 
 if not test_passed:
 	print("VMEC took different numbers of iterations to converge in jacobian for the same parameter.")

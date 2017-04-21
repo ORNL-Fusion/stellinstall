@@ -156,7 +156,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <tr class="separator:a888aa95a3a2a2bd133199010bdbdc862"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a49dfa7a9aa91776ed19b56854321ec64"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a49dfa7a9aa91776ed19b56854321ec64"></a>
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a49dfa7a9aa91776ed19b56854321ec64">v3fit_input::v3fit_max_sxrem_profiles</a> = 10</td></tr>
-<tr class="memdesc:a49dfa7a9aa91776ed19b56854321ec64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of sxrem profiles. <br /></td></tr>
+<tr class="memdesc:a49dfa7a9aa91776ed19b56854321ec64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of sxrem profiles. Warning do not change this value before reading <a class="el" href="namespacemodel__state.html#aa6734485f5b7fbcd01df193d38ca40e3">model_state::model_state_sxrem_flag</a>. <br /></td></tr>
 <tr class="separator:a49dfa7a9aa91776ed19b56854321ec64"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad1c31938a79add9637c1d186dfccd1ff"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad1c31938a79add9637c1d186dfccd1ff"></a>
 character(len=path_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#ad1c31938a79add9637c1d186dfccd1ff">v3fit_input::main_nli_filename</a> = ''</td></tr>
@@ -174,6 +174,14 @@ character(len=path_length)&#160;</td><td class="memItemRight" valign="bottom"><a
 character(len=path_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#ab3d7f3dfd9add7dbc482aeb1a1a63cd5">v3fit_input::vacuum_nli_filename</a> = ''</td></tr>
 <tr class="memdesc:ab3d7f3dfd9add7dbc482aeb1a1a63cd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">File name for a vacuum namelist input. <br /></td></tr>
 <tr class="separator:ab3d7f3dfd9add7dbc482aeb1a1a63cd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb389a447b59890dce1eddceb64cce01"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afb389a447b59890dce1eddceb64cce01"></a>
+character(len=path_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#afb389a447b59890dce1eddceb64cce01">v3fit_input::siesta_nli_filename</a> = ''</td></tr>
+<tr class="memdesc:afb389a447b59890dce1eddceb64cce01"><td class="mdescLeft">&#160;</td><td class="mdescRight">File name for a siesta namelist input. <br /></td></tr>
+<tr class="separator:afb389a447b59890dce1eddceb64cce01"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2d40e6ec26c58cffa367843b0491d5aa"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2d40e6ec26c58cffa367843b0491d5aa"></a>
+character(len=path_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a2d40e6ec26c58cffa367843b0491d5aa">v3fit_input::siesta_restart_filename</a> = ''</td></tr>
+<tr class="memdesc:a2d40e6ec26c58cffa367843b0491d5aa"><td class="mdescLeft">&#160;</td><td class="mdescRight">File name for a siesta restart file. <br /></td></tr>
+<tr class="separator:a2d40e6ec26c58cffa367843b0491d5aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a996b17010c59ba9bcccf546b259fbcc9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a996b17010c59ba9bcccf546b259fbcc9"></a>
 character(len=path_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a996b17010c59ba9bcccf546b259fbcc9">v3fit_input::mdsig_list_filename</a> = ''</td></tr>
 <tr class="memdesc:a996b17010c59ba9bcccf546b259fbcc9"><td class="mdescLeft">&#160;</td><td class="mdescRight">File name for list of MDSIG files. <br /></td></tr>
@@ -289,6 +297,10 @@ real(rprec), dimension(iub_asf)&#160;</td><td class="memItemRight" valign="botto
 real(rprec), dimension(iub_asf)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a1aea7c110a801736a6c3125a5aac348d">v3fit_input::sxrem_ratio_a</a> = 0.0</td></tr>
 <tr class="memdesc:a1aea7c110a801736a6c3125a5aac348d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of ratio points for the sxrem ratio function. <br /></td></tr>
 <tr class="separator:a1aea7c110a801736a6c3125a5aac348d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f1b83d2c8ed6f395bc810bc09660b71"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4f1b83d2c8ed6f395bc810bc09660b71"></a>
+character(len=data_name_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a4f1b83d2c8ed6f395bc810bc09660b71">v3fit_input::model_eq_type</a> = 'vmec'</td></tr>
+<tr class="memdesc:a4f1b83d2c8ed6f395bc810bc09660b71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specify wich equilibrium to use. <br /></td></tr>
+<tr class="separator:a4f1b83d2c8ed6f395bc810bc09660b71"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af745a2d519ffade882e38c64e7b136da"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#af745a2d519ffade882e38c64e7b136da">v3fit_input::model_ne_type</a> = 'pp_ne'</td></tr>
 <tr class="memdesc:af745a2d519ffade882e38c64e7b136da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specify how electron density is computed by the model.  <a href="#af745a2d519ffade882e38c64e7b136da">More...</a><br /></td></tr>
 <tr class="separator:af745a2d519ffade882e38c64e7b136da"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -664,7 +676,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Mar 6 2017 15:16:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 8 2017 12:22:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

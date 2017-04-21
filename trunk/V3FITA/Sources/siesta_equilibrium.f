@@ -518,27 +518,30 @@
 !>  parameter is changed, propagate the changes to the SIESTA internal state and
 !>  inform the caller that the equilibrium needs reconvergence.
 !>
-!>  @param[inout] this    A @ref siesta_class instance.
-!>  @param[in]    id      ID of the parameter.
-!>  @param[in]    i_index The ith index of the parameter.
-!>  @param[in]    j_index The jth index of the parameter.
-!>  @param[in]    value   The value of the parameter.
-!>  @param[in]    eq_comm MPI communicator for the child equilibrium processes.
-!>  @returns True if VMEC is left in an unconverged state and false otherwise.
+!>  @param[inout] this        A @ref siesta_class instance.
+!>  @param[in]    id          ID of the parameter.
+!>  @param[in]    i_index     The ith index of the parameter.
+!>  @param[in]    j_index     The jth index of the parameter.
+!>  @param[in]    value       The value of the parameter.
+!>  @param[in]    eq_comm     MPI communicator for the child equilibrium
+!>                            processes.
+!>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
 !-------------------------------------------------------------------------------
-      FUNCTION siesta_set_param(this, id, i_index, j_index, value,             &
-     &                          eq_comm)
+      SUBROUTINE siesta_set_param(this, id, i_index, j_index, value,           &
+     &                            eq_comm, state_flags)
+      USE model_state
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL                            :: siesta_set_param
       TYPE (siesta_class), INTENT(inout) :: this
       INTEGER, INTENT(in)                :: id
       INTEGER, INTENT(in)                :: i_index
       INTEGER, INTENT(in)                :: j_index
       REAL (rprec), INTENT(in)           :: value
       INTEGER, INTENT(in)                :: eq_comm
+      INTEGER, INTENT(inout)             :: state_flags
 
 !  local variables
       INTEGER                            :: error
@@ -550,39 +553,44 @@
       SELECT CASE (id)
 
          CASE (siesta_pp_ne_b_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_ne_flag)
             this%ne%b(i_index) = value
 
          CASE (siesta_pp_ne_as_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_ne_flag)
             this%ne%as(i_index) = value
 
          CASE (siesta_pp_ne_af_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_ne_flag)
             this%ne%af(i_index) = value
 
          CASE (siesta_pp_te_b_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%b(i_index) = value
 
          CASE (siesta_pp_te_as_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%as(i_index) = value
 
          CASE (siesta_pp_te_af_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_te_flag)
             this%te%af(i_index) = value
 
+!  There are multiple soft x-ray emission profiles. These need to be offset by
+!  the array index.
          CASE (siesta_pp_sxrem_b_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_sxrem_flag +          &
+     &                                       (i_index - 1))
             this%sxrem(i_index)%p%b(j_index) = value
 
          CASE (siesta_pp_sxrem_as_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_sxrem_flag +          &
+     &                                       (i_index - 1))
             this%sxrem(i_index)%p%as(j_index) = value
 
          CASE (siesta_pp_sxrem_af_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_sxrem_flag +          &
+     &                                       (i_index - 1))
             this%sxrem(i_index)%p%af(j_index) = value
 
 !  For the phi_offset, the magnetic cache needs to be updated. Since the phi
@@ -590,29 +598,28 @@
 !  since the equilibrium was not reconverged. Call vmec_set_magnetic_cache_calc
 !  to update the magnetic cache without reconverging VMEC.
          CASE (siesta_phi_offset_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_shift_flag)
             this%phi_offset = value
             IF (ASSOCIATED(this%magnetic_cache)) THEN
                CALL siesta_set_magnetic_cache(this)
             END IF
 
          CASE (siesta_z_offset_id)
-            siesta_set_param = .false.
+            state_flags = IBSET(state_flags, model_state_shift_flag)
             this%z_offset = value
             IF (ASSOCIATED(this%magnetic_cache)) THEN
                CALL siesta_set_magnetic_cache(this)
             END IF
 
          CASE DEFAULT
-            siesta_set_param =                                                 &
-     &         vmec_set_param(this%context%vmec, id, i_index, j_index,         &
-     &                        value, eq_comm)
+            CALL vmec_set_param(this%context%vmec, id, i_index, j_index,       &
+     &                          value, eq_comm, state_flags)
 
       END SELECT
 
       CALL profiler_set_stop_time('siesta_set_param', start_time)
 
-      END FUNCTION
+      END SUBROUTINE
 
 !-------------------------------------------------------------------------------
 !>  @brief Set magnetic cache for plasma resonce.

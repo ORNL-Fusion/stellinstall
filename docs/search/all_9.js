@@ -7,8 +7,14 @@ var searchData=
   ['j_5fy',['j_y',['../structprimed__grid_1_1primed__grid__class.html#a71fccb32ae9aae78184f27ed1c28aac8',1,'primed_grid::primed_grid_class']]],
   ['j_5fz',['j_z',['../structprimed__grid_1_1primed__grid__class.html#acde247240e8f1b2730219886f9786e2d',1,'primed_grid::primed_grid_class']]],
   ['jacobian',['jacobian',['../structreconstruction_1_1reconstruction__class.html#aa36d8bd435b40ed61927689ee3768e00',1,'reconstruction::reconstruction_class']]],
-  ['jphisuv',['jphisuv',['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a875b09d28436549885eead1c411939a8',1,'vmec_equilibrium::vmec_magnetic_cache']]],
-  ['jrsuv',['jrsuv',['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#afeb0e0b1c633d3048526ff286015dc4d',1,'vmec_equilibrium::vmec_magnetic_cache']]],
+  ['jksupsmncf',['jksupsmncf',['../structsiesta__context_1_1siesta__context__class.html#a7a1351f57e401fd47c241e261bdf48df',1,'siesta_context::siesta_context_class']]],
+  ['jksupsmnsf',['jksupsmnsf',['../structsiesta__context_1_1siesta__context__class.html#adbf1bb947aa0df6347172f084b8dbb7f',1,'siesta_context::siesta_context_class']]],
+  ['jksupumncf',['jksupumncf',['../structsiesta__context_1_1siesta__context__class.html#a5213fcd984e9a1c54800a30b3f790de9',1,'siesta_context::siesta_context_class']]],
+  ['jksupumnsf',['jksupumnsf',['../structsiesta__context_1_1siesta__context__class.html#ad08df053675a49f1155795723715a26a',1,'siesta_context::siesta_context_class']]],
+  ['jksupvmncf',['jksupvmncf',['../structsiesta__context_1_1siesta__context__class.html#a67243981e8e123609b91d469d9dc6e4a',1,'siesta_context::siesta_context_class']]],
+  ['jksupvmnsf',['jksupvmnsf',['../structsiesta__context_1_1siesta__context__class.html#a5cb5d35ff917d90a2e674c0ed4c16367',1,'siesta_context::siesta_context_class']]],
+  ['jphisuv',['jphisuv',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#a4b71acb9311d72ff350213c0d92fcd31',1,'siesta_equilibrium::siesta_magnetic_cache::jphisuv()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a875b09d28436549885eead1c411939a8',1,'vmec_equilibrium::vmec_magnetic_cache::jphisuv()']]],
+  ['jrsuv',['jrsuv',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#a37e0cde788f3e263cf41f4a4320eddf2',1,'siesta_equilibrium::siesta_magnetic_cache::jrsuv()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#afeb0e0b1c633d3048526ff286015dc4d',1,'vmec_equilibrium::vmec_magnetic_cache::jrsuv()']]],
   ['jz',['jz',['../namespacev3rfun__input.html#ab538d19c70441b2ab5c425ef6f45a209',1,'v3rfun_input']]],
-  ['jzsuv',['jzsuv',['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a73e56d050a437f1ed24100f3b2adae6b',1,'vmec_equilibrium::vmec_magnetic_cache']]]
+  ['jzsuv',['jzsuv',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#a7455cea3635acb23a397cd1c3aa36cc5',1,'siesta_equilibrium::siesta_magnetic_cache::jzsuv()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a73e56d050a437f1ed24100f3b2adae6b',1,'vmec_equilibrium::vmec_magnetic_cache::jzsuv()']]]
 ];

@@ -15,7 +15,7 @@ var searchData=
   ['combination_5fconstruct',['combination_construct',['../namespacesignal.html#a59e74c72b6c7947bee1a9d3c72dd6645',1,'signal']]],
   ['combination_5fdestruct',['combination_destruct',['../namespacesignal.html#ad82c507e4ddedab54792580fc1622497',1,'signal']]],
   ['combination_5fget_5fheader',['combination_get_header',['../namespacesignal.html#a38b6494ddbba1d9e59b86e4d9a972a3f',1,'signal']]],
-  ['combination_5fget_5fmodeled_5fsignal',['combination_get_modeled_signal',['../namespacesignal.html#a2abfa5231a83cf22a9c1dab1ea17e078',1,'signal']]],
+  ['combination_5fget_5fmodeled_5fsignal',['combination_get_modeled_signal',['../namespacesignal.html#a89e6fa26533ef96395ad413d8be5c861',1,'signal']]],
   ['combination_5fget_5fsignal_5ftype',['combination_get_signal_type',['../namespacesignal.html#ad814b8b55f4f8acc911dc6de9930ab1a',1,'signal']]],
   ['combination_5fset_5fsignal',['combination_set_signal',['../namespacesignal.html#aa4d42eeb271034a6a6f05252c92431a9',1,'signal']]],
   ['combination_5fwrite_5fauxiliary',['combination_write_auxiliary',['../namespacesignal.html#abd6e0ff4c80dfad8059d9da3282b967f',1,'signal']]],

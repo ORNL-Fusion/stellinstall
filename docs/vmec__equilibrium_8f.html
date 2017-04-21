@@ -110,6 +110,9 @@ Data Types</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">type &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_equilibrium::vmec_class</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a <a class="el" href="namespacevmec__equilibrium.html" title="Defines the base class of the type vmec_class. This module contains all the code necessary to interfa...">vmec_equilibrium</a>.  <a href="structvmec__equilibrium_1_1vmec__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacevmec__equilibrium_1_1vmec__construct.html">vmec_equilibrium::vmec_construct</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> types using <a class="el" href="interfacevmec__equilibrium_1_1vmec__construct.html#a7cc40d6686f048212119fc3e43f67088">vmec_construct_full</a> or vmec_construct_wout.  <a href="interfacevmec__equilibrium_1_1vmec__construct.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacevmec__equilibrium_1_1vmec__set__magnetic__cache.html">vmec_equilibrium::vmec_set_magnetic_cache</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the setting the <a class="el" href="structvmec__equilibrium_1_1vmec__magnetic__cache.html">vmec_magnetic_cache</a> types using vmec_set_magnetic_cache_init or <a class="el" href="interfacevmec__equilibrium_1_1vmec__set__magnetic__cache.html#a7812123e0936420bbc5f236445759857">vmec_set_magnetic_cache_calc</a>.  <a href="interfacevmec__equilibrium_1_1vmec__set__magnetic__cache.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -137,15 +140,18 @@ Modules</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a526fb361d790733e839920cda4401e03"><td class="memItemLeft" align="right" valign="top">type(vmec_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a526fb361d790733e839920cda4401e03">vmec_equilibrium::vmec_construct</a> (file_name, wout_file_name, ne, te, sxrem, phi_offset, z_offset, pol_rad_ratio, iou, eq_comm, recon_comm)</td></tr>
-<tr class="memdesc:a526fb361d790733e839920cda4401e03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#a526fb361d790733e839920cda4401e03">More...</a><br /></td></tr>
-<tr class="separator:a526fb361d790733e839920cda4401e03"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a332570b17f9b04a4106d7fd220c3f97c"><td class="memItemLeft" align="right" valign="top">type(vmec_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a332570b17f9b04a4106d7fd220c3f97c">vmec_equilibrium::vmec_construct_eq</a> (file_name, wout_file_name, iou, eq_comm, recon_comm)</td></tr>
+<tr class="memdesc:a332570b17f9b04a4106d7fd220c3f97c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#a332570b17f9b04a4106d7fd220c3f97c">More...</a><br /></td></tr>
+<tr class="separator:a332570b17f9b04a4106d7fd220c3f97c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a7d675354eaa051628bf61a77be0c33"><td class="memItemLeft" align="right" valign="top">type(vmec_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a4a7d675354eaa051628bf61a77be0c33">vmec_equilibrium::vmec_construct_full</a> (file_name, wout_file_name, ne, te, sxrem, phi_offset, z_offset, pol_rad_ratio, iou, eq_comm, recon_comm)</td></tr>
+<tr class="memdesc:a4a7d675354eaa051628bf61a77be0c33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#a4a7d675354eaa051628bf61a77be0c33">More...</a><br /></td></tr>
+<tr class="separator:a4a7d675354eaa051628bf61a77be0c33"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac74c89608f1ab1ba7efa6a6a80bd9d5"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#aac74c89608f1ab1ba7efa6a6a80bd9d5">vmec_equilibrium::vmec_destruct</a> (this)</td></tr>
 <tr class="memdesc:aac74c89608f1ab1ba7efa6a6a80bd9d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structvmec__equilibrium_1_1vmec__class.html">vmec_class</a> object.  <a href="#aac74c89608f1ab1ba7efa6a6a80bd9d5">More...</a><br /></td></tr>
 <tr class="separator:aac74c89608f1ab1ba7efa6a6a80bd9d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab5f7ca21ca82f94832ed90b877c8ef09"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#ab5f7ca21ca82f94832ed90b877c8ef09">vmec_equilibrium::vmec_set_param</a> (this, id, i_index, j_index, value, eq_comm)</td></tr>
-<tr class="memdesc:ab5f7ca21ca82f94832ed90b877c8ef09"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the value of a reconstruction equilibrium parameter.  <a href="#ab5f7ca21ca82f94832ed90b877c8ef09">More...</a><br /></td></tr>
-<tr class="separator:ab5f7ca21ca82f94832ed90b877c8ef09"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08a558e21fb005492c9c4102dfa80ebc"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a08a558e21fb005492c9c4102dfa80ebc">vmec_equilibrium::vmec_set_param</a> (this, id, i_index, j_index, value, eq_comm, state_flags)</td></tr>
+<tr class="memdesc:a08a558e21fb005492c9c4102dfa80ebc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the value of a reconstruction equilibrium parameter.  <a href="#a08a558e21fb005492c9c4102dfa80ebc">More...</a><br /></td></tr>
+<tr class="separator:a08a558e21fb005492c9c4102dfa80ebc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6cb68ce3c68bfd6d867d22b054eb7ef0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a6cb68ce3c68bfd6d867d22b054eb7ef0">vmec_equilibrium::vmec_set_magnetic_cache_responce</a> (this, response_object)</td></tr>
 <tr class="memdesc:a6cb68ce3c68bfd6d867d22b054eb7ef0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set magnetic cache for plasma resonce.  <a href="#a6cb68ce3c68bfd6d867d22b054eb7ef0">More...</a><br /></td></tr>
 <tr class="separator:a6cb68ce3c68bfd6d867d22b054eb7ef0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -197,6 +203,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:aa3d210c6391e7b482a8f0d731eb1ff77"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#aa3d210c6391e7b482a8f0d731eb1ff77">vmec_equilibrium::vmec_get_int_b_dphi</a> (this, r, theta)</td></tr>
 <tr class="memdesc:aa3d210c6391e7b482a8f0d731eb1ff77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the loop integrated magnetic field at a position.  <a href="#aa3d210c6391e7b482a8f0d731eb1ff77">More...</a><br /></td></tr>
 <tr class="separator:aa3d210c6391e7b482a8f0d731eb1ff77"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7b4ef3ae9bb37c5dbdac077d64a7f36"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(3)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#ab7b4ef3ae9bb37c5dbdac077d64a7f36">vmec_equilibrium::vmec_get_suv</a> (this, x_cart)</td></tr>
+<tr class="memdesc:ab7b4ef3ae9bb37c5dbdac077d64a7f36"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets VMEC suv position.  <a href="#ab7b4ef3ae9bb37c5dbdac077d64a7f36">More...</a><br /></td></tr>
+<tr class="separator:ab7b4ef3ae9bb37c5dbdac077d64a7f36"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab972cec76da4119a8904190c6ef1c625"><td class="memItemLeft" align="right" valign="top">real(rprec) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#ab972cec76da4119a8904190c6ef1c625">vmec_equilibrium::vmec_get_s</a> (this, x_cart)</td></tr>
 <tr class="memdesc:ab972cec76da4119a8904190c6ef1c625"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets VMEC s value at position.  <a href="#ab972cec76da4119a8904190c6ef1c625">More...</a><br /></td></tr>
 <tr class="separator:ab972cec76da4119a8904190c6ef1c625"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -239,6 +248,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a0a0f36d6a4d31de871ed1f0430e9317e"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(:), pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a0a0f36d6a4d31de871ed1f0430e9317e">vmec_equilibrium::vmec_get_ext_currents</a> (this, num_currents, scale_currents)</td></tr>
 <tr class="memdesc:a0a0f36d6a4d31de871ed1f0430e9317e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get external current.  <a href="#a0a0f36d6a4d31de871ed1f0430e9317e">More...</a><br /></td></tr>
 <tr class="separator:a0a0f36d6a4d31de871ed1f0430e9317e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a96e24113a75f37fbf54fd62109a9d18f"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(3)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#a96e24113a75f37fbf54fd62109a9d18f">vmec_equilibrium::vmec_get_b_vac</a> (this, r_cyl)</td></tr>
+<tr class="memdesc:a96e24113a75f37fbf54fd62109a9d18f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the vacuum magnetic field vector at a position.  <a href="#a96e24113a75f37fbf54fd62109a9d18f">More...</a><br /></td></tr>
+<tr class="separator:a96e24113a75f37fbf54fd62109a9d18f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8fc30f3af769bb9675e9e6588ec01a4"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(3)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacevmec__equilibrium.html#aa8fc30f3af769bb9675e9e6588ec01a4">vmec_equilibrium::vmec_get_ext_b_plasma</a> (this, position, axi_only)</td></tr>
 <tr class="memdesc:aa8fc30f3af769bb9675e9e6588ec01a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get external plasma magnetic field.  <a href="#aa8fc30f3af769bb9675e9e6588ec01a4">More...</a><br /></td></tr>
 <tr class="separator:aa8fc30f3af769bb9675e9e6588ec01a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -577,7 +589,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Mar 6 2017 15:16:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 8 2017 12:22:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

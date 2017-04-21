@@ -1,10 +1,23 @@
 var searchData=
 [
   ['b',['b',['../structpprofile__t_1_1pprofile__class.html#a75abfc91fb98cc328de2773efd3f40e3',1,'pprofile_t::pprofile_class']]],
+  ['b_5ffactor',['b_factor',['../structsiesta__context_1_1siesta__context__class.html#a00f20e9b7f484ada0bfe0e23b7bc7344',1,'siesta_context::siesta_context_class']]],
   ['b_5fp',['b_p',['../structunprimed__grid_1_1unprimed__grid__class.html#af5b7d52e180c49aa96b39f543b5f36f4',1,'unprimed_grid::unprimed_grid_class']]],
   ['b_5fr',['b_r',['../structunprimed__grid_1_1unprimed__grid__class.html#a2965287894bb75ed9c852044b681f1f2',1,'unprimed_grid::unprimed_grid_class']]],
   ['b_5fz',['b_z',['../structunprimed__grid_1_1unprimed__grid__class.html#a73e1d42380d2811c5b8a746cc6e90a1c',1,'unprimed_grid::unprimed_grid_class']]],
   ['bmw_5fcommandline_5fparser_5farg_5fnot_5ffound',['bmw_commandline_parser_arg_not_found',['../namespacebmw__commandline__parser.html#ac4d1f02dfd69ad804dcb3ceecdf75efe',1,'bmw_commandline_parser']]],
   ['bmw_5fcommandline_5fparser_5fno_5ferror',['bmw_commandline_parser_no_error',['../namespacebmw__commandline__parser.html#a90b7ea1b9f129c5146a7732a5f0b98e4',1,'bmw_commandline_parser']]],
+  ['bsubsmnch',['bsubsmnch',['../structsiesta__context_1_1siesta__context__class.html#a95488ca8cd9626acb9cebe23a296a4a5',1,'siesta_context::siesta_context_class']]],
+  ['bsubsmnsh',['bsubsmnsh',['../structsiesta__context_1_1siesta__context__class.html#ac8bd9355afda55a7e2e6b8ae75ede821',1,'siesta_context::siesta_context_class']]],
+  ['bsubumnch',['bsubumnch',['../structsiesta__context_1_1siesta__context__class.html#a980cd0e13c0cd79d7ce2f73f05dd8236',1,'siesta_context::siesta_context_class']]],
+  ['bsubumnsh',['bsubumnsh',['../structsiesta__context_1_1siesta__context__class.html#a1cf71109096e6ef10a3441fe7d4d130d',1,'siesta_context::siesta_context_class']]],
+  ['bsubvmnch',['bsubvmnch',['../structsiesta__context_1_1siesta__context__class.html#a7cccaca80ce81e009f7958a6c404405f',1,'siesta_context::siesta_context_class']]],
+  ['bsubvmnsh',['bsubvmnsh',['../structsiesta__context_1_1siesta__context__class.html#afa61d79df0c1915526a665e029695a80',1,'siesta_context::siesta_context_class']]],
+  ['bsupsmnch',['bsupsmnch',['../structsiesta__context_1_1siesta__context__class.html#ad0ab7681c777d44938fa58a87875e21d',1,'siesta_context::siesta_context_class']]],
+  ['bsupsmnsh',['bsupsmnsh',['../structsiesta__context_1_1siesta__context__class.html#acae1e15c6280e007dcd7ab0117567e18',1,'siesta_context::siesta_context_class']]],
+  ['bsupumnch',['bsupumnch',['../structsiesta__context_1_1siesta__context__class.html#af65c55288cc3dc507d19715a13973a47',1,'siesta_context::siesta_context_class']]],
+  ['bsupumnsh',['bsupumnsh',['../structsiesta__context_1_1siesta__context__class.html#a7941a37fe67b52221eb19813144d1490',1,'siesta_context::siesta_context_class']]],
+  ['bsupvmnch',['bsupvmnch',['../structsiesta__context_1_1siesta__context__class.html#a5ecd39884e74e7e7452d35c454cee89f',1,'siesta_context::siesta_context_class']]],
+  ['bsupvmnsh',['bsupvmnsh',['../structsiesta__context_1_1siesta__context__class.html#afc6bfa2fdbf1e1e3cbbe4df2594f2acb',1,'siesta_context::siesta_context_class']]],
   ['buckets',['buckets',['../namespaceprofiler.html#afc9a352239240fe921860cfaba7fea42',1,'profiler']]]
 ];

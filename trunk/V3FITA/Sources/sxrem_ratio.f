@@ -108,20 +108,23 @@
 !>
 !>  The modeled signal is the ratio of the soft x-ray emissivity profiles.
 !>
-!>  @param[in]    this    A @ref sxrem_ratio_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref sxrem_ratio_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION sxrem_ratio_get_modeled_signal(this, a_model, sigma)
+      FUNCTION sxrem_ratio_get_modeled_signal(this, a_model, sigma,            &
+     &                                        last_value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: sxrem_ratio_get_modeled_signal
       TYPE (sxrem_ratio_class), INTENT(in)    :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: emissivity
@@ -130,18 +133,27 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      emissivity = model_get_sxrem_cart(a_model, this%x_cart,                  &
-     &                                  this%indices(2))
-
-      sxrem_ratio_get_modeled_signal = 0.0
-      IF (emissivity .eq. 0.0) THEN
-         sxrem_ratio_get_modeled_signal(1) = 1.0
-      ELSE
-         sxrem_ratio_get_modeled_signal(1) =                                   &
-     &      model_get_sxrem_cart(a_model, this%x_cart,                         &
-     &                           this%indices(1))/emissivity
-      END IF
+      sxrem_ratio_get_modeled_signal = last_value
       sigma = 0.0
+
+      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_shift_flag) .or.              &
+     &    BTEST(a_model%state_flags, model_state_sxrem_flag +                  &
+     &                               (this%indices(1) - 1)) .or.               &
+     &    BTEST(a_model%state_flags, model_state_sxrem_flag +                  &
+     &                               (this%indices(2) - 1))) THEN
+
+         emissivity = model_get_sxrem_cart(a_model, this%x_cart,               &
+     &                                     this%indices(2))
+
+         IF (emissivity .eq. 0.0) THEN
+            sxrem_ratio_get_modeled_signal(1) = 1.0
+         ELSE
+            sxrem_ratio_get_modeled_signal(1) =                                &
+     &         model_get_sxrem_cart(a_model, this%x_cart,                      &
+     &                              this%indices(1))/emissivity
+         END IF
+      END IF
 
       CALL profiler_set_stop_time('sxrem_ratio_get_modeled_signal',            &
      &                            start_time)
@@ -154,8 +166,8 @@
 !>  The observed signal is the ratio computed as the ratio as a function of the
 !>  temperature.
 !>
-!>  @param[in]    this    A @ref sxrem_ratio_class instance.
-!>  @param[inout] a_model A @ref model instance.
+!>  @param[in] this    A @ref sxrem_ratio_class instance.
+!>  @param[in] a_model A @ref model instance.
 !>  @returns The observed value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_get_observed_signal(this, a_model)
@@ -165,7 +177,7 @@
 !  Declare Arguments
       REAL (rprec) :: sxrem_ratio_get_observed_signal
       TYPE (sxrem_ratio_class), INTENT(in) :: this
-      TYPE (model_class), INTENT(inout)    :: a_model
+      TYPE (model_class), INTENT(in)       :: a_model
 
 !  local variables
       REAL (rprec)                         :: start_time

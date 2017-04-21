@@ -189,22 +189,25 @@
 !>  always returns false because a vacuum equilibrium never needs to be
 !>  reconverged.
 !>
-!>  @param[inout] this    A @ref vmec_class instance.
-!>  @param[in]    id      ID of the parameter.
-!>  @param[in]    i_index The ith index of the parameter.
-!>  @param[in]    value   The value of the parameter.
-!>  @returns False.
+!>  @param[inout] this        A @ref vmec_class instance.
+!>  @param[in]    id          ID of the parameter.
+!>  @param[in]    i_index     The ith index of the parameter.
+!>  @param[in]    value       The value of the parameter.
+!>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
 !-------------------------------------------------------------------------------
-      FUNCTION vacuum_set_param(this, id, i_index, j_index, value)
+      SUBROUTINE vacuum_set_param(this, id, i_index, j_index, value,           &
+     &                            state_flags)
+      USE model_state
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      LOGICAL                            :: vacuum_set_param
       TYPE (vacuum_class), INTENT(inout) :: this
       INTEGER, INTENT(in)                :: id
       INTEGER, INTENT(in)                :: i_index, j_index
       REAL (rprec), INTENT(in)           :: value
+      INTEGER, INTENT(inout)             :: state_flags
 
 !  local variables
       REAL (rprec)                       :: start_time
@@ -216,13 +219,12 @@
 
          CASE (vacuum_extcur_id)
             this%extcur(i_index) = value
-            vacuum_set_param = .false.
 
       END SELECT
 
       CALL profiler_set_stop_time('vacuum_set_param', start_time)
 
-      END FUNCTION
+      END SUBROUTINE
 
 !*******************************************************************************
 !  GETTER SUBROUTINES

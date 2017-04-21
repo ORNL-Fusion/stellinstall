@@ -29,6 +29,7 @@ var searchData=
   ['compression_5fmax_5fpercentage',['compression_max_percentage',['../namespacecompression.html#a047d603ca70768cadd6c0ada8f658b0b',1,'compression']]],
   ['compression_5fu_5fbuffer_5fpost',['compression_u_buffer_post',['../namespacecompression.html#a9a3368b3f6e2b312a37cfcd2601f6f97',1,'compression']]],
   ['compression_5fwvt_5fbuffer_5fpost',['compression_wvt_buffer_post',['../namespacecompression.html#a0078349e7cc78c42a91e26272e0464c7',1,'compression']]],
+  ['context',['context',['../structsiesta__equilibrium_1_1siesta__class.html#abf5e5a1f4af7f63754e9f1092aedf6c1',1,'siesta_equilibrium::siesta_class']]],
   ['control_5fflags',['control_flags',['../structmagnetic_1_1magnetic__class.html#a4ccf47415ce08fe004948d14d27b9fd4',1,'magnetic::magnetic_class']]],
   ['coosig_5fcoeff',['coosig_coeff',['../namespacev3fit__input.html#ad2cccf80c02ca6ba2de6d4b8e2868606',1,'v3fit_input']]],
   ['coosig_5findices',['coosig_indices',['../namespacev3fit__input.html#a1b45c303a4a33d3aeb9e7c10f01a72e3',1,'v3fit_input']]],

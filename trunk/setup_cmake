@@ -156,18 +156,41 @@ then
 	      -DBUILD_SIESTA=ON                     \
 	      -DUSE_FAST_COPY=ON
 
-elif [ $MACHINE_ID == "swim.ornl.gov" ]
+elif [ $MACHINE_ID == "swim.ornl.gov" ] || \
+     [ $MACHINE_ID == "fusion2.ornl.gov" ]
 then
 
 	# Machines hosted on the ORNL network.
 
-	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE               \
-	      -DCMAKE_Fortran_COMPILER=gfortran                   \
-	      -DNETCDF_INC_PATH=/usr/include                      \
-	      -DNETCDF_LIB_PATH=/usr/lib64/openmpi/lib            \
-	      -DEXTRA_FLAGS=-fopenmp                              \
-	      -DCMAKE_PREFIX_PATH:FILEPATH=/usr/lib64/openmpi/lib \
-	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
+	# Make sure mpi is in the path due to the install configuration.
+	export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:$LD_LIBRARY_PATH
+	export PATH=/usr/lib64/openmpi/bin:$PATH
+
+	cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                         \
+	      -DCMAKE_Fortran_COMPILER=gfortran                                             \
+	      -DNETCDF_INC_PATH=/usr/include                                                \
+	      -DNETCDF_LIB_PATH=/usr/lib64/openmpi/lib                                      \
+	      -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                                           \
+	      -DCMAKE_PREFIX_PATH:FILEPATH=/usr/lib64/openmpi/lib                           \
+	      -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3" \
+	      -DUSE_PARVMEC=ON                                                              \
+              -DUSE_FAST_COPY=ON
+
+elif [ $MACHINE_ID == "r2d2" ]
+then
+
+        # Machines hosted on the ORNL network.
+
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                                                                \
+              -DCMAKE_Fortran_COMPILER=gfortran                                                                    \
+              -DNETCDF_INC_PATH=/usr/local/netcdf/netcdf-fortran-4.2/fortran                                       \
+              -DNETCDF_F=/usr/local/netcdf/netcdf-fortran-4.2/fortran/.libs/libnetcdff.so                          \
+              -DNETCDF_C="/usr/local/netcdf/netcdf-4.2.1.1/liblib/.libs/libnetcdf.so"                              \
+              -DCMAKE_PREFIX_PATH:FILEPATH="/usr/local/openmpi;/usr/local/lapack-3.4.2;/usr/local/scalapack-2.0.2" \
+              -DBLAS_blas_LIBRARY:FILEPATH="/usr/local/lapack-3.4.2/librefblas.a"                                  \
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"                                                                  \
+              -DUSE_PARVMEC=ON                                                                                     \
+              -DEXTRA_RELEASE_FLAGS:String="-m64 -mfpmath=sse -march=native -msse4a -msse3"
 
 elif [ $MACHINE_ID == "eos-ext1" ] || \
      [ $MACHINE_ID == "eos-ext2" ]
@@ -195,8 +218,8 @@ elif [ $MACHINE_ID == "titan-ext1" ] || \
      [ $MACHINE_ID == "titan-ext7" ]
 then
 
-        # Config for ORNL OLCF Machines. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
-        # module to get a compatable version first.                               
+        # Config for ORNL OLCF Machines. OLCF systems use a module system. Load the cmake
+        # module to get a compatable version first.
         module swap PrgEnv-pgi PrgEnv-gnu
         module load cray-netcdf
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \
@@ -223,8 +246,8 @@ elif [ $MACHINE_ID == "edison01" ] || \
      [ $MACHINE_ID == "edison11" ]
 then
 
-        # Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake                                                                                                                                                                                        
-        # module to get a compatable version first.                               
+        # Config for NERSC Edison Machine. OLCF systems use a module system. Load the cmake
+        # module to get a compatable version first.
         module load netcdf
         module load cmake
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE                                     \

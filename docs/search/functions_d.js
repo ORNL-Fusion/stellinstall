@@ -13,7 +13,7 @@ var searchData=
   ['thomson_5fconstruct_5fp',['thomson_construct_p',['../namespacethomson.html#ac5d43a2e6cf253c5d6cacc022d093b32',1,'thomson']]],
   ['thomson_5fconstruct_5fte',['thomson_construct_te',['../namespacethomson.html#a78327d44337143818c77c9827dd3a0b6',1,'thomson']]],
   ['thomson_5fdestruct',['thomson_destruct',['../namespacethomson.html#ad46f3991fb572fc3bf469c7b65ab2513',1,'thomson']]],
-  ['thomson_5fget_5fmodeled_5fsignal',['thomson_get_modeled_signal',['../namespacethomson.html#adb01052873440006e9ca471fb6ad8ed7',1,'thomson']]],
+  ['thomson_5fget_5fmodeled_5fsignal',['thomson_get_modeled_signal',['../namespacethomson.html#abe64dee32de72d413c1fe2fc4fa3171d',1,'thomson']]],
   ['thomson_5fget_5fsignal_5ftype',['thomson_get_signal_type',['../namespacethomson.html#a062923c0803870f1d09707380c7deb1a',1,'thomson']]],
   ['thscte_5fdot_5fparse_5fchord',['thscte_dot_parse_chord',['../namespacethscte__dot.html#ab7e0fba6bc6e693eea2930045b92124a',1,'thscte_dot']]],
   ['thscte_5fdot_5fread',['thscte_dot_read',['../namespacethscte__dot.html#a7191588e71eeec414f8349135725cdf4',1,'thscte_dot']]],

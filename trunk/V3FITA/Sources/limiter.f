@@ -197,15 +197,17 @@
 !>  If the limiter is defined by an iso function returns the value of
 !>  @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>
-!>  @param[in]    this    A @ref limiter_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   If the limiter type is defined by an iso function,
-!>                        sigma value of @ref limiter_get_modeled_iso_signal.
+!>  @param[in]  this       A @ref limiter_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      If the limiter type is defined by an iso function,
+!>                         sigma value of @ref limiter_get_modeled_iso_signal.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns If the limiter type is defined by an iso function, return the value
 !>           of @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
-      FUNCTION limiter_get_modeled_signal(this, a_model, sigma)
+      FUNCTION limiter_get_modeled_signal(this, a_model, sigma,                &
+     &                                    last_value)
       USE model
 
       IMPLICIT NONE
@@ -213,8 +215,9 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_signal
       TYPE (limiter_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -222,17 +225,24 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      SELECT CASE (this%type)
+      limiter_get_modeled_signal = last_value
+      sigma = 0.0
 
-         CASE (limiter_iso_type)
-            limiter_get_modeled_signal =                                       &
-     &         limiter_get_modeled_iso_signal(this, a_model, sigma)
+      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+         SELECT CASE (this%type)
 
-         CASE (limiter_polygon_type)
-            limiter_get_modeled_signal =                                       &
-     &         limiter_get_modeled_polygon_signal(this, a_model, sigma)
+            CASE (limiter_iso_type)
+               limiter_get_modeled_signal =                                    &
+     &            limiter_get_modeled_iso_signal(this, a_model, sigma)
 
-      END SELECT
+            CASE (limiter_polygon_type)
+               limiter_get_modeled_signal =                                    &
+     &            limiter_get_modeled_polygon_signal(this, a_model,            &
+     &                                               sigma)
+
+         END SELECT
+      END IF
 
       CALL profiler_set_stop_time('limiter_get_modeled_signal',                &
      &                            start_time)
@@ -328,9 +338,9 @@
 !>  The R and Z positions for a fixed toroidal plane are retrived from the the
 !>  @ref equilibrium method @ref equilibrium_get_plasma_edge
 !>
-!>  @param[in]    this    A @ref limiter_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   Returns the value of modeled sigma.
+!>  @param[in]  this    A @ref limiter_class instance.
+!>  @param[in]  a_model A @ref model instance.
+!>  @param[out] sigma   Returns the value of modeled sigma.
 !>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
 !>  the limiter, returns the R, Phi and Z posiiton of the maximum of the iso
 !>  function value. Otherwise returns zero.
@@ -344,17 +354,17 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_iso_signal
       TYPE (limiter_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables
-      INTEGER                                :: phi_index, theta_index
-      INTEGER                                :: num_theta
+      INTEGER                                 :: phi_index, theta_index
+      INTEGER                                 :: num_theta
 !  The r and z arrays will be allocated by the equilibrium.
-      REAL(rprec), DIMENSION(:), POINTER     :: r, z
-      REAL(rprec), DIMENSION(3)              :: rphiz_at_max
-      REAL(rprec)                            :: fval_max, fval
-      REAL (rprec)                           :: start_time
+      REAL (rprec), DIMENSION(:), POINTER     :: r, z
+      REAL (rprec), DIMENSION(3)              :: rphiz_at_max
+      REAL (rprec)                            :: fval_max, fval
+      REAL (rprec)                            :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -424,9 +434,9 @@
 !>  The R and Z positions for a fixed toroidal plane are retrived from the the
 !>  @ref equilibrium method @ref equilibrium_get_plasma_edge
 !>
-!>  @param[in]    this    A @ref limiter_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   Returns the value of modeled sigma.
+!>  @param[in]  this    A @ref limiter_class instance.
+!>  @param[in]  a_model A @ref model instance.
+!>  @param[out] sigma   Returns the value of modeled sigma.
 !>  @returns If @ref limiter_class::on_edge or the plasma edge extends beyond
 !>  the limiter, returns the R, Phi and Z position of the maximum of the iso
 !>  grid value. Otherwise returns zero.
@@ -440,7 +450,7 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: limiter_get_modeled_polygon_signal
       TYPE (limiter_class), INTENT(in)        :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
 
 !  local variables

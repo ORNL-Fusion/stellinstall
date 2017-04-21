@@ -125,9 +125,9 @@ Modules</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a1cc74801d48fc998e9229e0cea4271e8"><td class="memItemLeft" align="right" valign="top">type(model_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a1cc74801d48fc998e9229e0cea4271e8">model::model_construct</a> (ne_type, sxrem_type, te_type, ne_unit, ne_min, te_min, pressure_fraction, emission, equilibrium, sxrem_te, sxrem_ratio, resonace_range)</td></tr>
-<tr class="memdesc:a1cc74801d48fc998e9229e0cea4271e8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structmodel_1_1model__class.html">model_class</a> containing an <a class="el" href="namespaceequilibrium.html">equilibrium</a> object.  <a href="#a1cc74801d48fc998e9229e0cea4271e8">More...</a><br /></td></tr>
-<tr class="separator:a1cc74801d48fc998e9229e0cea4271e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45ebbbfcec979b827a40dbbd0ccc0e95"><td class="memItemLeft" align="right" valign="top">type(model_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a45ebbbfcec979b827a40dbbd0ccc0e95">model::model_construct</a> (ne_type, sxrem_type, te_type, ne_unit, ne_min, te_min, pressure_fraction, emission, equilibrium, sxrem_te, sxrem_ratio, resonace_range, not_converged)</td></tr>
+<tr class="memdesc:a45ebbbfcec979b827a40dbbd0ccc0e95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structmodel_1_1model__class.html">model_class</a> containing an <a class="el" href="namespaceequilibrium.html">equilibrium</a> object.  <a href="#a45ebbbfcec979b827a40dbbd0ccc0e95">More...</a><br /></td></tr>
+<tr class="separator:a45ebbbfcec979b827a40dbbd0ccc0e95"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2a265c388bc36a30cc61a1635f9353d6"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a2a265c388bc36a30cc61a1635f9353d6">model::model_destruct</a> (this)</td></tr>
 <tr class="memdesc:a2a265c388bc36a30cc61a1635f9353d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structmodel_1_1model__class.html">model_class</a> object.  <a href="#a2a265c388bc36a30cc61a1635f9353d6">More...</a><br /></td></tr>
 <tr class="separator:a2a265c388bc36a30cc61a1635f9353d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -179,6 +179,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ae92f9c0950727e71610455ca8498fca1"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ae92f9c0950727e71610455ca8498fca1">model::model_is_recon_param</a> (this, id)</td></tr>
 <tr class="memdesc:ae92f9c0950727e71610455ca8498fca1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Determines if a parameter id is a reconstruction parameter.  <a href="#ae92f9c0950727e71610455ca8498fca1">More...</a><br /></td></tr>
 <tr class="separator:ae92f9c0950727e71610455ca8498fca1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a039d5b9b4b15952e126981a5793751af"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#a039d5b9b4b15952e126981a5793751af">model::model_reset_state</a> (this)</td></tr>
+<tr class="memdesc:a039d5b9b4b15952e126981a5793751af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reset the internal state of the model.  <a href="#a039d5b9b4b15952e126981a5793751af">More...</a><br /></td></tr>
+<tr class="separator:a039d5b9b4b15952e126981a5793751af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae40d3eb6e7863b5ca97a108a8b6eec45"><td class="memItemLeft" align="right" valign="top">logical function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemodel.html#ae40d3eb6e7863b5ca97a108a8b6eec45">model::model_converge</a> (this, num_iter, iou, eq_comm, param_name)</td></tr>
 <tr class="memdesc:ae40d3eb6e7863b5ca97a108a8b6eec45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Solves the model.  <a href="#ae40d3eb6e7863b5ca97a108a8b6eec45">More...</a><br /></td></tr>
 <tr class="separator:ae40d3eb6e7863b5ca97a108a8b6eec45"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -271,7 +274,7 @@ real(rprec), parameter&#160;</td><td class="memItemRight" valign="bottom"><a cla
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Mar 6 2017 15:16:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Sat Apr 8 2017 12:22:13 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.9.1
 </small></address>

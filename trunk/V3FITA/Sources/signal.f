@@ -569,16 +569,17 @@
 !>  @see prior::prior_get_modeled_signal
 !>  @see combination_get_modeled_signal
 !>
-!>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model instance.
+!>  @param[inout] this      A @ref diagnostic_class instance.
+!>  @param[in]    a_model   A @ref model instance.
 !>  @param[out]   sigma     The modeled sigma.
-!>  @param[in]    use_cache If false calculate the signal and sigma and write
+!>  @param[in]    use_cache If false calculate the signal and sigma and write them
 !>                          them to the cache. Otherwise read from the cache
 !>                          without recalculating the signal.
+!>  @param[in]  last_value  Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_modeled_signal(this, a_model, sigma,                 &
-     &                                   use_cache)
+     &                                   use_cache, last_value)
       USE model
 
       IMPLICIT NONE
@@ -586,9 +587,10 @@
 !  Declare Arguments
       REAL (rprec), DIMENSION(4) :: signal_get_modeled_signal
       TYPE (signal_class), INTENT(inout)      :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
       LOGICAL, INTENT(in)                     :: use_cache
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -605,26 +607,31 @@
             CASE (signal_diagnostic_type)
                signal_get_modeled_signal =                                     &
      &            diagnostic_get_modeled_signal(this%diagnostic,               &
-     &                                          a_model, sigma)
+     &                                          a_model, sigma,                &
+     &                                          last_value)
 
             CASE (signal_geometric_type)
                signal_get_modeled_signal =                                     &
      &            geometric_get_modeled_signal(this%geometric,                 &
-     &                                         a_model, sigma)
+     &                                         a_model, sigma,                 &
+     &                                         last_value)
 
             CASE (signal_prior_type)
+!  There is no way to know if a prior changed. Since they are very low cost,
+!  just recompute them anyway. So priors don't use the last_value argument.
                signal_get_modeled_signal =                                     &
      &            prior_get_modeled_signal(this%prior, a_model, sigma)
 
             CASE (signal_feedback_type)
                signal_get_modeled_signal =                                     &
      &            feedback_get_modeled_signal(this%feedback, a_model,          &
-     &                                        sigma)
+     &                                        sigma, last_value)
 
             CASE (signal_combination_type)
                signal_get_modeled_signal =                                     &
      &            combination_get_modeled_signal(this%combination,             &
-     &                                           a_model, sigma)
+     &                                           a_model, sigma,               &
+     &                                           last_value)
 
          END SELECT
 
@@ -648,8 +655,8 @@
 !>
 !>  @see feedback::feedback_get_modeled_signal
 !>
-!>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model instance.
+!>  @param[in] this      A @ref diagnostic_class instance.
+!>  @param[in] a_model   A @ref model instance.
 !>  @returns The observed value.
 !-------------------------------------------------------------------------------
       FUNCTION signal_get_observed_signal(this, a_model)
@@ -660,7 +667,7 @@
 !  Declare Arguments
       REAL (rprec) :: signal_get_observed_signal
       TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
+      TYPE (model_class), INTENT(in)     :: a_model
 
 !  local variables
       REAL (rprec)                       :: start_time
@@ -689,31 +696,34 @@
 !>  Gets the g^2 contribution of an individual signal.
 !>  g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
 !>
-!>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model instance.
-!>  @param[in]    use_cache If the signals have been already calculated this
-!>                          should be false. Otherwise set to true.
+!>  @param[in] this       A @ref diagnostic_class instance.
+!>  @param[in] a_model    A @ref model instance.
+!>  @param[in] use_cache  If the signals have been already calculated this
+!>                        should be false. Otherwise set to true.
+!>  @param[in] last_value Last good value in case the signal did not change.
 !>  @returns The g^2 value.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_g2(this, a_model, use_cache)
+      FUNCTION signal_get_g2(this, a_model, use_cache, last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                       :: signal_get_g2
-      TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
-      LOGICAL, INTENT(in)                :: use_cache
+      REAL (rprec)                           :: signal_get_g2
+      TYPE (signal_class), INTENT(inout)     :: this
+      TYPE (model_class), INTENT(in)         :: a_model
+      LOGICAL, INTENT(in)                    :: use_cache
+      REAL (rprec), DIMENSION(4), INTENT(in) :: last_value
 
 !  local Variables
-      REAL (rprec)                       :: start_time
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
 !  g^2 = W*(O - M)^2/(sigma_o^2 + sigma_m^2) = e*e
-      signal_get_g2 = signal_get_e(this, a_model, use_cache)**2.0
+      signal_get_g2 =                                                          &
+     &   signal_get_e(this, a_model, use_cache, last_value)**2.0
 
       CALL profiler_set_stop_time('signal_get_g2', start_time)
 
@@ -725,28 +735,30 @@
 !>  Gets the e contribution of an individual signal.
 !>  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
 !>
-!>  @param[in]    this      A @ref diagnostic_class instance.
-!>  @param[inout] a_model   A @ref model instance.
-!>  @param[in]    use_cache If the signals have been already calculated this
-!>                          should be false. Otherwise set to true.
+!>  @param[in] this       A @ref diagnostic_class instance.
+!>  @param[in] a_model    A @ref model instance.
+!>  @param[in] use_cache  If the signals have been already calculated this
+!>                        should be false. Otherwise set to true.
+!>  @param[in] last_value Last good value in case the signal did not change.
 !>  @returns The e value.
 !-------------------------------------------------------------------------------
-      FUNCTION signal_get_e(this, a_model, use_cache)
+      FUNCTION signal_get_e(this, a_model, use_cache, last_value)
       USE model
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      REAL (rprec)                       :: signal_get_e
-      TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
-      LOGICAL, INTENT(in)                :: use_cache
+      REAL (rprec)                           :: signal_get_e
+      TYPE (signal_class), INTENT(inout)     :: this
+      TYPE (model_class), INTENT(in)         :: a_model
+      LOGICAL, INTENT(in)                    :: use_cache
+      REAL (rprec), DIMENSION(4), INTENT(in) :: last_value
 
 !  local Variables
-      REAL (rprec), DIMENSION(4)         :: modeled_signal
-      REAL (rprec), DIMENSION(4)         :: modeled_sigma
-      REAL (rprec)                       :: observed_signal
-      REAL (rprec)                       :: start_time
+      REAL (rprec), DIMENSION(4)             :: modeled_signal
+      REAL (rprec), DIMENSION(4)             :: modeled_sigma
+      REAL (rprec)                           :: observed_signal
+      REAL (rprec)                           :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -755,7 +767,7 @@
 
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
      &                                           modeled_sigma,                &
-     &                                           use_cache)
+     &                                           use_cache, last_value)
 
 !  e = SQRT(W)*(O - M)/SQRT(sigma_o^2 + sigma_m^2)
 !  Users are can be lax when specifiying the sigma for signals weighted to zero.
@@ -964,10 +976,10 @@
 !>  Signals information is formated as the index, signal type, s_name, g^2,
 !>  weight, observed value, observed sigma, modeled value and modeled sigma.
 !>
-!>  @param[in] this    A @ref diagnostic_class instance.
-!>  @param[in] iou     A input/output representing the file to write to.
-!>  @param[in] index   A index of a signal.
-!>  @param[in] a_model The equilibrium model.
+!>  @param[inout] this    A @ref diagnostic_class instance.
+!>  @param[in]    iou     A input/output representing the file to write to.
+!>  @param[in]    index   A index of a signal.
+!>  @param[in]    a_model The equilibrium model.
 !>  @note This assumes that signals have already been calculated. The model
 !>  isn't used by signal_get_g2 since it is reading from the cache but must be
 !>  passed in anyway.
@@ -978,24 +990,31 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), INTENT(inout) :: this
-      INTEGER, INTENT(in)                :: iou
-      INTEGER, INTENT(in)                :: index
-      TYPE (model_class), INTENT(inout)  :: a_model
+      TYPE (signal_class), INTENT(inout)    :: this
+      INTEGER, INTENT(in)                   :: iou
+      INTEGER, INTENT(in)                   :: index
+      TYPE (model_class), INTENT(in)        :: a_model
 
 !  local variables
-      REAL (rprec), DIMENSION(4)         :: modeled_signal
-      REAL (rprec), DIMENSION(4)         :: modeled_sigma
-      REAL (rprec)                       :: start_time
+      REAL (rprec), DIMENSION(4)            :: modeled_signal
+      REAL (rprec), DIMENSION(4)            :: modeled_sigma
+      REAL (rprec)                          :: start_time
+
+!  local paramaters
+      REAL (rprec), DIMENSION(4), PARAMETER :: dummy_value = 0.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+!  When reading from the signal cache, the signal is not recomputed so any value
+!  can be used for the last_value arument.
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
-     &                                           modeled_sigma, .true.)
+     &                                           modeled_sigma, .true.,        &
+     &                                           dummy_value)
 
       WRITE (iou,1000) index, signal_get_signal_type(this), this%s_name,       &
-     &                 signal_get_g2(this, a_model, .true.),                   &
+     &                 signal_get_g2(this, a_model, .true.,                    &
+     &                               modeled_signal),                          &
      &                 this%weight, signal_get_observed_signal(this,           &
      &                                                         a_model),       &
      &                 this%observed_sigma, modeled_signal,                    &
@@ -1099,13 +1118,13 @@
 !>
 !>  Writes out the observed, modeled and total sigma value of the signal.
 !>
-!>  @param[in] this                  A @ref diagnostic_class instance.
-!>  @param[in] a_model               The equilibrium model.
-!>  @param[in] result_ncid           A NetCDF id of the result file.
-!>  @param[in] current_step          The surrent reconstruction step.
-!>  @param[in] index                 A index of a signal.
-!>  @param[in] signal_model_value_id NetCDF variable id of the model value.
-!>  @param[in] signal_sigma_value_id NetCDF variable id of the total sigma.
+!>  @param[inout] this                  A @ref diagnostic_class instance.
+!>  @param[in]    a_model               The equilibrium model.
+!>  @param[in]    result_ncid           A NetCDF id of the result file.
+!>  @param[in]    current_step          The surrent reconstruction step.
+!>  @param[in]    index                 A index of a signal.
+!>  @param[in]    signal_model_value_id NetCDF variable id of the model value.
+!>  @param[in]    signal_sigma_value_id NetCDF variable id of the total sigma.
 !>  @note This assumes that signals have already been calculated. The model
 !>  isn't used by signal_get_g2 since it is reading from the cache but must be
 !>  passed in anyway.
@@ -1120,26 +1139,32 @@
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)  :: a_model
-      INTEGER, INTENT(in)                :: result_ncid
-      INTEGER, INTENT(in)                :: current_step
-      INTEGER, INTENT(in)                :: index
-      INTEGER, INTENT(in)                :: signal_model_value_id
-      INTEGER, INTENT(in)                :: signal_sigma_value_id
+      TYPE (signal_class), INTENT(inout)    :: this
+      TYPE (model_class), INTENT(in)        :: a_model
+      INTEGER, INTENT(in)                   :: result_ncid
+      INTEGER, INTENT(in)                   :: current_step
+      INTEGER, INTENT(in)                   :: index
+      INTEGER, INTENT(in)                   :: signal_model_value_id
+      INTEGER, INTENT(in)                   :: signal_sigma_value_id
 
 !  local variables
-      INTEGER                            :: status
-      INTEGER                            :: varid
-      REAL (rprec), DIMENSION(4)         :: modeled_sigma
-      REAL (rprec), DIMENSION(4)         :: modeled_signal
-      REAL (rprec)                       :: start_time
+      INTEGER                               :: status
+      INTEGER                               :: varid
+      REAL (rprec), DIMENSION(4)            :: modeled_sigma
+      REAL (rprec), DIMENSION(4)            :: modeled_signal
+      REAL (rprec)                          :: start_time
+
+!  local paramaters
+      REAL (rprec), DIMENSION(4), PARAMETER :: dummy_value = 0.0
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+!  When reading from the signal cache, the signal is not recomputed so any value
+!  can be used for the last_value arument.
       modeled_signal = signal_get_modeled_signal(this, a_model,                &
-     &                                           modeled_sigma, .true.)
+     &                                           modeled_sigma, .true.,        &
+     &                                           dummy_value)
 
       status = nf_put_vara_double(result_ncid, signal_model_value_id,          &
      &                            (/ 1, index, current_step /),                &
@@ -1169,6 +1194,56 @@
       END SELECT
 
       CALL profiler_set_stop_time('signals_write_auxiliary', start_time)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  MPI SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize a child signal state to the parent.
+!>
+!>  Syncs data between a child and the parent process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref signal_class instance.
+!>  @param[in]    index      Reconstruction rank to sync.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE signal_sync_child(this, index, recon_comm)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (signal_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                :: index
+      INTEGER, INTENT(in)                :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                            :: error
+      INTEGER                            :: mpi_rank
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+      IF (mpi_rank .eq. index) THEN
+         CALL MPI_SEND(this%modeled, 4, MPI_REAL8, 0, mpi_rank,               &
+     &                  recon_comm, error)
+         CALL MPI_SEND(this%modeled_sigma, 4, MPI_REAL8, 0, mpi_rank,         &
+     &                  recon_comm, error)
+       ELSE IF (mpi_rank .eq. 0) THEN
+         CALL MPI_RECV(this%modeled, 4, MPI_REAL8, index, index,               &
+     &                 recon_comm, MPI_STATUS_IGNORE, error)
+         CALL MPI_RECV(this%modeled_sigma, 4, MPI_REAL8, index, index,         &
+     &                 recon_comm, MPI_STATUS_IGNORE, error)
+      END IF
+
+      CALL profiler_set_stop_time('signal_sync_child', start_time)
+#endif
 
       END SUBROUTINE
 
@@ -1315,20 +1390,23 @@
 !>  This method combines the signals pointed in the
 !>  @ref combination_class::signals array. 
 !>
-!>  @param[in]    this    A @ref combination_class instance.
-!>  @param[inout] a_model A @ref model instance.
-!>  @param[out]   sigma   The modeled sigma.
+!>  @param[in]  this       A @ref combination_class instance.
+!>  @param[in]  a_model    A @ref model instance.
+!>  @param[out] sigma      The modeled sigma.
+!>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION combination_get_modeled_signal(this, a_model, sigma)
+      FUNCTION combination_get_modeled_signal(this, a_model, sigma,            &
+     &                                        last_value)
       USE model
       IMPLICIT NONE
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)      :: combination_get_modeled_signal
-      TYPE (combination_class), INTENT(inout) :: this
-      TYPE (model_class), INTENT(inout)       :: a_model
+      TYPE (combination_class), INTENT(in)    :: this
+      TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
+      REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  Local Variables
       INTEGER                                 :: i
@@ -1338,9 +1416,10 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+
       combination_get_modeled_signal =                                         &
      &   this%a(1)*signal_get_modeled_signal(this%signals(1)%p, a_model,       &
-     &                                       sigma, .true.)
+     &                                       sigma, .true., last_value)
 
       SELECT CASE(this%type)
          CASE (combination_sum)
@@ -1350,7 +1429,8 @@
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
      &                                                a_model,                 &
      &                                                sigma_local,             &
-     &                                                .true.)
+     &                                                .true.,                  &
+     &                                                last_value)
                sigma = sigma + sigma_local
             END DO
 
@@ -1361,7 +1441,8 @@
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
      &                                                a_model,                 &
      &                                                sigma_local,             &
-     &                                                .true.))
+     &                                                .true.,                  &
+     &                                                last_value))
                sigma = MAX(sigma, sigma_local)
             END DO
 
@@ -1372,7 +1453,8 @@
      &            this%a(i)*signal_get_modeled_signal(this%signals(i)%p,       &
      &                                                a_model,                 &
      &                                                sigma_local,             &
-     &                                                .true.))
+     &                                                .true.,                  &
+     &                                                sigma_local))
                sigma = MIN(sigma, sigma_local)
             END DO
 

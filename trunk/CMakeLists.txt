@@ -159,6 +159,7 @@ add_subdirectory (WOUT_CONVERTER)
 add_subdirectory (BOOTSJ)
 add_subdirectory (DESCUR)
 add_subdirectory (BMW)
+add_subdirectory (LGRID)
 add_subdirectory (Testing)
 
 # Optional extra builds

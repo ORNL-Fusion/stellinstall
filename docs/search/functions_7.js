@@ -6,7 +6,7 @@ var searchData=
   ['limiter_5fget_5fheader',['limiter_get_header',['../namespacelimiter.html#a384794edff3e3d0a49b227298867b163',1,'limiter']]],
   ['limiter_5fget_5fmodeled_5fiso_5fsignal',['limiter_get_modeled_iso_signal',['../namespacelimiter.html#a9bfda30b98f36049d63fd74a6859314f',1,'limiter']]],
   ['limiter_5fget_5fmodeled_5fpolygon_5fsignal',['limiter_get_modeled_polygon_signal',['../namespacelimiter.html#a61451c5d2dce89e305ab1e499d53356d',1,'limiter']]],
-  ['limiter_5fget_5fmodeled_5fsignal',['limiter_get_modeled_signal',['../namespacelimiter.html#a874cd7b221482ab9852c677c260adb6e',1,'limiter']]],
+  ['limiter_5fget_5fmodeled_5fsignal',['limiter_get_modeled_signal',['../namespacelimiter.html#a45aa0ac5949f3a566bad8db3bb191df1',1,'limiter']]],
   ['limiter_5fget_5fsignal_5ftype',['limiter_get_signal_type',['../namespacelimiter.html#a963eb7d5a45eea09e29359ca61a81609',1,'limiter']]],
   ['limiter_5fgrid_5fconstruct',['limiter_grid_construct',['../namespacelimiter__grid.html#a78e7b713c5781ea4043899c20e4a65a1',1,'limiter_grid']]],
   ['limiter_5fgrid_5fdestruct',['limiter_grid_destruct',['../namespacelimiter__grid.html#a9e2650f5959b58e6feb3e0c324969aea',1,'limiter_grid']]],
