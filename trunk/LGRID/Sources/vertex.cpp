@@ -208,7 +208,7 @@ const bool vertex::in_range(const vertex &v1, const vertex &v2, const double x, 
 ///  @return The length to a from a point to the line.
 //------------------------------------------------------------------------------
 const double vertex::direction(const vertex &v, const vector3d &n, const vector3d &p) {
-    return signbit(vector3d::dot_product(v.point - p, n)) ? 1.0 : -1.0;
+    return std::signbit(vector3d::dot_product(v.point - p, n)) ? 1.0 : -1.0;
 }
 
 //------------------------------------------------------------------------------
