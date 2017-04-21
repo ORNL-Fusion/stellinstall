@@ -3015,7 +3015,7 @@
       IF (vmec_get_suv(1) .le. 1.0) THEN
          IF (fmin .gt.  1.0E-8_rprec) THEN
             WRITE(*,*) "Warn: VMEC could not converge to flux position."       &
-            WRITE(*,*) info, fmin, vmec_get_s
+            WRITE(*,*) info, fmin, vmec_get_suv
          END IF
       END IF
 
