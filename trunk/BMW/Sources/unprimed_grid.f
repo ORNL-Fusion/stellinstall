@@ -58,6 +58,7 @@
       FUNCTION unprimed_grid_construct(mgrid, pgrid)
       USE primed_grid
       USE m_grid
+!$    USE omp_lib
 
       IMPLICIT NONE
 
@@ -92,8 +93,15 @@
       INTEGER                                     :: k_m
       REAL (rprec)                                :: cosv
       REAL (rprec)                                :: sinv
+      REAL (rprec)                                :: done
+      REAL (rprec)                                :: total
+      REAL (rprec)                                :: current
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: rp
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: zp
+
+!  local parameters
+      CHARACTER (len=*), PARAMETER                :: clear_screen =            &
+     &   achar(27)//"[2K"//achar(13)
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -112,25 +120,28 @@
       ALLOCATE(unprimed_grid_construct%b_p(num_r, num_z, num_p))
       ALLOCATE(unprimed_grid_construct%b_z(num_r, num_z, num_p))
 
+      total = num_p*num_z*num_r
+!$    total = total/OMP_GET_MAX_THREADS()
+      current = 0.0
+
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i, j, k, v, r, zp, x, y, ax, ay, rp, cosv, sinv, ar_p,
-!$OMP&         ar_m, ap_p, ap_m, az_p, az_m, r_p, r_m, k_p, k_m)
+!$OMP&         ar_m, ap_p, ap_m, az_p, az_m, r_p, r_m, k_p, k_m, done,
+!$OMP&         current)
 
       ALLOCATE(rp(SIZE(pgrid%x, 1),                                            &
      &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
 
-      ALLOCATE(zp(SIZE(pgrid%x, 1),                                             &
-     &            SIZE(pgrid%x, 2),                                             &
+      ALLOCATE(zp(SIZE(pgrid%x, 1),                                            &
+     &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
       DO k = 1, num_p
          v = (k - 1.0)*pgrid%dv
-
-         WRITE (*,1000) v
 
          cosv = COS(v)
          sinv = SIN(v)
@@ -139,6 +150,22 @@
             zp = (pgrid%z - ((j - 1.0)*mgrid%dz + mgrid%zmin))**2.0
 
             DO i = 1, num_r
+
+!$             IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
+                  current = current + 1.0
+                  done = 100*current/total
+                  SELECT CASE (MOD(INT(current),4))
+                     CASE (0)
+                        WRITE (*,1000,ADVANCE='NO') clear_screen, done
+                     CASE (1)
+                        WRITE (*,1001,ADVANCE='NO') clear_screen, done
+                     CASE (2)
+                        WRITE (*,1002,ADVANCE='NO') clear_screen, done
+                     CASE (3)
+                        WRITE (*,1003,ADVANCE='NO') clear_screen, done
+                  END SELECT
+!$             END IF
+
                r = (i - 1.0)*mgrid%dr + mgrid%rmin
 
                x = r*cosv
@@ -231,12 +258,15 @@
 
 !$OMP END PARALLEL
 
-      WRITE (*,1001)
+      WRITE (*,1004) clear_screen
 
       CALL profiler_set_stop_time('unprimed_grid_construct', start_time)
 
-1000  FORMAT('Phi = ',f4.2)
-1001  FORMAT('Unprimed Grid Finished')
+1000  FORMAT(a,' | ',f6.2,' % Finished')
+1001  FORMAT(a,' / ',f6.2,' % Finished')
+1002  FORMAT(a,' - ',f6.2,' % Finished')
+1003  FORMAT(a,' \ ',f6.2,' % Finished')
+1004  FORMAT(a,'Unprimed Grid Finished')
 
       END FUNCTION
 

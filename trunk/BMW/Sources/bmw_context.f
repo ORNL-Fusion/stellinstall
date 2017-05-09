@@ -74,6 +74,10 @@
       start_time = profiler_get_start_time()
 
       CALL read_wout_file(wout_file_name, status)
+      IF (status .ne. 0) THEN
+         WRITE (*,1000) wout_file_name
+         CALL EXIT(status)
+      END IF
 
       ALLOCATE(bmw_context_construct)
 
@@ -89,6 +93,8 @@
      &                           bmw_context_construct%p_grid)
 
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
+
+1000  FORMAT(a,' is an invalid wout file.')
 
       END FUNCTION
 

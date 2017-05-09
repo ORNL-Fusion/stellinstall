@@ -206,7 +206,7 @@ int main(int argc, const char * argv[]) {
     
     int grids_varid;
     std::array<int, 3> grid_dims;
-    grid_dims[1] = num_phi_dimid;
+    grid_dims[0] = num_phi_dimid;
     grid_dims[1] = num_z_dimid;
     grid_dims[2] = num_r_dimid;
     nc_def_var(ncid, "iso_grids", NC_DOUBLE, 3, grid_dims.data(), &grids_varid);
