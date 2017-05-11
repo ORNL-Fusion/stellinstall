@@ -21,19 +21,21 @@
       INTEGER, PARAMETER ::                                                    &
      &   model_state_all_on = NOT(model_state_all_off)
 
-!>  Equilibrium changed bit position.
-      INTEGER, PARAMETER :: model_state_eq_flag    = 0
+!>  VMEC Equilibrium changed bit position.
+      INTEGER, PARAMETER :: model_state_vmec_flag   = 0
+!>  SIESTA Equilibrium changed bit position.
+      INTEGER, PARAMETER :: model_state_siesta_flag = 1
 !>  Denisty profile changed bit position.
-      INTEGER, PARAMETER :: model_state_ne_flag    = 1
+      INTEGER, PARAMETER :: model_state_ne_flag     = 2
 !>  Temperature profile changed bit position.
-      INTEGER, PARAMETER :: model_state_te_flag    = 2
+      INTEGER, PARAMETER :: model_state_te_flag     = 3
 !>  Shift parameter changed bit position.
-      INTEGER, PARAMETER :: model_state_shift_flag = 3
+      INTEGER, PARAMETER :: model_state_shift_flag  = 4
 !>  Soft x-ray emissivity profile changed bit position. This flag needs to
 !>  always be the last flag an can be no larger than 31 minus the maximum number
 !>  of possible sxrem profiles @ref v3fit_input::v3fit_max_sxrem_profiles. If
 !>  the number of model states exceeds 31, then the size of
 !>  @ref model::model_class%state_flags needs to be increased.
-      INTEGER, PARAMETER :: model_state_sxrem_flag = 4
+      INTEGER, PARAMETER :: model_state_sxrem_flag  = 5
 
       END MODULE

@@ -582,14 +582,19 @@
          SELECT CASE (task)
 
             CASE (mpi_equilibrium_task)
+               CALL MPI_BCAST(context%model%state_flags, 1, MPI_INTEGER,       &
+     &                        0, context%equilibrium_comm, error)
                result = equilibrium_converge(context%model%equilibrium,        &
      &                                       num_steps,                        &
      &                                       context%runlog_iou,               &
-     &                                       context%equilibrium_comm)
+     &                                       context%equilibrium_comm,         &
+     &                                       context%model%state_flags)
 
             CASE (mpi_mgrid_task)
+               CALL MPI_BCAST(num_steps, 1, MPI_INTEGER, 0,                    &
+     &                        context%equilibrium_comm, error)
                CALL equilibrium_read_vac_file(context%model%equilibrium,       &
-     &                                        0,                               &
+     &                                        num_steps,                       &
      &                                        context%equilibrium_comm)
 
             CASE (mpi_quit_task)
@@ -781,6 +786,8 @@
       LOGICAL                                        :: not_converged
       REAL (rprec)                                   :: start_time
       TYPE (emission_class), POINTER :: emission_func => null()
+      TYPE (vmec_class), POINTER                     :: vmec => null()
+      INTEGER                                        :: state_flags
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -798,28 +805,28 @@
          emission_func => emission_construct(emission_file)
       END IF
 
-!  If the woutfile in the v3fit namelist input file is specifed, assume that the
-!  equilibrium is converged.
-      not_converged = TRIM(vmec_wout_input) .eq. ''
+      state_flags = model_state_all_off
+      vmec => vmec_construct(vmec_nli_filename, vmec_wout_input,               &
+     &                       pprofile_construct(TRIM(pp_ne_ptype),             &
+     &                                          pp_ne_b, pp_ne_as,             &
+     &                                          pp_ne_af),                     &
+     &                       pprofile_construct(TRIM(pp_te_ptype),             &
+     &                                          pp_te_b, pp_te_as,             &
+     &                                          pp_te_af), sxr,                &
+     &                       phi_offset, z_offset, pol_rad_ratio,              &
+     &                       context%runlog_iou,                               &
+#if defined(MPI_OPT)
+     &                       context%equilibrium_comm,                         &
+     &                       context%reconstruction_comm, state_flags)
+#else
+     &                       0, 0, state_flags)
+#endif
 
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
-     &   emission_func,                                                        &
-     &   equilibrium_construct(                                                &
-     &      vmec_construct(vmec_nli_filename, vmec_wout_input,                 &
-     &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
-     &                            pp_ne_as, pp_ne_af),                         &
-     &         pprofile_construct(TRIM(pp_te_ptype), pp_te_b,                  &
-     &                            pp_te_as, pp_te_af), sxr,                    &
-     &         phi_offset, z_offset, pol_rad_ratio, context%runlog_iou,        &
-#if defined(MPI_OPT)
-     &         context%equilibrium_comm, context%reconstruction_comm),         &
-#else
-     &         0, 0),                                                          &
-#endif
-     &      force_solve),                                                      &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, not_converged)
+     &   emission_func, equilibrium_construct(vmec, force_solve),              &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags)
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
 
@@ -862,7 +869,8 @@
      &   equilibrium_construct(vacuum_construct(vacuum_nli_filename,           &
      &                                          context%runlog_iou),           &
      &                         force_solve),                                   &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, .false.)
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range,                       &
+     &   model_state_all_off)
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
 
@@ -890,7 +898,11 @@
       REAL (rprec)                                   :: start_time
       TYPE (pprofile_pointer), DIMENSION(:), POINTER :: sxr => null()
       INTEGER                                        :: i
+      LOGICAL                                        :: not_converged
       TYPE (emission_class), POINTER :: emission_func => null()
+      TYPE (vmec_class), POINTER                     :: vmec => null()
+      TYPE (siesta_class), POINTER                   :: siesta => null()
+      INTEGER                                        :: state_flags
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -908,33 +920,45 @@
          emission_func => emission_construct(emission_file)
       END IF
 
+      state_flags = model_state_all_off
+      vmec => vmec_construct(vmec_nli_filename, vmec_wout_input,               &
+     &                       context%runlog_iou,                               &
+#if defined(MPI_OPT)
+     &                        context%equilibrium_comm,                        &
+     &                        context%reconstruction_comm,                     &
+#else
+     &                        0, 0,
+#endif
+     &                        state_flags)
+
+      siesta => siesta_construct(siesta_nli_filename,                          &
+     &                           siesta_restart_filename,                      &
+     &                           pprofile_construct(TRIM(pp_ne_ptype),         &
+     &                                              pp_ne_b, pp_ne_as,         &
+     &                                              pp_ne_af),                 &
+     &                           pprofile_construct(TRIM(pp_te_ptype),         &
+     &                                              pp_te_b, pp_te_as,         &
+     &                                              pp_te_af), sxr,            &
+     &                           phi_offset, z_offset, pol_rad_ratio,          &
+     &                           context%runlog_iou,                           &
+#if defined(MPI_OPT)
+     &                           context%equilibrium_comm,                     &
+     &                           context%reconstruction_comm,                  &
+#else
+     &                           0, 0,                                         &
+#endif
+     &                           vmec, state_flags)
+
+!  If the woutfile in the v3fit namelist input file is specifed, assume that the
+!  equilibrium is converged.
+      not_converged = TRIM(siesta_restart_filename) .eq. ''
+
       context%model => model_construct(model_ne_type,                          &
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
      &   emission_func,                                                        &
-     &   equilibrium_construct_siesta(                                         &
-     &      siesta_construct(siesta_nli_filename,                              &
-     &                       siesta_restart_filename,                          &
-     &         pprofile_construct(TRIM(pp_ne_ptype), pp_ne_b,                  &
-     &                            pp_ne_as, pp_ne_af),                         &
-     &         pprofile_construct(TRIM(pp_te_ptype), pp_te_b,                  &
-     &                            pp_te_as, pp_te_af), sxr,                    &
-     &         phi_offset, z_offset, pol_rad_ratio, context%runlog_iou,        &
-#if defined(MPI_OPT)
-     &         context%equilibrium_comm, context%reconstruction_comm,          &
-#else
-     &         0, 0,                                                           &                                                        &
-#endif
-     &         vmec_construct(vmec_nli_filename, vmec_wout_input,              &
-     &                        context%runlog_iou,                              &
-#if defined(MPI_OPT)
-     &                        context%equilibrium_comm,                        &
-     &                        context%reconstruction_comm)),                   &
-#else
-     &         0, 0)),                                                         &                                                        &
-#endif
-     &      force_solve),                                                      &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, .false.)
+     &   equilibrium_construct_siesta(siesta, force_solve),                                                      &
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags)
 
       CALL profiler_set_stop_time('init_siesta_equilibrium', start_time)
 
@@ -2118,7 +2142,11 @@
       SELECT CASE (my_task)
 
          CASE ('reconstruct', 'reconstruct_a1')
-            IF (num_processes .le. n_rp) THEN
+            IF (commandline_parser_is_flag_set(context%cl_parser,              &
+     &                                         '-serial')) THEN
+               num_recon_processes = 1
+               num_eq_processes = num_processes
+            ELSE IF (num_processes .le. n_rp) THEN
                num_recon_processes = num_processes
                num_eq_processes = 1
             ELSE

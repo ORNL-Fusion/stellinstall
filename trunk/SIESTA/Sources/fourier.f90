@@ -314,7 +314,7 @@
         INTEGER, INTENT(IN) :: dflag                                       ! DFLAG = order of poloidal/toroidal derivative
         INTEGER, INTENT(IN) :: iparity                                     ! IPARITY = 0, cosine (EVEN); = 1, sine (ODD)
 
-        CALL TOIJSP_PAR(XMN, XUV, DFLAG, IPARITY, IHALF, 1, ns)
+        CALL TOIJSP_PAR(XMN, XUV, DFLAG, IPARITY, IHALF, 1 + IHALF, ns)
 
         END SUBROUTINE TOIJSP
 
@@ -341,7 +341,7 @@
         INTEGER, INTENT(IN):: iparity                                      ! IPARITY = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 
-        CALL TOMNSP_PAR(XUV, XMN, IPARITY, IHALF, 1, ns)
+        CALL TOMNSP_PAR(XUV, XMN, IPARITY, IHALF, 1 + IHALF, ns)
 
         END SUBROUTINE TOMNSP
       

@@ -280,7 +280,6 @@
         jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
         END IF
 
-
         DEALLOCATE(presif, presih, stat=istat)
         IF (istat .NE. 0) STOP "Deallocate error #2 in init_fields"
 
@@ -323,127 +322,127 @@
         END SUBROUTINE Init_Fields
 
 
-        SUBROUTINE ReComputeLambda(lmns, lmnc, jacobh, orthonorm, phiph, &
+       SUBROUTINE ReComputeLambda(lmns, lmnc, jacobh, orthonorm, phiph, &
                                    chiph, nsmin, nsmax)
 !-----------------------------------------------
-        USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,  &
-                           nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
-        USE metrics, ONLY: guu, guv, gvv
+       USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,  &
+                          nfp => nfp_i, ntheta => nu_i, nzeta => nv_i
+       USE metrics, ONLY: guu, guv, gvv
 
-        IMPLICIT NONE
-        INTEGER, INTENT(IN)   :: nsmin, nsmax
-        REAL(dp), INTENT(OUT) :: lmns(mnmax,ns), lmnc(mnmax,ns)                        
-        REAL(dp), INTENT(IN)  :: phiph(ns), chiph(ns), orthonorm(mnmax), &
-                                 jacobh(nuv, ns)
-        INTEGER               :: js, m, n, mp, np, mn, mnp, lk, lu, lv,  &
-                                 info, isign, n2
-        REAL(dp), ALLOCATABLE :: amat(:,:), brhs(:,:), atemp(:), btemp(:)
-        REAL(dp), ALLOCATABLE :: cosmni(:,:), cosmnp(:,:),               &
-                                 sinmni(:,:), sinmnp(:,:)
-        REAL(dp) :: ton, toff
+       IMPLICIT NONE
+       INTEGER, INTENT(IN)   :: nsmin, nsmax
+       REAL(dp), INTENT(OUT) :: lmns(mnmax,ns), lmnc(mnmax,ns)
+       REAL(dp), INTENT(IN)  :: phiph(ns), chiph(ns), orthonorm(mnmax), &
+                                jacobh(nuv, ns)
+       INTEGER               :: js, m, n, mp, np, mn, mnp, lk, lu, lv,  &
+                                info, isign, n2
+       REAL(dp), ALLOCATABLE :: amat(:,:), brhs(:,:), atemp(:), btemp(:)
+       REAL(dp), ALLOCATABLE :: cosmni(:,:), cosmnp(:,:),               &
+                                sinmni(:,:), sinmnp(:,:)
+       REAL(dp) :: ton, toff
 !-----------------------------------------------
-        CALL second0(ton)
+       CALL second0(ton)
 
-        lmns(:,1) = 0
-        IF (l_asym) lmnc(:,1) = 0
+       lmns(:,1) = 0
+       IF (l_asym) lmnc(:,1) = 0
 !
 !       ALLOCATE cos(mu+nv) and sin(mu+nv)
 ! 
-        n2 = 1
-        IF (l_asym) n2 = 2
-	ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
-                  cosmnp(nuv,mnmax),                                     &
-	          brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
-        IF (info .NE. 0) STOP 'Allocation error in RecomputeLambda'
-        IF (l_asym) THEN
-	ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
-	          stat=info)
-        IF (info .NE. 0) STOP 'Allocation error in RecomputeLambda'
-        END IF
+       n2 = 1
+       IF (l_asym) n2 = 2
+       ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
+                 cosmnp(nuv,mnmax),                                     &
+                 brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
+       IF (info .NE. 0) STOP 'Allocation error in RecomputeLambda'
+       IF (l_asym) THEN
+       ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
+                 stat=info)
+       IF (info .NE. 0) STOP 'Allocation error in RecomputeLambda'
+       END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
 
-        mn = 0
-        DO n=-ntor,ntor
-           isign = 1; IF (n .LT. 0) isign = -1
-           np = ABS(n)
-	   DO m=0,mpol
-	      mn = mn+1
-	      lk = 0
-	      DO lv = 1, nzeta
-	         DO lu = 1, ntheta
-     	         lk = lk+1
-                 cosmni(lk,mn) = cosmui(lu,m)*cosnv(lv,np)               &
-                               - isign*sinmui(lu,m)*sinnv(lv,np)
-                 cosmnp(lk,mn) = cosmu(lu,m)*cosnv(lv,np)                &
-                               - isign*sinmu(lu,m)*sinnv(lv,np)
-                 IF (.NOT. l_asym) CYCLE
-                 sinmni(lk,mn) = sinmui(lu,m)*cosnv(lv,np)               &
-                               + isign*cosmui(lu,m)*sinnv(lv,np)
-                 sinmnp(lk,mn) = sinmu(lu,m)*cosnv(lv,np)                &
-                               - isign*cosmu(lu,m)*sinnv(lv,np)
-                 END DO
-              END DO
-              IF (m.EQ.0 .AND. n.LT.0) THEN
-                 cosmni(:,mn) = 0
-                 cosmnp(:,mn) = 0
-                 IF (l_asym) THEN
-                 sinmni(:,mn) = 0
-                 sinmnp(:,mn) = 0
-                 END IF
-              END IF
-           END DO
-        END DO
+      mn = 0
+      DO n=-ntor,ntor
+         isign = 1; IF (n .LT. 0) isign = -1
+         np = ABS(n)
+         DO m=0,mpol
+            mn = mn+1
+            lk = 0
+            DO lv = 1, nzeta
+               DO lu = 1, ntheta
+                  lk = lk+1
+                  cosmni(lk,mn) = cosmui(lu,m)*cosnv(lv,np)               &
+                                - isign*sinmui(lu,m)*sinnv(lv,np)
+                  cosmnp(lk,mn) = cosmu(lu,m)*cosnv(lv,np)                &
+                                - isign*sinmu(lu,m)*sinnv(lv,np)
+                  IF (.NOT. l_asym) CYCLE
+                  sinmni(lk,mn) = sinmui(lu,m)*cosnv(lv,np)               &
+                                + isign*cosmui(lu,m)*sinnv(lv,np)
+                  sinmnp(lk,mn) = sinmu(lu,m)*cosnv(lv,np)                &
+                                + isign*cosmu(lu,m)*sinnv(lv,np)
+               END DO
+            END DO
+            IF (m.EQ.0 .AND. n.LT.0) THEN
+               cosmni(:,mn) = 0
+               cosmnp(:,mn) = 0
+               IF (l_asym) THEN
+               sinmni(:,mn) = 0
+               sinmnp(:,mn) = 0
+               END IF
+            END IF
+         END DO
+      END DO
 
 !
 !       COMPUTE Lambda from sqrt(g)*J^s == mB_v - nB_u = 0
 !
-        DO js = MAX(nsmin,2), nsmax
+      DO js = MAX(nsmin,2), nsmax
 
-	  mn = 0
-          DO n=-ntor,ntor
-	     DO m=0,mpol
+         mn = 0
+         DO n=-ntor,ntor
+            DO m=0,mpol
 !
 !       RHS (driving) TERMS [sinmi, -cosmni parts]
 !
-	     mn = mn+1
-	     btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
-	            + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))   &
-                   / jacobh(:,js)
-             brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
-             IF (l_asym) THEN
-             brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
-             END IF
+               mn = mn+1
+               btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
+                     + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))    &
+                     / jacobh(:,js)
+               brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
+               IF (l_asym) THEN
+               brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
+               END IF
 			  
 !
 !            MATRIX ELEMENTS - COEFFICIENTS OF Lambda(mn,js)
 !	     
-	     mnp = 0
+               mnp = 0
 
-             DO np=-ntor,ntor
-	        DO mp=0,mpol
-	           mnp=mnp+1
-                   atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
-  	                 - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
-                   amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
-	           IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
-                      amat(mn,mnp) = signjac
-                   IF (.NOT.l_asym) CYCLE
-                   amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
-                   amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
-                   amat(mn+mnmax,mnp+mnmax)                              &
-                                      = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
-	           IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
-                      amat(mn+mnmax,mnp+mnmax) = signjac
-             	END DO
-	     END DO
-	     END DO
-	  END DO
+               DO np=-ntor,ntor
+                  DO mp=0,mpol
+                     mnp=mnp+1
+                     atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
+                           - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
+                     amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
+                     IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
+                     amat(mn,mnp) = signjac
+                     IF (.NOT.l_asym) CYCLE
+                     amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
+                     amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
+                     amat(mn+mnmax,mnp+mnmax)                              &
+                                        = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
+                     IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
+                     amat(mn+mnmax,mnp+mnmax) = signjac
+                  END DO
+               END DO
+            END DO
+         END DO
 
-	  CALL solver(amat, brhs, mnmax*n2, 1, info)
-	  IF (info .NE. 0) STOP 'INFO != 0 IN RECOMPUTELAMBDA'
-	  lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
-          IF (l_asym)                                                    &
-	  lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)                     
+         CALL solver(amat, brhs, mnmax*n2, 1, info)
+         IF (info .NE. 0) STOP 'INFO != 0 IN RECOMPUTELAMBDA'
+         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
+         IF (l_asym)                                                    &
+         lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
 
       END DO
 
@@ -460,27 +459,27 @@
 
 
 
-        SUBROUTINE alloc_quantities
+      SUBROUTINE alloc_quantities
 !
 !       Allocates variables that will be needed through the advancing subroutines. 
 !       More may be added in the future. 
 !       All variables allocated here are then deallocated in DEALLOC_QUANTITIES, 
 !       which should be called at the end of the run.
 ! 
-        IMPLICIT NONE
+      IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER :: istat
+      INTEGER :: istat
 !-----------------------------------------------
 !       Half mesh quantities (harmonics) evolved: 3 magnetic field components and pressure                
-        ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                       &  ! Half mesh quantities (harmonics)
-                 jbsupumnch(0:mpol,-ntor:ntor,ns),                       &  ! B^s (sine), B^u (cosine), B^v (cosine)
-                 jbsupvmnch(0:mpol,-ntor:ntor,ns),                       & 
-                 jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'      ! CONTRAVARIANT MAGNETIC FIELDS
-        jbsupsmnsh = zero; jbsupumnch = zero; jbsupvmnch = zero        
-        jpmnch = zero
+      ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                       &  ! Half mesh quantities (harmonics)
+               jbsupumnch(0:mpol,-ntor:ntor,ns),                       &  ! B^s (sine), B^u (cosine), B^v (cosine)
+               jbsupvmnch(0:mpol,-ntor:ntor,ns),                       &
+               jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'      ! CONTRAVARIANT MAGNETIC FIELDS
+      jbsupsmnsh = zero; jbsupumnch = zero; jbsupvmnch = zero
+      jpmnch = zero
 
         ALLOCATE(fsupsmncf(0:mpol,-ntor:ntor,ns),                        &  ! Full mesh quantities (harmonics)
                  fsupumnsf(0:mpol,-ntor:ntor,ns),                        &  ! F_s (cosine), F_u (sine), F_v (sine)

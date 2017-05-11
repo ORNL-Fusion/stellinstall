@@ -175,7 +175,7 @@
           ENDDO
        ENDDO
 
-!CONSTRAINT AT ORIGIN [jbsups(m=1) = r0*jbsupu(m=1) <=> esubumnch = r0*esubsmnsh]
+!CONSTRAINT AT ORIGIN [jbsups(m=1) = r0*jbsupu(m=1) <=> esubumnsh = r0*esubsmnch]
 !Origin bc for m=1: e_u = r0*e_s (Follows form v X B at origin)
 !This suffices to make B^s = r0*B^u
        IF (nsmin .EQ. 1) THEN
@@ -252,7 +252,7 @@
 !IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
        IF (nsmin.EQ.1 .AND. .NOT.l_natural) THEN
 !       IF (.FALSE.) THEN
-          djbsupsmnch(m1,:,1) = (esubsmnsh(m1,:,2)*r0-esubumnch(m1,:,2))/2
+          djbsupsmnch(m1,:,1) = (esubsmnch(m1,:,2)*r0-esubumnsh(m1,:,2))/2
           esubsmnch(m1,:,2) = esubsmnch(m1,:,2) - djbsupsmnch(m1,:,1)/r0
           esubumnsh(m1,:,2) = esubumnsh(m1,:,2) + djbsupsmnch(m1,:,1)
           de_uds(m1,:,2) = de_uds(m1,:,2) - djbsupsmnch(m1,:,1)/r0         !Preserves div B = 0
@@ -295,13 +295,13 @@
 !      Results computed here for HALF-GRID perturbations in MN space are used in the calculation of the force and
 !      to advance the B's in UPDATE_STATE (in siesta_state module)
 !
-!      B^S (SIN) 
+!      B^S (COS)
        djbsupsmnch(:,:,nsmin:nsmax) = delta_t*djbsupsmnch(:,:,nsmin:nsmax)
 !
-!      B^U (COS) 
+!      B^U (SIN)
        djbsupumnsh(:,:,nsmin:nsmax) = delta_t*djbsupumnsh(:,:,nsmin:nsmax)
 !
-!      B^V (COS) 
+!      B^V (SIN)
        djbsupvmnsh(:,:,nsmin:nsmax) = delta_t*djbsupvmnsh(:,:,nsmin:nsmax)
 
  1000  CONTINUE

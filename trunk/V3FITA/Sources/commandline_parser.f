@@ -490,6 +490,8 @@
       WRITE(*,*) '             in the namelist input.                  '
       WRITE(*,*) '  -c_diff  N Use central differencing to compute the '
       WRITE(*,*) '             the Jacobian.                           '
+      WRITE(*,*) '  -serial  N Run the reconstruction serially and with'
+      WRITE(*,*) '             parallel equilibria                     '
       WRITE(*,*) '                                                     '
       WRITE(*,*) 'Notes:                                               '
       WRITE(*,*) '  If no -arg is found -file is implicitly implied.   '

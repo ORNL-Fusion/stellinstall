@@ -110,7 +110,7 @@
 
 !      Get real pressure from pijh = jacobh * real-pressure
        pijh = pijh/jacobh(:,:,nsmin:nsmax)
- 
+
 !      pressure on full mesh (extrap to origin stored in pijh(1)
 !      On Exit, pijf valid on [nsmin:nsmax-1]
        nblock=SIZE(pijh,1)*SIZE(pijh,2)

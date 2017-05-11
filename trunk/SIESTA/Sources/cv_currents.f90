@@ -125,7 +125,7 @@
          DO l = 1, nu_i
             wb = wb + SUM(bsq_loc(l,:,n1:n2)*jacobh(l,:,n1:n2))*cosmui(l,m0)
          END DO         
-         wb0 = 2*signjac*(twopi*pi*hs_i)*wb/2                              !2X : theta 0-pi
+         wb0 = signjac*(twopi*twopi*hs_i)*wb/2                              !2X : theta 0-pi
 #if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,                 &
                             MPI_COMM_WORLD,MPI_ERR)
@@ -317,8 +317,8 @@
       DO n = -ntor, ntor
          DO m = 0, mpol
             ksupsmncf(m,n,nsmin:nsmax) =  m*bsubvmnsf(m,n,nsmin:nsmax) - n*nfp*bsubumnsf(m,n,nsmin:nsmax) ! dB_v/du - dB_u/dv  ! dSin ->  Cos
-            ksupumnsf(m,n,nsmin:nsmax) = -n*nfp*bsubsmncf(m,n,nsmin:nsmax) - db_vdss(m,n,nsmin:nsmax)      ! dB_s/dv - dB_v/ds  ! dCos -> -Sin
-            ksupvmnsf(m,n,nsmin:nsmax) =  m*bsubsmncf(m,n,nsmin:nsmax)     + db_udss(m,n,nsmin:nsmax)      ! dB_u/ds - dB_s/du  ! dCos -> -Sin
+            ksupumnsf(m,n,nsmin:nsmax) = -n*nfp*bsubsmncf(m,n,nsmin:nsmax) - db_vdss(m,n,nsmin:nsmax)     ! dB_s/dv - dB_v/ds  ! dCos -> -Sin
+            ksupvmnsf(m,n,nsmin:nsmax) =  m*bsubsmncf(m,n,nsmin:nsmax)     + db_udss(m,n,nsmin:nsmax)     ! dB_u/ds - dB_s/du  ! dCos -> -Sin
          END DO
       END DO
 
@@ -459,6 +459,8 @@
       USE stel_kinds
       USE fourier 
       USE quantities
+      USE nscalingtools, ONLY: startglobrow, endglobrow
+
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -469,8 +471,19 @@
            ksupsijf, ksupuijf, ksupvijf
       LOGICAL, INTENT(IN)  :: lmagen, lcurr
 
+      INTEGER     :: n1, n2
+
+      n1 = startglobrow
+      n2 = endglobrow
+
+      startglobrow = 1
+      endglobrow = ns
+
       CALL cv_currents_par (bsupsijh, bsupuijh, bsupvijh,                &
                             ksupsijf, ksupuijf, ksupvijf,                &
                             lmagen, lcurr)
+
+      startglobrow = n1
+      endglobrow = n2
 
       END SUBROUTINE cv_currents

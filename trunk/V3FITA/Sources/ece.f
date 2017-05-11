@@ -158,7 +158,8 @@
       ece_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
      &    BTEST(a_model%state_flags, model_state_te_flag) .or.                 &
      &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
 
@@ -171,9 +172,9 @@
          context_length = SIZE(TRANSFER(temp_context, context))
          ALLOCATE(context(context_length))
          context = TRANSFER(temp_context, context)
-            ece_get_modeled_signal(2:4) = path_search(this%chord_path,         &
-     &                                                ece_function,            &
-     &                                                context, found)
+         ece_get_modeled_signal(2:4) = path_search(this%chord_path,            &
+     &                                             ece_function,               &
+     &                                             context, found)
 
          IF (found) THEN
             ece_get_modeled_signal(1) =                                        &

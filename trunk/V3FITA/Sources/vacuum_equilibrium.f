@@ -196,9 +196,7 @@
 !>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
 !>                            changed.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vacuum_set_param(this, id, i_index, j_index, value,           &
-     &                            state_flags)
-      USE model_state
+      SUBROUTINE vacuum_set_param(this, id, i_index, j_index, value)
 
       IMPLICIT NONE
 
@@ -207,7 +205,6 @@
       INTEGER, INTENT(in)                :: id
       INTEGER, INTENT(in)                :: i_index, j_index
       REAL (rprec), INTENT(in)           :: value
-      INTEGER, INTENT(inout)             :: state_flags
 
 !  local variables
       REAL (rprec)                       :: start_time

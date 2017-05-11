@@ -136,7 +136,8 @@
       extcurz_get_modeled_signal = last_value
       sigma = 0
 
-      IF (BTEST(a_model%state_flags, model_state_eq_flag)) THEN
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag)) THEN
 
          extcurz_get_modeled_signal(1) =                                       &
      &      equilibrium_get_Int_B_dphi(a_model%equilibrium, this%r,            &

@@ -51,6 +51,10 @@
       CHARACTER*10  :: envval
 #endif      
 
+#if defined(MRC)
+      INTEGER       :: error, parent_comm, size
+#endif
+
 !-----------------------------------------------
 #if defined(MPI_OPT)
       CALL profinit()
@@ -297,6 +301,16 @@
         CALL blacs_barrier(icontxt,'All')
         CALL blacs_gridexit(icontxt)
       END IF
+
+#if defined(MRC)
+! MRC: Put in a barrier to the parent comm to make sure execution has finished.
+!      This is used for the hacked SIESTA reconstruction.
+      CALL MPI_COMM_GET_PARENT(parent_comm, error)
+      IF (parent_comm .ne. MPI_COMM_NULL) THEN
+         CALL MPI_BARRIER(parent_comm, error)
+      END IF
+#endif
+
       CALL blacs_exit(0)
 
       IF ((myrow.eq.0).and.(mycol.eq.0)) CALL profstat()

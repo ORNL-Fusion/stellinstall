@@ -720,7 +720,6 @@
                            + zmnc_spline(modes,:)
             lmnc_i(m,n1,:) = lmnc_i(m,n1,:)                              &
                            + lmnc_spline(modes,:)*iflipj
-
          ELSE
             rmnc_i(m,-n*iflipj,:) = rmnc_spline(modes,:)
             zmns_i(m,-n*iflipj,:) = zmns_spline(modes,:)*iflipj
@@ -806,6 +805,7 @@
 !NEED THESE FOR CURRENT CALCULATION AT ORIGIN
       gss(:,1) = gss(:,2);  gsu(:,1) = 0;  gsv(:,1) = gsv(:,2)
       guu(:,1) = 0;         guv(:,1) = 0
+      gvv(:,1) = 0;
 
       mintest = MINVAL(sqrtg(:,2:))
       maxtest = MAXVAL(sqrtg(:,2:))
@@ -853,7 +853,7 @@
 !     NOTE: DET == 1/det{|Gij| == 1/sqrtg(full)**2
 !
       hss(:,1) = 0;  hsu(:,1) = 0;  hsv(:,1) = 0
-      huu(:,1) = 0;  huv(:,1) = 0;  hvv(1,:) = 0
+      huu(:,1) = 0;  huv(:,1) = 0;  hvv(:,1) = 0
 
       DO js = 2, ns
          det(:) =                                                        &

@@ -323,7 +323,7 @@
 
          CASE (equilibrium_vacuum_type)
             CALL vacuum_set_param(this%vacuum, id, i_index, j_index,           &
-     &                            value, state_flags)
+     &                            value)
 
          CASE (equilibrium_siesta_type)
             CALL siesta_set_param(this%siesta, id, i_index, j_index,           &
@@ -378,7 +378,7 @@
             CALL vmec_set_magnetic_cache(this%vmec, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_vmec_flag)) THEN
                CALL vmec_set_magnetic_cache(this%vmec)
             END IF
 
@@ -386,7 +386,7 @@
             CALL siesta_set_magnetic_cache(this%siesta, response_object)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_siesta_flag)) THEN
                CALL siesta_set_magnetic_cache(this%siesta)
             END IF
 
@@ -431,15 +431,13 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      WRITE (*,'(B32)') state_flags
-
       SELECT CASE (this%type)
 
          CASE (equilibrium_vmec_type)
             CALL vmec_set_magnetic_cache(this%vmec, use_axi)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_vmec_flag)) THEN
                CALL vmec_set_magnetic_cache(this%vmec)
             END IF
 
@@ -447,7 +445,7 @@
             CALL siesta_set_magnetic_cache(this%siesta, use_axi)
 
 !  If the equilibrium is already converged, compute the magnetic cache as well.
-            IF (.not.BTEST(state_flags, model_state_eq_flag)) THEN
+            IF (.not.BTEST(state_flags, model_state_siesta_flag)) THEN
                CALL siesta_set_magnetic_cache(this%siesta)
             END IF
 
@@ -2104,13 +2102,16 @@
 !>  the equilibirum is already in a converged state.
 !>  @see vmec_equilibrium::vmec_converge
 !>
-!>  @param[inout] this       A @ref equilibrium_class instance.
-!>  @param[inout] num_iter   Counter to track the number of iterations.
-!>  @param[in]    iou        Input/output unit of the file to write logs to.
-!>  @param[in]    eq_comm    MPI communicator pool for the equilibrium.
+!>  @param[inout] this        A @ref equilibrium_class instance.
+!>  @param[inout] num_iter    Counter to track the number of iterations.
+!>  @param[in]    iou         Input/output unit of the file to write logs to.
+!>  @param[in]    eq_comm     MPI communicator pool for the equilibrium.
+!>  @param[in]    state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
-      FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm)
+      FUNCTION equilibrium_converge(this, num_iter, iou, eq_comm,              &
+     &                              state_flags)
 
       IMPLICIT NONE
 
@@ -2120,6 +2121,7 @@
       INTEGER, INTENT(inout)                  :: num_iter
       INTEGER, INTENT(in)                     :: iou
       INTEGER, INTENT(in)                     :: eq_comm
+      INTEGER, INTENT(in)                     :: state_flags
 
 !  local variables
       INTEGER                                 :: error
@@ -2137,6 +2139,11 @@
          CASE (equilibrium_vmec_type)
             equilibrium_converge = vmec_converge(this%vmec, num_iter,          &
      &                                           iou, eq_comm)
+
+         CASE (equilibrium_siesta_type)
+            equilibrium_converge = siesta_converge(this%siesta,                &
+     &                                             num_iter, iou,              &
+     &                                             eq_comm, state_flags)
 
          CASE DEFAULT
             equilibrium_converge = .false.
@@ -2206,6 +2213,9 @@
          CASE (equilibrium_vmec_type)
             CALL vmec_save_state(this%vmec)
 
+         CASE (equilibrium_siesta_type)
+            CALL siesta_save_state(this%siesta)
+
       END SELECT
 
       CALL profiler_set_stop_time('equilibrium_save_state', start_time)
@@ -2239,6 +2249,9 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_reset_state(this%vmec)
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_reset_state(this%siesta)
 
       END SELECT
 
@@ -2494,8 +2507,8 @@
          CASE (equilibrium_vmec_type)
             CALL vmec_sync_state(this%vmec, recon_comm)
 
-!         CASE (equilibrium_siesta_type)
-!            CALL siesta_sync_state(this%siesta, recon_comm)
+         CASE (equilibrium_siesta_type)
+            CALL siesta_sync_state(this%siesta, recon_comm)
 
       END SELECT
 
@@ -2538,6 +2551,9 @@
 
          CASE (equilibrium_vmec_type)
             CALL vmec_sync_child(this%vmec, index, recon_comm)
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_sync_child(this%siesta, index, recon_comm)
 
       END SELECT
 

@@ -205,13 +205,15 @@
 !>  @param[in] resonace_range    ECE resonance interval.
 !>  @param[in] not_converged     If true the equilibrium was constructed in an
 !>                               unconverged state.
+!>  @param[in] state_flags       Bitwise flags to indicate which parts of the
+!>                               model changed.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
       FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
      &                         ne_unit, ne_min, te_min,                        &
      &                         pressure_fraction, emission,                    &
      &                         equilibrium, sxrem_te, sxrem_ratio,             &
-     &                         resonace_range, not_converged)
+     &                         resonace_range, state_flags)
       USE model_state
 
       IMPLICIT NONE
@@ -231,7 +233,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_te
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_ratio
       REAL (rprec), INTENT(in)                      :: resonace_range
-      LOGICAL, INTENT(in)                           :: not_converged
+      INTEGER, INTENT(in)                           :: state_flags
 
 !  local variables
       INTEGER                                       :: i, grid_size
@@ -242,11 +244,7 @@
 
       ALLOCATE(model_construct)
 
-      model_construct%state_flags = model_state_all_off
-      IF (not_converged) THEN
-         model_construct%state_flags =                                         &
-     &      IBSET(model_construct%state_flags, model_state_eq_flag)
-      END IF
+      model_construct%state_flags = state_flags
 
       SELECT CASE (TRIM(ADJUSTL(ne_type)))
 
@@ -337,8 +335,8 @@
          CALL model_set_grid_params(model_construct, grid_size)
 
          ALLOCATE(model_construct%ne_grid(grid_size))
-         ALLOCATE(model_construct%sxrem_grid(SIZE(sxrem_type),                 &
-     &                                           grid_size))
+         ALLOCATE(model_construct%sxrem_grid(grid_size,                        &
+     &                                       SIZE(sxrem_type)))
          ALLOCATE(model_construct%te_grid(grid_size))
       END IF
 
@@ -486,9 +484,9 @@
 
 !  Some parts of the model depend on different parts of the model. Update the
 !  state flags to refect these changes.
+
       IF ((this%ne_type .eq. model_ne_te_p_type) .and.                         &
-     &    (BTEST(this%state_flags, model_state_te_flag) .or.                   &
-     &     BTEST(this%state_flags, model_state_eq_flag))) THEN
+     &    (BTEST(this%state_flags, model_state_te_flag))) THEN
          this%state_flags = IBSET(this%state_flags, model_state_ne_flag)
       END IF
 
@@ -504,8 +502,7 @@
       END DO
 
       IF ((this%te_type .eq. model_te_ne_p_type) .and.                         &
-     &    (BTEST(this%state_flags, model_state_eq_flag) .or.                   &
-     &     BTEST(this%state_flags, model_state_ne_flag))) THEN
+     &    (BTEST(this%state_flags, model_state_ne_flag))) THEN
          this%state_flags = IBSET(this%state_flags, model_state_te_flag)
       END IF
 
@@ -878,7 +875,7 @@
          CASE (model_te_type)
             model_get_te_cart = equilibrium_get_te(this%equilibrium,           &
      &                                             x_cart)
-            model_get_te_cart = MAX(this%te_min, model_get_te_cart)            &
+            model_get_te_cart = MAX(this%te_min, model_get_te_cart)
 
          CASE (model_te_ne_p_type)
 !  Electron densities of zero can cause divide by zero errors. Check the value
@@ -1311,14 +1308,18 @@
 
       init_num_iter = num_iter
 
-      IF (BTEST(this%state_flags, model_state_eq_flag)) THEN
+      IF (BTEST(this%state_flags, model_state_vmec_flag) .or.                  &
+     &    BTEST(this%state_flags, model_state_siesta_flag)) THEN
 #if defined (MPI_OPT)
          CALL MPI_BCAST(mpi_equilibrium_task, 1, MPI_INTEGER, 0,               &
      &                  eq_comm, error)
+         CALL MPI_BCAST(this%state_flags, 1, MPI_INTEGER, 0, eq_comm,          &
+     &                  error)
 #endif
 
          model_converge = equilibrium_converge(this%equilibrium,               &
-     &                                         num_iter, iou, eq_comm)
+     &                                         num_iter, iou, eq_comm,         &
+     &                                         this%state_flags)
       ELSE
          model_converge = .true.
       END IF
@@ -1344,14 +1345,14 @@
          END IF
 
          IF (ASSOCIATED(this%sxrem_grid)) THEN
-            DO i = 1, SIZE(this%sxrem_grid, 2)
+            DO j = 1, SIZE(this%sxrem_grid, 2)
                IF (BTEST(this%state_flags, model_state_ne_flag -               &
-     &                                     (i - 1))) THEN
-                  r = (i - 1)*this%grid_step + this%grid_start
-                  DO j = 1, SIZE(this%sxrem_grid, 1)
+     &                                     (j - 1))) THEN
+                  DO i = 1, SIZE(this%sxrem_grid, 1)
+                     r = (i - 1)*this%grid_step + this%grid_start
 !  The length to the camera is not really known here so use 1 here. Since this
 !  is meant to map out the emission profile this is ok.
-                     this%sxrem_grid(j,i) = model_get_sxrem(this, r, j)
+                     this%sxrem_grid(i,j) = model_get_sxrem(this, r, j)
                   END DO
                END IF
             END DO
@@ -1721,8 +1722,8 @@
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
          status = nf_put_vara_double(result_ncid, sxrem_grid_var_id,           &
      &                               (/ 1, 1, current_step /),                 &
-     &                               (/ SIZE(this%sxrem_grid, 2),              &
-     &                                  SIZE(this%sxrem_grid, 1), 1 /),        &
+     &                               (/ SIZE(this%sxrem_grid, 1),              &
+     &                                  SIZE(this%sxrem_grid, 2), 1 /),        &
      &                               this%sxrem_grid)
          CALL assert_eq(status, nf_noerr, nf_strerror(status))
       END IF

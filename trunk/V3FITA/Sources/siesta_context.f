@@ -10,9 +10,37 @@
 !*******************************************************************************
       MODULE siesta_context
       USE stel_kinds
-      USE vmec_equilibrium
+      USE profiler
 
       IMPLICIT NONE
+
+!  FIXME: This is a hack remove everything between these FIXME statements once
+!         siesta is fully coupled
+      LOGICAL                     :: l_asym = .true.
+      LOGICAL                     :: l_recon = .true.
+      LOGICAL                     :: lcolscale = .true.
+      LOGICAL                     :: ladd_pert = .true.
+      LOGICAL                     :: lresistive = .true.
+      LOGICAL                     :: lrestart = .false.
+      INTEGER                     :: niter = 100
+      INTEGER                     :: nsin = 50
+      INTEGER                     :: mpolin = 12
+      INTEGER                     :: ntorin = 2
+      REAL (rprec)                :: ftol = 1.0E-20
+      REAL (rprec)                :: levmarq_param = 3.0E-2
+      REAL (rprec)                :: mupar = 1.0E-3
+      CHARACTER (len=100)         ::                                           &
+     &   wout_file = 'wout_154921.02530.asym.ntor1.nc'
+      CHARACTER (len=100)         :: restart_ext = 'restart_cth_'
+      INTEGER, DIMENSION(10)      :: mres
+      REAL (rprec), DIMENSION(10) :: helpert
+
+      NAMELIST/siesta_info/                                                    &
+     &   l_asym, l_recon, lcolscale, ladd_pert, lresistive, lrestart,          &
+     &   niter, nsin, mpolin, ntorin, ftol, levmarq_param, mupar,              &
+     &   wout_file, restart_ext, mres, helpert
+!  FIXME: This is a hack remove everything between these FIXME statements once
+!         siesta is fully coupled
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -87,9 +115,6 @@
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jksupvmncf => null()
 !>  Sine components of jK^v on the half mesh.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: jksupvmnsf => null()
-
-!>  Base VMEC equilibrium.
-         TYPE (vmec_class), POINTER              :: vmec => null()
       END TYPE
 
       CONTAINS
@@ -102,10 +127,9 @@
 !>  Allocates memory and initializes a @ref siesta_context_class object.
 !>
 !>  @param[in] restart_file_name Filename of the SIESTA restart file.
-!>  @param[in] vmec              An instance of a @ref vmec_equilibrium object.
 !>  @returns A pointer to a constructed @ref siesta_context_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION siesta_context_construct(restart_file_name, vmec)
+      FUNCTION siesta_context_construct(restart_file_name)
       USE ezcdf
       USE file_opts, only: path_length
 
@@ -114,7 +138,6 @@
 !  Declare Arguments
       TYPE (siesta_context_class), POINTER :: siesta_context_construct
       CHARACTER (len=*), INTENT(in)        :: restart_file_name
-      TYPE (vmec_class), POINTER           :: vmec
 
 !  local variables
       INTEGER                              :: ncid
@@ -214,7 +237,7 @@
          ALLOCATE(siesta_context_construct%bsupvmnsh(0:mpol,-ntor:ntor,        &
      &                                               ns))
          CALL cdf_read(ncid, 'bsupvmnsh(m,n,r)',                               &
-     &                 siesta_context_construct%bsupumnsh)
+     &                 siesta_context_construct%bsupvmnsh)
 
 !  Bsub*
          ALLOCATE(siesta_context_construct%bsubsmnch(0:mpol,-ntor:ntor,        &
@@ -228,7 +251,7 @@
          ALLOCATE(siesta_context_construct%bsubvmnsh(0:mpol,-ntor:ntor,        &
      &                                               ns))
          CALL cdf_read(ncid, 'bsubvmnsh(m,n,r)',                               &
-     &                 siesta_context_construct%bsubumnsh)
+     &                 siesta_context_construct%bsubvmnsh)
 
 !  JKsup*
          ALLOCATE(siesta_context_construct%jksupsmncf(0:mpol,-ntor:ntor,       &
@@ -242,12 +265,10 @@
          ALLOCATE(siesta_context_construct%jksupvmnsf(0:mpol,-ntor:ntor,       &
      &                                                ns))
          CALL cdf_read(ncid, 'jksupvmnsf(m,n,r)',                              &
-     &                 siesta_context_construct%jksupumnsf)
+     &                 siesta_context_construct%jksupvmnsf)
       END IF
 
       CALL cdf_close(ncid)
-
-      siesta_context_construct%vmec => vmec
 
       CALL profiler_set_stop_time('siesta_context_construct',                  &
      &                            start_time)
@@ -372,11 +393,6 @@
          this%jksupvmncf => null()
       END IF
 
-      IF (ASSOCIATED(this%vmec)) THEN
-         CALL vmec_destruct(this%vmec)
-         this%vmec => null()
-      END IF
-
       DEALLOCATE(this)
 
       END SUBROUTINE
@@ -461,17 +477,17 @@
 !  Bsup*
          CALL cdf_read(ncid, 'bsupsmnch(m,n,r)', this%bsupsmnch)
          CALL cdf_read(ncid, 'bsupumnsh(m,n,r)', this%bsupumnsh)
-         CALL cdf_read(ncid, 'bsupvmnsh(m,n,r)', this%bsupumnsh)
+         CALL cdf_read(ncid, 'bsupvmnsh(m,n,r)', this%bsupvmnsh)
 
 !  Bsub*
          CALL cdf_read(ncid, 'bsubsmnch(m,n,r)', this%bsubsmnch)
          CALL cdf_read(ncid, 'bsubumnsh(m,n,r)', this%bsubumnsh)
-         CALL cdf_read(ncid, 'bsubvmnsh(m,n,r)', this%bsubumnsh)
+         CALL cdf_read(ncid, 'bsubvmnsh(m,n,r)', this%bsubvmnsh)
 
 !  JKsup*
          CALL cdf_read(ncid, 'jksupsmncf(m,n,r)', this%jksupsmncf)
          CALL cdf_read(ncid, 'jksupumnsf(m,n,r)', this%jksupumnsf)
-         CALL cdf_read(ncid, 'jksupvmnsf(m,n,r)', this%jksupumnsf)
+         CALL cdf_read(ncid, 'jksupvmnsf(m,n,r)', this%jksupvmnsf)
       END IF
 
       CALL cdf_close(ncid)

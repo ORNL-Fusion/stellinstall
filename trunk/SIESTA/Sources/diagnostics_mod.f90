@@ -554,16 +554,17 @@
       ALLOCATE(pmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
       IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
       CALL tomnsp_par(pijh, pmnch, f_cos, f_half, 1, ns_span)
+      IF (l_asym) THEN
+      ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
+      CALL tomnsp_par(pijh, pmnsh, f_sin, f_half, 1, ns_span)
+      END IF
 
       CALL toijsp_par(pmnch, pijh, f_none, f_cos, f_half, 1, ns_span)
       CALL toijsp_par(pmnch, dpduijh, f_du, f_cos, f_half, 1, ns_span)     ! Get theta and phi pressure derivatives
       CALL toijsp_par(pmnch, dpdvijh, f_dv, f_cos, f_half, 1, ns_span)
 
       IF (l_asym) THEN
-      ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
-      IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
-      CALL tomnsp_par(pijh, pmnsh, f_sin, f_half, 1, ns_span)
-
       m1 = IOR(f_sum,f_du);  m2 = IOR(f_sum,f_dv)
       CALL toijsp_par(pmnsh, pijh, f_sum, f_sin, f_half, 1, ns_span)
       CALL toijsp_par(pmnsh, dpduijh, m1, f_sin, f_half, 1, ns_span)       ! Get theta and phi pressure derivatives

@@ -69,6 +69,7 @@
 
       MODULE siesta_equilibrium
       USE siesta_context
+      USE vmec_equilibrium
 
       IMPLICIT NONE
 
@@ -110,6 +111,9 @@
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
       INTEGER, PARAMETER :: siesta_z_offset_id    = 70
+
+!>  Helical perturbation parameter.
+      INTEGER, PARAMETER :: siesta_helpert_id     = 71
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -221,6 +225,8 @@
 !>  Plasma z offset.
          REAL (rprec)                           :: z_offset = 0
 
+!>  Base VMEC equilibrium.
+         TYPE (vmec_class), POINTER              :: vmec => null()
       END TYPE
 
 !*******************************************************************************
@@ -280,25 +286,33 @@
 !>  is limited to just loading an already created restart file but in the future
 !>  it will load initalize and load siesta as well.
 !>
-!>  @param[in] file_name         Filename of the siesta namelist input file.
-!>  @param[in] restart_file_name Filename of the siesta restart file.
-!>  @param[in] ne                @ref pprofile_T for the electron density.
-!>  @param[in] te                @ref pprofile_T for the electron temperature.
-!>  @param[in] sxrem             @ref pprofile_T for the soft x-ray emissivity.
-!>  @param[in] phi_offset        Initial phi offset of the plasma relative to
-!>                               the diagnostics in radians.
-!>  @param[in] z_offset          Initial Z offset of the plasma relative to the
-!>                               machine center.
-!>  @param[in] iou               Input/output unit to log messages to.
-!>  @param[in] eq_comm           MPI communicator pool for SIESTA.
-!>  @param[in] recon_comm        MPI communicator pool for reconstruction.
-!>  @param[in] vmec              An instance of a @ref vmec_equilibrium object.
+!>  @param[in]    file_name         Filename of the siesta namelist input file.
+!>  @param[in]    restart_file_name Filename of the siesta restart file.
+!>  @param[in]    ne                @ref pprofile_T for the electron density.
+!>  @param[in]    te                @ref pprofile_T for the electron
+!>                                  temperature.
+!>  @param[in]    sxrem             @ref pprofile_T for the soft x-ray
+!>                                  emissivity.
+!>  @param[in]    phi_offset        Initial phi offset of the plasma relative to
+!>                                  the diagnostics in radians.
+!>  @param[in]    z_offset          Initial Z offset of the plasma relative to
+!>                                  the machine center.
+!>  @param[in]    iou               Input/output unit to log messages to.
+!>  @param[in]    eq_comm           MPI communicator pool for SIESTA.
+!>  @param[in]    recon_comm        MPI communicator pool for reconstruction.
+!>  @param[in]    vmec              An instance of a @ref vmec_equilibrium
+!>                                  object.
+!>  @param[inout] state_flags       Bitwise flags to indicate which parts of the
+!>                                  model changed.
 !>  @returns A pointer to a constructed @ref siesta_class object.
 !-------------------------------------------------------------------------------
       FUNCTION siesta_construct(file_name, restart_file_name,                  &
      &                          ne, te, sxrem, phi_offset, z_offset,           &
      &                          pol_rad_ratio, iou, eq_comm, recon_comm,       &
-     &                          vmec)
+     &                          vmec, state_flags)
+      USE safe_open_mod
+      USE model_state
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -316,16 +330,22 @@
       INTEGER, INTENT(in)                  :: eq_comm
       INTEGER, INTENT(in)                  :: recon_comm
       TYPE (vmec_class), POINTER           :: vmec
+      INTEGER, INTENT(inout)               :: state_flags
 
 !  local variables
       INTEGER                              :: eq_rank
       INTEGER                              :: recon_rank
       INTEGER                              :: recon_size
       INTEGER                              :: error
+      INTEGER                              :: iou_nli
       REAL (rprec)                         :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+!  Save a copy of the jcf orginal jcf file.
+      CALL copy_file(TRIM(file_name), TRIM(file_name) // '_save',              &
+     &               error)
 
       eq_rank = 0
       recon_rank = 0
@@ -358,12 +378,27 @@
       siesta_construct%pol_rad_ratio = pol_rad_ratio
       siesta_construct%siesta_file_name = TRIM(file_name)
 
+      siesta_construct%vmec => vmec
+
+      iou_nli = 100
+      CALL safe_open(iou_nli, error, TRIM(file_name), 'old',                   &
+     &               'formatted')
+      READ (iou_nli, nml=siesta_info)
+      CLOSE (iou_nli, iostat=error)
+      wout_file = vmec%wout_file_name
+      WRITE (siesta_construct%restart_file_name,1000) TRIM(restart_ext)
+
+      state_flags = IBSET(state_flags, model_state_siesta_flag)
+
       IF (restart_file_name .ne. '' .and. eq_rank .eq. 0) THEN
+         state_flags = IBCLR(state_flags, model_state_siesta_flag)
          siesta_construct%context =>                                           &
-     &      siesta_context_construct(restart_file_name, vmec)
+     &      siesta_context_construct(restart_file_name)
       END IF
 
       CALL profiler_set_stop_time('siesta_construct', start_time)
+
+1000  FORMAT('siesta_',a,'.nc')
 
       END FUNCTION
 
@@ -496,12 +531,17 @@
          this%magnetic_cache => null()
       END IF
 
-!  Delete the restart wout file. Errors here can safely be ignored.
+!  Delete the restart file. Errors here can safely be ignored.
       CALL delete_file(TRIM(this%restart_file_name) // '_cache', error)
 
       IF (ASSOCIATED(this%context)) THEN
          CALL siesta_context_destruct(this%context)
          this%context => null()
+      END IF
+
+      IF (ASSOCIATED(this%vmec)) THEN
+         CALL vmec_destruct(this%vmec)
+         this%vmec => null()
       END IF
 
       DEALLOCATE(this)
@@ -611,9 +651,13 @@
                CALL siesta_set_magnetic_cache(this)
             END IF
 
+         CASE (siesta_helpert_id)
+            state_flags = IBSET(state_flags, model_state_siesta_flag)
+            helpert(i_index) = value
+
          CASE DEFAULT
-            CALL vmec_set_param(this%context%vmec, id, i_index, j_index,       &
-     &                          value, eq_comm, state_flags)
+            CALL vmec_set_param(this%vmec, id, i_index, j_index, value,        &
+     &                          eq_comm, state_flags)
 
       END SELECT
 
@@ -658,8 +702,13 @@
       IF (magnetic_response_use_plasma(response_object)) THEN
 !  In order to sample the fields on a grid, the sampling frequency of the grid
 !  must be at least twice the frequency of the highest mode.
-         ns = this%context%ns
-         mpol = this%context%mpol
+         IF (ASSOCIATED(this%context)) THEN
+            ns = this%context%ns
+            mpol = this%context%mpol
+         ELSE
+            ns = nsin
+            mpol = mpolin
+         END IF
          numU = MAX(INT(this%pol_rad_ratio*ns), 2*mpol)
 
 !  Set the differental volume elements.
@@ -737,9 +786,9 @@
          ALLOCATE(this%magnetic_cache)
       END IF
 
-      rbc00 = vmec_get_param_value(this%context%vmec, vmec_rbc_id, 0, 0)
-      rbc01 = vmec_get_param_value(this%context%vmec, vmec_rbc_id, 0, 1)
-      zbs01 = vmec_get_param_value(this%context%vmec, vmec_zbs_id, 0, 1)
+      rbc00 = vmec_get_param_value(this%vmec, vmec_rbc_id, 0, 0)
+      rbc01 = vmec_get_param_value(this%vmec, vmec_rbc_id, 0, 1)
+      zbs01 = vmec_get_param_value(this%vmec, vmec_zbs_id, 0, 1)
 
 !  Set the grid size based on the size of the rough size of the plasma.
       v_size = MAX(INT(twopi*rbc00/magnetic_cache_vc_grid_dim),             &
@@ -830,14 +879,19 @@
          numU = SIZE(this%magnetic_cache%rsuv, 2)
          numV = SIZE(this%magnetic_cache%rsuv, 3)
 
-         mpol = this%context%mpol
-         ntor = this%context%ntor
+         IF (ASSOCIATED(this%context)) THEN
+            mpol = this%context%mpol
+            ntor = this%context%ntor
+         ELSE
+            mpol = mpolin
+            ntor = ntorin
+         END IF
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i,j,k,s,u,v,cosmn,sinmn,cosmn_vmec,sinmn_vmec,m,n,r,z,
 !$OMP&         rs,zs,ru,zu,rv,zv,js,ju,jv,rmncint,rmnsint,zmncint,
-!$OMP&         zmnsint)
+!$OMP&         zmnsint,ilow,ihigh,wlow,whigh)
 
          ALLOCATE(cosmn(0:mpol,-ntor:ntor))
          ALLOCATE(sinmn(0:mpol,-ntor:ntor))
@@ -907,10 +961,10 @@
 
 !  dR(s_v)/ds_s = dR(s_s)/ds_v*ds_v/ds_s = 2sdR(s_v)/ds_v
                   rmncint = 2.0*s*(rmnc(:,ihigh) - rmnc(:,ilow))               &
-     &                    / (nsvmec - 1.0)
+     &                    * (nsvmec - 1.0)
 !  dZ(s_v)/ds_s = dZ(s_s)/ds_v*ds_v/ds_s = 2sdZ(s_v)/ds_v
                   zmnsint = 2.0*s*(zmns(:,ihigh) - zmns(:,ilow))               &
-     &                    / (nsvmec - 1.0)
+     &                    * (nsvmec - 1.0)
 
                   rs = SUM(rmncint*cosmn_vmec)
                   zs = SUM(zmnsint*sinmn_vmec)
@@ -942,10 +996,10 @@
 
 !  dR(s_v)/ds_s = dR(s_s)/ds_v*ds_v/ds_s = 2sdR(s_v)/ds_v
                         rmnsint = 2.0*s*(rmns(:,ihigh) - rmns(:,ilow))         &
-     &                          / (nsvmec - 1.0)
+     &                          * (nsvmec - 1.0)
 !  dZ(s_v)/ds_s = dZ(s_s)/ds_v*ds_v/ds_s = 2sdZ(s_v)/ds_v
                         zmncint = 2.0*s*(zmnc(:,ihigh) - zmnc(:,ilow))         &
-     &                          / (nsvmec - 1.0)
+     &                          * (nsvmec - 1.0)
 
                         rs = rs + SUM(rmnsint*sinmn_vmec)
                         zs = zs + SUM(zmncint*cosmn_vmec)
@@ -1058,18 +1112,18 @@
 
 !  Interpolate the b_u and b_v onto the last closed flux surface.
          bsubuc = 1.5*this%context%bsubumnch(:,:,numS)                          &
-     &          + 0.5*this%context%bsubumnch(:,:,numS - 1)
+     &          - 0.5*this%context%bsubumnch(:,:,numS - 1)
          bsubvc = 1.5*this%context%bsubvmnch(:,:,numS)                          &
-     &          + 0.5*this%context%bsubvmnch(:,:,numS - 1)
+     &          - 0.5*this%context%bsubvmnch(:,:,numS - 1)
 
          IF (this%context%l_asym) THEN
             ALLOCATE(bsubus(0:mpol,-ntor:ntor))
             ALLOCATE(bsubvs(0:mpol,-ntor:ntor))
 
             bsubus = 1.5*this%context%bsubumnsh(:,:,numS)                       &
-     &             + 0.5*this%context%bsubumnsh(:,:,numS - 1)
+     &             - 0.5*this%context%bsubumnsh(:,:,numS - 1)
             bsubvs = 1.5*this%context%bsubvmnsh(:,:,numS)                       &
-     &             + 0.5*this%context%bsubvmnsh(:,:,numS - 1)
+     &             - 0.5*this%context%bsubvmnsh(:,:,numS - 1)
          END IF
       END IF
 
@@ -1081,7 +1135,7 @@
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosmn,sinmn,cosmn_vmec,sinmn_vmec,j,k,m,n,ru,rv,zu,
-!$OMP&         zv)
+!$OMP&         zv,r,bu,bv)
 
          ALLOCATE(cosmn(0:mpol,-ntor:ntor))
          IF (this%context%l_asym) THEN
@@ -1097,6 +1151,7 @@
             v = (k - 1)*this%magnetic_cache%dv_a + this%phi_offset
 
             DO j = 1, numU
+               u = (j - 1)*this%magnetic_cache%du_a
 
                cosmn_vmec = COS(xm*u - xn*v)
                sinmn_vmec = SIN(xm*u - xn*v)
@@ -1238,7 +1293,7 @@
                this%magnetic_cache%kxuv_full(j,k) = kr*cosphi                  &
      &                                            - kp*sinphi
                this%magnetic_cache%kyuv_full(j,k) = kr*sinphi                  &
-     &                                            - kp*cosphi
+     &                                            + kp*cosphi
                this%magnetic_cache%kzuv_full(j,k) = -(bu*zv - bv*zu)/mu0
 
                this%magnetic_cache%x_prime(j,k,1) = r*cosphi
@@ -1352,7 +1407,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL vmec_set_namelist(this%context%vmec)
+      CALL vmec_set_namelist(this%vmec)
 
       CALL profiler_set_stop_time('siesta_set_namelist', start_time)
 
@@ -1420,8 +1475,11 @@
          CASE ('z_offset')
             siesta_get_param_id = siesta_z_offset_id
 
+         CASE ('helpert')
+            siesta_get_param_id = siesta_helpert_id
+
          CASE DEFAULT
-            siesta_get_param_id = vmec_get_param_id(this%context%vmec,         &
+            siesta_get_param_id = vmec_get_param_id(this%vmec,                 &
      &                                              param_name)
 
       END SELECT
@@ -1493,10 +1551,12 @@
          CASE (siesta_z_offset_id)
             siesta_get_param_value = this%z_offset
 
+         CASE (siesta_helpert_id)
+            siesta_get_param_value = helpert(i_index)
+
          CASE DEFAULT
             siesta_get_param_value =                                           &
-     &         vmec_get_param_value(this%context%vmec, id, i_index,            &
-     &                              j_index)
+     &         vmec_get_param_value(this%vmec, id, i_index, j_index)
 
       END SELECT
 
@@ -1563,9 +1623,12 @@
          CASE (siesta_z_offset_id)
             siesta_get_param_name = 'z_offset'
 
+         CASE (siesta_helpert_id)
+            siesta_get_param_name = 'helpert'
+
          CASE DEFAULT
             siesta_get_param_name =                                            &
-     &         vmec_get_param_name(this%context%vmec, id)
+     &         vmec_get_param_name(this%vmec, id)
 
       END SELECT
 
@@ -1699,7 +1762,7 @@
       start_time = profiler_get_start_time()
 
       siesta_get_te_radial =                                                   &
-     &   pprofile_get_value(this%ne, siesta_get_p(this, s, .true.))
+     &   pprofile_get_value(this%te, siesta_get_p(this, s, .true.))
 
       CALL profiler_set_stop_time('siesta_get_te_radial', start_time)
 
@@ -1987,10 +2050,13 @@
 !  There is no need to shift this.
       r_cyl = cart_to_cyl(x_cart)
 
-      IF (lfreeb .and. flux(1) .gt. 1.0) THEN
-         siesta_get_B_vec = vmec_get_B_vac(this%context%vmec, r_cyl)           &
-     &                    + siesta_get_ext_b_plasma(this, r_cyl,               &
-     &                                              .false.)
+      siesta_get_B_vec = 0.0
+      IF (flux(1) .gt. 1.0) THEN
+         IF (lfreeb) THEN
+            siesta_get_B_vec = vmec_get_B_vac(this%vmec, r_cyl)                &
+     &                       + siesta_get_ext_b_plasma(this, r_cyl,            &
+     &                                                 .false.)
+         END IF
       ELSE
          siesta_get_B_vec = siesta_get_int_b_plasma(this, flux)
       END IF
@@ -2076,7 +2142,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      flux = vmec_get_suv(this%context%vmec, x_cart)
+      flux = vmec_get_suv(this%vmec, x_cart)
 
       siesta_get_suv =                                                         &
      &   (/ siesta_to_siesta_s(flux(1)), flux(2), flux(3) /)
@@ -2119,8 +2185,8 @@
 
 !  The inital VMEC defines the boundary.
 !  FIXME: Won't be the case for free boundary siesta.
-      siesta_get_plasma_edge = vmec_get_plasma_edge(this%context%vmec,         &
-     &                                              phi, r, z)
+      siesta_get_plasma_edge = vmec_get_plasma_edge(this%vmec, phi, r,         &
+     &                                              z)
 
       CALL profiler_set_stop_time('siesta_get_plasma_edge', start_time)
 
@@ -2472,8 +2538,7 @@
       start_time = profiler_get_start_time()
 
       siesta_get_ext_currents =>                                               &
-     &   vmec_get_ext_currents(this%context%vmec, num_currents,                &
-     &                         scale_currents)
+     &   vmec_get_ext_currents(this%vmec, num_currents, scale_currents)
 
       CALL profiler_set_stop_time('vmec_get_ext_currents', start_time)
 
@@ -2606,6 +2671,8 @@
       USE read_wout_mod, only: nfp, mnmax, xm, xn, rmnc, rmns, zmnc,           &
      &                         zmns, lasym, nsvmec => ns
 
+      USE vmec_utils, ONLY : GetBcyl_WOUT
+
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -2627,16 +2694,16 @@
       INTEGER                                 :: ntor
       INTEGER                                 :: m
       INTEGER                                 :: n
-      INTEGER                                 :: r
-      INTEGER                                 :: rs
-      INTEGER                                 :: ru
-      INTEGER                                 :: rv
-      INTEGER                                 :: zu
-      INTEGER                                 :: zs
-      INTEGER                                 :: zv
-      INTEGER                                 :: bs
-      INTEGER                                 :: bu
-      INTEGER                                 :: bv
+      REAL (rprec)                            :: r
+      REAL (rprec)                            :: rs
+      REAL (rprec)                            :: ru
+      REAL (rprec)                            :: rv
+      REAL (rprec)                            :: zu
+      REAL (rprec)                            :: zs
+      REAL (rprec)                            :: zv
+      REAL (rprec)                            :: bs
+      REAL (rprec)                            :: bu
+      REAL (rprec)                            :: bv
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: vmecint
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosmn_vmec
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: sinmn_vmec
@@ -2682,17 +2749,22 @@
       ru = -SUM(xm*vmecint*sinmn_vmec)
       rv =  SUM(xn*vmecint*sinmn_vmec)
 
-      vmecint = 2.0*flux(1)*(rmnc(:,ihigh_v) - rmnc(:,ilow_v))                     &
-     &        / (nsvmec - 1.0)
+      vmecint = 2.0*flux(1)*(rmnc(:,ihigh_v) - rmnc(:,ilow_v))                 &
+     &        * (nsvmec - 1.0)
       rs = SUM(vmecint*cosmn_vmec)
 
       vmecint = wlow_v*zmns(:,ilow_v) + whigh_v*zmns(:,ihigh_v)
       zu =  SUM(xm*vmecint*cosmn_vmec)
       zv = -SUM(xn*vmecint*cosmn_vmec)
 
+      vmecint = 2.0*flux(1)*(zmns(:,ihigh_v) - zmns(:,ilow_v))                 &
+     &        * (nsvmec - 1.0)
+      zs = SUM(vmecint*sinmn_vmec)
+
       mpol = this%context%mpol
       ntor = this%context%ntor
 
+      bs = 0.0
       bu = 0.0
       bv = 0.0
 
@@ -2723,13 +2795,17 @@
             ru = ru + SUM(xm*vmecint*cosmn_vmec)
             rv = rv - SUM(xn*vmecint*cosmn_vmec)
 
-            vmecint = 2.0*flux(1)*(rmns(:,ihigh_v) - rmns(:,ilow_v))                     &
-     &              / (nsvmec - 1.0)
+            vmecint = 2.0*flux(1)*(rmns(:,ihigh_v) - rmns(:,ilow_v))           &
+     &              * (nsvmec - 1.0)
             rs = rs + SUM(vmecint*sinmn_vmec)
 
             vmecint = wlow_v*zmnc(:,ilow_v) + whigh_v*zmnc(:,ihigh_v)
             zu = zu - SUM(xm*vmecint*sinmn_vmec)
             zv = zv + SUM(xn*vmecint*sinmn_vmec)
+
+            vmecint = 2.0*flux(1)*(zmnc(:,ihigh_v) - zmnc(:,ilow_v))           &
+     &              * (nsvmec - 1.0)
+            zs = zs + SUM(vmecint*cosmn_vmec)
          END IF
 
          DO n = -ntor, ntor
@@ -2760,6 +2836,9 @@
       siesta_get_int_b_plasma(2) = bv*r
       siesta_get_int_b_plasma(3) = bs*zs + bu*zu + bv*zv
 
+      siesta_get_int_b_plasma = siesta_get_int_b_plasma                        &
+     &                        / this%context%b_factor
+
       END FUNCTION
 
 !-------------------------------------------------------------------------------
@@ -2783,7 +2862,13 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
-      siesta_get_grid_size = this%context%ns
+
+      IF (ASSOCIATED(this%context)) THEN
+         siesta_get_grid_size = this%context%ns
+      ELSE
+         siesta_get_grid_size = nsin
+      END IF
+
       CALL profiler_set_stop_time('siesta_get_grid_size', start_time)
 
       END FUNCTION
@@ -2872,8 +2957,7 @@
             siesta_is_scaler_value = .true.
 
          CASE DEFAULT
-            siesta_is_scaler_value =                                           &
-     &         vmec_is_scaler_value(this%context%vmec, id)
+            siesta_is_scaler_value = vmec_is_scaler_value(this%vmec, id)
 
       END SELECT
 
@@ -2908,11 +2992,12 @@
 
          CASE (siesta_pp_ne_b_id, siesta_pp_ne_as_id,                          &
      &         siesta_pp_ne_af_id, siesta_pp_te_b_id,                          &
-     &         siesta_pp_te_as_id, siesta_pp_te_af_id)
+     &         siesta_pp_te_as_id, siesta_pp_te_af_id,                         &
+     &         siesta_helpert_id)
             siesta_is_1d_array = .true.
 
          CASE DEFAULT
-            siesta_is_1d_array = vmec_is_1d_array(this%context%vmec, id)
+            siesta_is_1d_array = vmec_is_1d_array(this%vmec, id)
 
       END SELECT
 
@@ -2950,7 +3035,7 @@
             siesta_is_2d_array = .true.
 
          CASE DEFAULT
-            siesta_is_2d_array = vmec_is_2d_array(this%context%vmec, id)
+            siesta_is_2d_array = vmec_is_2d_array(this%vmec, id)
 
       END SELECT
 
@@ -2989,12 +3074,12 @@
      &         siesta_pp_te_as_id, siesta_pp_te_af_id,                         &
      &         siesta_pp_sxrem_b_id, siesta_pp_sxrem_as_id,                    &
      &         siesta_pp_sxrem_af_id, siesta_phi_offset_id,                    &
-     &         siesta_z_offset_id)
+     &         siesta_z_offset_id, siesta_helpert_id)
             siesta_is_recon_param = .true.
 
          CASE DEFAULT
             siesta_is_recon_param =                                            &
-     &         vmec_is_recon_param(this%context%vmec, id)
+     &         vmec_is_recon_param(this%vmec, id)
 
       END SELECT
 
@@ -3040,6 +3125,117 @@
 !*******************************************************************************
 !  UTILITY SUBROUTINES
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Solves the siesta equilibrium.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_converge. Solves the
+!>  SIESTA equilibrium and loads the resulting wout file in preparation of
+!>  computing modeled signals. If the vmec equilibrium needs updating, it solves
+!>  that in addition.
+!>
+!>  @param[inout] this        A @ref vmec_class instance.
+!>  @param[inout] num_iter    Counter to track the number of iterations.
+!>  @param[in]    iou         Input/Output unit of the runlog file.
+!>  @param[in]    eq_comm     MPI communicator pool for siesta/vmec.
+!>  @param[in]    state_flags Bitwise flags to indicate which parts of the model
+!>                            changed.
+!>  @returns True if the convergece was sucessful and false otherwise.
+!-------------------------------------------------------------------------------
+      FUNCTION siesta_converge(this, num_iter, iou, eq_comm,                   &
+     &                         state_flags)
+      USE model_state
+      USE data_parameters
+      USE safe_open_mod
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      LOGICAL                            :: siesta_converge
+      TYPE (siesta_class), INTENT(inout) :: this
+      INTEGER, INTENT(inout)             :: num_iter
+      INTEGER, INTENT(in)                :: iou
+      INTEGER, INTENT(in)                :: eq_comm
+      INTEGER, INTENT(in)                :: state_flags
+
+!  local variables
+      INTEGER                            :: eq_size
+      INTEGER                            :: eq_rank
+      INTEGER                            :: iou_nli
+      INTEGER                            :: status
+      INTEGER                            :: child_comm
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      siesta_converge = .true.
+      IF (BTEST(state_flags, model_state_vmec_flag)) THEN
+         siesta_converge = vmec_converge(this%vmec, num_iter, iou,             &
+     &                                   eq_comm)
+      END IF
+
+!  FIXME: This is currently a hack. Eventuially siesta will be updated to have
+!         a run siesta routine like vmec. For now run vmec as an external
+!         command.
+
+      eq_size = 1
+      eq_rank = 0
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(eq_comm, eq_rank, status)
+      CALL MPI_COMM_SIZE(eq_comm, eq_size, status)
+#endif
+      IF (eq_rank .eq. 0) THEN
+
+         iou_nli = 100
+         ladd_pert = .true.
+         lresistive = .true.
+         lrestart = .false.
+         CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
+     &                  'replace', 'formatted', delim_in='quote')
+         WRITE (iou_nli, nml=siesta_info)
+         CLOSE (iou_nli, iostat=status)
+
+         CALL MPI_COMM_SPAWN('xsiesta', MPI_ARGV_NULL, eq_size,                &
+     &                       MPI_INFO_NULL, 0, MPI_COMM_SELF,                  &
+     &                       child_comm, MPI_ERRCODES_IGNORE, status)
+         CALL MPI_BARRIER(child_comm, status)
+
+         ladd_pert = .false.
+         lresistive = .false.
+         lrestart = .true.
+         CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
+     &                  'replace', 'formatted', delim_in='quote')
+         WRITE (iou_nli, nml=siesta_info)
+         CLOSE (iou_nli, iostat=status)
+
+         CALL MPI_COMM_SPAWN('xsiesta', MPI_ARGV_NULL, eq_size,                &
+     &                       MPI_INFO_NULL, 0, MPI_COMM_SELF,                  &
+     &                       child_comm, MPI_ERRCODES_IGNORE, status)
+         CALL MPI_BARRIER(child_comm, status)
+
+         status = 0
+         siesta_converge = siesta_converge .and. status .eq. 0
+
+         IF (siesta_converge) THEN
+            IF (ASSOCIATED(this%context)) THEN
+               CALL siesta_context_read(this%context,                          &
+     &                                  this%restart_file_name)
+            ELSE
+               this%context =>                                                 &
+     &            siesta_context_construct(this%restart_file_name)
+            END IF
+
+            IF (ASSOCIATED(this%magnetic_cache)) THEN
+               CALL siesta_set_magnetic_cache(this)
+            END IF
+         END IF
+      END IF
+
+      CALL profiler_set_stop_time('siesta_converge', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
 !>  @brief Loads the vacuum magnetic field file.
 !>
 !>  Loads the vacuum magnetic field file. This will get on multiple processes to
@@ -3060,7 +3256,77 @@
       INTEGER, INTENT(in)             :: eq_comm
 
 !  Start of executable code
-      CALL vmec_read_vac_file(this%context%vmec, index, eq_comm)
+      CALL vmec_read_vac_file(this%vmec, index, eq_comm)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Save the internal state of the equilibrium.
+!>
+!>  Saves the siesta state. Also saves the vmec state.
+!>
+!>  @param[inout] this A @ref siesta_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE siesta_save_state(this)
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (siesta_class), INTENT(inout) :: this
+
+!  local variables
+      INTEGER                            :: error
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL vmec_save_state(this%vmec)
+
+!  Cache the restart file by appending _cache to a copy. Use copy here to keep
+!  the orginal file intact.
+      CALL copy_file(TRIM(this%restart_file_name),                             &
+     &               TRIM(this%restart_file_name) // '_cache',                 &
+     &               error)
+      CALL assert_eq(error, 0, 'Error copying restart file.')
+
+      CALL profiler_set_stop_time('siesta_save_state', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Reset the internal state of the equilibrium.
+!>
+!>  Copies the saved siesta state back to siesta. Also resets the vmec state.
+!>
+!>  @param[inout] this A @ref siesta_class instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE siesta_reset_state(this)
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (siesta_class), INTENT(inout) :: this
+
+!  local variables
+      INTEGER                            :: error
+      REAL (rprec)                       :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL vmec_reset_state(this%vmec)
+
+!  Reset the restart file.
+      CALL copy_file(TRIM(this%restart_file_name) // '_cache',                 &
+     &               TRIM(this%restart_file_name), error)
+      CALL assert_eq(error, 0, 'Error moving wout file.')
+
+      CALL siesta_context_read(this%context, this%restart_file_name)
+
+      CALL profiler_set_stop_time('siesta_reset_state', start_time)
 
       END SUBROUTINE
 
@@ -3109,7 +3375,7 @@
 !      WRITE (iou_nl, nml=indata) FIXME Replace with SIESTA case.
       CLOSE (iou_nl, iostat=status)
 
-      CALL vmec_write(this%context%vmec, iou)
+      CALL vmec_write(this%vmec, iou)
 
       CALL profiler_set_stop_time('siesta_write', start_time)
 
@@ -3165,7 +3431,7 @@
       CALL copy_file(this%restart_file_name, TRIM(filename), status)
       CALL assert_eq(status, 0, 'Error copying wout file.')
 
-      CALL vmec_write_input(this%context%vmec, current_step)
+      CALL vmec_write_input(this%vmec, current_step)
 
       CALL profiler_set_stop_time('vmec_write_input', start_time)
 
@@ -3221,8 +3487,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL vmec_def_result(this%context%vmec, result_ncid,                     &
-     &                     maxnsetps_dim_id)
+      CALL vmec_def_result(this%vmec, result_ncid, maxnsetps_dim_id)
 
       CALL profiler_set_stop_time('siesta_def_result', start_time)
 
@@ -3252,7 +3517,7 @@
 
 !  vmec_write_init_data will write step data for the first step. Call this
 !  before the call to siesta_write_init_data to avoid writing the step twice.
-      CALL vmec_write_init_data(this%context%vmec, result_ncid)
+      CALL vmec_write_init_data(this%vmec, result_ncid)
       CALL siesta_write_step_data(this, result_ncid, 1)
 
       CALL profiler_set_stop_time('siesta_write_init_data', start_time)
@@ -3286,8 +3551,7 @@
 !  vmec_write_init_data called from siesta_write_init_data already write the
 !  first vmec step.
       IF (current_step .ne. 1) THEN
-         CALL vmec_write_step_data(this%context%vmec, result_ncid,             &
-     &                             current_step)
+         CALL vmec_write_step_data(this%vmec, result_ncid, current_step)
       END IF
 
       CALL profiler_set_stop_time('siesta_write_step_data', start_time)
@@ -3329,10 +3593,68 @@
 !  not exist.
       CALL MPI_BARRIER(recon_comm, error)
 
+!  Copy the vmec state first to ensure the wout file is loaded before seting the
+!  siesta magnetic cache.
+      CALL vmec_sync_state(this%vmec, recon_comm)
+
 !  If this is the child process, load the wout file.
       IF (mpi_rank .gt. 0) THEN
          CALL copy_file(build_path('..', this%restart_file_name),              &
      &                  TRIM(this%restart_file_name), error)
+
+         IF (ASSOCIATED(this%context)) THEN
+            CALL siesta_context_read(this%context,                             &
+     &                               this%restart_file_name)
+         ELSE
+            this%context =>                                                    &
+     &         siesta_context_construct(this%restart_file_name)
+         END IF
+
+         IF (ASSOCIATED(this%magnetic_cache)) THEN
+            CALL siesta_set_magnetic_cache(this)
+         END IF
+      END IF
+#endif
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Syncronize a child siesta state to the parent.
+!>
+!>  Syncs data between a child and the parent process. If MPI support is not
+!>  compiled in this subroutine reduces to a no op.
+!>
+!>  @param[inout] this       A @ref siesta_class instance.
+!>  @param[in]    index      Reconstruction rank to sync.
+!>  @param[in]    recon_comm MPI communicator for the reconstruction processes.
+!-------------------------------------------------------------------------------
+      SUBROUTINE siesta_sync_child(this, index, recon_comm)
+      USE file_opts
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (siesta_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                :: index
+      INTEGER, INTENT(in)                :: recon_comm
+
+#if defined(MPI_OPT)
+!  local variables
+      INTEGER                            :: error
+      INTEGER                            :: mpi_rank
+
+!  Start of executable code
+      CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
+
+!  Copy the vmec state first to ensure the wout file is loaded before seting the
+!  siesta magnetic cache.
+      CALL vmec_sync_child(this%vmec, index, recon_comm)
+
+!  If this is the parent process, load the wout file.
+      IF (mpi_rank .eq. 0) THEN
+         CALL copy_file(build_path(process_dir(index + 1),                     &
+     &                             this%restart_file_name),                    &
+     &                  TRIM(this%restart_file_name), error)
+         CALL assert_eq(error, 0, 'Error reading synced restart file.')
 
          CALL siesta_context_read(this%context, this%restart_file_name)
 
@@ -3341,7 +3663,6 @@
          END IF
       END IF
 
-      CALL vmec_sync_state(this%context%vmec, recon_comm)
 #endif
       END SUBROUTINE
 

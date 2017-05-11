@@ -50,6 +50,7 @@
       LOGICAL         :: l_update_state=.FALSE.     !<=TRUE before funct_island called to get ste array
       LOGICAL         :: l_par_state                !<=TRUE if parallel allocation state (in init_state_par)
       LOGICAL         :: lcolscale                  !<=TRUE to apply col-scaling to Hessian
-      LOGICAL         :: l_asym = .FALSE.
+      LOGICAL         :: l_asym = .FALSE.           !<=TRUE Use full parity calculation.
+      LOGICAL         :: l_recon = .FALSE.          !<=TRUE Add fouier components to restart file that remove the jacobian.
 
       END MODULE shared_data

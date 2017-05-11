@@ -17,51 +17,52 @@
 !>  @section profile_types_sec Profile types
 !>  Profiles can be defined as any of the following types.
 !>
-!>  @subsection profile_none @fixed_width{'none'}
-!>  No profile is used in this instance.
+!>  @subsection profile_none none
+!>  @fixed_width{none} No profile is used in this instance.
 !>
-!>  @subsection profile_two_power @fixed_width{'two_power'}
-!>  Profile is defined as a two power poly nomical with 4 coeffiecents.
-!>  Coefficients are defined as in the first 4 indicies of the
-!>  @fixed_width{'_b'} array. The profile is defined as follows.
+!>  @subsection profile_two_power two_power
+!>  @fixed_width{'two_power'} Profile is defined as a two power poly nomical
+!>  with 4 coeffiecents. Coefficients are defined as in the first 4 indicies of
+!>  the @fixed_width{'_b'} array. The profile is defined as follows.
 !>
 !>     a(x) = b[0] + b[1]*(1 - x^b[2])^b[3]
 !>
 !>  where x is valid from zero to one.
 !>
-!>  @subsection profile_two_power_gs @fixed_width{'two_power_gs'}
-!>  Profile is defined as a two power poly nomical with 4 coefficients plus
-!>  and an arbitrary number of additional guassian functions. The number of
-!>  giassian functions if limited to the size of the @fixed_width{'_b'} array.
-!>  The two power part is defined the same as @ref profile_two_power. The
-!>  remaining guassian bits are defined as
+!>  @subsection profile_two_power_gs two_power_gs
+!>  @fixed_width{'two_power_gs'} Profile is defined as a two power poly nomical
+!>  with 4 coefficients plus and an arbitrary number of additional guassian
+!>  functions. The number of giassian functions if limited to the size of the
+!>  @fixed_width{'_b'} array. The two power part is defined the same as
+!>  @ref profile_two_power. The remaining guassian bits are defined as
 !>
 !>     a(x) = b[i]*Exp(-(x - b[i + 1])^2/b[i + 2]^2)
 !>
-!>  @subsection profile_two_power_r @fixed_width{'two_power_r'}
-!>  Reversed Two power profile defined the same as @ref profile_two_power except
-!>  the arguments is reversed do the function is maximum at x = 1 and minimum at
-!>  x = 0.
+!>  @subsection profile_two_power_r two_power_r
+!>  @fixed_width{'two_power_r'} Reversed Two power profile defined the same as
+!>  @ref profile_two_power except the argument is reversed. The function is
+!>  maximum at x = 1 and minimum at x = 0.
 !>
-!>  @subsection profile_power_series_gs @fixed_width{'power_series'}
-!>  Profile is defined as a power series with @fixed_width{'_b'} array
-!>  coefficients.
+!>  @subsection profile_power_series_gs power_series
+!>  @fixed_width{'power_series'} Profile is defined as a power series with
+!>  @fixed_width{'_b'} array coefficients.
 !>
 !>     a(x) = b[0] + b[1]*x + b[2]*x^2 + b[3]*x^3 + etc...
 !>
-!>  @subsection profile_cubic_spline @fixed_width{'cubic_spline'}
-!>  Profile defined as cubic spline segments. Splines knots are defined by the
-!>  position, @fixed_width{'_as'} array, and amplitude, @fixed_width{'_af'}
-!>  array.
+!>  @subsection profile_cubic_spline cubic_spline
+!>  @fixed_width{'cubic_spline'} Profile defined as cubic spline segments.
+!>  Splines knots are defined by the position, @fixed_width{'_as'} array, and
+!>  amplitude, @fixed_width{'_af'} array.
 !>
-!>  @subsection profile_akima_spline @fixed_width{'akima_spline'}
-!>  Profile defined as akima spline segments. Splines knots are defined by the
-!>  position, @fixed_width{'_as'} array, and amplitude, @fixed_width{'_af'}
-!>  array.
+!>  @subsection profile_akima_spline akima_spline
+!>  @fixed_width{'akima_spline'} Profile defined as akima spline segments.
+!>  Splines knots are defined by the position, @fixed_width{'_as'} array, and
+!>  amplitude, @fixed_width{'_af'} array.
 !>
-!>  @subsection profile_line_segment @fixed_width{'line_segment'}
-!>  Profile defined as line segments. Segment knots are defined by the position,
-!>  @fixed_width{'_as'} array, and amplitude, @fixed_width{'_af'} array.
+!>  @subsection profile_line_segment line_segment
+!>  @fixed_width{'line_segment'} Profile defined as line segments. Segment knots
+!>  are defined by the position, @fixed_width{'_as'} array, and amplitude,
+!>  @fixed_width{'_af'} array.
 !*******************************************************************************
 !>  @file pprofile_T.f
 !>  @brief Contains module @ref pprofile_T.
@@ -350,7 +351,7 @@
             END DO
 
          CASE (pprofile_cubic_spline_type)
-            s_use = MIN(this%as(this%maxSplineIndex - 1),                      &
+            s_use = MIN(this%as(this%maxSplineIndex),                          &
      &                  MAX(s_arg, this%as(1)))
             CALL spline_cubic(s_use, pprofile_get_value,                       &
      &                        this%as, this%af,                                &
@@ -375,7 +376,7 @@
             CALL EXIT(1)
 
          CASE (pprofile_akima_spline_type)
-            s_use = MIN(this%as(this%maxSplineIndex - 1),                      &
+            s_use = MIN(this%as(this%maxSplineIndex),                          &
      &                  MAX(s_arg,this%as(1)))
             CALL spline_akima(s_use, pprofile_get_value,                       &
      &                        this%as, this%af,                                &
@@ -505,7 +506,7 @@
 1100  FORMAT(/' Parameterized Profile Write: id = ',a)
 1200  FORMAT('   pp_type = ',a)
 1210  FORMAT(' b_0 + Th(s)Th(1-s)(b_1 (1 - s ** b_2) ** b_3).',                &
-     &   '   b(0:3) = ')
+     &       '   b(0:3) = ')
 1220  FORMAT(' Th(s)Th(1-s)[Sum_0_n b_i s** i].   b(0:n) = ')
 1230  FORMAT(' i       as(i)           af(i)')
 1231  FORMAT(1x,i3,2x,es15.8,2x,es15.8)
@@ -538,7 +539,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      findMaxIndex = MINLOC(s_array(2:), dim=1)
+      findMaxIndex = MAXLOC(s_array, dim=1)
 
       CALL profiler_set_stop_time('findMaxIndex', start_time)
 

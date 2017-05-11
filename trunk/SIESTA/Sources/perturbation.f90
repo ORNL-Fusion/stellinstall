@@ -3,7 +3,7 @@
       USE descriptor_mod, ONLY: iam
       USE siesta_state, ONLY: update_state, update_state_par
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale,             &
-                             l_asym, hesspass_test, mupar_test
+                             l_asym, hesspass_test, mupar_test, l_recon
 !#if defined(SKS)
       USE nscalingtools, ONLY: PARFUNCTISL
 !#endif
@@ -30,7 +30,15 @@
          vn_bsupss='JBsupss(m,n,r)',vn_bsupuc='JBsupuc(m,n,r)',          &
          vn_bsupvc='JBsupvc(m,n,r)', vn_bsupsc='JBsupsc(m,n,r)',         &
          vn_bsupus='JBsupus(m,n,r)', vn_bsupvs='JBsupvs(m,n,r)',         &
-         vn_presc='presc(m,n,r)', vn_press='press(m,n,r)'
+         vn_presc='presc(m,n,r)', vn_press='press(m,n,r)',               &
+         vn_bsupsmns='bsupsmns(m,n,r)', vn_bsupsmnc='bsupsmnc(m,n,r)',   &
+         vn_bsupumns='bsupumns(m,n,r)', vn_bsupumnc='bsupumnc(m,n,r)',   &
+         vn_bsupvmns='bsupvmns(m,n,r)', vn_bsupvmnc='bsupvmnc(m,n,r)',   &
+         vn_bsubsmns='bsubsmns(m,n,r)', vn_bsubsmnc='bsubsmnc(m,n,r)',   &
+         vn_bsubumns='bsubumns(m,n,r)', vn_bsubumnc='bsubumnc(m,n,r)',   &
+         vn_bsubvmns='bsubvmns(m,n,r)', vn_bsubvmnc='bsubvmnc(m,n,r)',   &
+         vn_pmns='pmns(m,n,r)', vn_pmnc='pmnc(m,n,r)',                   &
+         vn_p_factor='p_factor', vn_b_factor='b_factor'
       CHARACTER(LEN=*), DIMENSION(3), PARAMETER ::                       &
                   r3dim = (/'m-mode','n-mode','radius'/)
 
@@ -66,7 +74,8 @@
                eta_factor, nphis, nrs, nzs, nvs, nus, nss, l_tracing,    &
                ngmres_type, iortho, lcolscale,                           &
                l_silo_output, l_silo3D, nprecon, l_output_alliter,       & 
-               l_VMEC_Uniform, l_asym, HessPass_Test, mupar_test
+               l_VMEC_Uniform, l_asym, HessPass_Test, mupar_test,        &
+               l_recon
 
 !-----------------------------------------------
 !     
@@ -430,6 +439,9 @@
       SUBROUTINE write_restart_file
       USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
                             ns, mpol, ntor
+#if defined(MRC)
+      USE restart_mod
+#endif
       USE descriptor_mod, ONLY: iam
       IMPLICIT NONE
 !-----------------------------------------------
@@ -440,7 +452,9 @@
 !-----------------------------------------------
     
       IF (iam .NE. 0) RETURN
-
+#if defined(MRC)
+      istat = restart_write("siesta_" // TRIM(restart_ext) // ".nc", wout_file)
+#else
 #if defined(NETCDF)
       CALL write_restart_ncfile (istat)
       IF (istat .EQ. 0) RETURN
@@ -475,7 +489,7 @@
          DO m =0,mpolin
             DO n = -ntorin,ntorin
                WRITE (15,300) jbsupsmnch(m,n,js), jbsupumnsh(m,n,js),    &
-                             jbsupvmnsh(m,n,js)
+                              jbsupvmnsh(m,n,js), jpmnsh(m,n,js)
             ENDDO
          ENDDO
       ENDDO
@@ -487,6 +501,8 @@
  100  FORMAT(3i8)
  200  FORMAT(a256)
  300  FORMAT(1p4e24.16)
+
+#endif
 
       END SUBROUTINE write_restart_file
      
@@ -566,6 +582,10 @@
 
       SUBROUTINE read_restart_file (nprecon)
       USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch
+#if defined(MRC)
+      USE restart_mod
+#endif
+
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: nprecon
 !-----------------------------------------------
@@ -577,6 +597,10 @@
       REAL(rprec)        :: r0
       CHARACTER*(256)    :: filename
 !-----------------------------------------------
+#if defined(MRC)
+      istat = restart_read("siesta_" // TRIM(restart_ext) // ".nc",            &
+     &                     mpolin, ntorin, nsin, wout_file)
+#else
 #if defined(NETCDF)
       CALL read_restart_ncfile (istat, ns, ntor, mpol)
       nmin = MIN(ntor, ntorin)
@@ -676,6 +700,8 @@
  300  FORMAT(1p4e24.16)
  400  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
 
+#endif
+
       END SUBROUTINE read_restart_file
 
 #if defined(NETCDF)
@@ -735,7 +761,10 @@
 
       END SUBROUTINE read_restart_ncfile
 #endif
-      
+
+#if defined(MRC)
+!  Moved to restart_mod to avoid a circular dependancy.
+#else
       SUBROUTINE interpit(aold, anew, ns_old, ns_new, m1, m2, n1, n2)
       USE stel_constants, ONLY: one
       IMPLICIT NONE
@@ -803,6 +832,7 @@
       DEALLOCATE(temp1)
 
       END SUBROUTINE interpit
+#endif
 
       SUBROUTINE Compute_Resonant_Epar(xc, epar)
 !-----------------------------------------------

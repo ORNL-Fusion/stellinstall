@@ -204,7 +204,7 @@
       SUBROUTINE tolowerh_par(xsupsij, xsupuij, xsupvij,                 &
                               xsubsij, xsubuij, xsubvij, nsmin, nsmax)
       USE stel_kinds
-      USE island_params, ns=>ns_i, nuv=>nuv_i
+      USE island_params, ONLY: nuv=>nuv_i
       USE metrics, ONLY: gss, gsu, gsv, guu, guv, gvv                     ! LOWER METRIC ELEMENTS (ON half mesh)
       IMPLICIT NONE        
 !
@@ -241,7 +241,7 @@
 
 !---------------------------------------------------------------------------------------------
       SUBROUTINE tolowerf_par(xsupsij, xsupuij, xsupvij,                 &
-                              xsubsij,xsubuij, xsubvij, nsmin, nsmax)
+                              xsubsij, xsubuij, xsubvij, nsmin, nsmax)
       USE stel_kinds
       USE island_params, ns=>ns_i, nuv=>nuv_i
       USE metrics, ONLY: gssf, guuf, gvvf, gsuf, gsvf, guvf

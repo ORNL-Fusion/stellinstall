@@ -487,21 +487,24 @@
 !>  for one iteration to initialize all the input parameters. Defined in
 !>  @ref vmec_input.
 !>
-!>  @param[in] file_name      Filename of the vmec namelist input file.
-!>  @param[in] wout_file_name Filename of the vmec wout input file.
-!>  @param[in] iou            Input/output unit to log messages to.
-!>  @param[in] eq_comm        MPI communicator pool for VMEC.
-!>  @param[in] recon_comm     MPI communicator pool for reconstruction.
+!>  @param[in]    file_name      Filename of the vmec namelist input file.
+!>  @param[in]    wout_file_name Filename of the vmec wout input file.
+!>  @param[in]    iou            Input/output unit to log messages to.
+!>  @param[in]    eq_comm        MPI communicator pool for VMEC.
+!>  @param[in]    recon_comm     MPI communicator pool for reconstruction.
+!>  @param[inout] state_flags    Bitwise flags to indicate which parts of the
+!>                               model changed.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct_eq(file_name, wout_file_name, iou,               &
-     &                           eq_comm, recon_comm)
+     &                           eq_comm, recon_comm, state_flags)
       USE vmec_params, only: restart_flag, readin_flag, timestep_flag,         &
      &                       successful_term_flag, norm_term_flag,             &
      &                       more_iter_flag
       USE vmec_input, only: l_v3fit, ns_array, mgrid_file, lfreeb
       USE read_wout_mod, only: read_wout_file, LoadRZL
       USE file_opts
+      USE model_state
 
       IMPLICIT NONE
 
@@ -512,6 +515,7 @@
       INTEGER, INTENT(in)                  :: iou
       INTEGER, INTENT(in)                  :: eq_comm
       INTEGER, INTENT(in)                  :: recon_comm
+      INTEGER, INTENT(inout)               :: state_flags
 
 !  local variables
       INTEGER                              :: i
@@ -526,6 +530,8 @@
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      state_flags = IBSET(state_flags, model_state_vmec_flag)
 
       eq_rank = 0
       recon_rank = 0
@@ -567,6 +573,8 @@
 
       IF (recon_rank .eq. 0) THEN
          IF (wout_file_name .ne. '') THEN
+            state_flags = IBCLR(state_flags, model_state_vmec_flag)
+
 !  runvmec deletes the string holding the wout file to read. As a result save
 !  the wout filename before using it.
             vmec_construct_eq%wout_file_name = wout_file_name
@@ -616,6 +624,8 @@
 
          ictrl_array(4) = vmec_construct_eq%ns_index
          IF (wout_file_name .ne. '') THEN
+            state_flags = IBCLR(state_flags, model_state_vmec_flag)
+
             vmec_construct_eq%wout_file_name = wout_file_name
             CALL runvmec(ictrl_array, file_name, .false., eq_comm,             &
      &                   wout_file_name)
@@ -665,24 +675,26 @@
 !>  for one iteration to initialize all the input parameters. Defined in
 !>  @ref vmec_input.
 !>
-!>  @param[in] file_name      Filename of the vmec namelist input file.
-!>  @param[in] wout_file_name Filename of the vmec wout input file.
-!>  @param[in] ne             @ref pprofile_T for the electron density.
-!>  @param[in] te             @ref pprofile_T for the electron temperature.
-!>  @param[in] sxrem          @ref pprofile_T for the soft x-ray emissivity.
-!>  @param[in] phi_offset     Initial phi offset of the plasma relative to the
-!>                            diagnostics in radians.
-!>  @param[in] z_offset       Initial Z offset of the plasma relative to the
-!>                            machine center.
-!>  @param[in] iou            Input/output unit to log messages to.
-!>  @param[in] eq_comm        MPI communicator pool for VMEC.
-!>  @param[in] recon_comm     MPI communicator pool for reconstruction.
+!>  @param[in]    file_name      Filename of the vmec namelist input file.
+!>  @param[in]    wout_file_name Filename of the vmec wout input file.
+!>  @param[in]    ne             @ref pprofile_T for the electron density.
+!>  @param[in]    te             @ref pprofile_T for the electron temperature.
+!>  @param[in]    sxrem          @ref pprofile_T for the soft x-ray emissivity.
+!>  @param[in]    phi_offset     Initial phi offset of the plasma relative to the
+!>                               diagnostics in radians.
+!>  @param[in]    z_offset       Initial Z offset of the plasma relative to the
+!>                               machine center.
+!>  @param[in]    iou            Input/output unit to log messages to.
+!>  @param[in]    eq_comm        MPI communicator pool for VMEC.
+!>  @param[in]    recon_comm     MPI communicator pool for reconstruction.
+!>  @param[inout] state_flags    Bitwise flags to indicate which parts of the
+!>                               model changed.
 !>  @returns A pointer to a constructed @ref vmec_class object.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_construct_full(file_name, wout_file_name, ne, te,          &
      &                             sxrem, phi_offset, z_offset,                &
      &                             pol_rad_ratio, iou, eq_comm,                &
-     &                             recon_comm)
+     &                             recon_comm, state_flags)
 
       IMPLICIT NONE
 
@@ -699,6 +711,7 @@
       INTEGER, INTENT(in)                  :: iou
       INTEGER, INTENT(in)                  :: eq_comm
       INTEGER, INTENT(in)                  :: recon_comm
+      INTEGER, INTENT(inout)               :: state_flags
 
 !  local variables
       REAL (rprec)                         :: start_time
@@ -707,7 +720,8 @@
       start_time = profiler_get_start_time()
 
       vmec_construct_full => vmec_construct(file_name, wout_file_name,         &
-     &                                      iou, eq_comm, recon_comm)
+     &                                      iou, eq_comm, recon_comm,          &
+     &                                      state_flags)
 
       vmec_construct_full%ne => ne
       vmec_construct_full%te => te
@@ -924,7 +938,7 @@
       SELECT CASE (id)
 
          CASE (vmec_rbc_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             rbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -934,7 +948,7 @@
             END IF
 
          CASE (vmec_zbs_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             zbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -944,7 +958,7 @@
             END IF
 
          CASE (vmec_rbs_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             rbs(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -954,7 +968,7 @@
             END IF
 
          CASE (vmec_zbc_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             zbc(i_index, j_index) = value
             IF (.not.lfreeb) THEN
                CALL vmec_reset_boundary(this)
@@ -964,47 +978,47 @@
             END IF
 
          CASE (vmec_ac_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ac(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_s_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ac_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ac_aux_f_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ac_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ai(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_s_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ai_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_ai_aux_f_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             ai_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             am(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_s_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             am_aux_s(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_am_aux_f_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             am_aux_f(i_index) = value
             CALL profil1d(xc, xcdot, .false.)
 
@@ -1050,22 +1064,23 @@
             this%sxrem(i_index)%p%af(j_index) = value
 
          CASE (vmec_extcur_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             extcur(i_index) = value
 #if defined(MPI_OPT)
             CALL MPI_BCAST(mpi_mgrid_task, 1, MPI_INTEGER, 0, eq_comm,         &
      &                     error)
+            CALL MPI_BCAST(i_index, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
             CALL vmec_read_vac_file(this, i_index, eq_comm)
 
          CASE (vmec_curtor_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             curtor = value
             currv = mu0*curtor
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_phiedge_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             IF (phiedge .ne. 0.0) THEN
                phiedge_ratio = value/phiedge
             ELSE
@@ -1080,12 +1095,12 @@
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
 
          CASE (vmec_pres_scale_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             pres_scale = value
             CALL profil1d(xc, xcdot, .false.)
 
          CASE (vmec_bloat_id)
-            state_flags = IBSET(state_flags, model_state_eq_flag)
+            state_flags = IBSET(state_flags, model_state_vmec_flag)
             bloat = value
             CALL profil1d(xc, xcdot, .false.)
             CALL profil3d(xc(1), xc(1 + irzloff), .false., .false.)
@@ -4296,13 +4311,9 @@
 !  Start of executable code
       mgrid_path_old = ''
 
-      CALL MPI_BCAST(index, 1, MPI_INTEGER, 0, eq_comm, error)
-
       CALL MPI_BCAST(extcur(index), 1, MPI_REAL8, 0, eq_comm, error)
-! FIXME Uncomment when read_mgrid supports running on an eq processes.
       CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false., error,             &
      &                comm = eq_comm)
-!      CALL read_mgrid(mgrid_file, extcur, nv, nfp, .false., error)
       CALL assert_eq(0, error, 'vmec_set_param: failed to read ' //            &
      &               'mgrid_file')
 #endif
@@ -4337,8 +4348,8 @@
       END IF
 
 !  Cache the wout file by appending _cache to a copy. Use copy here to keep the
-!  the orginal file intact.
-      CALL copy_file(this%wout_file_name,                                      &
+!  orginal file intact.
+      CALL copy_file(TRIM(this%wout_file_name),                                &
      &               TRIM(this%wout_file_name) // '_cache',                    &
      &               error)
       CALL assert_eq(error, 0, 'Error copying wout file.')
@@ -4840,7 +4851,7 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Syncronize a child  vmec state to the parent.
+!>  @brief Syncronize a child vmec state to the parent.
 !>
 !>  Syncs data between a child and the parent process. If MPI support is not
 !>  compiled in this subroutine reduces to a no op.
@@ -4862,7 +4873,6 @@
 
 #if defined(MPI_OPT)
 !  local variables
-      INTEGER                           :: i
       INTEGER                           :: error
       INTEGER                           :: mpi_rank
 
@@ -4871,7 +4881,7 @@
 
 !  If this is the parent process, load the wout file.
       IF (mpi_rank .eq. 0) THEN
-         CALL copy_file(build_path(process_dir(index + 1),                  &
+         CALL copy_file(build_path(process_dir(index + 1),                     &
      &                             this%wout_file_name),                       &
      &                  TRIM(this%wout_file_name), error)
 

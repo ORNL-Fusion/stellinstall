@@ -201,7 +201,8 @@
       magnetic_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_eq_flag) .or.                 &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+     &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
      &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
 
          IF (magnetic_response_is_point(this%response)) THEN
