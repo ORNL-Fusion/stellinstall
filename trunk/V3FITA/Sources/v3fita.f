@@ -367,6 +367,11 @@
       CALL reconstruction_eval_f(context%recon, context%derived_params,        &
      &                           context%model)
 
+!  Save the signal values from the first 0th reconstruction step.
+      DO i = 1, SIZE(context%signals)
+         context%recon%last_values(:,i) = context%signals(i)%p%modeled
+      END DO
+
 #if defined(MPI_OPT)
 !  Sync the number of equilibrium steps the inital convergence took so that the'
 !  child processes start in the same place.
