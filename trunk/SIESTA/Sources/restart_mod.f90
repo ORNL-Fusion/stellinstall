@@ -209,7 +209,7 @@
          CALL cdf_read(ncid, vn_jpress,  tempmn)
          CALL interpit(tempmn, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
          jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
-      ELSE
+      ELSE IF (l_asym) THEN
          jbsupsmnch = 0
          jbsupumnsh = 0
          jbsupvmnsh = 0
@@ -245,6 +245,7 @@
       USE fourier
       USE shared_data, ONLY: l_asym, l_recon
       USE island_params, ONLY: ohs => ohs_i
+      USE fourier, ONLY: orthonorm
 
       IMPLICIT NONE
 
@@ -257,7 +258,7 @@
       INTEGER                                     :: flags
       INTEGER                                     :: ncid
       INTEGER                                     :: nblock
-      INTEGER                                     :: m, n
+      INTEGER                                     :: s, m, n
       REAL (rprec)                                :: r0
       REAL (rprec)                                :: tempscalar
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsupsijh
@@ -410,12 +411,24 @@
          tempmn = 0
 
          CALL tomnsp(bsupsijh, tempmn, f_sin, f_half)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+         END DO
          CALL cdf_write(ncid, vn_bsupsmns, tempmn)
          CALL tomnsp(bsupuijh, tempmn, f_cos, f_half)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+         END DO
          CALL cdf_write(ncid, vn_bsupumnc, tempmn)
          CALL tomnsp(bsupvijh, tempmn, f_cos, f_half)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+         END DO
          CALL cdf_write(ncid, vn_bsupvmnc, tempmn)
          CALL tomnsp(pijh, tempmn, f_cos, f_half)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+         END DO
          CALL cdf_write(ncid, vn_pmnc, tempmn)
 
          ALLOCATE(bsubsijh(ntheta,nzeta,ns))
@@ -430,11 +443,20 @@
          ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
          CALL tomnsp(bsubsijh, bsubsmnh, f_sin, f_half)
-         CALL cdf_write(ncid, vn_bsubsmns, bsubsmnh)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*bsubsmnh(:,:,s)
+         END DO
+         CALL cdf_write(ncid, vn_bsubsmns, tempmn)
          CALL tomnsp(bsubuijh, bsubumnh, f_cos, f_half)
-         CALL cdf_write(ncid, vn_bsubumnc, bsubumnh)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*bsubumnh(:,:,s)
+         END DO
+         CALL cdf_write(ncid, vn_bsubumnc, tempmn)
          CALL tomnsp(bsubvijh, bsubvmnh, f_cos, f_half)
-         CALL cdf_write(ncid, vn_bsubvmnc, bsubvmnh)
+         DO s = 1, ns
+            tempmn(:,:,s) = orthonorm*bsubvmnh(:,:,s)
+         END DO
+         CALL cdf_write(ncid, vn_bsubvmnc, tempmn)
 
 !  Need full mesh values to compute currents on the full mesh.
          ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,ns))
@@ -446,13 +468,6 @@
          CALL to_full_mesh(bsubumnh, bsubumnf, nblock)
          CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock)
 
-!         bsubsmnf(:,:,1) = 0
-!         bsubumnf(:,:,1) = 0
-!         bsubsmnf(m1,:,1) = bsubsmnh(m1,:,1)
-!         bsubumnf(m1,:,1) = bsubumnh(m1,:,1)
-!         bsubvmnf(:,:,1) = 0
-!         bsubvmnf(m0:m1,:,1) = bsubvmnh(m0:m1,:,2)
-
          ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupvmnf(0:mpol,-ntor:ntor,ns))
@@ -463,17 +478,14 @@
          CALL GradientFull(dbuds, bsubumnh, nblock)
          CALL GradientFull(dbvds, bsubvmnh, nblock)
 
-!         r0 = hs_i/2
-!         dbuds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
-!         bsubvmnf(m1,:,1) = bsubvmnh(m1,:,2)
-!         dbvds(m1,:,1)    = 2*ohs*bsubvmnh(m1,:,2)                      !--> 0
-!         bsubumnf(m1,:,1) = r0*bsubsmnf(m1,:,1)
-
          DO n = -ntor, ntor
             DO m = 0, mpol
                jksupsmnf(m,n,:) = -m*    bsubvmnf(m,n,:) + n*nfp*bsubumnf(m,n,:)
                jksupumnf(m,n,:) =  n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
                jksupvmnf(m,n,:) =  dbuds(m,n,:)          - m*    bsubsmnf(m,n,:)
+               jksupsmnf(m,n,:) =  orthonorm(m,n)*jksupsmnf(m,n,:)
+               jksupumnf(m,n,:) =  orthonorm(m,n)*jksupumnf(m,n,:)
+               jksupvmnf(m,n,:) =  orthonorm(m,n)*jksupvmnf(m,n,:)
             END DO
          END DO
 
@@ -483,45 +495,57 @@
 
          IF (l_asym) THEN
             CALL tomnsp(bsupsijh, tempmn, f_cos, f_half)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            END DO
             CALL cdf_write(ncid, vn_bsupsmnc, tempmn)
             CALL tomnsp(bsupuijh, tempmn, f_sin, f_half)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            END DO
             CALL cdf_write(ncid, vn_bsupumns, tempmn)
             CALL tomnsp(bsupvijh, tempmn, f_sin, f_half)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            END DO
             CALL cdf_write(ncid, vn_bsupvmns, tempmn)
             CALL tomnsp(pijh, tempmn, f_sin, f_half)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
+            END DO
             CALL cdf_write(ncid, vn_pmns, tempmn)
 
             CALL tomnsp(bsubsijh, bsubsmnh, f_cos, f_half)
-            CALL cdf_write(ncid, vn_bsubsmnc, bsubsmnh)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*bsubsmnh(:,:,s)
+            END DO
+            CALL cdf_write(ncid, vn_bsubsmnc, tempmn)
             CALL tomnsp(bsubuijh, bsubumnh, f_sin, f_half)
-            CALL cdf_write(ncid, vn_bsubumns, bsubumnh)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*bsubumnh(:,:,s)
+            END DO
+            CALL cdf_write(ncid, vn_bsubumns, tempmn)
             CALL tomnsp(bsubvijh, bsubvmnh, f_sin, f_half)
-            CALL cdf_write(ncid, vn_bsubvmns, bsubvmnh)
+            DO s = 1, ns
+               tempmn(:,:,s) = orthonorm*bsubvmnh(:,:,s)
+            END DO
+            CALL cdf_write(ncid, vn_bsubvmns, tempmn)
 
             CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock)
             CALL to_full_mesh(bsubumnh, bsubumnf, nblock)
             CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock)
 
-!            bsubsmnf(:,:,1) = 0
-!            bsubumnf(:,:,1) = 0
-!            bsubsmnf(m1,:,1) = bsubsmnh(m1,:,1)
-!            bsubumnf(m1,:,1) = bsubumnh(m1,:,1)
-!            bsubvmnf(:,:,1) = 0
-!            bsubvmnf(m0:m1,:,1) = bsubvmnh(m0:m1,:,2)
-
             CALL GradientFull(dbuds, bsubumnh, nblock)
             CALL GradientFull(dbvds, bsubvmnh, nblock)
-
-!            dbuds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
-!            bsubvmnf(m1,:,1) = bsubvmnh(m1,:,2)
-!            dbvds(m1,:,1)    = 2*ohs*bsubvmnh(m1,:,2)                      !--> 0
-!            bsubumnf(m1,:,1) = r0*bsubsmnf(m1,:,1)
 
             DO n = -ntor, ntor
                DO m = 0, mpol
                   jksupsmnf(m,n,:) =  m*    bsubvmnf(m,n,:) - n*nfp*bsubumnf(m,n,:)
                   jksupumnf(m,n,:) = -n*nfp*bsubsmnf(m,n,:) - dbvds(m,n,:)
                   jksupvmnf(m,n,:) =  dbuds(m,n,:)          + m*    bsubsmnf(m,n,:)
+                  jksupsmnf(m,n,:) =  orthonorm(m,n)*jksupsmnf(m,n,:)
+                  jksupumnf(m,n,:) =  orthonorm(m,n)*jksupumnf(m,n,:)
+                  jksupvmnf(m,n,:) =  orthonorm(m,n)*jksupvmnf(m,n,:)
                END DO
             END DO
 

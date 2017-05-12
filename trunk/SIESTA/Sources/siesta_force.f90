@@ -144,6 +144,8 @@
        CALL toijsp_par(bsupumnsh_i, bsupuijh, f_sum, f_sin, f_full, 1, ns_span)
        CALL toijsp_par(bsupvmnsh_i, bsupvijh, f_sum, f_sin, f_full, 1, ns_span)
 
+       DEALLOCATE(bsupsmnch_i, bsupumnsh_i, bsupvmnsh_i, stat=istat)
+
  1000  CONTINUE
 
 !
