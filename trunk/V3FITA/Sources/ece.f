@@ -179,6 +179,8 @@
          IF (found) THEN
             ece_get_modeled_signal(1) =                                        &
      &         model_get_te(a_model, ece_get_modeled_signal(2:4))
+         ELSE
+            ece_get_modeled_signal(1) = 0.0
          END IF
 
          DEALLOCATE(context)
