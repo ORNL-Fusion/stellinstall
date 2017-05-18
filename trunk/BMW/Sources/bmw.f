@@ -1,7 +1,7 @@
 !*******************************************************************************
 !>  @file bmw.f
 !>  @brief Contains the main routines for Biot-Savart Magnetic Vmec
-!>  Vector-Potential code.
+!>  Vector-Potential (BMW) code.
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
@@ -60,10 +60,10 @@
       cl_parser => bmw_commandline_parser_construct()
 
       flags = 0
-      IF (bmw_commandline_parser_is_flag_set(cl_parser, 'ju')) THEN
+      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-ju')) THEN
          flags = IBSET(flags, primed_grid_ju_flag)
       END IF
-      IF (bmw_commandline_parser_is_flag_set(cl_parser, 'jv')) THEN
+      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-jv')) THEN
          flags = IBSET(flags, primed_grid_jv_flag)
       END IF
 

@@ -214,23 +214,26 @@
                r_m = (i - 2.0)*mgrid%dr + mgrid%rmin
                r = (i - 1.0)*mgrid%dr + mgrid%rmin
 
-               ar_p = unprimed_grid_construct%a_r(i + 1,j,k)
-               ar_m = unprimed_grid_construct%a_r(i - 1,j,k)
-
-               az_p = unprimed_grid_construct%a_z(i,j + 1,k)
-               az_m = unprimed_grid_construct%a_z(i,j - 1,k)
-
-               ap_p = unprimed_grid_construct%a_p(i,j,k_p)
-               ap_m = unprimed_grid_construct%a_p(i,j,k_m)
-
+               az_p = unprimed_grid_construct%a_z(i,j,k_p)
+               az_m = unprimed_grid_construct%a_z(i,j,k_m)
+               ap_p = unprimed_grid_construct%a_p(i,j + 1,k)
+               ap_m = unprimed_grid_construct%a_p(i,j - 1,k)
                unprimed_grid_construct%b_r(i,j,k) =                            & ! 1/rdazdp - dapdz
      &            (az_p - az_m)/(2.0*pgrid%dv*r) -                             &
      &            (ap_p - ap_m)/(2.0*mgrid%dz)
 
+               ar_p = unprimed_grid_construct%a_z(i,j + 1,k)
+               ar_m = unprimed_grid_construct%a_z(i,j - 1,k)
+               az_p = unprimed_grid_construct%a_p(i + 1,j,k)
+               az_m = unprimed_grid_construct%a_p(i - 1,j,k)
                unprimed_grid_construct%b_p(i,j,k) =                            & ! dardz - dazdr
      &            (ar_p - ar_m)/(2.0*mgrid%dz) -                               &
      &            (az_p - az_m)/(2.0*mgrid%dr)
 
+               ar_p = unprimed_grid_construct%a_z(i,j,k_p)
+               ar_m = unprimed_grid_construct%a_z(i,j,k_m)
+               ap_p = unprimed_grid_construct%a_p(i + 1,j,k)
+               ap_m = unprimed_grid_construct%a_p(i - 1,j,k)
                unprimed_grid_construct%b_z(i,j,k) =                            & ! 1/r(drapdr - dardp)
      &            (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r) -                     &
      &            (ar_p - ar_m)/(2.0*pgrid%dv*r)

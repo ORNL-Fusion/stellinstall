@@ -41,11 +41,11 @@
 !>  Number of field periods.
          INTEGER                                 :: nfp
 
-!>  Current density in the X direction.
+!>  Vector potential in the R direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_r => null()
-!>  Current density in the Y direction.
+!>  Vector potential in the Phi direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_p => null()
-!>  Current density in the Z direction.
+!>  Vector potential in the Z direction.
          REAL (rprec), DIMENSION(:,:,:), POINTER :: a_z => null()
       END TYPE
 
