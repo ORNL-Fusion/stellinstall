@@ -4,7 +4,7 @@
       USE siesta_state, ONLY: update_state, update_state_par
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale,             &
                              lasym, hesspass_test, mupar_test,           &
-                             buv_res
+                             buv_res, lrecon
 !#if defined(SKS)
       USE nscalingtools, ONLY: PARFUNCTISL
 !#endif
@@ -66,7 +66,7 @@
                eta_factor, nphis, nrs, nzs, nvs, nus, nss, l_tracing,    &
                ngmres_type, iortho, lcolscale,                           &
                l_silo_output, l_silo3D, nprecon, l_output_alliter,       & 
-               l_VMEC_Uniform, lasym, HessPass_Test, mupar_test
+               l_VMEC_Uniform, lasym, HessPass_Test, mupar_test, lrecon
 
 !-----------------------------------------------
 !     
