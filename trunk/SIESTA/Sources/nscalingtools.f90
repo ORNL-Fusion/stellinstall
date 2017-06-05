@@ -6,19 +6,18 @@
 !------------------------------------------------
 MODULE nscalingtools
 USE stel_kinds
+#if defined(MPI_OPT)
 #if defined(SKS)
 USE blocktridiagonalsolver, ONLY: &
 & SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU, &
 & GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU, &
 & GetMatrixRHS, StoreDiagonal
 #endif
-#if defined(MPI_OPT)
 USE mpi_inc
 #endif
 IMPLICIT NONE
-
 !------------------------------------------------
-! User controlled logicals
+! User-controlled logicals
 !------------------------------------------------
 LOGICAL :: SKSDBG=.FALSE.
 LOGICAL :: KPDBG=.FALSE.
@@ -41,26 +40,26 @@ CHARACTER, ALLOCATABLE :: remapBuffer(:)
 
 INTEGER :: TOFU
 INTEGER :: OpenStatus, nargs
-INTEGER :: N, M, K, KSQR, MPOL, NTOR
+INTEGER, PRIVATE :: N, M, K, KSQR, MPOL, NTOR
 INTEGER, PARAMETER :: SAVEDIAG=4, LOWER=3,DIAG=2,UPPER=1
 
 !This is to stitch to blocktri variables of
 !same name. Just USE nscalingtools.
 INTEGER :: startglobrow, endglobrow, numBlocks
 INTEGER, ALLOCATABLE, DIMENSION (:) :: bcyclicStartBlockProc, bcyclicEndBlockProc
-INTEGER, ALLOCATABLE, DIMENSION (:) :: tagBlock, tagColInBlock
-INTEGER, ALLOCATABLE, DIMENSION (:) :: rcounts, disp
-INTEGER, ALLOCATABLE, DIMENSION (:) :: rcountsNS, dispNS     !SPH 092116
-INTEGER :: a, b, c, flag, cnt, totRecvs, nrecd
-INTEGER :: icol, itype, block_row, irow, procID, ierror, localbrow
-INTEGER :: activeranks, rank, nranks, leftproc, rightproc
+INTEGER, ALLOCATABLE, DIMENSION (:), PRIVATE :: tagBlock, tagColInBlock
+INTEGER, ALLOCATABLE, DIMENSION (:), TARGET :: rcounts, disp             !SPH added TARGET
+INTEGER, ALLOCATABLE, DIMENSION (:) :: rcountsNS, dispNS                 !SPH 092116
+INTEGER, PRIVATE :: a, b, c, flag, cnt 
+INTEGER, PRIVATE :: icol, itype, block_row, irow, procID, ierror, localbrow
+INTEGER :: activeranks, rank, nranks, leftproc, rightproc, totRecvs, nrecd
 INTEGER :: tag, MPI_ERR, SYSMAXTAG, APPMAXTAG
 INTEGER :: PACKSIZE
 
 ! HESSIAN MN-SPACE GATHER-related variables
 INTEGER :: linblksize
 INTEGER, ALLOCATABLE, DIMENSION(:) :: mnspcounts, mnspdisps
-LOGICAL, SAVE :: SetUpTOMNSPAllGatherDONE=.FALSE.
+LOGICAL, PRIVATE :: SetUpTOMNSPAllGatherDONE=.FALSE.
 
 #if defined(MPI_OPT)
 INTEGER :: MPI_Status(MPI_STATUS_SIZE)
@@ -70,9 +69,8 @@ INTEGER :: MPI_Status(MPI_STATUS_SIZE)
 CONTAINS
 
 !--------------------------------------------------------------------------
-SUBROUTINE  MyEnvVariables(iam)
+SUBROUTINE  MyEnvVariables
 IMPLICIT NONE
-INTEGER :: iam
 
 
 !--------------------------------------------------------------------------
@@ -144,7 +142,7 @@ END SUBROUTINE SetOutputFile
 ! module
 !------------------------------------------------
 SUBROUTINE initRemap (mpol_in,ntor_in,blkrownum,numprocs,myrank)
-USE shared_data, ONLY: ndims, l_asym
+USE shared_data, ONLY: ndims
 IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: mpol_in,ntor_in,blkrownum,numprocs,myrank 

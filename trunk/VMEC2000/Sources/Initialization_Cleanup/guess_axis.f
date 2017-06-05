@@ -37,7 +37,8 @@ C-----------------------------------------------
       REAL(rprec) :: skston, skstoff
       REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:) :: bcastbuf
 !      REAL(rprec), DIMENSION(2) :: tmp
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) :: tmp
+      REAL(rprec), ALLOCATABLE :: tmp(:)
+      REAL(rprec)              :: tmp2(nzeta,2)
 C-----------------------------------------------
 !
 !     COMPUTES GUESS FOR MAGNETIC AXIS IF USER GUESS
@@ -77,7 +78,7 @@ C-----------------------------------------------
 
         CALL second0(skston)
         CALL MPI_Bcast(bcastbuf,6*nznt,MPI_REAL8,bcastrank,
-     1                    NS_COMM, MPI_ERR)
+     1                 NS_COMM, MPI_ERR)
         CALL second0(skstoff)
         broadcast_time = broadcast_time + (skstoff -skston)
 
@@ -97,7 +98,7 @@ C-----------------------------------------------
 
         CALL second0(skston)
         CALL MPI_Bcast(bcastbuf,6*nznt,MPI_REAL8,nranks-1,
-     1                    NS_COMM, MPI_ERR)
+     1                 NS_COMM, MPI_ERR)
         CALL second0(skstoff)
         broadcast_time = broadcast_time + (skstoff -skston)
 
@@ -111,7 +112,7 @@ C-----------------------------------------------
 
         CALL second0(skston)
         CALL MPI_Bcast(psqrts(1,ns12),1,MPI_REAL8,bcastrank,
-     1                    NS_COMM, MPI_ERR)
+     1                 NS_COMM, MPI_ERR)
         CALL second0(skstoff)
         broadcast_time = broadcast_time + (skstoff -skston)
 
@@ -207,7 +208,13 @@ C-----------------------------------------------
          END DO
 
       END DO planes
+!      CALL STOPMPI(12313)
 
+!Distribute to all processors, not just NS_COMM
+      tmp2(:,1) = rcom;  tmp2(:,2) = zcom
+      CALL MPI_BCast(tmp2,2*nzeta,MPI_REAL8,0,
+     1               RUNVMEC_COMM_WORLD,MPI_ERR)
+      rcom = tmp2(:,1); zcom = tmp2(:,2)
 !
 !     FOURIER TRANSFORM RCOM, ZCOM
 !
@@ -222,9 +229,6 @@ C-----------------------------------------------
             zaxis_cc(n) = p5*zaxis_cc(n)
          END IF
       END DO
-
-
-!  100 FORMAT(' n = ',i4,' raxis = ',1pe10.3,' zaxis = ',1pe10.3)
 
       CALL second0(skstoff)
       guess_axis_time = guess_axis_time + (skstoff - skston)
@@ -354,6 +358,7 @@ C-----------------------------------------------
          END DO
 
       END DO planes
+!      CALL STOPMPI(12313)
 
 
 !

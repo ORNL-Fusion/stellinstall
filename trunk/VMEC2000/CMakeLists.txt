@@ -42,6 +42,7 @@ if (LAPACK_FOUND)
 	target_link_libraries (xvmec ${LAPACK_LIBRARIES})
 endif ()
 
+if (0)
 # build anmec
 add_library (animec STATIC ${vmec_sources})
 add_dependencies (animec stell)
@@ -78,4 +79,6 @@ if (BLAS_FOUND)
 endif ()
 if (LAPACK_FOUND)
 	target_link_libraries (xanimec ${LAPACK_LIBRARIES})
+endif ()
+
 endif ()

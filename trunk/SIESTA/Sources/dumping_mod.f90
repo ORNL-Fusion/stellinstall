@@ -36,15 +36,19 @@
       USE nscalingtools, ONLY: MPI_STATUS
 #endif
       USE descriptor_mod, ONLY: iam, nprocs
-      USE fourier, ONLY: f_ds, f_du, f_dv, f_cos, f_sin, f_half, f_none, &
-                         f_full, f_sum
+      USE fourier, ONLY: f_ds, f_du, f_dv, f_cos, f_sin, f_none, f_sum
       IMPLICIT NONE     
 #if defined(SILO_AVAIL)
       INCLUDE "silo.inc"
 #endif
+      PRIVATE
 !-----------------------------------------------
       LOGICAL :: l_tracing
 !-----------------------------------------------
+!     Grid flags.
+      INTEGER, PARAMETER :: f_full = 0
+      INTEGER, PARAMETER :: f_half = 1
+
       INTEGER, PARAMETER :: unit_trace=40, nunit_pres=50,                & ! Unit numbers for output
                             nunit_pres1=51
       INTEGER, PARAMETER :: nsilo=33                                       ! Number of vectors dumped to silo 
@@ -112,6 +116,8 @@
       REAL(dp), DIMENSION(:,:), ALLOCATABLE :: pack_bfld
       REAL, DIMENSION(:,:), ALLOCATABLE   :: silo2d, pack_silo
       REAL, DIMENSION(:,:,:), ALLOCATABLE :: silo3d  
+
+      PUBLIC :: write_output
 !-----------------------------------------------
 
       CONTAINS  
@@ -151,7 +157,6 @@
 #if defined(MPI_OPT)
         USE mpi_inc
 #endif
-        IMPLICIT NONE     
 !-----------------------------------------------
         CHARACTER(LEN=*), INTENT(IN) :: wout_file
         INTEGER, INTENT(IN):: iter
@@ -422,7 +427,6 @@
 #if defined(MPI_OPT)
         USE mpi_inc
 #endif
-        IMPLICIT NONE
         INTEGER, INTENT(IN) :: nunit, ndum1, maxprocs
         INTEGER             :: ndum, to=0, from, tag, ik, lk, mpi_err
 
@@ -458,7 +462,6 @@
 #if defined(MPI_OPT)
         USE mpi_inc
 #endif
-        IMPLICIT NONE
         INTEGER, INTENT(IN) :: nunit, ndum1, maxprocs
         INTEGER             :: ndum, to=0, from, tag, ik, lk, mpi_err
 
@@ -495,7 +498,6 @@
      
         SUBROUTINE open_dump_files(iter)
         USE stel_kinds
-        IMPLICIT NONE
         INTEGER, INTENT(IN):: iter
         INTEGER:: ilen, ierr
         CHARACTER(LEN=30)  :: label, tag
@@ -657,7 +659,6 @@
    
         SUBROUTINE close_dump_files
         USE stel_kinds
-        IMPLICIT NONE
         INTEGER:: ierr
 
         IF (iam .NE. 0) RETURN
@@ -687,7 +688,7 @@
           ksupsmncf,  ksupumnsf, ksupvmnsf,                              &
           bsubsijf,  bsubuijf, bsubvijf,                                 &
           ksubsijf,  ksubuijf, ksubvijf
-        IMPLICIT NONE
+        USE siesta_init, ONLY: init_state
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -707,9 +708,9 @@
         CALL to_half_mesh(zmns_i, zmns_ih, nblock)                         ! RMNC_i, ZMNS_i form METRICs. Deallocated elsewhere.
         ALLOCATE(jacmnch(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
         IF (istat .NE. 0) STOP 'Allocation failed in PREPARE_QUANTITIES'    
-        CALL tomnsp(jacobh, jacmnch, f_cos, f_half); jacmnch(:,:,1)=0
+        CALL tomnsp(jacobh, jacmnch, f_cos); jacmnch(:,:,1)=0
 
-        IF (l_asym) THEN
+        IF (lasym) THEN
         ALLOCATE(rmns_ih(0:mpol,-ntor:ntor,ns),                          &
                  zmnc_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmns_ih = zero; zmnc_ih = zero
@@ -718,7 +719,7 @@
         CALL to_half_mesh(zmnc_i, zmnc_ih, nblock)                         ! RMNS_i, ZMNC_i form METRICs. Deallocated elsewhere.
         ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
         IF (istat .NE. 0) STOP 'Allocation failed in PREPARE_QUANTITIES'
-        CALL tomnsp(jacobh, jacmnsh, f_sin, f_half); jacmnsh(:,:,1)=0
+        CALL tomnsp(jacobh, jacmnsh, f_sin); jacmnsh(:,:,1)=0
         END IF
 
 !
@@ -734,12 +735,12 @@
 
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
         IF (istat .NE. 0) STOP 'Allocation failed in DUMP_PRESSURE'        ! which are stored in PMNCH       
-        CALL tomnsp(pijh, pmnch, f_cos, f_half); pmnch(:,:,1) = zero
+        CALL tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
 
-        IF (l_asym) THEN
+        IF (lasym) THEN
         ALLOCATE(pmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
         IF (istat .NE. 0) STOP 'Allocation failed in DUMP_PRESSURE'        ! which are stored in PMNCH
-        CALL tomnsp(pijh, pmnsh, f_sin, f_half); pmnsh(:,:,1) = zero
+        CALL tomnsp(pijh, pmnsh, f_sin); pmnsh(:,:,1) = zero
         END IF
 
         IF (l_tracing .OR. l_silo_output) THEN
@@ -751,18 +752,18 @@
                     bsupumnch(0:mpol,-ntor:ntor,ns),                     &
                     bsupvmnch(0:mpol,-ntor:ntor,ns), stat=istat)
           IF (istat .NE. 0) STOP 'Allocation failed in PREPARE_QUANTITIES'
-          CALL tomnsp(bsupsijh0, bsupsmnsh, f_sin, f_half); bsupsmnsh(:,:,1) = zero    ! compute harmonics
-          CALL tomnsp(bsupuijh0, bsupumnch, f_cos, f_half); bsupumnch(:,:,1) = zero
-          CALL tomnsp(bsupvijh0, bsupvmnch, f_cos, f_half); bsupvmnch(:,:,1) = zero
+          CALL tomnsp(bsupsijh0, bsupsmnsh, f_sin); bsupsmnsh(:,:,1) = zero    ! compute harmonics
+          CALL tomnsp(bsupuijh0, bsupumnch, f_cos); bsupumnch(:,:,1) = zero
+          CALL tomnsp(bsupvijh0, bsupvmnch, f_cos); bsupvmnch(:,:,1) = zero
 
-          IF (l_asym) THEN
+          IF (lasym) THEN
           ALLOCATE(bsupsmnch(0:mpol,-ntor:ntor,ns),                      &
                    bsupumnsh(0:mpol,-ntor:ntor,ns),                      &
                    bsupvmnsh(0:mpol,-ntor:ntor,ns), stat=istat)
           IF (istat .NE. 0) STOP 'Allocation failed in PREPARE_QUANTITIES'
-          CALL tomnsp(bsupsijh0, bsupsmnch, f_cos, f_half); bsupsmnch(:,:,1) = zero    ! compute harmonics
-          CALL tomnsp(bsupuijh0, bsupumnsh, f_sin, f_half); bsupumnsh(:,:,1) = zero
-          CALL tomnsp(bsupvijh0, bsupvmnsh, f_sin, f_half); bsupvmnsh(:,:,1) = zero
+          CALL tomnsp(bsupsijh0, bsupsmnch, f_cos); bsupsmnch(:,:,1) = zero    ! compute harmonics
+          CALL tomnsp(bsupuijh0, bsupumnsh, f_sin); bsupumnsh(:,:,1) = zero
+          CALL tomnsp(bsupvijh0, bsupvmnsh, f_sin); bsupvmnsh(:,:,1) = zero
           END IF
         END IF
 
@@ -786,14 +787,14 @@
                     ksubumncf(0:mpol,-ntor:ntor,ns),                     &
                     ksubvmncf(0:mpol,-ntor:ntor,ns), stat=istat)
            IF (istat .ne. 0) STOP 'Allocation failed in DUMPING PREPARE_QUANTITIES' 
-           CALL tomnsp(bsubsijh, bsubsmnsh, f_sin, f_full)               ! compute harmonics
-           CALL tomnsp(bsubuijh, bsubumnch, f_cos, f_full)
-           CALL tomnsp(bsubvijh, bsubvmnch, f_cos, f_full)
-           CALL tomnsp(ksubsijf, ksubsmnsf, f_sin, f_full)               ! compute harmonics
-           CALL tomnsp(ksubuijf, ksubumncf, f_cos, f_full)
-           CALL tomnsp(ksubvijf, ksubvmncf, f_cos, f_full)
+           CALL tomnsp(bsubsijh, bsubsmnsh, f_sin)                       ! compute harmonics
+           CALL tomnsp(bsubuijh, bsubumnch, f_cos)
+           CALL tomnsp(bsubvijh, bsubvmnch, f_cos)
+           CALL tomnsp(ksubsijf, ksubsmnsf, f_sin)                       ! compute harmonics
+           CALL tomnsp(ksubuijf, ksubumncf, f_cos)
+           CALL tomnsp(ksubvijf, ksubvmncf, f_cos)
 
-           IF (l_asym) THEN
+           IF (lasym) THEN
            ksupsmncf = ksupsmncf/b_factor
            ksupumnsf = ksupumnsf/b_factor
            ksupvmnsf = ksupvmnsf/b_factor
@@ -805,12 +806,12 @@
                     ksubumnsf(0:mpol,-ntor:ntor,ns),                     &
                     ksubvmnsf(0:mpol,-ntor:ntor,ns), stat=istat)
            IF (istat .ne. 0) STOP 'Allocation failed in DUMPING PREPARE_QUANTITIES'
-           CALL tomnsp(bsubsijh, bsubsmnch, f_cos, f_full)               ! compute harmonics
-           CALL tomnsp(bsubuijh, bsubumnsh, f_sin, f_full)
-           CALL tomnsp(bsubvijh, bsubvmnsh, f_sin, f_full)
-           CALL tomnsp(ksubsijf, ksubsmncf, f_cos, f_full)               ! compute harmonics
-           CALL tomnsp(ksubuijf, ksubumnsf, f_sin, f_full)
-           CALL tomnsp(ksubvijf, ksubvmnsf, f_sin, f_full)
+           CALL tomnsp(bsubsijh, bsubsmnch, f_cos)                       ! compute harmonics
+           CALL tomnsp(bsubuijh, bsubumnsh, f_sin)
+           CALL tomnsp(bsubvijh, bsubvmnsh, f_sin)
+           CALL tomnsp(ksubsijf, ksubsmncf, f_cos)
+           CALL tomnsp(ksubuijf, ksubumnsf, f_sin)
+           CALL tomnsp(ksubvijf, ksubvmnsf, f_sin)
            END IF
 
            DEALLOCATE (bsubsijh, bsubuijh, bsubvijh)
@@ -834,19 +835,18 @@
    
         SUBROUTINE dealloc_quantities_dump
         USE stel_kinds
-        IMPLICIT NONE
         
         DEALLOCATE(rmnc_ih, zmns_ih, jacmnch, pmnch)
-        IF (l_asym) DEALLOCATE(rmns_ih, zmnc_ih, jacmnsh, pmnsh)
+        IF (lasym) DEALLOCATE(rmns_ih, zmnc_ih, jacmnsh, pmnsh)
         IF (l_silo_output .OR. l_tracing) THEN
            DEALLOCATE(bsupsmnsh, bsupumnch, bsupvmnch)
-           IF (l_asym) DEALLOCATE(bsupsmnch, bsupumnsh, bsupvmnsh)
+           IF (lasym) DEALLOCATE(bsupsmnch, bsupumnsh, bsupvmnsh)
         END IF
 #if defined(SILO_AVAIL)
         IF (l_silo_output) THEN
            DEALLOCATE(ksubsmnsf, ksubumncf, ksubvmncf,                   &
                       bsubsmnsh, bsubumnch, bsubvmnch)
-           IF (l_asym) THEN
+           IF (lasym) THEN
            DEALLOCATE(ksubsmncf, ksubumnsf, ksubvmnsf,                   &
                       bsubsmnch, bsubumnsh, bsubvmnsh)
            END IF
@@ -857,14 +857,13 @@
 
         SUBROUTINE flx_to_cyl(ss, uu, vv, rr, zz)
         USE stel_kinds
-        IMPLICIT NONE
         REAL(rprec), INTENT(IN):: vv, ss, uu                                ! flux-coordinates: (s, u, v) = (SS, UU, VV)
         REAL(rprec), INTENT(OUT):: rr, zz                                   ! CYL-coordinates: (rr, zz, v) = (R, Z, Phi)
 
         CALL toijsp_1p(rmnc_ih, ss, uu, vv, rr, f_none, f_cos, f_half)      ! SUM MN-series at target point
         CALL toijsp_1p(zmns_ih, ss, uu, vv, zz, f_none, f_sin, f_half)      ! SUM MN-series at target point
 
-        IF (l_asym) THEN
+        IF (lasym) THEN
         CALL toijsp_1p(rmns_ih, ss, uu, vv, rr, f_sum, f_sin, f_half)      ! SUM MN-series at target point
         CALL toijsp_1p(zmnc_ih, ss, uu, vv, zz, f_sum, f_cos, f_half)      ! SUM MN-series at target point
         END IF
@@ -874,7 +873,6 @@
                                               
         SUBROUTINE dump_pressure(vv, ss, uu, info, iunit)                   ! Subroutine used to produce pressure files (plotted with PGPLOT)
         USE stel_kinds
-        IMPLICIT NONE
         INTEGER, INTENT(IN)  :: info, iunit                                 ! ... and "s" is radius (i.e., SQRT(VMEC-S))  
         REAL(dp), INTENT(IN) :: vv, ss, uu                                  ! flux-coordinates: (s, u, v) = (SS, UU, VV)
         REAL(dp):: pp
@@ -885,7 +883,7 @@
            
         ELSEIF (info == 0) THEN                                             ! s<1 => DUMP pressure info           
           CALL toijsp_1p(pmnch, ss, uu, vv, pp, f_none, f_cos, f_half)      ! SUM MN-series at target point
-          IF (l_asym) THEN
+          IF (lasym) THEN
           CALL toijsp_1p(pmnsh, ss, uu, vv, pp, f_sum,  f_sin, f_half)      ! SUM MN-series at target point
           END IF
           pprof(iunit) = pp
@@ -908,7 +906,6 @@
         USE diagnostics_mod, ONLY: bdotjmnch, divjmnsh, divbmnsf,        &
                                    bdotjmnsh, divjmnch, divbmncf
         USE perturbation, ONLY: mres1, nres1, mres2, nres2
-        IMPLICIT NONE
         LOGICAL, INTENT(IN)    :: lbfld, lsilo
         REAL(rprec), INTENT(IN):: rr, zz, vv, ss, uu                        ! flux-coordinates: (s, u, v) = (SS, UU, VV)
         REAL(rprec):: pp, bs, bu, bv, ru, rv, rs, zu, zv, zs,            &
@@ -938,7 +935,7 @@
 !END DO
 !WRITE (*,*) 'sym', bs, bu, bv
 
-          IF (l_asym) THEN
+          IF (lasym) THEN
           ds = IOR(f_sum, f_ds)
           du = IOR(f_sum, f_du)
           dv = IOR(f_sum, f_dv)
@@ -989,7 +986,7 @@
             CALL toijsp_1p(ksupumncf, ss, uu, vv, ku, f_none, f_cos, f_full)  ! SUM MN-series at target point
             CALL toijsp_1p(ksupvmncf, ss, uu, vv, kv, f_none, f_cos, f_full)  ! SUM MN-series at target point
 
-            IF (l_asym) THEN
+            IF (lasym) THEN
             CALL toijsp_1p(ksupsmncf, ss, uu, vv, ks, f_sum, f_cos, f_full)   ! Get contravariant jacob*current also: SUM MN-series at target point
             CALL toijsp_1p(ksupumnsf, ss, uu, vv, ku, f_sum, f_sin, f_full)   ! SUM MN-series at target point
             CALL toijsp_1p(ksupvmnsf, ss, uu, vv, kv, f_sum, f_sin, f_full)   ! SUM MN-series at target point
@@ -1007,15 +1004,15 @@
 
 ! Forces (Need contravariant K's and B's: thus, need to be done here!)
             CALL toijsp_1p(pmnch, ss, uu, vv, dpp, f_ds, f_cos, f_half)    ! Get radial derivative of pressure
-            IF (l_asym) CALL toijsp_1p(pmnsh, ss, uu, vv, dpp, ds, f_sin, f_half)
+            IF (lasym) CALL toijsp_1p(pmnsh, ss, uu, vv, dpp, ds, f_sin, f_half)
             fors = (ku*bv - kv*bu - dpp)                                   ! forces_silo
 
             CALL toijsp_1p(pmnch, ss, uu, vv, dpp, f_du, f_cos, f_half)    ! Get poloidal derivative of pressure
-            IF (l_asym) CALL toijsp_1p(pmnsh, ss, uu, vv, dpp, du, f_sin, f_half)
+            IF (lasym) CALL toijsp_1p(pmnsh, ss, uu, vv, dpp, du, f_sin, f_half)
             foru = (kv*bs - ks*bv - dpp)                                   ! forceu_silo
 
             CALL toijsp_1p(pmnch, ss, uu, vv, dpp, f_dv, f_cos, f_half)    ! Get toroidal derivative of pressure
-            IF (l_asym) CALL toijsp_1p(pmnsh, ss, uu, vv, dpp, dv, f_sin, f_half)
+            IF (lasym) CALL toijsp_1p(pmnsh, ss, uu, vv, dpp, dv, f_sin, f_half)
             forv = (ks*bu - ku*bs - dpp)                                   ! forcev_silo
    
             IF (l_dodisplacement) THEN
@@ -1023,7 +1020,7 @@
               CALL toijsp_1p(jvsupumnsf, ss, uu, vv, wu, f_none, f_sin, f_full) ! SUM MN-series at target point
               CALL toijsp_1p(jvsupvmnsf, ss, uu, vv, wv, f_none, f_sin, f_full) ! SUM MN-series at target point
 
-              IF (l_asym) THEN
+              IF (lasym) THEN
               CALL toijsp_1p(jvsupsmncf, ss, uu, vv, ws, f_sum, f_sin, f_full)  ! Get last displacement vector: SUM MN-series at target point
               CALL toijsp_1p(jvsupumnsf, ss, uu, vv, wu, f_sum, f_cos, f_full)  ! SUM MN-series at target point
               CALL toijsp_1p(jvsupvmnsf, ss, uu, vv, wv, f_sum, f_cos, f_full)  ! SUM MN-series at target point
@@ -1044,13 +1041,13 @@
                                                            
             temp = bs
             CALL toijsp_1p(bsubsmnsh, ss, uu, vv, bs, f_none, f_sin, f_half)  ! Get covariant magnetic field also: SUM MN-series at target point
-            IF (l_asym) CALL toijsp_1p(bsubsmnch, ss, uu, vv, bs, f_sum, f_cos, f_half)
+            IF (lasym) CALL toijsp_1p(bsubsmnch, ss, uu, vv, bs, f_sum, f_cos, f_half)
             bf0 = bs*temp; temp = bu
             CALL toijsp_1p(bsubumnch, ss, uu, vv, bu, f_none, f_cos, f_half)  ! SUM MN-series at target point
-            IF (l_asym) CALL toijsp_1p(bsubumnsh, ss, uu, vv, bu, f_sum, f_sin, f_half)
+            IF (lasym) CALL toijsp_1p(bsubumnsh, ss, uu, vv, bu, f_sum, f_sin, f_half)
             bf0 = bf0 + bu*temp; temp = bv
             CALL toijsp_1p(bsubvmnch, ss, uu, vv, bv, f_none, f_cos, f_half)  ! SUM MN-series at target point
-            IF (l_asym) CALL toijsp_1p(bsubvmnsh, ss, uu, vv, bv, f_sum, f_sin, f_half)
+            IF (lasym) CALL toijsp_1p(bsubvmnsh, ss, uu, vv, bv, f_sum, f_sin, f_half)
             bf0 = bf0 + bv*temp; bf0 = SQRT(bf0)                           ! Bfield at point
             pack_silo(index2,unit_bsubs) = bs                              ! bsubs_silo
             pack_silo(index2,unit_bsubu) = bu                              ! bsubu_silo
@@ -1058,13 +1055,13 @@
         
             temp = ks
             CALL toijsp_1p(ksubsmnsf, ss, uu, vv, ks, f_none, f_sin, f_full)    ! Get covariant jacob*current also: SUM MN-series at target point
-            IF (l_asym) CALL toijsp_1p(ksubsmncf, ss, uu, vv, ks, f_sum, f_cos, f_full)
+            IF (lasym) CALL toijsp_1p(ksubsmncf, ss, uu, vv, ks, f_sum, f_cos, f_full)
             curr0 = ks*temp; temp = ku
             CALL toijsp_1p(ksubumncf, ss, uu, vv, ku, f_none, f_cos, f_full)    ! SUM MN-series at target point
-            IF (l_asym) CALL toijsp_1p(ksubumnsf, ss, uu, vv, ku, f_sum, f_sin, f_full)
+            IF (lasym) CALL toijsp_1p(ksubumnsf, ss, uu, vv, ku, f_sum, f_sin, f_full)
             curr0 = curr0 + ku*temp; temp = kv
             CALL toijsp_1p(ksubvmncf, ss, uu, vv, kv, f_none, f_cos, f_full)    ! SUM MN-series at target point
-            IF (l_asym) CALL toijsp_1p(ksubvmnsf, ss, uu, vv, kv, f_sum, f_sin, f_full)
+            IF (lasym) CALL toijsp_1p(ksubvmnsf, ss, uu, vv, kv, f_sum, f_sin, f_full)
             curr0 = curr0 + kv*temp; curr0 = SQRT(ABS(curr0/jb))           ! Current J0 at point
             pack_silo(index2,unit_ksubs) = ks                              ! ksubs_silo
             pack_silo(index2,unit_ksubu) = ku                              ! ksubu_silo
@@ -1076,7 +1073,7 @@
             CALL toijsp_1p(pmnch, ss, uu, vv, pu, f_du, f_cos, f_half)
             CALL toijsp_1p(pmnch, ss, uu, vv, pv, f_dv, f_cos, f_half)
 
-            IF (l_asym) THEN
+            IF (lasym) THEN
             CALL toijsp_1p(pmnsh, ss, uu, vv, ps, ds, f_sin, f_half)     ! BDOT GRAD P: Need that Bs, Bu, Bv contain covariant components of B!!
             CALL toijsp_1p(pmnsh, ss, uu, vv, pu, du, f_sin, f_half)
             CALL toijsp_1p(pmnsh, ss, uu, vv, pv, dv, f_sin, f_half)
@@ -1088,7 +1085,7 @@
             pack_silo(index2,unit_bgradp) = bdp                            ! bgradp_silo
               
             CALL toijsp_1p(bdotjmnch, ss, uu, vv, bdj, f_none, f_cos, f_half)   ! BDOTJ
-            IF (l_asym) CALL toijsp_1p(bdotjmnsh, ss, uu, vv, bdj, f_sum, f_sin, f_half)   ! BDOTJ
+            IF (lasym) CALL toijsp_1p(bdotjmnsh, ss, uu, vv, bdj, f_sum, f_sin, f_half)   ! BDOTJ
             pack_silo(index2,unit_bdotj) = bdj/bdp0                        ! bdotj_silo
               
             ALLOCATE(bdotjmn_res(0:mpol,-ntor:ntor,ns))
@@ -1096,7 +1093,7 @@
             bdotjmn_res(:,mres1,nres1) = bdotjmnch(:,mres1,nres1)
             bdotjmn_res(:,mres2,nres2) = bdotjmnch(:,mres2,nres2)
             CALL toijsp_1p(bdotjmn_res, ss, uu, vv, bdj, f_none, f_cos, f_half) ! BDOTJ_RES
-            IF (l_asym) THEN ! FIXME: Not sure about this.
+            IF (lasym) THEN ! FIXME: Not sure about this.
             bdotjmn_res = zero
             bdotjmn_res(:,mres1,nres1) = bdotjmnsh(:,mres1,nres1)
             bdotjmn_res(:,mres2,nres2) = bdotjmnsh(:,mres2,nres2)
@@ -1106,11 +1103,11 @@
             DEALLOCATE(bdotjmn_res)         
               
             CALL toijsp_1p(divjmnsh, ss, uu, vv, divj, f_none, f_sin, f_half)   ! DIVJ
-            IF (l_asym) CALL toijsp_1p(divjmnch, ss, uu, vv, divj, f_sum, f_cos, f_half)   ! DIVJ
+            IF (lasym) CALL toijsp_1p(divjmnch, ss, uu, vv, divj, f_sum, f_cos, f_half)   ! DIVJ
             pack_silo(index2,unit_divj) = divj                             ! divj_silo
 
             CALL toijsp_1p(divbmnsf, ss, uu, vv, divb, f_none, f_sin, f_full)   ! DIVB
-            IF (l_asym) CALL toijsp_1p(divbmncf, ss, uu, vv, divb, f_sum, f_cos, f_full)   ! DIVB
+            IF (lasym) CALL toijsp_1p(divbmncf, ss, uu, vv, divb, f_sum, f_cos, f_full)   ! DIVB
             pack_silo(index2,unit_divb) = divb                             ! divb_silo
 
             IF (curr0 .EQ. ZERO) curr0 = 1
@@ -1134,7 +1131,6 @@
 !
         USE stel_kinds
         USE fourier, ONLY: orthonorm, b_ds, b_du, b_dv, b_sum
-        IMPLICIT NONE    
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -1293,12 +1289,9 @@
 
         END SUBROUTINE TOIJSP_1P
 
-
-
 #if defined(SILO_AVAIL)
         SUBROUTINE allocate_SILO
         USE stel_kinds
-        IMPLICIT NONE
         INTEGER:: istat                                                    ! NXX, NYY, NZZ defined in OPEN_FILES   
 
         IF (iam .NE. 0) RETURN
@@ -1326,7 +1319,6 @@
      
         SUBROUTINE dump_SILO (nchunk, nlast)
         USE stel_kinds
-        IMPLICIT NONE
         INTEGER, INTENT(IN) :: nchunk, nlast
         INTEGER :: i, loop
         CHARACTER(LEN=10):: label 
@@ -1382,7 +1374,6 @@
 #if defined(MPI_OPT)
         USE mpi_inc
 #endif
-        IMPLICIT NONE
 !
 !       STORES pack_silo(:,index) chunks into tmp_silo on processor 0
 !
@@ -1417,7 +1408,6 @@
         SUBROUTINE dump_SILO3D(br_silo, bphi_silo, jr_silo, jphi_silo,   &
                                wr_silo, wphi_silo, jz_silo)
         USE stel_kinds
-        IMPLICIT NONE
         REAL, DIMENSION(nxx,nyy,nzz) :: br_silo, bphi_silo,              &
                                         jr_silo, jphi_silo,              &
                                         wr_silo, wphi_silo, jz_silo

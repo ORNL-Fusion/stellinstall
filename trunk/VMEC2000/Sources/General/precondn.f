@@ -92,6 +92,7 @@ C-----------------------------------------------
       temp(ns+1)=0
 
       nsmin=t1lglob; nsmax=t1rglob
+!      nsmin=t1lglob; nsmax=trglob
       DO js = nsmin, nsmax
         axm(js,1) =-ax(js,1)
         axd(js,1) = ax(js,1) + ax(js+1,1)

@@ -6,9 +6,7 @@
 
         USE parallel_vmec_module, ONLY: PARVMEC
         USE parallel_vmec_module, ONLY: LV3FITCALL
-        USE parallel_vmec_module, ONLY: SKS_ALLGATHER
-        USE parallel_vmec_module, ONLY: BCYCLIC
-        USE parallel_vmec_module, ONLY: THOMAS
+        USE parallel_vmec_module, ONLY: LPRECOND
         USE parallel_vmec_module, ONLY: TOFU
 
         USE parallel_vmec_module, ONLY: num_grids 
@@ -83,6 +81,8 @@
         USE parallel_vmec_module, ONLY: scatter_time
 
         LOGICAL :: INFILEOUT=.FALSE.
+        LOGICAL :: RVCTRIGGER=.FALSE.
+        INTEGER :: RVCCALLNUM
 
         !Common timers
         REAL(dp) :: mgrid_file_read_time=0
@@ -164,6 +164,11 @@
         REAL(dp) :: forwardsolve_time=0
         REAL(dp) :: backwardsolve_time=0
         REAL(dp) :: finalize_time=0
+
+        REAL(dp) :: fill_blocks_time=0
+        REAL(dp) :: compute_blocks_time=0
+        REAL(dp) :: bcyclic_forwardsolve_time=0
+        REAL(dp) :: bcyclic_backwardsolve_time=0
 
         !Serial timers
         REAL(dp) :: s_totzsps_time=0
@@ -391,8 +396,12 @@ CONTAINS
             WRITE(TFILE,'(A20,A4,F15.6)') 'allgather', ': ', allgather_time
             WRITE(TFILE,'(A20,A4,F15.6)') 'allreduce', ': ', allreduce_time
             WRITE(TFILE,'(A20,A4,F15.6)') 'broadcast', ': ', broadcast_time
-            WRITE(TFILE,'(A20,A4,F15.6)') 'sendrecv', ': ', sendrecv_time
+            WRITE(TFILE,'(A20,A4,F15.6)') 'sendrecv ', ': ', sendrecv_time
             WRITE(TFILE,*) 
+            WRITE(TFILE,'(A20,A4,F15.6)') 'Fill_blocks    ', ': ', fill_blocks_time
+            WRITE(TFILE,'(A20,A4,F15.6)') 'Compute blocks ', ': ', compute_blocks_time
+            WRITE(TFILE,'(A20,A4,F15.6)') 'Forward solve  ', ': ', bcyclic_forwardsolve_time
+            WRITE(TFILE,'(A20,A4,F15.6)') 'Backward solve ', ': ', bcyclic_backwardsolve_time
             WRITE(TFILE,*) '============================================================' 
           END IF
           CALL FLUSH(TFILE)

@@ -21,6 +21,7 @@
       REAL(dp),PARAMETER   :: fsq_res = 1.E-16_dp   !<threshold force for turning off resistive perturbations
       REAL(dp), PARAMETER  :: levm_ped=1.E-08_dp, mu_ped=1.E-6_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
       REAL(dp), DIMENSION(:), ALLOCATABLE, TARGET :: gc  !<1D Array of Fourier mode MHD force components
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE     :: buv_res  !<Resonant magnetic field perturbation
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc  !<1D array of Fourier mode displacement components
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc0, gc0
       REAL(dp), DIMENSION(:,:,:,:), ALLOCATABLE   :: col_scale  !<column scaling factor
@@ -50,7 +51,7 @@
       LOGICAL         :: l_update_state=.FALSE.     !<=TRUE before funct_island called to get ste array
       LOGICAL         :: l_par_state                !<=TRUE if parallel allocation state (in init_state_par)
       LOGICAL         :: lcolscale                  !<=TRUE to apply col-scaling to Hessian
-      LOGICAL         :: l_asym = .FALSE.           !<=TRUE Use full parity calculation.
-      LOGICAL         :: l_recon = .FALSE.          !<=TRUE Add fouier components to restart file that remove the jacobian.
+      LOGICAL         :: lasym = .FALSE.            !<=FALSE, symmetric; =TRUE, asymmetric plasma
+      LOGICAL         :: lrecon = .FALSE.
 
       END MODULE shared_data

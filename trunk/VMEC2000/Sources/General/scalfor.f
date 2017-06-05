@@ -79,6 +79,9 @@ C-----------------------------------------------
       DO m = 0, mpol1
         mp = MOD(m,2) + 1
         DO n = 0, ntor
+          ax(n,m,tlglob:trglob) = 0
+          bx(n,m,tlglob:trglob) = 0
+          dx(n,m,tlglob:trglob) = 0
           nsmin=MAX(jmin2(m), tlglob); nsmax=MIN(trglob,jmax)
           DO js = nsmin, nsmax
             ax(n,m,js) = -(axm(js+1,mp) + bxm(js+1,mp)*m**2)
@@ -140,119 +143,26 @@ C-----------------------------------------------
       jmin4 = jmin3
       IF (iresidue.GE.0 .and. iresidue.LT.3) jmin4(0) = 2
 
-      IF (nranks.GT.1.AND.grank.LT.nranks) THEN
-        IF (THOMAS.AND..NOT.BCYCLIC.AND.SKS_ALLGATHER) THEN
-          CALL second0(allgvton)
-
-          numjs=trglob-tlglob+1
-          blksize=(ntor+1)*(mpol1+1)
-
-          ALLOCATE (counts(nranks),disps(nranks))
-
-          DO i=1,nranks
-            counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blksize
-          END DO
-
-          disps(1)=0
-          DO i=2,nranks
-            disps(i)=disps(i-1)+counts(i-1)
-          END DO
-
-          CALL MPI_Allgatherv(MPI_IN_PLACE,numjs*blksize,MPI_REAL8,ax,
-     1                        counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
-          CALL MPI_Allgatherv(MPI_IN_PLACE,numjs*blksize,MPI_REAL8,bx,
-     1                        counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
-          CALL MPI_Allgatherv(MPI_IN_PLACE,numjs*blksize,MPI_REAL8,dx,
-     1                        counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
-          DEALLOCATE(counts,disps)
-
-          blksize=(ntor+1)*(mpol1+1)*ntmax
-
-          ALLOCATE (counts(nranks),disps(nranks))
-
-          DO i=1,nranks
-            counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blksize
-          END DO
-
-          disps(1)=0
-          DO i=2,nranks
-            disps(i)=disps(i-1)+counts(i-1)
-          END DO
-
-          CALL MPI_Allgatherv(MPI_IN_PLACE,numjs*blksize,MPI_REAL8,gcx,
-     1                        counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
-          DEALLOCATE(counts,disps)
-
-          CALL second0(allgvtoff)
-          allgather_time = allgather_time + (allgvtoff-allgvton)
-
+      IF (gnranks.GT.1) THEN
           CALL second0(tridslvton)
-          CALL serial_tridslv_modified(ax,dx,bx,gcx,jmin4,jmax,mnsize-1,
-     1                          ns,ntmax)
+          CALL bst_parallel_tridiag_solver(ax,dx,bx,gcx,jmin4,jmax,
+     1              mnsize-1, ns,ntmax)
           CALL second0(tridslvtoff)
           tridslv_time = tridslv_time + (tridslvtoff-tridslvton)
 
-        ELSE IF(BCYCLIC.AND..NOT.THOMAS) THEN
+          blksize=(ntor+1)*(mpol1+1)*ntmax
 
-!      IF (iter2.GE.63) THEN
-!        CALL PrintOutLinearArray(pxc,tlglob,trglob,.TRUE.,2000)
-!        CALL PrintOutLinearArray(pgc,tlglob,trglob,.TRUE.,3000)
-!        DO i=tlglob, trglob
-!        DO j=0, ntor
-!        DO k=0, mpol1
-!          WRITE(40000+rank,"(3F20.8)") ax(j,k,i),bx(j,k,i),dx(j,k,i)
-!        END DO
-!        END DO
-!        END DO
-!      ELSE
-!        CALL PrintOutLinearArray(pxc,tlglob,trglob,.TRUE.,200)
-!        CALL PrintOutLinearArray(pgc,tlglob,trglob,.TRUE.,300)
-!        DO i=tlglob, trglob
-!        DO j=0, ntor
-!        DO k=0, mpol1
-!          WRITE(50000+rank,"(3F20.8)") ax(j,k,i),bx(j,k,i),dx(j,k,i)
-!        END DO
-!        END DO
-!        END DO
-!      END IF
-
-          IF (grank.LT.nranks) THEN
-            CALL second0(tridslvton)
-            CALL bst_parallel_tridiag_solver(ax,dx,bx,gcx,jmin4,jmax,
-     1              mnsize-1, ns,ntmax)
-            CALL second0(tridslvtoff)
-            tridslv_time = tridslv_time + (tridslvtoff-tridslvton)
-
-            blksize=(ntor+1)*(mpol1+1)*ntmax
-            CALL second0(skston)
-
-            CALL MPI_Sendrecv(gcx(:,:,tlglob,:),blksize,MPI_REAL8,
+          CALL second0(skston)
+          CALL MPI_Sendrecv(gcx(:,:,tlglob,:),blksize,MPI_REAL8,
      1  left,1,gcx(:,:,t1rglob,:),blksize,MPI_REAL8,right,1,NS_COMM,
      2  MPI_STAT, MPI_ERR)
 
-            CALL MPI_Sendrecv(gcx(:,:,trglob,:),blksize,MPI_REAL8,
+          CALL MPI_Sendrecv(gcx(:,:,trglob,:),blksize,MPI_REAL8,
      1  right,1,gcx(:,:,t1lglob,:),blksize,MPI_REAL8,left,1,NS_COMM,
      2  MPI_STAT, MPI_ERR)
-          END IF
-
-!      IF (iter2.GE.63) THEN
-!        CALL PrintOutLinearArray(pxc,tlglob,trglob,.TRUE.,8000)
-!        CALL PrintOutLinearArray(pgc,tlglob,trglob,.TRUE.,9000)
-!        CALL STOPMPI(666)
-!      ELSE
-!        CALL PrintOutLinearArray(pxc,tlglob,trglob,.TRUE.,800)
-!        CALL PrintOutLinearArray(pgc,tlglob,trglob,.TRUE.,900)
-!      END IF
 
           CALL second0(skstoff)
           sendrecv_time = sendrecv_time + (skstoff - skston)
-
-        ELSE
-
-          STOP 'Something wrong with choice of tridiagonal solver'
-
-        END IF
-
       ELSE ! If only one processor
         CALL second0(tridslvton)
         CALL serial_tridslv_modified(ax,dx,bx,gcx,jmin4,jmax,mnsize-1,
@@ -328,7 +238,6 @@ C-----------------------------------------------
       DO irow = tlglob, trglob
         
         ! Set up L
-        !IF (irow.EQ.ns) THEN
         IF(irow.EQ.ns.AND.jmax.LT.ns) THEN
           b(:,irow) = 0
         END IF

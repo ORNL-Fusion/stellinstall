@@ -182,7 +182,7 @@ C-----------------------------------------------
          res0 = MIN(res0,fsq)
          res1 = MIN(res1,fsq0)
 !       Store current state (irst=1)
-         IF (fsq.le.res0 .and. iter2-iter1.gt.10) THEN
+         IF (fsq.le.res0 .and. (iter2-iter1.gt.10)) THEN 
             CALL restart_iter(delt0r)
          ELSE IF (fsq0.le.res1 .and. iter2-iter1.gt.10) THEN
             CALL restart_iter(delt0r)
@@ -217,6 +217,9 @@ C-----------------------------------------------
 
 !       Store force residual, wdot for plotting
          wdota = ABS(w0 - w1)/w0
+#if defined(SKS)
+!         CALL MPI_Bcast(r00,1,MPI_REAL8,0,NS_COMM,MPI_ERR)
+#endif
          r0dot = ABS(r00 - r00s)/r00
          r00s = r00
          w1 = w0

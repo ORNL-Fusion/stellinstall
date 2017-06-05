@@ -76,8 +76,8 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER                 :: lstart, lend
-      REAL(dp), PARAMETER  :: p5 = 0.5_dp
+      INTEGER               :: lstart, lend
+      REAL(dp), PARAMETER   :: p5 = 0.5_dp
 !-----------------------------------------------
 !     Contraction map
 !     INPUT (vecf)   : [nsmin:nsmax]
@@ -104,7 +104,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)      :: n2, nsmin, nsmax
+      INTEGER, INTENT(IN)   :: n2, nsmin, nsmax
       REAL(dp), INTENT(IN)  :: vech(1+n2*(nsmin-1):n2*nsmax)      
       REAL(dp), INTENT(OUT) :: vecf(1+n2*(nsmin-1):n2*nsmax)   
 !-----------------------------------------------
@@ -139,11 +139,11 @@
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,             &
                             fsubsmnsf, fsubumncf, fsubvmncf,             &
                             fsupsmnsf, fsupumncf, fsupvmncf,             &
-                            fsupsmncf, fsupumnsf, fsupvmnsf 
+                            fsupsmncf, fsupumnsf, fsupvmnsf, wint 
       USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,   &
-                         f_sum, f_full
+                         f_sum
       USE nscalingtools, ONLY: startglobrow, endglobrow
-      USE shared_data, ONLY: l_asym
+      USE shared_data, ONLY: lasym
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -152,7 +152,7 @@
                                     fsubsijf, fsubuijf, fsubvijf,        &
                                     fsupsijf, fsupuijf, fsupvijf
 !-----------------------------------------------
-      INTEGER :: nsmin, nsmax, ns_span, istat, js
+      INTEGER :: nsmin, nsmax, ns_span, istat
 !-----------------------------------------------
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
       ns_span=nsmax-nsmin+1
@@ -165,33 +165,33 @@
                fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) STOP ' Allocation error in toupper_forces_par'
 
-      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos, f_full, 1, ns_span)
-      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin, f_full, 1, ns_span)
-      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin, f_full, 1, ns_span)
+      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos, 1, ns_span)
+      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin, 1, ns_span)
+      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin, 1, ns_span)
  
-      IF (l_asym) THEN
+      IF (lasym) THEN
 
-      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin, f_full, 1, ns_span)
-      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos, f_full, 1, ns_span)
-      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos, f_full, 1, ns_span)
+      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin, 1, ns_span)
+      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos, 1, ns_span)
+      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos, 1, ns_span)
  
       END IF
 
 !      
-!     GET CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
+!     COMPUTE CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
 !
       CALL toupper_par(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf) 
       DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
 
-      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos, f_full, 1, ns_span)
-      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin, f_full, 1, ns_span)
-      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin, f_full, 1, ns_span)
+      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos, 1, ns_span)
+      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin, 1, ns_span)
+      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin, 1, ns_span)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
 
-      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin, f_full, 1, ns_span)
-      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos, f_full, 1, ns_span)
-      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos, f_full, 1, ns_span)
+      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin, 1, ns_span)
+      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos, 1, ns_span)
+      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos, 1, ns_span)
 
       END IF
 
@@ -220,21 +220,17 @@
       REAL(dp), DIMENSION(nuv,nsmin:nsmax), INTENT(OUT) ::               &
                    xsubsij, xsubuij, xsubvij
 !-----------------------------------------------
-!      INTEGER :: js
-!-----------------------------------------------
-!      DO js = nsmin,nsmax
-      xsubsij(:,nsmin:nsmax) = gss(:,nsmin:nsmax)*xsupsij(:,nsmin:nsmax) &
-                             + gsu(:,nsmin:nsmax)*xsupuij(:,nsmin:nsmax) &
-                             + gsv(:,nsmin:nsmax)*xsupvij(:,nsmin:nsmax)
+      xsubsij = gss(:,nsmin:nsmax)*xsupsij                               &
+              + gsu(:,nsmin:nsmax)*xsupuij                               &
+              + gsv(:,nsmin:nsmax)*xsupvij
 
-      xsubuij(:,nsmin:nsmax) = gsu(:,nsmin:nsmax)*xsupsij(:,nsmin:nsmax) &
-                             + guu(:,nsmin:nsmax)*xsupuij(:,nsmin:nsmax) &
-                             + guv(:,nsmin:nsmax)*xsupvij(:,nsmin:nsmax)
+      xsubuij = gsu(:,nsmin:nsmax)*xsupsij                               &
+              + guu(:,nsmin:nsmax)*xsupuij                               &
+              + guv(:,nsmin:nsmax)*xsupvij
       
-      xsubvij(:,nsmin:nsmax) = gsv(:,nsmin:nsmax)*xsupsij(:,nsmin:nsmax) &
-                             + guv(:,nsmin:nsmax)*xsupuij(:,nsmin:nsmax) &
-                             + gvv(:,nsmin:nsmax)*xsupvij(:,nsmin:nsmax)
-!      END DO
+      xsubvij = gsv(:,nsmin:nsmax)*xsupsij                               &
+              + guv(:,nsmin:nsmax)*xsupuij                               &
+              + gvv(:,nsmin:nsmax)*xsupvij
 
       END SUBROUTINE tolowerh_par
 !---------------------------------------------------------------------------------------------
@@ -243,7 +239,7 @@
       SUBROUTINE tolowerf_par(xsupsij, xsupuij, xsupvij,                 &
                               xsubsij, xsubuij, xsubvij, nsmin, nsmax)
       USE stel_kinds
-      USE island_params, ns=>ns_i, nuv=>nuv_i
+      USE island_params, ONLY: ns=>ns_i, nuv=>nuv_i
       USE metrics, ONLY: gssf, guuf, gvvf, gsuf, gsvf, guvf
       IMPLICIT NONE        
 !
@@ -254,8 +250,10 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN) :: nsmin, nsmax
-      REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  :: xsupsij, xsupuij, xsupvij 
-      REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) :: xsubsij, xsubuij, xsubvij
+      REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                        &
+                xsupsij, xsupuij, xsupvij 
+      REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                        &
+                xsubsij, xsubuij, xsubvij
 !-----------------------------------------------
       INTEGER :: js, js1
 !-----------------------------------------------
@@ -286,7 +284,7 @@
         USE nscalingtools, ONLY: startglobrow, endglobrow
         IMPLICIT NONE        
 !
-!     This subroutine moves from lower to upper components on the FULL mesh
+!     This subroutine converts from lower to upper components on the FULL mesh
 !
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -536,7 +534,7 @@
 
       SUBROUTINE SurfAverage(average, q3d, nsmin, nsmax)
       USE stel_kinds, ONLY: dp
-      USE fourier, ONLY: cosmui
+	  USE quantities, ONLY: wint
       USE island_params, ONLY: ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
       IMPLICIT NONE
 !-----------------------------------------------
@@ -549,20 +547,17 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER, PARAMETER    :: m0=0
-      INTEGER               :: js, l
+      INTEGER               :: js
 !-----------------------------------------------
 
-      average(nsmin:nsmax) = 0
       DO js = nsmin, nsmax
-         DO l = 1, ntheta
-            average(js) = average(js) + SUM(q3d(l,:,js))*cosmui(l,m0)
-         END DO                                    
+		 average(js) = SUM(q3d(:,:,js)*wint(:,:,js))
       END DO
 
       END SUBROUTINE SurfAverage
 
 
-      SUBROUTINE truncate(num, iprec0)
+      SUBROUTINE Truncate(num, iprec0)
       USE stel_kinds, ONLY: dp
       IMPLICIT NONE
 !-----------------------------------------------
@@ -577,15 +572,15 @@
 !-----------------------------------------------
 !
 !     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
-!     USE INTERNAL FILE TO DO TRUNCATION
+!     WRITE TO INTERNAL FILE TO DO TRUNCATION
 !
-!     RETURN    !052316 - SPH - do not need this - converges better without it
+!     RETURN
 
       WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
       WRITE (tchnum, chnum) num
 
       READ (tchnum, chnum) num
 
-      END SUBROUTINE truncate
+      END SUBROUTINE Truncate
 
 

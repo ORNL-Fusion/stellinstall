@@ -141,8 +141,8 @@
 !>  @brief Integrate along the path.
 !>
 !>  Recursively runs through the next vertex to find the last vertex. Once the
-!>  last vertex is found, a new vertex is allocated and appended to the path.
-!>  The integrand is proveded by means of call back function.
+!>  last vertex is found, integrate alone that path. The integrand is proveded
+!>  by means of call back function.
 !>
 !>  @param[inout] this                 Starting vertex to integrate to the end.
 !>  @param        integration_function Function pointer that defines the

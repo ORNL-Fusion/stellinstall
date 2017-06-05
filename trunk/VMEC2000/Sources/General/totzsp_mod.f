@@ -3,6 +3,496 @@
       CONTAINS
 
 #if defined(SKS)
+      SUBROUTINE totzspa_hess_par(rzl_array, r11, ru1, rv1, z11, zu1, 
+     1                        zv1, lu1, lv1, rcn1, zcn1)
+      USE vmec_main
+      USE vmec_params, ONLY: jmin1, jlam, ntmax, rcs, rsc, zcc, zss
+      USE precon2d
+      IMPLICIT NONE
+C-----------------------------------------------
+C   D u m m y   A r g u m e n t s
+C-----------------------------------------------
+      REAL(rprec), DIMENSION(0:ntor,0:mpol1,ns,3*ntmax),
+     1   TARGET, INTENT(inout) :: rzl_array
+      REAL(rprec), DIMENSION(nzeta,ntheta3,ns,0:1),
+     1   INTENT(inout) :: r11, ru1,
+     1   rv1, z11, zu1,  zv1, lu1, lv1, rcn1, zcn1
+C-----------------------------------------------
+C   L o c a l   P a r a m e t e r s
+C-----------------------------------------------
+      INTEGER, PARAMETER :: m0 = 0, m1 = 1, n0 = 0
+C-----------------------------------------------
+C   L o c a l   V a r i a b l e s
+C-----------------------------------------------
+      INTEGER :: n, m, mparity, k, i, j1, l, j1l, nsl
+      INTEGER :: ioff, joff, mj, ni
+      REAL(rprec), DIMENSION(:,:,:), POINTER ::
+     1           rmncs, rmnsc, zmncc, zmnss, lmncc, lmnss
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: work1
+      REAL(rprec) :: cosmux, sinmux
+      LOGICAL :: logl, logr, logz
+
+      INTEGER :: nsmin, nsmax
+      INTEGER :: j, istat, js
+C-----------------------------------------------
+!
+!     SAME AS totzspa, BUT ONLY COMPUTES perturbation (rzl_array is perturbation) TO EXISTING R,Z, L FOR
+!     A PARTICULAR (m,n,ntype) = (m_2d,n_2d,ntype_2d) VALUE
+!
+!     
+!     STORE (FOR ictrl_prec2d=2) OR RESTORE (ictrl_prec2d=3) VARIABLES NOT RECOMPUTED 
+!     IN TOTZSP DURING HESSIAN JOGS
+!
+     ! RETURN
+      nsmin=t1lglob; nsmax=t1rglob
+      IF (ictrl_prec2d .eq. 2) THEN
+         plua_save(:,:,nsmin:nsmax,:) = lu1(:,:,nsmin:nsmax,:)
+         plva_save(:,:,nsmin:nsmax,:) = lv1(:,:,nsmin:nsmax,:)
+         prua_save(:,:,nsmin:nsmax,:) = ru1(:,:,nsmin:nsmax,:)
+         prva_save(:,:,nsmin:nsmax,:) = rv1(:,:,nsmin:nsmax,:)
+         pr1a_save(:,:,nsmin:nsmax,:) = r11(:,:,nsmin:nsmax,:) 
+         prcona_save(:,:,nsmin:nsmax,:) = rcn1(:,:,nsmin:nsmax,:) 
+         pzua_save(:,:,nsmin:nsmax,:) = zu1(:,:,nsmin:nsmax,:)
+         pzva_save(:,:,nsmin:nsmax,:) = zv1(:,:,nsmin:nsmax,:)
+         pz1a_save(:,:,nsmin:nsmax,:) = z11(:,:,nsmin:nsmax,:) 
+         pzcona_save(:,:,nsmin:nsmax,:) = zcn1(:,:,nsmin:nsmax,:) 
+         RETURN
+      ELSE
+         lu1(:,:,nsmin:nsmax,:) = plua_save(:,:,nsmin:nsmax,:)
+         lv1(:,:,nsmin:nsmax,:) = plva_save(:,:,nsmin:nsmax,:) 
+         ru1(:,:,nsmin:nsmax,:) = prua_save(:,:,nsmin:nsmax,:)
+         rv1(:,:,nsmin:nsmax,:) = prva_save(:,:,nsmin:nsmax,:) 
+         r11(:,:,nsmin:nsmax,:) = pr1a_save(:,:,nsmin:nsmax,:) 
+         rcn1(:,:,nsmin:nsmax,:) = prcona_save(:,:,nsmin:nsmax,:) 
+         zu1(:,:,nsmin:nsmax,:) = pzua_save(:,:,nsmin:nsmax,:)
+         zv1(:,:,nsmin:nsmax,:) = pzva_save(:,:,nsmin:nsmax,:)
+         z11(:,:,nsmin:nsmax,:) = pz1a_save(:,:,nsmin:nsmax,:) 
+         zcn1(:,:,nsmin:nsmax,:) = pzcona_save(:,:,nsmin:nsmax,:) 
+      END IF
+
+      logr = ntype_2d .le. ntmax
+      logz = (ntype_2d.gt.ntmax) .and. (ntype_2d.le.2*ntmax)
+      logl = ntype_2d .gt. 2*ntmax
+
+      rmnsc => rzl_array(:,:,:,rsc)               !!SIN(mu) COS(nv)
+      zmncc => rzl_array(:,:,:,zcc+ntmax)         !!COS(mu) COS(nv)
+      lmncc => rzl_array(:,:,:,zcc+2*ntmax)       !!COS(mu) COS(nv)
+      IF (lthreed) THEN
+         rmncs => rzl_array(:,:,:,rcs)               !!COS(mu) SIN(nv)
+         zmnss => rzl_array(:,:,:,zss+ntmax)         !!SIN(mu) SIN(nv)
+         lmnss => rzl_array(:,:,:,zss+2*ntmax)       !!SIN(mu) SIN(nv)
+      END IF
+
+      ioff = LBOUND(rmnsc,2)
+      joff = LBOUND(rmnsc,3)
+
+!
+!     ENFORCE CONSTRAINT ON m=1 MODES FOR 3D (CONSISTENT WITH gcz(zcc) = 0 IN RESIDUE)
+!     NOTE: Since r,z variations are coupled, must vary BOTH whenever ONE is varied
+!
+      IF (m_2d.eq.1 .and. 
+     1   (ntype_2d.eq.rsc .or. ntype_2d.eq.(ntmax+zcc))) THEN
+!         zmncc(:,:,m1+joff) = 0
+!         IF (logz) logz = .false.
+!         IF (logr .and. lconm1) logz = .true.
+         logr = .true.;  logz = .true.
+         CALL convert_asym_par (rmnsc, zmncc,nsmin,nsmax)
+      END IF
+
+
+      ALLOCATE (work1(nzeta,12,ns), stat=i)
+      IF (i .ne. 0) STOP 'Allocation error in VMEC2000 totzsps'
+
+
+!     EXTRAPOLATION OF M=0 MODES FOR LAMBDA
+!
+      IF (jlam(m0) .gt. 1) lmncc(:,m0+joff,1) = lmncc(:,m0+joff,2)
+
+!
+!     COMPUTE R, Z, AND LAMBDA IN REAL SPACE
+!     NOTE: LU = d(Lam)/du, LV = -d(Lam)/dv
+!
+         m = m_2d
+         mparity = MOD(m,2)
+         mj = m+joff
+         work1(:,:,nsmin:nsmax) = 0
+         j1 = jmin1(m)
+!
+!        INVERSE TRANSFORM IN N-ZETA, FOR FIXED M
+!
+         n = n_2d
+            ni = n+ioff
+            DO k = 1, nzeta
+               l = ns*(k-1)
+               j1l = j1+l;  nsl = ns+l
+               IF (logr)
+     1         work1(k,1,nsmin:nsmax)= work1(k,1,nsmin:nsmax)
+     2                          + rmnsc(ni,mj,nsmin:nsmax)*cosnv(k,n)
+               IF (logz)
+     1         work1(k,6,nsmin:nsmax)= work1(k,6,nsmin:nsmax)
+     2                          + zmncc(ni,mj,nsmin:nsmax)*cosnv(k,n)
+               IF (logl)
+     1         work1(k,10,nsmin:nsmax)= work1(k,10,nsmin:nsmax)
+     2                          + lmncc(ni,mj,nsmin:nsmax)*cosnv(k,n)
+
+               IF (.not.lthreed)CYCLE
+     
+               IF (logr) THEN          
+               work1(k,2,nsmin:nsmax)= work1(k,2,nsmin:nsmax)
+     1                          + rmncs(ni,mj,nsmin:nsmax)*sinnv(k,n)
+               work1(k,3,nsmin:nsmax)= work1(k,3,nsmin:nsmax)
+     1                          + rmnsc(ni,mj,nsmin:nsmax)*sinnvn(k,n)
+               work1(k,4,nsmin:nsmax)= work1(k,4,nsmin:nsmax)
+     1                          + rmncs(ni,mj,nsmin:nsmax)*cosnvn(k,n)
+               END IF
+
+               IF (logz) THEN
+               work1(k,5,nsmin:nsmax)= work1(k,5,nsmin:nsmax)
+     1                          + zmnss(ni,mj,nsmin:nsmax)*sinnv(k,n)
+               work1(k,7,nsmin:nsmax)= work1(k,7,nsmin:nsmax)
+     1                          + zmnss(ni,mj,nsmin:nsmax)*cosnvn(k,n)
+               work1(k,8,nsmin:nsmax)= work1(k,8,nsmin:nsmax)
+     1                          + zmncc(ni,mj,nsmin:nsmax)*sinnvn(k,n)
+               END IF
+
+               IF (logl) THEN
+               work1(k,9,nsmin:nsmax)= work1(k,9,nsmin:nsmax)
+     1                          + lmnss(ni,mj,nsmin:nsmax)*sinnv(k,n)
+               work1(k,11,nsmin:nsmax)= work1(k,11,nsmin:nsmax)
+     1                          + lmnss(ni,mj,nsmin:nsmax)*cosnvn(k,n)
+               work1(k,12,nsmin:nsmax)= work1(k,12,nsmin:nsmax)
+     1                          + lmncc(ni,mj,nsmin:nsmax)*sinnvn(k,n)
+               END IF
+
+            END DO
+!
+!        INVERSE TRANSFORM IN M-THETA, FOR ALL RADIAL, ZETA VALUES
+!
+         DO i = 1, ntheta2
+            cosmux = xmpq(m,1)*cosmu(i,m)
+            sinmux = xmpq(m,1)*sinmu(i,m)
+            IF (logr) THEN
+            r11(:,i,nsmin:nsmax,mparity) = r11(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,1,nsmin:nsmax)*sinmu(i,m)
+            ru1(:,i,nsmin:nsmax,mparity) = ru1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,1,nsmin:nsmax)*cosmum(i,m)
+            rcn1(:,i,nsmin:nsmax,mparity)=rcn1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,1,nsmin:nsmax)*sinmux
+            END IF
+
+            IF (logz) THEN
+            z11(:,i,nsmin:nsmax,mparity) = z11(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,6,nsmin:nsmax)*cosmu(i,m)
+            zu1(:,i,nsmin:nsmax,mparity) = zu1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,6,nsmin:nsmax)*sinmum(i,m)
+            zcn1(:,i,nsmin:nsmax,mparity)=zcn1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,6,nsmin:nsmax)*cosmux
+            END IF
+ 
+            IF (logl)
+     1      lu1(:,i,nsmin:nsmax,mparity) = lu1(:,i,nsmin:nsmax,mparity)
+     2             + work1(:,10,nsmin:nsmax)*sinmum(i,m)
+
+            IF (.not.lthreed) CYCLE
+
+            IF (logr) THEN
+            r11(:,i,nsmin:nsmax,mparity) = r11(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,2,nsmin:nsmax)*cosmu(i,m)
+            ru1(:,i,nsmin:nsmax,mparity) = ru1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,2,nsmin:nsmax)*sinmum(i,m)
+            rcn1(:,i,nsmin:nsmax,mparity)=rcn1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,2,nsmin:nsmax)*cosmux
+            rv1(:,i,nsmin:nsmax,mparity) = rv1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,3,nsmin:nsmax)*sinmu(i,m)
+     2             + work1(:,4,nsmin:nsmax)*cosmu(i,m)       
+            END IF
+
+            IF (logz) THEN
+            z11(:,i,nsmin:nsmax,mparity) = z11(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,5,nsmin:nsmax)*sinmu(i,m)
+            zu1(:,i,nsmin:nsmax,mparity) = zu1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,5,nsmin:nsmax)*cosmum(i,m)
+            zcn1(:,i,nsmin:nsmax,mparity)=zcn1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,5,nsmin:nsmax)*sinmux
+            zv1(:,i,nsmin:nsmax,mparity) = zv1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,7,nsmin:nsmax)*sinmu(i,m)
+     2             + work1(:,8,nsmin:nsmax)*cosmu(i,m) 
+            END IF
+
+            IF (logl) THEN
+            lu1(:,i,nsmin:nsmax,mparity) = lu1(:,i,nsmin:nsmax,mparity)
+     1             + work1(:,9,nsmin:nsmax)*cosmum(i,m)
+            lv1(:,i,nsmin:nsmax,mparity) = lv1(:,i,nsmin:nsmax,mparity)
+     1             - (work1(:,11,nsmin:nsmax)*sinmu(i,m)
+     2             + work1(:,12,nsmin:nsmax)*cosmu(i,m))       
+            END IF
+
+         END DO
+      
+      DEALLOCATE (work1)
+
+      END SUBROUTINE totzspa_hess_par
+
+      SUBROUTINE totzsps_hess_par(rzl_array, r11, ru1, rv1, z11, zu1, 
+     1                        zv1, lu1, lv1, rcn1, zcn1)
+      USE vmec_main
+      USE vmec_params, ONLY: jmin1, jlam, ntmax, rcc, rss, zsc, zcs
+      USE precon2d
+      USE parallel_include_module
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(rprec), DIMENSION(0:ntor,0:mpol1,ns,3*ntmax),
+     1   TARGET, INTENT(inout) :: rzl_array
+      REAL(rprec), DIMENSION(nzeta,ntheta3,ns,0:1),
+     1   INTENT(inout) :: r11, ru1,
+     1   rv1, z11, zu1,  zv1, lu1, lv1, rcn1, zcn1
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+      INTEGER, PARAMETER :: m0 = 0, m1 = 1, n0 = 0
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER :: n, m, mparity, k, i, j1, l, j1l, nsl
+      INTEGER :: ioff, joff, mj, ni, chiptype
+      REAL(rprec), DIMENSION(:,:,:), POINTER ::
+     1           rmncc, rmnss, zmncs, zmnsc, lmncs, lmnsc
+      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: work1
+      REAL(rprec) :: cosmux, sinmux
+      LOGICAL :: logl, logr, logz
+
+      INTEGER :: nsmin, nsmax
+      INTEGER :: j, istat, js
+      REAL(rprec) :: skston, skstoff
+!-----------------------------------------------
+!
+!     SAME AS totzsps, BUT ONLY COMPUTES perturbation (rzl_array is perturbation) TO EXISTING R,Z FOR
+!     A PARTICULAR (m,n,ntype) = (m_2d,n_2d,ntype_2d) VALUE
+!
+!     
+!     STORE (FOR ictrl_prec2d=2) OR RESTORE (ictrl_prec2d=3) VARIABLES NOT RECOMPUTED 
+!     IN TOTZSP DURING HESSIAN JOGS
+!
+
+!      RETURN
+
+      nsmin=t1lglob; nsmax=t1rglob
+      IF (ictrl_prec2d .eq. 2) THEN
+         plus_save(:,:,nsmin:nsmax,:) = lu1(:,:,nsmin:nsmax,:)
+         plvs_save(:,:,nsmin:nsmax,:) = lv1(:,:,nsmin:nsmax,:)
+         prus_save(:,:,nsmin:nsmax,:) = ru1(:,:,nsmin:nsmax,:)
+         prvs_save(:,:,nsmin:nsmax,:) = rv1(:,:,nsmin:nsmax,:)
+         pr1s_save(:,:,nsmin:nsmax,:) = r11(:,:,nsmin:nsmax,:) 
+         prcons_save(:,:,nsmin:nsmax,:) = rcn1(:,:,nsmin:nsmax,:) 
+         pzus_save(:,:,nsmin:nsmax,:) = zu1(:,:,nsmin:nsmax,:)
+         pzvs_save(:,:,nsmin:nsmax,:) = zv1(:,:,nsmin:nsmax,:)
+         pz1s_save(:,:,nsmin:nsmax,:) = z11(:,:,nsmin:nsmax,:) 
+         pzcons_save(:,:,nsmin:nsmax,:) = zcn1(:,:,nsmin:nsmax,:) 
+         chips_save(nsmin:nsmax) = chips(nsmin:nsmax)
+         RETURN
+      ELSE
+         lu1(:,:,nsmin:nsmax,:) = plus_save(:,:,nsmin:nsmax,:)
+         lv1(:,:,nsmin:nsmax,:) = plvs_save(:,:,nsmin:nsmax,:) 
+         ru1(:,:,nsmin:nsmax,:) = prus_save(:,:,nsmin:nsmax,:)
+         rv1(:,:,nsmin:nsmax,:) = prvs_save(:,:,nsmin:nsmax,:) 
+         r11(:,:,nsmin:nsmax,:) = pr1s_save(:,:,nsmin:nsmax,:) 
+         rcn1(:,:,nsmin:nsmax,:) = prcons_save(:,:,nsmin:nsmax,:) 
+         zu1(:,:,nsmin:nsmax,:) = pzus_save(:,:,nsmin:nsmax,:)
+         zv1(:,:,nsmin:nsmax,:) = pzvs_save(:,:,nsmin:nsmax,:)
+         z11(:,:,nsmin:nsmax,:) = pz1s_save(:,:,nsmin:nsmax,:) 
+         zcn1(:,:,nsmin:nsmax,:) = pzcons_save(:,:,nsmin:nsmax,:) 
+         chips(nsmin:nsmax) = chips_save(nsmin:nsmax)
+      END IF
+
+      logr = ntype_2d .le. ntmax
+      logz = (ntype_2d.gt.ntmax) .and. (ntype_2d.le.2*ntmax)
+      logl = ntype_2d .gt. 2*ntmax
+
+      rmncc => rzl_array(:,:,:,rcc)               !!COS(mu) COS(nv)
+      zmnsc => rzl_array(:,:,:,zsc+ntmax)         !!SIN(mu) COS(nv)
+      lmnsc => rzl_array(:,:,:,zsc+2*ntmax)       !!SIN(mu) COS(nv)
+      IF (lthreed) THEN
+         rmnss => rzl_array(:,:,:,rss)            !!SIN(mu) SIN(nv)
+         zmncs => rzl_array(:,:,:,zcs+ntmax)      !!COS(mu) SIN(nv)
+         lmncs => rzl_array(:,:,:,zcs+2*ntmax)    !!COS(mu) SIN(nv)
+      END IF
+
+      ioff = LBOUND(rmncc,2)
+      joff = LBOUND(rmncc,3)
+#if defined(NOSKS)
+      chiptype=zsc+2*ntmax
+      IF (ncurr.EQ.1 .AND. m_2d.EQ.m0 .AND. n_2d.EQ.n0 
+     1               .AND. ntype_2d.EQ.chiptype) THEN
+         ni = n0+ioff; mj = m0+joff
+         chips(2:ns) = chips(2:ns) + lmnsc(2:ns,ni,mj)
+         RETURN
+      END IF
+#else
+      chiptype=zsc+2*ntmax
+      IF (ncurr.EQ.1 .AND. m_2d.EQ.m0 .AND. n_2d.EQ.n0 
+     1               .AND. ntype_2d.EQ.chiptype) THEN
+         ni = n0+ioff; mj = m0+joff
+         chips(nsmin:nsmax) = chips(nsmin:nsmax) +
+     1    lmnsc(ni,mj,nsmin:nsmax)
+         RETURN
+      END IF
+#endif
+
+      ALLOCATE (work1(nzeta,12,ns), stat=i)
+      IF (i .ne. 0) STOP 'Allocation error in VMEC2000 totzsps'
+
+!
+!     ENFORCE CONSTRAINT ON m=1 MODES FOR 3D (CONSISTENT WITH gcz(zcs) = 0 IN RESIDUE)
+!     NOTE: Since r,z variations are coupled, must vary BOTH whenever ONE is varied
+!
+
+      IF (lthreed .and. m_2d.eq.1 .and. n_2d.ne.0 .and. 
+     1   (ntype_2d.eq.rss .or. ntype_2d.eq.(zcs+ntmax))) THEN
+!         zmncs(:,:,m1+joff) = 0
+!         IF (logz) logz = .false.
+!         IF (logr .and. lconm1) logz = .true.
+         logr = .true.;  logz = .true.
+         CALL convert_sym_par (rmnss, zmncs,nsmin, nsmax)
+      END IF
+
+!
+!     EXTRAPOLATION AT JS=1 FOR M=1 MODES
+!
+      rzl_array(:,m1,1,:) = rzl_array(:,m1,2,:)   
+
+!
+!     EXTRAPOLATION AT JS=1 OF M=0 MODES FOR LAMBDA
+!
+      IF (lthreed .and. jlam(m0).gt.1) 
+     1   lmncs(:,m0+joff,1) = lmncs(:,m0+joff,2)
+
+!
+!     COMPUTE R, Z, AND LAMBDA IN REAL SPACE
+!     NOTE: LU = d(Lam)/du, LV = -d(Lam)/dv
+!
+         m = m_2d
+         mparity = MOD(m,2)
+         mj = m+joff
+         work1(:,:,nsmin:nsmax) = 0 !XXX: SKS confirm bounds
+         j1 = jmin1(m)
+!
+!        INVERSE TRANSFORM IN N-ZETA, FOR FIXED M
+!
+         n = n_2d
+            ni = n+ioff
+            DO k = 1, nzeta
+               l = ns*(k-1)
+               j1l = j1+l;  nsl = ns+l
+               IF (logr)
+     1         work1(k,1,nsmin:nsmax) = work1(k,1,nsmin:nsmax) 
+     2                          + rmncc(ni,mj,nsmin:nsmax)*cosnv(k,n)
+               IF (logz)
+     1         work1(k,6,nsmin:nsmax) = work1(k,6,nsmin:nsmax)
+     2                          + zmnsc(ni,mj,nsmin:nsmax)*cosnv(k,n)
+               IF (logl)
+     1         work1(k,10,nsmin:nsmax) = work1(k,10,nsmin:nsmax) 
+     2                          + lmnsc(ni,mj,nsmin:nsmax)*cosnv(k,n)
+
+               IF (.not.lthreed) CYCLE
+     
+               IF (logr) THEN          
+               work1(k,4,nsmin:nsmax) = work1(k,4,nsmin:nsmax) 
+     1                          + rmnss(ni,mj,nsmin:nsmax)*cosnvn(k,n)
+               work1(k,2,nsmin:nsmax) = work1(k,2,nsmin:nsmax) 
+     1                          + rmnss(ni,mj,nsmin:nsmax)*sinnv(k,n)
+               work1(k,3,nsmin:nsmax) = work1(k,3,nsmin:nsmax) 
+     1                          + rmncc(ni,mj,nsmin:nsmax)*sinnvn(k,n)
+               END IF
+
+               IF (logz) THEN
+               work1(k,7,nsmin:nsmax) = work1(k,7,nsmin:nsmax) 
+     1                          + zmncs(ni,mj,nsmin:nsmax)*cosnvn(k,n)
+               work1(k,5,nsmin:nsmax) = work1(k,5,nsmin:nsmax)  
+     1                          + zmncs(ni,mj,nsmin:nsmax)*sinnv(k,n)
+               work1(k,8,nsmin:nsmax) = work1(k,8,nsmin:nsmax)  
+     1                          + zmnsc(ni,mj,nsmin:nsmax)*sinnvn(k,n)
+               END IF
+
+               IF (logl) THEN
+               work1(k,11,nsmin:nsmax) = work1(k,11,nsmin:nsmax)
+     1                          + lmncs(ni,mj,nsmin:nsmax)*cosnvn(k,n)
+               work1(k,9,nsmin:nsmax) = work1(k,9,nsmin:nsmax) 
+     1                          + lmncs(ni,mj,nsmin:nsmax)*sinnv(k,n)
+               work1(k,12,nsmin:nsmax) = work1(k,12,nsmin:nsmax)
+     1                          + lmnsc(ni,mj,nsmin:nsmax)*sinnvn(k,n)
+               END IF
+
+            END DO
+!
+!        INVERSE TRANSFORM IN M-THETA, FOR ALL RADIAL, ZETA VALUES
+!
+         DO i = 1, ntheta2
+            cosmux = xmpq(m,1)*cosmu(i,m)
+            sinmux = xmpq(m,1)*sinmu(i,m)
+            IF (logr) THEN
+            r11(:,i,nsmin:nsmax,mparity) = r11(:,i,nsmin:nsmax,mparity) 
+     >      + work1(:,1,nsmin:nsmax)*cosmu(i,m)
+            ru1(:,i,nsmin:nsmax,mparity) = ru1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,1,nsmin:nsmax)*sinmum(i,m)
+           rcn1(:,i,nsmin:nsmax,mparity) = rcn1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,1,nsmin:nsmax)*cosmux
+            END IF
+
+            IF (logz) THEN
+            z11(:,i,nsmin:nsmax,mparity) = z11(:,i,nsmin:nsmax,mparity) 
+     >      + work1(:,6,nsmin:nsmax)*sinmu(i,m)
+            zu1(:,i,nsmin:nsmax,mparity) = zu1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,6,nsmin:nsmax)*cosmum(i,m)
+           zcn1(:,i,nsmin:nsmax,mparity) = zcn1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,6,nsmin:nsmax)*sinmux
+            END IF
+
+            IF (logl)
+     >      lu1(:,i,nsmin:nsmax,mparity) = lu1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,10,nsmin:nsmax)*cosmum(i,m)
+
+            IF (.not.lthreed) CYCLE
+
+            IF (logr) THEN
+            r11(:,i,nsmin:nsmax,mparity) = r11(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,2,nsmin:nsmax)*sinmu(i,m)
+            ru1(:,i,nsmin:nsmax,mparity) = ru1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,2,nsmin:nsmax)*cosmum(i,m)
+           rcn1(:,i,nsmin:nsmax,mparity) = rcn1(:,i,nsmin:nsmax,mparity)
+     >      + work1(:,2,nsmin:nsmax)*sinmux
+            rv1(:,i,nsmin:nsmax,mparity) = rv1(:,i,nsmin:nsmax,mparity) 
+     >      + work1(:,3,nsmin:nsmax)*cosmu(i,m) 
+     >      + work1(:,4,nsmin:nsmax)*sinmu(i,m)
+            END IF
+
+            IF (logz) THEN
+            z11(:,i,nsmin:nsmax,mparity) = z11(:,i,nsmin:nsmax,mparity)
+     >        + work1(:,5,nsmin:nsmax)*cosmu(i,m)
+            zu1(:,i,nsmin:nsmax,mparity) = zu1(:,i,nsmin:nsmax,mparity) 
+     >        + work1(:,5,nsmin:nsmax)*sinmum(i,m)
+           zcn1(:,i,nsmin:nsmax,mparity) = zcn1(:,i,nsmin:nsmax,mparity) 
+     >        + work1(:,5,nsmin:nsmax)*cosmux
+            zv1(:,i,nsmin:nsmax,mparity) = zv1(:,i,nsmin:nsmax,mparity)
+     >        + work1(:,7,nsmin:nsmax)*cosmu(i,m)
+     >        + work1(:,8,nsmin:nsmax)*sinmu(i,m)
+            END IF
+
+            IF (logl) THEN
+            lu1(:,i,nsmin:nsmax,mparity) = lu1(:,i,nsmin:nsmax,mparity) 
+     >        + work1(:,9,nsmin:nsmax)*sinmum(i,m)
+            lv1(:,i,nsmin:nsmax,mparity) = lv1(:,i,nsmin:nsmax,mparity) 
+     >        - (work1(:,11,nsmin:nsmax)*cosmu(i,m) 
+     >        + work1(:,12,nsmin:nsmax)*sinmu(i,m))
+          END IF
+
+         END DO
+
+      DEALLOCATE (work1)
+
+      END SUBROUTINE totzsps_hess_par
+
       SUBROUTINE totzsps_par(rzl_array, r11, ru1, rv1, z11, zu1, zv1,
      1                       lu1, lv1, rcn1, zcn1)
       USE vmec_main
@@ -48,11 +538,18 @@
          lmncs=>rzl_array(:,:,:,zcs+2*ntmax)       !!COS(mu) SIN(nv)
          CALL convert_sym_par (rmnss, zmncs, nsmin, nsmax)
       END IF
-
       rzl_array(:,m1,1,:) = rzl_array(:,m1,2,:)
 
       ioff = LBOUND(rmncc,1)
       joff = LBOUND(rmncc,2)
+
+      IF (ncurr.EQ.1 .AND. ictrl_prec2d.EQ.1) THEN
+        chips(nsmin:nsmax) = lmnsc(n0+ioff,m0+joff,nsmin:nsmax)  
+      !  DO i=nsmin, nsmax
+      !    WRITE(*,'(A,F12.3)') ">>> ", chips(i)
+      !  END DO
+      END IF
+
 !
 !     ORIGIN EXTRAPOLATION OF M=0 MODES FOR LAMBDA 
 !
@@ -182,11 +679,10 @@
       r01(nsmin:nsmax) = rmncc(n0+ioff,m1+joff,nsmin:nsmax)
       IF (lactive) THEN
         IF (rank.EQ.0 .AND. r01(1).EQ.zero) THEN
-           STOP 'r01(0) = 0 in totzsps_par'
+          STOP 'r01(0) = 0 in totzsps_par'
+        ELSE IF (rank.EQ.0 .AND. r01(1).NE.zero) THEN
+           dkappa = z01(1)/r01(1)
         END IF
-        dkappa = z01(1)/r01(1)
-!      END IF
-!      IF (nranks.GT.1.AND.grank.LT.nranks) THEN
         CALL second0(skston)
         CALL MPI_Bcast(dkappa,1, MPI_REAL8,0,NS_COMM,MPI_ERR)
         CALL second0(skstoff)
@@ -461,8 +957,6 @@ C-----------------------------------------------
       REAL(rprec) :: cosmux, sinmux
 #if defined(SKS)
       INTEGER :: istat, j, nsmin, nsmax
-      REAL(rprec), DIMENSION(:,:,:,:), ALLOCATABLE
-     1   :: tmp_rzl_array
       REAL(rprec), DIMENSION(:,:,:,:), POINTER :: plu, plv
       REAL(rprec) :: skston, skstoff 
       REAL(rprec) :: t1, t2
@@ -491,7 +985,9 @@ C-----------------------------------------------
          rmnss => rzl_array(:,:,:,rss)               !!SIN(mu) SIN(nv)
          zmncs => rzl_array(:,:,:,zcs+ntmax)         !!COS(mu) SIN(nv)
          lmncs => rzl_array(:,:,:,zcs+2*ntmax)       !!COS(mu) SIN(nv)
+#ifndef _HBANGLE
          CALL convert_sym (rmnss, zmncs)
+#endif
       END IF
 
 #if defined(SKS)
@@ -519,8 +1015,9 @@ C-----------------------------------------------
 !
       IF (lthreed .and. jlam(m0).gt.1) 
      1   lmncs(1,:,m0+joff) = lmncs(2,:,m0+joff)
- 
-      IF (ictrl_prec2d .eq. 3) RETURN
+      
+      IF (ncurr.EQ.1 .AND. ictrl_prec2d.EQ.1)
+     1   chips(2:ns) = lmnsc(2:ns,n0+ioff,m0+joff)  
      
       nsz = ns*nzeta
       ALLOCATE (work1(nsz,12), stat=i)
@@ -606,15 +1103,19 @@ C-----------------------------------------------
      1                            + work1(1:nsz,1)*cosmu(i,m)
             ru1(j1l:nsl,mparity)  = ru1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,1)*sinmum(i,m)
+#ifndef _HBANGLE
             rcn1(j1l:nsl,mparity) = rcn1(j1l:nsl,mparity) 
      1                            + work1(1:nsz,1)*cosmux
+#endif
 
             z11(j1l:nsl,mparity)  = z11(j1l:nsl,mparity)  
      1                            + work1(1:nsz,6)*sinmu(i,m)
             zu1(j1l:nsl,mparity)  = zu1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,6)*cosmum(i,m)
+#ifndef _HBANGLE
             zcn1(j1l:nsl,mparity) = zcn1(j1l:nsl,mparity) 
      1                            + work1(1:nsz,6)*sinmux
+#endif
              
             lu1(j1l:nsl,mparity)  = lu1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,10)*cosmum(i,m)
@@ -625,8 +1126,10 @@ C-----------------------------------------------
      1                            + work1(1:nsz,2)*sinmu(i,m)
             ru1(j1l:nsl,mparity)  = ru1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,2)*cosmum(i,m)
+#ifndef _HBANGLE
             rcn1(j1l:nsl,mparity) = rcn1(j1l:nsl,mparity) 
      1                            + work1(1:nsz,2)*sinmux
+#endif
      
             rv1(j1l:nsl,mparity)  = rv1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,3)*cosmu(i,m) 
@@ -636,8 +1139,10 @@ C-----------------------------------------------
 
             zu1(j1l:nsl,mparity)  = zu1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,5)*sinmum(i,m)
+#ifndef _HBANGLE
             zcn1(j1l:nsl,mparity) = zcn1(j1l:nsl,mparity) 
      1                            + work1(1:nsz,5)*cosmux
+#endif
             zv1(j1l:nsl,mparity)  = zv1(j1l:nsl,mparity)  
      1                            + work1(1:nsz,7)*cosmu(i,m) 
      1                            + work1(1:nsz,8)*sinmu(i,m)
@@ -693,7 +1198,7 @@ C-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: n, m, mparity, k, i, j1, l, j1l, nsl
-      INTEGER :: ioff, joff, mj, ni
+      INTEGER :: ioff, joff, mj, ni, chiptype
       REAL(rprec), DIMENSION(:,:,:), POINTER ::
      1           rmncc, rmnss, zmncs, zmnsc, lmncs, lmnsc
       REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: work1
@@ -711,21 +1216,23 @@ C-----------------------------------------------
       IF (ictrl_prec2d .eq. 2) THEN
          lus_save = lu1;  lvs_save = lv1;
          rus_save = ru1;  rvs_save = rv1; r1s_save = r11
-         rcons_save = rcn1
          zus_save = zu1;  zvs_save = zv1; z1s_save = z11
+         chips_save(2:ns) = chips(2:ns)
+#ifndef _HBANGLE
+         rcons_save = rcn1
          zcons_save = zcn1
+#endif
          RETURN
       ELSE
          lu1 = lus_save;  lv1 = lvs_save
          ru1 = rus_save;  rv1 = rvs_save; r11 = r1s_save
-         rcn1 = rcons_save
          zu1 = zus_save;  zv1 = zvs_save; z11 = z1s_save
+         chips(2:ns) = chips_save(2:ns)
+#ifndef _HBANGLE
+         rcn1 = rcons_save
          zcn1 = zcons_save
+#endif
       END IF
-
-      logr = ntype_2d .le. ntmax
-      logz = (ntype_2d.gt.ntmax) .and. (ntype_2d.le.2*ntmax)
-      logl = ntype_2d .gt. 2*ntmax
 
       rmncc => rzl_array(:,:,:,rcc)               !!COS(mu) COS(nv)
       zmnsc => rzl_array(:,:,:,zsc+ntmax)         !!SIN(mu) COS(nv)
@@ -739,6 +1246,14 @@ C-----------------------------------------------
       ioff = LBOUND(rmncc,2)
       joff = LBOUND(rmncc,3)
 
+      chiptype=zsc+2*ntmax
+      IF (ncurr.EQ.1 .AND. m_2d.EQ.m0 .AND. n_2d.EQ.n0 
+     1               .AND. ntype_2d.EQ.chiptype) THEN
+         ni = n0+ioff; mj = m0+joff
+         chips(2:ns) = chips(2:ns) + lmnsc(2:ns,ni,mj)
+         RETURN
+      END IF
+
       ALLOCATE (work1(ns*nzeta,12), stat=i)
       IF (i .ne. 0) STOP 'Allocation error in VMEC2000 totzsps'
 
@@ -746,16 +1261,12 @@ C-----------------------------------------------
 !     ENFORCE CONSTRAINT ON m=1 MODES FOR 3D (CONSISTENT WITH gcz(zcs) = 0 IN RESIDUE)
 !     NOTE: Since r,z variations are coupled, must vary BOTH whenever ONE is varied
 !
-
-      IF (lthreed .and. m_2d.eq.1 .and. n_2d.ne.0 .and. 
+#ifndef _HBANGLE
+      IF (lthreed .and. m_2d.eq.1 .and. n_2d.ne.0 .and. lthreed .and.
      1   (ntype_2d.eq.rss .or. ntype_2d.eq.(zcs+ntmax))) THEN
-!         zmncs(:,:,m1+joff) = 0
-!         IF (logz) logz = .false.
-!         IF (logr .and. lconm1) logz = .true.
-         logr = .true.;  logz = .true.
          CALL convert_sym (rmnss, zmncs)
       END IF
-
+#endif
 !
 !     EXTRAPOLATION AT JS=1 FOR M=1 MODES
 !
@@ -766,21 +1277,33 @@ C-----------------------------------------------
 !
       IF (lthreed .and. jlam(m0).gt.1) 
      1   lmncs(1,:,m0+joff) = lmncs(2,:,m0+joff)
-
 !
 !     COMPUTE R, Z, AND LAMBDA IN REAL SPACE
 !     NOTE: LU = d(Lam)/du, LV = -d(Lam)/dv
 !
-         m = m_2d
-         mparity = MOD(m,2)
-         mj = m+joff
          work1 = 0
-         j1 = jmin1(m)
 !
 !        INVERSE TRANSFORM IN N-ZETA, FOR FIXED M
 !
          n = n_2d
-            ni = n+ioff
+         ni = n+ioff
+
+      DO m=0,mpol1
+         mj = m+joff
+         logr = ANY(rmncc(:,ni,mj).ne.zero)
+         logz = ANY(zmnsc(:,ni,mj).ne.zero)
+         logl = ANY(lmnsc(:,ni,mj).ne.zero)
+         IF (lthreed) THEN
+            IF (.NOT.logr) logr = ANY(rmnss(:,ni,mj).ne.zero)
+            IF (.NOT.logz) logz = ANY(zmncs(:,ni,mj).ne.zero)
+            IF (.NOT.logl) logl = ANY(lmncs(:,ni,mj).ne.zero)
+         END IF
+
+         IF (.NOT.logr .AND. .NOT.logz .AND. .NOT.logl) CYCLE
+
+         mparity = MOD(m,2)
+         j1 = jmin1(m)
+
             DO k = 1, nzeta
                l = ns*(k-1)
                j1l = j1+l;  nsl = ns+l
@@ -835,8 +1358,10 @@ C-----------------------------------------------
      1            cosmu(i,m)
             ru1(:,i,mparity) = ru1(:,i,mparity) + work1(:,1)*
      1            sinmum(i,m)
+#ifndef _HBANGLE
             rcn1(:,i,mparity) = rcn1(:,i,mparity) + work1(:,1)*
      1            cosmux
+#endif
             END IF
 
             IF (logz) THEN
@@ -844,8 +1369,10 @@ C-----------------------------------------------
      1            sinmu(i,m)
             zu1(:,i,mparity) = zu1(:,i,mparity) + work1(:,6)*
      1            cosmum(i,m)
+#ifndef _HBANGLE
             zcn1(:,i,mparity) = zcn1(:,i,mparity) + work1(:,6)*
      1            sinmux
+#endif
             END IF
  
             IF (logl)
@@ -859,8 +1386,10 @@ C-----------------------------------------------
      1            sinmu(i,m)
             ru1(:,i,mparity) = ru1(:,i,mparity) + work1(:,2)*
      1            cosmum(i,m)
+#ifndef _HBANGLE
             rcn1(:,i,mparity) = rcn1(:,i,mparity) + work1(:,2)*
      1            sinmux
+#endif
             rv1(:,i,mparity) = rv1(:,i,mparity) + work1(:,3)*
      1            cosmu(i,m) + work1(:,4)*sinmu(i,m)
             END IF
@@ -870,8 +1399,10 @@ C-----------------------------------------------
      1            cosmu(i,m)
             zu1(:,i,mparity) = zu1(:,i,mparity) + work1(:,5)*
      1            sinmum(i,m)
+#ifndef _HBANGLE
             zcn1(:,i,mparity) = zcn1(:,i,mparity) + work1(:,5)*
      1            cosmux
+#endif
             zv1(:,i,mparity) = zv1(:,i,mparity) + work1(:,7)*
      1            cosmu(i,m) + work1(:,8)*sinmu(i,m)
             END IF
@@ -884,6 +1415,7 @@ C-----------------------------------------------
             END IF
 
          END DO
+       END DO
 
       DEALLOCATE (work1)
 

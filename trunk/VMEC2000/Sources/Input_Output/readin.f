@@ -8,6 +8,7 @@
       USE mgrid_mod, ONLY: nextcur, curlabel, nfper0, read_mgrid
       USE init_geometry
       USE parallel_include_module, ONLY: grank, mgrid_file_read_time
+      USE parallel_include_module, ONLY: LPRECOND
       USE parallel_vmec_module, ONLY: RUNVMEC_COMM_WORLD
       IMPLICIT NONE
 C-----------------------------------------------
@@ -680,6 +681,7 @@ C-----------------------------------------------
 !
       precon_type = TRIM(ADJUSTL(precon_type))
       itype_precon = 0     !default scalar tri-di preconditioner
+      LPRECOND = .FALSE.
       ch1 = precon_type(1:1); ch2 = precon_type(2:2)
 
 !     ALL THE FOLLOWING USE THE FULL 2D BLOCK-TRI PRECONDITIONER
@@ -688,14 +690,18 @@ C-----------------------------------------------
       CASE ('c', 'C')
 !conjugate gradient
          IF (ch2 == 'g' .or. ch2 == 'G') itype_precon = 1             
+         LPRECOND = .TRUE.
       CASE ('g', 'G')
 !gmres or gmresr
          IF (ch2 == 'm' .or. ch2 == 'M') itype_precon = 2
          IF (LEN_TRIM(precon_type) == 6) itype_precon = 3             
+         LPRECOND = .TRUE.
       CASE ('t', 'T')
 !transpose free qmr
          IF (ch2 == 'f' .or. ch2 == 'F') itype_precon = 4             
+         LPRECOND = .TRUE.
       END SELECT
+      
 
       iresidue = -1
       IF (lrecon) THEN

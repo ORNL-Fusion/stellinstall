@@ -35,11 +35,9 @@ MODULE parallel_vmec_module
   INTEGER, ALLOCATABLE, DIMENSION(:) :: lcol, rcol
 
   LOGICAL :: PARVMEC=.FALSE.
-  LOGICAL :: SKS_ALLGATHER=.FALSE.
-  LOGICAL :: THOMAS=.FALSE.
-  LOGICAL :: BCYCLIC=.FALSE.
   LOGICAL :: LV3FITCALL=.FALSE.
   LOGICAL :: LIFFREEB=.FALSE.
+  LOGICAL :: LPRECOND=.FALSE.
 
   LOGICAL :: lactive=.FALSE.
   LOGICAL :: vlactive=.FALSE.
@@ -68,51 +66,24 @@ CONTAINS
   !--------------------------------------------------------------------------
   ! Read in environment variables 
   !--------------------------------------------------------------------------
-  SUBROUTINE  MyEnvVariables
+  SUBROUTINE MyEnvVariables
     IMPLICIT NONE
 
     PARVMEC=.TRUE.
     envvar='PARVMEC'
     CALL GETENV(envvar,envval)
-    IF (envval.EQ.'FALSE') THEN
+    IF (envval.EQ.'FALSE'.OR.envval.EQ.'false' &
+      .OR.envval.EQ.'F'.OR.envval.EQ.'f') THEN
       PARVMEC=.FALSE.
-    END IF
-
-    SKS_ALLGATHER=.FALSE.
-    envvar='SKS_ALLGATHER'
-    CALL GETENV(envvar,envval)
-    IF (envval.EQ.'TRUE') THEN
-      SKS_ALLGATHER=.TRUE.
-    END IF
-
-    THOMAS=.FALSE.
-    envvar='THOMAS'
-    CALL GETENV(envvar,envval)
-    IF (envval.EQ.'TRUE') THEN
-      THOMAS=.TRUE.
-      SKS_ALLGATHER=.TRUE.
     END IF
 
     LV3FITCALL=.FALSE.
     envvar='LV3FITCALL'
     CALL GETENV(envvar,envval)
-    IF (envval.EQ.'TRUE') THEN
+    IF (envval.EQ.'TRUE'.OR.envval.EQ.'true' &
+      .OR.envval.EQ.'T'.OR.envval.EQ.'t') THEN
       LV3FITCALL=.TRUE.
     END IF
-
-    BCYCLIC=.FALSE.
-    envvar='BCYCLIC'
-    CALL GETENV(envvar,envval)
-    IF (envval.EQ.'TRUE') THEN
-      BCYCLIC=.TRUE.
-    END IF
-
-    ! Default values
-    SKS_ALLGATHER=.TRUE.
-    THOMAS=.FALSE.
-    BCYCLIC=.TRUE.
-    PARVMEC=.TRUE.
-    LV3FITCALL=.TRUE.
 
   END SUBROUTINE  MyEnvVariables
   !--------------------------------------------------------------------------
@@ -130,13 +101,10 @@ CONTAINS
     CALL MPI_Comm_size(MPI_COMM_WORLD,gnranks,MPI_ERR) 
 #endif
 
-    IF (PARVMEC.EQV..FALSE..AND.gnranks.EQ.1) THEN
-      THOMAS=.TRUE.
-      BCYCLIC=.FALSE.
-      SKS_ALLGATHER=.FALSE.
-      PARVMEC=.FALSE.
-      LV3FITCALL=.TRUE.
-    END IF
+!    IF (PARVMEC.EQV..FALSE..AND.gnranks.EQ.1) THEN
+!      PARVMEC=.FALSE.
+!      LV3FITCALL=.FALSE.
+!    END IF
 
   END SUBROUTINE InitializeParallel
   !--------------------------------------------------------------------------
@@ -204,8 +172,7 @@ CONTAINS
           IF (FIRSTPASS) THEN 
             CALL SetOutputFile(rank,nranks,'parvmecinfo')
             WRITE(TOFU,*)"============================================================" 
-            WRITE(TOFU,*) 'PARVMEC = ',PARVMEC,'; ALLGATHER = ',SKS_ALLGATHER,&
-              '; THOMAS = ',THOMAS, '; BCYCLIC = ',BCYCLIC
+            WRITE(TOFU,*) 'PARVMEC = ',PARVMEC
             WRITE(TOFU,*) "> available processor count:", gnranks
             WRITE(TOFU,*) '> global rank:', grank
             WRITE(TOFU,*) '> nzeta:      ', par_nzeta
@@ -230,30 +197,6 @@ CONTAINS
     END IF
     50 FORMAT(3(A,I4))
   END SUBROUTINE InitSurfaceComm
-  !------------------------------------------------
-
-  !------------------------------------------------
-  ! Setting the output files
-  !------------------------------------------------
-  SUBROUTINE SetOutputFile (iam, nprocs, prefix)
-    IMPLICIT NONE
-
-    INTEGER, INTENT(IN) :: iam, nprocs
-    CHARACTER (*), INTENT(IN) :: prefix
-    INTEGER :: istat
-    CHARACTER(100) :: fname, cfname
-    CHARACTER(50) :: ciam, cnprocs
-    CHARACTER(25) :: cprefix
-
-    WRITE(ciam,*) iam; WRITE(cnprocs,*) nprocs; WRITE(cprefix,*) prefix
-    ciam=ADJUSTL(ciam); cnprocs=ADJUSTL(cnprocs); cprefix=ADJUSTL(cprefix)
-    TOFU = 4*nprocs+iam+1000
-
-    fname=TRIM(cprefix)//'.txt'
-    OPEN(UNIT=TOFU, FILE=fname, STATUS="REPLACE", ACTION="WRITE",&
-      &FORM="FORMATTED",POSITION="APPEND", IOSTAT=istat)
-
-  END SUBROUTINE SetOutputFile
   !------------------------------------------------
 
   !------------------------------------------------
@@ -520,16 +463,38 @@ CONTAINS
 
     INTEGER :: istat
 
+    envvar='LPRECOND'
+    CALL GETENV(envvar,envval)
+    IF (envval.EQ.'TRUE') THEN
+      LPRECOND=.TRUE.
+    ELSE IF (envval.EQ.'FALSE') THEN
+      LPRECOND=.FALSE.
+    END IF
+
+#if defined(NOSKS)
+    envvar='LV3FITCALL'
+    CALL GETENV(envvar,envval)
+    IF (envval.EQ.'TRUE') THEN
+      LV3FITCALL=.TRUE.
+    ELSE IF (envval.EQ.'FALSE') THEN
+      LV3FITCALL=.FALSE.
+    END IF
+
+    envvar='PARVMEC'
+    CALL GETENV(envvar,envval)
+    IF (envval.EQ.'TRUE') THEN
+      PARVMEC=.TRUE.
+    ELSE IF (envval.EQ.'FALSE') THEN
+      PARVMEC=.FALSE.
+    END IF
+#endif
+
     IF (grank.EQ.0) THEN 
-      CALL GETENV(envvar,envval)
-      IF (envval.EQ.'FALSE') THEN
-        PARVMEC=.FALSE.
-      ELSE IF (envval.EQ.'TRUE') THEN
-        PARVMEC=.TRUE.
-      END IF
       WRITE(*,*)
       WRITE(*,'(A,I4)') 'NO. OF PROCS:   ', gnranks
-      WRITE(*,100) 'PARVMEC:     ',PARVMEC
+      WRITE(*,100) 'PARVMEC    :     ',PARVMEC
+      WRITE(*,100) 'LPRECOND   :     ',LPRECOND
+      WRITE(*,100) 'LV3FITCALL :     ',LV3FITCALL
     END IF
  100  FORMAT(a,l4)
 
@@ -1034,6 +999,30 @@ CONTAINS
     CALL second0(scattervtoff)
     scatter_time = scatter_time + (scattervtoff-scattervton)
   END SUBROUTINE Scatterv4XArray
+  !------------------------------------------------
+
+  !------------------------------------------------
+  ! Setting the output files
+  !------------------------------------------------
+  SUBROUTINE SetOutputFile (iam, nprocs, prefix)
+    IMPLICIT NONE
+
+    INTEGER, INTENT(IN) :: iam, nprocs
+    CHARACTER (*), INTENT(IN) :: prefix
+    INTEGER :: istat
+    CHARACTER(100) :: fname, cfname
+    CHARACTER(50) :: ciam, cnprocs
+    CHARACTER(25) :: cprefix
+
+    WRITE(ciam,*) iam; WRITE(cnprocs,*) nprocs; WRITE(cprefix,*) prefix
+    ciam=ADJUSTL(ciam); cnprocs=ADJUSTL(cnprocs); cprefix=ADJUSTL(cprefix)
+    TOFU = 4*nprocs+iam+1000
+
+    fname=TRIM(cprefix)//'.txt'
+    OPEN(UNIT=TOFU, FILE=fname, STATUS="REPLACE", ACTION="WRITE",&
+      &FORM="FORMATTED",POSITION="APPEND", IOSTAT=istat)
+
+  END SUBROUTINE SetOutputFile
   !------------------------------------------------
 
 

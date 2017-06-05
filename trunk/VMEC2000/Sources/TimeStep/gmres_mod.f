@@ -4,11 +4,48 @@
       INTEGER :: nfcn = 0
       INTEGER :: ier_flag_res
       LOGICAL :: lqmr, lfirst
+      LOGICAL, PARAMETER :: lscreen0 = .FALSE.
+
 !
 !     nfcn :  number of calls to function (funct3d)
 !     lqmr :  logical, used by external programs to control calling these routines
 !
       CONTAINS 
+
+      SUBROUTINE GetNLForce(xcstate, fsq_nl, bnorm)
+      USE stel_kinds
+      USE precon2d, ONLY: ictrl_prec2d
+      USE xstuff, ONLY: xc, gc
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp),INTENT(IN)  :: xcstate(neqs), bnorm
+      REAL(dp),INTENT(OUT) :: fsq_nl
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER              :: iprec2d 
+!-----------------------------------------------
+!      CALL second0(ton)
+!Store state 
+      iprec2d = ictrl_prec2d
+!Set state variables
+      xc = bnorm*xcstate     !undo internal gmres normalization
+
+#if defined(MPI_OPT)
+!Parvmec:DO A GATHER_ARRAY ON XC HERE FIRST      CALL funct3d_par
+#else
+      CALL funct3d(lscreen0, ier_flag_res)
+
+#endif
+      fsq_nl = SUM(gc*gc)
+ 
+!Restore state variables
+      nfcn = nfcn + 1
+      ictrl_prec2d = iprec2d
+
+      END SUBROUTINE GetNLForce
 
       SUBROUTINE matvec (p, Ap, ndim)
       USE stel_kinds
@@ -18,13 +55,12 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in)      :: ndim
-      REAL(rprec), INTENT(in), DIMENSION(ndim)  :: p
-      REAL(rprec), INTENT(out), DIMENSION(ndim) :: Ap
+      REAL(dp), INTENT(in), DIMENSION(ndim)  :: p
+      REAL(dp), INTENT(out), DIMENSION(ndim) :: Ap
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      LOGICAL, PARAMETER :: lscreen = .false.
-      REAL(rprec) :: delta
+      REAL(dp) :: delta
 C-----------------------------------------------
 !
 !     Computes linearized matrix product A*p = [F(x0+delta*p) - F(x0)]/delta, about point x0
@@ -34,44 +70,43 @@ C-----------------------------------------------
       delta = delta/MAX(delta, MAXVAL(ABS(p)))
 
       xc(1:ndim) = x0(1:ndim) + delta*p(1:ndim)
-      CALL funct3d(lscreen, ier_flag_res)
+      CALL funct3d(lscreen0, ier_flag_res)
       Ap = (gc(1:ndim) - gc0(1:ndim))/delta
 
-      IF (ier_flag_res .ne. 0) 
-     1  PRINT *,' IN 2D PRECONDITIONER MATVEC, IER_FLAG = ', 
-     2          ier_flag_res
+      IF (ier_flag_res .NE. 0) 
+     1  PRINT *,' IN 2D MATVEC, IER_FLAG = ', ier_flag_res
       nfcn = nfcn + 1
 
       END SUBROUTINE matvec
 
-
       SUBROUTINE gmres_fun (ier_flag, itype)
+      USE precon2d, ONLY: ictrl_prec2d, block_precond
       USE xstuff
-      USE parallel_include_module
+      USE vmec_main, ONLY: fsqr, fsqz, fsql, ftolv
+      USE gmres_lib, ONLY: gmres_ser, gmres_info
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
-      INTEGER, INTENT(in)  :: itype
-      INTEGER, INTENT(out) :: ier_flag
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero=0, one=1
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)  :: itype
+      INTEGER, INTENT(OUT) :: ier_flag
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), PARAMETER :: zero=0, one=1
+      TYPE (gmres_info)   :: gi
       INTEGER :: n, m
       INTEGER :: icntl(9), info(3)
-      REAL(rprec) :: cntl(5)
+      REAL(dp) :: cntl(5), fact, fact_min, fsq_min, fsq2,
+     1            fsqr_min, fsqz_min, fsql_min
       CHARACTER(LEN=*), PARAMETER :: qmr_message = 
      1                              'Beginning GMRES iterations'
-      REAL(rprec) :: gmreston, gmrestoff
-C-----------------------------------------------
-      EXTERNAL gmres
-C-----------------------------------------------
+      INTEGER, PARAMETER   :: noPrec=0, leftPrec=1, rightPrec=2
+!-----------------------------------------------
 !
 !     STORE INITIAL POINT AND INITIAL RESIDUES (AT INIT PT)
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
-      CALL second0(gmreston)
       xcdot = gc
       xsave = xc
       n     = neqs
@@ -89,22 +124,22 @@ C-----------------------------------------------
 
 
       IF (lfirst) THEN
-         lfirst = .false.
+         lfirst = .FALSE.
          WRITE (*,'(2x,a,/)') qmr_message
          WRITE (nthreed, '(2x,a,/)') qmr_message
       END IF
 
-*******************************************************
-** Initialize the control parameters to default value
-*******************************************************
-*
+!******************************************************
+!* Initialize the control parameters to default value
+!******************************************************
+
       CALL init_dgmres(icntl,cntl)
-*
-*************************
-* Tune some parameters
-*************************
-*
-* Tolerance
+
+!************************
+! Tune some parameters
+!************************
+
+! Tolerance
       cntl(1) = 1.e-3_dp
 !      cntl(1) = 1.e-4_dp
 ! Write errors to fort.21
@@ -114,7 +149,9 @@ C-----------------------------------------------
 ! Save the convergence history in file fort.20
       icntl(3) = 20
 ! No preconditioning
-      icntl(4) = 0
+      icntl(4) = noPrec
+! Left preconditioning (doesn't work well with no col-scaling)     
+!      icntl(4) = leftPrec 
 ! ICGS orthogonalization
       icntl(5) = 3
 !      icntl(5) = 0
@@ -124,28 +161,82 @@ C-----------------------------------------------
 ! Maximum number of iterations at each step (~ns/5)
 !      icntl(7) = 15
       icntl(7) = 20
+! Stops to peek at progress during rev com loop
+!      icntl(9) = 1             
 
-*********************************
-** Choose the restart parameter
-*********************************
+
+!********************************
+!* Choose the restart parameter
+!********************************
 !      write(*,*) 'Restart  <', ldstrt
 !      read(*,*) m
 !
 !     m <= n
 !
       m = 20
-      gc = -gc          !RHS
-      CALL gmres (n, m, icntl, cntl, matvec, xcdot, gc, info)
+!
+!      Load gmres_info structure
+!
+       gi%m=m; gi%icntl=icntl; gi%cntl=cntl; gi%info = info
+       gi%ftol = ftolv
+!PARVMEC: Load gi parallel parameters here
+!      endglobrow, startglobrow, iam, nprocs
+!      rcounts(:), disp(:), mblk_size
+
+      IF (icntl(4) .NE. noPrec) THEN
+         ictrl_prec2d = -1
+         CALL funct3d(lscreen0, ier_flag_res)
+         nfcn = nfcn+1
+         xcdot = gc
+!         CALL block_precond(xcdot)
+      END IF
+
+      !RHS: RETURN RESULT OF A*X = -gc IN XCDOT
+      gc = -gc
+
+!THIS IS GMRES_WRAP IN SIESTA
+!TEST FOR PARALLEL
+!ADD EXTRA COMPONENTS OF GI ARRAY
+!CALL gmres_par (n, gi, matvec_par, block_precond, getnlforce, 
+!     !                 xcdot, gc
+      CALL gmres_ser (n, gi, matvec, block_precond, getnlforce, 
+     1                xcdot, gc)
 
 100   CONTINUE
 
-!      ier_flag = info(1)
+!      ier_flag = gi%info(1)
+      ictrl_prec2d = 1
       ier_flag = 0
-      xc(1:n) = xsave(1:n) + xcdot(1:n)
+      fact = 1
+      fact_min = fact
+      fsq_min  = HUGE(fsq_min)
 
-      CALL second0(gmrestoff)
-      gmres_time = gmres_time + (gmrestoff - gmreston)
-      s_gmres_time = gmres_time
+!     SIMPLE LINESEARCH SCALING SCAN
+      DO m = 1, 5
+
+      xc(1:n) = xsave(1:n) + fact*xcdot(1:n)
+        
+      CALL funct3d(lscreen0, ier_flag_res)
+
+      fsq2 = fsqr+fsqz+fsql 
+
+      IF (fsq2 .LT. fsq_min) THEN
+         fsq_min = fsq2
+         fact_min = fact
+         fsqr_min = fsqr; fsqz_min = fsqz; fsql_min = fsql
+      ELSE
+         EXIT
+      END IF      
+      fact = fact/2._dp
+
+      END DO
+
+      PRINT 1010, fact_min, fsq_min
+ 1010 FORMAT(2x,'GMRES_FUN, TIME_STEP: ',1p,e10.3, ' FSQ_MIN: ',1pe10.3)
+
+      xc(1:n) = xsave(1:n) + fact_min*xcdot(1:n)
+      fsqr = fsqr_min; fsqz = fsqz_min; fsql = fsql_min
+      xsave = xc
 
       END SUBROUTINE gmres_fun
 
@@ -307,3 +398,32 @@ C-----------------------------------------------
       END SUBROUTINE qmr_fun
 
       END MODULE gmres_mod
+
+      SUBROUTINE Truncate(num, iprec0)
+      USE stel_kinds, ONLY: dp
+      IMPLICIT NONE
+!     NEEDED TO RESOLVE CALL IN gmres_par
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)     :: iprec0
+      REAL(dp), INTENT(INOUT) :: num
+!-----------------------------------------------
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      CHARACTER*24 :: chnum, tchnum
+!-----------------------------------------------
+!
+!     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
+!     WRITE TO INTERNAL FILE TO DO TRUNCATION
+!
+      RETURN
+
+!      WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
+!      WRITE (tchnum, chnum) num
+
+!      READ (tchnum, chnum) num
+
+      END SUBROUTINE Truncate
+

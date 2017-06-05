@@ -22,6 +22,7 @@ C-----------------------------------------------
       INTEGER :: i, j, ij, k, js, jk, lk, lt, lz, jcount
       REAL(rprec) :: t1, t2
       REAL(rprec), ALLOCATABLE :: buffer(:,:), tmp(:,:)
+!      LOGICAL :: ORIGPARVMEC
 C-----------------------------------------------
       CALL second0(t1)
 
@@ -102,15 +103,15 @@ C-----------------------------------------------
       END IF
       fo_prepare_time = fo_prepare_time + (t2-t1)
 
-      PARVMEC=.FALSE.
+!      ORIGPARVMEC=PARVMEC
+!      PARVMEC=.FALSE.
       IF(grank.EQ.0) THEN
         CALL fileout(iseq, ictrl_flag, ier_flag, lscreen) 
       ENDIF
       CALL MPI_Barrier(NS_COMM, MPI_ERR)
       CALL second0(t2)
       fo_par_call_time = fo_par_call_time + (t2-t1)
-
-      PARVMEC=.TRUE.
+!      PARVMEC=ORIGPARVMEC
 #endif
       END SUBROUTINE fileout_par
 
@@ -180,6 +181,7 @@ C-----------------------------------------------
 !     CYLINDRICAL COMPONENTS OF B (BR, BPHI, BZ), AND
 !     AVERAGE EQUILIBRIUM PROPERTIES AT END OF RUN
 !
+
       iequi = 1
       lterm = ier_flag.eq.norm_term_flag  .or.
      1        ier_flag.eq.successful_term_flag
@@ -188,6 +190,7 @@ C-----------------------------------------------
       loc_ier_flag = ier_flag
       if (ier_flag .eq. successful_term_flag) 
      1    loc_ier_flag = norm_term_flag
+
 
       IF (lwrite .and. loutput) THEN
 !
@@ -206,6 +209,7 @@ C-----------------------------------------------
          CALL funct3d (lscreen, istat)
          CALL second0(skstoff)
          fo_funct3d_time = fo_funct3d_time + (skstoff - skston)
+
 
 !        Write out any special files here
 !        CALL dump_special
@@ -273,6 +277,15 @@ C-----------------------------------------------
 #endif           
               CALL write_times(nthreed, lscreen, lfreeb, lrecon, 
      1                       ictrl_prec2d.ne.0)
+
+            IF (grank.EQ.0) THEN 
+!              WRITE(*,*)
+              WRITE(nthreed,'(A,I4)') 'NO. OF PROCS:   ', gnranks
+              WRITE(nthreed,101) 'PARVMEC    :     ',PARVMEC
+              WRITE(nthreed,101) 'LPRECOND   :     ',LPRECOND
+              !WRITE(nthreed,101) 'LV3FITCALL :     ',LV3FITCALL
+            END IF
+ 101  FORMAT(a,l4)
 #if defined(SKS)
             END IF
 #endif           

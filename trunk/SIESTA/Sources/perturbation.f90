@@ -3,7 +3,8 @@
       USE descriptor_mod, ONLY: iam
       USE siesta_state, ONLY: update_state, update_state_par
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale,             &
-                             l_asym, hesspass_test, mupar_test, l_recon
+                             lasym, hesspass_test, mupar_test,           &
+                             buv_res
 !#if defined(SKS)
       USE nscalingtools, ONLY: PARFUNCTISL
 !#endif
@@ -22,7 +23,6 @@
       LOGICAL  :: lresistive = .TRUE.                                       !RS: If true, add resistive electric field.
       LOGICAL  :: lrestart = .FALSE.
       CHARACTER(LEN=256) :: wout_file, restart_ext
-      REAL(dp), ALLOCATABLE :: buv_res(:,:,:)
 
 !NETCDF PARAMETERS
       CHARACTER(LEN=*), PARAMETER :: vn_nsin='nrad', vn_mpolin='mpol',   &
@@ -30,15 +30,7 @@
          vn_bsupss='JBsupss(m,n,r)',vn_bsupuc='JBsupuc(m,n,r)',          &
          vn_bsupvc='JBsupvc(m,n,r)', vn_bsupsc='JBsupsc(m,n,r)',         &
          vn_bsupus='JBsupus(m,n,r)', vn_bsupvs='JBsupvs(m,n,r)',         &
-         vn_presc='presc(m,n,r)', vn_press='press(m,n,r)',               &
-         vn_bsupsmns='bsupsmns(m,n,r)', vn_bsupsmnc='bsupsmnc(m,n,r)',   &
-         vn_bsupumns='bsupumns(m,n,r)', vn_bsupumnc='bsupumnc(m,n,r)',   &
-         vn_bsupvmns='bsupvmns(m,n,r)', vn_bsupvmnc='bsupvmnc(m,n,r)',   &
-         vn_bsubsmns='bsubsmns(m,n,r)', vn_bsubsmnc='bsubsmnc(m,n,r)',   &
-         vn_bsubumns='bsubumns(m,n,r)', vn_bsubumnc='bsubumnc(m,n,r)',   &
-         vn_bsubvmns='bsubvmns(m,n,r)', vn_bsubvmnc='bsubvmnc(m,n,r)',   &
-         vn_pmns='pmns(m,n,r)', vn_pmnc='pmnc(m,n,r)',                   &
-         vn_p_factor='p_factor', vn_b_factor='b_factor'
+         vn_presc='presc(m,n,r)', vn_press='press(m,n,r)'
       CHARACTER(LEN=*), DIMENSION(3), PARAMETER ::                       &
                   r3dim = (/'m-mode','n-mode','radius'/)
 
@@ -74,8 +66,7 @@
                eta_factor, nphis, nrs, nzs, nvs, nus, nss, l_tracing,    &
                ngmres_type, iortho, lcolscale,                           &
                l_silo_output, l_silo3D, nprecon, l_output_alliter,       & 
-               l_VMEC_Uniform, l_asym, HessPass_Test, mupar_test,        &
-               l_recon
+               l_VMEC_Uniform, lasym, HessPass_Test, mupar_test
 
 !-----------------------------------------------
 !     
@@ -210,11 +201,9 @@
       eta_factor_save = eta_factor
       eta_factor=1
       xc = 0
-!#if defined(SKS)
       IF (PARFUNCTISL) THEN
          nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
       END IF
-!#endif
       w0 = getwmhd(xc, PARFUNCTISL)
 
       ALLOCATE (buv_res(ntheta,nzeta,ns), stat=istat)
@@ -292,12 +281,7 @@
             STOP 
          END IF
          xc = 0
-         IF (PARFUNCTISL) THEN
-            CALL update_state_par(.FALSE., zero, zero)
-         ELSE
-            CALL update_state(.FALSE., zero, zero)
-         END IF
-
+         CALL update_state_par(.FALSE., zero, zero)
 !Compute dW relative to perturbed state
          w0 = wmhd
    
@@ -439,10 +423,10 @@
       SUBROUTINE write_restart_file
       USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
                             ns, mpol, ntor
+      USE descriptor_mod, ONLY: iam
 #if defined(MRC)
       USE restart_mod
 #endif
-      USE descriptor_mod, ONLY: iam
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -454,8 +438,8 @@
       IF (iam .NE. 0) RETURN
 #if defined(MRC)
       istat = restart_write("siesta_" // TRIM(restart_ext) // ".nc", wout_file)
-#else
-#if defined(NETCDF)
+      RETURN
+#elif defined(NETCDF)
       CALL write_restart_ncfile (istat)
       IF (istat .EQ. 0) RETURN
 #endif
@@ -470,7 +454,7 @@
 !     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
 !     EVENTUALLY USE FOR MULTIGRIDDING
 !
-      WRITE (15,'(L1)') l_asym
+      WRITE (15,'(L1)') lasym
       WRITE (15,100) nsin, mpolin, ntorin
       WRITE (15,200) wout_file
 
@@ -483,7 +467,7 @@
       ENDDO
       ENDDO
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
 
       DO js=1,nsin
          DO m =0,mpolin
@@ -501,8 +485,6 @@
  100  FORMAT(3i8)
  200  FORMAT(a256)
  300  FORMAT(1p4e24.16)
-
-#endif
 
       END SUBROUTINE write_restart_file
      
@@ -534,7 +516,7 @@
 ! Define Variables
 !================================
 !  Scalars 
-      CALL cdf_define(ncdf, vn_lasym, l_asym)
+      CALL cdf_define(ncdf, vn_lasym, lasym)
       CALL cdf_define(ncdf, vn_nsin, nsin)
       CALL cdf_define(ncdf, vn_mpolin, mpolin)
       CALL cdf_define(ncdf, vn_ntorin, ntorin)
@@ -546,7 +528,7 @@
       CALL cdf_define(ncdf, vn_bsupvc, jbsupvmnch, dimname=r3dim)
       CALL cdf_define(ncdf, vn_presc,  jpmnch,     dimname=r3dim)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
 
       CALL cdf_define(ncdf, vn_bsupsc, jbsupsmnch, dimname=r3dim)
       CALL cdf_define(ncdf, vn_bsupus, jbsupumnsh, dimname=r3dim)
@@ -557,7 +539,7 @@
 !================================
 ! Write Variables
 !================================
-      CALL cdf_write(ncdf, vn_lasym, l_asym)
+      CALL cdf_write(ncdf, vn_lasym, lasym)
       CALL cdf_write(ncdf, vn_nsin, nsin)
       CALL cdf_write(ncdf, vn_mpolin, mpolin)
       CALL cdf_write(ncdf, vn_ntorin, ntorin)
@@ -568,7 +550,7 @@
       CALL cdf_write(ncdf, vn_bsupvc, jbsupvmnch)
       CALL cdf_write(ncdf, vn_presc,  jpmnch)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
       CALL cdf_write(ncdf, vn_bsupsc, jbsupsmnch)
       CALL cdf_write(ncdf, vn_bsupus, jbsupumnsh)
       CALL cdf_write(ncdf, vn_bsupvs, jbsupvmnsh)
@@ -585,7 +567,6 @@
 #if defined(MRC)
       USE restart_mod
 #endif
-
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: nprecon
 !-----------------------------------------------
@@ -598,10 +579,10 @@
       CHARACTER*(256)    :: filename
 !-----------------------------------------------
 #if defined(MRC)
-      istat = restart_read("siesta_" // TRIM(restart_ext) // ".nc",            &
-     &                     mpolin, ntorin, nsin, wout_file)
-#else
-#if defined(NETCDF)
+      istat = restart_read("siesta_" // TRIM(restart_ext) // ".nc",      &
+                           mpolin, ntorin, nsin, wout_file)
+      RETURN
+#elif defined(NETCDF)
       CALL read_restart_ncfile (istat, ns, ntor, mpol)
       nmin = MIN(ntor, ntorin)
       IF (istat .EQ. 0) GOTO 111
@@ -622,7 +603,7 @@
 !     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
 !     EVENTUALLY USE FOR MULTIGRIDDING
 !
-      READ (15,'(L1)') l_asym
+      READ (15,'(L1)') lasym
       READ (15,100) ns, mpol, ntor
       nmin = MIN(ntor, ntorin)
 
@@ -643,7 +624,7 @@
       ENDDO
       ENDDO
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
       ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                            &
                 bsupus(0:mpol,-ntor:ntor,ns),                            &
                 bsupvs(0:mpol,-ntor:ntor,ns),                            & 
@@ -676,7 +657,7 @@
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
       DEALLOCATE (bsupss, bsupuc, bsupvc, presc, stat=istat)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
       jbsupsmnch(:,:,1) = 0
       jbsupvmnsh(:,:,1) = 0
       jpmnsh(:,:,1) = 0
@@ -700,8 +681,6 @@
  300  FORMAT(1p4e24.16)
  400  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
 
-#endif
-
       END SUBROUTINE read_restart_file
 
 #if defined(NETCDF)
@@ -723,7 +702,7 @@
       CALL cdf_open(ncdf,filename,'r',istat)
       IF (istat .NE. 0) RETURN
 
-      CALL cdf_read(ncdf, vn_lasym, l_asym)
+      CALL cdf_read(ncdf, vn_lasym, lasym)
       CALL cdf_read(ncdf, vn_nsin, ns)
       CALL cdf_read(ncdf, vn_mpolin, mpol)
       CALL cdf_read(ncdf, vn_ntorin, ntor)
@@ -733,7 +712,7 @@
                 bsupuc(0:mpol,-ntor:ntor,ns),                            &
                 bsupvc(0:mpol,-ntor:ntor,ns),                            & 
                 presc(0:mpol,-ntor:ntor,ns), stat=istat)
-      IF (l_asym) THEN
+      IF (lasym) THEN
       ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                            &
                 bsupus(0:mpol,-ntor:ntor,ns),                            &
                 bsupvs(0:mpol,-ntor:ntor,ns),                            & 
@@ -750,7 +729,7 @@
       CALL cdf_read(ncdf, vn_bsupvc, bsupvc)
       CALL cdf_read(ncdf, vn_presc,  presc)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
       CALL cdf_read(ncdf, vn_bsupsc, bsupsc)
       CALL cdf_read(ncdf, vn_bsupus, bsupus)
       CALL cdf_read(ncdf, vn_bsupvs, bsupvs)
@@ -761,10 +740,8 @@
 
       END SUBROUTINE read_restart_ncfile
 #endif
-
-#if defined(MRC)
-!  Moved to restart_mod to avoid a circular dependancy.
-#else
+  
+#if !defined(MRC)
       SUBROUTINE interpit(aold, anew, ns_old, ns_new, m1, m2, n1, n2)
       USE stel_constants, ONLY: one
       IMPLICIT NONE
@@ -833,7 +810,6 @@
 
       END SUBROUTINE interpit
 #endif
-
       SUBROUTINE Compute_Resonant_Epar(xc, epar)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s

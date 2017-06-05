@@ -21,7 +21,8 @@
       USE parallel_vmec_module, ONLY: FinalizeSurfaceComm
       USE parallel_vmec_module, ONLY: SetVacuumCommunicator
       USE parallel_vmec_module, ONLY: Scatterv4XArray
-      USE blocktridiagonalsolver_bst, ONLY: Initialize_bst, Finalize_bst
+      USE blocktridiagonalsolver_bst, ONLY: Initialize_bst
+      USE blocktridiagonalsolver_bst, ONLY: Finalize_bst
       USE xstuff
       USE mpi_inc
       IMPLICIT NONE
@@ -32,8 +33,7 @@ C-----------------------------------------------
       LOGICAL, INTENT(in) :: lscreen
       CHARACTER(LEN=*), INTENT(in) :: input_file0
       CHARACTER(LEN=*), OPTIONAL :: reset_file_name
-      !INTEGER, INTENT(IN) :: COMM_WORLD
-      INTEGER :: COMM_WORLD
+      INTEGER, INTENT(IN), OPTIONAL :: COMM_WORLD
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -118,14 +118,17 @@ C-----------------------------------------------
       END INTERFACE
 
 #if defined(SKS)
+
       RUNVMEC_PASS = RUNVMEC_PASS + 1
       CALL second0(rvton)
       CALL MyEnvVariables
+      CALL InitRunVmec(COMM_WORLD,lfreeb)
+      LV3FITCALL = l_v3fit
       IF(LV3FITCALL) THEN
         CALL Serial2Parallel4X(xc,pxc)
         CALL Serial2Parallel4X(xcdot,pxcdot)
         CALL Serial2Parallel4X(xstore,pxstore)
-        CALL InitRunVmec(COMM_WORLD,lfreeb)
+!        CALL InitRunVmec(COMM_WORLD,lfreeb)
         IF (RUNVMEC_PASS.GT.1) THEN
           CALL second0(bcastton)
           CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
@@ -212,8 +215,11 @@ C-----------------------------------------------
         vsetup_time = vsetup_time + (skstoff-skston)
         CALL second0(skston)
 #endif
+
         CALL readin (input_file, iseq_count, ier_flag, lscreen)
 #if defined(SKS)
+        CALL MPI_Bcast(LPRECOND,1,MPI_LOGICAL,0,RUNVMEC_COMM_WORLD,            &
+     &                 MPI_ERR)
         CALL second0(skstoff)
         readin_time = readin_time + (skstoff-skston)
 
@@ -225,6 +231,7 @@ C-----------------------------------------------
 !
 !        COMPUTE NS-INVARIANT ARRAYS
 !
+
 #if defined(SKS)
         CALL second0(skston)
 #endif
@@ -318,16 +325,15 @@ C-----------------------------------------------
 
 
 #if defined (SKS)
+         CALL second0(skston)
          IF(PARVMEC .AND. NS_RESLTN.GE.1) THEN
            IF (lactive) THEN
              CALL Gather4XArray(pscalxc)
              CALL Gather4XArray(pxc)
            END IF
            CALL FinalizeSurfaceComm(NS_COMM)
-           
-           CALL second0(skston)
 
-           bcastton = skston
+           CALL second0(bcastton)
            CALL MPI_Bcast(pscalxc,SIZE(pscalxc),MPI_REAL8,
      1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
            CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
@@ -336,18 +342,15 @@ C-----------------------------------------------
            broadcast_time = broadcast_time + (bcasttoff - bcastton)
 
            IF (.FALSE..AND.LV3FITCALL) THEN
-             nsmin=t1lglob; nsmax=t1rglob
-             DO js = nsmin, nsmax
-               pphip(:,js) = phips(js)
-               pchip(:,js) = chips(js)
-             END DO
+              nsmin=t1lglob; nsmax=t1rglob
+              DO js = nsmin, nsmax
+                 pphip(:,js) = phips(js)
+                 pchip(:,js) = chips(js)
+              END DO
 
-             nsmin=t1lglob; nsmax=MIN(t2rglob,ns+1)
-             pres(nsmin:nsmax) = 0
+              nsmin=t1lglob; nsmax=MIN(t2rglob,ns+1)
+              pres(nsmin:nsmax) = 0
            END IF
-
-           CALL second0(skstoff)
-           broadcast_time = broadcast_time + (skstoff -skston)
          END IF
 
          CALL InitSurfaceComm(nsval, nzeta, ntheta3,
@@ -378,9 +381,6 @@ C-----------------------------------------------
 #if defined (SKS)
          CALL second0(skstoff)
          init_radial_time = init_radial_time + (skstoff-skston)
-!         IF(grank.GE.nranks) THEN
-!           CYCLE
-!         END IF
          CALL Initialize_bst(.FALSE.,nsval,blklength)
 #endif
 !     CONTROL NUMBER OF STEPS
@@ -397,6 +397,7 @@ C-----------------------------------------------
          CALL second0(skstoff)
          eqsolve_time = eqsolve_time + (skstoff-skston)
 #endif
+
          IF (numsteps > 0) THEN
             niter = niter_store
          END IF
@@ -456,6 +457,7 @@ C-----------------------------------------------
         PRINT *, "runvmec: Running some more iterations",
      &           " -> Skipping call to fileout!"
       ELSE IF (ier_flag.NE.more_iter_flag) THEN
+
 #if defined(SKS)
         CALL second0(skston)
 #endif
@@ -469,6 +471,7 @@ C-----------------------------------------------
         fileout_time = fileout_time + (skstoff-skston)
 #endif      
       ENDIF
+
 #if defined(SKS)
       IF(LV3FITCALL) CALL FinalizeRunVmec(RUNVMEC_COMM_WORLD)
       CALL second0(rvtoff)

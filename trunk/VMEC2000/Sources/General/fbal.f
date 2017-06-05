@@ -36,7 +36,8 @@
 
 !     FROM AMPERE'S LAW, JcurX are angle averages of jac*JsupX, so
 !                        JcurX = (dV/ds)/twopi**2 <JsupX> where <...> is flux surface average
-      nsmin=MAX(2,t1lglob); nsmax=MIN(t1rglob,ns-1)
+      !nsmin=MAX(2,t1lglob); nsmax=MIN(t1rglob,ns-1)
+      nsmin=MAX(2,tlglob); nsmax=MIN(trglob,ns-1)
       DO js = nsmin, nsmax
          jcurv(js) = (signgs*ohs)*(buco(js+1) - buco(js))
          jcuru(js) =-(signgs*ohs)*(bvco(js+1) - bvco(js))

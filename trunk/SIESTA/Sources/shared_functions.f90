@@ -14,6 +14,7 @@
                             fsupsmnsf, fsupumncf, fsupvmncf,             &
                             wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
+      USE siesta_init, ONLY: init_state_par
       USE nscalingtools, ONLY: rcountsNS, dispNS
       CONTAINS
 
@@ -23,7 +24,6 @@
 !-----------------------------------------------
 !     PARALLEL (in N rows) VERSION
 !-----------------------------------------------
-#if defined(SKS)      
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE siesta_bfield, ONLY: update_bfield_par
       USE siesta_pressure, ONLY: update_pres_par
@@ -58,7 +58,7 @@
 
       CALL update_upperv_par
       CALL update_bfield_par (.FALSE.)
-      CALL update_pres_par (delta_t)
+      CALL update_pres_par
       CALL update_force_par
 
       IF (gamma .eq. 1._dp) STOP 'SIESTA REQUIRES gamma != 1'
@@ -85,7 +85,7 @@
                       fsupsmncf(:,:,js)*fsubsmncf(:,:,js)                & 
                     + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)                &
                     + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
-            IF (l_asym) THEN
+            IF (lasym) THEN
             stmp(1) = stmp(1) + vp_f(js)*SUM(                            &
                       fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)                &
                     + fsupumncf(:,:,js)*fsubumncf(:,:,js)                &
@@ -94,14 +94,17 @@
 
          END DO
          stmp(2) = SUM(vp_f(nsmin:nsmax))
+#if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
          fsq_total = rtmp(1)/rtmp(2)
-
+#else
+         fsq_total = stmp(1)/stmp(2)
+#endif
          IF (ANY(col_scale .NE. one)) THEN
             fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)/col_scale(:,:,1,nsmin:nsmax)
             fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)/col_scale(:,:,2,nsmin:nsmax)
             fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)/col_scale(:,:,3,nsmin:nsmax)
-            IF (l_asym) THEN
+            IF (lasym) THEN
             fsubsmnsf(:,:,nsmin:nsmax)=fsubsmnsf(:,:,nsmin:nsmax)/col_scale(:,:,4,nsmin:nsmax)
             fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)/col_scale(:,:,5,nsmin:nsmax)
             fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)/col_scale(:,:,6,nsmin:nsmax)
@@ -117,7 +120,7 @@
                        + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)             &
                        + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
             END DO
-            IF (l_asym) THEN
+            IF (lasym) THEN
             DO js = nsmin,nsmax
                sendbuf(js) =  sendbuf(js) + vp_f(js)*SUM(                &
                          fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)             & 
@@ -126,42 +129,54 @@
             END DO
             END IF
           
+#if defined(MPI_OPT)
             CALL MPI_ALLGATHERV(sendbuf(nsmin), nsmax-nsmin+1, MPI_REAL8,&
                                 recbuf, rcountsNS, dispNS, MPI_REAL8,    &
                                 MPI_COMM_WORLD, MPI_ERR)
             fsq_total1 = SUM(recbuf)/rtmp(2)
+#else
+            fsq_total1 = SUM(sendbuf)/stmp(2)
+#endif
 
-            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)*fsubsmncf(:,:,nsmin:nsmax))
-            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)*fsubumnsf(:,:,nsmin:nsmax))
-            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)*fsubvmnsf(:,:,nsmin:nsmax))
-            IF (l_asym) THEN
-            stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)*fsubsmnsf(:,:,nsmin:nsmax))
-            stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)*fsubumncf(:,:,nsmin:nsmax))
-            stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)*fsubvmncf(:,:,nsmin:nsmax))
+            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
+            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
+            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
+            IF (lasym) THEN
+            stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
+            stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
+            stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
             END IF
 
+#if defined(MPI_OPT)
             CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
             fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
+#else
+            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+#endif
             fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)*col_scale(:,:,1,nsmin:nsmax)
             fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)*col_scale(:,:,2,nsmin:nsmax)
             fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)*col_scale(:,:,3,nsmin:nsmax)
-            IF (l_asym) THEN
+            IF (lasym) THEN
             fsubsmnsf(:,:,nsmin:nsmax)=fsubsmnsf(:,:,nsmin:nsmax)*col_scale(:,:,4,nsmin:nsmax)
             fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)*col_scale(:,:,5,nsmin:nsmax)
             fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)*col_scale(:,:,6,nsmin:nsmax)
             END IF
          ELSE         
-            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)*fsubsmncf(:,:,nsmin:nsmax))
-            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)*fsubumnsf(:,:,nsmin:nsmax))
-            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)*fsubvmnsf(:,:,nsmin:nsmax))
-            IF (l_asym) THEN
-            stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)*fsubsmnsf(:,:,nsmin:nsmax))
-            stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)*fsubumncf(:,:,nsmin:nsmax))
-            stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)*fsubvmncf(:,:,nsmin:nsmax))
+            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
+            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
+            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
+            IF (lasym) THEN
+            stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
+            stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
+            stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
             END IF
 
+#if defined(MPI_OPT)
             CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
             fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
+#else
+            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+#endif
             fsq_total1 = fsq_total
          END IF
       END IF
@@ -174,7 +189,7 @@
 
       CALL second0(toff)
       time_funci = time_funci+(toff-ton)
-#endif
+
       END SUBROUTINE funct_island_par
 
 !>  \brief Computes forces for perturbed state
@@ -188,7 +203,6 @@
 !>    \brief Performs line search along xc vector for minimum fsq_total1
 !!    \author S. P. Hirshman (2016)
       SUBROUTINE LineSearch(xcmin, fsq_min)
-      USE nscalingtools, ONLY: PARFUNCTISL
       USE perturbation, ONLY: ftol
       IMPLICIT NONE
       REAL(dp), INTENT(INOUT) :: xcmin(neqs)
@@ -204,11 +218,11 @@
       iter = 0
 
       DO j = 1, 100
-         IF (PARFUNCTISL) THEN
-            CALL funct_island_par
-         ELSE
-            CALL funct_island
-         END IF
+#if defined(SKS)
+         CALL funct_island_par
+#else
+         CALL funct_island
+#endif
          IF (j .EQ. 1) THEN
             fsq_min = fsq_total1
             xc = facmin*xcmin

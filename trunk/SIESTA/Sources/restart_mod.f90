@@ -21,10 +21,10 @@
 
 !  Flag will be placed in the last bits. This way the version number and flags 
 !  can fit in the same memory.
-!>  Bit position for the l_asym flag.
-      INTEGER, PARAMETER           :: restart_l_asym = 31
-!>  Bit position for the l_recon flag.
-      INTEGER, PARAMETER           :: restart_l_recon = 30
+!>  Bit position for the lasym flag.
+      INTEGER, PARAMETER           :: restart_lasym = 31
+!>  Bit position for the lrecon flag.
+      INTEGER, PARAMETER           :: restart_lrecon = 30
 
 !>  Dimension names.
       CHARACTER (LEN=*), DIMENSION(3), PARAMETER ::                            &
@@ -130,7 +130,7 @@
                             jbsupumnsh, jbsupumnch,                            &
                             jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch
-      USE shared_data, ONLY: l_asym, nprecon
+      USE shared_data, ONLY: lasym, nprecon
 
       IMPLICIT NONE
 
@@ -192,7 +192,7 @@
       CALL interpit(tempmn, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
 
-      IF (BTEST(flags, restart_l_asym) .and. l_asym) THEN
+      IF (BTEST(flags, restart_lasym) .and. lasym) THEN
          jbsupsmnch(:,:,1) = 0
          CALL cdf_read(ncid, vn_jbsupsc, tempmn)
          CALL interpit(tempmn, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
@@ -209,7 +209,7 @@
          CALL cdf_read(ncid, vn_jpress,  tempmn)
          CALL interpit(tempmn, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
          jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
-      ELSE IF (l_asym) THEN
+      ELSE IF (lasym) THEN
          jbsupsmnch = 0
          jbsupumnsh = 0
          jbsupvmnsh = 0
@@ -243,9 +243,8 @@
                             jpmnsh,     jpmnch,                                &
                             b_factor,   p_factor, jacobh
       USE fourier
-      USE shared_data, ONLY: l_asym, l_recon
+      USE shared_data, ONLY: lasym, lrecon
       USE island_params, ONLY: ohs => ohs_i
-      USE fourier, ONLY: orthonorm
 
       IMPLICIT NONE
 
@@ -291,11 +290,11 @@
       IF (restart_write .NE. 0) RETURN
 
       flags = restart_version
-      IF (l_asym) THEN
-         flags = IBSET(flags, restart_l_asym)
+      IF (lasym) THEN
+         flags = IBSET(flags, restart_lasym)
       END IF
-      IF (l_recon) THEN
-         flags = IBSET(flags, restart_l_recon)
+      IF (lrecon) THEN
+         flags = IBSET(flags, restart_lrecon)
       END IF
 
       CALL cdf_define(ncid, vn_flags, flags)
@@ -309,14 +308,14 @@
       CALL cdf_define(ncid, vn_jbsupvc, jbsupvmnch, dimname=restart_dims)
       CALL cdf_define(ncid, vn_jpresc,  jpmnch,     dimname=restart_dims)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
          CALL cdf_define(ncid, vn_jbsupsc, jbsupsmnch, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jbsupus, jbsupumnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jbsupvs, jbsupvmnsh, dimname=restart_dims)
          CALL cdf_define(ncid, vn_jpress,  jpmnsh,     dimname=restart_dims)
       END IF
 
-      IF (l_recon) THEN
+      IF (lrecon) THEN
 !  Using variable with jacobian only for the dimension sizes and types. Be for
 !  writting, the jacobian normalization will be removed.
          CALL cdf_define(ncid, vn_bsupsmns,  jbsupsmnsh, dimname=restart_dims)
@@ -333,7 +332,7 @@
          CALL cdf_define(ncid, vn_p_factor,  p_factor)
          CALL cdf_define(ncid, vn_p_max,     b_factor)
          CALL cdf_define(ncid, vn_p_min,     p_factor)
-         IF (l_asym) THEN
+         IF (lasym) THEN
             CALL cdf_define(ncid, vn_bsupsmnc,  jbsupsmnch, dimname=restart_dims)
             CALL cdf_define(ncid, vn_bsupumns,  jbsupumnsh, dimname=restart_dims)
             CALL cdf_define(ncid, vn_bsupvmns,  jbsupvmnsh, dimname=restart_dims)
@@ -358,14 +357,14 @@
       CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
       CALL cdf_write(ncid, vn_jpresc,  jpmnch)
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
          CALL cdf_write(ncid, vn_jbsupsc, jbsupsmnch)
          CALL cdf_write(ncid, vn_jbsupus, jbsupumnsh)
          CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
          CALL cdf_write(ncid, vn_jpress,  jpmnsh)
       END IF
 
-      IF (l_recon) THEN
+      IF (lrecon) THEN
          CALL cdf_write(ncid, vn_p_factor, p_factor)
          CALL cdf_write(ncid, vn_b_factor, b_factor)
 
@@ -379,16 +378,16 @@
          bsupvijh = 0
          pijh = 0
 
-         CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin, f_half)
-         CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos, f_half)
-         CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos, f_half)
-         CALL toijsp(jpmnch, pijh, f_none, f_cos, f_half)
+         CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
+         CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
+         CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
+         CALL toijsp(jpmnch, pijh, f_none, f_cos)
 
-         IF (l_asym) THEN
-            CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos, f_half)
-            CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_sin, f_half)
-            CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_sin, f_half)
-            CALL toijsp(jpmnsh, pijh, f_sum, f_sin, f_half)
+         IF (lasym) THEN
+            CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_cos)
+            CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_sin)
+            CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_sin)
+            CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
          END IF
 
          bsupsijh(:,:,1) = 0
@@ -410,22 +409,22 @@
          ALLOCATE(tempmn(0:mpol,-ntor:ntor,ns))
          tempmn = 0
 
-         CALL tomnsp(bsupsijh, tempmn, f_sin, f_half)
+         CALL tomnsp(bsupsijh, tempmn, f_sin)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
          END DO
          CALL cdf_write(ncid, vn_bsupsmns, tempmn)
-         CALL tomnsp(bsupuijh, tempmn, f_cos, f_half)
+         CALL tomnsp(bsupuijh, tempmn, f_cos)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
          END DO
          CALL cdf_write(ncid, vn_bsupumnc, tempmn)
-         CALL tomnsp(bsupvijh, tempmn, f_cos, f_half)
+         CALL tomnsp(bsupvijh, tempmn, f_cos)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
          END DO
          CALL cdf_write(ncid, vn_bsupvmnc, tempmn)
-         CALL tomnsp(pijh, tempmn, f_cos, f_half)
+         CALL tomnsp(pijh, tempmn, f_cos)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
          END DO
@@ -442,17 +441,17 @@
          ALLOCATE(bsubumnh(0:mpol,-ntor:ntor,ns))
          ALLOCATE(bsubvmnh(0:mpol,-ntor:ntor,ns))
 
-         CALL tomnsp(bsubsijh, bsubsmnh, f_sin, f_half)
+         CALL tomnsp(bsubsijh, bsubsmnh, f_sin)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*bsubsmnh(:,:,s)
          END DO
          CALL cdf_write(ncid, vn_bsubsmns, tempmn)
-         CALL tomnsp(bsubuijh, bsubumnh, f_cos, f_half)
+         CALL tomnsp(bsubuijh, bsubumnh, f_cos)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*bsubumnh(:,:,s)
          END DO
          CALL cdf_write(ncid, vn_bsubumnc, tempmn)
-         CALL tomnsp(bsubvijh, bsubvmnh, f_cos, f_half)
+         CALL tomnsp(bsubvijh, bsubvmnh, f_cos)
          DO s = 1, ns
             tempmn(:,:,s) = orthonorm*bsubvmnh(:,:,s)
          END DO
@@ -493,39 +492,39 @@
          CALL cdf_write(ncid, vn_jksupumnc, jksupumnf)
          CALL cdf_write(ncid, vn_jksupvmnc, jksupvmnf)
 
-         IF (l_asym) THEN
-            CALL tomnsp(bsupsijh, tempmn, f_cos, f_half)
+         IF (lasym) THEN
+            CALL tomnsp(bsupsijh, tempmn, f_cos)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
             END DO
             CALL cdf_write(ncid, vn_bsupsmnc, tempmn)
-            CALL tomnsp(bsupuijh, tempmn, f_sin, f_half)
+            CALL tomnsp(bsupuijh, tempmn, f_sin)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
             END DO
             CALL cdf_write(ncid, vn_bsupumns, tempmn)
-            CALL tomnsp(bsupvijh, tempmn, f_sin, f_half)
+            CALL tomnsp(bsupvijh, tempmn, f_sin)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
             END DO
             CALL cdf_write(ncid, vn_bsupvmns, tempmn)
-            CALL tomnsp(pijh, tempmn, f_sin, f_half)
+            CALL tomnsp(pijh, tempmn, f_sin)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*tempmn(:,:,s)
             END DO
             CALL cdf_write(ncid, vn_pmns, tempmn)
 
-            CALL tomnsp(bsubsijh, bsubsmnh, f_cos, f_half)
+            CALL tomnsp(bsubsijh, bsubsmnh, f_cos)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*bsubsmnh(:,:,s)
             END DO
             CALL cdf_write(ncid, vn_bsubsmnc, tempmn)
-            CALL tomnsp(bsubuijh, bsubumnh, f_sin, f_half)
+            CALL tomnsp(bsubuijh, bsubumnh, f_sin)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*bsubumnh(:,:,s)
             END DO
             CALL cdf_write(ncid, vn_bsubumns, tempmn)
-            CALL tomnsp(bsubvijh, bsubvmnh, f_sin, f_half)
+            CALL tomnsp(bsubvijh, bsubvmnh, f_sin)
             DO s = 1, ns
                tempmn(:,:,s) = orthonorm*bsubvmnh(:,:,s)
             END DO
@@ -601,14 +600,14 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
-      REAL(rprec), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
       INTEGER, INTENT(in)      :: ns_old
       INTEGER, INTENT(in)      :: ns_new
       INTEGER, INTENT(in)      :: mpol_old
       INTEGER, INTENT(in)      :: mpol_new
       INTEGER, INTENT(in)      :: ntor_old
       INTEGER, INTENT(in)      :: ntor_new
+      REAL(rprec), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
+      REAL(rprec), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------

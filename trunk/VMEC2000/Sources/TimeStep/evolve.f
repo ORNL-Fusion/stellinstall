@@ -4,7 +4,12 @@
      1                       norm_term_flag
       USE vsvd
       USE xstuff
+#if defined (SKS)
+      USE precon2d, ONLY: ictrl_prec2d, l_comp_prec2D, 
+     1                    compute_blocks_par, compute_blocks
+#else
       USE precon2d, ONLY: ictrl_prec2d, l_comp_prec2D, compute_blocks
+#endif
       USE timer_sub
       USE gmres_mod
       USE parallel_include_module
@@ -12,16 +17,16 @@
 !  Comment Out below JDH 2010-08-03
 !      USE vmec_history
       IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(rprec) :: time_step          !, r0dot
       INTEGER, INTENT(inout) :: ier_flag
       LOGICAL, INTENT(inout) :: liter_flag
       LOGICAL, INTENT(in)  :: lscreen
-C-----------------------------------------------``
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
+!-----------------------------------------------``
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
       CHARACTER(LEN=*), PARAMETER :: fcn_message =
      1 "External calls to FUNCT3D: "
 !      REAL(rprec), PARAMETER :: r0dot_threshold = 5.E-06_dp
@@ -84,7 +89,15 @@ C-----------------------------------------------
 !           OF PRECONDITIONING BLOCKS IN V3FIT, FOR EXAMPLE
          IF (lfirst .or. l_comp_prec2D) THEN
             IF (l_v3fit) WRITE(*,*) 'VMEC Evolve:compute_blocks'
-            CALL compute_blocks (xc,xcdot,gc)
+            IF(PARVMEC) THEN
+#if defined(SKS)
+              IF(lactive) THEN
+                CALL compute_blocks_par (pxc,pxcdot,pgc)
+              END IF
+#endif
+            ELSE
+              CALL compute_blocks (xc,xcdot,gc)
+            END IF
          ENDIF
          IF(l_v3fit) WRITE(*,*) 'VMEC Evolve:prec2d_On iter2 =', iter2
          l_comp_prec2D = .FALSE.
@@ -92,13 +105,16 @@ C-----------------------------------------------
          time_step = 0.50_dp
          iter1 = iter2-1; fsq = fsqr1 + fsqz1 + fsql1
          IF(PARVMEC) THEN
-           pxstore = pxc
+           !pxstore = pxc
+           pxc = pxstore
            pxcdot = 0
          ELSE
-           xstore = xc
+           !xstore = xc
+           xc = xstore
            xcdot = 0
          END IF
       END IF
+
 
 !
 !     COMPUTE MHD FORCES
@@ -219,7 +235,8 @@ C         END IF
         IF (lactive) THEN 
           lk=0
           DO l=1, 3*ntmax
-            DO i=t2lglob, t2rglob
+            !DO i=t2lglob, t2rglob
+            DO i=t1lglob, t1rglob
               DO k=0, mpol1
                 DO j=0, ntor
                   lk = j + (ntor+1)*k +

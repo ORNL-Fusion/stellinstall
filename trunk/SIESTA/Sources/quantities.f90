@@ -11,7 +11,7 @@
           mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,        &
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
       USE descriptor_mod, ONLY: iam
-      USE shared_data, ONLY: l_asym
+      USE shared_data, ONLY: lasym
       IMPLICIT NONE
 
 !
@@ -35,7 +35,7 @@
        REAL(dp) :: b_factor, w_factor, p_factor                             ! Scale internal energy <wb+wp/(gam-1)> to 1
        REAL(dp) :: signjac
        REAL(dp) :: wp, wb
-!---- Fourier Space Arrays - l_asym=F parity
+!---- Fourier Space Arrays - lasym=F parity
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &  ! Fourier harmonics= BSUP?, VSUB?, P
         jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,                      & 
         ksupsmnsf,  ksupumncf,  ksupvmncf,                               &
@@ -47,8 +47,8 @@
         jvsupsmncf, jvsupumnsf, jvsupvmnsf,                              &  ! Evolved quantities
         fsubsmncf, fsubumnsf, fsubvmnsf                                     ! Computed forces
 
-!---- Fourier Space Arrays - l_asym=T parity
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)::                         &  ! Fourier harmonics= BSUP?, VSUB?, P
+!---- Fourier Space Arrays - lasym=T parity
+       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &  ! Fourier harmonics= BSUP?, VSUB?, P
         jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,                      & 
         ksupsmncf,  ksupumnsf,  ksupvmnsf,                               &
         djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,                  &  ! Array names starting with "d" represent perturbations
@@ -57,10 +57,14 @@
        REAL(dp), POINTER, DIMENSION(:,:,:) ::                            &  ! Fourier harmonics= JVSUP?mn?F
         jvsupsmnsf, jvsupumncf, jvsupvmncf,                              &  ! Evolved quantities
         fsubsmnsf, fsubumncf, fsubvmncf                                     ! Computed forces
-                           
+
+!---- Fourier Initial Power Spectrum Storage
+       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) ::                      &
+        pwr_spec_s, pwr_spec_a
+                                
 !---- Real Space Arrays
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: jvsupsijf,             &  ! all these are needed to compute convolutions
-        jvsupuijf, jvsupvijf, jacobh, jacobf                                ! in pressure and magn. field evolution equations.
+        jvsupuijf, jvsupvijf, jacobh, jacobf, wint                          ! in pressure and magn. field evolution equations.
   
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
         bsupsijf0, bsupuijf0, bsupvijf0,                                 &
@@ -88,14 +92,14 @@
 
         SUBROUTINE init_quantities
         USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,     &
-                           f_sin, f_sum, f_full
+                           f_sin, f_sum
         USE metrics, ONLY: sqrtg
-        IMPLICIT NONE
+        USE island_params, ONLY: nu_i
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER, PARAMETER :: m0=0
-        INTEGER :: istat
+        INTEGER :: istat, l
         REAL(dp) :: sum1
 !-----------------------------------------------
         w_factor = 1._dp/ABS(wb_i)
@@ -119,14 +123,14 @@
 !ON: SPH 04-28-16
 !        IF (.FALSE.) THEN                                                  !SET TO FALSE TO TURN THIS OFF
         jacobf = jacobh
-        CALL tomnsp(jacobh, jbsupsmnsh, f_cos, f_full)                      !use jbsupsmnsh for dummy storage
-        IF (l_asym) THEN
-           CALL tomnsp(jacobh, jbsupsmnch, f_sin, f_full)
+        CALL tomnsp(jacobh, jbsupsmnsh, f_cos)                      !use jbsupsmnsh for dummy storage
+        IF (lasym) THEN
+           CALL tomnsp(jacobh, jbsupsmnch, f_sin)
         END IF
-        CALL toijsp(jbsupsmnsh, jacobh, f_none, f_cos, f_full)
+        CALL toijsp(jbsupsmnsh, jacobh, f_none, f_cos)
         jbsupsmnsh = 0
-        IF (l_asym) THEN
-        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin, f_full)
+        IF (lasym) THEN
+        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin)
         jbsupsmnch = 0
         END IF
         
@@ -141,6 +145,10 @@
 !Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
         jacobf(:,:,1) = jacobh(:,:,1)
         jacobf(:,:,ns)= jacobh(:,:,ns)
+
+        DO l = 1, nu_i
+            wint(l,:,:) = cosmui(l,m0)
+        END DO         
 
         ALLOCATE (vp_f(ns), stat=istat)
         IF (istat .NE. 0) STOP 'Allocation error in init_bcovar'        
@@ -159,12 +167,10 @@
 
 
         SUBROUTINE Init_Fields
-        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos, f_half
+        USE fourier, ONLY: orthonorm, tomnsp_par, f_sin, f_cos
         USE metrics, ONLY: lmns_i, lmnc_i, sqrtg, iflipj
         USE nscalingtools, ONLY: startglobrow, endglobrow
-        USE hessian, ONLY: gather_array
         USE mpi_inc
-        IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -198,15 +204,15 @@
         phiph(1) = 0;  chiph(1) = 0
 
 !SKIP THIS TO USE INTERPOLATED LAMBDA FROM VMEC
-!        IF (l_asym) THEN
+!        IF (lasym) THEN
 !           IF (iam .EQ. 0) PRINT *,'--- IMPLEMENT COMPUTE LMNC! ---'
 !        ELSE
-           CALL ReComputeLambda(lmns_i, lmnc_i, jacobh, orthonorm,       &
+           CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,       &
                                 phiph, chiph, nsmin, nsmax)
 !        ENDIF
 
-        DO n = -ntor, ntor
-           DO m = 0,mpol
+        DO m = 0,mpol
+           DO n = -ntor, ntor
                jbsupumnch(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-n*nfp*lmns_i(m,n,nsmin:nsmax))
                jbsupvmnch(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*( m    *lmns_i(m,n,nsmin:nsmax))
            END DO
@@ -218,19 +224,19 @@
         r0 = hs_i/2
         jbsupumnch(m1,:,1) = 0 
         jbsupvmnch(m1,:,1) = 0 
-        jbsupsmnsh(m1,:,2) = r0*jbsupumnch(m1,:,2)                        ! Need to make jbsupsmnsh - r0*jbsupumnch = 0 at js=2
-
+!        jbsupsmnsh(m1,:,2) = r0*jbsupumnch(m1,:,2)                        ! Need to make jbsupsmnsh - r0*jbsupumnch = 0 at js=2
+                                                                           ! MESSES UP DIV(B) = 0
 !STORE m=0 component of jbsupvmnch at origin in half-grid js=1
         jbsupvmnch(m0,:,1) = jbsupvmnch(m0,:,2) 
         jbsupvmnch(m1:,:,1) = 0
 
         jbsupumnch(:,:,nsmin:nsmax) = b_factor*jbsupumnch(:,:,nsmin:nsmax) 
         jbsupvmnch(:,:,nsmin:nsmax) = b_factor*jbsupvmnch(:,:,nsmin:nsmax) 
-        IF (l_asym) THEN
+        IF (lasym) THEN
            jbsupsmnch = 0
 
-           DO n = -ntor, ntor
-              DO m = 0, mpol
+           DO m = 0, mpol
+              DO n = -ntor, ntor
                  jbsupumnsh(m,n,:) = phiph(:)*( n*nfp*lmnc_i(m,n,1:ns))
                  jbsupvmnsh(m,n,:) = phiph(:)*(-m    *lmnc_i(m,n,1:ns))
               END DO
@@ -238,12 +244,12 @@
 
            jbsupumnsh(m1,:,1) = 0   
            jbsupvmnsh(m1,:,1) = 0  
-           jbsupsmnch(m1,:,2) = -r0*jbsupumnsh(m1,:,2)                    ! Need to make jbsupsmnch + r0*jbsupumnsh = 0 at js=2
-
+!           jbsupsmnch(m1,:,2) = -r0*jbsupumnsh(m1,:,2)                    ! Need to make jbsupsmnch + r0*jbsupumnsh = 0 at js=2
+                                                                           ! MESSES UP DIV(B) = 0
            jbsupumnsh = b_factor*jbsupumnsh
            jbsupvmnsh = b_factor*jbsupvmnsh
 
-!STORE m=0 component of jbsupvmnsh at origin in half-grid js=1
+!STORE m=0 component of jbsupvmnch at origin in half-grid js=1
            jbsupvmnsh(m0,:,1) = jbsupvmnsh(m0,:,2)
            jbsupvmnsh(m1:,:,1) = 0
         END IF
@@ -270,12 +276,12 @@
 !       Evolve (internally) jacob*(real pressure)
         presih(:,:,nsmin:nsmax) = presih(:,:,nsmin:nsmax) * jacobh(:,:,nsmin:nsmax)
 
-        CALL tomnsp_par(presih, jpmnch, f_cos, f_half, nsmin, nsmax)       ! Initialize pressure harmonics (half mesh)
+        CALL tomnsp_par(presih, jpmnch, f_cos, nsmin, nsmax)               ! Initialize pressure harmonics (half mesh)
         jpmnch(:,:,1) = 0
         jpmnch(m0,:,1) = jpmnch(m0,:,2)
 
-        IF (l_asym) THEN
-        CALL tomnsp_par(presih, jpmnsh, f_sin, f_half, nsmin, nsmax)
+        IF (lasym) THEN
+        CALL tomnsp_par(presih, jpmnsh, f_sin, nsmin, nsmax)
         jpmnsh(:,:,1) = 0
         jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
         END IF
@@ -288,49 +294,20 @@
 !       Gather jbsupmnX's, jpmn onto all processors (same as in update_state_par but for initial values)
 !
 #if defined(SKS)
-        ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns),&
-                  tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),&
-                  stat=istat)
-        IF (istat .NE. 0) STOP 'Allocate error #2 in init_fields'
-
-        CALL gather_array(jbsupsmnsh(:,:,nsmin:nsmax), tmps)
-        CALL gather_array(jbsupumnch(:,:,nsmin:nsmax), tmpu)
-        CALL gather_array(jbsupvmnch(:,:,nsmin:nsmax), tmpv)
-        CALL gather_array(jpmnch(:,:,nsmin:nsmax), tmpp)
-
-        jbsupsmnsh = tmps
-        jbsupumnch = tmpu
-        jbsupvmnch = tmpv
-        jpmnch     = tmpp
-
-        IF (l_asym) THEN
-
-        CALL gather_array(jbsupsmnch(:,:,nsmin:nsmax), tmps)
-        CALL gather_array(jbsupumnsh(:,:,nsmin:nsmax), tmpu)
-        CALL gather_array(jbsupvmnsh(:,:,nsmin:nsmax), tmpv)
-        CALL gather_array(jpmnsh(:,:,nsmin:nsmax), tmpp)
-
-        jbsupsmnch = tmps
-        jbsupumnsh = tmpu
-        jbsupvmnsh = tmpv
-        jpmnsh     = tmpp
-
-        END IF
-
-        DEALLOCATE (tmps, tmpu, tmpv, tmpp, stat=istat)
-        IF (istat .NE. 0) STOP "Deallocate error #3 in init_fields"
+        CALL GATHER_FIELDS(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch)
+        IF (lasym)                                                       &
+        CALL GATHER_FIELDS(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh)
 #endif
         END SUBROUTINE Init_Fields
 
 
-        SUBROUTINE ReComputeLambda(lmns, lmnc, jacobh, orthonorm, phiph, &
+        SUBROUTINE ReCompute_Lambda(lmns, lmnc, jacobh, orthonorm, phiph, &
                                    chiph, nsmin, nsmax)
 !-----------------------------------------------
         USE island_params, ns=>ns_i, nuv=>nuv_i, mnmax=>mnmax_i,  &
                            nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
         USE metrics, ONLY: guu, guv, gvv
 
-        IMPLICIT NONE
         INTEGER, INTENT(IN)   :: nsmin, nsmax
         REAL(dp), INTENT(OUT) :: lmns(mnmax,ns), lmnc(mnmax,ns)                        
         REAL(dp), INTENT(IN)  :: phiph(ns), chiph(ns), orthonorm(mnmax), &
@@ -345,20 +322,20 @@
         CALL second0(ton)
 
         lmns(:,1) = 0
-        IF (l_asym) lmnc(:,1) = 0
+        IF (lasym) lmnc(:,1) = 0
 !
 !       ALLOCATE cos(mu+nv) and sin(mu+nv)
 ! 
         n2 = 1
-        IF (l_asym) n2 = 2
+        IF (lasym) n2 = 2
 	ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
                   cosmnp(nuv,mnmax),                                     &
 	          brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
-        IF (info .NE. 0) STOP 'Allocation error in RecomputeLambda'
-        IF (l_asym) THEN
+        IF (info .NE. 0) STOP 'Allocation error in Recompute_Lambda'
+        IF (lasym) THEN
 	ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
 	          stat=info)
-        IF (info .NE. 0) STOP 'Allocation error in RecomputeLambda'
+        IF (info .NE. 0) STOP 'Allocation error in Recompute_Lambda'
         END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
 
@@ -376,7 +353,7 @@
                                - isign*sinmui(lu,m)*sinnv(lv,np)
                  cosmnp(lk,mn) = cosmu(lu,m)*cosnv(lv,np)                &
                                - isign*sinmu(lu,m)*sinnv(lv,np)
-                 IF (.NOT. l_asym) CYCLE
+                 IF (.NOT. lasym) CYCLE
                  sinmni(lk,mn) = sinmui(lu,m)*cosnv(lv,np)               &
                                + isign*cosmui(lu,m)*sinnv(lv,np)
                  sinmnp(lk,mn) = sinmu(lu,m)*cosnv(lv,np)                &
@@ -386,7 +363,7 @@
               IF (m.EQ.0 .AND. n.LT.0) THEN
                  cosmni(:,mn) = 0
                  cosmnp(:,mn) = 0
-                 IF (l_asym) THEN
+                 IF (lasym) THEN
                  sinmni(:,mn) = 0
                  sinmnp(:,mn) = 0
                  END IF
@@ -400,7 +377,7 @@
         DO js = MAX(nsmin,2), nsmax
 
 	  mn = 0
-         DO n=-ntor,ntor
+          DO n=-ntor,ntor
 	     DO m=0,mpol
 !
 !       RHS (driving) TERMS [sinmi, -cosmni parts]
@@ -410,7 +387,7 @@
 	            + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))   &
                    / jacobh(:,js)
              brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
-             IF (l_asym) THEN
+             IF (lasym) THEN
              brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
              END IF
 			  
@@ -419,7 +396,7 @@
 !	     
 	     mnp = 0
 
-         DO np=-ntor,ntor
+             DO np=-ntor,ntor
 	        DO mp=0,mpol
 	           mnp=mnp+1
                    atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
@@ -427,36 +404,36 @@
                    amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
 	           IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
                       amat(mn,mnp) = signjac
-                   IF (.NOT.l_asym) CYCLE
+                   IF (.NOT.lasym) CYCLE
                    amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
                    amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
                    amat(mn+mnmax,mnp+mnmax)                              &
                                       = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
 	           IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
                       amat(mn+mnmax,mnp+mnmax) = signjac
-            END DO
+             	END DO
 	     END DO
 	     END DO
 	  END DO
 
 	  CALL solver(amat, brhs, mnmax*n2, 1, info)
-	  IF (info .NE. 0) STOP 'INFO != 0 IN RECOMPUTELAMBDA'
+	  IF (info .NE. 0) STOP 'INFO != 0 IN RECOMPUTE_LAMBDA'
 	  lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
-          IF (l_asym)                                                    &
+          IF (lasym)                                                    &
 	  lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)                     
 
       END DO
 
-      IF (mn.NE.mnmax .OR. mnp.NE.mnmax) STOP 'mn or mnp != mnmax in RECOMPUTELAMBDA'
+      IF (mn.NE.mnmax .OR. mnp.NE.mnmax) STOP 'mn or mnp != mnmax in RECOMPUTE_LAMBDA'
 
       DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
-      IF (l_asym) DEALLOCATE(sinmni, sinmnp)
+      IF (lasym) DEALLOCATE(sinmni, sinmnp)
 
       CALL second0(toff)
-      IF (iam .EQ. 0) PRINT 100,' TIME IN RECOMPUTELAMBDA: ', toff-ton,' S'
+      IF (iam .EQ. 0) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
 
  100  FORMAT(a,f10.2,a)
-      END SUBROUTINE RecomputeLambda
+      END SUBROUTINE Recompute_Lambda
 
 
 
@@ -467,7 +444,6 @@
 !       All variables allocated here are then deallocated in DEALLOC_QUANTITIES, 
 !       which should be called at the end of the run.
 ! 
-        IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -482,12 +458,17 @@
         jbsupsmnsh = zero; jbsupumnch = zero; jbsupvmnch = zero        
         jpmnch = zero
 
+        ALLOCATE (pwr_spec_s(0:mpol,-ntor:ntor,ns,4),                    &
+                  pwr_spec_a(0:mpol,-ntor:ntor,ns,4), stat=istat)
+        IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'      ! CONTRAVARIANT MAGNETIC FIELDS
+
+
         ALLOCATE(fsupsmncf(0:mpol,-ntor:ntor,ns),                        &  ! Full mesh quantities (harmonics)
                  fsupumnsf(0:mpol,-ntor:ntor,ns),                        &  ! F_s (cosine), F_u (sine), F_v (sine)
                  fsupvmnsf(0:mpol,-ntor:ntor,ns), stat=istat) 
         IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'      ! CONTRAVARIANT MHD FORCES
 
-        IF (l_asym) THEN
+        IF (lasym) THEN
 
         ALLOCATE(jbsupsmnch(0:mpol,-ntor:ntor,ns),                       &  ! Half mesh quantities (harmonics)
                  jbsupumnsh(0:mpol,-ntor:ntor,ns),                       &  ! B^s (sine), B^u (cosine), B^v (cosine)
@@ -505,8 +486,8 @@
         ENDIF
                 
         ALLOCATE (bsq(ntheta,nzeta,ns),                                  &
-                  jacobh(ntheta,nzeta,ns),                               &
-                  jacobf(ntheta,nzeta,ns), stat=istat)
+                  jacobh(ntheta,nzeta,ns), jacobf(ntheta,nzeta,ns),      &
+                  wint(ntheta,nzeta,ns), stat=istat)
 
         IF (istat .NE. 0) STOP 'Allocation failed in ALLOC_QUANTITIES'
 
@@ -518,16 +499,16 @@
 !
 !       Deallocates all variables allocated in ALLOC_QUANTITIES
 !        
-        IMPLICIT NONE
         INTEGER :: istat
         
         DEALLOCATE(jpmnch, jbsupsmnsh, jbsupumnch, jbsupvmnch, djpmnch,  &
           djbsupsmnsh, djbsupumnch, djbsupvmnch,                         &
           fsupsmncf, fsupumnsf, fsupvmnsf,                               &
-          ksupsmnsf, ksupumncf, ksupvmncf, stat=istat)
+          ksupsmnsf, ksupumncf, ksupvmncf, pwr_spec_s, pwr_spec_a,       &
+          stat=istat)
         IF(ALLOCATED(lmns_i)) DEALLOCATE(lmns_i)
 
-        IF (l_asym) THEN
+        IF (lasym) THEN
         DEALLOCATE(jpmnsh, jbsupsmnch, jbsupumnsh, jbsupvmnsh, djpmnsh,  &
           djbsupsmnch, djbsupumnsh, djbsupvmnsh,                         &
           fsupsmnsf, fsupumncf, fsupvmncf,                               &
@@ -537,7 +518,7 @@
 
         DEALLOCATE(jacobh, jacobf, jvsupsijf, jvsupuijf, jvsupvijf,      &
           ksubsijf, ksubuijf, ksubvijf, pijh, pijf,                      &
-          pijf_ds, bsupuijf0, vp_f, bsq,                                 &
+          pijf_ds, bsupuijf0, vp_f, bsq, wint,                           &
           bsupvijf0, bsupsijf0, pijf_du, pijf_dv,                        &
           pijh_du, pijh_dv, stat=istat)                      
         IF(ALLOCATED(bsupsijf0)) DEALLOCATE(bsupsijf0, bsupuijf0, bsupvijf0)
@@ -550,6 +531,51 @@
 
         END SUBROUTINE dealloc_quantities
         
-               
+
+      SUBROUTINE GATHER_FIELDS(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
+      USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE hessian, ONLY: gather_array
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)   ::                       &
+                djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tmps, tmpu, tmpv, tmpp
+      INTEGER  :: istat, nsmin, nsmax, k1, k2
+!-----------------------------------------------
+      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+
+      ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns),  &
+                tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),  &
+                stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation error #1 in update_state_par'
+
+      CALL gather_array(djbsupsmnh(:,:,nsmin:nsmax), tmps)
+      CALL gather_array(djbsupumnh(:,:,nsmin:nsmax), tmpu)
+      CALL gather_array(djbsupvmnh(:,:,nsmin:nsmax), tmpv)
+      CALL gather_array(djpmnh(:,:,nsmin:nsmax), tmpp)
+
+      k1 = LBOUND(djpmnh,3);  k2 = UBOUND(djpmnh,3)
+      IF (k1.NE.1 .OR. k2.NE.ns) THEN
+         DEALLOCATE(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
+         ALLOCATE (djbsupsmnh(0:mpol,-ntor:ntor,ns),                     &
+                   djbsupumnh(0:mpol,-ntor:ntor,ns),                     &
+                   djbsupvmnh(0:mpol,-ntor:ntor,ns),                     &
+                   djpmnh(0:mpol,-ntor:ntor,ns), stat=istat)
+         IF (istat .NE. 0) STOP 'Allocation error #2 in update_state_par'
+      END IF
+
+      djbsupsmnh = tmps
+      djbsupumnh = tmpu
+      djbsupvmnh = tmpv
+      djpmnh     = tmpp
+      DEALLOCATE (tmps, tmpu, tmpv, tmpp)
+
+      END SUBROUTINE GATHER_FIELDS
+          
+     
       END MODULE quantities
           

@@ -63,7 +63,8 @@
         DO lz = 1, nzeta
           lk = lk + 1
           pwint_ns(lk)=cosmui3(lt,0)/mscale(0)
-          DO js=MAX(2,nsmin), nsmax
+          !DO js=MAX(2,nsmin), nsmax
+          DO js=MAX(2,t2lglob), MIN(ns,t2rglob)
             !pwint(lk,js)=cosmui3(lt,0)/mscale(0)
             pwint(lk,js)=pwint_ns(lk)
           END DO

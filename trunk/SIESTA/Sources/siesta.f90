@@ -32,6 +32,7 @@
                             SKSDBG, TOFU, PARGMRES, PARFUNCTISL,         &
                             finalizeRemap, bcyclicMapping, initRemap,    &
                             OUTPUT_TIMINGS, GetTimes, MPI_ERR
+      USE blocktridiagonalsolver, ONLY: Initialize, Finalize, GetRanks
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER, &
@@ -50,32 +51,27 @@
       REAL(rprec)   :: starttime, endtime, usedtime, rvar
       CHARACTER*10  :: envval
 #endif      
-
 #if defined(MRC)
-      INTEGER       :: error, parent_comm, size
+      INTEGER       :: error, parent_comm
 #endif
-
 !-----------------------------------------------
 #if defined(MPI_OPT)
+      LSCALAPACK=.TRUE.
+      INHESSIAN=.FALSE.
+#if defined(SKS)
+      CALL MyEnvVariables
+      IF (PARSOLVER) LSCALAPACK=.FALSE.
+      CALL sks_timers
+      CALL Initialize(.TRUE.,0,0)
+      CALL GetRanks(iam, nprocs)
+#endif
+      IF (LSCALAPACK) THEN
       CALL profinit()
 !     -----------
 !     setup blacs
 !     -----------
       CALL blacs_pinfo(iam,nprocs)
       CALL blacs_setup(iam,nprocs)
-
-      CALL second0(ton)
-      skston=ton
-
-      LSCALAPACK=.TRUE.
-      INHESSIAN=.FALSE.
-#if defined(SKS)
-      CALL MyEnvVariables(iam)
-      IF (PARSOLVER) LSCALAPACK=.FALSE.
-      CALL sks_timers
-      IF (SKSDBG) CALL SetOutputFile(iam,nprocs)
-#endif
-      IF (LSCALAPACK) THEN
       do nprow=int(sqrt(dble(nprocs)))+1,1,-1
          npcol = int( nprocs/nprow )
          if (nprow*npcol.eq.nprocs) exit
@@ -101,20 +97,18 @@
       endif
       END IF   !LSCALAPACK=T
 #else
-      CALL second0(ton)
-      skston=ton
       LSCALAPACK=.FALSE.
       iam = 0
       nprocs = 1
 #endif
 
-#if defined(SKS)
-      CALL second0(t1)
-#endif
+      CALL second0(ton)
+      skston=ton
+
       CALL init_data (nprecon)
 #if defined(SKS)
       CALL second0(t2)
-      init_data_time=init_data_time+(t2-t1)
+      init_data_time=init_data_time+(t2-ton)
 #endif
 !
 !     INITIALIZE METRICS, FOURIER, AND B-FIELD
@@ -139,19 +133,13 @@
       
       IF (lrestart) CALL read_restart_file (nprecon)
 
-!      ALLOCATE (work2(ns,ntheta,nzeta))
-!      CALL ZeroHalfPoint(djpmnch, work2, 2, 2, 0)
-!      DEALLOCATE(work2)
-
       CALL second0(toff)
       time_init = toff-ton
 
 !     Initializes the EVOLUTION module variables and
 !     converges the force residual using a diagonal preconditioner
 !     Applies the external island perturbation if possible
-#if defined(SKS)
       CALL second0(t1)
-#endif
       CALL init_evolution
       mblk_size = ndims*(mpol+1)*(2*ntor+1)
 #if defined(SKS)
@@ -169,8 +157,6 @@
       CALL second0(t2)
       init_quantities_time=init_quantities_time+(t2-t1)
 #endif
-
-      CALL second0(t2)
 !
 !     Converge initial residues with diagonal preconditioner
       DIAGONALDONE=.FALSE.
@@ -286,8 +272,13 @@
  115  FORMAT('==============================              =======================')
 
       CALL write_output (wout_file, niter)
-      CALL write_profiles(fsq_total1)                 ! SPH: write jpmn, jbsupXmn, kbsubXmn, jvsupXmn profiles
+      CALL write_profiles(fsq_total1)                                    ! SPH: write jpmn, jbsupXmn, kbsubXmn, jvsupXmn profiles
+      IF (iam .EQ. 0) THEN
+         PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
+         CLOSE (UNIT=33)
+      ENDIF
       
+!CLEAN UP ARRAYS
       CALL cleanup_metric_elements
 
       CALL dealloc_quantities
@@ -300,31 +291,33 @@
       IF (LSCALAPACK) THEN
         CALL blacs_barrier(icontxt,'All')
         CALL blacs_gridexit(icontxt)
-      END IF
-
 #if defined(MRC)
 ! MRC: Put in a barrier to the parent comm to make sure execution has finished.
 !      This is used for the hacked SIESTA reconstruction.
-      CALL MPI_COMM_GET_PARENT(parent_comm, error)
-      IF (parent_comm .ne. MPI_COMM_NULL) THEN
-         CALL MPI_BARRIER(parent_comm, error)
+        CALL MPI_COMM_GET_PARENT(parent_comm, error)
+        IF (parent_comm .ne. MPI_COMM_NULL) THEN
+           CALL MPI_BARRIER(parent_comm, error)
+        END IF
+#endif
+        CALL blacs_exit(0)
+        IF ((myrow.eq.0).and.(mycol.eq.0)) CALL profstat()
+#if defined(SKS)
+      ELSE
+        IF(SKSDBG) WRITE(TOFU,*) 'Called finalizeRemap and Finalize' 
+        IF(SKSDBG) FLUSH(TOFU)
+        CALL finalizeRemap
+#if defined(MRC)
+! MRC: Put in a barrier to the parent comm to make sure execution has finished.
+!      This is used for the hacked SIESTA reconstruction.
+        CALL MPI_COMM_GET_PARENT(parent_comm, error)
+        IF (parent_comm .ne. MPI_COMM_NULL) THEN
+           CALL MPI_BARRIER(parent_comm, error)
+        END IF
+#endif
+        CALL Finalize(.TRUE.)
+#endif
       END IF
 #endif
 
-      CALL blacs_exit(0)
-
-      IF ((myrow.eq.0).and.(mycol.eq.0)) CALL profstat()
-
-#if defined(SKS)
-      IF(SKSDBG) WRITE(TOFU,*) 'Called finalizeRemap' 
-      IF(SKSDBG) FLUSH(TOFU)
-      CALL finalizeRemap
-#endif
-
-      IF (iam .EQ. 0) THEN
-      PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
-      CLOSE (UNIT=33)
-      ENDIF
-#endif
 
       END PROGRAM SIESTA

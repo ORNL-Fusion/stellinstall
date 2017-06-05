@@ -5,7 +5,7 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bhtobf.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/blocktridiagonalsolver.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/check3d.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/cv_currents.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_currents.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/descriptor_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/diagnostics_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/DirectAccess.f90
@@ -13,10 +13,9 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/evolution.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/f1dim_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/fourier.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/get_force_harmonics.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/gmres.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/hessian.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/init_state.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_init.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/island_params.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/metrics.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/nscalingtools.f90

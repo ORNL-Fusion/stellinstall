@@ -1,15 +1,9 @@
       MODULE diagnostics_mod
-!      USE stel_kinds
-#if defined(SKS)
       USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,         &
-                   f_sum, f_cos, f_sin, f_half, f_none, f_du, f_dv
-#else
-      USE fourier, ONLY: tomnsp, toijsp, f_cos, f_sin, f_half,           &
-                        f_sum, f_none, f_du, f_dv
-#endif
-      USE quantities
+                   f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs
       USE timer_mod
+      USE quantities
       IMPLICIT NONE
       INTEGER     :: unit35=35, unit36=36
       REAL(dp) :: divb_rms, avbeta, bdotj_rms, divj_rms, bdotj2_rms
@@ -35,7 +29,7 @@
 
       CONTAINS
 
-          SUBROUTINE divb
+        SUBROUTINE divb
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -74,7 +68,6 @@
 
         SUBROUTINE divb_par
         USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-#if defined(SKS)
         USE mpi_inc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -110,10 +103,12 @@
               +     jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
         divb_rms = SUM(divbmnsf**2)
+#if defined(MPI_OPT)        
         s1(1) = divb_rms; s1(2) = tnorm
         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
                            MPI_COMM_WORLD,MPI_ERR)
         divb_rms=r1(1);   tnorm = r1(2)
+#endif
         IF (tnorm .NE. zero) THEN
            divb_rms = SQRT(divb_rms/tnorm)
            divbmnsf = divbmnsf/SQRT(tnorm)
@@ -121,7 +116,7 @@
 
         CALL second0(toff)
         time_divb = time_divb + (toff-ton)
-#endif
+
         END SUBROUTINE divb_par
 
          
@@ -129,6 +124,7 @@
         USE safe_open_mod
         USE metrics, ONLY: lmns_i
         USE fourier, ONLY: tomnsp_pest
+        USE siesta_init, ONLY: init_state
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -144,7 +140,7 @@
 !       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN GATHERED
 !       (IN UPDATE_STATE)
 !
-        IF (iam .EQ. 0) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR l_asym=T ---'
+        IF (iam .EQ. 0) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR lasym=T ---'
 
         ALLOCATE(pijh(ntheta,nzeta,ns), stat=istat)
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)      
@@ -158,61 +154,61 @@
         IF (istat .NE. 0) STOP 'Error writing siesta profiles data file'
 
         pijh = 0
-        CALL toijsp(jpmnch, pijh, f_none, f_cos, f_half)
+        CALL toijsp(jpmnch, pijh, f_none, f_cos)
         pijh = pijh/jacobh                                                 ! Need first to remove jacobian...
         pmnch = 0
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35,pmnch, fsq_total, 'pmnch(jrad);  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'pmnch(jrad);  fsq_total: ')
 
 !USE pijh, pmnch to compute components of bsupX on half-mesh
 !BSUPS
-        CALL toijsp(jbsupsmnsh, pijh, f_none, f_sin, f_half)
+        CALL toijsp(jbsupsmnsh, pijh, f_none, f_sin)
         pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_sin, f_half)
+        CALL tomnsp(pijh, pmnch, f_sin)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'B^s_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'B^s_mn;  fsq_total: ')
 
 !BSUPU
-        CALL toijsp(jbsupumnch, pijh, f_none, f_cos, f_half)
+        CALL toijsp(jbsupumnch, pijh, f_none, f_cos)
         pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'B^u_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'B^u_mn;  fsq_total: ')
 
 !BSUPV
-        CALL toijsp(jbsupvmnch, pijh, f_none, f_cos, f_half)
+        CALL toijsp(jbsupvmnch, pijh, f_none, f_cos)
         pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'B^v_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'B^v_mn;  fsq_total: ')
 
 !KSUPS CRCook
-        CALL toijsp(ksupsmnsf, pijh, f_none, f_sin, f_half)
+        CALL toijsp(ksupsmnsf, pijh, f_none, f_sin)
         pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_sin, f_half)
+        CALL tomnsp(pijh, pmnch, f_sin)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'J^s_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'J^s_mn;  fsq_total: ')
 
 !KSUPU CRCook
-        CALL toijsp(ksupumncf, pijh, f_none, f_cos, f_half)
+        CALL toijsp(ksupumncf, pijh, f_none, f_cos)
         pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'J^u_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'J^u_mn;  fsq_total: ')
 
 !KSUPV CRCook
-        CALL toijsp(ksupvmncf, pijh, f_none, f_cos, f_half)
+        CALL toijsp(ksupvmncf, pijh, f_none, f_cos)
         pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'J^v_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'J^v_mn;  fsq_total: ')
 
 !K|| = (J*B)/B**2 (SPH:040915)
@@ -222,21 +218,21 @@
         pijh = 0
         WHERE (bsq .NE. zero) pijh = bdotjijh/bsq
         DEALLOCATE(bdotjijh)
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'K||_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'K||_mn;  fsq_total: ')
 
 !K|| (non-axisymmetric part only: SPH090816)
-        CALL tomnsp(pijh, pmnch, f_cos, f_half)
+        CALL tomnsp(pijh, pmnch, f_cos)
         pmnch(:,0,:) = 0
         CALL siesta_profiles (unit35, pmnch, fsq_total, 'K||_mn - nonaxisymmetric;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, f_half)
+        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
         pmnch(:,0,:) = 0
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'K||_mn - nonaxisymmetric;  fsq_total: ')
 
 !<K||-nonaxi> : RWILCOX metric in PEST coordinates
-        CALL toijsp(pmnch, pijh, f_none, f_cos, f_half)
+        CALL toijsp(pmnch, pijh, f_none, f_cos)
         CALL SurfAverage(average, ABS(pijh), 1, ns)
         WRITE (unit36, *) 
         WRITE (unit36, *) '<ABS(K||) - nonaxisymmetric>'
@@ -346,11 +342,19 @@
 !     Compute contravariant components of magnetic field
 !           
       IF (.NOT.ALLOCATED(jbsupsmnsh)) STOP 'jbsupXmn UNALLOCATED IN GET_BGRADP'
-      CALL toijsp(jbsupsmnsh, bsupsijh0, f_none, f_sin, f_half)
+      CALL toijsp(jbsupsmnsh, bsupsijh0, f_none, f_sin)
+      CALL toijsp(jbsupumnch, bsupuijh0, f_none, f_cos)
+      CALL toijsp(jbsupvmnch, bsupvijh0, f_none, f_cos)
+
+	  IF (.NOT.lasym) GOTO 100
+      IF (.NOT.ALLOCATED(jbsupsmnch)) STOP 'jbsupXmn UNALLOCATED IN GET_BGRADP'
+      CALL toijsp(jbsupsmnch, bsupsijh0, f_sum, f_cos)
+      CALL toijsp(jbsupumnsh, bsupuijh0, f_sum, f_sin)
+      CALL toijsp(jbsupvmnsh, bsupvijh0, f_sum, f_sin)
+100   CONTINUE
+
       bsupsijh0 = bsupsijh0/jacobh
-      CALL toijsp(jbsupumnch, bsupuijh0, f_none, f_cos, f_half)
       bsupuijh0 = bsupuijh0/jacobh
-      CALL toijsp(jbsupvmnch, bsupvijh0, f_none, f_cos, f_half)
       bsupvijh0 = bsupvijh0/jacobh
 
       bgradpf(:,:,2:nsh) =                                              &   ! Get all values except first and
@@ -368,8 +372,6 @@
       bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
 
       tnorm_bgradp = SQRT(tnorm_bgradp/(ns*ntheta*nzeta))
-
-!      IF (iam .EQ. 0) WRITE (4200, *)' tnorm_bgradp: ',tnorm_bgradp,' bgradp_rms: ', bgradp_rms
 
       bgradpf(:,:,2:nsh) = bgradpf(:,:,2:nsh)/tnorm_bgradp
 !IGNORE FIRST POINT
@@ -391,7 +393,6 @@
 !     
 !     PURPOSE: Computes B*GRAD P (normalized to B*P) on the FULL mesh
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-#if defined(SKS)
       USE mpi_inc
 !
 !-----------------------------------------------
@@ -410,12 +411,11 @@
       CALL get_bgradp_par
 
       DEALLOCATE (bgradpf, stat=istat)
-#endif
+
       END SUBROUTINE bgradp_par
 
 
       SUBROUTINE get_bgradp_par
-#if defined(SKS)
       USE nscalingtools, ONLY: startglobrow, endglobrow, mpi_err
       USE mpi_inc
 !     
@@ -426,8 +426,8 @@
 !-----------------------------------------------
       INTEGER, PARAMETER  :: jsh=3
       INTEGER     :: istat, nsmin, nsmax, ns_span, n1, n2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
-          dpduijh, dpdvijh, pijh,                                    &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                        &
+          dpduijh, dpdvijh, pijh,                                        &
           bsupsijh0, bsupuijh0, bsupvijh0
       REAL(dp)    :: s1(2), r1(2), ton, toff
 !-----------------------------------------------
@@ -457,11 +457,19 @@
 ! 
 !     Compute contravariant components of magnetic field
 !           
-      CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh0, f_none, f_sin, f_half, 1, ns_span)
+      CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh0, f_none, f_sin,1, ns_span)
+      CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh0, f_none, f_cos,1, ns_span)
+      CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh0, f_none, f_cos,1, ns_span)
+
+      IF (.NOT.lasym) GOTO 100
+      CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh0, f_sum, f_cos,1, ns_span)
+      CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh0, f_sum, f_sin,1, ns_span)
+      CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh0, f_sum, f_sin,1, ns_span)
+
+ 100  CONTINUE
+
       bsupsijh0 = bsupsijh0/jacobh(:,:,nsmin:nsmax)
-      CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh0, f_none, f_cos, f_half, 1, ns_span)
       bsupuijh0 = bsupuijh0/jacobh(:,:,nsmin:nsmax)
-      CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh0, f_none, f_cos, f_half, 1, ns_span)
       bsupvijh0 = bsupvijh0/jacobh(:,:,nsmin:nsmax)
 
       nsmax=MIN(endglobrow,ns)
@@ -483,28 +491,37 @@
       n1 = MAX(ns/20, nsmin)
       wbgradp = SUM(bgradpf(:,:, n1:n2)**2)
       s1(1)=tnorm_bgradp;  s1(2)=wbgradp
+#if defined(SKS)
       CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                     &
                          MPI_COMM_WORLD,MPI_ERR)
+#else
+      r1 = s1
+#endif
       tnorm_bgradp=r1(1); wbgradp=r1(2)
 
       IF (tnorm_bgradp .GT. zero) THEN
          bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
          tnorm_bgradp = SQRT(tnorm_bgradp/(ns*nuv))
 
-!         IF (iam .EQ. 0) WRITE (3200, *)' tnorm_bgradp: ',tnorm_bgradp, &
+!         IF (iam .EQ. 0) WRITE (3200, *)' tnorm_bgradp: ',tnorm_bgradp,  &
 !                         ' bgradp_rms: ', bgradp_rms
 
 !IGNORE FIRST POINT
          max_bgradp = MAXVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
          min_bgradp = MINVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
-         s1(1)=max_bgradp
-         CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX,                  &
+         s1(1)=max_bgradp; s1(2) = -min_bgradp
+#if defined(SKS)
+         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX,                  &
                             MPI_COMM_WORLD,MPI_ERR)
+#else
+         r1 = s1
+#endif
          max_bgradp=r1(1)
-         s1(1)=min_bgradp
-         CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MIN,                  &
-                            MPI_COMM_WORLD,MPI_ERR)
-         min_bgradp=r1(1)
+         min_bgradp=-r1(2)
+         IF (.NOT.lasym) THEN                                              !reflect onto u=pi-2*pi: bgradp is sin parity
+            max_bgradp = MAX(max_bgradp, -min_bgradp)
+            min_bgradp = MIN(min_bgradp, -max_bgradp)
+         END IF
       END IF
 
       DEALLOCATE (pijh, dpdvijh, dpduijh,                                &
@@ -512,9 +529,10 @@
 
       CALL second0(toff)
       time_bgradp = time_bgradp+(toff-ton)
-#endif
+
       END SUBROUTINE get_bgradp_par
       
+
       SUBROUTINE GetPressure (pijh, dpduijh, dpdvijh)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -527,7 +545,6 @@
 
       END SUBROUTINE GetPressure
 
-#if defined(SKS)
       SUBROUTINE GetPressure_par (pijh, dpduijh, dpdvijh, nsmin, nsmax)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -544,39 +561,37 @@
       ns_span = nsmax-nsmin+1
 
       CALL toijsp_par(jpmnch(:,:,nsmin:nsmax), pijh, f_none, f_cos,      &
-                      f_half, 1, ns_span)
-      IF (l_asym) THEN
+                      1, ns_span)
+      IF (lasym) THEN
       CALL toijsp_par(jpmnsh(:,:,nsmin:nsmax), pijh, f_sum,  f_sin,      &
-                      f_half, 1, ns_span)
+                      1, ns_span)
       END IF
       pijh = pijh/jacobh(:,:,nsmin:nsmax)                                  ! Remove jacobian factor
       
       ALLOCATE(pmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
       IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
-      CALL tomnsp_par(pijh, pmnch, f_cos, f_half, 1, ns_span)
-      IF (l_asym) THEN
-      ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      CALL tomnsp_par(pijh, pmnch, f_cos,1, ns_span)
+
+      CALL toijsp_par(pmnch, pijh, f_none, f_cos,1, ns_span)
+      CALL toijsp_par(pmnch, dpduijh, f_du, f_cos,1, ns_span)              ! Get theta and phi pressure derivatives
+      CALL toijsp_par(pmnch, dpdvijh, f_dv, f_cos,1, ns_span)
+
+      IF (lasym) THEN
+      ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
       IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
-      CALL tomnsp_par(pijh, pmnsh, f_sin, f_half, 1, ns_span)
-      END IF
+      CALL tomnsp_par(pijh, pmnsh, f_sin,1, ns_span)
 
-      CALL toijsp_par(pmnch, pijh, f_none, f_cos, f_half, 1, ns_span)
-      CALL toijsp_par(pmnch, dpduijh, f_du, f_cos, f_half, 1, ns_span)     ! Get theta and phi pressure derivatives
-      CALL toijsp_par(pmnch, dpdvijh, f_dv, f_cos, f_half, 1, ns_span)
-
-      IF (l_asym) THEN
       m1 = IOR(f_sum,f_du);  m2 = IOR(f_sum,f_dv)
-      CALL toijsp_par(pmnsh, pijh, f_sum, f_sin, f_half, 1, ns_span)
-      CALL toijsp_par(pmnsh, dpduijh, m1, f_sin, f_half, 1, ns_span)       ! Get theta and phi pressure derivatives
-      CALL toijsp_par(pmnsh, dpdvijh, m2, f_sin, f_half, 1, ns_span)
+      CALL toijsp_par(pmnsh, pijh, f_sum, f_sin,1, ns_span)
+      CALL toijsp_par(pmnsh, dpduijh, m1, f_sin,1, ns_span)                ! Get theta and phi pressure derivatives
+      CALL toijsp_par(pmnsh, dpdvijh, m2, f_sin,1, ns_span)
       END IF
 
      
       DEALLOCATE (pmnch)
-      IF (l_asym) DEALLOCATE (pmnsh)
+      IF (lasym) DEALLOCATE (pmnsh)
 
       END SUBROUTINE GetPressure_par
-#endif
 
       SUBROUTINE BETA
 
@@ -634,13 +649,13 @@
         bsupsijh=0; bsupuijh=0; bsupvijh=0
         IF (istat .NE. 0) STOP 'Allocation #1 failed in BDOTJ' 
 
-        CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin, f_half)
-        CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos, f_half)
-        CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos, f_half)
-        IF (l_asym) THEN
-        CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_sin, f_half)
-        CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_cos, f_half)
-        CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_cos, f_half)
+        CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
+        CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
+        CALL toijsp(jbsupvmnch, bsupvijh, f_none, f_cos)
+        IF (lasym) THEN
+        CALL toijsp(jbsupsmnch, bsupsijh, f_sum, f_sin)
+        CALL toijsp(jbsupumnsh, bsupuijh, f_sum, f_cos)
+        CALL toijsp(jbsupvmnsh, bsupvijh, f_sum, f_cos)
         END IF
         bsupsijh = bsupsijh/jacobh
         bsupuijh = bsupuijh/jacobh
@@ -697,7 +712,7 @@
           ALLOCATE(bdotjmnch(0:mpol,-ntor:ntor,ns), stat=istat)          ! Otherwise, allocate first time called
           IF (istat .NE. 0) STOP 'Allocation #5 failed in BDOTJ'
         ENDIF
-        IF (l_asym) THEN
+        IF (lasym) THEN
         IF (ALLOCATED(bdotjmnsh) .AND. SIZE(bdotjmnsh,3).NE. ns)         &
             DEALLOCATE(bdotjmnsh)
         IF (.NOT. ALLOCATED(bdotjmnsh)) THEN                             ! Should already be allocated in QUANTITIES       
@@ -759,10 +774,10 @@
         tnorm2= MAX(tnorm2,EPSILON(tnorm2))
         bdotj2_rms = SQRT(ABS(bdotj_rms))/tnorm2                           ! RMS of bdotj/|J|*|B|  
         bdotj_rms  = SQRT(ABS(bdotj_rms))/tnorm                            ! RMS of bdotj/|JxB|  
-        CALL tomnsp(bdotjijhA, bdotjmnch, f_cos, f_half)                   ! Keep harmonics of BDOTJ for output
+        CALL tomnsp(bdotjijhA, bdotjmnch, f_cos)                  ! Keep harmonics of BDOTJ for output
         bdotjmnch = bdotjmnch/tnorm
-        IF (l_asym) THEN
-        CALL tomnsp(bdotjijhA, bdotjmnsh, f_cos, f_half)                   ! Keep harmonics of BDOTJ for output
+        IF (lasym) THEN
+        CALL tomnsp(bdotjijhA, bdotjmnsh, f_cos)                  ! Keep harmonics of BDOTJ for output
         bdotjmnsh = bdotjmnsh/tnorm
         END IF
         CALL second0(toff)
@@ -773,7 +788,7 @@
         END SUBROUTINE bdotj
 
       SUBROUTINE bdotj_par
-#if defined(SKS)
+!#if defined(SKS)
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE mpi_inc
 !     
@@ -806,13 +821,13 @@
                  bsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         IF (istat .NE. 0) STOP 'Allocation #1 failed in BDOTJ_PAR' 
 
-        CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin, f_half, 1, ns_span)
-        CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos, f_half, 1, ns_span)
-        CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos, f_half, 1, ns_span)
-        IF (l_asym) THEN
-        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_sin, f_half, 1, ns_span)
-        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_cos, f_half, 1, ns_span)
-        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_cos, f_half, 1, ns_span)
+        CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin,1, ns_span)
+        CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos,1, ns_span)
+        CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos,1, ns_span)
+        IF (lasym) THEN
+        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_sin,1, ns_span)
+        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_cos,1, ns_span)
+        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_cos,1, ns_span)
         END IF
 
         bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
@@ -872,7 +887,7 @@
           ALLOCATE(bdotjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
           IF (istat .NE. 0) STOP 'Allocation #5A failed in BDOTJ_PAR'
         ENDIF
-        IF (l_asym) THEN
+        IF (lasym) THEN
         IF (ALLOCATED(bdotjmnsh) .AND. SIZE(bdotjmnsh,3).NE.ns_span)     &
             DEALLOCATE(bdotjmnsh)
         IF (.NOT. ALLOCATED(bdotjmnsh)) THEN                            
@@ -935,16 +950,18 @@
            PRINT *, 'ERROR2 IN BDOTJ_PAR: B^2 < 0!'               
         IF (iam.EQ.0 .AND. ANY(work2.LT.zero))                           &
            PRINT *, 'ERROR3 IN BDOTJ_PAR: J^2 < 0!'               
-
         tnorm2 = SUM(work1(:,:,n1:n2)*work2(:,:,n1:n2))
         bdotj_rms = SUM(bdotjijh(:,:,n1:n2)*bdotjijh(:,:,n1:n2))
+#if defined(MPI_OPT)
         s1(1)=tnorm; s1(2)=tnorm2; s1(3)=bdotj_rms
         CALL MPI_ALLREDUCE(s1,r1,3,MPI_REAL8, MPI_SUM,                   &
                            MPI_COMM_WORLD,MPI_ERR)
         tnorm  = SQRT(ABS(r1(1)))
         tnorm2 = SQRT(ABS(r1(2)))                                             ! |J|*|B|
         bdotj_rms = r1(3) 
-
+#else
+        tnorm = SQRT(ABS(tnorm)); tnorm2 = SQRT(ABS(tnorm2))
+#endif
         DEALLOCATE (bsupsijh, bsupuijh, bsupvijh, bsubsijh,              &
                     bsubuijh, bsubvijh, ksupsijh, ksupuijh,              &
                     ksupvijh, ksubsijh, ksubuijh, ksubvijh,              &      
@@ -957,16 +974,16 @@
 
         bdotjijh = bdotjijh/tnorm
         
-        CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos, f_half, 1, ns_span)     ! Keep harmonics of BDOTJ for output
-        IF (l_asym) THEN
-        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_cos, f_half, 1, ns_span)     ! Keep harmonics of BDOTJ for output
+        CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos,1, ns_span)     ! Keep harmonics of BDOTJ for output
+        IF (lasym) THEN
+        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_cos,1, ns_span)     ! Keep harmonics of BDOTJ for output
         END IF
 
         DEALLOCATE (bdotjijh)
 
         CALL second0(toff)
         time_bdotj = time_bdotj+(toff-ton)
-#endif
+!#endif
         END SUBROUTINE bdotj_par
       
         SUBROUTINE divj
@@ -1038,7 +1055,7 @@
 !     
 !     PURPOSE: Computes divergence of the current normalized to the total current on the half mesh
 !
-#if defined(SKS)
+!#if defined(SKS)
         USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
         USE mpi_inc
 !-----------------------------------------------
@@ -1098,12 +1115,12 @@
         DEALLOCATE(temp1, temp2, stat=istat)
 
         divj_rms = SUM(divjmnsh(:,:,nsmin:nsmax)**2)
-
+#if defined(MPI_OPT)
         s1(1) = divj_rms; s1(2) = tnorm
         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                   &
                            MPI_COMM_WORLD,MPI_ERR)
         divj_rms=r1(1);   tnorm = r1(2)
-   
+#endif   
  !   Compute rms of divergence of J
  !     
         IF (tnorm .GE. zero) THEN
@@ -1115,7 +1132,7 @@
 
         CALL second0(toff)
         time_divj = time_divj+(toff-ton)
-#endif
+!#endif
 
         END SUBROUTINE divj_par
 
@@ -1124,7 +1141,7 @@
        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
        IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
        IF (ALLOCATED(bdotjmnch)) DEALLOCATE(bdotjmnch)
-       IF (l_asym) THEN
+       IF (lasym) THEN
        IF (ALLOCATED(bdotjmnsh)) DEALLOCATE(bdotjmnsh)
        END IF
 

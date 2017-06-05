@@ -3,7 +3,7 @@
 !>  contravariant (full mesh) "displacements" as part of the SIESTA project.
 !>  \author S. P. Hirshman and R. Sanchez
 !>  \date Aug 18, 2006
-!>  added l_asym=T Dec, 2016 M. R. Cianciosa
+!>  added lasym=T Dec, 2016 M. R. Cianciosa
 !>
 !>  Displacements are defined by
 !>
@@ -18,28 +18,24 @@
       USE stel_kinds
       USE stel_constants        
       USE fourier 
-      USE quantities
-      USE shared_data, ONLY: xc, l_push_s, l_push_u, l_push_v,           &
-                             l_push_edge, l_natural, l_asym, col_scale
       USE timer_mod, ONLY: time_update_upperv
-      USE descriptor_mod, ONLY: iam  
+      IMPLICIT NONE
+      INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
+      INTEGER, PRIVATE ::  nsmin, nsmax, ns_span
 
       CONTAINS
 !>    \brief Parallel subroutine for initializing updated displacement components in real space
       SUBROUTINE update_upperv_par
       USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE shared_data, ONLY: lasym
       USE siesta_state, ONLY: clear_field_perts
-      USE mpi_inc
-      IMPLICIT NONE
+      USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,          &
+                            jvsupsmnsf, jvsupumncf, jvsupvmncf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: m0=0, m1=1, m2=2
-      INTEGER ::  nsmin, nsmax, ns_span, istat
-      REAL(dp) :: ton, toff, r0
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-                gvsupsmncf, gvsupumnsf, gvsupvmnsf,                      &
-                gvsupsmnsf, gvsupumncf, gvsupvmncf
+      INTEGER ::  istat
+      REAL(dp) :: ton, toff
 !-----------------------------------------------
       CALL second0(ton)
       nsmin=MAX(1,startglobrow-2); nsmax=MIN(endglobrow+2,ns)
@@ -50,108 +46,13 @@
 !NOTE: although sqrt(g) = 0 at origin, jvsups and jvsupv are defined with
 !      jacobf which is finite (=jacobh(2)) at the origin to allow asymptotically
 !      correct variations in the s and v components
-       ALLOCATE (gvsupsmncf(0:mpol,-ntor:ntor,nsmin:nsmax),              &
-                 gvsupumnsf(0:mpol,-ntor:ntor,nsmin:nsmax),              &
-                 gvsupvmnsf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) STOP 'Allocation error #1 in UPDATE_UPPERV'
 
-!Apply scaling in real space (keep xc components unscaled)
-       gvsupsmncf = jvsupsmncf(:,:,nsmin:nsmax)*col_scale(:,:,1,nsmin:nsmax)
-       gvsupumnsf = jvsupumnsf(:,:,nsmin:nsmax)*col_scale(:,:,2,nsmin:nsmax)
-       gvsupvmnsf = jvsupvmnsf(:,:,nsmin:nsmax)*col_scale(:,:,3,nsmin:nsmax)
+      CALL InitDisplacement(jvsupsmncf, jvsupumnsf, jvsupvmnsf, isym)
+      IF (lasym)                                                         &
+      CALL InitDisplacement(jvsupsmnsf, jvsupumncf, jvsupvmncf, iasym)
 
-!Origin boundary conditions (evolve m=1 F_u,F_s, m=0 F_v)
-       IF (nsmin .EQ. 1) THEN
-       gvsupsmncf(m0,:,1) = 0;  gvsupsmncf(m2:,:,1) = 0
-       IF (.NOT.l_push_s) gvsupsmncf(m1,:,1) = 0
-
-       gvsupumnsf(m0,:,1) = 0;  gvsupumnsf(m2:,:,1) = 0
-       IF (.NOT.l_push_u) gvsupumnsf(m1,:,1) = 0
-
-       gvsupvmnsf(m1:,:,1) = 0
-       IF (.NOT.l_push_v) gvsupvmnsf(m0,:,1) = 0
-
-       IF (.NOT. l_natural) THEN
-          r0 = hs_i/2
-          gvsupsmncf(m1,:,1) = -r0*gvsupumnsf(m1,:,1)
-       END IF
-       END IF   !nsmin == 1
-
-!m=0, n<0 (need so Hessian catch-all loop gets this...)
-       gvsupsmncf(m0,-ntor:-1,nsmin:nsmax) = 0       
-       gvsupumnsf(m0,-ntor:0,nsmin:nsmax) = 0       
-       gvsupvmnsf(m0,-ntor:0,nsmin:nsmax) = 0       
-
-!Edge boundary conditions (B_tangential = 0 => vsups = 0)
-       IF (nsmax .EQ. ns) THEN
-          gvsupsmncf(:,:,ns) = 0
-          IF (.NOT.l_push_edge) THEN
-             gvsupumnsf(:,:,ns) = 0
-             gvsupvmnsf(:,:,ns) = 0
-          END IF
-       END IF  !!nsmax == ns
-
-       CALL toijsp_par(gvsupsmncf, jvsupsijf(:,:,nsmin:nsmax), f_none,   &  ! Calculate covariant velocities in real space (full mesh)
-                       f_cos, f_full, 1, ns_span)                         
-       CALL toijsp_par(gvsupumnsf, jvsupuijf(:,:,nsmin:nsmax), f_none,   &
-                       f_sin, f_full, 1, ns_span)                        
-       CALL toijsp_par(gvsupvmnsf, jvsupvijf(:,:,nsmin:nsmax), f_none,   &
-                       f_sin, f_full, 1, ns_span)
-
-       DEALLOCATE (gvsupsmncf, gvsupumnsf, gvsupvmnsf,stat=istat)
-
-       IF (.NOT.l_asym) GOTO 100
-
-       ALLOCATE (gvsupsmnsf(0:mpol,-ntor:ntor,nsmin:nsmax),              &
-                 gvsupumncf(0:mpol,-ntor:ntor,nsmin:nsmax),              &
-                 gvsupvmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-
-       gvsupsmnsf = jvsupsmnsf(:,:,nsmin:nsmax)*col_scale(:,:,4,nsmin:nsmax)
-       gvsupumncf = jvsupumncf(:,:,nsmin:nsmax)*col_scale(:,:,5,nsmin:nsmax)
-       gvsupvmncf = jvsupvmncf(:,:,nsmin:nsmax)*col_scale(:,:,6,nsmin:nsmax)
-
-!Origin boundary conditions (evolve m=1 F_u,F_s, m=0 F_v)
-       IF (nsmin .EQ. 1) THEN
-          gvsupsmnsf(m0,:,1) = 0;  gvsupsmnsf(m2:,:,1) = 0
-          IF (.NOT.l_push_s) gvsupsmnsf(m1,:,1) = 0
-
-          gvsupumncf(m0,:,1) = 0;  gvsupumncf(m2:,:,1) = 0
-          IF (.NOT.l_push_u) gvsupumncf(m1,:,1) = 0
-
-          gvsupvmncf(m1:,:,1) = 0
-          IF (.NOT.l_push_v) gvsupvmncf(m0,:,1) = 0
-
-          IF (.NOT. l_natural) THEN
-             gvsupsmnsf(m1,:,1) = r0*gvsupumncf(m1,:,1)
-          END IF
-       END IF   !nsmin == 1
-
-!m=0, n<0 (need so Hessian catch-all loop gets this...)
-       gvsupsmnsf(m0,-ntor:0,nsmin:nsmax) = 0
-       gvsupumncf(m0,-ntor:-1,nsmin:nsmax) = 0
-       gvsupvmncf(m0,-ntor:-1,nsmin:nsmax) = 0
-
-!Edge boundary conditions
-       IF (nsmax .EQ. ns) THEN
-          gvsupsmnsf(:,:,ns) = 0
-          IF (.NOT.l_push_edge) THEN
-             gvsupumncf(:,:,ns) = 0
-             gvsupvmncf(:,:,ns) = 0
-          END IF
-       END IF  !!nsmax == ns
-
-       CALL toijsp_par(gvsupsmnsf, jvsupsijf(:,:,nsmin:nsmax),           &
-                       f_sum, f_sin, f_full, 1, ns_span)
-       CALL toijsp_par(gvsupumncf, jvsupuijf(:,:,nsmin:nsmax),           &
-                       f_sum, f_cos, f_full, 1, ns_span)
-       CALL toijsp_par(gvsupvmncf, jvsupvijf(:,:,nsmin:nsmax),           &
-                       f_sum, f_cos, f_full, 1, ns_span)
-
-       DEALLOCATE (gvsupsmnsf, gvsupumncf, gvsupvmncf)
-
- 100   CONTINUE
-       CALL second0(toff)
-       time_update_upperv = time_update_upperv + (toff-ton)
+      CALL second0(toff)
+      time_update_upperv = time_update_upperv + (toff-ton)
 
       END SUBROUTINE update_upperv_par
 
@@ -161,5 +62,92 @@
       CALL update_upperv_par
 
       END SUBROUTINE update_upperv
+
+ 
+      SUBROUTINE InitDisplacement(jvsupsmnf, jvsupumnf, jvsupvmnf,       &
+                                  iparity)
+      USE quantities, ONLY: jvsupsijf, jvsupuijf, jvsupvijf
+      USE shared_data, ONLY: l_push_s, l_push_u, l_push_v,               &
+                             l_push_edge, l_natural, col_scale
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), DIMENSION(:,:,:), POINTER  ::                            &
+                jvsupsmnf, jvsupumnf, jvsupvmnf
+      INTEGER, INTENT(IN)  :: iparity
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER, PARAMETER :: m0=0, m1=1, m2=2
+      INTEGER  :: istat, m, n, c1, c2, c3,                               &
+                  fours, fouru, fourv, fcomb 
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                        &
+                gvsupsmnf, gvsupumnf, gvsupvmnf
+      REAL(dp) :: r0
+!-----------------------------------------------
+      IF (iparity .EQ. isym) THEN
+         fours=f_cos; fouru=f_sin; fourv=f_sin; fcomb=f_none
+         c1 = 1; r0 = hs_i/2
+      ELSE
+         fours=f_sin; fouru=f_cos; fourv=f_cos; fcomb=f_sum
+         c1 = 4; r0 = -hs_i/2
+      END IF
+      c2 = c1+1;  c3 = c2+1
+
+      IF (LBOUND(jvsupsmnf,3) .NE. 1)  STOP 'LBOUND1 WRONG IN InitDisp'
+      IF (UBOUND(jvsupsmnf,3) .NE. ns) STOP 'UBOUND1 WRONG IN InitDisp'
+
+      ALLOCATE (gvsupsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
+                gvsupumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
+                gvsupvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+      IF (istat .NE. 0) STOP 'Allocation error #1 in UPDATE_UPPERV'
+
+!Apply scaling in real space (keep xc components unscaled)
+      gvsupsmnf = jvsupsmnf(:,:,nsmin:nsmax)*col_scale(:,:,c1,nsmin:nsmax)
+      gvsupumnf = jvsupumnf(:,:,nsmin:nsmax)*col_scale(:,:,c2,nsmin:nsmax)
+      gvsupvmnf = jvsupvmnf(:,:,nsmin:nsmax)*col_scale(:,:,c3,nsmin:nsmax)
+
+!Origin boundary conditions (evolve m=1 F_u,F_s, m=0 F_v)
+      NS1: IF (nsmin .EQ. 1) THEN
+         gvsupsmnf(m0,:,1) = 0;  gvsupsmnf(m2:,:,1) = 0
+         IF (.NOT.l_push_s) gvsupsmnf(m1,:,1) = 0
+
+         gvsupumnf(m0,:,1) = 0;  gvsupumnf(m2:,:,1) = 0
+         IF (.NOT.l_push_u) gvsupumnf(m1,:,1) = 0
+
+         gvsupvmnf(m1:,:,1) = 0
+         IF (.NOT.l_push_v) gvsupvmnf(m0,:,1) = 0
+
+         IF (.NOT. l_natural) THEN
+            gvsupsmnf(m1,:,1) = -r0*gvsupumnf(m1,:,1)
+         END IF
+       END IF NS1   
+
+!m=0, n<0 (need to avoid singular Hessian)
+       gvsupsmnf(m0,-ntor:-1,nsmin:nsmax) = 0       
+       gvsupumnf(m0,-ntor:-1,nsmin:nsmax) = 0       
+       gvsupvmnf(m0,-ntor:-1,nsmin:nsmax) = 0       
+
+!Edge boundary conditions (B_tangential = 0 => vsups = 0)
+       NSM: IF (nsmax .EQ. ns) THEN
+          gvsupsmnf(:,:,ns) = 0
+          IF (.NOT.l_push_edge) THEN
+             gvsupumnf(:,:,ns) = 0
+             gvsupvmnf(:,:,ns) = 0
+          END IF
+       END IF NSM
+
+       CALL toijsp_par(gvsupsmnf, jvsupsijf(:,:,nsmin:nsmax), fcomb,     &  ! Calculate covariant velocities in real space (full mesh)
+                       fours, 1, ns_span)                         
+       CALL toijsp_par(gvsupumnf, jvsupuijf(:,:,nsmin:nsmax), fcomb,     &
+                       fouru, 1, ns_span)                        
+       CALL toijsp_par(gvsupvmnf, jvsupvijf(:,:,nsmin:nsmax), fcomb,     &
+                       fourv, 1, ns_span)
+
+       DEALLOCATE (gvsupsmnf, gvsupumnf, gvsupvmnf,stat=istat)
+
+
+      END SUBROUTINE InitDisplacement
+
 
       END MODULE siesta_displacement

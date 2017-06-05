@@ -32,7 +32,7 @@ C-----------------------------------------------
       CHARACTER(LEN=120) :: log_file
       CHARACTER(LEN=120), DIMENSION(10) :: command_arg
       LOGICAL :: lscreen
-      INTEGER :: V3FIT_COMM
+      INTEGER :: RVC_COMM
 
 #if defined(SKS)
       REAL(dp) :: ton, toff
@@ -140,12 +140,12 @@ C-----------------------------------------------
 !
       INTERFACE
          SUBROUTINE runvmec(ictrl_array, input_file0, 
-     1                      lscreen, V3FIT_COMM, reset_file_name)
+     1                      lscreen, RVC_COMM, reset_file_name)
          IMPLICIT NONE
          INTEGER, INTENT(inout), TARGET :: ictrl_array(5)
          LOGICAL, INTENT(in) :: lscreen
          CHARACTER(LEN=*), INTENT(in) :: input_file0
-         INTEGER, INTENT(in), OPTIONAL :: V3FIT_COMM
+         INTEGER, INTENT(in), OPTIONAL :: RVC_COMM
          CHARACTER(LEN=*), OPTIONAL :: reset_file_name
          END SUBROUTINE runvmec
       END INTERFACE
@@ -153,7 +153,7 @@ C-----------------------------------------------
 #if defined(SKS)
       CALL MyEnvVariables
       CALL InitializeParallel
-      CALL MPI_COMM_DUP(MPI_COMM_WORLD,V3FIT_COMM,MPI_ERR)
+      CALL MPI_COMM_DUP(MPI_COMM_WORLD,RVC_COMM,MPI_ERR)
       CALL second0(totalton)
       ton = totalton; skston=totalton
 #endif
@@ -332,17 +332,22 @@ C-----------------------------------------------
 
  100     CONTINUE
 
+         RVCCALLNUM=1
          CALL runvmec (ictrl, extension(index_seq), 
-     1                 lscreen, V3FIT_COMM, reset_file_name)
+     1                 lscreen, RVC_COMM, reset_file_name)
 
          ierr_vmec = ictrl(2)
-
 
          SELECT CASE (ierr_vmec)
          CASE (more_iter_flag)                                !Need a few more iterations to converge
             IF (grank .EQ. 0) THEN
                IF(lscreen ) WRITE (6, '(1x,a)') increase_niter
                WRITE (nthreed, '(1x,a)') increase_niter
+               WRITE (nthreed, '(1x,a)') "PARVMEC aborting..."
+               CALL FLUSH(nthreed)
+#if defined(SKS)
+               CALL MPI_Abort(MPI_COMM_WORLD, MPI_ERR)
+#endif
             END IF
 ! J Geiger: if lmoreiter and lfull3d1out are false
 !           the o-lines (original) are the only
@@ -351,7 +356,9 @@ C-----------------------------------------------
               DO i=2,max_main_iterations                        ! Changes to run
                 ictrl(1) = timestep_flag                        ! some more iterations if requested
                 ictrl(3) = niter                                ! - this is the number of iterations
-                CALL runvmec (ictrl, extension(1), lscreen)     ! - the second iteration run with ictrl(3) iterations
+                RVCCALLNUM=2
+                CALL runvmec (ictrl, extension(1), lscreen,
+     1       RVC_COMM, reset_file_name)    ! - the second iteration run with ictrl(3) iterations
                 IF (ictrl(2).EQ.more_iter_flag) THEN
                   IF (grank .EQ. 0) THEN
                     WRITE (nthreed, '(1x,a)') increase_niter
@@ -364,8 +371,17 @@ C-----------------------------------------------
               IF(ictrl(2).ne.successful_term_flag)
      &                ictrl(2)=successful_term_flag             ! - force success flag to get full threed1-output!
               ictrl(3) = 0                                      ! - this is the number of iterations
-              CALL runvmec (ictrl, extension(1), lscreen)       ! - final call.
-            ELSE                                                ! else-branch contains original code.
+              RVCCALLNUM=3
+              CALL runvmec (ictrl, extension(1), lscreen,       ! - final call.
+     1       RVC_COMM, reset_file_name)
+            ELSE                                                ! else-branch contains original code. 
+#if defined(SKS)		                                               
+              CALL MPI_Barrier(RVC_COMM,MPI_ERR)
+#endif
+              IF(grank.EQ.0) 
+     1           print *,"vmec.f:There is a bug in this branch."
+              STOP 
+
               ictrl(1) = output_flag+cleanup_flag               !Output, cleanup  ! o-lines
               ictrl(2) = 0                                      ! o-lines
               IF(lfull3d1out) THEN
@@ -375,7 +391,12 @@ C-----------------------------------------------
                   WRITE(nthreed,'(1x,a)') full_3d1output_request
                 END IF
               ENDIF
-              CALL runvmec (ictrl, extension(1), lscreen)        ! o-lines
+              !STOP 111
+              RVCTRIGGER=.TRUE.
+              RVCCALLNUM=4
+              CALL runvmec (ictrl, extension(1), lscreen,        ! o-lines
+     1       RVC_COMM, reset_file_name)
+              RVCTRIGGER=.FALSE.
             ENDIF                                                ! J Geiger: -- end --
 
          CASE (bad_jacobian_flag)                             !Bad jacobian even after axis reset and ns->3
@@ -397,7 +418,9 @@ C-----------------------------------------------
       ictrl(1) = restart_flag+readin_flag          !Initialization only
       ictrl(3) = nsteps
       ictrl(4) = 1                                 !Go to fine grid directly (assumes it is grid index=1)
-      CALL runvmec (ictrl, extension(1), lscreen)
+      RVCCALLNUM=5
+      CALL runvmec (ictrl, extension(1), lscreen,
+     1       RVC_COMM, reset_file_name)
 
       ictrl(1) = timestep_flag  + output_flag      !Set timestep flag (output_flag, too, if wout needed)
       ictrl(1) = timestep_flag                     !Set timestep flag (output_flag, too, if wout needed)
@@ -406,7 +429,9 @@ C-----------------------------------------------
 !      DO iopen = 1,1                              !Scan through grids
          ictrl(4) = iopen          
          DO ncount = 1, MAX(1,niter/nsteps)
-            CALL runvmec (ictrl, extension(1), lscreen)
+           RVCCALLNUM=6
+            CALL runvmec (ictrl, extension(1), lscreen,
+     1       RVC_COMM, reset_file_name)
             PRINT *,' BREAK HERE'
             ierr_vmec = ictrl(2)
             IF (ierr_vmec .ne. more_iter_flag) EXIT
@@ -414,7 +439,9 @@ C-----------------------------------------------
       END DO
 
       ictrl(1) = output_flag+cleanup_flag      !Output, cleanup
-      CALL runvmec (ictrl, extension(1), lscreen)
+      RVCCALLNUM=7
+      CALL runvmec (ictrl, extension(1), lscreen,
+     1       RVC_COMM, reset_file_name)
 
  300  CONTINUE
 

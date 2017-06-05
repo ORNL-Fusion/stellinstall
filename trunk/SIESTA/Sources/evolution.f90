@@ -5,36 +5,37 @@
       USE stel_kinds
       USE stel_constants
       USE shared_data
-      USE shared_functions
+      USE shared_functions, ONLY: funct_island, funct_island_par, getwmhd
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
           nfp=>nfp_i, mnmax=>mnmax_i, hs=>hs_i
       USE timer_mod
       USE perturbation, ONLY: eta_factor
       USE descriptor_mod, ONLY: iam, DIAGONALDONE, nprocs,               &
                                 in_hess_nfunct, out_hess_nfunct
-      USE nscalingtools, ONLY: SKSDBG, TOFU, PARSOLVER, PARFUNCTISL,     &
+      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL,                &
                  startglobrow, endglobrow, leftproc, rightproc, MPI_ERR
+      USE mpi_inc
       IMPLICIT NONE
 
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: n_bsupu_full=1
-      INTEGER, PARAMETER :: ndamp = 10              !<number smoothing steps for conj grad
-      INTEGER, PARAMETER :: ncongrad_steps = 100    !<max number of conj grad steps
-      LOGICAL, PARAMETER :: l_Hess_sym=.FALSE.      !<forces symmetrization of Hessian if TRUE
-      LOGICAL            :: l_EPAR                  !<=TRUE when applying parallel tearing perturbations 
-      LOGICAL            :: l_Gmres                 !<=TRUE performs GMRES iterations 
-      LOGICAL            :: l_conjmin               !<=TRUE if conjugate gradient lowers fsq_min
+      INTEGER, PARAMETER, PRIVATE :: n_bsupu_full=1
+      INTEGER, PARAMETER, PRIVATE :: ndamp = 10              !<number smoothing steps for conj grad
+      INTEGER, PARAMETER, PRIVATE :: ncongrad_steps = 100    !<max number of conj grad steps
+      LOGICAL, PARAMETER, PRIVATE :: l_Hess_sym=.FALSE.      !<forces symmetrization of Hessian if TRUE
+      LOGICAL, PRIVATE   :: l_EPAR                  !<=TRUE when applying parallel tearing perturbations 
+      LOGICAL, PRIVATE   :: l_Gmres                 !<=TRUE performs GMRES iterations 
+      LOGICAL, PRIVATE   :: l_conjmin               !<=TRUE if conjugate gradient lowers fsq_min
 
-      INTEGER            :: nprint_step=1
-      INTEGER            :: nfun_calls
-      INTEGER            :: js, moff, noff
+      INTEGER, PRIVATE   :: nprint_step=1
+      INTEGER, PRIVATE   :: nfun_calls
+      INTEGER, PRIVATE   :: js, moff, noff
 
-      REAL(dp)        :: fsqprev, fsqprev1
-      REAL(dp)        :: fsq_min, fsq_ratio, fsq_ratio1 
-      REAL(dp)        :: otau(ndamp)
-      REAL(dp), DIMENSION(:), ALLOCATABLE         :: xcdot
+      REAL(dp), PRIVATE    :: fsqprev, fsqprev1
+      REAL(dp), PRIVATE    :: fsq_min, fsq_ratio, fsq_ratio1 
+      REAL(dp), PRIVATE    :: otau(ndamp)
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: xcdot
             
 #if defined(PETSC_OPT)
       integer(kind=selected_int_kind(10)) Apc
@@ -44,7 +45,7 @@
 #endif
 
 #if defined(SKS)
-      INTEGER            :: diagnum=1, blocknum=1
+      INTEGER, PRIVATE   :: diagnum=1, blocknum=1
       INTEGER            :: EVOLVEPASS=0
 #endif
 !-----------------------------------------------
@@ -56,7 +57,6 @@
       SUBROUTINE converge_diagonal (wout_file, ftol)
       USE perturbation, ONLY: add_perturb, ladd_pert, l_output_alliter   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
       USE dumping_mod, ONLY: write_output
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -115,7 +115,6 @@
       USE PERTURBATION, ONLY: niter_max, l_output_alliter, write_restart_file, &     ! R. Sanchez, added Jul '10: Dump info on file at each timestep
                               ladd_pert, add_perturb
       USE dumping_mod, ONLY: write_output
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -149,7 +148,6 @@
          CALL second0(t2)
          block_evolve_time=block_evolve_time+(t2-t1)
 #endif         
-
          IF (l_output_alliter) CALL write_output (wout_file, niter) 
 
          l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
@@ -193,11 +191,11 @@
 !>   \brief  Initializes variables and pointers prior to calling evolve
       SUBROUTINE init_evolution
       USE hessian, ONLY: levmarq_param0, levmarq_param, l_Compute_Hessian
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,             &
-                            fsubsmnsf, fsubumncf, fsubvmncf,             &
-                            jvsupsmncf,jvsupumnsf,jvsupvmnsf,            &
-                            jvsupsmnsf,jvsupumncf,jvsupvmncf
-      IMPLICIT NONE
+      USE quantities, ONLY: jvsupsmncf,jvsupumnsf,jvsupvmnsf,            &
+                            jvsupsmnsf,jvsupumncf,jvsupvmncf,            &
+                            fsubsmncf, fsubumnsf, fsubvmnsf,             &
+                            fsubsmnsf, fsubumncf, fsubvmncf
+
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -247,7 +245,7 @@
       IF (mnmax .NE. (1+mpol)*(2*ntor+1)) STOP 'WRONG mnmax VALUE!'
       n1 = ns*mnmax
 
-      IF (l_asym) THEN
+      IF (lasym) THEN
          ndims = 6
       ELSE
          ndims = 3
@@ -270,7 +268,7 @@
      
       col_scale(:,:,1,:) = scale_s
       col_scale(:,:,2,:) = scale_u
-      IF (l_asym) THEN
+      IF (lasym) THEN
       col_scale(:,:,4,:) = scale_s
       col_scale(:,:,5,:) = scale_u
       END IF
@@ -283,12 +281,11 @@
 !>    \brief Initializes pointers for xc (dependent variables) and gc (force) arrays
 
       SUBROUTINE init_ptrs (xtarget, ptr1, ptr2, ptr3, ptr4, ptr5, ptr6)
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       REAL(dp), TARGET, INTENT(INOUT)     :: xtarget(0:mpol,-ntor:ntor,ndims,ns) !<input 3D, 2 3-component arrays
-      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr1, ptr4  !<1st (s) array subsection (l_asym=F,T)
+      REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr1, ptr4  !<1st (s) array subsection (lasym=F,T)
       REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr2, ptr5  !<2nd (u) array subsection
       REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr3, ptr6  !<3rd (v) array subsection
 
@@ -309,7 +306,7 @@
 !>   \brief Evolves one step toward MHD equilibrium
       SUBROUTINE evolve
       USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,          &
-                            fsubsmncf,  fsubumnsf,  fsubvmnsf,           &
+                            fsubsmncf, fsubumnsf, fsubvmnsf,             &
                             jbsupsmnsh, jbsupumnch, w_factor, signjac
       USE gmres, ONLY: gmres_fun
       USE hessian
@@ -318,11 +315,11 @@
       USE diagnostics_mod, ONLY: bgradp_rms, toroidal_flux0, bgradp,     &
                                  bgradp_par, tflux
       USE siesta_state, ONLY: update_state, update_state_par
-      USE blocktridiagonalsolver, ONLY: RefactorHessian
+      USE siesta_init, ONLY: init_state, init_state_par
 #if defined(SKS)
+      USE blocktridiagonalsolver, ONLY: RefactorHessian
       USE timer_mod, ONLY: gmres_time
 #endif
-      IMPLICIT NONE
 !
 !     Evolves the equilibrium equations one time step and updates delta_t
 !     
@@ -353,14 +350,15 @@
 !     Determine levenberg and mu|| parameter guesses based on ||F||
 !
 !       IF (nprecon.GE.1 .AND. (fsq_total1.LT.1.E-8_dp .OR. .NOT.l_Gmres)) THEN
-      IF (fsq_total1.LT.1.E-8_dp) THEN
+      IF (fsq_total1.LT.1.E-6_dp) THEN
+!      IF (fsq_total1.LT.1.E-8_dp) THEN
 !        PSEUDO-TRANSIENT CONTINUATION: TURN OFF FOR CONSTANT levmarq_param, muPar option
          f2 = fsq_total1*1.E12_dp
 !         f2 = 0.5_dp/(one+f2)
          f2 = one/(one+f2)
 
 !ASYM WORKS BETTER LIKE THIS?
-         IF (l_asym) f2 = 0.25*f2
+         IF (lasym) f2 = f2/4
 
          f1 = fsq_total1**f2
 
@@ -373,6 +371,7 @@
          f1 = MIN(one, f1*levm_scale*levm_loc)
 
          levmarq_param = (levmarq_param0 - levm_ped)*f1 + levm_ped
+         IF (levmarq_param0 .EQ. zero) levmarq_param = 0
          muPar = (muPar0-mu_ped)*f1 + mu_ped
          IF (muPar0 .EQ. zero) muPar=0
 
@@ -396,11 +395,11 @@
          IF (ldiagonal .OR. lblock) THEN
 
             CALL second0(skston)
-            IF (PARFUNCTISL) THEN
-               CALL Compute_Hessian_Blocks (funct_island_par, l_Hess_sym, ldiagonal)
-            ELSE
-               CALL Compute_Hessian_Blocks (funct_island, l_Hess_sym, ldiagonal)
-            END IF
+#if defined(SKS)
+            CALL Compute_Hessian_Blocks (funct_island_par, l_Hess_sym, ldiagonal)
+#else
+            CALL Compute_Hessian_Blocks (funct_island, l_Hess_sym, ldiagonal)
+#endif
             CALL second0(skstoff)
             IF (ldiagonal) comp_diag_elements_time=comp_diag_elements_time+(skstoff-skston)
             IF (lblock)    compute_hessian_time=compute_hessian_time+(skstoff-skston)
@@ -424,19 +423,16 @@
 !
       IF (niter .EQ. 1) THEN
          l_init_state=.TRUE.
-         IF (PARFUNCTISL) THEN
-            l_getwmhd=.TRUE.
-            CALL second0(skston)
-            CALL funct_island_par
-            CALL second0(skstoff)
-            evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
-            l_getwmhd=.FALSE.
-         ELSE
-            CALL second0(skston)
-            CALL funct_island
-            CALL second0(skstoff)
-            evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
-         END IF
+         l_getwmhd=.TRUE.
+         CALL second0(skston)
+#if defined(SKS)
+         CALL funct_island_par
+#else
+         CALL funct_island
+#endif
+         CALL second0(skstoff)
+         evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
+         l_getwmhd=.FALSE.
       ELSE IF (nprecon .EQ. 1) THEN
          IF (l_Gmres) THEN
            CALL second0(skston)
@@ -457,6 +453,7 @@
 
 !      lblock = ((nprecon_type.EQ.PREBLOCK .AND. niter.GT.1) .OR. .NOT.l_Gmres)
 !      IF (lblock) THEN 
+#if defined(SKS)
       IF (.NOT.l_Gmres .AND. niter.GT.1) THEN
          CALL second0(skston)
          lm0 = levmarq_param
@@ -478,6 +475,7 @@
          conj_grad_time=conj_grad_time+(skstoff-skston)
       END IF
  930  FORMAT (/,a,1pe12.3)
+#endif
 
       v2tot = SQRT(hs*SUM(xc*xc))
 !      IF (v2tot.lt.1.E-5_dp .and. .not.l_Gmres .and. niter.gt.1) THEN
@@ -485,13 +483,13 @@
         
       lprint = MOD(niter, nprint_step).EQ.0 .OR. niter.EQ.1
       l_update_state=.TRUE.
-      IF (PARFUNCTISL) THEN
-         IF (.NOT.l_par_state) CALL init_state_par(.FALSE.)
-         CALL update_state_par(lprint, fsq_total1, zero)
-      ELSE
-         IF (.NOT.l_par_state) CALL init_state(.FALSE.)
-         CALL update_state(lprint, fsq_total1, zero)
-      END IF
+#if defined(SKS)
+      IF (.NOT.l_par_state) CALL init_state_par(.FALSE.)
+      CALL update_state_par(lprint, fsq_total1, zero)
+#else
+      IF (.NOT.l_par_state) CALL init_state(.FALSE.)
+      CALL update_state(lprint, fsq_total1, zero)
+#endif
       l_update_state=.FALSE.
 
 !      IF (v2tot.lt.1.E-5_dp .and. .not.l_Gmres .and. niter.gt.1) THEN
@@ -524,12 +522,12 @@
 #endif
 
      IF (niter .EQ. 1) THEN
-        IF (PARFUNCTISL) THEN
-           CALL init_state_par(.TRUE.)
-           CALL bgradp_par
-        ELSE
-           CALL bgradp
-        END IF
+#if defined(SKS)
+        CALL init_state_par(.TRUE.)
+        CALL bgradp_par
+#else
+        CALL bgradp
+#endif
         CALL tflux
      END IF
 
@@ -571,7 +569,7 @@
                     ' FV-max: ',fmaxv,imaxlocf(ns0),imaxlocf(nm0)-1,imaxlocf(nn0)-ntor-1
           PRINT 110, bsbu_ratio_s, jsju_ratio_s,                         &
                     (bs0(i), i=2,6), (bu0(i), i=2,6) 
-          IF (l_asym) THEN
+          IF (lasym) THEN
           PRINT 112, bsbu_ratio_a, jsju_ratio_a,                         &
                     (bs0(i), i=8,12), (bu0(i), i=8,12) 
           END IF
@@ -587,8 +585,8 @@
               ELSE
                  str_resistive = "NON-RESISTIVE RUN "
               END IF
-              WRITE (iprint, 55) str_resistive, eta_factor, l_push_s,    &
-                                 l_push_u, l_push_v, l_push_edge
+              WRITE (iprint, 55) str_resistive, eta_factor, lasym,       &
+                                 l_push_s, l_push_u, l_push_v, l_push_edge
               WRITE (iprint, 60) delta_t, etak_tol, l_Hess_sym
               WRITE (iprint, 65) levmarq_param0, mupar0
               WRITE (iprint, 70) neqs, ns, mpol, ntor, nu_i, nv_i,       &
@@ -611,8 +609,9 @@
 
  50  FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                      &
             ' TFLUX: ',1pe11.4,' B.GRAD-P (rms): ', 1pe11.4,/,21('-'))
- 55  FORMAT(1x, a,' ETA_FACTOR: ', 1pe10.2,' L_PUSH_S: ',l1,             &
-            ' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,' L_PUSH_EDGE: ',l1)
+ 55  FORMAT(1x, a,' ETA_FACTOR: ', 1pe10.2,' LASYM: ',l1,                &
+            ' L_PUSH_S: ',l1, ' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,         &
+			' L_PUSH_EDGE: ',l1)
  60  FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                             &
              1pe10.2,' HESSIAN SYM: ', l1)
  65  FORMAT(' LEVMARQ_PARAM: ',1pe10.2,' MU_PAR: ',1pe10.2)
@@ -656,15 +655,8 @@
 
       SUBROUTINE Conjugate_Grad (ftol)
       USE stel_kinds
-      USE hessian, ONLY: ns, mupar
+      USE hessian, ONLY: mupar
       USE siesta_state, ONLY: update_state, update_state_par
-#if defined(SKS)      
-      USE nscalingtools, ONLY: PARFUNCTISL
-#endif
-      IMPLICIT NONE
-#if defined(MPI_OPT)
-      INCLUDE 'mpif.h'
-#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -692,7 +684,7 @@
       l_PrintOriginForces = .FALSE.
 
 #if defined(SKS)      
-      lpar=PARFUNCTISL
+      lpar=.TRUE.  !PARFUNCTISL
       IF (lpar) l_getwmhd=.TRUE.
 #endif
  
@@ -843,7 +835,6 @@
 !>  \brief Updates damping parameter (tau) used by conjugate gradient routine
 
       SUBROUTINE update_taudamp (fsq_save, delt_cg)
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

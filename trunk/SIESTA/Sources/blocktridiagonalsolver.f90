@@ -1,8 +1,7 @@
 !-------------------------------------------------------------------------------
-!>
-!!Solver for block tri-diagonal matrices. [Kalyan S. Perumalla, ORNL, 2009-2011]
-!<
-!-------------------------------------------------------------------------------
+!>  \brief Module contained subroutines for solver for block tri-diagonal matrices.
+!!  \author  Kalyan S. Perumalla, ORNL 
+!!  \date 2009-2011
 
 !-------------------------------------------------------------------------------
 MODULE blocktridiagonalsolver
@@ -10,6 +9,7 @@ MODULE blocktridiagonalsolver
 USE mpi_inc
 #endif
 IMPLICIT NONE
+PRIVATE
 !-------------------------------------------------------------------------------
 ! Precision settings
 !-------------------------------------------------------------------------------
@@ -90,8 +90,6 @@ REAL :: intsz !<Byte size of an integer variable
 REAL :: ptrsz !<Byte size of a pointer variable
 REAL(dp) :: ONE !<1.0
 REAL(dp) :: ZERO !<0.0
-REAL(dp) :: MAXEIGEN_TRI  !<maximum eigenvalue from Gerschgorin theorem
-REAL(dp) :: DMIN_TRI  !<minimum non-zero diagonal element, used to scale Levenberg parameter (SPH 08-31-16)
 LOGICAL(dp) :: L_COLSCALE=.FALSE.  !<set true if column scaling is applied
 
 !-------------------------------------------------------------------------------
@@ -223,6 +221,18 @@ TYPE PBLASTempArray
 END TYPE PBLASTempArray
 
 !-------------------------------------------------------------------------------
+!PUBLIC METHODS
+#if defined(SKS)
+PUBLIC :: SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU,          &
+          GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU,          &
+          GetMatrixRHS, StoreDiagonal, Initialize, ForwardSolve,         &
+          SetMatrixRHS, BackwardSolve, GetSolutionVector, CheckSymmetry, &
+          GetScaleFactors, FinalizeScaleFactors,                         &
+          ParallelScaling, GetColSum, FindMinMax_TRI, RefactorHessian,   &
+          ParMatvec, Finalize, GetRanks
+REAL(dp), PUBLIC :: MAXEIGEN_TRI  !<maximum eigenvalue from Gerschgorin theorem
+REAL(dp), PUBLIC :: DMIN_TRI      !<minimum non-zero diagonal element, used to scale Levenberg parameter (SPH 08-31-16)
+#endif
 
 CONTAINS
 
@@ -1167,7 +1177,6 @@ END SUBROUTINE SlaveReceiveMatrix
 !<
 !-------------------------------------------------------------------------------
 SUBROUTINE MasterBcastValue( val )
-IMPLICIT NONE
   !----------------------------------------------
   ! Formal arguments
   !----------------------------------------------
@@ -1186,7 +1195,6 @@ END SUBROUTINE MasterBcastValue
 !<
 !-------------------------------------------------------------------------------
 SUBROUTINE SlaveReceiveValue( val )
-IMPLICIT NONE
   !----------------------------------------------
   ! Formal arguments
   !----------------------------------------------
@@ -2008,9 +2016,6 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
   INTEGER :: globrowoff !<Temporary variable
   REAL :: logNbase2 !<Temporary variable
 
-  N = inN
-  M = inM
-
   !-----------------------------------------------------------------------------
   use_mpiwtime = .FALSE.
 #if defined(MPI_OPT)
@@ -2021,6 +2026,10 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
   CALL MPI_Comm_size( MPI_COMM_WORLD, nranks, mpierr)
   use_mpiwtime = .TRUE.
 #endif
+
+  N = inN
+  M = inM
+  IF (N.EQ.0 .OR. M.EQ.0) RETURN
 
   !-----------------------------------------------------------------------------
   ! Set output file unit, so we get output of each rank in its own file
@@ -2201,6 +2210,14 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
   IF(KPDBG) WRITE(OFU,*) '------ Initialization end ------'; CALL FL(OFU)
   IF(KPDBG) WRITE(OFU,*); CALL FL(OFU)
 END SUBROUTINE Initialize
+
+!-------------------------------------------------------------------------------
+!SPH - Add this since now rank, nranks is PRIVATE to avoid conflict with nscalingtools
+!      Must call Initialize first
+SUBROUTINE GetRanks(irank, inranks)
+INTEGER, INTENT(OUT) :: irank, inranks
+irank = rank;  inranks = nranks
+END SUBROUTINE GetRanks
 
 !-------------------------------------------------------------------------------
 !>
@@ -4745,7 +4762,6 @@ END SUBROUTINE VerifySolution
 
 !-------------------------------------------------------------------------------
 SUBROUTINE CheckSymmetry (asymIndx)
-IMPLICIT NONE
 
 REAL(dp), INTENT (OUT) :: asymIndx                                       !On Processor 0 only
 REAL(dp) :: diff, partdiff, norm, eij, eji, tdiff, tnorm, summ
@@ -4852,7 +4868,6 @@ END SUBROUTINE CheckSymmetry
 
 !-------------------------------------------------------------------------------
 SUBROUTINE StoreDiagonal(blkrow,colnum,buf)
-IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: blkrow, colnum
 REAL(dp), DIMENSION(1:M), INTENT(IN) :: buf
@@ -4871,7 +4886,6 @@ END SUBROUTINE StoreDiagonal
 
 !-------------------------------------------------------------------------------
 SUBROUTINE WriteBlocks(flag)
-IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: flag
 !LOGICAL, INTENT(IN) :: flag
@@ -4940,7 +4954,6 @@ END SUBROUTINE WriteBlocks
 
 !-------------------------------------------------------------------------------
 SUBROUTINE DisplayBlocks(flag)
-IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: flag
 INTEGER :: row, localblkrow, globalrow
@@ -4990,7 +5003,6 @@ END SUBROUTINE DisplayBlocks
 
 !-------------------------------------------------------------------------------
 SUBROUTINE ParMatVec (invec,outvec,outveclength)
-IMPLICIT NONE
 
 INTEGER,INTENT(IN) :: outveclength 
 REAL(dp), INTENT(IN) :: invec(1:N*M)
@@ -5083,21 +5095,39 @@ END SUBROUTINE ParMatVec
 
 !-------------------------------------------------------------------------------
 SUBROUTINE GetColSum(cs)
-IMPLICIT NONE
-REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(INOUT) :: cs
-INTEGER :: js
+REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(OUT) :: cs
+REAL(dp), PARAMETER :: minScale = 1.E-6_dp
+REAL(dp) :: eps, eps0, s1(1), r1(1)
+INTEGER  :: js
 
 CALL InitScaleFactors
 DO js = startglobrow, endglobrow
   CALL GetScaleFactors(js,cs(:,js))
 END DO
+
+!FILTER SMALL (OR ZERO) COLUMN SUMS
+eps0 = MAXVAL(cs)
+
+s1(1)=eps0
+CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX, MPI_COMM_WORLD,MPI_ERR)
+eps0 = minScale*r1(1)
+
+!FILTER COLS OF CS SEPARATELY
+DO js = startglobrow, endglobrow
+   eps = minScale*MAXVAL(cs(:,js))
+   IF (eps .EQ. ZERO) eps = eps0
+   WHERE (cs(:,js) .LT. eps) cs(:,js) = eps
+END DO
+
+cs = one/SQRT(cs)
+
 CALL FinalizeScaleFactors
+
 END SUBROUTINE GetColSum
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
 SUBROUTINE InitScaleFactors
-IMPLICIT NONE
 
 INTEGER :: top, bot, MPI_ERR, ic, j, k
 INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
@@ -5132,11 +5162,10 @@ END SUBROUTINE InitScaleFactors
 SUBROUTINE GetScaleFactors(js,scalevector)
 IMPLICIT NONE
 
-INTEGER, INTENT(IN) :: js
-REAL(dp), INTENT(INOUT) :: scalevector(M)
-INTEGER :: ic, ir, numBlockRows
-
-INTEGER, SAVE :: ICOUNT = 0
+INTEGER, INTENT(IN)   :: js
+REAL(dp), INTENT(OUT) :: scalevector(M)
+REAL(dp) :: eps
+INTEGER  :: ic, ir, numBlockRows
 
 numBlockRows = endglobrow-startglobrow+1
 
@@ -5174,14 +5203,8 @@ ELSE
   END DO
 END IF
 
-!NEED THIS IF FOURIER MODES m=0 or n=0 ARE NOT SET TO ONE ON DIAGONAL
-WHERE (scalevector .LE. ZERO) scalevector = ONE
-
-!DO ic = 1,M
-!   CALL truncate(scalevector(ic),6)
-!END DO
-
-scalevector=one/SQRT(SQRT(scalevector))
+IF (ANY(scalevector .LT. zero)) STOP 'SCALEVECTOR < 0!'
+scalevector = SQRT(scalevector)
 
 END SUBROUTINE GetScaleFactors
 !-------------------------------------------------------------------------------
@@ -5194,7 +5217,6 @@ END SUBROUTINE FinalizeScaleFactors
 
 !-------------------------------------------------------------------------------
 SUBROUTINE ParallelScaling(lmp,colsum)
-IMPLICIT NONE
 
 REAL(dp), INTENT(IN) :: lmp
 REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(IN) :: colsum
@@ -5254,22 +5276,27 @@ END SUBROUTINE ParallelScaling
 !-------------------------------------------------------------------------------
 SUBROUTINE FindMinMax_TRI(lmp)
 !SPH 091616: Find min diagonal element and max eigenvalue (Gerschgorin Theorem)
+REAL(dp), PARAMETER  :: minThreshold=1.E-6_dp
 REAL(dp), INTENT(IN) :: lmp
 INTEGER  :: js, icol, ir, dcnt
-REAL(dp) :: eps, s1(1), r1(1)
+REAL(dp) :: eps, s1(2), r1(2), minDiag
+
 dcnt=0
 maxeigen_tri = 0
 Dmin_TRI = HUGE(Dmin_TRI)
 DO js = startglobrow, endglobrow
   ir=js-startglobrow+1
+
+!Minimum allowable diagonal element after scaling
+  minDiag = minThreshold*MAXVAL(ABS(OrigDiagElement(dcnt+1:dcnt+M)))
+  IF (minDiag .EQ. 0) minDiag = minThreshold
+
   DO icol = 1, M
     dcnt = dcnt+1
     eps = OrigDiagElement(dcnt)
 
-    IF (eps .EQ. ZERO) THEN    !Can happen for lcolscale=FALSE
-       IF (ANY(orig(ir)%D(icol,:) .NE. ZERO)) PRINT *,                  &
-          'IN FindMinMax, RANK: ',rank,' ROW != 0'
-       eps = -1
+    IF (ABS(eps) .LE. minDiag) THEN                                      !Can happen for lcolscale=FALSE
+       eps = -minDiag
        OrigDiagElement(dcnt) = eps
        orig(ir)%D(icol,icol) = eps
        lelement(1,ir)%D(icol,icol) = eps
@@ -5282,13 +5309,10 @@ DO js = startglobrow, endglobrow
   END DO
 END DO
 
-s1(1)=Dmin_TRI
-CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MIN, MPI_COMM_WORLD,MPI_ERR)
-Dmin_TRI=SIGN(r1(1), eps)
-
-s1(1)=maxeigen_tri
-CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX, MPI_COMM_WORLD,MPI_ERR)
-maxeigen_tri=r1(1)
+s1(1)=-Dmin_TRI; s1(2)=maxeigen_tri
+CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX, MPI_COMM_WORLD,MPI_ERR)
+Dmin_TRI=SIGN(-r1(1), eps)
+maxeigen_tri=r1(2)
 
 !ADD LEVENBERG PARAMETER LM*DMIN TO DIAGONAL [OR D*(1+LM) IF NO COL-SCALING]
 CALL ResetDiagonal(lmp, .FALSE.)
@@ -5305,7 +5329,6 @@ REAL(dp)             :: DminL, eps
 INTEGER              :: dcnt, js, ir, icol
 
 !ADD CONSTANT (SCALED BY DMIN) LEVENBERG PARAMETER TO DIAGONAL [NOT D*(1+LM)]
-!ENHANCE CONSTANT (X 10) NEAR AXIS TO IMPROVE PRESSURE BALANCE (SPH11-01-16)
 DminL = Dmin_TRI*lmp
 dcnt = 0
 DO js = startglobrow, endglobrow
@@ -5349,7 +5372,6 @@ END SUBROUTINE RefactorHessian
 
 !-------------------------------------------------------------------------------
 SUBROUTINE ComputeTranspose
-  IMPLICIT NONE
 
 
 

@@ -1,12 +1,14 @@
       SUBROUTINE add_resistive_E
       USE stel_kinds
+      USE stel_constants, ONLY: zero
       USE shared_data, ONLY: fsq_total1, xc, l_getfsq, l_init_state
       USE shared_functions, ONLY: funct_island_par, funct_island
       USE perturbation, ONLY: ftol, eta_factor
       USE descriptor_mod, ONLY: iam
-      USE siesta_bfield      
+      USE siesta_bfield
+      USE siesta_init, ONLY: init_state, init_state_par
 !#if defined(SKS)
-      USE nscalingtools, ONLY: PARFUNCTISL, startglobrow, endglobrow
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE siesta_state, ONLY: update_state_par, update_state
       USE siesta_displacement, ONLY: update_upperv_par, update_upperv
 !#else
@@ -31,51 +33,46 @@
 !     No perturbation, vsupX = 0
       xc = 0
 #if defined (SKS)
-      IF (PARFUNCTISL) THEN
-         CALL init_state_par(.FALSE.)
-         CALL update_upperv_par
+      CALL init_state_par(.FALSE.)
+      CALL update_upperv_par
 
-         save_eta = eta_factor
-         eta_factor = eta_factor/MAX(1,nits)
+      save_eta = eta_factor
+      eta_factor = eta_factor/MAX(1,nits)
 
 !     Diffuse B-field (eta*j) from last update_state call
-         DO itime=1,nits
+      DO itime=1,nits
 
          CALL init_state_par(lcurrent_only)                                !Use new B-field to get KsubXij currents
          CALL update_bfield_par(.TRUE.)                                    !Resistive update to B-field
          CALL update_state_par(.FALSE., zero, zero)                        !Updates B-field with resistive piece
 
-         END DO
-      ELSE
-#endif
-         CALL init_state(.FALSE.)
-         CALL update_upperv
+      END DO
+#else
+      CALL init_state(.FALSE.)
+      CALL update_upperv
 
-         save_eta = eta_factor
-         eta_factor = eta_factor/MAX(1,nits)
+      save_eta = eta_factor
+      eta_factor = eta_factor/MAX(1,nits)
 
 !     Diffuse B-field (eta*j) from last update_state call
-         DO itime=1,nits
+      DO itime=1,nits
 
          CALL init_state(lcurrent_only)                                    !Use new B-field to get KsubXij currents
-         CALL update_bfield(.TRUE.)                                        !Resistive update to B-field
+         CALL update_bfield_par(.TRUE.)                                    !Resistive update to B-field
          CALL update_state(.FALSE., zero, zero)                            !Updates B-field with resistive piece
 
-         END DO
-#if defined (SKS)
-      END IF
+      END DO
 #endif
 
       eta_factor = save_eta
       
-      
       l_getfsq = .TRUE.
       l_init_state = .TRUE.
-      IF (PARFUNCTISL) THEN
-         CALL funct_island_par
-      ELSE
-         CALL funct_island
-      END IF
+#if defined(SKS)
+      CALL funct_island_par
+#else
+      CALL funct_island
+#endif
 
       IF (iam .EQ. 0) THEN
          DO j = 6, 33, 27

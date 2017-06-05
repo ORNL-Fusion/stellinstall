@@ -62,6 +62,8 @@ C-----------------------------------------------
 
       ltaumax=MAXVAL(ptau(:,nsmin:nsmax))
       ltaumin=MINVAL(ptau(:,nsmin:nsmax))
+!      ltaumax=MAXVAL(ptau(:,tlglob:trglob))
+!      ltaumin=MINVAL(ptau(:,tlglob:trglob))
 
       taumax=ltaumax
       taumin=ltaumin

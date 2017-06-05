@@ -177,7 +177,8 @@ C-----------------------------------------------
       medge  = pmass (one) * (ABS(phips(ns))*r00)**gamma
       phedg  = photp (one)
 #endif
-      nsmin=t1lglob; nsmax=t2rglob
+      !nsmin=t1lglob; nsmax=t2rglob
+      nsmin=MAX(1,t2lglob-1); nsmax=MIN(t2rglob+1,ns)
       DO i = nsmin, nsmax
          si = hs*ABS(i-1.5_dp)
          pshalf(:,i) = SQRT(si)
