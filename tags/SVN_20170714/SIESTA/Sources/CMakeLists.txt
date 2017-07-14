@@ -1,0 +1,40 @@
+# Append all source files to variable siesta_sources. As new files are added this must be updated.
+list (APPEND siesta_sources
+	${CMAKE_CURRENT_SOURCE_DIR}/add_resistivity.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/assert_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/bhtobf.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/blocktridiagonalsolver.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/check3d.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_currents.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/descriptor_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/diagnostics_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/DirectAccess.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/dumping_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/evolution.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/f1dim_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/fourier.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/gmres.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/hessian.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_init.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/island_params.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/metrics.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/nscalingtools.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/perturbation.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/prof_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/ptrd_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/quantities.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/Readme.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/shared_data.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/shared_functions.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_bfield.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_displacement.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_force.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_pressure.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_state.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/silo.inc
+	${CMAKE_CURRENT_SOURCE_DIR}/timer_mod.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/utilities.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/restart_mod.f90
+)
+set (siesta_sources "${siesta_sources}" PARENT_SCOPE)
