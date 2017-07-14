@@ -456,7 +456,8 @@ C-----------------------------------------------
       CALL second0(totaltoff)
       total_time = total_time + (totaltoff-totalton)
       toff = totaltoff
-      IF (.NOT.LV3FITCALL.AND.lactive) CALL PrintTimes
+      !IF (.NOT.LV3FITCALL.AND.lactive) CALL PrintTimes
+      IF (.NOT.LV3FITCALL.AND.lactive) CALL WriteTimes('timings.txt')
       CALL FinalizeParallel
 #endif
 

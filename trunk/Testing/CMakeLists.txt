@@ -165,4 +165,20 @@ file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
 file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/aphi_test/input.test.v3fit
       DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/aphi_test)
 
+#  Copy common files to the reconstruction seg step test directory.
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/sxrem.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/intpol.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/test_files/thomson.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/preconditioner_test/magnetic.dot
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/preconditioner_test/input.test.v3fit
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/preconditioner_test/input.test.vmec
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+file (COPY        ${CMAKE_CURRENT_SOURCE_DIR}/tests/preconditioner_test/v3rfun.in
+      DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/tests/preconditioner_test)
+
 add_subdirectory (tests)

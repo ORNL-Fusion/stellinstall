@@ -1,4 +1,5 @@
       MODULE tomnsp_mod
+      IMPLICIT NONE
 
       CONTAINS
 
@@ -13,7 +14,6 @@
       USE precon2d, ONLY: ictrl_prec2d
       USE parallel_include_module
       USE xstuff
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -24,6 +24,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
+      INTEGER, PARAMETER :: m0 = 0, m1 = 1, n0 = 0
       INTEGER :: jmax, m, mparity, i, n, k, l, nsz
       INTEGER :: ioff, joff, mj, ni, nsl, j2, j2l, jl, jll, jmaxl 
       REAL(rprec), DIMENSION(:,:,:), POINTER :: 
@@ -94,7 +95,7 @@
               work1(11,k,js)= work1(11,k,js)+ 
      1                    blmn(k,i,js,mparity)*cosmumi(i,m)
 
-              IF (.not.lthreed) CYCLE
+              IF (.NOT.lthreed) CYCLE
 
               work1(2,k,js) = work1(2,k,js) - 
      1                  crmn(k,i,js,mparity)*cosmui(i,m)
@@ -147,7 +148,7 @@
      1                      + work1(11,k,js)*cosnv(k,n)
               END IF
 
-              IF (.not.lthreed) CYCLE
+              IF (.NOT.lthreed) CYCLE
 
               IF (lb1.LE.js.AND.js.LE.ub1) THEN
                 frcc(ni,mj,js) = frcc(ni,mj,js)
@@ -181,23 +182,24 @@
 !
 !     COMPUTE IOTA EVOLUTION EQUATION [STORED IN LMNSC(0,0) COMPONENT]
 !
-      IF (ictrl_prec2d.gt.0 .and. ncurr.eq.1) THEN
-         ni = 0+ioff;  mj = 0+joff
+!SPH071017
+#if defined(CHI_FORCE)
+      IF (ictrl_prec2d.NE.0 .AND. ncurr.EQ.1) THEN
+         ni = n0+ioff;  mj = m0+joff
          t1 = r0scale
          nsmin=MAX(2,t1lglob); nsmax=t1rglob
-         DO jl = nsmin, nsmax
-            flsc(ni, mj, jl) = -t1*(buco(jl) - icurv(jl))
+         DO js = nsmin, nsmax
+            flsc(ni, mj, js) = -t1*(buco(js) - icurv(js))
          END DO
       END IF
-
+#endif
 !
 !     MAKE R,Z(m=1,n=0) SATISFY AVERAGE FORCE BALANCE EXACTLY
 !     NOTE: for m=1, FR ~ Z1*(f0 + f2), FZ ~ R1*(f0 - f2), WHERE
 !     f0 is the m=0 component of frho, f2 is m=2 component.
       IF (lforbal) THEN
-        mj = 1 + joff
-        ni = 0 + ioff
-        t1 = nscale(0)*r0scale !/4    !!v8.52
+        ni = m0+ioff; mj = m1+joff
+        t1 = nscale(n0)*r0scale !/4    !!v8.52
         nsmin=MAX(2,t1lglob); nsmax=MIN(t1rglob,ns-1)
         DO jl = nsmin, nsmax
           DO k = 1, nzeta
@@ -221,7 +223,6 @@
       USE vmec_main
       USE vmec_params, ONLY: jlam, jmin2, ntmax, rsc, rcs, zcc, zss
       USE parallel_include_module
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -407,7 +408,6 @@
       USE parallel_include_module
       USE xstuff
 #endif
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -553,6 +553,7 @@
 !
 !     COMPUTE IOTA EVOLUTION EQUATION [STORED IN LMNSC(0,0) COMPONENT]
 !
+#if defined(CHI_FORCE)
       IF (ictrl_prec2d.gt.0 .and. ncurr.eq.1) THEN
          ni = 0+ioff;  mj = 0+joff
          t1 = r0scale
@@ -560,7 +561,7 @@
             flsc(jl, ni, mj) = -t1*(buco(jl) - icurv(jl))
          END DO
       END IF
-
+#endif
 !
 !     MAKE R,Z(m=1,n=0) SATISFY AVERAGE FORCE BALANCE EXACTLY
 !     NOTE: for m=1, FR ~ Z1*(f0 + f2), FZ ~ R1*(f0 - f2), WHERE
@@ -592,7 +593,6 @@
       USE vmec_main
       USE vmec_params, ONLY: jlam, jmin2, ntmax, rsc, rcs, zcc, zss
       USE parallel_include_module
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

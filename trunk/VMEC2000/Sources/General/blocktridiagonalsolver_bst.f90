@@ -332,7 +332,7 @@ SUBROUTINE TimeCountInit( tc )
   TYPE(TimeCount), INTENT(INOUT) :: tc
 
   !----------------------------------------------
-  tc%tm = 0.0
+  tc%tm = 0
   tc%cnt = 0
 END SUBROUTINE TimeCountInit
 
@@ -353,7 +353,7 @@ SUBROUTINE TimeCountPrint( tc, msg )
   DOUBLE PRECISION :: avg
 
   !----------------------------------------------
-  avg = 0.0
+  avg = 0
   IF (tc%cnt .GT. 0) avg = tc%tm / tc%cnt
   IF(KPDBG) WRITE(OFU,'(A,I5.1,A,F8.4,A,F8.4,A)') msg,tc%cnt,' * ',avg,' sec = ',tc%tm,' sec'
 END SUBROUTINE TimeCountPrint
@@ -1951,16 +1951,16 @@ SUBROUTINE Initialize_bst( do_mpiinit, inN, inM )
   dpsz = 8 !8 bytes for double precision
   intsz = 4 !4 bytes for a single integer
   ptrsz = 8 !Assuming 64-bit addresses in the worst case
-  ONE = 1.0
-  ZERO = 0.0
+  ONE = 1
+  ZERO = 0
 
-  tottime = 0.0
-  totcommtime = 0.0
-  totinvtime = 0.0
+  tottime = 0
+  totcommtime = 0
+  totinvtime = 0
   totinvcount = 0
-  totmatmultime = 0.0
+  totmatmultime = 0
   totmatmulcount = 0
-  totmatsoltime = 0.0
+  totmatsoltime = 0
   totmatsolcount = 0
   CALL BClockInit()
 
@@ -2060,7 +2060,7 @@ SUBROUTINE SetMatrixRowColL_bst( globrow, Lj )
   ! Copy given L column into allocated matrix
   !-------------------------------------------
   IF ( globrow .EQ. 1 ) THEN
-    lelement(1, globrowoff)%L(:,1)  = 0.0
+    lelement(1, globrowoff)%L(:,1)  = ZERO
   ELSE
     lelement(1, globrowoff)%L(:,1)  = Lj(:)
   END IF
@@ -2159,7 +2159,7 @@ SUBROUTINE SetMatrixRowColU_bst( globrow, Uj )
   ! Copy given U column into allocated matrix
   !-------------------------------------------
   IF ( globrow .EQ. N ) THEN
-    lelement(1, globrowoff)%U(:,1) = 0.0
+    lelement(1, globrowoff)%U(:,1) = ZERO
   ELSE
     lelement(1, globrowoff)%U(:,1) = Uj
   END IF
@@ -2266,7 +2266,7 @@ SUBROUTINE GetMatrixRowColL( globrow, Lj, j )
   !-------------------------------------------
   DO i = 1, M
     IF ( globrow .EQ. 1 ) THEN
-      val = 0.0
+      val = ZERO
     ELSE
       val = lelement(1, globrowoff)%L(i,j)
     END IF
@@ -2362,7 +2362,7 @@ SUBROUTINE GetMatrixRowColU( globrow, Uj, j )
   !-------------------------------------------
   DO i = 1, M
     IF ( globrow .EQ. N ) THEN
-      val = 0.0
+      val = ZERO
     ELSE
       val = lelement(1, globrowoff)%U(i,j)
     END IF
@@ -2567,14 +2567,14 @@ SUBROUTINE SetRandomTestCase
   !-----------------------------------------
   !Initialize the arrays with random values
   !-----------------------------------------
-  rmin = 0.01
-  rmax = 1.00
+  rmin = 0.01_rprec
+  rmax = ONE
   DO globrow = startglobrow, endglobrow, 1
     globrowoff = globrow-startglobrow+1
     DO i = 1, M
       DO j = 1, M
         IF ( globrow .EQ. 1 ) THEN
-          randval = 0.0
+          randval = ZERO
         ELSE
           CALL RANDOM_NUMBER(randval); randval = rmin+(rmax-rmin)*randval
           IF( writeproblemfile ) THEN !<Print i, j, a[i,j]
@@ -2590,7 +2590,7 @@ SUBROUTINE SetRandomTestCase
         END IF
 
         IF ( globrow .EQ. N ) THEN
-          randval = 0.0
+          randval = ZERO
         ELSE
           CALL RANDOM_NUMBER(randval); randval = rmin+(rmax-rmin)*randval
           IF( writeproblemfile ) THEN !<Print i, j, a[i,j]
@@ -2662,8 +2662,8 @@ SUBROUTINE SetRandomRHS( randseedoff )
   !-----------------------------------------
   !Initialize the arrays with random values
   !-----------------------------------------
-  rmin = 0.01
-  rmax = 1.00
+  rmin = 0.01_dp
+  rmax = ONE
   DO globrow = startglobrow, endglobrow, 1
     globrowoff = globrow-startglobrow+1
     DO i = 1, M
@@ -4351,11 +4351,11 @@ SUBROUTINE VerifySolution
   END IF
 
   !-----------------------------------------------------------------------------
-  totrmserr = 0.0
+  totrmserr = 0
   DO globrow = startglobrow, endglobrow, 1
     globrowoff = globrow - startglobrow + 1
     DO i = 1, M, 1
-      term = 0.0
+      term = ZERO
       IF ( globrow .GT. 1 ) THEN
         term = term + SUM( orig(globrowoff)%L(i,:) * selement(globrow-1)%x )
       END IF

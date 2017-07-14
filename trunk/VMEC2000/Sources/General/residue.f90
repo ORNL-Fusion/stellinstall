@@ -71,7 +71,7 @@
 #endif
 
 !     PRECONDITIONER MUST BE CALCULATED USING RAW (UNPRECONDITIONED) FORCES
-      IF (ictrl_prec2d .GE. 2) RETURN
+      IF (ictrl_prec2d.GE.2 .OR. ictrl_prec2d.EQ.-1) RETURN
 
 !
 !     PUT FORCES INTO PHIFSAVE UNITS USED BY PRECONDITIONERS, FNORM
@@ -116,7 +116,7 @@
 !         IF (iter2-iter1.lt.50) jedge = 1
 !      ELSE
          IF (delIter.lt.50 .and.                                        &
-            (fsqr+fsqz).lt.1.E-6_dp) jedge = 1
+            (fsqr+fsqz).LT.1.E-6_dp) jedge = 1
 !      ENDIF
 
       CALL second0(skston)
@@ -132,7 +132,6 @@
       fsql = fnormL*total
       IF(rank.EQ.nranks-1) &
         fedge = r1*fnorm*SUM(gcr(:,:,ns,:)**2 + gcz(:,:,ns,:)**2)
-
 !
 !     PERFORM PRECONDITIONING AND COMPUTE RESIDUES
 !
@@ -141,7 +140,9 @@
          
          !STOP 'residue:134: Block preconditioning not parallelized'
 
+         LRESIDUECALL=.TRUE.
          CALL block_precond_par(pgc)
+         LRESIDUECALL=.FALSE.
 
          IF (.not.lfreeb .and. ANY(gcr(:,:,ns,:) .ne. zero))            &
             STOP 'gcr(ns) != 0 for fixed boundary in residue'
@@ -281,7 +282,6 @@
 #ifdef _HBANGLE
       USE angle_constraints, ONLY: scalfor_rho
 #endif
-      USE parallel_include_module
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s

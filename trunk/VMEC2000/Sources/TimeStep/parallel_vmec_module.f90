@@ -12,9 +12,13 @@ MODULE parallel_vmec_module
   INTEGER :: last_ns = -1
   INTEGER :: par_ns, mynsnum, par_nzeta, par_ntheta3
   INTEGER :: par_ntmax, par_ntor, par_mpol1, par_nznt, par_nuv, par_nuv3
-  INTEGER :: tlglob, trglob, t1lglob, t1rglob, t2lglob, t2rglob 
+  INTEGER :: blocksize, ntmaxblocksize
+  INTEGER :: tlglob, trglob, t1lglob, t1rglob
   INTEGER :: nuvmin, nuvmax, nuv3min, nuv3max 
   INTEGER :: MPI_ERR
+#if defined(MPI_OPT)
+  INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
+#endif
   INTEGER :: RUNVMEC_COMM_WORLD
   INTEGER :: NS_COMM
   INTEGER :: VAC_COMM
@@ -33,6 +37,11 @@ MODULE parallel_vmec_module
   INTEGER, ALLOCATABLE, DIMENSION(:) :: nuv3min_arr,nuv3max_arr 
   INTEGER, ALLOCATABLE, DIMENSION(:) :: trow, brow
   INTEGER, ALLOCATABLE, DIMENSION(:) :: lcol, rcol
+
+  INTEGER, ALLOCATABLE, DIMENSION (:) :: blkrcounts, blkdisp
+  INTEGER, ALLOCATABLE, DIMENSION (:) :: ntblkrcounts, ntblkdisp
+  INTEGER, ALLOCATABLE, DIMENSION (:) :: nsrcounts, nsdisp
+  INTEGER, PRIVATE :: mmax, nmax, tmax
 
   LOGICAL :: PARVMEC=.FALSE.
   LOGICAL :: LV3FITCALL=.FALSE.
@@ -61,14 +70,21 @@ MODULE parallel_vmec_module
   REAL(dp) :: sendrecv_time=0
   REAL(dp) :: scatter_time=0
 
+!
+!     OVERLOADED FUNCTIONS
+!
+  INTERFACE CopyLastNType
+     MODULE PROCEDURE copy4lastntype, copy1lastntype,    &
+                      copym4lastntype, copym1lastntype
+  END INTERFACE
+
 CONTAINS
 
   !--------------------------------------------------------------------------
   ! Read in environment variables 
   !--------------------------------------------------------------------------
   SUBROUTINE MyEnvVariables
-    IMPLICIT NONE
-
+    
     PARVMEC=.TRUE.
     envvar='PARVMEC'
     CALL GETENV(envvar,envval)
@@ -93,8 +109,7 @@ CONTAINS
   ! Declarations of all timers to be used in the parallel implementation
   !--------------------------------------------------------------------------
   SUBROUTINE InitializeParallel
-    IMPLICIT NONE
-
+    
 #if defined(MPI_OPT)
     CALL MPI_Init(MPI_ERR)
     CALL MPI_Comm_rank(MPI_COMM_WORLD,grank,MPI_ERR) 
@@ -111,7 +126,6 @@ CONTAINS
 
   !--------------------------------------------------------------------------
   SUBROUTINE InitRunVmec(INCOMM, LVALUE)
-    IMPLICIT NONE
     INTEGER, INTENT(IN)  :: INCOMM
     LOGICAL, INTENT(IN)  :: LVALUE
 
@@ -127,15 +141,11 @@ CONTAINS
 
   !--------------------------------------------------------------------------
   SUBROUTINE InitSurfaceComm(ns, nzeta, ntheta3, ntmax, ntor, mpol1)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: ns, nzeta, ntheta3
     INTEGER, INTENT(IN) :: ntmax, ntor, mpol1
     INTEGER :: i
     LOGICAL :: FIRSTPASS = .TRUE.
-
-    IF (LV3FITCALL) THEN
-      NS_RESLTN=NS_RESLTN+1
 
       par_ns=ns
       par_nzeta=nzeta
@@ -144,23 +154,21 @@ CONTAINS
       par_ntor=ntor
       par_mpol1=mpol1
       par_nznt=par_nzeta*par_ntheta3
+      blocksize= (par_mpol1+1)*(par_ntor+1)
+      ntmaxblocksize=3*ntmax*blocksize
+      mmax=par_mpol1+1; nmax=par_ntor+1; tmax=3*par_ntmax
+      NS_RESLTN=NS_RESLTN+1
 
+
+    IF (LV3FITCALL) THEN
       IF(last_ns.NE.par_ns) THEN
         CALL SetSurfaceCommunicator
         CALL SetSurfacePartitions
         CALL SetSurfacePartitionArrays
         last_ns = par_ns
       END IF
-    ELSE
-      NS_RESLTN=NS_RESLTN+1
 
-      par_ns=ns
-      par_nzeta=nzeta
-      par_ntheta3=ntheta3
-      par_ntmax=ntmax
-      par_ntor=ntor
-      par_mpol1=mpol1
-      par_nznt=par_nzeta*par_ntheta3
+    ELSE
 
       CALL SetSurfaceCommunicator
       CALL SetSurfacePartitions
@@ -204,8 +212,7 @@ CONTAINS
   ! computations
   !------------------------------------------------
   SUBROUTINE SetSurfaceCommunicator
-    IMPLICIT NONE
-
+    
     INTEGER :: num_active, color
 
     num_active = MIN(gnranks,par_ns/2)
@@ -235,8 +242,7 @@ CONTAINS
   ! computations
   !------------------------------------------------
   SUBROUTINE SetSurfacePartitions
-    IMPLICIT NONE
-
+    
     INTEGER :: mypart
 #if defined(MPI_OPT)
     IF(par_ns.LT.nranks) THEN
@@ -262,9 +268,6 @@ CONTAINS
     t1lglob=tlglob-1; IF (rank.EQ.0) t1lglob=1
     t1rglob=trglob+1; IF (rank.EQ.nranks-1) t1rglob=par_ns
 
-    t2lglob=tlglob-2; IF (rank.EQ.0) t2lglob=1
-    t2rglob=trglob+2; IF (rank.EQ.nranks-1) t2rglob=par_ns
-
     IF(mypart.LT.2) THEN
       CALL MPI_Barrier(NS_COMM,MPI_ERR)
       WRITE(TOFU,*) '***********************************************************' 
@@ -288,8 +291,7 @@ CONTAINS
   ! computations
   !------------------------------------------------
   SUBROUTINE SetSurfacePartitionArrays
-    IMPLICIT NONE
-
+    
     INTEGER, ALLOCATABLE, DIMENSION(:) :: localpart
     INTEGER :: i, smallpart, largepart
     INTEGER, SAVE :: lastns
@@ -322,26 +324,95 @@ CONTAINS
 
     DEALLOCATE (localpart)
 
+    CALL ComputeNSAllGatherParameters(nranks)
+    CALL ComputeBlockAllGatherParameters(nranks)
+    CALL ComputeNTmaxBlockAllGatherParameters(nranks)
+
   END SUBROUTINE SetSurfacePartitionArrays
+  !------------------------------------------------
+
+  !------------------------------------------------
+  ! Compute AllGather vector variant parameters for 
+  ! blocksized movements.
+  !------------------------------------------------
+  SUBROUTINE ComputeNTmaxBlockAllGatherParameters(activeranks)
+    
+    INTEGER :: activeranks
+    INTEGER :: i
+    IF(.NOT.ALLOCATED(ntblkrcounts)) ALLOCATE(ntblkrcounts(activeranks))
+    IF(.NOT.ALLOCATED(ntblkdisp)) ALLOCATE(ntblkdisp(activeranks))
+    DO i=1,activeranks
+      ntblkrcounts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*ntmaxblocksize
+    END DO
+    ntblkdisp(1)=0
+    DO i=2,activeranks
+      ntblkdisp(i)=ntblkdisp(i-1)+ntblkrcounts(i-1)
+    END DO
+  END SUBROUTINE ComputeNTmaxBlockAllGatherParameters
+  !------------------------------------------------
+
+  !------------------------------------------------
+  ! Compute AllGather vector variant parameters for 
+  ! blocksized movements.
+  !------------------------------------------------
+  SUBROUTINE ComputeBlockAllGatherParameters(activeranks)
+    
+    INTEGER :: activeranks
+    INTEGER :: i
+    IF(.NOT.ALLOCATED(blkrcounts)) ALLOCATE(blkrcounts(activeranks))
+    IF(.NOT.ALLOCATED(blkdisp)) ALLOCATE(blkdisp(activeranks))
+    DO i=1,activeranks
+      blkrcounts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blocksize
+    END DO
+    blkdisp(1)=0
+    DO i=2,activeranks
+      blkdisp(i)=blkdisp(i-1)+blkrcounts(i-1)
+    END DO
+  END SUBROUTINE ComputeBlockAllGatherParameters
+  !------------------------------------------------
+
+  !------------------------------------------------
+  ! Compute AllGather vector variant parameters for 
+  ! blocksized movements.
+  !------------------------------------------------
+  SUBROUTINE ComputeNSAllGatherParameters(activeranks)
+    
+    INTEGER :: activeranks
+    INTEGER :: i
+    IF(.NOT.ALLOCATED(nsrcounts)) ALLOCATE(nsrcounts(activeranks))
+    IF(.NOT.ALLOCATED(nsdisp)) ALLOCATE(nsdisp(activeranks))
+    DO i=1,activeranks
+      nsrcounts(i)=(trglob_arr(i)-tlglob_arr(i)+1)
+    END DO
+    nsdisp(1)=0
+    DO i=2,activeranks
+      nsdisp(i)=nsdisp(i-1)+nsrcounts(i-1)
+    END DO
+  END SUBROUTINE ComputeNSAllGatherParameters
   !------------------------------------------------
 
   !--------------------------------------------------------------------------
   SUBROUTINE FinalizeSurfaceComm(INCOMM)
-    IMPLICIT NONE
+    
     INTEGER, INTENT(IN)  :: INCOMM
 #if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM,MPI_ERR)
+    IF(ALLOCATED(ntblkrcounts)) DEALLOCATE(ntblkrcounts)
+    IF(ALLOCATED(ntblkdisp)) DEALLOCATE(ntblkdisp)
+    IF(ALLOCATED(blkrcounts)) DEALLOCATE(blkrcounts)
+    IF(ALLOCATED(blkdisp)) DEALLOCATE(blkdisp)
+    IF(ALLOCATED(nsrcounts)) DEALLOCATE(nsrcounts)
+    IF(ALLOCATED(nsdisp)) DEALLOCATE(nsdisp)
 #endif
   END SUBROUTINE FinalizeSurfaceComm
   !--------------------------------------------------------------------------
 
   !--------------------------------------------------------------------------
   SUBROUTINE FinalizeRunVmec(INCOMM)
-    IMPLICIT NONE
+    
     INTEGER, INTENT(IN)  :: INCOMM
 #if defined(MPI_OPT)
     CALL MPI_Comm_free(INCOMM,MPI_ERR)
-    IF(LIFFREEB) CALL MPI_Comm_free(VAC_COMM,MPI_ERR)
 #endif
   END SUBROUTINE FinalizeRunVmec
   !--------------------------------------------------------------------------
@@ -353,8 +424,7 @@ CONTAINS
   ! nuv3 = nzeta*ntheta3
   !------------------------------------------------
   SUBROUTINE SetVacuumCommunicator(nuv, nuv3, mgs)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: nuv, nuv3, mgs
     INTEGER :: num_active, color, mypart
 
@@ -377,6 +447,8 @@ CONTAINS
       CALL Setnuv3PartitionArrays
       vlactive=.TRUE.
     ENDIF 
+#else
+    nuv3min = 1;  nuv3max = nuv3
 #endif
   END SUBROUTINE SetVacuumCommunicator
   !------------------------------------------------
@@ -387,8 +459,7 @@ CONTAINS
   ! computations
   !------------------------------------------------
   SUBROUTINE SetVacuumPartitions(num,left,right)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: num
     INTEGER, INTENT(INOUT) :: left, right
     INTEGER :: mypart
@@ -421,8 +492,7 @@ CONTAINS
   ! computations
   !------------------------------------------------
   SUBROUTINE Setnuv3PartitionArrays
-    IMPLICIT NONE
-
+    
     INTEGER, ALLOCATABLE, DIMENSION(:) :: localpart
     INTEGER :: i, smallpart, largepart
 
@@ -459,8 +529,7 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE FinalizeParallel
-    IMPLICIT NONE
-
+    
     INTEGER :: istat
 
     envvar='LPRECOND'
@@ -471,36 +540,16 @@ CONTAINS
       LPRECOND=.FALSE.
     END IF
 
-#if defined(NOSKS)
-    envvar='LV3FITCALL'
-    CALL GETENV(envvar,envval)
-    IF (envval.EQ.'TRUE') THEN
-      LV3FITCALL=.TRUE.
-    ELSE IF (envval.EQ.'FALSE') THEN
-      LV3FITCALL=.FALSE.
-    END IF
-
-    envvar='PARVMEC'
-    CALL GETENV(envvar,envval)
-    IF (envval.EQ.'TRUE') THEN
-      PARVMEC=.TRUE.
-    ELSE IF (envval.EQ.'FALSE') THEN
-      PARVMEC=.FALSE.
-    END IF
-#endif
-
     IF (grank.EQ.0) THEN 
       WRITE(*,*)
-      WRITE(*,'(A,I4)') 'NO. OF PROCS:   ', gnranks
-      WRITE(*,100) 'PARVMEC    :     ',PARVMEC
-      WRITE(*,100) 'LPRECOND   :     ',LPRECOND
-      WRITE(*,100) 'LV3FITCALL :     ',LV3FITCALL
+      WRITE(*,'(1x,a,i4)') 'NO. OF PROCS:  ',gnranks
+      WRITE(*,100)         'PARVMEC     :  ',PARVMEC
+      WRITE(*,100)         'LPRECOND    :  ',LPRECOND
+      WRITE(*,100)         'LV3FITCALL  :  ',LV3FITCALL
     END IF
- 100  FORMAT(a,l4)
+ 100  FORMAT(1x,a,l4)
 
 #if defined(MPI_OPT)
-    CALL MPI_Comm_free(NS_COMM, MPI_ERR)
-    IF(vlactive) CALL MPI_Comm_free(VAC_COMM, MPI_ERR)
     CALL MPI_Finalize(istat)
 #endif
   END SUBROUTINE FinalizeParallel
@@ -510,8 +559,7 @@ CONTAINS
   ! Print debugging output to compare aray values 
   !------------------------------------------------
   SUBROUTINE PrintNSArray (arr, left, right, fileno, ifstop, string)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
     REAL(rprec), DIMENSION (par_ns+1), INTENT(IN) :: arr
@@ -538,8 +586,7 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE STOPMPI (code)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: code
 
 #if defined(MPI_OPT)
@@ -552,8 +599,7 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE Parallel2Serial4X (inarr,outarr)
-    IMPLICIT NONE
-
+    
     REAL(rprec), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
     REAL(rprec), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
     INTEGER :: i, j, k, l, lk, lks, lkp
@@ -577,8 +623,7 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE Serial2Parallel4X (inarr,outarr)
-    IMPLICIT NONE
-
+    
     REAL(rprec), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
     REAL(rprec), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
     INTEGER :: i, j, k, l, lk, lks, lkp
@@ -602,8 +647,7 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE Parallel2Serial2X(inarr, outarr)
-    IMPLICIT NONE
-
+    
     REAL(rprec), DIMENSION(par_nzeta,par_ntheta3,par_ns), INTENT(IN) :: inarr
     REAL(rprec), DIMENSION(par_ns*par_nzeta*par_ntheta3+1), INTENT(OUT) :: outarr
     INTEGER :: i, j, k, l
@@ -622,9 +666,45 @@ CONTAINS
   !------------------------------------------------
 
   !------------------------------------------------
-  SUBROUTINE PrintOutLinearArray(arr, left, right, flag, fileno)
-    IMPLICIT NONE
+  SUBROUTINE RPrintOutLinearArray(arr, left, right, flag, fileno)
+    
+    REAL(dp), DIMENSION(:) :: arr
+    INTEGER, INTENT(IN) :: fileno, left, right
+    LOGICAL, INTENT(IN) :: flag !flag: TRUE for parallel, FALSE for serial
+    INTEGER :: i, j, k, l, lk
 
+    REAL(dp), ALLOCATABLE, DIMENSION(:)  :: tmp
+    ALLOCATE (tmp(ntmaxblocksize*par_ns))
+
+    CALL tolastntype(arr,tmp)
+    lk=0
+    DO l=1, 3*par_ntmax
+      DO k=0, par_mpol1
+        DO j=0, par_ntor
+          DO i=1, par_ns
+            lk=lk+1
+            IF(flag) THEN
+              lk = j + nmax*(k + mmax*((i-1) + par_ns*(l-1)))+1
+            END IF
+            IF (left.LE.i.AND.i.LE.right) THEN
+              WRITE(fileno+rank,50) i, j, k, l, tmp(lk)
+              CALL FLUSH(fileno+rank)
+            END IF
+          END DO
+        END DO
+      END DO
+    END DO
+    DEALLOCATE(tmp)
+
+    50   FORMAT(4I6,1P,F20.8)
+
+  END SUBROUTINE RPrintOutLinearArray
+  !------------------------------------------------
+
+
+  !------------------------------------------------
+  SUBROUTINE PrintOutLinearArray(arr, left, right, flag, fileno)
+    
     REAL(dp), DIMENSION(:) :: arr
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: flag !flag: TRUE for parallel, FALSE for serial
@@ -637,8 +717,7 @@ CONTAINS
           DO i=1, par_ns
             lk=lk+1
             IF(flag) THEN
-              lk = j + (par_ntor+1)*k + (par_ntor+1)*(par_mpol1+1)*(i-1) + &
-                (par_ntor+1)*(par_mpol1+1)*par_ns*(l-1)+1
+              lk = j + nmax*(k + mmax*((i-1) + par_ns*(l-1)))+1
             END IF
             IF (left.LE.i.AND.i.LE.right) THEN
               WRITE(fileno+rank,50) i, j, k, l, arr(lk)
@@ -658,8 +737,7 @@ CONTAINS
   ! Prints out [nsmin, nsmax] part of a (nzeta, ntheta,ns) array
   !------------------------------------------------
   SUBROUTINE PrintParallelMNSPArray (arr, left, right, fileno, ifstop, string)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
     REAL(rprec), DIMENSION (par_nzeta,par_ntheta3,par_ns), INTENT(IN) :: arr
@@ -688,8 +766,7 @@ CONTAINS
   ! Prints out [nsmin, nsmax] part of a (ns, nzeta, ntheta) array
   !------------------------------------------------
   SUBROUTINE PrintSerialMNSPArray (arr, left, right, fileno, ifstop, string)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
     REAL(rprec), DIMENSION (par_ns,par_nzeta,par_ntheta3), INTENT(IN) :: arr
@@ -718,8 +795,7 @@ CONTAINS
   ! Prints out [nsmin, nsmax] part of a (ntor,mpol1,ns) array
   !------------------------------------------------
   SUBROUTINE PrintParallelIJSPArray (arr, left, right, fileno, ifstop, string)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
     REAL(rprec), DIMENSION (0:par_ntor,0:par_mpol1,1:par_ns), INTENT(IN) :: arr
@@ -748,7 +824,6 @@ CONTAINS
   ! Prints out [nsmin, nsmax] part of a (ns, ntor, mpol1) array
   !------------------------------------------------
   SUBROUTINE PrintSerialIJSPArray (arr, left, right, fileno, ifstop, string)
-    IMPLICIT NONE
 
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
@@ -776,7 +851,6 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE Gather4XArray(arr)
-    IMPLICIT NONE
     !-----------------------------------------------
 
     !-----------------------------------------------
@@ -788,12 +862,11 @@ CONTAINS
     REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
     REAL(rprec) :: allgvton, allgvtoff
     !-----------------------------------------------
-
-    CALL second0(allgvton)
-
-    IF (nranks.EQ.1) THEN
+    IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
     END IF
+
+    CALL second0(allgvton)
 
     blksize=(par_ntor+1)*(par_mpol1+1)*3*par_ntmax
     numjs=trglob-tlglob+1
@@ -828,9 +901,62 @@ CONTAINS
   !------------------------------------------------
 
   !------------------------------------------------
-  SUBROUTINE Gather2XArray(arr)
-    IMPLICIT NONE
+  !
+  !------------------------------------------------
+  SUBROUTINE GatherReordered4XArray(arr)
+    !-----------------------------------------------
 
+    !-----------------------------------------------
+    REAL(rprec), DIMENSION(0:par_ntor,0:par_mpol1,3*par_ntmax,par_ns), INTENT(INOUT) :: arr
+    INTEGER :: i, j, k, l, lk
+    INTEGER :: blksize, numjs
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
+    REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:,:) :: sendbuf
+    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
+    REAL(rprec) :: allgvton, allgvtoff
+    !-----------------------------------------------
+    IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
+      RETURN
+    END IF
+
+    CALL second0(allgvton)
+
+    blksize=(par_ntor+1)*(par_mpol1+1)*3*par_ntmax
+    numjs=trglob-tlglob+1
+    ALLOCATE (sendbuf(0:par_ntor,0:par_mpol1,1:3*par_ntmax,numjs))
+    ALLOCATE (recvbuf(par_ns*blksize))
+    ALLOCATE(counts(nranks),disps(nranks))
+
+    DO i=1,nranks
+      counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blksize
+    END DO
+
+    disps(1)=0
+    DO i=2,nranks
+      disps(i)=disps(i-1)+counts(i-1)
+    END DO
+#if defined(MPI_OPT)
+    sendbuf(0:par_ntor,0:par_mpol1,1:3*par_ntmax,1:numjs)=&
+      arr(0:par_ntor,0:par_mpol1,1:3*par_ntmax,tlglob:trglob)
+    CALL MPI_Allgatherv(sendbuf,numjs*blksize,MPI_REAL8,recvbuf,&
+      counts,disps,MPI_REAL8,NS_COMM,MPI_ERR)
+    DO i=1, nranks
+      numjs=trglob_arr(i)-tlglob_arr(i)+1
+      arr(0:par_ntor,0:par_mpol1,1:3*par_ntmax,tlglob_arr(i):trglob_arr(i))&
+        =RESHAPE(recvbuf(disps(i)+1:disps(i)+counts(i)),&
+        (/par_ntor+1,par_mpol1+1,3*par_ntmax,numjs/))
+    END DO
+#endif
+    DEALLOCATE(sendbuf, recvbuf)
+    CALL second0(allgvtoff)
+    allgather_time = allgather_time + (allgvtoff-allgvton)
+  END SUBROUTINE GatherReordered4XArray
+  !------------------------------------------------
+
+
+  !------------------------------------------------
+  SUBROUTINE Gather2XArray(arr)
+    
     REAL(rprec), DIMENSION(par_nznt,par_ns), INTENT(INOUT) :: arr
     INTEGER :: i, j, k, l, lk
     INTEGER :: par_nsmin, par_nsmax, blksize, numjs
@@ -839,11 +965,11 @@ CONTAINS
     REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
     REAL(rprec) :: allgvton, allgvtoff
     !-----------------------------------------------
-    CALL second0(allgvton)
-
-    IF (nranks.EQ.1) THEN
+    IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
     END IF
+
+    CALL second0(allgvton)
 
     blksize=par_nznt
     numjs=trglob-tlglob+1
@@ -879,8 +1005,6 @@ CONTAINS
 
   !------------------------------------------------
   SUBROUTINE Gather1XArray(arr)
-    IMPLICIT NONE
-
     !-----------------------------------------------
     REAL(rprec), DIMENSION(par_ns), INTENT(INOUT) :: arr
     REAL(rprec), ALLOCATABLE, DIMENSION(:) :: sendbuf, recvbuf
@@ -889,11 +1013,11 @@ CONTAINS
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
     REAL(rprec) :: allgvton, allgvtoff
     !-----------------------------------------------
-    CALL second0(allgvton)
-
-    IF (nranks.EQ.1) THEN
+    IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
     END IF
+
+    CALL second0(allgvton)
 
     numjs=trglob-tlglob+1
     ALLOCATE (sendbuf(numjs),recvbuf(par_ns))
@@ -922,91 +1046,13 @@ CONTAINS
   !------------------------------------------------
 
   !------------------------------------------------
-  SUBROUTINE Scatterv4XArray(arr, COMM)
-    IMPLICIT NONE
-    !-----------------------------------------------
-
-    !-----------------------------------------------
-    INTEGER, INTENT(IN) :: COMM
-    REAL(rprec), DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax), INTENT(INOUT) :: arr
-    !REAL(rprec), DIMENSION((par_ntor+1)*(par_mpol1+1)*par_ns*3*par_ntmax), INTENT(OUT) :: outarr
-    INTEGER :: i, j, k, l, ls, nsmin, nsmax, lks, lkp
-    INTEGER :: blksize, numjs, sendbufsize
-    INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: sendbuf
-    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
-    REAL(rprec) :: scattervton, scattervtoff
-    !-----------------------------------------------
-
-    CALL second0(scattervton)
-    nsmin = tlglob; nsmax = trglob
-
-    IF (nranks.EQ.1) THEN
-      RETURN
-    END IF
-
-    blksize=(par_ntor+1)*(par_mpol1+1)*3*par_ntmax
-    numjs=nsmax-nsmin+1
-
-    ALLOCATE(counts(nranks),disps(nranks))
-    sendbufsize=0
-    DO i=1,nranks
-      counts(i)=(trglob_arr(i)-tlglob_arr(i)+1)*blksize
-      sendbufsize = sendbufsize + counts(i)
-    END DO
-
-    disps(1)=0
-    DO i=2,nranks
-      disps(i)=disps(i-1)+counts(i-1)
-    END DO
-
-    ALLOCATE (sendbuf(sendbufsize))
-    ALLOCATE (recvbuf(blksize*numjs))
-
-    ls=0
-    DO l=1, 3*par_ntmax
-      DO k=0, par_mpol1
-        DO j=0, par_ntor
-          !DO i=1, par_ns
-          DO i=nsmin, nsmax
-            ls = ls+1
-            sendbuf(ls) = arr(j,k,l,i)
-          END DO
-        END DO
-      END DO
-    END DO
-
-#if defined(MPI_OPT)
-    CALL MPI_Scatterv(sendbuf,sendbufsize,disps,MPI_REAL8,recvbuf,&
-      numjs*blksize,MPI_REAL8,0,COMM,MPI_ERR)
-#endif
-    lks=0
-    DO l=1, 3*par_ntmax
-      DO k=0, par_mpol1
-        DO j=0, par_ntor
-          !DO i=1, par_ns
-          DO i=nsmin, nsmax
-            lks = lks+1
-!            lkp = j + (par_ntor+1)*k + (par_ntor+1)*(par_mpol1+1)*(i-1) + &
-!              (par_ntor+1)*(par_mpol1+1)*par_ns*(l-1)+1
-            arr(j,k,l,i) = recvbuf(lks)
-          END DO
-        END DO
-      END DO
-    END DO
-
-    DEALLOCATE(sendbuf, recvbuf)
-    CALL second0(scattervtoff)
-    scatter_time = scatter_time + (scattervtoff-scattervton)
-  END SUBROUTINE Scatterv4XArray
   !------------------------------------------------
 
   !------------------------------------------------
   ! Setting the output files
   !------------------------------------------------
   SUBROUTINE SetOutputFile (iam, nprocs, prefix)
-    IMPLICIT NONE
-
+    
     INTEGER, INTENT(IN) :: iam, nprocs
     CHARACTER (*), INTENT(IN) :: prefix
     INTEGER :: istat
@@ -1020,11 +1066,230 @@ CONTAINS
 
     fname=TRIM(cprefix)//'.txt'
     OPEN(UNIT=TOFU, FILE=fname, STATUS="REPLACE", ACTION="WRITE",&
-      &FORM="FORMATTED",POSITION="APPEND", IOSTAT=istat)
+       FORM="FORMATTED",POSITION="APPEND", IOSTAT=istat)
 
   END SUBROUTINE SetOutputFile
   !------------------------------------------------
 
+  !------------------------------------------------
+      SUBROUTINE tolastns (inarr,outarr)
+      
+      REAL(dp), INTENT(IN), & 
+        DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: inarr
+
+#if defined(SKS) 
+      INTEGER :: i, j, k, l, cnt
+      REAL(dp), INTENT(INOUT), & 
+     &   DIMENSION(ntmaxblocksize,par_ns) :: outarr
+
+      DO i=t1lglob, t1rglob
+        cnt=0
+        DO l=1, 3*par_ntmax
+          DO k=0, par_mpol1
+            DO j=0, par_ntor
+              cnt=cnt+1
+              outarr(cnt,i)=inarr(j,k,i,l)
+            END DO
+          END DO
+        END DO
+      END DO
+#else
+      INTEGER :: js, t, m, n, lk
+      REAL(dp), INTENT(INOUT), & 
+        DIMENSION(ntmaxblocksize*par_ns) :: outarr
+
+      DO js=t1lglob, t1rglob
+        DO t=1, 3*par_ntmax
+          DO m=0, par_mpol1
+            DO n=0, par_ntor
+              lk = n+nmax*(m+mmax*((t-1)+tmax*(js-1)))+1
+              outarr(lk)=inarr(n,m,js,t)
+            END DO
+          END DO
+        END DO
+      END DO
+#endif
+      END SUBROUTINE tolastns
+  !------------------------------------------------
+
+  !------------------------------------------------
+      SUBROUTINE tolastntype (inarr,outarr)
+      REAL(dp), INTENT(INOUT), &
+        DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: outarr
+
+#if defined(SKS) 
+      REAL(dp), INTENT(IN), &
+     &   DIMENSION(ntmaxblocksize,par_ns) :: inarr
+      INTEGER :: i, j, k, l, cnt
+
+      DO i=t1lglob, t1rglob
+        cnt=0
+        DO l=1, 3*par_ntmax
+          DO k=0, par_mpol1
+            DO j=0, par_ntor
+              cnt=cnt+1
+              outarr(j,k,i,l)=inarr(cnt,i)
+            END DO
+          END DO
+        END DO
+      END DO
+#else
+      INTEGER :: js, t, m, n, lk
+      REAL(dp), INTENT(IN), & 
+     &   DIMENSION(ntmaxblocksize*par_ns) :: inarr
+      
+      DO js=t1lglob, t1rglob
+        DO t=1, 3*par_ntmax
+          DO m=0, par_mpol1
+            DO n=0, par_ntor
+              lk = n+nmax*(m+mmax*((t-1)+tmax*(js-1)))+1
+              outarr(n,m,js,t)=inarr(lk)
+            END DO
+          END DO
+        END DO
+      END DO
+#endif
+      END SUBROUTINE tolastntype
+  !------------------------------------------------
+
+  !------------------------------------------------
+  ! 
+  !------------------------------------------------
+      SUBROUTINE copylastns(a1, a2)
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,par_ns)    :: a1
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize,par_ns) :: a2
+        a2(:,t1lglob:t1rglob) = a1(:,t1lglob:t1rglob)
+      END SUBROUTINE copylastns
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE copy1lastntype(a1, a2)
+        REAL(dp), INTENT(IN),    DIMENSION(ntmaxblocksize*par_ns) :: a1
+        REAL(dp), INTENT(INOUT), DIMENSION(ntmaxblocksize*par_ns) :: a2
+        CALL copy4lastntype(a1, a2)
+      END SUBROUTINE copy1lastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE copy4lastntype(a1, a2)
+        REAL(dp), INTENT(IN),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a1
+        REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a2
+        a2(:,:,t1lglob:t1rglob,:) = a1(:,:,t1lglob:t1rglob,:)
+      END SUBROUTINE copy4lastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE copym1lastntype(a1, a2, d1)
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize*par_ns) :: a1
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize*par_ns) :: a2
+        REAL(dp), INTENT(IN) :: d1
+        CALL copym4lastntype(a1, a2, d1)
+      END SUBROUTINE copym1lastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE copym4lastntype(a1, a2, d1)
+        REAL(dp), INTENT(IN),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a1
+        REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a2
+        REAL(dp), INTENT(IN) :: d1
+        a2(:,:,t1lglob:t1rglob,:) = d1*a1(:,:,t1lglob:t1rglob,:)
+      END SUBROUTINE copym4lastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE saxlastntype(a, x, vec, tl, tr)
+        REAL(dp), INTENT(IN),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a, x
+        REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: vec
+        INTEGER, INTENT(IN) :: tl, tr
+        vec(:,:,tl:tr,:) = a(:,:,tl:tr,:)*x(:,:,tl:tr,:)
+      END SUBROUTINE saxlastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE saxpbylastntype(a, x, b, y, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: x, y
+	REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: vec
+	REAL(dp), INTENT(IN)  :: a, b
+        vec(:,:,t1lglob:t1rglob,:) = a*x(:,:,t1lglob:t1rglob,:) + b*y(:,:,t1lglob:t1rglob,:)
+      END SUBROUTINE saxpbylastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE saxpbylastns(a, x, b, y, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,tlglob:trglob) :: x
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,par_ns) :: y
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize,par_ns) :: vec
+        REAL(dp), INTENT(IN)  :: a, b
+        vec(:,tlglob:trglob) = a*x(:,tlglob:trglob) + b*y(:,tlglob:trglob)
+      END SUBROUTINE saxpbylastns
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE saxpby1lastns(a, x, b, y, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(1:ntmaxblocksize,par_ns) :: x, y
+        REAL(dp), INTENT(INOUT),  DIMENSION(1:ntmaxblocksize,par_ns) :: vec
+        REAL(dp), INTENT(IN)  :: a, b
+        vec(:,tlglob:trglob) = a*x(:,tlglob:trglob) + b*y(:,tlglob:trglob)
+      END SUBROUTINE saxpby1lastns
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE getderivlastns(x1, x2, d1, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,par_ns) :: x1, x2
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize,tlglob:trglob) :: vec
+        REAL(dp), INTENT(IN)  :: d1
+        IF (d1 .eq. 0) RETURN
+        vec = (x1(:,tlglob:trglob) - x2(:,tlglob:trglob))/d1
+      END SUBROUTINE getderivlastns
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE zerolastntype(a1)
+        REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a1
+        a1(:,:,t1lglob:t1rglob,:) = 0
+      END SUBROUTINE zerolastntype
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE CopyParallelLinearSubarray(fromarr,toarr, first, last)
+        INTEGER, INTENT(IN) :: first, last
+        REAL(dp), INTENT(IN), &
+             DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: fromarr
+        REAL(dp), INTENT(INOUT), &
+             DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: toarr
+        toarr(:,:,first:last,:) = fromarr(:,:,first:last,:)
+      END SUBROUTINE CopyParallelLinearSubarray
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE PadSides(arr)
+        REAL(dp), INTENT(INOUT), &
+             DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: arr
+        INTEGER :: left, right, tag1=1
+#if defined(SKS)
+        left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
+        right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
+        CALL MPI_Sendrecv(arr(:,:,tlglob,:),ntmaxblocksize,MPI_REAL8,    &
+                 left, tag1,arr(:,:,t1rglob,:),ntmaxblocksize,MPI_REAL8, &
+                 right,tag1,NS_COMM, MPI_STAT,MPI_ERR)
+        CALL MPI_Sendrecv(arr(:,:,trglob,:),ntmaxblocksize,MPI_REAL8,    &
+                 right,tag1,arr(:,:,t1lglob,:),ntmaxblocksize,MPI_REAL8, &
+                 left, tag1,NS_COMM,MPI_STAT,MPI_ERR)
+#endif
+      END SUBROUTINE PadSides
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE CompareEdgeValues(pxc, pxsave)
+        REAL(dp), INTENT(IN), DIMENSION(blocksize,par_ns,3*par_ntmax)   &
+                       :: pxc, pxsave
+    
+       IF (rank.EQ.nranks-1 .AND. ANY(pxc(:,par_ns,:) .NE. pxsave(:,par_ns,:)))     &
+         PRINT *,' xsave != xc at edge returning from GMRES'
+
+      END SUBROUTINE CompareEdgeValues
+
+      !------------------------------------------------
 
 
 END MODULE parallel_vmec_module

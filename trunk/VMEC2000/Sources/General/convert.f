@@ -1,5 +1,5 @@
 #if defined(SKS)
-      SUBROUTINE convert_par(rmnc,zmns,lmns,rmns,zmnc,lmnc,rzl_array,js)
+      SUBROUTINE convert_par(rmnc,zmns,lmns,rmns,zmnc,lmnc,rzl_array)
       USE vmec_main
       USE vmec_params
       USE parallel_include_module
@@ -7,11 +7,10 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(IN) :: js
-      REAL(rprec), DIMENSION(mnmax), INTENT(out) ::
+      REAL(rprec), DIMENSION(mnmax), INTENT(OUT) ::
      1    rmnc, zmns, lmns, rmns, zmnc, lmnc
       REAL(rprec), DIMENSION(0:ntor,0:mpol1,ns,3*ntmax),
-     1    INTENT(inout) :: rzl_array
+     1    INTENT(INOUT) :: rzl_array
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -21,15 +20,17 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: rmncc, rmnss, rmncs, rmnsc, zmncs, zmnsc, 
      1           zmncc, zmnss, lmncs, lmnsc, lmncc, lmnss
-      INTEGER :: mn, m, n, n1, bufsize, brank2, brank3
+      INTEGER :: mn, m, n, n1, bufsize, js
       REAL(rprec) :: t1, sign0, mul1
       REAL(rprec) :: skston, skstoff
       REAL(rprec), ALLOCATABLE, DIMENSION(:) :: bcastbuf
 C-----------------------------------------------
 !
+!     FOR EDGE (js=ns) ONLY:
 !     CONVERTS INTERNAL MODE REPRESENTATION TO STANDARD
 !     FORM FOR OUTPUT (COEFFICIENTS OF COS(mu-nv), SIN(mu-nv) WITHOUT mscale,nscale norms)
 !
+      js = ns
       bufsize = (ntor+1)*(mpol1+1)*3*ntmax
       ALLOCATE(bcastbuf(bufsize))
       mn=0

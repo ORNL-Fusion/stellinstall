@@ -364,7 +364,7 @@
 
       SUBROUTINE GetResPert(irscale, isign, mres0, nres0, rad,           &
                             HelPert0, chip0, phip0)
-      USE fourier, ONLY: toijsp2, f_cos
+      USE fourier, ONLY: toijsp2, f_cos, f_sin
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -380,6 +380,7 @@
       INTEGER     :: js, istat
       REAL(rprec) :: rho, rhores, pert_prof(ns), HelP_local, locrad
       REAL(rprec), ALLOCATABLE   :: bmn_res(:,:)
+      REAL(rprec), ALLOCATABLE   :: temp_uv(:,:)
 !-----------------------------------------------
       IF (mres0.GT.mpolin .OR. ABS(nres0).GT.ntorin) RETURN
 
@@ -409,6 +410,12 @@
          
       bmn_res(mres0,nres0) = 1
       CALL toijsp2(bmn_res, buv_res, f_cos, 1)
+      IF (lasym) THEN
+         ALLOCATE (temp_uv(ntheta,nzeta), stat=istat)
+         CALL toijsp2(bmn_res, temp_uv, f_sin, 1)
+         buv_res(:,:,1) = buv_res(:,:,1) + temp_uv;
+         DEALLOCATE(temp_uv)
+      END IF
       DO js = 2,ns
          buv_res(:,:,js) = buv_res(:,:,1)*pert_prof(js)
       END DO

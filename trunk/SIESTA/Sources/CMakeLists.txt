@@ -23,7 +23,6 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/prof_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/ptrd_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/quantities.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/Readme.txt
 	${CMAKE_CURRENT_SOURCE_DIR}/shared_data.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/shared_functions.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_bfield.f90

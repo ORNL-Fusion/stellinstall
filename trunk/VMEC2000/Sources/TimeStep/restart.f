@@ -2,6 +2,7 @@
       USE vmec_main
       USE xstuff
       USE parallel_include_module
+      USE parallel_vmec_module, ONLY: CopyLastNType, ZeroLastNtype
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   V a r i a b l e s
@@ -21,11 +22,12 @@
       IF (PARVMEC) THEN
         SELECT CASE (irst)
         CASE DEFAULT
-          pxstore(:neqs2) = pxc(:neqs2)
+          CALL CopyLastNType(pxc, pxstore) 
           RETURN
         CASE (2:3)
-          pxcdot(:neqs2) = zero
-          pxc(:neqs2) = pxstore(:neqs2)
+          CALL ZeroLastNtype(pxcdot)
+          CALL CopyLastNType(pxstore, pxc) 
+!          pxc(:neqs2) = pxstore(:neqs2)
           time_step = time_step*((irst-2)/c1p03 + cp90*(3-irst))
           IF (irst .eq. 2) THEN
             ijacob = ijacob + 1

@@ -279,13 +279,13 @@ C-----------------------------------------------
      1                       ictrl_prec2d.ne.0)
 
             IF (grank.EQ.0) THEN 
-!              WRITE(*,*)
-              WRITE(nthreed,'(A,I4)') 'NO. OF PROCS:   ', gnranks
-              WRITE(nthreed,101) 'PARVMEC    :     ',PARVMEC
-              WRITE(nthreed,101) 'LPRECOND   :     ',LPRECOND
-              !WRITE(nthreed,101) 'LV3FITCALL :     ',LV3FITCALL
+              WRITE(nthreed,*)
+              WRITE(nthreed,'(1x,a,i4)') 'NO. OF PROCS:  ',gnranks
+              WRITE(nthreed,101)         'PARVMEC     :  ',PARVMEC
+              WRITE(nthreed,101)         'LPRECOND    :  ',LPRECOND
+              WRITE(nthreed,101)         'LV3FITCALL  :  ',LV3FITCALL
             END IF
- 101  FORMAT(a,l4)
+ 101  FORMAT(1x,a,l4)
 #if defined(SKS)
             END IF
 #endif           

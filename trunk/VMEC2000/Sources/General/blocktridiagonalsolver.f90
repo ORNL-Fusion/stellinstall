@@ -5005,7 +5005,7 @@ INTEGER :: col, row, offset
 INTEGER :: globalrow, localblkrow, cnt, dcnt
 REAL(dp) :: melement, velement, total
 
-outvec=0.0; cnt=0; dcnt=0
+outvec=0; cnt=0; dcnt=0
 DO globalrow=startglobrow,endglobrow
 
   localblkrow=globalrow-startglobrow+1
@@ -5018,7 +5018,7 @@ DO globalrow=startglobrow,endglobrow
   
   IF (globalrow.EQ.1) THEN
     DO row=1,M
-      total=0.0
+      total=0
       DO col=1,2*M
         velement=invec(offset+col)
         IF (col.LE.M) THEN
@@ -5038,7 +5038,7 @@ DO globalrow=startglobrow,endglobrow
     END DO
   ELSE IF (globalrow.EQ.N) THEN
     DO row=1,M
-      total=0.0
+      total=0
       DO col=1,2*M
         velement=invec(offset+col)
         IF (col.LE.M) THEN 
@@ -5058,7 +5058,7 @@ DO globalrow=startglobrow,endglobrow
     END DO
   ELSE
     DO row=1,M
-      total=0.0
+      total=0
       DO col=1,3*M
         velement=invec(offset+col)
         IF (col.LE.M) THEN

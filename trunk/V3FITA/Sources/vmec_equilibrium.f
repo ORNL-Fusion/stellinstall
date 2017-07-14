@@ -4102,7 +4102,7 @@
 !>  @returns True if the convergece was sucessful and false otherwise.
 !-------------------------------------------------------------------------------
       FUNCTION vmec_converge(this, num_iter, iou, eq_comm)
-      USE vmec_input, only: delt, niter
+      USE vmec_input, only: delt, niter, nstep
       USE vmec_params, only: timestep_flag, output_flag,                       &
      &                       reset_jacdt_flag, jac75_flag,                     &
      &                       successful_term_flag, norm_term_flag,             &
@@ -4131,6 +4131,7 @@
       INTEGER                            :: error, num_iter_init
       TYPE (vmec_context_class), POINTER :: temp_context => null()
       INTEGER                            :: eq_rank
+      INTEGER                            :: nstep_save
       REAL (rprec)                       :: start_time
 
 !  local parameters
@@ -4177,9 +4178,10 @@
          xstore = xc
          CALL reset_params
 
-         !print *, '*** Calling runvmec from converge...'
+         nstep_save = nstep
          CALL runvmec(ictrl_array, this%vmec_file_name, .false.,               &
      &                eq_comm)
+         nstep = nstep_save
 
 !  Set error flag. (Flags declared in vmec_params.f)
 !
@@ -4294,7 +4296,7 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_read_vac_file(this, index, eq_comm)
       USE vmec_input, only: extcur, mgrid_file, nfp
-      USE mgrid_mod, only: read_mgrid, mgrid_path_old, nextcur
+      USE mgrid_mod, only: read_mgrid, mgrid_path_old
       USE vacmod0, only: nv
 
       IMPLICIT NONE

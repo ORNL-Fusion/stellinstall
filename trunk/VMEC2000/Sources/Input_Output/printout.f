@@ -7,6 +7,7 @@
       USE angle_constraints, ONLY: getrz
 #endif
       USE parallel_include_module
+      USE parallel_vmec_module, ONLY: CopyLastNtype
       USE vmec_params, ONLY: ntmax
       IMPLICIT NONE
 C-----------------------------------------------
@@ -58,18 +59,7 @@ C-----------------------------------------------
       specw(1) = one
 
       IF(PARVMEC) THEN 
-        lk=0
-        DO l=1, 3*ntmax
-          DO i=t2lglob, t2rglob
-            DO k=0, mpol1
-              DO j=0, ntor
-                lk = j + (ntor+1)*k +
-     1           (ntor+1)*(mpol1+1)*(i-1)+(ntor+1)*(mpol1+1)*ns*(l-1)+1
-                pgc(lk) = pxstore (lk)
-              END DO
-            END DO
-          END DO
-        END DO
+        CALL CopyLastNtype(pxstore, pgc)
       ELSE
         gc = xstore
       END IF

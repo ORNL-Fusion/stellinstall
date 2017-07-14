@@ -122,7 +122,7 @@
          
         SUBROUTINE WRITE_PROFILES(fsq_total)
         USE safe_open_mod
-        USE metrics, ONLY: lmns_i
+        USE metrics, ONLY: lmns_i, lmnc_i
         USE fourier, ONLY: tomnsp_pest
         USE siesta_init, ONLY: init_state
 !-----------------------------------------------
@@ -155,12 +155,25 @@
 
         pijh = 0
         CALL toijsp(jpmnch, pijh, f_none, f_cos)
+        IF (lasym) THEN
+           CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
+        END IF
         pijh = pijh/jacobh                                                 ! Need first to remove jacobian...
         pmnch = 0
         CALL tomnsp(pijh, pmnch, f_cos)
         CALL siesta_profiles (unit35,pmnch, fsq_total, 'pmnch(jrad);  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
+        IF (lasym) THEN
+           CALL tomnsp(pijh, pmnch, f_sin)
+           CALL siesta_profiles (unit35,pmnch, fsq_total, 'pmnsh(jrad);  fsq_total: ')
+           CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, lmnc=lmnc_i)
+        ELSE
+           CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
+        END IF
         CALL siesta_profiles (unit36, pmnch, fsq_total, 'pmnch(jrad);  fsq_total: ')
+        IF (lasym) THEN
+           CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin, lmnc=lmnc_i)
+           CALL siesta_profiles (unit36, pmnch, fsq_total, 'pmnsh(jrad);  fsq_total: ')
+        END IF
 
 !USE pijh, pmnch to compute components of bsupX on half-mesh
 !BSUPS
@@ -264,21 +277,43 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: m, js 
+      INTEGER :: n, m, js
+      INTEGER :: mnmax
+      CHARACTER (len=19) :: p_format
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: m_array
+      INTEGER, DIMENSION(:,:), ALLOCATABLE :: n_array
 !-----------------------------------------------
 
       WRITE (iunit, *)
       WRITE (iunit, *) TRIM(label), fsq_total
-      DO m=0,mpol,6
-         IF (m+5 .gt. mpol) EXIT
-         WRITE (iunit, '("MPOL",6i10)') m, m+1, m+2, m+3, m+4, m+5
-         DO js=2,ns
-            WRITE (iunit,'(i4,1p6e10.2)') js, SUM(value(m,:,js)),       &
-            SUM(value(m+1,:,js)), SUM(value(m+2,:,js)),                 &
-            SUM(value(m+3,:,js)), SUM(value(m+4,:,js)),                 &
-            SUM(value(m+5,:,js))
+
+      ALLOCATE(m_array(0:mpol,-ntor:ntor))
+      ALLOCATE(n_array(0:mpol,-ntor:ntor))
+
+      DO n = -ntor, ntor
+         DO m = 0, mpol
+            m_array(m,n) = m
+            n_array(m,n) = n
          END DO
       END DO
+
+      mnmax = (mpol + 1)*(2*ntor + 1)
+
+      WRITE (p_format,1000) mnmax
+      WRITE (iunit,p_format) 'MPOL', m_array
+      WRITE (p_format,1001) mnmax
+      WRITE (iunit,p_format) 'NTOR', n_array
+
+      WRITE (p_format,1002) mnmax
+      DO js = 2, ns
+         WRITE(iunit,p_format) js, value(:,:,js)
+      END DO
+
+      DEALLOCATE(m_array, n_array)
+
+1000  FORMAT('(a,',i3,'(2x,i12))')
+1001  FORMAT('(a,',i3,'(2x,i12))')
+1002  FORMAT('(i4,',i3,'(2x,es12.5))')
 
       END SUBROUTINE SIESTA_PROFILES
 

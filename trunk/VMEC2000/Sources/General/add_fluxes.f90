@@ -29,12 +29,11 @@
 !
 !     ADD MAGNETIC FLUX (CHIP, PHIP) TERMS TO BSUPU=-OVERG*LAM_V, BSUPV=OVERG*LAM_U
 !     COMPUTE FLUX FROM ITOR = <B_u>, ITOR(s) = integrated toroidal current (icurv)
-!     IF ncurr == 1
+!     IF ncurr == 1, AND ictrl_prec2d != 0, COMPUTE FORCE IN TOMNSP TO UPDATE chips
 !
 
-      IF (.not.lcurrent .or. ncurr.eq.0) GOTO 100
+      IF (.NOT.lcurrent .OR. ncurr.EQ.0) GOTO 100
 
-      !nsmin=MAX(2,t2lglob); nsmax=t2rglob
       nsmin=MAX(2,t1lglob); nsmax=t1rglob
       DO js = nsmin, nsmax
         top = icurv(js)
@@ -50,12 +49,12 @@
 
  100  CONTINUE
 
-      nsmin=MAX(2,t2lglob); nsmax=t2rglob
+      nsmin=MAX(2,t1lglob); nsmax=t1rglob
 !     CHANGE THIS FOR lRFP = T  (solve for phips?)
-      IF (ncurr .eq. 0) THEN
+      IF (ncurr .EQ. 0) THEN
          chips(nsmin:nsmax) = iotas(nsmin:nsmax)*phips(nsmin:nsmax)
-      ELSE IF (.not.lcurrent) THEN
-         WHERE (phips(nsmin:nsmax) .ne. zero) &
+      ELSE IF (.NOT.lcurrent) THEN
+         WHERE (phips(nsmin:nsmax) .NE. zero) &
            iotas(nsmin:nsmax) = chips(nsmin:nsmax)/phips(nsmin:nsmax)
       END IF
 
@@ -75,7 +74,7 @@
       IF (lrfp) THEN
          IF (nsmin.EQ.1) iotaf(1)  = one/(c1p5/iotas(2) - p5/iotas(3))
          IF (nsmax.EQ.ns) iotaf(ns)=one/(c1p5/iotas(ns)-p5/iotas(ns-1))
-         DO js = MAX(2,t2lglob), MIN(ns-1,t1rglob)
+         DO js = MAX(2,t1lglob), MIN(ns-1,t1rglob)
             iotaf(js) = 2.0_dp/(one/iotas(js) + one/iotas(js+1))
          END DO
       ELSE
@@ -86,7 +85,6 @@
         END DO
       END IF
 
-      !nsmin=t2lglob; nsmax=t1rglob
       nsmin=MAX(1,t1lglob); nsmax=MIN(ns,t1rglob)
       bsupu(:,nsmin:nsmax) = bsupu(:,nsmin:nsmax)+pchip(:,nsmin:nsmax)*overg(:,nsmin:nsmax)
 

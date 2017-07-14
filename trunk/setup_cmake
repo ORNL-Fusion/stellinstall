@@ -147,13 +147,13 @@ elif [ $MACHINE_ID == "mbp103254"     ] || \
 then
 	# Config for Mark Cianciosa's ORNL machine.
 
-        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE \
-              -DCMAKE_Fortran_COMPILER=gfortran     \
-              -DNETCDF_INC_PATH=/usr/local/include/ \
-              -DNETCDF_LIB_PATH=/usr/local/lib      \
-              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE"   \
-	      -DUSE_PARVMEC=ON                      \
-	      -DBUILD_SIESTA=ON                     \
+        cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                         \
+              -DCMAKE_Fortran_COMPILER=gfortran                             \
+              -DNETCDF_INC_PATH=/usr/local/include/                         \
+              -DNETCDF_LIB_PATH=/usr/local/lib                              \
+              -DEXTRA_FLAGS="-fopenmp -DNEW_CODE -DMRC"                     \
+	      -DUSE_PARVMEC=ON                                              \
+	      -DBUILD_SIESTA=ON                                             \
 	      -DUSE_FAST_COPY=ON
 
 elif [ $MACHINE_ID == "swim.ornl.gov" ] || \

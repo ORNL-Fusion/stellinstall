@@ -20,7 +20,6 @@
       USE parallel_vmec_module, ONLY: InitSurfaceComm
       USE parallel_vmec_module, ONLY: FinalizeSurfaceComm
       USE parallel_vmec_module, ONLY: SetVacuumCommunicator
-      USE parallel_vmec_module, ONLY: Scatterv4XArray
       USE blocktridiagonalsolver_bst, ONLY: Initialize_bst
       USE blocktridiagonalsolver_bst, ONLY: Finalize_bst
       USE xstuff
@@ -125,11 +124,10 @@ C-----------------------------------------------
       CALL InitRunVmec(COMM_WORLD,lfreeb)
       LV3FITCALL = l_v3fit
       IF(LV3FITCALL) THEN
-        CALL Serial2Parallel4X(xc,pxc)
-        CALL Serial2Parallel4X(xcdot,pxcdot)
-        CALL Serial2Parallel4X(xstore,pxstore)
-!        CALL InitRunVmec(COMM_WORLD,lfreeb)
         IF (RUNVMEC_PASS.GT.1) THEN
+          CALL Serial2Parallel4X(xc,pxc)
+          CALL Serial2Parallel4X(xcdot,pxcdot)
+          CALL Serial2Parallel4X(xstore,pxstore)
           CALL second0(bcastton)
           CALL MPI_Bcast(pxc,SIZE(pxc),MPI_REAL8,
      1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
@@ -340,17 +338,6 @@ C-----------------------------------------------
      1                      0,RUNVMEC_COMM_WORLD,MPI_ERR)
            CALL second0(bcasttoff)
            broadcast_time = broadcast_time + (bcasttoff - bcastton)
-
-           IF (.FALSE..AND.LV3FITCALL) THEN
-              nsmin=t1lglob; nsmax=t1rglob
-              DO js = nsmin, nsmax
-                 pphip(:,js) = phips(js)
-                 pchip(:,js) = chips(js)
-              END DO
-
-              nsmin=t1lglob; nsmax=MIN(t2rglob,ns+1)
-              pres(nsmin:nsmax) = 0
-           END IF
          END IF
 
          CALL InitSurfaceComm(nsval, nzeta, ntheta3,

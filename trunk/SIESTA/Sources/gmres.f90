@@ -341,7 +341,7 @@
          gi%mblk_size=mblk_size; gi%rcounts=>rcounts; gi%disp=>disp
         
          CALL gmres_par (n, gi, matvec_par, apply_precond, GetNLForce,   &
-                         x0, b, MPI_COMM_WORLD)
+                         x0, b)
       ELSE
 #endif
          CALL gmres_ser (n, gi, matvec, apply_precond, GetNLForce,       &

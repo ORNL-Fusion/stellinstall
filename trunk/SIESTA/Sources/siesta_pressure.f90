@@ -188,7 +188,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER   :: fours, fouru, fourv, m, n, mp, np, MPI_ERR
-       REAL(dp)  :: sparity, s(1), r(1)
+       REAL(dp)  :: sparity!, s(1), r(1)
 !-----------------------------------------------
 
        IF (iparity .EQ. isym) THEN

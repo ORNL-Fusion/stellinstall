@@ -1,7 +1,7 @@
 !-------------------------------------------------------------------------------
 !>  \brief Module contained subroutines for solver for block tri-diagonal matrices.
-!!  \author  Kalyan S. Perumalla, ORNL 
-!!  \date 2009-2011
+!!  \author  Kalyan S. Perumalla and Sudip K. Seal, ORNL 
+!!  \date 2009-2017
 
 !-------------------------------------------------------------------------------
 MODULE blocktridiagonalsolver
@@ -78,6 +78,8 @@ LOGICAL :: rhsdirtied !<Has a new RHS been set after ForwardSolve?
 !-------------------------------------------------------------------------------
 CHARACTER*100 :: kenvvar
 CHARACTER*100 :: kenvval
+LOGICAL :: LBCYLIC_INIT=.FALSE.
+LOGICAL :: LPLB_INIT=.FALSE.
 LOGICAL :: KPDBG !<Should debugging output be written? : SKS on Nov 9, 2011
 INTEGER :: OFU !<Output file unit
 INTEGER :: PFU !< Problem file unit
@@ -430,6 +432,7 @@ SUBROUTINE PLBInitialize
   CHARACTER*100 :: envvar
   CHARACTER*100 :: envval
 
+  LPLB_INIT=.TRUE.
   IF(KPDBG) WRITE(OFU,*) 'PLBInitialize Started'; CALL FL(OFU)
 
   !----------------------------------------------
@@ -492,6 +495,8 @@ END SUBROUTINE PLBInitialize
 !<
 !-------------------------------------------------------------------------------
 SUBROUTINE PLBFinalize
+
+  IF(.NOT.LPLB_INIT) RETURN
 
   IF(KPDBG) WRITE(OFU,*) 'PLBFinalize Started'; CALL FL(OFU)
   IF (doblasonly) THEN
@@ -2018,6 +2023,7 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
 
   !-----------------------------------------------------------------------------
   use_mpiwtime = .FALSE.
+  LBCYLIC_INIT=.TRUE.
 #if defined(MPI_OPT)
   IF ( do_mpiinit ) THEN
     CALL MPI_Init( mpierr )

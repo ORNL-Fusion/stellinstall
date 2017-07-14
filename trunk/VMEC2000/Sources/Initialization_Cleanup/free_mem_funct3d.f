@@ -49,8 +49,8 @@ C-----------------------------------------------
 #endif
 
       IF (ALLOCATED(brv))
-     1   DEALLOCATE (brv, bphiv, bzv, bsqvac, 
-     2               bsubu_sur, bsubv_sur,
+     1   DEALLOCATE (brv, bphiv, bzv, bsqvac,
+     2               bsubu_sur, bsubv_sur, bsqvac0,
      3               bsupu_sur, bsupv_sur, stat=istat1)
       IF (istat1 .ne. 0) STOP 'deallocation error#2 in funct3d'
 

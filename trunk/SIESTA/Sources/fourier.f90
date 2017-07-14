@@ -331,7 +331,7 @@
         END SUBROUTINE TOMNSP
       
 !SPH 10/15/14
-        SUBROUTINE TOMNSP_PEST(XUV, XMN, LMNS, IPARITY)
+        SUBROUTINE TOMNSP_PEST(XUV, XMN, LMNS, IPARITY, LMNC)
 !
 !       Description: This subroutine moves a quantity X to Fourier space producing its harmonics X_MN by
 !         summing over all the presribed (toroidal and poloidal) collocation points:
@@ -342,6 +342,8 @@
 !       IPARITY = 0, means the quantity X (NOT any of its derivatives) is even in mu+nv; = 1, X is odd
 !
         USE stel_kinds
+        USE shared_data, ONLY: lasym
+
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -352,6 +354,8 @@
           INTENT(OUT):: xmn
         REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
           INTENT(IN) :: lmns
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
+          INTENT(IN), OPTIONAL :: lmnc
         INTEGER, INTENT(IN):: iparity                                      ! IPARITY = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -376,6 +380,11 @@
         
         CALL TOIJSP(lmns, lambda, f_none, f_sin)
         CALL TOIJSP(lmns, dupdu,  f_du, f_sin)
+        IF (PRESENT(lmnc)) THEN
+           CALL TOIJSP(lmns, lambda, f_sum, f_cos)
+           CALL TOIJSP(lmns, dupdu,  IOR(f_sum,f_du), f_cos)
+        END IF
+
 !       transform from up to u
         dupdu = 1 + dupdu                                              
 
@@ -776,7 +785,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER             :: m, n, lk, istat, n1, iblock, ns_save
-	  REAL(dp), PARAMETER :: FOUR_TOL = 1.E-13_dp
+	  REAL(dp), PARAMETER :: FOUR_TOL = 1.E-12_dp
 	  REAL(dp)            :: ton, toff
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: testr, testi
 !-----------------------------------------------

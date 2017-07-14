@@ -31,7 +31,6 @@
         USE parallel_vmec_module, ONLY: nuv3min, nuv3max
         USE parallel_vmec_module, ONLY: tlglob, trglob
         USE parallel_vmec_module, ONLY: t1lglob, t1rglob
-        USE parallel_vmec_module, ONLY: t2lglob, t2rglob
         USE parallel_vmec_module, ONLY: tlglob_arr, trglob_arr
         USE parallel_vmec_module, ONLY: nuv3min_arr,nuv3max_arr 
         USE parallel_vmec_module, ONLY: trow, brow
@@ -41,12 +40,32 @@
         USE parallel_vmec_module, ONLY: par_ntor 
         USE parallel_vmec_module, ONLY: par_ns 
         USE parallel_vmec_module, ONLY: par_nuv 
+        USE parallel_vmec_module, ONLY: blkrcounts
+        USE parallel_vmec_module, ONLY: blkdisp 
+        USE parallel_vmec_module, ONLY: ntblkrcounts
+        USE parallel_vmec_module, ONLY: ntblkdisp 
+        USE parallel_vmec_module, ONLY: nsrcounts
+        USE parallel_vmec_module, ONLY: nsdisp
+        USE parallel_vmec_module, ONLY: blocksize
+        USE parallel_vmec_module, ONLY: ntmaxblocksize
 
         USE parallel_vmec_module, ONLY: STOPMPI
+
+        USE parallel_vmec_module, ONLY: tolastntype
+        USE parallel_vmec_module, ONLY: copylastntype
+
+        USE parallel_vmec_module, ONLY: tolastns
+        USE parallel_vmec_module, ONLY: copylastns
+
+        USE parallel_vmec_module, ONLY: CopyParallelLinearSubarray
 
         USE parallel_vmec_module, ONLY: SetVacuumPartitions
         USE parallel_vmec_module, ONLY: SetVacuumCommunicator
 
+        USE parallel_vmec_module, ONLY: ComputeBlockAllGatherParameters
+        USE parallel_vmec_module, ONLY: ComputeNSAllGatherParameters
+
+        USE parallel_vmec_module, ONLY: PadSides
 
         USE parallel_vmec_module, ONLY: Parallel2Serial2X
         USE parallel_vmec_module, ONLY: Parallel2Serial4X
@@ -56,6 +75,7 @@
         USE parallel_vmec_module, ONLY: Gather1XArray
         USE parallel_vmec_module, ONLY: Gather2XArray
         USE parallel_vmec_module, ONLY: Gather4XArray
+        USE parallel_vmec_module, ONLY: GatherReordered4XArray
 
         USE parallel_vmec_module, ONLY: PrintParallelIJSPArray
         USE parallel_vmec_module, ONLY: PrintSerialIJSPArray
@@ -63,6 +83,7 @@
         USE parallel_vmec_module, ONLY: PrintSerialMNSPArray
         USE parallel_vmec_module, ONLY: PrintNSArray
         USE parallel_vmec_module, ONLY: PrintOutLinearArray
+        USE parallel_vmec_module, ONLY: RPrintOutLinearArray
 
         USE parallel_vmec_module, ONLY: bcyclic_comp_time
         USE parallel_vmec_module, ONLY: bcyclic_comm_time
@@ -80,6 +101,8 @@
         USE parallel_vmec_module, ONLY: sendrecv_time
         USE parallel_vmec_module, ONLY: scatter_time
 
+        LOGICAL :: LRESIDUECALL=.FALSE.
+        LOGICAL :: LGMRESCALL=.FALSE.
         LOGICAL :: INFILEOUT=.FALSE.
         LOGICAL :: RVCTRIGGER=.FALSE.
         INTEGER :: RVCCALLNUM
@@ -407,6 +430,7 @@ CONTAINS
           CALL FLUSH(TFILE)
           CLOSE(TFILE)
 
+          !WRITE(*,*) 'totzsps : ', totzsps_time
         END SUBROUTINE WriteTimes
 !------------------------------------------------
 

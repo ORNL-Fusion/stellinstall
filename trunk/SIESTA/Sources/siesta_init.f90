@@ -109,7 +109,7 @@
 !SPH:  one-sided (m=1) derivative at origin yields factor of 2 (hs/2)
        IF (nsmin .EQ. 1) THEN
           pijf_ds(:,:,1) = 2*pijh(:,:,1)*ohs
-          pijh(:,:,1) = 0 
+          pijh(:,:,1) = 0
        END IF
       
 !SPH   AVERAGE pijh_du,dv to FULL mesh and set origin value (SIN SYMMETRY)

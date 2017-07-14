@@ -74,7 +74,7 @@ C-----------------------------------------------
       chips(1) = 0
       icurv(1) = 0
 
-      nsmin=MAX(2,t1lglob); nsmax=t2rglob
+      nsmin=MAX(2,t1lglob); nsmax=t1rglob
       DO i = nsmin, nsmax
          si = hs*(i-c1p5)
          tf = MIN(one, torflux(si))
@@ -106,7 +106,7 @@ C-----------------------------------------------
          chips = -chips
       END IF
 
-      nsmin=t1lglob; nsmax=t2rglob
+      nsmin=t1lglob; nsmax=t1rglob
       DO i = nsmin, nsmax
          si = hs*(i-1)
          tf = MIN(one, torflux(si))
@@ -125,7 +125,7 @@ C-----------------------------------------------
       IF (ABS(pedge) .gt. ABS(EPSILON(pedge)*curtor))
      1   Itor = signgs*currv/(twopi*pedge)
       
-      nsmin=MAX(2,t1lglob); nsmax=t2rglob
+      nsmin=MAX(2,t1lglob); nsmax=t1rglob
       icurv(nsmin:nsmax) = Itor*icurv(nsmin:nsmax)
 
 !
@@ -133,7 +133,7 @@ C-----------------------------------------------
 !
       spres_ped = ABS(spres_ped)
       IF (.not.lrecon) THEN
-        nsmin=MAX(2,t1lglob); nsmax=t2rglob
+        nsmin=MAX(2,t1lglob); nsmax=t1rglob
         DO i = nsmin, nsmax
           si = hs*(i - c1p5)
 
@@ -161,7 +161,7 @@ C-----------------------------------------------
         END DO
 
       ELSE
-        nsmin=t1lglob; nsmax=t2rglob
+        nsmin=t1lglob; nsmax=t1rglob
         iotas(nsmin:nsmax) = 0
         iotaf(nsmin:nsmax) = 0
         mass (nsmin:nsmax) = 0
@@ -169,7 +169,7 @@ C-----------------------------------------------
       END IF
 
 
-      nsmin=t1lglob; nsmax=MIN(t2rglob,ns+1)
+      nsmin=t1lglob; nsmax=MIN(t1rglob,ns+1)
       pres(nsmin:nsmax) = 0
       xcdot(:,:,nsmin:nsmax,:) = 0
 
@@ -177,8 +177,7 @@ C-----------------------------------------------
       medge  = pmass (one) * (ABS(phips(ns))*r00)**gamma
       phedg  = photp (one)
 #endif
-      !nsmin=t1lglob; nsmax=t2rglob
-      nsmin=MAX(1,t2lglob-1); nsmax=MIN(t2rglob+1,ns)
+      nsmin=MAX(1,t1lglob-1); nsmax=MIN(t1rglob+1,ns)
       DO i = nsmin, nsmax
          si = hs*ABS(i-1.5_dp)
          pshalf(:,i) = SQRT(si)
@@ -189,7 +188,7 @@ C-----------------------------------------------
 
       psqrts(:,ns) = 1     !!Avoid round-off
 
-      nsmin=MAX(2,t1lglob); nsmax=t2rglob
+      nsmin=MAX(2,t1lglob); nsmax=t1rglob
       DO i = nsmin, nsmax
          sm(i) = pshalf(1,i)/psqrts(1,i)
          IF (i .LT. ns) THEN
@@ -214,7 +213,7 @@ C-----------------------------------------------
 !
 !       COMPUTE INDEX ARRAY FOR FINDPHI ROUTINE
 !
-        nsmin=t1lglob; nsmax=t2rglob
+        nsmin=t1lglob; nsmax=t1rglob
         DO i = nsmin, nsmax
           indexr(i)    = ns + 1 - i                    !FINDPHI
           indexr(i+ns) = i + 1                         !FINDPHI
@@ -398,7 +397,7 @@ C-----------------------------------------------
       shalf(nrzt+1) = 1
       sqrts(nrzt+1) = 1
 #if defined(SKS)
-      nsmin=MAX(2,t1lglob); nsmax=t2rglob
+      nsmin=MAX(2,t1lglob); nsmax=t1rglob
 #endif
       DO i = 2,ns
          sm(i) = shalf(i)/sqrts(i)

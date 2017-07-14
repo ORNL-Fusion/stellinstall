@@ -25,12 +25,10 @@
 !>  An object containing persistent data for the bivariate interpolation.
 !-------------------------------------------------------------------------------
       TYPE bivariate_type
-!>  Number of grid points in the R direction.
-         INTEGER                            :: nrgrid
-!>  Number of grid points in the Z direction.
-         INTEGER                            :: nzgrid
 !>  Number of interpolation points.
-         INTEGER                            :: ndim
+         INTEGER                            :: nsu
+!>  Number of interpolation points.
+         INTEGER                            :: nrz
 !>  Lower left interpolation point.
          INTEGER, DIMENSION(:), POINTER     :: irz11_bi => null()
 !>  Lower right interpolation point.
@@ -95,16 +93,16 @@
 
       ALLOCATE(bivariate_construct)
 
-      bivariate_construct%ndim = ns*nu
+      bivariate_construct%nsu = ns*nu
 
-      ALLOCATE (bivariate_construct%irz11_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%irz12_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%irz21_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%irz22_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%w11_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%w12_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%w21_bi(bivariate_construct%ndim))
-      ALLOCATE (bivariate_construct%w22_bi(bivariate_construct%ndim))
+      ALLOCATE (bivariate_construct%irz11_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%irz12_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%irz21_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%irz22_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%w11_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%w12_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%w21_bi(bivariate_construct%nsu))
+      ALLOCATE (bivariate_construct%w22_bi(bivariate_construct%nsu))
 
       CALL profiler_set_stop_time('bivariate_construct', start_time)
 
@@ -203,6 +201,7 @@
 !  local variables
       INTEGER                                 :: ku, js
       INTEGER                                 :: ns, nu
+      INTEGER                                 :: nr, nz
       INTEGER                                 :: index1d
       INTEGER                                 :: ir, jz
       INTEGER                                 :: ir1, jz1
@@ -216,8 +215,9 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      this%nrgrid = SIZE(rgrid, 1)
-      this%nzgrid = SIZE(zgrid, 1)
+      nr = SIZE(rgrid, 1)
+      nz = SIZE(zgrid, 1)
+      this%nrz = nr*nz
       ns = SIZE(rsu, 1)
       nu = SIZE(rsu, 2)
 
@@ -236,8 +236,8 @@
             rad0 = rsu(js, ku)
             zee0 = zsu(js, ku)
 
-            IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(this%nrgrid) .or.
-     &          zee0.lt.zgrid(1) .or. zee0.gt.zgrid(this%nzgrid)) THEN
+            IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nr) .or.
+     &          zee0.lt.zgrid(1) .or. zee0.gt.zgrid(nz)) THEN
                STOP 'Plasma point outside response function grid!'
             END IF
 !
@@ -245,16 +245,16 @@
 !
             ir = INT((rad0 - rgrid(1))/delr) + 1
             jz = INT((zee0 - zgrid(1))/delz) + 1
-            ir1 = MIN(this%nrgrid, ir + 1)
-            jz1 = MIN(this%nzgrid, jz + 1)
+            ir1 = MIN(nr, ir + 1)
+            jz1 = MIN(nz, jz + 1)
 
 !
 !        STORE INDICES IN 1D ARRAYS
 !
-            this%irz11_bi(index1d) = ir  + this%nrgrid*(jz - 1)
-            this%irz22_bi(index1d) = ir1 + this%nrgrid*(jz1 - 1)
-            this%irz12_bi(index1d) = ir  + this%nrgrid*(jz1 - 1)
-            this%irz21_bi(index1d) = ir1 + this%nrgrid*(jz - 1)
+            this%irz11_bi(index1d) = ir  + nr*(jz - 1)
+            this%irz22_bi(index1d) = ir1 + nr*(jz1 - 1)
+            this%irz12_bi(index1d) = ir  + nr*(jz1 - 1)
+            this%irz21_bi(index1d) = ir1 + nr*(jz - 1)
 !
 !       COMPUTE RI, ZJ AND PR , QZ AT GRID POINT (IR , JZ)
 !       ALSO, COMPUTE WEIGHTS WIJ FOR 4 CORNER GRID POINTS
@@ -304,6 +304,7 @@
 !  local variables
       INTEGER                               :: ku
       INTEGER                               :: ns, nu
+      INTEGER                               :: nr, nz
       INTEGER                               :: index1d
       INTEGER                               :: ir, jz
       INTEGER                               :: ir1, jz1
@@ -317,8 +318,9 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      this%nrgrid = SIZE(rgrid, 1)
-      this%nzgrid = SIZE(zgrid, 1)
+      nr = SIZE(rgrid, 1)
+      nz = SIZE(zgrid, 1)
+      this%nrz = nr*nz
       ns = 1
       nu = SIZE(rsu)
 
@@ -335,8 +337,8 @@
          rad0 = rsu(ku)
          zee0 = zsu(ku)
 
-         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(this%nrgrid) .or.
-     &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(this%nzgrid)) THEN
+         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nr) .or.
+     &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(nz)) THEN
             STOP 'Plasma point outside response function grid!'
          END IF
 !
@@ -344,16 +346,16 @@
 !
          ir = INT((rad0 - rgrid(1))/delr) + 1
          jz = INT((zee0 - zgrid(1))/delz) + 1
-         ir1 = MIN(this%nrgrid, ir + 1)
-         jz1 = MIN(this%nzgrid, jz + 1)
+         ir1 = MIN(nr, ir + 1)
+         jz1 = MIN(nz, jz + 1)
 
 !
 !        STORE INDICES IN 1D ARRAYS
 !
-         this%irz11_bi(index1d) = ir  + this%nrgrid*(jz - 1)
-         this%irz22_bi(index1d) = ir1 + this%nrgrid*(jz1 - 1)
-         this%irz12_bi(index1d) = ir  + this%nrgrid*(jz1 - 1)
-         this%irz21_bi(index1d) = ir1 + this%nrgrid*(jz - 1)
+         this%irz11_bi(index1d) = ir  + nr*(jz - 1)
+         this%irz22_bi(index1d) = ir1 + nr*(jz1 - 1)
+         this%irz12_bi(index1d) = ir  + nr*(jz1 - 1)
+         this%irz21_bi(index1d) = ir1 + nr*(jz - 1)
 !
 !       COMPUTE RI, ZJ AND PR , QZ AT GRID POINT (IR , JZ)
 !       ALSO, COMPUTE WEIGHTS WIJ FOR 4 CORNER GRID POINTS
@@ -391,18 +393,18 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE bivariate_get_4pt(this, resp_rz, resp_su)
       IMPLICIT NONE
-      TYPE (bivariate_type), INTENT(inout)           :: this
-      REAL(rprec), DIMENSION(this%ndim), INTENT(in)  :: resp_rz
-      REAL(rprec), DIMENSION(this%ndim), INTENT(out) :: resp_su
+      TYPE (bivariate_type), INTENT(inout)          :: this
+      REAL(rprec), DIMENSION(this%nrz), INTENT(in)  :: resp_rz
+      REAL(rprec), DIMENSION(this%nsu), INTENT(out) :: resp_su
 
 !  local variables
-      INTEGER                                        :: jsu
-      REAL (rprec)                                   :: start_time
+      INTEGER                                       :: jsu
+      REAL (rprec)                                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      DO jsu = 1, this%ndim
+      DO jsu = 1, this%nsu
 !
 !       COMPUTE RESPONSE AT R, PHI (fixed kin), Z BY 4-PT INTERPOLATION
 !

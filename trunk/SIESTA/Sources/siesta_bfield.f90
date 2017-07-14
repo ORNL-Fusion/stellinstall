@@ -229,9 +229,9 @@
            djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)        & ! -mp  ~ d/du
                                      - np*esubumnh(m,n,nmin:nmax)          ! -np  ~ d/dv
            djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)        &
-		                     + de_vds(m,n,nmin:nmax)
+          		                     + de_vds(m,n,nmin:nmax)
            djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)        &
-		                     - de_uds(m,n,nmin:nmax)
+                                     - de_uds(m,n,nmin:nmax)
           ENDDO
        ENDDO
 
