@@ -176,7 +176,7 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  local variables
-      INTEGER                                   :: num_steps
+      INTEGER                                   :: eq_steps
       LOGICAL                                   :: converged
       INTEGER                                   :: error
       REAL (rprec)                              :: start_time
@@ -184,7 +184,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      num_steps = 1
+      eq_steps = 1
 
       WRITE (*,*) ' *** In task equilibrium'
       WRITE (context%runlog_iou,*) ' *** In task equilibrium'
@@ -198,17 +198,17 @@
      &                             'equilibrium convergence'
 
 #if defined (MPI_OPT)
-      converged = model_converge(context%model, num_steps,                     &
+      converged = model_converge(context%model, eq_steps,                      &
      &                           context%runlog_iou,                           &
      &                           context%equilibrium_comm, 'All')
       CALL MPI_BCAST(mpi_quit_task, 1, MPI_INTEGER, 0,                         &
      &               context%equilibrium_comm, error)
 #else
-      converged = model_converge(context%model, num_steps,                     &
+      converged = model_converge(context%model, eq_steps,                      &
      &                           context%runlog_iou, 0, 'All')
 #endif
 
-      CALL v3fit_context_init_data(context)
+      CALL v3fit_context_init_data(context, eq_steps)
 
       CALL profiler_set_stop_time('task_equilibrium', start_time)
 
@@ -231,7 +231,7 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  local variables
-      INTEGER                                   :: num_steps
+      INTEGER                                   :: eq_steps
       INTEGER                                   :: error
       LOGICAL                                   :: converged
       INTEGER                                   :: i, last_para_signal
@@ -244,7 +244,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      num_steps = 1
+      eq_steps = 1
 
       WRITE (*,*) ' *** In task v3post'
       WRITE (context%runlog_iou,*) ' *** In task v3post'
@@ -257,7 +257,7 @@
       WRITE (*,*) ' *** Starting initial equilibrium convergence (v3p)'
       WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
      &                             'equilibrium convergence'
-      converged = model_converge(context%model, num_steps,                     &
+      converged = model_converge(context%model, eq_steps,                      &
      &                           context%runlog_iou,                           &
 #if defined(MPI_OPT)
      &                           context%equilibrium_comm, 'All')
@@ -301,7 +301,7 @@
       WRITE (*,1000) g2
       WRITE (context%runlog_iou,1000) g2
 
-      CALL v3fit_context_init_data(context)
+      CALL v3fit_context_init_data(context, eq_steps)
 
       CALL profiler_set_stop_time('task_v3post', start_time)
 
@@ -326,7 +326,8 @@
       TYPE (v3fit_context_class), INTENT(inout) :: context
 
 !  local variables
-      INTEGER                                   :: num_steps
+      INTEGER                                   :: eq_steps
+      INTEGER                                   :: restart_step
       INTEGER                                   :: i, error
       LOGICAL                                   :: eq_converged
       CHARACTER (len=dir_prefix_len)            :: directory
@@ -347,54 +348,72 @@
       CALL init_parameters(context)
       CALL init_reconstruction(context)
 
+      IF (commandline_parser_is_flag_set(context%cl_parser,                    &
+     &                                   '-restart')) THEN
+         WRITE (*,*) ' *** Restarting reconstruction '
+
+         eq_steps = v3fit_context_restart(context, restart_step)
+#if defined(MPI_OPT)
+!  Sync the number of equilibrium steps the inital convergence took so that the'
+!  child processes start in the same place.
+         CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0,                           &
+     &                  context%reconstruction_comm, error)
+#endif
+      ELSE
 !  Solve equilibrium
-      WRITE (*,*) ' *** Starting initial equilibrium convergence (rec)'
-      WRITE (context%runlog_iou,*) ' *** Starting initial ' //                 &
+         WRITE (*,*) ' *** Starting initial equilibrium ' //                   &
+     &               'convergence (rec)'
+         WRITE (context%runlog_iou,*) ' *** Starting initial ' //              &
      &                             'equilibrium convergence'
 
-      num_steps = 1
-      eq_converged = reconstruction_eval_e(context%recon,                      &
-     &                                     context%signals,                    &
-     &                                     context%model, num_steps,           &
-     &                                     context%runlog_iou,                 &
+         eq_steps = 1
+         eq_converged = reconstruction_eval_e(context%recon,                   &
+     &                                        context%signals,                 &
+     &                                        context%model, eq_steps,         &
+     &                                        context%runlog_iou,              &
 #if defined(MPI_OPT)
-     &                                     context%equilibrium_comm)
+     &                                        context%equilibrium_comm)
 #else
-     &                                     0)
+     &                                        0)
 #endif
-      CALL assert(eq_converged,                                                &
-     &            'task_reconstruct no inital convergence')
-      CALL reconstruction_eval_f(context%recon, context%derived_params,        &
-     &                           context%model)
+         CALL assert(eq_converged,                                             &
+     &               'task_reconstruct no inital convergence')
+         CALL reconstruction_eval_f(context%recon,                             &
+     &                              context%derived_params,                    &
+     &                              context%model)
 
 !  Save the signal values from the first 0th reconstruction step.
-      DO i = 1, SIZE(context%signals)
-         context%recon%last_values(:,i) = context%signals(i)%p%modeled
-      END DO
+         DO i = 1, SIZE(context%signals)
+            context%recon%last_values(:,i) =                                   &
+     &         context%signals(i)%p%modeled
+         END DO
 
 #if defined(MPI_OPT)
 !  Sync the number of equilibrium steps the inital convergence took so that the'
 !  child processes start in the same place.
-      CALL MPI_BCAST(num_steps, 1, MPI_INTEGER, 0,                             &
-     &               context%reconstruction_comm, error)
+         CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0,                           &
+     &                  context%reconstruction_comm, error)
 #endif
 
-      WRITE (*,*)
-      WRITE (*,1002) 0
-      WRITE (*,1003) reconstruction_get_g2(context%recon)
+         WRITE (*,*)
+         WRITE (*,1002) 0
+         WRITE (*,1003) reconstruction_get_g2(context%recon)
 
-      WRITE (context%runlog_iou,*)
-      WRITE (context%runlog_iou,1002) 0
-      WRITE (context%runlog_iou,1003)                                          &
-     &   reconstruction_get_g2(context%recon)
+         WRITE (context%runlog_iou,*)
+         WRITE (context%runlog_iou,1002) 0
+         WRITE (context%runlog_iou,1003)                                       &
+     &      reconstruction_get_g2(context%recon)
 
-      IF (write_input) THEN
-         CALL equilibrium_write_input(context%model%equilibrium, 0)
+         IF (write_input) THEN
+            CALL equilibrium_write_input(context%model%equilibrium, 0)
+         END IF
+
+         CALL v3fit_context_init_data(context, eq_steps)
+
+         restart_step = 1
       END IF
 
-      CALL v3fit_context_init_data(context)
-
-      DO i = 1, SIZE(context%recon%e, 2) - 1
+      DO i = restart_step, SIZE(context%recon%e, 2) - 1
          WRITE (*,*)
          WRITE (*,1002) i
 
@@ -404,7 +423,7 @@
          IF (reconstruction_step(context%recon, context%signals,               &
      &                           context%derived_params, context%locks,        &
      &                           context%model, context%params,                &
-     &                           num_steps, context%runlog_iou,                &
+     &                           eq_steps, context%runlog_iou,                 &
 #if defined(MPI_OPT)
      &                           context%reconstruction_comm,                  &
      &                           context%equilibrium_comm)) THEN
@@ -419,7 +438,8 @@
      &                                   context%derived_params)
             CALL reconstruction_write_step(context%recon,                      &
      &                                     context%runlog_iou)
-            CALL v3fit_context_write_step_data(context, .false.)
+            CALL v3fit_context_write_step_data(context, .false.,               &
+     &                                         eq_steps)
 
             IF (write_input) THEN
                CALL equilibrium_write_input(context%model%equilibrium,         &
@@ -574,10 +594,10 @@
 !  local variables
       INTEGER                                   :: task
       LOGICAL                                   :: result
-      INTEGER                                   :: num_steps
+      INTEGER                                   :: eq_steps
 
 !  Start of executable code
-      num_steps = 1
+      eq_steps = 1
       CALL init_equilibrium(context)
 
       DO
@@ -590,16 +610,16 @@
                CALL MPI_BCAST(context%model%state_flags, 1, MPI_INTEGER,       &
      &                        0, context%equilibrium_comm, error)
                result = equilibrium_converge(context%model%equilibrium,        &
-     &                                       num_steps,                        &
+     &                                       eq_steps,                         &
      &                                       context%runlog_iou,               &
      &                                       context%equilibrium_comm,         &
      &                                       context%model%state_flags)
 
             CASE (mpi_mgrid_task)
-               CALL MPI_BCAST(num_steps, 1, MPI_INTEGER, 0,                    &
+               CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0,                     &
      &                        context%equilibrium_comm, error)
                CALL equilibrium_read_vac_file(context%model%equilibrium,       &
-     &                                        num_steps,                       &
+     &                                        eq_steps,                        &
      &                                        context%equilibrium_comm)
 
             CASE (mpi_quit_task)
@@ -929,12 +949,12 @@
       vmec => vmec_construct(vmec_nli_filename, vmec_wout_input,               &
      &                       context%runlog_iou,                               &
 #if defined(MPI_OPT)
-     &                        context%equilibrium_comm,                        &
-     &                        context%reconstruction_comm,                     &
+     &                       context%equilibrium_comm,                         &
+     &                       context%reconstruction_comm,                      &
 #else
-     &                        0, 0,
+     &                       0, 0,
 #endif
-     &                        state_flags)
+     &                       state_flags)
 
       siesta => siesta_construct(siesta_nli_filename,                          &
      &                           siesta_restart_filename,                      &

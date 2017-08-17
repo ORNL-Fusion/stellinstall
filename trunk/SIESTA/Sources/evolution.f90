@@ -57,6 +57,7 @@
       SUBROUTINE converge_diagonal (wout_file, ftol)
       USE perturbation, ONLY: add_perturb, ladd_pert, l_output_alliter   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
       USE dumping_mod, ONLY: write_output
+USE hessian, ONLY: levmarq_param, levmarq_param0 !MRC
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -77,19 +78,20 @@
       nprecon_type = PREDIAG
       IF (nprecon .NE. 0) nprecon_type = PREBLOCK
       niter = 1
+      levm_scale = 1    !MRC
 !SPH091716      nprecon = 0
 
       DO WHILE (l_iterate)
          in_hess_nfunct=0; out_hess_nfunct=0
 #if defined(SKS)
          CALL second0(t1)
-#endif         
+#endif
          CALL evolve
 #if defined(SKS)
          CALL second0(t2)
          diag_evolve_time=diag_evolve_time+(t2-t1)
 #endif         
-         IF (l_output_alliter) CALL write_output (wout_file, niter) 
+         IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)
 
          l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
 
@@ -148,7 +150,7 @@
          CALL second0(t2)
          block_evolve_time=block_evolve_time+(t2-t1)
 #endif         
-         IF (l_output_alliter) CALL write_output (wout_file, niter) 
+         IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)
 
          l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
 
@@ -156,7 +158,7 @@
 
 !         IF ((.NOT.l_conjmin .AND. .NOT.l_gmres) .OR.                   &
          IF (nprecon.GT.2 .AND. fsq_ratio.GT.1.E5_dp) THEN
-            IF (IAM .EQ. 0) PRINT 100, fsq_ratio1
+            IF (IAM .EQ. 0 .and. lverbose) PRINT 100, fsq_ratio1
             l_iterate=.FALSE.
          END IF
          IF (nprecon.GT.1 .AND. ABS(1-fsq_ratio1).LT.1.E-2_dp) THEN
@@ -164,7 +166,7 @@
             nrow = nrow+1
             IF (nrow.EQ.3 .AND. l_iterate) THEN
                l_iterate=.FALSE.
-               IF (IAM .EQ. 0) PRINT 100, fsq_ratio1
+               IF (IAM .EQ. 0 .and. lverbose) PRINT 100, fsq_ratio1
             END IF
          ELSE 
             nrow = 0
@@ -317,9 +319,10 @@
       USE siesta_state, ONLY: update_state, update_state_par
       USE siesta_init, ONLY: init_state, init_state_par
 #if defined(SKS)
-      USE blocktridiagonalsolver, ONLY: RefactorHessian
+      USE blocktridiagonalsolver_s, ONLY: RefactorHessian
       USE timer_mod, ONLY: gmres_time
 #endif
+      USE descriptor_mod, ONLY: SIESTA_COMM
 !
 !     Evolves the equilibrium equations one time step and updates delta_t
 !     
@@ -333,7 +336,8 @@
       INTEGER     :: imaxlocv(3), ilbound(3), imaxlocf(3)
       REAL(dp)    :: v2tot, f1, f2, r0
       REAL(dp)    :: vmaxs, vmaxu, vmaxv, fmaxs, fmaxu, fmaxv
-      REAL(dp)    :: t1, t2, lm0, levm_loc=1
+      REAL(dp)    :: t1, t2, lm0!, levm_loc=1
+      REAL(dp), SAVE :: levm_loc
       LOGICAL     :: lprint, ldiagonal, lblock
       CHARACTER(18) :: str_resistive
       INTEGER, DIMENSION (2) :: snum_funct, rnum_funct 
@@ -342,6 +346,7 @@
       EVOLVEPASS=EVOLVEPASS+1
 #endif
       l_init_state = .TRUE.
+      IF (niter .eq. 1) levm_loc = 1
 
 !      l_Gmres = (nprecon_type .EQ. PREDIAG)  ! Turn on CG after initial diagonal preconditioner
 !      l_Gmres = l_Gmres .OR. fsq_total1.LT.1.E-9_dp   ! Turn on Gmres after CG reduces residue
@@ -379,7 +384,6 @@
          levmarq_param = MAX(0.3_dp, levmarq_param0)
          muPar = muPar0
       END IF
-
 !
 !     EXCEPT FOR THE INITIAL STEP (WHERE ONLY INITIAL UNPRECONDITIONED FORCES
 !     ARE NEEDED) COMPUTE FULL (OR DIAGONAL APPROXIMATION) HESSIAN
@@ -462,7 +466,7 @@
                levmarq_param = levscan(i-1)*lm0
                IF (levmarq_param .GT. levmarq_param0) levmarq_param = levmarq_param0*1.E-2_dp
                IF (levmarq_param .LE. levm_ped) levmarq_param = 100*levm_ped
-               IF (iam .EQ. 0) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
+               IF (iam .EQ. 0 .and. lverbose) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
                CALL RefactorHessian(levmarq_param)
             END IF
             CALL Conjugate_Grad(ftol)
@@ -498,7 +502,7 @@
 !
 !     Compute force component residues  |Fsubi|**2
 !
-      IF (fsq_total < zero) PRINT *, 'Fsq_Total = ', fsq_total,' < 0!'
+      IF (fsq_total < zero .and. lverbose) PRINT *, 'Fsq_Total = ', fsq_total,' < 0!'
       IF (fsqprev .GT. zero) THEN
          fsq_ratio=fsq_total/fsqprev;  fsq_ratio1=fsq_total1/fsqprev1
       ELSE
@@ -515,7 +519,7 @@
 
 #if defined(SKS)
       snum_funct(1)=in_hess_nfunct; snum_funct(2)=out_hess_nfunct
-      CALL MPI_ALLREDUCE(snum_funct,rnum_funct,2,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
+      CALL MPI_ALLREDUCE(snum_funct,rnum_funct,2,MPI_INTEGER,MPI_MAX,SIESTA_COMM,MPI_ERR)
       nfun_calls=nfun_calls+(rnum_funct(1)+rnum_funct(2))
 #else 
       nfun_calls=nfun_calls+(in_hess_nfunct+out_hess_nfunct)
@@ -544,7 +548,7 @@
           fmaxs = fsubsmncf(imaxlocf(1),imaxlocf(2),imaxlocf(3))
           IF (abs(fmaxs) .ne. maxval(abs(fsubsmncf))) STOP 'fmaxs WRONG'
           imaxlocf = imaxlocf - ilbound
-          IF (vmaxs.NE.zero .OR. fmaxs.NE.zero)                          &
+          IF ((vmaxs.NE.zero .OR. fmaxs.NE.zero) .and. lverbose)                          &
           PRINT 45, ' VS-max: ',vmaxs,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
                     ' FS-max: ',fmaxs,imaxlocf(ns0),imaxlocf(nm0)-1,imaxlocf(nn0)-ntor-1
           imaxlocv = MAXLOC(ABS(jvsupumnsf)) + ilbound
@@ -554,7 +558,7 @@
           fmaxu = fsubumnsf(imaxlocf(1),imaxlocf(2),imaxlocf(3))
           IF (abs(fmaxu) .ne. maxval(abs(fsubumnsf))) STOP 'fmaxu WRONG'
           imaxlocf = imaxlocf - ilbound
-          IF(vmaxu.NE.zero .OR. fmaxu.NE.zero)                           &
+          IF((vmaxu.NE.zero .OR. fmaxu.NE.zero) .and. lverbose)                           &
           PRINT 45, ' VU-max: ',vmaxu,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
                     ' FU-max: ',fmaxu,imaxlocf(ns0),imaxlocf(nm0)-1,imaxlocf(nn0)-ntor-1
           imaxlocv = MAXLOC(ABS(jvsupvmnsf)) + ilbound
@@ -564,21 +568,22 @@
           fmaxv = fsubvmnsf(imaxlocf(1),imaxlocf(2),imaxlocf(3))
           IF (abs(fmaxv) .ne. maxval(abs(fsubvmnsf))) STOP 'fmaxv WRONG'
           imaxlocf = imaxlocf - ilbound
-          IF (vmaxv.NE.zero .OR. fmaxv.NE.zero)                          &
+          IF ((vmaxv.NE.zero .OR. fmaxv.NE.zero) .and. lverbose)                          &
           PRINT 45, ' VV-max: ',vmaxv,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
                     ' FV-max: ',fmaxv,imaxlocf(ns0),imaxlocf(nm0)-1,imaxlocf(nn0)-ntor-1
-          PRINT 110, bsbu_ratio_s, jsju_ratio_s,                         &
+          IF (lverbose)PRINT 110, bsbu_ratio_s, jsju_ratio_s,                         &
                     (bs0(i), i=2,6), (bu0(i), i=2,6) 
           IF (lasym) THEN
-          PRINT 112, bsbu_ratio_a, jsju_ratio_a,                         &
+          IF (lverbose)PRINT 112, bsbu_ratio_a, jsju_ratio_a,                         &
                     (bs0(i), i=8,12), (bu0(i), i=8,12) 
           END IF
-          PRINT *," "
+          IF (lverbose)PRINT *," "
         END IF
 
  45   FORMAT(2(a,1pe10.2,' AT JS: ',i4,' M: ',i4,' N: ',i4,2x))
 
         DO iprint = 6, 33, 27
+           IF (.not.lverbose .and. iprint .eq. 6) CYCLE
            IF (niter .EQ. 1) THEN
               IF (lresistive) THEN
                  str_resistive = "RESISTIVE RUN "
@@ -707,7 +712,7 @@
       dtau = 0 
       fsq_save = 0
 
-      IF (iam .EQ. 0) PRINT 90
+      IF (iam .EQ. 0 .and. lverbose) PRINT 90
 90    FORMAT(1x,'CONJUGATE GRADIENT CONVERGENCE SUMMARY',               &
              /,' -------------',/,1x,'ITER',7x,'FSQ_NL',10x,'||X||')
 
@@ -745,7 +750,7 @@
 !            wmhd_min = wtotal
 !            xc0 = xc
 !         END IF
-         IF (iam.EQ.0 .AND. (icount.EQ.1 .OR. MOD(icount,10).EQ.0))     &
+         IF (iam.EQ.0 .AND. (icount.EQ.1 .OR. MOD(icount,10).EQ.0) .and. lverbose)     &
             PRINT 110, icount, fsq_total1, SQRT(SUM(xc*xc))
 
          IF (fsq_total1 .GT. 1.5_dp*fsq_min0) THEN
@@ -816,7 +821,7 @@
       IF (muParS .NE. zero) fsq_min0 = fsq_total1
 
       IF (iam.EQ.0 .AND. l_conjmin) THEN
-         WRITE (6, 100) icount, fsq_start, fsq_min0
+         IF (lverbose) WRITE (6, 100) icount, fsq_start, fsq_min0
          WRITE (33,100) icount, fsq_start, fsq_min0
       END IF
 

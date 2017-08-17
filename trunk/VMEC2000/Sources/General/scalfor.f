@@ -90,7 +90,7 @@ C-----------------------------------------------
      1                    + cx(js)*(n*nfp)**2)
           END DO
 
-          IF (m .eq. 1) THEN
+          IF (m .eq. 1 .and. (nsmin .le. 2 .and. nsmax .ge. 2)) THEN
             dx(n,m,2) = dx(n,m,2) + bx(n,m,2)
           END IF
         END DO

@@ -11,7 +11,7 @@
           mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,        &
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
       USE descriptor_mod, ONLY: iam
-      USE shared_data, ONLY: lasym
+      USE shared_data, ONLY: lasym, lverbose
       IMPLICIT NONE
 
 !
@@ -94,6 +94,7 @@
         USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,     &
                            f_sin, f_sum
         USE metrics, ONLY: sqrtg
+        USE read_wout_mod, ONLY: lasym_vmec=>lasym
         USE island_params, ONLY: nu_i
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -129,15 +130,15 @@
         END IF
         CALL toijsp(jbsupsmnsh, jacobh, f_none, f_cos)
         jbsupsmnsh = 0
-        IF (lasym) THEN
-        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin)
+        IF (lasym .and. .not.lasym_vmec) THEN          ! MRC If the VMEC case is stellarator
+        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin)  ! symmetric zero out the jacobian terms.
         jbsupsmnch = 0
         END IF
         
         IF (ANY(jacobh*signjac .LE. 0)) STOP 'FILTERED JACOBIAN CHANGED SIGN!'
         sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/     &
                    (jacobh(:,:,2:)+jacobf(:,:,2:))**2)
-        IF (iam .EQ. 0) PRINT '(a,1pe8.2)',                &
+        IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1pe8.2)',                &
            ' JACOBIAN SPECTRAL TRUNCATION ERROR: ', SQRT(sum1/SIZE(jacobh))
 !        END IF
 
@@ -159,7 +160,7 @@
         sum1 = (twopi*twopi)*sum1
         IF (ABS((sum1-volume_i)/volume_i) .GT. 1.E-3_dp) THEN
 
-            IF (IAM .EQ. 0) PRINT *,'VMEC VOLUME: ',volume_i,' THIS VOLUME: ', sum1
+            IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',volume_i,' THIS VOLUME: ', sum1
 !           STOP 'Volume does not agree with VMEC input!'
         END IF
       
@@ -254,8 +255,13 @@
            jbsupvmnsh(m1:,:,1) = 0
         END IF
 
+#if defined(MRC)
+        DEALLOCATE (phiph, chiph, stat=istat)
+        IF (istat .NE. 0) STOP "Deallocate error #1 in init_fields"
+#else
         DEALLOCATE (phiph, chiph, sqrtg, stat=istat)
         IF (istat .NE. 0) STOP "Deallocate error #1 in init_fields"
+#endif
 
 !
 !       Initialize half mesh pressure
@@ -328,13 +334,13 @@
 ! 
         n2 = 1
         IF (lasym) n2 = 2
-	ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
+        ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
                   cosmnp(nuv,mnmax),                                     &
-	          brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
+                  brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
         IF (info .NE. 0) STOP 'Allocation error in Recompute_Lambda'
         IF (lasym) THEN
-	ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
-	          stat=info)
+        ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
+                  stat=info)
         IF (info .NE. 0) STOP 'Allocation error in Recompute_Lambda'
         END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
@@ -343,7 +349,7 @@
         DO n=-ntor,ntor
            isign = 1; IF (n .LT. 0) isign = -1
            np = ABS(n)
-	   DO m=0,mpol
+        DO m=0,mpol
 	      mn = mn+1
 	      lk = 0
 	      DO lv = 1, nzeta
@@ -376,8 +382,8 @@
 !
         DO js = MAX(nsmin,2), nsmax
 
-	  mn = 0
-          DO n=-ntor,ntor
+        mn = 0
+        DO n=-ntor,ntor
 	     DO m=0,mpol
 !
 !       RHS (driving) TERMS [sinmi, -cosmni parts]
@@ -430,7 +436,7 @@
       IF (lasym) DEALLOCATE(sinmni, sinmnp)
 
       CALL second0(toff)
-      IF (iam .EQ. 0) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
+      IF (iam .EQ. 0 .and. lverbose) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
 
  100  FORMAT(a,f10.2,a)
       END SUBROUTINE Recompute_Lambda

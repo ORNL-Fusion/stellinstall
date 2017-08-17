@@ -6,6 +6,34 @@
 !!  \version 2.3 (June 2014)
 !!  \bug Please report any bugs to hirshmansp@ornl.gov
       PROGRAM SIESTA
+#if defined(MRC)
+      USE siesta_run
+      USE mpi_inc
+
+      IMPLICIT NONE
+
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      TYPE (siesta_run_class), POINTER :: context => NULL()
+
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
+#if defined(MPI_OPT)
+      INTEGER, PARAMETER :: run_comm = MPI_COMM_WORLD
+#else
+      INTEGER, PARAMETER :: run_comm = 0
+#endif
+!-----------------------------------------------
+
+      context => siesta_run_construct(run_comm, .true., .true.)
+      CALL siesta_run_set_vmec(context)
+      CALL siesta_run_converge(context)
+      CALL siesta_run_destruct(context, .true., .true.)
+
+#else
+
 !
 !     READS siesta.jcf INPUT FILE
 !
@@ -32,7 +60,7 @@
                             SKSDBG, TOFU, PARGMRES, PARFUNCTISL,         &
                             finalizeRemap, bcyclicMapping, initRemap,    &
                             OUTPUT_TIMINGS, GetTimes, MPI_ERR
-      USE blocktridiagonalsolver, ONLY: Initialize, Finalize, GetRanks
+      USE blocktridiagonalsolver_s, ONLY: Initialize, Finalize, GetRanks
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: MyEnvVariables, SetOutputFile, PARSOLVER, &
@@ -90,7 +118,7 @@
 
       call blacs_gridinfo(icontxt, nprow,npcol,myrow,mycol)
       isroot = (myrow.eq.0).and.(mycol.eq.0)
-      if (isroot) then
+      if (isroot .and. lverbose) then
          write(*,*) ' nprow,npcol ',nprow,npcol
          write(*,*) 'icontxt_global,icontxt,icontxt_1xp,icontxt_px1 ',  &
                      icontxt_global,icontxt,icontxt_1xp,icontxt_px1
@@ -194,6 +222,7 @@
 
       IF (iam .EQ. 0) THEN
       DO I = 6, 33, 27
+         IF (.not.lverbose .and. I .eq. 6) CYCLE
          WRITE (I, 95) nprecon, levmarq_param, mupar, asym_index
 #if defined(SKS)
          WRITE (I, '(a,i5)') ' Number processors: ', nprocs
@@ -245,7 +274,7 @@
  95   FORMAT (/,' nprecon: ',i3, ' LM parameter: ',1pe9.2,               &
      &        ' mu||: ', 1pe9.2, ' Symmetry Index: ',1pe9.2)
 
- 100  FORMAT(/'==============================              =======================')
+ 100  FORMAT(/,'==============================              =======================')
  105  FORMAT(/,' TIMING INFORMATION                          RMS BOUNDARY FORCES')
  110  FORMAT(' Total runtime  : ', f12.3,'               fs(1,m=1)  :', 1pe10.2/,     &
              ' Initialization : ',0pf12.3,'               fs(2,m=1)  :', 1pe10.2/,    &
@@ -271,10 +300,10 @@
      )
  115  FORMAT('==============================              =======================')
 
-      CALL write_output (wout_file, niter)
+      CALL write_output (wout_file, niter, .true.)
       CALL write_profiles(fsq_total1)                                    ! SPH: write jpmn, jbsupXmn, kbsubXmn, jvsupXmn profiles
       IF (iam .EQ. 0) THEN
-         PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
+         IF (lverbose) PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
          CLOSE (UNIT=33)
       ENDIF
       
@@ -308,7 +337,7 @@
         CALL finalizeRemap
 #if defined(MRC)
 ! MRC: Put in a barrier to the parent comm to make sure execution has finished.
-!      This is used for the hacked SIESTA reconstruction.
+!      This is used for the hacked SIESTA reconstruction
         CALL MPI_COMM_GET_PARENT(parent_comm, error)
         IF (parent_comm .ne. MPI_COMM_NULL) THEN
            CALL MPI_BARRIER(parent_comm, error)
@@ -319,5 +348,5 @@
       END IF
 #endif
 
-
+#endif
       END PROGRAM SIESTA

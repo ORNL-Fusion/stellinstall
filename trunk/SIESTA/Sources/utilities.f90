@@ -556,7 +556,8 @@
 
       END SUBROUTINE SurfAverage
 
-
+#if defined(MRC)
+#else
       SUBROUTINE Truncate(num, iprec0)
       USE stel_kinds, ONLY: dp
       IMPLICIT NONE
@@ -582,5 +583,5 @@
       READ (tchnum, chnum) num
 
       END SUBROUTINE Truncate
-
+#endif
 

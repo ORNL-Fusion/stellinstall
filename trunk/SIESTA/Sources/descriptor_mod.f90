@@ -1,5 +1,6 @@
       MODULE descriptor_mod
       USE stel_kinds
+      USE mpi_inc
       INTEGER, PARAMETER ::  BLOCK_CYCLIC_2D = 1, DLEN_ = 9, DTYPE_ = 1, &
                          CTXT_ = 2, M_ = 3, N_ = 4, MB_ = 5, NB_ = 6,    &
                          RSRC_ = 7, CSRC_ = 8, LLD_ = 9
@@ -21,4 +22,5 @@
       LOGICAL :: INUPDATEFORCE=.FALSE.
       INTEGER :: GMRESPASS, WRAPPASS, MATVECPASS
       INTEGER :: in_hess_nfunct=0, out_hess_nfunct=0
+      INTEGER :: SIESTA_COMM=MPI_COMM_WORLD
       END MODULE descriptor_mod

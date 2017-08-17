@@ -1231,9 +1231,9 @@
       CALL MPI_COMM_RANK(recon_comm, mpi_rank, error)
 
       IF (mpi_rank .eq. index) THEN
-         CALL MPI_SEND(this%modeled, 4, MPI_REAL8, 0, mpi_rank,               &
+         CALL MPI_SSEND(this%modeled, 4, MPI_REAL8, 0, mpi_rank,               &
      &                  recon_comm, error)
-         CALL MPI_SEND(this%modeled_sigma, 4, MPI_REAL8, 0, mpi_rank,         &
+         CALL MPI_SSEND(this%modeled_sigma, 4, MPI_REAL8, 0, mpi_rank,         &
      &                  recon_comm, error)
        ELSE IF (mpi_rank .eq. 0) THEN
          CALL MPI_RECV(this%modeled, 4, MPI_REAL8, index, index,               &

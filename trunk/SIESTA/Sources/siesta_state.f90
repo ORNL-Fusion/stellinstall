@@ -5,18 +5,20 @@
       MODULE siesta_state
 #define DUMP_STATE
       USE stel_kinds
-      USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a
+      USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a, lverbose
       USE timer_mod, ONLY: time_update_state
       USE siesta_init, ONLY: init_state_par, init_allocate_arrays
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
-      LOGICAL, PRIVATE :: lfirst=.TRUE.
+!      LOGICAL, PRIVATE :: lfirst=.TRUE.
+      LOGICAL :: lfirst=.TRUE.
 
       CONTAINS
 
 !>  \brief Parallel subroutine for updating the SIESTA state
       SUBROUTINE update_state_par (lprint, fsq_total, ftol)
       USE quantities
+      USE shared_data, ONLY: delta_t !!!!!!!MRC
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t sf
 !-----------------------------------------------
@@ -107,6 +109,7 @@
       toroidal_flux = toroidal_flux - toroidal_flux0
       IF (iam .EQ. 0) THEN
       DO ISTAT = 6, 33, 27
+         IF (.not.lverbose .and. ISTAT .eq. 6) CYCLE
          WRITE (ISTAT , 110) ste(1), ste(2), ste(3), ste(4),             &
                              divb_rms, toroidal_flux, wp/wb,             &
                              bgradp_rms, max_bgradp, min_bgradp,         &
@@ -202,6 +205,7 @@
                 +     (jbsupvmnh-pwr_spec(:,:,:,3))**2)              
          diag_p = SUM((jpmnh-pwr_spec(:,:,:,4))**2)
          DO js = 6, 33, 27
+         IF (.not.lverbose .and. js .eq. 6) CYCLE
          WRITE(js, 100) 'POWER SPECTRA(', def(itype),                    &
                         ') -- dB: ', diag_b, ' dP: ', diag_p
          END DO

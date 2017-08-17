@@ -28,7 +28,7 @@
       USE descriptor_mod, ONLY: iam
       USE mpi_inc
 #if defined(SKS)
-      USE blocktridiagonalsolver, ONLY: RefactorHessian
+      USE blocktridiagonalsolver_s, ONLY: RefactorHessian
 #endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -104,7 +104,7 @@
 !
       IF (.NOT.l_Diagonal_Only .AND. lcolscale) THEN
 
-      IF (iam .EQ. 0) PRINT 925, Dmin
+      IF (iam .EQ. 0 .and. lverbose) PRINT 925, Dmin
 925   FORMAT(' DMIN: ',1pe12.3,/,1x,'FAST CONVERGENCE SUMMARY',          &
              /,' -------------',/,1x,'ITER',7x,'FSQ_NL',                 &
              10x,'||X||',9x,'MAX|X|')
@@ -140,7 +140,7 @@
             bTerm = (fsq_total1 .GE. 0.95_dp*fsq_min)
             fsq_min = fsq_total1
          END IF
-         IF (iam .EQ. 0) PRINT 912, j, fsq_total1, SQRT(SUM(xc*xc)),     &
+         IF (iam .EQ. 0 .and. lverbose) PRINT 912, j, fsq_total1, SQRT(SUM(xc*xc)),     &
                          MAXVAL(ABS(xc))
          IF (fsq_min.LE.ftol .OR. bTerm .OR. eps.EQ.zero) EXIT
       END DO
@@ -175,7 +175,7 @@
             levmarq_param = lm0*levscan(iter)
             IF (levmarq_param .LT. levm_ped) levmarq_param = 100*levm_ped
             IF (levmarq_param .GE. levmarq_param0) levmarq_param = levmarq_param0/10._dp**iter
-            IF (iam .EQ. 0) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
+            IF (iam .EQ. 0 .and. lverbose) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
             CALL RefactorHessian(levmarq_param)
             GOTO 920
          END IF
@@ -301,7 +301,7 @@
 
       SUBROUTINE gmres_wrap (x0, b)
       USE perturbation, ONLY: ftol
-      USE descriptor_mod, ONLY: iam, nprocs
+      USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE nscalingtools, ONLY: PARSOLVER, PARGMRES, rcounts, disp
       USE hessian, ONLY: apply_precond
       USE gmres_lib, ONLY: gmres_info, gmres_par, gmres_ser
@@ -328,6 +328,10 @@
 !*******************************************************
       CALL init_gmres0(gi%icntl, gi%cntl, etak, gi%m, n)
       gi%ftol=ftol
+      gi%my_comm = SIESTA_COMM
+      gi%my_comm_world = SIESTA_COMM
+      gi%lverbose = lverbose
+
 !
 !     EASY-TO-USE WRAPPER FOR GMRES DRIVER CALL
 !
@@ -357,7 +361,7 @@
       USE stel_constants, ONLY: zero
       USE island_params, ONLY: ns=>ns_i
       USE hessian, ONLY: eps_factor, mupar, gather_array
-      USE blocktridiagonalsolver, ONLY: ParMatVec
+      USE blocktridiagonalsolver_s, ONLY: ParMatVec
       USE mpi_inc
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s

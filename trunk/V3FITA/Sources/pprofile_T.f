@@ -330,7 +330,7 @@
                s_use = 1.0 - s_arg
                pprofile_get_value = pprofile_get_value                         &
      &                            + two_power(s_use, this%b(1:iub_b))
-      ENDIF
+            ENDIF
 
 ! v3fit uses an extra varible as an offset than vmec as a result the b array is
 ! one index shorter than what two_power_gs takes. As a result only 5 guassian

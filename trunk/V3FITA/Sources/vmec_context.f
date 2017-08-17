@@ -307,25 +307,25 @@
 !  If the size of the xc array changed size we cannot sync.
       temp_size = SIZE(xc)
       IF (mpi_rank .eq. index) THEN
-         CALL MPI_SEND(temp_size, 1, MPI_INTEGER, 0, mpi_rank,                 &
-     &                 recon_comm, error)
+         CALL MPI_SSEND(temp_size, 1, MPI_INTEGER, 0, mpi_rank,                &
+     &                  recon_comm, error)
 
-         CALL MPI_SEND(xc, temp_size, MPI_REAL8, 0, mpi_rank,                  &
-     &                 recon_comm, error)
+         CALL MPI_SSEND(xc, temp_size, MPI_REAL8, 0, mpi_rank,                 &
+     &                  recon_comm, error)
 
-         CALL MPI_SEND(raxis_cc, SIZE(raxis_cc), MPI_REAL8, 0, mpi_rank,       &
-     &                 recon_comm, error)
-         CALL MPI_SEND(raxis_cs, SIZE(raxis_cs), MPI_REAL8, 0, mpi_rank,       &
-     &                 recon_comm, error)
-         CALL MPI_SEND(zaxis_cc, SIZE(zaxis_cc), MPI_REAL8, 0, mpi_rank,       &
-     &                 recon_comm, error)
-         CALL MPI_SEND(zaxis_cs, SIZE(zaxis_cs), MPI_REAL8, 0, mpi_rank,       &
-     &                 recon_comm, error)
+         CALL MPI_SSEND(raxis_cc, SIZE(raxis_cc), MPI_REAL8, 0,                &
+     &                  mpi_rank, recon_comm, error)
+         CALL MPI_SSEND(raxis_cs, SIZE(raxis_cs), MPI_REAL8, 0,                &
+     &                  mpi_rank, recon_comm, error)
+         CALL MPI_SSEND(zaxis_cc, SIZE(zaxis_cc), MPI_REAL8, 0,                &
+     &                  mpi_rank, recon_comm, error)
+         CALL MPI_SSEND(zaxis_cs, SIZE(zaxis_cs), MPI_REAL8, 0,                &
+     &                  mpi_rank, recon_comm, error)
 
-         CALL MPI_SEND(vvc_smaleli, 1, MPI_REAL8, 0, mpi_rank,                 &
-     &                 recon_comm, error)
-         CALL MPI_SEND(vvc_kappa_p, 1, MPI_REAL8, 0, mpi_rank,                 &
-     &                 recon_comm, error)
+         CALL MPI_SSEND(vvc_smaleli, 1, MPI_REAL8, 0, mpi_rank,                &
+     &                  recon_comm, error)
+         CALL MPI_SSEND(vvc_kappa_p, 1, MPI_REAL8, 0, mpi_rank,                &
+     &                  recon_comm, error)
 
       ELSE IF (mpi_rank .eq. 0) THEN
          CALL MPI_RECV(temp_size, 1, MPI_INTEGER, index, index,                &

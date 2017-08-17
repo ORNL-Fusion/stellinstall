@@ -35,7 +35,7 @@
 #if defined(MPI_OPT)
       USE nscalingtools, ONLY: MPI_STATUS
 #endif
-      USE descriptor_mod, ONLY: iam, nprocs
+      USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE fourier, ONLY: f_ds, f_du, f_dv, f_cos, f_sin, f_none, f_sum
       IMPLICIT NONE     
 #if defined(SILO_AVAIL)
@@ -122,7 +122,7 @@
 
       CONTAINS  
 
-      SUBROUTINE write_output (wout_file, iter)
+      SUBROUTINE write_output (wout_file, iter, close_wout)
       USE stel_kinds
       USE read_wout_mod, ONLY: lwout_opened, read_wout_file,             &
           read_wout_deallocate
@@ -130,6 +130,7 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow
       CHARACTER(LEN=*), INTENT(IN) :: wout_file
       INTEGER, INTENT(IN)  :: iter
+      LOGICAL, INTENT(IN)  :: close_wout
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -145,7 +146,7 @@
 
       CALL dealloc_diagnostics
 
-      IF (lwout_opened) CALL read_wout_deallocate
+      IF (lwout_opened .and. close_wout) CALL read_wout_deallocate
 
       END SUBROUTINE write_output
           
@@ -211,7 +212,7 @@
            CALL allocate_SILO
         ENDIF
 #endif
-        IF (iam .EQ. 0) THEN
+        IF (iam .EQ. 0 .and. lverbose) THEN
            WRITE(*,'(/,4x,a)') '>> Starting dumping of graphic data...'
            WRITE(*,'(10x,a)') 'Creating plot box between:'
            WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'RMAX = ', rmaxx, 'RMIN = ', rminx
@@ -269,7 +270,7 @@
 !
         CALL write_pressure_data(nunit_pres, ndum, maxprocs)
 
-        IF (iam .EQ. 0) THEN
+        IF (iam .EQ. 0 .and. lverbose) THEN
            WRITE(*,'(/,10x,a)') 'Completed.'
            WRITE(*,'(10x,a)') 'Pressure (PGPLOT) using CYLINDRICAL coords..' ! Use uniformly-spaced grid in (R,v,Z)
         END IF
@@ -306,7 +307,7 @@
 !
         CALL write_pressure_data(nunit_pres1, ndum, maxprocs)
 
-        IF (iam .EQ. 0) THEN
+        IF (iam .EQ. 0 .and. lverbose) THEN
            WRITE(*,'(/,10x,a)') 'Completed.'
            WRITE(*,'(10x,a)') 'Pressure (PGPLOT) using SIESTA coords..'  ! Use uniformly-spaced grid in (s,u,v)
         END IF
@@ -315,7 +316,7 @@
 !    Calculation in uniformly-spaced grid for Tracing and SILO output if requested
 !
         TRACING: IF (l_tracing .OR. l_silo_output) THEN                   ! Do 3D calculation only if  L_TRACING = T or SILO_OUTPUT desired
-          IF (iam .EQ. 0) THEN
+          IF (iam .EQ. 0 .and. lverbose) THEN
              WRITE(*,'(/,10x,a)') 'Creating additional files:'    
              IF (l_tracing) THEN
                 WRITE(*,'(10x,a)') 'Tracing BFIELD file..'    
@@ -397,7 +398,7 @@
 !       WRITE bfield-trace file
 !
              CALL write_bfield_data(unit_trace, ndum, maxprocs)
-             IF (iam .EQ. 0) WRITE(*,'(/,10x,a)') 'Tracing done'
+             IF (iam .EQ. 0 .and. lverbose) WRITE(*,'(/,10x,a)') 'Tracing done'
           END IF BFIELD
 
         END IF TRACING
@@ -406,7 +407,7 @@
         IF (l_silo_output) THEN
           CALL dump_SILO (ndum_s, ndum_s+(maxprocs_s-ndum_s*nprocs))     ! combines 2d, 3d silo dump
           DEALLOCATE (pack_silo)
-          IF (iam .EQ. 0) THEN
+          IF (iam .EQ. 0 .and. lverbose) THEN
           WRITE(*,'(/,10x,a)') 'SILO 2D database done'
           IF(l_silo3D) WRITE(*,'(10x,a)') 'SILO 3D database done'
 !          CALL dealloc_SILO
@@ -414,7 +415,7 @@
         ENDIF
 #endif
         CALL second0(toff)
-        IF (iam .EQ. 0) WRITE(*,'(/,10x,a,f8.3,a)')                      &
+        IF (iam .EQ. 0 .and. lverbose) WRITE(*,'(/,10x,a,f8.3,a)')                      &
            'Graphics output completed in ',toff-ton,' s'
 
         CALL close_dump_files
@@ -439,10 +440,10 @@
            IF (lk .GT. 1) THEN
               IF (iam .EQ. 0) THEN
                  CALL MPI_RECV(pprof,ndum,MPI_REAL8,from,tag,            &
-                               MPI_COMM_WORLD,MPI_STATUS,MPI_ERR)
+                               SIESTA_COMM,MPI_STATUS,MPI_ERR)
               ELSE IF (iam .EQ. from) THEN
                  CALL MPI_SEND(pprof,ndum,MPI_REAL8,to,tag,              &
-                               MPI_COMM_WORLD,MPI_ERR)
+                               SIESTA_COMM,MPI_ERR)
               END IF
            END IF
 #endif
@@ -475,10 +476,10 @@
            IF (lk .GT. 1) THEN
               IF (iam .EQ. 0) THEN
                 CALL MPI_RECV(pack_bfld,6*ndum,MPI_REAL8,from,           &
-                              tag,MPI_COMM_WORLD,MPI_STATUS,MPI_ERR)
+                              tag,SIESTA_COMM,MPI_STATUS,MPI_ERR)
               ELSE IF (iam .EQ. from) THEN
                  CALL MPI_SEND(pack_bfld,6*ndum,MPI_REAL8,to,            &
-                               tag,MPI_COMM_WORLD,MPI_ERR)
+                               tag,SIESTA_COMM,MPI_ERR)
               END IF
            END IF
 #endif
@@ -929,12 +930,6 @@
           CALL toijsp_1p(bsupumnch, ss, uu, vv, bu, f_none, f_cos, f_half) ! SUM MN-series at target point to get contravariant Bu
           CALL toijsp_1p(bsupvmnch, ss, uu, vv, bv, f_none, f_cos, f_half) ! SUM MN-series at target point to get contravariant By
 
-!WRITE (*,*) ss, uu, vv
-!DO js = 1, ns
-!WRITE (*,*) js, bsupsmnsh(:,:,js)
-!END DO
-!WRITE (*,*) 'sym', bs, bu, bv
-
           IF (lasym) THEN
           ds = IOR(f_sum, f_ds)
           du = IOR(f_sum, f_du)
@@ -954,11 +949,6 @@
           CALL toijsp_1p(bsupvmnsh, ss, uu, vv, bv, f_sum, f_sin, f_half)  ! SUM MN-series at target point to get contravariant By
 
           END IF
-!DO js = 1, ns
-!WRITE (*,*) js, bsupsmnch(:,:,js)
-!END DO
-!WRITE (*,*) 'asym', bs, bu, bv
-!PAUSE
 
           br = bs*rs + bu*ru + bv*rv                                       ! Form cylindrical fields (B)
           bz = bs*zs + bu*zu + bv*zv
@@ -1393,11 +1383,11 @@
            from=lk-1
            IF (iam .EQ. 0) THEN
               CALL MPI_RECV(tmp_silo(ioff),nchunk,MPI_REAL,from,         &
-                            tag,MPI_COMM_WORLD,MPI_STATUS,MPI_ERR)
+                            tag,SIESTA_COMM,MPI_STATUS,MPI_ERR)
               ioff = ioff+nchunk
            ELSE IF (iam .EQ. from) THEN
               CALL MPI_SEND(pack_silo(1,index0),nchunk,MPI_REAL,to,      &
-                            tag,MPI_COMM_WORLD,MPI_ERR)
+                            tag,SIESTA_COMM,MPI_ERR)
            END IF
 #endif
         END DO
@@ -1541,7 +1531,7 @@
         ELSEIF (iangle > 99 .AND. iangle< 1000) THEN
           WRITE(cdum1,'(i3)') iangle
           cdum = cdum1
-        ELSE 
+        ELSEIF (lverbose)
           WRITE(*,*) ' Change format in SILODB_2D!'
         ENDIF  
         

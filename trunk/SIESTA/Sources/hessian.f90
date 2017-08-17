@@ -2,7 +2,7 @@
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
           nfp=>nfp_i
       USE timer_mod
-      USE DirectAccess
+      USE DirectAccess_s
       USE stel_constants, ONLY: pi
       USE descriptor_mod
       USE shared_data, ONLY: col_scale, neqs, lcolscale, l_ApplyPrecon,  &
@@ -18,7 +18,7 @@
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,               &
         SYMMETRYCHECK, totRecvs, PACKSIZE, WriteTime, send, receive,     &
         SetBlockTriDataStruct, GetFullSolution
-      USE blocktridiagonalsolver
+      USE blocktridiagonalsolver_s
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,     &
@@ -39,7 +39,7 @@
 !-----------------------------------------------
       PRIVATE
       INTEGER, PARAMETER :: jstart(3) = (/1,2,3/)
-      INTEGER   :: iprec_flag = 0
+      INTEGER, PUBLIC    :: iprec_flag = 0
       INTEGER, ALLOCATABLE :: ipiv_blk(:,:)
 
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ublk, dblk, lblk
@@ -117,7 +117,7 @@
 !-----------------------------------------------
 #if defined(SKS)
       CALL MPI_ALLGATHERV(section, mynumBlockRows*mblk_size, MPI_REAL8,&
-                    gc,rcounts, disp, MPI_REAL8, MPI_COMM_WORLD, MPI_ERR)
+                    gc,rcounts, disp, MPI_REAL8, SIESTA_COMM, MPI_ERR)
 #else        
       gc = section
 #endif
@@ -137,7 +137,7 @@
        M2 = SIZE(gather3d,1)*SIZE(gather3d,2)
        CALL MPI_ALLGATHERV(section, mynumBlockRows*M2, MPI_REAL8,        &
                            gather3d, mnspcounts, mnspdisps, MPI_REAL8,   &
-                           MPI_COMM_WORLD, MPI_ERR)
+                           SIESTA_COMM, MPI_ERR)
 #else        
       gather3d = section
 #endif
@@ -156,7 +156,7 @@
       END SUBROUTINE InitHess
 
       SUBROUTINE Compute_Hessian_Blocks (func, l_Hess_sym, ldiagonal)
-      USE shared_data, ONLY: xc, gc, l_linearize
+      USE shared_data, ONLY: xc, gc, l_linearize, lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -172,10 +172,10 @@
 
       IF (iam .EQ. 0) THEN
          IF (l_Diagonal_Only) THEN
-            WRITE (6, 90) levmarq_param, muPar
+            IF (lverbose) WRITE (6, 90) levmarq_param, muPar
             WRITE (33,90) levmarq_param, muPar
          ELSE
-            WRITE (6, 100) levmarq_param, muPar, asym_index
+            IF (lverbose) WRITE (6, 100) levmarq_param, muPar, asym_index
             WRITE (33,100) levmarq_param, muPar, asym_index
          ENDIF
       ENDIF
@@ -189,16 +189,19 @@
       IF (PARSOLVER) THEN
         IF (PARFUNCTISL) THEN
           IF(SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_No_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
-          IF (iam.EQ.0 .AND. HESSPASS.EQ.0) PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
+          IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
+             PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
           CALL Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc, func, l_Hess_sym)
         ELSE
           IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
-          IF (iam.EQ.0 .AND. HESSPASS.EQ.0) PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH COLUMN REDISTRIBUTION'
+          IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)              &
+             PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH COLUMN REDISTRIBUTION'
           CALL Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func, l_Hess_sym)
         END IF 
       ELSE 
         IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_Thomas'; CALL FLUSH(TOFU)
-        IF (iam.EQ.0 .AND. HESSPASS.EQ.0) PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
+        IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)                &
+            PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
         CALL Compute_Hessian_Blocks_Thomas (xc, gc, func, l_Hess_sym)
       END IF
 
@@ -210,6 +213,7 @@
 
       SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc,      &
                  func, l_Hess_sym)
+      USE shared_data, ONLY: lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -267,6 +271,7 @@
 
         IF (iam .EQ. 0) THEN
           DO iunit = 6,33,27
+            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
             WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ',           &
                   mblk_size,'^2  Preconditioner size: ', bsize, TRIM(label)
           END DO
@@ -444,7 +449,7 @@
       CALL second0(toff)
       skstoff=toff
 
-      IF (iam .EQ. 0) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
+      IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
 
       block_factorization_time=block_factorization_time+(skstoff-skston)
       time_factor_blocks = time_factor_blocks + (toff-ton)
@@ -475,21 +480,21 @@
 ! Get top boundary elements; in siesta_displacement, need from startglobrow-2:endglobrow+2
       IF (rank.LT.nranks-1) THEN
         CALL MPI_Send(colsum(:,endglobrow-1:endglobrow),M2,MPI_REAL8,    &
-          rank+1,1,MPI_COMM_WORLD,MPI_ERR)
+          rank+1,1,SIESTA_COMM,MPI_ERR)
       END IF
       IF (rank.GT.0) THEN
         CALL MPI_Recv(colscale(:,startglobrow-2:startglobrow-1),M2,      &
-          MPI_REAL8,rank-1,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+          MPI_REAL8,rank-1,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
       END IF
 
 ! Get bot boundary elements
       IF (rank.GT.0) THEN
         CALL MPI_Send(colsum(:,startglobrow:startglobrow+1),M2,MPI_REAL8,&
-          rank-1,1,MPI_COMM_WORLD,MPI_ERR)
+          rank-1,1,SIESTA_COMM,MPI_ERR)
       END IF
       IF (rank.LT.nranks-1) THEN
         CALL MPI_Recv(colscale(:,endglobrow+1:endglobrow+2),M2,MPI_REAL8,&
-          rank+1,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+          rank+1,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
       END IF
 
       END SUBROUTINE VectorCopyPar
@@ -497,6 +502,7 @@
 
       SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func,   &
                  l_Hess_sym)
+      USE shared_data, ONLY: lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -558,6 +564,7 @@
 
          IF (iam .EQ. 0) THEN
             DO iunit = 6,33,27
+            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
             WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
                '^2  Preconditioner size: ', bsize, TRIM(label)
             END DO
@@ -699,7 +706,7 @@
         PROBEFLAG=.NOT.PROBEFLAG
 
         CALL MPI_AllTOALL(sendCount,1,MPI_INTEGER,recvCount,1,           &
-		                  MPI_INTEGER,MPI_COMM_WORLD,MPI_ERR)
+		                  MPI_INTEGER,SIESTA_COMM,MPI_ERR)
         totRecvs=0
         DO js=1,nprocs,1
           totRecvs=totRecvs+recvCount(js)
@@ -716,7 +723,7 @@
 
       CALL second0(skstoff)
       construct_hessian_time=construct_hessian_time+(skstoff-skston)
-      CALL MPI_Barrier(MPI_COMM_WORLD, MPI_ERR)
+      CALL MPI_Barrier(SIESTA_COMM, MPI_ERR)
 
       IF (lswap2disk) GO TO 900
 !
@@ -757,7 +764,7 @@
       endtime=toff
       skstoff=toff
 
-      IF (iam .EQ. 0) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
+      IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
 
       block_factorization_time=block_factorization_time+(skstoff-skston)
       time_factor_blocks = time_factor_blocks + (toff-ton)
@@ -771,6 +778,7 @@
 
       SUBROUTINE Compute_Hessian_Blocks_Thomas (xc, gc, func,            &
                  l_Hess_sym)
+      USE shared_data, ONLY: lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -822,7 +830,7 @@
         lld = max(1,Locp)
         call descinit(descA_1xp,mblk_size,mblk_size,mb,nb,rsrc,csrc,     &
                       icontxt_1xp,lld,info)
-        if (info.ne.0) then
+        if (info.ne.0 .and. lverbose) then
           write(*,*) 'myrow,mycol,nprow,npcol,desc(LLD_),lld ',          &
              myrow,mycol,nprow,npcol,descA_1xp(LLD_),lld
           write(*,*) 'Locp,m,mb ', Locp,mblk_size,mb
@@ -930,6 +938,7 @@
 
          IF (iam .EQ. 0) THEN
             DO iunit = 6,33,27
+            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
             WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
                '^2  Preconditioner size: ', bsize, TRIM(label)
             END DO
@@ -1156,7 +1165,7 @@
          END DO
          CLOSE (20)
 
-         PRINT *, 'HESSIAN BLOCKS WRITTEN OUT'
+         IF (lverbose) PRINT *, 'HESSIAN BLOCKS WRITTEN OUT'
 
       END IF
 
@@ -1263,7 +1272,7 @@
 
       CALL second0(skstoff)
 	  toff = skstoff
-      PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
+      IF (lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
 
       block_factorization_time=block_factorization_time+(skstoff-skston)
       time_factor_blocks = time_factor_blocks + (toff-ton)
@@ -1780,7 +1789,7 @@
 
         CALL gather_array(solvec, gc)
 !        CALL MPI_Allgatherv(solvec,mynumBlockRows*mblk_size,MPI_REAL8,gc, &
-!             rcounts, disp, MPI_REAL8, MPI_COMM_WORLD, MPI_ERR)
+!             rcounts, disp, MPI_REAL8, SIESTA_COMM, MPI_ERR)
 
 !!        CALL GetFullSolution(temp,gc)
         
@@ -1869,7 +1878,7 @@
          l_backslv = .false.
          icol = 0
 
-         WRITE (6, *) ' Writing block Hessian check to unit 34'
+         IF (lverbose) WRITE (6, *) ' Writing block Hessian check to unit 34'
          WRITE (34, *)
          WRITE (34, *) ' BLK3D FACTORIZATION CHECK: Ax = b ?'
         
@@ -1933,7 +1942,7 @@
 
          DEALLOCATE(dblk_s, lblk_s, ublk_s, gc_s, stat=istat)
 
-         PRINT *,' Hessian Error: ', SQRT(error_sum/b_sum)
+         IF (lverbose) PRINT *,' Hessian Error: ', SQRT(error_sum/b_sum)
 
       END IF
 #endif

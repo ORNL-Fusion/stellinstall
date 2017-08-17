@@ -45,7 +45,8 @@
       USE fourier 
       USE island_params, ONLY: nu_i, hs_i, dnorm_i
       USE timer_mod
-      USE shared_data, ONLY: l_linearize, l_getwmhd
+      USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose
+      USE descriptor_mod, ONLY: SIESTA_COMM
 
       IMPLICIT NONE
 
@@ -119,7 +120,7 @@
           nsmax=n2
 #if defined(MPI_OPT)
           CALL MPI_ALLREDUCE(wp0,wp,1,MPI_REAL8, MPI_SUM,                &
-                             MPI_COMM_WORLD,MPI_ERR)
+                             SIESTA_COMM,MPI_ERR)
 #else
           wp = wp0
 #endif
@@ -487,7 +488,7 @@
                 tmps(3)=fbdy(5); tmps(4)=fbdy(6)
                 tmps(5)=fbdy(8); tmps(6)=fbdy(9)
                 from=2
-                CALL MPI_BCast(tmps,6,MPI_REAL8,from-1,MPI_COMM_WORLD,MPI_ERR)
+                CALL MPI_BCast(tmps,6,MPI_REAL8,from-1,SIESTA_COMM,MPI_ERR)
                 fbdy(2)=tmps(1); fbdy(3)=tmps(2)
                 fbdy(5)=tmps(3); fbdy(6)=tmps(4)
                 fbdy(8)=tmps(5); fbdy(9)=tmps(6)
@@ -496,19 +497,19 @@
              IF (.NOT.LASTPARTITION_GE_2) THEN
                 tmps(1)=fbdy(11); tmps(2)=fbdy(13)
                 from=nprocs-1
-                CALL MPI_BCast(tmps,2,MPI_REAL8,from-1,MPI_COMM_WORLD,MPI_ERR)
+                CALL MPI_BCast(tmps,2,MPI_REAL8,from-1,SIESTA_COMM,MPI_ERR)
                 fbdy(11)=tmps(1); fbdy(13)=tmps(2)
              END IF
 
              tmps(1)=fbdy(10); tmps(2)=fbdy(11)
              tmps(3)=fbdy(12); tmps(4)=fbdy(13)
              from=nprocs
-             CALL MPI_BCast(tmps,4,MPI_REAL8,from-1,MPI_COMM_WORLD,MPI_ERR)
+             CALL MPI_BCast(tmps,4,MPI_REAL8,from-1,SIESTA_COMM,MPI_ERR)
              fbdy(10)=tmps(1); fbdy(11)=tmps(2)
              fbdy(12)=tmps(3); fbdy(13)=tmps(4)
            END IF NPROCS_0
 #endif
-           IF (iam .EQ. 0) THEN
+           IF (iam .EQ. 0 .and. lverbose) THEN
               WRITE(*,121) fbdy(1),fbdy(2),fbdy(3)
               WRITE(*,122) fbdy(4),fbdy(5),fbdy(6)
               WRITE(*,123) fbdy(7),fbdy(8),fbdy(9)

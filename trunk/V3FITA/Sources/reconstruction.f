@@ -507,7 +507,7 @@
       TYPE (reconstruction_class), INTENT(in) :: this
       REAL (rprec), DIMENSION(:), INTENT(in)  :: delta_a
 
-!  local arguments
+!  local variables
       REAL (rprec)                            :: dg2exp_lin
       REAL (rprec)                            :: dg2exp_quad
       REAL (rprec)                            :: start_time
@@ -684,7 +684,7 @@
       INTEGER, INTENT(in)                                :: iou
       INTEGER, INTENT(in)                                :: eq_comm
 
-!  local arguments
+!  local variables
       INTEGER                                            :: i
       REAL (rprec)                                       :: start_time
 
@@ -745,7 +745,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(in) :: derived_params
       TYPE (model_class), INTENT(inout)              :: a_model
 
-!  local arguments
+!  local variables
       INTEGER                                        :: i
       REAL (rprec)                                   :: start_time
 
@@ -801,7 +801,7 @@
       INTEGER, INTENT(in)                                :: recon_comm
       INTEGER, INTENT(in)                                :: eq_comm
 
-!  local arguments
+!  local variables
       INTEGER                                            :: i, j
       REAL (rprec)                                       :: param_value
       REAL (rprec)                                       :: start_time
@@ -1105,7 +1105,7 @@
       INTEGER, INTENT(in)                                :: recon_comm
       INTEGER, INTENT(in)                                :: eq_comm
 
-!  local arguments
+!  local variables
       INTEGER                                    :: i, j
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: temp_jacobian
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work
@@ -1621,7 +1621,7 @@
 !>  @param[inout] locks      Array of @ref lock objects.
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[inout] params     Array of @ref parameter objects.
-!>  @param[inout] eq_steps   Number of steps for the equilibrium to take.
+!>  @param[inout] eq_steps   Number of steps the equilibrium took.
 !>  @param[in]    iou        Input/output file to write log messages to.
 !>  @param[in]    recon_comm MPI communicator for the child jacobian processes.
 !>  @param[in]    eq_comm    MPI communicator for the child equilibrium
@@ -1962,14 +1962,14 @@
       best_index = -1
 #if defined(MPI_OPT)
       IF (mpi_rank .gt. 0) THEN
-         CALL MPI_SEND(converged, 1, MPI_LOGICAL, 0, mpi_rank,                 &
+         CALL MPI_SSEND(converged, 1, MPI_LOGICAL, 0, mpi_rank,                 &
      &                 recon_comm, error)
 
 !  If the equilibrium converged send the value of g^2.
          IF (converged) THEN
             best_g2 = reconstruction_get_g2(this)
             WRITE (*,1002) mpi_rank, best_g2, step_use
-            CALL MPI_SEND(best_g2, 1, MPI_REAL8, 0, mpi_rank,                  &
+            CALL MPI_SSEND(best_g2, 1, MPI_REAL8, 0, mpi_rank,                  &
      &                    recon_comm, error)
          END IF
 
@@ -2051,10 +2051,10 @@
      &                               recon_comm, eq_comm,                      &
      &                               this%use_central)
             END DO
-            CALL MPI_SEND(this%e(:,this%current_step), SIZE(this%e, 1),        &
-     &                    MPI_REAL8, 0, mpi_rank, recon_comm, error)
-            CALL MPI_SEND(this%exp_g2(this%current_step), 1, MPI_REAL8,        &
-     &                    0, mpi_rank, recon_comm, error)
+            CALL MPI_SSEND(this%e(:,this%current_step), SIZE(this%e, 1),       &
+     &                     MPI_REAL8, 0, mpi_rank, recon_comm, error)
+            CALL MPI_SSEND(this%exp_g2(this%current_step), 1, MPI_REAL8,       &
+     &                     0, mpi_rank, recon_comm, error)
 
 !  For some reason, this needs to be before the model is synced or it can dead
 !  lock.
@@ -2078,7 +2078,7 @@
             CALL param_set_lock_value(locks(i)%p, a_model, eq_comm)
          END DO
 
-!  Ensure that parent had a chance sync the child equilibrium before it gets
+!  Ensure that parent had a chance to sync the child equilibrium before it gets
 !  reset. See above.
          CALL MPI_BARRIER(recon_comm, error)
          CALL model_reset_state(a_model)
@@ -2126,7 +2126,7 @@
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  ::                    &
      &   derived_params
 
-!  local arguments
+!  local variables
       INTEGER                                            :: j, i
       REAL (rprec), DIMENSION(:,:), POINTER              :: cp, cd
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE          :: j_dot_cp
@@ -2243,7 +2243,7 @@
       CHARACTER (len=*), INTENT(in)              :: sub
       CHARACTER (len=*), INTENT(in)              :: name
 
-!  local arguments
+!  local variables
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: svd_vt
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: svd_u
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: svd_work
@@ -2319,7 +2319,7 @@
 !  Declare Arguments
       TYPE (param_pointer), DIMENSION(:), INTENT(inout) :: params
 
-!  local arguments
+!  local variables
       INTEGER                                           :: j, i
       REAL (rprec)                                      :: start_time
 
@@ -2358,7 +2358,7 @@
       TYPE (reconstruction_class), POINTER :: this
       INTEGER, INTENT(in)                  :: iou
 
-!  local arguments
+!  local variables
       INTEGER                              :: i
       REAL (rprec)                         :: temp_g2
       REAL (rprec)                         :: start_time
@@ -2413,7 +2413,7 @@
       CHARACTER (len=*), INTENT(in)           :: step_type
       INTEGER, INTENT(in)                     :: iou
 
-!  local variables.
+!  local variables
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -2456,7 +2456,7 @@
       TYPE (reconstruction_class), INTENT(in) :: this
       INTEGER, INTENT(in)                     :: iou
 
-!  local variables.
+!  local variables
       CHARACTER (len=21)                      :: jac_format
       INTEGER                                 :: i
       REAL (rprec)                            :: start_time
@@ -2512,6 +2512,80 @@
 1002  FORMAT(es12.5,2x,l)
 1003  FORMAT(i3,' lambda = ',es12.5,' W_i^2 = ',es12.5,' ratio = ',            &
      &       es12.5)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  NETCDF SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Restart from result file.
+!>
+!>  Restarts the reconstruction from the result file. Note, that there is an
+!>  external step counter and an internal step counter. Internally we will
+!>  restart current step at zero.
+!>
+!>  @param[inout] this         A @ref reconstruction_class instance.
+!>  @param[in]    result_ncid  NetCDF file id of the result file.
+!>  @param[in]    current_step Step index to read variables from.
+!>  @param[inout] a_model      A @ref model instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE reconstruction_restart(this, result_ncid, current_step,       &
+     &                                  signals, derived_params,               &
+     &                                  a_model)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (reconstruction_class), INTENT(inout)      :: this
+      INTEGER, INTENT(in)                             :: result_ncid
+      INTEGER, INTENT(in)                             :: current_step
+      TYPE (signal_pointer), DIMENSION(:), INTENT(in) :: signals
+      TYPE (param_pointer), DIMENSION(:), INTENT(in)  :: derived_params
+      TYPE (model_class), INTENT(inout)               :: a_model
+
+!  Local variables
+      REAL (rprec), DIMENSION(:), ALLOCATABLE         :: temp_model
+      INTEGER                                         :: i
+      INTEGER                                         :: temp_var_id
+      INTEGER                                         :: status
+      REAL (rprec)                                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      status = nf_inq_varid(result_ncid, 'signal_model_value',                 &
+     &                      temp_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_vara_double(result_ncid, temp_var_id,                    &
+     &                            (/ 1, 1, current_step /),                    &
+     &                            (/ 4, SIZE(signals), 1 /),                   &
+     &                            this%last_values)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+!  Certian signals cannot be parallelized. Compute all the signals up to that
+!  point in parallel then continue in serial.
+!$OMP PARALLEL DO
+!$OMP& SCHEDULE(DYNAMIC)
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(i)
+      DO i = 1, this%last_para_signal
+         this%e(i,this%current_step) =                                         &
+     &      signal_get_e(signals(i)%p, a_model, .false.,                       &
+     &                   this%last_values(:,i))
+      END DO
+!$OMP END PARALLEL DO
+
+      DO i = this%last_para_signal + 1, SIZE(signals)
+         this%e(i,this%current_step) =                                         &
+     &      signal_get_e(signals(i)%p, a_model, .false.,                       &
+     &                      this%last_values(:,i))
+      END DO
+
+      CALL reconstruction_eval_f(this, derived_params, a_model)
+
+      CALL profiler_set_stop_time('reconstruction_restart', start_time)
 
       END SUBROUTINE
 
@@ -2603,7 +2677,7 @@
 
 !  Number of signular values has been stored in the next step but the
 !  step hasn't been updated yet.
-      CALL MPI_BCAST(this%num_sv(this%current_step + 1), 1, MPI_REAL8,         &
+      CALL MPI_BCAST(this%num_sv(this%current_step + 1), 1, MPI_INTEGER,       &
      &               0, recon_comm, error)
 
       CALL profiler_set_stop_time('reconstruction_sync_svd', start_time)

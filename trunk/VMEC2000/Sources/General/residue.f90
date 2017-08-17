@@ -8,7 +8,8 @@
       USE xstuff
       USE precon2d
       USE parallel_include_module
-      USE parallel_vmec_module, ONLY: tlglob_arr, trglob_arr
+      USE parallel_vmec_module, ONLY: tlglob_arr, trglob_arr, SAXLASTNTYPE
+      USE blocktridiagonalsolver, ONLY: L_COLSCALE
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -138,7 +139,7 @@
 
       IF (ictrl_prec2d .EQ. 1) THEN
          
-         !STOP 'residue:134: Block preconditioning not parallelized'
+         IF (l_colscale) CALL SAXLASTNTYPE(pgc, pcol_scale, pgc)
 
          LRESIDUECALL=.TRUE.
          CALL block_precond_par(pgc)
@@ -411,6 +412,7 @@
 !
 
       IF (ictrl_prec2d .EQ. 1) THEN
+
          CALL block_precond(gc)
 
          IF (.not.lfreeb .and. ANY(gcr(ns,:,:,:) .ne. zero))            &

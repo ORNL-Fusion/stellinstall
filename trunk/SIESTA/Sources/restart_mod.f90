@@ -130,7 +130,7 @@
                             jbsupumnsh, jbsupumnch,                            &
                             jbsupvmnsh, jbsupvmnch,                            &
                             jpmnsh,     jpmnch
-      USE shared_data, ONLY: lasym, nprecon
+      USE shared_data, ONLY: lasym
 
       IMPLICIT NONE
 
@@ -221,7 +221,6 @@
       DEALLOCATE(tempmn)
 
       WRITE (33, 400) mpol, ntor, ns
-      nprecon = 2   !USED TO SKIP DIAGONAL PRECONDITIONER IN EVOLVE
 
  400  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
 

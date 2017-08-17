@@ -46,7 +46,7 @@ endif ()
 # Activate or Deactivate fast copies. The fast copies maybe activated by setting -DUSE_FAST_COPY=ON on the cmake command line.
 OPTION (USE_FAST_COPY "Activate code fast copies." OFF)
 if (USE_FAST_COPY)
-add_definitions (-DFAST_COPY)
+	add_definitions (-DFAST_COPY)
 endif ()
 
 # Add the ability to auto generate API documentation with Doxygen
@@ -148,9 +148,13 @@ else ()
 	endif ()
 endif ()
 
+add_definitions (-DMRC)
+
 # List all the subdirectories these are in library dependancy order.
 add_subdirectory (LIBSTELL)
 add_subdirectory (VMEC2000)
+add_subdirectory (POINCARE)
+add_subdirectory (SIESTA)
 add_subdirectory (V3FITA)
 add_subdirectory (MAKEGRID)
 add_subdirectory (V3RFUN)
@@ -161,14 +165,6 @@ add_subdirectory (DESCUR)
 add_subdirectory (BMW)
 add_subdirectory (LGRID)
 add_subdirectory (Testing)
-
-# Optional extra builds
-OPTION (BUILD_SIESTA "Activate SIESTA." OFF)
-if (BUILD_SIESTA)
-        add_definitions (-DMRC)
-	add_subdirectory (POINCARE)
-	add_subdirectory (SIESTA)
-endif ()
 
 # Optional extra builds
 if (BUILD_GTOVMI)

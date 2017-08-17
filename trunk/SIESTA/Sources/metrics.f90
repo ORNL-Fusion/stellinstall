@@ -6,7 +6,7 @@
       USE stel_kinds
       USE stel_constants
       USE island_params
-      USE shared_data, ONLY: lasym
+      USE shared_data, ONLY: lasym, lverbose
       USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor,  &
           rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,             &
           xm_vmec=>xm, xn_vmec=>xn, chipf_vmec=>chipf,                   &  ! MRC 4/1/2016
@@ -92,7 +92,7 @@
       init_timers_time=init_timers_time+(skstoff-skston)
 #endif
 
-      IF (iScale .NE. 0) THEN
+      IF (iScale .NE. 0 .and. lverbose) THEN
       PRINT *,'RESET ISCALE=0 AFTER TESTING!'
       !PAUSE
       END IF
@@ -320,7 +320,7 @@
 #endif
       IF (istat .NE. 0) STOP 'LoadRZL error in INIT_METRIC_ELEMENTS'
 
-      IF (lwout_opened) CALL read_wout_deallocate
+!      IF (lwout_opened) CALL read_wout_deallocate
 
       END SUBROUTINE init_metric_elements
       
@@ -448,7 +448,7 @@
 !IDENTITY TEST THAT INTERPOLATION WORKS
          IF (nsi == nsv .and. .not.lscale) THEN
             IF (ANY(ABS(ymn_vmec(modes,2:) - ymn_spline(modes,2:)).GT.1.E-10_dp)) THEN
-               PRINT *,'MODE: ',modes,'y_vmec .ne. y_spline'
+               IF (lverbose) PRINT *,'MODE: ',modes,'y_vmec .ne. y_spline'
             ENDIF
          END IF
 !
@@ -704,7 +704,7 @@
 
  1000 CONTINUE      
 
-      IF (iam .EQ. 0) THEN
+      IF (iam .EQ. 0 .and. lverbose) THEN
          IF (MAXVAL(xm_vmec).GT.mpol_i .OR.                              &
             MAXVAL(ABS(xn_vmec))/nfp_vmec.GT.ntor_i)                     & 
             PRINT *,'It is recommended to increase the number of ',      &
@@ -877,7 +877,7 @@
               + gsuf(:,js)*(guvf(:,js)*gsvf(:,js)-gsuf(:,js)*gvvf(:,js)) &
               + gsvf(:,js)*(gsuf(:,js)*guvf(:,js)-gsvf(:,js)*guuf(:,js))
          IF (ANY(det .le. zero)) THEN
-            IF (iam .eq. 0)PRINT *,'Determinant |gijf| <= 0 at js = ',js
+            IF (iam .eq. 0 .and. lverbose)PRINT *,'Determinant |gijf| <= 0 at js = ',js
             IF (js .eq. ns) THEN
                det(:) = sqrtg(:,ns)**2
                gssf(:,ns) = gss(:,ns)

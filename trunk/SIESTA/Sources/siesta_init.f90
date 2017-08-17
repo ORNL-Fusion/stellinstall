@@ -26,6 +26,7 @@
        USE siesta_currents, ONLY: cv_currents
        USE quantities
        USE mpi_inc
+       USE descriptor_mod, ONLY: SIESTA_COMM
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -83,18 +84,24 @@
        IF (ladd_pert .OR. muPar.NE.zero) THEN
           nsmax=MIN(endglobrow+1,ns)
 !Calculate K || B
-          CALL tolowerf_par(bsupsijf0,bsupuijf0,bsupvijf0,               & 
-                            bsubsijf, bsubuijf, bsubvijf,                &
-                            nsmin, nsmax)  
+          CALL tolowerf_par(ksupsijf0,ksupuijf0,ksupvijf0,               &
+                            ksubsijf, ksubuijf, ksubvijf,                &
+                            nsmin, nsmax)
+
 !IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
           IF (ladd_pert) THEN
-          ksubsijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)
-          ksubuijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)
-          ksubvijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubvijf(:,:,nsmin:nsmax)
+          ksubsijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)
+          ksubuijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)
+          ksubvijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
           END IF
+
+          CALL tolowerf_par(bsupsijf0,bsupuijf0,bsupvijf0,               &
+                            bsubsijf, bsubuijf, bsubvijf,                &
+                            nsmin, nsmax)
+
           nsmax=MIN(endglobrow+2,ns)
        END IF
- 
+
 !Compute real pressure p Fourier coefficients on half grid
 !and compute dp/du and dp/dv
        IF (l_update_state) ALLOCATE (pfilter(ntheta, nzeta, nsmin:nsmax))
@@ -133,7 +140,7 @@
        stes(2) = SUM((pijh(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
 #if defined(MPI_OPT)
        CALL MPI_ALLREDUCE(stes,rtes,2,MPI_REAL8,MPI_SUM,                 &
-                          MPI_COMM_WORLD,MPI_ERR)
+                          SIESTA_COMM,MPI_ERR)
        IF (rtes(2) .NE. zero) ste(1) = SQRT(rtes(1)/rtes(2))
 #else
        IF (stes(2) .NE. zero) ste(1) = SQRT(stes(1)/stes(2))

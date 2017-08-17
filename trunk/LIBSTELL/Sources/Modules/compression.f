@@ -129,7 +129,7 @@
 
       IF (svd_cut_off .eq. 0.0) THEN
          RETURN
-      END iF
+      END IF
 
       ALLOCATE(compression_construct_new%wvt_buffer(n,n))
       ALLOCATE(compression_construct_new%u_buffer(m,m))

@@ -1,10 +1,11 @@
       MODULE gmres_mod
-      USE vmec_main, ONLY: dp, rprec, neqs, ns, mns, mnmax, nthreed, 
+      USE vmec_main, ONLY: dp, rprec, neqs, ns, nthreed, 
      1                     one, fsqr, fsqz, fsql
       USE parallel_include_module
       USE parallel_vmec_module, ONLY: CopyLastNtype, SaxpbyLastNtype,
      1                                SaxpbyLastNs, Saxpby1LastNs,
-     2                                GetDerivLastNs
+     2                                GetDerivLastNs, SaxLastNtype
+      USE precon2d, ONLY: ictrl_prec2d
       IMPLICIT NONE
       INTEGER :: nfcn = 0, lqmrstep = 0
       INTEGER :: ier_flag_res
@@ -20,17 +21,15 @@
       SUBROUTINE matvec_par (ploc, Ap, nloc)
       USE blocktridiagonalsolver, ONLY: ParMatVec
       USE stel_kinds
-      USE vmec_main, ONLY: mpol1, ntor
-      USE vmec_params, ONLY: ntmax
       USE xstuff, ONLY: pxc, px0=>pxsave, pgc0=>pxcdot, pgc
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(IN)   :: nloc
       REAL(dp), INTENT(IN)  :: 
-     1                  ploc(0:ntor,0:mpol1,3*ntmax,tlglob:trglob)
+     1                  ploc(ntmaxblocksize,tlglob:trglob)
       REAL(dp), INTENT(OUT) :: 
-     1                  Ap(0:ntor,0:mpol1,3*ntmax,tlglob:trglob)
+     1                  Ap(ntmaxblocksize,tlglob:trglob)
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
@@ -75,13 +74,13 @@ C-----------------------------------------------
 
 !DEBUG
       IF (lactive) THEN
-      lmax = SUM(Ap(:,:,:,tlglob:trglob)**2)
+      lmax = SUM(Ap(:,tlglob:trglob)**2)
       CALL MPI_REDUCE(lmax, apmax, 1, MPI_REAL8, MPI_SUM, 0, NS_COMM,
      1                MPI_ERR)
-      lmax = SUM((Ap(:,:,:,tlglob:trglob)+ploc(:,:,:,tlglob:trglob))**2)
+      lmax = SUM((Ap(:,tlglob:trglob)+ploc(:,tlglob:trglob))**2)
       CALL MPI_REDUCE(lmax, gmax, 1, MPI_REAL8, MPI_SUM, 0, NS_COMM,
      1                MPI_ERR)
-      IF (rank .eq. 0) PRINT 100,'IN MATVEC_PAR, delta: ', delta,
+      IF (rank .EQ. 0) PRINT 100,'IN MATVEC_PAR, delta: ', delta,
      1               ' |p|: ', pmax, ' |Ap|: ',
      2               SQRT(apmax), ' |Ap+p|: ', SQRT(gmax)
  100  FORMAT(1x,4(a,1p,e12.5))
@@ -91,7 +90,6 @@ C-----------------------------------------------
       END SUBROUTINE matvec_par
 
       SUBROUTINE GetNLForce_par(xcstate, fsq_nl, bnorm, ndim)
-      USE stel_kinds
       USE xstuff, ONLY: pxc, pgc, x0=>pxsave
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -104,13 +102,14 @@ C-----------------------------------------------
       IF (ndim .NE. neqs) STOP 'ndim != neqs in GetNLForces_par'
 
       LACTIVE0: IF (lactive) THEN
+
       CALL Saxpby1LastNs(bnorm, xcstate, one, x0, pxc)
+
       CALL last_ntype_par
       CALL PadSides(pxc)
       END IF LACTIVE0
 
       CALL funct3d_par(lscreen0, ier_flag_res)
-      
       IF (lactive) CALL last_ns_par
 
       fsq_nl = fsqr+fsqz+fsql
@@ -285,9 +284,8 @@ C-----------------------------------------------
 
 !STORE INITIAL POINT AND INITIAL FORCE (AT INIT PT)
 !SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
-      CALL CopyLastNtype(pxc, pxsave)
+      CALL CopyLastNtype(pxc, pxsave) 
       CALL CopyLastNtype(pgc, pxcdot)
-
 
 !RHS: RETURN RESULT OF SOLVING LINEARIZED A*x = -gc IN XCDOT 
 !     AND IS DISTRIBUTED OVER ALL PROCESSORS
@@ -296,7 +294,6 @@ C-----------------------------------------------
       CALL last_ns_par
       CALL gmres_par (n, gi, matvec_par, block_precond_par,
      1                getnlforce_par, pxcdot, pgc)
-
       CALL last_ntype_par
 
 !      ier_flag = gi%info(1)
@@ -328,6 +325,9 @@ C-----------------------------------------------
 ! 1010 FORMAT(2x,'GMRES_FUN, TIME_STEP: ',1p,e10.3, ' FSQ_MIN: ',1pe10.3)
 
       fsqr = fsqr_min; fsqz = fsqz_min; fsql = fsql_min
+      IF (ictrl_prec2d .EQ. 1) 
+     1  CALL SaxLastNtype(pxcdot,pcol_scale,pxcdot)
+
       CALL SaxpbyLastNtype(fact_min, pxcdot, one, pxsave, pxc)
       CALL COPYLASTNTYPE(pxc, pxsave)
 
@@ -335,9 +335,8 @@ C-----------------------------------------------
       LGMRESCALL=.FALSE.
       END SUBROUTINE gmres_fun_par
 #endif
-      SUBROUTINE GetNLForce(xcstate, fsq_nl, bnorm, ndim)
 
-      USE stel_kinds
+      SUBROUTINE GetNLForce(xcstate, fsq_nl, bnorm, ndim)
       USE xstuff, ONLY: xc, gc, x0=>xsave
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -358,7 +357,6 @@ C-----------------------------------------------
       END SUBROUTINE GetNLForce
 
       SUBROUTINE matvec (p, Ap, ndim)
-      USE stel_kinds
       USE xstuff, ONLY: xc, x0=>xsave, gc0=>xcdot, gc
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
@@ -404,7 +402,7 @@ C-----------------------------------------------
       END SUBROUTINE matvec
 
       SUBROUTINE gmres_fun (ier_flag, itype)
-      USE precon2d, ONLY: ictrl_prec2d, block_precond
+      USE precon2d, ONLY: block_precond
       USE xstuff
       USE vmec_main, ONLY: fsqr, fsqz, fsql, ftolv
       USE gmres_lib, ONLY: gmres_ser, gmres_info
@@ -727,8 +725,7 @@ C-----------------------------------------------
 !     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
 !     WRITE TO INTERNAL FILE TO DO TRUNCATION
 !
-      RETURN
-
+!UNCOMMENT THESE LINES TO ACTIVATE
 !      WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
 !      WRITE (tchnum, chnum) num
 

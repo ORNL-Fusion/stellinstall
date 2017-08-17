@@ -19,7 +19,8 @@
       REAL(dp)           :: mupar_test
 
       REAL(dp),PARAMETER   :: fsq_res = 1.E-16_dp   !<threshold force for turning off resistive perturbations
-      REAL(dp), PARAMETER  :: levm_ped=1.E-08_dp, mu_ped=1.E-6_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
+!      REAL(dp), PARAMETER  :: levm_ped=1.E-08_dp, mu_ped=1.E-6_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
+      REAL(dp), PARAMETER  :: levm_ped=1.E-10_dp, mu_ped=1.E-6_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
       REAL(dp), DIMENSION(:), ALLOCATABLE, TARGET :: gc  !<1D Array of Fourier mode MHD force components
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE     :: buv_res  !<Resonant magnetic field perturbation
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc  !<1D array of Fourier mode displacement components
@@ -53,5 +54,6 @@
       LOGICAL         :: lcolscale                  !<=TRUE to apply col-scaling to Hessian
       LOGICAL         :: lasym = .FALSE.            !<=FALSE, symmetric; =TRUE, asymmetric plasma
       LOGICAL         :: lrecon = .FALSE.
+      LOGICAL         :: lverbose = .TRUE.
 
       END MODULE shared_data

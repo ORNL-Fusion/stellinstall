@@ -16,8 +16,8 @@
 
 !  FIXME: This is a hack remove everything between these FIXME statements once
 !         siesta is fully coupled
-      LOGICAL                     :: l_asym = .true.
-      LOGICAL                     :: l_recon = .true.
+      LOGICAL                     :: lasym = .true.
+      LOGICAL                     :: lrecon = .true.
       LOGICAL                     :: lcolscale = .true.
       LOGICAL                     :: ladd_pert = .true.
       LOGICAL                     :: lresistive = .true.
@@ -36,7 +36,7 @@
       REAL (rprec), DIMENSION(10) :: helpert
 
       NAMELIST/siesta_info/                                                    &
-     &   l_asym, l_recon, lcolscale, ladd_pert, lresistive, lrestart,          &
+     &   lasym, lrecon, lcolscale, ladd_pert, lresistive, lrestart,            &
      &   niter, nsin, mpolin, ntorin, ftol, levmarq_param, mupar,              &
      &   wout_file, restart_ext, mres, helpert
 !  FIXME: This is a hack remove everything between these FIXME statements once

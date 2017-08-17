@@ -1735,6 +1735,105 @@
 
       END SUBROUTINE
 
+!-------------------------------------------------------------------------------
+!>  @brief Restart the model.
+!>
+!>  Restarts the model from the result file.
+!>
+!>  @param[inout] this         A @ref model_class instance.
+!>  @param[in]    result_ncid  NetCDF file id of the result file.
+!>  @param[in]    current_step Step index to read variables from.
+!-------------------------------------------------------------------------------
+      SUBROUTINE model_restart(this, result_ncid, current_step)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (model_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)               :: result_ncid
+      INTEGER, INTENT(in)               :: current_step
+
+!  Local variables
+      INTEGER                           :: i, status
+      INTEGER                           :: ne_unit_var_id
+      INTEGER                           :: ne_min_var_id
+      INTEGER                           :: te_min_var_id
+      INTEGER                           :: pressure_fraction_var_id
+      INTEGER                           :: ne_grid_var_id
+      INTEGER                           :: te_grid_var_id
+      INTEGER                           :: sxrem_grid_var_id
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      status = nf_inq_varid(result_ncid, 'ne_unit', ne_unit_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, ne_unit_var_id,                 &
+     &                            current_step, this%ne_unit)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'ne_min', ne_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, ne_min_var_id,                  &
+     &                            current_step, this%ne_min)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'te_min', te_min_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, te_min_var_id,                  &
+     &                            current_step, this%te_min)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'pressure_fraction',                  &
+     &                      pressure_fraction_var_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, pressure_fraction_var_id,       &
+     &                            current_step, this%pressure_fraction)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      IF (ASSOCIATED(this%ne_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'ne_grid', ne_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_get_vara_double(result_ncid, ne_grid_var_id,              &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%ne_grid), 1 /),              &
+     &                               this%ne_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%te_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'te_grid', te_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_get_vara_double(result_ncid, te_grid_var_id,              &
+     &                               (/ 1, current_step /),                    &
+     &                               (/ SIZE(this%te_grid), 1 /),              &
+     &                               this%te_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      IF (ASSOCIATED(this%sxrem_grid)) THEN
+         status = nf_inq_varid(result_ncid, 'sxrem_grid',                      &
+     &                         sxrem_grid_var_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_get_vara_double(result_ncid, sxrem_grid_var_id,           &
+     &                               (/ 1, 1, current_step /),                 &
+     &                               (/ SIZE(this%sxrem_grid, 1),              &
+     &                                  SIZE(this%sxrem_grid, 2), 1 /),        &
+     &                               this%sxrem_grid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
+
+      CALL equilibrium_restart(this%equilibrium, result_ncid,                  &
+     &                         current_step)
+
+      this%state_flags = model_state_all_off
+
+      CALL profiler_set_stop_time('model_restart', start_time)
+
+      END SUBROUTINE
+
 !*******************************************************************************
 !  MPI SUBROUTINES
 !*******************************************************************************
@@ -1822,13 +1921,13 @@
 
          IF (mpi_rank .eq. index) THEN
 
-            CALL MPI_SEND(this%ne_grid, grid_size, MPI_REAL8, 0,               &
-     &                    mpi_rank, recon_comm, error)
-            CALL MPI_SEND(this%sxrem_grid,                                     &
-     &                    grid_size*SIZE(this%sxrem_type), MPI_REAL8, 0,       &
-     &                    mpi_rank, recon_comm, error)
-            CALL MPI_SEND(this%te_grid, grid_size, MPI_REAL8, 0,               &
-     &                    mpi_rank, recon_comm, error)
+            CALL MPI_SSEND(this%ne_grid, grid_size, MPI_REAL8, 0,              &
+     &                     mpi_rank, recon_comm, error)
+            CALL MPI_SSEND(this%sxrem_grid,                                    &
+     &                     grid_size*SIZE(this%sxrem_type), MPI_REAL8,         &
+     &                     0, mpi_rank, recon_comm, error)
+            CALL MPI_SSEND(this%te_grid, grid_size, MPI_REAL8, 0,              &
+     &                     mpi_rank, recon_comm, error)
 
          ELSE IF (mpi_rank .eq. 0) THEN
 

@@ -242,7 +242,7 @@
          CASE (thomson_temperature_type)
             IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.         &
      &          BTEST(a_model%state_flags, model_state_siesta_flag) .or.       &
-     &          BTEST(a_model%state_flags, model_state_ne_flag) .or.           &
+     &          BTEST(a_model%state_flags, model_state_te_flag) .or.           &
      &          BTEST(a_model%state_flags, model_state_shift_flag)) THEN
                thomson_get_modeled_signal(1) =                                 &
      &            model_get_te(a_model, this%xcart)

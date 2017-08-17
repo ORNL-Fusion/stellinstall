@@ -15,6 +15,7 @@
       USE parallel_include_module
       USE parallel_vmec_module, ONLY: SAXLASTNTYPE, ZEROLASTNTYPE,
      1                                SAXPBYLASTNTYPE
+      USE blocktridiagonalsolver, ONLY: L_COLSCALE
 #if defined (SKS)
       IMPLICIT NONE
 C-----------------------------------------------
@@ -50,10 +51,14 @@ C-----------------------------------------------
       ACTIVE1: IF (lactive) THEN 
         IF (ictrl_prec2d .EQ. 3) THEN
           CALL SAXPBYLASTNTYPE(one, pxc, one, pxcdot, pgc)
-          CALL SAXLASTNTYPE(pgc, pscalxc, pgc, t1lglob, t1rglob)
+          CALL SAXLASTNTYPE(pgc, pscalxc, pgc)
+        ELSE IF (ictrl_prec2d.EQ.1 .AND. l_colscale) THEN
+          pgc = (pxc-pxsave)*pcol_scale + pxsave
+          CALL SAXLASTNTYPE(pgc, pscalxc, pgc)
         ELSE
-          CALL SAXLASTNTYPE(pxc, pscalxc, pgc, t1lglob, t1rglob)
+          CALL SAXLASTNTYPE(pxc, pscalxc, pgc)
         END IF
+
 !
 !     RIGID BODY SHIFT OF RMNCC(JS.GT.1,0,0) BY DELR_MSE= R00-RAXMSE
 !
@@ -412,7 +417,7 @@ C-----------------------------------------------
 !================================================================
       CALL second0 (treson)
 
-      CALL SAXLASTNTYPE(pgc, pscalxc, pgc, t1lglob, t1rglob)
+      CALL SAXLASTNTYPE(pgc, pscalxc, pgc)
 
       CALL second0 (skston)
       CALL residue_par(pgc, pgc(1+irzloff), pgc(1+2*irzloff))

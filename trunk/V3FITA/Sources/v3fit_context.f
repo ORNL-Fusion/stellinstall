@@ -331,10 +331,17 @@
 !  local variables
       CHARACTER (len=path_length)               :: filename
       INTEGER                                   :: status
+      INTEGER                                   :: recon_rank
       REAL (rprec)                              :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+#if defined(MPI_OPT)
+      CALL MPI_COMM_RANK(this%reconstruction_comm, recon_rank, status)
+#else
+      recon_rank = 0
+#endif
 
       filename = commandline_parser_get_string(this%cl_parser, '-file')
 
@@ -358,11 +365,20 @@
      &               'Safe_open of recout. ' //                                &
      &               TRIM(filename_base(filename)) // 'failed')
 
+      IF (commandline_parser_is_flag_set(this%cl_parser,                       &
+     &                                   '-restart') .and.                     &
+     &    recon_rank .eq. 0) THEN
+         filename = commandline_parser_get_string(this%cl_parser,              &
+     &                                            '-restart')
+         status = nf_open(filename, NF_WRITE, this%result_ncid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      ELSE
 !  Create a result file.
-      status = nf_create('result.' // TRIM(filename_base(filename)) //         &
-     &                   '.nc', nf_clobber,                                    &
-     &                   this%result_ncid)
-      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+         status = nf_create('result.' // TRIM(filename_base(filename))         &
+     &                      // '.nc', nf_clobber,                              &
+     &                      this%result_ncid)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      END IF
 
       WRITE (this%runlog_iou, *) 'V3FITA RUN'
       WRITE (this%runlog_iou, *) '  Namelist Input from file ',                &
@@ -764,14 +780,16 @@
 !>  result netcdf file. Multi dimensional arrays need to be transposed so arrays
 !>  appear in the correct order in non fortran languages.
 !>
-!>  @param[inout] this A @ref v3fit_context_class instance.
+!>  @param[inout] this     A @ref v3fit_context_class instance.
+!>  @param[in]    eq_steps Number of steps taken by the equilibrium.
 !-------------------------------------------------------------------------------
-      SUBROUTINE v3fit_context_init_data(this)
+      SUBROUTINE v3fit_context_init_data(this, eq_steps)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(in)                       :: eq_steps
 
 !  local variables
       INTEGER :: i, status
@@ -783,6 +801,7 @@
       INTEGER :: n_sig_models_dim_id
       INTEGER :: string_len_dim_id
       INTEGER :: nsteps_id
+      INTEGER :: eq_steps_id
       INTEGER :: g2_id
       INTEGER :: derived_param_name_id
       INTEGER :: derived_param_index_id
@@ -860,6 +879,10 @@
 !  Define variables
       status = nf_def_var(this%result_ncid, 'nsteps', nf_int, 0, 0,            &
      &                    nsteps_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_def_var(this%result_ncid, 'eq_steps', nf_int, 0, 0,          &
+     &                    eq_steps_id)
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       IF (ASSOCIATED(this%recon)) THEN
@@ -1052,7 +1075,7 @@
          CALL model_write_init_data(this%model, this%result_ncid)
       END IF
 
-      CALL v3fit_context_write_step_data(this, .true.)
+      CALL v3fit_context_write_step_data(this, .true., eq_steps)
 
       CALL profiler_set_stop_time('v3fit_context_init_data', start_time)
 
@@ -1067,22 +1090,26 @@
 !>  @param[inout] this       A @ref v3fit_context_class instance.
 !>  @param[in]    first_step Flags to determine if this is the first instance
 !>                           this has been called.
+!>  @param[in]    eq_steps   Number of steps the equilibrium took.
 !>  @note The only caller of this subrotine that should set first_step to true
 !>  should be @ref v3fit_context_init_data. All others should callers should set
 !>  first_step to false.
 !-------------------------------------------------------------------------------
-      SUBROUTINE v3fit_context_write_step_data(this, first_step)
+      SUBROUTINE v3fit_context_write_step_data(this, first_step,               &
+     &                                         eq_steps)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (v3fit_context_class), INTENT(inout) :: this
       LOGICAL, INTENT(in)                       :: first_step
+      INTEGER, INTENT(in)                       :: eq_steps
 
 !  local variables
       INTEGER :: i, status
       INTEGER :: current_step
       INTEGER :: nsteps_id
+      INTEGER :: eq_steps_id
       INTEGER :: g2_id
       INTEGER :: derived_param_value_id
       INTEGER :: derived_param_sigma_id
@@ -1119,6 +1146,11 @@
 !  needs to be incremented to point to the correct index.
          current_step = current_step + 1
       END IF
+
+      status = nf_inq_varid(this%result_ncid, 'eq_steps', eq_steps_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_var_int(this%result_ncid, eq_steps_id, eq_steps)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       CALL model_write_step_data(this%model, this%result_ncid,                 &
      &                           current_step)
@@ -1213,5 +1245,87 @@
      &                            start_time)
 
       END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Restart the reconstruction.
+!>
+!>  Reloads a reconstruction from the result file.
+!>
+!>  @param[inout] this         A @ref v3fit_context_class instance.
+!>  @param[inout] current_step Reconstruction step left off from.
+!>  @returns The current step.
+!-------------------------------------------------------------------------------
+      FUNCTION v3fit_context_restart(this, current_step)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER                                   :: v3fit_context_restart
+      TYPE (v3fit_context_class), INTENT(inout) :: this
+      INTEGER, INTENT(inout)                    :: current_step
+
+!  local variables
+      INTEGER                                   :: i
+      INTEGER                                   :: status
+      INTEGER                                   :: nsteps_id
+      INTEGER                                   :: eq_steps_id
+      INTEGER                                   :: param_value_id
+      INTEGER                                   :: param_sigma_id
+      INTEGER                                   :: param_corr_id
+      REAL (rprec)                              :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  The current step starts at zero but the NetCDF file starts at 1. Increment
+!  the current step when passing it into subroutines.
+      status = nf_inq_varid(this%result_ncid, 'nsteps', nsteps_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var_int(this%result_ncid, nsteps_id,                  &
+     &                           current_step)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      current_step = current_step + 1
+
+      IF (ASSOCIATED(this%params)) THEN
+         status = nf_inq_varid(this%result_ncid, 'param_value',                &
+     &                         param_value_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid, 'param_sigma',                &
+     &                         param_sigma_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         status = nf_inq_varid(this%result_ncid, 'param_corr',                 &
+     &                      param_corr_id)
+         CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+         DO i = 1, SIZE(this%params)
+            CALL param_restart(this%params(i)%p, this%model,                   &
+     &                         this%result_ncid,                               &
+     &                         current_step,                                   &
+     &                         i, param_value_id, param_sigma_id,              &
+     &                         param_corr_id, this%equilibrium_comm,           &
+     &                         this%recon%use_central)
+         END DO
+
+         CALL model_restart(this%model, this%result_ncid,                      &
+     &                      current_step)
+
+         CALL reconstruction_restart(this%recon, this%result_ncid,             &
+     &                               current_step,                             &
+     &                               this%signals, this%derived_params,        &
+     &                               this%model)
+
+      END IF
+
+      status = nf_inq_varid(this%result_ncid, 'eq_steps', eq_steps_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var_int(this%result_ncid, eq_steps_id,                    &
+     &                        v3fit_context_restart)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('v3fit_context_restart', start_time)
+
+      END FUNCTION
 
       END MODULE

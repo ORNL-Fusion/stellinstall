@@ -64,32 +64,30 @@ C-----------------------------------------------
 
       IF (iter2 .lt. 10) THEN
          ictrl_prec2d = 0
-         lqmr = .false.
+         lqmr = .false.; lfirst = .false.
          iter_on = -1
       ELSE IF (lfinal_mesh .and. 
      1        (fsqr+fsqz+fsql).lt.prec2d_threshold) THEN
 !     2                     .and. r0dot.lt.r0dot_threshold) THEN
-         lqmr = (itype_precon .ge. 2)
-         lfirst = (lqmr .and. iter_on.eq.-1) 
+         lqmr = (itype_precon .GE. 2)
+         lfirst = (lqmr .AND. iter_on.EQ.-1) 
 
 !
 !        INITIATES 2D PRECONDITIONER CALCULATION
 !
-         IF (iter_on .eq. -1) THEN
+         IF (iter_on .EQ. -1) THEN
             IF (lqmr) THEN
                nstep = 5
-               niter = iter2+100                   !Limit to 100 preconditioner steps
+            ELSE
+               nstep = 20
             END IF
-            iter_on = iter2                     !Flag to monitor progress of preconditioner
-         ELSE
-            iter_on = iter2-11
+            niter = iter2 + 200                    !Limit to 200 preconditioner steps
+            iter_on = iter2                        !Flag to monitor progress of preconditioner
          END IF
-
-!         iter_on = iter2                     !Flag to monitor progress of preconditioner
 
 !SPH022111: ADD NEW CONTROL PARAMETER, l_comp_prec2D, TO FORCE RECALCULATION
 !           OF PRECONDITIONING BLOCKS IN V3FIT, FOR EXAMPLE
-         IF (lfirst .or. l_comp_prec2D) THEN
+         IF (lfirst .OR. l_comp_prec2D) THEN
             IF (l_v3fit) WRITE(*,*) 'VMEC Evolve:compute_blocks'
             IF (PARVMEC) THEN
 #if defined(SKS)
@@ -103,7 +101,9 @@ C-----------------------------------------------
          l_comp_prec2D = .FALSE.
          ictrl_prec2d = 1
          time_step = 0.50_dp
-         iter1 = iter2-1; fsq = fsqr1 + fsqz1 + fsql1
+         iter1 = iter2                             !Reset otau for CG
+         fsq = fsqr1 + fsqz1 + fsql1
+
          IF (PARVMEC) THEN
 #if defined(SKS)
             CALL CopyLastNtype(pxstore, pxc)
@@ -114,7 +114,6 @@ C-----------------------------------------------
            xcdot = 0
          END IF
       END IF
-
 !
 !     COMPUTE MHD FORCES
 !     MUST CALL funct3d EVEN WHEN IN 2D PRECONDITIONING MODE, SINCE
@@ -130,6 +129,7 @@ C-----------------------------------------------
         CALL funct3d (lscreen, ier_flag)
 #if defined (SKS)      
       END IF
+
       CALL second0(f3dt2)
       f3d_time(NS_RESLTN) = f3d_time(NS_RESLTN) + (f3dt2-f3dt1)
       funct3d_time = funct3d_time + (f3dt2-f3dt1)
@@ -137,7 +137,7 @@ C-----------------------------------------------
 
 !
 !     COMPUTE ABSOLUTE STOPPING CRITERION
-      IF (iter2.eq.1 .and. irst.eq.2) THEN
+      IF (iter2.EQ.1 .AND. irst.EQ.2) THEN
          ier_flag = bad_jacobian_flag
          RETURN
 !  JDH 2012-04-24. Revise this absolute stopping criterion, so that if v3fit
@@ -148,7 +148,7 @@ C-----------------------------------------------
 !     1         fsql.le.ftolv) THEN
       ELSE IF (fsqr.le.ftolv .and. fsqz.le.ftolv .and.
      1         fsql.le.ftolv)
-!    2    .and. ((.not. l_v3fit) .or. iter2 - iter1 .ge. 2 * nvacskip))
+!     2    .and. ((.not. l_v3fit) .or. iter2 - iter1 .ge. 2 * nvacskip))
      3         THEN
          liter_flag = .false.
          ier_flag = successful_term_flag
@@ -162,7 +162,7 @@ C-----------------------------------------------
 
 !SPH:042117: MOVE TIME STEP CONTROL HERE (FROM END OF EQSOLVE) TO AVOID
 !STORING A POSSIBLE irst=2 STATE
-      CALL TimeStepControl(ier_flag, PARVMEC)
+      IF (ictrl_prec2d .EQ. 0) CALL TimeStepControl(ier_flag, PARVMEC)
 
       IF (lqmr) THEN
          IF (PARVMEC) THEN
@@ -188,7 +188,7 @@ C-----------------------------------------------
 
       fsq1 = fsqr1 + fsqz1 + fsql1
 
-      IF (iter2 .eq. iter1) otau(:ndamp) = cp15/time_step
+      IF (iter2 .EQ. iter1) otau(:ndamp) = cp15/time_step
 
       IF (ictrl_prec2d .eq. 0) THEN
          bprec = 1

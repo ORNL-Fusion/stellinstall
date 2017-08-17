@@ -94,23 +94,23 @@
       TYPE param_class
 !>  Id number of the parameter. Id's are provided by either the @ref model or
 !>  the @ref equilibrium.
-         INTEGER                               :: param_id = data_no_id
+         INTEGER                              :: param_id = data_no_id
 !>  The i and j indices of the parameter. These are only used if the parameter
 !>  is the element of an array.
          INTEGER, DIMENSION(data_max_indices) :: indices = 0
 
 !>  Pointer to the extra variables needed for reconstruction parameters.
-         TYPE (param_recon_class), POINTER     :: recon => null()
+         TYPE (param_recon_class), POINTER    :: recon => null()
 !>  Pointer to the extra variables needed for locking parameters.
-         TYPE (param_locking_class), POINTER   :: locks => null()
+         TYPE (param_locking_class), POINTER  :: locks => null()
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
 !>  step. This value is calculated by
 !>  @ref reconstruction::reconstruction_eval_pos_covar.
-         REAL (rprec)                          :: sigma = 0.0
+         REAL (rprec)                         :: sigma = 0.0
 !>  Stored row of the correlation matrix. When the parameter is interpreted as a
 !>  locking parameter, this array contains the parameter coefficents.
-         REAL (rprec), DIMENSION(:), POINTER   :: correlation => null()
+         REAL (rprec), DIMENSION(:), POINTER  :: correlation => null()
       END TYPE
 
 !-------------------------------------------------------------------------------
@@ -1418,8 +1418,79 @@
      &                            (/ 1, index, current_step /),                &
      &                            (/ SIZE(this%correlation), 1, 1 /),          &
      &                            this%correlation)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       CALL profiler_set_stop_time('param_write_step_data_2', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Restart the parameter.
+!>
+!>  Restarts a parameter from the result file. This reloads and sets the value,
+!>  sigma and correlation. All other values are set when the namelist input file
+!>  was read.
+!>
+!>  @param[inout] this           A @ref param_class instance.
+!>  @param[in]    a_model        The equilibrium model.
+!>  @param[in]    result_ncid    Netcdf if for the result file.
+!>  @param[in]    current_step   Step number to restart from.
+!>  @param[in]    index          A index of a parameter.
+!>  @param[in]    param_value_id NetCDF variable id of the parameter value.
+!>                               @see v3fit_context
+!>  @param[in]    param_sigma_id NetCDF variable id of the parameter sigma.
+!>                               @see v3fit_context
+!>  @param[in]    param_corr_id  NetCDF variable id of the parameter
+!>                               correlation. @see v3fit_context
+!>  @param[in]    eq_comm        MPI communicator for the child equilibrium
+!>                               processes.
+!>  @param[in]    is_central     Central differencing is being used.
+!-------------------------------------------------------------------------------
+      SUBROUTINE param_restart(this, a_model, result_ncid, current_step,       &
+     &                         index, param_value_id, param_sigma_id,          &
+     &                         param_corr_id, eq_comm, is_central)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (param_class), INTENT(inout) :: this
+      TYPE (model_class), INTENT(inout) :: a_model
+      INTEGER, INTENT(in)               :: result_ncid
+      INTEGER, INTENT(in)               :: current_step
+      INTEGER, INTENT(in)               :: index
+      INTEGER, INTENT(in)               :: param_value_id
+      INTEGER, INTENT(in)               :: param_sigma_id
+      INTEGER, INTENT(in)               :: param_corr_id
+      INTEGER, INTENT(in)               :: eq_comm
+      LOGICAL, INTENT(in)               :: is_central
+
+!  local variables
+      INTEGER                           :: status
+      REAL (rprec)                      :: temp_value
+      REAL (rprec)                      :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      status = nf_get_var1_double(result_ncid, param_value_id,                 &
+     &                            (/ index, current_step /), temp_value)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      CALL param_set_value(this, a_model, temp_value, eq_comm,                 &
+     &                     is_central)
+
+      status = nf_put_var1_double(result_ncid, param_sigma_id,                 &
+     &                            (/ index, current_step /),                   &
+     &                            this%sigma)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_put_vara_double(result_ncid, param_corr_id,                  &
+     &                            (/ 1, index, current_step /),                &
+     &                            (/ SIZE(this%correlation), 1, 1 /),          &
+     &                            this%correlation)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('param_restart', start_time)
 
       END SUBROUTINE
 
@@ -1597,7 +1668,6 @@
 !>  Syncs the value of delta from a child process to the parent. If MPI
 !>  support is not compiled in this subroutine reduces to a no op.
 !>
-!>
 !>  @param[inout] this       A @ref param_class instance.
 !>  @param[inout] a_model    A @ref model instance.
 !>  @param[in]    index      Index of the reconstruction parameter.
@@ -1633,8 +1703,8 @@
 
       IF (mpi_rank .eq. index) THEN
          value = param_get_value(this, a_model)
-         CALL MPI_SEND(value, 1, MPI_REAL8, 0, mpi_rank, recon_comm,           &
-     &                 error)
+         CALL MPI_SSEND(value, 1, MPI_REAL8, 0, mpi_rank, recon_comm,          &
+     &                  error)
       ELSE IF (mpi_rank .eq. 0) THEN
          CALL MPI_RECV(value, 1, MPI_REAL8, index, index, recon_comm,          &
      &                 MPI_STATUS_IGNORE, error)

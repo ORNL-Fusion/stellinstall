@@ -70,6 +70,7 @@
       MODULE siesta_equilibrium
       USE siesta_context
       USE vmec_equilibrium
+      USE siesta_run
 
       IMPLICIT NONE
 
@@ -226,7 +227,7 @@
          REAL (rprec)                           :: z_offset = 0
 
 !>  Base VMEC equilibrium.
-         TYPE (vmec_class), POINTER              :: vmec => null()
+         TYPE (vmec_class), POINTER             :: vmec => null()
       END TYPE
 
 !*******************************************************************************
@@ -343,9 +344,7 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-!  Save a copy of the jcf orginal jcf file.
-      CALL copy_file(TRIM(file_name), TRIM(file_name) // '_save',              &
-     &               error)
+      ALLOCATE(siesta_construct)
 
       eq_rank = 0
       recon_rank = 0
@@ -360,40 +359,44 @@
       CALL MPI_BCAST(recon_rank, 1, MPI_INTEGER, 0, eq_comm, error)
 #endif
 
+      siesta_construct%vmec => vmec
+
       IF (eq_rank .eq. 0) THEN
+!  Save a copy of the jcf orginal jcf file.
+         CALL copy_file(TRIM(file_name), TRIM(file_name) // '_save',           &
+     &               error)
+
          WRITE (*,*) ' *** Initializing SIESTA equilibrium from ' //           &
      &               'file ' // TRIM(file_name)
          WRITE (iou,*) ' *** Initializing SIESTA equilibrium from ' //         &
      &                 'file ' // TRIM(file_name)
-      END IF
 
-      ALLOCATE(siesta_construct)
-      siesta_construct%ne => ne
-      siesta_construct%te => te
-      siesta_construct%sxrem => sxrem
+         siesta_construct%ne => ne
+         siesta_construct%te => te
+         siesta_construct%sxrem => sxrem
 
-      siesta_construct%phi_offset = phi_offset
-      siesta_construct%z_offset = z_offset
+         siesta_construct%phi_offset = phi_offset
+         siesta_construct%z_offset = z_offset
 
-      siesta_construct%pol_rad_ratio = pol_rad_ratio
-      siesta_construct%siesta_file_name = TRIM(file_name)
+         siesta_construct%pol_rad_ratio = pol_rad_ratio
+         siesta_construct%siesta_file_name = TRIM(file_name)
 
-      siesta_construct%vmec => vmec
+         iou_nli = 100
+         CALL safe_open(iou_nli, error, TRIM(file_name), 'old',                &
+     &                  'formatted')
+         READ (iou_nli, nml=siesta_info)
+         CLOSE (iou_nli, iostat=error)
+         wout_file = vmec%wout_file_name
+         WRITE (siesta_construct%restart_file_name,1000)                       &
+     &      TRIM(restart_ext)
 
-      iou_nli = 100
-      CALL safe_open(iou_nli, error, TRIM(file_name), 'old',                   &
-     &               'formatted')
-      READ (iou_nli, nml=siesta_info)
-      CLOSE (iou_nli, iostat=error)
-      wout_file = vmec%wout_file_name
-      WRITE (siesta_construct%restart_file_name,1000) TRIM(restart_ext)
+         state_flags = IBSET(state_flags, model_state_siesta_flag)
 
-      state_flags = IBSET(state_flags, model_state_siesta_flag)
-
-      IF (restart_file_name .ne. '' .and. eq_rank .eq. 0) THEN
-         state_flags = IBCLR(state_flags, model_state_siesta_flag)
-         siesta_construct%context =>                                           &
-     &      siesta_context_construct(restart_file_name)
+         IF (restart_file_name .ne. '') THEN
+            state_flags = IBCLR(state_flags, model_state_siesta_flag)
+            siesta_construct%context =>                                        &
+     &         siesta_context_construct(restart_file_name)
+         END IF
       END IF
 
       CALL profiler_set_stop_time('siesta_construct', start_time)
@@ -3163,6 +3166,7 @@
       INTEGER                            :: iou_nli
       INTEGER                            :: status
       INTEGER                            :: child_comm
+      TYPE (siesta_run_class), POINTER   :: run_context
       REAL (rprec)                       :: start_time
 
 !  Start of executable code
@@ -3188,17 +3192,23 @@
 
          iou_nli = 100
          ladd_pert = .true.
-         lresistive = .true.
+         lresistive = .false.
          lrestart = .false.
          CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
      &                  'replace', 'formatted', delim_in='quote')
          WRITE (iou_nli, nml=siesta_info)
          CLOSE (iou_nli, iostat=status)
+      END IF
 
-         CALL MPI_COMM_SPAWN('xsiesta', MPI_ARGV_NULL, eq_size,                &
-     &                       MPI_INFO_NULL, 0, MPI_COMM_SELF,                  &
-     &                       child_comm, MPI_ERRCODES_IGNORE, status)
-         CALL MPI_BARRIER(child_comm, status)
+#if defined(MPI_OPT)
+      CALL MPI_BARRIER(eq_comm, status)
+#endif
+      run_context => siesta_run_construct(eq_comm, .false., .false.)
+      CALL siesta_run_set_vmec(run_context)
+      CALL siesta_run_converge(run_context)
+      CALL siesta_run_destruct(run_context, .false., .false.)
+
+      IF (eq_rank .eq. 0) THEN
 
          ladd_pert = .false.
          lresistive = .false.
@@ -3207,27 +3217,30 @@
      &                  'replace', 'formatted', delim_in='quote')
          WRITE (iou_nli, nml=siesta_info)
          CLOSE (iou_nli, iostat=status)
+      END IF
 
-         CALL MPI_COMM_SPAWN('xsiesta', MPI_ARGV_NULL, eq_size,                &
-     &                       MPI_INFO_NULL, 0, MPI_COMM_SELF,                  &
-     &                       child_comm, MPI_ERRCODES_IGNORE, status)
-         CALL MPI_BARRIER(child_comm, status)
+#if defined(MPI_OPT)
+      CALL MPI_BARRIER(eq_comm, status)
+#endif
+      run_context => siesta_run_construct(eq_comm, .false., .false.)
+      CALL siesta_run_set_vmec(run_context)
+      CALL siesta_run_converge(run_context)
+      CALL siesta_run_destruct(run_context, .false., .false.)
 
-         status = 0
-         siesta_converge = siesta_converge .and. status .eq. 0
+      status = 0
+      siesta_converge = siesta_converge .and. status .eq. 0
 
-         IF (siesta_converge) THEN
-            IF (ASSOCIATED(this%context)) THEN
-               CALL siesta_context_read(this%context,                          &
+      IF (siesta_converge .and. eq_rank .eq. 0) THEN
+         IF (ASSOCIATED(this%context)) THEN
+            CALL siesta_context_read(this%context,                             &
      &                                  this%restart_file_name)
-            ELSE
-               this%context =>                                                 &
-     &            siesta_context_construct(this%restart_file_name)
-            END IF
+         ELSE
+            this%context =>                                                    &
+     &         siesta_context_construct(this%restart_file_name)
+         END IF
 
-            IF (ASSOCIATED(this%magnetic_cache)) THEN
-               CALL siesta_set_magnetic_cache(this)
-            END IF
+         IF (ASSOCIATED(this%magnetic_cache)) THEN
+            CALL siesta_set_magnetic_cache(this)
          END IF
       END IF
 
@@ -3340,6 +3353,8 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_write(this, iou)
       USE safe_open_mod
+      USE siesta_context
+      USE file_opts
 
       IMPLICIT NONE
 
@@ -3372,8 +3387,11 @@
       CALL safe_open(iou_nl, status,                                           &
      &               TRIM(this%siesta_file_name) // '_out',                    &
      &               'replace', 'formatted', delim_in='quote')
-!      WRITE (iou_nl, nml=indata) FIXME Replace with SIESTA case.
+      WRITE (iou_nl, nml=siesta_info)
       CLOSE (iou_nl, iostat=status)
+
+      CALL move_file(TRIM(this%siesta_file_name) // '_save',                   &
+     &               TRIM(this%siesta_file_name), status)
 
       CALL vmec_write(this%vmec, iou)
 
@@ -3394,6 +3412,7 @@
       SUBROUTINE siesta_write_input(this, current_step)
       USE safe_open_mod
       USE file_opts
+      USE siesta_context
 
       IMPLICIT NONE
 
@@ -3421,7 +3440,7 @@
 
       CALL safe_open(iou_nl, status, TRIM(filename), 'replace',                &
      &               'formatted', delim_in='none')
-!      WRITE (iou_nl, nml=indata) FIXME Replace with SIESTA case.
+      WRITE (iou_nl, nml=siesta_info)
       CLOSE (iou_nl, iostat=status)
       CALL assert_eq(status, 0, 'Error saving input file.')
 
@@ -3553,6 +3572,36 @@
       IF (current_step .ne. 1) THEN
          CALL vmec_write_step_data(this%vmec, result_ncid, current_step)
       END IF
+
+      CALL profiler_set_stop_time('siesta_write_step_data', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Restart from a result file.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_restart.
+!>
+!>  @param[in] this         A @ref siesta_class instance.
+!>  @param[in] result_ncid  NetCDF file id of the result file.
+!>  @param[in] current_step Step index to write variables to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE siesta_restart(this, result_ncid, current_step)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (siesta_class), INTENT(in) :: this
+      INTEGER, INTENT(in)             :: result_ncid
+      INTEGER, INTENT(in)             :: current_step
+
+!  Local variables
+      REAL (rprec)                    :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL vmec_restart(this%vmec, result_ncid, current_step)
 
       CALL profiler_set_stop_time('siesta_write_step_data', start_time)
 

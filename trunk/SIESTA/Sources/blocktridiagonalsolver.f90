@@ -4,9 +4,10 @@
 !!  \date 2009-2017
 
 !-------------------------------------------------------------------------------
-MODULE blocktridiagonalsolver
+MODULE blocktridiagonalsolver_s
 #if defined(MPI_OPT)
 USE mpi_inc
+USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
 IMPLICIT NONE
 PRIVATE
@@ -632,7 +633,7 @@ SUBROUTINE PLBForwardInitializeLevel( lvl, ammaster )
   IF(KPDBG) WRITE(OFU,*) 'Myrowcol ',blacs%pgrid%myrow,' ',blacs%pgrid%mycol; CALL FL(OFU)
 
   !----------------------------------------------
-  pblas%mpicomm = MPI_COMM_WORLD
+  pblas%mpicomm = SIESTA_COMM
   pblas%mpitag = 1234
 
   !----------------------------------------------
@@ -771,7 +772,7 @@ SUBROUTINE DetermineMasterSlaveRanks()
   !----------------------------------------------
   CALL MPI_Allgather( send_ammaster, 1, MPI_LOGICAL, &
                       recv_ammaster, 1, MPI_LOGICAL, &
-                      MPI_COMM_WORLD, mpi_err )
+                      SIESTA_COMM, mpi_err )
 
   !----------------------------------------------
   !Figure out total number of masters
@@ -2028,8 +2029,8 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
   IF ( do_mpiinit ) THEN
     CALL MPI_Init( mpierr )
   END IF
-  CALL MPI_Comm_rank( MPI_COMM_WORLD, rank, mpierr )
-  CALL MPI_Comm_size( MPI_COMM_WORLD, nranks, mpierr)
+  CALL MPI_Comm_rank( SIESTA_COMM, rank, mpierr )
+  CALL MPI_Comm_size( SIESTA_COMM, nranks, mpierr)
   use_mpiwtime = .TRUE.
 #endif
 
@@ -3213,7 +3214,7 @@ SUBROUTINE Finalize( do_mpifinalize )
 #if defined(MPI_OPT)
   IF ( usebarriers ) THEN
       IF(KPDBG) WRITE(OFU,*) 'Barrier in finalize'; CALL FL(OFU)
-      CALL MPI_Barrier( MPI_COMM_WORLD, mpierr )
+      CALL MPI_Barrier( SIESTA_COMM, mpierr )
       IF(KPDBG) WRITE(OFU,*) 'Done barrier in finalize'; CALL FL(OFU)
   END IF
   !-----------------------------------------------------------------------------
@@ -3634,7 +3635,7 @@ SUBROUTINE ForwardSolve
     !---------------------------------------------------------------------------
     IF ( usebarriers ) THEN
       IF(KPDBG) WRITE(OFU,*) 'Barrier at forward level ', level; CALL FL(OFU)
-      CALL MPI_Barrier( MPI_COMM_WORLD, mpierr )
+      CALL MPI_Barrier( SIESTA_COMM, mpierr )
       IF(KPDBG) WRITE(OFU,*) 'Done barrier at forward level ', level; CALL FL(OFU)
     END IF
 
@@ -3756,21 +3757,21 @@ SUBROUTINE ForwardSolve
 
       CALL BSystemClock(loctimer1)
       CALL MPI_Irecv( lelement(level, globrowoff)%L, M*M, MPI_REAL8, &
-       nbrrank, 1, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 1, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx) )
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
       IF(KPDBG) WRITE(OFU,*) '  Irecv 1 top ',nbrrank,' ',nbrmpireqindx-1; CALL FL(OFU)
 
       CALL MPI_Irecv( lelement(level, globrowoff)%U, M*M, MPI_REAL8, &
-       nbrrank, 2, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 2, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
       IF(KPDBG) WRITE(OFU,*) '  Irecv 2 top ',nbrrank,' ',nbrmpireqindx-1; CALL FL(OFU)
 
       CALL MPI_Irecv( lelement(level, globrowoff)%b, M, MPI_REAL8, &
-       nbrrank, 3, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 3, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
@@ -3800,21 +3801,21 @@ SUBROUTINE ForwardSolve
 
       CALL BSystemClock(loctimer1)
       CALL MPI_Irecv( lelement(level, globrowoff)%L, M*M, MPI_REAL8, &
-       nbrrank, 4, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 4, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
       IF(KPDBG) WRITE(OFU,*) '  Irecv 4 bot ',nbrrank,' ',nbrmpireqindx-1; CALL FL(OFU)
 
       CALL MPI_Irecv( lelement(level, globrowoff)%U, M*M, MPI_REAL8, &
-       nbrrank, 5, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 5, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
       IF(KPDBG) WRITE(OFU,*) '  Irecv 5 bot ',nbrrank,' ',nbrmpireqindx-1; CALL FL(OFU)
 
       CALL MPI_Irecv( lelement(level, globrowoff)%b, M, MPI_REAL8, &
-       nbrrank, 6, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 6, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
@@ -3929,21 +3930,21 @@ SUBROUTINE ForwardSolve
             globrowoff = globrow-startglobrow+1
             stag = (((1-rowoffset))/2)*3
             CALL MPI_Isend( lelement(level,globrowoff)%L, M*M, MPI_REAL8, &
-             nbrrank, stag+1, MPI_COMM_WORLD, &
+             nbrrank, stag+1, SIESTA_COMM, &
              nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx))
             nbrmpireqindx = nbrmpireqindx + 1
             nbrmpinisends = nbrmpinisends + 1
             IF(KPDBG) WRITE(OFU,*) '  Isend ',stag+1,' ',globrowoff; CALL FL(OFU)
 
             CALL MPI_Isend( lelement(level,globrowoff)%U, M*M, MPI_REAL8, &
-             nbrrank, stag+2, MPI_COMM_WORLD, &
+             nbrrank, stag+2, SIESTA_COMM, &
              nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx))
             nbrmpireqindx = nbrmpireqindx + 1
             nbrmpinisends = nbrmpinisends + 1
             IF(KPDBG) WRITE(OFU,*) '  Isend ',stag+2,' ',globrowoff; CALL FL(OFU)
 
             CALL MPI_Isend( lelement(level,globrowoff)%b, M, MPI_REAL8, &
-             nbrrank, stag+3, MPI_COMM_WORLD, &
+             nbrrank, stag+3, SIESTA_COMM, &
              nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx))
             nbrmpireqindx = nbrmpireqindx + 1
             nbrmpinisends = nbrmpinisends + 1
@@ -4077,7 +4078,7 @@ SUBROUTINE ForwardUpdateb
     !---------------------------------------------------------------------------
     IF ( usebarriers ) THEN
       IF(KPDBG) WRITE(OFU,*) 'Barrier at forward updateb level ', level; CALL FL(OFU)
-      CALL MPI_Barrier( MPI_COMM_WORLD, mpierr )
+      CALL MPI_Barrier( SIESTA_COMM, mpierr )
       IF(KPDBG) WRITE(OFU,*) 'Done barrier at forward updateb level ', level; CALL FL(OFU)
     END IF
 
@@ -4191,7 +4192,7 @@ SUBROUTINE ForwardUpdateb
 
       CALL BSystemClock(loctimer1)
       CALL MPI_Irecv( lelement(level, globrowoff)%b, M, MPI_REAL8, &
-       nbrrank, 3, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 3, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
@@ -4221,7 +4222,7 @@ SUBROUTINE ForwardUpdateb
 
       CALL BSystemClock(loctimer1)
       CALL MPI_Irecv( lelement(level, globrowoff)%b, M, MPI_REAL8, &
-       nbrrank, 6, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+       nbrrank, 6, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
        nbrmpierr(nbrmpireqindx))
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
@@ -4304,7 +4305,7 @@ SUBROUTINE ForwardUpdateb
             globrowoff = globrow-startglobrow+1
             stag = (((1-rowoffset))/2)*3
             CALL MPI_Isend( lelement(level,globrowoff)%b, M, MPI_REAL8, &
-             nbrrank, stag+3, MPI_COMM_WORLD, &
+             nbrrank, stag+3, SIESTA_COMM, &
              nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx))
             nbrmpireqindx = nbrmpireqindx + 1
             nbrmpinisends = nbrmpinisends + 1
@@ -4448,7 +4449,7 @@ SUBROUTINE BackwardSolve
     !---------------------------------------------------------------------------
     IF ( usebarriers ) THEN
       IF(KPDBG) WRITE(OFU,*) 'Barrier at backward level ', level; CALL FL(OFU)
-      CALL MPI_Barrier( MPI_COMM_WORLD, mpierr )
+      CALL MPI_Barrier( SIESTA_COMM, mpierr )
       IF(KPDBG) WRITE(OFU,*) 'Done barrier at backward level ', level; CALL FL(OFU)
     END IF
 
@@ -4511,7 +4512,7 @@ SUBROUTINE BackwardSolve
       END IF
       CALL BSystemClock(loctimer1)
       CALL MPI_Irecv( selement(globrow)%x, M, MPI_REAL8, nbrrank, stag, &
-       MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
+       SIESTA_COMM, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
       CALL BSystemClock(loctimer2)
@@ -4532,7 +4533,7 @@ SUBROUTINE BackwardSolve
       END IF
       CALL BSystemClock(loctimer1)
       CALL MPI_Irecv( selement(globrow)%x, M, MPI_REAL8, nbrrank, stag, &
-       MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
+       SIESTA_COMM, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
       nbrmpireqindx = nbrmpireqindx + 1
       nbrmpinirecvs = nbrmpinirecvs + 1
       CALL BSystemClock(loctimer2)
@@ -4562,7 +4563,7 @@ SUBROUTINE BackwardSolve
             stag = (1-rowoffset)/2+1
             CALL BSystemClock(loctimer1)
             CALL MPI_Isend( selement(globrow)%x, M, MPI_REAL8, &
-             nbrrank, stag, MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), &
+             nbrrank, stag, SIESTA_COMM, nbrmpireq(nbrmpireqindx), &
              nbrmpierr(nbrmpireqindx) )
             nbrmpireqindx = nbrmpireqindx + 1
             nbrmpinisends = nbrmpinisends + 1
@@ -4694,7 +4695,7 @@ SUBROUTINE VerifySolution
         ALLOCATE( selement(startglobrow-1)%x(M) )
     END IF
     CALL MPI_Irecv( selement(startglobrow-1)%x, M, MPI_REAL8, nbrrank, 1, &
-      MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
+      SIESTA_COMM, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
     nbrmpireqindx = nbrmpireqindx + 1
     nbrmpinirecvs = nbrmpinirecvs + 1
   END IF
@@ -4704,21 +4705,21 @@ SUBROUTINE VerifySolution
         ALLOCATE( selement(endglobrow+1)%x(M) )
     END IF
     CALL MPI_Irecv( selement(endglobrow+1)%x, M, MPI_REAL8, nbrrank, 2, &
-      MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
+      SIESTA_COMM, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
     nbrmpireqindx = nbrmpireqindx + 1
     nbrmpinirecvs = nbrmpinirecvs + 1
   END IF
   nbrrank = GR2Rank(startglobrow-1)
   IF ( ISEVEN(startglobrow) .AND. (nbrrank .GE. 0) ) THEN
     CALL MPI_Isend( selement(startglobrow)%x, M, MPI_REAL8, nbrrank, 2, &
-      MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
+      SIESTA_COMM, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
     nbrmpireqindx = nbrmpireqindx + 1
     nbrmpinisends = nbrmpinisends + 1
   END IF
   nbrrank = GR2Rank(endglobrow+1)
   IF ( ISEVEN(endglobrow) .AND. (nbrrank .GE. 0) ) THEN
     CALL MPI_Isend( selement(endglobrow)%x, M, MPI_REAL8, nbrrank, 1, &
-      MPI_COMM_WORLD, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
+      SIESTA_COMM, nbrmpireq(nbrmpireqindx), nbrmpierr(nbrmpireqindx) )
     nbrmpireqindx = nbrmpireqindx + 1
     nbrmpinisends = nbrmpinisends + 1
   END IF
@@ -4807,7 +4808,7 @@ ELSE
 END IF
 
 CALL MPI_Sendrecv(sendBuf,M*M,MPI_REAL8,topNeighbor,1,&
-&bottomLeftMatrix,M*M,MPI_REAL8,bottomNeighbor,1,MPI_COMM_WORLD,&
+&bottomLeftMatrix,M*M,MPI_REAL8,bottomNeighbor,1,SIESTA_COMM,&
 &mpistatus,mpi_err)
 
 IF (ALLOCATED(sendBuf)) DEALLOCATE(sendBuf)
@@ -4862,8 +4863,8 @@ CALL FLUSH(360+rank)
 
 IF (ALLOCATED(bottomLeftMatrix)) DEALLOCATE(bottomLeftMatrix)
 
-CALL MPI_Reduce(diff,tdiff,1,MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,mpi_err)
-CALL MPI_Reduce(norm,tnorm,1,MPI_REAL8,MPI_SUM,0,MPI_COMM_WORLD,mpi_err)
+CALL MPI_Reduce(diff,tdiff,1,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
+CALL MPI_Reduce(norm,tnorm,1,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
 IF (rank.EQ.0) THEN 
   asymIndx=SQRT(tdiff/tnorm)
   !print *,'New asymIndx:',asymIndx
@@ -5115,7 +5116,7 @@ END DO
 eps0 = MAXVAL(cs)
 
 s1(1)=eps0
-CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX, MPI_COMM_WORLD,MPI_ERR)
+CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX, SIESTA_COMM,MPI_ERR)
 eps0 = minScale*r1(1)
 
 !FILTER COLS OF CS SEPARATELY
@@ -5154,10 +5155,10 @@ DO ic=1, M
 END DO
 
 CALL MPI_Sendrecv(tmp1,M,MPI_REAL8,top,1,&
-  BotScaleFac,M,MPI_REAL8,bot,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+  BotScaleFac,M,MPI_REAL8,bot,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
 
 CALL MPI_Sendrecv(tmp2,M,MPI_REAL8,bot,1,&
-  TopScaleFac,M,MPI_REAL8,top,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+  TopScaleFac,M,MPI_REAL8,top,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
 
 DEALLOCATE(tmp1, tmp2)
 
@@ -5239,10 +5240,10 @@ ALLOCATE (toprow(M),botrow(M))
 L_COLSCALE = .TRUE.
 
 CALL MPI_Sendrecv(colsum(:,endglobrow),M,MPI_REAL8,bot,1,&
-  toprow,M,MPI_REAL8,top,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+  toprow,M,MPI_REAL8,top,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
 
 CALL MPI_Sendrecv(colsum(:,startglobrow),M,MPI_REAL8,top,1,&
-  botrow,M,MPI_REAL8,bot,1,MPI_COMM_WORLD,MPI_STAT,MPI_ERR)
+  botrow,M,MPI_REAL8,bot,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
 
 dcnt = 0
 DO js = startglobrow, endglobrow
@@ -5316,7 +5317,7 @@ DO js = startglobrow, endglobrow
 END DO
 
 s1(1)=-Dmin_TRI; s1(2)=maxeigen_tri
-CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX, MPI_COMM_WORLD,MPI_ERR)
+CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX, SIESTA_COMM,MPI_ERR)
 Dmin_TRI=SIGN(-r1(1), eps)
 maxeigen_tri=r1(2)
 
@@ -5386,5 +5387,5 @@ END SUBROUTINE ComputeTranspose
 
 
 #endif
-END MODULE blocktridiagonalsolver
+END MODULE blocktridiagonalsolver_s
 !-------------------------------------------------------------------------------

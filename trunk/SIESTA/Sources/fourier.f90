@@ -777,7 +777,7 @@
 
       SUBROUTINE TEST_FOURIER
       USE descriptor_mod, ONLY: iam, nprocs
-      USE shared_data, ONLY: lasym
+      USE shared_data, ONLY: lasym, lverbose
 #if defined(SKS)
       USE timer_mod, ONLY: test_fourier_time
 #endif      
@@ -873,7 +873,7 @@
        test_fourier_time=toff-ton
 #endif       
        IF (iam .EQ. 0) THEN
-          PRINT 300,'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
+          IF (lverbose)PRINT 300,'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
           WRITE (33, 300) 'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
        END IF
 

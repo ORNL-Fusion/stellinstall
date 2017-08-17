@@ -1871,6 +1871,7 @@
 
 !  Write out the final namelist input file.
 !  Update the boundary from the free boundary solution.
+
       IF (lfreeb) THEN
          DO i = 1, mnmax
             rbc(INT(xn(i)/nfp),INT(xm(i))) =                                   &
@@ -2596,6 +2597,7 @@
             vmec_get_param_name = 'z_offset'
 
          CASE DEFAULT
+            WRITE (*,*) id
             STOP 'Invalid VMEC parameter id.'
 
       END SELECT
@@ -4565,6 +4567,7 @@
       USE mgrid_mod, only: nextcur
       USE vmec_dim, only: mpol1
       USE vmec_input, only: ntor
+      USE xstuff, only: xc
       USE ezcdf
 
       IMPLICIT NONE
@@ -4588,12 +4591,18 @@
       INTEGER                       :: vmec_zbs_id
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
+      INTEGER                       :: vmec_xc_id
+      INTEGER                       :: vmec_xc_dim_id
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
 !  Define dimensions.
+      status = nf_def_dim(result_ncid, 'vmec_xc_dim', SIZE(xc),                &
+     &                    vmec_xc_dim_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
       IF (nextcur .gt. 0) THEN
          status = nf_def_dim(result_ncid, 'vmec_nextcur', nextcur,             &
      &                       vmec_nextcur_dim_id)
@@ -4609,6 +4618,10 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
 !  Define variables.
+      status = nf_def_var(result_ncid, 'vmec_xc', nf_double, 1,                &
+     &                    (/ vmec_xc_dim_id /), vmec_xc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
       IF (nextcur .gt. 0) THEN
          status = nf_def_var(result_ncid, 'vmec_extcur', nf_double, 1,         &
      &                       (/ vmec_nextcur_dim_id /), vmec_extcur_id)
@@ -4762,6 +4775,7 @@
       SUBROUTINE vmec_write_step_data(this, result_ncid, current_step)
       USE v3f_vmec_comm
       USE ezcdf
+      USE xstuff, only: xc
 
       IMPLICIT NONE
 
@@ -4774,10 +4788,17 @@
       INTEGER                       :: status
       INTEGER                       :: vmec_l_sub_i_id
       INTEGER                       :: vmec_kappa_p_id
+      INTEGER                       :: vmec_xc_id
       REAL (rprec)                  :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
+
+      status = nf_inq_varid(result_ncid, 'vmec_xc', vmec_xc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_put_vara_double(result_ncid, vmec_xc_id,                     &
+     &                            (/ 1 /), (/ SIZE(xc) /), xc)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
      &                      vmec_l_sub_i_id)
@@ -4794,6 +4815,61 @@
       CALL assert_eq(status, nf_noerr, nf_strerror(status))
 
       CALL profiler_set_stop_time('vmec_write_step_data', start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Restart vmec from the result file.
+!>
+!>  This method overrides @ref equilibrium::equilibrium_restart.
+!>
+!>  @param[in] this         A @ref vmec_class instance.
+!>  @param[in] result_ncid  NetCDF file id of the result file.
+!>  @param[in] current_step Step index to write variables to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE vmec_restart(this, result_ncid, current_step)
+      USE v3f_vmec_comm
+      USE ezcdf
+      USE xstuff, only: xc
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (vmec_class), INTENT(in) :: this
+      INTEGER, INTENT(in)           :: result_ncid
+      INTEGER, INTENT(in)           :: current_step
+
+!  Local variables
+      INTEGER                       :: status
+      INTEGER                       :: vmec_l_sub_i_id
+      INTEGER                       :: vmec_kappa_p_id
+      INTEGER                       :: vmec_xc_id
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      status = nf_inq_varid(result_ncid, 'vmec_xc', vmec_xc_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_vara_double(result_ncid, vmec_xc_id,                     &
+     &                            (/ 1 /), (/ SIZE(xc) /), xc)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'vmec_l_sub_i',                       &
+     &                      vmec_l_sub_i_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, vmec_l_sub_i_id,                &
+     &                            current_step, vvc_smaleli)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      status = nf_inq_varid(result_ncid, 'vmec_kappa_p',                       &
+     &                      vmec_kappa_p_id)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+      status = nf_get_var1_double(result_ncid, vmec_kappa_p_id,                &
+     &                            current_step, vvc_kappa_p)
+      CALL assert_eq(status, nf_noerr, nf_strerror(status))
+
+      CALL profiler_set_stop_time('vmec_restart', start_time)
 
       END SUBROUTINE
 

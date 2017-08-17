@@ -11,6 +11,7 @@
          INTEGER, POINTER  :: rcounts(:), disp(:)
          LOGICAL  :: lactive = .TRUE.
          REAL(dp) :: cntl(5), ftol
+         LOGICAL  :: lverbose = .TRUE.
       END TYPE GMRES_INFO
 
       INTEGER, PARAMETER :: matveci=1, precondLeft=2,
@@ -75,7 +76,7 @@
       work(n+1:2*n) = b(1:n)/bnorm
 
       icount=0; jcount=0; fsq_min=-1
-      PRINT 900
+      IF (gi%lverbose) PRINT 900
  900  FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,1x,     
      1      'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
 
@@ -166,7 +167,8 @@
           xmax = bnorm*MAXVAL(ABS(xmin))
           IF (icount.EQ.1 .OR. MOD(icount,10).EQ.0) THEN
              kprint = kout
-             PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+             IF (gi%lverbose)                                                  &
+     &          PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
           END IF
           IF (fsq_nl .LE. gi%ftol) gi%icntl(7)=gi%info(1)
           fsq_min = fsq_nl; fsq_min_lin = fsq_lin
@@ -187,7 +189,7 @@
 
       DEALLOCATE (work)
 
-      IF (kprint.NE.kout)       
+      IF (kprint.NE.kout .and. gi%lverbose)
      &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
       x0 = bnorm*x0
@@ -230,6 +232,8 @@
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
 
+      xmax = 0
+
       lactive = gi%lactive
       MY_COMM_WORLD = gi%MY_COMM_WORLD
       MY_COMM       = gi%MY_COMM
@@ -271,7 +275,7 @@
       work(nloc+1:2*nloc) = b(myrowstart:myrowend)/bnorm
       END IF
 
-      IF (iam .EQ. 0) PRINT 900
+      IF (iam .EQ. 0 .and. gi%lverbose) PRINT 900
 900   FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,
      &       1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
 
@@ -415,7 +419,7 @@
 !        WRITE(10000+iam,*) "peek"; CALL FLUSH(10000+iam)
         END IF
 !get nonlinear force
-        CALL GetNLForce(aux, fsq_nl, bnorm, n)                            
+        CALL GetNLForce(aux, fsq_nl, bnorm, n)
 
         LACTIVE1: IF (lactive) THEN
         fsq_lin = (rinfo(1)*bnorm)**2
@@ -442,8 +446,10 @@
           xmax=bnorm*xmax
 
           IF (iam.EQ.0 .AND. (icount.EQ.1 .OR. MOD(icount,10).EQ.0))THEN
+             IF (gi%lverbose) THEN
              kprint = kout
              PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+             END IF
           END IF
           IF (fsq_nl .LE. gi%ftol) gi%icntl(7)=gi%info(1)
           IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
@@ -501,7 +507,7 @@
 !!      fsq_total1 = fsq_min
       x0 = tmpbuf*bnorm
 
-      IF (iam.EQ.0 .AND. kprint.NE.kout)                                 &
+      IF (iam.EQ.0 .AND. kprint.NE.kout .and. gi%lverbose)               &
      &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
 !      IF (iam .EQ. 0) PRINT 110, icount
@@ -510,7 +516,36 @@
 
       DEALLOCATE (work, tmpbuf, aux, itest)
 #endif
+
       END SUBROUTINE gmres_par
+
+#if defined(MRC)
+      SUBROUTINE Truncate(num, iprec0)
+      USE stel_kinds, ONLY: dp
+      IMPLICIT NONE
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)     :: iprec0
+      REAL(dp), INTENT(INOUT) :: num
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      CHARACTER*24 :: chnum, tchnum
+!-----------------------------------------------
+!
+!     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
+!     WRITE TO INTERNAL FILE TO DO TRUNCATION
+!
+!     RETURN
+
+      WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
+      WRITE (tchnum, chnum) num
+
+      READ (tchnum, chnum) num
+
+      END SUBROUTINE Truncate
+#endif
 
       END MODULE GMRES_LIB
 

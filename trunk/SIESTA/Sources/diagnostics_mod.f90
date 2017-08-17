@@ -1,7 +1,7 @@
       MODULE diagnostics_mod
       USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,         &
                    f_sum, f_cos, f_sin, f_none, f_du, f_dv
-      USE descriptor_mod, ONLY: iam, nprocs
+      USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE timer_mod
       USE quantities
       IMPLICIT NONE
@@ -41,7 +41,7 @@
 !
         CALL second0(ton)
 
-        IF (.NOT. ALLOCATED(divbmnsf))  THEN                                  
+        IF (.NOT. ALLOCATED(divbmnsf))  THEN
           ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
           IF (istat .NE. 0) STOP 'Allocation failed in divb'
           divbmnsf = 0
@@ -99,14 +99,14 @@
         END DO
 
         tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                 &
-              +     jbsupvmnch(:,:,nsmin:nsmax)**2                      &
-              +     jbsupsmnsh(:,:,nsmin:nsmax)**2)
+              +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &
+              +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
         divb_rms = SUM(divbmnsf**2)
 #if defined(MPI_OPT)        
         s1(1) = divb_rms; s1(2) = tnorm
         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
-                           MPI_COMM_WORLD,MPI_ERR)
+                           SIESTA_COMM,MPI_ERR)
         divb_rms=r1(1);   tnorm = r1(2)
 #endif
         IF (tnorm .NE. zero) THEN
@@ -140,7 +140,7 @@
 !       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN GATHERED
 !       (IN UPDATE_STATE)
 !
-        IF (iam .EQ. 0) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR lasym=T ---'
+        IF (iam .EQ. 0 .and. lverbose) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR lasym=T ---'
 
         ALLOCATE(pijh(ntheta,nzeta,ns), stat=istat)
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)      
@@ -528,7 +528,7 @@
       s1(1)=tnorm_bgradp;  s1(2)=wbgradp
 #if defined(SKS)
       CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                     &
-                         MPI_COMM_WORLD,MPI_ERR)
+                         SIESTA_COMM,MPI_ERR)
 #else
       r1 = s1
 #endif
@@ -547,7 +547,7 @@
          s1(1)=max_bgradp; s1(2) = -min_bgradp
 #if defined(SKS)
          CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX,                  &
-                            MPI_COMM_WORLD,MPI_ERR)
+                            SIESTA_COMM,MPI_ERR)
 #else
          r1 = s1
 #endif
@@ -644,7 +644,7 @@
 
 !Averages over all toroidal cross sections (which should be the same)
       toroidal_flux = SUM(jbsupvmnch(m0,n0,2:ns))
-      
+
       toroidal_flux = signjac*twopi*toroidal_flux*hs_i/b_factor  
       
       IF (toroidal_flux0 .EQ. zero) toroidal_flux0 = toroidal_flux
@@ -990,7 +990,7 @@
 #if defined(MPI_OPT)
         s1(1)=tnorm; s1(2)=tnorm2; s1(3)=bdotj_rms
         CALL MPI_ALLREDUCE(s1,r1,3,MPI_REAL8, MPI_SUM,                   &
-                           MPI_COMM_WORLD,MPI_ERR)
+                           SIESTA_COMM,MPI_ERR)
         tnorm  = SQRT(ABS(r1(1)))
         tnorm2 = SQRT(ABS(r1(2)))                                             ! |J|*|B|
         bdotj_rms = r1(3) 
@@ -1153,7 +1153,7 @@
 #if defined(MPI_OPT)
         s1(1) = divj_rms; s1(2) = tnorm
         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                   &
-                           MPI_COMM_WORLD,MPI_ERR)
+                           SIESTA_COMM,MPI_ERR)
         divj_rms=r1(1);   tnorm = r1(2)
 #endif   
  !   Compute rms of divergence of J

@@ -8,12 +8,13 @@ MODULE nscalingtools
 USE stel_kinds
 #if defined(MPI_OPT)
 #if defined(SKS)
-USE blocktridiagonalsolver, ONLY: &
+USE blocktridiagonalsolver_s, ONLY: &
 & SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU, &
 & GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU, &
 & GetMatrixRHS, StoreDiagonal
 #endif
 USE mpi_inc
+USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
 IMPLICIT NONE
 !------------------------------------------------
@@ -182,9 +183,9 @@ activeranks=nranks
 IF (activeranks.GT.N) activeranks=N
 
 length=0; PACKSIZE=0
-CALL MPI_Pack_size(2,MPI_INTEGER,MPI_COMM_WORLD,length,MPI_ERR)
+CALL MPI_Pack_size(2,MPI_INTEGER,SIESTA_COMM,length,MPI_ERR)
 PACKSIZE=PACKSIZE+length
-CALL MPI_Pack_size(M,MPI_REAL8,MPI_COMM_WORLD,length,MPI_ERR)
+CALL MPI_Pack_size(M,MPI_REAL8,SIESTA_COMM,length,MPI_ERR)
 PACKSIZE=PACKSIZE+length
 
 !Each PACKSIZE packet has MPI_BSEND_OVERHEAD
@@ -196,7 +197,7 @@ IF (BUFFERED) THEN
   nBuffsize=nBuffsize*N
   nBuffsize=nBuffsize/MAX(nranks,1)
   IF (nBuffsize.LE.0) THEN
-    CALL MPI_Barrier(MPI_COMM_WORLD,MPI_ERR)
+    CALL MPI_Barrier(SIESTA_COMM,MPI_ERR)
     IF (rank.EQ.0) THEN
       WRITE(7000+rank,*) '>>> N                  : ', N; CALL FLUSH(7000+rank)
       WRITE(7000+rank,*) '>>> M                  : ', M; CALL FLUSH(7000+rank)
@@ -295,10 +296,10 @@ startblock=startblock+1
 endblock=endblock+1
 
 CALL MPI_Allgather(startblock,1,MPI_INTEGER,bcyclicStartBlockProc,&
-&1,MPI_INTEGER,MPI_COMM_WORLD,MPI_ERR)
+&1,MPI_INTEGER,SIESTA_COMM,MPI_ERR)
 
 CALL MPI_Allgather(endblock,1,MPI_INTEGER,bcyclicEndBlockProc,&
-&1,MPI_INTEGER,MPI_COMM_WORLD,MPI_ERR)
+&1,MPI_INTEGER,SIESTA_COMM,MPI_ERR)
 
 startglobrow=bcyclicStartBlockProc(rank+1)
 endglobrow=bcyclicEndBlockProc(rank+1)
@@ -324,7 +325,7 @@ IMPLICIT NONE
 
 INTEGER :: i
 
-IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
+IF (.NOT.MAPPINGDONE) CALL MPI_Abort(SIESTA_COMM,1,MPI_ERR)
 
 IF(.NOT.ALLOCATED(rcounts)) ALLOCATE(rcounts(activeranks), rcountsNS(activeranks))
 IF(.NOT.ALLOCATED(disp)) ALLOCATE(disp(activeranks),dispNS(activeranks))
@@ -355,7 +356,7 @@ LOGICAL, INTENT(OUT) :: FOUND
 INTEGER, INTENT(OUT) :: location
 INTEGER :: p
 
-IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
+IF (.NOT.MAPPINGDONE) CALL MPI_Abort(SIESTA_COMM,1,MPI_ERR)
 
 ! To account for P>N
 activeranks=activeranks
@@ -409,9 +410,9 @@ INTEGER :: positn
 LOGICAL :: FOUND
 
 positn=0
-CALL MPI_Pack(blockRowNum,1,MPI_INTEGER,sendBuf,PACKSIZE,positn,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Pack(columnNum,1,MPI_INTEGER,sendBuf,PACKSIZE,positn,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Pack(columnData,M,MPI_REAL8,sendBuf,PACKSIZE,positn,MPI_COMM_WORLD,MPI_ERR)
+CALL MPI_Pack(blockRowNum,1,MPI_INTEGER,sendBuf,PACKSIZE,positn,SIESTA_COMM,MPI_ERR)
+CALL MPI_Pack(columnNum,1,MPI_INTEGER,sendBuf,PACKSIZE,positn,SIESTA_COMM,MPI_ERR)
+CALL MPI_Pack(columnData,M,MPI_REAL8,sendBuf,PACKSIZE,positn,SIESTA_COMM,MPI_ERR)
 
 FOUND=.FALSE.
 CALL search(blockRowNum,FOUND,procNum)
@@ -430,13 +431,13 @@ IF (FOUND) THEN
     END IF
   ELSE
     IF (BUFFERED) THEN     
-      CALL MPI_BSend(sendbuf,positn,MPI_PACKED,procNum-1,blockRowType,MPI_COMM_WORLD,MPI_ERR)
+      CALL MPI_BSend(sendbuf,positn,MPI_PACKED,procNum-1,blockRowType,SIESTA_COMM,MPI_ERR)
     ELSE
-      CALL MPI_Send(sendbuf,positn,MPI_PACKED,procNum-1,blockRowType,MPI_COMM_WORLD,MPI_ERR)
+      CALL MPI_Send(sendbuf,positn,MPI_PACKED,procNum-1,blockRowType,SIESTA_COMM,MPI_ERR)
     END IF
   END IF
 ELSE 
-  CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
+  CALL MPI_Abort(SIESTA_COMM,1,MPI_ERR)
 END IF
 
 END SUBROUTINE send
@@ -454,10 +455,10 @@ INTEGER :: br, ic, it
 INTEGER :: positn
 
 FLAG=.TRUE.
-IF(IPROBEFLAG) CALL MPI_Iprobe (MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,FLAG,MPI_Status,MPI_ERR)
+IF(IPROBEFLAG) CALL MPI_Iprobe (MPI_ANY_SOURCE,MPI_ANY_TAG,SIESTA_COMM,FLAG,MPI_Status,MPI_ERR)
 IF (FLAG) THEN
   CALL MPI_Recv(recvbuf,PACKSIZE,MPI_PACKED,MPI_ANY_SOURCE,&
-  &MPI_ANY_TAG,MPI_COMM_WORLD,MPI_Status,MPI_ERR)
+  &MPI_ANY_TAG,SIESTA_COMM,MPI_Status,MPI_ERR)
   nrecd=nrecd+1
   
   it=MPI_Status(MPI_TAG)
@@ -466,9 +467,9 @@ IF (FLAG) THEN
     STOP 98
   END IF
   positn=0
-  CALL MPI_Unpack(recvbuf,PACKSIZE,positn,br,1,MPI_INTEGER,MPI_COMM_WORLD,MPI_ERR)
-  CALL MPI_Unpack(recvbuf,PACKSIZE,positn,ic,1,MPI_INTEGER,MPI_COMM_WORLD,MPI_ERR)
-  CALL MPI_Unpack(recvbuf,PACKSIZE,positn,coldata,M,MPI_REAL8,MPI_COMM_WORLD,MPI_ERR)
+  CALL MPI_Unpack(recvbuf,PACKSIZE,positn,br,1,MPI_INTEGER,SIESTA_COMM,MPI_ERR)
+  CALL MPI_Unpack(recvbuf,PACKSIZE,positn,ic,1,MPI_INTEGER,SIESTA_COMM,MPI_ERR)
+  CALL MPI_Unpack(recvbuf,PACKSIZE,positn,coldata,M,MPI_REAL8,SIESTA_COMM,MPI_ERR)
   localbrow=br-bcyclicStartBlockProc(rank+1)+1
 
   IF (localbrow.LT.1.OR.localbrow.GT.numBlocks) THEN 
@@ -543,7 +544,7 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: ckpt
 CHARACTER(3) :: infname
       
-CALL MPI_Barrier(MPI_COMM_WORLD, MPI_ERR) 
+CALL MPI_Barrier(SIESTA_COMM, MPI_ERR) 
 WRITE(90000+rank,*) 'CheckPoint: Location  ',infname, ' @ pt',ckpt,'in rank', rank
 CALL FLUSH(90000+rank)
 
@@ -602,48 +603,48 @@ USE timer_mod
 IMPLICIT NONE
 
 ! Get maximum
-CALL MPI_Allreduce(total_time,total_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(construct_hessian_time,construct_hessian_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(asymmetry_check_time,asymmetry_check_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(block_factorization_time,block_factorization_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(hessian_funct_island_time,hessian_funct_island_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_upperv,update_upperv_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_init_state,init_state_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_bfield,update_bfield_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_pres,update_pres_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_force,update_force_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(cv_current_time,cv_currents_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(get_force_harmonics_time,get_force_harmonics_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(bhtobf_time,bhtobf_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(tomnsp_time,tomnsp_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(toijsp_time,toijsp_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(to_full_mesh_time,to_full_mesh_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(gmres_time,gmres_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(gmres_wrap_time,gmres_wrap_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(ParyAx_time,ParyAx_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(sendrecv_time,sendrecv_time_max,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
+CALL MPI_Allreduce(total_time,total_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(construct_hessian_time,construct_hessian_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(asymmetry_check_time,asymmetry_check_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(block_factorization_time,block_factorization_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(hessian_funct_island_time,hessian_funct_island_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_upperv,update_upperv_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_init_state,init_state_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_bfield,update_bfield_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_pres,update_pres_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_force,update_force_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(cv_current_time,cv_currents_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(get_force_harmonics_time,get_force_harmonics_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(bhtobf_time,bhtobf_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(tomnsp_time,tomnsp_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(toijsp_time,toijsp_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(to_full_mesh_time,to_full_mesh_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(gmres_time,gmres_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(gmres_wrap_time,gmres_wrap_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(ParyAx_time,ParyAx_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(sendrecv_time,sendrecv_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
 
 ! Get minimum
-CALL MPI_Allreduce(time_total,total_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(construct_hessian_time,construct_hessian_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(asymmetry_check_time,asymmetry_check_time_min,1,MPI_REAL8,MPI_MAX,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(block_factorization_time,block_factorization_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(hessian_funct_island_time,hessian_funct_island_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_upperv,update_upperv_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_init_state,init_state_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_bfield,update_bfield_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_pres,update_pres_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(time_update_force,update_force_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(cv_current_time,cv_currents_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(get_force_harmonics_time,get_force_harmonics_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(bhtobf_time,bhtobf_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(tomnsp_time,tomnsp_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(toijsp_time,toijsp_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(to_full_mesh_time,to_full_mesh_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(gmres_time,gmres_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(gmres_wrap_time,gmres_wrap_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(ParyAx_time,ParyAx_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
-CALL MPI_Allreduce(sendrecv_time,sendrecv_time_min,1,MPI_REAL8,MPI_MIN,MPI_COMM_WORLD,MPI_ERR)
+CALL MPI_Allreduce(time_total,total_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(construct_hessian_time,construct_hessian_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(asymmetry_check_time,asymmetry_check_time_min,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(block_factorization_time,block_factorization_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(hessian_funct_island_time,hessian_funct_island_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_upperv,update_upperv_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_init_state,init_state_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_bfield,update_bfield_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_pres,update_pres_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(time_update_force,update_force_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(cv_current_time,cv_currents_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(get_force_harmonics_time,get_force_harmonics_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(bhtobf_time,bhtobf_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(tomnsp_time,tomnsp_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(toijsp_time,toijsp_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(to_full_mesh_time,to_full_mesh_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(gmres_time,gmres_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(gmres_wrap_time,gmres_wrap_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(ParyAx_time,ParyAx_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
+CALL MPI_Allreduce(sendrecv_time,sendrecv_time_min,1,MPI_REAL8,MPI_MIN,SIESTA_COMM,MPI_ERR)
 
 WRITE (5000+rank, *)' Total runtime                                 :', time_total
 WRITE (5000+rank, *)' *Time spent in init_data                      :', init_data_time

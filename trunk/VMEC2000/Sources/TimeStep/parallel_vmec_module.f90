@@ -1197,20 +1197,35 @@ CONTAINS
       !------------------------------------------------
 
       !------------------------------------------------
-      SUBROUTINE saxlastntype(a, x, vec, tl, tr)
-        REAL(dp), INTENT(IN),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a, x
-        REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: vec
-        INTEGER, INTENT(IN) :: tl, tr
-        vec(:,:,tl:tr,:) = a(:,:,tl:tr,:)*x(:,:,tl:tr,:)
+      SUBROUTINE saxlastns(a, x, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,par_ns) :: a, x
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize,par_ns) :: vec
+        vec(:,tlglob:trglob) = a(:,tlglob:trglob)*x(:,tlglob:trglob)
+      END SUBROUTINE saxlastns
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE saxlastns1(a, x, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,tlglob:trglob) :: a
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,par_ns) :: x
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize,tlglob:trglob) :: vec
+        vec(:,tlglob:trglob) = a(:,tlglob:trglob)*x(:,tlglob:trglob)
+      END SUBROUTINE saxlastns1
+
+      !------------------------------------------------
+      SUBROUTINE saxlastntype(a, x, vec)
+        REAL(dp), INTENT(IN),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: a, x
+        REAL(dp), INTENT(INOUT),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: vec
+        vec(:,t1lglob:t1rglob,:) = a(:,t1lglob:t1rglob,:)*x(:,t1lglob:t1rglob,:)
       END SUBROUTINE saxlastntype
       !------------------------------------------------
 
       !------------------------------------------------
       SUBROUTINE saxpbylastntype(a, x, b, y, vec)
-        REAL(dp), INTENT(IN),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: x, y
-	REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: vec
+        REAL(dp), INTENT(IN),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: x, y
+	REAL(dp), INTENT(INOUT),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: vec
 	REAL(dp), INTENT(IN)  :: a, b
-        vec(:,:,t1lglob:t1rglob,:) = a*x(:,:,t1lglob:t1rglob,:) + b*y(:,:,t1lglob:t1rglob,:)
+        vec(:,t1lglob:t1rglob,:) = a*x(:,t1lglob:t1rglob,:) + b*y(:,t1lglob:t1rglob,:)
       END SUBROUTINE saxpbylastntype
       !------------------------------------------------
 
@@ -1226,8 +1241,8 @@ CONTAINS
 
       !------------------------------------------------
       SUBROUTINE saxpby1lastns(a, x, b, y, vec)
-        REAL(dp), INTENT(IN),  DIMENSION(1:ntmaxblocksize,par_ns) :: x, y
-        REAL(dp), INTENT(INOUT),  DIMENSION(1:ntmaxblocksize,par_ns) :: vec
+        REAL(dp), INTENT(IN),  DIMENSION(ntmaxblocksize,par_ns) :: x, y
+        REAL(dp), INTENT(INOUT),  DIMENSION(ntmaxblocksize,par_ns) :: vec
         REAL(dp), INTENT(IN)  :: a, b
         vec(:,tlglob:trglob) = a*x(:,tlglob:trglob) + b*y(:,tlglob:trglob)
       END SUBROUTINE saxpby1lastns
@@ -1245,8 +1260,8 @@ CONTAINS
 
       !------------------------------------------------
       SUBROUTINE zerolastntype(a1)
-        REAL(dp), INTENT(INOUT),  DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: a1
-        a1(:,:,t1lglob:t1rglob,:) = 0
+        REAL(dp), INTENT(INOUT),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: a1
+        a1(:,t1lglob:t1rglob,:) = 0
       END SUBROUTINE zerolastntype
       !------------------------------------------------
 
@@ -1254,26 +1269,26 @@ CONTAINS
       SUBROUTINE CopyParallelLinearSubarray(fromarr,toarr, first, last)
         INTEGER, INTENT(IN) :: first, last
         REAL(dp), INTENT(IN), &
-             DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: fromarr
+             DIMENSION(blocksize,par_ns,3*par_ntmax) :: fromarr
         REAL(dp), INTENT(INOUT), &
-             DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: toarr
-        toarr(:,:,first:last,:) = fromarr(:,:,first:last,:)
+             DIMENSION(blocksize,par_ns,3*par_ntmax) :: toarr
+        toarr(:,first:last,:) = fromarr(:,first:last,:)
       END SUBROUTINE CopyParallelLinearSubarray
       !------------------------------------------------
 
       !------------------------------------------------
       SUBROUTINE PadSides(arr)
         REAL(dp), INTENT(INOUT), &
-             DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax) :: arr
+             DIMENSION(blocksize,par_ns,3*par_ntmax) :: arr
         INTEGER :: left, right, tag1=1
 #if defined(SKS)
         left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
         right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
-        CALL MPI_Sendrecv(arr(:,:,tlglob,:),ntmaxblocksize,MPI_REAL8,    &
-                 left, tag1,arr(:,:,t1rglob,:),ntmaxblocksize,MPI_REAL8, &
+        CALL MPI_Sendrecv(arr(:,tlglob,:),ntmaxblocksize,MPI_REAL8,    &
+                 left, tag1,arr(:,t1rglob,:),ntmaxblocksize,MPI_REAL8, &
                  right,tag1,NS_COMM, MPI_STAT,MPI_ERR)
-        CALL MPI_Sendrecv(arr(:,:,trglob,:),ntmaxblocksize,MPI_REAL8,    &
-                 right,tag1,arr(:,:,t1lglob,:),ntmaxblocksize,MPI_REAL8, &
+        CALL MPI_Sendrecv(arr(:,trglob,:),ntmaxblocksize,MPI_REAL8,    &
+                 right,tag1,arr(:,t1lglob,:),ntmaxblocksize,MPI_REAL8, &
                  left, tag1,NS_COMM,MPI_STAT,MPI_ERR)
 #endif
       END SUBROUTINE PadSides

@@ -1,7 +1,7 @@
       SUBROUTINE add_resistive_E
       USE stel_kinds
       USE stel_constants, ONLY: zero
-      USE shared_data, ONLY: fsq_total1, xc, l_getfsq, l_init_state
+      USE shared_data, ONLY: fsq_total1, xc, l_getfsq, l_init_state, lverbose
       USE shared_functions, ONLY: funct_island_par, funct_island
       USE perturbation, ONLY: ftol, eta_factor
       USE descriptor_mod, ONLY: iam
@@ -76,6 +76,7 @@
 
       IF (iam .EQ. 0) THEN
          DO j = 6, 33, 27
+         IF (.not.lverbose .and. j .eq. 6) CYCLE
             WRITE (j,'(/,a,i3)') ' UPDATING RESISTIVE E-FIELD: ITERATIONS=',nits
             WRITE (j, '(a,1p2e12.3)')                                    &
           ' JUMP IN FSQ DUE TO RESISTIVE DIFFUSION: ', fmhd, fsq_total1

@@ -21,7 +21,7 @@ IMPLICIT NONE
 !-------------------------------------------------------------------------------
 ! Precision settings
 !-------------------------------------------------------------------------------
-INTEGER, PARAMETER :: rprec = SELECTED_REAL_KIND(12,100)
+INTEGER, PARAMETER :: rprec = SELECTED_REAL_KIND(15,300)
 INTEGER, PARAMETER :: iprec = SELECTED_INT_KIND(8)
 INTEGER, PARAMETER :: cprec = KIND((1.0_rprec,1.0_rprec))
 INTEGER, PARAMETER :: dp = rprec
@@ -89,6 +89,7 @@ CHARACTER*100 :: kenvval
 LOGICAL :: KPDBG !<Should debugging output be written? : SKS on Nov 9, 2011
 INTEGER :: OFU !<Output file unit
 INTEGER :: PFU !< Problem file unit
+INTEGER :: MPI_ERR
 LOGICAL :: writeproblemfile !<Should save the random test case to a file?
 LOGICAL :: writesolution !<Should dump solution in output?
 LOGICAL :: usebarriers !<Should barriers be invoked between levels?
@@ -98,6 +99,7 @@ REAL :: intsz !<Byte size of an integer variable
 REAL :: ptrsz !<Byte size of a pointer variable
 REAL(dp) :: ONE !<1.0
 REAL(dp) :: ZERO !<0.0
+LOGICAL(dp) :: L_COLSCALE=.FALSE.  !<set true if column scaling is applied
 
 !-------------------------------------------------------------------------------
 LOGICAL :: use_mpiwtime !<Use MPI's timer function?
@@ -116,12 +118,16 @@ INTEGER :: totmatmulcount !<Total count of matrix-matrix multiplications
 DOUBLE PRECISION :: totmatsoltime !<Total time for matrix-solve multiplications
 INTEGER :: totmatsolcount !<Total count of matrix solutions
 
+REAL(dp), PUBLIC :: MAXEIGEN_TRI  !<maximum eigenvalue from Gerschgorin theorem
+REAL(dp), PUBLIC :: DMIN_TRI      !<minimum non-zero diagonal element, used to scale Levenberg parameter (SPH 08-31-16)
+
 !-------------------------------------------------------------------------------
 !>
 !!  Unmodified diagonal element : SKS
 !<
 !-------------------------------------------------------------------------------
 REAL(dp), ALLOCATABLE :: OrigDiagElement(:)
+REAL(dp), ALLOCATABLE :: TopScaleFac(:), BotScaleFac(:)
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
@@ -5101,7 +5107,277 @@ SUBROUTINE SetBlockRowCol( globrow, colnum, buf, opt)
     WRITE(*,*) 'Error in diagonal type option'
   END IF
 END SUBROUTINE SetBlockRowCol
+
 !------------------------------------------------
+!SPH 7.19.17: ADD COLUMN SCALING ROUTINES
+!------------------------------------------------
+
+
+!-------------------------------------------------------------------------------
+SUBROUTINE GetColSum(cs)
+REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(OUT) :: cs
+REAL(dp), PARAMETER :: minScale = 1.E-6_dp
+REAL(dp) :: eps, eps0, s1(1), r1(1)
+INTEGER  :: js
+
+CALL InitScaleFactors
+DO js = startglobrow, endglobrow
+  CALL GetScaleFactors(js,cs(:,js))
+END DO
+
+!FILTER SMALL (OR ZERO) COLUMN SUMS
+eps0 = MAXVAL(cs)
+
+s1(1)=eps0
+CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX, NS_COMM,MPI_ERR)
+eps0 = minScale*r1(1)
+
+!FILTER COLS OF CS SEPARATELY
+DO js = startglobrow, endglobrow
+   eps = minScale*MAXVAL(cs(:,js))
+   IF (eps .EQ. ZERO) eps = eps0
+   WHERE (cs(:,js) .LT. eps) cs(:,js) = eps
+END DO
+
+cs = one/SQRT(cs)
+
+CALL FinalizeScaleFactors
+
+END SUBROUTINE GetColSum
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE InitScaleFactors
+
+INTEGER :: top, bot, MPI_ERR, ic, j, k
+INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
+REAL(dp), DIMENSION(:), ALLOCATABLE :: tmp1, tmp2
+INTEGER :: numBlockRows
+
+numBlockRows = endglobrow-startglobrow+1
+
+top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
+bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
+
+ALLOCATE (TopScaleFac(M),BotScaleFac(M))
+ALLOCATE (tmp1(M),tmp2(M))
+
+DO ic=1, M
+  tmp1(ic)=SUM(orig(1)%L(:,ic)**2)
+  tmp2(ic)=SUM(orig(numBlockRows)%U(:,ic)**2)
+END DO
+
+CALL MPI_Sendrecv(tmp1,M,MPI_REAL8,top,1,&
+  BotScaleFac,M,MPI_REAL8,bot,1,NS_COMM,MPI_STAT,MPI_ERR)
+
+CALL MPI_Sendrecv(tmp2,M,MPI_REAL8,bot,1,&
+  TopScaleFac,M,MPI_REAL8,top,1,NS_COMM,MPI_STAT,MPI_ERR)
+
+DEALLOCATE(tmp1, tmp2)
+
+END SUBROUTINE InitScaleFactors
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE GetScaleFactors(js,scalevector)
+IMPLICIT NONE
+
+INTEGER, INTENT(IN)   :: js
+REAL(dp), INTENT(OUT) :: scalevector(M)
+REAL(dp) :: eps
+INTEGER  :: ic, ir, numBlockRows
+
+numBlockRows = endglobrow-startglobrow+1
+
+IF (js.EQ.startglobrow) THEN
+  IF (js.EQ.1) THEN
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(1)%D(:,ic)*orig(1)%D(:,ic)) + &
+        SUM(orig(2)%L(:,ic)*orig(2)%L(:,ic)) 
+    END DO
+  ELSE
+    ir = js-startglobrow+1
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(ir)%D(:,ic)*orig(ir)%D(:,ic)) + &
+        TopScaleFac(ic) + SUM(orig(ir+1)%L(:,ic)*orig(ir+1)%L(:,ic)) 
+    END DO
+  END IF
+ELSE IF (js.EQ.endglobrow) THEN
+  IF (js.EQ.N) THEN
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(numBlockRows)%D(:,ic)*orig(numBlockRows)%D(:,ic)) + &
+        SUM(orig(numBlockRows-1)%U(:,ic)*orig(numBlockRows-1)%U(:,ic))
+    END DO
+  ELSE
+    DO ic=1, M
+      scalevector(ic)=SUM(orig(numBlockRows)%D(:,ic)*orig(numBlockRows)%D(:,ic)) + &
+        SUM(orig(numBlockRows-1)%U(:,ic)*orig(numBlockRows-1)%U(:,ic)) + BotScaleFac(ic)
+    END DO
+  END IF
+ELSE
+  ir = js-startglobrow+1
+  DO ic=1, M
+    scalevector(ic)=SUM(orig(ir)%D(:,ic)*orig(ir)%D(:,ic)) + &
+      SUM(orig(ir-1)%U(:,ic)*orig(ir-1)%U(:,ic)) + &
+      SUM(orig(ir+1)%L(:,ic)*orig(ir+1)%L(:,ic)) 
+  END DO
+END IF
+
+IF (ANY(scalevector .LT. zero)) STOP 'SCALEVECTOR < 0!'
+scalevector = SQRT(scalevector)
+
+END SUBROUTINE GetScaleFactors
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE FinalizeScaleFactors
+  DEALLOCATE (TopScaleFac,BotScaleFac)
+END SUBROUTINE FinalizeScaleFactors
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ParallelScaling(lmp,colsum)
+
+REAL(dp), INTENT(IN) :: lmp
+REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(IN) :: colsum
+
+INTEGER  :: js, icol, ir, top, bot, MPI_ERR, i4, i3, dcnt
+REAL(dp) :: eps, s1(1), r1(1)
+REAL(dp), DIMENSION(:), ALLOCATABLE :: toprow, botrow
+INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
+
+top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
+bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
+ALLOCATE (toprow(M),botrow(M))
+
+L_COLSCALE = .TRUE.
+
+CALL MPI_Sendrecv(colsum(:,endglobrow),M,MPI_REAL8,bot,1,&
+  toprow,M,MPI_REAL8,top,1,NS_COMM,MPI_STAT,MPI_ERR)
+
+CALL MPI_Sendrecv(colsum(:,startglobrow),M,MPI_REAL8,top,1,&
+  botrow,M,MPI_REAL8,bot,1,NS_COMM,MPI_STAT,MPI_ERR)
+
+dcnt = 0
+DO js = startglobrow, endglobrow
+  ir=js-startglobrow+1
+  DO icol = 1, M
+    lelement(1,ir)%D(:,icol) = colsum(:,js)*orig(ir)%D(:,icol)*colsum(icol,js)
+    orig(ir)%D(:,icol) = lelement(1,ir)%D(:,icol)
+    dcnt=dcnt+1
+    OrigDiagElement(dcnt) = orig(ir)%D(icol,icol)
+    IF (js .GT. 1) THEN
+      IF (ir.EQ.1) THEN
+        lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*toprow(icol)
+      ELSE
+        lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*colsum(icol,js-1)
+      END IF
+      orig(ir)%L(:,icol) = lelement(1,ir)%L(:,icol)
+    END IF
+    IF (js .LT. N) THEN
+      IF (ir.EQ.(endglobrow-startglobrow+1)) THEN
+        lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*botrow(icol)
+      ELSE
+        lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*colsum(icol,js+1)
+      END IF
+      orig(ir)%U(:,icol) = lelement(1,ir)%U(:,icol)
+    END IF
+  END DO
+END DO
+DEALLOCATE (toprow,botrow)
+
+!Find DMIN_TRI, MAXEIGEN_TRI used for scaling
+CALL FindMinMax_TRI(lmp)
+
+END SUBROUTINE ParallelScaling
+!-------------------------------------------------------------------------------
+
+
+!-------------------------------------------------------------------------------
+SUBROUTINE FindMinMax_TRI(lmp)
+!SPH 091616: Find min diagonal element and max eigenvalue (Gerschgorin Theorem)
+REAL(dp), PARAMETER  :: minThreshold=1.E-6_dp
+REAL(dp), INTENT(IN) :: lmp
+INTEGER  :: js, icol, ir, dcnt
+REAL(dp) :: eps, s1(2), r1(2), minDiag
+
+dcnt=0
+maxeigen_tri = 0
+Dmin_TRI = HUGE(Dmin_TRI)
+DO js = startglobrow, endglobrow
+  ir=js-startglobrow+1
+
+!Minimum allowable diagonal element after scaling
+  minDiag = minThreshold*MAXVAL(ABS(OrigDiagElement(dcnt+1:dcnt+M)))
+  IF (minDiag .EQ. 0) minDiag = minThreshold
+
+  DO icol = 1, M
+    dcnt = dcnt+1
+    eps = OrigDiagElement(dcnt)
+
+    IF (ABS(eps) .LE. minDiag) THEN                                      !Can happen for lcolscale=FALSE
+       eps = -minDiag
+       OrigDiagElement(dcnt) = eps
+       orig(ir)%D(icol,icol) = eps
+       lelement(1,ir)%D(icol,icol) = eps
+    ELSE
+       IF (js .LT. N) Dmin_TRI = MIN(MAX(1.E-12_dp,ABS(eps)), Dmin_TRI)
+    END IF
+
+    maxeigen_tri = MAX(maxeigen_tri, SUM(ABS(orig(ir)%L(icol,:)) + ABS(orig(ir)%D(icol,:))   &
+                 + ABS(orig(ir)%U(icol,:))))
+  END DO
+END DO
+
+s1(1)=-Dmin_TRI; s1(2)=maxeigen_tri
+CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX, NS_COMM,MPI_ERR)
+Dmin_TRI=SIGN(-r1(1), eps)
+maxeigen_tri=r1(2)
+
+!ADD LEVENBERG PARAMETER LM*DMIN TO DIAGONAL [OR D*(1+LM) IF NO COL-SCALING]
+CALL ResetDiagonal(lmp, .FALSE.)
+
+END SUBROUTINE FindMinMax_TRI
+!-------------------------------------------------------------------------------
+
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ResetDiagonal(lmp, bReset)
+REAL(dp), INTENT(IN) :: lmp
+LOGICAL,  INTENT(IN) :: bReset
+REAL(dp)             :: DminL, eps
+INTEGER              :: dcnt, js, ir, icol
+
+!ADD CONSTANT (SCALED BY DMIN) LEVENBERG PARAMETER TO DIAGONAL [NOT D*(1+LM)]
+DminL = Dmin_TRI*lmp
+dcnt = 0
+DO js = startglobrow, endglobrow
+  ir=js-startglobrow+1
+  DO icol = 1, M
+    dcnt=dcnt+1
+    eps = OrigDiagElement(dcnt)
+!SPH 11-14-16: remove redundancy of edge force K^s=0? Works better without this
+!    IF (js.EQ.N .AND. icol.GT.(M/3)) DminL = Dmin_TRI*MAX(ABS(lmp),1.E-7_dp)
+    IF (L_COLSCALE) THEN
+       lelement(1,ir)%D(icol,icol) = eps + SIGN(DminL,eps)
+    ELSE
+       lelement(1,ir)%D(icol,icol) = eps*(1 + ABS(lmp))
+    END IF
+    orig(ir)%D(icol,icol) = lelement(1,ir)%D(icol,icol)
+  END DO
+
+  IF (bReset) THEN
+     lelement(1,ir)%L = orig(ir)%L  
+     lelement(1,ir)%D = orig(ir)%D 
+     lelement(1,ir)%U = orig(ir)%U
+     lelement(1,ir)%pivot = 0
+  END IF
+END DO
+
+END SUBROUTINE ResetDiagonal
+
+!-------------------------------------------------------------------------------
+
 #endif
 
 END MODULE blocktridiagonalsolver

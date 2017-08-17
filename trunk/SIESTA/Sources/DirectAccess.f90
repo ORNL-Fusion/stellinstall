@@ -1,4 +1,4 @@
-      MODULE DirectAccess
+      MODULE DirectAccess_s
       USE safe_open_mod
       USE stel_kinds, ONLY: dp
 
@@ -305,4 +305,4 @@
       END SUBROUTINE ReadDAItem_SEQ
 
 
-      END MODULE DirectAccess
+      END MODULE DirectAccess_s

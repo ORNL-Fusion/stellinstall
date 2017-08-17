@@ -12,7 +12,7 @@
       IMPLICIT NONE
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
-C-----------------------------------------------0
+C-----------------------------------------------
       INTEGER, PRIVATE, PARAMETER :: sp = dp
       INTEGER, PRIVATE :: ntyptot, m_2d, n_2d, ntype_2d
       INTEGER, PRIVATE, ALLOCATABLE :: ipiv_blk(:,:)
@@ -34,7 +34,7 @@ C-----------------------------------------------0
      3           l_edge  = .FALSE.,                !=T IF EDGE PERTURBED
      4           edge_mesh(3)
 
-      LOGICAL, PARAMETER, PRIVATE :: lscreen = .false.
+      LOGICAL, PARAMETER, PRIVATE :: lscreen = .FALSE.
       INTEGER, PARAMETER, PRIVATE :: jstart(3) = (/1,2,3/)
 
       PRIVATE :: swap_forces, reswap_forces 
@@ -359,6 +359,8 @@ C-----------------------------------------------
 !     GENERAL (SLOWER BY 2/3 THAN SYMMETRIC VERSION) METHOD: ASSUMES NO SYMMETRIES OF R, Z COEFFICIENTS
 !
       CALL sweep3_blocks_par (xc, xcdot, gc, nmax_jog)
+      IF (lactive) CALL compute_col_scaling_par
+
       ictrl_prec2d = 1                 !Signals funct3d (residue) to use block preconditioner
 
       CALL second0(time_off)
@@ -422,9 +424,9 @@ C-----------------------------------------------
       REAL(dp) :: ton, toff
 C-----------------------------------------------
 !
-!     COMPUTE EVERY 3rd RADIAL POINT FOR EACH MESH STARTING AT js=1,2,3, RESPECTIVELY
+!     COMPUTE FORCE "RESPONSE" TO PERTURBATION AT EVERY 3rd RADIAL POINT
+!     FOR EACH MESH STARTING AT js=1,2,3, RESPECTIVELY
 !
-
       CALL second0(ton)
       ALLOCATE(diag_val(ns), stat=istat)
       diag_val=zero
@@ -460,10 +462,12 @@ C-----------------------------------------------
 !      PRINT *,'rank: ', rank,' vrank: ', vrank,' nsmin: ',nsmin,
 !     1        ' nsmax: ', nsmax
 
-      edge_mesh = .FALSE.
       IF (FIRSTPASS) THEN
+        edge_mesh = .FALSE.
         FIRSTPASS=.FALSE.
         mblk_size=(ntor+1)*(mpol1+1)*3*ntmax
+        IF (mblk_size .NE. ntmaxblocksize)
+     1     STOP 'wrong mblk_size in precon2d!'
         CALL Initialize(.FALSE.,ns,mblk_size) 
         myend = nsmax
 !Align starting pt in (nsmin,nsmax)
@@ -479,16 +483,16 @@ C-----------------------------------------------
       left=rank-1; IF(rank.EQ.0) left=MPI_PROC_NULL
       right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
 
-      CALL PadSides(xc)
-      CALL PadSides(gc)
-      CALL PadSides(xcdot)
-      
 !     STORE chips in xc 
 #if defined(CHI_FORCE)
       IF (ncurr .EQ. 1) THEN
          xc(0,0,nsmin:nsmax,lamtype) = chips(nsmin:nsmax)
       END IF
 #endif
+      CALL PadSides(xc)
+      CALL PadSides(gc)
+      CALL PadSides(xcdot)
+
       CALL restart_iter(delt0r)
       gc_save(:,:,nsmin:nsmax,:) = gc(:,:,nsmin:nsmax,:) 
       ictrl_prec2d = 3                 !Signals funct3d that preconditioner is being computed
@@ -641,7 +645,7 @@ C-----------------------------------------------
                     IF (DataItem(n_2d,m_2d,ntype_2d) .EQ. 0) 
      1                  DataItem(n_2d,m_2d,ntype_2d) = diag_val(js)
 
-!Levenberg-like offset: lm=0 (450), lm=1.E-6 (220)
+!Levenberg-like offset: lm=1.E-6 (220):: do NOT apply if applied in colscaling routine
                     IF (js.EQ.ns .AND. lfreeb) THEN
                        IF (ntype_2d .GE. lamtype)
      1                 DataItem(n_2d,m_2d,ntype_2d) = (one+1.E-4_dp)
@@ -803,6 +807,7 @@ C-----------------------------------------------
 !     GENERAL (SLOWER BY 2/3 THAN SYMMETRIC VERSION) METHOD: ASSUMES NO SYMMETRIES OF R, Z COEFFICIENTS
 !
       CALL sweep3_blocks (xc, xcdot, gc, nmax_jog)
+      CALL compute_col_scaling
       ictrl_prec2d = 1                 !Signals funct3d (residue) to use block preconditioner
 
 !SPH021014: compute eigenvalues (for small enough matrices)
@@ -1869,6 +1874,97 @@ c  error returns. ------------------------------------------------------
 
       END SUBROUTINE blk3d_slv_swp2
 
+#if defined(SKS)
+      SUBROUTINE compute_col_scaling_par
+      USE xstuff, ONLY: pcol_scale
+      USE blocktridiagonalsolver, ONLY: GetColSum, ParallelScaling
+      USE parallel_vmec_module, ONLY: ToLastNtype, CopyLastNtype
+C-----------------------------------------------
+C   L o c a l   V a r i a b l e s
+C-----------------------------------------------
+      INTEGER :: nsmin, nsmax
+      REAL(dp), ALLOCATABLE  :: tmp(:)
+      REAL(dp), ALLOCATABLE  :: colsum(:,:)
+      REAL(dp), PARAMETER    :: levmarq_param = 1.E-6_dp
+C-----------------------------------------------
+
+!FOR NO COL SCALING - col-scaling not working well yet (8.1.17)
+      pcol_scale = 1
+      RETURN
+
+!BE SURE TO TURN OFF LEV_MARQ SCALING IN SUBROUTINE sweep3_blocks_par
+      nsmin = tlglob;  nsmax = trglob
+
+      ALLOCATE (colsum(mblk_size,nsmin:nsmax))
+      CALL GetColSum(colsum)
+      CALL VectorCopyPar (colsum, pcol_scale)
+      CALL ParallelScaling(levmarq_param,colsum)
+
+      DEALLOCATE(colsum)
+
+!Convert to internal PARVMEC format
+      ALLOCATE (tmp(ntmaxblocksize*ns))
+      CALL tolastntype(pcol_scale,tmp)
+      CALL copylastntype(tmp,pcol_scale)
+      DEALLOCATE(tmp)
+
+      END SUBROUTINE compute_col_scaling_par
+#endif
+
+      SUBROUTINE compute_col_scaling
+      USE xstuff, ONLY: col_scale
+C-----------------------------------------------
+C   L o c a l   V a r i a b l e s
+C-----------------------------------------------
+
+!FOR NO COL SCALING
+      col_scale = 1
+
+      END SUBROUTINE compute_col_scaling
+
+#if defined(SKS)
+      SUBROUTINE VectorCopyPar (colsum, colscale)
+      USE blocktridiagonalsolver, ONLY: rank
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(IN)  :: colsum(mblk_size,tlglob:trglob)
+      REAL(dp), INTENT(OUT) :: colscale(mblk_size,ns)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER               :: js, M1
+      INTEGER               :: MPI_STAT(MPI_STATUS_SIZE)
+!-----------------------------------------------
+ 
+      DO js = tlglob, trglob 
+        colscale(:,js) = colsum(:,js)
+      END DO
+
+      M1 = mblk_size
+
+! Get left boundary elements (tlglob-1)
+      IF (rank.LT.nranks-1) THEN
+        CALL MPI_Send(colsum(:,trglob),M1,MPI_REAL8,    
+     1                rank+1,1,NS_COMM,MPI_ERR)
+      END IF
+      IF (rank.GT.0) THEN
+        CALL MPI_Recv(colscale(:,tlglob-1),M1,      
+     1                MPI_REAL8,rank-1,1,NS_COMM,MPI_STAT,MPI_ERR)
+      END IF
+
+! Get right boundary elements (trglob+1)
+      IF (rank.GT.0) THEN
+        CALL MPI_Send(colsum(:,tlglob),M1,MPI_REAL8,
+     1                rank-1,1,NS_COMM,MPI_ERR)
+      END IF
+      IF (rank.LT.nranks-1) THEN
+        CALL MPI_Recv(colscale(:,trglob+1),M1,MPI_REAL8,
+     1                rank+1,1,NS_COMM,MPI_STAT,MPI_ERR)
+      END IF
+
+      END SUBROUTINE VectorCopyPar
+#endif
 
       SUBROUTINE free_mem_precon
       INTEGER :: istat

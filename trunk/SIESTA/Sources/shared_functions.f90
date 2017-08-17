@@ -5,7 +5,8 @@
       MODULE shared_functions
       USE shared_data
       USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam,                  &
-                                in_hess_nfunct, out_hess_nfunct
+                                in_hess_nfunct, out_hess_nfunct,         &
+                                SIESTA_COMM
       USE island_params, ns=>ns_i, hs=>hs_i
       USE hessian, ONLY: apply_precond, l_Compute_Hessian
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,             &
@@ -95,7 +96,7 @@
          END DO
          stmp(2) = SUM(vp_f(nsmin:nsmax))
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
+         CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
          fsq_total = rtmp(1)/rtmp(2)
 #else
          fsq_total = stmp(1)/stmp(2)
@@ -132,7 +133,7 @@
 #if defined(MPI_OPT)
             CALL MPI_ALLGATHERV(sendbuf(nsmin), nsmax-nsmin+1, MPI_REAL8,&
                                 recbuf, rcountsNS, dispNS, MPI_REAL8,    &
-                                MPI_COMM_WORLD, MPI_ERR)
+                                SIESTA_COMM, MPI_ERR)
             fsq_total1 = SUM(recbuf)/rtmp(2)
 #else
             fsq_total1 = SUM(sendbuf)/stmp(2)
@@ -148,7 +149,7 @@
             END IF
 
 #if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
+            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
             fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
 #else
             fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
@@ -172,7 +173,7 @@
             END IF
 
 #if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
+            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
             fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
 #else
             fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
@@ -210,7 +211,7 @@
       REAL(dp), PARAMETER :: facmin = 2
       INTEGER  :: iter, j
 
-      IF (iam .EQ. 0) PRINT 90
+      IF (iam .EQ. 0 .and. lverbose) PRINT 90
  90   FORMAT(1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,'-------------',   &
            /,1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|')
 
@@ -236,7 +237,8 @@
          ELSE IF (j .GT. 4) THEN
             iter = iter+1
          END IF
-         IF (iam .EQ. 0) PRINT 100, j-1, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
+         IF (iam .EQ. 0 .and. lverbose)                                        &
+            PRINT 100, j-1, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
          IF (iter.GT.2 .OR. fsq_total1.LE.ftol) EXIT
          xc = xc/SQRT2
       END DO
@@ -249,6 +251,7 @@
 !>   \brief Returns perturbed MHD+KINETIC energy
 !!   \author S. P. Hirshman, R. Sanchez
       FUNCTION getwmhd (p, lpar)
+      USE GMRES_LIB, ONLY: truncate
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

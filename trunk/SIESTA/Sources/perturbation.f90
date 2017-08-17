@@ -134,6 +134,7 @@
       IF (istat .ne. 0) STOP 'ERROR WRITING SIESTA OUTPUT FILE'
 
       DO istat = 6, 33, 27
+         IF (.not.lverbose .and. istat .eq. 6) CYCLE
 	     WRITE (istat, 10)                                           & 
                'SIESTA MHD EQUILIBRIUM CODE v3.0 (091216)',              &
                'Scalable Island Equilibrium ',                           &
@@ -147,7 +148,7 @@
 10    FORMAT (62('-'),/,1x,a,/,2(1x,a),/,62('-'),/)
 
       WRITE (33, *)'CASE: ', TRIM(temp)
-      PRINT *,'OUTPUT FILE (SCREEN DUMP): ', "output_" // TRIM(temp) // ".txt"
+      IF (lverbose) PRINT *,'OUTPUT FILE (SCREEN DUMP): ', "output_" // TRIM(temp) // ".txt"
 
       CALL DATE_AND_TIME(date0,time0,zone0)
       READ (date0(5:6),'(i2)')imon
@@ -211,6 +212,7 @@
 
       IF (iam .eq. 0) THEN
       DO iprint = 6, 33, 27
+         IF (.not.lverbose .and. iprint .eq. 6) CYCLE
          WRITE (iprint, '(/,a,/,2a)')                                    &
          ' Adding helical magnetic field perturbations',                 &
          ' 10^6 X Del-W    mres    nres     HelPert',                    &
@@ -267,6 +269,7 @@
             IF (isign .EQ. 2) HP = -HP
 
             DO iprint = 6, 33, 27
+            IF (.not.lverbose .and. iprint .eq. 6) CYCLE
             WRITE (iprint, '(1p,e12.3,2(i8),3x,1pe10.2,0p,f8.2,f11.2,4x,2(f11.2))') &
                    10**6*(wmhd-w0), mres0, nres0, HP*normal, rad,         &
                    ABS(mres0*chip0+nres0*nfp*phip0), chip0/phip0, p_width_min
@@ -291,6 +294,7 @@
 
       IF (iam .EQ. 0) THEN
          DO iprint = 6, 33, 27
+            IF (.not.lverbose .and. iprint .eq. 6) CYCLE
             WRITE (iprint, *)
          END DO
       END IF
@@ -588,6 +592,7 @@
 #if defined(MRC)
       istat = restart_read("siesta_" // TRIM(restart_ext) // ".nc",      &
                            mpolin, ntorin, nsin, wout_file)
+      nprecon = 2   !USED TO SKIP DIAGONAL PRECONDITIONER IN EVOLVE
       RETURN
 #elif defined(NETCDF)
       CALL read_restart_ncfile (istat, ns, ntor, mpol)

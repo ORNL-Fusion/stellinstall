@@ -2435,7 +2435,8 @@
 !>
 !>  This method is virtual. The actual writing of the equilibrium variables
 !>  should be handled by a subclass method.
-!>  @see vmec_equilibrium::vmec_write_step_data
+!>  @see vmec_equilibrium::vmec_write_step_data and
+!>  @see siesta_equilibrium::siesta_write_step_data
 !>
 !>  @param[in] this         A @ref equilibrium_class instance.
 !>  @param[in] iou          NetCDF file id of the result file.
@@ -2471,6 +2472,47 @@
 
       CALL profiler_set_stop_time('equilibrium_write_step_data',               &
      &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Restart equilibrium.
+!>
+!>  This method is virtual. The actual restarting of the equilibrium variables
+!>  should be handled by a subclass method.
+!>  @see vmec_equilibrium::vmec_restart and
+!>  @see siesta_equilibrium::siesta_restart
+!>
+!>  @param[in] this         A @ref equilibrium_class instance.
+!>  @param[in] iou          NetCDF file id of the result file.
+!>  @param[in] current_step Step index to write variables to.
+!-------------------------------------------------------------------------------
+      SUBROUTINE equilibrium_restart(this, result_ncid, current_step)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (equilibrium_class), INTENT(in) :: this
+      INTEGER, INTENT(in)                  :: result_ncid
+      INTEGER, INTENT(in)                  :: current_step
+
+!  local variables
+      REAL (rprec)                         :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      SELECT CASE (this%type)
+
+         CASE (equilibrium_vmec_type)
+            CALL vmec_restart(this%vmec, result_ncid, current_step)
+
+         CASE (equilibrium_siesta_type)
+            CALL siesta_restart(this%siesta, result_ncid, current_step)
+
+      END SELECT
+
+      CALL profiler_set_stop_time('equilibrium_restart', start_time)
 
       END SUBROUTINE
 

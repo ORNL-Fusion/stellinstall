@@ -69,6 +69,7 @@
       USE quantities
       USE timer_mod
       USE mpi_inc
+      USE descriptor_mod, ONLY: SIESTA_COMM
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -122,7 +123,7 @@
          IF (istat .NE. 0) STOP 'MUPAR_NORM ALLOCATION FAILED!'
          beta = MAX(1.E-5_dp, wp_i/wb_i)
          mupar_norm = signjac*beta / rmajor_i**2  !/ vp_f(nsmin:nsmax)     !put 1/jac correction factor in AddDamping
-         IF (iam .EQ. 0) PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
+         IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
       END IF
 
       IF (lmagen) THEN
@@ -132,9 +133,9 @@
          IF (n1 .EQ. 1) bsq_loc(:,:,1) = 0
          IF (n1 .GT. 1) THEN
             IF(ANY(bsq_loc(:,:,n1:n2) .LE. zero)) THEN
-               IF (iam .EQ. 0) PRINT *,'BSQ <= 0 in cv_currents_par!'
+               IF (iam .EQ. 0 .and. lverbose) PRINT *,'BSQ <= 0 in cv_currents_par!'
 #if defined(MPI_OPT)
-               CALL MPI_ABORT(MPI_COMM_WORLD, 2, MPI_ERR)
+               CALL MPI_ABORT(SIESTA_COMM, 2, MPI_ERR)
 #endif
             END IF
          END IF
@@ -143,7 +144,7 @@
          wb0 = signjac*(twopi*pi*hs_i)*wb
 #if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,                 &
-                            MPI_COMM_WORLD,MPI_ERR)
+                            SIESTA_COMM,MPI_ERR)
 #else
          wb = wb0
 #endif
@@ -195,10 +196,11 @@
             r0 = SQRT(edge_cur/r0)
          END IF
 #if defined(MPI_OPT)
-         CALL MPI_BCAST(r0,1,MPI_REAL8,nranks-1,MPI_COMM_WORLD,MPI_ERR)
+         CALL MPI_BCAST(r0,1,MPI_REAL8,nranks-1,SIESTA_COMM,MPI_ERR)
 #endif
          IF (iam .EQ. 0) THEN
          DO iwrite = 6, 33, 27
+            IF (.not.lverbose .and. iwrite .eq. 6) CYCLE
             WRITE(iwrite, 1008)' RMS EDGE CURRENT ||KSUPS(NS)|| = ', r0
          END DO
          END IF
@@ -213,7 +215,7 @@
          stes(6) = SUM(wint(:,:,n1:n2)*(bv_filter + bsubvijh(:,:,n1:n2))**2)         
 #if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(stes,rtes,6,MPI_REAL8,MPI_SUM,               &
-                            MPI_COMM_WORLD,MPI_ERR)
+                            SIESTA_COMM,MPI_ERR)
 #else
          rtes = stes
 #endif
