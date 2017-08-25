@@ -6,20 +6,19 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec), INTENT(IN) :: plascur
-      REAL(rprec), INTENT(IN) :: wint(nuv3)
+      REAL(dp), INTENT(IN) :: plascur
+      REAL(dp), INTENT(IN) :: wint(nuv3)
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: i, k
-      REAL(rprec), ALLOCATABLE :: brad(:), bphi(:), bz(:)
-      REAL(rprec) :: skston, skstoff
+      INTEGER  :: i, k
+      REAL(dp), ALLOCATABLE :: brad(:), bphi(:), bz(:)
+      REAL(dp) :: tbexon, tbexoff
 C-----------------------------------------------
 c
 c  exterior Neumann problem
 c
-
-      CALL second0(skston)
+      CALL second0(tbexon)
 
       IF (.not.ALLOCATED(bvac)) STOP 'BVAC unallocated in bextern'
       ALLOCATE (brad(nuv3), bphi(nuv3), bz(nuv3), stat=i)
@@ -70,8 +69,8 @@ c
 
       DEALLOCATE (brad, bphi, bz)
 
-      CALL second0(skstoff)
-      bextern_time = bextern_time + (skstoff - skston)
+      CALL second0(tbexoff)
+      bextern_time = bextern_time + (tbexoff - tbexon)
 
       END SUBROUTINE bextern
 

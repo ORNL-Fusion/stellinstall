@@ -6,9 +6,9 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec), DIMENSION(nuv3), INTENT(in) :: rad, zee
-      REAL(rprec), DIMENSION(nuv3), INTENT(out) :: br, bp, bz
-      REAL(rprec), DIMENSION(nr0b,nz0b,np0b), INTENT(in) ::
+      REAL(dp), DIMENSION(nuv3), INTENT(in) :: rad, zee
+      REAL(dp), DIMENSION(nuv3), INTENT(out) :: br, bp, bz
+      REAL(dp), DIMENSION(nr0b,nz0b,np0b), INTENT(in) ::
      1   brvac, bpvac, bzvac
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
@@ -20,9 +20,8 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER, SAVE :: icount = 0
       INTEGER :: i, kv, ir, jz, ir1, jz1
-      REAL(rprec) :: rad0, zee0, ri, zj,
-     1   pr, qz, w22, w21, w12, w11
-      REAL(rprec) :: skston, skstoff
+      REAL(dp) :: rad0, zee0, ri, zj,
+     1   pr, qz, w22, w21, w12, w11, tbecon, tbecoff
 C-----------------------------------------------
 !
 !     DETERMINE THE CYLINDRICAL COMPONENTS OF THE EXTERNAL
@@ -37,7 +36,7 @@ C-----------------------------------------------
 !                                AT WHICH B-FIELD IS TO BE DETERMINED
 !
 C-----------------------------------------------
-      CALL second0(skston)
+      CALL second0(tbecon)
 
       icount = icount + 1
 
@@ -113,7 +112,7 @@ C-----------------------------------------------
          END IF
       ENDIF
 
-      CALL second0(skstoff)
-      becoil_time = becoil_time + (skstoff - skston)
+      CALL second0(tbecoff)
+      becoil_time = becoil_time + (tbecoff - tbecon)
 
       END SUBROUTINE becoil

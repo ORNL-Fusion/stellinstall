@@ -23,36 +23,35 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(nznt,ns,0:1), INTENT(inout) :: lu, lv
-      REAL(rprec), DIMENSION((1+ntor)*(1+mpol1),1:ns,1:2*ntmax), 
-     1  INTENT(in) :: tpxc
+      REAL(dp), DIMENSION(nznt,ns,0:1), INTENT(INOUT) :: lu, lv
+      REAL(dp), DIMENSION((1+ntor)*(1+mpol1),1:ns,1:2*ntmax), 
+     1  INTENT(IN) :: tpxc
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
 !     GENERALLY, IF TEMPORAL CONVERGENCE IS POOR, TRY TO INCREASE PDAMP (< 1)
 !     (STORED IN VMEC_PARAMS)
-      REAL(rprec), PARAMETER :: c1p5 = (one + p5)
+      REAL(dp), PARAMETER :: c1p5 = (one + p5)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: l, js, ndim
-      REAL(rprec) :: r2, volume, curpol_temp
+      REAL(dp) :: r2, volume, curpol_temp
 #ifndef _HBANGLE
-      REAL(rprec) :: arnorm, aznorm, tcon_mul
+      REAL(dp) :: arnorm, aznorm, tcon_mul
 #endif
-      REAL(rprec) :: skston, skstoff, bcastton, bcasttoff
-      REAL(rprec), POINTER, DIMENSION(:,:) :: luu, luv, lvv, tau
-      REAL(rprec), DIMENSION(:,:), POINTER :: bsupu, bsubuh, 
-     1                                        bsupv, bsubvh, r12sq
+      REAL(dp) :: bcastton, bcasttoff
+      REAL(dp), POINTER, DIMENSION(:,:) :: luu, luv, lvv, tau
+      REAL(dp), DIMENSION(:,:), POINTER :: bsupu, bsubuh, 
+     1                                      bsupv, bsubvh, r12sq
       LOGICAL :: lctor
       INTEGER :: i, j, k, nsmin, nsmax, istat
-      REAL(rprec) :: wblocal, wbtotal
-      REAL(rprec) :: wplocal, wptotal
-      REAL(rprec) :: vplocal, vptotal
-      REAL(rprec) :: fnlocal, fntotal
-      REAL(rprec) :: fn1local, fn1total
-      REAL(rprec) :: fnLlocal, fnLtotal
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) :: buf, redbuf
+      REAL(dp) :: wblocal(ns), wbtotal
+      REAL(dp) :: wplocal(ns), wptotal
+      REAL(dp) :: vptotal
+      REAL(dp) :: fnlocal(ns), fntotal
+      REAL(dp) :: fn1local(ns), fn1total
+      REAL(dp) :: fnLlocal(ns), fnLtotal
 !-----------------------------------------------
       IF (irst.EQ.2 .AND. iequi.EQ.0) RETURN
 
@@ -217,33 +216,26 @@
 !
       nsmin=t1lglob; nsmax=t1rglob
       DO l = nsmin, nsmax
-      bsq(:,l) = p5*(bsupu(:,l)*bsubuh(:,l) + bsupv(:,l)*bsubvh(:,l))
+         bsq(:,l) = p5*(bsupu(:,l)*bsubuh(:,l) + bsupv(:,l)*bsubvh(:,l))
       END DO
-
-      wblocal = SUM(pwint(:,tlglob:trglob)*gsqrt(:,tlglob:trglob)
-     1                                    *bsq(:,tlglob:trglob))
 
       nsmin=MAX(2,tlglob); nsmax=MIN(ns,t1rglob)
       pres(nsmin:nsmax) = mass(nsmin:nsmax)/vp(nsmin:nsmax)**gamma
       pres(1)=0
 
-      wplocal=SUM(vp(tlglob:trglob)*pres(tlglob:trglob))
+      IF (ictrl_prec2d .LE. 1) THEN
+      DO l = tlglob, trglob
+         wblocal(l) = SUM(pwint(:,l)*gsqrt(:,l) * bsq(:,l))
+         wplocal(l) = vp(l)*pres(l)
+      END DO
 
- 1010 CONTINUE
-
-      ALLOCATE (buf(2), redbuf(2))
-      buf(1) = wblocal; buf(2) = wplocal
-      CALL second0(skston)
-      CALL MPI_Allreduce(buf,redbuf,SIZE(buf),MPI_REAL8,MPI_SUM,
-     1                   NS_COMM,MPI_ERR)
-
-      CALL second0(skstoff)
-      allreduce_time = allreduce_time + (skstoff - skston)
-      wbtotal=redbuf(1)
-      wptotal=redbuf(2)
-      DEALLOCATE (buf, redbuf)
+      CALL Gather1XArray(wblocal)
+      wbtotal = SUM(wblocal(2:ns))
+      CALL Gather1XArray(wplocal)
+      wptotal = SUM(wplocal(2:ns))
       wb = hs*ABS(wbtotal)
       wp = hs*wptotal
+      END IF
 
 !     ADD KINETIC PRESSURE TO MAGNETIC PRESSURE
       nsmin=tlglob; nsmax=t1rglob
@@ -277,54 +269,8 @@
 !
 !     COMPUTE AVERAGE FORCE BALANCE AND TOROIDAL/POLOIDAL CURRENTS
 !
-!WAC: UPDATE buco, bvco AFTER pressure called
+!WAC: UPDATE buco, bvco AFTER pressure called (Gather buco, bvco in calc_fbal_par
       CALL calc_fbal_par(bsubuh, bsubvh)
-#if defined (NOSKS)
-      IF(nranks .GT. 1) THEN
-        ALLOCATE(buf(2))
-        buf(1)=fpsi(ns-1)
-        buf(2)=fpsi(ns)
-        CALL second0(bcastton)
-        CALL MPI_Bcast(buf,2,MPI_REAL8,nranks-1,NS_COMM,MPI_ERR)
-        CALL second0(bcasttoff)
-        broadcast_time = broadcast_time + (bcasttoff - bcastton)
-        fpsi(ns-1)=buf(1)
-        fpsi(ns)=buf(2)
-        DEALLOCATE(buf)
-      END IF
-#else
-      IF(nranks .GT. 1) THEN
-        ALLOCATE(buf(2))
-
-        buf(1)=fpsi(2)
-        buf(2)=fpsi(3)
-        IF (trglob_arr(1).GE.3) THEN
-          CALL second0(bcastton)
-          CALL MPI_Bcast(buf,2,MPI_REAL8,0,NS_COMM,MPI_ERR)
-          CALL second0(bcasttoff)
-          broadcast_time = broadcast_time + (bcasttoff - bcastton)
-        ELSE
-          CALL second0(bcastton)
-          CALL MPI_Bcast(buf(1),1,MPI_REAL8,0,NS_COMM,MPI_ERR)
-          CALL MPI_Bcast(buf(2),1,MPI_REAL8,1,NS_COMM,MPI_ERR)
-          CALL second0(bcasttoff)
-          broadcast_time = broadcast_time + (bcasttoff - bcastton)
-        END IF
-        fpsi(2)=buf(1)
-        fpsi(3)=buf(2)
-
-        buf(1)=fpsi(ns-1)
-        buf(2)=fpsi(ns)
-        CALL second0(bcastton)
-        CALL MPI_Bcast(buf,2,MPI_REAL8,nranks-1,NS_COMM,MPI_ERR)
-        CALL second0(bcasttoff)
-        broadcast_time = broadcast_time + (bcasttoff - bcastton)
-        fpsi(ns-1)=buf(1)
-        fpsi(ns)=buf(2)
-        DEALLOCATE(buf)
-      END IF
-#endif
-
       rbtor0= c1p5*fpsi(2)  - p5*fpsi(3)
       rbtor = c1p5*fpsi(ns) - p5*fpsi(ns-1)
 !
@@ -346,36 +292,15 @@
 !     THIS IS NEEDED FOR NUMERICAL STABILITY
 
       IF (lHess_exact) THEN
-         lctor = lfreeb .and. ictrl_prec2d.ne.0      !Yields correct hessian near edge
+         lctor = lfreeb .AND. ictrl_prec2d.NE.0      !Yields correct hessian near edge
       ELSE
-         lctor = lfreeb .and. ictrl_prec2d.gt.1      !Yields better accuracy in solution
-      END IF
-
-      IF (nranks .GT. 1) THEN
-        IF ((trglob_arr(nranks-1)-tlglob_arr(nranks-1)+1).EQ.1) THEN
-          CALL second0(bcastton)
-          CALL MPI_Bcast(buco(ns1),1,MPI_REAL8,nranks-2,NS_COMM,MPI_ERR)
-          CALL MPI_Bcast(buco(ns),1,MPI_REAL8,nranks-1,NS_COMM,MPI_ERR)
-          CALL second0(bcasttoff)
-          broadcast_time = broadcast_time + (bcasttoff - bcastton)
-        ELSE
-          ALLOCATE(buf(2))
-          buf(1) = buco(ns1)
-          buf(2) = buco(ns)
-          CALL second0(bcastton)
-          CALL MPI_Bcast(buf,2,MPI_REAL8,nranks-1,NS_COMM,MPI_ERR)
-          CALL second0(bcasttoff)
-          broadcast_time = broadcast_time + (bcasttoff - bcastton)
-          buco(ns1) = buf(1)
-          buco(ns) = buf(2)
-          DEALLOCATE(buf)
-        END IF
+         lctor = lfreeb .AND. ictrl_prec2d.GT.1      !Yields better accuracy in solution
       END IF
 
       IF (lctor) THEN       
-         IF (ictrl_prec2d .eq. 2) 
-     1       ctor_prec2d = signgs*twopi*p5*(buco(ns) - buco(ns1))
-         ctor = ctor_prec2d + signgs*twopi*buco(ns)
+         IF (ictrl_prec2d .EQ. 2) 
+     1       ctor_prec2d = p5*(buco(ns) - buco(ns1))
+         ctor = signgs*twopi*(buco(ns)+ctor_prec2d)
       ELSE
          ctor = signgs*twopi*(c1p5*buco(ns) - p5*buco(ns1))
       END IF
@@ -384,12 +309,11 @@
 !     AVERAGE LAMBDA FORCES ONTO FULL RADIAL MESH
 !     USE BLENDING FOR bsubv_e FOR NUMERICAL STABILITY NEAR AXIS
 !
-
       nsmin=tlglob; nsmax=t1rglob
       DO l = nsmin, nsmax
          lvv(:,l) = bdamp(l)
       END DO
-      
+     
       IF (rank.EQ.0) THEN
         IF (ANY(bsubvh(:,1) .ne. zero)) STOP 'BSUBVH != 0 AT JS=1'
         IF (ANY(bsubuh(:,1) .ne. zero)) STOP 'BSUBUH != 0 AT JS=1'
@@ -398,13 +322,13 @@
       nsmin=tlglob; nsmax=MIN(trglob,ns-1)
       bsubu_e(:,nsmin:nsmax) = p5*(bsubuh(:,nsmin:nsmax) + 
      1                             bsubuh(:,nsmin+1:nsmax+1))
-      bsubu_e(:,ns) = p5*bsubuh(:,ns)
+      IF (trglob .EQ. ns) bsubu_e(:,ns) = p5*bsubuh(:,ns)
 
       nsmin=tlglob; nsmax=MIN(ns-1,trglob)
       bsubv_e(:,nsmin:nsmax) = bsubv_e(:,nsmin:nsmax)*
      1        lvv(:,nsmin:nsmax) + p5*(1-lvv(:,nsmin:nsmax))*
      2        (bsubvh(:,nsmin:nsmax) + bsubvh(:,nsmin+1:nsmax+1))
-      bsubv_e(:,ns) = bsubv_e(:,ns)*lvv(:,ns) + 
+      IF (trglob .EQ. ns) bsubv_e(:,ns) = bsubv_e(:,ns)*lvv(:,ns) + 
      1        p5*(1-lvv(:,ns))*bsubvh(:,ns)
 
 !
@@ -423,8 +347,8 @@
 !     NO NEED TO RECOMPUTE WHEN 2D-PRECONDITIONER ON
 !
 
-      IF ((MOD(iter2-iter1,ns4).eq.0 .and. iequi.eq.0) 
-     1        .and. ictrl_prec2d.eq.0) THEN
+      IF ((MOD(iter2-iter1,ns4).EQ.0 .AND. iequi.EQ.0) 
+     1        .AND. ictrl_prec2d.EQ.0) THEN
          phifsave = phifac
 
          nsmin=tlglob; nsmax=t1rglob
@@ -455,27 +379,18 @@
          pguu(:,nsmin:nsmax) = pguu(:,nsmin:nsmax)*
      1                         r12(:,nsmin:nsmax)**2
 
-         vplocal=SUM(vp(MAX(2,tlglob):trglob))
-         fnlocal=SUM(pguu(:,tlglob:trglob)*pwint(:,tlglob:trglob))
+         DO l = MAX(2,tlglob), trglob
+            fnlocal(l)  = SUM(pguu(:,l)*pwint(:,l))
+            fn1local(l) = SUM(tpxc(2:,l,1:ntmax)**2)
+     1                  + SUM(tpxc(1:,l,ntmax+1:2*ntmax)**2)
+            fnLlocal(l) = SUM((bsubuh(:,l)**2 + bsubvh(:,l)**2)
+     1                  * pwint(:,l))*lamscale**2
+         END DO
 
-         fn1local=SUM(tpxc(2:,tlglob:trglob,1:ntmax)**2)
-     1           +SUM(tpxc(1:,tlglob:trglob,ntmax+1:2*ntmax)**2)
-         fnLlocal=SUM((bsubuh(:,tlglob:trglob)**2 + 
-     1                 bsubvh(:,tlglob:trglob)**2)
-     2                 *pwint(:,tlglob:trglob))*lamscale**2
-
-         ALLOCATE (buf(4), redbuf(4))
-         buf(1)=vplocal; buf(2)=fnlocal
-         buf(3)=fn1local; buf(4)=fnLlocal
-         CALL second0(skston)
-         CALL MPI_Allreduce(buf,redbuf,4,MPI_REAL8,MPI_SUM,
-     1                      NS_COMM,MPI_ERR)
-         CALL second0(skstoff)
-         allreduce_time = allreduce_time + (skstoff - skston)
-         vptotal=redbuf(1); fntotal=redbuf(2)
-         fn1total=redbuf(3); fnLtotal=redbuf(4)
-
-         DEALLOCATE (buf, redbuf)
+         CALL Gather1XArray(vp);       vptotal = SUM(vp(2:ns))
+         CALL Gather1XArray(fnlocal);  fntotal = SUM(fnlocal(2:ns))
+         CALL Gather1XArray(fn1local); fn1total= SUM(fn1local(2:ns))
+         CALL Gather1XArray(fnLlocal); fnLtotal= SUM(fnLlocal(2:ns))
 
          volume = hs*vptotal
          r2 = MAX(wb,wp)/volume
@@ -515,7 +430,8 @@
 !     COMPUTE COVARIANT BSUBU,V (EVEN, ODD) ON HALF RADIAL MESH
 !     FOR FORCE BALANCE AND RETURN (IEQUI=1)
 !
-      IF (iequi .eq. 1) THEN
+
+      IF (iequi .EQ. 1) THEN
         nsmin=MAX(tlglob,2); nsmax=MIN(trglob,ns-1)
         DO js = nsmax, nsmin, -1
           bsubvh(:,js) = 2*bsubv_e(:,js) - bsubvh(:,js+1)
@@ -588,23 +504,23 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(nrzt,0:1), INTENT(inout) :: lu, lv
+      REAL(dp), DIMENSION(nrzt,0:1), INTENT(inout) :: lu, lv
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
 !     GENERALLY, IF TEMPORAL CONVERGENCE IS POOR, TRY TO INCREASE PDAMP (< 1)
 !     (STORED IN VMEC_PARAMS)
-      REAL(rprec), PARAMETER :: c1p5 = (one + p5)
+      REAL(dp), PARAMETER :: c1p5 = (one + p5)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: l, js, ndim
-      REAL(rprec) :: r2, volume, curpol_temp
+      REAL(dp) :: r2, volume, curpol_temp
 #ifndef _HBANGLE
-      REAL(rprec) :: arnorm, aznorm, tcon_mul
+      REAL(dp) :: arnorm, aznorm, tcon_mul
 #endif
-      REAL(rprec), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
-      REAL(rprec), DIMENSION(:), POINTER :: bsupu, bsubuh, 
+      REAL(dp), POINTER, DIMENSION(:) :: luu, luv, lvv, tau
+      REAL(dp), DIMENSION(:), POINTER :: bsupu, bsubuh, 
      1                                      bsupv, bsubvh, r12sq
       LOGICAL :: lctor
 !-----------------------------------------------
@@ -964,6 +880,7 @@
       bsubv_e = -lamscale*bsubv_e
       bsubu_o(:nrzt)  = sqrts(:nrzt)*bsubu_e(:nrzt)
       bsubv_o(:nrzt)  = sqrts(:nrzt)*bsubv_e(:nrzt)
+
 !
 !     STORE LU * LV COMBINATIONS USED IN FORCES
 !

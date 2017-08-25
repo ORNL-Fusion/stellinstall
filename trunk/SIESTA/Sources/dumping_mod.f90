@@ -1298,8 +1298,8 @@
         IF (istat .NE. 0) STOP 'Silo allocation problem!'
         
         END SUBROUTINE allocate_SILO
-        
-     
+
+
         SUBROUTINE dealloc_SILO
         
         IF (iam .EQ. 0) DEALLOCATE(silo2d, silo3d, tmp_silo, idum)

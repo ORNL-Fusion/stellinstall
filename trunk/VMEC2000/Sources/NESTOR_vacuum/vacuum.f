@@ -13,23 +13,21 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER :: ns, ivac_skip, ivac, mnmax, ier_flag
-      REAL(rprec) :: plascur, rbtor
-      REAL(rprec), DIMENSION(mnmax), INTENT(in) ::
+      REAL(dp) :: plascur, rbtor
+      REAL(dp), DIMENSION(mnmax), INTENT(in) ::
      1   rmnc, rmns, zmns, zmnc, xm, xn
-      REAL(rprec), DIMENSION(nuv3), INTENT(in) :: wint
+      REAL(dp), DIMENSION(nuv3), INTENT(in) :: wint
       LOGICAL :: lscreen
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: mn, n, n1, m, i, info=0, j
-      REAL(rprec), DIMENSION(:), POINTER :: potcos, potsin
-      REAL(rprec), ALLOCATABLE :: potu(:), potv(:)
-      REAL(rprec), ALLOCATABLE :: amatrix(:)
-      REAL(rprec):: dn2, dm2, cosmn, sinmn, huv, hvv,
-     1              det, bsubuvac, fac, ton, toff
-
-      REAL(rprec) :: tmp1(2), tmp2(2)
-      REAL(rprec) :: skston, skstoff
+      REAL(dp), DIMENSION(:), POINTER :: potcos, potsin
+      REAL(dp), ALLOCATABLE :: potu(:), potv(:)
+      REAL(dp), ALLOCATABLE :: amatrix(:)
+      REAL(dp):: dn2, dm2, cosmn, sinmn, huv, hvv,
+     1           det, bsubuvac, fac, ton, toff
+      REAL(dp) :: tmp1(2), tmp2(2)
 C-----------------------------------------------
 !
 !     THIS ROUTINE COMPUTES .5 * B**2 ON THE VACUUM / PLASMA SURFACE
@@ -41,11 +39,11 @@ C-----------------------------------------------
 !     THE "VACUUM.INC" FILE IS DEFINED IN VMEC.UNIX
 !
 !
-      CALL second0(skston)
-      IF (.not.ALLOCATED(potvac)) STOP 'POTVAC not ALLOCATED in VACCUM'
+      CALL second0(tvacon)
+      IF (.NOT.ALLOCATED(potvac)) STOP 'POTVAC not ALLOCATED in VACCUM'
 
       ALLOCATE (amatrix(mnpd2*mnpd2), potu(nuv3), potv(nuv3), stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in vacuum'
+      IF (i .NE. 0) STOP 'Allocation error in vacuum'
 
       potsin => potvac(1:mnpd)
       potcos => potvac(1+mnpd:)
@@ -56,7 +54,7 @@ C-----------------------------------------------
      3     avv(nuv3), snr(nuv3), snv(nuv3), snz(nuv3), drv(nuv3),
      4     guu_b(nuv3), guv_b(nuv3), gvv_b(nuv3), rzb2(nuv),
      5     rcosuv(nuv), rsinuv(nuv), stat=i)
-      IF (i .ne. 0) STOP 'Allocation error in vacuum'
+      IF (i .NE. 0) STOP 'Allocation error in vacuum'
 
 !
 !       INDEX OF LOCAL VARIABLES
@@ -127,7 +125,7 @@ C-----------------------------------------------
                potu(i) = potu(i) + dm2*cosmn
                potv(i) = potv(i) + dn2*cosmn
             END DO
-            IF (.not.lasym) CYCLE
+            IF (.NOT.lasym) CYCLE
             j = 0
             DO i = nuv3min, nuv3max
                j = j+1
@@ -152,11 +150,10 @@ C-----------------------------------------------
          bphiv(i) = r1b(i)*bsupv_sur(i)
          bzv(i) = zub(i)*bsupu_sur(i) + zvb(i)*bsupv_sur(i)
       END DO
-
 !
 !       PRINT OUT VACUUM PARAMETERS
 !
-      IF (ivac .eq. 0) THEN
+      IF (ivac .EQ. 0) THEN
          ivac = ivac + 1
          IF (vrank .EQ. 0) THEN
             IF (lscreen) WRITE (*, 200) nfper, mf, nf, nu, nv
@@ -200,7 +197,7 @@ C-----------------------------------------------
 !         IF (rbtor*bsubvvac .lt. zero) ier_flag = phiedge_error_flag
 !         IF (ABS((plascur - bsubuvac)/rbtor) .gt. 1.e-2_dp)
 !     1      ier_flag = 10
-         IF (rbtor*bsubvvac .lt. zero) THEN
+         IF (rbtor*bsubvvac .LT. zero) THEN
             IF (lrfp) THEN
                IF (vrank .EQ. 0) THEN
                IF (lscreen) WRITE(*,1100) 
@@ -229,10 +226,10 @@ C-----------------------------------------------
      1    DEALLOCATE (bexu, bexv, bexn, bexni, r1b, rub, rvb, z1b, zub,
      2    zvb, auu, auv, avv, snr, snv, snz, drv, guu_b, guv_b, gvv_b,
      3    rzb2, rcosuv, rsinuv, stat=i)
-      IF (i .ne. 0) STOP 'Deallocation error in vacuum'
+      IF (i .NE. 0) STOP 'Deallocation error in vacuum'
 
       DEALLOCATE (amatrix, potu, potv, stat=i)
-      IF (i .ne. 0) STOP 'Deallocation error in vacuum'
+      IF (i .NE. 0) STOP 'Deallocation error in vacuum'
       
       CALL second0(ton)
 #if defined(SKS)
@@ -244,8 +241,9 @@ C-----------------------------------------------
       CALL second0(toff)
       timer_vac(tallgv) = timer_vac(tallgv) + (toff-ton)
 
-      skstoff = toff
-      vacuum_time = vacuum_time + (skstoff - skston)
+      tvacoff = toff
+      vacuum_time = vacuum_time + (tvacoff - tvacon)
+
       END SUBROUTINE vacuum_par
 
 
@@ -264,16 +262,16 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER :: ns, ivac_skip, ivac, mnmax, ier_flag
-      REAL(rprec) :: plascur, rbtor
-      REAL(rprec), DIMENSION(mnmax), INTENT(in) ::
+      REAL(dp) :: plascur, rbtor
+      REAL(dp), DIMENSION(mnmax), INTENT(in) ::
      1   rmnc, rmns, zmns, zmnc, xm, xn
-      REAL(rprec), DIMENSION(ns, nuv3), INTENT(in) :: wint
+      REAL(dp), DIMENSION(ns, nuv3), INTENT(in) :: wint
       LOGICAL :: lscreen
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i
-      REAL(rprec), ALLOCATABLE :: tmpwint(:)
+      REAL(dp), ALLOCATABLE :: tmpwint(:)
 C-----------------------------------------------
       ALLOCATE (tmpwint(nuv3), stat=i)
       IF (i .NE. 0) STOP 'Allocation error in vacuum'

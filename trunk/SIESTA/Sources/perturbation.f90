@@ -172,6 +172,7 @@
 
       SUBROUTINE add_perturb (xc, getwmhd)
       USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE siesta_error
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -281,7 +282,7 @@
          wmhd = getwmhd(xc, PARFUNCTISL)
          IF (ABS(wmhd-w1) .GT. 1.E-12_dp) THEN
             IF (iam .EQ. 0) PRINT *,'Error1 in Perturb'
-            STOP 
+            CALL siesta_error_set_error(siesta_error_general, '')
          END IF
          xc = 0
          CALL update_state_par(.FALSE., zero, zero)

@@ -12,6 +12,7 @@
       USE vparams, ONLY: twopi
       USE totzsp_mod
       USE tomnsp_mod
+      USE timer_sub
       USE parallel_include_module
       USE parallel_vmec_module, ONLY: SAXLASTNTYPE, ZEROLASTNTYPE,
      1                                SAXPBYLASTNTYPE
@@ -28,20 +29,20 @@ C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l0pi, l, ivacskip
       INTEGER :: nvskip0 = 0
-      REAL(rprec), DIMENSION(mnmax) ::
+      REAL(dp), DIMENSION(mnmax) ::
      1   rmnc, zmns, lmns, rmns, zmnc, lmnc
-      REAL(rprec), DIMENSION(:,:,:), POINTER :: lu, lv
-      REAL(rprec) :: presf_ns, delr_mse, delt0
-      REAL(rprec), EXTERNAL :: pmass
-      REAL(rprec) :: skston, skstoff
+      REAL(dp), DIMENSION(:,:,:), POINTER :: lu, lv
+      REAL(dp) :: presf_ns, delr_mse, delt0
+      REAL(dp) :: tbroadon, tbroadoff
+      REAL(dp), EXTERNAL :: pmass
       INTEGER :: i, j, k, nsmin, nsmax, m
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) :: bcastbuf
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: bcastbuf
       INTEGER, DIMENSION(4) :: bbuf
 C-----------------------------------------------
+      CALL second0 (tfunon)
 !
 !     POINTER ALIASES
 !
-      CALL second0 (tfunon)
 
       nfunct3d = nfunct3d + 1
       lu => pczmn;  lv => pcrmn
@@ -59,7 +60,6 @@ C-----------------------------------------------
           CALL SAXLASTNTYPE(pxc, pscalxc, pgc)
         END IF
 
-!
 !     RIGID BODY SHIFT OF RMNCC(JS.GT.1,0,0) BY DELR_MSE= R00-RAXMSE
 !
 
@@ -74,12 +74,8 @@ C-----------------------------------------------
 !     ON THE RANGE u = 0,pi  and v = 0,2*pi
 !
 
-        CALL second0 (tffton)
-        skston=tffton
         CALL totzsps_par (pgc, pr1, pru, prv, pz1, pzu, pzv, lu, lv, 
      1                    prcon, pzcon)
-        CALL second0(skstoff)
-        totzsps_time=totzsps_time+(skstoff-skston)
 
 !
 !     ANTI-SYMMETRIC CONTRIBUTIONS TO INVERSE TRANSFORMS
@@ -87,7 +83,6 @@ C-----------------------------------------------
         IF (lasym) THEN
            CALL totzspa_par (pgc, parmn, pbrmn, pextra3, pazmn, pbzmn,
      1                       pextra4, pblmn, pclmn, pextra1, pextra2)
-           CALL second0(skstoff)
 
 !        SUM SYMMETRIC, ANTISYMMETRIC PIECES APPROPRIATELY
 !        TO GET R, Z, L, (AND RCON, ZCON) ON FULL RANGE OF u (0 to 2*pi)
@@ -95,10 +90,6 @@ C-----------------------------------------------
      1     pzcon, parmn, pbrmn, pextra3, pazmn, pbzmn, pextra4, pblmn,
      2     pclmn, pextra1, pextra2)
        ENDIF
-
-       CALL second0 (tfftoff)
-       timer(tfft) = timer(tfft) + (tfftoff - tffton)
-
 
 !      l0pi = ns*(1 + nzeta*(ntheta2 - 1))        !u = pi, v = 0, js = ns
 !      router = r1(ns,0) + r1(ns,1)
@@ -110,15 +101,13 @@ C-----------------------------------------------
 !
 !     COMPUTE CONSTRAINT RCON, ZCON
 !
-      nsmin=tlglob; nsmax=t1rglob
-      prcon(:,nsmin:nsmax,0) = prcon(:,nsmin:nsmax,0) + 
-     1  prcon(:,nsmin:nsmax,1)*psqrts(:,nsmin:nsmax)
-      pzcon(:,nsmin:nsmax,0) = pzcon(:,nsmin:nsmax,0) + 
-     1  pzcon(:,nsmin:nsmax,1)*psqrts(:,nsmin:nsmax)
-      pru0(:,nsmin:nsmax) = pru(:,nsmin:nsmax,0) + 
-     1  pru(:,nsmin:nsmax,1)*psqrts(:,nsmin:nsmax)
-      pzu0(:,nsmin:nsmax) = pzu(:,nsmin:nsmax,0) + 
-     1  pzu(:,nsmin:nsmax,1)*psqrts(:,nsmin:nsmax)
+      nsmin=tlglob; nsmax=trglob
+      DO l = nsmin, nsmax
+         prcon(:,l,0) = prcon(:,l,0) + prcon(:,l,1)*psqrts(:,l)
+         pzcon(:,l,0) = pzcon(:,l,0) + pzcon(:,l,1)*psqrts(:,l)
+         pru0(:,l) = pru(:,l,0) + pru(:,l,1)*psqrts(:,l)
+         pzu0(:,l) = pzu(:,l,0) +  pzu(:,l,1)*psqrts(:,l)
+      END DO
 
 !     COMPUTE RCON0, ZCON0 FOR FIXED BOUNDARY BY SCALING EDGE VALUES
 !     SCALE BY POWER OF SQRTS, RATHER THAN USE rcon0 = rcon, etc. THIS
@@ -130,35 +119,32 @@ C-----------------------------------------------
 !
       IF (ictrl_prec2d .EQ. 2) THEN
         DO l = nsmin, nsmax
-         prcon0(:,l) = prcon(:,l,0)
-         pzcon0(:,l) = pzcon(:,l,0) 
+           prcon0(:,l) = prcon(:,l,0)
+           pzcon0(:,l) = pzcon(:,l,0) 
         END DO
       ELSE IF (iter2.EQ.iter1 .AND. ivac.LE.0
      1         .AND. ictrl_prec2d.EQ.0) THEN
         ALLOCATE(bcastbuf(2*nznt))
         bcastbuf(1:nznt)=prcon(:,ns,0)
         bcastbuf(nznt+1:2*nznt)=pzcon(:,ns,0)
-        CALL second0(skston)
+        CALL second0(tbroadon)
         CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,nranks-1,
      1                  NS_COMM,MPI_ERR)
-        CALL second0(skstoff)
-        broadcast_time = broadcast_time + (skstoff -skston)
+        CALL second0(tbroadoff)
+        broadcast_time = broadcast_time + (tbroadoff-tbroadon)
         prcon(:,ns,0)=bcastbuf(1:nznt)
         pzcon(:,ns,0)=bcastbuf(nznt+1:2*nznt)
         DEALLOCATE(bcastbuf)
         DO l = nsmin, nsmax
-          prcon0(:,l) = prcon(:,ns,0)*psqrts(:,l)**2
-          pzcon0(:,l) = pzcon(:,ns,0)*psqrts(:,l)**2
+           prcon0(:,l) = prcon(:,ns,0)*psqrts(:,l)**2
+           pzcon0(:,l) = pzcon(:,ns,0)*psqrts(:,l)**2
         END DO
       ENDIF
 
 !
 !     COMPUTE S AND THETA DERIVATIVE OF R AND Z AND JACOBIAN ON HALF-GRID
 !
-      CALL second0(skston)
       CALL jacobian_par
-      CALL second0(skstoff)
-      jacobian_time=jacobian_time+(skstoff-skston)
 
 !     COMPUTE COVARIANT COMPONENTS OF B, MAGNETIC AND KINETIC
 !     PRESSURE, AND METRIC ELEMENTS ON HALF-GRID
@@ -227,18 +213,15 @@ C-----------------------------------------------
 !           THE EXCEPTION TO THIS IS IF WE ARE TESTING THE HESSIAN (lHess_exact=T), 
 !           THEN MUST USE FULL VACUUM CALCULATION TO COMPUTE IT (ivacskip=0)
 !
-           lHess_exact = .FALSE.
+!           lHess_exact = .FALSE.
 
-           IF (lHess_exact) THEN
-              IF (ictrl_prec2d .GE. 1) ivacskip = 0      !Accurate Hessian
-              l_edge = .TRUE.                            
-           ELSE IF (ictrl_prec2d .NE. 0) THEN
-              IF (ictrl_prec2d .EQ. 2) THEN
+           IF (ictrl_prec2d .NE. 0) THEN
+              IF (lHess_exact .OR. ictrl_prec2d.EQ.2) THEN        !Accurate Hessian
                  ivacskip = 0
               ELSE
-                 ivacskip = 1                            !Fast vacuum calculation used to compute Hessian
-              END IF
-           END IF
+                 ivacskip = 1                                     !Fast vacuum calculation used to compute Hessian
+              ENDIF
+           ENDIF
 
 !          NOTE: pgc contains correct edge values of r,z,l arrays
 !                convert_sym, convert_asym have been applied to m=1 modes
@@ -247,48 +230,43 @@ C-----------------------------------------------
 
 !          DO NOT UPDATE THIS WHEN USING PRECONDITIONER: BREAKS TRI-DIAGONAL STRUCTURE
            IF (ictrl_prec2d.EQ.0 .OR. ictrl_prec2d.EQ.2) THEN
-              CALL second0(skston)
               raxis_nestor(1:nzeta) = pr1(1:nzeta,1,0)
               zaxis_nestor(1:nzeta) = pz1(1:nzeta,1,0)
 
               ALLOCATE (bcastbuf(2*nzeta))
               bcastbuf(1:nzeta) = raxis_nestor(1:nzeta)
               bcastbuf(nzeta+1:2*nzeta) = zaxis_nestor(1:nzeta)
-              CALL second0(skston)
+              CALL second0(tbroadon)
               CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,0,
      1                       RUNVMEC_COMM_WORLD,MPI_ERR)
-              CALL second0(skstoff)
-              broadcast_time = broadcast_time + (skstoff - skston)
+              CALL second0(tbroadoff)
+              broadcast_time = broadcast_time + (tbroadoff - tbroadon)
               raxis_nestor(1:nzeta) = bcastbuf(1:nzeta)
               zaxis_nestor(1:nzeta) = bcastbuf(nzeta+1:2*nzeta)
               DEALLOCATE (bcastbuf)
-              CALL second0(skstoff)
            END IF
 
-           CALL second0(skston)
            ALLOCATE (bcastbuf(2))
            bcastbuf(1)=rbtor
            bcastbuf(2)=ctor
            IF (lactive) THEN
-             CALL second0(skston)
+             CALL second0(tbroadon)
              CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,
      1                        nranks-1,NS_COMM,MPI_ERR)
-             CALL second0(skstoff)
-             broadcast_time = broadcast_time + (skstoff -skston)
+             CALL second0(tbroadoff)
+             broadcast_time = broadcast_time + (tbroadoff -tbroadon)
            END IF
 
-           CALL second0(skston)
+           CALL second0(tbroadon)
            IF (vlactive) THEN
              CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,0,
      1                      VAC_COMM,MPI_ERR)
            END IF
-           CALL second0(skstoff)
-           broadcast_time = broadcast_time + (skstoff -skston)
+           CALL second0(tbroadoff)
+           broadcast_time = broadcast_time + (tbroadoff -tbroadon)
            rbtor=bcastbuf(1)
            ctor=bcastbuf(2)
            DEALLOCATE (bcastbuf)
-           CALL second0(skstoff)
-           broadcast_time = broadcast_time + (skstoff - skston)
 
            IF (vlactive) THEN
              IF (ictrl_prec2d.NE.3 .OR. l_edge) THEN
@@ -307,7 +285,7 @@ C-----------------------------------------------
 
            IF (ier_flag .NE. 0) RETURN
 !
-!           RESET FIRST TIME FOR SOFT START
+!          RESET FIRST TIME FOR SOFT START
 !
            IF (ivac .EQ. 1) THEN
              irst = 2;  delt0 = delt
@@ -357,30 +335,21 @@ C-----------------------------------------------
 !
        ACTIVE2: IF (lactive) THEN
          IF (iequi .NE. 1) THEN
-           nsmin=tlglob; nsmax=t1rglob
-           pextra1(:,nsmin:nsmax,0) = (prcon(:,nsmin:nsmax,0) - 
-     1          prcon0(:,nsmin:nsmax))*pru0(:,nsmin:nsmax) +
-     2          (pzcon(:,nsmin:nsmax,0) - 
-     3          pzcon0(:,nsmin:nsmax))*pzu0(:,nsmin:nsmax)
-
-           CALL second0(skston)
+           DO l = nsmin, nsmax
+              pextra1(:,l,0) = (prcon(:,l,0) - prcon0(:,l))*pru0(:,l) 
+     1                       + (pzcon(:,l,0) - pzcon0(:,l))*pzu0(:,l)
+           END DO
            CALL alias_par (pgcon, pextra1(:,:,0), pgc, pgc(1+mns), 
-     1                  pgc(1+2*mns), pextra1(:,:,1))
-        CALL second0(skstoff)
-        alias_time = alias_time + (skstoff-skston)         
-      ELSE 
-        IF (lrecon) pxc(:ns) = pxc(:ns) + delr_mse
-        GOTO 100
-      END IF
+     1                     pgc(1+2*mns), pextra1(:,:,1))
+         ELSE 
+           IF (lrecon) pxc(:ns) = pxc(:ns) + delr_mse
+           GOTO 100
+         END IF
 
 !
 !     COMPUTE MHD FORCES ON INTEGER-MESH
 !
-      CALL second0 (tforon)
-      skston = tforon
       CALL forces_par
-      CALL second0 (skstoff)
-      forces_time = forces_time + (skstoff-skston)
 
 !     SYMMETRIZE FORCES (in u-v space)
 !
@@ -388,27 +357,16 @@ C-----------------------------------------------
       IF (lasym) CALL symforce_par (parmn, pbrmn, pcrmn, pazmn, pbzmn,
      1     pczmn, pblmn, pclmn, prcon, pzcon, pr1, pru, prv, pz1,
      2     pzu, pzv, pextra3, pextra4, pextra1, pextra2)
-
-
-      CALL second0 (tforoff)
-      timer(tfor) = timer(tfor) + (tforoff - tforon)
-      CALL second0 (tffton)
      
 !
 !     FOURIER-TRANSFORM MHD FORCES TO (M,N)-SPACE
 !
 
-      CALL second0(skston)
-         CALL tomnsps_par (pgc, parmn, pbrmn, pcrmn, pazmn, pbzmn,
+      CALL tomnsps_par (pgc, parmn, pbrmn, pcrmn, pazmn, pbzmn,
      1                     pczmn, pblmn, pclmn, prcon, pzcon)
-      CALL second0(skstoff)
-      tomnsps_time = tomnsps_time + (skstoff-skston)
 
       IF (lasym) CALL tomnspa_par (pgc, pr1, pru, prv, pz1, pzu, pzv,
      1                             pextra3, pextra4, pextra1, pextra2)
-
-      CALL second0 (tfftoff)
-      timer(tffi) = timer(tffi) + (tfftoff - tffton)
 
 !================================================================
 !
@@ -419,31 +377,25 @@ C-----------------------------------------------
 
       CALL SAXLASTNTYPE(pgc, pscalxc, pgc)
 
-      CALL second0 (skston)
       CALL residue_par(pgc, pgc(1+irzloff), pgc(1+2*irzloff))
-      CALL second0 (skstoff)
-      residue_time = residue_time + (skstoff-skston)
 
       END IF ACTIVE2
 
 !NEED THIS ON ALL PROCESSORS IN GROUP (NOT JUST ACTIVE ONES) FOR STOPPING CRITERION IN EVOLVE
       IF (gnranks .GT. nranks) THEN
-        CALL second0(skston)
         ALLOCATE(bcastbuf(6))
         bcastbuf(1) = fsqr; bcastbuf(2) = fsqr1
         bcastbuf(3) = fsqz; bcastbuf(4) = fsqz1
         bcastbuf(5) = fsql; bcastbuf(6) = fsql1
-        CALL second0(skston)
+        CALL second0(tbroadon)
         CALL MPI_Bcast(bcastbuf,SIZE(bcastbuf),MPI_REAL8,0,
      1                 RUNVMEC_COMM_WORLD,MPI_ERR)
-        CALL second0(skstoff)
-        broadcast_time = broadcast_time + (skstoff -skston)
+        CALL second0(tbroadoff)
+        broadcast_time = broadcast_time + (tbroadoff -tbroadon)
         fsqr = bcastbuf(1); fsqr1 = bcastbuf(2)
         fsqz = bcastbuf(3); fsqz1 = bcastbuf(4)
         fsql = bcastbuf(5); fsql1 = bcastbuf(6)
         DEALLOCATE(bcastbuf)
-        CALL second0(skstoff)
-        broadcast_time = broadcast_time + (skstoff -skston)
       ENDIF
 
 
@@ -484,6 +436,7 @@ C-----------------------------------------------
       USE vparams, ONLY: twopi
       USE totzsp_mod
       USE tomnsp_mod
+      USE timer_sub
 #ifdef _HBANGLE
       USE angle_constraints, ONLY: getrz, getfrho, xtempa
 #endif
@@ -539,7 +492,6 @@ C-----------------------------------------------
 !     ON THE RANGE u = 0,pi  and v = 0,2*pi
 !
 
-      CALL second0 (tffton)
       CALL totzsps (gc, r1, ru, rv, z1, zu, zv, lu, lv, rcon, zcon)
 !
 !     ANTI-SYMMETRIC CONTRIBUTIONS TO INVERSE TRANSFORMS
@@ -554,11 +506,7 @@ C-----------------------------------------------
             CALL symrzl (r1, ru, rv, z1, zu, zv, lu, lv, rcon, zcon,
      1                   armn, brmn, extra3, azmn, bzmn, extra4, blmn, 
      2                   clmn, extra1, extra2)
-
       ENDIF
-
-      CALL second0 (tfftoff)
-      timer(tfft) = timer(tfft) + (tfftoff - tffton)
 
       l0pi = ns*(1 + nzeta*(ntheta2 - 1))        !u = pi, v = 0, js = ns
       router = r1(ns,0) + r1(ns,1)
@@ -590,8 +538,8 @@ C-----------------------------------------------
          rcon0(1:nrzt) = rcon(1:nrzt,0)
          zcon0(1:nrzt) = zcon(1:nrzt,0)
          ALLOCATE(bsqvac0(nznt))
-      ELSE IF (iter2.eq.iter1 .and. ivac.le.0
-     1         .and. ictrl_prec2d.eq.0) THEN
+      ELSE IF (iter2.EQ.iter1 .AND. ivac.le.0
+     1         .AND. ictrl_prec2d.EQ.0) THEN
          DO l = 1, ns
             rcon0(l:nrzt:ns) = rcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
             zcon0(l:nrzt:ns) = zcon(ns:nrzt:ns,0)*sqrts(l:nrzt:ns)**2
@@ -657,16 +605,13 @@ C-----------------------------------------------
 !           THEN MUST USE FULL VACUUM CALCULATION TO COMPUTE IT (ivacskip=0)
 !
            lHess_exact = .FALSE.
-           IF (lHess_exact) THEN
-              IF (ictrl_prec2d .GE. 1) ivacskip = 0      !Accurate Hessian
-              l_edge = .TRUE.
-           ELSE IF (ictrl_prec2d .NE. 0) THEN
-              IF (ictrl_prec2d .EQ. 2) THEN
+           IF (ictrl_prec2d .NE. 0) THEN
+              IF (lHess_exact .OR. ictrl_prec2d.EQ.2) THEN        !Accurate Hessian
                  ivacskip = 0
               ELSE
-                 ivacskip = 1                            !Fast vacuum calculation used to compute Hessian
-              END IF
-           END IF
+                 ivacskip = 1                                     !Fast vacuum calculation used to compute Hessian
+              ENDIF
+           ENDIF
 
 !           NOTE: gc contains correct edge values of r,z,l arrays
 !                 convert_sym, convert_asym have been applied to m=1 modes
@@ -775,7 +720,6 @@ C-----------------------------------------------
 !
 !     COMPUTE MHD FORCES ON INTEGER-MESH
 !
-      CALL second0 (tforon)
       CALL forces
 
 !
@@ -798,20 +742,14 @@ C-----------------------------------------------
 !NOT NECESSARY (EVEN THOUGH CORRECT)         gc = 2*gc
       END IF
 
-      CALL second0 (tforoff)
-      timer(tfor) = timer(tfor) + (tforoff - tforon)
 !
 !     FOURIER-TRANSFORM MHD FORCES TO (M,N)-SPACE
 !
-      CALL second0 (tffton)
       CALL tomnsps (gc, armn, brmn, crmn, azmn, bzmn, czmn, 
      1              blmn, clmn, rcon, zcon)
 
       IF (lasym) CALL tomnspa (gc, r1, ru, rv, z1, zu, zv,
      1                         extra3, extra4, extra1, extra2)
-
-      CALL second0 (tfftoff)
-      timer(tffi) = timer(tffi) + (tfftoff - tffton)
 
 !================================================================
 !
@@ -846,3 +784,4 @@ C-----------------------------------------------
      1                                        + (tfunoff - tfunon)
 
       END SUBROUTINE funct3d
+

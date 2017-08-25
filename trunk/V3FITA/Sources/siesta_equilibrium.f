@@ -3149,6 +3149,7 @@
       USE model_state
       USE data_parameters
       USE safe_open_mod
+      USE siesta_error
 
       IMPLICIT NONE
 
@@ -3208,24 +3209,28 @@
       CALL siesta_run_converge(run_context)
       CALL siesta_run_destruct(run_context, .false., .false.)
 
-      IF (eq_rank .eq. 0) THEN
+      IF (siesta_error_state .eq. siesta_error_no_error) THEN
 
-         ladd_pert = .false.
-         lresistive = .false.
-         lrestart = .true.
-         CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
-     &                  'replace', 'formatted', delim_in='quote')
-         WRITE (iou_nli, nml=siesta_info)
-         CLOSE (iou_nli, iostat=status)
-      END IF
+         IF (eq_rank .eq. 0) THEN
+
+            ladd_pert = .false.
+            lresistive = .false.
+            lrestart = .true.
+            CALL safe_open(iou_nli, status, TRIM(this%siesta_file_name),          &
+     &                     'replace', 'formatted', delim_in='quote')
+            WRITE (iou_nli, nml=siesta_info)
+            CLOSE (iou_nli, iostat=status)
+         END IF
 
 #if defined(MPI_OPT)
-      CALL MPI_BARRIER(eq_comm, status)
+         CALL MPI_BARRIER(eq_comm, status)
 #endif
-      run_context => siesta_run_construct(eq_comm, .false., .false.)
-      CALL siesta_run_set_vmec(run_context)
-      CALL siesta_run_converge(run_context)
-      CALL siesta_run_destruct(run_context, .false., .false.)
+         run_context => siesta_run_construct(eq_comm, .false., .false.)
+         CALL siesta_run_set_vmec(run_context)
+         CALL siesta_run_converge(run_context)
+         CALL siesta_run_destruct(run_context, .false., .false.)
+      END IF
+      siesta_converge = siesta_error_state .eq. siesta_error_no_error
 
       status = 0
       siesta_converge = siesta_converge .and. status .eq. 0

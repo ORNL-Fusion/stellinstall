@@ -134,9 +134,6 @@
 
         REAL(dp) :: jacob1=0, jacob2=0
 
-        REAL(dp) :: res_getfsq=0
-        REAL(dp) :: res_scalfor=0
-
         INTEGER :: nfunct3d=0
         REAL(dp) :: old_vacuum_time=0
 
@@ -148,8 +145,7 @@
 
         !Vacuum, Scalpot variables
         INTEGER :: blksize_scp, numjs_vac
-        INTEGER, ALLOCATABLE, DIMENSION(:) :: counts_scp, disps_scp,    &
-                                              counts_vac, disps_vac, lindx_scp
+        INTEGER, ALLOCATABLE, DIMENSION(:) :: counts_vac, disps_vac, lindx_scp
 
         !Parallel timers
         REAL(dp) :: totzsps_time=0

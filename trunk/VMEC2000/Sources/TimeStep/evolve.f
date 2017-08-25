@@ -22,23 +22,23 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec)            :: time_step          !, r0dot
-      INTEGER, INTENT(inout) :: ier_flag
-      LOGICAL, INTENT(inout) :: liter_flag
-      LOGICAL, INTENT(in)    :: lscreen
+      REAL(dp)            :: time_step          !, r0dot
+      INTEGER, INTENT(INOUT) :: ier_flag
+      LOGICAL, INTENT(INOUT) :: liter_flag
+      LOGICAL, INTENT(IN)    :: lscreen
 !-----------------------------------------------``
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       CHARACTER(LEN=*), PARAMETER :: fcn_message =
      1 "External calls to FUNCT3D: "
-!      REAL(rprec), PARAMETER :: r0dot_threshold = 5.E-06_dp
-      REAL(rprec) :: fsq1, dtau, b1, bprec, fac
+!      REAL(dp), PARAMETER :: r0dot_threshold = 5.E-06_dp
+      REAL(dp) :: fsq1, dtau, b1, bprec, fac
       LOGICAL :: lfinal_mesh
       INTEGER :: lcount
       INTEGER, SAVE :: iter_on
 #if defined(SKS)      
       INTEGER :: i, j, k, l, lk
-      REAL(rprec) :: f3dt1, f3dt2
+      REAL(dp) :: f3dt1, f3dt2, tevon, tevoff
 #endif
 C-----------------------------------------------
 !     IF TROUBLE CONVERGING, TRY TO RECOMPUTE PRECONDITIONER ONCE MORE...
@@ -55,16 +55,17 @@ C-----------------------------------------------
 !      lfinal_mesh = (ns .eq. ns_maxval) .and. (ictrl_prec2d.eq.0)
 !     1              .and. (itype_precon.ne.0)
 
+#if defined (SKS)
+         CALL second0(tevon)
+#endif
 
-!      CALL second0(skston)
-
-      lfinal_mesh = (ns .eq. ns_maxval) .and. (ictrl_prec2d.eq.0)
+      lfinal_mesh = (ns .EQ. ns_maxval) .and. (ictrl_prec2d.EQ.0)
      1              .and. (itype_precon.ne.0)
      2              .and. ((.not. l_v3fit) .or. iter2 - iter1 .ge. 5)
 
       IF (iter2 .lt. 10) THEN
          ictrl_prec2d = 0
-         lqmr = .false.; lfirst = .false.
+         lqmr = .false.
          iter_on = -1
       ELSE IF (lfinal_mesh .and. 
      1        (fsqr+fsqz+fsql).lt.prec2d_threshold) THEN
@@ -78,11 +79,14 @@ C-----------------------------------------------
          IF (iter_on .EQ. -1) THEN
             IF (lqmr) THEN
                nstep = 5
+               niter = iter2+100                   !Limit # preconditioner steps
             ELSE
                nstep = 20
+               niter = iter2+400
             END IF
-            niter = iter2 + 200                    !Limit to 200 preconditioner steps
             iter_on = iter2                        !Flag to monitor progress of preconditioner
+         ELSE
+            iter_on = iter2-11
          END IF
 
 !SPH022111: ADD NEW CONTROL PARAMETER, l_comp_prec2D, TO FORCE RECALCULATION
@@ -101,8 +105,7 @@ C-----------------------------------------------
          l_comp_prec2D = .FALSE.
          ictrl_prec2d = 1
          time_step = 0.50_dp
-         iter1 = iter2                             !Reset otau for CG
-         fsq = fsqr1 + fsqz1 + fsql1
+         iter1 = iter2-1; fsq = fsqr1 + fsqz1 + fsql1
 
          IF (PARVMEC) THEN
 #if defined(SKS)
@@ -114,6 +117,7 @@ C-----------------------------------------------
            xcdot = 0
          END IF
       END IF
+
 !
 !     COMPUTE MHD FORCES
 !     MUST CALL funct3d EVEN WHEN IN 2D PRECONDITIONING MODE, SINCE
@@ -129,7 +133,6 @@ C-----------------------------------------------
         CALL funct3d (lscreen, ier_flag)
 #if defined (SKS)      
       END IF
-
       CALL second0(f3dt2)
       f3d_time(NS_RESLTN) = f3d_time(NS_RESLTN) + (f3dt2-f3dt1)
       funct3d_time = funct3d_time + (f3dt2-f3dt1)
@@ -137,7 +140,7 @@ C-----------------------------------------------
 
 !
 !     COMPUTE ABSOLUTE STOPPING CRITERION
-      IF (iter2.EQ.1 .AND. irst.EQ.2) THEN
+      IF (iter2.EQ.1 .and. irst.EQ.2) THEN
          ier_flag = bad_jacobian_flag
          RETURN
 !  JDH 2012-04-24. Revise this absolute stopping criterion, so that if v3fit
@@ -162,7 +165,7 @@ C-----------------------------------------------
 
 !SPH:042117: MOVE TIME STEP CONTROL HERE (FROM END OF EQSOLVE) TO AVOID
 !STORING A POSSIBLE irst=2 STATE
-      IF (ictrl_prec2d .EQ. 0) CALL TimeStepControl(ier_flag, PARVMEC)
+      CALL TimeStepControl(ier_flag, PARVMEC)
 
       IF (lqmr) THEN
          IF (PARVMEC) THEN
@@ -190,20 +193,21 @@ C-----------------------------------------------
 
       IF (iter2 .EQ. iter1) otau(:ndamp) = cp15/time_step
 
-      IF (ictrl_prec2d .eq. 0) THEN
+      IF (ictrl_prec2d .EQ. 0) THEN
          bprec = 1
       ELSE
-         bprec = 3
+         bprec = 6
       END IF
 
-      IF (iter2.gt.iter1 .and. fsq1.ne.zero) 
-     1    dtau = MIN(ABS(LOG(fsq1/fsq)), bprec*cp15)
+      dtau = bprec*cp15
+      IF (iter2.GT.iter1 .AND. fsq1*fsq.NE.zero)
+     1   dtau = MIN(ABS(LOG(fsq1/fsq)), dtau)
 
       fsq = fsq1
 
       otau(1:ndamp-1) = otau(2:ndamp)
 
-      IF (iter2 .gt. iter1) otau(ndamp) = dtau/time_step
+      IF (iter2 .GT. iter1) otau(ndamp) = dtau/time_step
 !REMOVED 071505: OTHERWISE I=1 STATE REPEATED (SKIP THIS TO GET OUT OF ITER2=1 STATE)
 !     IF (iter2 .le. 1) RETURN
 
@@ -232,7 +236,11 @@ C-----------------------------------------------
         xc    = xc + time_step*xcdot
 #if defined (SKS)
       ENDIF
+
+      CALL second0(tevoff)
+      evolve_time = evolve_time + (tevoff - tevon)
 #endif
+
       END SUBROUTINE evolve
 
 
@@ -267,9 +275,14 @@ C-----------------------------------------------
       res0 = MIN(res0,fsq)
       res1 = MIN(res1,fsq0)
 
+
 ! Store current state (irst=1)
       IF (fsq.LE.res0 .AND. fsq0.LE.res1 .AND. irst.EQ.1) THEN 
          CALL restart_iter(delt0r)
+
+      ELSE IF (ictrl_prec2d .NE. 0) THEN
+         CALL restart_iter(delt0r)
+         RETURN
 
       ELSE IF ((iter2-iter1) .GT. 10) THEN
 
@@ -287,7 +300,6 @@ C-----------------------------------------------
       IF (irst .NE. 1) THEN
          CALL restart_iter(delt0r)
          iter1 = iter2
-         IF (ictrl_prec2d .NE. 0) RETURN
 #if defined (SKS)      
          IF (PARVMEC) THEN
            CALL funct3d_par (.FALSE., ier_flag)

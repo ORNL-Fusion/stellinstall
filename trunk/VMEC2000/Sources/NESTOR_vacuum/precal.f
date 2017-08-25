@@ -7,25 +7,25 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      REAL(rprec), INTENT(in) :: wint(nuv3)
+      REAL(dp), INTENT(in) :: wint(nuv3)
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: p25 = p5*p5, bigno = 1.e50_dp
+      REAL(dp), PARAMETER :: p25 = p5*p5, bigno = 1.e50_dp
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: kp, ku, kuminus, kv, kvminus, i, m, n, mn, n1,
      1   imn, jmn, kmn, l, istat1, smn, nuv_tan, ndim, q, qq
-      REAL(rprec), DIMENSION(0:mf + nf,0:mf,0:nf) :: cmn
-      REAL(rprec) :: argu, argv, argp, dn1, f1, f2, f3, alp_per
-      REAL(rprec) :: skston, skstoff
+      REAL(dp), DIMENSION(0:mf + nf,0:mf,0:nf) :: cmn
+      REAL(dp) :: argu, argv, argp, dn1, f1, f2, f3, alp_per,
+     1            tprecon, tprecoff
 C-----------------------------------------------
 !
 !     THIS ROUTINE COMPUTES INITIAL CONSTANTS AND ARRAYS
 !     NOTE: alu*alv = (2*pi)**2 * wint
 !
-      CALL second0(skston)
+      CALL second0(tprecon)
 
       pi2 = 8*ATAN(one)
       pi3 = p5*pi2**3
@@ -219,35 +219,21 @@ C-----------------------------------------------
      1                     +           cmn(0:mf+nf,0,0))
 
       numjs_vac=nuv3max-nuv3min+1
-      blksize_scp=mnpd2  
-      ALLOCATE(lindx_scp(blksize_scp*numjs_vac))
-      q=0; qq=0
-      DO ku=1, nuv3
-        DO n=1, mnpd2
-           q=q+1
-           IF (ku.GE.nuv3min.AND.ku.LE.nuv3max) THEN
-             qq = qq+1
-             lindx_scp(qq)=q
-           END IF
-        END DO
-      END DO
+!      blksize_scp=mnpd2  
 
-      ALLOCATE (counts_scp(vnranks),disps_scp(vnranks),
-     1          counts_vac(vnranks),disps_vac(vnranks), stat=i)
+#if defined(SKS)
+      ALLOCATE (counts_vac(vnranks),disps_vac(vnranks), stat=i)
       IF (i .NE. 0) STOP 'Allocation error in precal'
       DO i=1,vnranks
         counts_vac(i)=nuv3max_arr(i)-nuv3min_arr(i)+1
-        counts_scp(i)=counts_vac(i)*blksize_scp
       END DO
-      disps_scp(1)=0
       disps_vac(1)=0
       DO i=2,vnranks
-        disps_scp(i)=disps_scp(i-1)+counts_scp(i-1)
         disps_vac(i)=disps_vac(i-1)+counts_vac(i-1)
       END DO
-
-      CALL second0(skstoff)
-      precal_time = precal_time + (skstoff - skston) 
+#endif
+      CALL second0(tprecoff)
+      precal_time = precal_time + (tprecoff - tprecon) 
 
       END SUBROUTINE precal
 

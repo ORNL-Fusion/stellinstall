@@ -210,6 +210,7 @@
       REAL(dp), INTENT(INOUT) :: fsq_min
       REAL(dp), PARAMETER :: facmin = 2
       INTEGER  :: iter, j
+      REAL(dp) :: fsq_last
 
       IF (iam .EQ. 0 .and. lverbose) PRINT 90
  90   FORMAT(1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,'-------------',   &
@@ -231,8 +232,7 @@
          ELSE IF (j.NE.4 .AND. fsq_total1.LT.fsq_min) THEN
             xcmin = xc
             IF (fsq_total1 .GT. 0.98_dp*fsq_min) iter=iter+1
-!            IF (fsq_total1 .LT. 0.85_dp*fsq_min) iter = 0
-            IF (fsq_total1 .LT. 0.97_dp*fsq_min) iter = 0 !MRC
+            IF (fsq_total1 .LT. 0.95_dp*fsq_min) iter = 0
             fsq_min = fsq_total1
          ELSE IF (j .GT. 4) THEN
             iter = iter+1

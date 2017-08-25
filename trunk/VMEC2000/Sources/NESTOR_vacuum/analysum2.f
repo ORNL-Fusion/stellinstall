@@ -8,17 +8,17 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: m, n, l, ivacskip, ndim
-      REAL(rprec), INTENT(inout) :: grpmn(0:mf,-nf:nf,ndim,nuv3)
-      REAL(rprec), INTENT(inout) :: bvec(0:mf,-nf:nf,ndim)
-      REAL(rprec), DIMENSION(nuv3), INTENT(in) ::
+      REAL(dp), INTENT(inout) :: grpmn(0:mf,-nf:nf,ndim,nuv3)
+      REAL(dp), INTENT(inout) :: bvec(0:mf,-nf:nf,ndim)
+      REAL(dp), DIMENSION(nuv3), INTENT(in) ::
      1   slp, tlp, slm, tlm
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i
-      REAL(rprec) :: sinp, sinm, cosp, cosm, temp, skston, skstoff
+      REAL(dp) :: sinp, sinm, cosp, cosm, temp, ton, toff
 C-----------------------------------------------
-      CALL second0(skston)
+      CALL second0(ton)
     
       IF (n .LT. 0) STOP 'error calling analysum2!'
 
@@ -51,7 +51,7 @@ C-----------------------------------------------
          END IF
       END DO
 
-      CALL second0(skstoff)
-      timer_vac(tasum2) = timer_vac(tasum2) + (skstoff-skston)
+      CALL second0(toff)
+      timer_vac(tasum2) = timer_vac(tasum2) + (toff-ton)
 
       END SUBROUTINE analysum2

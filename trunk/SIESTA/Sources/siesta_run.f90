@@ -5,8 +5,8 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  Defines the base class of the type @ref siesta_run_class. This module contains
-!>  all the code necessary to interface setup and run SIESTA.
+!>  Defines the base class of the type @ref siesta_run_class. This module
+!>  contains all the code necessary to interface setup and run SIESTA.
 !*******************************************************************************
 
       MODULE siesta_run
@@ -52,7 +52,8 @@
       USE timer_mod, ONLY: init_data_time, sks_timers
       USE hessian, ONLY: iprec_flag, HESSPASS
       USE siesta_state, ONLY: lfirst
-USE diagnostics_mod, ONLY: toroidal_flux0
+      USE siesta_error
+      USE diagnostics_mod, ONLY: toroidal_flux0
 
       IMPLICIT NONE
 
@@ -68,6 +69,8 @@ USE diagnostics_mod, ONLY: toroidal_flux0
 
 !  Start of executable code
       ALLOCATE(siesta_run_construct)
+
+      CALL siesta_error_clear_all
 
       lverbose = verbose
       lfirst = .true.

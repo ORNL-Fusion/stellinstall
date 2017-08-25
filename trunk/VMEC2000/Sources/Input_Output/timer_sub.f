@@ -18,12 +18,12 @@ C-----------------------------------------------
      2                      tallr=9, tanal=10, tasum=11, tasum2=12, 
      3                      tallgv=13, tanar=14
                             
-      REAL(dp) :: tvacon, tvacoff, tfunon, tfunoff,
-     1            twouton, twoutoff, teqfon, teqfoff,
-     2            treadon, treadoff, timeon, timeoff,
-     3            treconon, treconoff, tffton, tfftoff,
-     4            tbcovon, tbcovoff, tforon, tforoff,
-     5            treson, tresoff, tprec2don, tprec2doff,
+      REAL(dp) :: treadon, treadoff, tfunon, tfunoff,
+     1            treconon, treconoff, tffton, tfftoff,
+     2            tbcovon, tbcovoff, tvacon, tvacoff,
+     3            tforon, tforoff, treson, tresoff, 
+     4            tprec2don, tprec2doff, twouton, twoutoff, 
+     5            teqfon, teqfoff, timeon, timeoff,
      6            timer_tsum, timer_tfun, timer_io
       REAL(dp), DIMENSION(0:15) :: timer=0
       REAL(dp), DIMENSION(15) :: timer_vac=0
@@ -51,7 +51,7 @@ C-----------------------------------------------
      D       'TIME IN PRECON2D SETUP         ',
      E       '   VACUUM ONLY                 ',
      F       '   FUNCT3D                     ',
-     G       '   FACTOR BLOCKS               ',
+     G       '   FORWARD SOLVE (FACTOR BLKS) ',
      H       'TIME TO INPUT/OUTPUT           '
      Z     /)
 

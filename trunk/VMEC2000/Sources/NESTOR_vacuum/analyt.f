@@ -6,22 +6,20 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(in) :: ivacskip, ndim
-      REAL(rprec), INTENT(out) :: grpmn(nuv3*mnpd2)
-      REAL(rprec), INTENT(out) :: bvec(mnpd,ndim)
+      INTEGER, INTENT(IN) :: ivacskip, ndim
+      REAL(dp), INTENT(OUT) :: grpmn(mnpd2,nuv3)
+      REAL(dp), INTENT(OUT) :: bvec(mnpd,ndim)
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: l, n, m, i, q, j, k, ll, blksize, mn
-      REAL(rprec), DIMENSION(:), ALLOCATABLE ::
+      REAL(dp), DIMENSION(:), ALLOCATABLE ::
      1   r0p, r1p, r0m, r1m, sqrtc, sqrta, tlp2, tlp1, tlp, tlm2,
      2    tlm1, tlm, adp, adm, cma, ra1p, ra1m, slm, slp, tlpm, slpm,
      3    delt1u, azp1u, azm1u, cma11u, sqad1u, sqad2u
-      REAL(rprec) :: fl, fl1, fl2, sign1
-      REAL(rprec) :: skston, skstoff
+      REAL(dp) :: fl, fl1, fl2, sign1, tanalon, tanaloff
 C-----------------------------------------------
-
-      CALL second0(skston)
+      CALL second0(tanalon)
 
       ALLOCATE (r0p(nuv3), r1p(nuv3), r0m(nuv3), r1m(nuv3),
      1          sqrtc(nuv3), sqrta(nuv3), tlp2(nuv3), tlp1(nuv3),
@@ -85,10 +83,7 @@ C-----------------------------------------------
 
       IF (ivacskip .EQ. 0) THEN
 
-         blksize=blksize_scp*numjs_vac
-         DO l= 1, blksize
-            grpmn(lindx_scp(l)) = 0
-         END DO
+         grpmn(:,nuv3min:nuv3max) = 0
 
          DO k = nuv3min, nuv3max
          delt1u(k) = adp(k)*adm(k) - cma(k)*cma(k)
@@ -215,8 +210,10 @@ C-----------------------------------------------
      2          slp, tlpm, slpm, delt1u, azp1u, azm1u, cma11u, sqad1u,
      3          sqad2u, stat = l)
 
-      CALL second0(skstoff)
-      analyt_time = analyt_time + (skstoff - skston)
+      CALL second0(tanaloff)
+      timer_vac(tanal) = timer_vac(tanal) + (tanaloff-tanalon)
+      analyt_time = timer_vac(tanal)
+
 
       END SUBROUTINE analyt
 

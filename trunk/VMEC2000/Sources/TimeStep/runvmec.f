@@ -46,10 +46,8 @@ C-----------------------------------------------
       CHARACTER(LEN=120) :: input_file
       LOGICAL :: lreset 
 #if defined(SKS)
-      REAL(dp) :: rvton, rvtoff
-      REAL(dp) :: gridton, gridtoff
-      REAL(dp) :: skston, skstoff
-      REAL(dp) :: allgvton, allgvtoff
+      REAL(dp) :: rvton, rvtoff, tiniton, tinitoff
+      REAL(dp) :: gridton, gridtoff 
       REAL(dp) :: bcastton, bcasttoff
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: bcastarr
       INTEGER :: blklength, grid_id, i, js, nsmin, nsmax
@@ -117,7 +115,6 @@ C-----------------------------------------------
       END INTERFACE
 
 #if defined(SKS)
-
       RUNVMEC_PASS = RUNVMEC_PASS + 1
       CALL second0(rvton)
       CALL MyEnvVariables
@@ -184,60 +181,29 @@ C-----------------------------------------------
       lreset = (IAND(ictrl_flag, restart_flag) .ne. 0)
 
       IF (lreset) THEN
-#if defined(SKS)
-        CALL second0(skston)
-#endif
         CALL reset_params
-#if defined(SKS)
-        CALL second0(skstoff)
-        reset_params_time = reset_params_time + (skstoff-skston)
-#endif
 !       res0 = -1   Done in reset_params
       END IF
 
-      IF (IAND(ictrl_flag, reset_jacdt_flag) .ne. 0) THEN
+      IF (IAND(ictrl_flag, reset_jacdt_flag) .NE. 0) THEN
          ijacob = 0
          delt0r = delt
       END IF
 
-      IF (IAND(ictrl_flag, readin_flag) .ne. 0) THEN
+      IF (IAND(ictrl_flag, readin_flag) .NE. 0) THEN
 !
 !        READ INPUT FILE (INDATA NAMELIST), MGRID_FILE (VACUUM FIELD DATA)
 !
-#if defined (SKS)
-        CALL second0(skston)
-#endif
         CALL vsetup (iseq_count)
-#if defined(SKS)
-        CALL second0(skstoff)
-        vsetup_time = vsetup_time + (skstoff-skston)
-        CALL second0(skston)
-#endif
 
         CALL readin (input_file, iseq_count, ier_flag, lscreen)
-#if defined(SKS)
-        CALL MPI_Bcast(LPRECOND,1,MPI_LOGICAL,0,RUNVMEC_COMM_WORLD,            &
-     &                 MPI_ERR)
-        CALL second0(skstoff)
-        readin_time = readin_time + (skstoff-skston)
-
         max_grid_size = ns_array(multi_ns_grid)
-!        IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3,
-!     1              max_grid_size)
-#endif
-        IF (ier_flag .ne. 0) GOTO 1000
+
+        IF (ier_flag .NE. 0) GOTO 1000
 !
 !        COMPUTE NS-INVARIANT ARRAYS
 !
-
-#if defined(SKS)
-        CALL second0(skston)
-#endif
         CALL fixaray
-#if defined(SKS)
-        CALL second0(skstoff)
-        fixarray_time = fixarray_time + (skstoff-skston)
-#endif
       END IF
 
       IF(lfreeb) CALL SetVacuumCommunicator(nuv, nuv3, max_grid_size)
@@ -323,7 +289,7 @@ C-----------------------------------------------
 
 
 #if defined (SKS)
-         CALL second0(skston)
+         CALL second0(tiniton)
          IF(PARVMEC .AND. NS_RESLTN.GE.1) THEN
            IF (lactive) THEN
              CALL Gather4XArray(pscalxc)
@@ -342,8 +308,8 @@ C-----------------------------------------------
 
          CALL InitSurfaceComm(nsval, nzeta, ntheta3,
      1        ntmax, ntor, mpol1)
-         CALL second0(skstoff)
-         init_parallel_time = init_parallel_time + (skstoff-skston)
+         CALL second0(tinitoff)
+         init_parallel_time = init_parallel_time + (tinitoff-tiniton)
 
          grid_size(grid_id)=nsval
          grid_procs(grid_id)=nranks
@@ -352,9 +318,6 @@ C-----------------------------------------------
 !  JDH 2012-06-20. V3FIT fix, inserted with change from VMEC 8.48 -> 8.49
 !  (Not sure just what in initialize_radial messes up convergence - happens slowly)
 !  Logical l_v3fit is declared in vmec_input, available via vmec_main
-#if defined(SKS)
-         CALL second0(skston)
-#endif
          IF (l_v3fit) THEN                            ! V3FIT is running here 
             IF (ns_old .ne. nsval) THEN
                CALL initialize_radial(nsval, ns_old, delt0r,
@@ -366,8 +329,6 @@ C-----------------------------------------------
      2            lscreen, reset_file_name)
          ENDIF
 #if defined (SKS)
-         CALL second0(skstoff)
-         init_radial_time = init_radial_time + (skstoff-skston)
          CALL Initialize_bst(.FALSE.,nsval,blklength)
 #endif
 !     CONTROL NUMBER OF STEPS
@@ -376,14 +337,7 @@ C-----------------------------------------------
             niter = numsteps+iter2-1
          END IF
 
-#if defined(SKS)
-         CALL second0(skston)
-#endif
          CALL eqsolve (ier_flag, lscreen)
-#if defined(SKS)
-         CALL second0(skstoff)
-         eqsolve_time = eqsolve_time + (skstoff-skston)
-#endif
 
          IF (numsteps > 0) THEN
             niter = niter_store
@@ -445,18 +399,12 @@ C-----------------------------------------------
      &           " -> Skipping call to fileout!"
       ELSE IF (ier_flag.NE.more_iter_flag) THEN
 
-#if defined(SKS)
-        CALL second0(skston)
-#endif
         IF (PARVMEC) THEN 
           CALL fileout_par (iseq_count, ictrl_flag, ier_flag, lscreen)
         ELSE
           CALL fileout (iseq_count, ictrl_flag, ier_flag, lscreen)
         END IF
-#if defined(SKS)
-        CALL second0(skstoff)
-        fileout_time = fileout_time + (skstoff-skston)
-#endif      
+
       ENDIF
 
 #if defined(SKS)

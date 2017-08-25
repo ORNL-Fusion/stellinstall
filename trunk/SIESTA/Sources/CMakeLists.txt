@@ -30,11 +30,11 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_force.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_pressure.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_state.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/siesta.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/silo.inc
 	${CMAKE_CURRENT_SOURCE_DIR}/timer_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/utilities.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/restart_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_run.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_error.f90
 )
 set (siesta_sources "${siesta_sources}" PARENT_SCOPE)

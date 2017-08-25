@@ -2,7 +2,6 @@
       SUBROUTINE add_fluxes_par(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
       USE realspace, ONLY: pwint, pguu, pguv, pchip, pphip
-      USE precon2d, ONLY: ictrl_prec2d
       USE vmec_input, ONLY: nzeta
       USE vmec_dim, ONLY: ntheta3
       USE parallel_include_module
@@ -94,7 +93,6 @@
       SUBROUTINE add_fluxes(overg, bsupu, bsupv, lcurrent)
       USE vmec_main
       USE realspace, ONLY: wint, guu, guv, chip, phip
-      USE precon2d, ONLY: ictrl_prec2d
 #if defined(SKS)      
       USE vmec_input, ONLY: nzeta
       USE vmec_dim, ONLY: ntheta3

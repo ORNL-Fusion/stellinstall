@@ -7,21 +7,17 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: ivacskip
-      REAL(rprec), INTENT(out) :: bvec(mnpd2), amatrix(mnpd2*mnpd2)
+      REAL(dp), INTENT(out) :: bvec(mnpd2), amatrix(mnpd2*mnpd2)
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: ip, istore, istart, istore_max, ndim
-      REAL(rprec), ALLOCATABLE :: grpmn(:), green(:), gstore(:)
-      REAL(rprec), ALLOCATABLE :: greenp(:,:)
-
-      INTEGER :: i, j, k, l
-      REAL(rprec) :: ton, toff, skston, skstoff
-
-      INTEGER :: blksize
+      REAL(dp), ALLOCATABLE :: grpmn(:), green(:), gstore(:)
+      REAL(dp), ALLOCATABLE :: greenp(:,:)
+      REAL(dp) :: ton, toff, tonscal
 C-----------------------------------------------
+      CALL second0(tonscal)
 
-      CALL second0(skston)
       IF (.NOT.ALLOCATED(amatsav))
      1   STOP 'AMATSAV: Allocation error in scalpot'
 
@@ -36,15 +32,13 @@ C-----------------------------------------------
 !
 !     FOR ivacskip != 0, USE PREVIOUSLY COMPUTED bvecsav FOR SPEED
 !
+
       ndim = mnpd2/mnpd
-      CALL second0(ton)
       CALL analyt (grpmn, bvec, ivacskip, ndim)
-      CALL second0(toff)
-      timer_vac(tanal) = timer_vac(tanal) + (toff-ton)
 
       IF (ivacskip .NE. 0) THEN
          bvec = bvec + bvecsav
-       ELSE
+      ELSE
 
          istore_max = MIN(64,nuv3)
 
@@ -61,13 +55,11 @@ C-----------------------------------------------
 !
          istart = nuv3min-1 
 
-         CALL second0(ton)
-
          !SKS: Have to parallelize over ip since arrays computed in
          !surface.f like rzb2, z1b, etc but used in green.f are
          !known only within [nuv3min, nuv3max].
 
-         DO ip = nuv3min, nuv3max
+         PRIMED: DO ip = nuv3min, nuv3max
            istore = 1 + MOD(ip-nuv3min,istore_max)
 !
 !        COMPUTE DIFFERENCE BETWEEN THE EXACT AND ANALYTIC GREENS FUNCTION AND GRADIENT 
@@ -79,10 +71,7 @@ C-----------------------------------------------
 !        THE FOURIER TRANSFORM OVER THE PRIMED MESH IS "BUILT-UP" BY MULTIPLE CALLS TO FOURP
 !        WITHIN THIS LOOP. 
 !
-           CALL second0(ton)
            CALL greenf (green, greenp(1,istore), ip)
-           CALL second0(toff)
-           timer_vac(tgreenf) = timer_vac(tgreenf) + (toff-ton)
 
 
 !        PERFORM INTEGRAL (SUM) OVER PRIMED MESH OF NON-SINGULAR SOURCE TERM 
@@ -93,19 +82,14 @@ C-----------------------------------------------
 
 !
 !        PERFORM FOURIER INTEGRAL OF GRADIENT KERNEL (GREENP) OVER THE UNPRIMED MESH
-!        (FOR )
 !        AND STORE IN GRPMN (NOTE THAT GRPMN IS ADDED TO THE ANALYTIC PIECE IN EQ. 2.14,
 !        - COMPUTED IN ANALYT - WHICH HAS THE APPROPRIATE SIN, COS FACTORS ALREADY)
 !
 
-           IF (istore.eq.istore_max .or. ip.eq.nuv3max) THEN
-             CALL second0(ton)
-             CALL fourp (grpmn, greenp, istore, istart, ip, ndim)
-             CALL second0(toff)
-             timer_vac(tfourp) = timer_vac(tfourp) + (toff-ton)
-           END IF
+           IF (istore.EQ.istore_max .OR. ip.EQ.nuv3max)
+     1        CALL fourp (grpmn, greenp, istore, istart, ip, ndim)
 
-         END DO
+         END DO PRIMED
 
          CALL second0(ton)
 #if defined(SKS)
@@ -121,12 +105,8 @@ C-----------------------------------------------
 !        COMPUTE FOURIER INTEGRAL OF GRADIENT (GRPMN) OVER PRIMED MESH IN EQ. 2.14
 !        AND SOURCE (GSTORE) OVER UNPRIMED MESH IN EQ. 2.16
 !
-
-         CALL second0(ton)
          CALL fouri (grpmn, gstore, amatrix, amatsav, bvec, 
      1               bvecsav, ndim)
-         CALL second0(toff)
-         timer_vac(tfouri) = timer_vac(tfouri) + (toff-ton)
          DEALLOCATE (green, greenp, gstore)
 
        ENDIF
@@ -139,7 +119,6 @@ C-----------------------------------------------
 !     FINAL REDUCTION OVER VAC_COMM DONE ONCE HERE
 !
        CALL second0(ton)
-
 #if defined(SKS)
        IF (vlactive) THEN
          CALL MPI_Allreduce(MPI_IN_PLACE,bvec,SIZE(bvec),MPI_REAL8,
@@ -150,8 +129,7 @@ C-----------------------------------------------
        allreduce_time = allreduce_time + (toff - ton)
        timer_vac(tanar) = timer_vac(tanar) + (toff-ton)
 
-       CALL second0(skstoff)
-       scalpot_time = scalpot_time + (skstoff - skston)
+       scalpot_time = scalpot_time + (tonscal - toff)
 
       END SUBROUTINE scalpot
 

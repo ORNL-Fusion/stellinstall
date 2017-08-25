@@ -24,18 +24,15 @@
 ! SECTION XVI.  COMMENTS FOR DIFFERENT REVISIONS
 !*******************************************************************************
       MODULE bsc_T
+!-------------------------------------------------------------------------------
+!  Type declarations - lengths of reals, integers, and complexes.
+!-------------------------------------------------------------------------------
+      USE stel_kinds, ONLY: rprec, iprec, cprec
 
       IMPLICIT NONE
 !*******************************************************************************
 ! SECTION I. VARIABLE DECLARATIONS
 !*******************************************************************************
-
-!-------------------------------------------------------------------------------
-!  Type declarations - lengths of reals, integers, and complexes.
-!-------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: rprec = SELECTED_REAL_KIND(12,100)
-      INTEGER, PARAMETER :: iprec = SELECTED_INT_KIND(8)
-      INTEGER, PARAMETER :: cprec = KIND((1.0_rprec,1.0_rprec))
 
 !-------------------------------------------------------------------------------
 !  Frequently used mathematical constants, lots of extra precision.

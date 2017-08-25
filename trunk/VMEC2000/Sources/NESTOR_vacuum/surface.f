@@ -6,14 +6,14 @@ C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER mnmax
-      REAL(rprec), DIMENSION(mnmax) :: rc, rs, zs, zc, xm, xn
+      REAL(dp), DIMENSION(mnmax) :: rc, rs, zs, zc, xm, xn
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i, mn, m, n, n1
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) ::
+      REAL(dp), ALLOCATABLE, DIMENSION(:) ::
      1   ruu, ruv, rvv, zuu, zuv, zvv, cosmn1, sinmn1
-      REAL(rprec) :: skston, skstoff
+      REAL(dp) :: tsurfon, tsurfoff
 C-----------------------------------------------
 !
 !       THIS ROUTINE COMPUTES THE SURFACE VALUES OF R,Z AND DERIVATIVES
@@ -27,7 +27,8 @@ C-----------------------------------------------
 !       NOTE: u, v here are actual angles (0, 2pi), NOT the normalized
 !             variables used in PKM paper
 !
-      CALL second0(skston)
+      CALL second0(tsurfon)
+
       ALLOCATE (ruu(nuv3), ruv(nuv3), rvv(nuv3), zuu(nuv3), zuv(nuv3),
      1          zvv(nuv3), cosmn1(nuv3), sinmn1(nuv3), stat = i)
       IF (i .ne. 0) STOP 'Allocation error in SURFACE'
@@ -133,8 +134,8 @@ C-----------------------------------------------
 
       DEALLOCATE (ruu, ruv, rvv, zuu, zuv, zvv, cosmn1, sinmn1, stat=i)
 
-      CALL second0(skstoff)
-      surface_time = surface_time + (skstoff -skston)
+      CALL second0(tsurfoff)
+      surface_time = surface_time + (tsurfoff-tsurfon)
 
       END SUBROUTINE surface
 

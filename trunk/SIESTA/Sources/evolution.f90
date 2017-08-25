@@ -57,7 +57,7 @@
       SUBROUTINE converge_diagonal (wout_file, ftol)
       USE perturbation, ONLY: add_perturb, ladd_pert, l_output_alliter   !R. Sanchez, added Jul '10: L_OUTPUT_ALLITER Dump info on file at each timestep
       USE dumping_mod, ONLY: write_output
-USE hessian, ONLY: levmarq_param, levmarq_param0 !MRC
+      USE hessian, ONLY: levmarq_param !MRC
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -384,6 +384,7 @@ USE hessian, ONLY: levmarq_param, levmarq_param0 !MRC
          levmarq_param = MAX(0.3_dp, levmarq_param0)
          muPar = muPar0
       END IF
+
 !
 !     EXCEPT FOR THE INITIAL STEP (WHERE ONLY INITIAL UNPRECONDITIONED FORCES
 !     ARE NEEDED) COMPUTE FULL (OR DIAGONAL APPROXIMATION) HESSIAN

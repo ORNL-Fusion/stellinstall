@@ -13,18 +13,18 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(in) :: nsval
-      INTEGER, INTENT(inout) :: ns_old
+      INTEGER, INTENT(IN) :: nsval
+      INTEGER, INTENT(INOUT) :: ns_old
       CHARACTER(LEN=*), OPTIONAL :: reset_file_name
-      REAL(rprec), INTENT(out) :: delt0
-      LOGICAL, INTENT(in) :: lscreen
+      REAL(dp), INTENT(OUT) :: delt0
+      LOGICAL, INTENT(IN) :: lscreen
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: neqs2_old=0
       LOGICAL :: lreset_internal, linterp
       INTEGER :: nsmin, nsmax, i, j, k, l, lk
-      REAL(rprec) :: skston, skstoff
+      REAL(dp) :: tiniton, tinitoff
 C-----------------------------------------------
 !
 !     Allocates memory for radial arrays and initializes radial profiles
@@ -38,6 +38,9 @@ C-----------------------------------------------
 !        irzloff offset in xc array between R,Z,L components
 !        neqs    total number of equations to evolve (size of xc)
 C-----------------------------------------------
+#if defined(SKS)
+      CALL second0(tiniton)
+#endif
 !     Set timestep control parameters
       fsq     = one
       iter2 = 1
@@ -86,14 +89,9 @@ C-----------------------------------------------
 !     ALLOCATE NS-DEPENDENT ARRAYS
 !
       lreset_internal = .true.
-      linterp = (ns_old.lt.ns .and. ns_old.ne.0)
-      IF (ns_old .eq. ns) RETURN
-      CALL second0(skston)
+      linterp = (ns_old.LT.ns .AND. ns_old.NE.0)
+      IF (ns_old .EQ. ns) RETURN
       CALL allocate_ns(linterp, neqs2_old)
-#if defined(SKS)
-      CALL second0(skstoff)
-      allocate_ns_time = allocate_ns_time + (skstoff - skston)
-#endif
 !
 !     SAVE THIS FOR INTERPOLATION
 !
@@ -119,16 +117,11 @@ C-----------------------------------------------
 !     COMPUTE INITIAL R, Z AND MAGNETIC FLUX PROFILES
 !
 
-      CALL second0(skston)
       IF (PARVMEC) THEN
         CALL profil1d_par (pxc, pxcdot, lreset_internal)
       ELSE
         CALL profil1d (xc, xcdot, lreset_internal)
       END IF
-#if defined(SKS)
-      CALL second0(skstoff)
-      profile1d_time = profile1d_time + (skstoff - skston)
-#endif
       IF (PRESENT(reset_file_name)) THEN
          IF (LEN_TRIM(reset_file_name) .ne. 0) THEN
             CALL load_xc_from_wout(xc(1), xc(1+irzloff),
@@ -140,17 +133,11 @@ C-----------------------------------------------
          END IF
       END IF
 
-      CALL second0(skston)
       IF (PARVMEC) THEN
         CALL profil3d_par(pxc(1),pxc(1+irzloff),lreset_internal,linterp)
       ELSE
         CALL profil3d (xc(1), xc(1+irzloff), lreset_internal, linterp)
       END IF
-#if defined(SKS)
-      CALL second0(skstoff)
-      profile3d_time = profile3d_time + (skstoff - skston)
-#endif
-
 !
 !     INTERPOLATE FROM COARSE (ns_old) TO NEXT FINER (ns) RADIAL GRID
 !
@@ -171,5 +158,10 @@ C-----------------------------------------------
 
       ns_old = ns
       neqs2_old = neqs2
+
+#if defined (SKS)
+      CALL second0(tinitoff)
+      init_radial_time = init_radial_time + (tinitoff-tiniton)
+#endif
 
       END SUBROUTINE initialize_radial

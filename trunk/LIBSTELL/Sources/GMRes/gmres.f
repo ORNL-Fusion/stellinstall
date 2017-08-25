@@ -516,7 +516,6 @@
 
       DEALLOCATE (work, tmpbuf, aux, itest)
 #endif
-
       END SUBROUTINE gmres_par
 
 #if defined(MRC)

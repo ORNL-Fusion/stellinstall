@@ -55,7 +55,8 @@
        IF (lasym)                                                        &
        CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
 
-!Convert jac*bsupX to bsupX in real space
+! Convert jac*bsupX to bsupX in real space. Jacobian for bsupu term is removed
+! in bhalftobfull.
        bsupsijh0 = bsupsijh0/jacobh(:,:,nsmin:nsmax)
        bsupvijh0 = bsupvijh0/jacobh(:,:,nsmin:nsmax)
 
@@ -83,25 +84,20 @@
 !Need this for resistive diffusion (|| resistivity) and mupar damping
        IF (ladd_pert .OR. muPar.NE.zero) THEN
           nsmax=MIN(endglobrow+1,ns)
-!Calculate K || B
-          CALL tolowerf_par(ksupsijf0,ksupuijf0,ksupvijf0,               &
-                            ksubsijf, ksubuijf, ksubvijf,                &
-                            nsmin, nsmax)
-
-!IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
-          IF (ladd_pert) THEN
-          ksubsijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)
-          ksubuijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)
-          ksubvijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
-          END IF
-
+! Calculate K || B. Bsub contains the vector direction. A scalar scale factor is 
+! included in the helical perturbation to scale B to K. K|| = sigma*B
           CALL tolowerf_par(bsupsijf0,bsupuijf0,bsupvijf0,               &
                             bsubsijf, bsubuijf, bsubvijf,                &
-                            nsmin, nsmax)
-
+                            nsmin, nsmax)  
+!IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
+          IF (ladd_pert) THEN
+          ksubsijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)
+          ksubuijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)
+          ksubvijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubvijf(:,:,nsmin:nsmax)
+          END IF
           nsmax=MIN(endglobrow+2,ns)
        END IF
-
+ 
 !Compute real pressure p Fourier coefficients on half grid
 !and compute dp/du and dp/dv
        IF (l_update_state) ALLOCATE (pfilter(ntheta, nzeta, nsmin:nsmax))

@@ -2,22 +2,22 @@
       USE vacmod
       USE vparams, ONLY: one
       USE parallel_include_module
+      USE timer_sub
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: ip
-      REAL(rprec), DIMENSION(nuv), INTENT(out) :: delgr, delgrp
+      REAL(dp), DIMENSION(nuv), INTENT(OUT) :: delgr, delgrp
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER, DIMENSION(2) :: ilow, ihigh
       INTEGER :: ivoff, iskip, iuoff, i, kp, nloop
-      REAL(rprec), DIMENSION(:), ALLOCATABLE ::
+      REAL(dp), DIMENSION(:), ALLOCATABLE ::
      1    ftemp, gsave, htemp, ga1, ga2, dsave
-      REAL(rprec):: xip, yip, xper, yper,
-     1    sxsave, sysave
-      REAL(rprec) :: skston, skstoff
+      REAL(dp):: xip, yip, xper, yper,
+     1    sxsave, sysave, tgreenon, tgreenoff
 C-----------------------------------------------
 !
 !     ON ENTRANCE, IP IS THE INDEX OF THE PRIMED MESH POINT (lies in 1st field period)
@@ -30,11 +30,11 @@ C-----------------------------------------------
 !     BOTH THESE QUANTITIES ARE COMPUTED FOR ALL UNPRIMED U,V POINTS IN ONE FIELD PERIOD,
 !     FOR THIS FIXED PRIMED POINT (IP).
 !
-      CALL second0(skston)
+      CALL second0(tgreenon)
 
       ALLOCATE (ftemp(nuv), gsave(nuv), htemp(nuv), ga1(nuv), ga2(nuv),
      1          dsave(nuv), stat=i)
-      IF (i .ne. 0) STOP 'allocation error in greenf'
+      IF (i .NE. 0) STOP 'allocation error in greenf'
 
 !
 !     COMPUTE OFFSETS FOR U,V ANGLE DIFFERENCES AND CONSTANTS
@@ -73,7 +73,7 @@ C-----------------------------------------------
          sxsave = (snr(ip)*xper - snv(ip)*yper)/r1b(ip)
          sysave = (snr(ip)*yper + snv(ip)*xper)/r1b(ip)
 
-         IF (kp.eq.1 .or. nv.eq.1) THEN
+         IF (kp.EQ.1 .OR. nv.EQ.1) THEN
 
 !        INITIALIZE ANALYTIC APPROXIMATIONS GA1, GA2
             DO i = 1, nuv
@@ -86,11 +86,11 @@ C-----------------------------------------------
             END DO
 
             DO nloop = 1, 2
-               IF (kp.gt.1 .and. nloop.eq.2) CYCLE 
+               IF (kp.GT.1 .AND. nloop.EQ.2) CYCLE 
                DO i = ilow(nloop), ihigh(nloop)
                  ga2(i) = ga2(i)/ga1(i)
                  ga1(i) = one/SQRT(ga1(i))
-                 ftemp(i) = one/(gSAVE(i) 
+                 ftemp(i) = one/(gsave(i) 
      1                    - 2*(xper*rcosuv(i) + yper*rsinuv(i)))
                  htemp(i) = SQRT(ftemp(i))
                  delgrp(i) = delgrp(i) - ga2(i)*ga1(i) 
@@ -100,7 +100,7 @@ C-----------------------------------------------
                END DO
             END DO
 
-            IF (kp.eq.nvper .and. nv.eq.1) THEN
+            IF (kp.EQ.nvper .AND. nv.EQ.1) THEN
                 delgrp = delgrp/nvper
                 delgr  = delgr /nvper
             END IF
@@ -110,7 +110,7 @@ C-----------------------------------------------
 
          ELSE
             DO i = 1, nuv
-              ftemp(i) = one/(gSAVE(i)  
+              ftemp(i) = one/(gsave(i)  
      1                 -  2*(xper*rcosuv(i) + yper*rsinuv(i)))
               htemp(i) = SQRT(ftemp(i))
               delgrp(i) = delgrp(i) + ftemp(i)*htemp(i)*
@@ -122,8 +122,9 @@ C-----------------------------------------------
 
       DEALLOCATE (ftemp, gsave, htemp, ga1, ga2, dsave, stat=i)
 
-      CALL second0(skstoff)
-      greenf_time = greenf_time + (skstoff - skston)
+      CALL second0(tgreenoff)
+      timer_vac(tgreenf) = timer_vac(tgreenf) + (tgreenoff-tgreenon)
+      greenf_time = timer_vac(tgreenf)
 
       END SUBROUTINE greenf
 

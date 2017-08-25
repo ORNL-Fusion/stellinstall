@@ -5,63 +5,39 @@
       USE vmec_dim, ONLY: ns 
       USE realspace, ONLY: wint, ru0
       USE parallel_include_module
+      USE parallel_vmec_module, ONLY: PadSides1X
       USE xstuff, ONLY: pxc, pgc
       IMPLICIT NONE
 C-----------------------------------------------
 C   Dummy Arguments
 C-----------------------------------------------
-      INTEGER, INTENT(in) :: iflag
-      REAL(rprec), DIMENSION(0:ntor,0:mpol1,ns,ntmax),
-     1  INTENT(inout) :: gcx
-      REAL(rprec), DIMENSION(ns+1,2), INTENT(in) ::
+      INTEGER, INTENT(IN) :: iflag
+      REAL(dp), DIMENSION(0:ntor,0:mpol1,ns,ntmax),
+     1  INTENT(INOUT) :: gcx
+      REAL(dp), DIMENSION(ns+1,2), INTENT(INOUT) ::
      1  axm, bxm, axd, bxd
-      REAL(rprec), DIMENSION(ns), INTENT(in) :: cx
+      REAL(dp), DIMENSION(ns), INTENT(IN) :: cx
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: ftol_edge = 1.e-9_dp, c1p5 = 1.5_dp,
+      REAL(dp), PARAMETER :: ftol_edge = 1.e-9_dp, c1p5 = 1.5_dp,
      1      fac = 0.25_dp, edge_pedestal = 0.05_dp
       INTEGER :: m , mp, n, js, jmax, jmin4(0:mnsize-1)
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: ax, bx, dx
-      REAL(rprec) :: mult_fac
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: ax, bx, dx
+      REAL(dp) :: mult_fac
       INTEGER :: nsmin, nsmax, i, j, k, l
-      INTEGER :: blksize, numjs, left, right
       INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:,:) :: send_buf2
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: send_buf2
       INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
-      REAL(rprec) :: allgvton, allgvtoff
-      REAL(rprec) :: tridslvton, tridslvtoff
-      REAL(rprec) :: scalforton, scalfortoff
-      REAL(rprec) :: skston, skstoff
+      REAL(dp) :: tridslvton, tridslvtoff
+      REAL(dp) :: scalforton, scalfortoff
 C-----------------------------------------------
-      IF (.NOT.lactive) return
+      IF (.NOT.lactive) RETURN
 
-      CALL second0(scalforton)
-      left=rank-1; IF(rank.EQ.0) left=MPI_PROC_NULL
-      right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
-
-      CALL second0(skston)
-
-      IF(grank.LT.nranks) THEN
-        CALL MPI_Sendrecv(axm(tlglob,1),1,MPI_REAL8,left,1,
-     1  axm(t1rglob,1),1,MPI_REAL8,right,1,NS_COMM,
-     2  MPI_STAT, MPI_ERR)
-
-        CALL MPI_Sendrecv(axm(tlglob,2),1,MPI_REAL8,left,1,
-     1  axm(t1rglob,2),1,MPI_REAL8,right,1,NS_COMM,
-     2  MPI_STAT, MPI_ERR)
-
-        CALL MPI_Sendrecv(bxm(tlglob,1),1,MPI_REAL8,left,1,
-     1  bxm(t1rglob,1),1,MPI_REAL8,right,1,NS_COMM,
-     2  MPI_STAT, MPI_ERR)
-
-        CALL MPI_Sendrecv(bxm(tlglob,2),1,MPI_REAL8,left,1,
-     1  bxm(t1rglob,2),1,MPI_REAL8,right,1,NS_COMM,
-     2  MPI_STAT, MPI_ERR)
-      END IF
-
-      CALL second0(skstoff)
-      sendrecv_time = sendrecv_time + (skstoff - skston)
+      DO i = 1, 2
+         CALL PadSides1X(axm(:,i))
+         CALL PadSides1X(bxm(:,i))
+      END DO
 
       ALLOCATE (ax(0:ntor,0:mpol1,ns), bx(0:ntor,0:mpol1,ns),
      1          dx(0:ntor,0:mpol1,ns))
@@ -90,13 +66,13 @@ C-----------------------------------------------
      1                    + cx(js)*(n*nfp)**2)
           END DO
 
-          IF (m .eq. 1 .and. (nsmin .le. 2 .and. nsmax .ge. 2)) THEN
+          IF (m .eq. 1) THEN
             dx(n,m,2) = dx(n,m,2) + bx(n,m,2)
           END IF
         END DO
       END DO
 
-      IF (jmax .ge. ns) THEN
+      IF (jmax .GE. ns) THEN
 !
 !     SMALL EDGE PEDESTAL NEEDED TO IMPROVE CONVERGENCE
 !     IN PARTICULAR, NEEDED TO ACCOUNT FOR POTENTIAL ZERO
@@ -143,33 +119,17 @@ C-----------------------------------------------
       jmin4 = jmin3
       IF (iresidue.GE.0 .and. iresidue.LT.3) jmin4(0) = 2
 
-      IF (gnranks.GT.1) THEN
-          CALL second0(tridslvton)
-          CALL bst_parallel_tridiag_solver(ax,dx,bx,gcx,jmin4,jmax,
-     1              mnsize-1, ns,ntmax)
-          CALL second0(tridslvtoff)
-          tridslv_time = tridslv_time + (tridslvtoff-tridslvton)
-
-          blksize=(ntor+1)*(mpol1+1)*ntmax
-
-          CALL second0(skston)
-          CALL MPI_Sendrecv(gcx(:,:,tlglob,:),blksize,MPI_REAL8,
-     1  left,1,gcx(:,:,t1rglob,:),blksize,MPI_REAL8,right,1,NS_COMM,
-     2  MPI_STAT, MPI_ERR)
-
-          CALL MPI_Sendrecv(gcx(:,:,trglob,:),blksize,MPI_REAL8,
-     1  right,1,gcx(:,:,t1lglob,:),blksize,MPI_REAL8,left,1,NS_COMM,
-     2  MPI_STAT, MPI_ERR)
-
-          CALL second0(skstoff)
-          sendrecv_time = sendrecv_time + (skstoff - skston)
-      ELSE ! If only one processor
-        CALL second0(tridslvton)
-        CALL serial_tridslv_modified(ax,dx,bx,gcx,jmin4,jmax,mnsize-1,
-     1                              ns,ntmax)
-        CALL second0(tridslvtoff)
-        tridslv_time = tridslv_time + (tridslvtoff-tridslvton)
-      END IF
+!     Padsides moved to residue AFTER this finishes
+      CALL second0(tridslvton)
+!      IF (gnranks .GT. 1) THEN
+         CALL bst_parallel_tridiag_solver(ax,dx,bx,gcx,jmin4,jmax,
+     1                                     mnsize-1, ns,ntmax)
+!      ELSE ! If only one processor: this leads to processor dependence for P=1
+!         CALL serial_tridslv_modified(ax,dx,bx,gcx,jmin4,jmax,mnsize-1,
+!     1                                ns,ntmax)
+!      END IF
+      CALL second0(tridslvtoff)
+      tridslv_time = tridslv_time + (tridslvtoff-tridslvton)
 
       DEALLOCATE (ax, bx, dx)
 
@@ -196,35 +156,35 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: jmax, mnd1, ns, nrhs
       INTEGER, DIMENSION(0:mnd1), INTENT(in) :: jmin
-      REAL(rprec), DIMENSION(0:mnd1,ns) :: a, d, b
-      REAL(rprec), DIMENSION(0:mnd1,ns,nrhs), INTENT(inout) :: c
+      REAL(dp), DIMENSION(0:mnd1,ns) :: a, d, b
+      REAL(dp), DIMENSION(0:mnd1,ns,nrhs), INTENT(inout) :: c
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero = 0, one = 1
+      REAL(dp), PARAMETER :: zero = 0, one = 1
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: mn, in, in1, jrhs
+      INTEGER :: mn, in0, in1, jrhs
       INTEGER :: irow, icol, blklength, i, j
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: tmp
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) :: tmpv
-      REAL(rprec), DIMENSION(0:mnd1) :: psi0
-      REAL(rprec) :: t1, t2
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: tmp
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: tmpv
+      REAL(dp), DIMENSION(0:mnd1) :: psi0
+      REAL(dp) :: t1, t2
 C-----------------------------------------------
 !     SOLVES B(I)*X(I-1)+D(I)*X(I)+A(I)*X(I+1)=C(I), I=IN,JMAX
 !     AND RETURNS ANSWER IN C(I)
 
       CALL second0(t1)
       IF (jmax .gt. ns) STOP 'jmax>ns in tridslv_par'
-      in = MINVAL(jmin)
+      in0 = MINVAL(jmin)
       DO mn = 0, mnd1
          in1 = jmin(mn)-1
-         IF (in1 .ge. in) THEN
-            d(mn, in:in1) = 1
-            b(mn, in:in1) = 0
-            a(mn, in:in1) = 0
-            c(mn, in:in1, 1:nrhs) = 0
+         IF (in1 .ge. in0) THEN
+            d(mn, in0:in1) = 1
+            b(mn, in0:in1) = 0
+            a(mn, in0:in1) = 0
+            c(mn, in0:in1, 1:nrhs) = 0
          END IF
       END DO
 
@@ -297,18 +257,18 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: jmax, mnd1, ns, nrhs
       INTEGER, DIMENSION(0:mnd1), INTENT(in) :: jmin
-      REAL(rprec), DIMENSION(0:mnd1,ns) :: a, d, b
-      REAL(rprec), DIMENSION(0:mnd1,ns,nrhs), INTENT(inout) :: c
+      REAL(dp), DIMENSION(0:mnd1,ns) :: a, d, b
+      REAL(dp), DIMENSION(0:mnd1,ns,nrhs), INTENT(inout) :: c
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero = 0, one = 1
+      REAL(dp), PARAMETER :: zero = 0, one = 1
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: mn, in, i0, in1, jrhs
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: alf
-      REAL(rprec), DIMENSION(0:mnd1) :: psi0
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: alf
+      REAL(dp), DIMENSION(0:mnd1) :: psi0
 C-----------------------------------------------
 !
 !     SOLVES B(I)*X(I-1)+D(I)*X(I)+A(I)*X(I+1)=C(I), I=IN,JMAX
@@ -383,24 +343,24 @@ C-----------------------------------------------
 C   Dummy Arguments
 C-----------------------------------------------
       INTEGER, INTENT(in) :: iflag
-      REAL(rprec), DIMENSION(ns,0:ntor,0:mpol1,ntmax),
+      REAL(dp), DIMENSION(ns,0:ntor,0:mpol1,ntmax),
      1  INTENT(inout) :: gcx
-      REAL(rprec), DIMENSION(ns+1,2), INTENT(in) ::
+      REAL(dp), DIMENSION(ns+1,2), INTENT(in) ::
      1  axm, bxm, axd, bxd
-      REAL(rprec), DIMENSION(ns), INTENT(in) :: cx
+      REAL(dp), DIMENSION(ns), INTENT(in) :: cx
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: ftol_edge = 1.e-9_dp, c1p5 = 1.5_dp,
+      REAL(dp), PARAMETER :: ftol_edge = 1.e-9_dp, c1p5 = 1.5_dp,
      1      fac = 0.25_dp, edge_pedestal = 0.05_dp
       INTEGER :: m , mp, n, js, jmax, jmin4(0:mnsize-1)
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: ax, bx, dx
-      REAL(rprec) :: mult_fac
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: ax, bx, dx
+      REAL(dp) :: mult_fac
 !      LOGICAL :: ledge
 #if defined(SKS)      
       INTEGER :: nsmin, nsmax, i, j, k, l
-      REAL(rprec) :: tridslvton, tridslvtoff
-      REAL(rprec) :: scalforton, scalfortoff
+      REAL(dp) :: tridslvton, tridslvtoff
+      REAL(dp) :: scalforton, scalfortoff
 #endif
 C-----------------------------------------------
 #if defined(SKS)      
@@ -548,18 +508,18 @@ C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(in) :: jmax, mnd1, ns, nrhs
       INTEGER, DIMENSION(0:mnd1), INTENT(in) :: jmin
-      REAL(rprec), DIMENSION(ns,0:mnd1) :: a, d, b
-      REAL(rprec), DIMENSION(ns,0:mnd1, nrhs), INTENT(inout) :: c
+      REAL(dp), DIMENSION(ns,0:mnd1) :: a, d, b
+      REAL(dp), DIMENSION(ns,0:mnd1, nrhs), INTENT(inout) :: c
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
-      REAL(rprec), PARAMETER :: zero = 0, one = 1
+      REAL(dp), PARAMETER :: zero = 0, one = 1
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: mn, in, i0, in1, jrhs
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: alf
-      REAL(rprec), DIMENSION(0:mnd1) :: psi0
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: alf
+      REAL(dp), DIMENSION(0:mnd1) :: psi0
 C-----------------------------------------------
 !
 !     SOLVES B(I)*X(I-1)+D(I)*X(I)+A(I)*X(I+1)=C(I), I=IN,JMAX

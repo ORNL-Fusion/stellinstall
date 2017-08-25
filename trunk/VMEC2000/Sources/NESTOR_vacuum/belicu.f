@@ -6,16 +6,16 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), DIMENSION(nuv3), INTENT(in)  :: cos1, sin1, rp, zp
-      REAL(rprec), DIMENSION(nuv3), INTENT(out) :: bx, by, bz
+      REAL(dp), DIMENSION(nuv3), INTENT(in)  :: cos1, sin1, rp, zp
+      REAL(dp), DIMENSION(nuv3), INTENT(out) :: bx, by, bz
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: j
-      REAL(rprec), DIMENSION(3) :: xpt, bvec
-      REAL(rprec) :: skston, skstoff
+      REAL(dp), DIMENSION(3) :: xpt, bvec
+      REAL(dp) :: tbelon, tbeloff
 !-----------------------------------------------
-      CALL second0(skston)
+      CALL second0(tbelon)
 
       DO j = nuv3min, nuv3max
          xpt(1) = rp(j) * cos1(j)
@@ -26,7 +26,7 @@
       END DO
       CALL cleanup_biotsavart
 
-      CALL second0(skstoff)
-      belicu_time = belicu_time + (skstoff - skston)
+      CALL second0(tbeloff)
+      belicu_time = belicu_time + (tbeloff - tbelon)
 
       END SUBROUTINE belicu

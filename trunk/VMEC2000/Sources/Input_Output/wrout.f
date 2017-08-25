@@ -103,21 +103,21 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in) :: ier_flag
-      REAL(rprec), DIMENSION(mnmax,ns,3*MAX(ntmax/2,1)),           !reverse ns, mnmax for backwards compatibility
+      REAL(dp), DIMENSION(mnmax,ns,3*MAX(ntmax/2,1)),           !reverse ns, mnmax for backwards compatibility
      1   INTENT(inout), TARGET :: rzl_array, gc_array
-      REAL(rprec), DIMENSION(ns,nznt), INTENT(inout) ::
+      REAL(dp), DIMENSION(ns,nznt), INTENT(inout) ::
      1   bsq, gsqrt, bsubu, bsubv, bsubs, bsupv, bsupu
 #ifdef _ANIMEC
      2  ,tau_an, ppar, pperp, onembc, sigma_an
-      REAL(rprec), DIMENSION(ns,nznt), INTENT(out) ::
+      REAL(dp), DIMENSION(ns,nznt), INTENT(out) ::
      1   densit, pbprim, ppprim
 #endif
-      REAL(rprec) :: qfact(ns)
+      REAL(dp) :: qfact(ns)
       LOGICAL :: lwrite
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: c1p5 = 1.5_dp
+      REAL(dp), PARAMETER :: c1p5 = 1.5_dp
       LOGICAL :: lnyquist = .TRUE.                               !=false, suppress nyquist stuff
 #ifdef NETCDF
       CHARACTER(LEN=*), PARAMETER, DIMENSION(1) ::
@@ -137,14 +137,14 @@
      1           m, n, k, iwout0, n1, nwout, istat, i, indx1(1),
      2           mnmax_nyq0, mnyq0, nnyq0, nwout2   ! nwout2 by J.Geiger
      3          ,isgn, js2, nfort      !for diagno 1.5
-      REAL(rprec) :: dmult, tcosi, tsini, vversion, sgn, tmult,
-     1               presfactor, ftolx1, d_bsupumn, d_bsupvmn   ! diagno 1.5
+      REAL(dp) :: dmult, tcosi, tsini, vversion, sgn, tmult, 
+     1            presfactor, ftolx1, d_bsupumn, d_bsupvmn   ! diagno 1.5
 #ifdef _ANIMEC
      2              ,hotdam, omtbc, optbc, pdh, pmh, pde, pme, eps
 #endif
-      REAL(rprec), POINTER, DIMENSION(:,:) :: rmnc, rmns, zmns, 
+      REAL(dp), POINTER, DIMENSION(:,:) :: rmnc, rmns, zmns, 
      1   zmnc, lmns, lmnc
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: 
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: 
      1   gmnc, bmnc, gmns, bmns, 
      2   bsubumnc, bsubvmnc, bsubsmns, bsubumns, bsubvmns, bsubsmnc,
      3   currumnc, currvmnc, currumns, currvmns
@@ -152,39 +152,40 @@
      3  ,sigmnc  , taumnc  , pparmnc , ppermnc , pbprmnc , ppprmnc ,
      4   hotdmnc , hotdmns ,
      5   sigmns  , taumns  , pparmns , ppermns , pbprmns , ppprmns
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: sigma_ana, tau_ana,
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: sigma_ana, tau_ana,
      1                      ppara, pperpa, pbprima, ppprima, densita     
 #endif
-      REAL(rprec), DIMENSION(mnmax) :: rmnc1, zmns1, lmns1,
+      REAL(dp), DIMENSION(mnmax) :: rmnc1, zmns1, lmns1,
      1   rmns1, zmnc1, lmnc1, bmodmn, bmodmn1
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: gmn, bmn,
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: gmn, bmn,
      1   bsubumn, bsubvmn, bsubsmn, bsupumn, bsupvmn
 #ifdef _ANIMEC
      2  ,sigmn  , taumn  , pparmn , ppermn , pbprmn , ppprmn , hotdmn
 #endif
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubumnc_sur  !MRC 10-15-15
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubvmnc_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupumnc_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupvmnc_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubumns_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubvmns_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupumns_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupvmns_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsubua_sur, bsubva_sur
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: bsupua_sur, bsupva_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsubumnc_sur  !MRC 10-15-15
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsubvmnc_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsupumnc_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsupvmnc_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsubumns_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsubvmns_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsupumns_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsupvmns_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsubua_sur, bsubva_sur
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: bsupua_sur, bsupva_sur
 
       CHARACTER(LEN=120) :: wout_file, wout2_file         ! wout2_file by J.Geiger
       CHARACTER(LEN=120) :: fort_file   ! fort_file for diagno 1.5
-      REAL(rprec), DIMENSION(:), ALLOCATABLE :: xfinal
-      REAL(rprec), DIMENSION(:), POINTER ::   xm_nyq0, xn_nyq0
+      REAL(dp), DIMENSION(:), ALLOCATABLE :: xfinal
+      REAL(dp), DIMENSION(:), POINTER ::   xm_nyq0, xn_nyq0
 !     ELIMINATE THESE EVENTUALLY
-      REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: 
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: 
      1   bsupumnc, bsupumns, bsupvmnc, bsupvmns
 
       LOGICAL :: lcurr
       INTEGER :: nmin0     ! J Geiger:   Added for diagno-file
 
 !-----------------------------------------------
+      CALL second0 (twouton)
 !
 !  Pointer assignments for storage arrays
 !
@@ -775,7 +776,7 @@
       IF (.not. lwrite) GOTO 970   ! J Geiger: in case lwouttxt is not true
                                    !           jump to close nc-file
       ALLOCATE (xfinal(neqs2), stat=js)
-      IF (js .ne. 0) STOP 'Allocation error for xfinal in WROUT!'
+      IF (js .NE. 0) STOP 'Allocation error for xfinal in WROUT!'
       xfinal = xc
 #ifdef _HBANGLE
       CALL getrz(xfinal)
@@ -784,11 +785,11 @@
 !     MUST CONVERT m=1 MODES... FROM INTERNAL TO PHYSICAL FORM
 !     Extrapolation of m=0 Lambda (cs) modes, which are not evolved at j=1, done in CONVERT
 !
-
-      IF (lthreed) CALL convert_sym  (xfinal(1+mns*(rss-1)), 
-     1                                xfinal(1+irzloff+mns*(zcs-1)))
-      IF (lasym)   CALL convert_asym (xfinal(1+mns*(rsc-1)), 
-     1                                xfinal(1+irzloff+mns*(zcc-1)))
+      lk = ns*ntor1
+      IF (lthreed) CALL convert_sym  (xfinal(1+mns*(rss-1)+lk), 
+     1                                xfinal(1+irzloff+mns*(zcs-1)+lk))
+      IF (lasym)   CALL convert_asym (xfinal(1+mns*(rsc-1)+lk), 
+     1                                xfinal(1+irzloff+mns*(zcc-1)+lk))
 #endif
 !
 !     CONVERT TO rmnc, zmns, lmns, etc EXTERNAL representation (without internal mscale, nscale)
@@ -798,7 +799,7 @@
       RADIUS1: DO js = 1, ns
 
          CALL convert (rmnc1, zmns1, lmns1, rmns1, zmnc1, lmnc1, 
-     1                 xfinal, js)
+     1                         xfinal, js)
 
          rmnc(:,js) = rmnc1(:)
          zmns(:,js) = zmns1(:)
@@ -831,7 +832,7 @@
       raxis_cc(0:ntor) = rmnc(1:ntor+1,1)
       zaxis_cs(0:ntor) = zmns(1:ntor+1,1)
 
-      IF (.not.lasym) GOTO 900
+      IF (.NOT.lasym) GOTO 900
 
       WHERE (NINT(xm) .le. 1) lmnc(:,1) = lmnc(:,2)
       DO js = ns,2,-1
@@ -1730,4 +1731,9 @@
 
       rzl_array = 0
 
+      CALL second0 (twoutoff)
+      timer(twout) = timer(twout) + twoutoff - twouton
+#if defined(SKS)
+      fo_wrout_time = timer(twout)
+#endif
       END SUBROUTINE wrout

@@ -562,7 +562,7 @@ CONTAINS
     
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
-    REAL(rprec), DIMENSION (par_ns+1), INTENT(IN) :: arr
+    REAL(dp), DIMENSION (par_ns+1), INTENT(IN) :: arr
     CHARACTER*(*), INTENT(IN) :: string
 
     INTEGER :: i, j, k, l
@@ -600,8 +600,8 @@ CONTAINS
   !------------------------------------------------
   SUBROUTINE Parallel2Serial4X (inarr,outarr)
     
-    REAL(rprec), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
-    REAL(rprec), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
+    REAL(dp), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
+    REAL(dp), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
     INTEGER :: i, j, k, l, lk, lks, lkp
 
     lks=0
@@ -624,8 +624,8 @@ CONTAINS
   !------------------------------------------------
   SUBROUTINE Serial2Parallel4X (inarr,outarr)
     
-    REAL(rprec), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
-    REAL(rprec), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
+    REAL(dp), INTENT(IN) :: inarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
+    REAL(dp), INTENT(OUT) :: outarr(par_ns*(par_ntor+1)*(par_mpol1+1)*3*(par_ntmax))
     INTEGER :: i, j, k, l, lk, lks, lkp
 
     lks=0
@@ -648,8 +648,8 @@ CONTAINS
   !------------------------------------------------
   SUBROUTINE Parallel2Serial2X(inarr, outarr)
     
-    REAL(rprec), DIMENSION(par_nzeta,par_ntheta3,par_ns), INTENT(IN) :: inarr
-    REAL(rprec), DIMENSION(par_ns*par_nzeta*par_ntheta3+1), INTENT(OUT) :: outarr
+    REAL(dp), DIMENSION(par_nzeta,par_ntheta3,par_ns), INTENT(IN) :: inarr
+    REAL(dp), DIMENSION(par_ns*par_nzeta*par_ntheta3+1), INTENT(OUT) :: outarr
     INTEGER :: i, j, k, l
 
     l=0
@@ -696,7 +696,7 @@ CONTAINS
     END DO
     DEALLOCATE(tmp)
 
-    50   FORMAT(4I6,1P,F20.8)
+ 50 FORMAT(4I6,1P,E24.14)
 
   END SUBROUTINE RPrintOutLinearArray
   !------------------------------------------------
@@ -705,7 +705,7 @@ CONTAINS
   !------------------------------------------------
   SUBROUTINE PrintOutLinearArray(arr, left, right, flag, fileno)
     
-    REAL(dp), DIMENSION(:) :: arr
+    REAL(dp), DIMENSION(ntmaxblocksize*par_ns) :: arr
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: flag !flag: TRUE for parallel, FALSE for serial
     INTEGER :: i, j, k, l, lk
@@ -728,7 +728,7 @@ CONTAINS
       END DO
     END DO
 
-    50   FORMAT(4I6,1P,F20.8)
+    50   FORMAT(4I6,1P,E24.14)
 
   END SUBROUTINE PrintOutLinearArray
   !------------------------------------------------
@@ -736,11 +736,11 @@ CONTAINS
   !------------------------------------------------
   ! Prints out [nsmin, nsmax] part of a (nzeta, ntheta,ns) array
   !------------------------------------------------
-  SUBROUTINE PrintParallelMNSPArray (arr, left, right, fileno, ifstop, string)
+  SUBROUTINE PrintParallelIJSPArray (arr, left, right, fileno, ifstop, string)
     
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
-    REAL(rprec), DIMENSION (par_nzeta,par_ntheta3,par_ns), INTENT(IN) :: arr
+    REAL(dp), DIMENSION (par_nzeta,par_ntheta3,par_ns), INTENT(IN) :: arr
     CHARACTER*(*), INTENT(IN) :: string
 
     INTEGER :: i, j, k, l
@@ -756,20 +756,19 @@ CONTAINS
     WRITE(fileno+rank,*) 
     CALL FLUSH(fileno+rank)
     IF(ifstop) STOP 'STOPPED PARALLEL CODE'
-    !50   FORMAT(A6,3I6,1P,E20.6)
-    50   FORMAT(A6,3I6,1P,F20.12)
+ 50 FORMAT(A,3I6,1P,E24.14)
 
-  END SUBROUTINE PrintParallelMNSPArray
+  END SUBROUTINE PrintParallelIJSPArray
   !------------------------------------------------
 
   !------------------------------------------------
   ! Prints out [nsmin, nsmax] part of a (ns, nzeta, ntheta) array
   !------------------------------------------------
-  SUBROUTINE PrintSerialMNSPArray (arr, left, right, fileno, ifstop, string)
+  SUBROUTINE PrintSerialIJSPArray (arr, left, right, fileno, ifstop, string)
     
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
-    REAL(rprec), DIMENSION (par_ns,par_nzeta,par_ntheta3), INTENT(IN) :: arr
+    REAL(dp), DIMENSION (par_ns,par_nzeta,par_ntheta3), INTENT(IN) :: arr
     CHARACTER*(*), INTENT(IN) :: string
 
     INTEGER :: i, j, k, l
@@ -785,20 +784,19 @@ CONTAINS
     WRITE(fileno+rank,*) 
     CALL FLUSH(fileno+rank)
     IF(ifstop) STOP 'STOPPED SERIAL CODE'
-    50   FORMAT(A6,3I6,1P,F20.12)
-    !50   FORMAT(A6,3I6,1P,F20.6)
+ 50 FORMAT(A,3I6,1P,E24.14)
 
-  END SUBROUTINE PrintSerialMNSPArray
+  END SUBROUTINE PrintSerialIJSPArray
   !------------------------------------------------
 
   !------------------------------------------------
   ! Prints out [nsmin, nsmax] part of a (ntor,mpol1,ns) array
   !------------------------------------------------
-  SUBROUTINE PrintParallelIJSPArray (arr, left, right, fileno, ifstop, string)
+  SUBROUTINE PrintParallelMNSPArray (arr, left, right, fileno, ifstop, string)
     
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
-    REAL(rprec), DIMENSION (0:par_ntor,0:par_mpol1,1:par_ns), INTENT(IN) :: arr
+    REAL(dp), DIMENSION (0:par_ntor,0:par_mpol1,1:par_ns), INTENT(IN) :: arr
     CHARACTER*(*), INTENT(IN) :: string
 
     INTEGER :: i, j, k, l
@@ -814,20 +812,19 @@ CONTAINS
     WRITE(fileno+rank,*) 
     CALL FLUSH(fileno+rank)
     IF(ifstop) STOP 'STOPPED PARALLEL CODE'
-    !50   FORMAT(A6,3I6,1P,E20.6)
-    50   FORMAT(A6,3I6,1P,F20.12)
+ 50 FORMAT(A,3I6,1P,E20.12)
 
-  END SUBROUTINE PrintParallelIJSPArray
+  END SUBROUTINE PrintParallelMNSPArray
   !------------------------------------------------
 
   !------------------------------------------------
   ! Prints out [nsmin, nsmax] part of a (ns, ntor, mpol1) array
   !------------------------------------------------
-  SUBROUTINE PrintSerialIJSPArray (arr, left, right, fileno, ifstop, string)
+  SUBROUTINE PrintSerialMNSPArray (arr, left, right, fileno, ifstop, string)
 
     INTEGER, INTENT(IN) :: fileno, left, right
     LOGICAL, INTENT(IN) :: ifstop
-    REAL(rprec), DIMENSION (1:par_ns,0:par_ntor,0:par_mpol1), INTENT(IN) :: arr
+    REAL(dp), DIMENSION (1:par_ns,0:par_ntor,0:par_mpol1), INTENT(IN) :: arr
     CHARACTER*(*), INTENT(IN) :: string
 
     INTEGER :: i, j, k, l
@@ -843,10 +840,9 @@ CONTAINS
     WRITE(fileno+rank,*) 
     CALL FLUSH(fileno+rank)
     IF(ifstop) STOP 'STOPPED SERIAL CODE'
-    !50   FORMAT(A6,3I6,1P,E20.6)
-    50   FORMAT(A6,3I6,1P,F20.12)
+ 50 FORMAT(A,3I6,1P,E20.12)
 
-  END SUBROUTINE PrintSerialIJSPArray
+  END SUBROUTINE PrintSerialMNSPArray
   !------------------------------------------------
 
   !------------------------------------------------
@@ -854,13 +850,13 @@ CONTAINS
     !-----------------------------------------------
 
     !-----------------------------------------------
-    REAL(rprec), DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax), INTENT(INOUT) :: arr
+    REAL(dp), DIMENSION(0:par_ntor,0:par_mpol1,par_ns,3*par_ntmax), INTENT(INOUT) :: arr
     INTEGER :: i, j, k, l, lk
     INTEGER :: blksize, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-    REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:,:) :: sendbuf
-    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
-    REAL(rprec) :: allgvton, allgvtoff
+    REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: sendbuf
+    REAL(dp), ALLOCATABLE, DIMENSION(:) :: recvbuf
+    REAL(dp) :: allgvton, allgvtoff
     !-----------------------------------------------
     IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
@@ -907,13 +903,13 @@ CONTAINS
     !-----------------------------------------------
 
     !-----------------------------------------------
-    REAL(rprec), DIMENSION(0:par_ntor,0:par_mpol1,3*par_ntmax,par_ns), INTENT(INOUT) :: arr
+    REAL(dp), DIMENSION(0:par_ntor,0:par_mpol1,3*par_ntmax,par_ns), INTENT(INOUT) :: arr
     INTEGER :: i, j, k, l, lk
     INTEGER :: blksize, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-    REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:,:) :: sendbuf
-    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
-    REAL(rprec) :: allgvton, allgvtoff
+    REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) :: sendbuf
+    REAL(dp), ALLOCATABLE, DIMENSION(:) :: recvbuf
+    REAL(dp) :: allgvton, allgvtoff
     !-----------------------------------------------
     IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
@@ -957,13 +953,13 @@ CONTAINS
   !------------------------------------------------
   SUBROUTINE Gather2XArray(arr)
     
-    REAL(rprec), DIMENSION(par_nznt,par_ns), INTENT(INOUT) :: arr
+    REAL(dp), DIMENSION(par_nznt,par_ns), INTENT(INOUT) :: arr
     INTEGER :: i, j, k, l, lk
     INTEGER :: par_nsmin, par_nsmax, blksize, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-    REAL(rprec), ALLOCATABLE, DIMENSION(:,:) :: sendbuf
-    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: recvbuf
-    REAL(rprec) :: allgvton, allgvtoff
+    REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: sendbuf
+    REAL(dp), ALLOCATABLE, DIMENSION(:) :: recvbuf
+    REAL(dp) :: allgvton, allgvtoff
     !-----------------------------------------------
     IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
@@ -1006,12 +1002,12 @@ CONTAINS
   !------------------------------------------------
   SUBROUTINE Gather1XArray(arr)
     !-----------------------------------------------
-    REAL(rprec), DIMENSION(par_ns), INTENT(INOUT) :: arr
-    REAL(rprec), ALLOCATABLE, DIMENSION(:) :: sendbuf, recvbuf
+    REAL(dp), DIMENSION(par_ns), INTENT(INOUT) :: arr
+    REAL(dp), ALLOCATABLE, DIMENSION(:) :: sendbuf, recvbuf
 
     INTEGER :: i, numjs
     INTEGER, ALLOCATABLE, DIMENSION(:) :: counts, disps
-    REAL(rprec) :: allgvton, allgvtoff
+    REAL(dp) :: allgvton, allgvtoff
     !-----------------------------------------------
     IF (nranks.EQ.1 .OR. .NOT.lactive) THEN
       RETURN
@@ -1281,7 +1277,10 @@ CONTAINS
         REAL(dp), INTENT(INOUT), &
              DIMENSION(blocksize,par_ns,3*par_ntmax) :: arr
         INTEGER :: left, right, tag1=1
+        REAL(dp) :: ton, toff
 #if defined(SKS)
+        CALL second0(ton)
+
         left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
         right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
         CALL MPI_Sendrecv(arr(:,tlglob,:),ntmaxblocksize,MPI_REAL8,    &
@@ -1290,8 +1289,34 @@ CONTAINS
         CALL MPI_Sendrecv(arr(:,trglob,:),ntmaxblocksize,MPI_REAL8,    &
                  right,tag1,arr(:,t1lglob,:),ntmaxblocksize,MPI_REAL8, &
                  left, tag1,NS_COMM,MPI_STAT,MPI_ERR)
+
+        CALL second0(toff)
+        sendrecv_time = sendrecv_time + (toff - ton)
 #endif
       END SUBROUTINE PadSides
+      !------------------------------------------------
+
+      !------------------------------------------------
+      SUBROUTINE PadSides1X(arr)
+        REAL(dp), INTENT(INOUT), DIMENSION(par_ns) :: arr
+        INTEGER :: left, right, tag1=1
+        REAL(dp) :: ton, toff
+#if defined(SKS)
+        CALL second0(ton)
+
+        left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
+        right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
+
+        IF (grank .LT. nranks) THEN
+          CALL MPI_Sendrecv(arr(tlglob),1,MPI_REAL8,left,tag1,  &
+               arr(t1rglob),1,MPI_REAL8,right,tag1,NS_COMM,     &
+               MPI_STAT, MPI_ERR)
+        END IF
+
+        CALL second0(toff)
+        sendrecv_time = sendrecv_time + (toff - ton)
+#endif
+      END SUBROUTINE PadSides1X
       !------------------------------------------------
 
       !------------------------------------------------

@@ -14,6 +14,7 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
+      INTEGER, PARAMETER :: m1 = 1
       INTEGER :: js, ntype, n, m, nsmin, nsmax
       REAL(rprec), DIMENSION(ns) :: t1, dnumer, denom
       REAL(rprec) :: scale
@@ -24,9 +25,10 @@ C-----------------------------------------------
 !
       nsmin=MAX(2,tlglob); nsmax=MIN(t1rglob,ns)
 #ifndef _HBANGLE
-      IF (lthreed) CALL convert_sym_par (rmn(:,:,:,rss),
+!      joff = 
+      IF (lthreed) CALL convert_sym_par (rmn(:,m1,:,rss),
      1           zmn(:,:,:,zcs),nsmin, nsmax)
-      IF (lasym)   CALL convert_asym_par (rmn(:,:,:,rsc), 
+      IF (lasym)   CALL convert_asym_par (rmn(:,m1,:,rsc), 
      1           zmn(:,:,:,zcc), nsmin, nsmax)
 #endif
       dnumer(nsmin:nsmax) = zero
@@ -66,6 +68,7 @@ C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: js, ntype, n, m, nsmin, nsmax
+	INTEGER, PARAMETER :: m1 = 1
       REAL(rprec), DIMENSION(ns) :: t1, dnumer, denom
       REAL(rprec) :: scale
 C-----------------------------------------------
@@ -75,8 +78,8 @@ C-----------------------------------------------
 !
       nsmin=MAX(2,tlglob); nsmax=MIN(t1rglob,ns)
 #ifndef _HBANGLE
-      IF (lthreed) CALL convert_sym (rmn(:,:,:,rss), zmn(:,:,:,zcs))
-      IF (lasym)   CALL convert_asym (rmn(:,:,:,rsc), zmn(:,:,:,zcc))
+      IF (lthreed) CALL convert_sym (rmn(:,:,m1,rss), zmn(:,:,:,zcs))
+      IF (lasym)   CALL convert_asym (rmn(:,:,m1,rsc), zmn(:,:,:,zcc))
 #endif
       dnumer(2:ns) = zero
       denom(2:ns) = zero

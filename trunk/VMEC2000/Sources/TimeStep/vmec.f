@@ -36,7 +36,6 @@ C-----------------------------------------------
 
 #if defined(SKS)
       REAL(dp) :: ton, toff
-      REAL(dp) :: skston, skstoff
       REAL(dp) :: totalton, totaltoff 
 #endif
 C-----------------------------------------------
@@ -155,15 +154,15 @@ C-----------------------------------------------
       CALL InitializeParallel
       CALL MPI_COMM_DUP(MPI_COMM_WORLD,RVC_COMM,MPI_ERR)
       CALL second0(totalton)
-      ton = totalton; skston=totalton
+      ton = totalton
 #endif
       CALL getcarg(1, command_arg(1), numargs)
       DO iseq = 2, numargs
          CALL getcarg(iseq, command_arg(iseq), numargs)
       END DO
 #if defined(SKS)
-      CALL second0(skstoff)
-      get_args_time = get_args_time + (skstoff -skston)
+      CALL second0(toff)
+      get_args_time = get_args_time + (toff -ton)
 #endif
       lscreen = .false.
       IF(grank.EQ.0) lscreen = .true.
@@ -241,30 +240,30 @@ C-----------------------------------------------
       nlog = nlog0
       iunit = nseq0
       DO iseq = 1, 2
-         IF (iseq .eq. 1) THEN
+         IF (iseq .EQ. 1) THEN
            arg = input_file
          ELSE
            arg = seq_ext
          END IF
 #if defined(SKS)
-         CALL second0(skston)
+         CALL second0(ton)
 #endif
          CALL safe_open(iunit, iopen, TRIM(arg), 'old', 'formatted')
 #if defined(SKS)
-         CALL second0(skstoff)
-         safe_open_time = safe_open_time + (skstoff - skston)
+         CALL second0(toff)
+         safe_open_time = safe_open_time + (toff - ton)
 #endif
          IF (iopen .eq. 0) THEN
            DO ncount = 1, nseqmax
               nseq_select(ncount) = ncount
            END DO
 #if defined(SKS)
-           CALL second0(skston)
+           CALL second0(ton)
 #endif
            CALL read_namelist (iunit, isnml, 'vseq')
 #if defined(SKS)
-           CALL second0(skstoff)
-           read_namelist_time = read_namelist_time + (skstoff - skston)
+           CALL second0(toff)
+           read_namelist_time = read_namelist_time + (toff - ton)
 #endif
 !
 !       OPEN FILE FOR STORING SEQUENTIAL RUN HISTORY
@@ -273,15 +272,15 @@ C-----------------------------------------------
               IF (nseq .gt. nseqmax) STOP 'NSEQ>NSEQMAX'
               log_file = 'log.'//seq_ext
 #if defined(SKS)
-              CALL second0(skston)
+              CALL second0(ton)
 #endif
               CALL safe_open(nlog, iread, log_file, 'replace',
      1           'formatted')
 #if defined(SKS)
-              CALL second0(skstoff)
-              safe_open_time = safe_open_time + (skstoff - skston)
+              CALL second0(toff)
+              safe_open_time = safe_open_time + (toff - ton)
 #endif
-              IF (iread .ne. 0) THEN
+              IF (iread .NE. 0) THEN
                  PRINT *, log_file,
      1           ' LOG FILE IS INACCESSIBLE: IOSTAT= ',iread
                  STOP 3
@@ -318,7 +317,7 @@ C-----------------------------------------------
 !         ictrl(4) = 2
          ictrl(5) = iseq-1
          ncount = 0
-         IF (iseq .gt. 1) THEN
+         IF (iseq .GT. 1) THEN
             reset_file_name =
 #ifdef NETCDF
      1       'wout_' // TRIM(extension(index_seq-1)) // ".nc"

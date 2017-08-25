@@ -2,27 +2,28 @@
      1                  bvecNS, ndim)
       USE vacmod
       USE parallel_include_module
+      USE timer_sub
       IMPLICIT NONE
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
       INTEGER, INTENT(IN) :: ndim
-      REAL(rprec), DIMENSION(mnpd2,nuv3), INTENT(IN) :: grpmn
-      REAL(rprec), DIMENSION(nuv), INTENT(IN) :: gsource
-      REAL(rprec), DIMENSION(mnpd,mnpd,ndim**2), INTENT(OUT) :: amatrix
-      REAL(rprec), DIMENSION(mnpd2,mnpd2), INTENT(OUT) :: amatsq
-      REAL(rprec), DIMENSION(mnpd,ndim), INTENT(INOUT) :: bvec, bvecNS
+      REAL(dp), DIMENSION(mnpd2,nuv3), INTENT(IN) :: grpmn
+      REAL(dp), DIMENSION(nuv), INTENT(IN) :: gsource
+      REAL(dp), DIMENSION(mnpd,mnpd,ndim**2), INTENT(OUT) :: amatrix
+      REAL(dp), DIMENSION(mnpd2,mnpd2), INTENT(OUT) :: amatsq
+      REAL(dp), DIMENSION(mnpd,ndim), INTENT(INOUT) :: bvec, bvecNS
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
 C     interior  (int_ext=-1), exterior  (int_ext=+1)  neumann problem
-      REAL(rprec), PARAMETER :: int_ext = 1
+      REAL(dp), PARAMETER :: int_ext = 1
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
       INTEGER :: i, j, k, m, mn, mn0, n
-      REAL(rprec), ALLOCATABLE, DIMENSION(:) :: source
-      REAL(rprec) :: skston, skstoff, ton, toff
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: source
+      REAL(dp) :: ton, toff, tfourion, tfourioff
 !-----------------------------------------------
 !
 !     AMATRIX(,1) = A(Sin)(Sin');  AMATRIX(,2) = A(Sin)(Cos');
@@ -38,7 +39,7 @@ C-----------------------------------------------
 !     IN CONTRAST, THE INTEGRAL OF THE SOURCE TERM OVER THE PRIMED MESH WAS ALREADY
 !     DONE (IN SCALPOT), SO HERE THE FT ARE OVER THE UNPRIMED MESH FOR THE SOURCE. 
 !  
-      CALL second0(skston)
+      CALL second0(tfourion)
 
       ALLOCATE (source(nuv3), stat=i)
       IF (i .NE. 0) STOP 'Allocation error in fouri'
@@ -57,8 +58,9 @@ C-----------------------------------------------
          DO i = 1, nu2
             DO j = 1, nv
                k = k + 1
-               IF (nuv3min.LE.k .AND. k.LE.nuv3max)
-     1            source(k) = p5*onp*(gsource(k) - gsource(imirr(k)))
+               IF (nuv3min.LE.k .AND. k.LE.nuv3max) THEN
+                  source(k) = p5*onp*(gsource(k) - gsource(imirr(k)))
+               END IF
             END DO
          END DO
       END IF
@@ -142,14 +144,17 @@ C-----------------------------------------------
 !
       amatsq(:mnpd,:mnpd) = amatrix(:,:,1)                      !Sin-Sin'
 
-      IF (.NOT.lasym) RETURN
+      IF (lasym) THEN
 
       amatsq(:mnpd,1+mnpd:mnpd2) = amatrix(:,:,2)               !Sin-Cos'
       amatsq(1+mnpd:mnpd2,:mnpd) = amatrix(:,:,3)               !Cos-Sin'
       amatsq(1+mnpd:mnpd2,1+mnpd:mnpd2) = amatrix(:,:,4)        !Cos-Cos'
 
-      CALL second0(skstoff)
-      fouri_time = fouri_time + (skstoff - skston)
+      END IF
+
+      CALL second0(tfourioff)
+      timer_vac(tfouri) = timer_vac(tfouri) + (tfourioff-tfourion)
+      fouri_time = timer_vac(tfouri)
 
       END SUBROUTINE fouri
 

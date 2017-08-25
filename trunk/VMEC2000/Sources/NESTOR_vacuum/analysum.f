@@ -7,19 +7,17 @@
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(in) :: m, n, l, ivacskip, ndim
-      REAL(rprec), INTENT(inout) :: grpmn(0:mf,-nf:nf,ndim,nuv3)
-      REAL(rprec), INTENT(inout) :: bvec(0:mf,-nf:nf,ndim)
-      REAL(rprec), DIMENSION(nuv3), INTENT(in) :: sl, tl
+      INTEGER, INTENT(IN) :: m, n, l, ivacskip, ndim
+      REAL(dp), INTENT(INOUT) :: grpmn(0:mf,-nf:nf,ndim,nuv3)
+      REAL(dp), INTENT(INOUT) :: bvec(0:mf,-nf:nf,ndim)
+      REAL(dp), DIMENSION(nuv3), INTENT(IN) :: sl, tl
 C-----------------------------------------------
 C   L o c a l   V a r i a b l e s
 C-----------------------------------------------
-      INTEGER :: i
-      REAL(rprec) :: sinp, cosp
-      REAL(rprec) :: skston, skstoff
+      INTEGER  :: i
+      REAL(dp) :: sinp, cosp, ton, toff
 C-----------------------------------------------
-
-      CALL second0(skston)
+      CALL second0(ton)
 
       DO i = nuv3min, nuv3max
          sinp = (sinu1(i,m)*cosv1(i,n) - sinv1(i,n)*cosu1(i,m))
@@ -37,7 +35,7 @@ C-----------------------------------------------
             bvec(m,n,2) = bvec(m,n,2) + tl(i)*bexni(i)*cosp
          END IF
       END DO
-      CALL second0(skstoff)
-      timer_vac(tasum) = timer_vac(tasum) + (skstoff-skston)
+      CALL second0(toff)
+      timer_vac(tasum) = timer_vac(tasum) + (toff-ton)
 
       END SUBROUTINE analysum

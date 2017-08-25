@@ -451,7 +451,7 @@
         IF (istat .NE. 0) STOP 'Allocation error #3 in TOMNSP_PEST'
         work3 = zero; work4 = zero
 
-        DO n = 0, ntor  
+        DO n = 0, ntor
           DO lk = 1, nzeta                                               ! Then, add over toroidal collocation angles
             IF (iparity == f_cos) THEN                                   ! COSINE series
               work3(:,lk,1:ns) = work1(:,lk,1:ns)*cosnv(lk, n)

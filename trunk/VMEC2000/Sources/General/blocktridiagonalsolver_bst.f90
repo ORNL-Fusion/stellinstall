@@ -98,6 +98,7 @@ REAL :: intsz !<Byte size of an integer variable
 REAL :: ptrsz !<Byte size of a pointer variable
 REAL(dp) :: ONE !<1.0
 REAL(dp) :: ZERO !<0.0
+REAL(dp) :: skston, skstoff
 
 
 !-------------------------------------------------------------------------------
@@ -1523,7 +1524,6 @@ SUBROUTINE PLBDGEMM( alpha, A, B, beta, C )
 #if defined(MPI_OPT)
   INTEGER, EXTERNAL :: NUMROC
 #endif
-  REAL(dp) :: skston, skstoff
   REAL(dp) :: ton, toff
   INTEGER :: row
 
@@ -1700,7 +1700,6 @@ SUBROUTINE PLBDGETRF( A, piv, info )
 #if defined(MPI_OPT)
   INTEGER, EXTERNAL :: NUMROC
 #endif
-  REAL(dp) :: skston, skstoff
   REAL(dp) :: ton, toff
 
   info = 0
@@ -1790,7 +1789,6 @@ SUBROUTINE PLBDGETRS( nrhs, A, piv, B, info )
   INTEGER,  INTENT(IN) :: piv(:) !<Mx1
   REAL(dp), INTENT(INOUT) :: B(:,:) !<Matrix of size Mxnrhs
   INTEGER :: info, i, j
-  REAL(dp) :: skston, skstoff
   REAL(dp) :: ton, toff
 
 !  DO i=1, M
@@ -3173,7 +3171,6 @@ SUBROUTINE ForwardSolve_bst
   INTEGER :: reqi !<Looping variable for requests
   INTEGER :: blaserr !<Generic use for BLAS
   DOUBLE PRECISION :: fwton, fwtoff
-  DOUBLE PRECISION :: skston, skstoff
   INTEGER :: i
 
 !  DO globrow = startglobrow, endglobrow
