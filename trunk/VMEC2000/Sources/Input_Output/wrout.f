@@ -9,7 +9,8 @@
       USE vparams 
       USE vmec_input, ONLY: ns_array, ftol_array, lwouttxt
       USE vmec_params
-      USE vmec_main, p5 => cp5, two => c2p0
+      USE vmec_main
+      USE vparams, p5 => cp5, two => c2p0
       USE vmercier
       USE vmec_persistent
       USE vac_persistent
