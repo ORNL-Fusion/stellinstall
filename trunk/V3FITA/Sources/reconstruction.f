@@ -1691,13 +1691,6 @@
 
       DO i = 1, reconstruction_max_step_try
 
-#if defined(MPI_OPT)
-         CALL MPI_BCAST(mpi_step_task, 1, MPI_INTEGER, 0, recon_comm,          &
-     &                  error)
-         CALL MPI_BCAST(step_use, 1, MPI_REAL8, 0, recon_comm, error)
-         CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, recon_comm, error)
-#endif
-
          IF (reconstruction_try_step(this, signals, derived_params,            &
      &                               locks, a_model, params, eq_steps,         &
      &                               step_use, iou, recon_comm,                &
@@ -1837,7 +1830,7 @@
       TYPE (model_class), INTENT(inout)                  :: a_model
       TYPE (param_pointer), DIMENSION(:), INTENT(inout)  :: params
       INTEGER, INTENT(inout)                             :: eq_steps
-      REAL (rprec), INTENT(in)                           :: max_step
+      REAL (rprec), INTENT(inout)                        :: max_step
       INTEGER, INTENT(in)                                :: iou
       INTEGER, INTENT(in)                                :: recon_comm
       INTEGER, INTENT(in)                                :: eq_comm
@@ -1936,6 +1929,19 @@
             CALL reconstruction_write_step(this, 'seg', iou)
 
       END SELECT
+
+!  Rank zero will attempt to take the largest step. Once the largest step is
+!  determined, broadcast to children. This avoids the children taking redundant
+!  steps.
+      IF (mpi_rank .eq. 0) THEN
+#if defined(MPI_OPT)
+         CALL MPI_BCAST(mpi_step_task, 1, MPI_INTEGER, 0, recon_comm,          &
+     &                  error)
+         CALL MPI_BCAST(step_use, 1, MPI_REAL8, 0, recon_comm, error)
+         CALL MPI_BCAST(eq_steps, 1, MPI_INTEGER, 0, recon_comm, error)
+#endif
+         max_step = step_use
+      END IF
 
 !  Set the new parameter values. ABS(params(j)%p%delta) is the normalization
 !  factor. This is not vrnc because the increment function can take a non vrnc
