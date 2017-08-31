@@ -247,6 +247,7 @@
       USE shared_data, ONLY: wtotal, l_linearize, ndims
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
+      USE nscalingtools, ONLY: ErrorAbort
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -279,7 +280,7 @@
 !Not sure where 2.5 factor arises from
       gc1 = gc/2.5_dp
       eps1 = 10*eps
-      IF (wtotal .eq. 0._dp) STOP 'WTOTAL=0!'
+      IF (wtotal .EQ. 0._dp) CALL ErrorAbort('WTOTAL=0!')
 
       js = ns/2
 

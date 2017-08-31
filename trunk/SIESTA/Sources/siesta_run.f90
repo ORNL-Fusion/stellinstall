@@ -155,7 +155,6 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_destruct(this, finalize_mpi, close_wout)
       USE timer_mod
-      USE DirectAccess_s, ONLY: RemoveDAFile
       USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,            &
                                PARFUNCTISL, PARGMRES, SKSDBG, TOFU,            &
                                finalizeremap
@@ -192,7 +191,6 @@
 #if defined(SKS)
       total_time = skstoff - this%skston
 #endif
-      CALL RemoveDAFile
 
 #if defined(SKS)
       IF (OUTPUT_TIMINGS) THEN

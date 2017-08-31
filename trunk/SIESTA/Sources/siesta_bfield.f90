@@ -6,7 +6,7 @@
        USE stel_kinds
        USE stel_constants
        USE fourier 
-       USE nscalingtools, ONLY: startglobrow, endglobrow 
+       USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
        USE timer_mod
        IMPLICIT NONE
        
@@ -64,22 +64,22 @@
        ALLOCATE(esubsijf(ntheta,nzeta,nsmin:nsmax),                      &
                 esubuijf(ntheta,nzeta,nsmin:nsmax),                      &
                 esubvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)   
-       IF (istat .NE. 0) STOP 'Allocation1 failed in UPDATE_BFIELD' 
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_BFIELD')
 
        ALLOCATE(de_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
                 de_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) STOP 'Allocation2 failed in UPDATE_BFIELD'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_BFIELD')
 
        ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                 esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & 
                 esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                 stat=istat)  
-       IF (istat .NE. 0) STOP 'Allocation3 failed in UPDATE_BFIELD'  
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_BFIELD')
 
        ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                 esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                 esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-       IF (istat .NE. 0) STOP 'Allocation4 failed in UPDATE_BFIELD'  
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in UPDATE_BFIELD')
 
 
        esubsijf =-(jvsupuijf(:,:,nsmin:nsmax)*bsupvijf0(:,:,nsmin:nsmax) &
@@ -92,9 +92,9 @@
 !      confirm boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy => dB^s = 0)
        IF (nsmax .EQ. ns) THEN
          IF (ANY(esubuijf(:,:,ns) .NE. zero)) THEN
-           STOP 'esubuijf(ns) != 0 in UPDATE_BFIELD_par'
+           CALL ErrorAbort('esubuijf(ns) != 0 in UPDATE_BFIELD_par')
          ELSE IF (ANY(esubvijf(:,:,ns) .NE. zero)) THEN
-           STOP 'esubvijf(ns) != 0 in UPDATE_BFIELD_par'
+           CALL ErrorAbort('esubvijf(ns) != 0 in UPDATE_BFIELD_par')
          END IF
        END IF
 
@@ -110,7 +110,7 @@
           IF (fsq_total < fsq_res) delt_cfl = delt_cfl*SQRT(fsq_total/fsq_res)
 
           ALLOCATE(resistivity(ntheta,nzeta,nsmin:nsmax), stat=istat)
-          IF (istat .NE. 0) STOP 'Allocation5 failed in UPDATE_BFIELD'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation5 failed in UPDATE_BFIELD')
 
           DO js = nsmin, nsmax
              rho = hs_i*(js-1)
@@ -118,13 +118,11 @@
              resistivity(:,:,js) = delt_cfl*eta_prof
           END DO
 
-!Note: need to divide current by 1/jac
-          resistivity = resistivity/jacobf(:,:,nsmin:nsmax)
           IF (ladd_pert) THEN
              resistivity = resistivity*buv_res(:,:,nsmin:nsmax)
           END IF
 
-!Isotropic resistivity, E ~ eta*J; for ladd_pert, K = B in init_state so this is A|| B perturbation
+!Isotropic resistivity, E ~ eta*J; for ladd_pert=TRUE, K ~ B in init_state
           esubsijf = esubsijf + resistivity*ksubsijf(:,:,nsmin:nsmax)
           esubuijf = esubuijf + resistivity*ksubuijf(:,:,nsmin:nsmax)
           esubvijf = esubvijf + resistivity*ksubvijf(:,:,nsmin:nsmax)

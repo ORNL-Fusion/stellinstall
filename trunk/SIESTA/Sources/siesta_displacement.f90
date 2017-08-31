@@ -17,7 +17,8 @@
       MODULE siesta_displacement
       USE stel_kinds
       USE stel_constants        
-      USE fourier 
+      USE fourier
+      USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
       USE timer_mod, ONLY: time_update_upperv
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
@@ -26,7 +27,6 @@
       CONTAINS
 !>    \brief Parallel subroutine for initializing updated displacement components in real space
       SUBROUTINE update_upperv_par
-      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE shared_data, ONLY: lasym
       USE siesta_state, ONLY: clear_field_perts
       USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,          &
@@ -38,7 +38,7 @@
       REAL(dp) :: ton, toff
 !-----------------------------------------------
       CALL second0(ton)
-      nsmin=MAX(1,startglobrow-2); nsmax=MIN(endglobrow+2,ns)
+      nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
       ns_span = nsmax-nsmin+1
 
       CALL Clear_Field_Perts
@@ -94,13 +94,13 @@
       END IF
       c2 = c1+1;  c3 = c2+1
 
-      IF (LBOUND(jvsupsmnf,3) .NE. 1)  STOP 'LBOUND1 WRONG IN InitDisp'
-      IF (UBOUND(jvsupsmnf,3) .NE. ns) STOP 'UBOUND1 WRONG IN InitDisp'
+      IF (LBOUND(jvsupsmnf,3) .NE. 1)  CALL ErrorAbort('LBOUND1 WRONG IN InitDisp')
+      IF (UBOUND(jvsupsmnf,3) .NE. ns) CALL ErrorAbort('UBOUND1 WRONG IN InitDisp')
 
       ALLOCATE (gvsupsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 gvsupumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 gvsupvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error #1 in UPDATE_UPPERV'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in UPDATE_UPPERV')
 
 !Apply scaling in real space (keep xc components unscaled)
       gvsupsmnf = jvsupsmnf(:,:,nsmin:nsmax)*col_scale(:,:,c1,nsmin:nsmax)

@@ -9,6 +9,7 @@ MODULE blocktridiagonalsolver_s
 USE mpi_inc
 USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
+USE siesta_error
 IMPLICIT NONE
 PRIVATE
 !-------------------------------------------------------------------------------
@@ -786,7 +787,7 @@ SUBROUTINE DetermineMasterSlaveRanks()
 
   IF ( totmasters .LE. 0 ) THEN
     IF(KPDBG) WRITE(OFU,*) 'Total masters must be greater than 0'; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #1')
   END IF
 
   nslavespermaster = (nranks / totmasters)
@@ -938,7 +939,7 @@ SUBROUTINE SlaveService()
         CALL SlaveDGETRS()
       ELSE
         IF(KPDBG) WRITE(OFU,*) 'Bad Next Op', nextop; CALL FL(OFU)
-        STOP
+        CALL ErrorAbort('blocktri #2')
       END IF
     END DO OpLoop
     IF(KPDBG) WRITE(OFU,*) 'SlaveService done '; CALL FL(OFU)
@@ -998,7 +999,7 @@ SUBROUTINE ExtractSubMatrix( bszr, bszc, pnr, pnc, pi, pj, &
   IF ( K .NE. subnrows*subncols ) THEN
     IF(KPDBG) WRITE(OFU,*) 'Sanity check failed '; CALL FL(OFU)
     IF(KPDBG) WRITE(OFU,*) 'K=', K, ' subnr=', subnrows, ' subnc=', subncols; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #3')
   END IF
 
   CALL BSystemClock(pstats%extract%t2)
@@ -1076,13 +1077,13 @@ SUBROUTINE MasterSendMatrix( A, nrows, ncols, ssubA, ssubnrows, ssubncols )
         !Self (local)
         IF ( aslaverank .NE. rank ) THEN
           IF(KPDBG) WRITE(OFU,*) 'Inconsistency in slave rank of master'; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #4')
         END IF
         IF ( (ssubnrows .NE. subnrows) .OR. (ssubncols .NE. subncols) ) THEN
           IF(KPDBG) WRITE(OFU,*) 'Inconsistency in ssub dimensions'; CALL FL(OFU)
           IF(KPDBG) WRITE(OFU,*) 'SSNR ', ssubnrows, ' SSNC ', ssubncols; CALL FL(OFU)
           IF(KPDBG) WRITE(OFU,*) 'SNR  ', subnrows, ' SNC  ', subncols; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #5')
         END IF
 
         !Return a copy of this submatrix (will be like sent+received to/by self)
@@ -1265,7 +1266,7 @@ SUBROUTINE InjectSubMatrix( bszr, bszc, pnr, pnc, pi, pj, &
   IF ( K .NE. subnrows*subncols ) THEN
     IF(KPDBG) WRITE(OFU,*) 'Sanity check failed '; CALL FL(OFU)
     IF(KPDBG) WRITE(OFU,*) 'K=', K, ' subnr=', subnrows, ' subnc=', subncols; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #6')
   END IF
 
   IF(KPDBG) WRITE(OFU,*) 'InjectSubMatrix done K', K; CALL FL(OFU)
@@ -1313,7 +1314,7 @@ SUBROUTINE InjectSubVector( bszr, pnr, pi, V, nrows, subV, subnrows )
   IF ( K .NE. subnrows ) THEN
     IF(KPDBG) WRITE(OFU,*) 'Sanity check failed '; CALL FL(OFU)
     IF(KPDBG) WRITE(OFU,*) 'K=', K, ' subnr=', subnrows; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #7')
   END IF
 
   IF(KPDBG) WRITE(OFU,*) 'InjectSubVector done K', K; CALL FL(OFU)
@@ -1368,13 +1369,13 @@ SUBROUTINE MasterRecvMatrix( A, nrows, ncols, ssubA, ssubnrows, ssubncols )
         !Self (local)
         IF ( aslaverank .NE. rank ) THEN
           IF(KPDBG) WRITE(OFU,*) 'Inconsistency in slave rank of master'; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #8')
         END IF
         IF ( (ssubnrows .NE. subnrows) .OR. (ssubncols .NE. subncols) ) THEN
           IF(KPDBG) WRITE(OFU,*) 'Inconsistency in ssub dimensions'; CALL FL(OFU)
           IF(KPDBG) WRITE(OFU,*) 'SSNR ', ssubnrows, ' SSNC ', ssubncols; CALL FL(OFU)
           IF(KPDBG) WRITE(OFU,*) 'SNR  ', subnrows, ' SNC  ', subncols; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #9')
         END IF
 
         !Use the given copy of this submatrix (like sent+received to/by self)
@@ -1481,13 +1482,13 @@ SUBROUTINE MasterRecvVector( V, nrows, ssubV, ssubnrows )
         !Self (local)
         IF ( aslaverank .NE. rank ) THEN
           IF(KPDBG) WRITE(OFU,*) 'Inconsistency in slave rank of master'; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #10')
         END IF
         IF ( ssubnrows .NE. subnrows ) THEN
           IF(KPDBG) WRITE(OFU,*) 'Inconsistency in ssub dimensions'; CALL FL(OFU)
           IF(KPDBG) WRITE(OFU,*) 'SSNR ', ssubnrows; CALL FL(OFU)
           IF(KPDBG) WRITE(OFU,*) 'SNR  ', subnrows; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #11')
         END IF
 
         !Use the given copy of this subvector (like sent+received to/by self)
@@ -1993,7 +1994,7 @@ END SUBROUTINE PLBDGETRS
 SUBROUTINE SlaveDGETRS()
 
   IF(KPDBG) WRITE(OFU,*) 'SlaveDGETRS not implemented'; CALL FL(OFU)
-  STOP !To be completed
+  CALL ErrorAbort('blocktri #12') !To be completed
 
 END SUBROUTINE SlaveDGETRS
 !-------------------------------------------------------------------------------
@@ -2076,7 +2077,7 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
   !-----------------------------------------------------------------------------
   IF ( N .LT. 1 ) THEN
     IF(KPDBG) WRITE(OFU,*) 'Bad N', N; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #13')
   END IF
 
   !-----------------------------------------------------------------------------
@@ -2248,11 +2249,11 @@ SUBROUTINE SetMatrixRow( globrow, L, D, U )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRow: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #14')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRow: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #15')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2315,11 +2316,11 @@ SUBROUTINE SetMatrixRowL( globrow, L )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowL: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #16')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowL: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #17')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2370,11 +2371,11 @@ SUBROUTINE SetMatrixRowD( globrow, D )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowD: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #18')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowD: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #19')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2421,11 +2422,11 @@ SUBROUTINE SetMatrixRowU( globrow, U )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowU: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #20')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowU: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #21')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2477,15 +2478,15 @@ SUBROUTINE SetMatrixRowColL( globrow, Lj, j )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColL: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #22')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColL: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #23')
   END IF
   IF ( .NOT. ((1 .LE. j) .AND. (j .LE. M)) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColL: Bad j column ',j; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #24')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2535,15 +2536,15 @@ SUBROUTINE SetMatrixRowColD( globrow, Dj, j )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColD: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #25')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColD: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #26')
   END IF
   IF ( .NOT. ((1 .LE. j) .AND. (j .LE. M)) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColD: Bad j column ',j; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #27')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2589,15 +2590,15 @@ SUBROUTINE SetMatrixRowColU( globrow, Uj, j )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColU: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #28')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColU: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #29')
   END IF
   IF ( .NOT. ((1 .LE. j) .AND. (j .LE. M)) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRowColL: Bad j column ',j; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #30')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2646,11 +2647,11 @@ SUBROUTINE SetMatrixRHS( globrow, b )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRHS: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #31')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetMatrixRHS: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #32')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2696,15 +2697,15 @@ SUBROUTINE GetMatrixRowColL( globrow, Lj, j )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColL: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #33')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColL: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #34')
   END IF
   IF ( .NOT. ((1 .LE. j) .AND. (j .LE. M)) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColL: Bad j column ',j; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #35')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2746,15 +2747,15 @@ SUBROUTINE GetMatrixRowColD( globrow, Dj, j )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColD: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #36')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColD: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #37')
   END IF
   IF ( .NOT. ((1 .LE. j) .AND. (j .LE. M)) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColD: Bad j column ',j; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #38')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2792,15 +2793,15 @@ SUBROUTINE GetMatrixRowColU( globrow, Uj, j )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColU: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #39')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColU: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #40')
   END IF
   IF ( .NOT. ((1 .LE. j) .AND. (j .LE. M)) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRowColL: Bad j column ',j; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #41')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2841,11 +2842,11 @@ SUBROUTINE GetMatrixRHS( globrow, b )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRHS: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #42')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'GetMatrixRHS: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #43')
   END IF
 
   globrowoff = globrow-startglobrow+1
@@ -2882,11 +2883,11 @@ SUBROUTINE GetSolutionVector( globrow, x )
   !-------------------------------------------
   IF ( (globrow .LT. 1) .OR. (globrow .GT. N) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetSolutionVector: Bad input globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #44')
   END IF
   IF ( (globrow .LT. startglobrow) .OR. (globrow .GT. endglobrow) ) THEN
     IF(KPDBG) WRITE(OFU,*) 'SetSolutionVector: Non-local globrow ',globrow; CALL FL(OFU)
-    STOP
+    CALL ErrorAbort('blocktri #45')
   END IF
 
   !-------------------------------------------
@@ -3291,7 +3292,7 @@ FUNCTION LR2GR( locrow, level ) result ( globrow )
   ! DEBUGGING: Just double-check
   !-----------------------------------------------------------------------------
   IF ( ((2.0 ** (level-1)) * (locrow-1) + 1) .NE. globrow ) THEN
-    STOP !Consistency check failed
+    CALL ErrorAbort('blocktri #46') !Consistency check failed
   END IF
 
   RETURN
@@ -3422,7 +3423,7 @@ SUBROUTINE ComputeForwardOddRowHats(locrow, level, startlocrow, endlocrow,bonly)
     IF(KPDBG) WRITE(OFU,*) 'mat-mul last lvl: no op '; CALL FL(OFU)
     IF ( rank .NE. 0 ) THEN
       IF(KPDBG) WRITE(OFU,*) 'mat-mul last lvl: impossible ',rank; CALL FL(OFU)
-      STOP
+      CALL ErrorAbort('blocktri #47')
     END IF
     RETURN
   END IF
@@ -3431,10 +3432,10 @@ SUBROUTINE ComputeForwardOddRowHats(locrow, level, startlocrow, endlocrow,bonly)
   ! Sanity check
   !-------------------------------------------------------------
   IF ( ISEVEN( locrow ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) 'mat-mul: odd only ',globrow,' ',locrow; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) 'mat-mul: odd only ',globrow,' ',locrow; CALL FL(OFU); CALL ErrorAbort('blocktri #48')
   END IF
   IF ( .NOT. ( (startlocrow .LE. locrow) .AND. (locrow .LE. endlocrow) ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) 'mat-mul: locrow prob ',globrow,' ',locrow;CALL FL(OFU);STOP
+    IF(KPDBG) WRITE(OFU,*) 'mat-mul: locrow prob ',globrow,' ',locrow;CALL FL(OFU);CALL ErrorAbort('blocktri #49')
   END IF
 
   !-------------------------------------------------------------
@@ -3446,32 +3447,32 @@ SUBROUTINE ComputeForwardOddRowHats(locrow, level, startlocrow, endlocrow,bonly)
   ! Ensure there are mats at (thislevel, thisrow)
   !-------------------------------------------------------------
   IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%D ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad D'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad D'; CALL FL(OFU); CALL ErrorAbort('blocktri #50')
   END IF
   IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad L'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #51')
   END IF
   IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad U'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #52')
   END IF
   IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad b'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #53')
   END IF
 
   !-------------------------------------------------------------
   ! Ensure there is space at (nextlevel, thisrow)
   !-------------------------------------------------------------
   IF ( .NOT. ALLOCATED(lelement(level+1,globrowoff)%D ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad D +1'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad D +1'; CALL FL(OFU); CALL ErrorAbort('blocktri #54')
   END IF
   IF ( .NOT. ALLOCATED(lelement(level+1,globrowoff)%L ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad L +1'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad L +1'; CALL FL(OFU); CALL ErrorAbort('blocktri #55')
   END IF
   IF ( .NOT. ALLOCATED(lelement(level+1,globrowoff)%U ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad U +1'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad U +1'; CALL FL(OFU); CALL ErrorAbort('blocktri #56')
   END IF
   IF ( .NOT. ALLOCATED(lelement(level+1,globrowoff)%b ) ) THEN
-    IF(KPDBG) WRITE(OFU,*) '  Copying bad b +1'; CALL FL(OFU); STOP
+    IF(KPDBG) WRITE(OFU,*) '  Copying bad b +1'; CALL FL(OFU); CALL ErrorAbort('blocktri #57')
   END IF
 
   !-------------------------------------------------------------
@@ -3497,7 +3498,7 @@ SUBROUTINE ComputeForwardOddRowHats(locrow, level, startlocrow, endlocrow,bonly)
     ELSE IF ( locrow .GT. startlocrow ) THEN
       prevglobrowoff = LR2GR( locrow-1, level ) - startglobrow + 1
     ELSE
-      IF(KPDBG) WRITE(OFU,*) 'mat-mul: impossible prev'; CALL FL(OFU); STOP
+      IF(KPDBG) WRITE(OFU,*) 'mat-mul: impossible prev'; CALL FL(OFU); CALL ErrorAbort('blocktri #58')
     END IF
 
     IF ( .NOT. bonly ) THEN
@@ -3548,7 +3549,7 @@ SUBROUTINE ComputeForwardOddRowHats(locrow, level, startlocrow, endlocrow,bonly)
     ELSE IF ( locrow .LT. endlocrow ) THEN
       nextglobrowoff = LR2GR( locrow+1, level ) - startglobrow + 1
     ELSE
-      IF(KPDBG) WRITE(OFU,*) 'mat-mul: impossible next'; CALL FL(OFU); STOP
+      IF(KPDBG) WRITE(OFU,*) 'mat-mul: impossible next'; CALL FL(OFU); CALL ErrorAbort('blocktri #59')
     END IF
 
     IF ( .NOT. bonly ) THEN
@@ -3746,13 +3747,13 @@ SUBROUTINE ForwardSolve
       IF(KPDBG) WRITE(OFU,*) '  Irecv ',startlocrow-1,' ',nbrrank,' '; CALL FL(OFU)
 
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'  Irecv bad L'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'  Irecv bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #60')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'  Irecv bad U'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'  Irecv bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #61')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'  Irecv bad b'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'  Irecv bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #62')
       END IF
 
       CALL BSystemClock(loctimer1)
@@ -3790,13 +3791,13 @@ SUBROUTINE ForwardSolve
       IF(KPDBG) WRITE(OFU,*) ' Irecv ',endlocrow+1,' ', nbrrank; CALL FL(OFU)
 
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'Irecv bad L'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'Irecv bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #63')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'Irecv bad U'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'Irecv bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #64')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'Irecv bad b'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'Irecv bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #65')
       END IF
 
       CALL BSystemClock(loctimer1)
@@ -3843,23 +3844,23 @@ SUBROUTINE ForwardSolve
                (startlocrow .NE. endlocrow) .OR. &
                (locrow .NE. 1) .OR. (globrow .NE. 1) ) THEN
             IF(KPDBG) WRITE(OFU,*) ' EVEN ERROR ',globrow,' ', locrow; CALL FL(OFU)
-            STOP
+            CALL ErrorAbort('blocktri #66')
           END IF
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%D) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad D'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad D'; CALL FL(OFU); CALL ErrorAbort('blocktri #67')
         END IF
         IF ( .NOT. ALLOCATED(lelement(1,globrowoff)%pivot) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad pivot'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad pivot'; CALL FL(OFU); CALL ErrorAbort('blocktri #68')
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad L'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #69')
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad U'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #70')
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad b'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #71')
         END IF
 
         !-----------------------------------------------------------------------
@@ -3871,7 +3872,7 @@ SUBROUTINE ForwardSolve
         CALL BSystemClock(mattimer2)
         CALL ChargeTime( totinvtime, mattimer2, mattimer1, totinvcount )
         IF (blaserr .NE. 0) THEN
-          IF(KPDBG) WRITE(OFU,*) '  PLBDGETRF failed ', blaserr; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*) '  PLBDGETRF failed ', blaserr; CALL FL(OFU); CALL ErrorAbort('blocktri #72')
         END IF
 
         !-----------------------------------------------------------------------
@@ -3885,7 +3886,7 @@ SUBROUTINE ForwardSolve
           CALL BSystemClock(mattimer2)
           CALL ChargeTime( totmatsoltime, mattimer2, mattimer1, totmatsolcount )
           IF (blaserr .NE. 0) THEN
-            IF(KPDBG) WRITE(OFU,*) '   PLBDGETRS L failed'; CALL FL(OFU); STOP
+            IF(KPDBG) WRITE(OFU,*) '   PLBDGETRS L failed'; CALL FL(OFU); CALL ErrorAbort('blocktri #73')
           END IF
           CALL BSystemClock(mattimer1)
           CALL PLBDGETRS( M, lelement(level,globrowoff)%D, &
@@ -3894,7 +3895,7 @@ SUBROUTINE ForwardSolve
           CALL BSystemClock(mattimer2)
           CALL ChargeTime( totmatsoltime, mattimer2, mattimer1, totmatsolcount )
           IF (blaserr .NE. 0) THEN
-            IF(KPDBG) WRITE(OFU,*) '   PLBDGETRS U failed'; CALL FL(OFU); STOP
+            IF(KPDBG) WRITE(OFU,*) '   PLBDGETRS U failed'; CALL FL(OFU); CALL ErrorAbort('blocktri #74')
           END IF
         END IF
 
@@ -3905,7 +3906,7 @@ SUBROUTINE ForwardSolve
                            lelement(1,globrowoff)%pivot, &
                            lelement(level,globrowoff)%b, blaserr )
         IF (blaserr .NE. 0) THEN
-          IF(KPDBG) WRITE(OFU,*) 'PLBDGETRS b failed'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*) 'PLBDGETRS b failed'; CALL FL(OFU); CALL ErrorAbort('blocktri #75')
         END IF
 
         !-----------------------------------------------------------------------
@@ -3917,13 +3918,13 @@ SUBROUTINE ForwardSolve
           IF ( (nbrrank .GE. 0) .AND. (nbrrank .NE. rank) ) THEN
             CALL BSystemClock(loctimer1)
             IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-              IF(KPDBG) WRITE(OFU,*)'ISend bad L'; CALL FL(OFU); STOP
+              IF(KPDBG) WRITE(OFU,*)'ISend bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #76')
             END IF
             IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-              IF(KPDBG) WRITE(OFU,*)'ISend bad U'; CALL FL(OFU); STOP
+              IF(KPDBG) WRITE(OFU,*)'ISend bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #77')
             END IF
             IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-              IF(KPDBG) WRITE(OFU,*)'ISend bad b'; CALL FL(OFU); STOP
+              IF(KPDBG) WRITE(OFU,*)'ISend bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #78')
             END IF
 
             IF(KPDBG) WRITE(OFU,*)' ISend ',globrow,' ',locrow,' ',nbrrank;CALL FL(OFU)
@@ -4123,7 +4124,7 @@ SUBROUTINE ForwardUpdateb
       IF( .NOT. ( ALLOCATED( lelement(level, globrowoff)%L ) .AND. &
                   ALLOCATED( lelement(level, globrowoff)%U ) .AND. &
                   ALLOCATED( lelement(level, globrowoff)%b ) ) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'ForwardUpdateb +0 memory error'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'ForwardUpdateb +0 memory error'; CALL FL(OFU); CALL ErrorAbort('blocktri #79')
       END IF
       lelement(level, globrowoff)%b = 0
     END IF
@@ -4133,7 +4134,7 @@ SUBROUTINE ForwardUpdateb
       IF ( .NOT. ( ALLOCATED( lelement(level, globrowoff)%L ) .AND. &
                    ALLOCATED( lelement(level, globrowoff)%U ) .AND. &
                    ALLOCATED( lelement(level, globrowoff)%b ) ) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'ForwardUpdateb +2 memory error'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'ForwardUpdateb +2 memory error'; CALL FL(OFU); CALL ErrorAbort('blocktri #80')
       END IF
       lelement(level, globrowoff)%b = 0
     END IF
@@ -4151,7 +4152,7 @@ SUBROUTINE ForwardUpdateb
                        ALLOCATED( lelement(level+1, globrowoff)%D ) .AND. &
                        ALLOCATED( lelement(level+1, globrowoff)%U ) .AND. &
                        ALLOCATED( lelement(level+1, globrowoff)%b ) ) ) THEN
-            IF(KPDBG) WRITE(OFU,*)'ForwardUpdateb +1 memory error'; CALL FL(OFU); STOP
+            IF(KPDBG) WRITE(OFU,*)'ForwardUpdateb +1 memory error'; CALL FL(OFU); CALL ErrorAbort('blocktri #81')
           END IF
           lelement(level+1, globrowoff)%b = 0
         END IF
@@ -4181,13 +4182,13 @@ SUBROUTINE ForwardUpdateb
       IF(KPDBG) WRITE(OFU,*) '  Irecv ',startlocrow-1,' ',nbrrank,' '; CALL FL(OFU)
 
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'  Irecv bad L'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'  Irecv bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #82')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'  Irecv bad U'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'  Irecv bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #83')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'  Irecv bad b'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'  Irecv bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #84')
       END IF
 
       CALL BSystemClock(loctimer1)
@@ -4211,13 +4212,13 @@ SUBROUTINE ForwardUpdateb
       IF(KPDBG) WRITE(OFU,*) ' Irecv ',endlocrow+1,' ', nbrrank; CALL FL(OFU)
 
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'Irecv bad L'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'Irecv bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #85')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'Irecv bad U'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'Irecv bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #86')
       END IF
       IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-        IF(KPDBG) WRITE(OFU,*)'Irecv bad b'; CALL FL(OFU); STOP
+        IF(KPDBG) WRITE(OFU,*)'Irecv bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #87')
       END IF
 
       CALL BSystemClock(loctimer1)
@@ -4250,23 +4251,23 @@ SUBROUTINE ForwardUpdateb
                (startlocrow .NE. endlocrow) .OR. &
                (locrow .NE. 1) .OR. (globrow .NE. 1) ) THEN
             IF(KPDBG) WRITE(OFU,*) ' EVEN ERROR ',globrow,' ', locrow; CALL FL(OFU)
-            STOP
+            CALL ErrorAbort('blocktri #88')
           END IF
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%D) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad D'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad D'; CALL FL(OFU); CALL ErrorAbort('blocktri #89')
         END IF
         IF ( .NOT. ALLOCATED(lelement(1,globrowoff)%pivot) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad pivot'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad pivot'; CALL FL(OFU); CALL ErrorAbort('blocktri #90')
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad L'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #91')
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad U'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #92')
         END IF
         IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-          IF(KPDBG) WRITE(OFU,*)'Chats bad b'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*)'Chats bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #93')
         END IF
 
         !-----------------------------------------------------------------------
@@ -4280,7 +4281,7 @@ SUBROUTINE ForwardUpdateb
                            lelement(1,globrowoff)%pivot, &
                            lelement(level,globrowoff)%b, blaserr )
         IF (blaserr .NE. 0) THEN
-          IF(KPDBG) WRITE(OFU,*) 'PLBDGETRS b failed'; CALL FL(OFU); STOP
+          IF(KPDBG) WRITE(OFU,*) 'PLBDGETRS b failed'; CALL FL(OFU); CALL ErrorAbort('blocktri #94')
         END IF
 
         !-----------------------------------------------------------------------
@@ -4292,13 +4293,13 @@ SUBROUTINE ForwardUpdateb
           IF ( (nbrrank .GE. 0) .AND. (nbrrank .NE. rank) ) THEN
             CALL BSystemClock(loctimer1)
             IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%L) ) THEN
-              IF(KPDBG) WRITE(OFU,*)'ISend bad L'; CALL FL(OFU); STOP
+              IF(KPDBG) WRITE(OFU,*)'ISend bad L'; CALL FL(OFU); CALL ErrorAbort('blocktri #95')
             END IF
             IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%U) ) THEN
-              IF(KPDBG) WRITE(OFU,*)'ISend bad U'; CALL FL(OFU); STOP
+              IF(KPDBG) WRITE(OFU,*)'ISend bad U'; CALL FL(OFU); CALL ErrorAbort('blocktri #96')
             END IF
             IF ( .NOT. ALLOCATED(lelement(level,globrowoff)%b) ) THEN
-              IF(KPDBG) WRITE(OFU,*)'ISend bad b'; CALL FL(OFU); STOP
+              IF(KPDBG) WRITE(OFU,*)'ISend bad b'; CALL FL(OFU); CALL ErrorAbort('blocktri #97')
             END IF
 
             IF(KPDBG) WRITE(OFU,*)' ISend ',globrow,' ',locrow,' ',nbrrank;CALL FL(OFU)
@@ -4558,7 +4559,7 @@ SUBROUTINE BackwardSolve
             IF ( .NOT. ALLOCATED(selement(globrow)%x) ) THEN
               IF(KPDBG) WRITE(OFU,*) 'ERROR BISEND AT LEVEL', level; CALL FL(OFU)
               IF(KPDBG) WRITE(OFU,*) locrow, ' ', globrow, ' ', nbrrank; CALL FL(OFU)
-              STOP
+              CALL ErrorAbort('blocktri #98')
             END IF
             stag = (1-rowoffset)/2+1
             CALL BSystemClock(loctimer1)
@@ -4595,7 +4596,7 @@ SUBROUTINE BackwardSolve
         globrowoff = globrow - startglobrow + 1
         IF ( ( level .EQ. nlevels ) .AND. (locrow .NE. 1) ) THEN
           IF(KPDBG) WRITE(OFU,*) 'ERROR ',level, ' ',globrow, ' ', locrow; CALL FL(OFU)
-          STOP
+          CALL ErrorAbort('blocktri #99')
         END IF
 
         IF(KPDBG) WRITE(OFU,*) ' Compute solution ', globrow, ' ', locrow; CALL FL(OFU)
@@ -5210,7 +5211,7 @@ ELSE
   END DO
 END IF
 
-IF (ANY(scalevector .LT. zero)) STOP 'SCALEVECTOR < 0!'
+IF (ANY(scalevector .LT. zero)) CALL ErrorAbort('SCALEVECTOR < 0!')
 scalevector = SQRT(scalevector)
 
 END SUBROUTINE GetScaleFactors

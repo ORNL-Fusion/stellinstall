@@ -16,6 +16,7 @@ USE blocktridiagonalsolver_s, ONLY: &
 USE mpi_inc
 USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
+USE siesta_error
 IMPLICIT NONE
 !------------------------------------------------
 ! User-controlled logicals
@@ -71,8 +72,6 @@ CONTAINS
 
 !--------------------------------------------------------------------------
 SUBROUTINE  MyEnvVariables
-IMPLICIT NONE
-
 
 !--------------------------------------------------------------------------
 ! Default values of environment values that users are allowed to change
@@ -110,7 +109,6 @@ END SUBROUTINE MyEnvVariables
 
 !------------------------------------------------
 SUBROUTINE SetOutputFile (iam, nprocs)
-IMPLICIT NONE
 
 INTEGER :: iam, nprocs, istat
 CHARACTER(100) :: fname, cfname
@@ -144,7 +142,6 @@ END SUBROUTINE SetOutputFile
 !------------------------------------------------
 SUBROUTINE initRemap (mpol_in,ntor_in,blkrownum,numprocs,myrank)
 USE shared_data, ONLY: ndims
-IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: mpol_in,ntor_in,blkrownum,numprocs,myrank 
 INTEGER :: length
@@ -160,7 +157,7 @@ NTOR=ntor_in
 M=ndims*(MPOL+1)*(2*NTOR+1)
 N=blkrownum
 
-IF(M.EQ.0 .OR. N.EQ.0) STOP 'M, N = 0 IN initRemap!'
+IF(M.EQ.0 .OR. N.EQ.0) CALL ErrorAbort('M, N = 0 IN initRemap!')
 
 nranks=numprocs
 rank=myrank
@@ -205,11 +202,11 @@ IF (BUFFERED) THEN
       WRITE(7000+rank,*) '>>> MPI_BSEND_OVERHEAD : ', MPI_BSEND_OVERHEAD; CALL FLUSH(7000+rank)
       WRITE(7000+rank,*) '>>> nBuffsize          : ', nBuffsize; CALL FLUSH(7000+rank)
     END IF
-    STOP 666
+    CALL ErrorAbort('initRemap')
   END IF
 
   ALLOCATE(remapBuffer(nBuffsize), stat=i)
-  IF (i .NE. 0) STOP 'MPI remapBuffer allocation failed in initRemap!'
+  IF (i .NE. 0) CALL ErrorAbort('MPI remapBuffer allocation failed in initRemap!')
   CALL MPI_BUFFER_ATTACH(remapBuffer, nBuffsize, MPI_ERR)
 END IF
 
@@ -228,7 +225,6 @@ END SUBROUTINE initRemap
 ! This routine deallocates arrays, etc.
 !------------------------------------------------
 SUBROUTINE finalizeRemap
-IMPLICIT NONE
 
 IF(ALLOCATED(bcyclicStartBlockProc)) DEALLOCATE(bcyclicStartBlockProc)
 IF(ALLOCATED(bcyclicEndBlockProc)) DEALLOCATE(bcyclicEndBlockProc)
@@ -243,7 +239,6 @@ END SUBROUTINE finalizeRemap
 ! boundaries in terms of global block indices.
 !------------------------------------------------
 SUBROUTINE bcyclicMapping
-IMPLICIT NONE
 
 !INTEGER, INTENT(OUT) :: startblock, endblock
 INTEGER :: startblock, endblock
@@ -252,7 +247,7 @@ INTEGER :: numL, numS
 INTEGER :: r, c
 
 IF(.NOT.INITREMAPDONE) THEN
-  STOP 'Calling bcyclicMapping routine without calling initRemap'
+  CALL ErrorAbort('Calling bcyclicMapping routine without calling initRemap')
 END IF
 
 IF (MAPPINGDONE) RETURN
@@ -321,11 +316,10 @@ END SUBROUTINE bcyclicMapping
 ! This is to be called after bcyclicMapping.
 !------------------------------------------------
 SUBROUTINE computeAllGatherParameters
-IMPLICIT NONE
 
 INTEGER :: i
 
-IF (.NOT.MAPPINGDONE) CALL MPI_Abort(SIESTA_COMM,1,MPI_ERR)
+IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
 
 IF(.NOT.ALLOCATED(rcounts)) ALLOCATE(rcounts(activeranks), rcountsNS(activeranks))
 IF(.NOT.ALLOCATED(disp)) ALLOCATE(disp(activeranks),dispNS(activeranks))
@@ -348,7 +342,6 @@ END SUBROUTINE computeAllGatherParameters
 ! A generic binary search routine
 !------------------------------------------------
 SUBROUTINE search(query,FOUND,location)
-IMPLICIT NONE
 
 !INTEGER, DIMENSION(:), INTENT(IN) :: qarray
 INTEGER, INTENT(IN) :: query
@@ -356,7 +349,7 @@ LOGICAL, INTENT(OUT) :: FOUND
 INTEGER, INTENT(OUT) :: location
 INTEGER :: p
 
-IF (.NOT.MAPPINGDONE) CALL MPI_Abort(SIESTA_COMM,1,MPI_ERR)
+IF (.NOT.MAPPINGDONE) CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
 
 ! To account for P>N
 activeranks=activeranks
@@ -377,7 +370,6 @@ END SUBROUTINE search
 
 !------------------------------------------------
 SUBROUTINE SetBlockTriDataStruct(it, br, ic, coldata)
-IMPLICIT NONE
 
 REAL(dp), DIMENSION(M), INTENT(IN) :: coldata
 INTEGER, INTENT(IN) :: br, ic, it
@@ -392,14 +384,13 @@ ELSE IF (it.EQ.SAVEDIAG) THEN  !SAVED DIAGONAL
   CALL StoreDiagonal(br,ic,coldata)
 ELSE
   WRITE(*,*)'Something wrong in ', rank,MPI_Status(MPI_TAG),br,ic,it 
-  STOP 101
+  CALL ErrorAbort('SetBlockTriDataStruct')
 END IF
 END SUBROUTINE SetBlockTriDataStruct
 !------------------------------------------------
 
 !------------------------------------------------
 SUBROUTINE send(columnData,blockRowNum,blockRowType,columnNum, procNum)
-IMPLICIT NONE
 
 REAL(dp), DIMENSION(1:M), INTENT(IN) :: columnData
 INTEGER, INTENT(IN) :: blockRowNum, blockRowType, columnNum
@@ -427,7 +418,7 @@ IF (FOUND) THEN
     ELSE IF (blockRowType.EQ.LOWER) THEN
       CALL SetBlockTriDataStruct(LOWER,blockRowNum,columnNum,columnData)
     ELSE
-      STOP '444'
+      CALL ErrorAbort('send')
     END IF
   ELSE
     IF (BUFFERED) THEN     
@@ -437,7 +428,7 @@ IF (FOUND) THEN
     END IF
   END IF
 ELSE 
-  CALL MPI_Abort(SIESTA_COMM,1,MPI_ERR)
+  CALL MPI_Abort(MPI_COMM_WORLD,1,MPI_ERR)
 END IF
 
 END SUBROUTINE send
@@ -445,7 +436,6 @@ END SUBROUTINE send
 
 !------------------------------------------------
 SUBROUTINE receive (IPROBEFLAG)
-IMPLICIT NONE
 
 LOGICAL, INTENT(IN) :: IPROBEFLAG
 LOGICAL :: FLAG
@@ -464,7 +454,7 @@ IF (FLAG) THEN
   it=MPI_Status(MPI_TAG)
   IF (it.NE.1.AND.it.NE.2.AND.it.NE.3.AND.it.NE.4) THEN
     WRITE(TOFU,*) 'MPI_TAG:',it; FLUSH(TOFU)
-    STOP 98
+    CALL ErrorAbort('receive 1')
   END IF
   positn=0
   CALL MPI_Unpack(recvbuf,PACKSIZE,positn,br,1,MPI_INTEGER,SIESTA_COMM,MPI_ERR)
@@ -474,7 +464,7 @@ IF (FLAG) THEN
 
   IF (localbrow.LT.1.OR.localbrow.GT.numBlocks) THEN 
     WRITE(TOFU,*) 'localbrow:',localbrow; FLUSH(TOFU)
-    STOP 100
+    CALL ErrorAbort('receive 2')
   END IF
 
   IF (it.EQ.1) THEN      !UPPER DIAGONAL
@@ -487,7 +477,7 @@ IF (FLAG) THEN
     CALL StoreDiagonal(br,ic,coldata)
   ELSE
     WRITE(*,*)'Something wrong in ', rank,MPI_Status(MPI_TAG),br,ic,it 
-    STOP 101
+    CALL ErrorAbort('receive 3')
   END IF
 END IF
 
@@ -499,8 +489,7 @@ END SUBROUTINE receive
 ! solution vectors and reconstruct the full 
 ! vector on each processor
 !------------------------------------------------
-SUBROUTINE GetFullSolution(invec,outvec) 
-IMPLICIT NONE
+SUBROUTINE GetFullSolution(invec,outvec)
 
 REAL(dp), DIMENSION(1:N*M), INTENT(IN) :: invec
 REAL(dp), DIMENSION(N,M), INTENT(OUT)  :: outvec
@@ -539,7 +528,6 @@ END SUBROUTINE SetBlockRowCol
 
 !-------------------------------------------------------------------------------
 SUBROUTINE CheckPoint(ckpt, infname)
-IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: ckpt
 CHARACTER(3) :: infname
@@ -553,7 +541,6 @@ END SUBROUTINE CheckPoint
 
 !-------------------------------------------------------------------------------
 SUBROUTINE WriteTime(lfname, ofname, ltagname, tagname, usedtime, spass)
-IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: lfname, ltagname, spass
 CHARACTER(len=lfname), INTENT(IN) :: ofname
@@ -573,7 +560,6 @@ END SUBROUTINE WriteTime
 
 !-------------------------------------------------------------------------------
 SUBROUTINE SetUpTOMNSPAllGather
-IMPLICIT NONE
 INTEGER :: i
 
 SetUpTOMNSPAllGatherDONE=.FALSE.
@@ -600,7 +586,6 @@ END SUBROUTINE SetUpTOMNSPAllGather
 !-------------------------------------------------------------------------------
 SUBROUTINE GetTimes
 USE timer_mod
-IMPLICIT NONE
 
 ! Get maximum
 CALL MPI_Allreduce(total_time,total_time_max,1,MPI_REAL8,MPI_MAX,SIESTA_COMM,MPI_ERR)

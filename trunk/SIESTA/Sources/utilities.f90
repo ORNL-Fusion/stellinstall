@@ -96,6 +96,7 @@
       USE stel_kinds
       USE stel_constants, ONLY: zero
       USE island_params, ns=>ns_i
+      USE nscalingtools, ONLY: ErrorAbort
       IMPLICIT NONE        
 !  
 !       This subroutine migrates a half mesh quantity to the full mesh.
@@ -122,7 +123,7 @@
 
       IF (nsmin .EQ. 1) THEN
          vecf(1:n2)  = vech(1+n2:2*n2)
-         IF (nsmax .EQ. nsmin) STOP 'TO_FULL_MESH_PAR needs to broadcast vech(2)'
+         IF (nsmax .EQ. nsmin) CALL ErrorAbort('TO_FULL_MESH_PAR needs to broadcast vech(2)')
       END IF
       IF (nsmax .EQ. ns) THEN
          lstart=lend+1;  lend = lstart+n2-1
@@ -142,7 +143,7 @@
                             fsupsmncf, fsupumnsf, fsupvmnsf, wint 
       USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,   &
                          f_sum
-      USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
       USE shared_data, ONLY: lasym
       IMPLICIT NONE
 !-----------------------------------------------
@@ -163,7 +164,7 @@
                fsupsijf(ntheta,nzeta,nsmin:nsmax),                       &
                fsupuijf(ntheta,nzeta,nsmin:nsmax),                       &
                fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) STOP ' Allocation error in toupper_forces_par'
+      IF (istat .NE. 0) CALL ErrorAbort(' Allocation error in toupper_forces_par')
 
       CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos, 1, ns_span)
       CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin, 1, ns_span)

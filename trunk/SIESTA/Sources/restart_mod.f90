@@ -9,6 +9,7 @@
 !*******************************************************************************
       MODULE restart_mod
       USE ezcdf
+      USE nscalingtools, ONLY: ErrorAbort
       USE stel_kinds
 
       IMPLICIT NONE
@@ -628,7 +629,7 @@
       END IF
 
       ALLOCATE (temp1(0:mpol_min,-ntor_min:ntor_min,ns_old), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error #1 in INTERPIT'
+      IF (istat .ne. 0) CALL ErrorAbort('Allocation error #1 in INTERPIT')
 !
 !     FIRST INTERP TO FULL MESH FROM HALF-MESH
 !     ASSUMES js=1 FULL-MESH VALUE VALUE IS STORED IN aold(1)
@@ -647,7 +648,7 @@
          x1 = x1/hs_old
          IF (x1 .GT. one) x1 = 1
          IF (x1 .LT. zero) x1 = 0
-         IF (js_old .gt. ns_old) STOP 'js_old >= ns_old in INTERPIT'
+         IF (js_old .gt. ns_old) CALL ErrorAbort('js_old >= ns_old in INTERPIT')
          IF (js_old .eq. ns_old) THEN
             anew(:,:,js_new) = temp1(:,:,js_old)
          ELSE
@@ -660,7 +661,7 @@
 !
       DEALLOCATE (temp1)
       ALLOCATE (temp1(0:mpol_min,-ntor_min:ntor_min,ns_new), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error #2 in INTERPIT'
+      IF (istat .ne. 0) CALL ErrorAbort('Allocation error #2 in INTERPIT')
       temp1 = anew
       anew(:,:,1) = 0
       anew(:,:,2:ns_new) = p5*(temp1(:,:,2:ns_new) + temp1(:,:,1:ns_new-1))

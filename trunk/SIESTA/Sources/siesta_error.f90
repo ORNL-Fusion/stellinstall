@@ -61,7 +61,7 @@
 !  Start of executable code.
       siesta_error_state = IBSET(siesta_error_state, error_code)
 
-      IF (iam .eq. 0)WRITE (*,*) TRIM(message)
+      IF (iam .eq. 0) WRITE (*,*) TRIM(message)
       IF (.not.lrecon) THEN
 #if defined(MPI_OPT)
          CALL MPI_ABORT(MPI_COMM_WORLD, error_code)
@@ -104,5 +104,17 @@
       siesta_error_state = siesta_error_no_error
 
       END SUBROUTINE
+
+      SUBROUTINE ErrorAbort(message)
+      USE descriptor_mod, ONLY: iam
+      CHARACTER*(*), INTENT(IN) :: message
+      INTEGER :: MPI_ERR
+#if defined(MPI_OPT)
+      IF (iam .eq. 0) PRINT *, TRIM(message)
+      CALL MPI_ABORT(MPI_COMM_WORLD, 1, MPI_ERR)
+#else
+      PRINT *, TRIM(message); STOP
+#endif
+      END SUBROUTINE ErrorAbort
 
       END MODULE

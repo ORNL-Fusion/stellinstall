@@ -117,17 +117,12 @@ C-----------------------------------------------
 !     MAGNETIC AXIS IS FIXED SO JMIN3(0) => 2 FOR M=0,N=0
 
       jmin4 = jmin3
-      IF (iresidue.GE.0 .and. iresidue.LT.3) jmin4(0) = 2
+      IF (iresidue.GE.0 .AND. iresidue.LT.3) jmin4(0) = 2
 
-!     Padsides moved to residue AFTER this finishes
+!     Padsides moved to SUBROUTINE residue AFTER this completes
       CALL second0(tridslvton)
-!      IF (gnranks .GT. 1) THEN
-         CALL bst_parallel_tridiag_solver(ax,dx,bx,gcx,jmin4,jmax,
-     1                                     mnsize-1, ns,ntmax)
-!      ELSE ! If only one processor: this leads to processor dependence for P=1
-!         CALL serial_tridslv_modified(ax,dx,bx,gcx,jmin4,jmax,mnsize-1,
-!     1                                ns,ntmax)
-!      END IF
+      CALL bst_parallel_tridiag_solver(ax,dx,bx,gcx,jmin4,jmax,
+     1                                 mnsize-1,ns,ntmax)
       CALL second0(tridslvtoff)
       tridslv_time = tridslv_time + (tridslvtoff-tridslvton)
 
@@ -154,10 +149,10 @@ C-----------------------------------------------
 C-----------------------------------------------
 C   D u m m y   A r g u m e n t s
 C-----------------------------------------------
-      INTEGER, INTENT(in) :: jmax, mnd1, ns, nrhs
-      INTEGER, DIMENSION(0:mnd1), INTENT(in) :: jmin
+      INTEGER, INTENT(IN) :: jmax, mnd1, ns, nrhs
+      INTEGER, DIMENSION(0:mnd1), INTENT(IN) :: jmin
       REAL(dp), DIMENSION(0:mnd1,ns) :: a, d, b
-      REAL(dp), DIMENSION(0:mnd1,ns,nrhs), INTENT(inout) :: c
+      REAL(dp), DIMENSION(0:mnd1,ns,nrhs), INTENT(INOUT) :: c
 C-----------------------------------------------
 C   L o c a l   P a r a m e t e r s
 C-----------------------------------------------
@@ -176,7 +171,7 @@ C-----------------------------------------------
 !     AND RETURNS ANSWER IN C(I)
 
       CALL second0(t1)
-      IF (jmax .gt. ns) STOP 'jmax>ns in tridslv_par'
+      IF (jmax .GT. ns) STOP 'jmax>ns in tridslv_par'
       in0 = MINVAL(jmin)
       DO mn = 0, mnd1
          in1 = jmin(mn)-1
@@ -246,87 +241,6 @@ C-----------------------------------------------
       backwardsolve_time = backwardsolve_time + (t2-t1)
 
       END SUBROUTINE bst_parallel_tridiag_solver
-
-      SUBROUTINE serial_tridslv_modified(a, d, b, c, jmin, jmax, mnd1,
-     1                                   ns,nrhs)
-      USE stel_kinds
-      USE vmec_main, ONLY: lfreeb
-      IMPLICIT NONE
-C-----------------------------------------------
-C   D u m m y   A r g u m e n t s
-C-----------------------------------------------
-      INTEGER, INTENT(in) :: jmax, mnd1, ns, nrhs
-      INTEGER, DIMENSION(0:mnd1), INTENT(in) :: jmin
-      REAL(dp), DIMENSION(0:mnd1,ns) :: a, d, b
-      REAL(dp), DIMENSION(0:mnd1,ns,nrhs), INTENT(inout) :: c
-C-----------------------------------------------
-C   L o c a l   P a r a m e t e r s
-C-----------------------------------------------
-      REAL(dp), PARAMETER :: zero = 0, one = 1
-C-----------------------------------------------
-C   L o c a l   V a r i a b l e s
-C-----------------------------------------------
-      INTEGER :: mn, in, i0, in1, jrhs
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: alf
-      REAL(dp), DIMENSION(0:mnd1) :: psi0
-C-----------------------------------------------
-!
-!     SOLVES B(I)*X(I-1)+D(I)*X(I)+A(I)*X(I+1)=C(I), I=IN,JMAX
-!     AND RETURNS ANSWER IN C(I)
-!     ADDED VECTORIZATION ON FOURIER MODE ARGUMENT (01-2000)
-!     AND NEW ARGUMENT (NRHS) TO DO MULTIPLE RIGHT SIDES SIMULTANEOUSLY
-!
-      IF (jmax .gt. ns) STOP 'jmax>ns in tridslv_par'
-
-      ALLOCATE (alf(0:mnd1,ns), stat=in)
-      IF (in .ne. 0) STOP 'Allocation error in tridslv_par'
-
-      in = MINVAL(jmin)
-!
-!      FILL IN MN BELOW MAX(JMIN) WITH DUMMY VALUES
-!      TO ALLOW VECTORIZATION ON MN INDEX
-!
-      DO mn = 0, mnd1
-         in1 = jmin(mn)-1
-         IF (in1 .ge. in) THEN
-            d(mn, in:in1) = 1
-            c(mn, in:in1, 1:nrhs) = 0
-            b(mn, in:in1) = 0
-            a(mn, in:in1) = 0
-         END IF
-      END DO
-
-      in1 = in + 1
-
-      psi0(:)= d(:,in)
-      IF (ANY(psi0 .eq. zero)) STOP 'psi0 == 0 error in tridslv_par'
-      psi0 = one/psi0
-      DO jrhs = 1, nrhs
-         c(:,in,jrhs) = c(:,in,jrhs)*psi0(:)
-      END DO
-
-      DO i0 = in1,jmax
-         alf(:,i0-1) = a(:,i0-1)*psi0(:)
-         psi0 = d(:,i0) - b(:,i0)*alf(:,i0-1)
-         IF (ANY(ABS(psi0) .le. 1.E-8_dp*ABS(d(:,i0)))) 
-     1       STOP 'psi0/d(i0) < 1.E-8: possible singularity in tridslv'
-         psi0  = one/psi0
-         DO jrhs = 1, nrhs
-            c(:,i0,jrhs) = (c(:,i0,jrhs) - b(:,i0)*c(:,i0-1,jrhs))
-     1                   * psi0
-         END DO
-      END DO
-
-      DO i0 = jmax - 1, in, -1
-         DO jrhs = 1,nrhs
-            c(:,i0,jrhs) = c(:,i0,jrhs) - alf(:,i0)*c(:,i0+1,jrhs)
-         END DO
-      END DO
-
-      DEALLOCATE (alf)
-
-      END SUBROUTINE serial_tridslv_modified
-
 #endif      
 
       SUBROUTINE scalfor(gcx, axm, bxm, axd, bxd, cx, iflag)
@@ -451,28 +365,6 @@ C-----------------------------------------------
 !     SOLVES BX(I)*X(I-1)+DX(I)*X(I)+AX(I)*X(I+1)=GCX(I), I=JMIN4,JMAX
 !     AND RETURNS ANSWER IN GCX(I)
 
-!      IF (iter2.GE.63) THEN
-!        CALL PrintOutLinearArray(xc,tlglob,trglob,.FALSE.,2000)
-!        CALL PrintOutLinearArray(gc,tlglob,trglob,.FALSE.,3000)
-!        DO i=tlglob, trglob
-!        DO j=0, ntor
-!        DO k=0, mpol1
-!          WRITE(40000+rank,"(3F20.8)") ax(i,j,k),bx(i,j,k),dx(i,j,k)
-!        END DO
-!        END DO
-!        END DO
-!      ELSE
-!        CALL PrintOutLinearArray(xc,tlglob,trglob,.FALSE.,200)
-!        CALL PrintOutLinearArray(gc,tlglob,trglob,.FALSE.,300)
-!        DO i=tlglob, trglob
-!        DO j=0, ntor
-!        DO k=0, mpol1
-!          WRITE(50000+rank,"(3F20.8)") ax(i,j,k),bx(i,j,k),dx(i,j,k)
-!        END DO
-!        END DO
-!        END DO
-!      END IF
-
 #if defined(SKS)      
       CALL second0(tridslvton)
 #endif
@@ -487,16 +379,6 @@ C-----------------------------------------------
       CALL second0(scalfortoff)
       s_scalfor_time =  s_scalfor_time + (scalfortoff-scalforton)
 #endif
-!      CALL STOPMPI(999)
-
-!      IF (iter2.GE.63) THEN
-!        CALL PrintOutLinearArray(xc,tlglob,trglob,.FALSE.,8000)
-!        CALL PrintOutLinearArray(gc,tlglob,trglob,.FALSE.,9000)
-!        CALL STOPMPI(666)
-!      ELSE
-!        CALL PrintOutLinearArray(xc,tlglob,trglob,.FALSE.,800)
-!        CALL PrintOutLinearArray(gc,tlglob,trglob,.FALSE.,900)
-!      END IF
 
       END SUBROUTINE scalfor
 

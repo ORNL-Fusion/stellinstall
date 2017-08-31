@@ -40,7 +40,8 @@
 
        USE stel_kinds
        USE stel_constants
-       USE fourier       
+       USE fourier
+       USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
        IMPLICIT NONE
 
        INTEGER, PARAMETER  :: m0=0, m1=1, isym=0, iasym=1
@@ -54,7 +55,6 @@
 !#if defined(SKS) 
 !>     \brief Parallel subroutine to advance pressure from t to t+delta_t by updating jpmnc,sh (jacobh*presh)
        SUBROUTINE update_pres_par
-       USE nscalingtools, ONLY: startglobrow, endglobrow
        USE quantities
        USE timer_mod, ONLY: time_update_pres
 !-----------------------------------------------
@@ -75,17 +75,17 @@
                 work3(ntheta,nzeta,nsmin:nsmax),                         &   
                 vgradph(ntheta,nzeta,nsmin:nsmax),                       &   
                 stat=istat)   
-       IF (istat .NE. 0) STOP 'Allocation1 failed in UPDATE_PRES'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_PRES')
        nblock = SIZE(work1,1)*SIZE(work1,2)
 
        ALLOCATE(work4(0:mpol,-ntor:ntor,nsmin:nsmax),                    &
                 work5(0:mpol,-ntor:ntor,nsmin:nsmax),                    &
                 work6(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) STOP 'Allocation2 failed in UPDATE_PRES'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_PRES')
 
        ALLOCATE (jvsupuijh(ntheta,nzeta,nsmin:nsmax),                    &   
                  jvsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) STOP 'Allocation3 failed in UPDATE_PRES'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_PRES')
        !!On exit, jsupXh valid on nsmin+1:nsmax grid
        CALL to_half_mesh_par(jvsupuijf(:,:,nsmin:nsmax), jvsupuijh, nblock, nsmin, nsmax)
        CALL to_half_mesh_par(jvsupvijf(:,:,nsmin:nsmax), jvsupvijh, nblock, nsmin, nsmax)
@@ -188,7 +188,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER   :: fours, fouru, fourv, m, n, mp, np, MPI_ERR
-       REAL(dp)  :: sparity!, s(1), r(1)
+       REAL(dp)  :: sparity
 !-----------------------------------------------
 
        IF (iparity .EQ. isym) THEN
@@ -200,7 +200,7 @@
        END IF
 
        m = LBOUND(djpmnh,3);  n = UBOUND(djpmnh,3)
-       IF (m.NE.nsmin .OR. n.NE.nsmax) STOP 'djpmnh wrong bounds - Continuity'
+       IF (m.NE.nsmin .OR. n.NE.nsmax) CALL ErrorAbort('djpmnh wrong bounds - Continuity')
 
 !      FFT of gradp*Flux terms
        CALL tomnsp_par(vgradph, work4, fours, 1, ns_span)                ! Calculate Fourier transform of v_dot_gradph

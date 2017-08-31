@@ -47,5 +47,6 @@ list (APPEND stell_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_getenv.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_putenv.f
 	${CMAKE_CURRENT_SOURCE_DIR}/vmec_system.f
+	${CMAKE_CURRENT_SOURCE_DIR}/nelmin.f
 )
 set (stell_sources "${stell_sources}" PARENT_SCOPE)

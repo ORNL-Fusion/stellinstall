@@ -8,7 +8,6 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_currents.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/descriptor_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/diagnostics_mod.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/DirectAccess.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/dumping_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/evolution.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/f1dim_mod.f90

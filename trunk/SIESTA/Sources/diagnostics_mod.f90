@@ -2,6 +2,7 @@
       USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,         &
                    f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
+      USE nscalingtools, ONLY: ErrorAbort
       USE timer_mod
       USE quantities
       IMPLICIT NONE
@@ -43,7 +44,7 @@
 
         IF (.NOT. ALLOCATED(divbmnsf))  THEN
           ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
-          IF (istat .NE. 0) STOP 'Allocation failed in divb'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in divb')
           divbmnsf = 0
         ENDIF
 
@@ -83,7 +84,7 @@
         nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
         IF (.NOT. ALLOCATED(divbmnsf)) THEN
         ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   ! Otherwise, allocate first time called
-        IF (istat .NE. 0) STOP 'Allocation failed in divb'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in divb')
         divbmnsf = 0
         END IF
 
@@ -144,14 +145,14 @@
 
         ALLOCATE(pijh(ntheta,nzeta,ns), stat=istat)
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)      
-        IF (istat .ne. 0) STOP 'Allocation failed in WRITE_PROFILES' 
+        IF (istat .ne. 0) CALL ErrorAbort('Allocation failed in WRITE_PROFILES')
 
         CALL safe_open(unit35, istat, "siesta_profiles.txt", 'replace', &
                        'formatted')
         CALL safe_open(unit36, istat, "siesta_profiles_pest.txt",       &
                        'replace','formatted')
 
-        IF (istat .NE. 0) STOP 'Error writing siesta profiles data file'
+        IF (istat .NE. 0) CALL ErrorAbort('Error writing siesta profiles data file')
 
         pijh = 0
         CALL toijsp(jpmnch, pijh, f_none, f_cos)
@@ -333,7 +334,7 @@
 !     COMPUTE B DOT GRAD P AT FULL-GRID POINTS (sans endpts)
 !
       ALLOCATE(bgradpf(ntheta,nzeta,ns), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error in BGRADP'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in BGRADP')
 
       CALL get_bgradp
 
@@ -370,19 +371,19 @@
                bsupsijh0(ntheta,nzeta,ns),                             &
                bsupuijh0(ntheta,nzeta,ns),                             &
                bsupvijh0(ntheta,nzeta,ns), stat=istat)                         
-      IF (istat .ne. 0) STOP 'Allocation failed in GET_BGRADP'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in GET_BGRADP')
 
       CALL GetPressure (pijh, dpduijh, dpdvijh)
 ! 
 !     Compute contravariant components of magnetic field
 !           
-      IF (.NOT.ALLOCATED(jbsupsmnsh)) STOP 'jbsupXmn UNALLOCATED IN GET_BGRADP'
+      IF (.NOT.ALLOCATED(jbsupsmnsh)) CALL ErrorAbort('jbsupXmn UNALLOCATED IN GET_BGRADP')
       CALL toijsp(jbsupsmnsh, bsupsijh0, f_none, f_sin)
       CALL toijsp(jbsupumnch, bsupuijh0, f_none, f_cos)
       CALL toijsp(jbsupvmnch, bsupvijh0, f_none, f_cos)
 
 	  IF (.NOT.lasym) GOTO 100
-      IF (.NOT.ALLOCATED(jbsupsmnch)) STOP 'jbsupXmn UNALLOCATED IN GET_BGRADP'
+      IF (.NOT.ALLOCATED(jbsupsmnch)) CALL ErrorAbort('jbsupXmn UNALLOCATED IN GET_BGRADP')
       CALL toijsp(jbsupsmnch, bsupsijh0, f_sum, f_cos)
       CALL toijsp(jbsupumnsh, bsupuijh0, f_sum, f_sin)
       CALL toijsp(jbsupvmnsh, bsupvijh0, f_sum, f_sin)
@@ -442,7 +443,7 @@
       nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
       
       ALLOCATE(bgradpf(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error in BGRADP'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in BGRADP')
       CALL get_bgradp_par
 
       DEALLOCATE (bgradpf, stat=istat)
@@ -484,9 +485,9 @@
                bsupsijh0(ntheta,nzeta,nsmin:nsmax),                      &
                bsupuijh0(ntheta,nzeta,nsmin:nsmax),                      &
                bsupvijh0(ntheta,nzeta,nsmin:nsmax), stat=istat)                         
-      IF (istat .NE. 0) STOP 'Allocation failed in GET_BGRADP_PAR'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in GET_BGRADP_PAR')
 
-      IF (.NOT.ALLOCATED(jbsupsmnsh)) STOP 'jbsupXmn UNALLOCATED IN GET_BGRADP_PAR'
+      IF (.NOT.ALLOCATED(jbsupsmnsh)) CALL ErrorAbort('jbsupXmn UNALLOCATED IN GET_BGRADP_PAR')
 
       CALL GetPressure_par (pijh, dpduijh, dpdvijh, nsmin, nsmax)
 ! 
@@ -604,7 +605,7 @@
       pijh = pijh/jacobh(:,:,nsmin:nsmax)                                  ! Remove jacobian factor
       
       ALLOCATE(pmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
-      IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in GetPressure_par')
       CALL tomnsp_par(pijh, pmnch, f_cos,1, ns_span)
 
       CALL toijsp_par(pmnch, pijh, f_none, f_cos,1, ns_span)
@@ -613,7 +614,7 @@
 
       IF (lasym) THEN
       ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
-      IF (istat .NE. 0) STOP 'Allocation error in GetPressure_par'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in GetPressure_par')
       CALL tomnsp_par(pijh, pmnsh, f_sin,1, ns_span)
 
       m1 = IOR(f_sum,f_du);  m2 = IOR(f_sum,f_dv)
@@ -674,7 +675,7 @@
 !-----------------------------------------------
         CALL second0(ton)
 
-        IF (.NOT. lcurr_init) STOP 'MUST CALL init_state(.TRUE.) BEFORE bdotj'
+        IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state(.TRUE.) BEFORE bdotj')
 ! 
 !     Compute contravariant components of magnetic field
 !       
@@ -682,7 +683,7 @@
                  bsupuijh(ntheta,nzeta,ns),                              &
                  bsupvijh(ntheta,nzeta,ns), stat=istat)
         bsupsijh=0; bsupuijh=0; bsupvijh=0
-        IF (istat .NE. 0) STOP 'Allocation #1 failed in BDOTJ' 
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #1 failed in BDOTJ')
 
         CALL toijsp(jbsupsmnsh, bsupsijh, f_none, f_sin)
         CALL toijsp(jbsupumnch, bsupuijh, f_none, f_cos)
@@ -701,7 +702,7 @@
         ALLOCATE(bsubsijh(ntheta,nzeta,ns),                              &
                  bsubuijh(ntheta,nzeta,ns),                              &
                  bsubvijh(ntheta,nzeta,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #2 failed in BDOTJ' 
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #2 failed in BDOTJ')
         bsubsijh=0; bsubvijh=0; bsubuijh=0
       
         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                      &
@@ -716,7 +717,7 @@
         ALLOCATE(ksupsijh(ntheta,nzeta,ns),                              &
                  ksupuijh(ntheta,nzeta,ns),                              &
                  ksupvijh(ntheta,nzeta,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #3 failed in BDOTJ'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #3 failed in BDOTJ')
 
         CALL to_half_mesh(ksupsijf0, ksupsijh, nuv)
         CALL to_half_mesh(ksupuijf0, ksupuijh, nuv)
@@ -733,7 +734,7 @@
         ALLOCATE(ksubsijh(ntheta,nzeta,ns),                              &
                  ksubuijh(ntheta,nzeta,ns),                              &
                  ksubvijh(ntheta,nzeta,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #4 failed in BDOTJ'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #4 failed in BDOTJ')
         ksubsijh=0; ksubuijh=0; ksubvijh=0
 
         CALL tolowerh(ksupsijh, ksupuijh, ksupvijh,                      &
@@ -745,18 +746,18 @@
             DEALLOCATE(bdotjmnch)
         IF (.NOT. ALLOCATED(bdotjmnch)) THEN                             ! Should already be allocated in QUANTITIES       
           ALLOCATE(bdotjmnch(0:mpol,-ntor:ntor,ns), stat=istat)          ! Otherwise, allocate first time called
-          IF (istat .NE. 0) STOP 'Allocation #5 failed in BDOTJ'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation #5 failed in BDOTJ')
         ENDIF
         IF (lasym) THEN
         IF (ALLOCATED(bdotjmnsh) .AND. SIZE(bdotjmnsh,3).NE. ns)         &
             DEALLOCATE(bdotjmnsh)
         IF (.NOT. ALLOCATED(bdotjmnsh)) THEN                             ! Should already be allocated in QUANTITIES       
           ALLOCATE(bdotjmnsh(0:mpol,-ntor:ntor,ns), stat=istat)          ! Otherwise, allocate first time called
-          IF (istat .NE. 0) STOP 'Allocation #5 failed in BDOTJ'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation #5 failed in BDOTJ')
         ENDIF
         END IF
         ALLOCATE(bdotjijhA(ntheta,nzeta,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #6 failed in BDOTJ'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #6 failed in BDOTJ')
         bdotjijhA=0
         
         bdotjijhA(:,:,3:nsh-1) =                                         &  ! RS: If I include 2 and nsh, it gets huge
@@ -770,7 +771,7 @@
                  work3(ntheta,nzeta,ns), work4(ntheta,nzeta,ns),         &
                  work5(ntheta,nzeta,ns), work6(ntheta,nzeta,ns),         &
                  stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #7 failed in BDOTJ'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #7 failed in BDOTJ')
         work1=0; work2=0; work3=0
         work4=0; work5=0; work6=0
         
@@ -845,7 +846,7 @@
 !-----------------------------------------------
       CALL second0(ton)
 
-      IF (.NOT. lcurr_init) STOP 'MUST CALL init_state_par(.TRUE.) BEFORE bdotj_par'
+      IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state_par(.TRUE.) BEFORE bdotj_par')
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
       ns_span=nsmax-nsmin+1
 ! 
@@ -854,7 +855,7 @@
         ALLOCATE(bsupsijh(ntheta,nzeta,nsmin:nsmax),                     &
                  bsupuijh(ntheta,nzeta,nsmin:nsmax),                     &
                  bsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #1 failed in BDOTJ_PAR' 
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #1 failed in BDOTJ_PAR')
 
         CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin,1, ns_span)
         CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos,1, ns_span)
@@ -874,7 +875,7 @@
         ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                     &
                  bsubuijh(ntheta,nzeta,nsmin:nsmax),                     &
                  bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #2 failed in BDOTJ_PAR' 
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #2 failed in BDOTJ_PAR')
       
         CALL tolowerh_par(bsupsijh, bsupuijh, bsupvijh,                  &
                           bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
@@ -888,7 +889,7 @@
         ALLOCATE(ksupsijh(ntheta,nzeta,nsmin:nsmax),                     &
                  ksupuijh(ntheta,nzeta,nsmin:nsmax),                     &
                  ksupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #3 failed in BDOTJ_PAR'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #3 failed in BDOTJ_PAR')
 
         CALL to_half_mesh_par(ksupsijf0, ksupsijh, nuv, nsmin, nsmax)
         CALL to_half_mesh_par(ksupuijf0, ksupuijh, nuv, nsmin, nsmax)
@@ -907,7 +908,7 @@
         ALLOCATE(ksubsijh(ntheta,nzeta,nsmin:nsmax),                     &
                  ksubuijh(ntheta,nzeta,nsmin:nsmax),                     &
                  ksubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #4 failed in BDOTJ_PAR'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #4 failed in BDOTJ_PAR')
 
         CALL tolowerh_par(ksupsijh, ksupuijh, ksupvijh,                  &
                           ksubsijh, ksubuijh, ksubvijh, nsmin, nsmax)
@@ -920,19 +921,19 @@
             DEALLOCATE(bdotjmnch)
         IF (.NOT. ALLOCATED(bdotjmnch)) THEN                            
           ALLOCATE(bdotjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-          IF (istat .NE. 0) STOP 'Allocation #5A failed in BDOTJ_PAR'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation #5A failed in BDOTJ_PAR')
         ENDIF
         IF (lasym) THEN
         IF (ALLOCATED(bdotjmnsh) .AND. SIZE(bdotjmnsh,3).NE.ns_span)     &
             DEALLOCATE(bdotjmnsh)
         IF (.NOT. ALLOCATED(bdotjmnsh)) THEN                            
           ALLOCATE(bdotjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-          IF (istat .NE. 0) STOP 'Allocation #6B failed in BDOTJ_PAR'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation #5B failed in BDOTJ_PAR')
         ENDIF
         ENDIF
 
         ALLOCATE(bdotjijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #6 failed in BDOTJ_PAR'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #6 failed in BDOTJ_PAR')
         bdotjijh=0
         
         n1 = MAX(3,nsmin); n2 = MIN(nsh-1, nsmax)
@@ -951,7 +952,7 @@
                  work5(ntheta,nzeta,nsmin:nsmax),                        &
                  work6(ntheta,nzeta,nsmin:nsmax),                        &
                  stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation #7 failed in BDOTJ_PAR'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation #7 failed in BDOTJ_PAR')
         
         work1 = bsubuijh*ksubvijh(:,:,nsmin:nsmax)                       &
               - bsubvijh*ksubuijh(:,:,nsmin:nsmax)                        ! (JxB)^s  = (1/sqrt(g))*(K_uB_b-K_vB_u)
@@ -1039,7 +1040,7 @@
 !
         CALL second0(ton)
 
-        IF (.NOT. lcurr_init) STOP 'MUST CALL init_state(.TRUE.) BEFORE divJ'
+        IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state(.TRUE.) BEFORE divJ')
 
         IF (.NOT. ALLOCATED(divjmnsh))  THEN                                  
           ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
@@ -1061,7 +1062,7 @@
  
         ALLOCATE(temp1(ntheta,nzeta,ns),                                 &
                  temp2(ntheta,nzeta,ns), stat=istat)                     
-        IF (istat .NE. 0) STOP 'Allocation failed in DIVJ'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
         temp1 = 0; temp2 = 0
  
         temp1 = ksupsijf0*ksubsijf + ksupuijf0*ksubuijf +                & ! Norm: |J|^2
@@ -1105,13 +1106,13 @@
 !
         CALL second0(ton)
 
-        IF (.NOT. lcurr_init) STOP 'MUST CALL init_state_par(.TRUE.) BEFORE divJ_par'
+        IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state_par(.TRUE.) BEFORE divJ_par')
 
         nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
 
         IF (.NOT. ALLOCATED(divjmnsh))  THEN                                  
           ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   ! Otherwise, allocate first time called
-          IF (istat .NE. 0) STOP 'Allocation failed in DIVJ'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
           divjmnsh = 0
         ENDIF
 

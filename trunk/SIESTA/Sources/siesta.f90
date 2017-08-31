@@ -42,10 +42,10 @@
       USE shared_data, ONLY: nprecon, ngmres_type, xc, gc, fsq_total1,   &
                              ndims, mblk_size
       USE metrics, ONLY: init_metric_elements, cleanup_metric_elements,  &
-                         dealloc_full_lower_metrics
+                         dealloc_full_lower_metrics, sqrtg
       USE quantities, ONLY: init_quantities, dealloc_quantities,         &
                             djpmnch, fbdy, init_fields
-      USE hessian, ONLY: levmarq_param, mupar, asym_index, removedafile, &
+      USE hessian, ONLY: levmarq_param, mupar, asym_index,               &
                          dealloc_hessian, InitHess
       USE perturbation, ONLY: nsin, mpolin, ntorin, wout_file, lrestart, &
                          ftol, lresistive, init_data, read_restart_file
@@ -181,6 +181,7 @@
       CALL second0(t1)
 #endif
       IF (.NOT.lrestart) CALL Init_Fields
+      IF (ALLOCATED(sqrtg)) DEALLOCATE (sqrtg)
 #if defined(SKS)
       CALL second0(t2)
       init_quantities_time=init_quantities_time+(t2-t1)
@@ -214,7 +215,6 @@
 #if defined(SKS)
       total_time = skstoff-skston
 #endif
-      CALL RemoveDAFile
 
 #if defined(SKS)
       IF (OUTPUT_TIMINGS) CALL GetTimes
@@ -320,14 +320,6 @@
       IF (LSCALAPACK) THEN
         CALL blacs_barrier(icontxt,'All')
         CALL blacs_gridexit(icontxt)
-#if defined(MRC)
-! MRC: Put in a barrier to the parent comm to make sure execution has finished.
-!      This is used for the hacked SIESTA reconstruction.
-        CALL MPI_COMM_GET_PARENT(parent_comm, error)
-        IF (parent_comm .ne. MPI_COMM_NULL) THEN
-           CALL MPI_BARRIER(parent_comm, error)
-        END IF
-#endif
         CALL blacs_exit(0)
         IF ((myrow.eq.0).and.(mycol.eq.0)) CALL profstat()
 #if defined(SKS)
@@ -335,14 +327,6 @@
         IF(SKSDBG) WRITE(TOFU,*) 'Called finalizeRemap and Finalize' 
         IF(SKSDBG) FLUSH(TOFU)
         CALL finalizeRemap
-#if defined(MRC)
-! MRC: Put in a barrier to the parent comm to make sure execution has finished.
-!      This is used for the hacked SIESTA reconstruction
-        CALL MPI_COMM_GET_PARENT(parent_comm, error)
-        IF (parent_comm .ne. MPI_COMM_NULL) THEN
-           CALL MPI_BARRIER(parent_comm, error)
-        END IF
-#endif
         CALL Finalize(.TRUE.)
 #endif
       END IF

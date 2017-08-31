@@ -6,8 +6,13 @@
       TYPE GMRES_INFO
          INTEGER  :: m, mblk_size, icntl(9), info(3)
          INTEGER  :: endglobrow, startglobrow, iam, nprocs
+#if defined(MPI_OPT)
          INTEGER  :: my_comm=MPI_COMM_WORLD, 
      1               my_comm_world=MPI_COMM_WORLD
+#else
+         INTEGER  :: my_comm=0,
+     1               my_comm_world=0
+#endif
          INTEGER, POINTER  :: rcounts(:), disp(:)
          LOGICAL  :: lactive = .TRUE.
          REAL(dp) :: cntl(5), ftol
@@ -211,7 +216,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: revcom, colx, coly, colz, nbscal, m, iam, n1
+      INTEGER  :: revcom, colx, coly, colz, nbscal, m, iam
       INTEGER  :: irc(5), jcount, icount
       INTEGER  :: nout, lwork, kout, kprint, MPI_ERR, 
      &            MY_COMM_WORLD, MY_COMM
@@ -261,19 +266,17 @@
       work = 0
 
       LACTIVE0: IF (lactive) THEN
-      lsum=SUM(b(myrowstart:myrowend)*b(myrowstart:myrowend))
+      lsum=SUM(b(myrowstart:myrowend)**2)
       CALL MPI_ALLREDUCE(lsum,gsum,1,MPI_REAL8,MPI_SUM,MY_COMM,MPI_ERR)
       bnorm=SQRT(gsum)
-      IF (bnorm .NE. 0) THEN
+      IF (bnorm .EQ. 0) RETURN
 
-!      IF (iam .EQ. 0) PRINT *,'PARALLEL BNORM: ', bnorm
+      IF (iam .EQ. 0 .and. gi%lverbose) PRINT *,'PARALLEL BNORM: ',bnorm
 
-      IF (gi%icntl(6) .EQ. 1) THEN
-         work(1:nloc)=x0(myrowstart:myrowend)/bnorm
-      END IF
+      IF (gi%icntl(6) .EQ. 1)
+     &    work(1:nloc) = x0(myrowstart:myrowend)/bnorm
 
       work(nloc+1:2*nloc) = b(myrowstart:myrowend)/bnorm
-      END IF
 
       IF (iam .EQ. 0 .and. gi%lverbose) PRINT 900
 900   FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,
@@ -283,7 +286,6 @@
 
       CALL MPI_BCAST(bnorm, 1, MPI_REAL8, 0, MY_COMM_WORLD,
      &               MPI_ERR)
-      IF (bnorm .EQ. 0) RETURN
 
 !****************************************
 !* Reverse communication implementation

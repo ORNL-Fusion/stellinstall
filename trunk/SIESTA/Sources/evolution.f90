@@ -12,7 +12,7 @@
       USE perturbation, ONLY: eta_factor
       USE descriptor_mod, ONLY: iam, DIAGONALDONE, nprocs,               &
                                 in_hess_nfunct, out_hess_nfunct
-      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL,                &
+      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL, ErrorAbort,    &
                  startglobrow, endglobrow, leftproc, rightproc, MPI_ERR
       USE mpi_inc
       IMPLICIT NONE
@@ -61,8 +61,8 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      CHARACTER*(*), INTENT(in)  :: wout_file  !<name of VMEC wout file that SIESTA reads
-      REAL(dp), INTENT(in)    :: ftol       !<force residual tolerance
+      CHARACTER*(*), INTENT(IN)  :: wout_file  !<name of VMEC wout file that SIESTA reads
+      REAL(dp), INTENT(IN)    :: ftol       !<force residual tolerance
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -91,7 +91,7 @@
          CALL second0(t2)
          diag_evolve_time=diag_evolve_time+(t2-t1)
 #endif         
-         IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)
+         IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)  ! MRC do not deallocate the woutfile here.
 
          l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
 
@@ -150,7 +150,7 @@
          CALL second0(t2)
          block_evolve_time=block_evolve_time+(t2-t1)
 #endif         
-         IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)
+         IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)  ! MRC do not deallocate the woutfile here.
 
          l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
 
@@ -244,7 +244,8 @@
       fsq_total = 1
       fsq_total1= 1
 
-      IF (mnmax .NE. (1+mpol)*(2*ntor+1)) STOP 'WRONG mnmax VALUE!'
+      IF (mnmax .NE. (1+mpol)*(2*ntor+1)) CALL ErrorAbort('WRONG mnmax VALUE!')
+
       n1 = ns*mnmax
 
       IF (lasym) THEN
@@ -255,14 +256,15 @@
       neqs = ndims*n1
 
       ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,ndims,ns), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocate xc failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocate xc failed!')
+
       xc = 0
       col_scale = 1
       CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf,            &
                           jvsupsmnsf, jvsupumncf, jvsupvmncf)
 
       ALLOCATE(gc(neqs), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocate gc failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocate gc failed!')
       CALL init_ptrs (gc, fsubsmncf, fsubumnsf, fsubvmnsf,               &
                           fsubsmnsf, fsubumncf, fsubvmncf)
 
@@ -336,7 +338,7 @@
       INTEGER     :: imaxlocv(3), ilbound(3), imaxlocf(3)
       REAL(dp)    :: v2tot, f1, f2, r0
       REAL(dp)    :: vmaxs, vmaxu, vmaxv, fmaxs, fmaxu, fmaxv
-      REAL(dp)    :: t1, t2, lm0!, levm_loc=1
+      REAL(dp)    :: t1, t2, lm0
       REAL(dp), SAVE :: levm_loc
       LOGICAL     :: lprint, ldiagonal, lblock
       CHARACTER(18) :: str_resistive
@@ -346,7 +348,7 @@
       EVOLVEPASS=EVOLVEPASS+1
 #endif
       l_init_state = .TRUE.
-      IF (niter .eq. 1) levm_loc = 1
+      IF (niter .LE. 1) levm_loc = 1 ! MRC needed to reset levm_loc
 
 !      l_Gmres = (nprecon_type .EQ. PREDIAG)  ! Turn on CG after initial diagonal preconditioner
 !      l_Gmres = l_Gmres .OR. fsq_total1.LT.1.E-9_dp   ! Turn on Gmres after CG reduces residue
@@ -547,7 +549,7 @@
           imaxlocv = imaxlocv - ilbound
           imaxlocf = MAXLOC(ABS(fsubsmncf)) + ilbound
           fmaxs = fsubsmncf(imaxlocf(1),imaxlocf(2),imaxlocf(3))
-          IF (abs(fmaxs) .ne. maxval(abs(fsubsmncf))) STOP 'fmaxs WRONG'
+          IF (abs(fmaxs) .ne. maxval(abs(fsubsmncf))) CALL ErrorAbort('fmaxs WRONG')
           imaxlocf = imaxlocf - ilbound
           IF ((vmaxs.NE.zero .OR. fmaxs.NE.zero) .and. lverbose)                          &
           PRINT 45, ' VS-max: ',vmaxs,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
@@ -557,7 +559,7 @@
           imaxlocv = imaxlocv - ilbound
           imaxlocf = MAXLOC(ABS(fsubumnsf)) + ilbound
           fmaxu = fsubumnsf(imaxlocf(1),imaxlocf(2),imaxlocf(3))
-          IF (abs(fmaxu) .ne. maxval(abs(fsubumnsf))) STOP 'fmaxu WRONG'
+          IF (abs(fmaxu) .ne. maxval(abs(fsubumnsf))) CALL ErrorAbort('fmaxu WRONG')
           imaxlocf = imaxlocf - ilbound
           IF((vmaxu.NE.zero .OR. fmaxu.NE.zero) .and. lverbose)                           &
           PRINT 45, ' VU-max: ',vmaxu,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
@@ -567,7 +569,7 @@
           imaxlocv = imaxlocv - ilbound
           imaxlocf = MAXLOC(ABS(fsubvmnsf)) + ilbound
           fmaxv = fsubvmnsf(imaxlocf(1),imaxlocf(2),imaxlocf(3))
-          IF (abs(fmaxv) .ne. maxval(abs(fsubvmnsf))) STOP 'fmaxv WRONG'
+          IF (abs(fmaxv) .ne. maxval(abs(fsubvmnsf))) CALL ErrorAbort('fmaxv WRONG')
           imaxlocf = imaxlocf - ilbound
           IF ((vmaxv.NE.zero .OR. fmaxv.NE.zero) .and. lverbose)                          &
           PRINT 45, ' VV-max: ',vmaxv,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
@@ -703,7 +705,7 @@
 !     J = J0+dJ,  B = B0+dB, p = p0+dp
 
       ALLOCATE(xcdot(neqs), xc0(neqs), stat=icount) 
-      IF (icount .NE. 0) STOP 'ALLOCATION FAILED IN CONJ_GRAD'
+      IF (icount .NE. 0) CALL ErrorAbort('ALLOCATION FAILED IN CONJ_GRAD')
 
       xcdot = 0
       xc = 0
@@ -771,7 +773,7 @@
             fsq_conv = fsq_min0
          END IF       
 
-         IF (l_linearize) STOP 'LINEARIZATION TURNED ON!'
+         IF (l_linearize) CALL ErrorAbort('LINEARIZATION TURNED ON!')
          otav = SUM(otau)/ndamp
          dtau = delt_cg*otav/2
 

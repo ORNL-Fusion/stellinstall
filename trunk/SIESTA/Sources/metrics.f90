@@ -6,6 +6,7 @@
       USE stel_kinds
       USE stel_constants
       USE island_params
+      USE nscalingtools, ONLY: ErrorAbort
       USE shared_data, ONLY: lasym, lverbose
       USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor,  &
           rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,             &
@@ -108,7 +109,7 @@
       CALL second0(skstoff)
       read_wout_file_time=read_wout_file_time+(skstoff-skston)
 #endif
-      IF (istat .NE. 0) STOP 'Read-wout error in INIT_METRIC_ELEMENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Read-wout error in INIT_METRIC_ELEMENTS')
 
 !  Asymmetric terms may be overriden in the namelist input file.
 !      lasym = lasym .OR. lasym_vmec
@@ -123,11 +124,11 @@
       volume_i = volume_vmec
 
       IF (nfp_i.EQ.0 .OR. .NOT.ALLOCATED(raxis_vmec))                    &
-         STOP 'ERROR INITIALIZING FROM WOUT_FILE IN METRICS!'
+         CALL ErrorAbort('ERROR INITIALIZING FROM WOUT_FILE IN METRICS!')
 
       rmajor_i = raxis_vmec(0,1)
 
-      IF (wb_i .eq. 0._dp) STOP 'wb_vmec = 0!'
+      IF (wb_i .eq. 0._dp) CALL ErrorAbort('wb_vmec = 0!')
       gnorm_i = wb_i + wp_i/(gamma-1)
       gnorm_i = 1._dp/gnorm_i
 
@@ -164,7 +165,7 @@
       ALLOCATE(rmnc_spline(mnmax,ns_i), zmns_spline(mnmax,ns_i),         &
                lmns_spline(mnmax,ns_i+1), phipf_i(ns_i),                 &
                chipf_i(ns_i), presf_i(ns_i), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error 1 in INIT_METRIC_ELEMENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error 1 in INIT_METRIC_ELEMENTS')
 
 !     UPDATED WOUT TO WRITE OUT CHIPF (SPH) 
 !
@@ -184,7 +185,7 @@
             CALL second0(skstoff)
             Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
 #endif
-            IF (istat .NE. 0) STOP 'Error splining rmnc'
+            IF (istat .NE. 0) CALL ErrorAbort('Error splining rmnc')
          ELSE IF (ntype .eq. 2) THEN
             istat = 0
 #if defined(SKS) 
@@ -196,7 +197,7 @@
             CALL second0(skstoff)
             Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
 #endif
-            IF (istat .NE. 0) STOP 'Error splining zmns'
+            IF (istat .NE. 0) CALL ErrorAbort('Error splining zmns')
          ELSE 
             ALLOCATE(lmns_half(mnmax,ns_vmec+1), stat=istat)
 #if defined(SKS) 
@@ -217,7 +218,7 @@
             CALL second0(skstoff)
             Spline_Fourier_Modes_time=Spline_Fourier_Modes_time+(skstoff-skston)
 #endif
-            IF (istat .NE. 0) STOP 'Error splining lmns'
+            IF (istat .NE. 0) CALL ErrorAbort('Error splining lmns')
             DEALLOCATE(lmns_half)
          END IF
       END DO
@@ -226,7 +227,7 @@
 
       ALLOCATE(rmns_spline(mnmax,ns_i), zmnc_spline(mnmax,ns_i),         &
                lmnc_spline(mnmax,ns_i+1), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error 2 in INIT_METRIC_ELEMENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error 2 in INIT_METRIC_ELEMENTS')
 
       IF (lasym_vmec) THEN
 
@@ -234,17 +235,17 @@
          IF (ntype .EQ. 1) THEN
             istat = 0
             CALL Spline_Fourier_Modes(rmns_vmec, rmns_spline, ns_vmec, ns_i, istat)
-            IF (istat .NE. 0) STOP 'Error splining rmns'
+            IF (istat .NE. 0) CALL ErrorAbort('Error splining rmns')
 
          ELSE IF (ntype .eq. 2) THEN
             CALL Spline_Fourier_Modes(zmnc_vmec, zmnc_spline, ns_vmec, ns_i, istat)
-            IF (istat .NE. 0) STOP 'Error splining zmnc'
+            IF (istat .NE. 0) CALL ErrorAbort('Error splining zmnc')
 
          ELSE
             ALLOCATE(lmnc_half(mnmax,ns_vmec+1), stat=istat)
             CALL Add_Ghost_Points(lmnc_vmec, lmnc_half)
             CALL Spline_Fourier_Modes(lmnc_half, lmnc_spline, ns_vmec+1, ns_i+1, istat)
-            IF (istat .NE. 0) STOP 'Error splining lmnc'
+            IF (istat .NE. 0) CALL ErrorAbort('Error splining lmnc')
             DEALLOCATE(lmnc_half)
          END IF
       END DO
@@ -318,9 +319,9 @@
       CALL second0(skstoff)
       LoadRZL_VMEC_time=LoadRZL_VMEC_time+(skstoff-skston)
 #endif
-      IF (istat .NE. 0) STOP 'LoadRZL error in INIT_METRIC_ELEMENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('LoadRZL error in INIT_METRIC_ELEMENTS')
 
-!      IF (lwout_opened) CALL read_wout_deallocate
+!      IF (lwout_opened) CALL read_wout_deallocate  !  Don't deallocate the wout file here.
 
       END SUBROUTINE init_metric_elements
       
@@ -616,7 +617,7 @@
                 rv_i(nu_i, nv_i, ns_i), zv_i(nu_i, nv_i, ns_i),          &
                 stat = istat)
 
-      IF (istat .NE. 0) STOP 'Allocation failed in LoadRZL_VMEC'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in LoadRZL_VMEC')
 
       CALL toijsp (rmnc_i, r1_i, f_none, f_cos)
       CALL toijsp (rmnc_i, ru_i, f_du,   f_cos)
@@ -690,7 +691,7 @@
                zmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                     &
                lmns_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                   &
                stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error in REPACK'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in REPACK')
       rmnc_i = 0;  zmns_i = 0;  lmns_i = 0
 
       IF (.NOT.lasym) GOTO 1000
@@ -699,7 +700,7 @@
                zmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i),                     &
                lmnc_i(0:mpol_i,-ntor_i:ntor_i,ns_i+1),                   &
                stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error in REPACK'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in REPACK')
       rmns_i = 0;  zmnc_i = 0;  lmnc_i = 0
 
  1000 CONTINUE      
@@ -791,7 +792,7 @@
       ALLOCATE(sqrtg(nuv,ns),                                            &
                gss(nuv,ns), gsu(nuv,ns), gsv(nuv,ns),                    &
                guu(nuv,ns), guv(nuv,ns), gvv(nuv,ns), stat=istat)
-      IF (istat .ne. 0) STOP 'ALLOCATION ERROR1 IN HALF_MESH_METRICS'
+      IF (istat .ne. 0) CALL ErrorAbort('ALLOCATION ERROR1 IN HALF_MESH_METRICS')
 
 !     COMPUTE ALL ON THE HALF MESH
       sqrtg(:,1) = 0
@@ -826,9 +827,8 @@
       mintest = MINVAL(sqrtg(:,2:))
       maxtest = MAXVAL(sqrtg(:,2:))
 
-      IF (mintest*maxtest .le. zero) THEN
-         IF (iam .eq. 0) PRINT *,"Jacobian changed sign in half_mesh_metrics!"
-         STOP 
+      IF (mintest*maxtest .LE. zero) THEN
+         CALL ErrorAbort('Jacobian changed sign in half_mesh_metrics!')
       END IF
 
       END SUBROUTINE half_mesh_metrics
@@ -854,7 +854,7 @@
                hss(nuv,ns),  huu(nuv,ns),  hvv(nuv,ns),                  & 
                hsu(nuv,ns),  hsv(nuv,ns),  huv(nuv,ns), stat=istat)
 
-      IF (istat .ne. 0) STOP 'ALLOCATION ERROR IN FULL_MESH_METRICS'
+      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN FULL_MESH_METRICS')
 
       CALL to_full_mesh(gss,gssf,nuv)
       CALL to_full_mesh(guu,guuf,nuv)
@@ -876,9 +876,9 @@
                 gssf(:,js)*(guuf(:,js)*gvvf(:,js)-guvf(:,js)*guvf(:,js)) &
               + gsuf(:,js)*(guvf(:,js)*gsvf(:,js)-gsuf(:,js)*gvvf(:,js)) &
               + gsvf(:,js)*(gsuf(:,js)*guvf(:,js)-gsvf(:,js)*guuf(:,js))
-         IF (ANY(det .le. zero)) THEN
-            IF (iam .eq. 0 .and. lverbose)PRINT *,'Determinant |gijf| <= 0 at js = ',js
-            IF (js .eq. ns) THEN
+         IF (ANY(det .LE. zero)) THEN
+            IF (iam .EQ. 0 .and. lverbose)PRINT *,'Determinant |gijf| <= 0 at js = ',js
+            IF (js .EQ. ns) THEN
                det(:) = sqrtg(:,ns)**2
                gssf(:,ns) = gss(:,ns)
                guuf(:,ns) = guu(:,ns)
@@ -888,7 +888,7 @@
                gsvf(:,ns) = gsv(:,ns)
             ELSE
                det(:) = ((sqrtg(:,js)+sqrtg(:,js+1))/2)**2
-               STOP
+               CALL ErrorAbort('Full_mesh_metrics gijf')
             END IF
          END IF
          det = one/det
@@ -922,7 +922,7 @@
       s1 = MAXVAL(ABS(tempu(:,:,2:)))
       t1 = MAXVAL(ABS(tempv(:,:,2:)))
       maxtest = MAX(r1,s1,t1)
-      IF (maxtest.GT.eps .AND. iam.EQ.0) STOP "ERROR1 IN FULL_MESH_METRICS"
+      IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR1 IN FULL_MESH_METRICS')
 
 !     gijf * hj2   (second column of hij matrix)
       CALL tolowerf(hsu, huu, huv, temps, tempu, tempv)
@@ -930,7 +930,7 @@
       s1 = MAXVAL(ABS(tempu(:,:,2:)-1))
       t1 = MAXVAL(ABS(tempv(:,:,2:)))
       maxtest = MAX(r1,s1,t1)
-      IF (maxtest.GT.eps .AND. iam.EQ.0) STOP "ERROR2 IN FULL_MESH_METRICS"
+      IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR2 IN FULL_MESH_METRICS')
 
 !     gijf * hj3   (third column of hij matrix)
       CALL tolowerf(hsv, huv, hvv, temps, tempu, tempv)
@@ -938,7 +938,7 @@
       s1 = MAXVAL(ABS(tempu(:,:,2:)))
       t1 = MAXVAL(ABS(tempv(:,:,2:)-1))
       maxtest = MAX(r1,s1,t1)
-      IF (maxtest.GT.eps .AND. iam.EQ.0) STOP "ERROR3 IN FULL_MESH_METRICS"
+      IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR3 IN FULL_MESH_METRICS')
       
       DEALLOCATE(temps, tempu, tempv)
 
@@ -973,7 +973,7 @@
       INTEGER :: istat
        
         DEALLOCATE(gssf, guuf, gvvf, gsuf, gsvf, guvf, stat = istat)
-        IF (istat .ne. 0) STOP 'Problem dealloc. in LOWER_METRIC_FULL'
+        IF (istat .NE. 0) CALL ErrorAbort('Problem dealloc. in LOWER_METRIC_FULL')
         
         END SUBROUTINE dealloc_full_lower_metrics
 

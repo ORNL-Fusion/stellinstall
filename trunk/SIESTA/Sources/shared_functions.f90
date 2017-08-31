@@ -16,7 +16,7 @@
                             wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
       USE siesta_init, ONLY: init_state_par
-      USE nscalingtools, ONLY: rcountsNS, dispNS
+      USE nscalingtools, ONLY: rcountsNS, dispNS, ErrorAbort
       CONTAINS
 
 !>  \brief Parallel routine to compute forces for perturbed state.
@@ -62,7 +62,7 @@
       CALL update_pres_par
       CALL update_force_par
 
-      IF (gamma .eq. 1._dp) STOP 'SIESTA REQUIRES gamma != 1'
+      IF (gamma .eq. 1._dp) CALL ErrorAbort('SIESTA REQUIRES gamma != 1')
       wtotal = wb + wp/(gamma-1)
 
       IF (wtotal0 == -1) wtotal0 = wtotal
@@ -74,7 +74,7 @@
          gc = gc+gc0
       END IF
 
-      IF (l_getfsq .AND. INHESSIAN) STOP 'l_getfsq must be set to FALSE in Hessian'
+      IF (l_getfsq .AND. INHESSIAN) CALL ErrorAbort('l_getfsq must be set to FALSE in Hessian')
 
 !     COMPUTE UN-PRECONDITIONED FORCE RESIDUES
       IF (l_getfsq) THEN
@@ -182,7 +182,7 @@
          END IF
       END IF
 
-!      IF (l_Gmres .AND. l_ApplyPrecon) STOP 'l_ApplyPrecon must be FALSE in funct_island_par'
+!      IF (l_Gmres .AND. l_ApplyPrecon) CALL ErrorAbort('l_ApplyPrecon must be FALSE in funct_island_par')
 !
 !     GMRES handles preconditioning itself: do NOT apply
 !     Do not precondition when Hessian is being computed
@@ -210,7 +210,6 @@
       REAL(dp), INTENT(INOUT) :: fsq_min
       REAL(dp), PARAMETER :: facmin = 2
       INTEGER  :: iter, j
-      REAL(dp) :: fsq_last
 
       IF (iam .EQ. 0 .and. lverbose) PRINT 90
  90   FORMAT(1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,'-------------',   &
@@ -251,7 +250,9 @@
 !>   \brief Returns perturbed MHD+KINETIC energy
 !!   \author S. P. Hirshman, R. Sanchez
       FUNCTION getwmhd (p, lpar)
+#if defined(MRC)
       USE GMRES_LIB, ONLY: truncate
+#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

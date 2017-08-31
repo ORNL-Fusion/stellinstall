@@ -5,9 +5,7 @@
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale,             &
                              lasym, hesspass_test, mupar_test,           &
                              buv_res, lrecon
-!#if defined(SKS)
-      USE nscalingtools, ONLY: PARFUNCTISL
-!#endif
+      USE nscalingtools, ONLY: PARFUNCTISL, ErrorAbort
       
       INTEGER  :: irad_scale=11
       INTEGER  :: nsin=101, mpolin=12, ntorin=3
@@ -85,16 +83,10 @@
       nprecon       = 0                 !set > 0 to skip diagonal preconditioner
 
       OPEN (unit=30, file='siesta.jcf', delim='apostrophe', iostat=istat)
-      IF (istat .NE. 0) STOP 'SIESTA.JCF file not found'
+      IF (istat .NE. 0) CALL ErrorAbort('SIESTA.JCF file not found')
 
       READ (30, NML=SIESTA_INFO, iostat=istat) 
-      IF (istat .ne. 0) THEN
-         IF (iam .EQ. 0) THEN
-            STOP 'Error reading siesta.jcf file'
-         ELSE
-            STOP
-         END IF
-      END IF
+      IF (istat .NE. 0) CALL ErrorAbort('Error reading siesta.jcf file')
       CLOSE (UNIT=30)
 
       irad_scale = MIN(irad_scale, nsin)
@@ -107,8 +99,8 @@
 
       temp = wout_file
       index1 = INDEX(temp,'WOUT')
-      IF (index1 .eq. 0) index1 = INDEX(temp,'wout')
-      IF (index1 .eq. 0) STOP 'ERROR: WRONG WOUT FILE NAME'
+      IF (index1 .EQ. 0) index1 = INDEX(temp,'wout')
+      IF (index1 .EQ. 0) CALL ErrorAbort('ERROR: WRONG WOUT FILE NAME')
       temp = wout_file(index1:)
 !
 !     STRIP FILE EXTENSION: NAME COULD INCLUDE '.' IN IT!
@@ -131,7 +123,7 @@
       WRITE (filename,'(3a,i4.4,a,2(i3.3,a))') "output_", TRIM(temp),    &
              '_',nsin,'X',mpolin,'X',ntorin,".txt"
       OPEN (unit=33, file=filename,iostat=istat)
-      IF (istat .ne. 0) STOP 'ERROR WRITING SIESTA OUTPUT FILE'
+      IF (istat .NE. 0) CALL ErrorAbort('ERROR WRITING SIESTA OUTPUT FILE')
 
       DO istat = 6, 33, 27
          IF (.not.lverbose .and. istat .eq. 6) CYCLE
@@ -192,7 +184,7 @@
 !-----------------------------------------------
 !
 !     Add helical RESISTIVE flux perturbation on full mesh
-!     Approximate nonideal E|| ~ f(mu+nv) B with B ~ Bsubv
+!     Approximate nonideal E_sub ~ f(mu+nv) B_sub in update_bfield (E ~ B)
 !
       IF (ntor.EQ.0 .OR. ALL(HelPert.EQ.zero)) RETURN
 
@@ -209,9 +201,9 @@
       w0 = getwmhd(xc, PARFUNCTISL)
 
       ALLOCATE (buv_res(ntheta,nzeta,ns), stat=istat)
-      IF (istat .NE. 0) STOP 'ALLOCATION ERROR IN add_perturbation'
+      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN add_perturbation')
 
-      IF (iam .eq. 0) THEN
+      IF (iam .EQ. 0) THEN
       DO iprint = 6, 33, 27
          IF (.not.lverbose .and. iprint .eq. 6) CYCLE
          WRITE (iprint, '(/,a,/,2a)')                                    &
@@ -281,8 +273,7 @@
 
          wmhd = getwmhd(xc, PARFUNCTISL)
          IF (ABS(wmhd-w1) .GT. 1.E-12_dp) THEN
-            IF (iam .EQ. 0) PRINT *,'Error1 in Perturb'
-            CALL siesta_error_set_error(siesta_error_general, '')
+            CALL siesta_error_set_error(siesta_error_general, 'Error1 in Perturb')
          END IF
          xc = 0
          CALL update_state_par(.FALSE., zero, zero)
@@ -393,7 +384,7 @@
       IF (isign .EQ. 2) HelP_local = -HelPert0
 
       ALLOCATE (bmn_res(0:mpol,-ntor:ntor), stat=istat)
-      IF (istat .NE. 0) STOP 'ISTAT != 0 IN GETRESPERT'
+      IF (istat .NE. 0) CALL ErrorAbort('ISTAT != 0 IN GETRESPERT')
       bmn_res = 0
 
       js = INT(rad/hs_i) + 1
@@ -459,7 +450,7 @@
       filename = "siesta_" // TRIM(restart_ext) // ".txt"
       OPEN (unit=15, file=TRIM(filename), status='replace',              &
             form='formatted', iostat=istat)
-      IF (istat .NE. 0) STOP 'ERROR WRITING SIESTA RESTART FILE'
+      IF (istat .NE. 0) CALL ErrorAbort('ERROR WRITING SIESTA RESTART FILE')
 
 !     PRINT *,'WRITING RESTART FILE: ', TRIM(filename)
 !
@@ -624,7 +615,7 @@
                 bsupuc(0:mpol,-ntor:ntor,ns),                            &
                 bsupvc(0:mpol,-ntor:ntor,ns),                            & 
                 presc(0:mpol,-ntor:ntor,ns), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error in read_restart_file'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in read_restart_file')
 
       READ (15,200) wout_file
 
@@ -731,7 +722,7 @@
                 bsupvs(0:mpol,-ntor:ntor,ns),                            & 
                 press(0:mpol,-ntor:ntor,ns), stat=istat)
       END IF
-      IF (istat .NE. 0) STOP 'Memory allocation error in read_restart_ncfile'
+      IF (istat .NE. 0) CALL ErrorAbort('Memory allocation error in read_restart_ncfile')
 
 !================================
 ! Read Variables
@@ -783,7 +774,7 @@
       END IF
 
       ALLOCATE (temp1(0:m12,-n12:n12,ns_old), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error #1 in INTERPIT'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in INTERPIT')
 !
 !     FIRST INTERP TO FULL MESH FROM HALF-MESH
 !     ASSUMES js=1 FULL-MESH VALUE VALUE IS STORED IN aold(1)
@@ -802,7 +793,7 @@
          x1 = x1/hs_old
          IF (x1 .GT. one) x1 = 1
          IF (x1 .LT. zero) x1 = 0
-         IF (js_old .gt. ns_old) STOP 'js_old >= ns_old in INTERPIT'
+         IF (js_old .gt. ns_old) CALL ErrorAbort('js_old >= ns_old in INTERPIT')
          IF (js_old .eq. ns_old) THEN
              anew(:,:,js_new) = temp1(:,:,js_old)
          ELSE
@@ -815,7 +806,7 @@
 !
       DEALLOCATE (temp1)
       ALLOCATE (temp1(0:m12,-n12:n12,ns_new), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error #2 in INTERPIT'
+      IF (istat .ne. 0) CALL ErrorAbort('Allocation error #2 in INTERPIT')
       temp1 = anew
       anew(:,:,1) = 0
       anew(:,:,2:ns_new) = p5*(temp1(:,:,2:ns_new) + temp1(:,:,1:ns_new-1))
@@ -842,7 +833,7 @@
 !     epar        IS THE RESULTING E*B/B^2 IN REAL SPACE
 !
       ALLOCATE (eparmn(ns,0:mpol,-ntor:ntor), stat=istat)
-      IF (istat .ne. 0) STOP 'Allocation error in Compute_Resonant_Epar'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in Compute_Resonant_Epar')
       eparmn = 0
       epar = 0
 

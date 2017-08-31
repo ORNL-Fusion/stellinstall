@@ -14,6 +14,7 @@
                    mpol=>mpol_i, ntor=>ntor_i, nfp=>nfp_i
       USE timer_mod
       USE descriptor_mod, ONLY: INHESSIAN, DIAGONALDONE
+      USE nscalingtools, ONLY: ErrorAbort
       IMPLICIT NONE
 !
 !     PARAMETER DECLARATIONS
@@ -77,7 +78,7 @@
       ALLOCATE(work0(0:mpol,-ntor:ntor), xuv1(ntheta,nzeta),             &         
                work1(ntheta,-ntor:ntor), work2(ntheta,-ntor:ntor),       &
                stat=lk)
-      IF (lk .NE. 0) STOP 'Allocation error in TOIJSP_PAR'
+      IF (lk .NE. 0) CALL ErrorAbort('Allocation error in TOIJSP_PAR')
  
       NS_LOOP: DO js = nsmin, nsmax
 
@@ -201,7 +202,7 @@
                work3(0:mpol), work4(0:mpol),                             &
                xuv1(ntheta,nzeta),  xmn1(0:mpol,-ntor:ntor),             &
                t1(nzeta), t2(nzeta), stat=ii)
-      IF (ii .NE. 0) STOP 'Allocation error in tomnsp_par'
+      IF (ii .NE. 0) CALL ErrorAbort('Allocation error in tomnsp_par')
 
       NS_LOOP: DO js = nsmin, nsmax
 
@@ -376,7 +377,7 @@
                   cos1l(ntheta,nzeta,ns), cosml(ntheta,nzeta,ns),        &
                   sin1l(ntheta,nzeta,ns), sinml(ntheta,nzeta,ns),        &
                   stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation error #1 in TOMNSP_PEST'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in TOMNSP_PEST')
         
         CALL TOIJSP(lmns, lambda, f_none, f_sin)
         CALL TOIJSP(lmns, dupdu,  f_du, f_sin)
@@ -419,7 +420,7 @@
         ALLOCATE(work1(0:mpol,nzeta,ns), work2(0:mpol,nzeta,ns),         &
                  work3(ntheta,nzeta,ns), cosmuiP(nzeta,ns),              &
                  sinmuiP(nzeta,ns), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation error #2 in TOMNSP_PEST'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation error #2 in TOMNSP_PEST')
         work1 = zero; work2 = zero
 
         DO m = 0, mpol
@@ -448,7 +449,7 @@
         xmn = zero                                                       ! Make sure that FOURIER variable is zeroed
         ALLOCATE(work3(0:mpol,nzeta,ns), work4(0:mpol,nzeta, ns),        &
                  stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation error #3 in TOMNSP_PEST'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation error #3 in TOMNSP_PEST')
         work3 = zero; work4 = zero
 
         DO n = 0, ntor
@@ -680,7 +681,7 @@
                  cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),              &
                  sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor), stat=istat)
 
-        IF (istat .NE. 0) STOP 'Allocation error in fixarray'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation error in fixarray')
          
         dnorm_i = one/(ntheta1*nzeta)                                      ! ST:Norm for Fourier-Space -> UV-Space
 
@@ -728,7 +729,7 @@
 !BE SURE TO FIX THIS WHEN DOING ASYMMETRIC CASE!
 
         ALLOCATE (orthonorm(0:mpol,-ntor:ntor), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocate ORTHONORM failed in FIXARRAY!'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocate ORTHONORM failed in FIXARRAY!')
         orthonorm = nfactor                                       ! SQRT(2)
         orthonorm(0,0) = 1
         IF (ntheta .EQ. (mpol+1)) orthonorm(mpol,:) = 1
@@ -771,7 +772,7 @@
 
       DEALLOCATE(cosmu, cosmum, cosmui, sinmu, sinmum, sinmui,           &
                  cosnv, cosnvn, sinnv, sinnvn, orthonorm, stat=istat) 
-      IF (istat .ne. 0) STOP 'Allocation error in dealloc_fixarray'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in dealloc_fixarray')
          
       END SUBROUTINE DEALLOC_FOURIER
 
@@ -861,7 +862,7 @@
 
  100   CONTINUE
        PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
-       STOP
+       CALL ErrorAbort('Test_Fourier')
 
  200   CONTINUE
 

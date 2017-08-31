@@ -2,7 +2,6 @@
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
           nfp=>nfp_i
       USE timer_mod
-      USE DirectAccess_s
       USE stel_constants, ONLY: pi
       USE descriptor_mod
       USE shared_data, ONLY: col_scale, neqs, lcolscale, l_ApplyPrecon,  &
@@ -17,12 +16,12 @@
         rcounts, disp, startglobrow, endglobrow, nranks, rank,           &
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,               &
         SYMMETRYCHECK, totRecvs, PACKSIZE, WriteTime, send, receive,     &
-        SetBlockTriDataStruct, GetFullSolution
+        SetBlockTriDataStruct, GetFullSolution, ErrorAbort
       USE blocktridiagonalsolver_s
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,     &
-                               startglobrow, endglobrow
+                               startglobrow, endglobrow, ErrorAbort
 #endif
       IMPLICIT NONE
 !-----------------------------------------------
@@ -53,7 +52,6 @@
       INTEGER, PARAMETER :: blmin=3, bldia=2, blpls=1
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: DataItem
       INTEGER :: iunit_dacess=10
-      LOGICAL :: lswap2disk=.FALSE.
 !#if defined(SKS)
       INTEGER :: myStartBlock, myEndBlock, mynumBlockRows 
       INTEGER :: mystart(3), myend(3)
@@ -66,7 +64,7 @@
                            mupar, mupar0, maxeigen, mindiag
       LOGICAL, PUBLIC   :: l_Compute_Hessian, l_Diagonal_Only
       INTEGER, PUBLIC :: HESSPASS=0
-      PUBLIC  :: apply_precond, dealloc_hessian, InitHess, RemoveDAFile, &
+      PUBLIC  :: apply_precond, dealloc_hessian, InitHess,               &
                  Compute_Hessian_Blocks
 
       CONTAINS
@@ -97,7 +95,7 @@
 !-----------------------------------------------
 #if defined(SKS)
         ALLOCATE (section(mblk_size,myStartBlock:myEndBlock), stat=istat)
-        IF (istat .NE. 0) STOP 'Allocation error in gather_array'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation error in gather_array')
 
         section(:,myStartBlock:myEndBlock) = gc(:,myStartBlock:myEndBlock)
         CALL gather_array2(section, gc)
@@ -130,7 +128,7 @@
 !-----------------------------------------------
       REAL(dp), DIMENSION(0:mpol, -ntor:ntor, ns), INTENT(OUT) :: gather3d
       REAL(dp), DIMENSION(0:mpol, -ntor:ntor, myStartBlock:myEndBlock),  &
-                                                   INTENT(IN)  :: section
+      INTENT(IN)  :: section
       INTEGER :: M2
 !-----------------------------------------------
 #if defined(SKS)
@@ -245,14 +243,14 @@
       !------------------------------------------------------------
       CALL second0(ton)
 
-      IF (mblk_size .NE. SIZE(gc,1)) STOP 'MBLK_SIZE IS WRONG IN HESSIAN'
+      IF (mblk_size .NE. SIZE(gc,1)) CALL ErrorAbort('MBLK_SIZE IS WRONG IN HESSIAN')
       eps = SQRT(EPSILON(eps))*ABS(eps_factor)
 
       ALLOCATE (DataItem(mblk_size), stat=istat)
-      IF (istat .NE. 0) STOP 'DataItem allocation failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('DataItem allocation failed!')
       DataItem = 0
       ALLOCATE (SavedDiag(mblk_size), stat=istat)
-      IF (istat .NE. 0) STOP 'SavedDiag allocation failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('SavedDiag allocation failed!')
       SavedDiag = 0
 
       IF (iprec_flag == 0) THEN
@@ -389,9 +387,9 @@
       END DO VAR_TYPE_LG
 
       DEALLOCATE (DataItem, stat=istat)
-      IF (istat .NE. 0) STOP 'DataItem deallocation error!'
+      IF (istat .NE. 0) CALL ErrorAbort('DataItem deallocation error!')
       DEALLOCATE (SavedDiag, stat=istat)
-      IF (istat .NE. 0) STOP 'SavedDiag deallocation error!'
+      IF (istat .NE. 0) CALL ErrorAbort('SavedDiag deallocation error!')
       !----------------------------
       ! Column generation ends
       !----------------------------
@@ -426,8 +424,6 @@
       !
       !     SYMMETRIZE BLOCKS
       !
-!      IF (.not. l_Hess_sym .or. lswap2disk) GOTO 1000
-!      1000 CONTINUE
 
       CALL second0(toff)
       IF (l_Diagonal_Only) THEN
@@ -467,7 +463,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER               :: js, top, bot, M2
+      INTEGER               :: js, M1
       INTEGER               :: MPI_STAT(MPI_STATUS_SIZE)
 !-----------------------------------------------
  
@@ -475,25 +471,25 @@
         colscale(:,js) = colsum(:,js)
       END DO
 
-      M2 = 2*mblk_size
+      M1 = mblk_size
 
-! Get top boundary elements; in siesta_displacement, need from startglobrow-2:endglobrow+2
+! Get top boundary elements; in siesta_displacement, need from startglobrow-1:endglobrow+1
       IF (rank.LT.nranks-1) THEN
-        CALL MPI_Send(colsum(:,endglobrow-1:endglobrow),M2,MPI_REAL8,    &
+        CALL MPI_Send(colsum(:,endglobrow),M1,MPI_REAL8,    &
           rank+1,1,SIESTA_COMM,MPI_ERR)
       END IF
       IF (rank.GT.0) THEN
-        CALL MPI_Recv(colscale(:,startglobrow-2:startglobrow-1),M2,      &
+        CALL MPI_Recv(colscale(:,startglobrow-1),M1,      &
           MPI_REAL8,rank-1,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
       END IF
 
 ! Get bot boundary elements
       IF (rank.GT.0) THEN
-        CALL MPI_Send(colsum(:,startglobrow:startglobrow+1),M2,MPI_REAL8,&
+        CALL MPI_Send(colsum(:,startglobrow),M1,MPI_REAL8,&
           rank-1,1,SIESTA_COMM,MPI_ERR)
       END IF
       IF (rank.LT.nranks-1) THEN
-        CALL MPI_Recv(colscale(:,endglobrow+1:endglobrow+2),M2,MPI_REAL8,&
+        CALL MPI_Recv(colscale(:,endglobrow+1),M1,MPI_REAL8,&
           rank+1,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
       END IF
 
@@ -537,15 +533,15 @@
 
       CALL second0(ton)
 
-      IF (mblk_size .NE. SIZE(gc,1)) STOP 'MBLK_SIZE IS WRONG IN HESSIAN'
+      IF (mblk_size .NE. SIZE(gc,1)) CALL ErrorAbort('MBLK_SIZE IS WRONG IN HESSIAN')
 
       eps = SQRT(EPSILON(eps))*ABS(eps_factor)
 
       ALLOCATE (DataItem(mblk_size), stat=istat)
-      IF (istat .ne. 0) STOP 'DataItem allocation failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('DataItem allocation failed!')
       DataItem = 0
       ALLOCATE (SavedDiag(mblk_size), stat=istat)
-      IF (istat .ne. 0) STOP 'SavedDiag allocation failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('SavedDiag allocation failed!')
       SavedDiag = zero
 
       IF (iprec_flag == 0) THEN
@@ -719,13 +715,12 @@
 
       DEALLOCATE (DataItem, stat=istat)
       DEALLOCATE (SavedDiag, stat=istat)
-      IF (istat .ne. 0) STOP 'DataItem deallocation error!'
+      IF (istat .NE. 0) CALL ErrorAbort('DataItem deallocation error!')
 
       CALL second0(skstoff)
       construct_hessian_time=construct_hessian_time+(skstoff-skston)
       CALL MPI_Barrier(SIESTA_COMM, MPI_ERR)
 
-      IF (lswap2disk) GO TO 900
 !
 !     CHECK SYMMETRY OF BLOCKS 
 !
@@ -737,14 +732,6 @@
           asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
         ENDIF
       ENDIF      
-
- 900  CONTINUE
-
-!
-!     SYMMETRIZE BLOCKS
-!
-!      IF (.not. l_Hess_sym .or. lswap2disk) GOTO 1000
-! 1000 CONTINUE
 
 !
 !     FACTORIZE (Invert) HESSIAN
@@ -810,7 +797,7 @@
 !------------------------------------------------------------
       CALL second0(ton)
 
-      IF (mblk_size .NE. SIZE(gc,1)) STOP 'MBLK_SIZE IS WRONG IN HESSIAN'
+      IF (mblk_size .NE. SIZE(gc,1)) CALL ErrorAbort('MBLK_SIZE IS WRONG IN HESSIAN')
 !      mblk_size = SIZE(gc,1)
 
       eps = SQRT(EPSILON(eps))*ABS(eps_factor)
@@ -867,9 +854,8 @@
                     dblkp(ineed,ns),       &
                     lblkp(ineed,ns-1),     &
                     stat=istat)
-           IF (istat .ne. 0) THEN
-             PRINT *,' Not enough memory to store a single block!'
-             STOP
+           IF (istat .NE. 0) THEN
+             CALL ErrorAbort('Not enough memory to store a single block!')
            END IF
         END IF
 
@@ -877,12 +863,11 @@
                  dblk(mblk_size,mblk_size2,ns),    &
                  lblk(mblk_size,mblk_size2,ns),    &
                  stat=istat)
-        IF (istat .ne. 0) THEN
-           PRINT *,' Not enough memory to store a single block!'
-           STOP
+        IF (istat .NE. 0) THEN
+           CALL ErrorAbort('Not enough memory to store a single block!')
         END IF
 #else
-        STOP 'LSCALAPACK=T BUT NOT MPI!'
+        CALL ErrorAbort('LSCALAPACK=T BUT NOT MPI!')
 #endif
       ELSE   !.NOT.LSCALAPACK
 
@@ -890,27 +875,7 @@
                  dblk(mblk_size,mblk_size,ns),                           &
                  lblk(mblk_size,mblk_size,ns),                           &
                  stat=istat)
-
-        lswap2disk = (istat .ne. 0)
-
-        IF (lswap2disk .and. .not.l_Diagonal_Only) THEN
-          IF (iprec_flag == 0) THEN
-            PRINT *,'Not enough memory to store Hessian blocks in memory.'
-            PRINT *,'Writing blocks to disk file.'
-          END IF
-
-          CALL RemoveDAFile
-
-          ScratchFile = "PRCND2A.bin"
-          IF (FlashDrive .ne. "") ScratchFile = FlashDrive // ScratchFile
-          CALL OpenDAFile(mblk_size, mblk_size**2, ndims, ScratchFile,   &
-                          iunit_dacess, CreateNew) 
-          ScratchFile = "PRCND2B.bin"
-          IF (FlashDrive .ne. "") ScratchFile = FlashDrive // ScratchFile
-
-        ELSE
-          ScratchFile = ""
-        END IF
+        IF (istat .NE. 0) CALL ErrorAbort('Unable to allocate blocks!')
       
       END IF       !END LSCALAPACK
 
@@ -919,7 +884,7 @@
       END IF
 
       ALLOCATE (DataItem(mblk_size), stat=istat)
-      IF (istat .ne. 0) STOP 'DataItem allocation failed!'
+      IF (istat .NE. 0) CALL ErrorAbort('DataItem allocation failed!')
       DataItem = 0
 
       IF (iprec_flag == 0) THEN
@@ -1040,11 +1005,7 @@
                            DataItem=0
                            DataItem(icol)=temp
                         END IF
-                        IF (lswap2disk) THEN
-                           CALL WriteDAItem_SEQ(DataItem)
-                        ELSE 
-                           ublk(:,icolmpi,js1) = DataItem
-                        END IF
+                        ublk(:,icolmpi,js1) = DataItem
                      END IF
 
                      !dblk(js)
@@ -1067,11 +1028,7 @@
                         DataItem(icol)=temp
                      END IF
 
-                     IF (lswap2disk) THEN
-                        CALL WriteDAItem_SEQ(DataItem)
-                     ELSE 
-                        dblk(:,icolmpi,js) = DataItem
-                     END IF
+                     dblk(:,icolmpi,js) = DataItem
 
                      !lblk(js+1) 
                      js1=js+1
@@ -1084,11 +1041,7 @@
                            DataItem=0
                            DataItem(icol)=temp
                         ENDIF
-                        IF (lswap2disk) THEN
-                           CALL WriteDAItem_SEQ(DataItem)
-                        ELSE 
-                           lblk(:,icolmpi,js1) = DataItem
-                        END IF
+                        lblk(:,icolmpi,js1) = DataItem
                      END IF
 
                   END DO SKIP3_MESH
@@ -1115,7 +1068,7 @@
 
 !SPH 071416 ADD COLUMN SCALING
       IF (lColScale) THEN
-         IF (nprocs .GT. 1) STOP 'Thomas COL-Scaling not implemented for nprocs>1'
+         IF (nprocs .GT. 1) CALL ErrorAbort('Thomas COL-Scaling not implemented for nprocs>1')
          CALL SerialScaling(mindiag, maxeigen)
       END IF
 !
@@ -1171,9 +1124,8 @@
 
       DEALLOCATE (DataItem, stat=istat)
 !      DEALLOCATE (gc1, DataItem, stat=istat)
-      IF (istat .NE. 0) STOP 'DataItem deallocation error!'
+      IF (istat .NE. 0) CALL ErrorAbort('DataItem deallocation error!')
 
-      IF (lswap2disk) GO TO 900
 !
 !     CHECK SYMMETRY OF BLOCKS 
 !
@@ -1190,12 +1142,10 @@
       asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
 #endif
 
- 900  CONTINUE
-
 !
 !     SYMMETRIZE BLOCKS
 !
-      IF (.NOT. l_Hess_sym .OR. lswap2disk) GOTO 1000
+      IF (.NOT. l_Hess_sym) GOTO 1000
       icol = 0
       ALLOCATE(gc1(mblk_size,ns))
       
@@ -1227,7 +1177,7 @@
                   dblk_s(mblk_size,mblk_size,ns),                        &
                   lblk_s(mblk_size,mblk_size,ns),                        &   
                   stat=istat)
-         IF (istat .ne. 0) STOP 'Allocation error2 in Compute_Hessian_Blocks'
+         IF (istat .ne. 0) CALL ErrorAbort('Allocation error2 in Compute_Hessian_Blocks')
          ublk_s = ublk;  dblk_s = dblk; lblk_s = lblk
       END IF
 !
@@ -1239,7 +1189,7 @@
 #if defined(MPI_OPT)
          ineed = numroc(descA(M_),descA(MB_),0,0,nprow) + descA(MB_)
          ALLOCATE( ipiv_blk(ineed, ns), stat=istat )
-         IF (istat .ne. 0) STOP 'ipiv_blk allocation error2 in Compute_Hessian_Blocks'
+         IF (istat .NE. 0) CALL ErrorAbort('ipiv_blk allocation error2 in Compute_Hessian_Blocks')
          CALL blk3d_parallel(dblk,lblk,ublk,dblkp,lblkp,ublkp,mblk_size,mblk_size2,ns)
          CALL blacs_gridinfo(icontxt,nprow,npcol,myrow,mycol)
          mm = mblk_size*ns
@@ -1258,16 +1208,12 @@
          CALL blacs_barrier(icontxt,'All')
          CALL profend('factor call:123')
 #else
-         STOP 'LSCALAPACK=T BUT NOT IN MPI!'
+         CALL ErrorAbort('LSCALAPACK=T BUT NOT IN MPI!')
 #endif
       ELSE    !.NOT. LSCALAPACK
          ALLOCATE (ipiv_blk(mblk_size,ns), stat=istat)
-         IF (istat .ne. 0) STOP 'ipiv_blk allocation error2 in Compute_Hessian_Blocks'
-         IF (lswap2disk) THEN
-            CALL blk3d_factor_swp(ipiv_blk, mblk_size, ns)
-         ELSE
-            CALL blk3d_factor(dblk, lblk, ublk, ipiv_blk, mblk_size, ns)
-         END IF
+         IF (istat .ne. 0) CALL ErrorAbort('ipiv_blk allocation error2 in Compute_Hessian_Blocks')
+         CALL blk3d_factor(dblk, lblk, ublk, ipiv_blk, mblk_size, ns)
       END IF  ! LSCALAPACK
 
       CALL second0(skstoff)
@@ -1492,7 +1438,7 @@
 !      iunit = 10
 !      CALL safe_open(iunit, ier, 'NULL', 'scratch', 'unformatted',
 !     1     irecl, 'DIRECT')
-!      IF (ier .ne. 0) STOP 'Error opening scratch file in blk3d'
+!      IF (ier .ne. 0) CALL ErrorAbort('Error opening scratch file in blk3d')
 
 !  main loop. load and process (backwards) block-rows nblocks to 1. 
 
@@ -1500,11 +1446,11 @@
       lwork = 10*mblk
       ALLOCATE(v(mblk,mblk), w(mblk),   &
      &         u(mblk,mblk), work(lwork), stat=ier)
-      IF (ier .ne. 0) STOP 'Allocation error in blk3d_factor!'
+      IF (ier .NE. 0) CALL ErrorAbort('Allocation error in blk3d_factor!')
 #endif
       ipiv = 0
       ALLOCATE (temp(mblk,mblk), stat=ier)
-      IF (ier .ne. 0) STOP 'Allocation error in blk3d_factor!'
+      IF (ier .NE. 0) CALL ErrorAbort('Allocation error in blk3d_factor!')
 
       BLOCKS: DO k = nblocks, 1, -1
 !
@@ -1592,7 +1538,7 @@
      &                        , k
       IF (ier < 0)WRITE (6,'(i4, a)') ier, 'th argument has illegal value'
       IF (ier > 0)WRITE (6,'(i4, a)') ier, 'th diagonal factor exactly zero'
-      STOP
+      CALL ErrorAbort('Error in blk3d_factor')
   301 CONTINUE
 !      WRITE (6, '(a,i8)') ' BLK3D:   error in opening file:  ',
 !     1   'RECL = ', irecl
@@ -1604,7 +1550,7 @@
   305 CONTINUE
       WRITE (6, '(2/a,i10,2/)') ' BLK3D-FACTOR:   error detected:   ier =',     &
      &   ier
-      STOP
+      CALL ErrorAbort('Error in blk3d_factor')
 
 !  destroy disk file and return. ---------------------------------------
  
@@ -1613,129 +1559,6 @@
 !      CLOSE (iunit)
 
       END SUBROUTINE blk3d_factor
-
-
-      SUBROUTINE blk3d_factor_swp(ipiv, mblk, nblocks)
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
-      REAL(dp), PARAMETER :: zero = 0, one = 1    
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(in) :: nblocks, mblk
-      INTEGER, TARGET, INTENT(out) :: ipiv(mblk,nblocks)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: amat, bmat, cmat, temp
-      INTEGER :: k, k1, ier
-      INTEGER, POINTER :: ipivot(:)
-!-----------------------------------------------
-!  modified (June, 2003, ORNL):         S. P. Hirshman
-!  modified (June, 2007, ORNL), added lswap2disk logic
-!-----------------------------------------------------------------------
-!
-!  this subroutine solves for the Q factors of a block-tridiagonal system of equations.
-!  see blk3d_factor for more details
-!
-!-----------------------------------------------------------------------
-!  INPUT
-!  mblk                : block dimension (elements in a block=mblk X mblk)
-!  nblocks             : number of blocks
-!
-!  OUTPUT
-!  ipiv                : pivot elements for kth block
-!
-!  LOCAL VARIABLES
-!  iunit               : unit number for block-tridiagonal solution disk file.
-!
-!  solutions are indexed in m-n fourier-space, legendre-space. the tri-diagonal
-!  equation is:
-!
-!           bm1 * f(l-1) + a * f(l) + bp1 * f(l+1) = source(l)
-!
-!
-!     NUMERICAL IMPLEMENTATION (USING LAPACK ROUTINES)
-!
-!     1. CALL dgetrf:   Perform LU factorization of diagonal block (A) - faster than sgefa
-!     2. CALL dgetrs:   With multiple (mblk) right-hand sides, to do block inversion
-!                       operation, A X = B  (stores result in B; here B is a matrix)
-!
-
-!  main loop. load and process (backwards) block-rows nblocks to 1. 
-
-      ipiv = 0
-
-!     CHANGE Direct Access Record length to block size (from individual rows)
-      CALL ChangeDAFileParams(mblk**2, mblk**2, 3, ScratchFile, nblocks)
-
-      ALLOCATE(amat(mblk,mblk), bmat(mblk,mblk), cmat(mblk,mblk),        &
-               temp(mblk,mblk), stat=ier)
-      IF (ier .ne. 0) STOP 'Allocation error in blk3d_factor_swp!' 
-
-      CALL ReadDAItem2(temp, nblocks, bldia)
-
-      BLOCKS: DO k = nblocks, 1, -1
-!
-!     Compute (and save) qblk(k) = ablk(k)[-1] * bml
-!
-         amat = temp
-         ipivot => ipiv(:,k)
-         CALL dgetrf (mblk, mblk, amat, mblk, ipivot, ier)
-         IF (ier .ne. 0) GOTO 200
-!CONFIRM READ-WRITE ALLOWED...OK FOR DA Files!
-         CALL WriteDAItem_RA(amat, k, bldia, 1)
-
-         IF (k .eq. 1) EXIT
-          
-         CALL ReadDAItem2(bmat, k, blmin)
-         CALL dgetrs('n', mblk, mblk, amat, mblk, ipivot, bmat, mblk, ier)
-         IF (ier .ne. 0) GOTO 305
-!
-!     COMPUTE TRANSPOSES HERE (and for cmat below), SINCE REPEATEDLY CALLING MATMUL OPERATION
-!     X*At IS FASTER THAN A*X DUE TO UNIT STRIDE
-!
-         temp = TRANSPOSE(bmat)
-         CALL WriteDAItem_RA(temp, k, blmin, 1)
-
-!
-!      Update effective diagonal "a" matrix. Use dgemm: faster AND doesn't overflow normal stack
-!
-         k1 = k-1 
-         CALL ReadDAItem2(amat, k1, blpls)
-         CALL ReadDAItem2(temp, k1, bldia)
-!         temp = temp - MATMUL(amat, bmat)
-         CALL dgemm('N','N', mblk, mblk, mblk, -one, amat, mblk,         &
-                    bmat, mblk, one, temp, mblk)
-         cmat = TRANSPOSE(amat)
-         CALL WriteDAItem_RA(cmat, k1, blpls, 1)
-
-      END DO BLOCKS
-
-      GOTO 400
-
-!  error returns. ------------------------------------------------------
-
-  200 CONTINUE
-!          < 0:  if info = -i, the i-th argument had an illegal value
-!          > 0:  if info = i, u(i,i) is exactly zero. the factorization
-      WRITE (6, '(2x,a,i4)') 'Error factoring matrix in blk3d: block = ' &
-                             , k
-      IF (ier < 0)WRITE (6,'(i4, a)') ier, 'th argument has illegal value'
-      IF (ier > 0)WRITE (6,'(i4, a)') ier, 'th diagonal factor exactly zero'
-      STOP
-  305 CONTINUE
-      WRITE (6, '(2/a,i10,2/)') ' BLK3D-FACTOR-SWP:   error detected:   ier =', ier
-      STOP
-
-  400 CONTINUE
-
-      DEALLOCATE(amat, bmat, cmat, temp, stat=ier)
-
-      CALL CloseDAFile
-
-      END SUBROUTINE blk3d_factor_swp
 
 
       SUBROUTINE block_precond(gc)
@@ -1779,7 +1602,7 @@
         CALL BackwardSolve
        
         ALLOCATE (solvec(mblk_size,mynumBlockRows), stat=istat)
-        IF (istat .ne. 0) STOP 'Allocation error in block_precond before gather'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation error in block_precond before gather')
 
         cnt=1
         DO globrow=myStartBlock,myEndBlock
@@ -1801,7 +1624,7 @@
 #endif
          IF (l_backslv) THEN
             ALLOCATE (gc_s(mblk_size,ns), stat=istat)
-            IF (istat .ne. 0) STOP 'Allocation error0 in block_precond'
+            IF (istat .NE. 0) CALL ErrorAbort('Allocation error0 in block_precond')
             gc_s = gc
          END IF
 
@@ -1849,7 +1672,7 @@
 
          DEALLOCATE (tempp, stat=istat)
 #else
-         STOP 'MPI_OPT must be true for LSCALAPACK!'
+         CALL ErrorAbort('MPI_OPT must be true for LSCALAPACK!')
 #endif
          ELSE       !NOT LSCALAPACK
 
@@ -1860,11 +1683,7 @@
          IF (SKSDBG) CALL FLUSH(TOFU)
 #endif
 !        Serial solver
-         IF (lswap2disk) THEN
-            CALL blk3d_slv_swp(gc, ipiv_blk, mblk_size, ns)
-         ELSE
-            CALL blk3d_slv(dblk, lblk, ublk, gc, ipiv_blk, mblk_size, ns)
-         END IF
+         CALL blk3d_slv(dblk, lblk, ublk, gc, ipiv_blk, mblk_size, ns)
          END IF     !END LSCALAPACK
 
 #if defined(SKS)
@@ -2068,7 +1887,7 @@
 !      iunit = 10
 !      CALL safe_open(iunit, ier, 'NULL', 'scratch', 'unformatted',
 !     1     irecl, 'DIRECT')
-!      IF (ier .ne. 0) STOP 'Error opening scratch file in blk3d'
+!      IF (ier .ne. 0) CALL ErrorAbort('Error opening scratch file in blk3d')
 
 !  main loop. load and process (backwards) block-rows nblocks to 1. 
 !  note: about equal time is spent in calling dgetrs and in performing
@@ -2132,7 +1951,7 @@
       ier = -2
   305 CONTINUE
       WRITE (6, '(2/a,i10,2/)') ' BLK3D-SLV:   error detected:   ier =', ier
-      STOP
+      CALL ErrorAbort('Error in blk3d_slv')
 
 !  destroy disk file and return. ---------------------------------------
 
@@ -2141,111 +1960,6 @@
 !      CLOSE (iunit)
 
       END SUBROUTINE blk3d_slv
-
-
-      SUBROUTINE blk3d_slv_swp(source, ipiv, mblk, nblocks)
-      USE stel_kinds
-      USE stel_constants, ONLY: one
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(in) :: nblocks, mblk
-      INTEGER, TARGET, INTENT(in) :: ipiv(mblk,nblocks)
-      REAL(dp), DIMENSION(mblk,nblocks), TARGET, INTENT(inout) :: source
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), POINTER :: amat(:,:), x1(:), source_ptr(:)
-      INTEGER, POINTER  :: ipivot(:)
-      INTEGER :: k, k1, ier
-!-----------------------------------------------
-!  modified (June, 2003, ORNL):         S. P. Hirshman
-!  modified (June, 2007, ORNL), added lswap2disk logic
-!-----------------------------------------------------------------------
-!
-!  this subroutine solves a block-tridiagonal system of equations, using 
-!  the ABLK, QBLK factors from blk3d_factor,
-!  See blk3d_slv for details
-!
-!-----------------------------------------------------------------------
-!  INPUT
-!  mblk                : block size
-!  nblocks             : number of blocks
-!  ipiv                : pivot elements for kth block
-!  source              : input right side
-!
-!  OUTPUT
-!  source              : Solution x of A x = source
-! 
-!
-!  the tri-diagonal equation is:
-!
-!           bm1 * f(l-1) + a * f(l) + bp1 * f(l+1) = source(l)
-!
-
-!  main loop. load and process (backwards) block-rows nblocks to 1. 
-!  note: about equal time is spent in calling dgetrs and in performing
-!  the two loop sums: on ibm-pc, 2 s (trs) vs 3 s (sums); on linux (logjam),
-!  2.4 s (trs) vs 3 s (sums).
-
-      CALL OpenDAFile(mblk**2, mblk**2, 3, ScratchFile, iunit_dacess, OpenExisting) 
-
-      ALLOCATE (amat(mblk,mblk),  stat=ier)
-      IF (ier .ne. 0) STOP 'Allocation error in blk3d_slv_swp!' 
-!
-!     Back-solve for modified sources first
-!
-      BLOCKS: DO k = nblocks, 1, -1
-
-         source_ptr => source(:,k)
-         ipivot => ipiv(:,k)
-         CALL ReadDAItem2(amat, k, bldia)
-         CALL dgetrs('n', mblk, 1, amat, mblk, ipivot, source_ptr, mblk, ier)
-
-         IF (ier .ne. 0) GOTO 305
-         IF (k .eq. 1) EXIT
-
-!
-!        NOTE: IN BLK3D_FACTOR, BP1 AND BM1 WERE TRANSPOSED (AND STORED)
-!        TO MAKE FIRST INDEX FASTEST VARYING IN THE FOLLOWING MATMUL OPS
-!
-         k1 = k-1
-         CALL ReadDAItem2(amat, k1, blpls) 
-         x1 => source(:,k);  source_ptr => source(:,k1)
-!         source_ptr = source_ptr - MATMUL(x1,amat)  !USE THIS FORM IF TRANSPOSED bp1
-!         source_ptr = source_ptr - MATMUL(amat,x1)  !UNTRANSPOSED FORM
-         CALL dgemv('T',mblk,mblk,-one,amat,mblk,x1,1,one,source_ptr,1)
-
-      END DO BLOCKS
-!
-!  forward (back-substitution) solution sweep for block-rows k = 2 to nblocks
-!  now, source contains the solution vector
-!
-      DO k = 2, nblocks
-
-         CALL ReadDAItem2(amat, k, blmin)
-         x1 => source(:,k-1);  source_ptr => source(:,k)
-!         source_ptr = source_ptr - MATMUL(x1,amat)  !USE THIS FORM IF TRANSPOSED qblk
-!         source_ptr = source_ptr - MATMUL(amat,x1)  !UNTRANSPOSED FORM
-         CALL dgemv('T',mblk,mblk,-one,amat,mblk,x1,1,one,source_ptr,1)
-
-      END DO
-
-      WRITE(100,'(1p,6e14.4)') source(:,ns/2)
-
-      GOTO 400
-
-!  error returns. ------------------------------------------------------
-
-  305 CONTINUE
-      WRITE (6, '(2/a,i10,2/)') ' BLK3D_SLV_SWP:   error detected:   ier =', ier
-      STOP
-
-  400 CONTINUE
-
-      CALL CloseDAFile
-
-      END SUBROUTINE blk3d_slv_swp
 
       
       SUBROUTINE dealloc_hessian

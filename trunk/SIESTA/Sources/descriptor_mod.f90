@@ -22,5 +22,9 @@
       LOGICAL :: INUPDATEFORCE=.FALSE.
       INTEGER :: GMRESPASS, WRAPPASS, MATVECPASS
       INTEGER :: in_hess_nfunct=0, out_hess_nfunct=0
+#if defined(MPI_OPT)
       INTEGER :: SIESTA_COMM=MPI_COMM_WORLD
+#else
+      INTEGER :: SIESTA_COMM=0
+#endif
       END MODULE descriptor_mod

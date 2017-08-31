@@ -3,7 +3,9 @@
       USE stel_constants
       USE shared_data, ONLY: l_update_state, l_natural, lasym,           &
                              jsju_ratio_s, jsju_ratio_a, ste 
-      USE fourier 
+      USE fourier
+      USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR,&
+                               ErrorAbort
       IMPLICIT NONE
       PRIVATE
       INTEGER  :: nsmin, nsmax, ns_span, n1, n2
@@ -64,7 +66,6 @@
 !*******************************************************************************
       USE island_params, ONLY: nu_i, rmajor_i
       USE Hessian, ONLY: mupar_norm
-      USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
       USE descriptor_mod, ONLY: iam
       USE quantities
       USE timer_mod
@@ -74,7 +75,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: iwrite
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::            &  !FOR NOW, ASSUME THESE ARE ARRAYS FOR ALL NS!
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::            &
            bsupsijh, bsupuijh, bsupvijh,                                 &
            ksupsijf, ksupuijf, ksupvijf
       LOGICAL, INTENT(IN)  :: lmagen, lcurr
@@ -102,17 +103,16 @@
 
       ns_span = nsmax-nsmin+1
 
-      IF (LBOUND(bsupsijh,3) .NE. nsmin) STOP 'BSUPSIJH HAS WRONG LB'
-      IF (UBOUND(bsupsijh,3) .NE. nsmax) STOP 'BSUPSIJH HAS WRONG UB'
-      IF (LBOUND(ksupsijf,3) .NE. nsmin) STOP 'KSUPSIJF HAS WRONG LB'
-      IF (UBOUND(ksupsijf,3) .NE. nsmax) STOP 'KSUPSIJF HAS WRONG UB'
+      IF (LBOUND(bsupsijh,3) .NE. nsmin) CALL ErrorAbort('BSUPSIJH HAS WRONG LB')
+      IF (UBOUND(bsupsijh,3) .NE. nsmax) CALL ErrorAbort('BSUPSIJH HAS WRONG UB')
+      IF (LBOUND(ksupsijf,3) .NE. nsmin) CALL ErrorAbort('KSUPSIJF HAS WRONG LB')
+      IF (UBOUND(ksupsijf,3) .NE. nsmax) CALL ErrorAbort('KSUPSIJF HAS WRONG UB')
 
-! Calculate covariant BsubXh on half mesh 
-!       
+! Calculate covariant BsubXh on half mesh
       ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                       &
                bsubuijh(ntheta,nzeta,nsmin:nsmax),                       &
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation1 failed in CV_CURRENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in CV_CURRENTS')
      
       CALL tolowerh_par(bsupsijh, bsupuijh, bsupvijh,                    &
                         bsubsijh, bsubuijh, bsubvijh,                    &
@@ -120,7 +120,7 @@
 !COMPUTE PARALLEL DAMPING SCALING COEFFICIENT <Bsupv**2/B**2> ~ k^2
       IF (.NOT. ALLOCATED(mupar_norm)) THEN
          ALLOCATE(mupar_norm(nsmin:nsmax), stat=istat)
-         IF (istat .NE. 0) STOP 'MUPAR_NORM ALLOCATION FAILED!'
+         IF (istat .NE. 0) CALL ErrorAbort('MUPAR_NORM ALLOCATION FAILED!')
          beta = MAX(1.E-5_dp, wp_i/wb_i)
          mupar_norm = signjac*beta / rmajor_i**2  !/ vp_f(nsmin:nsmax)     !put 1/jac correction factor in AddDamping
          IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
@@ -132,11 +132,8 @@
                  + bsupvijh*bsubvijh
          IF (n1 .EQ. 1) bsq_loc(:,:,1) = 0
          IF (n1 .GT. 1) THEN
-            IF(ANY(bsq_loc(:,:,n1:n2) .LE. zero)) THEN
-               IF (iam .EQ. 0 .and. lverbose) PRINT *,'BSQ <= 0 in cv_currents_par!'
-#if defined(MPI_OPT)
-               CALL MPI_ABORT(SIESTA_COMM, 2, MPI_ERR)
-#endif
+            IF (ANY(bsq_loc(:,:,n1:n2) .LE. zero)) THEN
+               CALL ErrorAbort('BSQ <= 0 in cv_currents_par!')
             END IF
          END IF
 
@@ -237,8 +234,7 @@
   
       SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,        &
                         iparity, lcurr)
-      
-      USE nscalingtools, ONLY: endglobrow
+
       USE quantities, ONLY: ohs
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -270,7 +266,7 @@
       ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  & ! Get BSUBMN on half mesh
                bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      IF (istat .NE. 0) STOP 'Allocation2 failed in CV_CURRENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in CURLB')
 
       CALL tomnsp_par(bsubsijh, bsubsmnh, fours, 1, ns_span)                ! Calculate BSUBXMNH
       CALL tomnsp_par(bsubuijh, bsubumnh, fouru, 1, ns_span)
@@ -279,7 +275,7 @@
       ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  &  ! Next, get BSUBMN on full mesh
                bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                bsubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      IF (istat .NE. 0) STOP 'Allocation3 failed in CV_CURRENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in CURLB')
  
       nblock=SIZE(bsubsmnh,1)*SIZE(bsubsmnh,2)
       CALL to_full_mesh_par(bsubsmnh, bsubsmnf, nblock, nsmin, nsmax)                       
@@ -308,7 +304,7 @@
 !                   
       ALLOCATE(db_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                    &
                db_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation4 failed in CV_CURRENTS'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in CURLB')
 
 !     Radial gradients of bsubmnu,v on full grid (excluding origin: treat separately)
       CALL GradientFull_par(db_uds, bsubumnh, nblock, nsmin, nsmax)
@@ -356,7 +352,7 @@
          ALLOCATE(bs_filter(ntheta,nzeta,ns_span1),                      &
                   bu_filter(ntheta,nzeta,ns_span1),                      &
                   bv_filter(ntheta,nzeta,ns_span1), stat=istat)
-         IF (istat .NE. 0) STOP 'Allocation5 failed in CV_CURRENTS'
+         IF (istat .NE. 0) CALL ErrorAbort('Allocation5 failed in CURLB')
          CALL toijsp_par(bsubsmnh(:,:,n1:n2), bs_filter, fcomb, fours, 1, ns_span1)
          CALL toijsp_par(bsubumnh(:,:,n1:n2), bu_filter, fcomb, fouru, 1, ns_span1)
          CALL toijsp_par(bsubvmnh(:,:,n1:n2), bv_filter, fcomb, fourv, 1, ns_span1)

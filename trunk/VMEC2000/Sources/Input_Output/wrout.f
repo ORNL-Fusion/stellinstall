@@ -6,13 +6,12 @@
 #endif
      4                 )
 ! ... from SPH 2009-10-05; changes for modB sine-harmonics included
-      USE vparams 
       USE vmec_input, ONLY: ns_array, ftol_array, lwouttxt
       USE vmec_params
       USE vmec_main
-      USE vparams, p5 => cp5, two => c2p0
       USE vmercier
       USE vmec_persistent
+      USE vparams, p5 => cp5, two => c2p0
       USE vac_persistent
       USE vsvd
       USE vspline
@@ -832,7 +831,7 @@
       lmns(:,1) = 0  
       raxis_cc(0:ntor) = rmnc(1:ntor+1,1)
       zaxis_cs(0:ntor) = zmns(1:ntor+1,1)
-
+      
       IF (.NOT.lasym) GOTO 900
 
       WHERE (NINT(xm) .le. 1) lmnc(:,1) = lmnc(:,2)

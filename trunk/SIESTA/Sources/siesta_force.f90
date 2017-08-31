@@ -46,6 +46,7 @@
       USE island_params, ONLY: nu_i, hs_i, dnorm_i
       USE timer_mod
       USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR, ErrorAbort
       USE descriptor_mod, ONLY: SIESTA_COMM
 
       IMPLICIT NONE
@@ -67,7 +68,6 @@
 !
 !              Linearized force is Flin ~ delta_v has ONLY the linear part (not DC part and not non-linear)
 !
-       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
        USE quantities
        USE siesta_currents, ONLY: cv_currents
        USE mpi_inc
@@ -93,7 +93,7 @@
                 bsupuijh(ntheta,nzeta,n1:n2),                            &
                 bsupvijh(ntheta,nzeta,n1:n2),                            &
                 pijh1(ntheta,nzeta,n1:n2), stat=istat)  
-       IF (istat .NE. 0) STOP 'Allocation failed in UPDATE_FORCE_PAR'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in UPDATE_FORCE_PAR')
 
 
 !Convert to real-space contravariant components of B and p
@@ -112,7 +112,7 @@
 !      UPDATE THERMAL (PRESSURE) ENERGY (pijh = jac * pres at this point)
 !
        WPRES: IF (l_getwmhd) THEN
-          IF (INHESSIAN) STOP 'l_getwmhd must be set to FALSE in Hessian'
+          IF (INHESSIAN) CALL ErrorAbort('l_getwmhd must be set to FALSE in Hessian')
           nsmax=MIN(endglobrow,ns)
           IF (nsmin .EQ. 1) pijh1(:,:,1) = 0
           wp = SUM(pijh1(:,:,nsmin:nsmax)*wint(:,:,nsmin:nsmax))
@@ -132,7 +132,7 @@
                 bsupsijf1(ntheta,nzeta,n1:n2),                           &
                 bsupuijf1(ntheta,nzeta,n1:n2),                           &
                 bsupvijf1(ntheta,nzeta,n1:n2), stat=istat)
-       IF (istat .NE. 0) STOP 'Allocation failed in UPDATE_FORCE'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in UPDATE_FORCE')
 
 !
 !Calculate updated FULL-MESH components of BSUPX in real-space by averaging
@@ -165,7 +165,7 @@
        ALLOCATE(KxBsij(ntheta,nzeta,n1:n2),                              &
                 KxBuij(ntheta,nzeta,n1:n2),                              &
                 KxBvij(ntheta,nzeta,n1:n2), stat=istat)  
-       IF (istat .NE. 0) STOP 'Allocation failed in UPDATE_FORCE'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in UPDATE_FORCE')
 
        IF (l_linearize) THEN
 !      dJ X B0 (note here, ksupXijf is the perturbed current)
@@ -198,7 +198,7 @@
        END IF
 
        IF (nsmax .EQ. ns) THEN
-          IF (ANY(bsupsijf1(:,:,ns) .NE. zero)) STOP 'bsupsijf1 != 0'
+          IF (ANY(bsupsijf1(:,:,ns) .NE. zero)) CALL ErrorAbort('bsupsijf1 != 0')
        END IF
 
        DEALLOCATE(ksupsijf, ksupuijf, ksupvijf,                          &
@@ -262,7 +262,7 @@
                bsupumnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                bsupvmnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),                &  
                pmnh_i    (0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-      IF (istat .NE. 0) STOP 'Allocation failed in UPDATE_FORCE'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in INCFIELDS')
 !
 !     IF nonlinear force, add perturbation to DC (initial) value
 !     IF linear force, compute JUST perturbed fields here (add unperturbed force gc0 in funct_island)
@@ -316,7 +316,7 @@
                pmnf_ds(0:mpol,-ntor:ntor,k3:k4),                         &
                pmnf(0:mpol,-ntor:ntor,k3:k4),                            &
                pmnh(0:mpol,-ntor:ntor,k3:k4), stat=istat)         
-      IF (istat .NE. 0) STOP 'Allocation failed in GETMHDFORCE'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in GETMHDFORCE')
 
 !Harmonics of Lorentz force on full grid
       ns_span = (k2-k1) + 1
@@ -355,7 +355,7 @@
 !For l_linearize=F:  NONLINEAR Force
 
       nsmax = k2
-      IF (nsmax .NE. k2) STOP 'NSMAX != K2'
+      IF (nsmax .NE. k2) CALL ErrorAbort('NSMAX != K2')
       KxBsmn = KxBsmn - pmnf_ds(:,:,k1:k2)
       CALL get_force_harmonics_par(pmnf, KxBsmn, KxBumn, KxBvmn,         &
                                    fsubsmnf, fsubumnf, fsubvmnf, iparity)
@@ -448,9 +448,9 @@
           ENDDO
        ENDDO
 
-       IF (ANY(f_smnf(m0,-ntor:-1,k1:k2) .NE. 0)) STOP 'f_smnf != 0'
-       IF (ANY(f_umnf(m0,-ntor:-1,k1:k2) .NE. 0)) STOP 'f_umnf != 0'
-       IF (ANY(f_vmnf(m0,-ntor:-1,k1:k2) .NE. 0)) STOP 'f_vmnf != 0'
+       IF (ANY(f_smnf(m0,-ntor:-1,k1:k2) .NE. 0)) CALL ErrorAbort('f_smnf != 0')
+       IF (ANY(f_umnf(m0,-ntor:-1,k1:k2) .NE. 0)) CALL ErrorAbort('f_umnf != 0')
+       IF (ANY(f_vmnf(m0,-ntor:-1,k1:k2) .NE. 0)) CALL ErrorAbort('f_vmnf != 0')
 
 !      ADD SYMMETRIC DAMPING TERMS -B v dot B TO SUPPRESS NULL SPACE
 !      WORKS BEST: comment out IF statement below, allowing -mu v|| term

@@ -3,7 +3,7 @@
        USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos,  &
                           f_du, f_dv, f_sum
        USE shared_data, ONLY: l_update_state
-       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR, ErrorAbort
        IMPLICIT NONE
        INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
        INTEGER, PRIVATE            :: nsmin, nsmax, ns_span
@@ -38,7 +38,7 @@
        INTEGER            :: js, istat,  m, n, nblock
        REAL(dp)           :: ton, toff, stes(2), rtes(2), pres_edge
        INTEGER            :: i, n1, n2
-       LOGICAL            :: ladd_pert, lcurr
+       LOGICAL            :: ladd_pert
 !-----------------------------------------------
 !      NOTE: jbupXmnPh, jpmnPh are initially computed on FULL ns mesh, and are GATHERED to that 
 !            FULL ns mesh in update_state
@@ -49,8 +49,9 @@
 
        CALL Init_Allocate_Arrays (.TRUE.)
 
-!Calculate unperturbed half mesh jac*bsupX and jac*pressure
+!Calculate unperturbed half mesh jac*bsupX and jac*pressure on [nsmin,nsmax]
 !Sum symmetric and (for lasym) asymmetric parts
+!Returning from update_state, jbsupXmn, jpmn have been gathered onto all processors
        CALL GetFields(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch, isym)
        IF (lasym)                                                        &
        CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
@@ -74,7 +75,6 @@
 
 !Compute and store unperturbed current components on full mesh, KsupX = sqrt(g)*JsupX
        ladd_pert = ALLOCATED(buv_res)
-       lcurr = lcurrent_only .OR. (.NOT.ladd_pert)
        CALL cv_currents (bsupsijh0, bsupuijh0, bsupvijh0,                &
                          ksupsijf0, ksupuijf0, ksupvijf0,                &
                          l_getfsq, .TRUE.)
@@ -89,11 +89,11 @@
           CALL tolowerf_par(bsupsijf0,bsupuijf0,bsupvijf0,               &
                             bsubsijf, bsubuijf, bsubvijf,                &
                             nsmin, nsmax)  
-!IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
+!IN UPDATE-BFIELD, K_x == J_x = PARALLEL COVARIANT CURRENT COMPONENTS ~ B_x
           IF (ladd_pert) THEN
-          ksubsijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)
-          ksubuijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)
-          ksubvijf(:,:,nsmin:nsmax) = jacobf(:,:,nsmin:nsmax)*bsubvijf(:,:,nsmin:nsmax)
+             ksubsijf(:,:,nsmin:nsmax) = bsubsijf(:,:,nsmin:nsmax)
+             ksubuijf(:,:,nsmin:nsmax) = bsubuijf(:,:,nsmin:nsmax)
+             ksubvijf(:,:,nsmin:nsmax) = bsubvijf(:,:,nsmin:nsmax)
           END IF
           nsmax=MIN(endglobrow+2,ns)
        END IF
@@ -228,7 +228,7 @@
 
 !pmnh contains filtered (to MPOL, NTOR) Fourier harmonics of p on half mesh
        ALLOCATE (pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) STOP 'Allocation error in INIT_STATE_PAR'
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in INIT_STATE_PAR')
 
        CALL tomnsp_par(pijh, pmnh(:,:,nsmin:nsmax), four,                &
                        1, ns_span)
@@ -284,7 +284,7 @@
                       ksubsijf,  ksubuijf,  ksubvijf,                    &
                       pijf, pijh, pijf_ds, pijf_du, pijf_dv,             &
                       pijh_du, pijh_dv, stat=istat)
-          IF (istat .NE. 0) STOP 'Deallocation failed in ALLOC_QUANTITIES'
+          IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in ALLOC_QUANTITIES')
           END IF
        END IF
 
@@ -336,7 +336,7 @@
           IF (istat .EQ. 0) THEN
              jvsupsijf = 0; jvsupuijf = 0; jvsupvijf = 0                   ! Need in add_resistivity loop
           ELSE
-             STOP 'Allocation error #1 in Allocate_Arrays'
+             CALL ErrorAbort('Allocation error #1 in Allocate_Arrays')
           END IF
        END IF
 
@@ -357,12 +357,12 @@
           DEALLOCATE (ksupsmnsf, ksupumncf, ksupvmncf,                   &
                       djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,    &
                       stat=istat)
-          IF (istat .NE. 0) STOP 'Deallocation failed in ALLOC_QUANTITIES'
+          IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in ALLOC_QUANTITIES')
           IF (lasym) THEN
           DEALLOCATE (ksupsmncf, ksupumnsf, ksupvmnsf,                   &
                       djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,    &
                       stat=istat)
-          IF (istat .NE. 0) STOP 'Deallocation failed in ALLOC_QUANTITIES'
+          IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in ALLOC_QUANTITIES')
           END IF
           END IF
        END IF
@@ -414,7 +414,7 @@
              djpmnsh = 0; djbsupsmnch = 0; djbsupumnsh = 0; djbsupvmnsh = 0
              END IF
           ELSE
-             STOP 'Allocation error #2 in Allocate_Arrays'
+             CALL ErrorAbort('Allocation error #2 in Allocate_Arrays')
           END IF
        END IF
 

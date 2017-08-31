@@ -9,7 +9,7 @@
       USE shared_functions, ONLY: funct_island, funct_island_par, LineSearch
       USE siesta_state, ONLY: update_state, update_state_par
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,       &
-                               endglobrow, PARSOLVER
+                               endglobrow, PARSOLVER, ErrorAbort
       USE timer_mod
       IMPLICIT NONE
 
@@ -65,7 +65,7 @@
       fmhd=fsq_total1               !!initial fsq BEFORE application of resistive diffusion
 
       ALLOCATE (brhs(neqs), stat=istat)
-      IF (istat .NE. 0) STOP 'ALLOCATION ERROR IN GMRES_FUN'
+      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN GMRES_FUN')
       l_getwmhd=.TRUE.
 
 
@@ -87,7 +87,7 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FAST CONVERGENCE - SPH 083016 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ALLOCATE(xc1(neqs), xcmin(neqs), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error in GMRES'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in GMRES')
       xcmin = 0
 
       iter = 0
@@ -384,11 +384,11 @@
 !           AT PRESENT, ParMatVec WILL NOT WORK IF mupar != 0
 !
       IF (nloc .NE. (endglobrow-startglobrow+1)*mblk_size)               &
-         STOP 'nloc wrong in matvec_par'
+         CALL ErrorAbort('nloc wrong in matvec_par')
 
       CALL second0(skston)
       ALLOCATE (p(ns*mblk_size), stat=istat)
-      IF (istat .NE. 0) STOP 'Allocation error in matvec_par'
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in matvec_par')
 
       CALL gather_array(ploc, p)
 
@@ -452,7 +452,7 @@
 !      delta = delta*(pnorm + SUM(p*xc0))/pnorm
 
 !IF CALLED IN PAR MODE, FIRST GATHER THE xc's
-      IF (SIZE(gc) .NE. SIZE(Ap)) STOP 'gc and Ap wrong sizes'
+      IF (SIZE(gc) .NE. SIZE(Ap)) CALL ErrorAbort('gc and Ap wrong sizes')
       xc = delta*p
 
       IF (PARFUNCTISL) THEN
@@ -560,7 +560,7 @@
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
       ALLOCATE(xc0(neqs), gc0(neqs), vecs(neqs,9), stat=j)
-      IF (j .ne. 0) STOP 'Allocation error in qmr_fun'
+      IF (j .NE. 0) CALL ErrorAbort('Allocation error in qmr_fun')
 
       ndim = SIZE(vecs,1)
       nlen = ndim

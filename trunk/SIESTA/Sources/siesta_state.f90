@@ -18,7 +18,6 @@
 !>  \brief Parallel subroutine for updating the SIESTA state
       SUBROUTINE update_state_par (lprint, fsq_total, ftol)
       USE quantities
-      USE shared_data, ONLY: delta_t !!!!!!!MRC
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t sf
 !-----------------------------------------------
