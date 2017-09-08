@@ -21,6 +21,8 @@
       INTEGER, PARAMETER :: primed_grid_ju_flag = 1
 !>  Bit position for the use curl jv response flag.
       INTEGER, PARAMETER :: primed_grid_jv_flag = 2
+!>  Bit position for the use siesta instead of VMEC.
+      INTEGER, PARAMETER :: primed_grid_siesta_flag = 3
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -66,7 +68,7 @@
 !>  @param[in] flags Number of toroidal grid points.
 !>  @returns A pointer to a constructed @ref primed_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION primed_grid_construct(num_v, flags)
+      FUNCTION primed_grid_construct(num_v, flags, siesta_file)
 
       IMPLICIT NONE
 
@@ -74,6 +76,7 @@
       TYPE (primed_grid_class), POINTER :: primed_grid_construct
       INTEGER, INTENT(in)               :: num_v
       INTEGER, INTENT(in)               :: flags
+      CHARACTER (len=*), INTENT(in)     :: siesta_file
 
 !  local variables
       REAL (rprec)                      :: start_time
@@ -85,6 +88,9 @@
          primed_grid_construct => primed_grid_construct_ju(num_v)
       ELSE IF (BTEST(flags, primed_grid_jv_flag)) THEN
          primed_grid_construct => primed_grid_construct_jv(num_v)
+      ELSE IF (BTEST(flags, primed_grid_siesta_flag)) THEN
+         primed_grid_construct =>                                              &
+     &      primed_grid_construct_siesta(num_v, siesta_file)
       ELSE
          primed_grid_construct => primed_grid_construct_both(num_v)
       END IF
@@ -109,10 +115,10 @@
 !-------------------------------------------------------------------------------
       FUNCTION primed_grid_construct_both(num_v)
       USE stel_constants, ONLY: twopi, mu0
-      USE read_wout_mod, ONLY: xm, xn, mnmax, mnmax_nyq, xm_nyq, xn_nyq,       &
-     &                         lasym, xm, xn, rmnc, rmns, zmnc, zmns,          &
-     &                         currumnc, currvmnc, currumns, currvmns,         &
-     &                         isigng, ns
+      USE read_wout_mod, ONLY: mnmax, mnmax_nyq, xm, xn, xm_nyq, xn_nyq,       &
+     &                         lasym, ns, isigng, rmnc, rmns,                  &
+     &                         zmnc, zmns, currumnc, currvmnc,                 &
+     &                         currumns, currvmns
 
       IMPLICIT NONE
 
@@ -688,6 +694,289 @@
       END IF
 
       CALL profiler_set_stop_time('primed_grid_construct_jv',                  &
+     &                            start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Construct a @ref primed_grid_class object.
+!>
+!>  Allocates memory and initializes a @ref primed_grid_class object with an
+!>  This computes the currents and positions on the primed grid. Plasma currents
+!>  are obtained from Curl(B) of the siesta solution.
+!>
+!>  @param[in] num_v Number of toroidal grid points.
+!>  @returns A pointer to a constructed @ref primed_grid_class object.
+!-------------------------------------------------------------------------------
+      FUNCTION primed_grid_construct_siesta(num_v, siesta_file)
+      USE stel_constants, ONLY: twopi, mu0
+      USE read_wout_mod, ONLY: nfp, ns, rmnc, rmns, zmnc, zmns, isigng,        &
+     &                         mnmax, xm, xn, lasym
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (primed_grid_class), POINTER :: primed_grid_construct_siesta
+      INTEGER, INTENT(in)                         :: num_v
+      CHARACTER (len=*)                           :: siesta_file
+
+!  local variables
+      REAL (rprec)                                :: start_time
+      INTEGER                                     :: si
+      INTEGER                                     :: ui
+      INTEGER                                     :: vi
+      REAL (rprec)                                :: s_v
+      REAL (rprec)                                :: s
+      REAL (rprec)                                :: u
+      REAL (rprec)                                :: v
+      REAL (rprec)                                :: r
+      REAL (rprec)                                :: z
+      REAL (rprec)                                :: rs
+      REAL (rprec)                                :: zs
+      REAL (rprec)                                :: ru
+      REAL (rprec)                                :: zu
+      REAL (rprec)                                :: rv
+      REAL (rprec)                                :: zv
+      REAL (rprec)                                :: js
+      REAL (rprec)                                :: ju
+      REAL (rprec)                                :: jv
+      REAL (rprec)                                :: jr
+      REAL (rprec)                                :: jp
+      REAL (rprec)                                :: jz
+      REAL (rprec)                                :: ds
+      REAL (rprec)                                :: cosv
+      REAL (rprec)                                :: sinv
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: cosmn
+      REAL (rprec), DIMENSION(:,:), ALLOCATABLE   :: sinmn
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: cosmn_vmec
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: sinmn_vmec
+      INTEGER                                     :: ncid
+      INTEGER                                     :: status
+      INTEGER                                     :: nrad
+      INTEGER                                     :: mpol
+      INTEGER                                     :: ntor
+      INTEGER                                     :: m
+      INTEGER                                     :: n
+      INTEGER                                     :: flags
+      REAL (rprec)                                :: b_factor
+      REAL (rprec)                                :: wlow_r
+      INTEGER                                     :: ilow
+      INTEGER                                     :: ihigh
+      REAL (rprec)                                :: wlow
+      REAL (rprec)                                :: whigh
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupsmncf
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupsmnsf
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupumncf
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupumnsf
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupvmncf
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupvmnsf
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: rmncint
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: rmnsint
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: zmncint
+      REAL (rprec), DIMENSION(:), ALLOCATABLE     :: zmnsint
+
+!  local parameters
+      INTEGER, PARAMETER                          :: num_u = 101
+      REAL (rprec)                                :: du = twopi/num_u
+      INTEGER, PARAMETER                          :: lasym_f = 31
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      CALL cdf_open(ncid, TRIM(siesta_file), 'r', status)
+
+      CALL cdf_read(ncid, 'nrad', nrad)
+      CALL cdf_read(ncid, 'ntor', ntor)
+      CALL cdf_read(ncid, 'mpol', mpol)
+
+      CALL cdf_read(ncid, 'state_flags', flags)
+
+      CALL cdf_read(ncid, 'b_factor', b_factor)
+
+      ALLOCATE(jksupsmnsf(0:mpol,-ntor:ntor,nrad))
+      ALLOCATE(jksupumncf(0:mpol,-ntor:ntor,nrad))
+      ALLOCATE(jksupvmncf(0:mpol,-ntor:ntor,nrad))
+
+      CALL cdf_read(ncid, 'jksupsmnsf(m,n,r)', jksupsmnsf)
+      CALL cdf_read(ncid, 'jksupumncf(m,n,r)', jksupumncf)
+      CALL cdf_read(ncid, 'jksupvmncf(m,n,r)', jksupvmncf)
+
+      IF (BTEST(flags, lasym_f)) THEN
+         ALLOCATE(jksupsmncf(0:mpol,-ntor:ntor,nrad))
+         ALLOCATE(jksupumnsf(0:mpol,-ntor:ntor,nrad))
+         ALLOCATE(jksupvmnsf(0:mpol,-ntor:ntor,nrad))
+
+         CALL cdf_read(ncid, 'jksupsmncf(m,n,r)', jksupsmncf)
+         CALL cdf_read(ncid, 'jksupumnsf(m,n,r)', jksupumnsf)
+         CALL cdf_read(ncid, 'jksupvmnsf(m,n,r)', jksupvmnsf)
+      END IF
+
+      CALL cdf_close(ncid)
+
+      ALLOCATE(primed_grid_construct_siesta)
+
+      ALLOCATE(primed_grid_construct_siesta%x(nrad,num_u,num_v))
+      ALLOCATE(primed_grid_construct_siesta%y(nrad,num_u,num_v))
+      ALLOCATE(primed_grid_construct_siesta%z(nrad,num_u,num_v))
+
+      ALLOCATE(primed_grid_construct_siesta%j_x(nrad,num_u,num_v))
+      ALLOCATE(primed_grid_construct_siesta%j_y(nrad,num_u,num_v))
+      ALLOCATE(primed_grid_construct_siesta%j_z(nrad,num_u,num_v))
+
+      ds = 1.0/(ns - 1.0)
+      primed_grid_construct_siesta%dv = twopi/num_v
+
+      primed_grid_construct_siesta%dvol = isigng*ds*du                         &
+     &   * primed_grid_construct_siesta%dv/(2.0*twopi)
+
+!$OMP PARALLEL
+!$OMP& DEFAULT(SHARED)
+!$OMP& PRIVATE(si, ui, vi, r, z, rs, ru, rv, zs, zu, zv, js, ju, jv,           &
+!$OMP&         jr, jp, s, u, v, cosmn, sinmn, cosmn_vmec, sinmn_vmec,          &
+!$OMP&         cosv, sinv, ilow, ihigh, wlow, whigh, rmncint, zmnsint,         &
+!$OMP&         rmnsint, zmncint)
+
+      ALLOCATE(cosmn(0:mpol,-ntor:ntor))
+      ALLOCATE(sinmn(0:mpol,-ntor:ntor))
+
+      ALLOCATE(cosmn_vmec(mnmax))
+      ALLOCATE(sinmn_vmec(mnmax))
+
+      ALLOCATE(rmncint(mnmax))
+      ALLOCATE(zmnsint(mnmax))
+      IF (BTEST(flags, lasym_f)) THEN
+         ALLOCATE(rmnsint(mnmax))
+         ALLOCATE(zmncint(mnmax))
+      END IF
+
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+      DO vi = 1, num_v
+         v = (vi - 0.5)*primed_grid_construct_siesta%dv
+
+         cosv = COS(v)
+         sinv = SIN(v)
+
+         DO ui = 1, num_u
+            u = (ui - 0.5)*du
+
+            cosmn_vmec = COS(xm*u - xn*v)
+            sinmn_vmec = SIN(xm*u - xn*v)
+
+            DO n = -ntor, ntor
+               DO m = 0, mpol
+                  cosmn(m,n) = COS(m*u + nfp*n*v)
+                  sinmn(m,n) = SIN(m*u + nfp*n*v)
+               END DO
+            END DO
+
+            DO si = 1, nrad
+               s = (si - 1.0)/(nrad - 1.0)
+               s_v = s*s
+
+               wlow_r = s_v*(ns - 1.0) + 1.0
+               ilow = FLOOR(wlow_r)
+               IF (ilow .eq. ns) THEN
+                  ilow = ns - 1
+               END IF
+               ihigh = ilow + 1
+               wlow = -wlow_r + 1.0 + ilow
+               whigh = 1.0 - wlow
+
+               rmncint = wlow*rmnc(:,ilow) + whigh*rmnc(:,ihigh)
+               zmnsint = wlow*zmns(:,ilow) + whigh*zmns(:,ihigh)
+
+               r = SUM(rmncint*cosmn_vmec)
+               z = SUM(zmnsint*sinmn_vmec)
+
+               ru = -SUM(xm*rmncint*sinmn_vmec)
+               rv =  SUM(xn*rmncint*sinmn_vmec)
+               zu =  SUM(xm*zmnsint*cosmn_vmec)
+               zv = -SUM(xn*zmnsint*cosmn_vmec)
+
+               rmncint = 2.0*s*(rmnc(:,ihigh) - rmnc(:,ilow))*(ns - 1.0)
+               zmnsint = 2.0*s*(zmns(:,ihigh) - zmns(:,ilow))*(ns - 1.0)
+
+               rs = SUM(rmncint*cosmn_vmec)
+               zs = SUM(zmnsint*sinmn_vmec)
+
+               js = SUM(jksupsmnsf(:,:,si)*sinmn)
+               ju = SUM(jksupumncf(:,:,si)*cosmn)
+               jv = SUM(jksupvmncf(:,:,si)*cosmn)
+
+               IF (BTEST(flags, lasym_f)) THEN
+                  IF (lasym) THEN
+                     rmnsint = wlow*rmns(:,ilow) + whigh*rmns(:,ihigh)
+                     zmncint = wlow*zmnc(:,ilow) + whigh*zmnc(:,ihigh)
+
+                     r = r + SUM(rmnsint*sinmn_vmec)
+                     z = z + SUM(zmncint*cosmn_vmec)
+
+                     ru = ru + SUM(xm*rmnsint*cosmn_vmec)
+                     rv = rv - SUM(xn*rmnsint*cosmn_vmec)
+                     zu = zu - SUM(xm*zmncint*sinmn_vmec)
+                     zv = zv + SUM(xn*zmncint*sinmn_vmec)
+
+                     rmnsint = 2.0*s*(rmns(:,ihigh) - rmns(:,ilow))            &
+     &                       * (ns - 1.0)
+                     zmncint = 2.0*s*(zmnc(:,ihigh) - zmnc(:,ilow))            &
+     &                       * (ns - 1.0)
+
+                     rs = rs + SUM(rmnsint*sinmn_vmec)
+                     zs = zs + SUM(zmncint*cosmn_vmec)
+                  END IF
+
+                  js = js + SUM(jksupsmncf(:,:,si)*cosmn)
+                  ju = ju + SUM(jksupumnsf(:,:,si)*sinmn)
+                  jv = jv + SUM(jksupvmnsf(:,:,si)*sinmn)
+
+               END IF
+
+               js = js/(b_factor*mu0)
+               ju = ju/(b_factor*mu0)
+               jv = jv/(b_factor*mu0)
+
+               jr = js*rs + ju*ru + jv*rv
+               jp = jv*r
+               jz = ju*zs + ju*zu + jv*zv
+
+               IF (si .eq. 1 .or. si .eq. ns) THEN
+                  jr = jr/2.0
+                  jp = jp/2.0
+                  jz = jz/2.0
+               END IF
+
+               primed_grid_construct_siesta%j_x(si,ui,vi) = jr*cosv            &
+     &                                                    - jp*sinv
+               primed_grid_construct_siesta%j_y(si,ui,vi) = jr*sinv            &
+     &                                                    + jp*cosv
+               primed_grid_construct_siesta%j_z(si,ui,vi) = jz
+
+               primed_grid_construct_siesta%x(si,ui,vi) = r*cosv
+               primed_grid_construct_siesta%y(si,ui,vi) = r*sinv
+               primed_grid_construct_siesta%z(si,ui,vi) = z
+            END DO
+         END DO
+       END DO
+!$OMP END DO
+
+       DEALLOCATE(cosmn)
+       DEALLOCATE(sinmn)
+
+       DEALLOCATE(cosmn_vmec)
+       DEALLOCATE(sinmn_vmec)
+
+       DEALLOCATE(rmncint)
+       DEALLOCATE(zmnsint)
+       IF (BTEST(flags, lasym_f)) THEN
+          DEALLOCATE(rmnsint)
+          DEALLOCATE(zmncint)
+       END IF
+
+!$OMP END PARALLEL
+
+      CALL profiler_set_stop_time('primed_grid_construct_siesta',              &
      &                            start_time)
 
       END FUNCTION

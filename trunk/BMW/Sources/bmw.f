@@ -65,6 +65,13 @@
       END IF
       IF (bmw_commandline_parser_is_flag_set(cl_parser, '-jv')) THEN
          flags = IBSET(flags, primed_grid_jv_flag)
+         flags = IBCLR(flags, primed_grid_ju_flag)
+      END IF
+      IF (bmw_commandline_parser_is_flag_set(cl_parser,                        &
+     &                                       '-siestaf')) THEN
+         flags = IBSET(flags, primed_grid_siesta_flag)
+         flags = IBCLR(flags, primed_grid_ju_flag)
+         flags = IBCLR(flags, primed_grid_jv_flag)
       END IF
 
 !  Configure the number of threeds to use.
@@ -82,6 +89,7 @@
       context => bmw_context_construct(                                        &
      &   bmw_commandline_parser_get_string(cl_parser, '-mgridf'),              &
      &   bmw_commandline_parser_get_string(cl_parser, '-woutf'),               &
+     &   bmw_commandline_parser_get_string(cl_parser, '-siestaf'),             &
      &   flags)
       CALL bmw_context_write(context,                                          &
      &        bmw_commandline_parser_get_string(cl_parser, '-outf'))

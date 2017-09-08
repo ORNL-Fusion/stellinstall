@@ -82,6 +82,7 @@
       INTEGER                                     :: num_z
       REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp_buffer
       CHARACTER (len=6)                           :: temp_string
+      INTEGER, DIMENSION(3)                       :: temp_dims
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -89,6 +90,12 @@
       ALLOCATE(m_grid_construct)
 
       CALL cdf_open(mgrid_ncid, TRIM(mgrid_file_name), 'r', status)
+
+      CALL cdf_inquire(mgrid_ncid, 'ar_001', temp_dims, ier=status)
+      IF (status .ne. 0) THEN
+         WRITE (*,3000) TRIM(mgrid_file_name)
+         CALL EXIT(status)
+      END IF
 
       CALL cdf_read(mgrid_ncid, 'ir', num_r)
       CALL cdf_read(mgrid_ncid, 'kp', num_p)
@@ -142,6 +149,8 @@
 1002  FORMAT('az_',i3.3)
 
 2000  FORMAT('M Grid Ready')
+
+3000  FORMAT(a,' does not contain the vacuum vector potential.')
 
       END FUNCTION
 
