@@ -6,7 +6,6 @@
       USE stel_kinds
       USE stel_constants
       USE island_params
-      USE nscalingtools, ONLY: ErrorAbort
       USE shared_data, ONLY: lasym, lverbose
       USE read_wout_mod, ns_vmec=>ns, mpol_vmec=>mpol, ntor_vmec=>ntor,  &
           rmnc_vmec=>rmnc, zmns_vmec=>zmns, lmns_vmec=>lmns,             &
@@ -877,7 +876,7 @@
               + gsuf(:,js)*(guvf(:,js)*gsvf(:,js)-gsuf(:,js)*gvvf(:,js)) &
               + gsvf(:,js)*(gsuf(:,js)*guvf(:,js)-gsvf(:,js)*guuf(:,js))
          IF (ANY(det .LE. zero)) THEN
-            IF (iam .EQ. 0 .and. lverbose)PRINT *,'Determinant |gijf| <= 0 at js = ',js
+            IF (iam .EQ. 0 .and. lverbose) PRINT *,'Determinant |gijf| <= 0 at js = ',js
             IF (js .EQ. ns) THEN
                det(:) = sqrtg(:,ns)**2
                gssf(:,ns) = gss(:,ns)

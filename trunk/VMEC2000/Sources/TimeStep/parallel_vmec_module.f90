@@ -13,7 +13,7 @@ MODULE parallel_vmec_module
   INTEGER :: par_ns, mynsnum, par_nzeta, par_ntheta3
   INTEGER :: par_ntmax, par_ntor, par_mpol1, par_nznt, par_nuv, par_nuv3
   INTEGER :: blocksize, ntmaxblocksize
-  INTEGER :: tlglob, trglob, t1lglob, t1rglob
+  INTEGER :: tlglob, trglob, t1lglob, t1rglob, t2lglob, t2rglob
   INTEGER :: nuvmin, nuvmax, nuv3min, nuv3max 
   INTEGER :: MPI_ERR
 #if defined(MPI_OPT)

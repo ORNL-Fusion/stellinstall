@@ -16,7 +16,7 @@
                             wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
       USE siesta_init, ONLY: init_state_par
-      USE nscalingtools, ONLY: rcountsNS, dispNS, ErrorAbort
+      USE nscalingtools, ONLY: rcountsNS, dispNS
       CONTAINS
 
 !>  \brief Parallel routine to compute forces for perturbed state.
@@ -231,7 +231,7 @@
          ELSE IF (j.NE.4 .AND. fsq_total1.LT.fsq_min) THEN
             xcmin = xc
             IF (fsq_total1 .GT. 0.98_dp*fsq_min) iter=iter+1
-            IF (fsq_total1 .LT. 0.95_dp*fsq_min) iter = 0
+            IF (fsq_total1 .LT. 0.85_dp*fsq_min) iter = 0
             fsq_min = fsq_total1
          ELSE IF (j .GT. 4) THEN
             iter = iter+1

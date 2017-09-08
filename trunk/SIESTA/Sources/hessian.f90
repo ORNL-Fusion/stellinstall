@@ -16,12 +16,12 @@
         rcounts, disp, startglobrow, endglobrow, nranks, rank,           &
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,               &
         SYMMETRYCHECK, totRecvs, PACKSIZE, WriteTime, send, receive,     &
-        SetBlockTriDataStruct, GetFullSolution, ErrorAbort
+        SetBlockTriDataStruct, GetFullSolution
       USE blocktridiagonalsolver_s
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,     &
-                               startglobrow, endglobrow, ErrorAbort
+                               startglobrow, endglobrow
 #endif
       IMPLICIT NONE
 !-----------------------------------------------
@@ -65,7 +65,7 @@
       LOGICAL, PUBLIC   :: l_Compute_Hessian, l_Diagonal_Only
       INTEGER, PUBLIC :: HESSPASS=0
       PUBLIC  :: apply_precond, dealloc_hessian, InitHess,               &
-                 Compute_Hessian_Blocks
+                 Compute_Hessian_Blocks, PadSides
 
       CONTAINS
 
@@ -188,18 +188,18 @@
         IF (PARFUNCTISL) THEN
           IF(SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_No_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
           IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
-             PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
+            PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
           CALL Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc, func, l_Hess_sym)
         ELSE
           IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
-          IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)              &
-             PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH COLUMN REDISTRIBUTION'
+          IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
+            PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH COLUMN REDISTRIBUTION'
           CALL Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func, l_Hess_sym)
         END IF 
       ELSE 
         IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_Thomas'; CALL FLUSH(TOFU)
-        IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)                &
-            PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
+        IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
+          PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
         CALL Compute_Hessian_Blocks_Thomas (xc, gc, func, l_Hess_sym)
       END IF
 
@@ -453,6 +453,40 @@
 #endif
       END SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist
 
+      SUBROUTINE PadSides(arrin, blksize, top, bot)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)     :: top, bot, blksize
+      REAL(dp), INTENT(INOUT) :: arrin(blksize, ns)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+#if defined(SKS)
+      INTEGER                 :: MPI_STAT(MPI_STATUS_SIZE)
+      INTEGER                 :: M1, left, right, tag1=1, tag2=2,    &
+                                 tr, t1l, tl, t1r
+!-----------------------------------------------
+      left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
+      right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
+
+      tr = endglobrow;              tl = startglobrow
+      t1r= MIN(endglobrow+1, ns);   t1l= MAX(1, startglobrow-1)
+
+!Send top / Rec bottom elements
+      M1 = blksize*top
+      CALL MPI_Sendrecv(arrin(:,tr-(top-1):tr), M1, MPI_REAL8,       &
+               right, tag1, arrin(:,t1l-(top-1):t1l), M1, MPI_REAL8, &
+               left,  tag1, SIESTA_COMM, MPI_STAT, MPI_ERR)
+
+!Send bottom / Rec top boundary elements
+      M1 = blksize*bot
+      CALL MPI_Sendrecv(arrin(:,tl:tl+(bot-1)), M1, MPI_REAL8,       &
+               left,  tag2, arrin(:,t1r:t1r+(bot-1)), M1, MPI_REAL8, &
+               right, tag2, SIESTA_COMM, MPI_STAT, MPI_ERR)
+#endif
+      END SUBROUTINE PadSides
+
 #if defined(SKS)
       SUBROUTINE VectorCopyPar (colsum, colscale)
 !-----------------------------------------------
@@ -463,35 +497,13 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER               :: js, M1
-      INTEGER               :: MPI_STAT(MPI_STATUS_SIZE)
+      INTEGER               :: js
 !-----------------------------------------------
- 
       DO js = startglobrow, endglobrow 
         colscale(:,js) = colsum(:,js)
       END DO
 
-      M1 = mblk_size
-
-! Get top boundary elements; in siesta_displacement, need from startglobrow-1:endglobrow+1
-      IF (rank.LT.nranks-1) THEN
-        CALL MPI_Send(colsum(:,endglobrow),M1,MPI_REAL8,    &
-          rank+1,1,SIESTA_COMM,MPI_ERR)
-      END IF
-      IF (rank.GT.0) THEN
-        CALL MPI_Recv(colscale(:,startglobrow-1),M1,      &
-          MPI_REAL8,rank-1,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
-      END IF
-
-! Get bot boundary elements
-      IF (rank.GT.0) THEN
-        CALL MPI_Send(colsum(:,startglobrow),M1,MPI_REAL8,&
-          rank-1,1,SIESTA_COMM,MPI_ERR)
-      END IF
-      IF (rank.LT.nranks-1) THEN
-        CALL MPI_Recv(colscale(:,endglobrow+1),M1,MPI_REAL8,&
-          rank+1,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
-      END IF
+      CALL PadSides(colscale, mblk_size, 1, 1)
 
       END SUBROUTINE VectorCopyPar
 #endif
@@ -732,7 +744,7 @@
           asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
         ENDIF
       ENDIF      
-
+ 
 !
 !     FACTORIZE (Invert) HESSIAN
 !

@@ -105,16 +105,4 @@
 
       END SUBROUTINE
 
-      SUBROUTINE ErrorAbort(message)
-      USE descriptor_mod, ONLY: iam
-      CHARACTER*(*), INTENT(IN) :: message
-      INTEGER :: MPI_ERR
-#if defined(MPI_OPT)
-      IF (iam .eq. 0) PRINT *, TRIM(message)
-      CALL MPI_ABORT(MPI_COMM_WORLD, 1, MPI_ERR)
-#else
-      PRINT *, TRIM(message); STOP
-#endif
-      END SUBROUTINE ErrorAbort
-
       END MODULE

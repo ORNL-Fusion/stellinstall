@@ -16,7 +16,6 @@ USE blocktridiagonalsolver_s, ONLY: &
 USE mpi_inc
 USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
-USE siesta_error
 IMPLICIT NONE
 !------------------------------------------------
 ! User-controlled logicals
@@ -489,7 +488,7 @@ END SUBROUTINE receive
 ! solution vectors and reconstruct the full 
 ! vector on each processor
 !------------------------------------------------
-SUBROUTINE GetFullSolution(invec,outvec)
+SUBROUTINE GetFullSolution(invec,outvec) 
 
 REAL(dp), DIMENSION(1:N*M), INTENT(IN) :: invec
 REAL(dp), DIMENSION(N,M), INTENT(OUT)  :: outvec
@@ -532,7 +531,7 @@ SUBROUTINE CheckPoint(ckpt, infname)
 INTEGER, INTENT(IN) :: ckpt
 CHARACTER(3) :: infname
       
-CALL MPI_Barrier(SIESTA_COMM, MPI_ERR) 
+CALL MPI_Barrier(SIESTA_COMM, MPI_ERR)
 WRITE(90000+rank,*) 'CheckPoint: Location  ',infname, ' @ pt',ckpt,'in rank', rank
 CALL FLUSH(90000+rank)
 
@@ -712,3 +711,15 @@ END SUBROUTINE GetTimes
 
 END MODULE nscalingtools
 !------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ErrorAbort(message)
+CHARACTER*(*), INTENT(IN) :: message
+#if defined(MPI_OPT)
+IF (rank .EQ. 0) PRINT *, TRIM(message)
+CALL MPI_Abort(MPI_COMM_WORLD, 1, MPI_ERR)
+#else
+PRINT *, TRIM(message); STOP
+#endif
+END SUBROUTINE ErrorAbort
+

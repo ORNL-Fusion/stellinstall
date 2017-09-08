@@ -40,8 +40,8 @@
 
        USE stel_kinds
        USE stel_constants
-       USE fourier
-       USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
+       USE fourier       
+       USE nscalingtools, ONLY: startglobrow, endglobrow
        IMPLICIT NONE
 
        INTEGER, PARAMETER  :: m0=0, m1=1, isym=0, iasym=1
@@ -188,9 +188,8 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER   :: fours, fouru, fourv, m, n, mp, np, MPI_ERR
-       REAL(dp)  :: sparity
+       REAL(dp)  :: sparity, s(1), r(1)
 !-----------------------------------------------
-
        IF (iparity .EQ. isym) THEN
           fours=f_cos; fouru=f_sin; fourv=f_sin
           sparity = 1
@@ -200,11 +199,11 @@
        END IF
 
        m = LBOUND(djpmnh,3);  n = UBOUND(djpmnh,3)
-       IF (m.NE.nsmin .OR. n.NE.nsmax) CALL ErrorAbort('djpmnh wrong bounds - Continuity')
+       IF (m.GT.nsmin .OR. n.LT.nsmax) CALL ErrorAbort('djpmnh wrong bounds - Continuity')
 
 !      FFT of gradp*Flux terms
        CALL tomnsp_par(vgradph, work4, fours, 1, ns_span)                ! Calculate Fourier transform of v_dot_gradph
-       djpmnh = gamm1*work4(:,:,nsmin:nsmax)                             ! Harmonics of r.h.s. of Pres. Eq. (full mesh) 
+       djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of Pres. Eq. (full mesh) 
 
 !      FFT of Div(p*Flux) terms (multiply angular derivatives by m,n*nfp)
        CALL tomnsp_par(work1, work4, fours, 1, ns_span)
@@ -222,7 +221,8 @@
      
        work4 = work4 + work5
 
-       djpmnh = djpmnh - gamma*work4(:,:,nsmin:nsmax)                    ! Gamma = adiabatic factor
+! Gamma = adiabatic factor
+       djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax) - gamma*work4(:,:,nsmin:nsmax)
 
 !SPH   Evolve harmonics of (jacobh * pres)mn to conserve pressure
        djpmnh = delta_t*djpmnh                                           ! calculate increment of pressure harmonics.

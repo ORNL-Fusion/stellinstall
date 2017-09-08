@@ -9,7 +9,6 @@
 !*******************************************************************************
       MODULE restart_mod
       USE ezcdf
-      USE nscalingtools, ONLY: ErrorAbort
       USE stel_kinds
 
       IMPLICIT NONE

@@ -46,7 +46,7 @@
       USE island_params, ONLY: nu_i, hs_i, dnorm_i
       USE timer_mod
       USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose
-      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR, ErrorAbort
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE descriptor_mod, ONLY: SIESTA_COMM
 
       IMPLICIT NONE
@@ -269,10 +269,10 @@
 !
       xfact = 1
       IF (l_linearize) xfact = 0
-      bsupsmnh_i = xfact*jbsupsmnh(:,:,nsmin:nsmax) + djbsupsmnh
-      bsupumnh_i = xfact*jbsupumnh(:,:,nsmin:nsmax) + djbsupumnh
-      bsupvmnh_i = xfact*jbsupvmnh(:,:,nsmin:nsmax) + djbsupvmnh
-      pmnh_i     = xfact*jpmnh(:,:,nsmin:nsmax)     + djpmnh
+      bsupsmnh_i = xfact*jbsupsmnh(:,:,nsmin:nsmax) + djbsupsmnh(:,:,nsmin:nsmax)
+      bsupumnh_i = xfact*jbsupumnh(:,:,nsmin:nsmax) + djbsupumnh(:,:,nsmin:nsmax)
+      bsupvmnh_i = xfact*jbsupvmnh(:,:,nsmin:nsmax) + djbsupvmnh(:,:,nsmin:nsmax)
+      pmnh_i     = xfact*jpmnh(:,:,nsmin:nsmax)     + djpmnh(:,:,nsmin:nsmax)
 
 ! Calculate real-space BSUPX on half mesh
       CALL toijsp_par(bsupsmnh_i, bsupsijh, fcomb, fours, 1, ns_span)   

@@ -25,18 +25,17 @@
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: p98 = 0.98_dp, p96 = 0.96_dp
+      REAL(dp), PARAMETER :: p98 = 0.98_dp, p96 = 0.96_dp
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec) :: w1, r00s, w0, wdota, r0dot
-      LOGICAL :: liter_flag, lreset_internal
 #if defined (SKS)      
       INTEGER :: i, j, k, l, lk
-      REAL(rprec) :: skston, skstoff
 #else
       INTEGER, PARAMETER :: rank=0, grank=0
 #endif
+      REAL(dp) :: w1, r00s, w0, wdota, r0dot, teqsolon, teqsoloff
+      LOGICAL :: liter_flag, lreset_internal
 C-----------------------------------------------
 !
 !                INDEX OF LOCAL VARIABLES
@@ -56,6 +55,9 @@ C-----------------------------------------------
 !        gc      stacked array of R, Z, Lambda Spectral force coefficients (see readin for stack order)
 !        xc      stacked array of scaled R, Z, Lambda Fourier coefficients
 
+#if defined(SKS)
+      CALL second0(teqsolon)
+#endif
 
       liter_flag = iter2 .eq. 1
  1000 CONTINUE
@@ -102,14 +104,8 @@ C-----------------------------------------------
 !
 !     ADVANCE FOURIER AMPLITUDES OF R, Z, AND LAMBDA
 !
-#if defined (SKS)
-         CALL second0(skston)
-#endif
          CALL evolve (delt0r, ier_flag, liter_flag, lscreen)
-#if defined (SKS)
-         CALL second0(skstoff)
-         evolve_time = evolve_time + (skstoff - skston)
-#endif
+
          IF (ijacob.eq.0 .and. (ier_flag.eq.bad_jacobian_flag
      1       .or. irst.eq.4) .and. ns.ge.3) THEN
             IF (lscreen) THEN
@@ -133,8 +129,8 @@ C-----------------------------------------------
             ijacob = 1
             irst = 2
             GOTO 20
-         ELSE IF (ier_flag.ne.norm_term_flag .and. 
-     1            ier_flag.ne.successful_term_flag) THEN
+         ELSE IF (ier_flag.NE.norm_term_flag .AND. 
+     1            ier_flag.NE.successful_term_flag) THEN
             RETURN
          ENDIF
 
@@ -234,6 +230,11 @@ C-----------------------------------------------
          IF (lrecon) WRITE (nthreed, 70) r00*fsqsum0/wb
          IF (nfcn .GT. 0) WRITE (nthreed, 80) nfcn
 	END IF
+
+#if defined(SKS)
+      CALL second0(teqsoloff)
+      eqsolve_time = eqsolve_time + (teqsoloff-teqsolon)
+#endif
 
    60 FORMAT(/,' MHD Energy = ',1p,e12.6,3x, 'd(ln W)/dt = ',1p,e9.3,
      1         3x,'d(ln R0)/dt = ',e9.3)

@@ -247,7 +247,6 @@
       USE shared_data, ONLY: wtotal, l_linearize, ndims
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
-      USE nscalingtools, ONLY: ErrorAbort
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

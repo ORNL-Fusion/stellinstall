@@ -6,7 +6,7 @@
        USE stel_kinds
        USE stel_constants
        USE fourier 
-       USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
+       USE nscalingtools, ONLY: startglobrow, endglobrow
        USE timer_mod
        IMPLICIT NONE
        
@@ -133,8 +133,6 @@
 !
 !Update Bfield using Faraday's Law
 ! 
-       nsmin =MAX(1,startglobrow)
-
        CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch, isym)
        IF (lasym)                                                        &
        CALL Faraday(djbsupsmnch, djbsupumnsh, djbsupvmnsh, iasym)
@@ -206,10 +204,6 @@
        CALL GradientHalf_par(de_uds, esubumnf, nblock, nmin, nmax)
        CALL GradientHalf_par(de_vds, esubvmnf, nblock, nmin, nmax)
 
-!      Calculate r.h.s. of the evolution equations of all components of jacobh*BSUP?
-!      Compute contravariant components of -curl(E) for right side of Faraday's Equation
-!
-       nmin=MAX(1,startglobrow)
 
 !IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
        IF (nmin.EQ.1 .AND. .NOT.l_natural) THEN
@@ -220,6 +214,10 @@
           de_uds(m1,:,2) = de_uds(m1,:,2) - djbsupsmnh(m1,:,1)/r0         !Preserves div B = 0
        END IF
 
+!      Calculate r.h.s. of the evolution equations of all components of jacobh*BSUP?
+!      Compute contravariant components of -curl(E) for right side of Faraday's Equation
+!
+       nmin=MAX(1,startglobrow)
        DO m = 0, mpol
          mp = sparity*m
          DO n = -ntor, ntor
@@ -227,9 +225,9 @@
            djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)        & ! -mp  ~ d/du
                                      - np*esubumnh(m,n,nmin:nmax)          ! -np  ~ d/dv
            djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)        &
-          		                     + de_vds(m,n,nmin:nmax)
+		                     + de_vds(m,n,nmin:nmax)
            djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)        &
-                                     - de_uds(m,n,nmin:nmax)
+		                     - de_uds(m,n,nmin:nmax)
           ENDDO
        ENDDO
 

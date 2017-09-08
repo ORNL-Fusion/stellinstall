@@ -17,8 +17,8 @@
       MODULE siesta_displacement
       USE stel_kinds
       USE stel_constants        
-      USE fourier
-      USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
+      USE fourier 
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE timer_mod, ONLY: time_update_upperv
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1

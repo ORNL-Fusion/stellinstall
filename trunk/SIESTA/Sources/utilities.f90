@@ -96,7 +96,6 @@
       USE stel_kinds
       USE stel_constants, ONLY: zero
       USE island_params, ns=>ns_i
-      USE nscalingtools, ONLY: ErrorAbort
       IMPLICIT NONE        
 !  
 !       This subroutine migrates a half mesh quantity to the full mesh.
@@ -143,7 +142,7 @@
                             fsupsmncf, fsupumnsf, fsupvmnsf, wint 
       USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,   &
                          f_sum
-      USE nscalingtools, ONLY: startglobrow, endglobrow, ErrorAbort
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE shared_data, ONLY: lasym
       IMPLICIT NONE
 !-----------------------------------------------

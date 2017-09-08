@@ -5,7 +5,7 @@
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale,             &
                              lasym, hesspass_test, mupar_test,           &
                              buv_res, lrecon
-      USE nscalingtools, ONLY: PARFUNCTISL, ErrorAbort
+      USE nscalingtools, ONLY: PARFUNCTISL
       
       INTEGER  :: irad_scale=11
       INTEGER  :: nsin=101, mpolin=12, ntorin=3
@@ -306,12 +306,12 @@
       INTEGER, INTENT(in)      :: mres0
       INTEGER, INTENT(in)     :: nres0
       INTEGER, INTENT(inout)   :: jstart
-      REAL(rprec), INTENT(out) :: resrad
+      REAL(dp), INTENT(out) :: resrad
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER                   :: js, jmin
-      REAL(rprec)               :: del1, del2, rho1, rho2, delmin
+      REAL(dp)               :: del1, del2, rho1, rho2, delmin
 !-----------------------------------------------
 !
 !     Starting at jstart, find place where mres0*chip+n*nfp*phip is minimum (changes sign)
@@ -367,16 +367,16 @@
 !-----------------------------------------------
       INTEGER, INTENT(in)       :: irscale, isign
       INTEGER, INTENT(in)       :: mres0, nres0
-      REAL(rprec), INTENT(in)   :: rad
-      REAL(rprec), INTENT(out)  :: chip0, phip0
-      REAL(rprec), INTENT(in)   :: HelPert0
+      REAL(dp), INTENT(in)   :: rad
+      REAL(dp), INTENT(out)  :: chip0, phip0
+      REAL(dp), INTENT(in)   :: HelPert0
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER     :: js, istat
-      REAL(rprec) :: rho, rhores, pert_prof(ns), HelP_local, locrad
-      REAL(rprec), ALLOCATABLE   :: bmn_res(:,:)
-      REAL(rprec), ALLOCATABLE   :: temp_uv(:,:)
+      REAL(dp) :: rho, rhores, pert_prof(ns), HelP_local, locrad
+      REAL(dp), ALLOCATABLE   :: bmn_res(:,:)
+      REAL(dp), ALLOCATABLE   :: temp_uv(:,:)
 !-----------------------------------------------
       IF (mres0.GT.mpolin .OR. ABS(nres0).GT.ntorin) RETURN
 
@@ -425,7 +425,7 @@
 
       SUBROUTINE write_restart_file
       USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
-                            ns, mpol, ntor
+                            ns, mpol, ntor, GatherFields
       USE descriptor_mod, ONLY: iam
 #if defined(MRC)
       USE restart_mod
@@ -437,7 +437,9 @@
       INTEGER           :: istat, js, m, n
       CHARACTER*(256)   :: filename
 !-----------------------------------------------
-    
+!Gather fields for all ns (known only on [nsmin-1,nsmax+2])
+      CALL GatherFields
+
       IF (iam .NE. 0) RETURN
 #if defined(MRC)
       istat = restart_write("siesta_" // TRIM(restart_ext) // ".nc", wout_file)
@@ -577,8 +579,8 @@
 !-----------------------------------------------
       INTEGER, PARAMETER :: m0=0, m1=1
       INTEGER            :: istat, m, n, js, ns, ntor, mpol, nmin
-      REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp
-      REAL(rprec)        :: r0
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp
+      REAL(dp)        :: r0
       CHARACTER*(256)    :: filename
 !-----------------------------------------------
 #if defined(MRC)
@@ -753,15 +755,15 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)      :: n1, n2, m1, m2, ns_old, ns_new
-      REAL(rprec), INTENT(in)  :: aold(0:m1,-n1:n1,ns_old)
-      REAL(rprec), INTENT(out) :: anew(0:m2,-n2:n2,ns_new)
+      REAL(dp), INTENT(in)  :: aold(0:m1,-n1:n1,ns_old)
+      REAL(dp), INTENT(out) :: anew(0:m2,-n2:n2,ns_new)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER   :: p5 = 0.5_dp
-      REAL(rprec), ALLOCATABLE :: temp1(:,:,:)
+      REAL(dp), PARAMETER   :: p5 = 0.5_dp
+      REAL(dp), ALLOCATABLE :: temp1(:,:,:)
       INTEGER                  :: m12, n12, js_old, js_new, istat
-      REAL(rprec)              :: hs_old, hs_new, snew, sold, x1
+      REAL(dp)              :: hs_old, hs_new, snew, sold, x1
 !-----------------------------------------------
 
       m12 = MIN(m1,m2);  n12 = MIN(n1, n2)

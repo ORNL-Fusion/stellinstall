@@ -3,7 +3,7 @@
        USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos,  &
                           f_du, f_dv, f_sum
        USE shared_data, ONLY: l_update_state
-       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR, ErrorAbort
+       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
        IMPLICIT NONE
        INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
        INTEGER, PRIVATE            :: nsmin, nsmax, ns_span
@@ -44,7 +44,7 @@
 !            FULL ns mesh in update_state
 
        istat = 0
-       nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+2,ns)
+       nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+2)
        ns_span = nsmax-nsmin+1
 
        CALL Init_Allocate_Arrays (.TRUE.)
@@ -56,8 +56,7 @@
        IF (lasym)                                                        &
        CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
 
-! Convert jac*bsupX to bsupX in real space. Jacobian for bsupu term is removed
-! in bhalftobfull.
+!Convert jac*bsupX to bsupX in real space
        bsupsijh0 = bsupsijh0/jacobh(:,:,nsmin:nsmax)
        bsupvijh0 = bsupvijh0/jacobh(:,:,nsmin:nsmax)
 
@@ -83,10 +82,9 @@
 
 !Need this for resistive diffusion (|| resistivity) and mupar damping
        IF (ladd_pert .OR. muPar.NE.zero) THEN
-          nsmax=MIN(endglobrow+1,ns)
-! Calculate K || B. Bsub contains the vector direction. A scalar scale factor is 
-! included in the helical perturbation to scale B to K. K|| = sigma*B
-          CALL tolowerf_par(bsupsijf0,bsupuijf0,bsupvijf0,               &
+          nsmax=MIN(ns,endglobrow+1)
+!Calculate K || B
+          CALL tolowerf_par(bsupsijf0,bsupuijf0,bsupvijf0,               & 
                             bsubsijf, bsubuijf, bsubvijf,                &
                             nsmin, nsmax)  
 !IN UPDATE-BFIELD, K_x == J_x = PARALLEL COVARIANT CURRENT COMPONENTS ~ B_x
@@ -95,7 +93,7 @@
              ksubuijf(:,:,nsmin:nsmax) = bsubuijf(:,:,nsmin:nsmax)
              ksubvijf(:,:,nsmin:nsmax) = bsubvijf(:,:,nsmin:nsmax)
           END IF
-          nsmax=MIN(endglobrow+2,ns)
+          nsmax=MIN(ns,endglobrow+2)
        END IF
  
 !Compute real pressure p Fourier coefficients on half grid
@@ -112,7 +110,7 @@
 !SPH:  one-sided (m=1) derivative at origin yields factor of 2 (hs/2)
        IF (nsmin .EQ. 1) THEN
           pijf_ds(:,:,1) = 2*pijh(:,:,1)*ohs
-          pijh(:,:,1) = 0
+          pijh(:,:,1) = 0 
        END IF
       
 !SPH   AVERAGE pijh_du,dv to FULL mesh and set origin value (SIN SYMMETRY)
@@ -130,7 +128,7 @@
 !Fourier filter (Nyquist) check
        IF (.NOT.l_update_state) RETURN
 !pijh is unfiltered
-       n1=MAX(1,startglobrow); n2=MIN(endglobrow,ns)
+       n1=MAX(1,startglobrow); n2=MIN(ns,endglobrow)
        IF (n1 .EQ. 1) pfilter(:,:,1) = 0
        stes(1) = SUM((pijh(:,:,n1:n2)-pfilter(:,:,n1:n2))**2)
        stes(2) = SUM((pijh(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
@@ -154,7 +152,7 @@
 !              NOT called inside of linearization loops (where these are
 !              FIXED quantities)
 !
-       USE quantities, ONLY: ns
+       USE quantities, ONLY: ns, GatherFields
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -165,10 +163,11 @@
        INTEGER :: srow, erow
 !-----------------------------------------------
        srow = startglobrow; erow = endglobrow
+
+       IF (srow.NE.1 .OR. erow.NE.ns) CALL GatherFields
+
        startglobrow = 1;  endglobrow = ns
-
        CALL init_state_par(lcurrent_only)
-
        startglobrow = srow; endglobrow = erow
 
        END SUBROUTINE init_state
@@ -181,7 +180,6 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
-!       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns) ::                      &
              jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
        INTEGER, INTENT(IN) :: iparity
 !-----------------------------------------------
@@ -261,8 +259,8 @@
        lalloc = ALLOCATED(jvsupsijf) 
        lrealloc = .TRUE.
        istat = 0
-       nsmin =MAX(1,startglobrow);   nsmax =MIN(endglobrow+1,ns)
-       nsmin1=MAX(1,startglobrow-1); nsmax1=MIN(endglobrow+2,ns)
+       nsmin =MAX(1,startglobrow);   nsmax =MIN(ns,endglobrow+1)
+       nsmin1=MAX(1,startglobrow-1); nsmax1=MIN(ns,endglobrow+2)
        n1 = ntheta; n2 = nzeta 
 
        IF (lpar) THEN
@@ -372,19 +370,19 @@
              ALLOCATE (ksupsmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),        & 
                        ksupumncf(0:mpol,-ntor:ntor,nsmin1:nsmax),        &
                        ksupvmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),        &
-                       djpmnch(0:mpol,-ntor:ntor,nsmin:nsmax),           &
-                       djbsupsmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),       &
-                       djbsupumnch(0:mpol,-ntor:ntor,nsmin:nsmax),       &
-                       djbsupvmnch(0:mpol,-ntor:ntor,nsmin:nsmax),       &
+                       djpmnch(0:mpol,-ntor:ntor,nsmin1:nsmax1),         &
+                       djbsupsmnsh(0:mpol,-ntor:ntor,nsmin1:nsmax1),     &
+                       djbsupumnch(0:mpol,-ntor:ntor,nsmin1:nsmax1),     &
+                       djbsupvmnch(0:mpol,-ntor:ntor,nsmin1:nsmax1),     &
                        stat=istat)
              IF (lasym) THEN
               ALLOCATE(ksupsmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),        & 
                        ksupumnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),        &
                        ksupvmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),        &
-                       djpmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),           &
-                       djbsupsmnch(0:mpol,-ntor:ntor,nsmin:nsmax),       &
-                       djbsupumnsh(0:mpol,-ntor:ntor,nsmin:nsmax),       &
-                       djbsupvmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),       &
+                       djpmnsh(0:mpol,-ntor:ntor,nsmin1:nsmax1),         &
+                       djbsupsmnch(0:mpol,-ntor:ntor,nsmin1:nsmax1),     &
+                       djbsupumnsh(0:mpol,-ntor:ntor,nsmin1:nsmax1),     &
+                       djbsupvmnsh(0:mpol,-ntor:ntor,nsmin1:nsmax1),     &
                        stat=istat)
              END IF
 

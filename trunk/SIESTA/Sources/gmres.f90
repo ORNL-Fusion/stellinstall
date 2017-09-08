@@ -9,7 +9,7 @@
       USE shared_functions, ONLY: funct_island, funct_island_par, LineSearch
       USE siesta_state, ONLY: update_state, update_state_par
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,       &
-                               endglobrow, PARSOLVER, ErrorAbort
+                               endglobrow, PARSOLVER
       USE timer_mod
       IMPLICIT NONE
 

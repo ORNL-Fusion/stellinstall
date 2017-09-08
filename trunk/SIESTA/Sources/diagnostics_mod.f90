@@ -2,11 +2,14 @@
       USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,         &
                    f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
-      USE nscalingtools, ONLY: ErrorAbort
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE timer_mod
       USE quantities
+#if defined(MPI_OPT)
+      USE mpi_inc
+#endif
       IMPLICIT NONE
-      INTEGER     :: unit35=35, unit36=36
+      INTEGER  :: unit35=35, unit36=36, nsmin, nsmax, ns_span
       REAL(dp) :: divb_rms, avbeta, bdotj_rms, divj_rms, bdotj2_rms
       REAL(dp) :: toroidal_flux, toroidal_flux0=0, bgradp_rms, wbgradp
       REAL(dp) :: max_bgradp, min_bgradp
@@ -35,14 +38,14 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER                  :: m, n, istat
-        REAL(rprec)              :: ton, toff, tnorm
+        REAL(dp)              :: ton, toff, tnorm
 !-----------------------------------------------
 !
 !     COMPUTE divB ON FULL MESH POINTS
 !
         CALL second0(ton)
 
-        IF (.NOT. ALLOCATED(divbmnsf))  THEN
+        IF (.NOT. ALLOCATED(divbmnsf))  THEN                                  
           ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
           IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in divb')
           divbmnsf = 0
@@ -68,12 +71,10 @@
         END SUBROUTINE divb
 
         SUBROUTINE divb_par
-        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-        USE mpi_inc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER  :: istat, m, n, nsmin, nsmax, n1, n2
+        INTEGER  :: istat, m, n, n1, n2
         REAL(dp) :: tnorm, s1(2), r1(2), ton, toff
 !-----------------------------------------------
 !
@@ -100,8 +101,8 @@
         END DO
 
         tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                 &
-              +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &
-              +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
+              +     jbsupvmnch(:,:,nsmin:nsmax)**2                      &
+              +     jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
         divb_rms = SUM(divbmnsf**2)
 #if defined(MPI_OPT)        
@@ -129,7 +130,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        REAL(rprec) :: fsq_total
+        REAL(dp) :: fsq_total
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -320,9 +321,9 @@
 
 
       SUBROUTINE bgradp
-!     
+!
 !     WRITTEN 08-16-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
+!
 !     PURPOSE: Computes B*GRAD P (normalized to B*P) on the FULL mesh
 !
 !-----------------------------------------------
@@ -428,13 +429,11 @@
 !     WRITTEN 03-21-13 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
 !     PURPOSE: Computes B*GRAD P (normalized to B*P) on the FULL mesh
-      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-      USE mpi_inc
 !
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER     :: istat, nsmin, nsmax
+      INTEGER     :: istat
       REAL(dp)    :: s1(2), r1(2), ton, toff
 !-----------------------------------------------
 !
@@ -452,8 +451,6 @@
 
 
       SUBROUTINE get_bgradp_par
-      USE nscalingtools, ONLY: startglobrow, endglobrow, mpi_err
-      USE mpi_inc
 !     
 !     PURPOSE: Computes B*GRAD P on the FULL mesh
 !
@@ -461,7 +458,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER, PARAMETER  :: jsh=3
-      INTEGER     :: istat, nsmin, nsmax, ns_span, n1, n2
+      INTEGER     :: istat, n1, n2
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                        &
           dpduijh, dpdvijh, pijh,                                        &
           bsupsijh0, bsupuijh0, bsupvijh0
@@ -489,7 +486,7 @@
 
       IF (.NOT.ALLOCATED(jbsupsmnsh)) CALL ErrorAbort('jbsupXmn UNALLOCATED IN GET_BGRADP_PAR')
 
-      CALL GetPressure_par (pijh, dpduijh, dpdvijh, nsmin, nsmax)
+      CALL GetPressure_par (pijh, dpduijh, dpdvijh)
 ! 
 !     Compute contravariant components of magnetic field
 !           
@@ -576,16 +573,15 @@
       REAL(dp), DIMENSION(ntheta,nzeta,ns), INTENT(OUT)  ::              &
            dpduijh, dpdvijh, pijh
 !-----------------------------------------------
-
-      CALL GetPressure_par(pijh, dpduijh, dpdvijh, 1, ns)
+      nsmin = 1; nsmax = ns
+      CALL GetPressure_par(pijh, dpduijh, dpdvijh)
 
       END SUBROUTINE GetPressure
 
-      SUBROUTINE GetPressure_par (pijh, dpduijh, dpdvijh, nsmin, nsmax)
+      SUBROUTINE GetPressure_par (pijh, dpduijh, dpdvijh)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)   :: nsmin, nsmax
       REAL(dp), DIMENSION(ntheta,nzeta, nsmin:nsmax),                    &
                INTENT(OUT)  :: dpduijh, dpdvijh, pijh
 !-----------------------------------------------
@@ -641,11 +637,18 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER, PARAMETER :: m0=0, n0=0
+      REAL(dp)           :: part_sum
 !-----------------------------------------------
+      nsmin=MAX(2,startglobrow); nsmax=MIN(endglobrow,ns)
 
 !Averages over all toroidal cross sections (which should be the same)
-      toroidal_flux = SUM(jbsupvmnch(m0,n0,2:ns))
-
+      part_sum = SUM(jbsupvmnch(m0,n0,nsmin:nsmax))
+#if defined(MPI_OPT)
+      CALL MPI_ALLREDUCE(part_sum,toroidal_flux,1,MPI_REAL8, MPI_SUM,    &
+                         SIESTA_COMM,MPI_ERR)
+#else
+      toroidal_flux = part_sum      
+#endif      
       toroidal_flux = signjac*twopi*toroidal_flux*hs_i/b_factor  
       
       IF (toroidal_flux0 .EQ. zero) toroidal_flux0 = toroidal_flux
@@ -825,8 +828,6 @@
 
       SUBROUTINE bdotj_par
 !#if defined(SKS)
-      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-      USE mpi_inc
 !     
 !     WRITTEN 08-20-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
 !     UPDATED 03-21-13 BY S. HIRSHMAN FOR PARALLEL EXECUTION
@@ -836,7 +837,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER      :: istat, nsmin, nsmax, ns_span, n1, n2
+      INTEGER      :: istat, n1, n2
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijh,               &
           bsupuijh, bsupvijh,                                            &
           bsubsijh, bsubuijh, bsubvijh, ksubsijh, ksubuijh,              &
@@ -928,7 +929,7 @@
             DEALLOCATE(bdotjmnsh)
         IF (.NOT. ALLOCATED(bdotjmnsh)) THEN                            
           ALLOCATE(bdotjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation #5B failed in BDOTJ_PAR')
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation #6B failed in BDOTJ_PAR')
         ENDIF
         ENDIF
 
@@ -1044,7 +1045,7 @@
 
         IF (.NOT. ALLOCATED(divjmnsh))  THEN                                  
           ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
-          IF (istat .NE. 0) STOP 'Allocation failed in DIVJ'
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
           divjmnsh = zero
         ENDIF
 !
@@ -1092,14 +1093,12 @@
 !     PURPOSE: Computes divergence of the current normalized to the total current on the half mesh
 !
 !#if defined(SKS)
-        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-        USE mpi_inc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER                  :: m, n, istat, nsmin, nsmax, n1, n2
-        REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
-        REAL(rprec)              :: tnorm, s1(2), r1(2), ton, toff
+        INTEGER                  :: m, n, istat, n1, n2
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
+        REAL(dp)              :: tnorm, s1(2), r1(2), ton, toff
 !-----------------------------------------------
 !
 !     COMPUTE divJ ON HALF MESH POINTS
@@ -1134,7 +1133,7 @@
         nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
         ALLOCATE(temp1(ntheta,nzeta,nsmin:nsmax),                        &
                  temp2(ntheta,nzeta,nsmin:nsmax), stat=istat)                     
-        IF (istat .NE. 0) STOP 'Allocation failed in DIVJ'
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
         temp1 = 0; temp2 = 0
 
         temp1 = ksupsijf0(:,:,nsmin:nsmax)*ksubsijf(:,:,nsmin:nsmax)     &

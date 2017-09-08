@@ -14,7 +14,6 @@
                    mpol=>mpol_i, ntor=>ntor_i, nfp=>nfp_i
       USE timer_mod
       USE descriptor_mod, ONLY: INHESSIAN, DIAGONALDONE
-      USE nscalingtools, ONLY: ErrorAbort
       IMPLICIT NONE
 !
 !     PARAMETER DECLARATIONS
@@ -343,7 +342,6 @@
 !       IPARITY = 0, means the quantity X (NOT any of its derivatives) is even in mu+nv; = 1, X is odd
 !
         USE stel_kinds
-        USE shared_data, ONLY: lasym
 
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -861,7 +859,7 @@
        GOTO 200
 
  100   CONTINUE
-       PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
+       IF (iam .EQ. 0) PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
        CALL ErrorAbort('Test_Fourier')
 
  200   CONTINUE

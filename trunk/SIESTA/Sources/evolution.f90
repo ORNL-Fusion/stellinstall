@@ -12,7 +12,7 @@
       USE perturbation, ONLY: eta_factor
       USE descriptor_mod, ONLY: iam, DIAGONALDONE, nprocs,               &
                                 in_hess_nfunct, out_hess_nfunct
-      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL, ErrorAbort,    &
+      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL,                &
                  startglobrow, endglobrow, leftproc, rightproc, MPI_ERR
       USE mpi_inc
       IMPLICIT NONE
@@ -85,7 +85,7 @@
          in_hess_nfunct=0; out_hess_nfunct=0
 #if defined(SKS)
          CALL second0(t1)
-#endif
+#endif         
          CALL evolve
 #if defined(SKS)
          CALL second0(t2)
@@ -257,7 +257,7 @@
 
       ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,ndims,ns), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocate xc failed!')
-
+ 
       xc = 0
       col_scale = 1
       CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf,            &
@@ -339,7 +339,7 @@
       REAL(dp)    :: v2tot, f1, f2, r0
       REAL(dp)    :: vmaxs, vmaxu, vmaxv, fmaxs, fmaxu, fmaxv
       REAL(dp)    :: t1, t2, lm0
-      REAL(dp), SAVE :: levm_loc
+	  REAL(dp), SAVE :: levm_loc
       LOGICAL     :: lprint, ldiagonal, lblock
       CHARACTER(18) :: str_resistive
       INTEGER, DIMENSION (2) :: snum_funct, rnum_funct 
@@ -672,7 +672,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL, PARAMETER :: p5 = 0.50_dp
+      REAL(dp), PARAMETER :: p5 = 0.50_dp
       INTEGER, PARAMETER :: ndamp = 10
       INTEGER     :: icount, iter
       REAL(dp)    :: b1, fac, fsq_start, fsq_min0, fsq_save, fsq_conv,   &

@@ -3,9 +3,8 @@
       USE stel_constants
       USE shared_data, ONLY: l_update_state, l_natural, lasym,           &
                              jsju_ratio_s, jsju_ratio_a, ste 
-      USE fourier
-      USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR,&
-                               ErrorAbort
+      USE fourier 
+      USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
       IMPLICIT NONE
       PRIVATE
       INTEGER  :: nsmin, nsmax, ns_span, n1, n2
@@ -75,7 +74,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: iwrite
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::            &
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::            &  
            bsupsijh, bsupuijh, bsupvijh,                                 &
            ksupsijf, ksupuijf, ksupvijf
       LOGICAL, INTENT(IN)  :: lmagen, lcurr
@@ -108,7 +107,8 @@
       IF (LBOUND(ksupsijf,3) .NE. nsmin) CALL ErrorAbort('KSUPSIJF HAS WRONG LB')
       IF (UBOUND(ksupsijf,3) .NE. nsmax) CALL ErrorAbort('KSUPSIJF HAS WRONG UB')
 
-! Calculate covariant BsubXh on half mesh
+
+!Calculate covariant BsubXh on half mesh 
       ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                       &
                bsubuijh(ntheta,nzeta,nsmin:nsmax),                       &
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
@@ -234,7 +234,7 @@
   
       SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,        &
                         iparity, lcurr)
-
+      
       USE quantities, ONLY: ohs
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s

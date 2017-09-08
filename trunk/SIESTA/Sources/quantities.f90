@@ -13,7 +13,6 @@
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lasym, lverbose
       USE nscalingtools, ONLY: startglobrow, endglobrow
-      USE siesta_error
       IMPLICIT NONE
 
 !
@@ -96,7 +95,6 @@
         USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,     &
                            f_sin, f_sum
         USE metrics, ONLY: sqrtg
-        USE read_wout_mod, ONLY: lasym_vmec=>lasym
         USE island_params, ONLY: nu_i
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -132,8 +130,8 @@
         END IF
         CALL toijsp(jbsupsmnsh, jacobh, f_none, f_cos)
         jbsupsmnsh = 0
-        IF (lasym .and. .not.lasym_vmec) THEN          ! MRC If the VMEC case is stellarator
-        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin)  ! symmetric zero out the jacobian terms.
+        IF (lasym) THEN
+        CALL toijsp(jbsupsmnch, jacobh, f_sum, f_sin)
         jbsupsmnch = 0
         END IF
         
@@ -295,11 +293,8 @@
 !
 !       Gather jbsupmnX's, jpmn onto all processors (same as in update_state_par but for initial values)
 !
-#if defined(SKS)
-        CALL GATHER_FIELDS(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch)
-        IF (lasym)                                                       &
-        CALL GATHER_FIELDS(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh)
-#endif
+        CALL GatherFields
+
         END SUBROUTINE Init_Fields
 
 
@@ -330,13 +325,13 @@
 ! 
         n2 = 1
         IF (lasym) n2 = 2
-        ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
+	ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
                   cosmnp(nuv,mnmax),                                     &
-                  brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
+	          brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
         IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
         IF (lasym) THEN
-        ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
-                  stat=info)
+	ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
+	          stat=info)
         IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
         END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
@@ -345,11 +340,11 @@
         DO n=-ntor,ntor
            isign = 1; IF (n .LT. 0) isign = -1
            np = ABS(n)
-           DO m=0,mpol
-	          mn = mn+1
-	          lk = 0
-	          DO lv = 1, nzeta
-	             DO lu = 1, ntheta
+	   DO m=0,mpol
+	      mn = mn+1
+	      lk = 0
+	      DO lv = 1, nzeta
+	         DO lu = 1, ntheta
      	         lk = lk+1
                  cosmni(lk,mn) = cosmui(lu,m)*cosnv(lv,np)               &
                                - isign*sinmui(lu,m)*sinnv(lv,np)
@@ -378,64 +373,64 @@
 !
         DO js = MAX(nsmin,2), nsmax
 
-           mn = 0
-           DO n=-ntor,ntor
-	          DO m=0,mpol
+	  mn = 0
+          DO n=-ntor,ntor
+	     DO m=0,mpol
 !
 !       RHS (driving) TERMS [sinmi, -cosmni parts]
 !
-              mn = mn+1
-	          btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
-	                + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))    &
-                    / jacobh(:,js)
-              brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
-              IF (lasym) THEN
-                 brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
-              END IF
+	     mn = mn+1
+	     btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
+	            + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))   &
+                   / jacobh(:,js)
+             brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
+             IF (lasym) THEN
+             brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
+             END IF
 			  
 !
 !            MATRIX ELEMENTS - COEFFICIENTS OF Lambda(mn,js)
 !	     
-              mnp = 0
+	     mnp = 0
 
-              DO np=-ntor,ntor
-                 DO mp=0,mpol
-	                mnp=mnp+1
-                    atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
-                          - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
-                    amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
-	                IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
-                       amat(mn,mnp) = signjac
-                    IF (.NOT.lasym) CYCLE
-                    amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
-                    amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
-                    amat(mn+mnmax,mnp+mnmax)                              &
-                                       = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
-	                IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
-                       amat(mn+mnmax,mnp+mnmax) = signjac
-                 END DO
-	          END DO
-	       END DO
-	    END DO
+             DO np=-ntor,ntor
+	        DO mp=0,mpol
+	           mnp=mnp+1
+                   atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
+  	                 - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
+                   amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
+	           IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
+                      amat(mn,mnp) = signjac
+                   IF (.NOT.lasym) CYCLE
+                   amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
+                   amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
+                   amat(mn+mnmax,mnp+mnmax)                              &
+                                      = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
+	           IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
+                      amat(mn+mnmax,mnp+mnmax) = signjac
+             	END DO
+	     END DO
+	     END DO
+	  END DO
 
-        CALL solver(amat, brhs, mnmax*n2, 1, info)
-	    IF (info .NE. 0) CALL ErrorAbort('INFO != 0 IN RECOMPUTE_LAMBDA')
-	    lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
-        IF (lasym)                                                    &
-	       lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
+	  CALL solver(amat, brhs, mnmax*n2, 1, info)
+	  IF (info .NE. 0) CALL ErrorAbort('INFO != 0 IN RECOMPUTE_LAMBDA')
+	  lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
+          IF (lasym)                                                    &
+	  lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)                     
 
-        END DO
+      END DO
 
-        IF (mn.NE.mnmax .OR. mnp.NE.mnmax) CALL ErrorAbort('mn or mnp != mnmax in RECOMPUTE_LAMBDA')
+      IF (mn.NE.mnmax .OR. mnp.NE.mnmax) CALL ErrorAbort('mn or mnp != mnmax in RECOMPUTE_LAMBDA')
 
-        DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
-        IF (lasym) DEALLOCATE(sinmni, sinmnp)
+      DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
+      IF (lasym) DEALLOCATE(sinmni, sinmnp)
 
-        CALL second0(toff)
-        IF (iam .EQ. 0 .and. lverbose) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
+      CALL second0(toff)
+      IF (iam .EQ. 0 .and. lverbose) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
 
-100     FORMAT(a,f10.2,a)
-        END SUBROUTINE Recompute_Lambda
+ 100  FORMAT(a,f10.2,a)
+      END SUBROUTINE Recompute_Lambda
 
 
 
@@ -531,11 +526,81 @@
         IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in dealloc_quantities!')
         
 
-        END SUBROUTINE dealloc_quantities
-        
+      END SUBROUTINE dealloc_quantities
 
-      SUBROUTINE GATHER_FIELDS(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
+      SUBROUTINE GATHERFIELDS
+#if defined(SKS)
+      CALL GATHER_FIELDS(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch)
+      IF (lasym)                                                         &
+      CALL GATHER_FIELDS(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh)
+#else
+      RETURN
+#endif
+      END SUBROUTINE GATHERFIELDS  
+
+      SUBROUTINE PADFIELDS
+#if defined(SKS)
+      CALL PAD_FIELDS(djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch)
+      IF (lasym)                                                         &
+      CALL PAD_FIELDS(djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh)
+#else
+      RETURN
+#endif
+      END SUBROUTINE PADFIELDS      
+
+      SUBROUTINE GATHER_FIELDS(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh)
       USE hessian, ONLY: gather_array
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)   ::                       &
+                jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tmps, tmpu, tmpv, tmpp
+      INTEGER  :: istat, nsmin, nsmax, k1, k2
+!-----------------------------------------------
+!
+!     gathers (total) field arrays for [1,ns] onto all processors
+!
+      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+
+      IF (.NOT.ALLOCATED(jbsupsmnh))                                     &
+         CALL ErrorAbort('input arrays not allocated in gather_fields')
+
+      ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns),  &
+                tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),  &
+                stat=istat)
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in gather_fields')
+      k1 = SIZE(tmps,1)*SIZE(tmps,2)
+
+      CALL gather_array(jbsupsmnh(:,:,nsmin:nsmax), tmps)
+      CALL gather_array(jbsupumnh(:,:,nsmin:nsmax), tmpu)
+      CALL gather_array(jbsupvmnh(:,:,nsmin:nsmax), tmpv)
+      CALL gather_array(jpmnh(:,:,nsmin:nsmax), tmpp)
+
+      k1 = LBOUND(jpmnh,3);  k2 = UBOUND(jpmnh,3)
+      IF (k1.NE.1 .OR. k2.NE.ns) THEN
+         DEALLOCATE(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh, stat=istat)
+         IF (istat .EQ. 0)                                               &
+         ALLOCATE (jbsupsmnh(0:mpol,-ntor:ntor,ns),                      &
+                   jbsupumnh(0:mpol,-ntor:ntor,ns),                      &
+                   jbsupvmnh(0:mpol,-ntor:ntor,ns),                      &
+                   jpmnh(0:mpol,-ntor:ntor,ns), stat=istat)
+         IF (istat .NE. 0) CALL ErrorAbort('Allocation error #2 in gather_fields')
+      END IF
+
+      jbsupsmnh = tmps
+      jbsupumnh = tmpu
+      jbsupvmnh = tmpv
+      jpmnh     = tmpp
+      DEALLOCATE (tmps, tmpu, tmpv, tmpp)
+
+      END SUBROUTINE GATHER_FIELDS
+          
+      SUBROUTINE PAD_FIELDS(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
+      USE hessian, ONLY: PadSides
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -547,36 +612,38 @@
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: tmps, tmpu, tmpv, tmpp
       INTEGER  :: istat, nsmin, nsmax, k1, k2
 !-----------------------------------------------
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+!
+!     pads (perturbed) field arrays to [nsmin-1, nsmax+2] as required in siesta_init
+!
+      nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
+
+      IF (.NOT.ALLOCATED(djbsupsmnh))                                    &
+         CALL ErrorAbort('input arrays not allocated in pad_fields')
 
       ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns),  &
                 tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),  &
                 stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in gather_fields')
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in pad_fields')
+      k1 = SIZE(tmps,1)*SIZE(tmps,2)
 
-      CALL gather_array(djbsupsmnh(:,:,nsmin:nsmax), tmps)
-      CALL gather_array(djbsupumnh(:,:,nsmin:nsmax), tmpu)
-      CALL gather_array(djbsupvmnh(:,:,nsmin:nsmax), tmpv)
-      CALL gather_array(djpmnh(:,:,nsmin:nsmax), tmpp)
+      tmps(:,:,nsmin:nsmax) = djbsupsmnh(:,:,nsmin:nsmax)
+      CALL PadSides(tmps, k1, 1, 2)
+      tmpu(:,:,nsmin:nsmax) = djbsupumnh(:,:,nsmin:nsmax)
+      CALL PadSides(tmpu, k1, 1, 2)
+      tmpv(:,:,nsmin:nsmax) = djbsupvmnh(:,:,nsmin:nsmax)
+      CALL PadSides(tmpv, k1, 1, 2)
+      tmpp(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)
+      CALL PadSides(tmpp, k1, 1, 2)
 
       k1 = LBOUND(djpmnh,3);  k2 = UBOUND(djpmnh,3)
-      IF (k1.NE.1 .OR. k2.NE.ns) THEN
-         DEALLOCATE(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
-         ALLOCATE (djbsupsmnh(0:mpol,-ntor:ntor,ns),                     &
-                   djbsupumnh(0:mpol,-ntor:ntor,ns),                     &
-                   djbsupvmnh(0:mpol,-ntor:ntor,ns),                     &
-                   djpmnh(0:mpol,-ntor:ntor,ns), stat=istat)
-         IF (istat .NE. 0) CALL ErrorAbort('Allocation error #2 in gather_fields')
-      END IF
 
-      djbsupsmnh = tmps
-      djbsupumnh = tmpu
-      djbsupvmnh = tmpv
-      djpmnh     = tmpp
+      djbsupsmnh(:,:,k1:k2) = tmps(:,:,k1:k2)
+      djbsupumnh(:,:,k1:k2) = tmpu(:,:,k1:k2)
+      djbsupvmnh(:,:,k1:k2) = tmpv(:,:,k1:k2)
+      djpmnh(:,:,k1:k2)     = tmpp(:,:,k1:k2)
       DEALLOCATE (tmps, tmpu, tmpv, tmpp)
 
-      END SUBROUTINE GATHER_FIELDS
-          
+      END SUBROUTINE PAD_FIELDS
      
       END MODULE quantities
           
