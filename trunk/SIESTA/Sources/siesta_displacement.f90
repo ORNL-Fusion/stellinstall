@@ -79,7 +79,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER, PARAMETER :: m0=0, m1=1, m2=2
-      INTEGER  :: istat, m, n, c1, c2, c3,                               &
+      INTEGER  :: istat, m, n, mcol,                                     &
                   fours, fouru, fourv, fcomb 
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                        &
                 gvsupsmnf, gvsupumnf, gvsupvmnf
@@ -87,12 +87,11 @@
 !-----------------------------------------------
       IF (iparity .EQ. isym) THEN
          fours=f_cos; fouru=f_sin; fourv=f_sin; fcomb=f_none
-         c1 = 1; r0 = hs_i/2
+         mcol = 1; r0 = hs_i/2
       ELSE
          fours=f_sin; fouru=f_cos; fourv=f_cos; fcomb=f_sum
-         c1 = 4; r0 = -hs_i/2
+         mcol = 4; r0 = -hs_i/2
       END IF
-      c2 = c1+1;  c3 = c2+1
 
       IF (LBOUND(jvsupsmnf,3) .NE. 1)  CALL ErrorAbort('LBOUND1 WRONG IN InitDisp')
       IF (UBOUND(jvsupsmnf,3) .NE. ns) CALL ErrorAbort('UBOUND1 WRONG IN InitDisp')
@@ -103,9 +102,9 @@
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in UPDATE_UPPERV')
 
 !Apply scaling in real space (keep xc components unscaled)
-      gvsupsmnf = jvsupsmnf(:,:,nsmin:nsmax)*col_scale(:,:,c1,nsmin:nsmax)
-      gvsupumnf = jvsupumnf(:,:,nsmin:nsmax)*col_scale(:,:,c2,nsmin:nsmax)
-      gvsupvmnf = jvsupvmnf(:,:,nsmin:nsmax)*col_scale(:,:,c3,nsmin:nsmax)
+      gvsupsmnf = jvsupsmnf(:,:,nsmin:nsmax)*col_scale(:,:,mcol,nsmin:nsmax)
+      gvsupumnf = jvsupumnf(:,:,nsmin:nsmax)*col_scale(:,:,mcol+1,nsmin:nsmax)
+      gvsupvmnf = jvsupvmnf(:,:,nsmin:nsmax)*col_scale(:,:,mcol+2,nsmin:nsmax)
 
 !Origin boundary conditions (evolve m=1 F_u,F_s, m=0 F_v)
       NS1: IF (nsmin .EQ. 1) THEN

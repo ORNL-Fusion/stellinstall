@@ -10,6 +10,7 @@
       USE timer_mod, ONLY: time_update_state
       USE siesta_init, ONLY: init_state_par, init_allocate_arrays
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+      USE descriptor_mod, ONLY: SIESTA_COMM
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
 !      LOGICAL, PRIVATE :: lfirst=.TRUE. ! MRC need to reset this value in run_siesta
@@ -162,7 +163,6 @@
                                     iparity)
       USE island_params, ns=>ns_i, hs=>hs_i
       USE mpi_inc
-      USE descriptor_mod, ONLY: SIESTA_COMM
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -191,7 +191,7 @@
       bu(1) = SQRT(SUM((jbsupsmnh(m1,:,2) + r0*jbsupumnh(m1,:,2))**2))/r0
 #if defined(MPI_OPT)
       d1(1) = bs(1); d1(2) = bu(1)
-      CALL MPI_BCAST(d1,2,MPI_REAL8,0,MPI_COMM_WORLD,MPI_ERR)
+      CALL MPI_BCAST(d1,2,MPI_REAL8,0,SIESTA_COMM,MPI_ERR)
       bs(1) = d1(1); bu(1) = d1(2)
 #endif
       IF (ABS(bu(1)) .GT. 1.E-10_dp) THEN
@@ -225,7 +225,7 @@
          d1(2) = SUM((jpmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,4))**2)
 #if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(d1, d2, 2, MPI_REAL8, MPI_SUM,               &
-                            MPI_COMM_WORLD, MPI_ERR)
+                            SIESTA_COMM, MPI_ERR)
 #else
          d2 = d1
 #endif

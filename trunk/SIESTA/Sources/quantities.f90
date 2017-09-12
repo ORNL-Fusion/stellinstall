@@ -325,13 +325,13 @@
 ! 
         n2 = 1
         IF (lasym) n2 = 2
-	ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
+        ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),             &
                   cosmnp(nuv,mnmax),                                     &
-	          brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
+                  brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
         IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
         IF (lasym) THEN
-	ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
-	          stat=info)
+        ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
+                  stat=info)
         IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
         END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
@@ -340,11 +340,11 @@
         DO n=-ntor,ntor
            isign = 1; IF (n .LT. 0) isign = -1
            np = ABS(n)
-	   DO m=0,mpol
-	      mn = mn+1
-	      lk = 0
-	      DO lv = 1, nzeta
-	         DO lu = 1, ntheta
+           DO m=0,mpol
+	          mn = mn+1
+	          lk = 0
+	          DO lv = 1, nzeta
+	             DO lu = 1, ntheta
      	         lk = lk+1
                  cosmni(lk,mn) = cosmui(lu,m)*cosnv(lv,np)               &
                                - isign*sinmui(lu,m)*sinnv(lv,np)
@@ -373,64 +373,64 @@
 !
         DO js = MAX(nsmin,2), nsmax
 
-	  mn = 0
-          DO n=-ntor,ntor
-	     DO m=0,mpol
+           mn = 0
+           DO n=-ntor,ntor
+              DO m=0,mpol
 !
 !       RHS (driving) TERMS [sinmi, -cosmni parts]
 !
-	     mn = mn+1
-	     btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
-	            + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))   &
-                   / jacobh(:,js)
-             brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
-             IF (lasym) THEN
-             brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
-             END IF
+              mn = mn+1
+              btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
+	                + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))    &
+                    / jacobh(:,js)
+              brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
+              IF (lasym) THEN
+                 brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
+              END IF
 			  
 !
 !            MATRIX ELEMENTS - COEFFICIENTS OF Lambda(mn,js)
 !	     
-	     mnp = 0
+              mnp = 0
 
-             DO np=-ntor,ntor
-	        DO mp=0,mpol
-	           mnp=mnp+1
-                   atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
-  	                 - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
-                   amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
-	           IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
-                      amat(mn,mnp) = signjac
-                   IF (.NOT.lasym) CYCLE
-                   amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
-                   amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
-                   amat(mn+mnmax,mnp+mnmax)                              &
-                                      = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
-	           IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
-                      amat(mn+mnmax,mnp+mnmax) = signjac
-             	END DO
-	     END DO
-	     END DO
-	  END DO
+              DO np=-ntor,ntor
+                 DO mp=0,mpol
+                    mnp=mnp+1
+                    atemp = (m*mp*gvv(:,js)+(n*nfp)*(np*nfp)*guu(:,js)    &
+  	                      - nfp*(m*np+mp*n)*guv(:,js))/jacobh(:,js)
+                    amat(mn,mnp) = SUM(cosmni(:,mn)*cosmnp(:,mnp)*atemp)
+	                IF (mnp.EQ.mn .AND. amat(mn,mnp).EQ.zero)             &
+                       amat(mn,mnp) = signjac
+                    IF (.NOT.lasym) CYCLE
+                    amat(mn,mnp+mnmax) =-SUM(cosmni(:,mn)*sinmnp(:,mnp)*atemp)
+                    amat(mn+mnmax,mnp) =-SUM(sinmni(:,mn)*cosmnp(:,mnp)*atemp)
+                    amat(mn+mnmax,mnp+mnmax)                              &
+                                       = SUM(sinmni(:,mn)*sinmnp(:,mnp)*atemp)
+	                IF (mnp.EQ.mn .AND. amat(mn+mnmax,mnp+mnmax).EQ.zero) &
+                       amat(mn+mnmax,mnp+mnmax) = signjac
+                 END DO
+	          END DO
+	       END DO
+        END DO
 
-	  CALL solver(amat, brhs, mnmax*n2, 1, info)
-	  IF (info .NE. 0) CALL ErrorAbort('INFO != 0 IN RECOMPUTE_LAMBDA')
-	  lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
-          IF (lasym)                                                    &
-	  lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)                     
+        CALL solver(amat, brhs, mnmax*n2, 1, info)
+        IF (info .NE. 0) CALL ErrorAbort('INFO != 0 IN RECOMPUTE_LAMBDA')
+        lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
+        IF (lasym)                                                    &
+           lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
 
-      END DO
+        END DO
 
-      IF (mn.NE.mnmax .OR. mnp.NE.mnmax) CALL ErrorAbort('mn or mnp != mnmax in RECOMPUTE_LAMBDA')
+        IF (mn.NE.mnmax .OR. mnp.NE.mnmax) CALL ErrorAbort('mn or mnp != mnmax in RECOMPUTE_LAMBDA')
 
-      DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
-      IF (lasym) DEALLOCATE(sinmni, sinmnp)
+        DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
+        IF (lasym) DEALLOCATE(sinmni, sinmnp)
 
-      CALL second0(toff)
-      IF (iam .EQ. 0 .and. lverbose) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
+        CALL second0(toff)
+        IF (iam .EQ. 0 .and. lverbose) PRINT 100,' RECOMPUTE_LAMBDA - TIME: ', toff-ton,' S'
 
- 100  FORMAT(a,f10.2,a)
-      END SUBROUTINE Recompute_Lambda
+100     FORMAT(a,f10.2,a)
+        END SUBROUTINE Recompute_Lambda
 
 
 

@@ -10,7 +10,7 @@
           nfp=>nfp_i, mnmax=>mnmax_i, hs=>hs_i
       USE timer_mod
       USE perturbation, ONLY: eta_factor
-      USE descriptor_mod, ONLY: iam, DIAGONALDONE, nprocs,               &
+      USE descriptor_mod, ONLY: iam, DIAGONALDONE, nprocs, SIESTA_COMM,  &
                                 in_hess_nfunct, out_hess_nfunct
       USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL,                &
                  startglobrow, endglobrow, leftproc, rightproc, MPI_ERR
@@ -85,7 +85,7 @@
          in_hess_nfunct=0; out_hess_nfunct=0
 #if defined(SKS)
          CALL second0(t1)
-#endif         
+#endif
          CALL evolve
 #if defined(SKS)
          CALL second0(t2)
@@ -224,7 +224,6 @@
       l_push_edge=.FALSE.
 
       scale_s = hs
-!      scale_s = 1        !Default - no scaling
       scale_u = SQRT(scale_s)
 
       ste = 0
@@ -257,7 +256,6 @@
 
       ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,ndims,ns), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocate xc failed!')
- 
       xc = 0
       col_scale = 1
       CALL init_ptrs (xc, jvsupsmncf, jvsupumnsf, jvsupvmnsf,            &
@@ -265,6 +263,7 @@
 
       ALLOCATE(gc(neqs), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocate gc failed!')
+      gc = 0
       CALL init_ptrs (gc, fsubsmncf, fsubumnsf, fsubvmnsf,               &
                           fsubsmnsf, fsubumncf, fsubvmncf)
 
@@ -277,9 +276,6 @@
       col_scale(:,:,5,:) = scale_u
       END IF
 
-!      levmarq_param0 = 10*levmarq_param0
-!      IF (iam .eq. 0) PRINT* ,'LMPARAM0 = ',levmarq_param0
-
       END SUBROUTINE init_evolution
 
 !>    \brief Initializes pointers for xc (dependent variables) and gc (force) arrays
@@ -288,14 +284,12 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), TARGET, INTENT(INOUT)     :: xtarget(0:mpol,-ntor:ntor,ndims,ns) !<input 3D, 2 3-component arrays
+      REAL(dp), TARGET, INTENT(IN)        :: xtarget(0:mpol,-ntor:ntor,ndims,ns) !<input 3D, 2 3-component arrays
       REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr1, ptr4  !<1st (s) array subsection (lasym=F,T)
       REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr2, ptr5  !<2nd (u) array subsection
       REAL(dp), POINTER, DIMENSION(:,:,:) :: ptr3, ptr6  !<3rd (v) array subsection
 
 !-----------------------------------------------
-      xtarget = 0
-      
       ptr1 => xtarget(:,:,1,:)
       ptr2 => xtarget(:,:,2,:)
       ptr3 => xtarget(:,:,3,:)
@@ -339,7 +333,7 @@
       REAL(dp)    :: v2tot, f1, f2, r0
       REAL(dp)    :: vmaxs, vmaxu, vmaxv, fmaxs, fmaxu, fmaxv
       REAL(dp)    :: t1, t2, lm0
-	  REAL(dp), SAVE :: levm_loc
+      REAL(dp), SAVE :: levm_loc
       LOGICAL     :: lprint, ldiagonal, lblock
       CHARACTER(18) :: str_resistive
       INTEGER, DIMENSION (2) :: snum_funct, rnum_funct 

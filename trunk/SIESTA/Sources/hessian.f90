@@ -38,25 +38,19 @@
 !-----------------------------------------------
       PRIVATE
       INTEGER, PARAMETER :: jstart(3) = (/1,2,3/)
-      INTEGER, PUBLIC    :: iprec_flag = 0
       INTEGER, ALLOCATABLE :: ipiv_blk(:,:)
 
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ublk, dblk, lblk
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ublk_s, dblk_s, lblk_s
-      CHARACTER*10 :: string
-
       LOGICAL :: l_backslv = .FALSE. 
 
-      CHARACTER(LEN=3)   :: FlashDrive =""
-      CHARACTER(LEN=128) :: ScratchFile
-      INTEGER, PARAMETER :: blmin=3, bldia=2, blpls=1
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: DataItem
-      INTEGER :: iunit_dacess=10
-!#if defined(SKS)
+
       INTEGER :: myStartBlock, myEndBlock, mynumBlockRows 
       INTEGER :: mystart(3), myend(3)
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: SavedDiag
-!#endif
+
+      REAL(dp) :: eps, ton, toff, lmdamp
       REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: colsum
       REAL(dp), PARAMETER, PUBLIC :: eps_factor = 1._dp 
       REAL(dp), ALLOCATABLE, PUBLIC :: mupar_norm(:)
@@ -158,15 +152,21 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      LOGICAL, INTENT(IN)     :: l_Hess_sym
-      LOGICAL, INTENT(IN)     :: ldiagonal
+      LOGICAL, INTENT(IN)     :: l_Hess_sym, ldiagonal
       EXTERNAL                :: func
 !-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!----------------------------------------------
+      INTEGER                 :: iunit
+      CHARACTER(LEN=3)        :: label
+      REAL(dp)                :: bsize
+!-----------------------------------------------
+
       l_Compute_Hessian = .TRUE.
       l_Diagonal_Only   = ldiagonal
 
       l_linearize = .TRUE.
-      IF (lcolscale) col_scale = 1
+      IF (lColScale) col_scale = 1
 
       IF (iam .EQ. 0) THEN
          IF (l_Diagonal_Only) THEN
@@ -188,19 +188,42 @@
         IF (PARFUNCTISL) THEN
           IF(SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_No_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
           IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
-            PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
+             PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
           CALL Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc, func, l_Hess_sym)
         ELSE
           IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
           IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
-            PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH COLUMN REDISTRIBUTION'
+             PRINT *,'HESSIAN AND INVERSE CALCULATION USING BCYCLIC WITH COLUMN REDISTRIBUTION'
           CALL Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func, l_Hess_sym)
         END IF 
       ELSE 
         IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_Thomas'; CALL FLUSH(TOFU)
-        IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)               &
-          PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
+        IF (iam.EQ.0 .AND. HESSPASS.EQ.0 .and. lverbose)                 &
+           PRINT *,'HESSIAN AND INVERSE CALCULATION USING SERIAL THOMAS ALGORITHM'
         CALL Compute_Hessian_Blocks_Thomas (xc, gc, func, l_Hess_sym)
+      END IF
+
+      IF (HESSPASS.EQ.0) THEN
+         bsize = 3*ns*KIND(dblk)                                         !3 blocks per row
+         bsize = bsize*REAL(mblk_size*mblk_size,dp)
+         IF (bsize .LT. 1.E6_dp) THEN
+            bsize = bsize/1.E3
+            label = " Kb"
+         ELSE IF (bsize .lt. 1.E9_dp) THEN
+            bsize = bsize/1.E6_dp
+            label = " Mb"
+         ELSE
+            bsize = bsize/1.E9_dp
+            label = " Gb"
+         END IF
+
+         IF (iam .EQ. 0) THEN
+            DO iunit = 6,33,27
+               IF (.not.lverbose .and. iunit .eq. 6) CYCLE
+               WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
+                  '^2  Preconditioner size: ', bsize, TRIM(label)
+            END DO
+         ENDIF
       END IF
 
       l_Compute_Hessian = .FALSE.
@@ -229,7 +252,6 @@
 #if defined(SKS)
       REAL(dp) :: starttime, endtime, usedtime
       REAL(dp) :: colstarttime, colendtime, colusedtime
-      LOGICAL :: lfirst
       INTEGER :: nsmin, nsmax, dcnt
       REAL(dp) :: skston, skstoff, temp, DSaved(mblk_size)
       INTEGER :: icolmpi, i1, i2, i3, i4
@@ -253,53 +275,20 @@
       IF (istat .NE. 0) CALL ErrorAbort('SavedDiag allocation failed!')
       SavedDiag = 0
 
-      IF (iprec_flag == 0) THEN
-        bsize = 3*ns*KIND(dblk)                                          !3 blocks per row
-        bsize = bsize*REAL(mblk_size*mblk_size,dp) 
-        IF (bsize .LT. 1.E6_dp) THEN
-          bsize = bsize/1.E3
-          label = " Kb"
-        ELSE IF (bsize .LT. 1.E9_dp) THEN
-          bsize = bsize/1.E6_dp
-          label = " Mb"
-        ELSE
-          bsize = bsize/1.E9_dp
-          label = " Gb"
-        END IF
-
-        IF (iam .EQ. 0) THEN
-          DO iunit = 6,33,27
-            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
-            WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ',           &
-                  mblk_size,'^2  Preconditioner size: ', bsize, TRIM(label)
-          END DO
-        ENDIF 
-
-        iprec_flag = 1
-
-      END IF
-
       nsmin = MAX(1, startglobrow-1);  nsmax = MIN(ns, endglobrow+1)
 
       IF (HESSPASS .EQ. 0) THEN
-        CALL Initialize(.FALSE.,ns,mblk_size) 
+        CALL Initialize(.FALSE.,ns,mblk_size)
+        myend = nsmax
         DO mesh = 1, 3
-           lfirst = .TRUE.
-           mystart(mesh) = nsmin
-           myend(mesh) = nsmax
-           DO js = jstart(mesh), ns, 3
-              IF (js .LT. nsmin) CYCLE
-              IF (lfirst) mystart(mesh)=js
-              lfirst=.FALSE.
-              IF (js .GT. nsmax) EXIT
-              myend(mesh)=js
-           END DO
+           icol = MOD(jstart(mesh)-nsmin, 3)
+           IF (icol .LT. 0) icol = icol+3
+           mystart(mesh) = nsmin+icol
         END DO
       ENDIF
 
       !----------------------------
       ! Column generation begins
-      ! REVERSE js ORDER IN XC, GC AND INTERNALLY IN ALL _PAR ROUTINES
       !----------------------------
       CALL second0(colstarttime)
 
@@ -320,7 +309,11 @@
 
               INHESSIAN=.TRUE.
               CALL second0(skston)
-              CALL func
+              IF (m.EQ.0 .AND. n.LT.0) THEN
+                 gc(:,nsmin:nsmax) = 0
+              ELSE
+                 CALL func
+              END IF
               CALL second0(skstoff)
               hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
               INHESSIAN=.FALSE.
@@ -331,7 +324,6 @@
                 js1=js-1
                 IF (startglobrow.LE.js1 .AND. js1.LE.endglobrow) THEN
                    DataItem = gc(:,js1)/eps
-                   IF (m.EQ.0 .AND. n.LT.0) DataItem = 0
                    IF (l_diagonal_only) THEN
                       temp=DataItem(icol)
                       DataItem=0
@@ -343,41 +335,29 @@
                 !dblk(js)
                 IF (startglobrow.LE.js .AND. js.LE.endglobrow) THEN
                    DataItem = gc(:,js)/eps
-
-!!                   lmdamp = ABS(levmarq_param)*DataItem(icol)
-!!                IF (levmarq_param .NE. zero) THEN
-!!                  IF (lmdamp .EQ. zero) THEN
-!!                    lmdamp = levmarq_param
-!!                  ELSE IF (ntype .NE. 3) THEN
-!!                    lmdamp = lmdamp/10
-!!                  END IF
-!!                END IF
-
+                   IF (.NOT. lColScale) THEN
+                      lmdamp = ABS(levmarq_param)*DataItem(icol)
+                   END IF
                    IF (l_diagonal_only) THEN
                       temp=DataItem(icol)
                       DataItem=0
                       DataItem(icol)=temp
                    END IF
-                   CALL SetBlockTriDataStruct(SAVEDIAG,js,icol,DataItem) 
-!SPH 091616: DO THIS IN BLOCKTRI FINDMINMAX_TRI
-!                   IF (ALL(DataItem .EQ. zero)) THEN
-!                       DataItem(icol) = -one
-!                   END IF
+                   CALL SetBlockTriDataStruct(SAVEDIAG,js,icol,DataItem)
                    IF (.NOT. lColScale) DataItem(icol) = DataItem(icol) + lmdamp
-                   CALL SetBlockTriDataStruct(DIAG,js,icol,DataItem) 
+                   CALL SetBlockTriDataStruct(DIAG,js,icol,DataItem)
                 END IF
 
                 !lblk(js+1) 
                 js1 = js+1
                 IF (startglobrow.LE.js1 .AND. js1.LE.endglobrow) THEN
                    DataItem = gc(:,js1)/eps
-                   IF (m.EQ.0 .AND. n.LT.0) DataItem = 0
                    IF (l_diagonal_only) THEN
                       temp=DataItem(icol)
                       DataItem=0
                       DataItem(icol)=temp
                    END IF
-                   CALL SetBlockTriDataStruct(LOWER,js1,icol,DataItem) 
+                   CALL SetBlockTriDataStruct(LOWER,js1,icol,DataItem)
                 END IF
 
               END DO SKIP3_MESH_LG
@@ -521,8 +501,6 @@
 !----------------------------------------------
       REAL(dp), PARAMETER    :: zero=0, one=1, p5=0.5_dp
       INTEGER  :: n, m, js, js1, mesh, ntype, istat, iunit, icol, icolmpi
-      REAL(dp) :: eps, ton, toff, bsize, lmdamp
-      CHARACTER(LEN=3) :: label
       EXTERNAL    :: func
 #if defined(SKS)
       INTEGER, ALLOCATABLE, DIMENSION (:) :: sendCount, recvCount
@@ -555,30 +533,6 @@
       ALLOCATE (SavedDiag(mblk_size), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('SavedDiag allocation failed!')
       SavedDiag = zero
-
-      IF (iprec_flag == 0) THEN
-         bsize = 3*ns*KIND(dblk)                                         !3 blocks per row
-         bsize = bsize*REAL(mblk_size*mblk_size,dp) 
-         IF (bsize .LT. 1.E6_dp) THEN
-            bsize = bsize/1.E3
-            label = " Kb"
-         ELSE IF (bsize .lt. 1.E9_dp) THEN
-            bsize = bsize/1.E6_dp
-            label = " Mb"
-         ELSE
-            bsize = bsize/1.E9_dp
-            label = " Gb"
-         END IF
-
-         IF (iam .EQ. 0) THEN
-            DO iunit = 6,33,27
-            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
-            WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
-               '^2  Preconditioner size: ', bsize, TRIM(label)
-            END DO
-         ENDIF 
-         iprec_flag = 1
-      END IF
 
       icolmpi = 0
       icol=0
@@ -744,7 +698,7 @@
           asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
         ENDIF
       ENDIF      
- 
+
 !
 !     FACTORIZE (Invert) HESSIAN
 !
@@ -790,8 +744,7 @@
       REAL(dp), PARAMETER    :: zero=0, one=1, p5=0.5_dp
       INTEGER  :: n, m, js, js1, mesh, ntype, istat, iunit, icol, icolmpi
       REAL(dp), ALLOCATABLE, DIMENSION(:,:)  :: gc1
-      REAL(dp) :: eps, ton, toff, bsize, lmdamp, skston, skstoff, temp
-      CHARACTER(LEN=3) :: label
+      REAL(dp) :: eps, ton, toff, lmdamp, skston, skstoff, temp
       EXTERNAL :: func
 #if defined(MPI_OPT)
       INTEGER  :: neqtotal, numroc
@@ -898,33 +851,6 @@
       ALLOCATE (DataItem(mblk_size), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('DataItem allocation failed!')
       DataItem = 0
-
-      IF (iprec_flag == 0) THEN
-         bsize = 3*ns*KIND(dblk)                                         !3 blocks per row
-         bsize = bsize*REAL(mblk_size*mblk_size,dp) 
-         IF (bsize .lt. 1.E6_dp) THEN
-            bsize = bsize/1.E3
-            label = " Kb"
-         ELSE IF (bsize .LT. 1.E9_dp) THEN
-            bsize = bsize/1.E6_dp
-            label = " Mb"
-         ELSE
-            bsize = bsize/1.E9_dp
-            label = " Gb"
-         END IF
-
-         IF (iam .EQ. 0) THEN
-            DO iunit = 6,33,27
-            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
-            WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
-               '^2  Preconditioner size: ', bsize, TRIM(label)
-            END DO
-         ENDIF 
-      
-         iprec_flag = 1
-
-      END IF
-
 
 #if defined(MPI_OPT)
       icolmpi = 0

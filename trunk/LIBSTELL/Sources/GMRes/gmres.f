@@ -90,7 +90,7 @@
       !****************************************
 
  10   CONTINUE
-      CALL drive_dgmres(n, n, m, lwork, work, irc,                       &
+      CALL drive_dgmres(n, n, m, lwork, work, irc,
      &                  gi%icntl, gi%cntl, gi%info, rinfo)
       revcom = irc(1)
       colx   = irc(2)
@@ -168,7 +168,7 @@
         IF (fsq_nl .LT. fsq_min) THEN
           IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(n))
           xmin = work(colx:colx+n-1)
-          kout = gi%info(1); xmod = bnorm*SQRT(SUM(xmin*xmin)/n)
+          kout = gi%info(1); xmod = bnorm*SQRT(SUM(xmin*xmin))
           xmax = bnorm*MAXVAL(ABS(xmin))
           IF (icount.EQ.1 .OR. MOD(icount,10).EQ.0) THEN
              kprint = kout
@@ -198,6 +198,7 @@
      &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
       x0 = bnorm*x0
+      gi%ftol = fsq_min
 
       END SUBROUTINE gmres_ser
 
@@ -237,8 +238,6 @@
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
 
-      xmax = 0
-
       lactive = gi%lactive
       MY_COMM_WORLD = gi%MY_COMM_WORLD
       MY_COMM       = gi%MY_COMM
@@ -270,8 +269,6 @@
       CALL MPI_ALLREDUCE(lsum,gsum,1,MPI_REAL8,MPI_SUM,MY_COMM,MPI_ERR)
       bnorm=SQRT(gsum)
       IF (bnorm .EQ. 0) RETURN
-
-      IF (iam .EQ. 0 .and. gi%lverbose) PRINT *,'PARALLEL BNORM: ',bnorm
 
       IF (gi%icntl(6) .EQ. 1)
      &    work(1:nloc) = x0(myrowstart:myrowend)/bnorm
@@ -353,7 +350,7 @@
 
         LACTIVE_DP: IF (lactive) THEN
         !MAKE SURE nbscal is the same on all processors -
-        CALL MPI_ALLGATHER(nbscal, 1, MPI_INTEGER, itest, 1,             &
+        CALL MPI_ALLGATHER(nbscal, 1, MPI_INTEGER, itest, 1,
      &                     MPI_INTEGER, MY_COMM, MPI_ERR)
         IF (iam.EQ.0 .AND. ANY(itest(1:gi%nprocs) .NE. nbscal)) THEN
            PRINT *,'itest: ',itest(1:gi%nprocs)
@@ -371,7 +368,7 @@
            colx = colx+nloc
         END DO
 
-        CALL MPI_ALLREDUCE(aux,work(colz),nbscal,MPI_REAL8,MPI_SUM,      &
+        CALL MPI_ALLREDUCE(aux,work(colz),nbscal,MPI_REAL8,MPI_SUM,
      &                     MY_COMM,MPI_ERR)
 
 !        WRITE(10000+iam,*) "dotProd/truncate-1"; CALL FLUSH(10000+iam)
@@ -379,11 +376,11 @@
 
 !       THE TIMING FOR THIS DOES NOT SCALE AS WELL WITH # PROCESSORS, BUT
 !       LEADS TO A CONVERGENCE SEQUENCE THAT IS INDEPENDENT OF # PROCESSORS
-        CALL MPI_GATHERV(work(coly), nloc, MPI_REAL8, aux, gi%rcounts,   &
+        CALL MPI_GATHERV(work(coly), nloc, MPI_REAL8, aux, gi%rcounts,
      &                   gi%disp, MPI_REAL8, 0, MY_COMM, MPI_ERR)
 
         DO nout=0,nbscal-1
-           CALL MPI_GATHERV(work(colx),nloc,MPI_REAL8,tmpbuf,gi%rcounts, &
+           CALL MPI_GATHERV(work(colx),nloc,MPI_REAL8,tmpbuf,gi%rcounts,
      &                      gi%disp,MPI_REAL8,0,MY_COMM,MPI_ERR)
            IF (iam .EQ. 0) work(colz+nout) = SUM(tmpbuf*aux)              !DO FOR ALL PROCS IF ALLGATHER FORM USED
            colx = colx+nloc
@@ -437,11 +434,11 @@
         END IF
 
         IF (fsq_nl .LT. fsq_min) THEN
-          kout = gi%info(1); 
+          kout = gi%info(1)
           lsum=SUM(aux(myrowstart:myrowend)**2)
           CALL MPI_REDUCE(lsum,gsum,1,MPI_REAL8,MPI_SUM,0,
      1                    MY_COMM,MPI_ERR)
-          xmod=bnorm*SQRT(gsum/n)
+          xmod=bnorm*SQRT(gsum)
           lsum=MAXVAL(ABS(aux(myrowstart:myrowend)))
           CALL MPI_REDUCE(lsum,xmax,1,MPI_REAL8,MPI_MAX,0,
      1                    MY_COMM,MPI_ERR)
@@ -504,12 +501,12 @@
         DEALLOCATE (xmin)
       END IF
 
-      CALL MPI_ALLGATHERV(work, nloc, MPI_REAL8, tmpbuf, gi%rcounts,     &
+      CALL MPI_ALLGATHERV(work, nloc, MPI_REAL8, tmpbuf, gi%rcounts,
      &                    gi%disp, MPI_REAL8, MY_COMM, MPI_ERR)
-!!      fsq_total1 = fsq_min
+      gi%ftol = fsq_min
       x0 = tmpbuf*bnorm
 
-      IF (iam.EQ.0 .AND. kprint.NE.kout .and. gi%lverbose)               &
+      IF (iam.EQ.0 .AND. kprint.NE.kout .and. gi%lverbose)
      &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
 !      IF (iam .EQ. 0) PRINT 110, icount
@@ -520,15 +517,16 @@
 #endif
       END SUBROUTINE gmres_par
 
-#if defined(MRC)
       SUBROUTINE Truncate(num, iprec0)
       USE stel_kinds, ONLY: dp
       IMPLICIT NONE
+!     NEEDED TO RESOLVE CALL IN gmres_par
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)     :: iprec0
       REAL(dp), INTENT(INOUT) :: num
+!-----------------------------------------------
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -538,7 +536,7 @@
 !     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
 !     WRITE TO INTERNAL FILE TO DO TRUNCATION
 !
-!     RETURN
+!      RETURN
 
       WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
       WRITE (tchnum, chnum) num
@@ -546,7 +544,6 @@
       READ (tchnum, chnum) num
 
       END SUBROUTINE Truncate
-#endif
+
 
       END MODULE GMRES_LIB
-

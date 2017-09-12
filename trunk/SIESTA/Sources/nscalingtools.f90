@@ -6,6 +6,7 @@
 !------------------------------------------------
 MODULE nscalingtools
 USE stel_kinds
+USE descriptor_mod, ONLY: SIESTA_COMM
 #if defined(MPI_OPT)
 #if defined(SKS)
 USE blocktridiagonalsolver_s, ONLY: &
@@ -14,7 +15,6 @@ USE blocktridiagonalsolver_s, ONLY: &
 & GetMatrixRHS, StoreDiagonal
 #endif
 USE mpi_inc
-USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
 IMPLICIT NONE
 !------------------------------------------------
@@ -305,6 +305,10 @@ LASTPARTITION_GE_2=.FALSE.
 IF((bcyclicEndBlockProc(activeranks)-bcyclicStartBlockProc(activeranks)+1).GE.2) LASTPARTITION_GE_2=.TRUE.
 
 numBlocks=bcyclicEndBlockProc(rank+1)-bcyclicStartBlockProc(rank+1)+1
+
+IF (numBlocks.LT.2) THEN
+  CALL ErrorAbort('NS/nranks < 2...use smaller number of processors!')
+END  IF
 
 MAPPINGDONE=.TRUE.
 END SUBROUTINE bcyclicMapping
@@ -717,7 +721,7 @@ SUBROUTINE ErrorAbort(message)
 CHARACTER*(*), INTENT(IN) :: message
 #if defined(MPI_OPT)
 IF (rank .EQ. 0) PRINT *, TRIM(message)
-CALL MPI_Abort(MPI_COMM_WORLD, 1, MPI_ERR)
+CALL MPI_ABORT(MPI_COMM_WORLD, 1, MPI_ERR)
 #else
 PRINT *, TRIM(message); STOP
 #endif

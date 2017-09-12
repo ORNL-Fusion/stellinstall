@@ -40,6 +40,7 @@
 !*******************************************************************************
       MODULE siesta_force
 
+      USE descriptor_mod, ONLY: SIESTA_COMM
       USE stel_kinds
       USE stel_constants
       USE fourier 
@@ -47,11 +48,10 @@
       USE timer_mod
       USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-      USE descriptor_mod, ONLY: SIESTA_COMM
 
       IMPLICIT NONE
 
-      INTEGER, PRIVATE  :: nsmin, nsmax, ns_span, k1, k2, k3, k4
+      INTEGER, PRIVATE  :: nsmin, nsmax, ns_span
       INTEGER, PRIVATE, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), PRIVATE ::                &
          bsupsijh, bsupuijh, bsupvijh, KxBsij, KxBuij, KxBvij, pijh1
@@ -74,7 +74,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER  :: istat, n1, n2
+       INTEGER  :: istat, n1, n2, i, j, irefl, jrefl
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
          pmncf_ds, pmncf, pmnch,                                         &
          pmnsf_ds, pmnsf, pmnsh,                                         &
@@ -86,20 +86,17 @@
 !-----------------------------------------------
        CALL second0(skston)
        nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow+1)
-       ns_span = nsmax-nsmin+1
        n1 = nsmin;  n2 = nsmax
+       ns_span = nsmax-nsmin+1
 
        ALLOCATE(bsupsijh(ntheta,nzeta,n1:n2),                            &
                 bsupuijh(ntheta,nzeta,n1:n2),                            &
                 bsupvijh(ntheta,nzeta,n1:n2),                            &
                 pijh1(ntheta,nzeta,n1:n2), stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in UPDATE_FORCE_PAR')
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_FORCE_PAR')
 
 
 !Convert to real-space contravariant components of B and p
-       k1 = LBOUND(jbsupsmnsh,3);  k2 = UBOUND(jbsupsmnsh,3)
-       k3 = LBOUND(djbsupsmnsh,3); k4 = UBOUND(djbsupsmnsh,3)
-
        CALL IncFields ( jbsupsmnsh,  jbsupumnch,  jbsupvmnch,  jpmnch,   &
                        djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch,   &
                         isym)
@@ -113,11 +110,11 @@
 !
        WPRES: IF (l_getwmhd) THEN
           IF (INHESSIAN) CALL ErrorAbort('l_getwmhd must be set to FALSE in Hessian')
-          nsmax=MIN(endglobrow,ns)
+          n2=MIN(ns,endglobrow)
           IF (nsmin .EQ. 1) pijh1(:,:,1) = 0
-          wp = SUM(pijh1(:,:,nsmin:nsmax)*wint(:,:,nsmin:nsmax))
+          wp = SUM(pijh1(:,:,n1:n2)*wint(:,:,n1:n2))
           wp0 = signjac*(twopi*twopi * hs_i)*wp
-          nsmax=n2
+          n2=nsmax
 #if defined(MPI_OPT)
           CALL MPI_ALLREDUCE(wp0,wp,1,MPI_REAL8, MPI_SUM,                &
                              SIESTA_COMM,MPI_ERR)
@@ -132,7 +129,7 @@
                 bsupsijf1(ntheta,nzeta,n1:n2),                           &
                 bsupuijf1(ntheta,nzeta,n1:n2),                           &
                 bsupvijf1(ntheta,nzeta,n1:n2), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in UPDATE_FORCE')
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_FORCE_PAR')
 
 !
 !Calculate updated FULL-MESH components of BSUPX in real-space by averaging
@@ -158,17 +155,17 @@
 
 !      alias work arrays for use as temp work space
 
-       nsmax=MIN(endglobrow,ns); n2 = nsmax
+       nsmax=MIN(ns,endglobrow); n2 = nsmax
        ns_span = nsmax-nsmin+1
 
 !!SPH051217       KxBsij=>bsupsijh;  KxBuij=>bsupuijh;  KxBvij=>bsupvijh
        ALLOCATE(KxBsij(ntheta,nzeta,n1:n2),                              &
                 KxBuij(ntheta,nzeta,n1:n2),                              &
                 KxBvij(ntheta,nzeta,n1:n2), stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in UPDATE_FORCE')
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_FORCE_PAR')
 
        IF (l_linearize) THEN
-!      dJ X B0 (note here, ksupXijf is the perturbed current)
+!      dJ X B0 (ksupXijf is the perturbed current)
           KxBsij = bsupvijf0(:,:,n1:n2)*ksupuijf(:,:,n1:n2)              &
                  - bsupuijf0(:,:,n1:n2)*ksupvijf(:,:,n1:n2)
           KxBuij = bsupsijf0(:,:,n1:n2)*ksupvijf(:,:,n1:n2)              &
@@ -177,7 +174,7 @@
                  - bsupsijf0(:,:,n1:n2)*ksupuijf(:,:,n1:n2)
 
 !      J0 X dB (Ignored for pos-def preconditioner AND linearized forces)
-!      Now, bsupXijf1 = perturbed B-field
+!      bsupXijf1 is the perturbed B-field
 
           KxBsij = KxBsij                                                &
           +  (bsupvijf1(:,:,n1:n2)*ksupuijf0(:,:,n1:n2)                  &
@@ -190,30 +187,49 @@
           -   bsupsijf1(:,:,n1:n2)*ksupuijf0(:,:,n1:n2))
        ELSE
           KxBsij = bsupvijf1(:,:,n1:n2)*ksupuijf(:,:,n1:n2)              &
-                 - bsupuijf1(:,:,n1:n2)*ksupvijf(:,:,n1:n2)                ! WORK1 has cos parity (lasym=F)
+                 - bsupuijf1(:,:,n1:n2)*ksupvijf(:,:,n1:n2)
           KxBuij = bsupsijf1(:,:,n1:n2)*ksupvijf(:,:,n1:n2)              &
-                 - bsupvijf1(:,:,n1:n2)*ksupsijf(:,:,n1:n2)                ! WORK2 has sin parity (lasym=F)
+                 - bsupvijf1(:,:,n1:n2)*ksupsijf(:,:,n1:n2)
           KxBvij = bsupuijf1(:,:,n1:n2)*ksupsijf(:,:,n1:n2)              &
-                 - bsupsijf1(:,:,n1:n2)*ksupuijf(:,:,n1:n2)                ! WORK3 has sin parity (lasym=F)
+                 - bsupsijf1(:,:,n1:n2)*ksupuijf(:,:,n1:n2)
        END IF
 
        IF (nsmax .EQ. ns) THEN
-          IF (ANY(bsupsijf1(:,:,ns) .NE. zero)) CALL ErrorAbort('bsupsijf1 != 0')
+          IF (ANY(bsupsijf1(:,:,ns) .NE. zero))                          &
+          CALL ErrorAbort('bsupsijf1 != 0 in update_force_par')
+       END IF
+
+!Symmetrize forces: cos (+) and sin(-) decomposition
+       IF (lasym) THEN
+          DO i = 1, ntheta
+          irefl = irefu(i)
+          DO j = 1, nzeta
+          jrefl = jrefv(j)
+          ksupsijf (i,j,n1:n2)= (KxBsij(i,j,:) + KXBsij(irefl,jrefl,:))/2
+          bsupsijf1(i,j,n1:n2)= (KxBsij(i,j,:) - KXBsij(irefl,jrefl,:))/2
+          ksupuijf (i,j,n1:n2)= (KxBuij(i,j,:) + KXBuij(irefl,jrefl,:))/2
+          bsupuijf1(i,j,n1:n2)= (KxBuij(i,j,:) - KXBuij(irefl,jrefl,:))/2
+          ksupvijf (i,j,n1:n2)= (KxBvij(i,j,:) + KXBvij(irefl,jrefl,:))/2
+          bsupvijf1(i,j,n1:n2)= (KxBvij(i,j,:) - KXBvij(irefl,jrefl,:))/2
+          END DO
+          END DO
+!          KxBsij = ksupsijf(:,:,n1:n2)
+!          KxBuij = bsupuijf1(:,:,n1:n2)
+!          KxBvij = bsupvijf1(:,:,n1:n2)
+       END IF
+
+       CALL GetMHDForce(fsubsmncf, fsubumnsf, fsubvmnsf, isym)
+       IF (lasym) THEN
+!          KxBsij = bsupsijf1(:,:,n1:n2)
+!          KxBuij = ksupuijf(:,:,n1:n2)
+!          KxBvij = ksupvijf(:,:,n1:n2)
+          CALL GetMHDForce(fsubsmnsf, fsubumncf, fsubvmncf, iasym)
        END IF
 
        DEALLOCATE(ksupsijf, ksupuijf, ksupvijf,                          &
                   bsupsijf1,bsupuijf1,bsupvijf1, stat=istat)
 
-
-       k1 = n1; k2 = n2; k3 = n1; k4 = MIN(ns,endglobrow+1)
-
-       CALL GetMHDForce(fsubsmncf, fsubumnsf, fsubvmnsf, isym)
-       IF (lasym)                                                        &
-       CALL GetMHDForce(fsubsmnsf, fsubumncf, fsubvmncf, iasym)
-
-
-       DEALLOCATE(KxBsij, KxBuij, KxBvij)  
-       DEALLOCATE(pijh1, stat=istat)
+       DEALLOCATE(KxBsij, KxBuij, KxBvij, pijh1, stat=istat)
 
        CALL second0(skstoff)
        time_update_force = time_update_force + (skstoff-skston)
@@ -235,9 +251,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: iparity
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,k1:k2), INTENT(IN) ::        & !k1=1, k2=ns
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) ::             & !1:ns
           jbsupsmnh,  jbsupumnh,  jbsupvmnh,  jpmnh
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,k3:k4), INTENT(IN) ::        & !k3=nsmin, k4=nsmax
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) ::             & !nsmin:nsmax
          djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -295,11 +311,12 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: iparity
-      REAL(dp), DIMENSION(:,:,:), POINTER :: fsubsmnf, fsubumnf, fsubvmnf
+      REAL(dp), POINTER, DIMENSION(:,:,:), INTENT(OUT) ::                &
+         fsubsmnf, fsubumnf, fsubvmnf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  ::  fours, fouru, fourv, istat, nblock
+      INTEGER  ::  fours, fouru, fourv, istat, nblock, k1, k2, k3, k4
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)                            &
                ::  KxBsmn, KxBumn, KxBvmn, pmnh, pmnf, pmnf_ds
       REAL(dp) ::  pres00_edge
@@ -309,6 +326,8 @@
       ELSE
          fours = f_sin; fouru = f_cos; fourv = f_cos
       END IF
+
+      k1 = nsmin; k2 = nsmax; k3 = k1; k4 = MIN(ns,endglobrow+1)
 
       ALLOCATE(KxBsmn(0:mpol,-ntor:ntor,k1:k2),                          &
                KxBumn(0:mpol,-ntor:ntor,k1:k2),                          &
@@ -324,7 +343,6 @@
       CALL tomnsp_par(KxBuij, KxBumn, fouru, 1, ns_span)
       CALL tomnsp_par(KxBvij, KxBvmn, fourv, 1, ns_span)
 
-
 !Harmonics of "true" pressure (after dividing out jacobian factor in pijh1)
       ns_span = (k4-k3) + 1
       CALL tomnsp_par(pijh1, pmnh, fours, 1, ns_span)
@@ -332,7 +350,7 @@
       nblock=SIZE(pmnh,1)*SIZE(pmnh,2)
       CALL to_full_mesh_par(pmnh, pmnf, nblock, k3, k4)
 
-!Radial derivative of pressure
+!Radial derivative of pressure valid for [k3, k4-1]
       CALL GradientFull_par(pmnf_ds, pmnh, nblock, k3, k4)
 
 !SPH11-7-16: s=1 is an iso-pressure contour
@@ -353,8 +371,7 @@
 !Calculate harmonics of MHD force (F = JxB - grad p) on full mesh
 !For l_linearize=T:  PERTURBED Force (ignore F(xc=0) part)
 !For l_linearize=F:  NONLINEAR Force
-
-      nsmax = k2
+!
       IF (nsmax .NE. k2) CALL ErrorAbort('NSMAX != K2')
       KxBsmn = KxBsmn - pmnf_ds(:,:,k1:k2)
       CALL get_force_harmonics_par(pmnf, KxBsmn, KxBumn, KxBvmn,         &
@@ -407,18 +424,16 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,k1:k2), INTENT(IN)  ::      &
-           KxB_smn, KxB_umn, KxB_vmn
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,k3:k4), INTENT(IN)  ::      &
-           pmnf
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),    INTENT(OUT) ::      &
+       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN)  ::           &
+           KxB_smn, KxB_umn, KxB_vmn, pmnf
+       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(OUT) ::         &
            f_smnf, f_umnf, f_vmnf
        INTEGER, INTENT(IN) ::  iparity
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        REAL(dp), PARAMETER :: p5 = 0.5_dp
-       INTEGER             :: m, n, mp, np, mcol
+       INTEGER             :: m, n, mp, np, mcol, ioff, joff
        REAL(dp)            :: skston, skstoff 
        REAL(dp)            :: f1, f2, f3, r0, tmps(6) 
        INTEGER             :: from, sparity
@@ -430,27 +445,29 @@
        CALL second0(skston)
        IF (iparity .EQ. isym) THEN
           mcol=1; sparity = 1
+          r0 = hs_i/2
        ELSE
           mcol=4; sparity = -1
+          r0 =-hs_i/2
        END IF
        
-       nsmin=k1; nsmax=k2
+       nsmin = LBOUND(KXB_smn,3);  nsmax = UBOUND(KXB_smn,3)
 
-       f_smnf(:,:,k1:k2) = KxB_smn
+       f_smnf(:,:,nsmin:nsmax) = KxB_smn
        DO m = 0, mpol
           mp = m*sparity
           DO n = -ntor, ntor       
              np = n*nfp*sparity
-             f_umnf(m,n,k1:k2) = KxB_umn(m,n,k1:k2)                      &
-                               + mp*pmnf(m,n,k1:k2)                        ! mp ~ -(d/du)pres
-             f_vmnf(m,n,k1:k2) = KxB_vmn(m,n,k1:k2)                      &
-                               + np*pmnf(m,n,k1:k2)                        ! np ~ -(d/dv)pres
+             f_umnf(m,n,nsmin:nsmax) = KxB_umn(m,n,nsmin:nsmax)          &
+                               + mp*pmnf(m,n,nsmin:nsmax)                 ! mp ~ -(d/du)pres
+             f_vmnf(m,n,nsmin:nsmax) = KxB_vmn(m,n,nsmin:nsmax)          &
+                               + np*pmnf(m,n,nsmin:nsmax)                 ! np ~ -(d/dv)pres
           ENDDO
        ENDDO
 
-       IF (ANY(f_smnf(m0,-ntor:-1,k1:k2) .NE. 0)) CALL ErrorAbort('f_smnf != 0')
-       IF (ANY(f_umnf(m0,-ntor:-1,k1:k2) .NE. 0)) CALL ErrorAbort('f_umnf != 0')
-       IF (ANY(f_vmnf(m0,-ntor:-1,k1:k2) .NE. 0)) CALL ErrorAbort('f_vmnf != 0')
+       IF (ANY(f_smnf(m0,-ntor:-1,nsmin:nsmax) .NE. zero)) CALL ErrorAbort('f_smnf != 0')
+       IF (ANY(f_umnf(m0,-ntor:-1,nsmin:nsmax) .NE. zero)) CALL ErrorAbort('f_umnf != 0')
+       IF (ANY(f_vmnf(m0,-ntor:-1,nsmin:nsmax) .NE. zero)) CALL ErrorAbort('f_vmnf != 0')
 
 !      ADD SYMMETRIC DAMPING TERMS -B v dot B TO SUPPRESS NULL SPACE
 !      WORKS BEST: comment out IF statement below, allowing -mu v|| term
@@ -476,10 +493,10 @@
              fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
              fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
 
-             fbdy(10) = SQRT(SUM(f_umnf(:,:,ns)**2))
-             fbdy(11) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
-             fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns)**2))
-             fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
+             fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
+             fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
+             fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
+             fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
 
 #if defined(MPI_OPT)
            NPROCS_0: IF (nprocs.GT.1) THEN
@@ -510,23 +527,26 @@
            END IF NPROCS_0
 #endif
            IF (iam .EQ. 0 .and. lverbose) THEN
-              WRITE(*,121) fbdy(1),fbdy(2),fbdy(3)
-              WRITE(*,122) fbdy(4),fbdy(5),fbdy(6)
-              WRITE(*,123) fbdy(7),fbdy(8),fbdy(9)
-              WRITE(*,124) fbdy(10),fbdy(11)
-              WRITE(*,125) fbdy(12),fbdy(13)
+              IF (iparity .EQ. 0) PRINT 120,'SYMMETRIC FORCES: '
+              IF (iparity .EQ. 1) PRINT *,'ASYMMETRIC FORCES: '
+
+              PRINT 121, fbdy(1),fbdy(2),fbdy(3)
+              PRINT 122, fbdy(4),fbdy(5),fbdy(6)
+              PRINT 123, fbdy(7),fbdy(8),fbdy(9)
+              PRINT 124, fbdy(10),fbdy(11)
+              PRINT 125, fbdy(12),fbdy(13)
            END IF
 
        END IF PRINT_O
 
- 121   FORMAT(/,' fs(1,m=1): ',1p,e12.3,' fs(2,m=1): ',1pe12.3,' fs(2,m!=1):',1pe12.3)
- 122   FORMAT(  ' fu(1,m=1): ',1p,e12.3,' fu(2,m=1): ',1pe12.3,' fu(2,m!=1):',1pe12.3)
- 123   FORMAT(  ' fv(1,m=0): ',1p,e12.3,' fv(2,m=0): ',1pe12.3,' fv(2,m>0): ',1pe12.3)
- 124   FORMAT(  ' fu(ns)   : ',1p,e12.3,' fu(ns-1):  ',1pe12.3)
- 125   FORMAT(  ' fv(ns)   : ',1p,e12.3,' fv(ns-1):  ',1pe12.3,/)
+ 120   FORMAT(/,1x,a)
+ 121   FORMAT(' fs(1,m=1): ',1p,e12.3,' fs(2,m=1): ',1pe12.3,' fs(2,m!=1):',1pe12.3)
+ 122   FORMAT(' fu(1,m=1): ',1p,e12.3,' fu(2,m=1): ',1pe12.3,' fu(2,m!=1):',1pe12.3)
+ 123   FORMAT(' fv(1,m=0): ',1p,e12.3,' fv(2,m=0): ',1pe12.3,' fv(2,m>0): ',1pe12.3)
+ 124   FORMAT(' fu(ns-1) : ',1p,e12.3,' fu(ns)   : ',1pe12.3)
+ 125   FORMAT(' fv(ns-1) : ',1p,e12.3,' fv(ns)   : ',1pe12.3,/)
 
 !      ORIGIN BOUNDARY CONDITIONS
-       r0 = hs_i/2
        NSMIN_1: IF (nsmin .EQ. 1) THEN
        f_smnf(m0,:,1) = 0; f_smnf(m2:,:,1) = 0
 !       IF (.not.l_natural) f_umnf(m1,:,1) = f_umnf(m1,:,1)-r0*f_smnf(m1,:,1) 
@@ -554,7 +574,7 @@
  
 !      EDGE BOUNDARY CONDITIONS
        NSMAX_NS: IF (nsmax .EQ. ns) THEN
-       f_smnf(:,:,ns) = 0
+          f_smnf(:,:,ns) = 0
           IF (.NOT.l_push_edge) THEN
              f_umnf(:,:,ns) = 0
              f_vmnf(:,:,ns) = 0
@@ -570,10 +590,6 @@
                                * col_scale(:,:,mcol+1,nsmin:nsmax)
        f_vmnf(:,:,nsmin:nsmax) = signjac*f_vmnf(:,:,nsmin:nsmax)         &
                                * col_scale(:,:,mcol+2,nsmin:nsmax)
-
-!       IF (iparity .eq. iasym) PRINT *,' ASYM FORCES: ',   &
-!          SUM(f_smnf**2 + f_umnf**2 + f_vmnf**2)
-
 
        CALL second0(skstoff)
        get_force_harmonics_time=get_force_harmonics_time+(skstoff-skston)
@@ -708,11 +724,9 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,k1:k2), INTENT(IN)  ::      &
-           KxB_smn, KxB_umn, KxB_vmn
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,k3:k4), INTENT(IN)  ::      &
-           pmnf
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(OUT)  ::        &
+       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN)  ::           &
+           KxB_smn, KxB_umn, KxB_vmn, pmnf
+       REAL(dp), POINTER, DIMENSION(:,:,:), INTENT(OUT)  ::              &
            f_smnf, f_umnf, f_vmnf
        INTEGER, INTENT(IN) :: iparity
 !-----------------------------------------------

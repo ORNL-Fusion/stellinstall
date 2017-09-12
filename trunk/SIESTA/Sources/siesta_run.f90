@@ -50,7 +50,7 @@
       USE shared_data, ONLY: nprecon, lverbose
       USE perturbation, ONLY: init_data
       USE timer_mod, ONLY: init_data_time, sks_timers
-      USE hessian, ONLY: iprec_flag, HESSPASS
+      USE hessian, ONLY: HESSPASS
       USE siesta_state, ONLY: lfirst
       USE siesta_error
       USE diagnostics_mod, ONLY: toroidal_flux0
@@ -77,7 +77,6 @@
       toroidal_flux0=0
 
       SIESTA_COMM = run_comm
-      iprec_flag = 0
       HESSPASS = 0
 
 #if defined(MPI_OPT)

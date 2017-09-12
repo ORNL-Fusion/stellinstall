@@ -171,6 +171,7 @@ C-----------------------------------------------
       USE xstuff
       USE vmec_main, ONLY: fsqr, fsqz, fsql, ftolv
       USE gmres_lib, ONLY: gmres_par, gmres_info
+      USE vmec_input, ONLY: l_v3fit
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -276,6 +277,8 @@ C-----------------------------------------------
        gi%my_comm_world = RUNVMEC_COMM_WORLD
        gi%lactive = lactive
 
+       gi%lverbose = .not.l_v3fit
+
        l=ictrl_prec2d
        IF (icntl(4) .NE. noPrec) ictrl_prec2d = -1
        CALL funct3d_par(lscreen0, ier_flag_res)
@@ -301,7 +304,7 @@ C-----------------------------------------------
       ier_flag = 0
       fact = 1
       fact_min = fact
-      fsq_min  = HUGE(fsq_min)
+      fsq_min  = gi%ftol
 
 !     SIMPLE LINESEARCH SCALING SCAN
       DO m = 1, 5

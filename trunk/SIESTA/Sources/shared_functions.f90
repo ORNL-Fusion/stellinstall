@@ -4,7 +4,7 @@
 !!  \date July, 2014
       MODULE shared_functions
       USE shared_data
-      USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam,                  &
+      USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam, SIESTA_COMM,     &
                                 in_hess_nfunct, out_hess_nfunct,         &
                                 SIESTA_COMM
       USE island_params, ns=>ns_i, hs=>hs_i
@@ -250,9 +250,7 @@
 !>   \brief Returns perturbed MHD+KINETIC energy
 !!   \author S. P. Hirshman, R. Sanchez
       FUNCTION getwmhd (p, lpar)
-#if defined(MRC)
-      USE GMRES_LIB, ONLY: truncate
-#endif
+      USE GMRES_LIB, ONLY: Truncate
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -280,10 +278,8 @@
 #endif
       l_getwmhd    = .FALSE.
 
-      CALL truncate(wtotal, 12)
+      CALL Truncate(wtotal, 12)
       getwmhd = wtotal
-
-      RETURN
 
       END FUNCTION getwmhd 
 

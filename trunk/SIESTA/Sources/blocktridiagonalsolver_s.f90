@@ -7,9 +7,8 @@
 MODULE blocktridiagonalsolver_s
 #if defined(MPI_OPT)
 USE mpi_inc
-USE descriptor_mod, ONLY: SIESTA_COMM
 #endif
-USE siesta_error
+USE descriptor_mod, ONLY: SIESTA_COMM
 IMPLICIT NONE
 PRIVATE
 !-------------------------------------------------------------------------------

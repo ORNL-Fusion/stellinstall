@@ -1,5 +1,6 @@
        MODULE siesta_init
        USE stel_kinds
+       USE descriptor_mod, ONLY: SIESTA_COMM
        USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos,  &
                           f_du, f_dv, f_sum
        USE shared_data, ONLY: l_update_state
@@ -26,7 +27,6 @@
        USE siesta_currents, ONLY: cv_currents
        USE quantities
        USE mpi_inc
-       USE descriptor_mod, ONLY: SIESTA_COMM
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

@@ -604,7 +604,7 @@ C-----------------------------------------------
 !           THE EXCEPTION TO THIS IS IF WE ARE TESTING THE HESSIAN (lHess_exact=T), 
 !           THEN MUST USE FULL VACUUM CALCULATION TO COMPUTE IT (ivacskip=0)
 !
-           lHess_exact = .FALSE.
+!           lHess_exact = .FALSE.
            IF (ictrl_prec2d .NE. 0) THEN
               IF (lHess_exact .OR. ictrl_prec2d.EQ.2) THEN        !Accurate Hessian
                  ivacskip = 0

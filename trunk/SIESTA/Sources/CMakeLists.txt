@@ -3,7 +3,7 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/add_resistivity.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/assert_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/bhtobf.f90
-	${CMAKE_CURRENT_SOURCE_DIR}/blocktridiagonalsolver.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/blocktridiagonalsolver_s.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/check3d.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_currents.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/descriptor_mod.f90

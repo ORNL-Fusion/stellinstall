@@ -677,7 +677,8 @@
                  cosmui(ntheta,0:mpol), sinmu(ntheta,0:mpol),            &
                  sinmum(ntheta,0:mpol), sinmui(ntheta,0:mpol),           &
                  cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),              &
-                 sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor), stat=istat)
+                 sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor),              &
+                 irefu(ntheta), jrefv(nzeta), stat=istat)
 
         IF (istat .NE. 0) CALL ErrorAbort('Allocation error in fixarray')
          
@@ -685,6 +686,7 @@
 
         DO jk = 1, ntheta
           arg = (pinorm*(jk-1))/ntheta1                                    ! Poloidal collocation points
+          irefu(jk) = MOD(ntheta+1-jk,ntheta)+1                            ! -u index
           DO m = 0, mpol
             cosi = COS(m*arg)
             sini = SIN(m*arg)
@@ -709,6 +711,7 @@
 !
         DO lk = 1, nzeta
           arg = twopi*(lk-1)/nzeta                                         ! Toroidal collocation points*ABS(n*nfp_i)
+          jrefv(lk) = MOD(nzeta+1-lk,nzeta)+1                              ! -v index
           DO n = 0, ntor
             cosi = COS(n*arg)                                              ! sign of "n" taken care later through ISIGN
             sini = SIN(n*arg)
@@ -769,7 +772,8 @@
       INTEGER :: istat
 
       DEALLOCATE(cosmu, cosmum, cosmui, sinmu, sinmum, sinmui,           &
-                 cosnv, cosnvn, sinnv, sinnvn, orthonorm, stat=istat) 
+                 cosnv, cosnvn, sinnv, sinnvn, irefu, jrefv, orthonorm,  &
+                 stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in dealloc_fixarray')
          
       END SUBROUTINE DEALLOC_FOURIER
@@ -859,7 +863,7 @@
        GOTO 200
 
  100   CONTINUE
-       IF (iam .EQ. 0) PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
+       PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
        CALL ErrorAbort('Test_Fourier')
 
  200   CONTINUE

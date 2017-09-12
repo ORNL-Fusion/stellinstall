@@ -555,33 +555,3 @@
       END DO
 
       END SUBROUTINE SurfAverage
-
-#if defined(MRC)
-#else
-      SUBROUTINE Truncate(num, iprec0)
-      USE stel_kinds, ONLY: dp
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(IN)     :: iprec0
-      REAL(dp), INTENT(INOUT) :: num
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      CHARACTER*24 :: chnum, tchnum
-!-----------------------------------------------
-!
-!     TRUNCATES double-precision to precision iprec0 digits, keeping exponent range of double
-!     WRITE TO INTERNAL FILE TO DO TRUNCATION
-!
-!     RETURN
-
-      WRITE (chnum, '(a,i2,a,i2,a)') '(1p,e',iprec0+7,'.',iprec0,')'
-      WRITE (tchnum, chnum) num
-
-      READ (tchnum, chnum) num
-
-      END SUBROUTINE Truncate
-#endif
-

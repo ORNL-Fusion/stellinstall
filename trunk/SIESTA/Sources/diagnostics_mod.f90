@@ -45,7 +45,7 @@
 !
         CALL second0(ton)
 
-        IF (.NOT. ALLOCATED(divbmnsf))  THEN                                  
+        IF (.NOT. ALLOCATED(divbmnsf))  THEN
           ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
           IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in divb')
           divbmnsf = 0
@@ -101,8 +101,8 @@
         END DO
 
         tnorm = hs_i*SUM(jbsupumnch(:,:,nsmin:nsmax)**2                 &
-              +     jbsupvmnch(:,:,nsmin:nsmax)**2                      &
-              +     jbsupsmnsh(:,:,nsmin:nsmax)**2)
+              +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &
+              +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
         divb_rms = SUM(divbmnsf**2)
 #if defined(MPI_OPT)        
@@ -273,8 +273,8 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in)       :: iunit
-      REAL(rprec), INTENT(in)   :: value(0:mpol,-ntor:ntor,ns)
-      REAL(rprec), INTENT(in)   :: fsq_total
+      REAL(dp), INTENT(in)   :: value(0:mpol,-ntor:ntor,ns)
+      REAL(dp), INTENT(in)   :: fsq_total
       CHARACTER*(*), INTENT(in) :: label
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -929,7 +929,7 @@
             DEALLOCATE(bdotjmnsh)
         IF (.NOT. ALLOCATED(bdotjmnsh)) THEN                            
           ALLOCATE(bdotjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation #6B failed in BDOTJ_PAR')
+          IF (istat .NE. 0) CALL ErrorAbort('Allocation #5B failed in BDOTJ_PAR')
         ENDIF
         ENDIF
 

@@ -735,7 +735,7 @@
         pijh = pijh/p_factor                                               ! Remove normalization (restore at end)
 
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMP_PRESSURE')        ! which are stored in PMNCH       
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMP_PRESSURE')        ! which are stored in PMNCH
         CALL tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
 
         IF (lasym) THEN
@@ -930,12 +930,6 @@
           CALL toijsp_1p(bsupumnch, ss, uu, vv, bu, f_none, f_cos, f_half) ! SUM MN-series at target point to get contravariant Bu
           CALL toijsp_1p(bsupvmnch, ss, uu, vv, bv, f_none, f_cos, f_half) ! SUM MN-series at target point to get contravariant By
 
-!WRITE (*,*) ss, uu, vv
-!DO js = 1, ns
-!WRITE (*,*) js, bsupsmnsh(:,:,js)
-!END DO
-!WRITE (*,*) 'sym', bs, bu, bv
-
           IF (lasym) THEN
           ds = IOR(f_sum, f_ds)
           du = IOR(f_sum, f_du)
@@ -955,11 +949,6 @@
           CALL toijsp_1p(bsupvmnsh, ss, uu, vv, bv, f_sum, f_sin, f_half)  ! SUM MN-series at target point to get contravariant By
 
           END IF
-!DO js = 1, ns
-!WRITE (*,*) js, bsupsmnch(:,:,js)
-!END DO
-!WRITE (*,*) 'asym', bs, bu, bv
-!PAUSE
 
           br = bs*rs + bu*ru + bv*rv                                       ! Form cylindrical fields (B)
           bz = bs*zs + bu*zu + bv*zv
@@ -1309,8 +1298,8 @@
         IF (istat .NE. 0) CALL ErrorAbort('Silo allocation problem!')
         
         END SUBROUTINE allocate_SILO
-        
-     
+
+
         SUBROUTINE dealloc_SILO
         
         IF (iam .EQ. 0) DEALLOCATE(silo2d, silo3d, tmp_silo, idum)

@@ -5,6 +5,7 @@
       MODULE gmres
       USE stel_kinds
       USE stel_constants, ONLY: zero, one
+      USE descriptor_mod, ONLY: SIESTA_COMM
       USE shared_data, etak=>etak_tol
       USE shared_functions, ONLY: funct_island, funct_island_par, LineSearch
       USE siesta_state, ONLY: update_state, update_state_par
@@ -328,8 +329,6 @@
 !*******************************************************
       CALL init_gmres0(gi%icntl, gi%cntl, etak, gi%m, n)
       gi%ftol=ftol
-      gi%my_comm = SIESTA_COMM
-      gi%my_comm_world = SIESTA_COMM
       gi%lverbose = lverbose
 
 !
@@ -343,7 +342,11 @@
          gi%endglobrow=endglobrow; gi%startglobrow=startglobrow
          gi%iam=iam; gi%nprocs=nprocs
          gi%mblk_size=mblk_size; gi%rcounts=>rcounts; gi%disp=>disp
-        
+
+         gi%my_comm = SIESTA_COMM
+         gi%my_comm_world = SIESTA_COMM
+!         gi%lactive = lactive
+
          CALL gmres_par (n, gi, matvec_par, apply_precond, GetNLForce,   &
                          x0, b)
       ELSE
@@ -353,6 +356,9 @@
 #if defined(SKS)
       END IF
 #endif
+      fsq_total1 = gi%ftol
+      xc = x0
+
       END SUBROUTINE gmres_wrap
 
 #if defined (SKS)
@@ -360,7 +366,7 @@
       USE stel_kinds
       USE stel_constants, ONLY: zero
       USE island_params, ONLY: ns=>ns_i
-      USE hessian, ONLY: eps_factor, mupar, gather_array
+      USE hessian, ONLY: eps_factor, mupar, PadSides, gather_array
       USE blocktridiagonalsolver_s, ONLY: ParMatVec
       USE mpi_inc
 !-----------------------------------------------
@@ -370,10 +376,10 @@
       REAL(dp), INTENT(IN), DIMENSION(nloc)  :: ploc
       REAL(dp), INTENT(OUT), DIMENSION(nloc) :: Ap
 !-----------------------------------------------
-      LOGICAL, PARAMETER :: LPARMATVEC=.FALSE.
-      INTEGER            :: myrowstart, myrowend, istat
+      LOGICAL, PARAMETER    :: LPARMATVEC=.FALSE.
+      INTEGER               :: myrowstart, myrowend, istat
       REAL(dp), ALLOCATABLE :: p(:)
-      REAL(dp)           :: delta, skston, skstoff
+      REAL(dp)              :: delta, skston, skstoff
 !-----------------------------------------------
 !SPH NOTE 032713: EVENTUALLY REMOVE CALL TO ParMatVec IF THE FUNCT_ISLAND_PAR IS FASTER
 !
@@ -386,17 +392,20 @@
       IF (nloc .NE. (endglobrow-startglobrow+1)*mblk_size)               &
          CALL ErrorAbort('nloc wrong in matvec_par')
 
+      myrowstart=(startglobrow-1)*mblk_size+1
+      myrowend=myrowstart+nloc-1
+
       CALL second0(skston)
       ALLOCATE (p(ns*mblk_size), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in matvec_par')
 
-      CALL gather_array(ploc, p)
+      p(myrowstart:myrowend) = ploc
+      CALL PadSides(p, mblk_size, 1, 1)
+
+!      CALL gather_array(ploc, p)
 
       CALL second0(skstoff)
       gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
-
-      myrowstart=(startglobrow-1)*mblk_size+1
-      myrowend=myrowstart+nloc-1
 
       CALL second0(skston)
 
@@ -415,6 +424,8 @@
       END IF
 
       DEALLOCATE (p)
+
+!      WHERE (ABS(Ap) .LT. 1.E-10_dp) Ap = 0
 
       CALL second0(skstoff)
 
@@ -524,6 +535,7 @@
 
 !Set state variables
       xc(1:ndim) = bnorm*xcstate(1:ndim)                                  !undo internal gmres normalization
+
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
       l_init_state = .NOT.l_par_state
