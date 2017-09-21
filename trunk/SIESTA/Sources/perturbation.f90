@@ -145,8 +145,8 @@
       CALL DATE_AND_TIME(date0,time0,zone0)
       READ (date0(5:6),'(i2)')imon
       WRITE (33,20) months(imon),date0(7:8),date0(1:4),                  &
-     &              time0(1:2),time0(3:4),time0(5:6)
-
+                    time0(1:2),time0(3:4),time0(5:6)
+      
 20    FORMAT(' DATE = ',a3,' ',a2,',',a4,' ',' TIME = ',2(a2,':'),a2,/)
 
       DO istat = 1, SIZE(HelPert)
@@ -156,6 +156,7 @@
       END DO
 
       WRITE (33, 32) ngmres_type, iortho, lColScale
+      CALL FLUSH(33)
 
 30    FORMAT(i2,' mres: ',i4,' HelPert: ',1pe9.2)
 32    FORMAT(/,' ngmres_type: ', i4,' iOrtho: ', i4, ' lColScale: ', l2)
@@ -177,7 +178,6 @@
       INTEGER,PARAMETER  :: ipert_sign=2
       INTEGER            :: js, l, iprint, mres0, nres0, isign, icount,  &
                             irscale, imin(2), jstart, istat, jsave
-      INTEGER            :: nsmin, nsmax
       REAL(dp)           :: w0, w1, wmhd, eta_factor_save, p_width_min
       REAL(dp)           :: normal, HelPert0, HP, rad, chip0, phip0
       LOGICAL            :: lresist_save
@@ -195,10 +195,7 @@
       eta_factor_save = eta_factor
       eta_factor=1
       xc = 0
-      IF (PARFUNCTISL) THEN
-         nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
-      END IF
-      w0 = getwmhd(xc, PARFUNCTISL)
+      w0 = getwmhd(xc)
 
       ALLOCATE (buv_res(ntheta,nzeta,ns), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN add_perturbation')
@@ -240,8 +237,7 @@
          SCALE_TEST: DO irscale = 1, irad_scale
             CALL GetResPert(irscale, isign, mres0, nres0, rad, HelPert0, chip0, phip0)
             xc = 0
-            wmhd = getwmhd(xc, PARFUNCTISL)
-
+            wmhd = getwmhd(xc)
             IF (wmhd .LT. w1) THEN
                imin(1) = irscale
                imin(2) = isign
@@ -267,11 +263,12 @@
                    10**6*(wmhd-w0), mres0, nres0, HP*normal, rad,         &
                    ABS(mres0*chip0+nres0*nfp*phip0), chip0/phip0, p_width_min
             END DO
+            CALL FLUSH(33)
          END IF
          
          CALL GetResPert(irscale, isign, mres0, nres0, rad, HelPert0, chip0, phip0)
 
-         wmhd = getwmhd(xc, PARFUNCTISL)
+         wmhd = getwmhd(xc)
          IF (ABS(wmhd-w1) .GT. 1.E-12_dp) THEN
             CALL siesta_error_set_error(siesta_error_general, 'Error1 in Perturb')
          END IF
@@ -437,7 +434,7 @@
       INTEGER           :: istat, js, m, n
       CHARACTER*(256)   :: filename
 !-----------------------------------------------
-!Gather fields for all ns (known only on [nsmin-1,nsmax+2])
+!Gather fields for all ns (at this point, known only on [nsmin-1,nsmax+2])
       CALL GatherFields
 
       IF (iam .NE. 0) RETURN

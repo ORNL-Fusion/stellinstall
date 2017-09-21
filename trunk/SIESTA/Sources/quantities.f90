@@ -12,7 +12,7 @@
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
       USE descriptor_mod, ONLY: iam
       USE shared_data, ONLY: lasym, lverbose
-      USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER
       IMPLICIT NONE
 
 !
@@ -96,6 +96,10 @@
                            f_sin, f_sum
         USE metrics, ONLY: sqrtg
         USE island_params, ONLY: nu_i
+        USE shared_data, ONLY: mblk_size, ndims, lasym
+#if defined(SKS)
+        USE blocktridiagonalsolver_s, ONLY: Initialize
+#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -108,9 +112,24 @@
         b_factor = SQRT(w_factor)
         gnorm_i  = gnorm_i/w_factor
 
-!
+!Store dimensions
+        IF (lasym) THEN
+           ndims = 6
+        ELSE
+           ndims = 3
+        END IF      
+                
+        mblk_size=ndims*(mpol+1)*(2*ntor+1)
+
+        IF (PARSOLVER) THEN
+#if defined(SKS)
+           CALL Initialize(.FALSE.,ns,mblk_size) 
+#endif
+        ELSE
+           startglobrow = 1; endglobrow = ns
+        END IF
+
 !       Allocate and initialize dependent variables
-!
         CALL alloc_quantities
 
         jacobh(:,:,:) = RESHAPE(sqrtg, SHAPE(jacobh))                       ! Reshapes sqrtg in local form
@@ -163,6 +182,8 @@
             IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',volume_i,' THIS VOLUME: ', sum1
 !           CALL ErrorAbort('Volume does not agree with VMEC input!')
         END IF
+        
+!Split off call to Init_Fields, which is only called if lrestart=F        
       
         END SUBROUTINE init_quantities
 
@@ -179,20 +200,13 @@
         REAL(dp)           :: r0
         REAL(dp), DIMENSION(:), ALLOCATABLE :: phiph, chiph
         REAL(dp), DIMENSION(:,:), ALLOCATABLE :: pmnf
-        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE:: presif, presih,        &
-                                                  tmps, tmpu, tmpv, tmpp
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE:: presif, presih
 !-----------------------------------------------
-
 !
 !       Initialize half-mesh covariant components of jac*Bsuph-i and jac*presh
+!       Fields are gathered to all processors at the end of this routine
 !       
-
-#if defined(SKS)
         nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
-#else
-        nsmin = 1;  nsmax = ns
-#endif
-        jbsupsmnsh(:,:,nsmin:nsmax) = 0
 
         ALLOCATE(phiph(ns), chiph(ns))
 
@@ -203,13 +217,8 @@
         chiph(2:ns) = (chipf_i(2:ns) + chipf_i(1:nsh))/2
         phiph(1) = 0;  chiph(1) = 0
 
-!SKIP THIS TO USE INTERPOLATED LAMBDA FROM VMEC
-!        IF (lasym) THEN
-!           IF (iam .EQ. 0) PRINT *,'--- IMPLEMENT COMPUTE LMNC! ---'
-!        ELSE
-           CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,       &
-                                phiph, chiph, nsmin, nsmax)
-!        ENDIF
+        CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,         &
+                              phiph, chiph, nsmin, nsmax)
 
         DO m = 0,mpol
            DO n = -ntor, ntor
@@ -222,36 +231,33 @@
         jbsupvmnch(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax) / orthonorm(0,0)
 
         r0 = hs_i/2
+        jbsupsmnsh(:,:,nsmin:nsmax) = 0
         jbsupumnch(m1,:,1) = 0 
-        jbsupvmnch(m1,:,1) = 0 
-!        jbsupsmnsh(m1,:,2) = r0*jbsupumnch(m1,:,2)                        ! Need to make jbsupsmnsh - r0*jbsupumnch = 0 at js=2
-                                                                           ! MESSES UP DIV(B) = 0
+
 !STORE m=0 component of jbsupvmnch at origin in half-grid js=1
         jbsupvmnch(m0,:,1) = jbsupvmnch(m0,:,2) 
         jbsupvmnch(m1:,:,1) = 0
 
         jbsupumnch(:,:,nsmin:nsmax) = b_factor*jbsupumnch(:,:,nsmin:nsmax) 
         jbsupvmnch(:,:,nsmin:nsmax) = b_factor*jbsupvmnch(:,:,nsmin:nsmax) 
-        IF (lasym) THEN
-           jbsupsmnch = 0
 
+        IF (lasym) THEN
            DO m = 0, mpol
               DO n = -ntor, ntor
-                 jbsupumnsh(m,n,:) = phiph(:)*( n*nfp*lmnc_i(m,n,1:ns))
-                 jbsupvmnsh(m,n,:) = phiph(:)*(-m    *lmnc_i(m,n,1:ns))
+                 jbsupumnsh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*( n*nfp*lmnc_i(m,n,nsmin:nsmax))
+                 jbsupvmnsh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-m    *lmnc_i(m,n,nsmin:nsmax))
               END DO
            END DO
 
+           jbsupsmnch(:,:,nsmin:nsmax) = 0
            jbsupumnsh(m1,:,1) = 0   
-           jbsupvmnsh(m1,:,1) = 0  
-!           jbsupsmnch(m1,:,2) = -r0*jbsupumnsh(m1,:,2)                    ! Need to make jbsupsmnch + r0*jbsupumnsh = 0 at js=2
-                                                                           ! MESSES UP DIV(B) = 0
-           jbsupumnsh = b_factor*jbsupumnsh
-           jbsupvmnsh = b_factor*jbsupvmnsh
 
 !STORE m=0 component of jbsupvmnch at origin in half-grid js=1
            jbsupvmnsh(m0,:,1) = jbsupvmnsh(m0,:,2)
            jbsupvmnsh(m1:,:,1) = 0
+
+           jbsupumnsh(:,:,nsmin:nsmax) = b_factor*jbsupumnsh(:,:,nsmin:nsmax)
+           jbsupvmnsh(:,:,nsmin:nsmax) = b_factor*jbsupvmnsh(:,:,nsmin:nsmax)
         END IF
 
         DEALLOCATE (phiph, chiph, stat=istat)
@@ -264,28 +270,26 @@
                  presif(ntheta,nzeta,ns), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocate error #1 in init_field')
 
-        DO js = MAX(1,nsmin-1), nsmax
+        nloc = MAX(1,startglobrow-1)
+        DO js = nloc, nsmax
            presif(:,:,js) = p_factor*presf_i(js)
         END DO
-
-        nloc = MAX(1,startglobrow-1)
 
         CALL to_half_mesh_par(presif(:,:,nloc:nsmax),                    &
                               presih(:,:,nloc:nsmax), nuv, nloc, nsmax) 
       
 !       Evolve (internally) jacob*(real pressure)
-        presih(:,:,nsmin:nsmax) = presih(:,:,nsmin:nsmax) * jacobh(:,:,nsmin:nsmax)
+        presih(:,:,nsmin:nsmax) = presih(:,:,nsmin:nsmax)*jacobh(:,:,nsmin:nsmax)
 
         CALL tomnsp_par(presih, jpmnch, f_cos, nsmin, nsmax)               ! Initialize pressure harmonics (half mesh)
         jpmnch(:,:,1) = 0
         jpmnch(m0,:,1) = jpmnch(m0,:,2)
 
         IF (lasym) THEN
-        CALL tomnsp_par(presih, jpmnsh, f_sin, nsmin, nsmax)
-        jpmnsh(:,:,1) = 0
-        jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
+           CALL tomnsp_par(presih, jpmnsh, f_sin, nsmin, nsmax)
+           jpmnsh(:,:,1) = 0
+           jpmnsh(m0,:,1) = jpmnsh(m0,:,2)
         END IF
-
 
         DEALLOCATE(presif, presih, stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Deallocate error #2 in init_fields')
@@ -330,8 +334,7 @@
                   brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
         IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
         IF (lasym) THEN
-        ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax),                  &
-                  stat=info)
+        ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax), stat=info)
         IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
         END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
@@ -379,14 +382,12 @@
 !
 !       RHS (driving) TERMS [sinmi, -cosmni parts]
 !
-              mn = mn+1
-              btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))       &
-	                + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))    &
-                    / jacobh(:,js)
+ 	          mn = mn+1
+	          btemp = (-m*(chiph(js)*guv(:,js)+phiph(js)*gvv(:,js))      &
+	            + n*nfp*(chiph(js)*guu(:,js)+phiph(js)*guv(:,js)))       &
+                   / jacobh(:,js)
               brhs(mn,1) = SUM(cosmni(:,mn)*btemp)
-              IF (lasym) THEN
-                 brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
-              END IF
+              IF (lasym) brhs(mn,2) =-SUM(sinmni(:,mn)*btemp)
 			  
 !
 !            MATRIX ELEMENTS - COEFFICIENTS OF Lambda(mn,js)
@@ -416,8 +417,7 @@
         CALL solver(amat, brhs, mnmax*n2, 1, info)
         IF (info .NE. 0) CALL ErrorAbort('INFO != 0 IN RECOMPUTE_LAMBDA')
         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                     !Divide by phiph -> old style
-        IF (lasym)                                                    &
-           lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
+        IF (lasym) lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
 
         END DO
 
@@ -431,7 +431,6 @@
 
 100     FORMAT(a,f10.2,a)
         END SUBROUTINE Recompute_Lambda
-
 
 
         SUBROUTINE alloc_quantities
@@ -529,23 +528,23 @@
       END SUBROUTINE dealloc_quantities
 
       SUBROUTINE GATHERFIELDS
-#if defined(SKS)
+      
+      IF (PARSOLVER) THEN
       CALL GATHER_FIELDS(jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch)
       IF (lasym)                                                         &
       CALL GATHER_FIELDS(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh)
-#else
-      RETURN
-#endif
+      END IF
+      
       END SUBROUTINE GATHERFIELDS  
 
       SUBROUTINE PADFIELDS
-#if defined(SKS)
+      
+      IF (PARSOLVER) THEN
       CALL PAD_FIELDS(djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch)
       IF (lasym)                                                         &
       CALL PAD_FIELDS(djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh)
-#else
-      RETURN
-#endif
+      END IF
+      
       END SUBROUTINE PADFIELDS      
 
       SUBROUTINE GATHER_FIELDS(jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh)
@@ -614,6 +613,8 @@
 !-----------------------------------------------
 !
 !     pads (perturbed) field arrays to [nsmin-1, nsmax+2] as required in siesta_init
+!     returns for djbsupXmnh, djpmnh (from siesta_bfield, siesta_pressure) are on 
+!     [nsmin,nsmax+1] as required for Hessian computation
 !
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
 
@@ -624,8 +625,8 @@
                 tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),  &
                 stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in pad_fields')
-      k1 = SIZE(tmps,1)*SIZE(tmps,2)
 
+      k1 = SIZE(tmps,1)*SIZE(tmps,2)
       tmps(:,:,nsmin:nsmax) = djbsupsmnh(:,:,nsmin:nsmax)
       CALL PadSides(tmps, k1, 1, 2)
       tmpu(:,:,nsmin:nsmax) = djbsupumnh(:,:,nsmin:nsmax)
@@ -636,12 +637,15 @@
       CALL PadSides(tmpp, k1, 1, 2)
 
       k1 = LBOUND(djpmnh,3);  k2 = UBOUND(djpmnh,3)
+ 	  IF (k1 .NE. MAX(1,startglobrow-1)) CALL ErrorAbort('k1 wrong in pad_fields')
+	  IF (k2 .NE. MIN(ns,endglobrow+2)) CALL ErrorAbort('k2 wrong in pad_fields')
 
       djbsupsmnh(:,:,k1:k2) = tmps(:,:,k1:k2)
       djbsupumnh(:,:,k1:k2) = tmpu(:,:,k1:k2)
       djbsupvmnh(:,:,k1:k2) = tmpv(:,:,k1:k2)
       djpmnh(:,:,k1:k2)     = tmpp(:,:,k1:k2)
       DEALLOCATE (tmps, tmpu, tmpv, tmpp)
+
 
       END SUBROUTINE PAD_FIELDS
      

@@ -58,9 +58,8 @@
 
 
       CONTAINS
-!#if defined(SKS)
 !>  \brief Parallel subroutine to update MHD force
-      SUBROUTINE update_force_par
+      SUBROUTINE update_force
 !     
 !     PURPOSE: UPDATES FORCE using the advanced values of B and p obtained
 !              from calls to UPDATE_PRES and UPDATE_BFIELD
@@ -115,12 +114,14 @@
           wp = SUM(pijh1(:,:,n1:n2)*wint(:,:,n1:n2))
           wp0 = signjac*(twopi*twopi * hs_i)*wp
           n2=nsmax
+          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
           CALL MPI_ALLREDUCE(wp0,wp,1,MPI_REAL8, MPI_SUM,                &
                              SIESTA_COMM,MPI_ERR)
-#else
-          wp = wp0
 #endif
+          ELSE
+          wp = wp0
+          END IF
        END IF WPRES
 
        ALLOCATE(ksupsijf(ntheta,nzeta,n1:n2),                            & ! Full mesh quantities (real space)
@@ -195,54 +196,23 @@
        END IF
 
        IF (nsmax .EQ. ns) THEN
-          IF (ANY(bsupsijf1(:,:,ns) .NE. zero))                          &
-          CALL ErrorAbort('bsupsijf1 != 0 in update_force_par')
-       END IF
-
-!Symmetrize forces: cos (+) and sin(-) decomposition
-       IF (lasym) THEN
-          DO i = 1, ntheta
-          irefl = irefu(i)
-          DO j = 1, nzeta
-          jrefl = jrefv(j)
-          ksupsijf (i,j,n1:n2)= (KxBsij(i,j,:) + KXBsij(irefl,jrefl,:))/2
-          bsupsijf1(i,j,n1:n2)= (KxBsij(i,j,:) - KXBsij(irefl,jrefl,:))/2
-          ksupuijf (i,j,n1:n2)= (KxBuij(i,j,:) + KXBuij(irefl,jrefl,:))/2
-          bsupuijf1(i,j,n1:n2)= (KxBuij(i,j,:) - KXBuij(irefl,jrefl,:))/2
-          ksupvijf (i,j,n1:n2)= (KxBvij(i,j,:) + KXBvij(irefl,jrefl,:))/2
-          bsupvijf1(i,j,n1:n2)= (KxBvij(i,j,:) - KXBvij(irefl,jrefl,:))/2
-          END DO
-          END DO
-!          KxBsij = ksupsijf(:,:,n1:n2)
-!          KxBuij = bsupuijf1(:,:,n1:n2)
-!          KxBvij = bsupvijf1(:,:,n1:n2)
+          IF (ANY(bsupsijf1(:,:,ns) .NE. zero))                          &         
+		  CALL ErrorAbort('bsupsijf1 != 0 in update_force_par')
        END IF
 
        CALL GetMHDForce(fsubsmncf, fsubumnsf, fsubvmnsf, isym)
-       IF (lasym) THEN
-!          KxBsij = bsupsijf1(:,:,n1:n2)
-!          KxBuij = ksupuijf(:,:,n1:n2)
-!          KxBvij = ksupvijf(:,:,n1:n2)
-          CALL GetMHDForce(fsubsmnsf, fsubumncf, fsubvmncf, iasym)
-       END IF
+       IF (lasym)                                                        &     
+	   CALL GetMHDForce(fsubsmnsf, fsubumncf, fsubvmncf, iasym)
 
        DEALLOCATE(ksupsijf, ksupuijf, ksupvijf,                          &
-                  bsupsijf1,bsupuijf1,bsupvijf1, stat=istat)
-
-       DEALLOCATE(KxBsij, KxBuij, KxBvij, pijh1, stat=istat)
+	              bsupsijf1,bsupuijf1,bsupvijf1,                         &
+                  KxBsij, KxBuij, KxBvij, pijh1, stat=istat)
 
        CALL second0(skstoff)
        time_update_force = time_update_force + (skstoff-skston)
 
-      END SUBROUTINE update_force_par
-!#endif
-
-!>  \brief Serial subroutine to update MHD force
-      SUBROUTINE update_force
-
-      CALL update_force_par
-
       END SUBROUTINE update_force
+
 
       SUBROUTINE IncFields( jbsupsmnh,  jbsupumnh,  jbsupvmnh,  jpmnh,   &
                            djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh,   &
@@ -311,8 +281,7 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: iparity
-      REAL(dp), POINTER, DIMENSION(:,:,:), INTENT(OUT) ::                &
-         fsubsmnf, fsubumnf, fsubvmnf
+      REAL(dp), POINTER, DIMENSION(:,:,:) :: fsubsmnf, fsubumnf, fsubvmnf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -356,13 +325,14 @@
 !SPH11-7-16: s=1 is an iso-pressure contour
       IF (k4 .EQ. ns) THEN
          pres00_edge = pmnf(0,0,ns)
-         pmnf(:,:,ns) = 0;   pmnf(0,0,ns) = pres00_edge
+         pmnf(:,:,ns) = 0;  pmnf(0,0,ns) = pres00_edge
+         IF (iparity.EQ.1 .AND. pres00_edge.ne.0) CALL ErrorAbort('pres00_edge != 0')
       END IF
 
 !SPH041408 : NEED FOR grad-p - apply 1/2 factor in get_force_harmonics to pmncf_ds(1)
 !      NEED pmncf(1,m1) so limit at r0=hs_i/2 in dp/du is taken correctly
       IF (k3 .EQ. 1) THEN
-         pmnf(:,:,1) = 0
+         pmnf(:,:,1) = 0; pmnf_ds(:,:,1) = 0
          pmnf(m0:m1,:,1) = pmnh(m0:m1,:,2)
          pmnf_ds(m1,:,1) = 2*ohs*pmnh(m1,:,2)
       END IF
@@ -374,8 +344,8 @@
 !
       IF (nsmax .NE. k2) CALL ErrorAbort('NSMAX != K2')
       KxBsmn = KxBsmn - pmnf_ds(:,:,k1:k2)
-      CALL get_force_harmonics_par(pmnf, KxBsmn, KxBumn, KxBvmn,         &
-                                   fsubsmnf, fsubumnf, fsubvmnf, iparity)
+      CALL get_force_harmonics(pmnf, KxBsmn, KxBumn, KxBvmn,             &
+                               fsubsmnf, fsubumnf, fsubvmnf, iparity)
       DEALLOCATE(KxBsmn, KxBumn, KxBvmn, pmnf, pmnf_ds, pmnh, stat=istat)
 
       END SUBROUTINE GetMHDForce
@@ -409,9 +379,9 @@
 !>  \param[out] f_vmnf      F_v component of the MHD force. (sin, ipar=0)
 !>  \param[in]  iparity     =isym (default lasym=F), =iasym (lasym=T)
 !*******************************************************************************
-       SUBROUTINE get_force_harmonics_par(pmnf,                          &
-                                          KxB_smn, KxB_umn, KxB_vmn,     &
-                                          f_smnf, f_umnf, f_vmnf, iparity) 
+       SUBROUTINE get_force_harmonics(pmnf,                              &
+                                      KxB_smn, KxB_umn, KxB_vmn,         &
+                                      f_smnf, f_umnf, f_vmnf, iparity) 
        USE hessian, ONLY: muPar, l_Compute_Hessian
        USE shared_data, ONLY: nprecon, l_PrintOriginForces,              &
                               l_push_s, l_push_u, l_push_v, l_push_edge, &
@@ -477,7 +447,7 @@
 !CALL funct_island WITH vsupXmn...=0 to get un-augmented MHD force
        IF (muPar.NE.zero .AND. l_Compute_Hessian)                        &
 !       IF (muPar.NE.zero)                                               &
-       CALL AddParDamping_par(f_smnf, f_umnf, f_vmnf, KxB_vmn, iparity)
+       CALL AddParDamping(f_smnf, f_umnf, f_vmnf, KxB_vmn, iparity)
 
 !GATHER BDY FORCES AND PRINT OUT ON PROC=0
        PRINT_O: IF (l_PrintOriginForces) THEN
@@ -549,7 +519,7 @@
 !      ORIGIN BOUNDARY CONDITIONS
        NSMIN_1: IF (nsmin .EQ. 1) THEN
        f_smnf(m0,:,1) = 0; f_smnf(m2:,:,1) = 0
-!       IF (.not.l_natural) f_umnf(m1,:,1) = f_umnf(m1,:,1)-r0*f_smnf(m1,:,1) 
+!       IF (.NOT.l_natural) f_umnf(m1,:,1) = f_umnf(m1,:,1)-r0*f_smnf(m1,:,1) 
        IF (.NOT.l_push_s) THEN 
           f_smnf(m1,:,1) = 0
        ELSE
@@ -594,10 +564,10 @@
        CALL second0(skstoff)
        get_force_harmonics_time=get_force_harmonics_time+(skstoff-skston)
 
-       END SUBROUTINE get_force_harmonics_par
+       END SUBROUTINE get_force_harmonics
 
 
-       SUBROUTINE addpardamping_par (f_smnf, f_umnf, f_vmnf, work, ipar)
+       SUBROUTINE addpardamping (f_smnf, f_umnf, f_vmnf, work, ipar)
        USE quantities
        USE hessian, ONLY: muPar, mupar_norm, l_Compute_Hessian
        USE fourier, ONLY: tomnsp_par, f_sin, f_cos
@@ -714,28 +684,6 @@
  100   CONTINUE
        DEALLOCATE (vdotB, tmp)
 
-       END SUBROUTINE addpardamping_par
-!#endif
+       END SUBROUTINE addpardamping
 
-       SUBROUTINE get_force_harmonics(pmnf,                              &
-                                      KxB_smn, KxB_umn, KxB_vmn,         &
-                                      f_smnf, f_umnf, f_vmnf, iparity) 
-       USE quantities,ONLY: dp, mpol, ntor, ns
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN)  ::           &
-           KxB_smn, KxB_umn, KxB_vmn, pmnf
-       REAL(dp), POINTER, DIMENSION(:,:,:), INTENT(OUT)  ::              &
-           f_smnf, f_umnf, f_vmnf
-       INTEGER, INTENT(IN) :: iparity
-!-----------------------------------------------
-       CALL get_force_harmonics_par(pmnf,                                &
-                                    KxB_smn, KxB_umn, KxB_vmn,           &
-                                    f_smnf, f_umnf, f_vmnf, iparity) 
-       
-       END SUBROUTINE get_force_harmonics
-
-
-      END MODULE siesta_force
-
+       END MODULE siesta_force

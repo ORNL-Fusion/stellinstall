@@ -139,12 +139,15 @@
 
          wb = SUM(bsq_loc(:,:,n1:n2)*jacobh(:,:,n1:n2)*wint(:,:,n1:n2))
          wb0 = signjac*(twopi*pi*hs_i)*wb
+         
+         IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,                 &
-                            SIESTA_COMM,MPI_ERR)
-#else
-         wb = wb0
+            CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,              &
+                               SIESTA_COMM,MPI_ERR)
 #endif
+         ELSE
+            wb = wb0
+         END IF
          DEALLOCATE (bsq_loc)
       END IF
 
@@ -193,7 +196,9 @@
             r0 = SQRT(edge_cur/r0)
          END IF
 #if defined(MPI_OPT)
+         IF (PARSOLVER) THEN
          CALL MPI_BCAST(r0,1,MPI_REAL8,nranks-1,SIESTA_COMM,MPI_ERR)
+         END IF
 #endif
          IF (iam .EQ. 0) THEN
          DO iwrite = 6, 33, 27
@@ -210,12 +215,14 @@
          stes(4) = SUM(wint(:,:,n1:n2)*(bu_filter + bsubuijh(:,:,n1:n2))**2)         
          stes(5) = SUM(wint(:,:,n1:n2)*(bv_filter - bsubvijh(:,:,n1:n2))**2)
          stes(6) = SUM(wint(:,:,n1:n2)*(bv_filter + bsubvijh(:,:,n1:n2))**2)         
+         IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(stes,rtes,6,MPI_REAL8,MPI_SUM,               &
                             SIESTA_COMM,MPI_ERR)
-#else
-         rtes = stes
 #endif
+         ELSE
+         rtes = stes
+         END IF
          IF (rtes(2) .NE. zero) ste(2) = SQRT(rtes(1)/rtes(2))
          IF (rtes(4) .NE. zero) ste(3) = SQRT(rtes(3)/rtes(4))
          IF (rtes(6) .NE. zero) ste(4) = SQRT(rtes(5)/rtes(6))

@@ -62,13 +62,7 @@
       siesta_error_state = IBSET(siesta_error_state, error_code)
 
       IF (iam .eq. 0) WRITE (*,*) TRIM(message)
-      IF (.not.lrecon) THEN
-#if defined(MPI_OPT)
-         CALL MPI_ABORT(MPI_COMM_WORLD, error_code)
-#else
-         STOP error_code
-#endif
-      END IF
+      IF (.NOT.lrecon) CALL ErrorAbort(message)
 
       END SUBROUTINE
 

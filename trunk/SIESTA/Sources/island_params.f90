@@ -13,7 +13,7 @@
       INTEGER :: nsh                                                      ! Number of points in half mesh
       INTEGER, ALLOCATABLE :: irefu(:), jrefv(:)                          ! -u, -v indices
       REAL(dp) :: hs_i, ohs_i, dnorm_i, gnorm_i, wb_i, wp_i,             &
-                  volume_i, rmajor_i
+                  volume_i, rmajor_i                                            
       REAL(dp), PARAMETER :: gamma = 5._dp/3._dp                          ! Adiabatic constant
       REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: cosmu, cosmum,            &
           cosmui, sinmu, sinmum, sinmui, cosnv, cosnvn, sinnv, sinnvn

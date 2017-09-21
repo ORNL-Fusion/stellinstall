@@ -7,7 +7,7 @@
       USE stel_constants, ONLY: zero, one
       USE descriptor_mod, ONLY: SIESTA_COMM
       USE shared_data, etak=>etak_tol
-      USE shared_functions, ONLY: funct_island, funct_island_par, LineSearch
+      USE shared_functions, ONLY: funct_island, LineSearch
       USE siesta_state, ONLY: update_state, update_state_par
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,       &
                                endglobrow, PARSOLVER
@@ -70,18 +70,13 @@
       l_getwmhd=.TRUE.
 
 
-#if defined(SKS)
       CALL second0(skston)
-      CALL funct_island_par
+      CALL funct_island
       brhs = -gc 
-      CALL gather_array(brhs)     
+      IF (PARFUNCTISL) CALL gather_array(brhs)     
+      l_getwmhd=.FALSE.
       CALL second0(skstoff)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-#else
-      CALL funct_island
-      brhs = -gc
-#endif
-      l_getwmhd=.FALSE.
 
       wmhd = wtotal
       fsq_min = HUGE(fsq_min)   !Capture one xc at least
@@ -112,11 +107,7 @@
 
       xc = 0; l_getfsq=.TRUE.
       l_linearize = .FALSE.
-      IF (PARFUNCTISL) THEN
-         CALL funct_island_par
-      ELSE
-         CALL funct_island
-      END IF
+      CALL funct_island
       xc = -gc
       eps = levmarq_param*Dmin
       IF (.NOT.l_ApplyPrecon) CALL Apply_Precond(xc)
@@ -128,11 +119,7 @@
             xc1 = eps*gc            !nth partial sum: store for next j iteration
             xc = xc + xc1
          END IF
-         IF (PARFUNCTISL) THEN
-            CALL funct_island_par
-         ELSE
-            CALL funct_island
-         END IF
+         CALL funct_island
 
          IF (fsq_total1 .GT. fsq_min) THEN
             bTerm = (J .GT. 1) 
@@ -225,16 +212,11 @@
       l_PrintOriginForces=.TRUE.
       l_init_state=.TRUE.
       l_getwmhd= .TRUE.
-#if defined(SKS)
       CALL second0(skston)
-      CALL funct_island_par
-      CALL update_state_par(.FALSE., zero, zero)
-      CALL second0(skstoff)
-      gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-#else
       CALL funct_island
       CALL update_state(.FALSE., zero, zero)
-#endif
+      CALL second0(skstoff)
+      gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
       
       l_PrintOriginForces=.FALSE.
 
@@ -303,7 +285,7 @@
       SUBROUTINE gmres_wrap (x0, b)
       USE perturbation, ONLY: ftol
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
-      USE nscalingtools, ONLY: PARSOLVER, PARGMRES, rcounts, disp
+      USE nscalingtools, ONLY: PARGMRES, rcounts, disp
       USE hessian, ONLY: apply_precond
       USE gmres_lib, ONLY: gmres_info, gmres_par, gmres_ser
 #if defined(SKS)
@@ -337,10 +319,10 @@
 !     X0: on input, initial guess if icntl(6) == 1
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
+      gi%iam=iam; gi%nprocs=nprocs
 #if defined(SKS)
       IF (PARSOLVER .AND. PARGMRES) THEN
          gi%endglobrow=endglobrow; gi%startglobrow=startglobrow
-         gi%iam=iam; gi%nprocs=nprocs
          gi%mblk_size=mblk_size; gi%rcounts=>rcounts; gi%disp=>disp
 
          gi%my_comm = SIESTA_COMM
@@ -416,7 +398,7 @@
 
          l_linearize=.TRUE.
          l_init_state=.NOT.l_par_state
-         CALL funct_island_par
+         CALL funct_island
          Ap = gc(myrowstart:myrowend)/delta
 
       ELSE 
@@ -425,7 +407,7 @@
 
       DEALLOCATE (p)
 
-!      WHERE (ABS(Ap) .LT. 1.E-10_dp) Ap = 0
+      WHERE (ABS(Ap) .LT. 1.E-10_dp) Ap = 0
 
       CALL second0(skstoff)
 
@@ -466,15 +448,10 @@
       IF (SIZE(gc) .NE. SIZE(Ap)) CALL ErrorAbort('gc and Ap wrong sizes')
       xc = delta*p
 
-      IF (PARFUNCTISL) THEN
-         l_init_state=.NOT.l_par_state
-         l_getwmhd=.TRUE.
-         CALL funct_island_par   !Note: not necessary to gather gc to all processors!
-         l_getwmhd=.FALSE.
-      ELSE
-         l_init_state=l_par_state
-         CALL funct_island
-      END IF
+      l_init_state=l_par_state
+      l_getwmhd=.TRUE.
+      CALL funct_island
+      l_getwmhd=.FALSE.
 
       IF (l_linearize) THEN
          Ap = gc/delta
@@ -541,11 +518,7 @@
       l_init_state = .NOT.l_par_state
       l_ApplyPrecon=.FALSE.
 
-#if defined(MPI_OPT)
-      CALL funct_island_par
-#else
       CALL funct_island
-#endif
       fsq_nl = fsq_total1
  
 !Restore state variables

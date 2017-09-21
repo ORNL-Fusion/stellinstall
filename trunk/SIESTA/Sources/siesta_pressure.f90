@@ -44,17 +44,19 @@
        USE nscalingtools, ONLY: startglobrow, endglobrow
        IMPLICIT NONE
 
+       PRIVATE
        INTEGER, PARAMETER  :: m0=0, m1=1, isym=0, iasym=1
-       INTEGER, PRIVATE    :: nsmin, nsmax, ns_span
-       REAL(dp),PRIVATE    :: gamm1
+       INTEGER             :: nsmin, nsmax, ns_span
+       REAL(dp)            :: gamm1
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, PRIVATE ::               &
          work1, work2, vgradph, work3, work4, work5, work6, &
          jvsupuijh, jvsupvijh
+         
+       PUBLIC :: update_pres  
 
        CONTAINS
-!#if defined(SKS) 
 !>     \brief Parallel subroutine to advance pressure from t to t+delta_t by updating jpmnc,sh (jacobh*presh)
-       SUBROUTINE update_pres_par
+       SUBROUTINE update_pres
        USE quantities
        USE timer_mod, ONLY: time_update_pres
 !-----------------------------------------------
@@ -86,33 +88,32 @@
        ALLOCATE (jvsupuijh(ntheta,nzeta,nsmin:nsmax),                    &   
                  jvsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
        IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_PRES')
-       !!On exit, jsupXh valid on nsmin+1:nsmax grid
+
+!On exit, jsupXh valid on [nsmin+1:nsmax]
        CALL to_half_mesh_par(jvsupuijf(:,:,nsmin:nsmax), jvsupuijh, nblock, nsmin, nsmax)
        CALL to_half_mesh_par(jvsupvijf(:,:,nsmin:nsmax), jvsupvijh, nblock, nsmin, nsmax)
 
 !=====================================
-!   
 !      Compute first term ~(gamma-1)V * grad(p) on r.h.s. of pressure equation
 !      the u,v derivatives should be consistent with div(pv) term and combine
 !      to cancel if div(v) = 0
+!=====================================
        gamm1 = gamma-1
 !      MAKES PRES-PERTURB A POSITIVE DEFINITE CONTRIBUTION TO HESSIAN: 
 !      When computing hessian, guarantee positive-definiteness this way
 !      (sound wave compressional energy contribution)
-!      IF (l_linearize) gamm1 = gamm1+1
+!      IF (l_linearize) gamm1 = gamma
 
-       IF (.TRUE.) THEN
+!On exit, vgradph is valid on [nsmin+1:nsmax]
+       IF (.FALSE.) THEN
+!       IF (.TRUE.) THEN
           work1(:,:,nsmin:nsmax) =                                       &
           pijf_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) +          &
           pijf_du(:,:,nsmin:nsmax)*jvsupuijf(:,:,nsmin:nsmax) +          &
           pijf_dv(:,:,nsmin:nsmax)*jvsupvijf(:,:,nsmin:nsmax)
-
-       !!On exit, vgradph is valid on nsmin+1:nsmax grid
           CALL to_half_mesh_par(work1, vgradph, nblock, nsmin, nsmax)
-
        ELSE
-
-!      MIXED HALF/FULL: DIAGONAL IN ANGULAR DERIVATIVES AND MORE ACCURATE AT EDGE js=ns
+!MIXED HALF/FULL: DIAGONAL IN ANGULAR DERIVATIVES AND MORE ACCURATE AT EDGE js=ns
           work1 = pijf_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
           CALL to_half_mesh_par(work1, vgradph, nblock, nsmin, nsmax)
           vgradph(:,:,nsmin:nsmax) = vgradph(:,:,nsmin:nsmax)            &
@@ -138,7 +139,7 @@
 !      In particular, pijf(1)*jvsupsijf makes no contribution to forces (integrates to zero,
 !      since jvsupsijf(1) ~ cos(u) + O(s)!)
 !      jvsupu may be finite, although dp/du -> 0 at axis
-!      Note: WORK1 has COSINE parity, nsh = ns_i-1
+!=====================================
 
 !Upwind to suppress grid separation in radial direction
        IF (l_upwind) THEN
@@ -150,7 +151,7 @@
           work2(:,:,nsmin:nsmax) = pijf(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
        END IF
 
-       !!On exit, work1 is valid on nsmin+1:nsmax grid
+!On exit, work1 is valid on [nsmin+1:nsmax]
        CALL GradientHalf_par(work1, work2, nblock, nsmin, nsmax)
 
        nsmin=MAX(1,startglobrow)
@@ -166,16 +167,9 @@
        CALL second0(toff)
        time_update_pres = time_update_pres + (toff-ton)
 
-       END SUBROUTINE update_pres_par
-!#endif
-
-       SUBROUTINE update_pres
-
-       CALL update_pres_par
-
        END SUBROUTINE update_pres
 
-
+       
        SUBROUTINE Continuity(djpmnh, iparity)
        USE shared_data, ONLY: delta_t
 !-----------------------------------------------
@@ -221,8 +215,9 @@
      
        work4 = work4 + work5
 
-! Gamma = adiabatic factor
-       djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax) - gamma*work4(:,:,nsmin:nsmax)
+!Gamma = adiabatic factor
+       djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                 &
+                               - gamma*work4(:,:,nsmin:nsmax)
 
 !SPH   Evolve harmonics of (jacobh * pres)mn to conserve pressure
        djpmnh = delta_t*djpmnh                                           ! calculate increment of pressure harmonics.

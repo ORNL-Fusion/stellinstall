@@ -1,4 +1,3 @@
-!#if defined(SKS)
 !---------------------------------------------------------------------------------------------
       SUBROUTINE GradientHalf_par(gradienth, vectorf, n2, nsmin, nsmax)
       USE stel_kinds
@@ -314,7 +313,6 @@
 
         END SUBROUTINE toupper_par
 !---------------------------------------------------------------------------------------------
-!#endif
         SUBROUTINE to_half_mesh(vecf, vech, n2)
         USE stel_kinds
         USE island_params, ns=>ns_i
@@ -325,7 +323,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        INTEGER, INTENT(IN)                        :: n2
+        INTEGER, INTENT(IN)                     :: n2
         REAL(dp), DIMENSION(n2,ns), INTENT(IN)  :: vecf    
         REAL(dp), DIMENSION(n2,ns), INTENT(OUT) :: vech  
 !-----------------------------------------------
@@ -341,10 +339,8 @@
 
 
         SUBROUTINE to_full_mesh(vech, vecf, n2)
-#if defined(SKS)
         USE timer_mod, ONLY: to_full_mesh_time
         USE descriptor_mod, ONLY: DIAGONALDONE, INHESSIAN
-#endif        
         USE stel_kinds
         USE stel_constants, ONLY: zero
         USE island_params, ns=>ns_i, mpol=>mpol_i, ntor=>ntor_i
@@ -375,9 +371,8 @@
         vecf(:,1) = vech(:,2)
                            
         CALL second0(skstoff)
-#if defined(SKS)
-        IF(DIAGONALDONE.AND.INHESSIAN) to_full_mesh_time=to_full_mesh_time+(skstoff-skston)
-#endif
+        IF(DIAGONALDONE.AND.INHESSIAN)                                   &
+           to_full_mesh_time=to_full_mesh_time+(skstoff-skston)
         END SUBROUTINE to_full_mesh
 
         

@@ -18,7 +18,7 @@
       USE stel_kinds
       USE stel_constants        
       USE fourier 
-      USE nscalingtools, ONLY: startglobrow, endglobrow
+      USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER
       USE timer_mod, ONLY: time_update_upperv
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
@@ -26,7 +26,7 @@
 
       CONTAINS
 !>    \brief Parallel subroutine for initializing updated displacement components in real space
-      SUBROUTINE update_upperv_par
+      SUBROUTINE update_upperv
       USE shared_data, ONLY: lasym
       USE siesta_state, ONLY: clear_field_perts
       USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,          &
@@ -53,13 +53,6 @@
 
       CALL second0(toff)
       time_update_upperv = time_update_upperv + (toff-ton)
-
-      END SUBROUTINE update_upperv_par
-
-!>    \brief Serial subroutine for initializing updated displacement components in real space
-      SUBROUTINE update_upperv
-
-      CALL update_upperv_par
 
       END SUBROUTINE update_upperv
 
@@ -93,13 +86,13 @@
          mcol = 4; r0 = -hs_i/2
       END IF
 
-      IF (LBOUND(jvsupsmnf,3) .NE. 1)  CALL ErrorAbort('LBOUND1 WRONG IN InitDisp')
-      IF (UBOUND(jvsupsmnf,3) .NE. ns) CALL ErrorAbort('UBOUND1 WRONG IN InitDisp')
+      IF (LBOUND(jvsupsmnf,3) .NE. 1)  CALL ErrorAbort('LBOUND WRONG IN InitDisp')
+      IF (UBOUND(jvsupsmnf,3) .NE. ns) CALL ErrorAbort('UBOUND WRONG IN InitDisp')
 
       ALLOCATE (gvsupsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 gvsupumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 gvsupvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in UPDATE_UPPERV')
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in UPDATE_UPPERV')
 
 !Apply scaling in real space (keep xc components unscaled)
       gvsupsmnf = jvsupsmnf(:,:,nsmin:nsmax)*col_scale(:,:,mcol,nsmin:nsmax)
@@ -117,7 +110,7 @@
          gvsupvmnf(m1:,:,1) = 0
          IF (.NOT.l_push_v) gvsupvmnf(m0,:,1) = 0
 
-         IF (.NOT. l_natural) THEN
+         IF (.NOT.l_natural) THEN
             gvsupsmnf(m1,:,1) = -r0*gvsupumnf(m1,:,1)
          END IF
        END IF NS1   

@@ -12,7 +12,7 @@
 
        CONTAINS
 
-       SUBROUTINE init_state_par(lcurrent_only)
+       SUBROUTINE init_state(lcurrent_only)
 !     
 !     WRITTEN 01-12-07 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
@@ -21,7 +21,6 @@
 !              NOT called inside of linearization loops (where these are
 !              FIXED quantities)
 !
-!#if defined(SKS)
        USE shared_data, ONLY: fsq_total, l_getfsq, ste, buv_res
        USE hessian, ONLY: muPar
        USE siesta_currents, ONLY: cv_currents
@@ -140,35 +139,6 @@
        IF (stes(2) .NE. zero) ste(1) = SQRT(stes(1)/stes(2))
 #endif
        DEALLOCATE (pfilter)
-!#endif
-       END SUBROUTINE init_state_par
-
-       SUBROUTINE init_state(lcurrent_only)
-!     
-!     WRITTEN 01-12-07 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
-!     PURPOSE: Computes initial values of equilibrium pressure, fields
-!              needed to evaluate forces to update those quantities
-!              NOT called inside of linearization loops (where these are
-!              FIXED quantities)
-!
-       USE quantities, ONLY: ns, GatherFields
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       LOGICAL, INTENT(IN)      :: lcurrent_only
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-       INTEGER :: srow, erow
-!-----------------------------------------------
-       srow = startglobrow; erow = endglobrow
-
-       IF (srow.NE.1 .OR. erow.NE.ns) CALL GatherFields
-
-       startglobrow = 1;  endglobrow = ns
-       CALL init_state_par(lcurrent_only)
-       startglobrow = srow; endglobrow = erow
 
        END SUBROUTINE init_state
 
@@ -226,7 +196,7 @@
 
 !pmnh contains filtered (to MPOL, NTOR) Fourier harmonics of p on half mesh
        ALLOCATE (pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in INIT_STATE_PAR')
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in INIT_STATE')
 
        CALL tomnsp_par(pijh, pmnh(:,:,nsmin:nsmax), four,                &
                        1, ns_span)

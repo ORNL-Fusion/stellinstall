@@ -5,16 +5,15 @@
       MODULE siesta_state
 #define DUMP_STATE
       USE stel_kinds
-      USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a, lverbose
+      USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a
       USE quantities
       USE timer_mod, ONLY: time_update_state
-      USE siesta_init, ONLY: init_state_par, init_allocate_arrays
-      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+      USE siesta_init, ONLY: init_allocate_arrays
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR, PARSOLVER
       USE descriptor_mod, ONLY: SIESTA_COMM
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
-!      LOGICAL, PRIVATE :: lfirst=.TRUE. ! MRC need to reset this value in run_siesta
-      LOGICAL :: lfirst=.TRUE.
+      LOGICAL, PUBLIC :: lfirst=.TRUE.
 
       CONTAINS
 
@@ -32,10 +31,9 @@
       REAL(dp) :: ton, toff
 !-----------------------------------------------
       CALL second0(ton)
-
-      CALL PadFields
+      IF (PARSOLVER) CALL PadFields
+      
       CALL update_state(lprint, fsq_total, ftol)
- 
       CALL second0(toff)
       time_update_state = time_update_state + (toff-ton)
 
@@ -51,9 +49,8 @@
       USE siesta_init, ONLY: init_state
       USE diagnostics_mod, ONLY: toroidal_flux, toroidal_flux0,          &
           divb_rms, bgradp_rms, max_bgradp, min_bgradp, bdotj_rms,       &
-          bdotj2_rms, divj_rms, lcurr_init, divb, divj, bgradp, tflux,   &
-          bdotj, beta, write_profiles, divb_par, divj_par, bgradp_par,   &
-          bdotj_par
+          bdotj2_rms, divj_rms, lcurr_init, tflux, bdotj_par,            &
+          beta, write_profiles, divb_par, divj_par, bgradp_par
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -95,7 +92,7 @@
       lfirst = .FALSE.
 
       lcurr_init=.TRUE.                             
-      CALL init_state_par (.TRUE.)                                        !Update to new state in real space
+      CALL init_state(.TRUE.)                                             !Update to new state in real space
 
       CALL divb_par
       CALL divj_par                                                       !(RS) Added, 09/10/07  = compute rms of divergence of J
@@ -104,7 +101,7 @@
       CALL bdotj_par                                                      !(RS) Added, 08/30/07  = compute rms of parallel current
 !      CALL beta
       lcurr_init=.FALSE.                             
-
+      
       toroidal_flux = toroidal_flux - toroidal_flux0
       IF (iam .EQ. 0) THEN
       DO ISTAT = 6, 33, 27
@@ -190,9 +187,11 @@
       bs(1) = SQRT(SUM((jbsupsmnh(m1,:,2) - r0*jbsupumnh(m1,:,2))**2))/r0
       bu(1) = SQRT(SUM((jbsupsmnh(m1,:,2) + r0*jbsupumnh(m1,:,2))**2))/r0
 #if defined(MPI_OPT)
+      IF (PARSOLVER) THEN
       d1(1) = bs(1); d1(2) = bu(1)
       CALL MPI_BCAST(d1,2,MPI_REAL8,0,SIESTA_COMM,MPI_ERR)
       bs(1) = d1(1); bu(1) = d1(2)
+      END IF
 #endif
       IF (ABS(bu(1)) .GT. 1.E-10_dp) THEN
          bsbu_ratio = bs(1)/bu(1)
@@ -202,12 +201,13 @@
             d1(js+6) = SQRT(SUM(jbsupumnh(m1,:,js)**2))
          END DO
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(d1, d2, 12, MPI_REAL8, MPI_SUM,              &
-                            SIESTA_COMM, MPI_ERR)
-#else
+         IF (PARSOLVER) THEN
          d2 = d1
+         CALL MPI_ALLREDUCE(d2, d1, 12, MPI_REAL8, MPI_SUM,              &
+                            SIESTA_COMM, MPI_ERR)
+         END IF
 #endif
-         bs(1:6) = d2(1:6);  bu(1:6) = d2(7:12)
+         bs(1:6) = d1(1:6);  bu(1:6) = d1(7:12)
       ELSE 
          bs(1:6)=0; bu(1:6)=0; bsbu_ratio_s = 1
       END IF
@@ -224,12 +224,13 @@
                 +    (jbsupvmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,3))**2)              
          d1(2) = SUM((jpmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,4))**2)
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(d1, d2, 2, MPI_REAL8, MPI_SUM,               &
-                            SIESTA_COMM, MPI_ERR)
-#else
+         IF (PARSOLVER) THEN
          d2 = d1
-#endif
-         diag_b = d2(1);  diag_p = d2(2)
+         CALL MPI_ALLREDUCE(d2, d1, 2, MPI_REAL8, MPI_SUM,               &
+                            SIESTA_COMM, MPI_ERR)
+		 END IF
+#endif		 
+         diag_b = d1(1);  diag_p = d1(2)
          IF (iam .EQ. 0) THEN
          DO js = 6, 33, 27
          IF (.not.lverbose .and. js .eq. 6) CYCLE

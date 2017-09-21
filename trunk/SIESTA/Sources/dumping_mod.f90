@@ -23,6 +23,7 @@
 !
       USE stel_kinds
       USE stel_constants, ONLY: twopi, one, zero
+      USE shared_data, ONLY: lverbose
       USE vmec_utils
       USE island_params, ns => ns_i, mpol => mpol_i, ntor => ntor_i,     &
          ohs => ohs_i, nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
@@ -34,14 +35,15 @@
           l_silo_output1=>l_silo_output, l_silo3D1=> l_silo3D   
 #if defined(MPI_OPT)
       USE nscalingtools, ONLY: MPI_STATUS
+      USE mpi_inc
 #endif
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE fourier, ONLY: f_ds, f_du, f_dv, f_cos, f_sin, f_none, f_sum
       IMPLICIT NONE     
+      PRIVATE
 #if defined(SILO_AVAIL)
       INCLUDE "silo.inc"
 #endif
-      PRIVATE
 !-----------------------------------------------
       LOGICAL :: l_tracing
 !-----------------------------------------------
@@ -155,9 +157,6 @@
         USE read_wout_mod, ns_w => ns, ntor_w => ntor, mpol_w => mpol,   &
           ntmax_w => ntmax, lthreed_w => lthreed, lasym_w => lasym,      &
           nfp_w => nfp
-#if defined(MPI_OPT)
-        USE mpi_inc
-#endif
 !-----------------------------------------------
         CHARACTER(LEN=*), INTENT(IN) :: wout_file
         INTEGER, INTENT(IN):: iter
@@ -213,7 +212,7 @@
         ENDIF
 #endif
         IF (iam .EQ. 0 .and. lverbose) THEN
-           WRITE(*,'(/,4x,a)') '>> Starting dumping of graphic data...'
+           WRITE(*,'(/,4x,a)') '>> Starting dump of graphics data...'
            WRITE(*,'(10x,a)') 'Creating plot box between:'
            WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'RMAX = ', rmaxx, 'RMIN = ', rminx
            WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'ZMAX = ', zmaxx, 'ZMIN = ', zminx
@@ -425,9 +424,6 @@
 
 
         SUBROUTINE write_pressure_data(nunit, ndum1, maxprocs)
-#if defined(MPI_OPT)
-        USE mpi_inc
-#endif
         INTEGER, INTENT(IN) :: nunit, ndum1, maxprocs
         INTEGER             :: ndum, to=0, from, tag, ik, lk, mpi_err
 
@@ -460,9 +456,6 @@
 
 
         SUBROUTINE write_bfield_data(nunit, ndum1, maxprocs)
-#if defined(MPI_OPT)
-        USE mpi_inc
-#endif
         INTEGER, INTENT(IN) :: nunit, ndum1, maxprocs
         INTEGER             :: ndum, to=0, from, tag, ik, lk, mpi_err
 
@@ -728,7 +721,7 @@
 !
         lresist=lresistive
         lresistive = .TRUE.                                                ! compute ksubX in cv_currents
-        CALL init_state (.FALSE.)
+        CALL init_state(.FALSE.)
         lresistive = lresist
 
 !       SCALE FIELDS TO PHYSICAL UNITS
@@ -882,7 +875,7 @@
 !          WRITE(iunit) zero                                                ! s>1 => Outside of the plasma. (ONLY for CYL)
            pprof(iunit) = 0
            
-        ELSEIF (info == 0) THEN                                             ! s<1 => DUMP pressure info           
+        ELSE IF (info == 0) THEN                                             ! s<1 => DUMP pressure info           
           CALL toijsp_1p(pmnch, ss, uu, vv, pp, f_none, f_cos, f_half)      ! SUM MN-series at target point
           IF (lasym) THEN
           CALL toijsp_1p(pmnsh, ss, uu, vv, pp, f_sum,  f_sin, f_half)      ! SUM MN-series at target point
@@ -1255,7 +1248,7 @@
           IF (iout == 0) THEN
             aux1 = 0.5d0*(xuv_i(2) - xuv_i(ndum-1))
             aux2 = 0.5d0*(xuv_i(ndum) - xuv_i(1))
-          ELSEIF (iout == -1) THEN                                         ! near the axis
+          ELSE IF (iout == -1) THEN                                         ! near the axis
             aux1 = xuv_i(2) - xuv_i(1)
             aux2 = 0.5d0*(xuv_i(ndum) - xuv_i(1))
           ELSE                                                             ! near the edge
@@ -1361,9 +1354,6 @@
 
 
         SUBROUTINE get_tmp_SILO(index0, nchunk_in, nlast_in)
-#if defined(MPI_OPT)
-        USE mpi_inc
-#endif
 !
 !       STORES pack_silo(:,index) chunks into tmp_silo on processor 0
 !
@@ -1438,7 +1428,7 @@
         IF (max_curr > 1.d2 .AND. max_curr <= 1d5) THEN                    ! Then, write it out in kA
           label = "Jx_kA"
           silo3d = silo3d/1.d3
-        ELSEIF (max_curr > 1.d5) THEN                                      !.. or in MA
+        ELSE IF (max_curr > 1.d5) THEN                                      !.. or in MA
           label = "Jx_MA"
           silo3d = silo3d/1.d6
         ENDIF
@@ -1453,7 +1443,7 @@
         IF (max_curr > 1.d2 .AND. max_curr <= 1d5) THEN                    ! Then, write it out in kA
           label = "Jy_kA"
           silo3d = silo3d/1.d3
-        ELSEIF (max_curr > 1.d5) THEN                                      ! .. or in MA
+        ELSE IF (max_curr > 1.d5) THEN                                      ! .. or in MA
           label = "Jy_MA"
           silo3d = silo3d/1.d6
         ENDIF
@@ -1463,7 +1453,7 @@
           label = "Jz_kA"
           jz_silo = jz_silo/1.d3
           CALL write_to_silodb_3d(label, jz_silo) 
-        ELSEIF (max_curr > 1.d5) THEN
+        ELSE IF (max_curr > 1.d5) THEN
           label = "Jz_MA"
           jz_silo = jz_silo/1.d6
           CALL write_to_silodb_3d(label, jz_silo) 
@@ -1525,13 +1515,13 @@
         IF (iangle < 10) THEN
           WRITE(cdum1,'(i1)') iangle
           cdum = '00'//TRIM(cdum1)    
-        ELSEIF (iangle > 9 .AND. iangle < 100) THEN
+        ELSE IF (iangle > 9 .AND. iangle < 100) THEN
           WRITE(cdum1,'(i2)') iangle
           cdum = '0'//TRIM(cdum1)   
-        ELSEIF (iangle > 99 .AND. iangle< 1000) THEN
+        ELSE IF (iangle > 99 .AND. iangle< 1000) THEN
           WRITE(cdum1,'(i3)') iangle
           cdum = cdum1
-        ELSEIF (lverbose)
+        ELSE IF (lverbose) THEN
           WRITE(*,*) ' Change format in SILODB_2D!'
         ENDIF  
         

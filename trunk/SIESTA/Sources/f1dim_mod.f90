@@ -89,7 +89,7 @@
       REAL(dp), DIMENSION(:), INTENT(IN) :: p
       REAL(dp) :: wfunc
 
-      wfunc = getwmhd(p, .FALSE.)
+      wfunc = getwmhd(p)
 
       END FUNCTION wfunc
 

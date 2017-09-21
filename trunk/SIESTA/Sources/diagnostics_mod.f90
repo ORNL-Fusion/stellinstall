@@ -9,7 +9,7 @@
       USE mpi_inc
 #endif
       IMPLICIT NONE
-      INTEGER  :: unit35=35, unit36=36, nsmin, nsmax, ns_span
+      INTEGER, PRIVATE  :: unit35=35, unit36=36, nsmin, nsmax, ns_span
       REAL(dp) :: divb_rms, avbeta, bdotj_rms, divj_rms, bdotj2_rms
       REAL(dp) :: toroidal_flux, toroidal_flux0=0, bgradp_rms, wbgradp
       REAL(dp) :: max_bgradp, min_bgradp
@@ -353,7 +353,7 @@
 !-----------------------------------------------
       INTEGER     :: istat, n1
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
-          dpduijh, dpdvijh, pijh,                                    &
+          dpduijh, dpdvijh, pijh,                                       &
           bsupsijh0, bsupuijh0, bsupvijh0
       REAL(dp)    :: ton, toff
 !-----------------------------------------------
@@ -524,12 +524,14 @@
       n1 = MAX(ns/20, nsmin)
       wbgradp = SUM(bgradpf(:,:, n1:n2)**2)
       s1(1)=tnorm_bgradp;  s1(2)=wbgradp
-#if defined(SKS)
+      IF (PARSOLVER) THEN
+#if defined(MPI_OPT)
       CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                     &
                          SIESTA_COMM,MPI_ERR)
-#else
+#endif                         
+      ELSE
       r1 = s1
-#endif
+      END IF
       tnorm_bgradp=r1(1); wbgradp=r1(2)
 
       IF (tnorm_bgradp .GT. zero) THEN
@@ -543,12 +545,14 @@
          max_bgradp = MAXVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
          min_bgradp = MINVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
          s1(1)=max_bgradp; s1(2) = -min_bgradp
-#if defined(SKS)
+         IF (PARSOLVER) THEN
+#if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX,                  &
                             SIESTA_COMM,MPI_ERR)
-#else
+#endif                         
+         ELSE
          r1 = s1
-#endif
+         END IF
          max_bgradp=r1(1)
          min_bgradp=-r1(2)
          IF (.NOT.lasym) THEN                                              !reflect onto u=pi-2*pi: bgradp is sin parity
@@ -643,12 +647,14 @@
 
 !Averages over all toroidal cross sections (which should be the same)
       part_sum = SUM(jbsupvmnch(m0,n0,nsmin:nsmax))
+      IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
       CALL MPI_ALLREDUCE(part_sum,toroidal_flux,1,MPI_REAL8, MPI_SUM,    &
                          SIESTA_COMM,MPI_ERR)
-#else
-      toroidal_flux = part_sum      
 #endif      
+      ELSE
+      toroidal_flux = part_sum      
+      END IF
       toroidal_flux = signjac*twopi*toroidal_flux*hs_i/b_factor  
       
       IF (toroidal_flux0 .EQ. zero) toroidal_flux0 = toroidal_flux
@@ -847,7 +853,7 @@
 !-----------------------------------------------
       CALL second0(ton)
 
-      IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state_par(.TRUE.) BEFORE bdotj_par')
+      IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state(.TRUE.) BEFORE bdotj_par')
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
       ns_span=nsmax-nsmin+1
 ! 
@@ -1105,7 +1111,7 @@
 !
         CALL second0(ton)
 
-        IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state_par(.TRUE.) BEFORE divJ_par')
+        IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state(.TRUE.) BEFORE divJ_par')
 
         nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
 

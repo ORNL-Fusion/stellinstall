@@ -21,7 +21,7 @@
 !*******************************************************************************
       TYPE siesta_run_class
 !>  Timer On
-         REAL (rprec) :: skston
+         REAL (dp) :: skston
       END TYPE
 
       CONTAINS
@@ -45,7 +45,9 @@
                                 nprow, npcol, icontxt, icontxt_1xp,            &
                                 icontxt_px1, icontxt_global, isroot,           &
                                 myrow, mycol
+#if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: Initialize, GetRanks
+#endif
       USE prof_mod, ONLY: profinit
       USE shared_data, ONLY: nprecon, lverbose
       USE perturbation, ONLY: init_data
@@ -64,8 +66,8 @@
       LOGICAL, INTENT(in)              :: verbose
 
 !  local variables.
-      REAL (rprec)                     :: ton
-      REAL (rprec)                     :: toff
+      REAL (dp)                     :: ton
+      REAL (dp)                     :: toff
 
 !  Start of executable code
       ALLOCATE(siesta_run_construct)
@@ -73,21 +75,24 @@
       CALL siesta_error_clear_all
 
       lverbose = verbose
-      lfirst = .true.
+      lfirst = .TRUE.
       toroidal_flux0=0
 
       SIESTA_COMM = run_comm
       HESSPASS = 0
+	  PARSOLVER=.FALSE.
 
 #if defined(MPI_OPT)
-      LSCALAPACK = .true.
-      INHESSIAN = .false.
+      LSCALAPACK = .TRUE.
+      INHESSIAN = .FALSE.
 #if defined(SKS)
       CALL MyEnvVariables
-      IF (PARSOLVER) LSCALAPACK = .false.
-      CALL sks_timers
-      CALL Initialize(init_mpi, 0, 0)
-      CALL GetRanks(iam, nprocs)
+      IF (PARSOLVER) THEN
+         LSCALAPACK=.FALSE.
+         CALL sks_timers
+         CALL Initialize(.TRUE.,0,0)
+         CALL GetRanks(iam, nprocs)
+      END IF
 #endif
       IF (LSCALAPACK) THEN
          CALL profinit()
@@ -96,9 +101,8 @@
          CALL blacs_pinfo(iam, nprocs)
          CALL blacs_setup(iam, nprocs)
          DO nprow = INT(SQRT(DBLE(nprocs))) + 1, 1, -1
-            IF (nprow*npcol .eq. nprocs) THEN
-               EXIT
-            END IF
+            npcol = INT( nprocs/nprow )
+            IF (nprow*npcol .eq. nprocs) EXIT
          END DO
 
          CALL blacs_get(0, 0, icontxt)
@@ -120,7 +124,7 @@
          END IF
       END IF
 #else
-      LSCALAPACK = .false.
+      LSCALAPACK = .FALSE.
       iam = 0
       nprocs = 1
 #endif
@@ -129,10 +133,8 @@
       siesta_run_construct%skston = ton
 
       CALL init_data(nprecon)
-#if defined(SKS)
       CALL second0(toff)
       init_data_time = init_data_time + (toff - ton)
-#endif
 
 1000  FORMAT('nprow,npcol ',2(x,i5))
 1001  FORMAT('icontxt_global,icontxt,icontxt_1xp,icontxt_px1 ',4(x,i5))
@@ -154,9 +156,14 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_destruct(this, finalize_mpi, close_wout)
       USE timer_mod
+#if defined(SKS)
       USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,            &
                                PARFUNCTISL, PARGMRES, SKSDBG, TOFU,            &
                                finalizeremap
+      USE blocktridiagonalsolver_s, ONLY: finalize
+#else
+      USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, PARGMRES, SKSDBG, TOFU
+#endif
       USE descriptor_mod, ONLY: iam, icontxt, LSCALAPACK, myrow, mycol, nprocs
       USE shared_data, ONLY: nprecon, xc, gc, fsq_total1, mblk_size, niter,    &
                              col_scale
@@ -166,7 +173,6 @@
       USE diagnostics_mod, ONLY: write_profiles, dealloc_diagnostics
       USE perturbation, ONLY: lresistive, nsin, wout_file
       USE metrics, ONLY: cleanup_metric_elements, dealloc_full_lower_metrics
-      USE blocktridiagonalsolver_s, ONLY: finalize
       USE prof_mod, ONLY: profstat
       USE shared_data, ONLY: lverbose
 
@@ -178,18 +184,16 @@
       LOGICAL, INTENT(in)              :: close_wout
 
 !  local variables.
-      REAL (rprec)                     :: ton
-      REAL (rprec)                     :: toff
-      REAL (rprec)                     :: skstoff
+      REAL (dp)                        :: ton
+      REAL (dp)                        :: toff
+      REAL (dp)                        :: skstoff
       INTEGER                          :: i
 
 !  Start of executable code
       CALL second0(toff)
       skstoff = toff
       time_total = toff - this%skston
-#if defined(SKS)
       total_time = skstoff - this%skston
-#endif
 
 #if defined(SKS)
       IF (OUTPUT_TIMINGS) THEN
@@ -201,9 +205,7 @@
          DO i = 6, 33, 27
             IF (.not.lverbose .and. i .eq. 6) CYCLE
             WRITE (i, 1000) nprecon, levmarq_param, mupar, asym_index
-#if defined(SKS)
             WRITE (i,'(a,i5)') ' Number processors: ', nprocs
-#endif
             WRITE (i, 1001)
             WRITE (i, 1002) time_total,               fbdy(1),                 &
                             time_init,                fbdy(2),                 &
@@ -227,9 +229,9 @@
                             time_init_state
             WRITE (i,*)
             IF (PARSOLVER) THEN
-               WRITE (i,*)        'PARSOLVER      : NSCALED'
+               WRITE (i,*)        'PARSOLVER=T    : NSCALED'
             ELSE
-               WRITE (i,*)        'PARSOLVER      : ScaLAPACK'
+               WRITE (i,*)        'PARSOLVER=F    : ScaLAPACK'
             END IF
             WRITE (i,*)           'PARFUNCTISL    :', PARFUNCTISL
             WRITE (i,'(1x,a,L2)') 'PARGMRES       :', PARGMRES
@@ -245,10 +247,6 @@
             WRITE (i,*) 'M (block size)         :', mblk_size
             WRITE (i,*) 'N (block rows)         :', nsin
             WRITE (i,*) 'P (processors)         :', nprocs
-#if defined(SKS)
-!            WRITE (i,'(1x,a,1p,2e12.4)')'Total time (max/min)   :',total_time_max, total_time_min
-!            WRITE (i,*)
-#endif
          END DO
       ENDIF
 
@@ -265,9 +263,7 @@
       CALL dealloc_quantities
       CALL dealloc_hessian
       CALL dealloc_diagnostics
-!      IF (lresistive) THEN
-         CALL dealloc_full_lower_metrics
-!      END IF
+      CALL dealloc_full_lower_metrics
       IF (ALLOCATED(xc)) THEN
          DEALLOCATE(xc, gc, col_scale)
       END IF
@@ -350,27 +346,19 @@
       TYPE (siesta_run_class), INTENT(inout) :: this
 
 !  local variables.
-      REAL (rprec)                           :: ton
-      REAL (rprec)                           :: toff
+      REAL (dp)                           :: ton
+      REAL (dp)                           :: toff
 
 !  Start of executable code
-#if defined(SKS)
       CALL second0(ton)
-#endif
       CALL init_metric_elements(nsin, mpolin, ntorin, wout_file)
-#if defined(SKS)
       CALL second0(toff)
       init_metric_elements_time = init_metric_elements_time + (toff - ton)
-#endif
 
-#if defined(SKS)
       CALL second0(ton)
-#endif
       CALL init_quantities
-#if defined(SKS)
       CALL second0(toff)
       init_quantities_time = init_quantities_time + (toff - ton)
-#endif
 
       END SUBROUTINE
 
@@ -399,7 +387,9 @@
       USE shared_data, ONLY: ndims, mblk_size
       USE island_params, mpol=>mpol_i, ntor=>ntor_i
       USE perturbation, ONLY: nsin, mpolin, ntorin, ftol, lrestart, wout_file
+#if defined(SKS)
       USE nscalingtools, ONLY: initRemap
+#endif
       USE hessian, ONLY: InitHess, levmarq_param, levmarq_param0
       USE quantities, ONLY: init_fields
       USE metrics, ONLY: sqrtg
@@ -410,8 +400,8 @@
       TYPE (siesta_run_class), INTENT(inout) :: this
 
 !  local variables.
-      REAL (rprec)                           :: ton
-      REAL (rprec)                           :: toff
+      REAL (dp)                           :: ton
+      REAL (dp)                           :: toff
 
 !  Start of executable code
       IF (lrestart) CALL read_restart_file(nprecon)
@@ -428,39 +418,25 @@
       CALL second0(toff)
       init_evolution_time = init_evolution_time + (toff - ton)
 
-#if defined(SKS)
       CALL second0(ton)
-#endif
-      IF (.not.lrestart) THEN
-         CALL Init_Fields
-      END IF
+      IF (.not.lrestart) CALL Init_Fields
       DEALLOCATE (sqrtg)
-#if defined(SKS)
       CALL second0(toff)
       init_quantities_time = init_quantities_time + (toff - ton)
-#endif
 
 !  Converge initial residues with diagonal preconditioner
-      DIAGONALDONE = .false.
-#if defined(SKS)
+      DIAGONALDONE = .FALSE.
       CALL second0(ton)
-#endif
       CALL converge_diagonal(wout_file, ftol)
-#if defined(SKS)
       CALL second0(toff)
       converge_diagonal_time = converge_diagonal_time + (toff - ton)
-#endif
       DIAGONALDONE=.TRUE.
 
 !  Converge using block preconditioner
-#if defined(SKS)
       CALL second0(ton)
-#endif
       CALL converge_blocks(wout_file, ftol)
-#if defined(SKS)
       CALL second0(toff)
       converge_blocks_time = converge_blocks_time + (toff - ton)
-#endif
 
       END SUBROUTINE
 

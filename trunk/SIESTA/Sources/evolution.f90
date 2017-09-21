@@ -1,20 +1,21 @@
-
 !>  \brief Module for controlling iteration ("time") evolution of MHD convergence sequence.
 !!  Updates the CONTRAVARIANT Fourier components of the "velocity" field (displacement X delt)
       MODULE evolution
       USE stel_kinds
       USE stel_constants
       USE shared_data
-      USE shared_functions, ONLY: funct_island, funct_island_par, getwmhd
+      USE shared_functions, ONLY: funct_island, getwmhd
       USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i,           &
           nfp=>nfp_i, mnmax=>mnmax_i, hs=>hs_i
       USE timer_mod
       USE perturbation, ONLY: eta_factor
       USE descriptor_mod, ONLY: iam, DIAGONALDONE, nprocs, SIESTA_COMM,  &
                                 in_hess_nfunct, out_hess_nfunct
-      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL,                &
+      USE nscalingtools, ONLY: SKSDBG, TOFU, PARFUNCTISL, PARSOLVER,     &
                  startglobrow, endglobrow, leftproc, rightproc, MPI_ERR
+#if defined(MPI_OPT)
       USE mpi_inc
+#endif
       IMPLICIT NONE
 
 !-----------------------------------------------
@@ -32,7 +33,7 @@
       INTEGER, PRIVATE   :: nfun_calls
       INTEGER, PRIVATE   :: js, moff, noff
 
-      REAL(dp), PRIVATE    :: fsqprev, fsqprev1
+      REAL(dp), PRIVATE    :: fsqprev, fsqprev1, levm_loc
       REAL(dp), PRIVATE    :: fsq_min, fsq_ratio, fsq_ratio1 
       REAL(dp), PRIVATE    :: otau(ndamp)
       REAL(dp), DIMENSION(:), ALLOCATABLE :: xcdot
@@ -42,11 +43,6 @@
       integer(kind=selected_int_kind(10)) subApc(1048)
       integer(kind=selected_int_kind(10)) ksp
       integer(kind=selected_int_kind(10)) subksp(1048)
-#endif
-
-#if defined(SKS)
-      INTEGER, PRIVATE   :: diagnum=1, blocknum=1
-      INTEGER            :: EVOLVEPASS=0
 #endif
 !-----------------------------------------------
 
@@ -83,14 +79,10 @@
 
       DO WHILE (l_iterate)
          in_hess_nfunct=0; out_hess_nfunct=0
-#if defined(SKS)
          CALL second0(t1)
-#endif
          CALL evolve
-#if defined(SKS)
          CALL second0(t2)
          diag_evolve_time=diag_evolve_time+(t2-t1)
-#endif         
          IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)  ! MRC do not deallocate the woutfile here.
 
          l_iterate = (fsq_ratio1.LE.0.5_dp .AND. fsq_total1.GT.fsq_block)
@@ -141,15 +133,11 @@
 
       DO WHILE (l_iterate)
          in_hess_nfunct=0; out_hess_nfunct=0
-#if defined(SKS)
          CALL second0(t1)
-#endif         
          nprecon = nprecon+1
          CALL evolve
-#if defined(SKS)
          CALL second0(t2)
          block_evolve_time=block_evolve_time+(t2-t1)
-#endif         
          IF (l_output_alliter) CALL write_output (wout_file, niter, .false.)  ! MRC do not deallocate the woutfile here.
 
          l_iterate = (niter.LT.niter_max) .AND. (fsq_total1.GT.ftol) 
@@ -190,6 +178,7 @@
 
       END SUBROUTINE converge_blocks
 
+
 !>   \brief  Initializes variables and pointers prior to calling evolve
       SUBROUTINE init_evolution
       USE hessian, ONLY: levmarq_param0, levmarq_param, l_Compute_Hessian
@@ -207,7 +196,8 @@
 !     "natural" boundary condition (preserves hessian symmetry): push ONLY m=1 u-flux at origin
 !     and correctly calculates B^s/r0_B^u for m=1 at origin
 
-      l_natural=.TRUE.
+!      l_natural=.TRUE.
+      l_natural=.FALSE.
       IF (l_natural) THEN
          l_push_s = .FALSE.
          l_push_u = .FALSE.   !.TRUE.  
@@ -246,12 +236,6 @@
       IF (mnmax .NE. (1+mpol)*(2*ntor+1)) CALL ErrorAbort('WRONG mnmax VALUE!')
 
       n1 = ns*mnmax
-
-      IF (lasym) THEN
-         ndims = 6
-      ELSE
-         ndims = 3
-      END IF
       neqs = ndims*n1
 
       ALLOCATE(xc(neqs), col_scale(0:mpol,-ntor:ntor,ndims,ns), stat=istat)
@@ -301,6 +285,7 @@
 
       END SUBROUTINE init_ptrs
 
+
 !>   \brief Evolves one step toward MHD equilibrium
       SUBROUTINE evolve
       USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,          &
@@ -313,11 +298,11 @@
       USE diagnostics_mod, ONLY: bgradp_rms, toroidal_flux0, bgradp,     &
                                  bgradp_par, tflux
       USE siesta_state, ONLY: update_state, update_state_par
-      USE siesta_init, ONLY: init_state, init_state_par
+      USE siesta_init, ONLY: init_state, init_state
 #if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian
-      USE timer_mod, ONLY: gmres_time
 #endif
+      USE timer_mod, ONLY: gmres_time
       USE descriptor_mod, ONLY: SIESTA_COMM
 !
 !     Evolves the equilibrium equations one time step and updates delta_t
@@ -333,14 +318,9 @@
       REAL(dp)    :: v2tot, f1, f2, r0
       REAL(dp)    :: vmaxs, vmaxu, vmaxv, fmaxs, fmaxu, fmaxv
       REAL(dp)    :: t1, t2, lm0
-      REAL(dp), SAVE :: levm_loc
       LOGICAL     :: lprint, ldiagonal, lblock
       CHARACTER(18) :: str_resistive
-      INTEGER, DIMENSION (2) :: snum_funct, rnum_funct 
 !-----------------------------------------------
-#if defined(SKS)
-      EVOLVEPASS=EVOLVEPASS+1
-#endif
       l_init_state = .TRUE.
       IF (niter .LE. 1) levm_loc = 1 ! MRC needed to reset levm_loc
 
@@ -396,16 +376,13 @@
          IF (ldiagonal .OR. lblock) THEN
 
             CALL second0(skston)
-#if defined(SKS)
-            CALL Compute_Hessian_Blocks (funct_island_par, l_Hess_sym, ldiagonal)
-#else
             CALL Compute_Hessian_Blocks (funct_island, l_Hess_sym, ldiagonal)
-#endif
             CALL second0(skstoff)
             IF (ldiagonal) comp_diag_elements_time=comp_diag_elements_time+(skstoff-skston)
             IF (lblock)    compute_hessian_time=compute_hessian_time+(skstoff-skston)
-
+            
          END IF
+
       END IF
 
 !
@@ -426,36 +403,26 @@
          l_init_state=.TRUE.
          l_getwmhd=.TRUE.
          CALL second0(skston)
-#if defined(SKS)
-         CALL funct_island_par
-#else
          CALL funct_island
-#endif
          CALL second0(skstoff)
          evolve_funct_island_time=evolve_funct_island_time+(skstoff-skston)
          l_getwmhd=.FALSE.
-      ELSE IF (nprecon .EQ. 1) THEN
-         IF (l_Gmres) THEN
-           CALL second0(skston)
-           CALL gmres_fun
-           CALL second0(skstoff)
-           gmres_time=gmres_time+(skstoff-skston)
-         END IF
-      ELSE 
-         etak_tol = MIN(0.1_dp, 1.E8_dp*fsq_total)
-         IF (fsq_total <= 0) etak_tol = 0.1_dp
-         IF (l_Gmres) THEN
-           CALL second0(skston)
-           CALL gmres_fun
-           CALL second0(skstoff)
-           gmres_time=gmres_time+(skstoff-skston)
-         END IF
+
+      ELSE IF (l_Gmres) THEN
+        CALL second0(skston)
+        IF (nprecon .NE. 1) THEN
+           etak_tol = MIN(0.1_dp, 1.E8_dp*fsq_total)
+           IF (fsq_total <= 0) etak_tol = 0.1_dp
+        END IF
+        CALL gmres_fun
+        CALL second0(skstoff)
+        gmres_time=gmres_time+(skstoff-skston)
       END IF
 
 !      lblock = ((nprecon_type.EQ.PREBLOCK .AND. niter.GT.1) .OR. .NOT.l_Gmres)
 !      IF (lblock) THEN 
 #if defined(SKS)
-      IF (.NOT.l_Gmres .AND. niter.GT.1) THEN
+      IF (.NOT.l_Gmres .AND. niter.GT.1 .AND. PARSOLVER) THEN
          CALL second0(skston)
          lm0 = levmarq_param
          DO i = 1, 1+SIZE(levscan)
@@ -477,20 +444,14 @@
       END IF
  930  FORMAT (/,a,1pe12.3)
 #endif
-
       v2tot = SQRT(hs*SUM(xc*xc))
 !      IF (v2tot.lt.1.E-5_dp .and. .not.l_Gmres .and. niter.gt.1) THEN
 !      END IF
         
       lprint = MOD(niter, nprint_step).EQ.0 .OR. niter.EQ.1
       l_update_state=.TRUE.
-#if defined(SKS)
-      IF (.NOT.l_par_state) CALL init_state_par(.FALSE.)
-      CALL update_state_par(lprint, fsq_total1, zero)
-#else
       IF (.NOT.l_par_state) CALL init_state(.FALSE.)
-      CALL update_state(lprint, fsq_total1, zero)
-#endif
+      CALL update_state_par(lprint, fsq_total1, zero)
       l_update_state=.FALSE.
 
 !      IF (v2tot.lt.1.E-5_dp .and. .not.l_Gmres .and. niter.gt.1) THEN
@@ -514,25 +475,23 @@
 !     Convert output to REAL (VMEC) units, divide B-fields by b_factor
 !     p by p_factor, WMHD by w_factor
 
-#if defined(SKS)
-      snum_funct(1)=in_hess_nfunct; snum_funct(2)=out_hess_nfunct
-      CALL MPI_ALLREDUCE(snum_funct,rnum_funct,2,MPI_INTEGER,MPI_MAX,SIESTA_COMM,MPI_ERR)
-      nfun_calls=nfun_calls+(rnum_funct(1)+rnum_funct(2))
-#else 
-      nfun_calls=nfun_calls+(in_hess_nfunct+out_hess_nfunct)
-#endif
+      IF (PARFUNCTISL) THEN
+         nfun_calls=nfun_calls+(in_hess_nfunct + out_hess_nfunct)
+      ELSE
+         nfun_calls=nfun_calls+(nprocs*in_hess_nfunct+out_hess_nfunct)
+      ENDIF
 
      IF (niter .EQ. 1) THEN
-#if defined(SKS)
-        CALL init_state_par(.TRUE.)
+        IF (PARSOLVER) THEN
+        CALL init_state(.TRUE.)
         CALL bgradp_par
-#else
+        ELSE
         CALL bgradp
-#endif
+        END IF
         CALL tflux
      END IF
 
-     IF (lprint) CALL gather_array(gc)                                      !Need to compute maximum forces for printout
+     IF (lprint) CALL gather_array(gc)                                    !Need to compute maximum forces for printout
 
      IF (iam.EQ.0 .AND. lprint) THEN
 
@@ -672,7 +631,6 @@
       REAL(dp)    :: b1, fac, fsq_start, fsq_min0, fsq_save, fsq_conv,   &
                      wmhd_min, wmhd_start, muParS, dtau, delt_cg, otav
       REAL(dp), ALLOCATABLE  :: xcstart(:)
-      LOGICAL     :: lpar=.FALSE.
 !-----------------------------------------------
       IF (fsq_total1.LE.ftol .OR. nprecon.EQ.0) THEN
          IF (nprecon .EQ. 0) nprecon = 1
@@ -684,11 +642,7 @@
       l_ApplyPrecon = .TRUE.
       l_init_state = .TRUE.
       l_PrintOriginForces = .FALSE.
-
-#if defined(SKS)      
-      lpar=.TRUE.  !PARFUNCTISL
-      IF (lpar) l_getwmhd=.TRUE.
-#endif
+      l_getwmhd=.TRUE.
  
 ! 
 !     Linearize perturbations around B0 and p0
@@ -719,11 +673,7 @@
 !
 !     LOOP OVER delt_cg TO FIND MINIMUM F(xc)
 !
-         IF (lpar) THEN
-            CALL funct_island_par
-         ELSE
-            CALL funct_island
-         END IF
+         CALL funct_island
 
          CALL update_taudamp (fsq_save, delt_cg)
 
@@ -805,13 +755,8 @@
 
       IF (fsq_min0 .GT. 0.95_dp*fsq_start) l_conjmin=.FALSE.
       IF (.NOT.l_Gmres .AND. l_conjmin) l_PrintOriginForces = .TRUE.
-      IF (lpar) THEN
-         CALL funct_island_par
-         CALL update_state_par(.FALSE., zero, zero)
-      ELSE
-         CALL funct_island
-         CALL update_state(.FALSE., zero, zero)
-      END IF
+      CALL funct_island
+      CALL update_state(.FALSE., zero, zero)
 
       l_PrintOriginForces = .FALSE.
 

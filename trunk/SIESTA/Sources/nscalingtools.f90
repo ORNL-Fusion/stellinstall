@@ -149,7 +149,7 @@ INTEGER*8 :: nBuffSize
 !INTEGER, PARAMETER :: localprec = SELECTED_INT_KIND(24)
 !INTEGER (localprec) :: nBuffSize
 
-IF(INITREMAPDONE) RETURN
+IF(INITREMAPDONE .OR. .NOT.PARSOLVER) RETURN
 
 MPOL=mpol_in
 NTOR=ntor_in
@@ -718,9 +718,10 @@ END MODULE nscalingtools
 
 !-------------------------------------------------------------------------------
 SUBROUTINE ErrorAbort(message)
+USE descriptor_mod, ONLY: iam
 CHARACTER*(*), INTENT(IN) :: message
 #if defined(MPI_OPT)
-IF (rank .EQ. 0) PRINT *, TRIM(message)
+IF (iam .EQ. 0) PRINT *, TRIM(message)
 CALL MPI_ABORT(MPI_COMM_WORLD, 1, MPI_ERR)
 #else
 PRINT *, TRIM(message); STOP

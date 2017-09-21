@@ -6,7 +6,7 @@
       USE descriptor_mod
       USE shared_data, ONLY: col_scale, neqs, lcolscale, l_ApplyPrecon,  &
                              l_linearize, fsq_total1, l_getfsq,          &
-                             HessPass_Test, ndims, mblk_size
+                             ndims, mblk_size, lverbose
 #if defined(MPI_OPT)
       USE prof_mod
       USE ptrd_mod
@@ -17,7 +17,9 @@
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,               &
         SYMMETRYCHECK, totRecvs, PACKSIZE, WriteTime, send, receive,     &
         SetBlockTriDataStruct, GetFullSolution
-      USE blocktridiagonalsolver_s
+      USE blocktridiagonalsolver_s, ONLY: GetColSum, ParallelScaling,    &
+        ForwardSolve, SetMatrixRHS, BackwardSolve, GetSolutionVector,    &
+        CheckSymmetry, Dmin_TRI, MAXEIGEN_TRI, FindMinMax_Tri
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,     &
@@ -26,13 +28,11 @@
       IMPLICIT NONE
 !-----------------------------------------------
 !SPH 090116: EVENTUALLY MOVE TO nscalingtools? ASK SKS
-!#if defined(SKS)
       PUBLIC  :: gather_array
       INTERFACE gather_array
          MODULE PROCEDURE gather_array1, gather_array2, gather_array1A,  &
                           gather_array2A, gather_array3
       END INTERFACE
-!#endif
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -63,7 +63,6 @@
 
       CONTAINS
 
-!#if defined(SKS)
       SUBROUTINE gather_array1A(gc)
       REAL(dp), DIMENSION(mblk_size*ns), INTENT(INOUT) :: gc
 !-----------------------------------------------
@@ -73,9 +72,14 @@
 
 
       SUBROUTINE gather_array2A(section, gc)
-      REAL(dp), DIMENSION(mblk_size*ns), INTENT(out) :: gc
-      REAL(dp), DIMENSION(mblk_size*mynumBlockRows) :: section
-         CALL gather_array2(section, gc)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), DIMENSION(mblk_size*ns), INTENT(OUT) :: gc
+      REAL(dp), DIMENSION(mblk_size*mynumBlockRows), INTENT(IN) :: section
+!-----------------------------------------------
+      CALL gather_array2(section, gc)
+
       END SUBROUTINE gather_array2A
 
 
@@ -87,6 +91,7 @@
       INTEGER :: istat
       REAL(dp), DIMENSION (:,:), ALLOCATABLE :: section
 !-----------------------------------------------
+      IF (PARSOLVER) THEN
 #if defined(SKS)
         ALLOCATE (section(mblk_size,myStartBlock:myEndBlock), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocation error in gather_array')
@@ -96,6 +101,8 @@
         
         DEALLOCATE (section)
 #endif
+      END IF
+      
       END SUBROUTINE gather_array1
 
 
@@ -107,12 +114,16 @@
       REAL(dp), DIMENSION(mblk_size,myStartBlock:myEndBlock),            &
                 INTENT(IN) :: section
 !-----------------------------------------------
+      IF (PARSOLVER) THEN
 #if defined(SKS)
-      CALL MPI_ALLGATHERV(section, mynumBlockRows*mblk_size, MPI_REAL8,&
-                    gc,rcounts, disp, MPI_REAL8, SIESTA_COMM, MPI_ERR)
-#else        
-      gc = section
+         CALL MPI_ALLGATHERV(section, mynumBlockRows*mblk_size,          &
+              MPI_REAL8, gc,rcounts, disp, MPI_REAL8, SIESTA_COMM,       &
+              MPI_ERR)
 #endif
+      ELSE
+         gc = section
+      ENDIF
+     
       END SUBROUTINE gather_array2
 
       SUBROUTINE gather_array3(section, gather3d)
@@ -125,22 +136,23 @@
       INTENT(IN)  :: section
       INTEGER :: M2
 !-----------------------------------------------
+       IF (PARSOLVER) THEN
 #if defined(SKS)
-       M2 = SIZE(gather3d,1)*SIZE(gather3d,2)
-       CALL MPI_ALLGATHERV(section, mynumBlockRows*M2, MPI_REAL8,        &
+          M2 = SIZE(gather3d,1)*SIZE(gather3d,2)
+          CALL MPI_ALLGATHERV(section, mynumBlockRows*M2, MPI_REAL8,     &
                            gather3d, mnspcounts, mnspdisps, MPI_REAL8,   &
                            SIESTA_COMM, MPI_ERR)
-#else        
-      gather3d = section
 #endif
+       ELSE
+          gather3d = section
+       END IF
       END SUBROUTINE gather_array3
 
       SUBROUTINE InitHess
 !-----------------------------------------------
-#if !defined(SKS)
-      startglobrow = 1
-      endglobrow = ns
-#endif
+      IF (.NOT.PARSOLVER) THEN
+         startglobrow = 1; endglobrow = ns
+      END IF
       myStartBlock=startglobrow
       myEndBlock=endglobrow
       mynumBlockRows=myEndBlock-myStartBlock+1
@@ -148,7 +160,7 @@
       END SUBROUTINE InitHess
 
       SUBROUTINE Compute_Hessian_Blocks (func, l_Hess_sym, ldiagonal)
-      USE shared_data, ONLY: xc, gc, l_linearize, lverbose
+      USE shared_data, ONLY: xc, gc, l_linearize
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -169,13 +181,15 @@
       IF (lColScale) col_scale = 1
 
       IF (iam .EQ. 0) THEN
-         IF (l_Diagonal_Only) THEN
-            IF (lverbose) WRITE (6, 90) levmarq_param, muPar
-            WRITE (33,90) levmarq_param, muPar
-         ELSE
-            IF (lverbose) WRITE (6, 100) levmarq_param, muPar, asym_index
-            WRITE (33,100) levmarq_param, muPar, asym_index
-         ENDIF
+         DO iunit = 6,33,27
+            IF (.not.lverbose .and. iunit .eq. 6) CYCLE
+            IF (l_Diagonal_Only) THEN
+               WRITE (iunit, 90) levmarq_param, muPar
+            ELSE
+               WRITE (iunit, 100) levmarq_param, muPar, asym_index
+            ENDIF
+         END DO
+         CALL FLUSH(33)
       ENDIF
 
  90   FORMAT (/,' Computing diagonal preconditioner - ',                 &
@@ -223,7 +237,8 @@
                WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
                   '^2  Preconditioner size: ', bsize, TRIM(label)
             END DO
-         ENDIF
+            CALL FLUSH(33)
+         ENDIF 
       END IF
 
       l_Compute_Hessian = .FALSE.
@@ -234,7 +249,6 @@
 
       SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc,      &
                  func, l_Hess_sym)
-      USE shared_data, ONLY: lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -278,7 +292,6 @@
       nsmin = MAX(1, startglobrow-1);  nsmax = MIN(ns, endglobrow+1)
 
       IF (HESSPASS .EQ. 0) THEN
-        CALL Initialize(.FALSE.,ns,mblk_size)
         myend = nsmax
         DO mesh = 1, 3
            icol = MOD(jstart(mesh)-nsmin, 3)
@@ -293,6 +306,8 @@
       CALL second0(colstarttime)
 
       icol=0
+      xc = 0
+
       VAR_TYPE_LG: DO ntype = 1, ndims
         VAR_N_LG: DO n = -ntor, ntor
           VAR_M_LG: DO m = 0, mpol
@@ -300,8 +315,6 @@
             icol=icol+1
 
             MESH_3PT_LG: DO mesh = 1, 3
-
-              xc = 0
 
               DO js = mystart(mesh), myend(mesh), 3
                  xc(icol,js) = eps
@@ -317,6 +330,10 @@
               CALL second0(skstoff)
               hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
               INHESSIAN=.FALSE.
+
+              DO js = mystart(mesh), myend(mesh), 3
+                 xc(icol,js) = 0
+              END DO
 
               SKIP3_MESH_LG: DO js = mystart(mesh), myend(mesh), 3
 
@@ -335,16 +352,27 @@
                 !dblk(js)
                 IF (startglobrow.LE.js .AND. js.LE.endglobrow) THEN
                    DataItem = gc(:,js)/eps
-                   IF (.NOT. lColScale) THEN
-                      lmdamp = ABS(levmarq_param)*DataItem(icol)
-                   END IF
+
+                   IF (.NOT. lColScale) THEN                               
+                      IF (ALL(DataItem .EQ. zero)) DataItem(icol) = -one
+                      lmdamp = levmarq_param*DataItem(icol)
+                      IF (levmarq_param .NE. zero) THEN
+                         IF (lmdamp .EQ. zero) THEN
+                           lmdamp = levmarq_param
+                         ELSE IF (ntype.NE.3 .AND. ntype.NE.6) THEN
+                           lmdamp = lmdamp/10                               !Emulate v|| damping only
+                         END IF
+                      END IF
+				   END IF
+
                    IF (l_diagonal_only) THEN
                       temp=DataItem(icol)
                       DataItem=0
                       DataItem(icol)=temp
                    END IF
                    CALL SetBlockTriDataStruct(SAVEDIAG,js,icol,DataItem)
-                   IF (.NOT. lColScale) DataItem(icol) = DataItem(icol) + lmdamp
+                   IF (.NOT. lColScale) DataItem(icol) = DataItem(icol)  &
+	 				                 + SIGN(lmdamp,DataItem(icol))
                    CALL SetBlockTriDataStruct(DIAG,js,icol,DataItem)
                 END IF
 
@@ -490,7 +518,6 @@
 
       SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func,   &
                  l_Hess_sym)
-      USE shared_data, ONLY: lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -538,10 +565,6 @@
       icol=0
       xc = 0
 
-      IF (HESSPASS.EQ.0) THEN
-        CALL Initialize(.FALSE.,ns,mblk_size) 
-      ENDIF
-
       IF(.NOT.ALLOCATED(sendCount)) ALLOCATE(sendCount(nprocs))
       IF(.NOT.ALLOCATED(recvCount)) ALLOCATE(recvCount(nprocs))
       IF(.NOT.ALLOCATED(recvBuf)) ALLOCATE(recvBuf(PACKSIZE))
@@ -573,19 +596,12 @@
                   hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
                   INHESSIAN=.FALSE.
 
+                  DO js = mystart(mesh), myend(mesh), 3
+                     xc(icol,js) = 0
+                  END DO
+
                   SKIP3_MESH: DO js = jstart(mesh), ns, 3
 
-                    lmdamp = levmarq_param*gc(icol,js)/eps
-                    lmdamp = ABS(lmdamp)
-
-                    IF (levmarq_param .ne. zero) THEN
-                      IF (lmdamp .eq. zero) THEN
-                        lmdamp = levmarq_param
-                      ELSE IF (ntype .ne. 3) THEN
-                        lmdamp = lmdamp/10                          !Emulate v|| damping only
-                      END IF
-                    END IF
- 
                      !ublk(js-1)
                      js1 = js-1
                      IF (js1 .gt. 0) THEN
@@ -607,6 +623,19 @@
                      !dblk(js)
                      DataItem = gc(:,js)/eps
                      IF (m.eq.0 .and. n.lt.0) DataItem = 0
+
+                     IF (.NOT. lColScale) THEN                               
+                        IF (ALL(DataItem .EQ. zero)) DataItem(icol) = -one
+                        lmdamp = levmarq_param*DataItem(icol)
+                        IF (levmarq_param .NE. zero) THEN
+                           IF (lmdamp .EQ. zero) THEN
+                              lmdamp = levmarq_param
+                           ELSE IF (ntype.NE.3 .AND. ntype.NE.6) THEN
+                              lmdamp = lmdamp/10                               !Emulate v|| damping only
+                           END IF
+                        END IF
+				     END IF
+                     
                      IF (l_diagonal_only) THEN
                         temp=DataItem(icol)
                         DataItem=0
@@ -620,8 +649,8 @@
 !                    Boundary condition at js=1 and ns (CATCH ALL OF THEM HERE)
 !                    and m=0,n<0: NEED THIS to avoid (near) singular Hessian
 !                    ASSUMES DIAGONALS ARE ALL NEGATIVE
-                     IF (ALL(DataItem .eq. zero)) DataItem(icol) = -one
-                     DataItem(icol) = DataItem(icol) + SIGN(lmdamp,DataItem(icol))
+                     IF (.NOT. lColScale) DataItem(icol) = DataItem(icol) &
+                                        + SIGN(lmdamp,DataItem(icol))
                      istat = 2; js1 = js
                      CALL receive(PROBEFLAG)
                      CALL send(DataItem,js1,istat,icol,procID)
@@ -647,10 +676,6 @@
                      END IF !JS < NS
 
                   END DO SKIP3_MESH
-
-                  DO js = mystart(mesh), myend(mesh), 3
-                     xc(icol,js) = 0
-                  END DO
 
                END DO MESH_3PT
                ENDIF
@@ -717,21 +742,16 @@
       endtime=toff
       skstoff=toff
 
-      IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
+      IF (iam.EQ.0 .AND. lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
 
       block_factorization_time=block_factorization_time+(skstoff-skston)
       time_factor_blocks = time_factor_blocks + (toff-ton)
-
-      block_factorization_time=block_factorization_time+(skstoff-skston)
       usedtime=endtime-starttime
-
-      time_factor_blocks = time_factor_blocks + (toff-ton)
 #endif
       END SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist
 
       SUBROUTINE Compute_Hessian_Blocks_Thomas (xc, gc, func,            &
                  l_Hess_sym)
-      USE shared_data, ONLY: lverbose
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -744,7 +764,7 @@
       REAL(dp), PARAMETER    :: zero=0, one=1, p5=0.5_dp
       INTEGER  :: n, m, js, js1, mesh, ntype, istat, iunit, icol, icolmpi
       REAL(dp), ALLOCATABLE, DIMENSION(:,:)  :: gc1
-      REAL(dp) :: eps, ton, toff, lmdamp, skston, skstoff, temp
+      REAL(dp) :: skston, skstoff, temp
       EXTERNAL :: func
 #if defined(MPI_OPT)
       INTEGER  :: neqtotal, numroc
@@ -858,7 +878,7 @@
       icol=0
       xc = 0
 
-#if defined(MPI_OPT)
+#if defined(SKS)
       CALL second0(colstarttime) !Added by SKS for timing comparisons
 #endif
       VAR_TYPE: DO ntype = 1, ndims
@@ -890,8 +910,9 @@
                   hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
 #endif
                   INHESSIAN=.FALSE.
-#if defined(MPI_OPT)
-#endif
+                  DO js = jstart(mesh), ns, 3
+                     xc(icol,js) = 0
+                  END DO
 
 
 !              COMPUTE PRECONDITIONER (HESSIAN) ELEMENTS. LINEARIZED EQUATIONS
@@ -906,35 +927,11 @@
                   SKIP3_MESH: DO js = jstart(mesh), ns, 3
 
 !FORCE RESPONSE AT mp,np,nptype TO m,n,js,ntype VELOCITY PERTURBATION
-                     !Levenberg-parameter: lv-param*diagonal(js=4)
-                     !diag(1)=0 at this point, can't use it for scaling!
-                     lmdamp = levmarq_param*gc(icol,js)/eps
 
-!Avoid possible singularity when evolving both s and u at origin
-!!SPH - MUCKS UP CONVERGENCE WHEN lmdamp = 0
-!!SPH                     IF (lmdamp.eq.zero .and. js.eq.1 .and. m.eq.1      &
-!!SPH     &                    .and. ntype.eq.1) lmdamp = 1.E-6_dp*gc(icol,js)/eps
-
-!NO SCALING          lmdamp = levmarq_param
-                     lmdamp = ABS(lmdamp)
-
-                     IF (levmarq_param .ne. zero) THEN
-                        IF (lmdamp .eq. zero) THEN
-                           lmdamp = levmarq_param
-                        ELSE IF (ntype .ne. 3) THEN
-                           lmdamp = lmdamp/10                          !Emulate v|| damping only
-                        END IF
-                     END IF
-
-                     
-!                    WRITE (6, 120) lmdamp,js,m,n,ntype
-!120 FORMAT('lmdamp=',1p,e10.2,' js: ',i4,' m: ',i4,' n: ',i4,' ntype: ',i4)
- 
                      !ublk(js-1)
                      js1 = js-1
                      IF (js1 .GT. 0) THEN
                         DataItem = gc(:,js1)/eps
-!                     IF (l_Viscous) DataItem(icol) = DataItem(icol)-p5*lmdamp
 
                      !m=0 constraint for n<0
                         IF (m.eq.0 .and. n.lt.0) DataItem = 0
@@ -955,7 +952,15 @@
 !                    ASSUMES DIAGONALS ARE ALL NEGATIVE
 
                      IF (.NOT. lColScale) THEN                               
-                        IF (ALL(DataItem .eq. zero)) DataItem(icol) = -one
+                        IF (ALL(DataItem .EQ. zero)) DataItem(icol) = -one
+                        lmdamp = levmarq_param*DataItem(icol)
+                        IF (levmarq_param .NE. zero) THEN
+                           IF (lmdamp .EQ. zero) THEN
+                             lmdamp = levmarq_param
+                           ELSE IF (ntype.NE.3 .AND. ntype.NE.6) THEN
+                             lmdamp = lmdamp/10                               !Emulate v|| damping only
+                           END IF
+                        END IF
                         DataItem(icol) = DataItem(icol)                  &
 						               + SIGN(lmdamp,DataItem(icol))
 					 END IF
@@ -983,10 +988,6 @@
                      END IF
 
                   END DO SKIP3_MESH
-
-                  DO js = jstart(mesh), ns, 3
-                     xc(icol,js) = 0
-                  END DO
 
                END DO MESH_3PT
 #if defined(MPI_OPT)
@@ -1020,48 +1021,7 @@
       construct_hessian_time=construct_hessian_time+(colendtime-colstarttime)
 #endif
 
-!DUMPS FULL HESSIAN BLOCKS FOR TESTING (ONLY WORKS FOR NON-MPI)
-      IF (.FALSE.) THEN
-!       IF (.not. l_Diagonal_Only) THEN
-!      IF (iam.eq.0 .and. nprecon .eq. 2) THEN
-1001  FORMAT (2i6)
-2001  FORMAT (1p,10e16.8)
-
-!       IF (.not. l_Diagonal_Only) THEN
-!      IF (iam.eq.0 .and. nprecon .eq. 2) THEN
-         OPEN(UNIT=20,FILE='LBLK.bin',STATUS='REPLACE',FORM='FORMATTED')
-         WRITE (20, 1001) mblk_size, ns
-         DO js = 2, ns
-            WRITE (20, 2001) lblk(:,:,js)
-         END DO
-         CLOSE (20)
-
-         OPEN(UNIT=20,FILE='DBLK.bin',STATUS='REPLACE',FORM='FORMATTED')
-         WRITE (20, 1001) mblk_size, ns
-         DO js = 1, ns
-            WRITE (20, 2001) dblk(:,:,js)
-         END DO
-         CLOSE (20)
-
-         OPEN(UNIT=20,FILE='UBLK.bin',STATUS='REPLACE',FORM='FORMATTED')
-         WRITE (20, 1001) mblk_size, ns
-         DO js = 1, ns-1
-            WRITE (20, 2001) ublk(:,:,js)
-         END DO
-         CLOSE (20)
-
-         OPEN(UNIT=20,FILE='RHS.bin',STATUS='REPLACE',FORM='FORMATTED')
-         DO js = 1, ns
-            WRITE (20, 2001) gc(:, js)
-         END DO
-         CLOSE (20)
-
-         IF (lverbose) PRINT *, 'HESSIAN BLOCKS WRITTEN OUT'
-
-      END IF
-
       DEALLOCATE (DataItem, stat=istat)
-!      DEALLOCATE (gc1, DataItem, stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('DataItem deallocation error!')
 
 !
@@ -1156,7 +1116,7 @@
 
       CALL second0(skstoff)
 	  toff = skstoff
-      IF (lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
+      IF (iam.EQ.0 .AND. lverbose) PRINT '(a,1p,e12.3)',' BLOCK FACTORIZATION TIME: ', toff-ton
 
       block_factorization_time=block_factorization_time+(skstoff-skston)
       time_factor_blocks = time_factor_blocks + (toff-ton)

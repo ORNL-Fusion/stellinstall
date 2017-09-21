@@ -19,7 +19,7 @@
          esubsmnf, esubumnf, esubvmnf,                                   &
          esubsmnh, esubumnh, esubvmnh, de_uds, de_vds
 
-       PUBLIC :: update_bfield_par
+       PUBLIC :: update_bfield
 
        CONTAINS
 !#if defined(SKS)      
@@ -31,13 +31,14 @@
 !>  t + dt. Used to update values of BSUPMNF and BSUPIJF in \ref quantities
 !>  module.
 !*******************************************************************************
-       SUBROUTINE update_bfield_par (l_add_res)
+       SUBROUTINE update_bfield (l_add_res)
 !     
 !     PURPOSE: ADVANCES HALF-MESH MAGNETIC FIELD COMPONENTS IN MN SPACE FROM TIME T TO T+DELTA_T
 !              (Used to compute dBSUPXMNH for updating BSUPXMNH) 
 !              DISCRETIZED VERSION OF FARADAY'S LAW dB/dt = -curl(E)
 !
        USE quantities
+       USE descriptor_mod, ONLY: INHESSIAN
        USE perturbation, ONLY: lresistive, eta_factor, buv_res
        USE shared_data, ONLY: lasym, fsq_res, fsq_total
 !-----------------------------------------------
@@ -59,7 +60,7 @@
        ns_span = nsmax-nsmin+1
 
 !
-!      Calculate ideal covariant components of electric field E-ideal = -v X B on full-space mesh
+!Calculate covariant components of (non-resistive) electric field E = -v X B on full-space mesh
 !  
        ALLOCATE(esubsijf(ntheta,nzeta,nsmin:nsmax),                      &
                 esubuijf(ntheta,nzeta,nsmin:nsmax),                      &
@@ -70,18 +71,6 @@
                 de_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
        IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_BFIELD')
 
-       ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-                esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & 
-                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-                stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_BFIELD')
-
-       ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-                esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-                esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in UPDATE_BFIELD')
-
-
        esubsijf =-(jvsupuijf(:,:,nsmin:nsmax)*bsupvijf0(:,:,nsmin:nsmax) &
                  - jvsupvijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax))  ! -E_s = V^uB^v - V^vB^u  (SINE): jv -> jac*v
        esubuijf =-(jvsupvijf(:,:,nsmin:nsmax)*bsupsijf0(:,:,nsmin:nsmax) &
@@ -89,7 +78,7 @@
        esubvijf =-(jvsupsijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax) &
                  - jvsupuijf(:,:,nsmin:nsmax)*bsupsijf0(:,:,nsmin:nsmax))  ! -E_v = V^sB^u - V^uB^s  (COSINE)
 
-!      confirm boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy => dB^s = 0)
+!confirm boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy => dB^s = 0)
        IF (nsmax .EQ. ns) THEN
          IF (ANY(esubuijf(:,:,ns) .NE. zero)) THEN
            CALL ErrorAbort('esubuijf(ns) != 0 in UPDATE_BFIELD_par')
@@ -99,10 +88,10 @@
        END IF
 
 !
-!      Note this will LOWER the energy due to eta*|J|||**2 heating
+!Note this will LOWER the energy due to eta*|J|||**2 heating
 !      esubX(resistive) = eta(JdotB/B^2)*BsubX
-!      so the magnetic energy DECREASES due to this term. Note ksubX=jac*JsubX are the
-!      covariant components of the current TIMES the jac factor
+!so the magnetic energy DECREASES due to this term. Note ksubX=JsubX are the
+!covariant components of the current
 !
        ladd_pert = ALLOCATED(buv_res)
        IF (lresistive .AND. (l_add_res .or. ladd_pert)) THEN
@@ -130,9 +119,19 @@
           DEALLOCATE (resistivity)
        ENDIF 
 
-!
+!Allocate working arrays used in Faraday
+       ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+                esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & 
+                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+                stat=istat)  
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_BFIELD')
+
+       ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+                esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+                esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in UPDATE_BFIELD')
+
 !Update Bfield using Faraday's Law
-! 
        CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch, isym)
        IF (lasym)                                                        &
        CALL Faraday(djbsupsmnch, djbsupumnsh, djbsupvmnsh, iasym)
@@ -143,22 +142,6 @@
 
        CALL second0(toff)
        time_update_bfield = time_update_bfield + (toff-ton)
-
-       END SUBROUTINE update_bfield_par
-!#endif
-
-!>  \brief Serial routine for updating B^s, B^u, B^v for ideal (and resistive) perturbations
-       SUBROUTINE update_bfield (l_add_res)
-!     
-!     PURPOSE: ADVANCES HALF-MESH MAGNETIC FIELD COMPONENTS IN MN SPACE FROM TIME T TO T+DELTA_T
-!              (Used to updates values of BSUPMNF and BSUPIJF in QUANTITIES MODULE)
-!
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-       LOGICAL, INTENT(in)     :: l_add_res
-
-       CALL update_bfield_par (l_add_res)
 
        END SUBROUTINE update_bfield
 
@@ -177,8 +160,7 @@
        INTEGER   :: fours, fouru, fourv, nblock, m, n, nmin, nmax
        REAL(dp)  :: sparity, r0, mp, np
 !-----------------------------------------------
-       nmin=MAX(1,startglobrow-1)
-       nmax=nsmax
+       nmin=nsmin; nmax=nsmax
 
        IF (iparity .EQ. isym) THEN                                         !e_s (sin), e_u (cos), e_v (cos)
           fours=f_sin; fouru=f_cos; fourv=f_cos
@@ -193,30 +175,28 @@
        CALL tomnsp_par(esubuijf, esubumnf, fouru, 1, ns_span)
        CALL tomnsp_par(esubvijf, esubvmnf, fourv, 1, ns_span)
        
-       !!On exit, esubXh valid on nsmin+1:nsmax grid
+!On exit, esubXh valid on [nsmin+1:nsmax]
        nblock = SIZE(esubsmnh,1)*SIZE(esubsmnh,2)
        CALL to_half_mesh_par(esubsmnf, esubsmnh, nblock, nmin, nmax)
        CALL to_half_mesh_par(esubumnf, esubumnh, nblock, nmin, nmax)
        CALL to_half_mesh_par(esubvmnf, esubvmnh, nblock, nmin, nmax)
 
-!      Gradients of esubu,v on half grid j-half=2,ns: note esubu,v(1) used here!
-       !!On exit, work1,2 valid on nsmin+1:nsmax grid
+!Gradients of esubu,v on half grid j-half=2,ns: note esubu,v(1) used here!
+!On exit, work1,2 valid on [nsmin+1:nsmax]
        CALL GradientHalf_par(de_uds, esubumnf, nblock, nmin, nmax)
        CALL GradientHalf_par(de_vds, esubvmnf, nblock, nmin, nmax)
 
 
 !IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
        IF (nmin.EQ.1 .AND. .NOT.l_natural) THEN
-!       IF (.FALSE.) THEN
           djbsupsmnh(m1,:,1) = (esubsmnh(m1,:,2)*r0-esubumnh(m1,:,2))/2
           esubsmnh(m1,:,2) = esubsmnh(m1,:,2) - djbsupsmnh(m1,:,1)/r0
           esubumnh(m1,:,2) = esubumnh(m1,:,2) + djbsupsmnh(m1,:,1)
           de_uds(m1,:,2) = de_uds(m1,:,2) - djbsupsmnh(m1,:,1)/r0         !Preserves div B = 0
        END IF
 
-!      Calculate r.h.s. of the evolution equations of all components of jacobh*BSUP?
-!      Compute contravariant components of -curl(E) for right side of Faraday's Equation
-!
+!Calculate -curl(E) = r.h.s. of Faraday's equation for all components of jacobh*BSUPX
+!Compute contravariant components of -jacobian*curl(E)
        nmin=MAX(1,startglobrow)
        DO m = 0, mpol
          mp = sparity*m
@@ -225,17 +205,16 @@
            djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)        & ! -mp  ~ d/du
                                      - np*esubumnh(m,n,nmin:nmax)          ! -np  ~ d/dv
            djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)        &
-		                     + de_vds(m,n,nmin:nmax)
+		                             + de_vds(m,n,nmin:nmax)
            djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)        &
-		                     - de_uds(m,n,nmin:nmax)
+		                             - de_uds(m,n,nmin:nmax)
           ENDDO
        ENDDO
 
 !CONSTRAINT AT ORIGIN [jbsups(m=1) = r0*jbsupu(m=1) <=> esubumnch = r0*esubsmnsh]
-!Origin bc for m=1: e_u = r0*e_s (Follows form v X B at origin)
+!Origin bc for m=1: e_u = r0*e_s (Follows from v X B at origin)
 !This suffices to make B^s = r0*B^u
        IF (nmin .EQ. 1) THEN
-
           djbsupsmnh(:,:,1) = 0
           djbsupumnh(:,:,1) = 0
           djbsupvmnh(:,:,1) = 0
@@ -249,7 +228,6 @@
           END IF
 
           djbsupvmnh(m0,:,1) = djbsupvmnh(m0,:,2)
- 
        END IF
 
 !

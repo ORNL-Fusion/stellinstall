@@ -1,5 +1,5 @@
 
-!>  \brief Module contained subroutines and functions updating MHD forces and Wmhd
+!>  \brief Module contained subroutines and functions computing MHD forces and energy
 !!  \author S. P. Hirshman
 !!  \date July, 2014
       MODULE shared_functions
@@ -15,21 +15,24 @@
                             fsupsmnsf, fsupumncf, fsupvmncf,             &
                             wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
-      USE siesta_init, ONLY: init_state_par
-      USE nscalingtools, ONLY: rcountsNS, dispNS
+      USE siesta_init, ONLY: init_state
+      USE nscalingtools, ONLY: rcountsNS, dispNS, PARFUNCTISL,           &
+                               startglobrow, endglobrow, MPI_ERR,        &
+                               PARSOLVER
       CONTAINS
 
-!>  \brief Parallel routine to compute forces for perturbed state.
+!>  \brief Parallel routine to compute MHD forces (both linear AND nonlinear)
+!!  depending on l_linearize = T/F
 !!  \author S. P. Hirshman, R. Sanchez, S. K. Seal
-      SUBROUTINE funct_island_par
+      SUBROUTINE funct_island
 !-----------------------------------------------
-!     PARALLEL (in N rows) VERSION
+!     PARALLEL (in N rows, PARSOLVER=T)
+!     SERIAL   (PARSOLVER=F, startglobrow=1, endglobrow=ns)
 !-----------------------------------------------
-      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
-      USE siesta_bfield, ONLY: update_bfield_par
-      USE siesta_pressure, ONLY: update_pres_par
-      USE siesta_force, ONLY: update_force_par
-      USE siesta_displacement, ONLY: update_upperv_par
+      USE siesta_bfield, ONLY: update_bfield
+      USE siesta_pressure, ONLY: update_pres
+      USE siesta_force, ONLY: update_force
+      USE siesta_displacement, ONLY: update_upperv
       USE mpi_inc
       IMPLICIT NONE
 !-----------------------------------------------
@@ -51,16 +54,16 @@
 
       IF (l_init_state) THEN
         CALL second0(skston)
-        CALL init_state_par(.FALSE.)
+        CALL init_state(.FALSE.)
         CALL second0(skstoff)
         time_init_state=time_init_state+(skstoff-skston)
         l_init_state = .FALSE.
       END IF
 
-      CALL update_upperv_par
-      CALL update_bfield_par (.FALSE.)
-      CALL update_pres_par
-      CALL update_force_par
+      CALL update_upperv
+      CALL update_bfield(.FALSE.)
+      CALL update_pres
+      CALL update_force
 
       IF (gamma .eq. 1._dp) CALL ErrorAbort('SIESTA REQUIRES gamma != 1')
       wtotal = wb + wp/(gamma-1)
@@ -95,12 +98,13 @@
 
          END DO
          stmp(2) = SUM(vp_f(nsmin:nsmax))
+         IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
          CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
-         fsq_total = rtmp(1)/rtmp(2)
-#else
-         fsq_total = stmp(1)/stmp(2)
+         stmp = rtmp
 #endif
+         END IF
+         fsq_total = stmp(1)/stmp(2)
          IF (ANY(col_scale .NE. one)) THEN
             fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)/col_scale(:,:,1,nsmin:nsmax)
             fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)/col_scale(:,:,2,nsmin:nsmax)
@@ -130,14 +134,16 @@
             END DO
             END IF
           
+            IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
             CALL MPI_ALLGATHERV(sendbuf(nsmin), nsmax-nsmin+1, MPI_REAL8,&
                                 recbuf, rcountsNS, dispNS, MPI_REAL8,    &
                                 SIESTA_COMM, MPI_ERR)
             fsq_total1 = SUM(recbuf)/rtmp(2)
-#else
-            fsq_total1 = SUM(sendbuf)/stmp(2)
 #endif
+            ELSE
+            fsq_total1 = SUM(sendbuf)/stmp(2)
+            END IF
 
             stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
             stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
@@ -148,12 +154,14 @@
             stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
             END IF
 
+            IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
             CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
-            fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
-#else
-            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+            stmp = rtmp
 #endif
+            END IF
+            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+
             fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)*col_scale(:,:,1,nsmin:nsmax)
             fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)*col_scale(:,:,2,nsmin:nsmax)
             fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)*col_scale(:,:,3,nsmin:nsmax)
@@ -172,17 +180,18 @@
             stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
             END IF
 
+            IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
             CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
-            fsqvs=hs*rtmp(1); fsqvu=hs*rtmp(2); fsqvv=hs*rtmp(3)
-#else
-            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+            stmp = rtmp
 #endif
+            END IF
+            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
             fsq_total1 = fsq_total
          END IF
       END IF
 
-!      IF (l_Gmres .AND. l_ApplyPrecon) CALL ErrorAbort('l_ApplyPrecon must be FALSE in funct_island_par')
+!      IF (l_Gmres .AND. l_ApplyPrecon) CALL ErrorAbort('l_ApplyPrecon must be FALSE in funct_island')
 !
 !     GMRES handles preconditioning itself: do NOT apply
 !     Do not precondition when Hessian is being computed
@@ -190,14 +199,6 @@
 
       CALL second0(toff)
       time_funci = time_funci+(toff-ton)
-
-      END SUBROUTINE funct_island_par
-
-!>  \brief Computes forces for perturbed state
-!!  \author S. P. Hirshman, R. Sanchez
-      SUBROUTINE funct_island
-
-      CALL funct_island_par
 
       END SUBROUTINE funct_island
 
@@ -219,11 +220,7 @@
       iter = 0
 
       DO j = 1, 100
-#if defined(SKS)
-         CALL funct_island_par
-#else
          CALL funct_island
-#endif
          IF (j .EQ. 1) THEN
             fsq_min = fsq_total1
             xc = facmin*xcmin
@@ -249,13 +246,12 @@
 
 !>   \brief Returns perturbed MHD+KINETIC energy
 !!   \author S. P. Hirshman, R. Sanchez
-      FUNCTION getwmhd (p, lpar)
+      FUNCTION getwmhd (p)
       USE GMRES_LIB, ONLY: Truncate
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), INTENT(in) :: p(neqs)           !<displacement vector
-      LOGICAL,  INTENT(in) :: lpar              !<=T, use parallel funct_island
+      REAL(dp), INTENT(IN) :: p(neqs)           !<displacement vector
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -267,15 +263,9 @@
       l_linearize  = .FALSE.
       l_getwmhd    = .TRUE.
       l_getfsq     = .FALSE.
-#if defined(SKS)
-      IF (lpar) THEN
-         CALL funct_island_par
-      ELSE
-#endif
-         CALL funct_island
-#if defined(SKS)
-      END IF
-#endif
+  
+      CALL funct_island
+
       l_getwmhd    = .FALSE.
 
       CALL Truncate(wtotal, 12)

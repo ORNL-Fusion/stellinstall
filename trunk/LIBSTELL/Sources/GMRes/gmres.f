@@ -49,6 +49,7 @@
       REAL(dp), TARGET, ALLOCATABLE :: work(:)
       REAL(dp), ALLOCATABLE         :: xmin(:)
       REAL(dp), POINTER :: sx(:), sy(:), sz(:)
+	LOGICAL   :: lprint
 !-----------------------------------------------
       EXTERNAL yAx, apply_precond, getnlforce
 !-----------------------------------------------
@@ -71,6 +72,8 @@
 
       m = gi%m
       iam = gi%iam
+	lprint = (iam.EQ.0 .AND. gi%lverbose)
+	
 !      lwork = m**2 + m*(n+6) + 5*n + 1
       lwork = m**2 + m*(n+6) + 6*n + 1    !Additional space for peek revcom (5 -> 6)
 
@@ -81,7 +84,7 @@
       work(n+1:2*n) = b(1:n)/bnorm
 
       icount=0; jcount=0; fsq_min=-1
-      IF (gi%lverbose) PRINT 900
+      IF (lprint) PRINT 900
  900  FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,1x,     
      1      'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
 
@@ -104,13 +107,13 @@
          CALL yAx (sx, sz, n) 
 !Debug
 !         gsum = SUM(work(colz:colz+n-1)**2)
-!         IF (IAM.EQ.0) PRINT *,'CALL MATVECI, |Ax| = ', SQRT(gsum)
+!         IF (lprint) PRINT *,'CALL MATVECI, |Ax| = ', SQRT(gsum)
 !End Debug
          GOTO 10
 
       ELSE IF (revcom.eq.precondLeft) THEN
 ! perform the left preconditioning
-!          IF (IAM.EQ.0) PRINT *,'CALL PRECONDL'        
+!          IF (lprint) PRINT *,'CALL PRECONDL'        
 !         work(colz) <-- M^{-1} * work(colx)
 !         WRITE(10000,*) "left_dcopy"; CALL FLUSH(10000)
          CALL dcopy(n,sx,1,sz,1)
@@ -120,7 +123,7 @@
 
       ELSE IF (revcom .EQ. precondRight) THEN
 ! perform the right preconditioning
-!          IF (IAM.EQ.0) PRINT *,'CALL PRECONDR'        
+!          IF (lprint) PRINT *,'CALL PRECONDR'        
 !         WRITE(10000,*) "right_dcopy"; CALL FLUSH(10000)
          CALL dcopy(n,sx,1,sz,1)
 !         WRITE(10000,*) "precondRight"; CALL FLUSH(10000)
@@ -140,7 +143,7 @@
         END DO
 
 ! Debug
-!        IF (IAM.EQ.0) THEN
+!        IF (lprint) THEN
 !           gsum = SUM(work(colz:colz+nbscal-1)**2)
 !           PRINT 200,' CALL DOTPROD: nbscal = ', nbscal, 
 !     1               ' |WORK|: ', SQRT(gsum)
@@ -150,7 +153,7 @@
         GOTO 10
 
       ELSE IF (revcom .EQ. peek) THEN
-!        IF (IAM.EQ.0) PRINT *,'CALL PEEK'        
+!        IF (lprint) PRINT *,'CALL PEEK'        
         fsq_last = fsq_nl                                                !need for delfsq criteria
         CALL GetNLForce(work(colx), fsq_nl, bnorm, n)                    !get nonlinear force
         fsq_lin = (rinfo(1)*bnorm)**2
@@ -172,8 +175,8 @@
           xmax = bnorm*MAXVAL(ABS(xmin))
           IF (icount.EQ.1 .OR. MOD(icount,10).EQ.0) THEN
              kprint = kout
-             IF (gi%lverbose)                                                  &
-     &          PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
+             IF (lprint) 
+     1          PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
           END IF
           IF (fsq_nl .LE. gi%ftol) gi%icntl(7)=gi%info(1)
           fsq_min = fsq_nl; fsq_min_lin = fsq_lin
@@ -194,7 +197,7 @@
 
       DEALLOCATE (work)
 
-      IF (kprint.NE.kout .and. gi%lverbose)
+      IF (lprint .AND. kprint.NE.kout)
      &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
       x0 = bnorm*x0
@@ -229,7 +232,7 @@
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: aux, tmpbuf
       REAL(dp) :: skston, skstoff, xmax, xmod, bnorm, lsum, gsum
       LOGICAL, PARAMETER :: lfast=.FALSE.
-      LOGICAL  :: lactive = .TRUE.
+      LOGICAL  :: lactive = .TRUE., lprint
 !-----------------------------------------------
 !
 !     EASY-TO-USE WRAPPER FOR GMRES PARALLEL DRIVER CALL
@@ -258,7 +261,8 @@
       ALLOCATE(tmpbuf(n), aux(n), itest(gi%nprocs), stat=nout)
       IF (nout .NE. 0) STOP 'Allocation error in gmres_fun!'
 
-      m = gi%m; iam = gi%iam
+      m = gi%m; 
+	iam = gi%iam;  lprint = (iam.EQ.0 .AND. gi%lverbose)
       lwork = m**2 + m*(nloc+6) + 6*nloc + 1    !Additional space for peek revcom (5 -> 6)
       ALLOCATE (work(lwork), stat=nout)
       IF (nout .NE. 0) STOP 'Allocation error in gmres_fun!'
@@ -275,7 +279,7 @@
 
       work(nloc+1:2*nloc) = b(myrowstart:myrowend)/bnorm
 
-      IF (iam .EQ. 0 .and. gi%lverbose) PRINT 900
+      IF (lprint) PRINT 900
 900   FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,
      &       1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
 
@@ -316,7 +320,7 @@
 !        lsum = SUM(work(colz:colz+nloc-1)**2)
 !        CALL MPI_REDUCE(lsum,gsum,1,MPI_REAL8,MPI_SUM,0,
 !     1                  MY_COMM,MPI_ERR)
-!        IF (IAM.EQ.0) THEN
+!        IF (lprint) THEN
 !           PRINT *,'CALL MATVECI, |Ax| = ', SQRT(gsum)
 !        END IF
 !         END IF
@@ -324,14 +328,14 @@
         GOTO 10
 
       ELSE IF (revcom .EQ. precondLeft) THEN
-!        IF (IAM.EQ.0) PRINT *,'CALL PRECONL'
+!        IF (lprint) PRINT *,'CALL PRECONL'
 ! perform the left preconditioning work(colz) <-- M^{-1} * work(colx)
 !        WRITE(10000+iam,*) "left_dcopy"; CALL FLUSH(10000+iam)
         CALL dcopy(nloc,work(colx),1,work(colz),1)
         GOTO 10
 
       ELSE IF (revcom .EQ. precondRight) THEN
-!        IF (IAM.EQ.0) PRINT *,'CALL PRECONDR'        
+!        IF (lprint) PRINT *,'CALL PRECONDR'        
 ! perform the right preconditioning
 !        WRITE(10000+iam,*) "right_dcopy"; CALL FLUSH(10000+iam)
         CALL dcopy(nloc,work(colx),1,work(colz),1)
@@ -352,7 +356,7 @@
         !MAKE SURE nbscal is the same on all processors -
         CALL MPI_ALLGATHER(nbscal, 1, MPI_INTEGER, itest, 1,
      &                     MPI_INTEGER, MY_COMM, MPI_ERR)
-        IF (iam.EQ.0 .AND. ANY(itest(1:gi%nprocs) .NE. nbscal)) THEN
+        IF (lprint .AND. ANY(itest(1:gi%nprocs) .NE. nbscal)) THEN
            PRINT *,'itest: ',itest(1:gi%nprocs)
            STOP 'nbscal not same on all procs!'
         END IF
@@ -390,7 +394,7 @@
      &                 MPI_ERR)
 
 !Debug
-!        IF (IAM.EQ.0) THEN
+!        IF (lprint) THEN
 !           gsum = SUM(work(colz:colz+nbscal-1)**2)
 !           PRINT 200,' CALL DOTPROD: nbscal = ', nbscal, 
 !     1               ' |WORK|: ', SQRT(gsum)
@@ -411,7 +415,7 @@
 
       ELSE IF (revcom .EQ. peek) THEN
         IF (lactive) THEN
-!        IF (IAM.EQ.0) PRINT *,'CALL PEEK'
+!        IF (lprint) PRINT *,'CALL PEEK'
         fsq_last = fsq_nl                                                 !need for delfsq criteria
         aux(myrowstart:myrowend) = work(colx:colx+nloc-1)
 
@@ -444,8 +448,8 @@
      1                    MY_COMM,MPI_ERR)
           xmax=bnorm*xmax
 
-          IF (iam.EQ.0 .AND. (icount.EQ.1 .OR. MOD(icount,10).EQ.0))THEN
-             IF (gi%lverbose) THEN
+          IF (icount.EQ.1 .OR. MOD(icount,10).EQ.0) THEN
+             IF (lprint) THEN
              kprint = kout
              PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
              END IF
@@ -469,7 +473,7 @@
 !******************************
       GOTO 100
 
-      LACTIVE2: IF (iam.EQ.0 .AND. lactive) THEN
+      LACTIVE2: IF (lprint .AND. lactive) THEN
       nout = 11
       OPEN(nout,FILE='sol_dTestgmres',STATUS='unknown')
       IF (gi%icntl(5).EQ.0) then
@@ -506,7 +510,7 @@
       gi%ftol = fsq_min
       x0 = tmpbuf*bnorm
 
-      IF (iam.EQ.0 .AND. kprint.NE.kout .and. gi%lverbose)
+      IF (lprint .AND. kprint.NE.kout)
      &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
 
 !      IF (iam .EQ. 0) PRINT 110, icount
