@@ -96,7 +96,7 @@ REAL(dp) :: ZERO !<0.0
 LOGICAL(dp) :: L_COLSCALE=.FALSE.  !<set true if column scaling is applied
 
 !-------------------------------------------------------------------------------
-LOGICAL :: use_mpiwtime !<Use MPI's timer function?
+LOGICAL :: use_mpiwtime=.FALSE. !<Use MPI's timer function?
 DOUBLE PRECISION :: loctimer1, loctimer2 !<Stopwatch snapshots to use locally
 DOUBLE PRECISION :: mattimer1, mattimer2 !<Stopwatch snapshots for matrix ops
 DOUBLE PRECISION :: globtimer1, globtimer2 !<Stopwatch snapshots to use globally
@@ -2004,11 +2004,10 @@ END SUBROUTINE SlaveDGETRS
 !! To be invoked, before solve, by user
 !<
 !-------------------------------------------------------------------------------
-SUBROUTINE Initialize( do_mpiinit, inN, inM )
+SUBROUTINE Initialize( inN, inM )
   !-----------------------------------------------------------------------------
   ! Formal arguments
   !-----------------------------------------------------------------------------
-  LOGICAL, INTENT(IN) :: do_mpiinit !<Invoke MPI_Init?
   INTEGER, INTENT(IN) :: inN !<Num of row blocks in input block tri-diag matrix
   INTEGER, INTENT(IN) :: inM !<Size of each square sub-matrix block
 
@@ -2020,23 +2019,24 @@ SUBROUTINE Initialize( do_mpiinit, inN, inM )
   INTEGER :: mpierr !<MPI error code
   INTEGER :: globrow !<Loop variable
   INTEGER :: globrowoff !<Temporary variable
+  INTEGER :: flag   !< =0 if mpi NOT presently initialized
   REAL :: logNbase2 !<Temporary variable
 
   !-----------------------------------------------------------------------------
-  use_mpiwtime = .FALSE.
   LBCYLIC_INIT=.TRUE.
 #if defined(MPI_OPT)
-  IF ( do_mpiinit ) THEN
+  CALL MPI_Initialized (flag, mpierr)
+  IF ( flag .EQ. 0 ) THEN
     CALL MPI_Init( mpierr )
   END IF
+  use_mpiwtime = .TRUE.
   CALL MPI_Comm_rank( SIESTA_COMM, rank, mpierr )
   CALL MPI_Comm_size( SIESTA_COMM, nranks, mpierr)
-  use_mpiwtime = .TRUE.
 #endif
 
   N = inN
   M = inM
-  IF (N.EQ.0 .OR. M.EQ.0) RETURN
+  IF (N.EQ.0 .OR. M.EQ.0) return
 
   !-----------------------------------------------------------------------------
   ! Set output file unit, so we get output of each rank in its own file
@@ -3220,6 +3220,7 @@ SUBROUTINE Finalize( do_mpifinalize )
   !-----------------------------------------------------------------------------
   IF ( do_mpifinalize ) THEN
       CALL MPI_Finalize( mpierr )
+      use_mpiwtime = .FALSE.
   END IF
 #endif
 

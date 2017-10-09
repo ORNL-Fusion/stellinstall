@@ -39,6 +39,7 @@
 #endif
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE fourier, ONLY: f_ds, f_du, f_dv, f_cos, f_sin, f_none, f_sum
+      USE utilities, ONLY: to_half_mesh
       IMPLICIT NONE     
       PRIVATE
 #if defined(SILO_AVAIL)
@@ -129,7 +130,6 @@
       USE read_wout_mod, ONLY: lwout_opened, read_wout_file,             &
           read_wout_deallocate
       USE diagnostics_mod, ONLY: dealloc_diagnostics
-      USE nscalingtools, ONLY: startglobrow, endglobrow
       CHARACTER(LEN=*), INTENT(IN) :: wout_file
       INTEGER, INTENT(IN)  :: iter
       LOGICAL, INTENT(IN)  :: close_wout
@@ -212,11 +212,11 @@
         ENDIF
 #endif
         IF (iam .EQ. 0 .and. lverbose) THEN
-           WRITE(*,'(/,4x,a)') '>> Starting dump of graphics data...'
-           WRITE(*,'(10x,a)') 'Creating plot box between:'
-           WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'RMAX = ', rmaxx, 'RMIN = ', rminx
-           WRITE(*,'(10x,2(a,1p,e10.3,2x))') 'ZMAX = ', zmaxx, 'ZMIN = ', zminx
-           WRITE(*,'(10x,a,i4)') 'Toroidal sections computed: ', nphis                
+           WRITE(*,'(/,1x,a)') '>> Starting dump of graphics data...'
+           WRITE(*,'(6x,a)') 'Creating plot box between:'
+           WRITE(*,'(6x,2(a,1p,e10.3,2x))') 'RMIN = ', rminx, 'RMAX = ', rmaxx 
+           WRITE(*,'(6x,2(a,1p,e10.3,2x))') 'ZMIN = ', zminx, 'ZMAX = ', zmaxx 
+           WRITE(*,'(6x,a,i4)') 'Toroidal sections computed: ', nphis                
         END IF
 
         nmpi=0
@@ -270,8 +270,8 @@
         CALL write_pressure_data(nunit_pres, ndum, maxprocs)
 
         IF (iam .EQ. 0 .and. lverbose) THEN
-           WRITE(*,'(/,10x,a)') 'Completed.'
-           WRITE(*,'(10x,a)') 'Pressure (PGPLOT) using CYLINDRICAL coords..' ! Use uniformly-spaced grid in (R,v,Z)
+           WRITE(*,'(/,6x,a)') 'Completed.'
+           WRITE(*,'(6x,a)') 'Pressure (PGPLOT) using CYLINDRICAL coords..' ! Use uniformly-spaced grid in (R,v,Z)
         END IF
 
         info = 0
@@ -295,7 +295,7 @@
               uu = (jk-1)*ous                                             ! Actual U(=Theta) in [0,2*pi]
 !!            CALL flx_to_cyl(ss, uu, vv, rr, zz)
               index1 = index1+1
-              CALL dump_pressure(vv, ss, uu, info, index1)                ! Now, get quantities and dump them on file
+              CALL dump_pressure(vv, ss, uu, info, index1)                ! Now, get quantities and store in pprof
             ENDDO
           ENDDO        
         ENDDO   
@@ -307,8 +307,8 @@
         CALL write_pressure_data(nunit_pres1, ndum, maxprocs)
 
         IF (iam .EQ. 0 .and. lverbose) THEN
-           WRITE(*,'(/,10x,a)') 'Completed.'
-           WRITE(*,'(10x,a)') 'Pressure (PGPLOT) using SIESTA coords..'  ! Use uniformly-spaced grid in (s,u,v)
+           WRITE(*,'(/,6x,a)') 'Completed.'
+           WRITE(*,'(6x,a)') 'Pressure (PGPLOT) using SIESTA coords..'    ! Use uniformly-spaced grid in (s,u,v)
         END IF
 
 !
@@ -316,19 +316,19 @@
 !
         TRACING: IF (l_tracing .OR. l_silo_output) THEN                   ! Do 3D calculation only if  L_TRACING = T or SILO_OUTPUT desired
           IF (iam .EQ. 0 .and. lverbose) THEN
-             WRITE(*,'(/,10x,a)') 'Creating additional files:'    
+             WRITE(*,'(/,6x,a)') 'Creating additional files:'    
              IF (l_tracing) THEN
-                WRITE(*,'(10x,a)') 'Tracing BFIELD file..'    
-                WRITE(*,'(10x,a,i4)') 'Toroidal sections computed:', nvs
+                WRITE(*,'(6x,a)') 'Tracing BFIELD file..'    
+                WRITE(*,'(6x,a,i4)') 'Toroidal sections computed:', nvs
              ENDIF
 #if defined(SILO_AVAIL)
              IF (l_silo_output) THEN
-                WRITE(*,'(10x,a)') 'SILO 2D database..'    
-                WRITE(*,'(10x,2a,1p,e10.3,a)') 'Toroidal sections computed: 0.0',  &
+                WRITE(*,'(6x,a)') 'SILO 2D database..'    
+                WRITE(*,'(6x,2a,1p,e10.3,a)') 'Toroidal sections computed: 0.0',  &
                     ' and ', REAL(360*(nsec-1))/(nvs-1), ' degs.'
                 IF (l_silo3D) THEN
-                   WRITE(*,'(10x,a)') 'SILO 3D database..'    
-                   WRITE(*,'(10x,a,i4)') 'Toroidal sections computed:', nvs
+                   WRITE(*,'(6x,a)') 'SILO 3D database..'    
+                   WRITE(*,'(6x,a,i4)') 'Toroidal sections computed:', nvs
                 ENDIF
              ENDIF
 #endif
@@ -397,7 +397,7 @@
 !       WRITE bfield-trace file
 !
              CALL write_bfield_data(unit_trace, ndum, maxprocs)
-             IF (iam .EQ. 0 .and. lverbose) WRITE(*,'(/,10x,a)') 'Tracing done'
+             IF (iam .EQ. 0 .and. lverbose) WRITE(*,'(/,6x,a)') 'Tracing done'
           END IF BFIELD
 
         END IF TRACING
@@ -407,14 +407,14 @@
           CALL dump_SILO (ndum_s, ndum_s+(maxprocs_s-ndum_s*nprocs))     ! combines 2d, 3d silo dump
           DEALLOCATE (pack_silo)
           IF (iam .EQ. 0 .and. lverbose) THEN
-          WRITE(*,'(/,10x,a)') 'SILO 2D database done'
-          IF(l_silo3D) WRITE(*,'(10x,a)') 'SILO 3D database done'
+          WRITE(*,'(/,6x,a)') 'SILO 2D database done'
+          IF(l_silo3D) WRITE(*,'(6x,a)') 'SILO 3D database done'
 !          CALL dealloc_SILO
           END IF
         ENDIF
 #endif
         CALL second0(toff)
-        IF (iam .EQ. 0 .and. lverbose) WRITE(*,'(/,10x,a,f8.3,a)')                      &
+        IF (iam .EQ. 0 .and. lverbose) WRITE(*,'(/,6x,a,f8.3,a)')                      &
            'Graphics output completed in ',toff-ton,' s'
 
         CALL close_dump_files
@@ -443,7 +443,7 @@
               END IF
            END IF
 #endif
-           IF (iam .EQ. 0) THEN      
+           IF (iam .EQ. to) THEN      
               DO ik=1, ndum
                  WRITE(nunit, '(1e14.6)') pprof(ik)
               END DO
@@ -498,7 +498,7 @@
         CHARACTER(LEN=128) :: siloname3d, siloname2d
         CHARACTER(LEN=100)  :: filename
         CHARACTER(LEN=10)   :: cdum1
-        REAL(rprec)        :: r1, z1, p1, rs, zs
+        REAL(dp)        :: r1, z1, p1, rs, zs
         CHARACTER(LEN=20)   :: cdum
         REAL, ALLOCATABLE, DIMENSION(:) :: rr, zz, pp
         REAL, ALLOCATABLE, DIMENSION(:,:,:) :: xc, yc, zc
@@ -516,22 +516,22 @@
         filename_cyl = TRIM(tag)//'-pressure-CYL'//TRIM(cdum)         
         filename=TRIM(filename_cyl)//'.dat'                              ! By default, always write out pressure files
         OPEN(unit=nunit_pres, file=filename, status='replace')
-        WRITE (nunit_pres, '(i6)') nphis                                         ! Headers for CYL PGPLOT-plots
+        WRITE (nunit_pres, '(i6)') nphis                                 ! Headers for CYL PGPLOT-plots
         WRITE (nunit_pres, '(2i6)') nrs, nzs
         WRITE (nunit_pres, '(4e14.6)') rminx, rmaxx, zminx, zmaxx
         label = 'pressure'
         WRITE (nunit_pres, '(a)') TRIM(label)
-	WRITE (nunit_pres, '(a)') TRIM(tag)
+	    WRITE (nunit_pres, '(a)') TRIM(tag)
 
         filename_flx = TRIM(tag)//'-pressure-FLUX'//TRIM(cdum)                
         filename=TRIM(filename_flx)//'.dat'                              ! By default, always write out pressure files
         OPEN(unit=nunit_pres1, file=filename, status='replace')
-        WRITE (nunit_pres1, '(i6)') nphis                                        ! Headers for SIESTA PGPLOT-plots
+        WRITE (nunit_pres1, '(i6)') nphis                                ! Headers for SIESTA PGPLOT-plots
         WRITE (nunit_pres1, '(2i6)') nus, nss-1
         WRITE (nunit_pres1, '(4e14.6)') zero, (nus-1)*ous/(2.*pi), oss, one
         label = 'pressure'
         WRITE (nunit_pres1, '(a)') TRIM(label)
-	WRITE (nunit_pres1, '(a)') TRIM(tag)
+	    WRITE (nunit_pres1, '(a)') TRIM(tag)
 !       
 !       Tracing BFIELD file for POINCARE
 !           
@@ -671,11 +671,12 @@
      
         SUBROUTINE prepare_quantities
         USE stel_kinds
-        USE fourier, ONLY: tomnsp
+        USE fourier, ONLY: tomnsp, toijsp
         USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,        &
                                    bdotjijh
         USE perturbation, ONLY: lresistive
-        USE quantities, ONLY: pijh, jacobh,                              &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
+        USE nscalingtools, ONLY: startglobrow, endglobrow
+        USE quantities, ONLY: pijh=>pijh0, jacobh,                       &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
           b_factor, p_factor, jvsupsmncf,                                &
           bsupsijh0, bsupuijh0, bsupvijh0,                               &
           ksupsmnsf,  ksupumncf, ksupvmncf,                              &
@@ -686,8 +687,9 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER :: istat, nblock
+        INTEGER :: istat, nblock, start, endr
         LOGICAL :: lresist
+        REAL(dp) :: pp
         REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
                    bsubsijh , bsubuijh , bsubvijh
 !-----------------------------------------------
@@ -698,8 +700,8 @@
                  zmns_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmnc_ih = zero; zmns_ih = zero
         nblock = SIZE(rmnc_i,1)*SIZE(rmnc_i,2)
-        CALL to_half_mesh(rmnc_i, rmnc_ih, nblock)                         ! We need RMNC and ZMNS on half mesh.
-        CALL to_half_mesh(zmns_i, zmns_ih, nblock)                         ! RMNC_i, ZMNS_i form METRICs. Deallocated elsewhere.
+        CALL to_half_mesh(rmnc_i, rmnc_ih)                                 ! We need RMNC and ZMNS on half mesh.
+        CALL to_half_mesh(zmns_i, zmns_ih)                                 ! RMNC_i, ZMNS_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnch(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
         IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
         CALL tomnsp(jacobh, jacmnch, f_cos); jacmnch(:,:,1)=0
@@ -709,8 +711,8 @@
                  zmnc_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmns_ih = zero; zmnc_ih = zero
         nblock = SIZE(rmns_i,1)*SIZE(rmns_i,2)
-        CALL to_half_mesh(rmns_i, rmns_ih, nblock)                         ! We need RMNC and ZMNS on half mesh.
-        CALL to_half_mesh(zmnc_i, zmnc_ih, nblock)                         ! RMNS_i, ZMNC_i form METRICs. Deallocated elsewhere.
+        CALL to_half_mesh(rmns_i, rmns_ih)                                 ! We need RMNC and ZMNS on half mesh.
+        CALL to_half_mesh(zmnc_i, zmnc_ih)                                 ! RMNS_i, ZMNC_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
         IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
         CALL tomnsp(jacobh, jacmnsh, f_sin); jacmnsh(:,:,1)=0
@@ -721,7 +723,7 @@
 !
         lresist=lresistive
         lresistive = .TRUE.                                                ! compute ksubX in cv_currents
-        CALL init_state(.FALSE.)
+        CALL init_state(.FALSE., .FALSE.)                                  ! get quantities on [1,ns]
         lresistive = lresist
 
 !       SCALE FIELDS TO PHYSICAL UNITS
@@ -730,6 +732,10 @@
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
         IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMP_PRESSURE')        ! which are stored in PMNCH
         CALL tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
+
+        WHERE (pijh .LT. zero) pijh = zero
+        IF (SIZE(pmnch,3) .NE. SIZE(pijh,3))                             &
+           CALL ErrorAbort('SIZE pmnch != pijh in prepare_quantities')
 
         IF (lasym) THEN
         ALLOCATE(pmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
@@ -769,7 +775,7 @@
                      bsubvijh(ntheta,nzeta,ns), stat=istat)
            IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
            CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,                &
-                         bsubsijh , bsubuijh , bsubvijh)
+                         bsubsijh , bsubuijh , bsubvijh, 1, ns)
            ksupsmnsf = ksupsmnsf/b_factor; ksubsijf = ksubsijf/b_factor
            ksupumncf = ksupumncf/b_factor; ksubuijf = ksubuijf/b_factor
            ksupvmncf = ksupvmncf/b_factor; ksubvijf = ksubvijf/b_factor
@@ -818,8 +824,8 @@
 
 !       COMPUTE DIAGNOSTIC OUTPUT
            lcurr_init=.TRUE.
-           CALL divb
-           CALL divj
+           CALL divb(1, ns)
+           CALL divj(1, ns)
            CALL bdotj(bdotjijh)
            DEALLOCATE(bdotjijh)
         END IF
@@ -841,7 +847,7 @@
            DEALLOCATE(ksubsmnsf, ksubumncf, ksubvmncf,                   &
                       bsubsmnsh, bsubumnch, bsubvmnch)
            IF (lasym) THEN
-           DEALLOCATE(ksubsmncf, ksubumnsf, ksubvmnsf,                   &
+           DEALLOCATE(ksubsmncf, ksubumnsf, ksubvmnsf,                  &
                       bsubsmnch, bsubumnsh, bsubvmnsh)
            END IF
         END IF
@@ -851,11 +857,12 @@
 
         SUBROUTINE flx_to_cyl(ss, uu, vv, rr, zz)
         USE stel_kinds
-        REAL(rprec), INTENT(IN):: vv, ss, uu                                ! flux-coordinates: (s, u, v) = (SS, UU, VV)
-        REAL(rprec), INTENT(OUT):: rr, zz                                   ! CYL-coordinates: (rr, zz, v) = (R, Z, Phi)
+        USE quantities, ONLY: pijh=>pijh0
+        REAL(dp), INTENT(IN):: vv, ss, uu                                  ! flux-coordinates: (s, u, v) = (SS, UU, VV)
+        REAL(dp), INTENT(OUT):: rr, zz                                     ! CYL-coordinates: (rr, zz, v) = (R, Z, Phi)
 
-        CALL toijsp_1p(rmnc_ih, ss, uu, vv, rr, f_none, f_cos, f_half)      ! SUM MN-series at target point
-        CALL toijsp_1p(zmns_ih, ss, uu, vv, zz, f_none, f_sin, f_half)      ! SUM MN-series at target point
+        CALL toijsp_1p(rmnc_ih, ss, uu, vv, rr, f_none, f_cos, f_half)     ! SUM MN-series at target point
+        CALL toijsp_1p(zmns_ih, ss, uu, vv, zz, f_none, f_sin, f_half)     ! SUM MN-series at target point
 
         IF (lasym) THEN
         CALL toijsp_1p(rmns_ih, ss, uu, vv, rr, f_sum, f_sin, f_half)      ! SUM MN-series at target point
@@ -865,49 +872,51 @@
         END SUBROUTINE flx_to_cyl
 
                                               
-        SUBROUTINE dump_pressure(vv, ss, uu, info, iunit)                   ! Subroutine used to produce pressure files (plotted with PGPLOT)
+        SUBROUTINE dump_pressure(vv, ss, uu, info, iunit)                  ! Subroutine used to produce pressure files (plotted with PGPLOT)
         USE stel_kinds
-        INTEGER, INTENT(IN)  :: info, iunit                                 ! ... and "s" is radius (i.e., SQRT(VMEC-S))  
-        REAL(dp), INTENT(IN) :: vv, ss, uu                                  ! flux-coordinates: (s, u, v) = (SS, UU, VV)
+        USE quantities, ONLY: pijh=>pijh0
+        INTEGER, INTENT(IN)  :: info, iunit                                ! ... and "s" is radius (i.e., SQRT(VMEC-S))  
+        REAL(dp), INTENT(IN) :: vv, ss, uu                                 ! flux-coordinates: (s, u, v) = (SS, UU, VV)
         REAL(dp):: pp
 
         IF (info == -3) THEN
-!          WRITE(iunit) zero                                                ! s>1 => Outside of the plasma. (ONLY for CYL)
+!          WRITE(iunit) zero                                               ! s>1 => Outside of the plasma. (ONLY for CYL)
            pprof(iunit) = 0
            
-        ELSE IF (info == 0) THEN                                             ! s<1 => DUMP pressure info           
-          CALL toijsp_1p(pmnch, ss, uu, vv, pp, f_none, f_cos, f_half)      ! SUM MN-series at target point
+        ELSE IF (info == 0) THEN                                           ! s<1 => DUMP pressure info           
+          CALL toijsp_1p(pmnch, ss, uu, vv, pp, f_none, f_cos, f_half)     ! SUM MN-series at target point
           IF (lasym) THEN
-          CALL toijsp_1p(pmnsh, ss, uu, vv, pp, f_sum,  f_sin, f_half)      ! SUM MN-series at target point
+          CALL toijsp_1p(pmnsh, ss, uu, vv, pp, f_sum,  f_sin, f_half)     ! SUM MN-series at target point
           END IF
+
+          IF (pp .LT. zero) pp = 0                                         !interpolation roundoff
           pprof(iunit) = pp
 
         ELSE
-          WRITE(*,*) ' INFO is NEITHER 0 NOR -3 IN DUMP_PRESSURE!'
-          CALL ErrorAbort('Error in dump_pressure')
+          CALL ErrorAbort('INFO IS NEITHER 0 NOR -3 IN DUMP_PRESSURE!')
         ENDIF
 
         END SUBROUTINE dump_pressure
 
 
-        SUBROUTINE dump_quantities(rr, zz, vv, ss, uu, lbfld, lsilo)        ! Subroutine used to produce SILO files and Poincare BFIELD file
+        SUBROUTINE dump_quantities(rr, zz, vv, ss, uu, lbfld, lsilo)       ! Subroutine used to produce SILO files and Poincare BFIELD file
                                    
-        USE stel_kinds                                                      ! i = s; j = phi; k = theta
-        USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,        &
-                              ksupsmnsf,  ksupumncf,  ksupvmncf,         &
-                              jvsupsmnsf, jvsupumncf, jvsupvmncf,        &
+        USE stel_kinds                                                     ! i = s; j = phi; k = theta
+        USE quantities, ONLY: jvsupsmncf, jvsupumnsf, jvsupvmnsf,       &
+                              ksupsmnsf,  ksupumncf,  ksupvmncf,        &
+                              jvsupsmnsf, jvsupumncf, jvsupvmncf,       &
                               ksupsmncf,  ksupumnsf,  ksupvmnsf
-        USE diagnostics_mod, ONLY: bdotjmnch, divjmnsh, divbmnsf,        &
+        USE diagnostics_mod, ONLY: bdotjmnch, divjmnsh, divbmnsf,       &
                                    bdotjmnsh, divjmnch, divbmncf
         USE perturbation, ONLY: mres1, nres1, mres2, nres2
         LOGICAL, INTENT(IN)    :: lbfld, lsilo
-        REAL(rprec), INTENT(IN):: rr, zz, vv, ss, uu                        ! flux-coordinates: (s, u, v) = (SS, UU, VV)
-        REAL(rprec):: pp, bs, bu, bv, ru, rv, rs, zu, zv, zs,            &
-           br, bphi, bz, aux1, aux2, aux3, aux4, bdp, ps, pu,            &
-           pv, bdp0, bdj, divj, divb, ks, ku, kv, jr, jphi, jz,          &
+        REAL(dp), INTENT(IN):: rr, zz, vv, ss, uu                          ! flux-coordinates: (s, u, v) = (SS, UU, VV)
+        REAL(dp):: pp, bs, bu, bv, ru, rv, rs, zu, zv, zs,              &
+           br, bphi, bz, aux1, aux2, aux3, aux4, bdp, ps, pu,           &
+           pv, bdp0, bdj, divj, divb, ks, ku, kv, jr, jphi, jz,         &
            ws, wu, wv, wr, wphi, wz, jb, dpp, fors, foru, forv
-        REAL(rprec), DIMENSION(:,:,:), ALLOCATABLE:: bdotjmn_res
-        REAL(rprec):: temp, bf0, curr0
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE:: bdotjmn_res
+        REAL(dp):: temp, bf0, curr0
         INTEGER :: ds, du, dv, js
 
           CALL toijsp_1p(jacmnch, ss, uu, vv, jb, f_none, f_cos, f_half)   ! Get Jacobian and metric info
@@ -1105,7 +1114,7 @@
   
 
         SUBROUTINE TOIJSP_1P(XMN, SS, THETA, ZETA, XUV, DFLAG,           &
-                             IPARITY, IHALF)
+                             IPAR, IHALF)
 !
 !       DESCRIPTION: calculates X on ONE POINT in space (SS,THETA,ZETA) from its Fourier harmonics X_MN.
 !       IPARITY = 0, means the quantity X (NOT any of its derivatives!) is COSINE (even); = 1, X is SINE (odd)
@@ -1117,78 +1126,75 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        INTEGER, INTENT(IN):: ihalf                                         ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH     
-        REAL(rprec), DIMENSION(0:mpol,-ntor:ntor,ns),                    &  !New Style: ns LAST ARG on input
+        INTEGER, INTENT(IN):: ihalf                                       ! = 0, FULL (radial) MESH); = 1, HALF MESH     
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      & !New Style: ns LAST ARG on input
              INTENT(IN):: xmn
         INTEGER, INTENT(IN):: dflag
-        REAL(rprec), INTENT(IN):: ss, theta, zeta
-        REAL(rprec), INTENT(INOUT):: xuv
-        INTEGER, INTENT(IN):: iparity                                       ! IPARITY = 0, cosine (EVEN); = 1, sine (ODD)
+        REAL(dp), INTENT(IN):: ss, theta, zeta
+        REAL(dp), INTENT(INOUT):: xuv
+        INTEGER, INTENT(IN):: ipar                                        ! = 0, cosine (EVEN); = 1, sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER :: m, n
         INTEGER :: ns_in, ns_out, iout, ndum, istat
-        REAL(rprec), ALLOCATABLE, DIMENSION(:,:,:):: work0 
-        REAL(rprec), ALLOCATABLE, DIMENSION(:,:):: work1, work2
-        REAL(rprec), ALLOCATABLE, DIMENSION(:):: xuv_i
-        REAL(rprec) :: arg, d1, d2, ss_in, aux1, aux2
-        REAL(rprec):: lcosmu, lsinmu, lcosnv, lsinnv, lcosmum,           & 
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:):: work0 
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:):: work1, work2
+        REAL(dp), ALLOCATABLE, DIMENSION(:):: xuv_i
+        REAL(dp) :: arg, d1, d2, ss_in, aux1, aux2
+        REAL(dp):: lcosmu, lsinmu, lcosnv, lsinnv, lcosmum,             & 
           lsinmum, lcosnvn, lsinnvn 
 !-----------------------------------------------
 
-        iout = 0                                                            ! Assume first that target point not near edge/axis
+        iout = 0                                                           ! Assume first that target point not near edge/axis
         ss_in = ss*ohs + ihalf*0.5_dp + one
-        ns_in = INT(ss_in)                                                  ! Calculate surface closest target from below
-        IF (ihalf == 1 .AND. ns_in == 1) ns_in = 2                          ! Extrapolation needed on the half mesh near axis 
-        IF (ns_in == ns) ns_in = ns - 1                                     ! Extrapolation needed (almost always on half mesh) near edge
-        ns_out = ns_in + 1                                                  ! Surface closest to target from above      
-        d1 = (ss_in - ns_in)                                                ! Coefficients for linear interpolation
-        d2 = one - d1                                                       ! xv(ss_in) = d1*xv(ns_out) + d2*xv(ns_in)
+        ns_in = INT(ss_in)                                                 ! Calculate surface closest target from below
+        IF (ihalf == 1 .AND. ns_in == 1) ns_in = 2                         ! Extrapolation needed on the half mesh near axis 
+        IF (ns_in == ns) ns_in = ns - 1                                    ! Extrapolation needed (almost always on half mesh) near edge
+        ns_out = ns_in + 1                                                 ! Surface closest to target from above      
+        d1 = (ss_in - ns_in)                                               ! Coefficients for linear interpolation
+        d2 = one - d1                                                      ! xv(ss_in) = d1*xv(ns_out) + d2*xv(ns_in)
 
         IF (BTEST(dflag, b_ds)) THEN
           IF (ihalf == 0) THEN
-            IF (ns_in == 1) iout = -1                                       ! Marks that point at axis for radial derivative
+            IF (ns_in == 1) iout = -1                                      ! Marks that point at axis for radial derivative
           ELSE
-            IF (ns_in == 2) iout = -1                                       ! Marks that point at axis for radial derivative
+            IF (ns_in == 2) iout = -1                                      ! Marks that point at axis for radial derivative
           ENDIF
-          IF (ns_in == ns - 1) iout = 1                                     ! Marks that point at edge for radial derivative      
-        ENDIF
-                              
-        IF (BTEST(dflag, b_ds)) THEN
+          IF (ns_in == ns - 1) iout = 1                                    ! Marks that point at edge for radial derivative      
           ndum = 4
         ELSE
           ndum = 2
         ENDIF
-
+                              
         ALLOCATE(work0(0:mpol,-ntor:ntor,ndum), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem in TOIJSP_1P')
+        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem #1 in TOIJSP_1P')
         work0 = zero
                             
         work0(:,:,1) = orthonorm(:,:)*xmn(:,:,ns_in)
         work0(:,:,2) = orthonorm(:,:)*xmn(:,:,ns_out)
         IF (BTEST(dflag, b_ds)) THEN
           IF (ihalf == 0) THEN
-            IF (ns_in .GT. 1) work0(:,:,ndum-1) =                        &
-              orthonorm(:,:)*xmn(:,:,ns_in-1)                               ! ...compute quantity at previous...
+            IF (ns_in .GT. 1) work0(:,:,ndum-1) =                       &
+              orthonorm(:,:)*xmn(:,:,ns_in-1)                              ! ...compute quantity at previous...
           ELSE
-            IF (ns_in .GT. 2) work0(:,:,ndum-1) =                        &
+            IF (ns_in .GT. 2) work0(:,:,ndum-1) =                       &
               orthonorm(:,:)*xmn(:,:,ns_in-1)          
           ENDIF
-          IF (ns_out .LT. ns) work0(:,:,ndum) =                          &
-            orthonorm(:,:)*xmn(:,:,ns_out+1)                                ! ...and next surfaces as well
+          IF (ns_out .LT. ns) work0(:,:,ndum) =                         &
+            orthonorm(:,:)*xmn(:,:,ns_out+1)                               ! ...and next surfaces as well
         ENDIF
                    
-        ALLOCATE(work1(-ntor:ntor,ndum),                                 &
+        ALLOCATE(work1(-ntor:ntor,ndum),                                &
                  work2(-ntor:ntor,ndum), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem in TOIJSP_1P')
+        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem #2 in TOIJSP_1P')
         work1 = 0; work2 = 0
 
-        DO m = 0, mpol                                                      ! First DO sum over poloidal modes
+        DO m = 0, mpol                                                     ! First DO sum over poloidal modes
           arg = m*theta
           lcosmu = COS(arg); lsinmu = SIN(arg) 
           lcosmum = m*lcosmu; lsinmum = m*lsinmu
-          IF (BTEST(dflag, b_du)) THEN                                      ! First poloidal-derivative requested
+          IF (BTEST(dflag, b_du)) THEN                                     ! First poloidal-derivative requested
             work1(:,:) = work1(:,:) - work0(m,:,:)*lsinmum
             work2(:,:) = work2(:,:) + work0(m,:,:)*lcosmum
           ELSE
@@ -1199,43 +1205,43 @@
         DEALLOCATE(work0)
 
         ALLOCATE(xuv_i(ndum), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem in TOIJSP_1P')
-        xuv_i = zero                                                        ! Make sure that SPATIAL variable is zeroed
+        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem #3 in TOIJSP_1P')
+        xuv_i = zero                                                       ! Make sure that SPATIAL variable is zeroed
 
         IF (BTEST(dflag, b_dv)) THEN
-          xuv_i(:) = zero
-        ELSE IF (iparity == f_cos) THEN
-          xuv_i(:) = work1(0,:)
+          xuv_i = zero
+        ELSE IF (ipar == f_cos) THEN
+          xuv_i = work1(0,:)
         ELSE
-          xuv_i(:) = work2(0,:)
+          xuv_i = work2(0,:)
         END IF
                                   
-        DO n = 1, ntor                                                      ! Then sum over N>0 and N<0 toroidal modes                                                     
+        DO n = 1, ntor                                                     ! Then sum over N>0 and N<0 toroidal modes                                                     
           arg = n*nfp_i*zeta
           lcosnv = COS(arg); lsinnv = SIN(arg)
           lcosnvn = n*nfp_i*lcosnv; lsinnvn = n*nfp_i*lsinnv
   
-          IF (iparity == f_cos) THEN                                        ! COSINE series
+          IF (ipar == f_cos) THEN                                          ! COSINE series
 
             IF (BTEST(dflag, b_dv)) THEN
-              xuv_i(:) =  xuv_i(:)                                       &
-                  - (work1(n,:) + work1(-n,:))*lsinnvn                   &
+              xuv_i =  xuv_i                                            &
+                  - (work1(n,:) + work1(-n,:))*lsinnvn                  &
                   - (work2(n,:) - work2(-n,:))*lcosnvn
             ELSE
-              xuv_i(:) =  xuv_i(:)                                       &
-                  + (work1(n,:) + work1(-n,:))*lcosnv                    &
+              xuv_i =  xuv_i                                            &
+                  + (work1(n,:) + work1(-n,:))*lcosnv                   &
                   - (work2(n,:) - work2(-n,:))*lsinnv
             ENDIF
             
-          ELSE                                                              ! SINE series
+          ELSE                                                             ! SINE series
             
             IF (BTEST(dflag, b_dv)) THEN
-              xuv_i(:) =  xuv_i(:)                                       &
-                  + (work1(n,:) - work1(-n,:))*lcosnvn                   &
+              xuv_i =  xuv_i                                            &
+                  + (work1(n,:) - work1(-n,:))*lcosnvn                  &
                   - (work2(n,:) + work2(-n,:))*lsinnvn
             ELSE
-              xuv_i(:) =  xuv_i(:)                                       &
-                  + (work1(n,:) - work1(-n,:))*lsinnv                    &
+              xuv_i =  xuv_i                                            &
+                  + (work1(n,:) - work1(-n,:))*lsinnv                   &
                   + (work2(n,:) + work2(-n,:))*lcosnv
             ENDIF
          
@@ -1248,7 +1254,7 @@
           IF (iout == 0) THEN
             aux1 = 0.5d0*(xuv_i(2) - xuv_i(ndum-1))
             aux2 = 0.5d0*(xuv_i(ndum) - xuv_i(1))
-          ELSE IF (iout == -1) THEN                                         ! near the axis
+          ELSE IF (iout == -1) THEN                                        ! near the axis
             aux1 = xuv_i(2) - xuv_i(1)
             aux2 = 0.5d0*(xuv_i(ndum) - xuv_i(1))
           ELSE                                                             ! near the edge
@@ -1305,21 +1311,21 @@
         INTEGER, INTENT(IN) :: nchunk, nlast
         INTEGER :: i, loop
         CHARACTER(LEN=10):: label 
-        REAL, DIMENSION(:), ALLOCATABLE :: br_silo, bphi_silo,           &
-                                           jr_silo, jphi_silo, jz_silo,  &
+        REAL, DIMENSION(:), ALLOCATABLE :: br_silo, bphi_silo,          &
+                                           jr_silo, jphi_silo, jz_silo, &
                                            wr_silo, wphi_silo
 
         IF (iam.EQ.0 .AND. l_silo3D) THEN
-           ALLOCATE (br_silo(nxx*nyy*nzz), bphi_silo(nxx*nyy*nzz),       &
-                     jr_silo(nxx*nyy*nzz), jphi_silo(nxx*nyy*nzz),       &
-                     wr_silo(nxx*nyy*nzz), wphi_silo(nxx*nyy*nzz),       &
+           ALLOCATE (br_silo(nxx*nyy*nzz), bphi_silo(nxx*nyy*nzz),      &
+                     jr_silo(nxx*nyy*nzz), jphi_silo(nxx*nyy*nzz),      &
+                     wr_silo(nxx*nyy*nzz), wphi_silo(nxx*nyy*nzz),      &
                      jz_silo(nxx*nyy*nzz), stat=loop)
            IF (loop .NE. 0) CALL ErrorAbort('Allocation error in dump_SILO')
         END IF
 
         DO loop = 1, nsilo
 
-           IF (.NOT.l_dodisplacement .AND. loop.GE.unit_vsups .AND.      &
+           IF (.NOT.l_dodisplacement .AND. loop.GE.unit_vsups .AND.     &
                loop.LE.unit_vphi) CYCLE
 
            CALL get_tmp_SILO (loop, nchunk, nlast)
@@ -1344,9 +1350,9 @@
 
 !       COMPUTE CARTESIAN COMPONENT
         IF (iam.EQ.0 .AND. l_silo3D) THEN
-           CALL dump_SILO3D(br_silo, bphi_silo, jr_silo, jphi_silo,      &
+           CALL dump_SILO3D(br_silo, bphi_silo, jr_silo, jphi_silo,     &
                             wr_silo, wphi_silo, jz_silo)
-           DEALLOCATE (br_silo, bphi_silo, jr_silo, jphi_silo,           &
+           DEALLOCATE (br_silo, bphi_silo, jr_silo, jphi_silo,          &
                        wr_silo, wphi_silo, jz_silo)
         END IF
 
@@ -1372,11 +1378,11 @@
            IF (lk .EQ. nprocs) nchunk=nlast_in
            from=lk-1
            IF (iam .EQ. 0) THEN
-              CALL MPI_RECV(tmp_silo(ioff),nchunk,MPI_REAL,from,         &
+              CALL MPI_RECV(tmp_silo(ioff),nchunk,MPI_REAL,from,        &
                             tag,SIESTA_COMM,MPI_STATUS,MPI_ERR)
               ioff = ioff+nchunk
            ELSE IF (iam .EQ. from) THEN
-              CALL MPI_SEND(pack_silo(1,index0),nchunk,MPI_REAL,to,      &
+              CALL MPI_SEND(pack_silo(1,index0),nchunk,MPI_REAL,to,     &
                             tag,SIESTA_COMM,MPI_ERR)
            END IF
 #endif
@@ -1385,11 +1391,11 @@
         END SUBROUTINE get_tmp_SILO
         
 
-        SUBROUTINE dump_SILO3D(br_silo, bphi_silo, jr_silo, jphi_silo,   &
+        SUBROUTINE dump_SILO3D(br_silo, bphi_silo, jr_silo, jphi_silo,  &
                                wr_silo, wphi_silo, jz_silo)
         USE stel_kinds
-        REAL, DIMENSION(nxx,nyy,nzz) :: br_silo, bphi_silo,              &
-                                        jr_silo, jphi_silo,              &
+        REAL, DIMENSION(nxx,nyy,nzz) :: br_silo, bphi_silo,             &
+                                        jr_silo, jphi_silo,             &
                                         wr_silo, wphi_silo, jz_silo
         INTEGER :: i
         REAL :: pp, max_curr 
@@ -1400,20 +1406,20 @@
 ! 
         DO i = 1, nvs
           pp = 2*pi*(i-1)/(nvs-1)                                          ! Cylindrical angle == Phi            
-          silo3d(:,i,:) = br_silo(:,i,:)*COS(pp) -                       & ! BX
+          silo3d(:,i,:) = br_silo(:,i,:)*COS(pp) -                      &  ! BX
      &      bphi_silo(:,i,:)*SIN(pp)            
         ENDDO 
         label = "Bx"
         CALL write_to_silodb_3d(label, silo3d)            
         DO i = 1, nvs
-          pp = 2*pi*(i-1)/(nvs-1)                                        ! Cylindrical angle == Phi         
-          silo3d(:,i,:) = br_silo(:,i,:)*SIN(pp) +                       & ! BY
+          pp = 2*pi*(i-1)/(nvs-1)                                          ! Cylindrical angle == Phi         
+          silo3d(:,i,:) = br_silo(:,i,:)*SIN(pp) +                      &  ! BY
      &      bphi_silo(:,i,:)*COS(pp)            
         ENDDO  
         label = "By"
         CALL write_to_silodb_3d(label, silo3d) 
 
-        max_curr = MAXVAL(jphi_silo*jphi_silo + jz_silo*jz_silo          & 
+        max_curr = MAXVAL(jphi_silo*jphi_silo + jz_silo*jz_silo         & 
           + jr_silo*jr_silo)
         max_curr = SQRT(max_curr)                                          ! Used to normalized current if too large
 !
@@ -1422,13 +1428,13 @@
         label = "Jx"
         DO i = 1, nvs
           pp = 2*pi*(i-1)/(nvs-1)                                          ! Cylindrical angle == Phi            
-          silo3d(:,i,:) = jr_silo(:,i,:)*COS(pp) -                       & ! JX
+          silo3d(:,i,:) = jr_silo(:,i,:)*COS(pp) -                      &  ! JX
             jphi_silo(:,i,:)*SIN(pp)            
         ENDDO 
         IF (max_curr > 1.d2 .AND. max_curr <= 1d5) THEN                    ! Then, write it out in kA
           label = "Jx_kA"
           silo3d = silo3d/1.d3
-        ELSE IF (max_curr > 1.d5) THEN                                      !.. or in MA
+        ELSE IF (max_curr > 1.d5) THEN                                     !.. or in MA
           label = "Jx_MA"
           silo3d = silo3d/1.d6
         ENDIF
@@ -1437,13 +1443,13 @@
         label = "Jy"
         DO i = 1, nvs
           pp = 2*pi*(i-1)/(nvs-1)                                          ! Cylindrical angle == Phi         
-          silo3d(:,i,:) = jr_silo(:,i,:)*SIN(pp) +                       & ! JY
+          silo3d(:,i,:) = jr_silo(:,i,:)*SIN(pp) +                      &  ! JY
             jphi_silo(:,i,:)*COS(pp)            
         ENDDO  
         IF (max_curr > 1.d2 .AND. max_curr <= 1d5) THEN                    ! Then, write it out in kA
           label = "Jy_kA"
           silo3d = silo3d/1.d3
-        ELSE IF (max_curr > 1.d5) THEN                                      ! .. or in MA
+        ELSE IF (max_curr > 1.d5) THEN                                     ! .. or in MA
           label = "Jy_MA"
           silo3d = silo3d/1.d6
         ENDIF
@@ -1465,14 +1471,14 @@
 ! 
           DO i = 1, nvs
             pp = 2*pi*(i-1)/(nvs-1)                                        ! Cylindrical angle == Phi            
-            silo3d(:,i,:) = wr_silo(:,i,:)*COS(pp) -                     & ! VX
+            silo3d(:,i,:) = wr_silo(:,i,:)*COS(pp) -                    &  ! VX
               wphi_silo(:,i,:)*SIN(pp)            
           ENDDO 
           label = "Vx"
           CALL write_to_silodb_3d(label, silo3d)            
           DO i = 1, nvs
             pp = 2*pi*(i-1)/(nvs-1)                                        ! Cylindrical angle == Phi         
-            silo3d(:,i,:) = wr_silo(:,i,:)*SIN(pp) +                     & ! VY
+            silo3d(:,i,:) = wr_silo(:,i,:)*SIN(pp) +                    &  ! VY
               wphi_silo(:,i,:)*COS(pp)            
           ENDDO  
           label = "Vy"
@@ -1492,8 +1498,8 @@
         ilen1 = LEN(TRIM(label))
         err = dbmkoptlist(6, optlistid)
         err = dbaddcopt(optlistid, DBOPT_LABEL, TRIM(label), ilen1)
-        err = dbputqv1(dbfile3d, TRIM(label), ilen1, name3D,             &
-         ilen3D, array, dims3d, ndims3d, idum, 1, DB_FLOAT,              &
+        err = dbputqv1(dbfile3d, TRIM(label), ilen1, name3D,            &
+         ilen3D, array, dims3d, ndims3d, idum, 1, DB_FLOAT,             &
          DB_NODECENT, optlistid, ierr)
         err = dbfreeoptlist(optlistid)  
           

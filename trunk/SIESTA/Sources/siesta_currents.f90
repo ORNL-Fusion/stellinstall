@@ -6,9 +6,12 @@
                              jsju_ratio_s, jsju_ratio_a, ste 
       USE fourier
       USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
+      USE utilities, ONLY: GradientFull, to_full_mesh
+      USE metrics, ONLY: tolowerf, tolowerh
+
       IMPLICIT NONE
       PRIVATE
-      INTEGER  :: nsmin, nsmax, ns_span, n1, n2
+      INTEGER  :: nsmin, nsmax, n1, n2
       INTEGER, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                        &
                 bsubsijh, bsubuijh, bsubvijh, bs_filter, bu_filter,      &
@@ -31,9 +34,9 @@
 !>  \param[in]  bsupsijh B^s on the half grid.
 !>  \param[in]  bsupuijh B^u on the half grid.
 !>  \param[in]  bsupvijh B^v on the half grid.
-!>  \param[out] ksupsijf K^s on the full rgid.
-!>  \param[out] ksupuijf K^u on the full rgid.
-!>  \param[out] ksupvijf K^v on the full rgid.
+!>  \param[out] ksupsijf K^s on the full grid.
+!>  \param[out] ksupuijf K^u on the full grid.
+!>  \param[out] ksupvijf K^v on the full grid.
 !>  \param[in]  lmagen   logical controlling calc of magnetic energy wb
 !>  \param[in]  lcurr    UNKNOWN
 
@@ -101,8 +104,6 @@
          nsmin=MAX(1, startglobrow);   nsmax=MIN(ns,endglobrow+1)
       END IF
 
-      ns_span = nsmax-nsmin+1
-
       IF (LBOUND(bsupsijh,3) .NE. nsmin) CALL ErrorAbort('BSUPSIJH HAS WRONG LB')
       IF (UBOUND(bsupsijh,3) .NE. nsmax) CALL ErrorAbort('BSUPSIJH HAS WRONG UB')
       IF (LBOUND(ksupsijf,3) .NE. nsmin) CALL ErrorAbort('KSUPSIJF HAS WRONG LB')
@@ -114,9 +115,9 @@
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in CV_CURRENTS')
      
-      CALL tolowerh_par(bsupsijh, bsupuijh, bsupvijh,                    &
-                        bsubsijh, bsubuijh, bsubvijh,                    &
-                        nsmin, nsmax)
+      CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                        &
+                    bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
+                    
 !COMPUTE PARALLEL DAMPING SCALING COEFFICIENT <Bsupv**2/B**2> ~ k^2
       IF (.NOT. ALLOCATED(mupar_norm)) THEN
          ALLOCATE(mupar_norm(nsmin:nsmax), stat=istat)
@@ -167,10 +168,9 @@
       END IF
 
 !
-!     Calculate full mesh, contravariant current real-space current components
+!     Calculate full mesh, contravariant real-space current components
 !     KsupXF = sqrt(g)*JsupXF 
 !        
-      ns_span = nsmax-nsmin+1
       CALL GETCV (ksupsmnsf, ksupumncf, ksupvmncf, ksupsijf, ksupuijf,   &
                   ksupvijf, isym)                       
       IF (lasym)                                                         &
@@ -179,8 +179,8 @@
 
 !Co-variant K in real space needed for current diffusion
       IF (lcurr) THEN
-         CALL tolowerf_par(ksupsijf, ksupuijf, ksupvijf,                 & 
-                           ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
+         CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                     & 
+                       ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
          IF (nsmin .EQ. 1) ksubuijf(:,:,1) = 0 
       ENDIF
 
@@ -205,10 +205,10 @@
             IF (.not.lverbose .and. iwrite .eq. 6) CYCLE
             WRITE(iwrite, 1008)' RMS EDGE CURRENT ||KSUPS(NS)|| = ', r0
          END DO
+         CALL FLUSH(33)
          END IF
  1008 FORMAT(a,1p,e10.3)
 
-         ns_span = n2-n1+1
          stes(1) = SUM(wint(:,:,n1:n2)*(bs_filter - bsubsijh(:,:,n1:n2))**2)
          stes(2) = SUM(wint(:,:,n1:n2)*(bs_filter + bsubsijh(:,:,n1:n2))**2)         
          stes(3) = SUM(wint(:,:,n1:n2)*(bu_filter - bsubuijh(:,:,n1:n2))**2)
@@ -240,13 +240,13 @@
 
   
       SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,        &
-                        iparity, lcurr)
+                        ipar, lcurr)
 
       USE quantities, ONLY: ohs
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)  :: iparity
+      INTEGER, INTENT(IN)  :: ipar
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE   ::                       &
            ksupsmnf, ksupumnf, ksupvmnf
       REAL(dp)             :: jsju_ratio
@@ -262,7 +262,7 @@
          db_uds, db_vds
       REAL(dp) :: r0, temp(-ntor:ntor)
 !-----------------------------------------------
-      IF (iparity .EQ. isym) THEN
+      IF (ipar .EQ. isym) THEN
          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
          r0 = hs_i/2; sparity=1; edge_cur = 0
       ELSE
@@ -270,24 +270,24 @@
          r0 = -hs_i/2; sparity=-1
       END IF
 
-      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  & ! Get BSUBMN on half mesh
+      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in CURLB')
 
-      CALL tomnsp_par(bsubsijh, bsubsmnh, fours, 1, ns_span)                ! Calculate BSUBXMNH
-      CALL tomnsp_par(bsubuijh, bsubumnh, fouru, 1, ns_span)
-      CALL tomnsp_par(bsubvijh, bsubvmnh, fourv, 1, ns_span)
+      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                           ! Calculate BSUBXMNH    
+      CALL tomnsp_par(bsubuijh, bsubumnh, fouru)
+      CALL tomnsp_par(bsubvijh, bsubvmnh, fourv)
 
-      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  &  ! Next, get BSUBMN on full mesh
+      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  & ! Next, get BSUBXMNF
                bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                bsubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in CURLB')
  
       nblock=SIZE(bsubsmnh,1)*SIZE(bsubsmnh,2)
-      CALL to_full_mesh_par(bsubsmnh, bsubsmnf, nblock, nsmin, nsmax)                       
-      CALL to_full_mesh_par(bsubumnh, bsubumnf, nblock, nsmin, nsmax)
-      CALL to_full_mesh_par(bsubvmnh, bsubvmnf, nblock, nsmin, nsmax)
+      CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock, nsmin, nsmax)                       
+      CALL to_full_mesh(bsubumnh, bsubumnf, nblock, nsmin, nsmax)
+      CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock, nsmin, nsmax)
 
 !     NOTE: bsubumncf is zero, even for m=1, since guu ~ s^2, guv ~ s
       IF (nsmin .EQ. 1) THEN
@@ -314,8 +314,8 @@
       IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in CURLB')
 
 !     Radial gradients of bsubmnu,v on full grid (excluding origin: treat separately)
-      CALL GradientFull_par(db_uds, bsubumnh, nblock, nsmin, nsmax)
-      CALL GradientFull_par(db_vds, bsubvmnh, nblock, nsmin, nsmax)
+      CALL GradientFull(db_uds, bsubumnh)
+      CALL GradientFull(db_vds, bsubvmnh)
 
 !     Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
 !     Forces will be multiplied by 1/2 in get_force_harmonics
@@ -360,9 +360,9 @@
                   bu_filter(ntheta,nzeta,ns_span1),                      &
                   bv_filter(ntheta,nzeta,ns_span1), stat=istat)
          IF (istat .NE. 0) CALL ErrorAbort('Allocation5 failed in CURLB')
-         CALL toijsp_par(bsubsmnh(:,:,n1:n2), bs_filter, fcomb, fours, 1, ns_span1)
-         CALL toijsp_par(bsubumnh(:,:,n1:n2), bu_filter, fcomb, fouru, 1, ns_span1)
-         CALL toijsp_par(bsubvmnh(:,:,n1:n2), bv_filter, fcomb, fourv, 1, ns_span1)
+         CALL toijsp_par(bsubsmnh(:,:,n1:n2), bs_filter, fcomb, fours)
+         CALL toijsp_par(bsubumnh(:,:,n1:n2), bu_filter, fcomb, fouru)
+         CALL toijsp_par(bsubvmnh(:,:,n1:n2), bv_filter, fcomb, fourv)
 	 IF (n1 .EQ. 1) bv_filter(:,:,1) = bv_filter(:,:,2)
 	 IF (n1 .EQ. 1)	bsubvijh(:,:,1) = bsubvijh(:,:,2)
 
@@ -394,11 +394,11 @@
 
 
       SUBROUTINE GETCV (ksupsmnf, ksupumnf, ksupvmnf,                    &
-                        ksupsijf, ksupuijf, ksupvijf, iparity)                       
+                        ksupsijf, ksupuijf, ksupvijf, ipar)                       
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)  :: iparity
+      INTEGER, INTENT(IN)  :: ipar
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                         &
            ksupsmnf, ksupumnf, ksupvmnf,                                 &
            ksupsijf, ksupuijf, ksupvijf
@@ -407,18 +407,15 @@
 !-----------------------------------------------
       INTEGER  :: fours, fouru, fourv, fcomb
 !-----------------------------------------------
-      IF (iparity .EQ. isym) THEN
+      IF (ipar .EQ. isym) THEN
          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
       ELSE
          fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
       END IF
 
-      CALL toijsp_par(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb, fours, &
-                      1, ns_span)
-      CALL toijsp_par(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb, fouru, &
-                      1, ns_span)
-      CALL toijsp_par(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb, fourv, &
-                      1, ns_span)
+      CALL toijsp_par(ksupsmnf(:,:,nsmin:nsmax), ksupsijf, fcomb, fours)
+      CALL toijsp_par(ksupumnf(:,:,nsmin:nsmax), ksupuijf, fcomb, fouru)
+      CALL toijsp_par(ksupvmnf(:,:,nsmin:nsmax), ksupvijf, fcomb, fourv)
 
       END SUBROUTINE GETCV
 

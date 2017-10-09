@@ -718,13 +718,18 @@ END MODULE nscalingtools
 
 !-------------------------------------------------------------------------------
 SUBROUTINE ErrorAbort(message)
-USE descriptor_mod, ONLY: iam
+USE descriptor_mod, ONLY: SIESTA_COMM
+USE nscalingtools, ONLY: MPI_ERR
+USE mpi_inc
+IMPLICIT NONE
+INTEGER  :: iprint = 0
 CHARACTER*(*), INTENT(IN) :: message
+IF (iprint .EQ. 0) PRINT *, TRIM(message)
+iprint = 1
 #if defined(MPI_OPT)
-IF (iam .EQ. 0) PRINT *, TRIM(message)
 CALL MPI_ABORT(MPI_COMM_WORLD, 1, MPI_ERR)
 #else
-PRINT *, TRIM(message); STOP
+STOP
 #endif
 END SUBROUTINE ErrorAbort
 

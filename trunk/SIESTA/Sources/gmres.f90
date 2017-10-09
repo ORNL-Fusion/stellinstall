@@ -8,7 +8,7 @@
       USE descriptor_mod, ONLY: SIESTA_COMM
       USE shared_data, etak=>etak_tol
       USE shared_functions, ONLY: funct_island, LineSearch
-      USE siesta_state, ONLY: update_state, update_state_par
+      USE siesta_state, ONLY: update_state, update_state
       USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,       &
                                endglobrow, PARSOLVER
       USE timer_mod
@@ -214,7 +214,7 @@
       l_getwmhd= .TRUE.
       CALL second0(skston)
       CALL funct_island
-      CALL update_state(.FALSE., zero, zero)
+!      CALL update_state(.FALSE., zero, zero)                           !Get this in evolution, line 455
       CALL second0(skstoff)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
       

@@ -3204,7 +3204,7 @@
 #if defined(MPI_OPT)
       CALL MPI_BARRIER(eq_comm, status)
 #endif
-      run_context => siesta_run_construct(eq_comm, .false., .false.)
+      run_context => siesta_run_construct(eq_comm, .false.)
       CALL siesta_run_set_vmec(run_context)
       CALL siesta_run_converge(run_context)
       CALL siesta_run_destruct(run_context, .false., .false.)
@@ -3225,7 +3225,7 @@
 #if defined(MPI_OPT)
          CALL MPI_BARRIER(eq_comm, status)
 #endif
-         run_context => siesta_run_construct(eq_comm, .false., .false.)
+         run_context => siesta_run_construct(eq_comm, .false.)
          CALL siesta_run_set_vmec(run_context)
          CALL siesta_run_converge(run_context)
          CALL siesta_run_destruct(run_context, .false., .false.)

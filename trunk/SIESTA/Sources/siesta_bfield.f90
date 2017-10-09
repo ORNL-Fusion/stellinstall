@@ -8,11 +8,12 @@
        USE fourier 
        USE nscalingtools, ONLY: startglobrow, endglobrow
        USE timer_mod
+       USE utilities, ONLY: GradientHalf, to_half_mesh
        IMPLICIT NONE
        
        PRIVATE
        INTEGER, PARAMETER :: m0=0, m1=1, m2=2, isym=0, iasym=1
-       INTEGER            :: nsmin, nsmax, ns_span
+       INTEGER            :: nsmin, nsmax
 
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
          esubsijf, esubuijf, esubvijf,                                   &
@@ -22,10 +23,9 @@
        PUBLIC :: update_bfield
 
        CONTAINS
-!#if defined(SKS)      
 !*******************************************************************************
-!>  \brief Parallel routine for updating B^s, B^u, B^v for ideal (and resistive)
-!>  perturbations.
+!>  \brief Routine (both parallel, serial) for updating B^s, B^u, B^v 
+!>  for both ideal and resistive perturbations.
 !>
 !>  Advances half-mesh magnetic field components in nm space from time t to
 !>  t + dt. Used to update values of BSUPMNF and BSUPIJF in \ref quantities
@@ -57,7 +57,6 @@
        CALL second0(ton)
 
        nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+1)
-       ns_span = nsmax-nsmin+1
 
 !
 !Calculate covariant components of (non-resistive) electric field E = -v X B on full-space mesh
@@ -145,13 +144,15 @@
 
        END SUBROUTINE update_bfield
 
-
-       SUBROUTINE Faraday(djbsupsmnh, djbsupumnh, djbsupvmnh, iparity)
+!*******************************************************************************
+!>  \brief Use Faraday's law dB = -curl(E) to compute magnitic field perturbation
+!*******************************************************************************
+       SUBROUTINE Faraday(djbsupsmnh, djbsupumnh, djbsupvmnh, ipar)
        USE shared_data, ONLY: l_natural, delta_t 
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       INTEGER, INTENT(IN) :: iparity
+       INTEGER, INTENT(IN) :: ipar
        REAL(dp),DIMENSION(:,:,:), ALLOCATABLE ::                         &
             djbsupsmnh, djbsupumnh, djbsupvmnh
 !-----------------------------------------------
@@ -162,7 +163,7 @@
 !-----------------------------------------------
        nmin=nsmin; nmax=nsmax
 
-       IF (iparity .EQ. isym) THEN                                         !e_s (sin), e_u (cos), e_v (cos)
+       IF (ipar .EQ. isym) THEN                                            !e_s (sin), e_u (cos), e_v (cos)
           fours=f_sin; fouru=f_cos; fourv=f_cos
           r0 = hs_i/2; sparity = 1
        ELSE                                                                !e_s (cos), e_u (sin), e_v (sin)
@@ -171,20 +172,20 @@
        END IF
 
 !Calculate harmonics of electric field
-       CALL tomnsp_par(esubsijf, esubsmnf, fours, 1, ns_span)
-       CALL tomnsp_par(esubuijf, esubumnf, fouru, 1, ns_span)
-       CALL tomnsp_par(esubvijf, esubvmnf, fourv, 1, ns_span)
+       CALL tomnsp_par(esubsijf, esubsmnf, fours)
+       CALL tomnsp_par(esubuijf, esubumnf, fouru)
+       CALL tomnsp_par(esubvijf, esubvmnf, fourv)
        
 !On exit, esubXh valid on [nsmin+1:nsmax]
        nblock = SIZE(esubsmnh,1)*SIZE(esubsmnh,2)
-       CALL to_half_mesh_par(esubsmnf, esubsmnh, nblock, nmin, nmax)
-       CALL to_half_mesh_par(esubumnf, esubumnh, nblock, nmin, nmax)
-       CALL to_half_mesh_par(esubvmnf, esubvmnh, nblock, nmin, nmax)
+       CALL to_half_mesh(esubsmnf, esubsmnh)
+       CALL to_half_mesh(esubumnf, esubumnh)
+       CALL to_half_mesh(esubvmnf, esubvmnh)
 
 !Gradients of esubu,v on half grid j-half=2,ns: note esubu,v(1) used here!
 !On exit, work1,2 valid on [nsmin+1:nsmax]
-       CALL GradientHalf_par(de_uds, esubumnf, nblock, nmin, nmax)
-       CALL GradientHalf_par(de_vds, esubvmnf, nblock, nmin, nmax)
+       CALL GradientHalf(de_uds, esubumnf)
+       CALL GradientHalf(de_vds, esubvmnf)
 
 
 !IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
@@ -196,8 +197,9 @@
        END IF
 
 !Calculate -curl(E) = r.h.s. of Faraday's equation for all components of jacobh*BSUPX
-!Compute contravariant components of -jacobian*curl(E)
-       nmin=MAX(1,startglobrow)
+!Compute contravariant components of -jacobian*curl(E). Need nmax=endglobrow+1 to
+!compute perturbed currents on full mesh in siesta_forces
+       nmin=startglobrow
        DO m = 0, mpol
          mp = sparity*m
          DO n = -ntor, ntor
@@ -235,9 +237,9 @@
 !      Results computed here for HALF-GRID perturbations in MN space are used in the calculation of the force and
 !      to advance the B's in UPDATE_STATE (in siesta_state module)
 !
-       djbsupsmnh(:,:,nmin:nmax) = delta_t*djbsupsmnh(:,:,nmin:nmax)
-       djbsupumnh(:,:,nmin:nmax) = delta_t*djbsupumnh(:,:,nmin:nmax)
-       djbsupvmnh(:,:,nmin:nmax) = delta_t*djbsupvmnh(:,:,nmin:nmax)
+       djbsupsmnh = delta_t*djbsupsmnh
+       djbsupumnh = delta_t*djbsupumnh
+       djbsupvmnh = delta_t*djbsupvmnh
 
        END SUBROUTINE Faraday
 

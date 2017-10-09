@@ -26,7 +26,7 @@
 #endif
 !-----------------------------------------------
 
-      context => siesta_run_construct(run_comm, .true., .true.)
+      context => siesta_run_construct(run_comm, .true.)
       CALL siesta_run_set_vmec(context)
       CALL siesta_run_converge(context)
       CALL siesta_run_destruct(context, .true., .true.)

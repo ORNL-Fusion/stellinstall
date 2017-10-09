@@ -196,7 +196,7 @@ C-----------------------------------------------
 
          STOP
       ELSE
-         DO iseq = 2, numargs
+         DO iseq = 2, MIN(numargs,10)
             arg = command_arg(iseq)
             IF (TRIM(arg).eq.'noscreen' .or. TRIM(arg).eq.'NOSCREEN')
      1         lscreen = .false.

@@ -11,6 +11,7 @@
 
       MODULE siesta_run
       USE stel_kinds
+      USE timer_mod
 
       IMPLICIT NONE
 
@@ -21,7 +22,7 @@
 !*******************************************************************************
       TYPE siesta_run_class
 !>  Timer On
-         REAL (dp) :: skston
+         REAL (dp) :: time_on
       END TYPE
 
       CONTAINS
@@ -39,30 +40,27 @@
 !>  @param[in] init_mpi Instructs if MPI should be initialized.
 !>  @returns A pointer to a constructed @ref siesta_run_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION siesta_run_construct(run_comm, init_mpi, verbose)
+      FUNCTION siesta_run_construct(run_comm, verbose)
       USE nscalingtools, ONLY: MyEnvVariables, PARSOLVER, SIESTA_COMM
       USE descriptor_mod, ONLY: LSCALAPACK, INHESSIAN, iam, nprocs,            &
                                 nprow, npcol, icontxt, icontxt_1xp,            &
                                 icontxt_px1, icontxt_global, isroot,           &
                                 myrow, mycol
-#if defined(SKS)
-      USE blocktridiagonalsolver_s, ONLY: Initialize, GetRanks
-#endif
       USE prof_mod, ONLY: profinit
       USE shared_data, ONLY: nprecon, lverbose
       USE perturbation, ONLY: init_data
-      USE timer_mod, ONLY: init_data_time, sks_timers
       USE hessian, ONLY: HESSPASS
       USE siesta_state, ONLY: lfirst
       USE siesta_error
       USE diagnostics_mod, ONLY: toroidal_flux0
-
+#if defined(SKS)
+      USE blocktridiagonalsolver_s, ONLY: Initialize, GetRanks
+#endif
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (siesta_run_class), POINTER :: siesta_run_construct
       INTEGER, INTENT(in)              :: run_comm
-      LOGICAL, INTENT(in)              :: init_mpi
       LOGICAL, INTENT(in)              :: verbose
 
 !  local variables.
@@ -89,9 +87,9 @@
       CALL MyEnvVariables
       IF (PARSOLVER) THEN
          LSCALAPACK=.FALSE.
-         CALL sks_timers
-         CALL Initialize(.TRUE.,0,0)
+         CALL Initialize(0, 0)        !Must call this to initialize mpi timer
          CALL GetRanks(iam, nprocs)
+         CALL sks_timers
       END IF
 #endif
       IF (LSCALAPACK) THEN
@@ -130,16 +128,16 @@
 #endif
 
       CALL second0(ton)
-      siesta_run_construct%skston = ton
+      siesta_run_construct%time_on = ton
 
       CALL init_data(nprecon)
       CALL second0(toff)
-      init_data_time = init_data_time + (toff - ton)
+      init_data_time = toff - ton
 
 1000  FORMAT('nprow,npcol ',2(x,i5))
 1001  FORMAT('icontxt_global,icontxt,icontxt_1xp,icontxt_px1 ',4(x,i5))
 
-      END FUNCTION
+      END FUNCTION siesta_run_construct
 
 !*******************************************************************************
 !  DESTRUCTION SUBROUTINES
@@ -155,7 +153,6 @@
 !>  @param[in]    close_wout   Instructs if to finalize the close the wout file.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_destruct(this, finalize_mpi, close_wout)
-      USE timer_mod
 #if defined(SKS)
       USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,            &
                                PARFUNCTISL, PARGMRES, SKSDBG, TOFU,            &
@@ -186,15 +183,13 @@
 !  local variables.
       REAL (dp)                        :: ton
       REAL (dp)                        :: toff
-      REAL (dp)                        :: skstoff
       INTEGER                          :: i
 
 !  Start of executable code
       CALL second0(toff)
-      skstoff = toff
-      time_total = toff - this%skston
-      total_time = skstoff - this%skston
-
+      time_total = toff - this%time_on
+      total_time = toff - this%time_on
+      
 #if defined(SKS)
       IF (OUTPUT_TIMINGS) THEN
          CALL GetTimes
@@ -207,25 +202,25 @@
             WRITE (i, 1000) nprecon, levmarq_param, mupar, asym_index
             WRITE (i,'(a,i5)') ' Number processors: ', nprocs
             WRITE (i, 1001)
-            WRITE (i, 1002) time_total,               fbdy(1),                 &
-                            time_init,                fbdy(2),                 &
-                            time_diag_prec,           fbdy(3),                 &
-                            time_block_prec,          fbdy(4),                 &
-                            time_factor_blocks,       fbdy(5),                 &
-                            time_toijsp,              fbdy(6),                 &
-                            time_tomnsp,                                       &
-                            gmres_time,                                        &
-                            conj_grad_time,                                    &
-                            time_update_pres,         fbdy(7),                 &
-                            time_update_bfield,       fbdy(8),                 &
-                            time_current,             fbdy(9),                 &
-                            get_force_harmonics_time, fbdy(10),                &
-                            time_update_force,        fbdy(11),                &
-                            time_update_upperv,       fbdy(12),                &
-                            time_update_state,        fbdy(13),                &
-                            time_funci,                                        &
-                            time_apply_precon,                                 &
-                            (diag_add_pert_time + block_add_pert_time),        &
+            WRITE (i, 1002) time_total,               fbdy(1),          &
+                            time_init,                fbdy(2),          &
+                            time_diag_prec,           fbdy(3),          &
+                            time_block_prec,          fbdy(4),          &
+                            time_factor_blocks,       fbdy(5),          &
+                            time_toijsp,              fbdy(6),          &
+                            time_tomnsp,                                &
+                            gmres_time,                                 &
+                            conj_grad_time,                             &
+                            time_update_pres,         fbdy(7),          &
+                            time_update_bfield,       fbdy(8),          &
+                            time_current,             fbdy(9),          &
+                            get_force_harmonics_time, fbdy(10),         &
+                            time_update_force,        fbdy(11),         &
+                            time_update_upperv,       fbdy(12),         &
+                            time_update_state,        fbdy(13),         &
+                            time_funci,                                 &
+                            time_apply_precon,                          &
+                            (diag_add_pert_time + block_add_pert_time), &
                             time_init_state
             WRITE (i,*)
             IF (PARSOLVER) THEN
@@ -321,7 +316,7 @@
              ' Add Perturb    : ',0pf12.3/,                                    &
              ' Init State     : ',0pf12.3,                                     &
              /,'==============================',14x,'=======================')
-      END SUBROUTINE
+      END SUBROUTINE siesta_run_destruct
 
 !*******************************************************************************
 !  SETTER SUBROUTINES
@@ -337,9 +332,7 @@
       SUBROUTINE siesta_run_set_vmec(this)
       USE perturbation, ONLY: nsin, mpolin, ntorin, wout_file
       USE metrics, ONLY: init_metric_elements
-      USE timer_mod, ONLY: init_metric_elements_time, init_quantities_time
       USE quantities, ONLY: init_quantities
-
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -353,12 +346,12 @@
       CALL second0(ton)
       CALL init_metric_elements(nsin, mpolin, ntorin, wout_file)
       CALL second0(toff)
-      init_metric_elements_time = init_metric_elements_time + (toff - ton)
+      init_metric_elements_time = toff - ton
 
       CALL second0(ton)
       CALL init_quantities
       CALL second0(toff)
-      init_quantities_time = init_quantities_time + (toff - ton)
+      init_quantities_time = toff - ton
 
       END SUBROUTINE
 
@@ -379,9 +372,6 @@
       SUBROUTINE siesta_run_converge(this)
       USE perturbation, ONLY: read_restart_file
       USE shared_data, ONLY: nprecon
-      USE timer_mod, ONLY: time_init, init_evolution_time,                     &
-                           init_quantities_time, converge_diagonal_time,       &
-                           converge_blocks_time
       USE evolution, ONLY: init_evolution, converge_diagonal, converge_blocks
       USE descriptor_mod, ONLY: iam, nprocs, DIAGONALDONE
       USE shared_data, ONLY: ndims, mblk_size
@@ -406,11 +396,10 @@
 !  Start of executable code
       IF (lrestart) CALL read_restart_file(nprecon)
       CALL second0(toff)
-      time_init = toff - this%skston
+      time_init = toff - this%time_on
 
       CALL second0(ton)
       CALL init_evolution
-      mblk_size = ndims*(mpol + 1)*(2*ntor + 1)
 #if defined(SKS)
       CALL initRemap(mpolin, ntorin, nsin, nprocs, iam)
 #endif

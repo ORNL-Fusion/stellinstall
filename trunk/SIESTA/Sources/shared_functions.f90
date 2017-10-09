@@ -13,7 +13,7 @@
                             fsupsmncf, fsupumnsf, fsupvmnsf,             &
                             fsubsmnsf, fsubumncf, fsubvmncf,             &
                             fsupsmnsf, fsupumncf, fsupvmncf,             &
-                            wb, wp
+                            wb, wp, wint
       USE timer_mod, ONLY: time_init_state, time_funci
       USE siesta_init, ONLY: init_state
       USE nscalingtools, ONLY: rcountsNS, dispNS, PARFUNCTISL,           &
@@ -81,7 +81,7 @@
 
 !     COMPUTE UN-PRECONDITIONED FORCE RESIDUES
       IF (l_getfsq) THEN
-         CALL toupper_forces_par
+         CALL toupper_forces
 !     VOLUME-AVERAGE |F|**2
          stmp(1) = 0
          DO js = nsmin,nsmax
@@ -115,7 +115,7 @@
             fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)/col_scale(:,:,6,nsmin:nsmax)
             END IF
 
-            CALL toupper_forces_par
+            CALL toupper_forces
 !    
 !     THIS WAY GIVES GREATER PROCESSOR # INDEPENDENCE OF CONVERGENGE SEQUENCE   
 !
@@ -201,6 +201,68 @@
       time_funci = time_funci+(toff-ton)
 
       END SUBROUTINE funct_island
+
+
+      SUBROUTINE toupper_forces
+      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,                &
+                         mpol=>mpol_i, ntor=>ntor_i
+      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,   &
+                         f_sum
+      USE metrics, ONLY: toupper
+      IMPLICIT NONE
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
+                                    fsubsijf, fsubuijf, fsubvijf,        &
+                                    fsupsijf, fsupuijf, fsupvijf
+!-----------------------------------------------
+      INTEGER :: nsmin, nsmax, istat
+!-----------------------------------------------
+      nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
+
+      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsubuijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsubvijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsupsijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsupuijf(ntheta,nzeta,nsmin:nsmax),                       &
+               fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
+      IF (istat .NE. 0) CALL ErrorAbort(' Allocation error in toupper_forces')
+
+      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
+      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
+      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
+ 
+      IF (lasym) THEN
+
+      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
+      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
+      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
+ 
+      END IF
+
+!      
+!     COMPUTE CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
+!
+      CALL toupper(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf) 
+      DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
+
+      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
+      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
+      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
+
+      IF (lasym) THEN
+
+      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
+      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
+      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
+
+      END IF
+
+      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)
+
+      END SUBROUTINE toupper_forces
+
 
 !>    \brief Performs line search along xc vector for minimum fsq_total1
 !!    \author S. P. Hirshman (2016)

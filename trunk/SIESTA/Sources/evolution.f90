@@ -295,9 +295,9 @@
       USE hessian
       USE perturbation, ONLY: eta_factor, lresistive, ftol,              &
                               write_restart_file, niter_max
-      USE diagnostics_mod, ONLY: bgradp_rms, toroidal_flux0, bgradp,     &
-                                 bgradp_par, tflux
-      USE siesta_state, ONLY: update_state, update_state_par
+      USE diagnostics_mod, ONLY: bgradp_rms, toroidal_flux0,             &
+                                 bgradp, tflux
+      USE siesta_state, ONLY: update_state, update_state
       USE siesta_init, ONLY: init_state, init_state
 #if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian
@@ -313,7 +313,7 @@
       INTEGER, PARAMETER :: nm0=1, nn0=2, ns0=3
       REAL(dp), PARAMETER :: levscan(1) = (/ 0.25_dp /) 
       REAL(dp)    :: skston, skstoff
-      INTEGER     :: iprint, m1, i
+      INTEGER     :: iprint, m1, i, n1, n2
       INTEGER     :: imaxlocv(3), ilbound(3), imaxlocf(3)
       REAL(dp)    :: v2tot, f1, f2, r0
       REAL(dp)    :: vmaxs, vmaxu, vmaxv, fmaxs, fmaxu, fmaxv
@@ -340,7 +340,6 @@
 
 !ASYM WORKS BETTER LIKE THIS?
          IF (lasym) f2 = f2/4
-
          f1 = fsq_total1**f2
 
          f2 = 1
@@ -451,7 +450,7 @@
       lprint = MOD(niter, nprint_step).EQ.0 .OR. niter.EQ.1
       l_update_state=.TRUE.
       IF (.NOT.l_par_state) CALL init_state(.FALSE.)
-      CALL update_state_par(lprint, fsq_total1, zero)
+      CALL update_state(lprint, fsq_total1, zero)
       l_update_state=.FALSE.
 
 !      IF (v2tot.lt.1.E-5_dp .and. .not.l_Gmres .and. niter.gt.1) THEN
@@ -482,12 +481,9 @@
       ENDIF
 
      IF (niter .EQ. 1) THEN
-        IF (PARSOLVER) THEN
-        CALL init_state(.TRUE.)
-        CALL bgradp_par
-        ELSE
-        CALL bgradp
-        END IF
+        n1 = MAX(1, startglobrow);  n2 = MIN(ns, endglobrow)
+        IF (PARSOLVER) CALL init_state(.TRUE.)
+        CALL bgradp(n1, n2)
         CALL tflux
      END IF
 
@@ -617,7 +613,7 @@
       SUBROUTINE Conjugate_Grad (ftol)
       USE stel_kinds
       USE hessian, ONLY: mupar
-      USE siesta_state, ONLY: update_state, update_state_par
+      USE siesta_state, ONLY: update_state, update_state
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

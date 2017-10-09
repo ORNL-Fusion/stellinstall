@@ -1,15 +1,17 @@
       MODULE diagnostics_mod
-      USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,         &
+      USE fourier, ONLY: tomnsp, toijsp, tomnsp_par, toijsp_par,        &
                    f_sum, f_cos, f_sin, f_none, f_du, f_dv
       USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE timer_mod
       USE quantities
+      USE metrics, ONLY: tolowerh
+      USE utilities, ONLY: to_half_mesh
 #if defined(MPI_OPT)
       USE mpi_inc
 #endif
       IMPLICIT NONE
-      INTEGER, PRIVATE  :: unit35=35, unit36=36, nsmin, nsmax, ns_span
+      INTEGER, PRIVATE  :: unit35=35, unit36=36, nsmin, nsmax
       REAL(dp) :: divb_rms, avbeta, bdotj_rms, divj_rms, bdotj2_rms
       REAL(dp) :: toroidal_flux, toroidal_flux0=0, bgradp_rms, wbgradp
       REAL(dp) :: max_bgradp, min_bgradp
@@ -33,44 +35,11 @@
 
       CONTAINS
 
-        SUBROUTINE divb
+        SUBROUTINE divb (ns_min, ns_max)
 !-----------------------------------------------
-!   L o c a l   V a r i a b l e s
+!   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        INTEGER                  :: m, n, istat
-        REAL(dp)              :: ton, toff, tnorm
-!-----------------------------------------------
-!
-!     COMPUTE divB ON FULL MESH POINTS
-!
-        CALL second0(ton)
-
-        IF (.NOT. ALLOCATED(divbmnsf))  THEN
-          ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in divb')
-          divbmnsf = 0
-        ENDIF
-
-        DO m = 0, mpol
-          DO n = -ntor,ntor
-            divbmnsf(m,n,2:nsh) =                                        &
-                   -m*(jbsupumnch(m,n,3:ns)+jbsupumnch(m,n,2:nsh))/2     &
-               -n*nfp*(jbsupvmnch(m,n,3:ns)+jbsupvmnch(m,n,2:nsh))/2     &
-               + ohs *(jbsupsmnsh(m,n,3:ns)-jbsupsmnsh(m,n,2:nsh))
-          END DO
-        END DO
-
-        tnorm = hs_i*SUM(jbsupumnch**2 + jbsupvmnch**2 + jbsupsmnsh**2)
-        divbmnsf = divbmnsf/SQRT(tnorm)
-        divb_rms = SQRT(SUM(divbmnsf**2))
-
-!        IF (iam .EQ. 0) WRITE(4000,*)'DIVB: tnorm=',SQRT(tnorm),' divb_rms: ',divb_rms
-        CALL second0(toff)
-        time_divb = time_divb + (toff-ton)
-
-        END SUBROUTINE divb
-
-        SUBROUTINE divb_par
+        INTEGER, INTENT(IN) :: ns_min, ns_max
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -82,12 +51,12 @@
 !
         CALL second0(ton)
 
-        nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
-        IF (.NOT. ALLOCATED(divbmnsf)) THEN
+        nsmin=ns_min;  nsmax=ns_max
+        
+        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
         ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   ! Otherwise, allocate first time called
         IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in divb')
         divbmnsf = 0
-        END IF
 
         n1 = MAX(2, nsmin)
         n2 = MIN(ns-1, nsmax)
@@ -119,7 +88,7 @@
         CALL second0(toff)
         time_divb = time_divb + (toff-ton)
 
-        END SUBROUTINE divb_par
+        END SUBROUTINE divb
 
          
         SUBROUTINE WRITE_PROFILES(fsq_total)
@@ -142,7 +111,7 @@
 !       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN GATHERED
 !       (IN UPDATE_STATE)
 !
-        IF (iam .EQ. 0 .and. lverbose) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR lasym=T ---'
+        IF (iam.EQ.0 .AND. lverbose) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR lasym=T ---'
 
         ALLOCATE(pijh(ntheta,nzeta,ns), stat=istat)
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)      
@@ -320,116 +289,16 @@
       END SUBROUTINE SIESTA_PROFILES
 
 
-      SUBROUTINE bgradp
-!
-!     WRITTEN 08-16-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
-!
-!     PURPOSE: Computes B*GRAD P (normalized to B*P) on the FULL mesh
-!
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER                  :: istat
-!-----------------------------------------------
-!
-!     COMPUTE B DOT GRAD P AT FULL-GRID POINTS (sans endpts)
-!
-      ALLOCATE(bgradpf(ntheta,nzeta,ns), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in BGRADP')
-
-      CALL get_bgradp
-
-      DEALLOCATE (bgradpf)
-
-      END SUBROUTINE bgradp
-
-
-      SUBROUTINE get_bgradp
-!     
-!     PURPOSE: Computes B*GRAD P on the FULL mesh
-!
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER     :: istat, n1
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
-          dpduijh, dpdvijh, pijh,                                       &
-          bsupsijh0, bsupuijh0, bsupvijh0
-      REAL(dp)    :: ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE B DOT GRAD P AT FULL-GRID POINTS (sans endpts)
-!
-      CALL second0(ton)
-
-      bgradpf = 0 
-
-!     Compute pressure and angle derivatives
-!
-      ALLOCATE(pijh(ntheta,nzeta,ns),                                  &
-               dpduijh(ntheta,nzeta,ns),                               &
-               dpdvijh(ntheta,nzeta,ns),                               &
-               bsupsijh0(ntheta,nzeta,ns),                             &
-               bsupuijh0(ntheta,nzeta,ns),                             &
-               bsupvijh0(ntheta,nzeta,ns), stat=istat)                         
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in GET_BGRADP')
-
-      CALL GetPressure (pijh, dpduijh, dpdvijh)
-! 
-!     Compute contravariant components of magnetic field
-!           
-      IF (.NOT.ALLOCATED(jbsupsmnsh)) CALL ErrorAbort('jbsupXmn UNALLOCATED IN GET_BGRADP')
-      CALL toijsp(jbsupsmnsh, bsupsijh0, f_none, f_sin)
-      CALL toijsp(jbsupumnch, bsupuijh0, f_none, f_cos)
-      CALL toijsp(jbsupvmnch, bsupvijh0, f_none, f_cos)
-
-	  IF (.NOT.lasym) GOTO 100
-      IF (.NOT.ALLOCATED(jbsupsmnch)) CALL ErrorAbort('jbsupXmn UNALLOCATED IN GET_BGRADP')
-      CALL toijsp(jbsupsmnch, bsupsijh0, f_sum, f_cos)
-      CALL toijsp(jbsupumnsh, bsupuijh0, f_sum, f_sin)
-      CALL toijsp(jbsupvmnsh, bsupvijh0, f_sum, f_sin)
-100   CONTINUE
-
-      bsupsijh0 = bsupsijh0/jacobh
-      bsupuijh0 = bsupuijh0/jacobh
-      bsupvijh0 = bsupvijh0/jacobh
-
-      bgradpf(:,:,2:nsh) =                                              &   ! Get all values except first and
-               (bsupsijh0(:,:,3:ns) + bsupsijh0(:,:,2:nsh))           &   ! last surface from half mesh values.
-               *    (pijh(:,:,3:ns) -      pijh(:,:,2:nsh))*ohs/2     &
-             + (bsupuijh0(:,:,3:ns) + bsupuijh0(:,:,2:nsh))           &
-              *(  dpduijh(:,:,3:ns) +   dpduijh(:,:,2:nsh))/4         &
-             + (bsupvijh0(:,:,3:ns) + bsupvijh0(:,:,2:nsh))           &
-              *(  dpdvijh(:,:,3:ns) +   dpdvijh(:,:,2:nsh))/4                   
-    
-      tnorm_bgradp = SUM((bsupsijh0**2 + bsupuijh0**2 + bsupvijh0**2)*pijh**2)
-      IF (tnorm_bgradp .eq. zero) tnorm_bgradp = EPSILON(tnorm_bgradp)
-
-      wbgradp = SUM(bgradpf(:,:,3:nsh)**2)
-      bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
-
-      tnorm_bgradp = SQRT(tnorm_bgradp/(ns*ntheta*nzeta))
-
-      bgradpf(:,:,2:nsh) = bgradpf(:,:,2:nsh)/tnorm_bgradp
-!IGNORE FIRST POINT
-      n1 = MAX(3, ns/20)
-      max_bgradp = MAXVAL(bgradpf(:,:,n1:nsh))
-      min_bgradp = MINVAL(bgradpf(:,:,n1:nsh))
-
-      DEALLOCATE (pijh, dpdvijh, dpduijh,                            &
-                  bsupsijh0, bsupuijh0, bsupvijh0)
-
-      CALL second0(toff)
-      time_bgradp = time_bgradp+(toff-ton)
-
-      END SUBROUTINE get_bgradp
-
-      SUBROUTINE bgradp_par
+      SUBROUTINE bgradp(ns_min, ns_max)
 !     
 !     WRITTEN 03-21-13 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
 !     PURPOSE: Computes B*GRAD P (normalized to B*P) on the FULL mesh
 !
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+        INTEGER, INTENT(IN) :: ns_min, ns_max
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -439,21 +308,25 @@
 !
 !     COMPUTE B DOT GRAD P AT FULL-GRID POINTS (sans endpts)
 !
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+      nsmin=ns_min; nsmax=ns_max
       
       ALLOCATE(bgradpf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in BGRADP')
-      CALL get_bgradp_par
+      CALL get_bgradp(nsmin, nsmax)
 
       DEALLOCATE (bgradpf, stat=istat)
 
-      END SUBROUTINE bgradp_par
+      END SUBROUTINE bgradp
 
 
-      SUBROUTINE get_bgradp_par
+      SUBROUTINE get_bgradp(ns_min, ns_max)
 !     
 !     PURPOSE: Computes B*GRAD P on the FULL mesh
 !
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN) :: ns_min, ns_max
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -469,8 +342,7 @@
 !
       CALL second0(ton)
 
-      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow+1,ns)
-      ns_span = nsmax-nsmin+1
+      nsmin = ns_min; nsmax=MIN(ns_max+1,ns)
 
       bgradpf = 0 
 
@@ -490,14 +362,14 @@
 ! 
 !     Compute contravariant components of magnetic field
 !           
-      CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh0, f_none, f_sin,1, ns_span)
-      CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh0, f_none, f_cos,1, ns_span)
-      CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh0, f_none, f_cos,1, ns_span)
+      CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh0, f_none, f_sin)
+      CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh0, f_none, f_cos)
+      CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh0, f_none, f_cos)
 
       IF (.NOT.lasym) GOTO 100
-      CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh0, f_sum, f_cos,1, ns_span)
-      CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh0, f_sum, f_sin,1, ns_span)
-      CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh0, f_sum, f_sin,1, ns_span)
+      CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh0, f_sum, f_cos)
+      CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh0, f_sum, f_sin)
+      CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh0, f_sum, f_sin)
 
  100  CONTINUE
 
@@ -567,7 +439,7 @@
       CALL second0(toff)
       time_bgradp = time_bgradp+(toff-ton)
 
-      END SUBROUTINE get_bgradp_par
+      END SUBROUTINE get_bgradp
       
 
       SUBROUTINE GetPressure (pijh, dpduijh, dpdvijh)
@@ -591,36 +463,33 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: istat, ns_span, m1, m2
+      INTEGER  :: istat, m1, m2
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: pmnch, pmnsh
 !-----------------------------------------------
-      ns_span = nsmax-nsmin+1
 
-      CALL toijsp_par(jpmnch(:,:,nsmin:nsmax), pijh, f_none, f_cos,      &
-                      1, ns_span)
+      CALL toijsp_par(jpmnch(:,:,nsmin:nsmax), pijh, f_none, f_cos)
       IF (lasym) THEN
-      CALL toijsp_par(jpmnsh(:,:,nsmin:nsmax), pijh, f_sum,  f_sin,      &
-                      1, ns_span)
+      CALL toijsp_par(jpmnsh(:,:,nsmin:nsmax), pijh, f_sum,  f_sin)
       END IF
       pijh = pijh/jacobh(:,:,nsmin:nsmax)                                  ! Remove jacobian factor
       
       ALLOCATE(pmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in GetPressure_par')
-      CALL tomnsp_par(pijh, pmnch, f_cos,1, ns_span)
+      CALL tomnsp_par(pijh, pmnch, f_cos)
 
-      CALL toijsp_par(pmnch, pijh, f_none, f_cos,1, ns_span)
-      CALL toijsp_par(pmnch, dpduijh, f_du, f_cos,1, ns_span)              ! Get theta and phi pressure derivatives
-      CALL toijsp_par(pmnch, dpdvijh, f_dv, f_cos,1, ns_span)
+      CALL toijsp_par(pmnch, pijh, f_none, f_cos)
+      CALL toijsp_par(pmnch, dpduijh, f_du, f_cos)              ! Get theta and phi pressure derivatives
+      CALL toijsp_par(pmnch, dpdvijh, f_dv, f_cos)
 
       IF (lasym) THEN
       ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in GetPressure_par')
-      CALL tomnsp_par(pijh, pmnsh, f_sin,1, ns_span)
+      CALL tomnsp_par(pijh, pmnsh, f_sin)
 
       m1 = IOR(f_sum,f_du);  m2 = IOR(f_sum,f_dv)
-      CALL toijsp_par(pmnsh, pijh, f_sum, f_sin,1, ns_span)
-      CALL toijsp_par(pmnsh, dpduijh, m1, f_sin,1, ns_span)                ! Get theta and phi pressure derivatives
-      CALL toijsp_par(pmnsh, dpdvijh, m2, f_sin,1, ns_span)
+      CALL toijsp_par(pmnsh, pijh, f_sum, f_sin)
+      CALL toijsp_par(pmnsh, dpduijh, m1, f_sin)                ! Get theta and phi pressure derivatives
+      CALL toijsp_par(pmnsh, dpdvijh, m2, f_sin)
       END IF
 
      
@@ -715,7 +584,7 @@
         bsubsijh=0; bsubvijh=0; bsubuijh=0
       
         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                      &
-                      bsubsijh, bsubuijh, bsubvijh)
+                      bsubsijh, bsubuijh, bsubvijh, 1, ns)
 
 !
 !    In initial state, calculate currents (remember they are multiplied by a jacobian!)
@@ -728,9 +597,9 @@
                  ksupvijh(ntheta,nzeta,ns), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocation #3 failed in BDOTJ')
 
-        CALL to_half_mesh(ksupsijf0, ksupsijh, nuv)
-        CALL to_half_mesh(ksupuijf0, ksupuijh, nuv)
-        CALL to_half_mesh(ksupvijf0, ksupvijh, nuv)
+        CALL to_half_mesh(ksupsijf0, ksupsijh)
+        CALL to_half_mesh(ksupuijf0, ksupuijh)
+        CALL to_half_mesh(ksupvijf0, ksupvijh)
 !
 !   Remove jacobian 
 !        
@@ -747,7 +616,7 @@
         ksubsijh=0; ksubuijh=0; ksubvijh=0
 
         CALL tolowerh(ksupsijh, ksupuijh, ksupvijh,                      &
-                      ksubsijh, ksubuijh, ksubvijh)
+                      ksubsijh, ksubuijh, ksubvijh, 1, ns)
 !
 !   Compute B*J in the half mesh.
 !        
@@ -787,7 +656,7 @@
         work1 = (bsubuijh*ksubvijh - bsubvijh*ksubuijh)/jacobh              ! (JxB)^s  = (1/sqrt(g))*(K_uB_b-K_vB_u)
         work2 = (bsubvijh*ksubsijh - bsubsijh*ksubvijh)/jacobh              ! (JxB)^u  = .....
         work3 = (bsubsijh*ksubuijh - bsubuijh*ksubsijh)/jacobh              ! (JxB)^v  = .....
-        CALL tolowerh(work1, work2, work3, work4, work5, work6)
+        CALL tolowerh(work1, work2, work3, work4, work5, work6, 1, ns)
         
         work1 = work1*work4 + work2*work5 + work3*work6                     ! |JxB|**2
         tnorm = SUM(work1(:,:,3:nsh-1))
@@ -843,7 +712,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER      :: istat, n1, n2
+      INTEGER      :: istat, n1, n2, ns_span
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsupsijh,               &
           bsupuijh, bsupvijh,                                            &
           bsubsijh, bsubuijh, bsubvijh, ksubsijh, ksubuijh,              &
@@ -864,13 +733,13 @@
                  bsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocation #1 failed in BDOTJ_PAR')
 
-        CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin,1, ns_span)
-        CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos,1, ns_span)
-        CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos,1, ns_span)
+        CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh, f_none, f_sin)
+        CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos)
+        CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos)
         IF (lasym) THEN
-        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_sin,1, ns_span)
-        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_cos,1, ns_span)
-        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_cos,1, ns_span)
+        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_sin)
+        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_cos)
+        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_cos)
         END IF
 
         bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
@@ -884,8 +753,8 @@
                  bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocation #2 failed in BDOTJ_PAR')
       
-        CALL tolowerh_par(bsupsijh, bsupuijh, bsupvijh,                  &
-                          bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
+        CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                      &
+                      bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
 !
 !    In initial state, calculate currents (remember they are multiplied by a jacobian!)
 !
@@ -898,9 +767,9 @@
                  ksupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocation #3 failed in BDOTJ_PAR')
 
-        CALL to_half_mesh_par(ksupsijf0, ksupsijh, nuv, nsmin, nsmax)
-        CALL to_half_mesh_par(ksupuijf0, ksupuijh, nuv, nsmin, nsmax)
-        CALL to_half_mesh_par(ksupvijf0, ksupvijh, nuv, nsmin, nsmax)
+        CALL to_half_mesh(ksupsijf0, ksupsijh)
+        CALL to_half_mesh(ksupuijf0, ksupuijh)
+        CALL to_half_mesh(ksupvijf0, ksupvijh)
 
 !
 !   Remove jacobian 
@@ -917,8 +786,8 @@
                  ksubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
         IF (istat .NE. 0) CALL ErrorAbort('Allocation #4 failed in BDOTJ_PAR')
 
-        CALL tolowerh_par(ksupsijh, ksupuijh, ksupvijh,                  &
-                          ksubsijh, ksubuijh, ksubvijh, nsmin, nsmax)
+        CALL tolowerh(ksupsijh, ksupuijh, ksupvijh,                      &
+                      ksubsijh, ksubuijh, ksubvijh, nsmin, nsmax)
         nsmin=MAX(1,startglobrow)
 
 !
@@ -970,8 +839,8 @@
         work1 = work1/jacobh(:,:,nsmin:nsmax)
         work2 = work2/jacobh(:,:,nsmin:nsmax)
         work3 = work3/jacobh(:,:,nsmin:nsmax)
-        CALL tolowerh_par(work1, work2, work3,                           &
-                          work4, work5, work6, nsmin, nsmax)
+        CALL tolowerh(work1, work2, work3,                               &
+                      work4, work5, work6, nsmin, nsmax)
         
         work1 = work1*work4 + work2*work5 + work3*work6                     ! |JxB|**2
         tnorm = SUM(work1(:,:,n1:n2))
@@ -1017,9 +886,9 @@
 
         bdotjijh = bdotjijh/tnorm
         
-        CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos,1, ns_span)     ! Keep harmonics of BDOTJ for output
+        CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos)                         ! Keep harmonics of BDOTJ for output
         IF (lasym) THEN
-        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_cos,1, ns_span)     ! Keep harmonics of BDOTJ for output
+        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_cos)                         ! Keep harmonics of BDOTJ for output
         END IF
 
         DEALLOCATE (bdotjijh)
@@ -1029,82 +898,23 @@
 !#endif
         END SUBROUTINE bdotj_par
       
-        SUBROUTINE divj
-!     
-!     WRITTEN 09-10-07 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
-!     
-!     PURPOSE: Computes divergence of the current normalized to the total current on the half mesh
-!
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-        INTEGER               :: m, n, istat
-        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp1, temp2
-        REAL(dp)              :: tnorm, ton, toff
-!-----------------------------------------------
-!
-!     COMPUTE divJ ON HALF MESH POINTS
-!
-        CALL second0(ton)
 
-        IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state(.TRUE.) BEFORE divJ')
-
-        IF (.NOT. ALLOCATED(divjmnsh))  THEN                                  
-          ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,ns),  stat=istat)          ! Otherwise, allocate first time called
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
-          divjmnsh = zero
-        ENDIF
-!
-!  Compute divergence of J. It is a SINE parity quantity.
-!
-        DO m = 0, mpol
-           DO n = -ntor,ntor
-             divjmnsh(m,n,3:nsh) =                                       &
-               -m*(ksupumncf(m,n,3:nsh)+ksupumncf(m,n,2:nsh-1))/2        &
-               -n*nfp*(ksupvmncf(m,n,3:nsh)+ksupvmncf(m,n,2:nsh-1))/2    &
-               + ohs *(ksupsmnsf(m,n,3:nsh)-ksupsmnsf(m,n,2:nsh-1))
-           END DO
-        END DO
-
- 
-        ALLOCATE(temp1(ntheta,nzeta,ns),                                 &
-                 temp2(ntheta,nzeta,ns), stat=istat)                     
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
-        temp1 = 0; temp2 = 0
- 
-        temp1 = ksupsijf0*ksubsijf + ksupuijf0*ksubuijf +                & ! Norm: |J|^2
-                ksupvijf0*ksubvijf
-        CALL to_half_mesh(temp1, temp2, nuv)
-        tnorm = SUM(temp2/jacobh**2)
-        IF (iam.EQ.0 .AND. ANY(temp2.LT.zero)) PRINT *,'ERROR1 in DIVJ: |J|^2 < 0!'
-        tnorm = SQRT(ABS(tnorm))
- 
-        DEALLOCATE(temp1, temp2, stat=istat)
- !
- !   Compute rms of divergence of J
- !     
-        divjmnsh = divjmnsh/tnorm
-        divj_rms = SQRT(SUM(divjmnsh**2))
-
-!        IF (iam .EQ. 0) WRITE(4100,*)'DIVJ: tnorm=',tnorm,' divj_rms: ',divj_rms
-        CALL second0(toff)
-        time_divj = time_divj+(toff-ton)
-
-        END SUBROUTINE divj
-
-        SUBROUTINE divj_par
+        SUBROUTINE divj(ns_min, ns_max)
 !     
 !     WRITTEN 03-18-13 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
 !     PURPOSE: Computes divergence of the current normalized to the total current on the half mesh
 !
-!#if defined(SKS)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t
+!-----------------------------------------------
+        INTEGER, INTENT(IN)  :: ns_min, ns_max
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER                  :: m, n, istat, n1, n2
+        INTEGER              :: m, n, istat, n1, n2
         REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::  temp1, temp2
-        REAL(dp)              :: tnorm, s1(2), r1(2), ton, toff
+        REAL(dp)             :: tnorm, s1(2), r1(2), ton, toff
 !-----------------------------------------------
 !
 !     COMPUTE divJ ON HALF MESH POINTS
@@ -1113,13 +923,12 @@
 
         IF (.NOT. lcurr_init) CALL ErrorAbort('MUST CALL init_state(.TRUE.) BEFORE divJ_par')
 
-        nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
+        nsmin=ns_min; nsmax = ns_max
 
-        IF (.NOT. ALLOCATED(divjmnsh))  THEN                                  
-          ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   ! Otherwise, allocate first time called
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
-          divjmnsh = 0
-        ENDIF
+        IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
+        ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   ! Otherwise, allocate first time called
+        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DIVJ')
+        divjmnsh = 0
 
 !
 !  Compute divergence of J. It is a SINE parity quantity.
@@ -1146,7 +955,7 @@
               + ksupuijf0(:,:,nsmin:nsmax)*ksubuijf(:,:,nsmin:nsmax)     & ! Norm: |J|^2
               + ksupvijf0(:,:,nsmin:nsmax)*ksubvijf(:,:,nsmin:nsmax)
 
-        CALL to_half_mesh_par(temp1, temp2, nuv, nsmin, nsmax)
+        CALL to_half_mesh(temp1, temp2)
 
         temp2 = temp2/jacobh(:,:,nsmin:nsmax)**2
 
@@ -1173,9 +982,8 @@
 
         CALL second0(toff)
         time_divj = time_divj+(toff-ton)
-!#endif
 
-        END SUBROUTINE divj_par
+        END SUBROUTINE divj
 
        SUBROUTINE dealloc_diagnostics
 

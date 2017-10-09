@@ -1,35 +1,38 @@
       MODULE PERTURBATION
       USE quantities
       USE descriptor_mod, ONLY: iam
-      USE siesta_state, ONLY: update_state, update_state_par
-      USE shared_data, ONLY: ngmres_type, iortho, lcolscale,             &
-                             lasym, hesspass_test, mupar_test,           &
+      USE siesta_state, ONLY: update_state, update_state
+      USE shared_data, ONLY: ngmres_type, iortho, lcolscale,            &
+                             lasym, hesspass_test, mupar_test,          &
                              buv_res, lrecon
-      USE nscalingtools, ONLY: PARFUNCTISL
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       
+      INTEGER  :: nsmin, nsmax
       INTEGER  :: irad_scale=11
       INTEGER  :: nsin=101, mpolin=12, ntorin=3
-      INTEGER  :: mres1, nres1, mres2, nres2                                !Backwards compat
+      INTEGER  :: mres1, nres1, mres2, nres2                              !Backwards compat
       INTEGER  :: mres(20)
       INTEGER  :: niter_max
-      REAL(dp) :: HelPert1, HelPert2, rad1, rad2                            !Backwards compat
+      REAL(dp) :: HelPert1, HelPert2, rad1, rad2                          !Backwards compat
       REAL(dp) :: HelPert(20)
       REAL(dp) :: ftol = 1.E-20_dp
       REAL(dp) :: eta_factor = 1.E-2_dp
-      REAL(dp) :: p_width                                                   !width of perturbation (relative to 1)
+      REAL(dp) :: p_width                                                 !width of perturbation (relative to 1)
       LOGICAL  :: ladd_pert = .TRUE.
-      LOGICAL  :: lresistive = .TRUE.                                       !RS: If true, add resistive electric field.
+      LOGICAL  :: lresistive = .TRUE.                                     !RS: If true, add resistive electric field.
       LOGICAL  :: lrestart = .FALSE.
       CHARACTER(LEN=256) :: wout_file, restart_ext
+      REAL(dp), ALLOCATABLE :: jdotb(:,:,:)                               !parallel current
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bmnc_res, bmns_res       !resonant components of JDOTB
 
 !NETCDF PARAMETERS
-      CHARACTER(LEN=*), PARAMETER :: vn_nsin='nrad', vn_mpolin='mpol',   &
-         vn_ntorin='ntor', vn_wout='wout file', vn_lasym='lasym',        &
-         vn_bsupss='JBsupss(m,n,r)',vn_bsupuc='JBsupuc(m,n,r)',          &
-         vn_bsupvc='JBsupvc(m,n,r)', vn_bsupsc='JBsupsc(m,n,r)',         &
-         vn_bsupus='JBsupus(m,n,r)', vn_bsupvs='JBsupvs(m,n,r)',         &
+      CHARACTER(LEN=*), PARAMETER :: vn_nsin='nrad', vn_mpolin='mpol',  &
+         vn_ntorin='ntor', vn_wout='wout file', vn_lasym='lasym',       &
+         vn_bsupss='JBsupss(m,n,r)',vn_bsupuc='JBsupuc(m,n,r)',         &
+         vn_bsupvc='JBsupvc(m,n,r)', vn_bsupsc='JBsupsc(m,n,r)',        &
+         vn_bsupus='JBsupus(m,n,r)', vn_bsupvs='JBsupvs(m,n,r)',        &
          vn_presc='presc(m,n,r)', vn_press='press(m,n,r)'
-      CHARACTER(LEN=*), DIMENSION(3), PARAMETER ::                       &
+      CHARACTER(LEN=*), DIMENSION(3), PARAMETER ::                      &
                   r3dim = (/'m-mode','n-mode','radius'/)
 
 !SCRATCH ARRAYS
@@ -37,12 +40,12 @@
                 presc, bsupsc, bsupus, bsupvs, press
 
 !OUTPUT FILE PARAMETERS
-      INTEGER:: nrs=200, nzs=200, nphis=2                                   ! BField resolution (CYL):  R and Z
-      INTEGER:: nvs=100, nus=150, nss=150                                   ! BField resolution (VMEC): V (and PHI), U, S      
-      LOGICAL :: l_tracing = .FALSE.                                        ! Do not produce file with CYL field for Poincare plots.
+      INTEGER :: nrs=200, nzs=200, nphis=2                                ! BField resolution (CYL):  R and Z
+      INTEGER :: nvs=100, nus=150, nss=150                                ! BField resolution (VMEC): V (and PHI), U, S      
+      LOGICAL :: l_tracing = .FALSE.                                      ! Do not produce file with CYL field for Poincare plots.
       LOGICAL :: l_silo_output = .FALSE.
       LOGICAL :: l_silo3D = .FALSE.
-      LOGICAL :: l_output_alliter = .FALSE.                                 ! Default: do not dump output at every iteration on file (RS, Jul'10)
+      LOGICAL :: l_output_alliter = .FALSE.                               ! Default: do not dump output at every iteration on file (RS, Jul'10)
       LOGICAL :: l_VMEC_Uniform
 
       CHARACTER(LEN=256) :: filename
@@ -53,22 +56,24 @@
       USE date_and_computer
       USE Hessian, ONLY: levmarq_param, mupar, levmarq_param0, mupar0
       IMPLICIT NONE
-      INTEGER, INTENT(out) :: nprecon
-      INTEGER              :: istat, index1, imon, niter
+      INTEGER, INTENT(OUT) :: nprecon
+      INTEGER              :: istat, index1, imon, niter, numargs
       CHARACTER(LEN=10)    :: date0, time0, zone0
       CHARACTER(LEN=256)   :: temp, short_name
-      NAMELIST /SIESTA_INFO/ ladd_pert, lresistive, lrestart, niter,     &
-               nsin, mpolin, ntorin, ftol, wout_file, restart_ext,       &
-               mres1, nres1, rad1, helpert1, mres2, nres2, rad2,         &
-               helpert2, mres, HelPert, levmarq_param, mupar,            &
-               eta_factor, nphis, nrs, nzs, nvs, nus, nss, l_tracing,    &
-               ngmres_type, iortho, lcolscale,                           &
-               l_silo_output, l_silo3D, nprecon, l_output_alliter,       & 
+      CHARACTER(LEN=100), DIMENSION(10) :: command_arg
+      NAMELIST /SIESTA_INFO/ ladd_pert, lresistive, lrestart, niter,    &
+               nsin, mpolin, ntorin, ftol, wout_file, restart_ext,      &
+               mres1, nres1, rad1, helpert1, mres2, nres2, rad2,        &
+               helpert2, mres, HelPert, levmarq_param, mupar,           &
+               eta_factor, nphis, nrs, nzs, nvs, nus, nss, l_tracing,   &
+               ngmres_type, iortho, lcolscale,                          &
+               l_silo_output, l_silo3D, nprecon, l_output_alliter,      & 
                l_VMEC_Uniform, lasym, HessPass_Test, mupar_test, lrecon
 
 !-----------------------------------------------
 !     
-!     READS siesta.jcf (JOB CONTROL FILE) for data
+!     READS siesta.jcf (JOB CONTROL FILE) for data (generalized to siesta_<name>.jcf,
+!     where <name> is the command line argument (ignored if not present!)
 !
       levmarq_param = 1.E-3_dp
       mupar         = 0
@@ -82,7 +87,23 @@
       mupar_test    = 0
       nprecon       = 0                 !set > 0 to skip diagonal preconditioner
 
-      OPEN (unit=30, file='siesta.jcf', delim='apostrophe', iostat=istat)
+!
+!     read command line arg
+!
+      CALL getcarg(1, command_arg(1), numargs)
+      DO istat = 2, MIN(numargs, 10)
+         CALL getcarg(istat, command_arg(istat), numargs)
+      END DO
+
+      temp = 'siesta.jcf'
+      IF (numargs .GT. 0) THEN
+         temp = command_arg(1)
+         IF (LEN_TRIM(temp) .NE. 0) THEN
+            temp = 'siesta_' // TRIM(temp) // '.jcf'
+         END IF
+      END IF
+      
+      OPEN (unit=30, file=TRIM(temp), delim='apostrophe', iostat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('SIESTA.JCF file not found')
 
       READ (30, NML=SIESTA_INFO, iostat=istat) 
@@ -120,16 +141,16 @@
       IF (iam .ne. 0) RETURN
 
 !     WOUT FILE MUST BE OF FORM "wout_NAME.nc (or txt)" or "wout_NAME"
-      WRITE (filename,'(3a,i4.4,a,2(i3.3,a))') "output_", TRIM(temp),    &
+      WRITE (filename,'(3a,i4.4,a,2(i3.3,a))') "output_", TRIM(temp),   &
              '_',nsin,'X',mpolin,'X',ntorin,".txt"
       OPEN (unit=33, file=filename,iostat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('ERROR WRITING SIESTA OUTPUT FILE')
 
       DO istat = 6, 33, 27
          IF (.not.lverbose .and. istat .eq. 6) CYCLE
-	     WRITE (istat, 10)                                           & 
-               'SIESTA MHD EQUILIBRIUM CODE v3.0 (091216)',              &
-               'Scalable Island Equilibrium ',                           &
+	     WRITE (istat, 10)                                              & 
+               'SIESTA MHD EQUILIBRIUM CODE v4.0 (100917)',             &
+               'Scalable Island Equilibrium ',                          &
                'Solver for Toroidal Applications' 
          IF (HelPert1.ne.zero .or. HelPert2.ne.zero) THEN
             WRITE (istat, *) 'Please update jcf file to new format'
@@ -140,11 +161,12 @@
 10    FORMAT (62('-'),/,1x,a,/,2(1x,a),/,62('-'),/)
 
       WRITE (33, *)'CASE: ', TRIM(temp)
-      IF (lverbose) PRINT *,'OUTPUT FILE (SCREEN DUMP): ', "output_" // TRIM(temp) // ".txt"
+      IF (lverbose) PRINT *,'OUTPUT FILE (SCREEN DUMP): ', "output_"    &
+             // TRIM(temp) // ".txt"
 
       CALL DATE_AND_TIME(date0,time0,zone0)
       READ (date0(5:6),'(i2)')imon
-      WRITE (33,20) months(imon),date0(7:8),date0(1:4),                  &
+      WRITE (33,20) months(imon),date0(7:8),date0(1:4),                 &
                     time0(1:2),time0(3:4),time0(5:6)
       
 20    FORMAT(' DATE = ',a3,' ',a2,',',a4,' ',' TIME = ',2(a2,':'),a2,/)
@@ -164,8 +186,8 @@
       END SUBROUTINE init_data
 
       SUBROUTINE add_perturb (xc, getwmhd)
-      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE siesta_error
+      USE fourier, ONLY: tomnsp_par, f_cos, f_sin, f_none
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -176,7 +198,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER,PARAMETER  :: ipert_sign=2
-      INTEGER            :: js, l, iprint, mres0, nres0, isign, icount,  &
+      INTEGER            :: js, l, iprint, mres0, nres0, isign1, icount, &
                             irscale, imin(2), jstart, istat, jsave
       REAL(dp)           :: w0, w1, wmhd, eta_factor_save, p_width_min
       REAL(dp)           :: normal, HelPert0, HP, rad, chip0, phip0
@@ -188,29 +210,46 @@
 !
       IF (ntor.EQ.0 .OR. ALL(HelPert.EQ.zero)) RETURN
 
-!     INITIAL STATE
+!     INITIAL STATE: allocate buv_res so bsubXijf will be computed in init_state
+      nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+1)
+!      nsmin = 1; nsmax = ns
+      ALLOCATE (buv_res(ntheta,nzeta,nsmin:nsmax),                      &
+                jdotb(ntheta,nzeta,nsmin:nsmax), stat=istat)
+      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN add_perturbation')
  
       lresist_save = lresistive
       lresistive=.FALSE.
       eta_factor_save = eta_factor
       eta_factor=1
       xc = 0
-      w0 = getwmhd(xc)
-
-      ALLOCATE (buv_res(ntheta,nzeta,ns), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN add_perturbation')
-
+      w0 = getwmhd(xc)                                                   !Get latest current and bsubXijf
+      
       IF (iam .EQ. 0) THEN
       DO iprint = 6, 33, 27
-         IF (.not.lverbose .and. iprint .eq. 6) CYCLE
-         WRITE (iprint, '(/,a,/,2a)')                                    &
-         ' Adding helical magnetic field perturbations',                 &
-         ' 10^6 X Del-W    mres    nres     HelPert',                    &
+         IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
+         WRITE (iprint, '(/,a,/,2a)')                                   &
+         ' Adding helical magnetic field perturbations',                &
+         ' 10^6 X Del-W    mres    nres     HelPert',                   &
          '     rad  |m*chip+n*phip|     iota   radial width'
       END DO
       ENDIF
 
-!     Resonant resistitive perturbations first
+#if defined(JDOTB_PERT)
+!     Compute jdotb to extract resonant components of sqrt(g)*J dot B
+      jdotb = ksupsijf0(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)      &
+            + ksupuijf0(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)      &
+            + ksupvijf0(:,:,nsmin:nsmax)*bsubvijf(:,:,nsmin:nsmax)
+
+      ALLOCATE (bmnc_res(0:mpol,-ntor:ntor, nsmin:nsmax),               &
+                bmns_res(0:mpol,-ntor:ntor, nsmin:nsmax), stat=istat)
+      IF (istat .NE. 0) CALL ErrorAbort('ISTAT != 0 IN ADD_PERT')
+      
+      bmns_res = 0
+      CALL tomnsp_par(jdotb, bmnc_res, f_cos)
+      IF (lasym) CALL tomnsp_par(jdotb, bmns_res, f_sin)
+#endif      
+
+!     Compute responses to resonant resistitive perturbations
       lresistive=.TRUE.
       normal = hs_i**2
 
@@ -228,19 +267,21 @@
          IF (.NOT.FindResonance(mres0, nres0, rad, jstart)) EXIT
          w1 = 2*w0         
 
-      PERT_SIGN: DO isign = 1, 2
+      PERT_SIGN: DO isign1 = 1, 2
 
 !     NOTE: in update_bfield, where perturbed b-field is computed, this is multiplied
 !           by eta_prof = rho*(1-rho) so it vanishes at both ends. Multiply again
 !           here by that factor to assure radial derivatives entering in dB also vanish
 !           at endpoints s=0,1
+ 
          SCALE_TEST: DO irscale = 1, irad_scale
-            CALL GetResPert(irscale, isign, mres0, nres0, rad, HelPert0, chip0, phip0)
+            CALL GetResPert(irscale, isign1, mres0, nres0, rad,         &
+                            HelPert0, chip0, phip0)
             xc = 0
             wmhd = getwmhd(xc)
             IF (wmhd .LT. w1) THEN
                imin(1) = irscale
-               imin(2) = isign
+               imin(2) = isign1
                w1 = wmhd
                p_width_min = p_width
             ENDIF
@@ -249,31 +290,33 @@
 
 !     Make sure energy decreases
          wmhd = w1
-!     recompute perturbation buv_rex here
+!     recompute perturbation buv_res here
          irscale = imin(1)
-         isign   = imin(2)
+         isign1  = imin(2)
          
          IF (iam .EQ. 0) THEN
             HP = HelPert0
-            IF (isign .EQ. 2) HP = -HP
+            IF (isign1 .EQ. 2) HP = -HP
 
             DO iprint = 6, 33, 27
-            IF (.not.lverbose .and. iprint .eq. 6) CYCLE
-            WRITE (iprint, '(1p,e12.3,2(i8),3x,1pe10.2,0p,f8.2,f11.2,4x,2(f11.2))') &
-                   10**6*(wmhd-w0), mres0, nres0, HP*normal, rad,         &
-                   ABS(mres0*chip0+nres0*nfp*phip0), chip0/phip0, p_width_min
+            IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
+            WRITE (iprint, 100) 10**6*(wmhd-w0), mres0, nres0,          &
+                    HP*normal, rad, ABS(mres0*chip0+nres0*nfp*phip0),   &
+                    chip0/phip0, p_width_min
             END DO
+ 100  FORMAT(1p,e12.3,2(i8),3x,1pe10.2,0p,f8.2,f11.2,4x,2(f11.2))            
             CALL FLUSH(33)
          END IF
          
-         CALL GetResPert(irscale, isign, mres0, nres0, rad, HelPert0, chip0, phip0)
+         CALL GetResPert(irscale, isign1, mres0, nres0, rad,            &
+                         HelPert0, chip0, phip0)
 
          wmhd = getwmhd(xc)
          IF (ABS(wmhd-w1) .GT. 1.E-12_dp) THEN
             CALL siesta_error_set_error(siesta_error_general, 'Error1 in Perturb')
          END IF
          xc = 0
-         CALL update_state_par(.FALSE., zero, zero)
+         CALL update_state(.FALSE., zero, zero)
 !Compute dW relative to perturbed state
          w0 = wmhd
    
@@ -283,12 +326,12 @@
 
       IF (iam .EQ. 0) THEN
          DO iprint = 6, 33, 27
-            IF (.not.lverbose .and. iprint .eq. 6) CYCLE
+            IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
             WRITE (iprint, *)
          END DO
       END IF
 
-      DEALLOCATE (buv_res, stat=istat)
+      DEALLOCATE (buv_res, jdotb, bmnc_res, bmns_res, stat=istat)
       lresistive = lresist_save
       eta_factor = eta_factor_save
 
@@ -355,14 +398,14 @@
       END FUNCTION FindResonance
 
 
-      SUBROUTINE GetResPert(irscale, isign, mres0, nres0, rad,           &
+      SUBROUTINE GetResPert(irscale, isign1, mres0, nres0, rad,         &
                             HelPert0, chip0, phip0)
-      USE fourier, ONLY: toijsp2, f_cos, f_sin
+      USE fourier, ONLY: toijsp_par, toijsp2, f_cos, f_sin, f_sum, f_none
       IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(in)       :: irscale, isign
+      INTEGER, INTENT(in)       :: irscale, isign1
       INTEGER, INTENT(in)       :: mres0, nres0
       REAL(dp), INTENT(in)   :: rad
       REAL(dp), INTENT(out)  :: chip0, phip0
@@ -371,19 +414,17 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER     :: js, istat
-      REAL(dp) :: rho, rhores, pert_prof(ns), HelP_local, locrad
+      REAL(dp)    :: rho, rhores, pert_prof(ns), HelP_local, locrad
       REAL(dp), ALLOCATABLE   :: bmn_res(:,:)
-      REAL(dp), ALLOCATABLE   :: temp_uv(:,:)
+      REAL(dp), ALLOCATABLE   :: resc(:,:,:), ress(:,:,:)
+      REAL(dp), ALLOCATABLE   :: temp_uv(:,:,:)
 !-----------------------------------------------
       IF (mres0.GT.mpolin .OR. ABS(nres0).GT.ntorin) RETURN
 
       HelP_local = HelPert0
-      IF (isign .EQ. 2) HelP_local = -HelPert0
+      IF (isign1 .EQ. 2) HelP_local = -HelPert0
 
-      ALLOCATE (bmn_res(0:mpol,-ntor:ntor), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ISTAT != 0 IN GETRESPERT')
-      bmn_res = 0
-
+!	Compute radial form factor (window-function)
       js = INT(rad/hs_i) + 1
       IF (js.LT.1 .OR. js.GT.ns) RETURN
       chip0 = chipf_i(js)
@@ -399,34 +440,64 @@
 !         pert_prof(js) = rhores*pert_prof(js)        !odd-parity (rippling mode)
       END DO
 
-      pert_prof = HelP_local*pert_prof
-         
-      bmn_res(mres0,nres0) = 1
-      CALL toijsp2(bmn_res, buv_res, f_cos, 1)
+!THIS DOESN'T SEEM TO WORK AS WELL AS THE SIMPLE FORM FACTOR
+!SO KEEP JDOTB_PERT UNDEFINED UNTIL WE CAN IMPROVE IT
+#if defined(JDOTB_PERT)
+      ALLOCATE(resc(0:mpol,-ntor:ntor, nsmin:nsmax),                    &
+               ress(0:mpol,-ntor:ntor, nsmin:nsmax), stat=istat)
+
+      rho = MAX(MAXVAL(ABS(bmnc_res(mres0,nres0,:))),                   &
+                MAXVAL(ABS(bmns_res(mres0,nres0,:))))
+
+      resc = 0; ress = 0
+      resc(mres0,nres0,:) = HelP_local*bmnc_res(mres0,nres0,:)
+      
+      CALL toijsp_par(resc, buv_res, f_none, f_cos)
+      
       IF (lasym) THEN
-         ALLOCATE (temp_uv(ntheta,nzeta), stat=istat)
-         CALL toijsp2(bmn_res, temp_uv, f_sin, 1)
-         buv_res(:,:,1) = buv_res(:,:,1) + temp_uv;
-         DEALLOCATE(temp_uv)
+!NOTE TO MRC: eventually use separate HelPertS here
+         ress(mres0,nres0,:) = HelP_local*bmns_res(mres0,nres0,:)
+         CALL toijsp_par(ress, buv_res, f_sum, f_sin)
       END IF
-      DO js = 2,ns
-         buv_res(:,:,js) = buv_res(:,:,1)*pert_prof(js)
+      
+      IF (rho .NE. zero) buv_res = buv_res/rho
+
+!	Apply radial form-factor
+      DO js = nsmin, nsmax
+         buv_res(:,:,js) = buv_res(:,:,js)*pert_prof(js)
       END DO
 
-      buv_res(:,:,1) = pert_prof(1)*buv_res(:,:,1)
+      DEALLOCATE (resc, ress, stat=istat)
+#else      
+      ALLOCATE (bmn_res(0:mpol,-ntor:ntor), stat=istat)
+      IF (istat .NE. 0) CALL ErrorAbort('ISTAT != 0 IN GETRESPERT')
+      bmn_res = 0
+         
+      bmn_res(mres0,nres0) = HelP_local
+      CALL toijsp2(bmn_res, buv_res, f_cos, nsmin)
+      
+      IF (lasym) THEN
+         ALLOCATE (temp_uv(ntheta,nzeta,1), stat=istat)
+!NOTE TO MRC: eventually use separate HelPertS here 
+         bmn_res(mres0,nres0) = HelP_local
+         CALL toijsp2(bmn_res, temp_uv, f_sin, 1)
+         buv_res(:,:,nsmin) = buv_res(:,:,nsmin) + temp_uv(:,:,1)
+         DEALLOCATE(temp_uv)
+      END IF
+      DO js = nsmin+1, nsmax
+         buv_res(:,:,js) = buv_res(:,:,nsmin)*pert_prof(js)
+      END DO
 
+      buv_res(:,:,nsmin) = buv_res(:,:,nsmin)*pert_prof(nsmin)
+      
       DEALLOCATE (bmn_res, stat=istat)
+#endif
 
       END SUBROUTINE GetResPert
         
 
       SUBROUTINE write_restart_file
-      USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
-                            ns, mpol, ntor, GatherFields
-      USE descriptor_mod, ONLY: iam
-#if defined(MRC)
       USE restart_mod
-#endif
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -437,138 +508,16 @@
 !Gather fields for all ns (at this point, known only on [nsmin-1,nsmax+2])
       CALL GatherFields
 
-      IF (iam .NE. 0) RETURN
-#if defined(MRC)
-      istat = restart_write("siesta_" // TRIM(restart_ext) // ".nc", wout_file)
-      RETURN
-#elif defined(NETCDF)
-      CALL write_restart_ncfile (istat)
-      IF (istat .EQ. 0) RETURN
-#endif
-
-      filename = "siesta_" // TRIM(restart_ext) // ".txt"
-      OPEN (unit=15, file=TRIM(filename), status='replace',              &
-            form='formatted', iostat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ERROR WRITING SIESTA RESTART FILE')
-
-!     PRINT *,'WRITING RESTART FILE: ', TRIM(filename)
-!
-!     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
-!     EVENTUALLY USE FOR MULTIGRIDDING
-!
-      WRITE (15,'(L1)') lasym
-      WRITE (15,100) nsin, mpolin, ntorin
-      WRITE (15,200) wout_file
-
-      DO js=1,nsin
-      DO m =0,mpolin
-      DO n = -ntorin,ntorin
-      WRITE (15,300) jbsupsmnsh(m,n,js), jbsupumnch(m,n,js),             &
-     &               jbsupvmnch(m,n,js), jpmnch(m,n,js)
-      ENDDO
-      ENDDO
-      ENDDO
-
-      IF (lasym) THEN
-
-      DO js=1,nsin
-         DO m =0,mpolin
-            DO n = -ntorin,ntorin
-               WRITE (15,300) jbsupsmnch(m,n,js), jbsupumnsh(m,n,js),    &
-                              jbsupvmnsh(m,n,js), jpmnsh(m,n,js)
-            ENDDO
-         ENDDO
-      ENDDO
-
-      ENDIF
-
-      CLOSE (unit=15)
-
- 100  FORMAT(3i8)
- 200  FORMAT(a256)
- 300  FORMAT(1p4e24.16)
+      IF (iam .EQ. 0) THEN
+         filename = "siesta_" // TRIM(restart_ext)
+         istat = restart_write(TRIM(filename), wout_file)
+         IF (istat .NE. 0) PRINT *, "Unable to write restart file!"
+      END IF
 
       END SUBROUTINE write_restart_file
-     
-      
-#if defined(NETCDF)
-      SUBROUTINE write_restart_ncfile (istat)
-      USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
-                            ns, mpol, ntor
-      USE ezcdf
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER :: istat
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER           :: ncdf, js, m, n
-      CHARACTER*(256)   :: filename
-!-----------------------------------------------
-      filename = "siesta_" // TRIM(restart_ext) // ".nc"
-
-      CALL cdf_open(ncdf,filename,'w',istat)
-      IF (istat .NE. 0) RETURN
-
-!     PRINT *,'WRITING RESTART FILE: ', TRIM(filename)
-
-!================================
-! Define Variables
-!================================
-!  Scalars 
-      CALL cdf_define(ncdf, vn_lasym, lasym)
-      CALL cdf_define(ncdf, vn_nsin, nsin)
-      CALL cdf_define(ncdf, vn_mpolin, mpolin)
-      CALL cdf_define(ncdf, vn_ntorin, ntorin)
-      CALL cdf_define(ncdf, vn_wout, wout_file)
-
-!  3D arrays
-      CALL cdf_define(ncdf, vn_bsupss, jbsupsmnsh, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_bsupuc, jbsupumnch, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_bsupvc, jbsupvmnch, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_presc,  jpmnch,     dimname=r3dim)
-
-      IF (lasym) THEN
-
-      CALL cdf_define(ncdf, vn_bsupsc, jbsupsmnch, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_bsupus, jbsupumnsh, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_bsupvs, jbsupvmnsh, dimname=r3dim)
-      CALL cdf_define(ncdf, vn_press,  jpmnsh,     dimname=r3dim)
-
-      END IF
-!================================
-! Write Variables
-!================================
-      CALL cdf_write(ncdf, vn_lasym, lasym)
-      CALL cdf_write(ncdf, vn_nsin, nsin)
-      CALL cdf_write(ncdf, vn_mpolin, mpolin)
-      CALL cdf_write(ncdf, vn_ntorin, ntorin)
-      CALL cdf_write(ncdf, vn_wout, wout_file)
-
-      CALL cdf_write(ncdf, vn_bsupss, jbsupsmnsh)
-      CALL cdf_write(ncdf, vn_bsupuc, jbsupumnch)
-      CALL cdf_write(ncdf, vn_bsupvc, jbsupvmnch)
-      CALL cdf_write(ncdf, vn_presc,  jpmnch)
-
-      IF (lasym) THEN
-      CALL cdf_write(ncdf, vn_bsupsc, jbsupsmnch)
-      CALL cdf_write(ncdf, vn_bsupus, jbsupumnsh)
-      CALL cdf_write(ncdf, vn_bsupvs, jbsupvmnsh)
-      CALL cdf_write(ncdf, vn_press,  jpmnsh)
-      END IF
-
-      CALL cdf_close(ncdf)
-
-      END SUBROUTINE write_restart_ncfile
-#endif
 
       SUBROUTINE read_restart_file (nprecon)
-      USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch
-#if defined(MRC)
       USE restart_mod
-#endif
       IMPLICIT NONE
       INTEGER, INTENT(OUT) :: nprecon
 !-----------------------------------------------
@@ -580,239 +529,17 @@
       REAL(dp)        :: r0
       CHARACTER*(256)    :: filename
 !-----------------------------------------------
-#if defined(MRC)
-      istat = restart_read("siesta_" // TRIM(restart_ext) // ".nc",      &
-                           mpolin, ntorin, nsin, wout_file)
-      nprecon = 2   !USED TO SKIP DIAGONAL PRECONDITIONER IN EVOLVE
-      RETURN
-#elif defined(NETCDF)
-      CALL read_restart_ncfile (istat, ns, ntor, mpol)
-      nmin = MIN(ntor, ntorin)
-      IF (istat .EQ. 0) GOTO 111
-#endif
-
-      filename = "siesta_" // TRIM(restart_ext) // ".txt"
-      OPEN (unit=15, file=TRIM(filename), status='old',                  &
-            form='formatted', iostat=istat)
-      IF (istat .NE. 0) THEN 
-         PRINT *,'SIESTA RESTART FILE WAS NOT READ: STARTING AT BEGINNING'
-         RETURN
+      filename = "siesta_" // TRIM(restart_ext)
+      istat = restart_read(filename, wout_file, mpolin, ntorin, nsin)
+      IF (istat .NE. 0) THEN
+         lrestart = .FALSE.              
+      ELSE
+!SKIP DIAGONAL PRECONDITIONER IN EVOLVE
+         nprecon = 2
       END IF
-
-      IF (iam .EQ. 0) THEN
-         PRINT *,'READING RESTART FILE: ', TRIM(filename)
-      ENDIF
-!
-!     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
-!     EVENTUALLY USE FOR MULTIGRIDDING
-!
-      READ (15,'(L1)') lasym
-      READ (15,100) ns, mpol, ntor
-      nmin = MIN(ntor, ntorin)
-
-      ALLOCATE (bsupss(0:mpol,-ntor:ntor,ns),                            &
-                bsupuc(0:mpol,-ntor:ntor,ns),                            &
-                bsupvc(0:mpol,-ntor:ntor,ns),                            & 
-                presc(0:mpol,-ntor:ntor,ns), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in read_restart_file')
-
-      READ (15,200) wout_file
-
-      DO js=1,ns
-      DO m=0,mpol
-      DO n=-ntor,ntor
-      READ (15,300) bsupss(m,n,js), bsupuc(m,n,js),                      &
-                    bsupvc(m,n,js), presc(m,n,js)
-      ENDDO
-      ENDDO
-      ENDDO
-
-      IF (lasym) THEN
-      ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                            &
-                bsupus(0:mpol,-ntor:ntor,ns),                            &
-                bsupvs(0:mpol,-ntor:ntor,ns),                            & 
-                press(0:mpol,-ntor:ntor,ns), stat=istat)
-      DO js=1,ns
-      DO m=0,mpol
-      DO n=-ntor,ntor
-      READ (15,300) bsupsc(m,n,js), bsupus(m,n,js),                      &
-                    bsupvs(m,n,js), press(m,n,js)
-      ENDDO
-      ENDDO
-      ENDDO
-      END IF
-
-      CLOSE (unit=15)
-
- 111  CONTINUE
-
-      jbsupsmnsh(:,:,1) = 0
-      jbsupvmnch(:,:,1) = 0
-      jpmnch(:,:,1) = 0
-
-      CALL interpit(bsupss, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
-      CALL interpit(bsupuc, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
-      CALL interpit(bsupvc, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
-      CALL interpit(presc, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
-      jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
-      DEALLOCATE (bsupss, bsupuc, bsupvc, presc, stat=istat)
-
-      IF (lasym) THEN
-      jbsupsmnch(:,:,1) = 0
-      jbsupvmnsh(:,:,1) = 0
-      jpmnsh(:,:,1) = 0
-
-      CALL interpit(bsupsc, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
-      CALL interpit(bsupus, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupumnsh(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
-      CALL interpit(bsupvs, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
-      jbsupvmnsh(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
-      CALL interpit(press, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
-      jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
-      DEALLOCATE (bsupsc, bsupus, bsupvs, press, stat=istat)
-      END IF
-
-      WRITE (33, 400) mpol, ntor, ns
-      nprecon = 2   !USED TO SKIP DIAGONAL PRECONDITIONER IN EVOLVE
-
- 100  FORMAT(3i8)
- 200  FORMAT(a256)
- 300  FORMAT(1p4e24.16)
- 400  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
-
+ 
       END SUBROUTINE read_restart_file
-
-#if defined(NETCDF)
-      SUBROUTINE read_restart_ncfile (istat, ns, ntor, mpol)
-      USE ezcdf
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER :: istat, ns, mpol, ntor
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER           :: ncdf
-      CHARACTER*(256)   :: filename
-!-----------------------------------------------
-      filename = "siesta_" // TRIM(restart_ext) // ".nc"
-
-      CALL cdf_open(ncdf,filename,'r',istat)
-      IF (istat .NE. 0) RETURN
-
-      CALL cdf_read(ncdf, vn_lasym, lasym)
-      CALL cdf_read(ncdf, vn_nsin, ns)
-      CALL cdf_read(ncdf, vn_mpolin, mpol)
-      CALL cdf_read(ncdf, vn_ntorin, ntor)
-      CALL cdf_read(ncdf, vn_wout, wout_file)
-
-      ALLOCATE (bsupss(0:mpol,-ntor:ntor,ns),                            &
-                bsupuc(0:mpol,-ntor:ntor,ns),                            &
-                bsupvc(0:mpol,-ntor:ntor,ns),                            & 
-                presc(0:mpol,-ntor:ntor,ns), stat=istat)
-      IF (lasym) THEN
-      ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                            &
-                bsupus(0:mpol,-ntor:ntor,ns),                            &
-                bsupvs(0:mpol,-ntor:ntor,ns),                            & 
-                press(0:mpol,-ntor:ntor,ns), stat=istat)
-      END IF
-      IF (istat .NE. 0) CALL ErrorAbort('Memory allocation error in read_restart_ncfile')
-
-!================================
-! Read Variables
-!================================
-
-      CALL cdf_read(ncdf, vn_bsupss, bsupss)
-      CALL cdf_read(ncdf, vn_bsupuc, bsupuc)
-      CALL cdf_read(ncdf, vn_bsupvc, bsupvc)
-      CALL cdf_read(ncdf, vn_presc,  presc)
-
-      IF (lasym) THEN
-      CALL cdf_read(ncdf, vn_bsupsc, bsupsc)
-      CALL cdf_read(ncdf, vn_bsupus, bsupus)
-      CALL cdf_read(ncdf, vn_bsupvs, bsupvs)
-      CALL cdf_read(ncdf, vn_press,  press)
-      END IF
-
-      CALL cdf_close(ncdf)
-
-      END SUBROUTINE read_restart_ncfile
-#endif
   
-#if !defined(MRC)
-      SUBROUTINE interpit(aold, anew, ns_old, ns_new, m1, m2, n1, n2)
-      USE stel_constants, ONLY: one
-      IMPLICIT NONE
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      INTEGER, INTENT(in)      :: n1, n2, m1, m2, ns_old, ns_new
-      REAL(dp), INTENT(in)  :: aold(0:m1,-n1:n1,ns_old)
-      REAL(dp), INTENT(out) :: anew(0:m2,-n2:n2,ns_new)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), PARAMETER   :: p5 = 0.5_dp
-      REAL(dp), ALLOCATABLE :: temp1(:,:,:)
-      INTEGER                  :: m12, n12, js_old, js_new, istat
-      REAL(dp)              :: hs_old, hs_new, snew, sold, x1
-!-----------------------------------------------
-
-      m12 = MIN(m1,m2);  n12 = MIN(n1, n2)
-      
-      anew = 0
-
-      IF (ns_old .EQ. ns_new) THEN
-         anew(0:m12,-n12:n12,:) = aold(0:m12,-n12:n12,:)
-         RETURN
-      END IF
-
-      ALLOCATE (temp1(0:m12,-n12:n12,ns_old), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in INTERPIT')
-!
-!     FIRST INTERP TO FULL MESH FROM HALF-MESH
-!     ASSUMES js=1 FULL-MESH VALUE VALUE IS STORED IN aold(1)
-!
-      temp1(:,:,1) = 0
-      temp1(:,:,2:ns_old-1) = p5*(aold(:,:,2:ns_old-1) + aold(:,:,3:ns_old))
-      temp1(:,:,ns_old) = 2*aold(:,:,ns_old) - temp1(:,:,ns_old-1)
-      temp1(0:1,:,1)  = 2*aold(0:1,:,2) - temp1(0:1,:,2)
-      hs_old = one/(ns_old-1)
-      hs_new = one/(ns_new-1)
-
-      DO js_new=1, ns_new
-         snew = (js_new-1)*hs_new
-         js_old = 1 + INT(snew/hs_old)
-         x1 = snew - (js_old-1)*hs_old
-         x1 = x1/hs_old
-         IF (x1 .GT. one) x1 = 1
-         IF (x1 .LT. zero) x1 = 0
-         IF (js_old .gt. ns_old) CALL ErrorAbort('js_old >= ns_old in INTERPIT')
-         IF (js_old .eq. ns_old) THEN
-             anew(:,:,js_new) = temp1(:,:,js_old)
-         ELSE
-             anew(:,:,js_new) = (one-x1)*temp1(:,:,js_old)               &
-                              + x1*temp1(:,:,js_old+1)
-         END IF
-      END DO
-!      
-!     AVERAGE BACK TO HALF-MESH
-!
-      DEALLOCATE (temp1)
-      ALLOCATE (temp1(0:m12,-n12:n12,ns_new), stat=istat)
-      IF (istat .ne. 0) CALL ErrorAbort('Allocation error #2 in INTERPIT')
-      temp1 = anew
-      anew(:,:,1) = 0
-      anew(:,:,2:ns_new) = p5*(temp1(:,:,2:ns_new) + temp1(:,:,1:ns_new-1))
-      DEALLOCATE(temp1)
-
-      END SUBROUTINE interpit
-#endif
       SUBROUTINE Compute_Resonant_Epar(xc, epar)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s

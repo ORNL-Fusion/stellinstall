@@ -8,7 +8,7 @@
       USE siesta_bfield, ONLY: update_bfield
       USE siesta_init, ONLY: init_state
       USE nscalingtools, ONLY: startglobrow, endglobrow, PARFUNCTISL
-      USE siesta_state, ONLY: update_state_par, update_state
+      USE siesta_state, ONLY: update_state, update_state
       USE siesta_displacement, ONLY: update_upperv
       IMPLICIT NONE
 !-----------------------------------------------
@@ -39,7 +39,7 @@
 
          CALL init_state(lcurrent_only)                                    !Use new B-field to get KsubXij currents
          CALL update_bfield(.TRUE.)                                        !Resistive update to B-field
-         CALL update_state_par(.FALSE., zero, zero)                        !Updates B-field with resistive piece
+         CALL update_state(.FALSE., zero, zero)                        !Updates B-field with resistive piece
 
       END DO
 

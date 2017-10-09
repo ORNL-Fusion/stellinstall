@@ -10,6 +10,10 @@
       MODULE restart_mod
       USE ezcdf
       USE stel_kinds
+      USE utilities, ONLY: GradientFull, to_full_mesh
+      USE metrics, ONLY: tolowerh
+      USE descriptor_mod, ONLY: iam
+      USE shared_data, ONLY: lasym, lrecon
 
       IMPLICIT NONE
 
@@ -125,12 +129,11 @@
 !>  @param[inout] wout_file         Name of the wout file.
 !>  @returns Error status of the read.
 !-------------------------------------------------------------------------------
-      FUNCTION restart_read(restart_file_name, mpolin, ntorin, nsin, wout_file)
-      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                            &
-                            jbsupumnsh, jbsupumnch,                            &
-                            jbsupvmnsh, jbsupvmnch,                            &
+      FUNCTION restart_read(restart_file_name, wout_file, mpolin, ntorin, nsin)
+      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                       &
+                            jbsupumnsh, jbsupumnch,                       &
+                            jbsupvmnsh, jbsupvmnch,                       &
                             jpmnsh,     jpmnch
-      USE shared_data, ONLY: lasym
 
       IMPLICIT NONE
 
@@ -147,17 +150,51 @@
       INTEGER                                     :: ns
       INTEGER                                     :: mpol
       INTEGER                                     :: ntor
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
       INTEGER                                     :: nmin
 
 !  local parameters
       INTEGER, PARAMETER                          :: m0=0
       INTEGER, PARAMETER                          :: m1=1
+      CHARACTER (LEN=256)                         :: filename
+      LOGICAL                                     :: lex
 
 !  Start of executable code
-      CALL cdf_open(ncid, TRIM(restart_file_name), 'r', restart_read)
-      IF (restart_read .ne. 0) RETURN
 
+      restart_read = 1
+
+#if defined(NETCDF)
+      filename = TRIM(restart_file_name) // ".nc"
+      INQUIRE(file=TRIM(filename), exist=lex)
+      IF (lex) THEN
+         CALL cdf_open(ncid, TRIM(filename), 'r', restart_read)
+      END IF          
+#endif            
+      IF (restart_read .NE. 0) THEN
+          filename = TRIM(restart_file_name) // ".txt"
+          restart_read = restart_read_txt(filename, mpolin, ntorin, nsin)
+      END IF
+
+      IF (restart_read .NE. 0) THEN
+         IF (iam .EQ. 0) THEN
+            filename = 'UNABLE TO READ SIESTA RESTART FILE: ' //         &
+                        TRIM(restart_file_name)
+            PRINT 50, TRIM(filename)
+         END IF
+         RETURN
+      ELSE
+         IF (iam .EQ. 0) THEN
+            WRITE (33, 400) mpol, ntor, ns
+            filename = 'RESTART FILE WAS SUCCESSFULLY READ: ' //          &
+                        TRIM(restart_file_name)
+            PRINT 50, TRIM(filename)
+            CALL FLUSH(33)
+         END IF
+      END IF
+ 50   FORMAT(' ************',/,1x,a,/,' ************')
+400   FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
+
+#if defined(NETCDF)
       CALL cdf_read(ncid, vn_flags, flags)
 
 !  The namelist inut file can change the size of the radial grid and the 
@@ -219,12 +256,105 @@
       CALL cdf_close(ncid)
 
       DEALLOCATE(tempmn)
+#endif
+      END FUNCTION restart_read
 
-      WRITE (33, 400) mpol, ntor, ns
 
- 400  FORMAT(/,' RESTARTED FROM RUN PARAMETERS M: ',i3,' N: ',i3,' NS: ', i3,/)
+      FUNCTION restart_read_txt(filename, mpolin, ntorin, nsin)
+      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                      &
+                            jbsupumnsh, jbsupumnch,                      &
+                            jbsupvmnsh, jbsupvmnch,                      &
+                            jpmnsh,     jpmnch
+      INTEGER, PARAMETER :: m0=0, m1=1
+      INTEGER  :: restart_read_txt, mpolin, ntorin, nsin
+      INTEGER  :: nmin, mpol, ntor, ns, istat, m, n, js
+      CHARACTER (LEN=*), INTENT(IN)  :: filename
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    ::                     &
+                 bsupss, bsupuc, bsupvc, presc,                          &
+                 bsupsc, bsupus, bsupvs, press
+    
+      OPEN (unit=15, file=TRIM(filename), status='old',                  &
+            form='formatted', iostat=istat)
+      IF (istat .NE. 0) THEN 
+         restart_read_txt = 1
+         RETURN
+      END IF
 
-      END FUNCTION
+      restart_read_txt = 0
+!
+!     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
+!     EVENTUALLY USE FOR MULTIGRIDDING
+!
+      READ (15,'(L1)') lasym
+      READ (15,100) ns, mpol, ntor
+      nmin = MIN(ntor, ntorin)
+
+      ALLOCATE (bsupss(0:mpol,-ntor:ntor,ns),                            &
+                bsupuc(0:mpol,-ntor:ntor,ns),                            &
+                bsupvc(0:mpol,-ntor:ntor,ns),                            & 
+                presc(0:mpol,-ntor:ntor,ns), stat=istat)
+      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in restart_read_txt')
+
+      DO js=1,ns
+      DO m=0,mpol
+      DO n=-ntor,ntor
+      READ (15,300) bsupss(m,n,js), bsupuc(m,n,js),                      &
+                    bsupvc(m,n,js), presc(m,n,js)
+      ENDDO
+      ENDDO
+      ENDDO
+
+      IF (lasym) THEN
+      ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                            &
+                bsupus(0:mpol,-ntor:ntor,ns),                            &
+                bsupvs(0:mpol,-ntor:ntor,ns),                            & 
+                press(0:mpol,-ntor:ntor,ns), stat=istat)
+      DO js=1,ns
+      DO m=0,mpol
+      DO n=-ntor,ntor
+      READ (15,300) bsupsc(m,n,js), bsupus(m,n,js),                      &
+                    bsupvs(m,n,js), press(m,n,js)
+      ENDDO
+      ENDDO
+      ENDDO
+      END IF
+
+      CLOSE (unit=15)
+
+      jbsupsmnsh(:,:,1) = 0
+      jbsupvmnch(:,:,1) = 0
+      jpmnch(:,:,1) = 0
+
+      CALL interpit(bsupss, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+      jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
+      CALL interpit(bsupuc, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
+      CALL interpit(bsupvc, jbsupvmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      jbsupvmnch(m0,-nmin:nmin,1) = jbsupvmnch(m0,-nmin:nmin,2)
+      CALL interpit(presc, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
+      jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
+      DEALLOCATE (bsupss, bsupuc, bsupvc, presc, stat=istat)
+
+      IF (lasym) THEN
+      jbsupsmnch(:,:,1) = 0
+      jbsupvmnsh(:,:,1) = 0
+      jpmnsh(:,:,1) = 0
+
+      CALL interpit(bsupsc, jbsupsmnch, ns, nsin, mpol, mpolin, ntor, ntorin)
+      jbsupsmnch(m1,-nmin:nmin,1) = jbsupsmnch(m1,-nmin:nmin,2)
+      CALL interpit(bsupus, jbsupumnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+      jbsupumnsh(m1,-nmin:nmin,1) = jbsupumnsh(m1,-nmin:nmin,2)
+      CALL interpit(bsupvs, jbsupvmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
+      jbsupvmnsh(m0,-nmin:nmin,1) = jbsupvmnsh(m0,-nmin:nmin,2)
+      CALL interpit(press, jpmnsh,     ns, nsin, mpol, mpolin, ntor, ntorin)
+      jpmnsh(m0,-nmin:nmin,1) = jpmnsh(m0,-nmin:nmin,2)
+      DEALLOCATE (bsupsc, bsupus, bsupvs, press, stat=istat)
+      END IF
+
+ 100  FORMAT(3i8)
+ 300  FORMAT(1p4e24.16)
+      
+      END FUNCTION restart_read_txt
 
 !-------------------------------------------------------------------------------
 !>  @brief Write the restart file.
@@ -242,7 +372,6 @@
                             jpmnsh,     jpmnch,                                &
                             b_factor,   p_factor, jacobh
       USE fourier
-      USE shared_data, ONLY: lasym, lrecon
       USE island_params, ONLY: ohs => ohs_i
 
       IMPLICIT NONE
@@ -257,36 +386,46 @@
       INTEGER                                     :: ncid
       INTEGER                                     :: nblock
       INTEGER                                     :: s, m, n
-      REAL (rprec)                                :: r0
-      REAL (rprec)                                :: tempscalar
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsupsijh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsupuijh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsupvijh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubsijh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubuijh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubvijh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubsmnh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubumnh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubvmnh
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubsmnf
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubumnf
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: bsubvmnf
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupsmnf
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupumnf
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: jksupvmnf
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: dbuds
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: dbvds
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: pijh
-
+#if defined(MRC)      
+      REAL (dp)                                :: r0
+      REAL (dp)                                :: tempscalar
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsupsijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsupuijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsupvijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubsijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubuijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubvijh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubsmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubumnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubvmnh
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubsmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubumnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: bsubvmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupsmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupumnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: jksupvmnf
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbuds
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: dbvds
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: tempmn
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE :: pijh
+#endif
 !  local parameters
       INTEGER, PARAMETER                          :: m0=0
       INTEGER, PARAMETER                          :: m1=1
       INTEGER, PARAMETER                          :: m2=2
+      CHARACTER (LEN=256)                         :: filename
 
 !  Start of executable code
-      CALL cdf_open(ncid, TRIM(restart_file_name), 'w', restart_write)
-      IF (restart_write .NE. 0) RETURN
+      restart_write = 1
+#if defined(NETCDF)
+      filename = TRIM(restart_file_name) // ".nc"
+      CALL cdf_open(ncid, TRIM(filename), 'w', restart_write)
+#endif            
+      IF (restart_write .NE. 0) THEN
+         filename = TRIM(restart_file_name) // ".txt"
+         restart_write = restart_write_txt(filename)
+         RETURN
+      END IF
 
       flags = restart_version
       IF (lasym) THEN
@@ -296,6 +435,7 @@
          flags = IBSET(flags, restart_lrecon)
       END IF
 
+#if defined(NETCDF)
       CALL cdf_define(ncid, vn_flags, flags)
       CALL cdf_define(ncid, vn_nsin, ns)
       CALL cdf_define(ncid, vn_mpolin, mpol)
@@ -314,7 +454,26 @@
          CALL cdf_define(ncid, vn_jpress,  jpmnsh,     dimname=restart_dims)
       END IF
 
-      IF (lrecon) THEN
+      CALL cdf_write(ncid, vn_flags, flags)
+      CALL cdf_write(ncid, vn_nsin, ns)
+      CALL cdf_write(ncid, vn_mpolin, mpol)
+      CALL cdf_write(ncid, vn_ntorin, ntor)
+      CALL cdf_write(ncid, vn_wout, wout_file)
+
+      CALL cdf_write(ncid, vn_jbsupss, jbsupsmnsh)
+      CALL cdf_write(ncid, vn_jbsupuc, jbsupumnch)
+      CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
+      CALL cdf_write(ncid, vn_jpresc,  jpmnch)
+
+      IF (lasym) THEN
+         CALL cdf_write(ncid, vn_jbsupsc, jbsupsmnch)
+         CALL cdf_write(ncid, vn_jbsupus, jbsupumnsh)
+         CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
+         CALL cdf_write(ncid, vn_jpress,  jpmnsh)
+      END IF
+
+#if defined(MRC)
+      RECON0: IF (lrecon) THEN
 !  Using variable with jacobian only for the dimension sizes and types. Be for
 !  writting, the jacobian normalization will be removed.
          CALL cdf_define(ncid, vn_bsupsmns,  jbsupsmnsh, dimname=restart_dims)
@@ -343,27 +502,7 @@
             CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh, dimname=restart_dims)
             CALL cdf_define(ncid, vn_pmns,      jpmnsh,     dimname=restart_dims)
          END IF
-      END IF
 
-      CALL cdf_write(ncid, vn_flags, flags)
-      CALL cdf_write(ncid, vn_nsin, ns)
-      CALL cdf_write(ncid, vn_mpolin, mpol)
-      CALL cdf_write(ncid, vn_ntorin, ntor)
-      CALL cdf_write(ncid, vn_wout, wout_file)
-
-      CALL cdf_write(ncid, vn_jbsupss, jbsupsmnsh)
-      CALL cdf_write(ncid, vn_jbsupuc, jbsupumnch)
-      CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
-      CALL cdf_write(ncid, vn_jpresc,  jpmnch)
-
-      IF (lasym) THEN
-         CALL cdf_write(ncid, vn_jbsupsc, jbsupsmnch)
-         CALL cdf_write(ncid, vn_jbsupus, jbsupumnsh)
-         CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
-         CALL cdf_write(ncid, vn_jpress,  jpmnsh)
-      END IF
-
-      IF (lrecon) THEN
          CALL cdf_write(ncid, vn_p_factor, p_factor)
          CALL cdf_write(ncid, vn_b_factor, b_factor)
 
@@ -433,7 +572,8 @@
          ALLOCATE(bsubuijh(ntheta,nzeta,ns))
          ALLOCATE(bsubvijh(ntheta,nzeta,ns))
 
-         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh, bsubsijh, bsubuijh, bsubvijh)
+         CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                    &
+                       bsubsijh, bsubuijh, bsubvijh, 1, ns)
 
 !  Need these to compute the currents later.
          ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,ns))
@@ -462,9 +602,9 @@
          ALLOCATE(bsubvmnf(0:mpol,-ntor:ntor,ns))
 
          nblock = (2*ntor + 1)*(mpol + 1)
-         CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock)
-         CALL to_full_mesh(bsubumnh, bsubumnf, nblock)
-         CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock)
+         CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock, 1, ns)
+         CALL to_full_mesh(bsubumnh, bsubumnf, nblock, 1, ns)
+         CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock, 1, ns)
 
          ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
@@ -473,8 +613,8 @@
          ALLOCATE(dbvds(0:mpol,-ntor:ntor,ns))
 
 !  Half grid radial derivatives become full grid.
-         CALL GradientFull(dbuds, bsubumnh, nblock)
-         CALL GradientFull(dbvds, bsubvmnh, nblock)
+         CALL GradientFull(dbuds, bsubumnh)
+         CALL GradientFull(dbvds, bsubvmnh)
 
          DO n = -ntor, ntor
             DO m = 0, mpol
@@ -529,12 +669,12 @@
             END DO
             CALL cdf_write(ncid, vn_bsubvmns, tempmn)
 
-            CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock)
-            CALL to_full_mesh(bsubumnh, bsubumnf, nblock)
-            CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock)
+            CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock, 1, ns)
+            CALL to_full_mesh(bsubumnh, bsubumnf, nblock, 1, ns)
+            CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock, 1, ns)
 
-            CALL GradientFull(dbuds, bsubumnh, nblock)
-            CALL GradientFull(dbvds, bsubvmnh, nblock)
+            CALL GradientFull(dbuds, bsubumnh)
+            CALL GradientFull(dbvds, bsubvmnh)
 
             DO n = -ntor, ntor
                DO m = 0, mpol
@@ -572,11 +712,63 @@
          DEALLOCATE(dbvds)
 
          DEALLOCATE(tempmn)
-      END IF
-
+      END IF RECON0
+#endif
       CALL cdf_close(ncid)
+#endif
+      END FUNCTION restart_write
 
-      END FUNCTION
+      FUNCTION restart_write_txt(filename)
+      USE quantities, ONLY: jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,  &
+                            jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,  &
+                            ns, mpol, ntor
+      CHARACTER (LEN=*)     :: filename
+      INTEGER               :: restart_write_txt, istat, js, m, n
+      
+      OPEN (unit=15, file=TRIM(filename), status='replace',              &
+            form='formatted', iostat=istat)
+      IF (istat .NE. 0) THEN
+         restart_write_txt = 1
+         RETURN
+      END IF
+      
+      restart_write_txt = 0
+
+!
+!     USE THIS DIMENSION INFO TO COMPARE WITH MESH IN JOB-CONTROL FILE
+!     EVENTUALLY USE FOR MULTIGRIDDING
+!
+      WRITE (15,'(L1)') lasym
+      WRITE (15,100) ns, mpol, ntor
+
+      DO js=1,ns
+         DO m =0,mpol
+            DO n = -ntor,ntor
+            WRITE (15,300) jbsupsmnsh(m,n,js), jbsupumnch(m,n,js),       &
+                           jbsupvmnch(m,n,js), jpmnch(m,n,js)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      IF (lasym) THEN
+
+      DO js=1,ns
+         DO m =0,mpol
+            DO n = -ntor,ntor
+            WRITE (15,300) jbsupsmnch(m,n,js), jbsupumnsh(m,n,js),       &
+                           jbsupvmnsh(m,n,js), jpmnsh(m,n,js)
+            ENDDO
+         ENDDO
+      ENDDO
+
+      ENDIF
+
+      CLOSE (UNIT=15)
+
+ 100  FORMAT(3i8)
+ 300  FORMAT(1p4e24.16)
+      
+      END FUNCTION restart_write_txt
 
 !-------------------------------------------------------------------------------
 !>  @brief Reads the restart file.
@@ -605,16 +797,16 @@
       INTEGER, INTENT(in)      :: mpol_new
       INTEGER, INTENT(in)      :: ntor_old
       INTEGER, INTENT(in)      :: ntor_new
-      REAL(rprec), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
-      REAL(rprec), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
+      REAL(dp), INTENT(in)  :: aold(0:mpol_old,-ntor_old:ntor_old,ns_old)
+      REAL(dp), INTENT(out) :: anew(0:mpol_new,-ntor_new:ntor_new,ns_new)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER   :: p5 = 0.5_dp
-      REAL(rprec), ALLOCATABLE :: temp1(:,:,:)
+      REAL(dp), PARAMETER   :: p5 = 0.5_dp
+      REAL(dp), ALLOCATABLE :: temp1(:,:,:)
       INTEGER                  :: mpol_min, ntor_min
       INTEGER                  :: js_old, js_new, istat
-      REAL(rprec)              :: hs_old, hs_new, snew, sold, x1
+      REAL(dp)              :: hs_old, hs_new, snew, sold, x1
 !-----------------------------------------------
 
       mpol_min = MIN(mpol_old, mpol_new)

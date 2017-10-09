@@ -22,7 +22,7 @@
       USE timer_mod, ONLY: time_update_upperv
       IMPLICIT NONE
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
-      INTEGER, PRIVATE ::  nsmin, nsmax, ns_span
+      INTEGER, PRIVATE ::  nsmin, nsmax
 
       CONTAINS
 !>    \brief Parallel subroutine for initializing updated displacement components in real space
@@ -39,7 +39,6 @@
 !-----------------------------------------------
       CALL second0(ton)
       nsmin=MAX(1,startglobrow-1); nsmax=MIN(endglobrow+1,ns)
-      ns_span = nsmax-nsmin+1
 
       CALL Clear_Field_Perts
 
@@ -130,11 +129,11 @@
        END IF NSM
 
        CALL toijsp_par(gvsupsmnf, jvsupsijf(:,:,nsmin:nsmax), fcomb,     &  ! Calculate covariant velocities in real space (full mesh)
-                       fours, 1, ns_span)                         
+                       fours)                         
        CALL toijsp_par(gvsupumnf, jvsupuijf(:,:,nsmin:nsmax), fcomb,     &
-                       fouru, 1, ns_span)                        
+                       fouru)                        
        CALL toijsp_par(gvsupvmnf, jvsupvijf(:,:,nsmin:nsmax), fcomb,     &
-                       fourv, 1, ns_span)
+                       fourv)
 
        DEALLOCATE (gvsupsmnf, gvsupumnf, gvsupvmnf,stat=istat)
 

@@ -48,13 +48,15 @@
       USE timer_mod
       USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+      USE utilities, ONLY: GradientFull, to_full_mesh
+      USE bhtobf
 
       IMPLICIT NONE
 
-      INTEGER, PRIVATE  :: nsmin, nsmax, ns_span
+      INTEGER, PRIVATE  :: nsmin, nsmax
       INTEGER, PRIVATE, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), PRIVATE ::                &
-         bsupsijh, bsupuijh, bsupvijh, KxBsij, KxBuij, KxBvij, pijh1
+         bsupsijh, bsupuijh, bsupvijh, pijh, KxBsij, KxBuij, KxBvij
 
 
       CONTAINS
@@ -78,7 +80,7 @@
          pmncf_ds, pmncf, pmnch,                                         &
          pmnsf_ds, pmnsf, pmnsh,                                         &
          ksupsijf, ksupuijf, ksupvijf,                                   &
-         bsupsijf1,bsupuijf1,bsupvijf1,                                  &
+         bsupsijf1,bsupuijf1,bsupvijf1, pijf1,                           &
          KxBsmnc, KxBumns, KxBvmns,                                      &
          KxBsmns, KxBumnc, KxBvmnc
        REAL(dp)    :: ton, toff, skston, skstoff, wp0
@@ -86,13 +88,12 @@
        CALL second0(skston)
        nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow+1)
        n1 = nsmin;  n2 = nsmax
-       ns_span = nsmax-nsmin+1
 
        ALLOCATE(bsupsijh(ntheta,nzeta,n1:n2),                            &
                 bsupuijh(ntheta,nzeta,n1:n2),                            &
                 bsupvijh(ntheta,nzeta,n1:n2),                            &
-                pijh1(ntheta,nzeta,n1:n2), stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_FORCE_PAR')
+                pijh(ntheta,nzeta,n1:n2), stat=istat)  
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_FORCE')
 
 
 !Convert to real-space contravariant components of B and p
@@ -110,8 +111,8 @@
        WPRES: IF (l_getwmhd) THEN
           IF (INHESSIAN) CALL ErrorAbort('l_getwmhd must be set to FALSE in Hessian')
           n2=MIN(ns,endglobrow)
-          IF (nsmin .EQ. 1) pijh1(:,:,1) = 0
-          wp = SUM(pijh1(:,:,n1:n2)*wint(:,:,n1:n2))
+          IF (nsmin .EQ. 1) pijh(:,:,1) = 0
+          wp = SUM(pijh(:,:,n1:n2)*wint(:,:,n1:n2))
           wp0 = signjac*(twopi*twopi * hs_i)*wp
           n2=nsmax
           IF (PARSOLVER) THEN
@@ -129,21 +130,19 @@
                 ksupvijf(ntheta,nzeta,n1:n2),                            &
                 bsupsijf1(ntheta,nzeta,n1:n2),                           &
                 bsupuijf1(ntheta,nzeta,n1:n2),                           &
-                bsupvijf1(ntheta,nzeta,n1:n2), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_FORCE_PAR')
+                bsupvijf1(ntheta,nzeta,n1:n2),                           &
+                pijf1(ntheta,nzeta,n1:n2), stat=istat)
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_FORCE')
 
 !
-!Calculate updated FULL-MESH components of BSUPX in real-space by averaging
+!Calculate updated FULL-MESH components of BSUPX and PRESSURE in real-space by averaging
 !
        bsupsijh = bsupsijh/jacobh(:,:,n1:n2)
        bsupvijh = bsupvijh/jacobh(:,:,n1:n2)
-       CALL bhalftobfull_par (bsupsijh, bsupuijh, bsupvijh,              &
-                              bsupsijf1,bsupuijf1,bsupvijf1,             &
-                              nsmin, nsmax)
-
-!Convert pijh1 to REAL pressure
-       pijh1 = pijh1/jacobh(:,:,n1:n2)
-
+       pijh = pijh/jacobh(:,:,n1:n2)
+       CALL bhalftobfull (bsupsijh, bsupuijh, bsupvijh,                 &
+                          bsupsijf1,bsupuijf1,bsupvijf1)
+                                 
 !
 !Calculate contravariant components of J = curl B (Ksup = gsqrt*Jsup)
 !and update the magnetic energy if nonlinear force is being computed
@@ -152,21 +151,17 @@
                          ksupsijf, ksupuijf, ksupvijf,                   &
                          ( .NOT.l_linearize .OR. l_getwmhd), .FALSE.)
 
-       DEALLOCATE(bsupsijh, bsupuijh, bsupvijh, stat=istat)
-
-!      alias work arrays for use as temp work space
+       DEALLOCATE(bsupsijh, bsupuijh, bsupvijh, pijf1, stat=istat)
 
        nsmax=MIN(ns,endglobrow); n2 = nsmax
-       ns_span = nsmax-nsmin+1
 
-!!SPH051217       KxBsij=>bsupsijh;  KxBuij=>bsupuijh;  KxBvij=>bsupvijh
        ALLOCATE(KxBsij(ntheta,nzeta,n1:n2),                              &
                 KxBuij(ntheta,nzeta,n1:n2),                              &
                 KxBvij(ntheta,nzeta,n1:n2), stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_FORCE_PAR')
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_FORCE')
 
        IF (l_linearize) THEN
-!      dJ X B0 (ksupXijf is the perturbed current)
+!dJ X B0 (ksupXijf is the perturbed current)
           KxBsij = bsupvijf0(:,:,n1:n2)*ksupuijf(:,:,n1:n2)              &
                  - bsupuijf0(:,:,n1:n2)*ksupvijf(:,:,n1:n2)
           KxBuij = bsupsijf0(:,:,n1:n2)*ksupvijf(:,:,n1:n2)              &
@@ -174,8 +169,8 @@
           KxBvij = bsupuijf0(:,:,n1:n2)*ksupsijf(:,:,n1:n2)              &
                  - bsupsijf0(:,:,n1:n2)*ksupuijf(:,:,n1:n2)
 
-!      J0 X dB (Ignored for pos-def preconditioner AND linearized forces)
-!      bsupXijf1 is the perturbed B-field
+!J0 X dB (Ignored for pos-def preconditioner AND linearized forces)
+!bsupXijf1 is the perturbed B-field
 
           KxBsij = KxBsij                                                &
           +  (bsupvijf1(:,:,n1:n2)*ksupuijf0(:,:,n1:n2)                  &
@@ -197,7 +192,7 @@
 
        IF (nsmax .EQ. ns) THEN
           IF (ANY(bsupsijf1(:,:,ns) .NE. zero))                          &         
-		  CALL ErrorAbort('bsupsijf1 != 0 in update_force_par')
+		  CALL ErrorAbort('bsupsijf1 != 0 in UPDATE_FORCE')
        END IF
 
        CALL GetMHDForce(fsubsmncf, fsubumnsf, fsubvmnsf, isym)
@@ -206,7 +201,7 @@
 
        DEALLOCATE(ksupsijf, ksupuijf, ksupvijf,                          &
 	              bsupsijf1,bsupuijf1,bsupvijf1,                         &
-                  KxBsij, KxBuij, KxBvij, pijh1, stat=istat)
+                  KxBsij, KxBuij, KxBvij, pijh, stat=istat)
 
        CALL second0(skstoff)
        time_update_force = time_update_force + (skstoff-skston)
@@ -216,11 +211,11 @@
 
       SUBROUTINE IncFields( jbsupsmnh,  jbsupumnh,  jbsupvmnh,  jpmnh,   &
                            djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh,   &
-                            iparity)
+                            ipar)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)  :: iparity
+      INTEGER, INTENT(IN)  :: ipar
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) ::             & !1:ns
           jbsupsmnh,  jbsupumnh,  jbsupvmnh,  jpmnh
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) ::             & !nsmin:nsmax
@@ -233,7 +228,7 @@
          bsupsmnh_i, bsupumnh_i, bsupvmnh_i, pmnh_i
       REAL(dp)           :: xfact
 !----------------------------------------------- 
-      IF (iparity .EQ. isym) THEN
+      IF (ipar .EQ. isym) THEN
          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
       ELSE
          fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
@@ -261,10 +256,10 @@
       pmnh_i     = xfact*jpmnh(:,:,nsmin:nsmax)     + djpmnh(:,:,nsmin:nsmax)
 
 ! Calculate real-space BSUPX on half mesh
-      CALL toijsp_par(bsupsmnh_i, bsupsijh, fcomb, fours, 1, ns_span)   
-      CALL toijsp_par(bsupumnh_i, bsupuijh, fcomb, fouru, 1, ns_span)
-      CALL toijsp_par(bsupvmnh_i, bsupvijh, fcomb, fourv, 1, ns_span)
-      CALL toijsp_par(pmnh_i, pijh1, fcomb, fouru, 1, ns_span)
+      CALL toijsp_par(bsupsmnh_i, bsupsijh, fcomb, fours)   
+      CALL toijsp_par(bsupumnh_i, bsupuijh, fcomb, fouru)
+      CALL toijsp_par(bsupvmnh_i, bsupvijh, fcomb, fourv)
+      CALL toijsp_par(pmnh_i, pijh, fcomb, fourv)
  
       DEALLOCATE (bsupsmnh_i, bsupumnh_i, bsupvmnh_i, pmnh_i)
       
@@ -307,20 +302,18 @@
       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in GETMHDFORCE')
 
 !Harmonics of Lorentz force on full grid
-      ns_span = (k2-k1) + 1
-      CALL tomnsp_par(KxBsij, KxBsmn, fours, 1, ns_span)
-      CALL tomnsp_par(KxBuij, KxBumn, fouru, 1, ns_span)
-      CALL tomnsp_par(KxBvij, KxBvmn, fourv, 1, ns_span)
+      CALL tomnsp_par(KxBsij, KxBsmn, fours)
+      CALL tomnsp_par(KxBuij, KxBumn, fouru)
+      CALL tomnsp_par(KxBvij, KxBvmn, fourv)
 
-!Harmonics of "true" pressure (after dividing out jacobian factor in pijh1)
-      ns_span = (k4-k3) + 1
-      CALL tomnsp_par(pijh1, pmnh, fours, 1, ns_span)
+!Harmonics of "true" pressure (after dividing out jacobian factor in pijh)
+      CALL tomnsp_par(pijh, pmnh, fours)
 
       nblock=SIZE(pmnh,1)*SIZE(pmnh,2)
-      CALL to_full_mesh_par(pmnh, pmnf, nblock, k3, k4)
+      CALL to_full_mesh(pmnh, pmnf, nblock, k3, k4)
 
 !Radial derivative of pressure valid for [k3, k4-1]
-      CALL GradientFull_par(pmnf_ds, pmnh, nblock, k3, k4)
+      CALL GradientFull(pmnf_ds, pmnh)
 
 !SPH11-7-16: s=1 is an iso-pressure contour
       IF (k4 .EQ. ns) THEN
@@ -582,7 +575,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER  :: js, istat, ns_span, mcol, fours, fouru, fourv
+       INTEGER  :: js, istat, mcol, fours, fouru, fourv
        REAL(dp) :: av(ns)
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: vdotB, tmp
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: xsubsij, xsubuij, xsubvij
@@ -590,7 +583,6 @@
 !
 !      Compute parallel (to B) damping force and add it to (linearized) forces
 !
-       ns_span = nsmax-nsmin+1
        IF (ipar .EQ. isym) THEN
           mcol = 1; fours=f_cos; fouru=f_sin; fourv=f_sin
        ELSE
@@ -664,19 +656,19 @@
        END DO
 
        tmp = bsubsijf(:,:,nsmin:nsmax)*vdotB
-       CALL tomnsp_par(tmp, work, fours, 1, ns_span)
+       CALL tomnsp_par(tmp, work, fours)
        DO js=nsmin,nsmax
           f_smnf(:,:,js) = f_smnf(:,:,js) + work(:,:,js)
        END DO
 
        tmp = bsubuijf(:,:,nsmin:nsmax)*vdotB
-       CALL tomnsp_par(tmp, work, fouru, 1, ns_span)
+       CALL tomnsp_par(tmp, work, fouru)
        DO js=nsmin,nsmax
           f_umnf(:,:,js) = f_umnf(:,:,js) + work(:,:,js)
        END DO
 
        tmp = bsubvijf(:,:,nsmin:nsmax)*vdotB
-       CALL tomnsp_par(tmp, work, fourv, 1, ns_span)
+       CALL tomnsp_par(tmp, work, fourv)
        DO js=nsmin,nsmax
           f_vmnf(:,:,js) = f_vmnf(:,:,js) + work(:,:,js)
        END DO

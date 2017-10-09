@@ -16,6 +16,7 @@
           volume_vmec=>volume, raxis_vmec=>raxis, lasym_vmec=>lasym
       USE descriptor_mod, ONLY: iam
       USE timer_mod
+      USE utilities, ONLY: to_full_mesh
 
       IMPLICIT NONE
 !     
@@ -67,7 +68,7 @@
       CHARACTER*(*)            :: wout_file
       INTEGER, INTENT(IN)      :: ns_in, mpol_in, ntor_in
       INTEGER                  :: istat, ntype, imesh, js
-      REAL(dp)              :: t1, t2
+      REAL(dp)                 :: t1, t2
       INTEGER                  :: m, n, mn
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -855,12 +856,12 @@
 
       IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN FULL_MESH_METRICS')
 
-      CALL to_full_mesh(gss,gssf,nuv)
-      CALL to_full_mesh(guu,guuf,nuv)
-      CALL to_full_mesh(gvv,gvvf,nuv)
-      CALL to_full_mesh(gsu,gsuf,nuv)
-      CALL to_full_mesh(gsv,gsvf,nuv)
-      CALL to_full_mesh(guv,guvf,nuv)
+      CALL to_full_mesh(gss,gssf,nuv,1,ns)
+      CALL to_full_mesh(guu,guuf,nuv,1,ns)
+      CALL to_full_mesh(gvv,gvvf,nuv,1,ns)
+      CALL to_full_mesh(gsu,gsuf,nuv,1,ns)
+      CALL to_full_mesh(gsv,gsvf,nuv,1,ns)
+      CALL to_full_mesh(guv,guvf,nuv,1,ns)
       guuf(:,1) = 0;  gsuf(:,1) = 0;  guvf(:,1) = 0
 
 !
@@ -916,7 +917,7 @@
                tempv(ntheta,nzeta,ns), stat=istat)
 
 !     gijf * hj1   (first column of hij matrix)
-      CALL tolowerf(hss, hsu, hsv, temps, tempu, tempv)
+      CALL tolowerf(hss, hsu, hsv, temps, tempu, tempv, 1, ns)
       r1 = MAXVAL(ABS(temps(:,:,2:)-1))
       s1 = MAXVAL(ABS(tempu(:,:,2:)))
       t1 = MAXVAL(ABS(tempv(:,:,2:)))
@@ -924,7 +925,7 @@
       IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR1 IN FULL_MESH_METRICS')
 
 !     gijf * hj2   (second column of hij matrix)
-      CALL tolowerf(hsu, huu, huv, temps, tempu, tempv)
+      CALL tolowerf(hsu, huu, huv, temps, tempu, tempv, 1, ns)
       r1 = MAXVAL(ABS(temps(:,:,2:)))
       s1 = MAXVAL(ABS(tempu(:,:,2:)-1))
       t1 = MAXVAL(ABS(tempv(:,:,2:)))
@@ -932,7 +933,7 @@
       IF (maxtest.GT.eps .AND. iam.EQ.0) CALL ErrorAbort('ERROR2 IN FULL_MESH_METRICS')
 
 !     gijf * hj3   (third column of hij matrix)
-      CALL tolowerf(hsv, huv, hvv, temps, tempu, tempv)
+      CALL tolowerf(hsv, huv, hvv, temps, tempu, tempv, 1, ns)
       r1 = MAXVAL(ABS(temps(:,:,2:)))
       s1 = MAXVAL(ABS(tempu(:,:,2:)))
       t1 = MAXVAL(ABS(tempv(:,:,2:)-1))
@@ -942,6 +943,119 @@
       DEALLOCATE(temps, tempu, tempv)
 
       END SUBROUTINE full_mesh_metrics
+
+
+      SUBROUTINE toupper(xsubsij, xsubuij, xsubvij,                     &
+                           xsupsij, xsupuij, xsupvij)
+        USE stel_kinds
+        USE island_params, ns=>ns_i, nuv=>nuv_i
+        USE nscalingtools, ONLY: startglobrow, endglobrow
+        IMPLICIT NONE        
+!
+!     This subroutine converts from lower to upper components on the FULL mesh
+!
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+        INTEGER :: istat
+        REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                      &
+        xsubsij, xsubuij, xsubvij 
+        REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                      &
+        xsupsij, xsupuij, xsupvij        
+!-----------------------------------------------
+        INTEGER :: nsmin, nsmax, js, js1
+!-----------------------------------------------
+
+        nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
+        DO js=nsmin, nsmax
+           js1 = js+1-nsmin
+        xsupsij(:,js1) = hss(:,js)*xsubsij(:,js1)                        &
+                       + hsu(:,js)*xsubuij(:,js1)                        &
+                       + hsv(:,js)*xsubvij(:,js1)
+        xsupuij(:,js1) = hsu(:,js)*xsubsij(:,js1)                        &
+                       + huu(:,js)*xsubuij(:,js1)                        &
+                       + huv(:,js)*xsubvij(:,js1)
+        xsupvij(:,js1) = hsv(:,js)*xsubsij(:,js1)                        &
+                       + huv(:,js)*xsubuij(:,js1)                        &
+                       + hvv(:,js)*xsubvij(:,js1)       
+        END DO
+
+      END SUBROUTINE toupper
+
+
+      SUBROUTINE tolowerh(xsupsij, xsupuij, xsupvij,                      &
+                          xsubsij, xsubuij, xsubvij, nsmin, nsmax)
+      USE stel_kinds
+      USE island_params, ONLY: nuv=>nuv_i
+      IMPLICIT NONE        
+!
+!     Moves contravariant (upper) to covariant (lower) magnetic field
+!     components on the half radial mesh.
+!
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!----------------------------------------------
+      INTEGER, INTENT(IN) :: nsmin, nsmax  
+      REAL(dp), DIMENSION(nuv,nsmin:nsmax), INTENT(IN)  ::               &
+                   xsupsij, xsupuij, xsupvij 
+      REAL(dp), DIMENSION(nuv,nsmin:nsmax), INTENT(OUT) ::               &
+                   xsubsij, xsubuij, xsubvij
+!-----------------------------------------------
+      xsubsij = gss(:,nsmin:nsmax)*xsupsij                               &
+              + gsu(:,nsmin:nsmax)*xsupuij                               &
+              + gsv(:,nsmin:nsmax)*xsupvij
+
+      xsubuij = gsu(:,nsmin:nsmax)*xsupsij                               &
+              + guu(:,nsmin:nsmax)*xsupuij                               &
+              + guv(:,nsmin:nsmax)*xsupvij
+      
+      xsubvij = gsv(:,nsmin:nsmax)*xsupsij                               &
+              + guv(:,nsmin:nsmax)*xsupuij                               &
+              + gvv(:,nsmin:nsmax)*xsupvij
+
+      END SUBROUTINE tolowerh
+!---------------------------------------------------------------------------------------------
+
+!---------------------------------------------------------------------------------------------
+      SUBROUTINE tolowerf(xsupsij, xsupuij, xsupvij,                     &
+                          xsubsij, xsubuij, xsubvij, nsmin, nsmax)
+      USE stel_kinds
+      USE island_params, ONLY: ns=>ns_i, nuv=>nuv_i
+      IMPLICIT NONE        
+!
+!     Computes covariant (lower) from contravariant (upper) magnetic
+!     field components on the full mesh. 
+!
+!     xsubsij = gssf*xsupsij + gsuf*xsupuij + gsvf*xsupvij
+!     xsubuij = gsuf*xsupsij + guuf*xsupuij + guvf*xsupvij
+!     xsubvij = gsvf*xsupsij + guvf*xsupuij + gvvf*xsupvij       
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN) :: nsmin, nsmax
+      REAL(dp), DIMENSION(nuv,ns), INTENT(IN)  ::                        &
+                xsupsij, xsupuij, xsupvij 
+      REAL(dp), DIMENSION(nuv,ns), INTENT(OUT) ::                        &
+                xsubsij, xsubuij, xsubvij
+!-----------------------------------------------
+      INTEGER :: js, js1
+!-----------------------------------------------
+      DO js=nsmin,nsmax
+      js1 = js-nsmin+1
+      xsubsij(:,js1) = gssf(:,js)*xsupsij(:,js1)                         &
+                     + gsuf(:,js)*xsupuij(:,js1)                         &
+                     + gsvf(:,js)*xsupvij(:,js1) 
+
+      xsubuij(:,js1) = gsuf(:,js)*xsupsij(:,js1)                         &
+                     + guuf(:,js)*xsupuij(:,js1)                         &
+                     + guvf(:,js)*xsupvij(:,js1) 
+
+      xsubvij(:,js1) = gsvf(:,js)*xsupsij(:,js1)                         &
+                     + guvf(:,js)*xsupuij(:,js1)                         &
+                     + gvvf(:,js)*xsupvij(:,js1)       
+      END DO
+
+      END SUBROUTINE tolowerf
 
 
       SUBROUTINE cleanup_metric_elements

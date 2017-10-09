@@ -49,7 +49,7 @@
       LOGICAL         :: l_PrintOriginForces=.FALSE.
       LOGICAL         :: l_init_state               !M=<Internal flag to storing initial field/pressure state
       LOGICAL         :: l_update_state=.FALSE.     !<=TRUE before funct_island called to get ste array
-      LOGICAL         :: l_par_state                !<=TRUE if parallel allocation state (in init_state_par)
+      LOGICAL         :: l_par_state                !<=TRUE if parallel allocation state (in init_state)
       LOGICAL         :: lcolscale                  !<=TRUE to apply col-scaling to Hessian
       LOGICAL         :: lasym = .FALSE.            !<=FALSE, symmetric; =TRUE, asymmetric plasma
       LOGICAL         :: lrecon = .FALSE.

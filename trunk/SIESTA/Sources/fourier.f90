@@ -21,6 +21,10 @@
       INTEGER, PARAMETER :: f_cos = 0
       INTEGER, PARAMETER :: f_sin = 1
 
+!     Grid flags.
+      INTEGER, PARAMETER :: f_full = 0
+      INTEGER, PARAMETER :: f_half = 1
+
 !     Derivative and sum flags.
       INTEGER, PARAMETER :: f_none = 0   ! 000
       INTEGER, PARAMETER :: f_ds   = 1   ! 001
@@ -42,31 +46,32 @@
       CONTAINS
  
 !#if defined(SKS)
-      SUBROUTINE TOIJSP_PAR(XMN, XUV, DFLAG, IPARITY, nsmin, nsmax)
+      SUBROUTINE TOIJSP_PAR(XMN, XUV, DFLAG, IPAR)
 !
 !       DESCRIPTION:  This subroutine moves a quantity X to real space by summing over its Fourier harmonics X_MN.
-!                     IPARITY = 0: DFLAG=0, COS(mu+nv) ; DFLAG&1b, -mSIN(mu+nv); DFLAG&10b, -nSIN(mu+nv)
-!                             = 1: DFLAG=0, SIN(mu+nv) ; DFLAG&1b,  mCOS(mu+nv); DFLAG&10b,  nCOS(mu+nv)
+!                     IPAR = 0: DFLAG=0, COS(mu+nv) ; DFLAG&1b, -mSIN(mu+nv); DFLAG&10b, -nSIN(mu+nv)
+!                          = 1: DFLAG=1, SIN(mu+nv) ; DFLAG&1b,  mCOS(mu+nv); DFLAG&10b,  nCOS(mu+nv)
 !       IF DFLAG = 0b01, the first poloidal derivative of that quantity is obtained
 !       IF DFLAG = 0b10, the first toroidal derivative of that quantity is obtained
 !       IF DFLAG = 0b11, it gives the joint poloidal, toroidal derivative
 !
       USE stel_kinds
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE mpi_inc
+      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
 !      INTEGER, INTENT(IN):: ihalf                                          ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH     
-      INTEGER, INTENT(IN):: nsmin, nsmax 
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN) :: xmn
-      REAL(dp), DIMENSION(ntheta,nzeta,ns), INTENT(INOUT)   :: xuv
+      REAL(dp), DIMENSION(:,:,:), INTENT(IN)     :: xmn
+      REAL(dp), DIMENSION(:,:,:), INTENT(INOUT)  :: xuv
       INTEGER, INTENT(IN):: dflag                                          ! DFLAG = order of poloidal/toroidal derivative
-      INTEGER, INTENT(IN):: iparity                                        ! IPARITY = 0, cosine (EVEN); = 1, sine (ODD)
+      INTEGER, INTENT(IN):: ipar                                           ! cosine (EVEN); = 1, sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: m, n, jk, lk, js
-      INTEGER :: in 
+!      INTEGER :: in 
       REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: work0, work1, work2, xuv1
       REAL(dp) :: skston, skstoff
       INTEGER :: counter, nx
@@ -74,19 +79,20 @@
 !-----------------------------------------------
       CALL second0(skston)
 
-      ALLOCATE(work0(0:mpol,-ntor:ntor), xuv1(ntheta,nzeta),             &         
-               work1(ntheta,-ntor:ntor), work2(ntheta,-ntor:ntor),       &
+      ALLOCATE(work0(0:mpol,-ntor:ntor), xuv1(ntheta,nzeta),            &         
+               work1(ntheta,-ntor:ntor), work2(ntheta,-ntor:ntor),      &
                stat=lk)
       IF (lk .NE. 0) CALL ErrorAbort('Allocation error in TOIJSP_PAR')
- 
-      NS_LOOP: DO js = nsmin, nsmax
+!      in = 1 +ihalf
+
+      NS_LOOP: DO js = 1, SIZE(xmn,3)
 
       work0(:,:) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,js)
       work1 = zero; work2 = zero 
 
       DO jk = 1, ntheta
-        DO m = 0, mpol                                                     ! First DO sum over poloidal modes
-          IF (BTEST(dflag, b_du)) THEN                                     ! Poloidal derivative requested: USE COSMUM, SINMUM
+        DO m = 0, mpol                                                    ! First DO sum over poloidal modes
+          IF (BTEST(dflag, b_du)) THEN                                    ! Poloidal derivative requested: USE COSMUM, SINMUM
             work1(jk,:) = work1(jk,:) - work0(m,:)*sinmum(jk, m)
             work2(jk,:) = work2(jk,:) + work0(m,:)*cosmum(jk, m)
           ELSE
@@ -96,11 +102,11 @@
         ENDDO
       ENDDO
  
-      xuv1 = zero                                                          ! Make sure that SPATIAL variable is zeroed
+      xuv1 = zero                                                         ! Make sure that SPATIAL variable is zeroed
 
       DO lk = 1, nzeta
 
-        IF (iparity == f_cos) THEN                                         ! Do first N=0 mode
+        IF (ipar == f_cos) THEN                                           ! Do first N=0 mode
 
           IF (BTEST(dflag, b_dv)) THEN
             xuv1(:,lk) = zero
@@ -118,12 +124,12 @@
 
         ENDIF          
 
-        DO n = 1, ntor                                                     ! Then sum over N>0 and N<0 toroidal modes                                                     
-          IF (iparity == f_cos) THEN                                       ! COSINE series
+        DO n = 1, ntor                                                    ! Then sum over N>0 and N<0 toroidal modes                                                     
+          IF (ipar== f_cos) THEN                                          ! COSINE series
 
-            IF (BTEST(dflag, b_dv)) THEN                                   ! First toroidal derivative requested
-              xuv1(:,lk) =  xuv1(:,lk)                                   &
-              - (work1(:,n) + work1(:,-n))*sinnvn(lk, n)                 &
+            IF (BTEST(dflag, b_dv)) THEN                                  ! First toroidal derivative requested
+              xuv1(:,lk) =  xuv1(:,lk)                                  &
+              - (work1(:,n) + work1(:,-n))*sinnvn(lk, n)                &
               - (work2(:,n) - work2(:,-n))*cosnvn(lk, n)
             ELSE
               xuv1(:,lk) =  xuv1(:,lk)                                   &
@@ -165,24 +171,26 @@
 
       END SUBROUTINE TOIJSP_PAR
 
-      SUBROUTINE TOMNSP_PAR(XUV, XMN, IPARITY, nsmin, nsmax)
+      SUBROUTINE TOMNSP_PAR(XUV, XMN, IPAR)
 !
 !       Description: This subroutine moves a quantity X to Fourier space producing its harmonics X_MN by
 !         summing over all the presribed (toroidal and poloidal) collocation points:
 !           theta_j = j*pi/M, (j=0,...,M);   zeta_k = k*2*pi/(2N+1), k = 0,...., 2N
 !         where M = mpol - 1 and N = ntor.
 !       IPARITY = 0, means the quantity X (NOT any of its derivatives) is even; = 1, X is odd
+!       IHALF = 0, means quantity is on the radial full mesh; =1, on the half radial mesh
 !
       USE stel_kinds
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE mpi_inc
+      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
 !      INTEGER, INTENT(IN) :: ihalf                                        ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
-      INTEGER, INTENT(IN) :: nsmin, nsmax
-      REAL(dp), DIMENSION(ntheta,nzeta,ns), INTENT(IN):: xuv
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(OUT):: xmn
-      INTEGER, INTENT(IN):: iparity                                       ! IPARITY = 0, cosine (EVEN); = 1; sine (ODD)
+      REAL(dp), DIMENSION(:,:,:), INTENT(IN):: xuv
+      REAL(dp), DIMENSION(:,:,:), INTENT(OUT):: xmn
+      INTEGER, INTENT(IN):: ipar                                           ! = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -197,13 +205,14 @@
 
       CALL second0(skston)
 
+!      in = 1+ihalf
       ALLOCATE(work1(0:mpol,nzeta), work2(0:mpol,nzeta),                 &
                work3(0:mpol), work4(0:mpol),                             &
                xuv1(ntheta,nzeta),  xmn1(0:mpol,-ntor:ntor),             &
                t1(nzeta), t2(nzeta), stat=ii)
       IF (ii .NE. 0) CALL ErrorAbort('Allocation error in tomnsp_par')
 
-      NS_LOOP: DO js = nsmin, nsmax
+      NS_LOOP: DO js = 1, SIZE(xmn,3)
 
       xuv1(:,:) = xuv(:,:,js)
       xmn1      = 0
@@ -220,7 +229,7 @@
 
       DO n = 0, ntor  
         DO lk = 1, nzeta                                                  ! Then, add over toroidal collocation angles
-          IF (iparity == f_cos) THEN                                      ! COSINE series
+          IF (ipar == f_cos) THEN                                         ! COSINE series
             work3(:) = work1(:,lk)*cosnv(lk, n)
             work4(:) = work2(:,lk)*sinnv(lk, n)
             xmn1(:,n) =  xmn1(:,n) + work3(:) - work4(:)
@@ -238,7 +247,7 @@
         ENDDO
       ENDDO 
 
-!NOT NECESSARY      xmn1(0,-ntor:-1) = zero                               ! Redundant: To avoid counting (0,-n) for non-zero n.
+      xmn1(0,-ntor:-1) = zero                                             ! Redundant: To avoid counting (0,-n) for non-zero n.
 
       xmn(:,:,js) = orthonorm(0:mpol,-ntor:ntor)*xmn1(:,:)
 
@@ -255,34 +264,35 @@
       END SUBROUTINE TOMNSP_PAR
 !#endif
 
-        SUBROUTINE GETORIGIN (XUV, MODE, IPARITY)
+        SUBROUTINE GETORIGIN (XUV, MODE, IPAR)
 !
 !       DESCRIPTION: Computes the origin value of a half-mesh quantity (stores it at index 1)
 !                    from the m=mode (cos,sin(mu)-average) of the quantity at js=2
 !       IPARITY = 0, means the quantity X (NOT any of its derivatives!) is COSINE (even); = 1, X is SINE (odd)
 !       MODE         the poloidal mode number to be retained
         USE stel_kinds
+        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        INTEGER, INTENT(in) :: iparity, mode
-        REAL(dp), DIMENSION(ntheta,nzeta,ns), INTENT(INOUT) :: xuv
+        INTEGER, INTENT(IN) :: ipar, mode
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: xuv
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER, PARAMETER :: js1=1, js2=2
         REAL(dp), DIMENSION(0:mpol,-ntor:ntor) :: xmn
 !-----------------------------------------------
-        CALL tomnsp2(xuv, xmn, iparity, js2)
+        CALL tomnsp2(xuv, xmn, ipar, js2)
         
         IF (mode .GT. 0) xmn(0:mode-1,:) = 0
         IF (mode .LT. mpol) xmn(mode+1:,:) = 0
 
-        CALL toijsp2(xmn, xuv, iparity, js1)
+        CALL toijsp2(xmn, xuv, ipar, js1)
 
         END SUBROUTINE GETORIGIN
 
-        SUBROUTINE TOIJSP(XMN, XUV, DFLAG, IPARITY)
+        SUBROUTINE TOIJSP(XMN, XUV, DFLAG, IPAR)
 !
 !       DESCRIPTION:  This subroutine moves a quantity X to real space by summing over its Fourier harmonics X_MN.
 !       IF DFLAG = 0b01, the first poloidal derivative of that quantity is obtained
@@ -290,6 +300,7 @@
 !       IF DFLAG = 0b11, it gives the joint poloidal, toroidal derivative
 !
         USE stel_kinds
+        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -299,22 +310,24 @@
         REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
           INTENT(INOUT) :: xuv
         INTEGER, INTENT(IN) :: dflag                                       ! DFLAG = order of poloidal/toroidal derivative
-        INTEGER, INTENT(IN) :: iparity                                     ! IPARITY = 0, cosine (EVEN); = 1, sine (ODD)
+        INTEGER, INTENT(IN) :: ipar                                        ! = 0, cosine (EVEN); = 1, sine (ODD)
 
-        CALL TOIJSP_PAR(XMN, XUV, DFLAG, IPARITY, 1, ns)
+        CALL TOIJSP_PAR(XMN, XUV, DFLAG, IPAR)
 
         END SUBROUTINE TOIJSP
 
 
-        SUBROUTINE TOMNSP(XUV, XMN, IPARITY)
+        SUBROUTINE TOMNSP(XUV, XMN, IPAR)
 !
 !       Description: This subroutine moves a quantity X to Fourier space producing its harmonics X_MN by
 !         summing over all the presribed (toroidal and poloidal) collocation points:
 !           theta_j = j*pi/M, (j=0,...,M);   zeta_k = k*2*pi/(2N+1), k = 0,...., 2N
 !         where M = mpol - 1 and N = ntor.
 !       IPARITY = 0, means the quantity X (NOT any of its derivatives) is even in mu+nv; = 1, X is odd
+!       IHALF = 0, means quantity is on the radial full mesh; =1, on the half radial mesh
 !
         USE stel_kinds
+        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -323,15 +336,15 @@
           INTENT(IN):: xuv
         REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
           INTENT(OUT):: xmn
-        INTEGER, INTENT(IN):: iparity                                      ! IPARITY = 0, cosine (EVEN); = 1; sine (ODD)
+        INTEGER, INTENT(IN):: ipar                                         ! = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 
-        CALL TOMNSP_PAR(XUV, XMN, IPARITY, 1, ns)
+        CALL TOMNSP_PAR(XUV, XMN, IPAR)
 
         END SUBROUTINE TOMNSP
       
 !SPH 10/15/14
-        SUBROUTINE TOMNSP_PEST(XUV, XMN, LMNS, IPARITY, LMNC)
+        SUBROUTINE TOMNSP_PEST(XUV, XMN, LMNS, IPAR, LMNC)
 !
 !       Description: This subroutine moves a quantity X to Fourier space producing its harmonics X_MN by
 !         summing over all the presribed (toroidal and poloidal) collocation points:
@@ -346,7 +359,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-!        INTEGER, INTENT(IN):: ihalf                                        ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
+!        INTEGER, INTENT(IN):: ihalf                                       ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
         REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
           INTENT(IN):: xuv
         REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
@@ -355,7 +368,7 @@
           INTENT(IN) :: lmns
         REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
           INTENT(IN), OPTIONAL :: lmnc
-        INTEGER, INTENT(IN):: iparity                                      ! IPARITY = 0, cosine (EVEN); = 1; sine (ODD)
+        INTEGER, INTENT(IN):: ipar                                         ! = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -452,7 +465,7 @@
 
         DO n = 0, ntor
           DO lk = 1, nzeta                                               ! Then, add over toroidal collocation angles
-            IF (iparity == f_cos) THEN                                   ! COSINE series
+            IF (ipar == f_cos) THEN                                      ! COSINE series
               work3(:,lk,1:ns) = work1(:,lk,1:ns)*cosnv(lk, n)
               work4(:,lk,1:ns) = work2(:,lk,1:ns)*sinnv(lk, n)
               xmn(:,n,1:ns) =  xmn(:,n,1:ns)                             &
@@ -493,29 +506,30 @@
         END SUBROUTINE TOMNSP_PEST
 
 
-        SUBROUTINE TOMNSP2(XUV, XMN, IPARITY, JS)
+        SUBROUTINE TOMNSP2(XUV, XMN, IPAR, JS)
 !
 !       Description: This subroutine moves a quantity X to Fourier space producing its harmonics XMN by
 !         summing over all the prescribed (toroidal and poloidal) collocation points:
 !           theta_j = j*pi/M, (j=0,...,M);   zeta_k = k*2*pi/(2N+1), k = 0,...., 2N
 !         where M = mpol - 1 and N = ntor.
-!       IPARITY = 0, means the quantity X (NOT any of its derivatives) is even; = 1, X is odd
+!       IPAR = 0, means the quantity X (NOT any of its derivatives) is even; = 1, X is odd
 !       JS:  Surface where xmn is computed
 !
         USE stel_kinds
+        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
+        REAL(dp), DIMENSION(ntheta,nzeta,ns),                           &
           INTENT(IN):: xuv
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor),                          &
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor),                         &
           INTENT(OUT):: xmn
-        INTEGER, INTENT(IN):: iparity, js
+        INTEGER, INTENT(IN):: ipar, js
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER :: m, n, jk, lk, in
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: work1, work2,           &
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: work1, work2,          &
           work3, work4
         REAL(dp) :: ton, toff
 !-----------------------------------------------
@@ -536,29 +550,28 @@
         work3 =zero; work4 = zero
 
         DO n = 0, ntor  
-          DO lk = 1, nzeta                                      ! Then, add over toroidal collocation angles
-            IF (iparity == f_cos) THEN                          ! COSINE series
+          DO lk = 1, nzeta                                                ! Then, add over toroidal collocation angles
+            IF (ipar == f_cos) THEN                                       ! COSINE series
               work3(:,lk) = work1(:,lk)*cosnv(lk, n)
               work4(:,lk) = work2(:,lk)*sinnv(lk, n)
               xmn(:,n) =  xmn(:,n) + work3(:,lk) - work4(:,lk)
               IF (n .ne. 0) THEN
-                xmn(1:mpol,-n) = xmn(1:mpol,-n)                          &
+                xmn(1:mpol,-n) = xmn(1:mpol,-n)                         &
                  + work3(1:mpol,lk) + work4(1:mpol,lk)
               ENDIF
-            ELSE                                                ! SINE series
+            ELSE                                                          ! SINE series
               work3(:,lk) = work1(:,lk)*sinnv(lk, n)
               work4(:,lk) = work2(:,lk)*cosnv(lk, n)
               xmn(:,n) =  xmn(:,n) + work3(:,lk) + work4(:,lk)
               IF (n .ne. 0) THEN
-                xmn(1:mpol,-n) = xmn(1:mpol,-n)                          &
+                xmn(1:mpol,-n) = xmn(1:mpol,-n)                         &
                  - work3(1:mpol,lk) + work4(1:mpol,lk)
               ENDIF
             ENDIF
           ENDDO
         ENDDO 
  
-
-        xmn(0,-ntor:-1) = zero              ! Redundant: To avoid counting (0,-n) for non-zero n.
+        xmn(0,-ntor:-1) = zero                                            ! Redundant: To avoid counting (0,-n) for non-zero n.
         xmn(:,:) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:)
          
         DEALLOCATE(work1, work2, work3, work4)
@@ -569,71 +582,27 @@
         END SUBROUTINE TOMNSP2
 
         
-        SUBROUTINE TOIJSP2(XMN, XUV, IPARITY, JS)
+        SUBROUTINE TOIJSP2(XMN, XUV, IPAR, JS)
         USE stel_kinds
+        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor),                          &
-          INTENT(IN):: xmn
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
-          INTENT(INOUT):: xuv
-        INTEGER, INTENT(IN):: iparity, js                                 ! IPARITY = 0, cosine (EVEN); = 1, sine (ODD)
+        REAL(dp), DIMENSION(:,:), INTENT(IN)     :: xmn
+        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE  :: xuv
+        INTEGER, INTENT(IN):: ipar, js                                    ! IPAR = 0, cosine (EVEN); = 1, sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER :: m, n, jk, lk
-        INTEGER :: in 
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: work0,                  &
-          work1, work2
-        REAL(dp) :: ton, toff
+        REAL(dp), ALLOCATABLE  :: xmns(:,:,:)
 !-----------------------------------------------
-        CALL second0(ton)
-
-        ALLOCATE(work0(0:mpol,-ntor:ntor))                                 ! RS (10/03/06): Added WORK0 for n=0/m=0 normalization
-
-        work0 = xmn
-        work0(:,:) = orthonorm(0:mpol,-ntor:ntor)*work0(:,:)
-             
-        ALLOCATE(work1(ntheta,-ntor:ntor), work2(ntheta,-ntor:ntor))
-        work1 = zero; work2 = zero 
-
-        DO jk = 1, ntheta
-          DO m = 0, mpol                                                   ! First DO sum over poloidal modes
-              work1(jk,:) = work1(jk,:) + work0(m,:)*cosmu(jk, m)
-              work2(jk,:) = work2(jk,:) + work0(m,:)*sinmu(jk, m)
-          ENDDO
-        ENDDO
-        DEALLOCATE(work0)
-
-        xuv(:,:,js) = 0                                                    ! Make sure that SPATIAL variable is zeroed
-
-        DO lk = 1, nzeta
-          
-          IF (iparity == 0) THEN                                           ! Do first N=0 mode
-            xuv(:,lk,js) = work1(:,0) 
-          ELSE
-            xuv(:,lk,js) = work2(:,0) 
-          ENDIF          
-          
-          DO n = 1, ntor                                                   ! Then sum over N>0 and N<0 toroidal modes                                                     
-            IF (iparity == f_cos) THEN                                     ! COSINE series
-                xuv(:,lk,js) =  xuv(:,lk,js)                             &
-                  + (work1(:,n) + work1(:,-n))*cosnv(lk, n)              &
-                  - (work2(:,n) - work2(:,-n))*sinnv(lk, n)
-            ELSE                                                           ! SINE series
-                xuv(:,lk,js) =  xuv(:,lk,js)                             &
-                  + (work1(:,n) - work1(:,-n))*sinnv(lk, n)              &
-                  + (work2(:,n) + work2(:,-n))*cosnv(lk, n)
-            ENDIF
-          ENDDO
-        ENDDO
-
-        DEALLOCATE(work1, work2)
-
-        CALL second0(toff)
-        time_toijsp = time_toijsp + (toff-ton)
-
+        ALLOCATE(xmns(0:mpol,-ntor:ntor,1))
+        xmns(:,:,1) = xmn
+        
+        CALL toijsp_par(xmns, xuv(:,:,js:js), f_none, ipar)
+        
+        DEALLOCATE(xmns)
+        
         END SUBROUTINE TOIJSP2
 
       SUBROUTINE INIT_FOURIER
@@ -651,12 +620,12 @@
 !       where M = mpol - 1 and N = ntor.
 !
         USE shared_data, ONLY: lasym
-        USE descriptor_mod, ONLY: iam, nprocs
+        IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         REAL(dp), PARAMETER :: nfactor = 1.41421356237310_dp          ! RS: Normalization of m=0/n=0 Fourier modes.
-        INTEGER        :: jk, m, n, lk, istat, ntheta1
+        INTEGER     :: jk, m, n, lk, istat, ntheta1
         REAL(dp)    :: arg, cosi, sini
         REAL(dp)    :: pinorm
 !-----------------------------------------------
@@ -673,35 +642,37 @@
            pinorm = pi
         END IF
 
-        ALLOCATE(cosmu(ntheta,0:mpol),  cosmum(ntheta,0:mpol),           &
+       
+!       EXTEND mpol, ntor FOR POST-PROCESSING OF PRESSURE B dot GRAD P
+!        mpol = mpol32_i;  ntor = ntor32_i
+
+        ALLOCATE(cosmu(ntheta,0:mpol), cosmum(ntheta,0:mpol),            &
                  cosmui(ntheta,0:mpol), sinmu(ntheta,0:mpol),            &
                  sinmum(ntheta,0:mpol), sinmui(ntheta,0:mpol),           &
                  cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),              &
-                 sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor),              &
-                 irefu(ntheta), jrefv(nzeta), stat=istat)
+                 sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor), stat=istat)
 
         IF (istat .NE. 0) CALL ErrorAbort('Allocation error in fixarray')
-         
-        dnorm_i = one/(ntheta1*nzeta)                                      ! ST:Norm for Fourier-Space -> UV-Space
+        
+        dnorm_i = one/(ntheta1*nzeta)                              ! ST:Norm for Fourier-Space -> UV-Space
 
         DO jk = 1, ntheta
-          arg = (pinorm*(jk-1))/ntheta1                                    ! Poloidal collocation points
-          irefu(jk) = MOD(ntheta+1-jk,ntheta)+1                            ! -u index
+          arg = pinorm*(jk-1)/ntheta1                              ! Poloidal collocation points*m
           DO m = 0, mpol
             cosi = COS(m*arg)
             sini = SIN(m*arg)
 
             CALL Round_Trig(cosi, sini)
 
-            cosmu (jk, m)  = cosi                                          ! Used in UV-SPace to Fourier-space
-            cosmum(jk, m)  = m*cosi                                        ! Used in UV-SPace to Fourier-space
-            cosmui(jk, m) = dnorm_i*cosi                                   ! Used in Fourier-Space to UV-space
-            sinmu (jk, m)  = sini                                          ! Used in UV-SPace to Fourier-space
-            sinmum(jk, m)  = m*sini                                        ! Used in UV-SPace to Fourier-space
-            sinmui(jk, m) = dnorm_i*sini                                   ! Used in Fourier-Space to UV-space
-            IF (.NOT.lasym .AND. (jk.EQ.1 .OR. jk.EQ.ntheta)) THEN
-               cosmui(jk, m) = cosmui(jk, m)/2                             ! end poloidal points are divided by 2 when integrating
-               sinmui(jk, m) = sinmui(jk, m)/2
+            cosmu (jk, m)  = cosi                                 ! Used in UV-SPace to Fourier-space
+            cosmum(jk, m)  = m*cosi                               ! Used in UV-SPace to Fourier-space
+            cosmui(jk, m) = dnorm_i*cosi                          ! Used in Fourier-Space to UV-space
+            sinmu (jk, m)  = sini                                 ! Used in UV-SPace to Fourier-space
+            sinmum(jk, m)  = m*sini                               ! Used in UV-SPace to Fourier-space
+            sinmui(jk, m) = dnorm_i*sini                          ! Used in Fourier-Space to UV-space
+            IF (.NOT.lasym .AND. (jk == 1 .OR. jk == ntheta)) THEN
+               cosmui(jk, m) = 0.5_dp*cosmui(jk, m)               ! 0, pi poloidal points are divided by 2 when integrating
+               sinmui(jk, m) = 0.5_dp*sinmui(jk, m)
             ENDIF
           ENDDO
         ENDDO
@@ -710,16 +681,15 @@
 !FOR NOW, WE ARE IN 1 FIELD PERIOD
 !
         DO lk = 1, nzeta
-          arg = twopi*(lk-1)/nzeta                                         ! Toroidal collocation points*ABS(n*nfp_i)
-          jrefv(lk) = MOD(nzeta+1-lk,nzeta)+1                              ! -v index
+          arg = twopi*(lk-1)/nzeta                                ! Toroidal collocation points*ABS(n*nfp_i)
           DO n = 0, ntor
-            cosi = COS(n*arg)                                              ! sign of "n" taken care later through ISIGN
+            cosi = COS(n*arg)                                     ! sign of "n" taken care later through ISIGN
             sini = SIN(n*arg)
             
             CALL Round_Trig(cosi, sini)
 
-            cosnv (lk, n)  = cosi                                          ! All normalization factors goes in poloidal quantities
-            cosnvn(lk, n)  = n*nfp*cosi                                    ! NFP is number of field periods
+            cosnv (lk, n)  = cosi                                 ! All normalization factors goes in poloidal quantities
+            cosnvn(lk, n)  = n*nfp*cosi                         ! NFP is number of field periods
             sinnv (lk, n)  = sini
             sinnvn(lk, n)  = n*nfp*sini
           ENDDO
@@ -735,11 +705,12 @@
         orthonorm(0,0) = 1
         IF (ntheta .EQ. (mpol+1)) orthonorm(mpol,:) = 1
 
-        CALL Test_Fourier
+!        CALL Test_Fourier
 
       END SUBROUTINE INIT_FOURIER
 
       SUBROUTINE ROUND_TRIG(cosi, sini)
+        IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -769,27 +740,26 @@
 
 
       SUBROUTINE DEALLOC_FOURIER
+      IMPLICIT NONE
       INTEGER :: istat
 
       DEALLOCATE(cosmu, cosmum, cosmui, sinmu, sinmum, sinmui,           &
-                 cosnv, cosnvn, sinnv, sinnvn, irefu, jrefv, orthonorm,  &
-                 stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in dealloc_fixarray')
+                 cosnv, cosnvn, sinnv, sinnvn, orthonorm, stat=istat) 
+      IF (istat .ne. 0) CALL ErrorAbort('Allocation error in dealloc_fixarray')
          
       END SUBROUTINE DEALLOC_FOURIER
 
       SUBROUTINE TEST_FOURIER
       USE descriptor_mod, ONLY: iam, nprocs
       USE shared_data, ONLY: lasym, lverbose
-#if defined(SKS)
       USE timer_mod, ONLY: test_fourier_time
-#endif      
+      IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER             :: m, n, lk, istat, n1, iblock, ns_save
-	  REAL(dp), PARAMETER :: FOUR_TOL = 1.E-12_dp
-	  REAL(dp)            :: ton, toff
+      INTEGER     :: m, n, lk, istat, n1, iblock, ns_save
+      REAL(dp) :: arg, cosi, sini, testcc, testsc,                       &
+                  testcs, testss, ton, toff
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: testr, testi
 !-----------------------------------------------
       CALL second0(ton)
@@ -814,48 +784,51 @@
           CALL toijsp(testi, testr, f_none, f_cos)
           CALL tomnsp(testr, testi, f_cos)
           testi(m,n,ns) = testi(m,n,ns) - 1
-          IF (ANY(testi(:,:,ns) .GT. FOUR_TOL)) GOTO 100
+          IF (ANY(testi(:,:,ns) .GT. 1.E-12_dp)) GOTO 100
           IF (lasym) THEN
           CALL tomnsp(testr, testi, f_sin)
-          IF (ANY(testi(:,:,ns) .GT. FOUR_TOL)) GOTO 100
+          IF (ANY(testi(:,:,ns) .GT. 1.E-12_dp)) GOTO 100
           END IF
 
-          IF (m.EQ.0 .AND. n.EQ.0) CYCLE
-
 !TEST sin(mu+nv)
+          IF (m.EQ.0 .AND. n.EQ.0) CYCLE
           testi = 0;  testi(m,n,ns) = 1
           CALL toijsp(testi, testr, f_none, f_sin)
           CALL tomnsp(testr, testi, f_sin)
           testi(m,n,ns) = testi(m,n,ns) - 1
-          IF (ANY(testi(:,:,ns) .GT. FOUR_TOL)) GOTO 100
+          IF (ANY(testi(:,:,ns) .GT. 1.E-12_dp)) GOTO 100
           IF (lasym) THEN
           CALL tomnsp(testr, testi, f_cos)
-          IF (ANY(testi(:,:,ns) .GT. FOUR_TOL)) GOTO 100
+          IF (ANY(testi(:,:,ns) .GT. 1.E-12_dp)) GOTO 100
           END IF
 
 !TEST U and V DERIVATIVES OF cos(mu+nv)
-          testi = 0;  testi(m,n,ns) = 1
+          testi = 0
+          testi(m,n,ns) = 1
           CALL toijsp(testi, testr, f_du, f_cos)
           CALL tomnsp(testr, testi, f_sin)
           testi(m,n,ns) = testi(m,n,ns) + m
-          IF (ANY(ABS(testi(:,:,ns)) .GT. FOUR_TOL)) GOTO 100
-          testi = 0;  testi(m,n,ns) = 1
+          IF (ANY(ABS(testi(:,:,ns)) .GT. 1.E-12_dp)) GOTO 100
+          testi = 0
+          testi(m,n,ns) = 1
           CALL toijsp(testi, testr, f_dv, f_cos)
           CALL tomnsp(testr, testi, f_sin)
           testi(m,n,ns) = testi(m,n,ns) + n*nfp
-          IF (ANY(ABS(testi(:,:,ns)) .GT. FOUR_TOL)) GOTO 100
+          IF (ANY(ABS(testi(:,:,ns)) .GT. 1.E-12_dp)) GOTO 100
 
 !TEST U and V DERIVATIVES (sin(mu+nv))
-          testi = 0;  testi(m,n,ns) = 1
+          testi = 0
+          testi(m,n,ns) = 1
           CALL toijsp(testi, testr, f_du, f_sin)
           CALL tomnsp(testr, testi, f_cos)
           testi(m,n,ns) = testi(m,n,ns) - m
-          IF (ANY(ABS(testi(:,:,ns)) .GT. FOUR_TOL)) GOTO 100
-          testi = 0;  testi(m,n,ns) = 1
+          IF (ANY(ABS(testi(:,:,ns)) .GT. 1.E-12_dp)) GOTO 100
+          testi = 0
+          testi(m,n,ns) = 1
           CALL toijsp(testi, testr, f_dv, f_sin)
           CALL tomnsp(testr, testi, f_cos)
           testi(m,n,ns) = testi(m,n,ns) - n*nfp
-          IF (ANY(ABS(testi(:,:,ns)) .GT. FOUR_TOL)) GOTO 100
+          IF (ANY(ABS(testi(:,:,ns)) .GT. 1.E-12_dp)) GOTO 100
 
          END DO MPOL_LOOP
        END DO NTOR_LOOP
@@ -863,8 +836,8 @@
        GOTO 200
 
  100   CONTINUE
-       PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
-       CALL ErrorAbort('Test_Fourier')
+       IF (lverbose) PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
+       CALL ErrorAbort('FOURIER ORTHOGONALITY TEST FAILED!')
 
  200   CONTINUE
 
@@ -872,12 +845,13 @@
        DEALLOCATE (testr, testi)
 
        CALL second0(toff)
-#if defined(SKS)
        test_fourier_time=toff-ton
-#endif       
+
        IF (iam .EQ. 0) THEN
-          IF (lverbose)PRINT 300,'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
-          WRITE (33, 300) 'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
+          DO istat = 6, 33, 27
+          IF (.NOT.lverbose .AND. istat.EQ.6) CYCLE
+          WRITE (istat, 300) 'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
+          END DO
        END IF
 
  300   FORMAT(1x,a,1p,e12.2,a)

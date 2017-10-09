@@ -42,11 +42,12 @@
        USE stel_constants
        USE fourier       
        USE nscalingtools, ONLY: startglobrow, endglobrow
+       USE utilities, ONLY: GradientHalf, to_half_mesh
        IMPLICIT NONE
 
        PRIVATE
        INTEGER, PARAMETER  :: m0=0, m1=1, isym=0, iasym=1
-       INTEGER             :: nsmin, nsmax, ns_span
+       INTEGER             :: nsmin, nsmax
        REAL(dp)            :: gamm1
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, PRIVATE ::               &
          work1, work2, vgradph, work3, work4, work5, work6, &
@@ -55,7 +56,8 @@
        PUBLIC :: update_pres  
 
        CONTAINS
-!>     \brief Parallel subroutine to advance pressure from t to t+delta_t by updating jpmnc,sh (jacobh*presh)
+!>     \brief Parallel subroutine to advance pressure from t to t+delta_t 
+!>     by updating jpmnc,sh (jacobh*presh)
        SUBROUTINE update_pres
        USE quantities
        USE timer_mod, ONLY: time_update_pres
@@ -68,7 +70,6 @@
 !-----------------------------------------------
        CALL second0(ton)
        nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+1)
-       ns_span=nsmax-nsmin+1
 !
 !      First, calculate first term (~gamma) on r.h.s. of pressure evolution equation       
 ! 
@@ -90,8 +91,8 @@
        IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_PRES')
 
 !On exit, jsupXh valid on [nsmin+1:nsmax]
-       CALL to_half_mesh_par(jvsupuijf(:,:,nsmin:nsmax), jvsupuijh, nblock, nsmin, nsmax)
-       CALL to_half_mesh_par(jvsupvijf(:,:,nsmin:nsmax), jvsupvijh, nblock, nsmin, nsmax)
+       CALL to_half_mesh(jvsupuijf, jvsupuijh)
+       CALL to_half_mesh(jvsupvijf, jvsupvijh)
 
 !=====================================
 !      Compute first term ~(gamma-1)V * grad(p) on r.h.s. of pressure equation
@@ -111,11 +112,11 @@
           pijf_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) +          &
           pijf_du(:,:,nsmin:nsmax)*jvsupuijf(:,:,nsmin:nsmax) +          &
           pijf_dv(:,:,nsmin:nsmax)*jvsupvijf(:,:,nsmin:nsmax)
-          CALL to_half_mesh_par(work1, vgradph, nblock, nsmin, nsmax)
+          CALL to_half_mesh(work1, vgradph)
        ELSE
 !MIXED HALF/FULL: DIAGONAL IN ANGULAR DERIVATIVES AND MORE ACCURATE AT EDGE js=ns
           work1 = pijf_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
-          CALL to_half_mesh_par(work1, vgradph, nblock, nsmin, nsmax)
+          CALL to_half_mesh(work1, vgradph)
           vgradph(:,:,nsmin:nsmax) = vgradph(:,:,nsmin:nsmax)            &
                + jvsupuijh(:,:,nsmin:nsmax)*pijh_du(:,:,nsmin:nsmax)     &
                + jvsupvijh(:,:,nsmin:nsmax)*pijh_dv(:,:,nsmin:nsmax)
@@ -128,7 +129,7 @@
           work1(:,:,nsmin:nsmax) = -0.5_dp*signjac*                      &
              pijf_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
           IF (nsmin .EQ. 1) work1(:,:,1) = 0
-          CALL GradientHalf_par(work3, work1, nblock, nsmin, nsmax)
+          CALL GradientHalf(work3, work1)
           vgradph(:,:,nsmin:nsmax) = vgradph(:,:,nsmin:nsmax) +          &
                               hs_i*work3(:,:,nsmin:nsmax)
        END IF
@@ -146,17 +147,17 @@
           work1(:,:,nsmin:nsmax) = -0.5_dp*signjac*hs_i*                 &
              pijf_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
           work2(:,:,nsmin:nsmax) = work1(:,:,nsmin:nsmax) +              &
-             pijh(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) 
+             pijh0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) 
        ELSE
-          work2(:,:,nsmin:nsmax) = pijf(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
+          work2(:,:,nsmin:nsmax) = pijf0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
        END IF
 
 !On exit, work1 is valid on [nsmin+1:nsmax]
-       CALL GradientHalf_par(work1, work2, nblock, nsmin, nsmax)
+       CALL GradientHalf(work1, work2)
 
        nsmin=MAX(1,startglobrow)
-       work2(:,:,nsmin:nsmax) = pijh(:,:,nsmin:nsmax)*jvsupuijh(:,:,nsmin:nsmax)
-       work3(:,:,nsmin:nsmax) = pijh(:,:,nsmin:nsmax)*jvsupvijh(:,:,nsmin:nsmax)
+       work2(:,:,nsmin:nsmax) = pijh0(:,:,nsmin:nsmax)*jvsupuijh(:,:,nsmin:nsmax)
+       work3(:,:,nsmin:nsmax) = pijh0(:,:,nsmin:nsmax)*jvsupvijh(:,:,nsmin:nsmax)
        DEALLOCATE(jvsupuijh, jvsupvijh)
 
        CALL Continuity(djpmnch, isym)
@@ -169,13 +170,13 @@
 
        END SUBROUTINE update_pres
 
-       
-       SUBROUTINE Continuity(djpmnh, iparity)
+!>     \brief Uses density continuity equation, with p = n^gamma
+       SUBROUTINE Continuity(djpmnh, ipar)
        USE shared_data, ONLY: delta_t
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       INTEGER, INTENT(IN) :: iparity
+       INTEGER, INTENT(IN) :: ipar
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
             djpmnh
 !-----------------------------------------------
@@ -184,7 +185,10 @@
        INTEGER   :: fours, fouru, fourv, m, n, mp, np, MPI_ERR
        REAL(dp)  :: sparity, s(1), r(1)
 !-----------------------------------------------
-       IF (iparity .EQ. isym) THEN
+!      djpmnh needed up to nsmax=endglobrow+1 to compute perturbed pressure
+!      in siesta forces
+
+       IF (ipar .EQ. isym) THEN
           fours=f_cos; fouru=f_sin; fourv=f_sin
           sparity = 1
        ELSE
@@ -196,13 +200,13 @@
        IF (m.GT.nsmin .OR. n.LT.nsmax) CALL ErrorAbort('djpmnh wrong bounds - Continuity')
 
 !      FFT of gradp*Flux terms
-       CALL tomnsp_par(vgradph, work4, fours, 1, ns_span)                ! Calculate Fourier transform of v_dot_gradph
+       CALL tomnsp_par(vgradph, work4, fours)                            ! Calculate Fourier transform of v_dot_gradph
        djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of Pres. Eq. (full mesh) 
 
 !      FFT of Div(p*Flux) terms (multiply angular derivatives by m,n*nfp)
-       CALL tomnsp_par(work1, work4, fours, 1, ns_span)
-       CALL tomnsp_par(work2, work5, fouru, 1, ns_span)
-       CALL tomnsp_par(work3, work6, fourv, 1, ns_span)
+       CALL tomnsp_par(work1, work4, fours)
+       CALL tomnsp_par(work2, work5, fouru)
+       CALL tomnsp_par(work3, work6, fourv)
 
        DO m = 0, mpol
           mp = m*sparity
@@ -214,7 +218,7 @@
        ENDDO
      
        work4 = work4 + work5
-
+       
 !Gamma = adiabatic factor
        djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                 &
                                - gamma*work4(:,:,nsmin:nsmax)
@@ -230,6 +234,5 @@
        END IF
 
        END SUBROUTINE Continuity
-
 
        END MODULE siesta_pressure
