@@ -75,7 +75,7 @@ C-----------------------------------------------
 !
 
         CALL totzsps_par (pgc, pr1, pru, prv, pz1, pzu, pzv, lu, lv, 
-     1                    prcon, pzcon)
+     1                    prcon, pzcon, ier_flag)
 
 !
 !     ANTI-SYMMETRIC CONTRIBUTIONS TO INVERSE TRANSFORMS
@@ -150,7 +150,7 @@ C-----------------------------------------------
 !     PRESSURE, AND METRIC ELEMENTS ON HALF-GRID
 
       CALL second0 (tbcovon)
-      CALL bcovar_par (lu, lv, pxc)
+      CALL bcovar_par (lu, lv, pxc, ier_flag)
       CALL second0 (tbcovoff)
       bcovar_time=bcovar_time+(tbcovoff - tbcovon)
 
