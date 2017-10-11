@@ -454,26 +454,8 @@
          CALL cdf_define(ncid, vn_jpress,  jpmnsh,     dimname=restart_dims)
       END IF
 
-      CALL cdf_write(ncid, vn_flags, flags)
-      CALL cdf_write(ncid, vn_nsin, ns)
-      CALL cdf_write(ncid, vn_mpolin, mpol)
-      CALL cdf_write(ncid, vn_ntorin, ntor)
-      CALL cdf_write(ncid, vn_wout, wout_file)
-
-      CALL cdf_write(ncid, vn_jbsupss, jbsupsmnsh)
-      CALL cdf_write(ncid, vn_jbsupuc, jbsupumnch)
-      CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
-      CALL cdf_write(ncid, vn_jpresc,  jpmnch)
-
-      IF (lasym) THEN
-         CALL cdf_write(ncid, vn_jbsupsc, jbsupsmnch)
-         CALL cdf_write(ncid, vn_jbsupus, jbsupumnsh)
-         CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
-         CALL cdf_write(ncid, vn_jpress,  jpmnsh)
-      END IF
-
 #if defined(MRC)
-      RECON0: IF (lrecon) THEN
+RECON0: IF (lrecon) THEN
 !  Using variable with jacobian only for the dimension sizes and types. Be for
 !  writting, the jacobian normalization will be removed.
          CALL cdf_define(ncid, vn_bsupsmns,  jbsupsmnsh, dimname=restart_dims)
@@ -502,6 +484,29 @@
             CALL cdf_define(ncid, vn_jksupvmns, jbsupvmnsh, dimname=restart_dims)
             CALL cdf_define(ncid, vn_pmns,      jpmnsh,     dimname=restart_dims)
          END IF
+      END IF RECON0
+#endif
+
+      CALL cdf_write(ncid, vn_flags, flags)
+      CALL cdf_write(ncid, vn_nsin, ns)
+      CALL cdf_write(ncid, vn_mpolin, mpol)
+      CALL cdf_write(ncid, vn_ntorin, ntor)
+      CALL cdf_write(ncid, vn_wout, wout_file)
+
+      CALL cdf_write(ncid, vn_jbsupss, jbsupsmnsh)
+      CALL cdf_write(ncid, vn_jbsupuc, jbsupumnch)
+      CALL cdf_write(ncid, vn_jbsupvc, jbsupvmnch)
+      CALL cdf_write(ncid, vn_jpresc,  jpmnch)
+
+      IF (lasym) THEN
+         CALL cdf_write(ncid, vn_jbsupsc, jbsupsmnch)
+         CALL cdf_write(ncid, vn_jbsupus, jbsupumnsh)
+         CALL cdf_write(ncid, vn_jbsupvs, jbsupvmnsh)
+         CALL cdf_write(ncid, vn_jpress,  jpmnsh)
+      END IF
+
+#if defined(MRC)
+      RECON1: IF (lrecon) THEN
 
          CALL cdf_write(ncid, vn_p_factor, p_factor)
          CALL cdf_write(ncid, vn_b_factor, b_factor)
@@ -601,10 +606,9 @@
          ALLOCATE(bsubumnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(bsubvmnf(0:mpol,-ntor:ntor,ns))
 
-         nblock = (2*ntor + 1)*(mpol + 1)
-         CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock, 1, ns)
-         CALL to_full_mesh(bsubumnh, bsubumnf, nblock, 1, ns)
-         CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock, 1, ns)
+         CALL to_full_mesh(bsubsmnh, bsubsmnf)
+         CALL to_full_mesh(bsubumnh, bsubumnf)
+         CALL to_full_mesh(bsubvmnh, bsubvmnf)
 
          ALLOCATE(jksupsmnf(0:mpol,-ntor:ntor,ns))
          ALLOCATE(jksupumnf(0:mpol,-ntor:ntor,ns))
@@ -669,9 +673,9 @@
             END DO
             CALL cdf_write(ncid, vn_bsubvmns, tempmn)
 
-            CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock, 1, ns)
-            CALL to_full_mesh(bsubumnh, bsubumnf, nblock, 1, ns)
-            CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock, 1, ns)
+            CALL to_full_mesh(bsubsmnh, bsubsmnf)
+            CALL to_full_mesh(bsubumnh, bsubumnf)
+            CALL to_full_mesh(bsubvmnh, bsubvmnf)
 
             CALL GradientFull(dbuds, bsubumnh)
             CALL GradientFull(dbvds, bsubvmnh)
@@ -712,7 +716,7 @@
          DEALLOCATE(dbvds)
 
          DEALLOCATE(tempmn)
-      END IF RECON0
+      END IF RECON1
 #endif
       CALL cdf_close(ncid)
 #endif

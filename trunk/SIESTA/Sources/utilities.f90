@@ -1,5 +1,9 @@
       MODULE utilities
 
+      INTERFACE to_full_mesh
+         MODULE PROCEDURE to_full_mesh2, to_full_mesh3
+      END INTERFACE
+
       CONTAINS
       
       SUBROUTINE GradientHalf(gradienth, vectorf)
@@ -25,8 +29,9 @@
                                    -      vectorf(:,:,nsmin:nsmax-1))
 
       END SUBROUTINE GradientHalf
-      
+!---------------------------------------------------------------------------------------------
 
+!---------------------------------------------------------------------------------------------
       SUBROUTINE GradientFull(gradientf, vectorh)
       USE stel_kinds
       USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i
@@ -56,8 +61,9 @@
       END IF
 
       END SUBROUTINE GradientFull
-      
+!---------------------------------------------------------------------------------------------
 
+!---------------------------------------------------------------------------------------------
       SUBROUTINE to_half_mesh(vecf, vech)
       USE stel_kinds
       USE island_params, ns=>ns_i
@@ -90,7 +96,7 @@
 !---------------------------------------------------------------------------------------------
 
 !---------------------------------------------------------------------------------------------
-      SUBROUTINE to_full_mesh(vech, vecf, n2, nsmin, nsmax)
+      SUBROUTINE to_full_mesh3(vech, vecf)
       USE stel_kinds
       USE island_params, ns=>ns_i
       IMPLICIT NONE        
@@ -101,35 +107,62 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)   :: n2, nsmin, nsmax
-      REAL(dp), INTENT(IN)  :: vech(1+n2*(nsmin-1):n2*nsmax)      
-      REAL(dp), INTENT(OUT) :: vecf(1+n2*(nsmin-1):n2*nsmax)   
+      REAL(dp), INTENT(IN), ALLOCATABLE :: vech(:,:,:)
+      REAL(dp), ALLOCATABLE :: vecf(:,:,:)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       REAL(dp), PARAMETER :: p5 = 0.5_dp
-      INTEGER     :: lstart, lend
+      INTEGER     :: nsmin, nsmax
 !-----------------------------------------------
 !     Contraction map
 !     INPUT (vech)   : [nsmin:nsmax]
 !     OUTPUT(vecf)   : [nsmin:nsmax-1]
 
-!      IF (nsmin .NE. LBOUND(vech,3)) STOP 'NSMIN != LBOUND'
-!      IF (nsmax .NE. UBOUND(vech,3)) STOP 'NSMAX != UBOUND'
+      nsmin = LBOUND(vech,3)
+      nsmax = UBOUND(vech,3)
 
-      lstart=1+n2*(nsmin-1); lend=n2*(nsmax-1)
-      vecf(lstart:lend) = p5*(vech(lstart:lend) + vech(lstart+n2:lend+n2))
+      vecf(:,:,nsmin:nsmax-1) = p5*(vech(:,:,nsmin:nsmax-1)             &
+                              +     vech(:,:,nsmin+1:nsmax))
+      IF (nsmin .EQ. 1)  vecf(:,:,1) = vech(:,:,2)
+      IF (nsmax .EQ. ns) vecf(:,:,ns)= vech(:,:,ns)
 
-      IF (nsmin .EQ. 1) THEN
-         vecf(1:n2)  = vech(1+n2:2*n2)
-         IF (nsmax .EQ. nsmin) CALL ErrorAbort('TO_FULL_MESH needs to broadcast vech(2)')
-      END IF
-      IF (nsmax .EQ. ns) THEN
-         lstart=lend+1;  lend = lstart+n2-1
-         vecf(lstart:lend) = vech(lstart:lend)
-      END IF
+      END SUBROUTINE to_full_mesh3
+!---------------------------------------------------------------------------------------------
 
-      END SUBROUTINE to_full_mesh
+!---------------------------------------------------------------------------------------------
+      SUBROUTINE to_full_mesh2(vech, vecf)
+      USE stel_kinds
+      USE island_params, ns=>ns_i
+      IMPLICIT NONE        
+!  
+!     This subroutine migrates a half mesh quantity to the full mesh.
+!     First and last point are extrapolated linearly.
+!
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(IN), ALLOCATABLE :: vech(:,:)
+      REAL(dp), ALLOCATABLE :: vecf(:,:)
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), PARAMETER :: p5 = 0.5_dp
+      INTEGER     :: nsmin, nsmax
+!-----------------------------------------------
+!     Contraction map
+!     INPUT (vech)   : [nsmin:nsmax]
+!     OUTPUT(vecf)   : [nsmin:nsmax-1]
+
+      nsmin = LBOUND(vech,2)
+      nsmax = UBOUND(vech,2)
+
+      vecf(:,nsmin:nsmax-1) = p5*(vech(:,nsmin:nsmax-1)                 &
+                            +     vech(:,nsmin+1:nsmax))
+      IF (nsmin .EQ. 1)  vecf(:,1) = vech(:,2)
+      IF (nsmax .EQ. ns) vecf(:,ns)= vech(:,ns)
+
+      END SUBROUTINE to_full_mesh2
 
           
       END MODULE utilities

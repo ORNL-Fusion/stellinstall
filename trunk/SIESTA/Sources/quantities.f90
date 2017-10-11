@@ -81,8 +81,8 @@
         ksupsijf0, ksupuijf0, ksupvijf0
 
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
-        pijh0, pijh_du, pijh_dv,                                        &
-        pijf0, pijf_ds, pijf_du, pijf_dv
+        pijh0, pijh0_du, pijh0_dv,                                      &
+        pijf0, pijf0_ds
 
        REAL(dp) :: fbdy(13)                
 !
@@ -172,7 +172,7 @@
            ' JACOBIAN SPECTRAL TRUNCATION ERROR: ', SQRT(sum1/SIZE(jacobh))
 !        END IF
 
-        CALL to_full_mesh(jacobh, jacobf, nuv, 1, ns)
+        CALL to_full_mesh(jacobh, jacobf)
 !Must be consistent with variational form of pressure evolution equation (DO NOT USE 2pt EXTRAPOLATIONS!)
         jacobf(:,:,1) = jacobh(:,:,1)
         jacobf(:,:,ns)= jacobh(:,:,ns)
@@ -527,9 +527,8 @@
 
         DEALLOCATE(jacobh, jacobf, jvsupsijf, jvsupuijf, jvsupvijf,     &
           ksubsijf, ksubuijf, ksubvijf, pijh0, pijf0,                   &
-          pijf_ds, bsupuijf0, vp_f, bsq, wint,                          &
-          bsupvijf0, bsupsijf0, pijf_du, pijf_dv,                       &
-          pijh_du, pijh_dv, stat=istat)                      
+          pijf0_ds, bsupuijf0, vp_f, bsq, wint,                         &
+          bsupvijf0, bsupsijf0, pijh0_du, pijh0_dv, stat=istat)                      
         IF(ALLOCATED(bsupsijf0)) DEALLOCATE(bsupsijf0, bsupuijf0, bsupvijf0)
         IF(ALLOCATED(bsupsijh0)) DEALLOCATE(bsupsijh0, bsupuijh0, bsupvijh0)
         IF(ALLOCATED(ksupsijf0)) DEALLOCATE(ksupsijf0, ksupuijf0, ksupvijf0)

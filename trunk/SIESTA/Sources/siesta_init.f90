@@ -40,7 +40,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER, PARAMETER :: m0=0, m1=1
-       INTEGER            :: js, istat,  m, n, nblock
+       INTEGER            :: js, istat,  m, n
        REAL(dp)           :: ton, toff, stes(2), rtes(2), pres_edge(ns)
        INTEGER            :: i, n1, n2, endr, startr
        LOGICAL            :: ladd_pert, lpar=.TRUE.
@@ -110,29 +110,22 @@
 !Compute spectrally filtered dp/du and dp/dv on half radial grid [nsmin:nsmax]
        IF (l_update_state) ALLOCATE (pfilter(ntheta, nzeta, nsmin:nsmax))
        CALL FilterPressure(isym)
-       IF (lasym)                                                        &
+       IF (lasym)                                                       &
        CALL FilterPressure(iasym)
 
-!Compute radial pressure derivative pijf_ds at full mesh points [nsmin:nsmax-1]
-       nblock=SIZE(pijh0,1)*SIZE(pijh0,2)
-       CALL GradientFull(pijf_ds, pijh0)
+!Compute radial pressure derivative pijf0_ds at full mesh points [nsmin:nsmax-1]
+       CALL GradientFull(pijf0_ds, pijh0)
 
 !SPH: one-sided (m=1) derivative at origin yields factor of 2 (hs/2)
        IF (nsmin .EQ. 1) THEN
-          pijf_ds(:,:,1) = 2*pijh0(:,:,1)*ohs
+          pijf0_ds(:,:,1) = 2*pijh0(:,:,1)*ohs
           pijh0(:,:,1) = 0 
        END IF
       
-!SPH   AVERAGE pijh_du,dv to FULL mesh and set origin value (SIN SYMMETRY)
-!On Exit, pijf_du,v valid on [nsmin:nsmax-1], with extension to nsmax=ns
-       CALL to_full_mesh(pijh_du, pijf_du, nblock, nsmin, nsmax)
-       CALL to_full_mesh(pijh_dv, pijf_dv, nblock, nsmin, nsmax)
 !SPH11-3-16 s=1 is iso-pressure contour
        IF (nsmax .EQ. ns) THEN
           CALL SurfAverage(pres_edge(ns), pijh0(:,:,ns), ns, ns)
           pijf0(:,:,ns) = pres_edge(ns)
-          pijf_du(:,:,ns) = 0
-          pijf_dv(:,:,ns) = 0
        END IF
 
 !Fourier filter (Nyquist) check
@@ -143,7 +136,7 @@
        stes(1) = SUM((pijh0(:,:,n1:n2)-pfilter(:,:,n1:n2))**2)
        stes(2) = SUM((pijh0(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
 #if defined(MPI_OPT)
-       CALL MPI_ALLREDUCE(stes,rtes,2,MPI_REAL8,MPI_SUM,                 &
+       CALL MPI_ALLREDUCE(stes,rtes,2,MPI_REAL8,MPI_SUM,                &
                           SIESTA_COMM,MPI_ERR)
        IF (rtes(2) .NE. zero) ste(1) = SQRT(rtes(1)/rtes(2))
 #else
@@ -155,9 +148,10 @@
           startglobrow=startr;  endglobrow=endr 
        END IF
 
-
        END SUBROUTINE init_state
+!---------------------------------------------------------------------------------------------
 
+!---------------------------------------------------------------------------------------------
        SUBROUTINE Init_Allocate_Arrays(lpar)
        USE quantities
        USE shared_data, ONLY: l_par_state
@@ -196,8 +190,8 @@
                       bsubsijf,  bsubuijf,  bsubvijf,                   &
                       ksupsijf0, ksupuijf0, ksupvijf0,                  &
                       ksubsijf,  ksubuijf,  ksubvijf,                   &
-                      pijf0, pijh0, pijf_ds, pijf_du, pijf_dv,          &
-                      pijh_du, pijh_dv, stat=istat)
+                      pijf0, pijh0, pijf0_ds, pijh0_du,                 &
+                      pijh0_dv, stat=istat)
           IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in ALLOC_QUANTITIES')
           END IF
        END IF
@@ -224,11 +218,9 @@
                     bsubvijf(n1,n2,nsmin1:nsmax),                       &
                     pijh0(n1,n2,nsmin1:nsmax1),                         &
                     pijf0(n1,n2,nsmin1:nsmax1),                         &
-                    pijf_ds(n1,n2,nsmin1:nsmax1),                       &
-                    pijf_du(n1,n2,nsmin1:nsmax1),                       &
-                    pijf_dv(n1,n2,nsmin1:nsmax1),                       &
-                    pijh_du(n1,n2,nsmin1:nsmax1),                       &
-                    pijh_dv(n1,n2,nsmin1:nsmax1), stat=istat)
+                    pijf0_ds(n1,n2,nsmin1:nsmax1),                      &
+                    pijh0_du(n1,n2,nsmin1:nsmax1),                      &
+                    pijh0_dv(n1,n2,nsmin1:nsmax1), stat=istat)
           ELSE
           ALLOCATE (ksupsijf0(n1,n2,n3), ksupuijf0(n1,n2,n3),           &
                     ksupvijf0(n1,n2,n3),                                &
@@ -239,9 +231,8 @@
                     bsubuijf(n1,n2,n3),                                 &
                     bsubvijf(n1,n2,n3),                                 &
                     pijf0(n1,n2,n3), pijh0(n1,n2,n3),                   &
-                    pijf_ds(n1,n2,n3), pijf_du(n1,n2,n3),               &
-                    pijf_dv(n1,n2,n3), pijh_du(n1,n2,n3),               &
-                    pijh_dv(n1,n2,n3), bsupsijf0(n1,n2,n3),             &
+                    pijf0_ds(n1,n2,n3), pijh0_du(n1,n2,n3),             &
+                    pijh0_dv(n1,n2,n3), bsupsijf0(n1,n2,n3),            &
                     bsupuijf0(n1,n2,n3),bsupvijf0(n1,n2,n3),            &
                     bsupsijh0(n1,n2,n3),                                &
                     bsupuijh0(n1,n2,n3),bsupvijh0(n1,n2,n3),            &
@@ -333,23 +324,24 @@
        END IF
 
        END SUBROUTINE Init_Allocate_Arrays
+!---------------------------------------------------------------------------------------------
 
-
+!---------------------------------------------------------------------------------------------
        SUBROUTINE GetFields(jbsupsmnh, jbsupumnh, jbsupvmnh,            &
-                            jpmnh, iparity)
+                            jpmnh, ipar)
        USE quantities, ONLY: bsupsijh0, bsupuijh0, bsupvijh0, pijh0
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                       &
              jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
-       INTEGER, INTENT(IN) :: iparity
+       INTEGER, INTENT(IN) :: ipar
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER  :: fours, fouru, fourv, icomb
 !-----------------------------------------------
-       IF (iparity .EQ. isym) THEN
+       IF (ipar .EQ. isym) THEN
           icomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
        ELSE
           icomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
@@ -365,9 +357,11 @@
                        fourv)
 
        END SUBROUTINE GetFields
+!---------------------------------------------------------------------------------------------
 
+!---------------------------------------------------------------------------------------------
        SUBROUTINE FilterPressure(ipar)
-       USE quantities, ONLY: mpol, ntor, pijh0, pijh_du, pijh_dv
+       USE quantities, ONLY: mpol, ntor, pijh0, pijh0_du, pijh0_dv
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -386,15 +380,15 @@
           mfour = IOR(f_du,f_sum);  nfour = IOR(f_dv, f_sum)
        END IF
 
-!pmnh contains filtered (to MPOL, NTOR) Fourier harmonics of p on half mesh
+!pmnh contains Nyquist-filtered (to MPOL, NTOR) Fourier harmonics of p on half mesh
        ALLOCATE (pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in INIT_STATE')
+       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in FilterPressure')
 
-       CALL tomnsp_par(pijh0, pmnh(:,:,nsmin:nsmax), four)
+       CALL tomnsp_par(pijh0, pmnh, four)
 
-!spectrally filtered angle derivatives
-       CALL toijsp_par(pmnh, pijh_du, mfour, four)                        ! dp/du in real space (half mesh)
-       CALL toijsp_par(pmnh, pijh_dv, nfour, four)                        ! dp/dv in real space (half mesh, include js=1 extrap)
+!spectrally filtered angle derivatives of p in real space (half mesh)
+       CALL toijsp_par(pmnh, pijh0_du, mfour, four)
+       CALL toijsp_par(pmnh, pijh0_dv, nfour, four)
 
        IF (l_update_state)                                              &
        CALL toijsp_par(pmnh, pfilter, icomb, four)                        ! p (fourier filtered)

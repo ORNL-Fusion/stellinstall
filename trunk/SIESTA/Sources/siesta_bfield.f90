@@ -15,9 +15,9 @@
        INTEGER, PARAMETER :: m0=0, m1=1, m2=2, isym=0, iasym=1
        INTEGER            :: nsmin, nsmax
 
-       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
-         esubsijf, esubuijf, esubvijf,                                   &
-         esubsmnf, esubumnf, esubvmnf,                                   &
+       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                       &
+         esubsijf, esubuijf, esubvijf,                                  &
+         esubsmnf, esubumnf, esubvmnf,                                  &
          esubsmnh, esubumnh, esubvmnh, de_uds, de_vds
 
        PUBLIC :: update_bfield
@@ -61,12 +61,12 @@
 !
 !Calculate covariant components of (non-resistive) electric field E = -v X B on full-space mesh
 !  
-       ALLOCATE(esubsijf(ntheta,nzeta,nsmin:nsmax),                      &
-                esubuijf(ntheta,nzeta,nsmin:nsmax),                      &
+       ALLOCATE(esubsijf(ntheta,nzeta,nsmin:nsmax),                     &
+                esubuijf(ntheta,nzeta,nsmin:nsmax),                     &
                 esubvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)   
        IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_BFIELD')
 
-       ALLOCATE(de_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
+       ALLOCATE(de_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                 de_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
        IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_BFIELD')
 
@@ -119,24 +119,24 @@
        ENDIF 
 
 !Allocate working arrays used in Faraday
-       ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-                esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & 
-                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+       ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
+                esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                & 
+                esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 stat=istat)  
        IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_BFIELD')
 
-       ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
-                esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+       ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
+                esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
        IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in UPDATE_BFIELD')
 
 !Update Bfield using Faraday's Law
        CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch, isym)
-       IF (lasym)                                                        &
+       IF (lasym)                                                       &
        CALL Faraday(djbsupsmnch, djbsupumnsh, djbsupvmnsh, iasym)
 
-       DEALLOCATE (esubsijf, esubuijf, esubvijf, de_uds, de_vds,         &    
-                   esubsmnf, esubumnf, esubvmnf,                         & 
+       DEALLOCATE (esubsijf, esubuijf, esubvijf, de_uds, de_vds,        &    
+                   esubsmnf, esubumnf, esubvmnf,                        & 
                    esubsmnh, esubumnh, esubvmnh, stat=istat)    
 
        CALL second0(toff)
@@ -153,12 +153,12 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
        INTEGER, INTENT(IN) :: ipar
-       REAL(dp),DIMENSION(:,:,:), ALLOCATABLE ::                         &
+       REAL(dp),DIMENSION(:,:,:), ALLOCATABLE ::                        &
             djbsupsmnh, djbsupumnh, djbsupvmnh
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER   :: fours, fouru, fourv, nblock, m, n, nmin, nmax
+       INTEGER   :: fours, fouru, fourv, m, n, nmin, nmax
        REAL(dp)  :: sparity, r0, mp, np
 !-----------------------------------------------
        nmin=nsmin; nmax=nsmax
@@ -177,7 +177,6 @@
        CALL tomnsp_par(esubvijf, esubvmnf, fourv)
        
 !On exit, esubXh valid on [nsmin+1:nsmax]
-       nblock = SIZE(esubsmnh,1)*SIZE(esubsmnh,2)
        CALL to_half_mesh(esubsmnf, esubsmnh)
        CALL to_half_mesh(esubumnf, esubumnh)
        CALL to_half_mesh(esubvmnf, esubvmnh)
@@ -204,11 +203,11 @@
          mp = sparity*m
          DO n = -ntor, ntor
            np = sparity*n*nfp
-           djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)        & ! -mp  ~ d/du
+           djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)       & ! -mp  ~ d/du
                                      - np*esubumnh(m,n,nmin:nmax)          ! -np  ~ d/dv
-           djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)        &
+           djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)       &
 		                             + de_vds(m,n,nmin:nmax)
-           djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)        &
+           djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)       &
 		                             - de_uds(m,n,nmin:nmax)
           ENDDO
        ENDDO

@@ -2,7 +2,7 @@
       USE stel_kinds
       USE stel_constants
       USE descriptor_mod, ONLY: SIESTA_COMM
-      USE shared_data, ONLY: l_update_state, l_natural, lasym,           &
+      USE shared_data, ONLY: l_update_state, l_natural, lasym,          &
                              jsju_ratio_s, jsju_ratio_a, ste 
       USE fourier
       USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
@@ -13,16 +13,16 @@
       PRIVATE
       INTEGER  :: nsmin, nsmax, n1, n2
       INTEGER, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                        &
-                bsubsijh, bsubuijh, bsubvijh, bs_filter, bu_filter,      &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
+                bsubsijh, bsubuijh, bsubvijh, bs_filter, bu_filter,     &
                 bv_filter
       REAL(dp) :: edge_cur
       PUBLIC   :: cv_currents
 
       CONTAINS
 
-      SUBROUTINE cv_currents (bsupsijh, bsupuijh, bsupvijh,              &
-                              ksupsijf, ksupuijf, ksupvijf,              & 
+      SUBROUTINE cv_currents (bsupsijh, bsupuijh, bsupvijh,             &
+                              ksupsijf, ksupuijf, ksupvijf,             & 
                               lmagen, lcurr)
 !*******************************************************************************
 !>  \file siesta_currents.f90
@@ -78,19 +78,19 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER :: iwrite
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::            &
-           bsupsijh, bsupuijh, bsupvijh,                                 &
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, INTENT(IN)  ::           &
+           bsupsijh, bsupuijh, bsupvijh,                                &
            ksupsijf, ksupuijf, ksupvijf
       LOGICAL, INTENT(IN)  :: lmagen, lcurr
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: istat
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-         bsubsmnsh, bsubumnch, bsubvmnch,                                &
-         bsubsmnsf, bsubumncf, bsubvmncf,                                &
-         bsubsmnch, bsubumnsh, bsubvmnsh,                                &
-         bsubsmncf, bsubumnsf, bsubvmnsf,                                &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+         bsubsmnsh, bsubumnch, bsubvmnch,                               &
+         bsubsmnsf, bsubumncf, bsubvmncf,                               &
+         bsubsmnch, bsubumnsh, bsubvmnsh,                               &
+         bsubsmncf, bsubumnsf, bsubvmnsf,                               &
          bsq_loc
       REAL(dp) :: beta, r0, ton, toff, stes(6), rtes(6), wb0
 !-----------------------------------------------
@@ -110,12 +110,12 @@
       IF (UBOUND(ksupsijf,3) .NE. nsmax) CALL ErrorAbort('KSUPSIJF HAS WRONG UB')
 
 ! Calculate covariant BsubXh on half mesh
-      ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                       &
-               bsubuijh(ntheta,nzeta,nsmin:nsmax),                       &
+      ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                      &
+               bsubuijh(ntheta,nzeta,nsmin:nsmax),                      &
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in CV_CURRENTS')
      
-      CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                        &
+      CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                       &
                     bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
                     
 !COMPUTE PARALLEL DAMPING SCALING COEFFICIENT <Bsupv**2/B**2> ~ k^2
@@ -129,7 +129,7 @@
 
       IF (lmagen) THEN
          ALLOCATE (bsq_loc(ntheta,nzeta,nsmin:nsmax), stat=istat)
-         bsq_loc = bsupsijh*bsubsijh  + bsupuijh*bsubuijh                &
+         bsq_loc = bsupsijh*bsubsijh  + bsupuijh*bsubuijh               &
                  + bsupvijh*bsubvijh
          IF (n1 .EQ. 1) bsq_loc(:,:,1) = 0
          IF (n1 .GT. 1) THEN
@@ -143,7 +143,7 @@
          
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,              &
+            CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,             &
                                SIESTA_COMM,MPI_ERR)
 #endif
          ELSE
@@ -155,10 +155,10 @@
 !
 ! Calculate BsubXmnh and KsupXmnf harmonics
 !       
-      CALL CURLB (ksupsmnsf, ksupumncf, ksupvmncf, jsju_ratio_s,         &
+      CALL CURLB (ksupsmnsf, ksupumncf, ksupvmncf, jsju_ratio_s,        &
                   isym, lcurr)
-      IF (lasym)                                                         &
-      CALL CURLB (ksupsmncf, ksupumnsf, ksupvmnsf, jsju_ratio_a,         &
+      IF (lasym)                                                        &
+      CALL CURLB (ksupsmncf, ksupumnsf, ksupvmnsf, jsju_ratio_a,        &
                   iasym, lcurr)
 
       IF (lcurr) THEN
@@ -171,15 +171,15 @@
 !     Calculate full mesh, contravariant real-space current components
 !     KsupXF = sqrt(g)*JsupXF 
 !        
-      CALL GETCV (ksupsmnsf, ksupumncf, ksupvmncf, ksupsijf, ksupuijf,   &
+      CALL GETCV (ksupsmnsf, ksupumncf, ksupvmncf, ksupsijf, ksupuijf,  &
                   ksupvijf, isym)                       
-      IF (lasym)                                                         &
-      CALL GETCV (ksupsmncf, ksupumnsf, ksupvmnsf, ksupsijf, ksupuijf,   &
+      IF (lasym)                                                        &
+      CALL GETCV (ksupsmncf, ksupumnsf, ksupvmnsf, ksupsijf, ksupuijf,  &
                   ksupvijf, iasym)                       
 
 !Co-variant K in real space needed for current diffusion
       IF (lcurr) THEN
-         CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                     & 
+         CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                    & 
                        ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
          IF (nsmin .EQ. 1) ksubuijf(:,:,1) = 0 
       ENDIF
@@ -191,7 +191,7 @@
 !     (Use ksupsijf for temporary FILTERED bsubXijh values)
 !
          IF (nsmax .EQ. ns) THEN 
-            r0 = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)**2                   &
+            r0 = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)**2                  &
                +                   bsubuijh(:,:,ns)**2))
             r0 = SQRT(edge_cur/r0)
          END IF
@@ -217,7 +217,7 @@
          stes(6) = SUM(wint(:,:,n1:n2)*(bv_filter + bsubvijh(:,:,n1:n2))**2)         
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(stes,rtes,6,MPI_REAL8,MPI_SUM,               &
+         CALL MPI_ALLREDUCE(stes,rtes,6,MPI_REAL8,MPI_SUM,              &
                             SIESTA_COMM,MPI_ERR)
 #endif
          ELSE
@@ -239,7 +239,7 @@
       END SUBROUTINE cv_currents
 
   
-      SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,        &
+      SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,       &
                         ipar, lcurr)
 
       USE quantities, ONLY: ohs
@@ -247,18 +247,18 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE   ::                       &
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE   ::                      &
            ksupsmnf, ksupumnf, ksupvmnf
       REAL(dp)             :: jsju_ratio
       LOGICAL, INTENT(IN)  :: lcurr
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: fours, fouru, fourv, fcomb, nblock, nmin, nmax,        &
+      INTEGER  :: fours, fouru, fourv, fcomb, nmin, nmax,               &
                   m, n, mp, np, sparity, istat, ns_span1
 !----------------------------------------------- 
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-         bsubsmnf, bsubumnf, bsubvmnf, bsubsmnh, bsubumnh, bsubvmnh,     &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+         bsubsmnf, bsubumnf, bsubvmnf, bsubsmnh, bsubumnh, bsubvmnh,    &
          db_uds, db_vds
       REAL(dp) :: r0, temp(-ntor:ntor)
 !-----------------------------------------------
@@ -270,24 +270,23 @@
          r0 = -hs_i/2; sparity=-1
       END IF
 
-      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
-               bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
+      ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
+               bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in CURLB')
 
-      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                           ! Calculate BSUBXMNH    
+      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                          ! Calculate BSUBXMNH    
       CALL tomnsp_par(bsubuijh, bsubumnh, fouru)
       CALL tomnsp_par(bsubvijh, bsubvmnh, fourv)
 
-      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  & ! Next, get BSUBXMNF
-               bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
+      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & ! Next, get BSUBXMNF
+               bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in CURLB')
  
-      nblock=SIZE(bsubsmnh,1)*SIZE(bsubsmnh,2)
-      CALL to_full_mesh(bsubsmnh, bsubsmnf, nblock, nsmin, nsmax)                       
-      CALL to_full_mesh(bsubumnh, bsubumnf, nblock, nsmin, nsmax)
-      CALL to_full_mesh(bsubvmnh, bsubvmnf, nblock, nsmin, nsmax)
+      CALL to_full_mesh(bsubsmnh, bsubsmnf)                       
+      CALL to_full_mesh(bsubumnh, bsubumnf)
+      CALL to_full_mesh(bsubvmnh, bsubvmnf)
 
 !     NOTE: bsubumncf is zero, even for m=1, since guu ~ s^2, guv ~ s
       IF (nsmin .EQ. 1) THEN
@@ -309,7 +308,7 @@
 !     Compute K^X == sqrt(g)J^X contravariant current components in Fourier space
 !             
 !                   
-      ALLOCATE(db_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                    &
+      ALLOCATE(db_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
                db_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
       IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in CURLB')
 
@@ -339,25 +338,25 @@
          mp = sparity*m
          DO n = -ntor, ntor
            np = sparity*n*nfp
-           ksupsmnf(m,n,nmin:nmax) = -mp*bsubvmnf(m,n,nmin:nmax)         &
+           ksupsmnf(m,n,nmin:nmax) = -mp*bsubvmnf(m,n,nmin:nmax)        &
                                    +  np*bsubumnf(m,n,nmin:nmax)
-           ksupumnf(m,n,nmin:nmax) =  np*bsubsmnf(m,n,nmin:nmax)         &
+           ksupumnf(m,n,nmin:nmax) =  np*bsubsmnf(m,n,nmin:nmax)        &
                                    -  db_vds(m,n,nmin:nmax)                     
-           ksupvmnf(m,n,nmin:nmax) = -mp*bsubsmnf(m,n,nmin:nmax)         &
+           ksupvmnf(m,n,nmin:nmax) = -mp*bsubsmnf(m,n,nmin:nmax)        &
                                    +  db_uds(m,n,nmin:nmax)
          ENDDO
       ENDDO
 
 !Diagnostics
       DIAGNO: IF (l_update_state) THEN
-         IF (nsmax .EQ. ns) edge_cur = edge_cur                          & 
+         IF (nsmax .EQ. ns) edge_cur = edge_cur                         & 
                                      + SUM(ksupsmnf(:,:,ns)**2)
 
 !Deallocated in calling routine
          ns_span1 = n2-n1+1
-         IF (.NOT. ALLOCATED(bs_filter))                                 &
-         ALLOCATE(bs_filter(ntheta,nzeta,ns_span1),                      &
-                  bu_filter(ntheta,nzeta,ns_span1),                      &
+         IF (.NOT. ALLOCATED(bs_filter))                                &
+         ALLOCATE(bs_filter(ntheta,nzeta,ns_span1),                     &
+                  bu_filter(ntheta,nzeta,ns_span1),                     &
                   bv_filter(ntheta,nzeta,ns_span1), stat=istat)
          IF (istat .NE. 0) CALL ErrorAbort('Allocation5 failed in CURLB')
          CALL toijsp_par(bsubsmnh(:,:,n1:n2), bs_filter, fcomb, fours)
@@ -393,14 +392,14 @@
       END SUBROUTINE CURLB
 
 
-      SUBROUTINE GETCV (ksupsmnf, ksupumnf, ksupvmnf,                    &
+      SUBROUTINE GETCV (ksupsmnf, ksupumnf, ksupvmnf,                   &
                         ksupsijf, ksupuijf, ksupvijf, ipar)                       
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                         &
-           ksupsmnf, ksupumnf, ksupvmnf,                                 &
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                        &
+           ksupsmnf, ksupumnf, ksupvmnf,                                &
            ksupsijf, ksupuijf, ksupvijf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s

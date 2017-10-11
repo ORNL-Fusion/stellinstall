@@ -40,6 +40,7 @@
 
        USE stel_kinds
        USE stel_constants
+       USE quantities
        USE fourier       
        USE nscalingtools, ONLY: startglobrow, endglobrow
        USE utilities, ONLY: GradientHalf, to_half_mesh
@@ -49,8 +50,8 @@
        INTEGER, PARAMETER  :: m0=0, m1=1, isym=0, iasym=1
        INTEGER             :: nsmin, nsmax
        REAL(dp)            :: gamm1
-       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, PRIVATE ::               &
-         work1, work2, vgradph, work3, work4, work5, work6, &
+       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, PRIVATE ::              &
+         work1, work2, vgradph, work3, work4, work5, work6,             &
          jvsupuijh, jvsupvijh
          
        PUBLIC :: update_pres  
@@ -59,34 +60,34 @@
 !>     \brief Parallel subroutine to advance pressure from t to t+delta_t 
 !>     by updating jpmnc,sh (jacobh*presh)
        SUBROUTINE update_pres
-       USE quantities
        USE timer_mod, ONLY: time_update_pres
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       LOGICAL, PARAMETER  :: l_upwind=.FALSE.
-       INTEGER             :: istat, nblock
+       INTEGER             :: istat
        REAL(dp)            :: ton, toff
+       LOGICAL, PARAMETER  :: l_upwind=.FALSE.
 !-----------------------------------------------
        CALL second0(ton)
        nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+1)
-!
-!      First, calculate first term (~gamma) on r.h.s. of pressure evolution equation       
-! 
-       ALLOCATE(work1(ntheta,nzeta,nsmin:nsmax),                         & ! Allocate work space
-                work2(ntheta,nzeta,nsmin:nsmax),                         &   
-                work3(ntheta,nzeta,nsmin:nsmax),                         &   
-                vgradph(ntheta,nzeta,nsmin:nsmax),                       &   
+!=====================================
+!      Compute first term ~(gamma-1)V * grad(p) on r.h.s. of pressure equation
+!      the u,v derivatives should be consistent with div(pv) term and combine
+!      to cancel if div(V) = 0
+!=====================================
+       ALLOCATE(work1(ntheta,nzeta,nsmin:nsmax),                        &
+                work2(ntheta,nzeta,nsmin:nsmax),                        &   
+                work3(ntheta,nzeta,nsmin:nsmax),                        &   
+                vgradph(ntheta,nzeta,nsmin:nsmax),                      &   
                 stat=istat)   
        IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_PRES')
-       nblock = SIZE(work1,1)*SIZE(work1,2)
 
-       ALLOCATE(work4(0:mpol,-ntor:ntor,nsmin:nsmax),                    &
-                work5(0:mpol,-ntor:ntor,nsmin:nsmax),                    &
+       ALLOCATE(work4(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
+                work5(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
                 work6(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
        IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_PRES')
 
-       ALLOCATE (jvsupuijh(ntheta,nzeta,nsmin:nsmax),                    &   
+       ALLOCATE (jvsupuijh(ntheta,nzeta,nsmin:nsmax),                   &   
                  jvsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
        IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_PRES')
 
@@ -94,11 +95,6 @@
        CALL to_half_mesh(jvsupuijf, jvsupuijh)
        CALL to_half_mesh(jvsupvijf, jvsupvijh)
 
-!=====================================
-!      Compute first term ~(gamma-1)V * grad(p) on r.h.s. of pressure equation
-!      the u,v derivatives should be consistent with div(pv) term and combine
-!      to cancel if div(v) = 0
-!=====================================
        gamm1 = gamma-1
 !      MAKES PRES-PERTURB A POSITIVE DEFINITE CONTRIBUTION TO HESSIAN: 
 !      When computing hessian, guarantee positive-definiteness this way
@@ -106,32 +102,23 @@
 !      IF (l_linearize) gamm1 = gamma
 
 !On exit, vgradph is valid on [nsmin+1:nsmax]
-       IF (.FALSE.) THEN
-!       IF (.TRUE.) THEN
-          work1(:,:,nsmin:nsmax) =                                       &
-          pijf_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) +          &
-          pijf_du(:,:,nsmin:nsmax)*jvsupuijf(:,:,nsmin:nsmax) +          &
-          pijf_dv(:,:,nsmin:nsmax)*jvsupvijf(:,:,nsmin:nsmax)
-          CALL to_half_mesh(work1, vgradph)
-       ELSE
-!MIXED HALF/FULL: DIAGONAL IN ANGULAR DERIVATIVES AND MORE ACCURATE AT EDGE js=ns
-          work1 = pijf_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
-          CALL to_half_mesh(work1, vgradph)
-          vgradph(:,:,nsmin:nsmax) = vgradph(:,:,nsmin:nsmax)            &
-               + jvsupuijh(:,:,nsmin:nsmax)*pijh_du(:,:,nsmin:nsmax)     &
-               + jvsupvijh(:,:,nsmin:nsmax)*pijh_dv(:,:,nsmin:nsmax)
-       END IF
+       work1 = pijf0_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
+!MIXED HALF/FULL: DIAGONAL IN ANGULAR DERIVATIVES - CANCEL div(pV) FOR
+!div(V) = 0
+       CALL to_half_mesh(work1, vgradph)
+       vgradph = vgradph                                                &
+               + jvsupuijh(:,:,nsmin:nsmax)*pijh0_du(:,:,nsmin:nsmax)   &
+               + jvsupvijh(:,:,nsmin:nsmax)*pijh0_dv(:,:,nsmin:nsmax)
 
 !Upwinding correction (makes 1st order streaming dominantly diagonal)
 !NOTE: since it enters conservatively, it doesn't effect MHD force, only HESSIAN
 !Can multiply this by a positive factor to increase numerical diffusion
        IF (l_upwind) THEN
-          work1(:,:,nsmin:nsmax) = -0.5_dp*signjac*                      &
-             pijf_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
+          work1 = -0.5_dp*signjac*                                      &
+             pijf0_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
           IF (nsmin .EQ. 1) work1(:,:,1) = 0
           CALL GradientHalf(work3, work1)
-          vgradph(:,:,nsmin:nsmax) = vgradph(:,:,nsmin:nsmax) +          &
-                              hs_i*work3(:,:,nsmin:nsmax)
+          vgradph = vgradph + hs_i*work3
        END IF
 
 !=====================================
@@ -144,12 +131,12 @@
 
 !Upwind to suppress grid separation in radial direction
        IF (l_upwind) THEN
-          work1(:,:,nsmin:nsmax) = -0.5_dp*signjac*hs_i*                 &
-             pijf_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
-          work2(:,:,nsmin:nsmax) = work1(:,:,nsmin:nsmax) +              &
+          work1 = -0.5_dp*signjac*hs_i*                                 &
+             pijf0_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
+          work2 = work1 +                                               &
              pijh0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) 
        ELSE
-          work2(:,:,nsmin:nsmax) = pijf0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
+          work2 = pijf0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
        END IF
 
 !On exit, work1 is valid on [nsmin+1:nsmax]
@@ -170,23 +157,22 @@
 
        END SUBROUTINE update_pres
 
-!>     \brief Uses density continuity equation, with p = n^gamma
+!>     \brief Uses density continuity equation, with p = n^gamma, to evolve p
        SUBROUTINE Continuity(djpmnh, ipar)
        USE shared_data, ONLY: delta_t
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
        INTEGER, INTENT(IN) :: ipar
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-            djpmnh
+       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::  djpmnh
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER   :: fours, fouru, fourv, m, n, mp, np, MPI_ERR
-       REAL(dp)  :: sparity, s(1), r(1)
+       INTEGER   :: fours, fouru, fourv, m, n, mp, np
+       REAL(dp)  :: sparity
 !-----------------------------------------------
 !      djpmnh needed up to nsmax=endglobrow+1 to compute perturbed pressure
-!      in siesta forces
+!      in siesta_forces
 
        IF (ipar .EQ. isym) THEN
           fours=f_cos; fouru=f_sin; fourv=f_sin
@@ -197,13 +183,13 @@
        END IF
 
        m = LBOUND(djpmnh,3);  n = UBOUND(djpmnh,3)
-       IF (m.GT.nsmin .OR. n.LT.nsmax) CALL ErrorAbort('djpmnh wrong bounds - Continuity')
+       IF (m.GT.nsmin .OR. n.LT.nsmax) CALL ErrorAbort('djpmnh: wrong bounds - Continuity')
 
 !      FFT of gradp*Flux terms
        CALL tomnsp_par(vgradph, work4, fours)                            ! Calculate Fourier transform of v_dot_gradph
        djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of Pres. Eq. (full mesh) 
 
-!      FFT of Div(p*Flux) terms (multiply angular derivatives by m,n*nfp)
+!      FFT of -Div(p*Flux) terms (multiply angular derivatives by m,n*nfp)
        CALL tomnsp_par(work1, work4, fours)
        CALL tomnsp_par(work2, work5, fouru)
        CALL tomnsp_par(work3, work6, fourv)
@@ -212,7 +198,7 @@
           mp = m*sparity
           DO n = -ntor, ntor
              np = n*nfp*sparity
-             work5(m,n,nsmin:nsmax) = mp*work5(m,n,nsmin:nsmax)          &
+             work5(m,n,nsmin:nsmax) = mp*work5(m,n,nsmin:nsmax)         &
                                     + np*work6(m,n,nsmin:nsmax)          ! mp: d/du; np: d/dv
           ENDDO
        ENDDO
@@ -220,13 +206,11 @@
        work4 = work4 + work5
        
 !Gamma = adiabatic factor
-       djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                 &
+       djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                &
                                - gamma*work4(:,:,nsmin:nsmax)
 
 !SPH   Evolve harmonics of (jacobh * pres)mn to conserve pressure
        djpmnh = delta_t*djpmnh                                           ! calculate increment of pressure harmonics.
-
-!SPH   Suppress radial mesh separation together with Orszag 3/2 integration rule in metrics
 
        IF (nsmin .EQ. 1) THEN
           djpmnh(:,:,1)  = 0

@@ -194,7 +194,7 @@
 !-----------------------------------------------
 
 !     "natural" boundary condition (preserves hessian symmetry): push ONLY m=1 u-flux at origin
-!     and correctly calculates B^s/r0_B^u for m=1 at origin
+!     and correctly calculates B^s/(r0*B^u) for m=1 modes at origin
 
 !      l_natural=.TRUE.
       l_natural=.FALSE.
@@ -523,13 +523,14 @@
           IF ((vmaxv.NE.zero .OR. fmaxv.NE.zero) .and. lverbose)                          &
           PRINT 45, ' VV-max: ',vmaxv,imaxlocv(ns0),imaxlocv(nm0)-1,imaxlocv(nn0)-ntor-1, &
                     ' FV-max: ',fmaxv,imaxlocf(ns0),imaxlocf(nm0)-1,imaxlocf(nn0)-ntor-1
-          IF (lverbose)PRINT 110, bsbu_ratio_s, jsju_ratio_s,                         &
-                    (bs0(i), i=2,6), (bu0(i), i=2,6) 
-          IF (lasym) THEN
-          IF (lverbose)PRINT 112, bsbu_ratio_a, jsju_ratio_a,                         &
-                    (bs0(i), i=8,12), (bu0(i), i=8,12) 
+          IF (lverbose) THEN
+             PRINT 110, bsbu_ratio_s, jsju_ratio_s,                     &
+                       (bs0(i), i=2,6), (bu0(i), i=2,6) 
+             IF (lasym)                                                 &
+             PRINT 112, bsbu_ratio_a, jsju_ratio_a,                     &
+                       (bs0(i), i=8,12), (bu0(i), i=8,12) 
+             PRINT *," "
           END IF
-          IF (lverbose)PRINT *," "
         END IF
 
  45   FORMAT(2(a,1pe10.2,' AT JS: ',i4,' M: ',i4,' N: ',i4,2x))
@@ -542,50 +543,50 @@
               ELSE
                  str_resistive = "NON-RESISTIVE RUN "
               END IF
-              WRITE (iprint, 55) str_resistive, eta_factor, lasym,       &
+              WRITE (iprint, 55) str_resistive, eta_factor, lasym,      &
                                  l_push_s, l_push_u, l_push_v, l_push_edge
               WRITE (iprint, 60) delta_t, etak_tol, l_Hess_sym
               WRITE (iprint, 65) levmarq_param0, mupar0
-              WRITE (iprint, 70) neqs, ns, mpol, ntor, nu_i, nv_i,       &
+              WRITE (iprint, 70) neqs, ns, mpol, ntor, nu_i, nv_i,      &
                                  ngmres_steps
            END IF
             
            IF (fsq_lin .EQ. -1) THEN
-              WRITE (iprint, 100)                                        &
-                              niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,   &
-                              fsq_total1, fsqvs, fsqvu,                  &
+              WRITE (iprint, 100)                                       &
+                              niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,  &
+                              fsq_total1, fsqvs, fsqvu,                 &
                               fsqvv, v2tot*delta_t, nfun_calls
            ELSE
-              WRITE (iprint, 102)                                        &
-                              niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,   &
-                              fsq_total1, fsq_lin, fsqvs, fsqvu,         &
+              WRITE (iprint, 102)                                       &
+                              niter, (wtotal-wtotal0)*1.E6_dp/wtotal0,  &
+                              fsq_total1, fsq_lin, fsqvs, fsqvu,        &
                               fsqvv, v2tot*delta_t, nfun_calls
            END IF
         END DO
      END IF
 
- 50  FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                      &
+ 50  FORMAT(' WMHD: ', 1pe13.6,' <BETA>: ',1pe11.4,                     &
             ' TFLUX: ',1pe11.4,' B.GRAD-P (rms): ', 1pe11.4,/,21('-'))
- 55  FORMAT(1x, a,' ETA_FACTOR: ', 1pe10.2,' LASYM: ',l1,                &
-            ' L_PUSH_S: ',l1, ' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,         &
+ 55  FORMAT(1x, a,' ETA_FACTOR: ', 1pe10.2,' LASYM: ',l1,               &
+            ' L_PUSH_S: ',l1, ' L_PUSH_U: ',l1,' L_PUSH_V: ',l1,        &
 			' L_PUSH_EDGE: ',l1)
- 60  FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                             &
+ 60  FORMAT(' DELTA_T: ',1pe10.2,' ETA_K: ',                            &
              1pe10.2,' HESSIAN SYM: ', l1)
  65  FORMAT(' LEVMARQ_PARAM: ',1pe10.2,' MU_PAR: ',1pe10.2)
- 70  FORMAT(' NEQS: ', i6,' NS: ',i4,' MPOL: ',i4,' NTOR: ',i4,          &
-             ' NTHETA: ', i4,' NZETA: ',i4, ' NGMRES-STEPS: ', i4,//,    &
-             ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',               &
+ 70  FORMAT(' NEQS: ', i6,' NS: ',i4,' MPOL: ',i4,' NTOR: ',i4,         &
+             ' NTHETA: ', i4,' NZETA: ',i4, ' NGMRES-STEPS: ', i4,//,   &
+             ' NITER (W-W0)/W0*1E6    F2(MHD)    F2(LIN)',              &
              '    F2SUBS     F2SUBU     F2SUBV     |V|rms    NCALLS')
- 100 FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),               &
+ 100 FORMAT(1x,i5,1x, 1pe12.4, 2x, 1x,1pe10.3, 2x,9 ('-'),              &
            4(1x,1pe10.3),3x,i5)
  102 FORMAT(1x,i5,1x, 1pe12.4, 2x, 6(1x,1pe10.3),3x,i5)
- 110 FORMAT(' |B^s-r0*B^u|/|B^s+r0*B^u| (m=1,r->0,  sym) : ',1pe10.3,/,  &
-            ' |J^s-r0*J^u|/|J^s+r0*J^u| (m=1,r->0,  sym) : ',1pe10.3,/,  &
-            ' JBSUPSH(JS=2-6,M=1)/R0  (sym): ',1p5e10.3,/,               &
+ 110 FORMAT(' |B^s-r0*B^u|/|B^s+r0*B^u| (m=1,r->0,  sym) : ',1pe10.3,/, &
+            ' |J^s-r0*J^u|/|J^s+r0*J^u| (m=1,r->0,  sym) : ',1pe10.3,/, &
+            ' JBSUPSH(JS=2-6,M=1)/R0  (sym): ',1p5e10.3,/,              &
             ' JBSUPUH(JS=2-6,M=1)          : ',1p5e10.3)
- 112 FORMAT(' |B^s+r0*B^u|/|B^s-r0*B^u| (m=1,r->0, asym) : ',1pe10.3,/,  &
-            ' |J^s+r0*J^u|/|J^s-r0*J^u| (m=1,r->0, asym) : ',1pe10.3,/,  &
-            '-JBSUPSH(JS=2-6,M=1)/R0 (asym): ',1p5e10.3,/,               &
+ 112 FORMAT(' |B^s+r0*B^u|/|B^s-r0*B^u| (m=1,r->0, asym) : ',1pe10.3,/, &
+            ' |J^s+r0*J^u|/|J^s-r0*J^u| (m=1,r->0, asym) : ',1pe10.3,/, &
+            '-JBSUPSH(JS=2-6,M=1)/R0 (asym): ',1p5e10.3,/,              &
             ' JBSUPUH(JS=2-6,M=1)          : ',1p5e10.3)
 
      CALL second0(skston)

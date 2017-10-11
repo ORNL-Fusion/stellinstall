@@ -25,13 +25,13 @@
       USE stel_constants, ONLY: twopi, one, zero
       USE shared_data, ONLY: lverbose
       USE vmec_utils
-      USE island_params, ns => ns_i, mpol => mpol_i, ntor => ntor_i,     &
+      USE island_params, ns => ns_i, mpol => mpol_i, ntor => ntor_i,    &
          ohs => ohs_i, nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
-      USE metrics, rmax_v => rmax, rmin_v => rmin, zmax_v => zmax,       &
+      USE metrics, rmax_v => rmax, rmin_v => rmin, zmax_v => zmax,      &
          zmin_v => zmin           
-      USE perturbation, ONLY: nphis1=>nphis, nrs1=>nrs, nzs1=>nzs,       &  ! NPHIS = number of toroidal planes (CYL or VMEC)
-          nus1=>nus, nss1=>nss, nvs1=>nvs, restart_ext,                  &  ! NSS, NUS = resolution(VMEC) in PHI-plane
-          l_tracing1=>l_tracing,                                         &  ! NRS, NZS = resolution(CYL) in PHI-plane
+      USE perturbation, ONLY: nphis1=>nphis, nrs1=>nrs, nzs1=>nzs,      & ! NPHIS = number of toroidal planes (CYL or VMEC)
+          nus1=>nus, nss1=>nss, nvs1=>nvs, restart_ext,                 & ! NSS, NUS = resolution(VMEC) in PHI-plane
+          l_tracing1=>l_tracing,                                        & ! NRS, NZS = resolution(CYL) in PHI-plane
           l_silo_output1=>l_silo_output, l_silo3D1=> l_silo3D   
 #if defined(MPI_OPT)
       USE nscalingtools, ONLY: MPI_STATUS
@@ -52,48 +52,48 @@
       INTEGER, PARAMETER :: f_full = 0
       INTEGER, PARAMETER :: f_half = 1
 
-      INTEGER, PARAMETER :: unit_trace=40, nunit_pres=50,                & ! Unit numbers for output
+      INTEGER, PARAMETER :: unit_trace=40, nunit_pres=50,               & ! Unit numbers for output
                             nunit_pres1=51
-      INTEGER, PARAMETER :: nsilo=33                                       ! Number of vectors dumped to silo 
-      INTEGER, PARAMETER ::                                              &
-            unit_pres = 1,unit_bsups= 2,unit_bsupu= 3,unit_bsupv= 4,     &
-            unit_br   = 5,unit_bz   = 6,unit_bphi = 7,unit_ksups= 8,     &
-            unit_ksupu= 9,unit_ksupv=10,unit_jr   =11,unit_jz   =12,     &
-            unit_jphi =13,unit_fors =14,unit_foru =15,unit_forv =16,     &
-            unit_vsups=17,unit_vsupu=18,unit_vsupv=19,unit_vr   =20,     &
-            unit_vz   =21,unit_vphi =22,unit_bsubs=23,unit_bsubu=24,     &
-            unit_bsubv=25,unit_ksubs=26,unit_ksubu=27,unit_ksubv=28,     &
-            unit_bgradp=29,unit_bdotj=30,unit_bdot_res=31,               &
+      INTEGER, PARAMETER :: nsilo=33                                      ! Number of vectors dumped to silo 
+      INTEGER, PARAMETER ::                                             &
+            unit_pres = 1,unit_bsups= 2,unit_bsupu= 3,unit_bsupv= 4,    &
+            unit_br   = 5,unit_bz   = 6,unit_bphi = 7,unit_ksups= 8,    &
+            unit_ksupu= 9,unit_ksupv=10,unit_jr   =11,unit_jz   =12,    &
+            unit_jphi =13,unit_fors =14,unit_foru =15,unit_forv =16,    &
+            unit_vsups=17,unit_vsupu=18,unit_vsupv=19,unit_vr   =20,    &
+            unit_vz   =21,unit_vphi =22,unit_bsubs=23,unit_bsubu=24,    &
+            unit_bsubv=25,unit_ksubs=26,unit_ksubu=27,unit_ksubv=28,    &
+            unit_bgradp=29,unit_bdotj=30,unit_bdot_res=31,              &
             unit_divj =32,unit_divb=33
-      CHARACTER(LEN=10), DIMENSION(nsilo), PARAMETER ::                  &
-            SILO_LABEL =                                                 &
-        (/  "Pressure  ", "Bsups     ", "Bsupu     ", "Bsupv     ",      &
-            "Br        ", "Bz        ", "Bphi      ", "Ksups     ",      &
-            "Ksupu     ", "Ksupv     ", "Jr        ", "Jz        ",      &
-            "Jphi      ", "Force_s   ", "Force_u   ", "Force_v   ",      &
-            "Vsups     ", "Vsupu     ", "Vsupv     ", "Vr        ",      &
-            "Vz        ", "Vphi      ", "Bsubs     ", "Bsubu     ",      &
-            "Bsubv     ", "Ksubs     ", "Ksubu     ", "Ksubv     ",      &
-            "Bgradp    ", "Bdotj     ", "bdot_res  ", "DivJ      ",      &
+      CHARACTER(LEN=10), DIMENSION(nsilo), PARAMETER ::                 &
+            SILO_LABEL =                                                &
+        (/  "Pressure  ", "Bsups     ", "Bsupu     ", "Bsupv     ",     &
+            "Br        ", "Bz        ", "Bphi      ", "Ksups     ",     &
+            "Ksupu     ", "Ksupv     ", "Jr        ", "Jz        ",     &
+            "Jphi      ", "Force_s   ", "Force_u   ", "Force_v   ",     &
+            "Vsups     ", "Vsupu     ", "Vsupv     ", "Vr        ",     &
+            "Vz        ", "Vphi      ", "Bsubs     ", "Bsubu     ",     &
+            "Bsubv     ", "Ksubs     ", "Ksubu     ", "Ksubv     ",     &
+            "Bgradp    ", "Bdotj     ", "bdot_res  ", "DivJ      ",     &
             "DivB      "  /)
 
-      REAL(dp):: zmaxx, rmaxx, zminx, rminx                                 ! Plotting box boundaries (CYL)    
-      INTEGER:: nrs, nzs, nphis                                             ! Resolution (CYL): PHI, R and Z
-      INTEGER:: nvs, nus, nss                                               ! Resolution (VMEC): V, U, S; NVS set to NPHIS if VMEC coordinates required.   
+      REAL(dp):: zmaxx, rmaxx, zminx, rminx                               ! Plotting box boundaries (CYL)    
+      INTEGER:: nrs, nzs, nphis                                           ! Resolution (CYL): PHI, R and Z
+      INTEGER:: nvs, nus, nss                                             ! Resolution (VMEC): V, U, S; NVS set to NPHIS if VMEC coordinates required.   
       REAL(dp):: oss, ous, ovs, ors, ozs                    
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:):: pmnch,                   &  
-          bsubsmnsh, bsubumnch, bsubvmnch,                               &  ! Harmonics (w/o jacobian) of P, J_X and B_X
-          bsupsmnsh, bsupumnch, bsupvmnch, jacmnch                          ! Also jacobian harmonics
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:):: pmnsh,                   &
-          bsubsmnch, bsubumnsh, bsubvmnsh,                               &  ! Harmonics (w/o jacobian) of P, J_X and B_X
-          bsupsmnch, bsupumnsh, bsupvmnsh, jacmnsh                          ! Also jacobian harmonics
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-          ksubsmnsf, ksubumncf, ksubvmncf                                   ! Contains (jacobian*plasma current) harmonics (only dumped if SILO available)
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-          ksubsmncf, ksubumnsf, ksubvmnsf                                   ! Contains (jacobian*plasma current) harmonics (only dumped if SILO available)
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-          rmnc_ih, zmns_ih                                                  ! Coordinate harmonics of R and Z
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:):: pmnch,                  &  
+          bsubsmnsh, bsubumnch, bsubvmnch,                              & ! Harmonics (w/o jacobian) of P, J_X and B_X
+          bsupsmnsh, bsupumnch, bsupvmnch, jacmnch                        ! Also jacobian harmonics
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:):: pmnsh,                  &
+          bsubsmnch, bsubumnsh, bsubvmnsh,                              & ! Harmonics (w/o jacobian) of P, J_X and B_X
+          bsupsmnch, bsupumnsh, bsupvmnsh, jacmnsh                        ! Also jacobian harmonics
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+          ksubsmnsf, ksubumncf, ksubvmncf                                 ! Contains (jacobian*plasma current) harmonics (only dumped if SILO available)
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+          ksubsmncf, ksubumnsf, ksubvmnsf                                 ! Contains (jacobian*plasma current) harmonics (only dumped if SILO available)
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+          rmnc_ih, zmns_ih                                                ! Coordinate harmonics of R and Z
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
           rmns_ih, zmnc_ih
       LOGICAL :: l_silo_output, l_silo3D
       CHARACTER(LEN=70):: tagname
@@ -112,7 +112,7 @@
       INTEGER, DIMENSION(ndims2d):: dims2d
       REAL, ALLOCATABLE, DIMENSION(:) :: tmp_silo
       INTEGER, ALLOCATABLE, DIMENSION(:)  :: idum
-      INTEGER:: nxx, nyy, nzz, ilen2D_1, ilen2D_2, ilen2D_3, ilen2D_4,   &
+      INTEGER:: nxx, nyy, nzz, ilen2D_1, ilen2D_2, ilen2D_3, ilen2D_4,  &
         ilen3D, nsec, index1, index2
       CHARACTER(LEN=20):: name2d_1, name2d_2, name2d_3, name2d_4, name3d
       REAL(dp), DIMENSION(:), ALLOCATABLE :: pprof
@@ -127,7 +127,7 @@
 
       SUBROUTINE write_output (wout_file, iter, close_wout)
       USE stel_kinds
-      USE read_wout_mod, ONLY: lwout_opened, read_wout_file,             &
+      USE read_wout_mod, ONLY: lwout_opened, read_wout_file,            &
           read_wout_deallocate
       USE diagnostics_mod, ONLY: dealloc_diagnostics
       CHARACTER(LEN=*), INTENT(IN) :: wout_file
@@ -154,8 +154,8 @@
           
         SUBROUTINE dump_driver(wout_file, iter)
         USE stel_kinds
-        USE read_wout_mod, ns_w => ns, ntor_w => ntor, mpol_w => mpol,   &
-          ntmax_w => ntmax, lthreed_w => lthreed, lasym_w => lasym,      &
+        USE read_wout_mod, ns_w => ns, ntor_w => ntor, mpol_w => mpol,  &
+          ntmax_w => ntmax, lthreed_w => lthreed, lasym_w => lasym,     &
           nfp_w => nfp
 !-----------------------------------------------
         CHARACTER(LEN=*), INTENT(IN) :: wout_file
@@ -165,7 +165,7 @@
 !-----------------------------------------------
         CHARACTER(LEN=10)  :: cdum1
         CHARACTER(LEN=120) :: filename
-        INTEGER :: istat, ik, jk, lk, info, nfe, ndum, nmpi, maxprocs,   &
+        INTEGER :: istat, ik, jk, lk, info, nfe, ndum, nmpi, maxprocs,  &
                   npmin, npmax, mpi_err
         INTEGER :: ndum_s, nmpi_s, maxprocs_s, npmin_s, npmax_s
         REAL(dp) :: zz, rr, zeta0, fmin, ss, uu, vv 
@@ -241,14 +241,14 @@
 !SPH: NOTE THIS LOGIC WILL MAKE THE ANSWERS SLIGHTLY DEPENDENT ON NPROCS,
 !     SINCE C_FLX_OLD WILL BE SLIGHTLY DIFFERENT IF nmpi=npmin DOESN'T
 !     START AT IK=1!
-              IF (ik > 1 .AND. nmpi.GT.npmin .AND. (c_flx(1) <= one    &
+              IF (ik > 1 .AND. nmpi.GT.npmin .AND. (c_flx(1) <= one     &
                          .AND. c_flx(1) > zero)) THEN                     ! In this case, use previous solution
                 c_flx = c_flx_old                                         ! as initial guess
               ELSE
                  c_flx(1:2) = 0                                           ! Guess for flux coordinate solution          
               ENDIF            
               c_flx(3) = r_cyl(2)
-              CALL cyl2flx(rzl_local, r_cyl, c_flx, ns_w, ntor_w,      &   ! Obtain flux coordinates
+              CALL cyl2flx(rzl_local, r_cyl, c_flx, ns_w, ntor_w,       & ! Obtain flux coordinates
                 mpol_w, ntmax_w, lthreed_w, lasym_w, info, nfe, fmin)     ! FMIN not used in what follows.      
                 c_flx_old = c_flx
               IF (info .ne. 0 .AND. info.ne.-3) THEN                      ! Note: INFO = -3 => ss > 1, OUTSIDE!
@@ -435,10 +435,10 @@
            from = lk-1
            IF (lk .GT. 1) THEN
               IF (iam .EQ. 0) THEN
-                 CALL MPI_RECV(pprof,ndum,MPI_REAL8,from,tag,            &
+                 CALL MPI_RECV(pprof,ndum,MPI_REAL8,from,tag,           &
                                SIESTA_COMM,MPI_STATUS,MPI_ERR)
               ELSE IF (iam .EQ. from) THEN
-                 CALL MPI_SEND(pprof,ndum,MPI_REAL8,to,tag,              &
+                 CALL MPI_SEND(pprof,ndum,MPI_REAL8,to,tag,             &
                                SIESTA_COMM,MPI_ERR)
               END IF
            END IF
@@ -468,10 +468,10 @@
            from = lk-1
            IF (lk .GT. 1) THEN
               IF (iam .EQ. 0) THEN
-                CALL MPI_RECV(pack_bfld,6*ndum,MPI_REAL8,from,           &
+                CALL MPI_RECV(pack_bfld,6*ndum,MPI_REAL8,from,          &
                               tag,SIESTA_COMM,MPI_STATUS,MPI_ERR)
               ELSE IF (iam .EQ. from) THEN
-                 CALL MPI_SEND(pack_bfld,6*ndum,MPI_REAL8,to,            &
+                 CALL MPI_SEND(pack_bfld,6*ndum,MPI_REAL8,to,           &
                                tag,SIESTA_COMM,MPI_ERR)
               END IF
            END IF
@@ -536,7 +536,7 @@
 !       Tracing BFIELD file for POINCARE
 !           
         IF (l_tracing) THEN                                              ! Then, l_VMEC_uniform = .TRUE.
-          filename = TRIM(tag)//'-bfield_tracing'//                      & 
+          filename = TRIM(tag)//'-bfield_tracing'//                     & 
                      TRIM(cdum)//'.dat'                                  ! Since Poincare plots require flux-uniform mesh
           OPEN(unit=unit_trace, file = filename, status = 'unknown')  
           WRITE(unit_trace, *) nvs-1, nss-1, nus-1                       ! NSS-1, since js = 1 is not done because it corresponds to the magnetic axis
@@ -548,7 +548,7 @@
           
           siloname2d = TRIM(tag)//'-2D'//TRIM(cdum)//'.silo'
           ilen = LEN(TRIM(siloname2d)); dbfile2d = 0
-          ierr = dbcreate(TRIM(siloname2d), ilen, DB_CLOBBER, DB_LOCAL,  &
+          ierr = dbcreate(TRIM(siloname2d), ilen, DB_CLOBBER, DB_LOCAL, &
              "2Ddata", 6, DB_PDB, dbfile2d)
           IF(l_silo3D) THEN
             siloname3d = TRIM(tag)//'-3D'//TRIM(cdum)//'.silo'           ! Output mesh is in cartesian form, but it is uniformly spaced in VMEC 3D grid
@@ -583,27 +583,27 @@
           err = dbmkoptlist(2, optlistid)                                ! 2D MESH (in SIESTA coordinates)
           err = dbaddcopt(optlistid, DBOPT_XLABEL, "s", 1)
           err = dbaddcopt(optlistid, DBOPT_YLABEL, "u", 1)      
-          err = dbputqm(dbfile2d, TRIM(name2D_1), ilen2D_1, "s",         &   ! Use different meshes for different
-            1, "u", 1, "v", 1, rr, pp, zz, dims2d, ndims2d,              &   ! toroidal cross-sections, since, in
+          err = dbputqm(dbfile2d, TRIM(name2D_1), ilen2D_1, "s",        & ! Use different meshes for different
+            1, "u", 1, "v", 1, rr, pp, zz, dims2d, ndims2d,             & ! toroidal cross-sections, since, in
             DB_FLOAT, DB_COLLINEAR, optlistid, ierr)                     ! stellarator fields, materials can change
-          err = dbputqm(dbfile2d, TRIM(name2D_2), ilen2D_2, "s",         &
-             1, "u", 1, "v", 1, rr, pp, zz, dims2d, ndims2d,             &
+          err = dbputqm(dbfile2d, TRIM(name2D_2), ilen2D_2, "s",        &
+             1, "u", 1, "v", 1, rr, pp, zz, dims2d, ndims2d,            &
             DB_FLOAT, DB_COLLINEAR, optlistid, ierr)
           err = dbfreeoptlist(optlistid)
           zz = 2.d0*pi*zz; pp = 2.d0*pi*pp
 
-          ALLOCATE(xc(nxx,nzz,2), zc(nxx,nzz,2))                        ! 2D MESH (R-Z in a constant PHI X-section)      
+          ALLOCATE(xc(nxx,nzz,2), zc(nxx,nzz,2))                         ! 2D MESH (R-Z in a constant PHI X-section)      
           xc = 0.d0; zc = 0.d0
           DO i = 1, nxx
-            r1 = rr(i)                                                  ! Flux surface label
+            r1 = rr(i)                                                   ! Flux surface label
             DO j = 1, nzz
-              z1 = zz(1)                                                ! Actual toroidal angle
-              p1 = pp(j)                                                ! Poloidal angle
-              CALL flx_to_cyl(r1, p1, z1, rs, zs)                       ! Get cylindrical coords (rs, zs, z1) from flux coords (r1, p1, z1) for z1 =0.d0
+              z1 = zz(1)                                                 ! Actual toroidal angle
+              p1 = pp(j)                                                 ! Poloidal angle
+              CALL flx_to_cyl(r1, p1, z1, rs, zs)                        ! Get cylindrical coords (rs, zs, z1) from flux coords (r1, p1, z1) for z1 =0.d0
               xc(i, j, 1) = rs
               zc(i, j, 1) = zs
               z1 = zz(nsec)
-              CALL flx_to_cyl(r1, p1, z1, rs, zs)                       ! Get cylindrical coords (rs, zs, z1) from flux coords (r1, p1, z1) 
+              CALL flx_to_cyl(r1, p1, z1, rs, zs)                        ! Get cylindrical coords (rs, zs, z1) from flux coords (r1, p1, z1) 
               xc(i, j, 2) = rs
               zc(i, j, 2) = zs
             ENDDO
@@ -611,11 +611,11 @@
           err = dbmkoptlist(2, optlistid)
           err = dbaddcopt(optlistid, DBOPT_XLABEL, "R", 1)
           err = dbaddcopt(optlistid, DBOPT_YLABEL, "Z", 1)      
-          err = dbputqm(dbfile2d, TRIM(name2D_3), ilen2D_3, "R",         &  
-            1, "Z", 1, "P", 1, xc(:,:,1), zc(:,:,1), zz, dims2d,         &   ! zz is a dummy here 
+          err = dbputqm(dbfile2d, TRIM(name2D_3), ilen2D_3, "R",        &  
+            1, "Z", 1, "P", 1, xc(:,:,1), zc(:,:,1), zz, dims2d,        & ! zz is a dummy here 
             ndims2d, DB_FLOAT, DB_NONCOLLINEAR, optlistid, ierr)       
-          err = dbputqm(dbfile2d, TRIM(name2D_4), ilen2D_4, "R",         &
-             1, "Z", 1, "P", 1, xc(:,:,2), zc(:,:,2), zz, dims2d,        &   ! zz is a dummy here
+          err = dbputqm(dbfile2d, TRIM(name2D_4), ilen2D_4, "R",        &
+             1, "Z", 1, "P", 1, xc(:,:,2), zc(:,:,2), zz, dims2d,       & ! zz is a dummy here
             ndims2d, DB_FLOAT, DB_NONCOLLINEAR, optlistid, ierr)
           err = dbfreeoptlist(optlistid)
           DEALLOCATE(xc, zc)
@@ -640,8 +640,8 @@
             err = dbaddcopt(optlistid, DBOPT_XLABEL, "X", 1)
             err = dbaddcopt(optlistid, DBOPT_YLABEL, "Y", 1)
             err = dbaddcopt(optlistid, DBOPT_ZLABEL, "Z", 1)   
-            err = dbputqm(dbfile3d, TRIM(name3D), ilen3D,                &
-              "X", 1, "Y", 1, "Z", 1, xc, yc, zc, dims3d,                &
+            err = dbputqm(dbfile3d, TRIM(name3D), ilen3D,               &
+              "X", 1, "Y", 1, "Z", 1, xc, yc, zc, dims3d,               &
               ndims3d, DB_FLOAT, DB_NONCOLLINEAR, optlistid, ierr)
              err = dbfreeoptlist(optlistid)
             DEALLOCATE(xc, yc, zc)                   
@@ -672,34 +672,33 @@
         SUBROUTINE prepare_quantities
         USE stel_kinds
         USE fourier, ONLY: tomnsp, toijsp
-        USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,        &
+        USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,       &
                                    bdotjijh
         USE perturbation, ONLY: lresistive
         USE nscalingtools, ONLY: startglobrow, endglobrow
-        USE quantities, ONLY: pijh=>pijh0, jacobh,                       &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
-          b_factor, p_factor, jvsupsmncf,                                &
-          bsupsijh0, bsupuijh0, bsupvijh0,                               &
-          ksupsmnsf,  ksupumncf, ksupvmncf,                              &
-          ksupsmncf,  ksupumnsf, ksupvmnsf,                              &
-          bsubsijf,  bsubuijf, bsubvijf,                                 &
+        USE quantities, ONLY: pijh=>pijh0, jacobh,                      &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
+          b_factor, p_factor, jvsupsmncf,                               &
+          bsupsijh0, bsupuijh0, bsupvijh0,                              &
+          ksupsmnsf,  ksupumncf, ksupvmncf,                             &
+          ksupsmncf,  ksupumnsf, ksupvmnsf,                             &
+          bsubsijf,  bsubuijf, bsubvijf,                                &
           ksubsijf,  ksubuijf, ksubvijf
         USE siesta_init, ONLY: init_state
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER :: istat, nblock, start, endr
+        INTEGER :: istat, start, endr
         LOGICAL :: lresist
         REAL(dp) :: pp
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                      &
                    bsubsijh , bsubuijh , bsubvijh
 !-----------------------------------------------
 !
 !   Deal with metrics first
 !        
-        ALLOCATE(rmnc_ih(0:mpol,-ntor:ntor,ns),                          &    
+        ALLOCATE(rmnc_ih(0:mpol,-ntor:ntor,ns),                         &    
                  zmns_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmnc_ih = zero; zmns_ih = zero
-        nblock = SIZE(rmnc_i,1)*SIZE(rmnc_i,2)
         CALL to_half_mesh(rmnc_i, rmnc_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmns_i, zmns_ih)                                 ! RMNC_i, ZMNS_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnch(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
@@ -707,10 +706,9 @@
         CALL tomnsp(jacobh, jacmnch, f_cos); jacmnch(:,:,1)=0
 
         IF (lasym) THEN
-        ALLOCATE(rmns_ih(0:mpol,-ntor:ntor,ns),                          &
+        ALLOCATE(rmns_ih(0:mpol,-ntor:ntor,ns),                         &
                  zmnc_ih(0:mpol,-ntor:ntor,ns), stat=istat)
         rmns_ih = zero; zmnc_ih = zero
-        nblock = SIZE(rmns_i,1)*SIZE(rmns_i,2)
         CALL to_half_mesh(rmns_i, rmns_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmnc_i, zmnc_ih)                                 ! RMNS_i, ZMNC_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
@@ -734,7 +732,7 @@
         CALL tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
 
         WHERE (pijh .LT. zero) pijh = zero
-        IF (SIZE(pmnch,3) .NE. SIZE(pijh,3))                             &
+        IF (SIZE(pmnch,3) .NE. SIZE(pijh,3))                            &
            CALL ErrorAbort('SIZE pmnch != pijh in prepare_quantities')
 
         IF (lasym) THEN
@@ -748,8 +746,8 @@
            bsupuijh0 = bsupuijh0/b_factor
            bsupvijh0 = bsupvijh0/b_factor
 
-           ALLOCATE(bsupsmnsh(0:mpol,-ntor:ntor,ns),                     &
-                    bsupumnch(0:mpol,-ntor:ntor,ns),                     &
+           ALLOCATE(bsupsmnsh(0:mpol,-ntor:ntor,ns),                    &
+                    bsupumnch(0:mpol,-ntor:ntor,ns),                    &
                     bsupvmnch(0:mpol,-ntor:ntor,ns), stat=istat)
           IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
           CALL tomnsp(bsupsijh0, bsupsmnsh, f_sin); bsupsmnsh(:,:,1) = zero    ! compute harmonics
@@ -757,8 +755,8 @@
           CALL tomnsp(bsupvijh0, bsupvmnch, f_cos); bsupvmnch(:,:,1) = zero
 
           IF (lasym) THEN
-          ALLOCATE(bsupsmnch(0:mpol,-ntor:ntor,ns),                      &
-                   bsupumnsh(0:mpol,-ntor:ntor,ns),                      &
+          ALLOCATE(bsupsmnch(0:mpol,-ntor:ntor,ns),                     &
+                   bsupumnsh(0:mpol,-ntor:ntor,ns),                     &
                    bsupvmnsh(0:mpol,-ntor:ntor,ns), stat=istat)
           IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
           CALL tomnsp(bsupsijh0, bsupsmnch, f_cos); bsupsmnch(:,:,1) = zero    ! compute harmonics
@@ -770,21 +768,21 @@
 
 #if defined(SILO_AVAIL)
         IF (l_silo_output) THEN
-           ALLOCATE (bsubsijh(ntheta,nzeta,ns),                          &
-                     bsubuijh(ntheta,nzeta,ns),                          &
+           ALLOCATE (bsubsijh(ntheta,nzeta,ns),                         &
+                     bsubuijh(ntheta,nzeta,ns),                         &
                      bsubvijh(ntheta,nzeta,ns), stat=istat)
            IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
-           CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,                &
+           CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,               &
                          bsubsijh , bsubuijh , bsubvijh, 1, ns)
            ksupsmnsf = ksupsmnsf/b_factor; ksubsijf = ksubsijf/b_factor
            ksupumncf = ksupumncf/b_factor; ksubuijf = ksubuijf/b_factor
            ksupvmncf = ksupvmncf/b_factor; ksubvijf = ksubvijf/b_factor
 
-           ALLOCATE(bsubsmnsh(0:mpol,-ntor:ntor,ns),                     &
-                    bsubumnch(0:mpol,-ntor:ntor,ns),                     &
-                    bsubvmnch(0:mpol,-ntor:ntor,ns),                     &
-                    ksubsmnsf(0:mpol,-ntor:ntor,ns),                     &
-                    ksubumncf(0:mpol,-ntor:ntor,ns),                     &
+           ALLOCATE(bsubsmnsh(0:mpol,-ntor:ntor,ns),                    &
+                    bsubumnch(0:mpol,-ntor:ntor,ns),                    &
+                    bsubvmnch(0:mpol,-ntor:ntor,ns),                    &
+                    ksubsmnsf(0:mpol,-ntor:ntor,ns),                    &
+                    ksubumncf(0:mpol,-ntor:ntor,ns),                    &
                     ksubvmncf(0:mpol,-ntor:ntor,ns), stat=istat)
            IF (istat .ne. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
            CALL tomnsp(bsubsijh, bsubsmnsh, f_sin)                       ! compute harmonics
@@ -799,11 +797,11 @@
            ksupumnsf = ksupumnsf/b_factor
            ksupvmnsf = ksupvmnsf/b_factor
 
-           ALLOCATE(bsubsmnch(0:mpol,-ntor:ntor,ns),                     &
-                    bsubumnsh(0:mpol,-ntor:ntor,ns),                     &
-                    bsubvmnsh(0:mpol,-ntor:ntor,ns),                     &
-                    ksubsmncf(0:mpol,-ntor:ntor,ns),                     &
-                    ksubumnsf(0:mpol,-ntor:ntor,ns),                     &
+           ALLOCATE(bsubsmnch(0:mpol,-ntor:ntor,ns),                    &
+                    bsubumnsh(0:mpol,-ntor:ntor,ns),                    &
+                    bsubvmnsh(0:mpol,-ntor:ntor,ns),                    &
+                    ksubsmncf(0:mpol,-ntor:ntor,ns),                    &
+                    ksubumnsf(0:mpol,-ntor:ntor,ns),                    &
                     ksubvmnsf(0:mpol,-ntor:ntor,ns), stat=istat)
            IF (istat .ne. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
            CALL tomnsp(bsubsijh, bsubsmnch, f_cos)                       ! compute harmonics
@@ -844,7 +842,7 @@
         END IF
 #if defined(SILO_AVAIL)
         IF (l_silo_output) THEN
-           DEALLOCATE(ksubsmnsf, ksubumncf, ksubvmncf,                   &
+           DEALLOCATE(ksubsmnsf, ksubumncf, ksubvmncf,                  &
                       bsubsmnsh, bsubumnch, bsubvmnch)
            IF (lasym) THEN
            DEALLOCATE(ksubsmncf, ksubumnsf, ksubvmnsf,                  &
@@ -1113,7 +1111,7 @@
         END SUBROUTINE dump_quantities
   
 
-        SUBROUTINE TOIJSP_1P(XMN, SS, THETA, ZETA, XUV, DFLAG,           &
+        SUBROUTINE TOIJSP_1P(XMN, SS, THETA, ZETA, XUV, DFLAG,          &
                              IPAR, IHALF)
 !
 !       DESCRIPTION: calculates X on ONE POINT in space (SS,THETA,ZETA) from its Fourier harmonics X_MN.
@@ -1541,15 +1539,15 @@
 
           err = dbmkoptlist(6, optlistid)
           err = dbaddcopt(optlistid, DBOPT_LABEL, TRIM(labelp1), ilen1)
-          err = dbputqv1(dbfile2d, TRIM(labelp1), ilen1, TRIM(name2D_1), &  ! X-section in flux coords
-            ilen2D_1, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,        &
+          err = dbputqv1(dbfile2d, TRIM(labelp1), ilen1, TRIM(name2D_1),&  ! X-section in flux coords
+            ilen2D_1, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,       &
             DB_NODECENT, optlistid, ierr)
           err = dbfreeoptlist(optlistid)  
 
           err = dbmkoptlist(6, optlistid)
           err = dbaddcopt(optlistid, DBOPT_LABEL, TRIM(labelp2), ilen2)
-          err = dbputqv1(dbfile2d, TRIM(labelp2), ilen2, TRIM(name2D_3), &  ! X-section in RCyl coords
-            ilen2D_3, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,        &
+          err = dbputqv1(dbfile2d, TRIM(labelp2), ilen2, TRIM(name2D_3),&  ! X-section in RCyl coords
+            ilen2D_3, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,       &
             DB_NODECENT, optlistid, ierr)
           err = dbfreeoptlist(optlistid)  
 
@@ -1557,15 +1555,15 @@
 
           err = dbmkoptlist(6, optlistid)
           err = dbaddcopt(optlistid, DBOPT_LABEL, TRIM(labelp1), ilen1)
-          err = dbputqv1(dbfile2d, TRIM(labelp1), ilen1, TRIM(name2D_2), &        ! X-section in flux coords
-            ilen2D_2, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,        &
+          err = dbputqv1(dbfile2d, TRIM(labelp1), ilen1, TRIM(name2D_2),&  ! X-section in flux coords
+            ilen2D_2, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,       &
             DB_NODECENT, optlistid, ierr)
           err = dbfreeoptlist(optlistid)  
 
           err = dbmkoptlist(6, optlistid)
           err = dbaddcopt(optlistid, DBOPT_LABEL, TRIM(labelp2), ilen2)
-          err = dbputqv1(dbfile2d, TRIM(labelp2), ilen2, TRIM(name2D_4), &        ! X-section in RCyl coords
-            ilen2D_4, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,        &
+          err = dbputqv1(dbfile2d, TRIM(labelp2), ilen2, TRIM(name2D_4),&  ! X-section in RCyl coords
+            ilen2D_4, silo2d, dims2d, ndims2d, idum, 1, DB_FLOAT,       &
             DB_NODECENT, optlistid, ierr)
           err = dbfreeoptlist(optlistid)  
 

@@ -280,8 +280,8 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  ::  fours, fouru, fourv, istat, nblock, k1, k2, k3, k4
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)                            &
+      INTEGER  ::  fours, fouru, fourv, istat, k1, k2, k3, k4
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)                           &
                ::  KxBsmn, KxBumn, KxBvmn, pmnh, pmnf, pmnf_ds
       REAL(dp) ::  pres00_edge
 !----------------------------------------------- 
@@ -293,11 +293,11 @@
 
       k1 = nsmin; k2 = nsmax; k3 = k1; k4 = MIN(ns,endglobrow+1)
 
-      ALLOCATE(KxBsmn(0:mpol,-ntor:ntor,k1:k2),                          &
-               KxBumn(0:mpol,-ntor:ntor,k1:k2),                          &
-               KxBvmn(0:mpol,-ntor:ntor,k1:k2),                          &
-               pmnf_ds(0:mpol,-ntor:ntor,k3:k4),                         &
-               pmnf(0:mpol,-ntor:ntor,k3:k4),                            &
+      ALLOCATE(KxBsmn(0:mpol,-ntor:ntor,k1:k2),                         &
+               KxBumn(0:mpol,-ntor:ntor,k1:k2),                         &
+               KxBvmn(0:mpol,-ntor:ntor,k1:k2),                         &
+               pmnf_ds(0:mpol,-ntor:ntor,k3:k4),                        &
+               pmnf(0:mpol,-ntor:ntor,k3:k4),                           &
                pmnh(0:mpol,-ntor:ntor,k3:k4), stat=istat)         
       IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in GETMHDFORCE')
 
@@ -309,8 +309,7 @@
 !Harmonics of "true" pressure (after dividing out jacobian factor in pijh)
       CALL tomnsp_par(pijh, pmnh, fours)
 
-      nblock=SIZE(pmnh,1)*SIZE(pmnh,2)
-      CALL to_full_mesh(pmnh, pmnf, nblock, k3, k4)
+      CALL to_full_mesh(pmnh, pmnf)
 
 !Radial derivative of pressure valid for [k3, k4-1]
       CALL GradientFull(pmnf_ds, pmnh)
@@ -337,7 +336,7 @@
 !
       IF (nsmax .NE. k2) CALL ErrorAbort('NSMAX != K2')
       KxBsmn = KxBsmn - pmnf_ds(:,:,k1:k2)
-      CALL get_force_harmonics(pmnf, KxBsmn, KxBumn, KxBvmn,             &
+      CALL get_force_harmonics(pmnf, KxBsmn, KxBumn, KxBvmn,            &
                                fsubsmnf, fsubumnf, fsubvmnf, iparity)
       DEALLOCATE(KxBsmn, KxBumn, KxBvmn, pmnf, pmnf_ds, pmnh, stat=istat)
 
@@ -372,12 +371,12 @@
 !>  \param[out] f_vmnf      F_v component of the MHD force. (sin, ipar=0)
 !>  \param[in]  iparity     =isym (default lasym=F), =iasym (lasym=T)
 !*******************************************************************************
-       SUBROUTINE get_force_harmonics(pmnf,                              &
-                                      KxB_smn, KxB_umn, KxB_vmn,         &
+       SUBROUTINE get_force_harmonics(pmnf,                             &
+                                      KxB_smn, KxB_umn, KxB_vmn,        &
                                       f_smnf, f_umnf, f_vmnf, iparity) 
        USE hessian, ONLY: muPar, l_Compute_Hessian
-       USE shared_data, ONLY: nprecon, l_PrintOriginForces,              &
-                              l_push_s, l_push_u, l_push_v, l_push_edge, &
+       USE shared_data, ONLY: nprecon, l_PrintOriginForces,             &
+                              l_push_s, l_push_u, l_push_v, l_push_edge,&
                               col_scale
        USE timer_mod, ONLY: get_force_harmonics_time
        USE descriptor_mod, ONLY: iam, nprocs
@@ -387,9 +386,9 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN)  ::           &
+       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN)  ::          &
            KxB_smn, KxB_umn, KxB_vmn, pmnf
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(OUT) ::         &
+       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(OUT) ::        &
            f_smnf, f_umnf, f_vmnf
        INTEGER, INTENT(IN) ::  iparity
 !-----------------------------------------------
@@ -421,9 +420,9 @@
           mp = m*sparity
           DO n = -ntor, ntor       
              np = n*nfp*sparity
-             f_umnf(m,n,nsmin:nsmax) = KxB_umn(m,n,nsmin:nsmax)          &
+             f_umnf(m,n,nsmin:nsmax) = KxB_umn(m,n,nsmin:nsmax)         &
                                + mp*pmnf(m,n,nsmin:nsmax)                 ! mp ~ -(d/du)pres
-             f_vmnf(m,n,nsmin:nsmax) = KxB_vmn(m,n,nsmin:nsmax)          &
+             f_vmnf(m,n,nsmin:nsmax) = KxB_vmn(m,n,nsmin:nsmax)         &
                                + np*pmnf(m,n,nsmin:nsmax)                 ! np ~ -(d/dv)pres
           ENDDO
        ENDDO
@@ -438,7 +437,7 @@
 !      guarantee that v->0 at end for this to work well
 
 !CALL funct_island WITH vsupXmn...=0 to get un-augmented MHD force
-       IF (muPar.NE.zero .AND. l_Compute_Hessian)                        &
+       IF (muPar.NE.zero .AND. l_Compute_Hessian)                       &
 !       IF (muPar.NE.zero)                                               &
        CALL AddParDamping(f_smnf, f_umnf, f_vmnf, KxB_vmn, iparity)
 
@@ -547,11 +546,11 @@
           END IF
        END IF NSMAX_NS
 
-       f_smnf(:,:,nsmin:nsmax) = signjac*f_smnf(:,:,nsmin:nsmax)         &
+       f_smnf(:,:,nsmin:nsmax) = signjac*f_smnf(:,:,nsmin:nsmax)        &
                                * col_scale(:,:,mcol,nsmin:nsmax)
-       f_umnf(:,:,nsmin:nsmax) = signjac*f_umnf(:,:,nsmin:nsmax)         &
+       f_umnf(:,:,nsmin:nsmax) = signjac*f_umnf(:,:,nsmin:nsmax)        &
                                * col_scale(:,:,mcol+1,nsmin:nsmax)
-       f_vmnf(:,:,nsmin:nsmax) = signjac*f_vmnf(:,:,nsmin:nsmax)         &
+       f_vmnf(:,:,nsmin:nsmax) = signjac*f_vmnf(:,:,nsmin:nsmax)        &
                                * col_scale(:,:,mcol+2,nsmin:nsmax)
 
        CALL second0(skstoff)
@@ -570,7 +569,7 @@
 !-----------------------------------------------
        INTEGER, INTENT(IN) :: ipar
        REAL(dp)            :: work(0:mpol,-ntor:ntor,nsmin:nsmax)
-       REAL(dp), INTENT(INOUT), DIMENSION(0:mpol,-ntor:ntor,ns) ::       &
+       REAL(dp), INTENT(INOUT), DIMENSION(0:mpol,-ntor:ntor,ns) ::      &
                  f_smnf, f_umnf, f_vmnf          
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -589,7 +588,7 @@
           mcol = 4; fours=f_sin; fouru=f_cos; fourv=f_cos
        END IF
 
-       ALLOCATE (vdotB(ntheta,nzeta,nsmin:nsmax),                        &
+       ALLOCATE (vdotB(ntheta,nzeta,nsmin:nsmax),                       &
                  tmp(ntheta,nzeta,nsmin:nsmax), stat=istat)
 
 !SPH 05-6-16 UPDATE mupar_norm IN cv_currents and put in 1/jacobh factor
@@ -607,7 +606,7 @@
           ELSE
              work(:,:,js) = jvsupsmnsf(:,:,js)
           END IF
-          f_smnf(:,:,js) = f_smnf(:,:,js)                                &
+          f_smnf(:,:,js) = f_smnf(:,:,js)                               &
                          + work(:,:,js)*av(js)*col_scale(:,:,mcol,js)
        END DO   
 
@@ -621,7 +620,7 @@
           ELSE
              work(:,:,js) = jvsupumncf(:,:,js)
           END IF
-          f_umnf(:,:,js) = f_umnf(:,:,js)                                &
+          f_umnf(:,:,js) = f_umnf(:,:,js)                               &
                          + work(:,:,js)*av(js)*col_scale(:,:,mcol+1,js) 
        END DO   
 
@@ -635,7 +634,7 @@
           ELSE
              work(:,:,js) = jvsupvmncf(:,:,js)
           END IF
-          f_vmnf(:,:,js) = f_vmnf(:,:,js)                                &
+          f_vmnf(:,:,js) = f_vmnf(:,:,js)                               &
                          + work(:,:,js)*av(js)*col_scale(:,:,mcol+2,js)
        END DO   
 
@@ -646,9 +645,9 @@
 !
 !col_scale factor already in real-space jvsupXijf
        IF (nsmin .EQ. 1) bsubuijf(:,:,1) = 0
-       vdotB(:,:,nsmin:nsmax) =                                          &
-           jvsupsijf(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)          &
-         + jvsupuijf(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)          &
+       vdotB(:,:,nsmin:nsmax) =                                         &
+           jvsupsijf(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)         &
+         + jvsupuijf(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)         &
          + jvsupvijf(:,:,nsmin:nsmax)*bsubvijf(:,:,nsmin:nsmax)
 
        DO js = nsmin,nsmax

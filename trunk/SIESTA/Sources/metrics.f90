@@ -856,12 +856,12 @@
 
       IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN FULL_MESH_METRICS')
 
-      CALL to_full_mesh(gss,gssf,nuv,1,ns)
-      CALL to_full_mesh(guu,guuf,nuv,1,ns)
-      CALL to_full_mesh(gvv,gvvf,nuv,1,ns)
-      CALL to_full_mesh(gsu,gsuf,nuv,1,ns)
-      CALL to_full_mesh(gsv,gsvf,nuv,1,ns)
-      CALL to_full_mesh(guv,guvf,nuv,1,ns)
+      CALL to_full_mesh(gss,gssf)
+      CALL to_full_mesh(guu,guuf)
+      CALL to_full_mesh(gvv,gvvf)
+      CALL to_full_mesh(gsu,gsuf)
+      CALL to_full_mesh(gsv,gsvf)
+      CALL to_full_mesh(guv,guvf)
       guuf(:,1) = 0;  gsuf(:,1) = 0;  guvf(:,1) = 0
 
 !

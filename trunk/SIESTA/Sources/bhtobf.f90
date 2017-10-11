@@ -33,7 +33,7 @@
            pijh, pijf
 !-----------------------------------------------
        REAL(dp) :: skston, skstoff
-       INTEGER  :: ns_span, nblock, nsmin, nsmax
+       INTEGER  :: ns_span, nsmin, nsmax
 !-----------------------------------------------
        CALL second0(skston)
        
@@ -41,28 +41,26 @@
        nsmax = UBOUND(bsupsijh,3)
        
        ns_span=nsmax-nsmin+1
-       nblock = SIZE(bsupsijh,1)*SIZE(bsupsijh,2)
 
 !Interpolate b^X finite at the origin
 !On exit, bsupXF = [nsmin, nsmax-1]
 !Radial (s)
-       CALL to_full_mesh(bsupsijh, bsupsijf, nblock, nsmin, nsmax)
+       CALL to_full_mesh(bsupsijh, bsupsijf)
        IF (nsmax .EQ. ns) bsupsijf(:,:,ns) = 0
 
 !Poloidal(u): on input, bsupuijh = bsupuijh*jacobh
-       CALL to_full_mesh(bsupuijh, bsupuijf, nblock, nsmin, nsmax)
-
-!Toroidal (v)
-       CALL to_full_mesh(bsupvijh, bsupvijf, nblock, nsmin, nsmax)
-
+       CALL to_full_mesh(bsupuijh, bsupuijf)
        bsupuijf = bsupuijf/jacobf(:,:,nsmin:nsmax)
        bsupuijh = bsupuijh/jacobh(:,:,nsmin:nsmax)
+
+!Toroidal (v)
+       CALL to_full_mesh(bsupvijh, bsupvijf)
        
 !pressure
        IF (PRESENT(pijh)) THEN
           IF (nsmin .NE. LBOUND(pijh,3)) CALL ErrorAbort('LBOUND WRONG!')
           IF (nsmax .NE. UBOUND(pijh,3)) CALL ErrorAbort('UBOUND WRONG!')
-          CALL to_full_mesh(pijh, pijf, nblock, nsmin, nsmax)
+          CALL to_full_mesh(pijh, pijf)
        END IF
 
        CALL second0(skstoff)
