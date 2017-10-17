@@ -89,6 +89,7 @@ void parse_limiter(std::ifstream &file, std::map<double, std::vector<vertex *> >
     double z;
     
     vertex *limiter = nullptr;
+    
     for (file >> r >> z; !file.eof() && !file.fail() && !file.bad(); file >> r >> z) {
         if (limiter == nullptr) {
             limiter = new vertex(vector3d(r, z, 0.0));
@@ -96,7 +97,11 @@ void parse_limiter(std::ifstream &file, std::map<double, std::vector<vertex *> >
             limiter->insert(new vertex(vector3d(r, z, 0.0)));
         }
     }
-
+    
+//  Clear the bad and fail bits so the parsing can continue. This bits get set
+//  when the file fails to read two doubles. 
+    file.clear(file.bad());
+    
     for (double phi : phi_angles) {
         limiters[phi].push_back(limiter);
     }
