@@ -69,7 +69,7 @@ const vector3d vector3d::cross_product(const vector3d &v1, const vector3d &v2) {
 ///  @return Dot product of v1 and v2.
 //------------------------------------------------------------------------------
 const double vector3d::dot_product(const vector3d &v1, const vector3d &v2) {
-    return v1.x*v2.x + v1.y*v2.y + v1.z + v2.z;
+    return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z;
 }
 
 //------------------------------------------------------------------------------
