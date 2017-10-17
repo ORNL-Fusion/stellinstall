@@ -99,8 +99,9 @@ void parse_limiter(std::ifstream &file, std::map<double, std::vector<vertex *> >
     }
     
 //  Clear the bad and fail bits so the parsing can continue. This bits get set
-//  when the file fails to read two doubles. 
-    file.clear(file.bad());
+//  when the file fails to read two doubles. Clear doesn't actually clear error
+//  bits instead see if the eof bit is set then set only that bit.
+    file.eof() ? file.clear(std::iostream::eofbit) : file.clear();
     
     for (double phi : phi_angles) {
         limiters[phi].push_back(limiter);
