@@ -7,7 +7,7 @@ var searchData=
   ['geometric_5flimiter_5ftype',['geometric_limiter_type',['../namespacegeometric.html#ac591976289751c49073d793d30f3bac8',1,'geometric']]],
   ['geometric_5fno_5ftype',['geometric_no_type',['../namespacegeometric.html#a06d5632030360a0157340bac28ee9bfc',1,'geometric']]],
   ['global_5fcomm',['global_comm',['../structv3fit__context_1_1v3fit__context__class.html#a3de75f6d7e69ed98767c064bcc9e2507',1,'v3fit_context::v3fit_context_class']]],
-  ['globtimer2',['globtimer2',['../namespaceblocktridiagonalsolver.html#af0d5fa02aceb32d63a43f158a4ae3dbc',1,'blocktridiagonalsolver']]],
+  ['globtimer2',['globtimer2',['../namespaceblocktridiagonalsolver__s.html#abf57e047ad14790c13a5a92b78c37f8c',1,'blocktridiagonalsolver_s::globtimer2()'],['../namespaceblocktridiagonalsolver.html#af0d5fa02aceb32d63a43f158a4ae3dbc',1,'blocktridiagonalsolver::globtimer2()']]],
   ['gradient',['gradient',['../structreconstruction_1_1reconstruction__class.html#ae77f2ddb1c385fd13fd5e9f39325e448',1,'reconstruction::reconstruction_class']]],
   ['grid',['grid',['../structlimiter_1_1limiter__class.html#a2a66d7de36303daac61ad479753e2d13',1,'limiter::limiter_class::grid()'],['../structlimiter__grid_1_1limiter__grid__class.html#a5ee65429553e091986e3a9ad07306ddc',1,'limiter_grid::limiter_grid_class::grid()']]],
   ['grid_5fstart',['grid_start',['../structmodel_1_1model__class.html#a567f5c565127e6829ec5e04dbaad8826',1,'model::model_class']]],

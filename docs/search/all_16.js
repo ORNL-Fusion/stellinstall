@@ -1,12 +1,15 @@
 var searchData=
 [
-  ['x',['x',['../structprimed__grid_1_1primed__grid__class.html#a1529c0e86beac9d7ad0d407b678c196a',1,'primed_grid::primed_grid_class']]],
-  ['x_5faxi',['x_axi',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#a37e53bff9c678cb9649370412f5e60a3',1,'siesta_equilibrium::siesta_magnetic_cache::x_axi()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#a32596b29b642a451707b7b30d34c0359',1,'vmec_equilibrium::vmec_magnetic_cache::x_axi()']]],
-  ['x_5fcart',['x_cart',['../structsxrem__ratio_1_1sxrem__ratio__class.html#a5ba07514dd8fb7203c7b3db59bbbddd6',1,'sxrem_ratio::sxrem_ratio_class']]],
-  ['x_5fprime',['x_prime',['../structsiesta__equilibrium_1_1siesta__magnetic__cache.html#a06399065a6e568d30bc79bd84ff11bd5',1,'siesta_equilibrium::siesta_magnetic_cache::x_prime()'],['../structvmec__equilibrium_1_1vmec__magnetic__cache.html#aa43c7e0e49e5236813ddc6ce542f654b',1,'vmec_equilibrium::vmec_magnetic_cache::x_prime()']]],
-  ['xc',['xc',['../structvmec__context_1_1vmec__context__class.html#aad73580917513bd8d8a183794709e085',1,'vmec_context::vmec_context_class::xc()'],['../namespaceshared__data.html#ab4e75e1fc1ed72aef88d3d5fe0d80b2d',1,'shared_data::xc()']]],
-  ['xcart',['xcart',['../structthomson_1_1thomson__class.html#a25a05a650a56409d617a41167538d6f3',1,'thomson::thomson_class']]],
-  ['xcart_5fgrid_5fe',['xcart_grid_e',['../structv3rfun__context_1_1v3rfun__context__class.html#a781219bc5d4d69e75d1ad075281c75ed',1,'v3rfun_context::v3rfun_context_class']]],
-  ['xcart_5fs_5fgrid_5fe',['xcart_s_grid_e',['../structv3rfun__context_1_1v3rfun__context__class.html#aabde6983d9285b5dbea19cd14484c258',1,'v3rfun_context::v3rfun_context_class']]],
-  ['xlookup',['xlookup',['../interfacepspline__calls_1_1xlookup.html',1,'pspline_calls']]]
+  ['w11_5fbi',['w11_bi',['../structbivariate_1_1bivariate__type.html#a3fbeb78b330e97527a8a609ec4438462',1,'bivariate::bivariate_type']]],
+  ['w12_5fbi',['w12_bi',['../structbivariate_1_1bivariate__type.html#aafbbae879227d05031c541b63d708242',1,'bivariate::bivariate_type']]],
+  ['w21_5fbi',['w21_bi',['../structbivariate_1_1bivariate__type.html#a914a82c3267ab1a36c7d8b9442514b24',1,'bivariate::bivariate_type']]],
+  ['w22_5fbi',['w22_bi',['../structbivariate_1_1bivariate__type.html#a75098a3134f48e61fbf4441e5f22a854',1,'bivariate::bivariate_type']]],
+  ['wavelength',['wavelength',['../structintpol_1_1intpol__class.html#a768936df6f9f4dba7046dd81bfaad53c',1,'intpol::intpol_class']]],
+  ['weight',['weight',['../structsignal_1_1signal__class.html#ac8c29f7c1ffb2980dae3dc06bce53b0e',1,'signal::signal_class']]],
+  ['wfunc',['wfunc',['../namespacef1dim__mod.html#a71240e7133d89406a60514ef4593a933',1,'f1dim_mod']]],
+  ['wout_5ffile_5fname',['wout_file_name',['../structvmec__equilibrium_1_1vmec__class.html#a31929fb764bd503d781f77983a407797',1,'vmec_equilibrium::vmec_class']]],
+  ['write_5farray',['write_array',['../interfacewrite__array__generic_1_1write__array.html',1,'write_array_generic']]],
+  ['write_5finvac',['write_invac',['../interfacevacfield__mod_1_1write__invac.html',1,'vacfield_mod']]],
+  ['writeproblemfile',['writeproblemfile',['../namespaceblocktridiagonalsolver__s.html#afe31e2c8652ce53f977e4a31a2138bc7',1,'blocktridiagonalsolver_s::writeproblemfile()'],['../namespaceblocktridiagonalsolver.html#ab89347b7aed5e915d4f669934f4ff0f4',1,'blocktridiagonalsolver::writeproblemfile()']]],
+  ['writesolution',['writesolution',['../namespaceblocktridiagonalsolver__s.html#aa6eaf60f9aadee1196f87caae947392a',1,'blocktridiagonalsolver_s::writesolution()'],['../namespaceblocktridiagonalsolver.html#a25d1adcc7f6d18e80a8ebd9cb2f1dad8',1,'blocktridiagonalsolver::writesolution()']]]
 ];

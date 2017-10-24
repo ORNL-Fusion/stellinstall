@@ -5,6 +5,6 @@ var searchData=
   ['use_5fcentral',['use_central',['../structreconstruction_1_1reconstruction__class.html#acca6fb41e9b6e7255e8217d573c04525',1,'reconstruction::reconstruction_class']]],
   ['use_5fcentral_5fdiff',['use_central_diff',['../namespacev3fit__input.html#ac89fb702d3a90ee7b9b20159ed912d82',1,'v3fit_input']]],
   ['use_5fcon_5fshell',['use_con_shell',['../namespacev3rfun__input.html#a2567927008a56ee62126846802c411af',1,'v3rfun_input']]],
-  ['use_5fmpiwtime',['use_mpiwtime',['../namespaceblocktridiagonalsolver.html#aaf2b9d3353e158cf4db65f1b58777ca4',1,'blocktridiagonalsolver']]],
-  ['usebarriers',['usebarriers',['../namespaceblocktridiagonalsolver.html#a985d6da94b317ed5f28bbacaba4016f1',1,'blocktridiagonalsolver']]]
+  ['use_5fmpiwtime',['use_mpiwtime',['../namespaceblocktridiagonalsolver__s.html#a70d6cee7407d3ce264fe224d80aaa55a',1,'blocktridiagonalsolver_s::use_mpiwtime()'],['../namespaceblocktridiagonalsolver.html#aaf2b9d3353e158cf4db65f1b58777ca4',1,'blocktridiagonalsolver::use_mpiwtime()']]],
+  ['usebarriers',['usebarriers',['../namespaceblocktridiagonalsolver__s.html#a88ae49d0449a9e3bbb7f7adc84fed02d',1,'blocktridiagonalsolver_s::usebarriers()'],['../namespaceblocktridiagonalsolver.html#a985d6da94b317ed5f28bbacaba4016f1',1,'blocktridiagonalsolver::usebarriers()']]]
 ];

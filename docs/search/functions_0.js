@@ -1,23 +1,5 @@
 var searchData=
 [
-  ['backwardsolve',['backwardsolve',['../namespaceblocktridiagonalsolver.html#ae8df562dbec1f4da773f18a24beb63e4',1,'blocktridiagonalsolver']]],
-  ['bclockinit',['bclockinit',['../namespaceblocktridiagonalsolver.html#a14a13522456670c350261d6794295719',1,'blocktridiagonalsolver']]],
-  ['bivariate_5fconstruct',['bivariate_construct',['../namespacebivariate.html#ac102c8b2b8a0da05dceee85fc90baa78',1,'bivariate']]],
-  ['bivariate_5fdestruct',['bivariate_destruct',['../namespacebivariate.html#ac365c981828b3c0a9344226807d341f3',1,'bivariate']]],
-  ['bivariate_5fget_5f4pt',['bivariate_get_4pt',['../namespacebivariate.html#a2eacc53209204cd912a2a898025863b6',1,'bivariate']]],
-  ['bivariate_5fset_5fgrids_5f1d',['bivariate_set_grids_1d',['../interfacebivariate_1_1bivariate__set__grids.html#abae828653e3c9b86c09d6b7b1bac689d',1,'bivariate::bivariate_set_grids::bivariate_set_grids_1d()'],['../namespacebivariate.html#adbbf8d4b61b5ab496b658d804223947e',1,'bivariate::bivariate_set_grids_1d()']]],
-  ['bivariate_5fset_5fgrids_5f2d',['bivariate_set_grids_2d',['../interfacebivariate_1_1bivariate__set__grids.html#a2d83542810c9b0e9a38ab3f7b2013e3b',1,'bivariate::bivariate_set_grids::bivariate_set_grids_2d()'],['../namespacebivariate.html#aeb46db05deed3d3d4a4c78ca72ccca6e',1,'bivariate::bivariate_set_grids_2d()']]],
-  ['bmw',['bmw',['../bmw_8f.html#a4f602db0c6bca6f11a8e484d7f59a519',1,'bmw.f']]],
-  ['bmw_5fcommandline_5fparser_5fconstruct',['bmw_commandline_parser_construct',['../namespacebmw__commandline__parser.html#a3bf7847133b6c028444dee4aae721e23',1,'bmw_commandline_parser']]],
-  ['bmw_5fcommandline_5fparser_5fdestruct',['bmw_commandline_parser_destruct',['../namespacebmw__commandline__parser.html#acd4277b174db8cc4f89ef2a8572a1edb',1,'bmw_commandline_parser']]],
-  ['bmw_5fcommandline_5fparser_5fget_5finteger',['bmw_commandline_parser_get_integer',['../namespacebmw__commandline__parser.html#a30d7722729f6c998607735e30b38f994',1,'bmw_commandline_parser']]],
-  ['bmw_5fcommandline_5fparser_5fget_5freal',['bmw_commandline_parser_get_real',['../namespacebmw__commandline__parser.html#aa180c53f7f1b7fde097928a15e31a13f',1,'bmw_commandline_parser']]],
-  ['bmw_5fcommandline_5fparser_5fget_5fstring',['bmw_commandline_parser_get_string',['../namespacebmw__commandline__parser.html#ad5848fd3324ee4897a91b684097532be',1,'bmw_commandline_parser']]],
-  ['bmw_5fcommandline_5fparser_5fis_5fflag_5fset',['bmw_commandline_parser_is_flag_set',['../namespacebmw__commandline__parser.html#a722146ae07d9b51c77d8ed47be850431',1,'bmw_commandline_parser']]],
-  ['bmw_5fcommandline_5fparser_5fprint_5fhelp',['bmw_commandline_parser_print_help',['../namespacebmw__commandline__parser.html#a20f83d807faa76fb1702c909adf762d8',1,'bmw_commandline_parser']]],
-  ['bmw_5fcontext_5fconstruct',['bmw_context_construct',['../namespacebmw__context.html#a84f769a745388c7b61d79e0e4f5a604e',1,'bmw_context']]],
-  ['bmw_5fcontext_5fdestruct',['bmw_context_destruct',['../namespacebmw__context.html#a8ee1d70848bb1bef3e65cc7da7001805',1,'bmw_context']]],
-  ['bmw_5fcontext_5fwrite',['bmw_context_write',['../namespacebmw__context.html#a0bedd2b8ceffaf720ec1106c1f4c0f35',1,'bmw_context']]],
-  ['brent',['brent',['../namespacef1dim__mod.html#a047cf9f6906388ae97a217d07c28c358',1,'f1dim_mod']]],
-  ['bsystemclock',['bsystemclock',['../namespaceblocktridiagonalsolver.html#a19ca39bad842087e9250d7fb892f6edf',1,'blocktridiagonalsolver']]]
+  ['a',['a',['../classvertex.html#af86878566336fd82a8edb8af6de6a5df',1,'vertex']]],
+  ['alloc_5fquantities',['alloc_quantities',['../namespacequantities.html#a695371b8e2ffa6f854f933026813e577',1,'quantities']]]
 ];

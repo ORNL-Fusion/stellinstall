@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['p',['p',['../namespaceblocktridiagonalsolver.html#a89ecbaeafa19ceb157eccf114b592e2d',1,'blocktridiagonalsolver']]],
+  ['p',['p',['../namespaceblocktridiagonalsolver__s.html#ae5d5f840a06aeecfad6ef8e5e437a2b1',1,'blocktridiagonalsolver_s::p()'],['../namespaceblocktridiagonalsolver.html#a89ecbaeafa19ceb157eccf114b592e2d',1,'blocktridiagonalsolver::p()']]],
   ['p_5ffactor',['p_factor',['../structsiesta__context_1_1siesta__context__class.html#ab47f565bc8f0f1d4ebd4f6a890de9088',1,'siesta_context::siesta_context_class']]],
   ['p_5fgrid',['p_grid',['../structbmw__context_1_1bmw__context__class.html#afda0d06e760cdce67d23bf02c52683c7',1,'bmw_context::bmw_context_class']]],
   ['p_5fmax',['p_max',['../structsiesta__context_1_1siesta__context__class.html#abaead99df4cdf6b9b27a2cdebefd92ba',1,'siesta_context::siesta_context_class']]],
@@ -16,16 +16,13 @@ var searchData=
   ['param_5frange_5fvalue_5ftype',['param_range_value_type',['../namespacev3fit__params.html#aa8fb6a41420df6beab495bfe91ad7287',1,'v3fit_params']]],
   ['params',['params',['../structv3fit__context_1_1v3fit__context__class.html#ada624875ff6766d01b4064d4fc85a7d0',1,'v3fit_context::v3fit_context_class']]],
   ['path_5flength',['path_length',['../namespacefile__opts.html#a6d4bd296141c4d14535260607950dae4',1,'file_opts']]],
-  ['pfu',['pfu',['../namespaceblocktridiagonalsolver.html#a54c1ef93b02067a4d749ed6d14b86be4',1,'blocktridiagonalsolver']]],
+  ['pfu',['pfu',['../namespaceblocktridiagonalsolver__s.html#a7d08cb2b839d7b0e080dbbf93f84b001',1,'blocktridiagonalsolver_s::pfu()'],['../namespaceblocktridiagonalsolver.html#a54c1ef93b02067a4d749ed6d14b86be4',1,'blocktridiagonalsolver::pfu()']]],
   ['phi',['phi',['../structlimiter__grid_1_1limiter__grid__class.html#a314831e23eabe4f20a6dde974065b57c',1,'limiter_grid::limiter_grid_class']]],
   ['phi_5fgrid_5fe',['phi_grid_e',['../structv3rfun__context_1_1v3rfun__context__class.html#adccfb4af788d9200764992f91d894816',1,'v3rfun_context::v3rfun_context_class']]],
-  ['phi_5fgrid_5fshell',['phi_grid_shell',['../structv3rfun__context_1_1v3rfun__context__class.html#a87f477ee8ed29698ecda99e95cf13ef0',1,'v3rfun_context::v3rfun_context_class']]],
   ['phi_5foffset',['phi_offset',['../structsiesta__equilibrium_1_1siesta__class.html#a15c0cda510087f084e7cb9038b0f88d1',1,'siesta_equilibrium::siesta_class::phi_offset()'],['../structvmec__equilibrium_1_1vmec__class.html#a713a315e222accda5ce7ede256a2f557',1,'vmec_equilibrium::vmec_class::phi_offset()'],['../namespacev3fit__input.html#a5d7e1c2eb69778d16585b8f80c0b8099',1,'v3fit_input::phi_offset()']]],
-  ['pl_5fresponse',['pl_response',['../structv3rfun__context_1_1v3rfun__context__class.html#a3cbbd0c79ab60103eee5dabd5e3b64c7',1,'v3rfun_context::v3rfun_context_class']]],
-  ['pl_5fresponse_5fss',['pl_response_ss',['../structv3rfun__context_1_1v3rfun__context__class.html#ab4bee518678a81bfa21f245df90a9f36',1,'v3rfun_context::v3rfun_context_class']]],
   ['pmnch',['pmnch',['../structsiesta__context_1_1siesta__context__class.html#a0345c39edcb29f412cd57b380de82d9b',1,'siesta_context::siesta_context_class']]],
   ['pmnsh',['pmnsh',['../structsiesta__context_1_1siesta__context__class.html#a0c8bd2ef01f9dc9879011d17eb537d7b',1,'siesta_context::siesta_context_class']]],
-  ['point',['point',['../structmse_1_1mse__class.html#adfa6cb15000bf24e3403185878ffbdcf',1,'mse::mse_class']]],
+  ['point',['point',['../classvertex.html#a19a7697f48dd6a34d167ff246eacca8e',1,'vertex::point()'],['../structmse_1_1mse__class.html#adfa6cb15000bf24e3403185878ffbdcf',1,'mse::mse_class::point()']]],
   ['pol_5frad_5fratio',['pol_rad_ratio',['../structsiesta__equilibrium_1_1siesta__class.html#a9988c54ca7d2303550cd4f8fde852efc',1,'siesta_equilibrium::siesta_class::pol_rad_ratio()'],['../structvmec__equilibrium_1_1vmec__class.html#ac003aa814fa611fa4e3fcad0f1500fed',1,'vmec_equilibrium::vmec_class::pol_rad_ratio()'],['../namespacev3fit__input.html#a7a3cf3ce87524d4a927e44343ff6690a',1,'v3fit_input::pol_rad_ratio()']]],
   ['position',['position',['../structintegration__path_1_1vertex.html#a1e96da3f262efe156e11af31a23e10c6',1,'integration_path::vertex::position()'],['../structmagnetic__response_1_1magnetic__response__class.html#a56dc5a1339928733ad82b8a5b69d75b1',1,'magnetic_response::magnetic_response_class::position()'],['../structdiagnostic__dot_1_1diagnostic__dot__coil.html#ab531f9c53a4026aa194b2d327827d0e9',1,'diagnostic_dot::diagnostic_dot_coil::position()']]],
   ['pp_5fne_5faf',['pp_ne_af',['../namespacev3fit__input.html#a5fac45fcf9c6b115a7e4bb7cae7854c8',1,'v3fit_input']]],
@@ -57,6 +54,7 @@ var searchData=
   ['pressure_5ffraction',['pressure_fraction',['../structmodel_1_1model__class.html#abcc0d9be14123f800b8fec2ed2dda034',1,'model::model_class']]],
   ['primed_5fgrid_5fju_5fflag',['primed_grid_ju_flag',['../namespaceprimed__grid.html#a79441a0173fffcbc926021d7af78c55f',1,'primed_grid']]],
   ['primed_5fgrid_5fjv_5fflag',['primed_grid_jv_flag',['../namespaceprimed__grid.html#a3290e4bb2b4fd0dfb731f7291daf0f07',1,'primed_grid']]],
+  ['primed_5fgrid_5fsiesta_5fflag',['primed_grid_siesta_flag',['../namespaceprimed__grid.html#a45ebc76da7180425bc9ecabbfcc1f097',1,'primed_grid']]],
   ['prior',['prior',['../structsignal_1_1signal__class.html#a45b07e6f2141cab8053a90062a80ceee',1,'signal::signal_class']]],
   ['prior_5fgaussian_5ftype',['prior_gaussian_type',['../namespaceprior.html#a24f41bc8fb35c06a04a8ec8c6783d267',1,'prior']]],
   ['prior_5fguassian_5findex',['prior_guassian_index',['../structv3fit__context_1_1v3fit__context__class.html#a383f642eb4e048cf7c93a3b581da4ac6',1,'v3fit_context::v3fit_context_class']]],
@@ -68,5 +66,5 @@ var searchData=
   ['profile_5fnumber',['profile_number',['../structsxrem_1_1sxrem__class.html#a4d760d2e1cd85fd97de0b0f8192495fc',1,'sxrem::sxrem_class::profile_number()'],['../structsxrem_1_1sxrem__context.html#a13aa6a92f8ae6110232732d9965a1c43',1,'sxrem::sxrem_context::profile_number()']]],
   ['profiler_5fbucket_5fsize',['profiler_bucket_size',['../namespaceprofiler.html#aa864b887a08e8026d904ade234c18b5a',1,'profiler']]],
   ['profiler_5fstring_5fsize',['profiler_string_size',['../namespaceprofiler.html#a8198497a26b6fc30d31c623f7aee2dd3',1,'profiler']]],
-  ['ptrsz',['ptrsz',['../namespaceblocktridiagonalsolver.html#ad0d69dd92fb01f15521159bf0cdafeb2',1,'blocktridiagonalsolver']]]
+  ['ptrsz',['ptrsz',['../namespaceblocktridiagonalsolver__s.html#aedcdc8b3e8ecc9c910c8cf1d68c8cf96',1,'blocktridiagonalsolver_s::ptrsz()'],['../namespaceblocktridiagonalsolver.html#ad0d69dd92fb01f15521159bf0cdafeb2',1,'blocktridiagonalsolver::ptrsz()']]]
 ];

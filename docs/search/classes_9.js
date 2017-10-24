@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['levelelement',['levelelement',['../structblocktridiagonalsolver__s_1_1levelelement.html',1,'blocktridiagonalsolver_s']]],
   ['levelelement',['levelelement',['../structblocktridiagonalsolver_1_1levelelement.html',1,'blocktridiagonalsolver']]],
   ['levelelement',['levelelement',['../structblocktridiagonalsolver__bst_1_1levelelement.html',1,'blocktridiagonalsolver_bst']]],
   ['li_5fgbfa',['li_gbfa',['../interfaceliprec_1_1li__gbfa.html',1,'liprec']]],

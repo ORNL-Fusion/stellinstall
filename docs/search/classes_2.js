@@ -23,6 +23,7 @@ var searchData=
   ['compression_5fclass',['compression_class',['../structcompression_1_1compression__class.html',1,'compression']]],
   ['compression_5fconstruct',['compression_construct',['../interfacecompression_1_1compression__construct.html',1,'compression']]],
   ['compression_5fpointer',['compression_pointer',['../structcompression_1_1compression__pointer.html',1,'compression']]],
+  ['copylastntype',['copylastntype',['../interfaceparallel__vmec__module_1_1copylastntype.html',1,'parallel_vmec_module']]],
   ['cspeval',['cspeval',['../interfacepspline__calls_1_1cspeval.html',1,'pspline_calls']]],
   ['cspevfn',['cspevfn',['../interfacepspline__calls_1_1cspevfn.html',1,'pspline_calls']]],
   ['cspevx',['cspevx',['../interfacepspline__calls_1_1cspevx.html',1,'pspline_calls']]],

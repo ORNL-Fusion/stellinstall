@@ -9,7 +9,7 @@ var searchData=
   ['emission',['emission',['../structmodel_1_1model__class.html#a03571a903979cbc36d95764dda7df74e',1,'model::model_class']]],
   ['emission_5ffile',['emission_file',['../namespacev3fit__input.html#a9b6bbdb8aafa7343b19b4ddba3c02512',1,'v3fit_input']]],
   ['emissivity',['emissivity',['../structemission_1_1emission__class.html#ab69b2f9144b9f8eb6eba8e97cad15a6e',1,'emission::emission_class']]],
-  ['endglobrow',['endglobrow',['../namespaceblocktridiagonalsolver.html#a9b48b3405a818cd9c683c5ed9915446a',1,'blocktridiagonalsolver']]],
+  ['endglobrow',['endglobrow',['../namespaceblocktridiagonalsolver__s.html#ad4edf1cb3e47b1961cf045556d1cfa76',1,'blocktridiagonalsolver_s::endglobrow()'],['../namespaceblocktridiagonalsolver.html#a9b48b3405a818cd9c683c5ed9915446a',1,'blocktridiagonalsolver::endglobrow()']]],
   ['equilibrium',['equilibrium',['../structmodel_1_1model__class.html#a02f47fd4ff071ccacd8c58be3bf07915',1,'model::model_class']]],
   ['equilibrium_5fcomm',['equilibrium_comm',['../structv3fit__context_1_1v3fit__context__class.html#a6090be0be1d5b80a3a96cb547e121cae',1,'v3fit_context::v3fit_context_class']]],
   ['equilibrium_5fno_5ftype',['equilibrium_no_type',['../namespaceequilibrium.html#a8e15b0e8a416a999c65d398ee2f50d57',1,'equilibrium']]],

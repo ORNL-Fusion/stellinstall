@@ -19,5 +19,6 @@ var searchData=
   ['bsupumnsh',['bsupumnsh',['../structsiesta__context_1_1siesta__context__class.html#a7941a37fe67b52221eb19813144d1490',1,'siesta_context::siesta_context_class']]],
   ['bsupvmnch',['bsupvmnch',['../structsiesta__context_1_1siesta__context__class.html#a5ecd39884e74e7e7452d35c454cee89f',1,'siesta_context::siesta_context_class']]],
   ['bsupvmnsh',['bsupvmnsh',['../structsiesta__context_1_1siesta__context__class.html#afc6bfa2fdbf1e1e3cbbe4df2594f2acb',1,'siesta_context::siesta_context_class']]],
-  ['buckets',['buckets',['../namespaceprofiler.html#afc9a352239240fe921860cfaba7fea42',1,'profiler']]]
+  ['buckets',['buckets',['../namespaceprofiler.html#afc9a352239240fe921860cfaba7fea42',1,'profiler']]],
+  ['buv_5fres',['buv_res',['../namespaceshared__data.html#a836da8f25468546ad58fd57d97f185c3',1,'shared_data']]]
 ];

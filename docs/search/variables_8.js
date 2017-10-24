@@ -13,7 +13,7 @@ var searchData=
   ['intpol_5finterferometry_5ftype',['intpol_interferometry_type',['../namespaceintpol.html#a0137082c37f81650998ca57aa707e162',1,'intpol']]],
   ['intpol_5fno_5ftype',['intpol_no_type',['../namespaceintpol.html#a3f732de80b34f0a835e20e7d8a4effa4',1,'intpol']]],
   ['intpol_5fpolarimetry_5ftype',['intpol_polarimetry_type',['../namespaceintpol.html#a0f5223f02f8309b15914bdbea23010dc',1,'intpol']]],
-  ['intsz',['intsz',['../namespaceblocktridiagonalsolver.html#a55e3867b8e0652d8e90a1c780c60f6bf',1,'blocktridiagonalsolver']]],
+  ['intsz',['intsz',['../namespaceblocktridiagonalsolver__s.html#a000d3d5962240f578026198a604f481b',1,'blocktridiagonalsolver_s::intsz()'],['../namespaceblocktridiagonalsolver.html#a55e3867b8e0652d8e90a1c780c60f6bf',1,'blocktridiagonalsolver::intsz()']]],
   ['iou',['iou',['../structsignal__dot_1_1signal__dot__file.html#ab14245c16ff6ce9fe446181303b2ee5f',1,'signal_dot::signal_dot_file']]],
   ['ipch_5fdot_5ffilename',['ipch_dot_filename',['../namespacev3fit__input.html#ae1fe6c8994f39bfe0b7a5b2a576fccdb',1,'v3fit_input']]],
   ['ir',['ir',['../namespacev3rfun__input.html#af9fd36820cf5fbd60d4cbd31b00b1995',1,'v3rfun_input']]],

@@ -6,6 +6,7 @@ var searchData=
   ['magnetic_5fconstruct',['magnetic_construct',['../interfacemagnetic_1_1magnetic__construct.html',1,'magnetic']]],
   ['magnetic_5fresponse_5fclass',['magnetic_response_class',['../structmagnetic__response_1_1magnetic__response__class.html',1,'magnetic_response']]],
   ['magnetic_5fresponse_5fconstruct',['magnetic_response_construct',['../interfacemagnetic__response_1_1magnetic__response__construct.html',1,'magnetic_response']]],
+  ['mastertoslavemapping',['mastertoslavemapping',['../structblocktridiagonalsolver__s_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver_s']]],
   ['mastertoslavemapping',['mastertoslavemapping',['../structblocktridiagonalsolver_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver']]],
   ['mastertoslavemapping',['mastertoslavemapping',['../structblocktridiagonalsolver__bst_1_1mastertoslavemapping.html',1,'blocktridiagonalsolver_bst']]],
   ['mddc_5fcdf_5fdefine',['mddc_cdf_define',['../interfacemddc__cdf_1_1mddc__cdf__define.html',1,'mddc_cdf']]],
