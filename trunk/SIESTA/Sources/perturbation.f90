@@ -1,10 +1,11 @@
       MODULE PERTURBATION
+      USE v3_utilities, ONLY: assert
       USE quantities
       USE descriptor_mod, ONLY: iam
       USE siesta_state, ONLY: update_state, update_state
       USE shared_data, ONLY: ngmres_type, iortho, lcolscale,            &
                              lasym, hesspass_test, mupar_test,          &
-                             buv_res, lrecon
+                             buv_res, lrecon, unit_out
       USE nscalingtools, ONLY: startglobrow, endglobrow
       
       INTEGER  :: nsmin, nsmax
@@ -86,7 +87,6 @@
       lcolscale     = .TRUE.
       mupar_test    = 0
       nprecon       = 0                 !set > 0 to skip diagonal preconditioner
-
 !
 !     read command line arg
 !
@@ -104,10 +104,10 @@
       END IF
       
       OPEN (unit=30, file=TRIM(temp), delim='apostrophe', iostat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('SIESTA.JCF file not found')
+      CALL ASSERT(istat.eq.0,'SIESTA.JCF file not found')
 
       READ (30, NML=SIESTA_INFO, iostat=istat) 
-      IF (istat .NE. 0) CALL ErrorAbort('Error reading siesta.jcf file')
+      CALL ASSERT(istat.eq.0,'Error reading siesta.jcf file')
       CLOSE (UNIT=30)
 
       irad_scale = MIN(irad_scale, nsin)
@@ -121,7 +121,7 @@
       temp = wout_file
       index1 = INDEX(temp,'WOUT')
       IF (index1 .EQ. 0) index1 = INDEX(temp,'wout')
-      IF (index1 .EQ. 0) CALL ErrorAbort('ERROR: WRONG WOUT FILE NAME')
+      CALL ASSERT(index1.ne.0,'ERROR: WRONG WOUT FILE NAME')
       temp = wout_file(index1:)
 !
 !     STRIP FILE EXTENSION: NAME COULD INCLUDE '.' IN IT!
@@ -138,15 +138,18 @@
          HelPert(2) = HelPert2; mres(2) = mres2
       END IF
 
-      IF (iam .ne. 0) RETURN
 
 !     WOUT FILE MUST BE OF FORM "wout_NAME.nc (or txt)" or "wout_NAME"
-      WRITE (filename,'(3a,i4.4,a,2(i3.3,a))') "output_", TRIM(temp),   &
-             '_',nsin,'X',mpolin,'X',ntorin,".txt"
-      OPEN (unit=33, file=filename,iostat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ERROR WRITING SIESTA OUTPUT FILE')
+      IF (iam .EQ. 0) THEN
+	     WRITE (filename,'(3a,i4.4,a,2(i3.3,a))') "output_", TRIM(temp),&
+	            '_',nsin,'X',mpolin,'X',ntorin,".txt"
+	     OPEN (unit=unit_out, file=filename,iostat=istat)
+      END IF
 
-      DO istat = 6, 33, 27
+      CALL ASSERT(istat.eq.0,'ERROR WRITING SIESTA OUTPUT FILE')
+      IF (iam .NE. 0) RETURN
+
+      DO istat = 6, unit_out, unit_out-6
          IF (.not.lverbose .and. istat .eq. 6) CYCLE
 	     WRITE (istat, 10)                                              & 
                'SIESTA MHD EQUILIBRIUM CODE v4.0 (100917)',             &
@@ -160,25 +163,25 @@
 
 10    FORMAT (62('-'),/,1x,a,/,2(1x,a),/,62('-'),/)
 
-      WRITE (33, *)'CASE: ', TRIM(temp)
+      WRITE (unit_out, *)'CASE: ', TRIM(temp)
       IF (lverbose) PRINT *,'OUTPUT FILE (SCREEN DUMP): ', "output_"    &
              // TRIM(temp) // ".txt"
 
       CALL DATE_AND_TIME(date0,time0,zone0)
       READ (date0(5:6),'(i2)')imon
-      WRITE (33,20) months(imon),date0(7:8),date0(1:4),                 &
+      WRITE (unit_out,20) months(imon),date0(7:8),date0(1:4),           &
                     time0(1:2),time0(3:4),time0(5:6)
       
 20    FORMAT(' DATE = ',a3,' ',a2,',',a4,' ',' TIME = ',2(a2,':'),a2,/)
 
       DO istat = 1, SIZE(HelPert)
          IF (HelPert(istat) .ne. zero) THEN
-            WRITE (33, 30) istat, mres(istat), HelPert(istat)
+            WRITE (unit_out, 30) istat, mres(istat), HelPert(istat)
          END IF
       END DO
 
-      WRITE (33, 32) ngmres_type, iortho, lColScale
-      CALL FLUSH(33)
+      WRITE (unit_out, 32) ngmres_type, iortho, lColScale
+      CALL FLUSH(unit_out)
 
 30    FORMAT(i2,' mres: ',i4,' HelPert: ',1pe9.2)
 32    FORMAT(/,' ngmres_type: ', i4,' iOrtho: ', i4, ' lColScale: ', l2)
@@ -215,7 +218,7 @@
 !      nsmin = 1; nsmax = ns
       ALLOCATE (buv_res(ntheta,nzeta,nsmin:nsmax),                      &
                 jdotb(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN add_perturbation')
+      CALL ASSERT(istat.eq.0,'ALLOCATION ERROR IN add_perturbation')
  
       lresist_save = lresistive
       lresistive=.FALSE.
@@ -225,7 +228,7 @@
       w0 = getwmhd(xc)                                                   !Get latest current and bsubXijf
       
       IF (iam .EQ. 0) THEN
-      DO iprint = 6, 33, 27
+      DO iprint = 6, unit_out, unit_out-6
          IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
          WRITE (iprint, '(/,a,/,2a)')                                   &
          ' Adding helical magnetic field perturbations',                &
@@ -242,7 +245,7 @@
 
       ALLOCATE (bmnc_res(0:mpol,-ntor:ntor, nsmin:nsmax),               &
                 bmns_res(0:mpol,-ntor:ntor, nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ISTAT != 0 IN ADD_PERT')
+      CALL ASSERT(istat.eq.0,'ISTAT != 0 IN ADD_PERT')
       
       bmns_res = 0
       CALL tomnsp_par(jdotb, bmnc_res, f_cos)
@@ -298,14 +301,14 @@
             HP = HelPert0
             IF (isign1 .EQ. 2) HP = -HP
 
-            DO iprint = 6, 33, 27
+            DO iprint = 6, unit_out, unit_out-6
             IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
             WRITE (iprint, 100) 10**6*(wmhd-w0), mres0, nres0,          &
                     HP*normal, rad, ABS(mres0*chip0+nres0*nfp*phip0),   &
                     chip0/phip0, p_width_min
             END DO
  100  FORMAT(1p,e12.3,2(i8),3x,1pe10.2,0p,f8.2,f11.2,4x,2(f11.2))            
-            CALL FLUSH(33)
+            CALL FLUSH(unit_out)
          END IF
          
          CALL GetResPert(irscale, isign1, mres0, nres0, rad,            &
@@ -325,7 +328,7 @@
       END DO RES_TEST
 
       IF (iam .EQ. 0) THEN
-         DO iprint = 6, 33, 27
+         DO iprint = 6, unit_out, unit_out-6
             IF (.NOT.lverbose .AND. iprint.EQ.6) CYCLE
             WRITE (iprint, *)
          END DO
@@ -470,7 +473,7 @@
       DEALLOCATE (resc, ress, stat=istat)
 #else      
       ALLOCATE (bmn_res(0:mpol,-ntor:ntor), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ISTAT != 0 IN GETRESPERT')
+      CALL ASSERT(istat.eq.0,'ISTAT != 0 IN GETRESPERT')
       bmn_res = 0
          
       bmn_res(mres0,nres0) = HelP_local
@@ -559,7 +562,7 @@
 !     epar        IS THE RESULTING E*B/B^2 IN REAL SPACE
 !
       ALLOCATE (eparmn(ns,0:mpol,-ntor:ntor), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in Compute_Resonant_Epar')
+      CALL ASSERT(istat.eq.0,'Allocation error in Compute_Resonant_Epar')
       eparmn = 0
       epar = 0
 

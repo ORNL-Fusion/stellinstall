@@ -1,25 +1,30 @@
+!>  \brief Module contained subroutines for initializing the unperturbed
+!>  parts of the magnetic fields, pressure and currents in real space
+!>  \author S. P. Hirshman and R. Sanchez as part of the ORNL SIESTA (c) PROJECT
+!>  \date Jan 12, 2007
        MODULE siesta_init
+       USE v3_utilities, ONLY: assert
        USE stel_kinds
-       USE descriptor_mod, ONLY: SIESTA_COMM
+       USE descriptor_mod, ONLY: SIESTA_COMM, iam
        USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_sin, f_cos, &
                           f_du, f_dv, f_sum
-       USE shared_data, ONLY: l_update_state
+       USE shared_data, ONLY: l_update_state, l_par_state
        USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
        USE utilities, ONLY: GradientFull, to_full_mesh
        USE metrics, ONLY: tolowerf, tolowerh
-       USE siesta_currents, ONLY: cv_currents
+       USE quantities
        USE bhtobf
+       USE mpi_inc
  
        IMPLICIT NONE
        INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
        INTEGER, PRIVATE            :: nsmin, nsmax
+       REAL(dp), PRIVATE           :: p00
        REAL(dp), ALLOCATABLE, PRIVATE :: pfilter(:,:,:)
 
        CONTAINS
 
        SUBROUTINE init_state(lcurrent_only, lpar_in)
-!     
-!     WRITTEN 01-12-07 BY S. HIRSHMAN AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
 !     PURPOSE: Computes initial values of equilibrium pressure, fields
 !              needed to evaluate forces to update those quantities
@@ -28,9 +33,7 @@
 !
        USE shared_data, ONLY: fsq_total, l_getfsq, ste, buv_res
        USE hessian, ONLY: muPar
-!       USE siesta_currents, ONLY: cv_currents
-       USE quantities
-       USE mpi_inc
+       USE siesta_currents, ONLY: cv_currents
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -41,21 +44,21 @@
 !-----------------------------------------------
        INTEGER, PARAMETER :: m0=0, m1=1
        INTEGER            :: js, istat,  m, n
-       REAL(dp)           :: ton, toff, stes(2), rtes(2), pres_edge(ns)
+       REAL(dp)           :: ton, toff, stes(2), rtes(2)
        INTEGER            :: i, n1, n2, endr, startr
-       LOGICAL            :: ladd_pert, lpar=.TRUE.
+       LOGICAL            :: ladd_pert, lpar
 !-----------------------------------------------
 !      NOTE: jbupXmnPh, jpmnPh are initially computed on FULL ns mesh, and are GATHERED to that 
 !            FULL ns mesh in update_state
 
        istat = 0
+       lpar = .TRUE.
        IF (PRESENT(lpar_in)) lpar=lpar_in
        IF (.NOT.lpar) THEN
           startr = startglobrow;  endr = endglobrow
           startglobrow = 1;       endglobrow = ns
        END IF
        nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+2)
-
        CALL Init_Allocate_Arrays (lpar)
 
 !Calculate unperturbed half mesh jac*bsupX and jac*pressure on [nsmin,nsmax]
@@ -65,20 +68,13 @@
        IF (lasym)                                                       &
        CALL GetFields(jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh, iasym)
 
-!Convert jac*bsupX to bsupX in real space
+! Convert jac*bsubXh to bsupXh and jac*pres to presh in real space
+
        bsupsijh0 = bsupsijh0/jacobh(:,:,nsmin:nsmax)
        bsupvijh0 = bsupvijh0/jacobh(:,:,nsmin:nsmax)
        pijh0 = pijh0/jacobh(:,:,nsmin:nsmax)
 
-       IF (lverbose .AND. ANY(pijh0(:,:,nsmin:nsmax) .LT. zero)) THEN
-          IF (nsmin.NE.1 .OR. nsmax.NE.ns) THEN
-             PRINT *, 'proc: ',iam,' has pijh < 0 in init_state'
-          ELSE
-             IF (iam .EQ. 0) PRINT *, 'pijh < 0 in init_state'
-          END IF
-       END IF
-
-!On exit, bsupXijf0, pijh0 valid on [nsmin, nsmax-1]
+!      On exit, bsupXF valid on [nsmin, nsmax-1]
        CALL bhalftobfull (bsupsijh0, bsupuijh0, bsupvijh0,              &
                           bsupsijf0, bsupuijf0, bsupvijf0,              &
                           pijh0, pijf0)
@@ -93,20 +89,20 @@
 
 !Need this for resistive diffusion (|| resistivity) and mupar damping
        IF (ladd_pert .OR. muPar.NE.zero) THEN
-          nsmax=MIN(ns,endglobrow+1)
-!Calculate K || B
-          CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                  & 
-                        bsubsijf, bsubuijf, bsubvijf, nsmin, nsmax)
-                        
-!IN UPDATE-BFIELD, K_x == J_x = PARALLEL COVARIANT CURRENT COMPONENTS ~ B_x
+          nsmax=MIN(endglobrow+1,ns)
+          CALL tolowerf(bsupsijf0,bsupuijf0,bsupvijf0,                  & ! Calculate K || B
+                        bsubsijf, bsubuijf, bsubvijf,                   &
+                        nsmin, nsmax)  
+!     IN UPDATE-BFIELD, KSUB = jacob*JSUB: PARALLEL CURRENT
           IF (ladd_pert) THEN
-             ksubsijf(:,:,nsmin:nsmax) = bsubsijf(:,:,nsmin:nsmax)
-             ksubuijf(:,:,nsmin:nsmax) = bsubuijf(:,:,nsmin:nsmax)
-             ksubvijf(:,:,nsmin:nsmax) = bsubvijf(:,:,nsmin:nsmax)
+          ksubsijf(:,:,nsmin:nsmax) = bsubsijf(:,:,nsmin:nsmax)
+          ksubuijf(:,:,nsmin:nsmax) = bsubuijf(:,:,nsmin:nsmax)
+          ksubvijf(:,:,nsmin:nsmax) = bsubvijf(:,:,nsmin:nsmax)
           END IF
-          nsmax=MIN(ns,endglobrow+2)
+          nsmax=MIN(endglobrow+2,ns)
        END IF
- 
+
+     
 !Compute spectrally filtered dp/du and dp/dv on half radial grid [nsmin:nsmax]
        IF (l_update_state) ALLOCATE (pfilter(ntheta, nzeta, nsmin:nsmax))
        CALL FilterPressure(isym)
@@ -123,10 +119,7 @@
        END IF
       
 !SPH11-3-16 s=1 is iso-pressure contour
-       IF (nsmax .EQ. ns) THEN
-          CALL SurfAverage(pres_edge(ns), pijh0(:,:,ns), ns, ns)
-          pijf0(:,:,ns) = pres_edge(ns)
-       END IF
+       IF (nsmax .EQ. ns) pijf0(:,:,ns) = p00
 
 !Fourier filter (Nyquist) check
        IF (.NOT.l_update_state) RETURN
@@ -136,8 +129,8 @@
        stes(1) = SUM((pijh0(:,:,n1:n2)-pfilter(:,:,n1:n2))**2)
        stes(2) = SUM((pijh0(:,:,n1:n2)+pfilter(:,:,n1:n2))**2)
 #if defined(MPI_OPT)
-       CALL MPI_ALLREDUCE(stes,rtes,2,MPI_REAL8,MPI_SUM,                &
-                          SIESTA_COMM,MPI_ERR)
+       CALL MPI_ALLREDUCE(stes, rtes, 2, MPI_REAL8, MPI_SUM,            &
+                          SIESTA_COMM, MPI_ERR)
        IF (rtes(2) .NE. zero) ste(1) = SQRT(rtes(1)/rtes(2))
 #else
        IF (stes(2) .NE. zero) ste(1) = SQRT(stes(1)/stes(2))
@@ -149,35 +142,32 @@
        END IF
 
        END SUBROUTINE init_state
-!---------------------------------------------------------------------------------------------
 
-!---------------------------------------------------------------------------------------------
+
+!>  \brief subroutine for allocating unperturbed array
        SUBROUTINE Init_Allocate_Arrays(lpar)
-       USE quantities
-       USE shared_data, ONLY: l_par_state
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       LOGICAL, INTENT(IN)     :: lpar
+       LOGICAL, INTENT(in)     :: lpar
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        LOGICAL                 :: lrealloc, lalloc
        INTEGER                 :: istat, n1, n2, n3, nsmin, nsmax,      &
-                                  nsmin1, nsmax1, nmax
+                                  nsmin1, nsmax1
 !-----------------------------------------------
        lalloc = ALLOCATED(jvsupsijf) 
        lrealloc = .TRUE.
        istat = 0
-       nsmin =MAX(1,startglobrow);   nsmax =MIN(ns,endglobrow+1)
-       nsmin1=MAX(1,startglobrow-1); nsmax1=MIN(ns,endglobrow+2)
-       n1 = ntheta; n2 = nzeta 
+       nsmin =MAX(1,startglobrow);   nsmax =MIN(endglobrow+1,ns)
+       nsmin1=MAX(1,startglobrow-1); nsmax1=MIN(endglobrow+2,ns)
 
        IF (lpar) THEN
-          n3 = nsmax1-nsmin1+1
+          n1 = ntheta; n2 = nzeta; n3 = nsmax1-nsmin1+1
           l_par_state=.TRUE.
        ELSE
-          n3 = ns
+          n1 = ntheta; n2 = nzeta; n3 = ns
           l_par_state=.FALSE.
        END IF
 
@@ -190,37 +180,37 @@
                       bsubsijf,  bsubuijf,  bsubvijf,                   &
                       ksupsijf0, ksupuijf0, ksupvijf0,                  &
                       ksubsijf,  ksubuijf,  ksubvijf,                   &
-                      pijf0, pijh0, pijf0_ds, pijh0_du,                 &
-                      pijh0_dv, stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in ALLOC_QUANTITIES')
+                      pijf0, pijh0, pijf0_ds,                           &
+                      pijh0_du, pijh0_dv,  stat=istat)
+          CALL ASSERT(istat.EQ.0,'Deallocation error #1 in INIT_ALLOCATE_ARRAYS')
           END IF
        END IF
 
        IF (lrealloc) THEN
           n3 = ns
           ALLOCATE (jvsupsijf(n1,n2,n3), jvsupuijf(n1,n2,n3),           & ! Full mesh quantities (real space)
-                    jvsupvijf(n1,n2,n3))                                  ! V_s (cos), V_u (sin), V_v (sin)
+                    jvsupvijf(n1,n2,n3))                                  ! jacobian*(V_s , V_u , V_v)
           IF (lpar) THEN
-          ALLOCATE (ksupsijf0(n1,n2,nsmin1:nsmax1),                     & ! K^s (sin), K^u (cos), K^v (cos)
+          ALLOCATE (ksupsijf0(n1,n2,nsmin1:nsmax1),                     & ! K^s, K^u, K^v
                     ksupuijf0(n1,n2,nsmin1:nsmax1),                     &
                     ksupvijf0(n1,n2,nsmin1:nsmax1),                     &
-                    bsupsijf0(n1,n2,nsmin1:nsmax1),                     & ! B^s (sin), B^u (cos), B^v (cos)
+                    bsupsijf0(n1,n2,nsmin1:nsmax1),                     & ! B^s, B^u, B^v (full)
                     bsupuijf0(n1,n2,nsmin1:nsmax1),                     &
                     bsupvijf0(n1,n2,nsmin1:nsmax1),                     &
-                    bsupsijh0(n1,n2,nsmin1:nsmax1),                     & ! B^s (sin), B^u (cos), B^v (cos)
+                    bsupsijh0(n1,n2,nsmin1:nsmax1),                     & ! B^s, B^u, B^v (half)
                     bsupuijh0(n1,n2,nsmin1:nsmax1),                     &
                     bsupvijh0(n1,n2,nsmin1:nsmax1),                     &
                     ksubsijf(n1,n2,nsmin1:nsmax),                       & ! Full mesh quantities (real space)
-                    ksubuijf(n1,n2,nsmin1:nsmax),                       & ! K^s (sine), K^u (cosine), K^v (cosine)
+                    ksubuijf(n1,n2,nsmin1:nsmax),                       & ! K^s, K^u, K^v
                     ksubvijf(n1,n2,nsmin1:nsmax),                       &
                     bsubsijf(n1,n2,nsmin1:nsmax),                       & ! Full mesh quantities (real space)
-                    bsubuijf(n1,n2,nsmin1:nsmax),                       & ! K^s (sine), K^u (cosine), K^v (cosine)
+                    bsubuijf(n1,n2,nsmin1:nsmax),                       & ! B_s, B_u, B_v
                     bsubvijf(n1,n2,nsmin1:nsmax),                       &
                     pijh0(n1,n2,nsmin1:nsmax1),                         &
-                    pijf0(n1,n2,nsmin1:nsmax1),                         &
-                    pijf0_ds(n1,n2,nsmin1:nsmax1),                      &
                     pijh0_du(n1,n2,nsmin1:nsmax1),                      &
-                    pijh0_dv(n1,n2,nsmin1:nsmax1), stat=istat)
+                    pijh0_dv(n1,n2,nsmin1:nsmax1),                      &
+                    pijf0(n1,n2,nsmin1:nsmax1),                         &
+                    pijf0_ds(n1,n2,nsmin1:nsmax1), stat=istat)
           ELSE
           ALLOCATE (ksupsijf0(n1,n2,n3), ksupuijf0(n1,n2,n3),           &
                     ksupvijf0(n1,n2,n3),                                &
@@ -231,18 +221,15 @@
                     bsubuijf(n1,n2,n3),                                 &
                     bsubvijf(n1,n2,n3),                                 &
                     pijf0(n1,n2,n3), pijh0(n1,n2,n3),                   &
-                    pijf0_ds(n1,n2,n3), pijh0_du(n1,n2,n3),             &
-                    pijh0_dv(n1,n2,n3), bsupsijf0(n1,n2,n3),            &
+                    pijh0_du(n1,n2,n3), pijh0_dv(n1,n2,n3),             &
+                    pijf0_ds(n1,n2,n3), bsupsijf0(n1,n2,n3),            &
                     bsupuijf0(n1,n2,n3),bsupvijf0(n1,n2,n3),            &
                     bsupsijh0(n1,n2,n3),                                &
                     bsupuijh0(n1,n2,n3),bsupvijh0(n1,n2,n3),            &
                     stat=istat)
           END IF
-          IF (istat .EQ. 0) THEN
-             jvsupsijf = 0; jvsupuijf = 0; jvsupvijf = 0                  ! Need in add_resistivity loop
-          ELSE
-             CALL ErrorAbort('Allocation error #1 in Allocate_Arrays')
-          END IF
+          CALL ASSERT(istat.EQ.0, 'Allocation error #1 in Init_Allocate_Arrays')
+          jvsupsijf = 0; jvsupuijf = 0; jvsupvijf = 0                     !Need in add_resistivity loop
        END IF
 
 
@@ -256,18 +243,17 @@
        END IF
 
        IF (lalloc) THEN
-          IF (SIZE(ksupsmnsf,3).EQ.n3 .AND. SIZE(djpmnch,3).EQ.n3)      &
-             lrealloc=.FALSE.
+          IF (SIZE(ksupsmnsf,3) .EQ. n3) lrealloc=.FALSE.
           IF (lrealloc) THEN
           DEALLOCATE (ksupsmnsf, ksupumncf, ksupvmncf,                  &
                       djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,   &
                       stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Deallocation #1 failed in ALLOC_QUANTITIES')
+          CALL ASSERT(istat.EQ.0,'Deallocation error #2 in Init_Allocate_Arrays')
           IF (lasym) THEN
           DEALLOCATE (ksupsmncf, ksupumnsf, ksupvmnsf,                  &
                       djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,   &
                       stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Deallocation #2 failed in ALLOC_QUANTITIES')
+          CALL ASSERT(istat.EQ.0,'Deallocation error #3 in Init_Allocate_Arrays')
           END IF
           END IF
        END IF
@@ -283,7 +269,7 @@
                        djbsupvmnch(0:mpol,-ntor:ntor,nsmin:nsmax),      &
                        stat=istat)
              IF (lasym) THEN
-              ALLOCATE(ksupsmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),       & 
+             ALLOCATE (ksupsmncf(0:mpol,-ntor:ntor,nsmin1:nsmax),       & 
                        ksupumnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),       &
                        ksupvmnsf(0:mpol,-ntor:ntor,nsmin1:nsmax),       &
                        djpmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),          &
@@ -292,7 +278,7 @@
                        djbsupvmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),      &
                        stat=istat)
              END IF
-
+                       
           ELSE
              ALLOCATE (ksupsmnsf(0:mpol,-ntor:ntor,n3),                 & 
                        ksupumncf(0:mpol,-ntor:ntor,n3),                 &
@@ -303,7 +289,7 @@
                        djbsupvmnch(0:mpol,-ntor:ntor,n3),               &
                        stat=istat)
              IF (lasym) THEN
-              ALLOCATE(ksupsmncf(0:mpol,-ntor:ntor,n3),                 & 
+             ALLOCATE (ksupsmncf(0:mpol,-ntor:ntor,n3),                 & 
                        ksupumnsf(0:mpol,-ntor:ntor,n3),                 &
                        ksupvmnsf(0:mpol,-ntor:ntor,n3),                 & 
                        djpmnsh(0:mpol,-ntor:ntor,n3),                   &
@@ -313,23 +299,21 @@
                        stat=istat)
              END IF
           END IF
-          IF (istat .EQ. 0) THEN
-             djpmnch = 0; djbsupsmnsh = 0; djbsupumnch = 0; djbsupvmnch = 0 
-             IF (lasym) THEN
-             djpmnsh = 0; djbsupsmnch = 0; djbsupumnsh = 0; djbsupvmnsh = 0
-             END IF
-          ELSE
-             CALL ErrorAbort('Allocation error #2 in Allocate_Arrays')
-          END IF
+          CALL ASSERT(istat.EQ.0, 'Allocation error #2 in Init_Allocate_Arrays')
+          djpmnch = 0; djbsupsmnsh = 0; djbsupumnch = 0; djbsupvmnch = 0 
+          IF (lasym) THEN
+          djpmnsh = 0; djbsupsmnch = 0; djbsupumnsh = 0; djbsupvmnsh = 0 
+          ENDIF
        END IF
 
-       END SUBROUTINE Init_Allocate_Arrays
-!---------------------------------------------------------------------------------------------
 
-!---------------------------------------------------------------------------------------------
+       END SUBROUTINE Init_Allocate_Arrays
+       
+
+!>  \brief Subroutine for getting magnetic field components, pressure in
+!>   real space (half radial grid)
        SUBROUTINE GetFields(jbsupsmnh, jbsupumnh, jbsupvmnh,            &
                             jpmnh, ipar)
-       USE quantities, ONLY: bsupsijh0, bsupuijh0, bsupvijh0, pijh0
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -357,11 +341,10 @@
                        fourv)
 
        END SUBROUTINE GetFields
-!---------------------------------------------------------------------------------------------
 
-!---------------------------------------------------------------------------------------------
+
+!>  \brief Subroutine for getting angular derivatives of the pressure
        SUBROUTINE FilterPressure(ipar)
-       USE quantities, ONLY: mpol, ntor, pijh0, pijh0_du, pijh0_dv
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -377,14 +360,15 @@
           mfour = f_du; nfour = f_dv
        ELSE
           four = f_sin; icomb=f_sum
-          mfour = IOR(f_du,f_sum);  nfour = IOR(f_dv, f_sum)
+          mfour = IOR(f_du, f_sum);  nfour = IOR(f_dv, f_sum)
        END IF
 
 !pmnh contains Nyquist-filtered (to MPOL, NTOR) Fourier harmonics of p on half mesh
        ALLOCATE (pmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation error in FilterPressure')
+       CALL ASSERT(istat.EQ.0,'Allocation error in FilterPressure')
 
        CALL tomnsp_par(pijh0, pmnh, four)
+       IF (nsmax.EQ.ns .AND. ipar.EQ.isym) p00 = pmnh(0, 0, ns)
 
 !spectrally filtered angle derivatives of p in real space (half mesh)
        CALL toijsp_par(pmnh, pijh0_du, mfour, four)
@@ -397,5 +381,31 @@
 
        END SUBROUTINE FilterPressure
 
+!>  \brief Subroutine for checking that p>0
+       SUBROUTINE CheckPressure
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+       REAL(dp) :: pmin, pming
+!-----------------------------------------------
+       pmin = MINVAL(pijh0)
+       pming = pmin
+#if defined(MPI_OPT)
+       IF (PARSOLVER) THEN
+          CALL MPI_ALLREDUCE(pmin, pming, 1 , MPI_REAL8,                &
+               MPI_MIN, SIESTA_COMM, MPI_ERR)
+       END IF
+#endif
+       
+       IF (iam.EQ.0 .AND. lverbose .AND. pming.LT.zero) THEN
+          PRINT 100, 'pijh < 0 in init_state.  ===>',                   &
+              ' Recommend lowering f2 exponent in EVOLUTION'
+       END IF
+ 100   FORMAT(1x,2a)
+
+!SPH101017 This may stabilize convergence (lower f2 exponent or raise lev_marq)
+       IF (pmin .LT. zero) WHERE (pijh0 .LT. zero) pijh0 = zero
+       
+       END SUBROUTINE CheckPressure
 
        END MODULE siesta_init

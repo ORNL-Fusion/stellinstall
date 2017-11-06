@@ -3,15 +3,19 @@
 !!  \date Jan, 2014
 
       MODULE gmres
+      USE v3_utilities, ONLY: assert
       USE stel_kinds
       USE stel_constants, ONLY: zero, one
-      USE descriptor_mod, ONLY: SIESTA_COMM
+      USE descriptor_mod, ONLY: SIESTA_COMM, iam, nprocs
       USE shared_data, etak=>etak_tol
       USE shared_functions, ONLY: funct_island, LineSearch
       USE siesta_state, ONLY: update_state, update_state
-      USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,       &
+      USE nscalingtools, ONLY: PARFUNCTISL, MPI_ERR, startglobrow,      &
                                endglobrow, PARSOLVER
       USE timer_mod
+#if defined(SKS)
+      USE mpi_inc
+#endif
       IMPLICIT NONE
 
       INTEGER, PRIVATE  :: icounter=0
@@ -22,12 +26,10 @@
 !!   that minimize the nonlinear MHD forces
 
       SUBROUTINE gmres_fun
-      USE hessian, ONLY: levmarq_param, Dmin=>mindiag, Apply_Precond,    &
-                         levmarq_param0, l_diagonal_only, gather_array,  &
-                         maxeigen, muPar
+      USE hessian, ONLY: levmarq_param, Dmin=>mindiag, Apply_Precond,   &
+                         levmarq_param0, l_diagonal_only, gather_array, &
+                         muPar
       USE perturbation, ONLY: lresistive, ftol
-      USE descriptor_mod, ONLY: iam
-      USE mpi_inc
 #if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian
 #endif
@@ -38,10 +40,8 @@
       INTEGER :: nsteps
       REAL(dp), PARAMETER :: levscan(1) = (/16._dp/)           !!007C
 !      REAL(dp), PARAMETER :: levscan(2) = (/4._dp, 16._dp/)   !!007B
-      REAL(dp) :: cntl(5), facmin, res, resid, wmhd, fmhd, lm_ped,       &
-                  skston, skstoff, eps, lm0, fsq_min, xmax_lin,          &
-                  muparS, scale_fac
-      REAL(dp), ALLOCATABLE :: work(:,:)
+      REAL(dp) :: wmhd, fmhd, skston, skstoff, eps, lm0, fsq_min,  &
+                  xmax_lin, muparS, scale_fac
       REAL(dp), ALLOCATABLE :: xc1(:), xcmin(:), brhs(:)
       LOGICAL               :: bTerm
 !-----------------------------------------------
@@ -52,9 +52,6 @@
       xc = 0
       l_linearize = .FALSE.
       l_ApplyPrecon = .FALSE.    !LET GMRES APPLY PRECONDITIONER ITSELF
-!      l_ApplyPrecon = .TRUE.     !TEST icntl(4) = 0
-
-
       muParS = muPar
       
 !
@@ -66,7 +63,7 @@
       fmhd=fsq_total1               !!initial fsq BEFORE application of resistive diffusion
 
       ALLOCATE (brhs(neqs), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('ALLOCATION ERROR IN GMRES_FUN')
+      CALL ASSERT(istat.eq.0,'ALLOCATION ERROR IN GMRES_FUN')
       l_getwmhd=.TRUE.
 
 
@@ -83,7 +80,7 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FAST CONVERGENCE - SPH 083016 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ALLOCATE(xc1(neqs), xcmin(neqs), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in GMRES')
+      CALL ASSERT(istat.eq.0,'Allocation error in GMRES')
       xcmin = 0
 
       iter = 0
@@ -98,11 +95,11 @@
 !     x0 = P*b   where P = (A*)^-1
 !     xn = P*(lm*x[n-1])
 !
-      IF (.NOT.l_Diagonal_Only .AND. lcolscale) THEN
+      LFAST: IF (.NOT.l_Diagonal_Only .AND. lcolscale) THEN
 
-      IF (iam .EQ. 0 .and. lverbose) PRINT 925, Dmin
-925   FORMAT(' DMIN: ',1pe12.3,/,1x,'FAST CONVERGENCE SUMMARY',          &
-             /,' -------------',/,1x,'ITER',7x,'FSQ_NL',                 &
+      IF (iam.EQ.0 .AND. lverbose) PRINT 925, Dmin
+925   FORMAT(' DMIN: ',1pe12.3,/,1x,'FAST CONVERGENCE SUMMARY',         &
+             /,' -------------',/,1x,'ITER',7x,'FSQ_NL',                &
              10x,'||X||',9x,'MAX|X|')
 
       xc = 0; l_getfsq=.TRUE.
@@ -128,26 +125,22 @@
             bTerm = (fsq_total1 .GE. 0.95_dp*fsq_min)
             fsq_min = fsq_total1
          END IF
-         IF (iam .EQ. 0 .and. lverbose) PRINT 912, j, fsq_total1, SQRT(SUM(xc*xc)),     &
-                         MAXVAL(ABS(xc))
+         IF (iam.EQ.0 .AND. lverbose) PRINT 912, j, fsq_total1,         &
+            SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
          IF (fsq_min.LE.ftol .OR. bTerm .OR. eps.EQ.zero) EXIT
       END DO
-      ENDIF
+      ENDIF LFAST
 
-      IF (fsq_min.GT.ftol .AND. fsq_min.GT.fmhd/10) THEN
+      LGMRES: IF (fsq_min.GT.ftol .AND. fsq_min.GT.fmhd/10) THEN
 
 !!!START GMRES CONVERGENCE
 !
 !     THIS IS STANDARD GMRES CALL
 !
-#if defined (SKS)
       CALL second0(skston)
-#endif
       CALL gmres_wrap (xc, brhs)
-#if defined (SKS)
       CALL second0(skstoff)
       gmres_wrap_time=gmres_wrap_time+(skstoff-skston)
-#endif
 
       IF (fsq_total1 .LT. fsq_min) THEN
          xcmin = xc
@@ -156,25 +149,27 @@
       END IF
 !!!END GMRES CONVERGENCE
 #if defined(SKS)
-!FOR NOW, THIS IS ONLY IMPLEMENTED FOR PARSOLVER=TRUE
-      IF (.NOT.l_Diagonal_Only .AND. PARSOLVER) THEN
+!FOR NOW, THIS IS ONLY IMPLEMENTED FOR PARSOLVER=TRUE: MUST IMPLEMENT
+!RefactorHessian FOR LSCALAPACK=T
+      IF (.FALSE.) THEN
+!      IF (.NOT.l_Diagonal_Only .AND. PARSOLVER) THEN
          IF (fsq_min.GE.0.95_dp*fmhd .AND. iter.LT.SIZE(levscan)) THEN
             iter = iter+1
             levmarq_param = lm0*levscan(iter)
             IF (levmarq_param .LT. levm_ped) levmarq_param = 100*levm_ped
             IF (levmarq_param .GE. levmarq_param0) levmarq_param = levmarq_param0/10._dp**iter
-            IF (iam .EQ. 0 .and. lverbose) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
+            IF (iam.EQ.0 .AND. lverbose) PRINT 930,' Refactoring Hessian: LM = ',levmarq_param
             CALL RefactorHessian(levmarq_param)
             GOTO 920
          END IF
       END IF
 #endif
-      END IF
+      END IF LGMRES
 
  912  FORMAT(i5,3(3x,1pe12.3))
  930  FORMAT (/,a,1pe12.3)
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- 1000 CONTINUE
 
       DEALLOCATE(xc1)
       l_getfsq = .TRUE.
@@ -184,13 +179,14 @@
       xmax_lin = MAXVAL(ABS(xcmin))
       IF (iam .EQ. 0) THEN
 !         PRINT 1020,' ||X||-GMRES = ', SQRT(SUM(xcmin*xcmin)), ' MAX(|X|) = ',xmax_lin
-         WRITE (33, 1020) ' ||X||-GMRES = ', SQRT(SUM(xcmin*xcmin)), ' MAX(|X|) = ',xmax_lin
+         WRITE (unit_out, 1020) ' ||X||-GMRES = ', SQRT(SUM(xcmin*xcmin)), ' MAX(|X|) = ',xmax_lin
       END IF
  1020 FORMAT(2(a,1p,e11.3))
 
       fsq_lin = fsq_total
       l_linearize = .FALSE.
 
+!UPDATE EVOLUTION FIRST
       IF (fsq_min .GT. ftol) THEN
 
 !     TURN OFF NEXT 2 LINES FOR TESTING f1=levm IN EVOLUTION
@@ -221,7 +217,6 @@
       l_PrintOriginForces=.FALSE.
 
       muPar = muParS
-!      gc = 0  !Need this to print out max forces
 
       DEALLOCATE (xcmin, brhs)
 
@@ -284,13 +279,9 @@
 
       SUBROUTINE gmres_wrap (x0, b)
       USE perturbation, ONLY: ftol
-      USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE nscalingtools, ONLY: PARGMRES, rcounts, disp
       USE hessian, ONLY: apply_precond
       USE gmres_lib, ONLY: gmres_info, gmres_par, gmres_ser
-#if defined(SKS)
-      USE mpi_inc
-#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -319,8 +310,7 @@
 !     X0: on input, initial guess if icntl(6) == 1
 !         on output, solution of Ax = b
 !         NOTE: it is not overwritten UNTIL the end of this routine
-      gi%iam=iam; gi%nprocs=nprocs
-#if defined(SKS)
+      gi%iam=iam; gi%nprocs=nprocs; gi%ngmres_type=ngmres_type
       IF (PARSOLVER .AND. PARGMRES) THEN
          gi%endglobrow=endglobrow; gi%startglobrow=startglobrow
          gi%mblk_size=mblk_size; gi%rcounts=>rcounts; gi%disp=>disp
@@ -329,15 +319,13 @@
          gi%my_comm_world = SIESTA_COMM
 !         gi%lactive = lactive
 
-         CALL gmres_par (n, gi, matvec_par, apply_precond, GetNLForce,   &
+         CALL gmres_par (n, gi, matvec_par, apply_precond, GetNLForce,  &
                          x0, b)
       ELSE
-#endif
-         CALL gmres_ser (n, gi, matvec, apply_precond, GetNLForce,       &
+         CALL gmres_ser (n, gi, matvec, apply_precond, GetNLForce,      &
                          x0, b)
-#if defined(SKS)
       END IF
-#endif
+
       fsq_total1 = gi%ftol
       xc = x0
 
@@ -345,12 +333,9 @@
 
 #if defined (SKS)
       SUBROUTINE matvec_par (ploc, Ap, nloc)
-      USE stel_kinds
-      USE stel_constants, ONLY: zero
       USE island_params, ONLY: ns=>ns_i
       USE hessian, ONLY: eps_factor, mupar, PadSides, gather_array
       USE blocktridiagonalsolver_s, ONLY: ParMatVec
-      USE mpi_inc
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -363,7 +348,7 @@
       REAL(dp), ALLOCATABLE :: p(:)
       REAL(dp)              :: delta, skston, skstoff
 !-----------------------------------------------
-!SPH NOTE 032713: EVENTUALLY REMOVE CALL TO ParMatVec IF THE FUNCT_ISLAND_PAR IS FASTER
+!SPH NOTE 032713: EVENTUALLY REMOVE CALL TO ParMatVec IF THE FUNCT_ISLAND IS FASTER
 !
 !     NOTE: DO NOT CALL ParMatVec WHEN nprecon_type==PREDIAG
 !           SINCE IN HESSIAN, WE SET ALL THE OFF-DIAGONAL COMPONENTS OF 
@@ -371,33 +356,31 @@
 !
 !           AT PRESENT, ParMatVec WILL NOT WORK IF mupar != 0
 !
-      IF (nloc .NE. (endglobrow-startglobrow+1)*mblk_size)               &
-         CALL ErrorAbort('nloc wrong in matvec_par')
+      CALL ASSERT(.NOT.l_init_state,'l_init_state = T in matvec_par')
+      istat = (endglobrow-startglobrow+1)*mblk_size
+      CALL ASSERT(istat.eq.nloc, 'nloc wrong in matvec_par')
 
       myrowstart=(startglobrow-1)*mblk_size+1
       myrowend=myrowstart+nloc-1
 
       CALL second0(skston)
       ALLOCATE (p(ns*mblk_size), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in matvec_par')
+      CALL ASSERT(istat.eq.0,'Allocation error in matvec_par')
 
       p(myrowstart:myrowend) = ploc
       CALL PadSides(p, mblk_size, 1, 1)
-
-!      CALL gather_array(ploc, p)
 
       CALL second0(skstoff)
       gmres_wrap_allgather_time=gmres_wrap_allgather_time+(skstoff-skston)
 
       CALL second0(skston)
 
-      IF (.NOT.LPARMATVEC .OR. nprecon_type.EQ.PREDIAG                   &
+      IF (.NOT.LPARMATVEC .OR. nprecon_type.EQ.PREDIAG                  &
           .OR. mupar.NE.zero) THEN
          delta = SQRT(EPSILON(delta))*eps_factor
          xc = delta*p
 
          l_linearize=.TRUE.
-         l_init_state=.NOT.l_par_state
          CALL funct_island
          Ap = gc(myrowstart:myrowend)/delta
 
@@ -436,6 +419,7 @@
       REAL(dp), ALLOCATABLE :: gc1(:)
       REAL(dp)              :: delta
 !-----------------------------------------------
+      CALL ASSERT(.not.l_init_state,'l_init_state = T in matvec')
 
       delta = SQRT(EPSILON(delta))*eps_factor
 
@@ -445,10 +429,9 @@
 !      delta = delta*(pnorm + SUM(p*xc0))/pnorm
 
 !IF CALLED IN PAR MODE, FIRST GATHER THE xc's
-      IF (SIZE(gc) .NE. SIZE(Ap)) CALL ErrorAbort('gc and Ap wrong sizes')
+      CALL ASSERT(SIZE(gc).eq.SIZE(Ap),'gc and Ap wrong sizes')
       xc = delta*p
 
-      l_init_state=l_par_state
       l_getwmhd=.TRUE.
       CALL funct_island
       l_getwmhd=.FALSE.
@@ -459,21 +442,22 @@
          Ap = (gc-gc0)/delta
       END IF
 
+      WHERE (ABS(Ap) .LT. 1.E-10_dp) Ap = 0
+
       END SUBROUTINE matvec
 
 
       SUBROUTINE get_etak(fk, fkm, ftol, etak)
-      USE stel_kinds, ONLY: rprec, dp
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(rprec), INTENT(in)    :: fk, fkm, ftol
-      REAL(rprec), INTENT(inout) :: etak
+      REAL(dp), INTENT(in)    :: fk, fkm, ftol
+      REAL(dp), INTENT(inout) :: etak
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(rprec), PARAMETER :: gamma1=0.9_dp, alpha=1.5_dp, eta0 = 1.E-02_dp
-      REAL(rprec)            :: etakm
+      REAL(dp), PARAMETER :: gamma1=0.9_dp, alpha=1.5_dp, eta0 = 1.E-02_dp
+      REAL(dp)            :: etakm
 !-----------------------------------------------
 !     ROUTINE PROVIDED L. CHACON (11/09/06)
       etakm = etak
@@ -490,28 +474,25 @@
       END SUBROUTINE get_etak
  
 
-      SUBROUTINE GetNLForce(xcstate, fsq_nl, bnorm, ndim)
-      USE stel_kinds
+      SUBROUTINE GetNLForce(xcstate, fsq_nl, bnorm)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)  :: ndim
-      REAL(dp),INTENT(IN)  :: xcstate(ndim), bnorm
+      REAL(dp),INTENT(IN)  :: xcstate(neqs), bnorm
       REAL(dp),INTENT(OUT) :: fsq_nl
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      LOGICAL              :: l_linloc, l_Apploc, l_getloc, l_initloc
+      LOGICAL              :: l_linloc, l_Apploc, l_getloc
 !-----------------------------------------------
-!      CALL second0(ton)
+      CALL ASSERT(.not.l_init_state,'l_init_state=T in GetNLForce!')
 !Store state 
       l_linloc = l_linearize
       l_Apploc = l_ApplyPrecon
       l_getloc = l_getfsq
-      l_initloc = l_init_state
 
 !Set state variables
-      xc(1:ndim) = bnorm*xcstate(1:ndim)                                  !undo internal gmres normalization
+      xc(1:neqs) = bnorm*xcstate(1:neqs)                                  !undo internal gmres normalization
 
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
@@ -525,27 +506,24 @@
       l_linearize = l_linloc
       l_ApplyPrecon = l_Apploc
       l_getfsq = l_getloc
-      l_init_state = l_initloc
 
       END SUBROUTINE GetNLForce
 
-
       SUBROUTINE qmr_fun
-      USE stel_kinds
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: ndim, nlen, nlim, ierr, info(4), j
       INTEGER :: revcom, colx, colb
-      REAL(rprec), DIMENSION(:,:), ALLOCATABLE :: vecs
-      REAL(rprec) :: tol = 1.E-4_dp, gnorm
+      REAL(dp), DIMENSION(:,:), ALLOCATABLE :: vecs
+      REAL(dp) :: tol = 1.E-4_dp, gnorm
 !-----------------------------------------------
 !
 !     STORE INITIAL POINT AND INITIAL RESIDUE (AT INIT PT)
 !     SO DEVIATIONS FROM THEM CAN BE COMPUTED REPEATEDLY
 !
       ALLOCATE(xc0(neqs), gc0(neqs), vecs(neqs,9), stat=j)
-      IF (j .NE. 0) CALL ErrorAbort('Allocation error in qmr_fun')
+      CALL ASSERT(j.eq.0,'Allocation error in qmr_fun')
 
       ndim = SIZE(vecs,1)
       nlen = ndim

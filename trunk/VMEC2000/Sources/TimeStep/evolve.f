@@ -170,7 +170,7 @@ C-----------------------------------------------
       IF (lqmr) THEN
          IF (PARVMEC) THEN
 #if defined(SKS)
-           CALL gmres_fun_par(ier_flag, itype_precon-1)
+           CALL gmres_fun_par(ier_flag, itype_precon-1, lscreen)
            IF (.NOT.lfreeb) CALL CompareEdgeValues(pxc, pxsave)
 #endif
          ELSE
@@ -183,6 +183,7 @@ C-----------------------------------------------
               END DO
            END IF
          END IF
+
          RETURN
       END IF
 

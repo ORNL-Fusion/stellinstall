@@ -21,6 +21,7 @@
 !        QUANTITIES are provided via their XMN harmonics, together with their parity 
 !        (IPARITY=0, COSINE or =1, SINE) and radial gridding info (IHALF=0, full; =1, half mesh).
 !
+      USE v3_utilities, ONLY: assert
       USE stel_kinds
       USE stel_constants, ONLY: twopi, one, zero
       USE shared_data, ONLY: lverbose
@@ -140,7 +141,7 @@
 !-----------------------------------------------
 
       CALL read_wout_file(wout_file, istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Error in write_output')
+      CALL ASSERT(istat.eq.0,'Error in write_output')
 
       CALL dealloc_diagnostics
 
@@ -343,7 +344,7 @@
              IF (iam .EQ. MIN(nprocs-1,maxprocs-1)) npmax = maxprocs
              nmpi=ndum+(maxprocs-ndum*nprocs)
              ALLOCATE (pack_bfld(6, nmpi), stat=istat)
-             IF (istat .NE. 0) CALL ErrorAbort('tracing storage allocation error')
+             CALL ASSERT(istat.eq.0,'tracing storage allocation error')
           END IF
 
           npmin_s = 1; npmax_s = -1
@@ -356,7 +357,7 @@
              IF (iam .EQ. MIN(nprocs-1,maxprocs_s-1)) npmax_s = maxprocs_s
              nmpi_s=ndum_s+(maxprocs_s-ndum_s*nprocs)
              ALLOCATE (pack_silo(nmpi_s,nsilo), stat=istat)
-             IF (istat .NE. 0) CALL ErrorAbort('silo storage allocation error')
+             CALL ASSERT(istat.eq.0,'silo storage allocation error')
           END IF
 #endif
 
@@ -702,7 +703,7 @@
         CALL to_half_mesh(rmnc_i, rmnc_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmns_i, zmns_ih)                                 ! RMNC_i, ZMNS_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnch(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
+        CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
         CALL tomnsp(jacobh, jacmnch, f_cos); jacmnch(:,:,1)=0
 
         IF (lasym) THEN
@@ -712,7 +713,7 @@
         CALL to_half_mesh(rmns_i, rmns_ih)                                 ! We need RMNC and ZMNS on half mesh.
         CALL to_half_mesh(zmnc_i, zmnc_ih)                                 ! RMNS_i, ZMNC_i from METRIC. Deallocated elsewhere.
         ALLOCATE(jacmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                ! Get harmonics of jacobian on half mesh
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
+        CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
         CALL tomnsp(jacobh, jacmnsh, f_sin); jacmnsh(:,:,1)=0
         END IF
 
@@ -728,16 +729,16 @@
         pijh = pijh/p_factor                                               ! Remove normalization (restore at end)
 
         ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMP_PRESSURE')        ! which are stored in PMNCH
+        CALL ASSERT(istat.eq.0,'Allocation failed in DUMP_PRESSURE')       ! which are stored in PMNCH
         CALL tomnsp(pijh, pmnch, f_cos); pmnch(:,:,1) = zero
 
         WHERE (pijh .LT. zero) pijh = zero
-        IF (SIZE(pmnch,3) .NE. SIZE(pijh,3))                            &
-           CALL ErrorAbort('SIZE pmnch != pijh in prepare_quantities')
+        CALL ASSERT(SIZE(pmnch,3).EQ.SIZE(pijh,3),                      &
+           'SIZE pmnch != pijh in prepare_quantities')
 
         IF (lasym) THEN
         ALLOCATE(pmnsh(0:mpol,-ntor:ntor,ns), stat=istat)                  ! ... and then recompute harmonics
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMP_PRESSURE')        ! which are stored in PMNCH
+        CALL ASSERT(istat.eq.0,'Allocation failed in DUMP_PRESSURE')       ! which are stored in PMNCH
         CALL tomnsp(pijh, pmnsh, f_sin); pmnsh(:,:,1) = zero
         END IF
 
@@ -749,7 +750,7 @@
            ALLOCATE(bsupsmnsh(0:mpol,-ntor:ntor,ns),                    &
                     bsupumnch(0:mpol,-ntor:ntor,ns),                    &
                     bsupvmnch(0:mpol,-ntor:ntor,ns), stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
+          CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
           CALL tomnsp(bsupsijh0, bsupsmnsh, f_sin); bsupsmnsh(:,:,1) = zero    ! compute harmonics
           CALL tomnsp(bsupuijh0, bsupumnch, f_cos); bsupumnch(:,:,1) = zero
           CALL tomnsp(bsupvijh0, bsupvmnch, f_cos); bsupvmnch(:,:,1) = zero
@@ -758,7 +759,7 @@
           ALLOCATE(bsupsmnch(0:mpol,-ntor:ntor,ns),                     &
                    bsupumnsh(0:mpol,-ntor:ntor,ns),                     &
                    bsupvmnsh(0:mpol,-ntor:ntor,ns), stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in PREPARE_QUANTITIES')
+          CALL ASSERT(istat.eq.0,'Allocation failed in PREPARE_QUANTITIES')
           CALL tomnsp(bsupsijh0, bsupsmnch, f_cos); bsupsmnch(:,:,1) = zero    ! compute harmonics
           CALL tomnsp(bsupuijh0, bsupumnsh, f_sin); bsupumnsh(:,:,1) = zero
           CALL tomnsp(bsupvijh0, bsupvmnsh, f_sin); bsupvmnsh(:,:,1) = zero
@@ -771,7 +772,7 @@
            ALLOCATE (bsubsijh(ntheta,nzeta,ns),                         &
                      bsubuijh(ntheta,nzeta,ns),                         &
                      bsubvijh(ntheta,nzeta,ns), stat=istat)
-           IF (istat .NE. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
+           CALL ASSERT(istat.eq.0,'Allocation failed in DUMPING PREPARE_QUANTITIES')
            CALL tolowerh(bsupsijh0, bsupuijh0, bsupvijh0,               &
                          bsubsijh , bsubuijh , bsubvijh, 1, ns)
            ksupsmnsf = ksupsmnsf/b_factor; ksubsijf = ksubsijf/b_factor
@@ -784,7 +785,7 @@
                     ksubsmnsf(0:mpol,-ntor:ntor,ns),                    &
                     ksubumncf(0:mpol,-ntor:ntor,ns),                    &
                     ksubvmncf(0:mpol,-ntor:ntor,ns), stat=istat)
-           IF (istat .ne. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
+           CALL ASSERT(istat.eq.0,'Allocation failed in DUMPING PREPARE_QUANTITIES')
            CALL tomnsp(bsubsijh, bsubsmnsh, f_sin)                       ! compute harmonics
            CALL tomnsp(bsubuijh, bsubumnch, f_cos)
            CALL tomnsp(bsubvijh, bsubvmnch, f_cos)
@@ -803,7 +804,7 @@
                     ksubsmncf(0:mpol,-ntor:ntor,ns),                    &
                     ksubumnsf(0:mpol,-ntor:ntor,ns),                    &
                     ksubvmnsf(0:mpol,-ntor:ntor,ns), stat=istat)
-           IF (istat .ne. 0) CALL ErrorAbort('Allocation failed in DUMPING PREPARE_QUANTITIES')
+           CALL ASSERT(istat.eq.0,'Allocation failed in DUMPING PREPARE_QUANTITIES')
            CALL tomnsp(bsubsijh, bsubsmnch, f_cos)                       ! compute harmonics
            CALL tomnsp(bsubuijh, bsubumnsh, f_sin)
            CALL tomnsp(bsubvijh, bsubvmnsh, f_sin)
@@ -891,7 +892,7 @@
           pprof(iunit) = pp
 
         ELSE
-          CALL ErrorAbort('INFO IS NEITHER 0 NOR -3 IN DUMP_PRESSURE!')
+          CALL ASSERT(.FALSE.,'INFO IS NEITHER 0 NOR -3 IN DUMP_PRESSURE!')
         ENDIF
 
         END SUBROUTINE dump_pressure
@@ -963,7 +964,7 @@
 #if defined(SILO_AVAIL)
           IF (.NOT.l_silo_output .OR. .NOT.lsilo) RETURN
           index2 = index2+1
-          IF (index2 .GT. SIZE(pack_silo,1)) CALL ErrorAbort('INDEX2 > SIZE(pack_silo)')
+          CALL ASSERT(index2.LE.SIZE(pack_silo,1),'INDEX2 > SIZE(pack_silo)')
             pack_silo(index2,unit_pres)  = pp                              ! pressure pres_silo
             pack_silo(index2,unit_bsups) = bs                              ! field values: bsups_silo
             pack_silo(index2,unit_bsupu) = bu                              ! bsupu_silo
@@ -1166,7 +1167,7 @@
         ENDIF
                               
         ALLOCATE(work0(0:mpol,-ntor:ntor,ndum), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem #1 in TOIJSP_1P')
+        CALL ASSERT(istat.eq.0,'Alloc. problem #1 in TOIJSP_1P')
         work0 = zero
                             
         work0(:,:,1) = orthonorm(:,:)*xmn(:,:,ns_in)
@@ -1185,7 +1186,7 @@
                    
         ALLOCATE(work1(-ntor:ntor,ndum),                                &
                  work2(-ntor:ntor,ndum), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem #2 in TOIJSP_1P')
+        CALL ASSERT(istat.eq.0,'Alloc. problem #2 in TOIJSP_1P')
         work1 = 0; work2 = 0
 
         DO m = 0, mpol                                                     ! First DO sum over poloidal modes
@@ -1203,7 +1204,7 @@
         DEALLOCATE(work0)
 
         ALLOCATE(xuv_i(ndum), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Alloc. problem #3 in TOIJSP_1P')
+        CALL ASSERT(istat.eq.0,'Alloc. problem #3 in TOIJSP_1P')
         xuv_i = zero                                                       ! Make sure that SPATIAL variable is zeroed
 
         IF (BTEST(dflag, b_dv)) THEN
@@ -1279,20 +1280,23 @@
 #if defined(SILO_AVAIL)
         SUBROUTINE allocate_SILO
         USE stel_kinds
-        INTEGER:: istat                                                    ! NXX, NYY, NZZ defined in OPEN_FILES   
+        INTEGER  :: istat = 0                                             ! NXX, NYY, NZZ defined in OPEN_FILES   
 
-        IF (iam .NE. 0) RETURN
+        IF (iam .NE. 0) GOTO 100
 
-        ALLOCATE(silo2d(nxx, nzz), stat = istat)                           ! Use for output
-        IF (istat .NE. 0) CALL ErrorAbort('ERROR in silo alloc.!')
+        ALLOCATE(silo2d(nxx, nzz), stat = istat)                          ! Use for output
+        IF (istat .NE. 0) GOTO 100
         silo2d = zero 
            
-        ALLOCATE(silo3d(nxx, nyy, nzz), stat = istat)                      ! Use for output
-        IF (istat .NE. 0) CALL ErrorAbort('ERROR in silo alloc.!')
+        ALLOCATE(silo3d(nxx, nyy, nzz), stat = istat)                     ! Use for output
+        IF (istat .NE. 0) GOTO 100
         silo3d = zero 
                     
-        ALLOCATE(tmp_silo(nxx*nyy*nzz), stat = istat)                      ! pressure
-        IF (istat .NE. 0) CALL ErrorAbort('Silo allocation problem!')
+        ALLOCATE(tmp_silo(nxx*nyy*nzz), stat = istat)                     ! pressure
+        
+ 100    CONTINUE
+ 
+        CALL ASSERT(istat.eq.0,'ERROR in silo alloc.!')
         
         END SUBROUTINE allocate_SILO
 
@@ -1318,7 +1322,7 @@
                      jr_silo(nxx*nyy*nzz), jphi_silo(nxx*nyy*nzz),      &
                      wr_silo(nxx*nyy*nzz), wphi_silo(nxx*nyy*nzz),      &
                      jz_silo(nxx*nyy*nzz), stat=loop)
-           IF (loop .NE. 0) CALL ErrorAbort('Allocation error in dump_SILO')
+           CALL ASSERT(loop.eq.0,'Allocation error in dump_SILO')
         END IF
 
         DO loop = 1, nsilo
@@ -1513,7 +1517,7 @@
         CHARACTER(LEN=3):: cdum, cdum1
         CHARACTER(LEN=50):: labelp1, labelp2
         
-        IF (islice > nzz) CALL ErrorAbort('Slice does not exist!')
+        CALL ASSERT(islice<=nzz,'Slice does not exist!')
         phiout = 360.*REAL(islice -1)/REAL(nzz - 1)
         iangle = INT(phiout)
         IF (iangle < 10) THEN

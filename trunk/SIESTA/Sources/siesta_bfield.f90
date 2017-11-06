@@ -2,7 +2,7 @@
 !!  \author S. P. Hirshman and R. Sanchez
 !!  \date Aug 21, 2006
        MODULE siesta_bfield
-
+       USE v3_utilities, ONLY: assert
        USE stel_kinds
        USE stel_constants
        USE fourier 
@@ -44,12 +44,12 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       LOGICAL, INTENT(in)     :: l_add_res
+       LOGICAL, INTENT(IN)     :: l_add_res
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER  :: istat, js
-       LOGICAL  :: ladd_pert 
+       LOGICAL  :: ladd_pert, ltest=.TRUE.
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: resistivity
        REAL(dp) :: ton, toff, rho
        REAL(dp) :: delt_cfl, eta_prof, r0
@@ -64,11 +64,11 @@
        ALLOCATE(esubsijf(ntheta,nzeta,nsmin:nsmax),                     &
                 esubuijf(ntheta,nzeta,nsmin:nsmax),                     &
                 esubvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)   
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_BFIELD')
+       CALL ASSERT(istat.EQ.0,'Allocation1 failed in UPDATE_BFIELD')
 
        ALLOCATE(de_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                  &
                 de_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_BFIELD')
+       CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_BFIELD')
 
        esubsijf =-(jvsupuijf(:,:,nsmin:nsmax)*bsupvijf0(:,:,nsmin:nsmax) &
                  - jvsupvijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax))  ! -E_s = V^uB^v - V^vB^u  (SINE): jv -> jac*v
@@ -78,13 +78,10 @@
                  - jvsupuijf(:,:,nsmin:nsmax)*bsupsijf0(:,:,nsmin:nsmax))  ! -E_v = V^sB^u - V^uB^s  (COSINE)
 
 !confirm boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy => dB^s = 0)
-       IF (nsmax .EQ. ns) THEN
-         IF (ANY(esubuijf(:,:,ns) .NE. zero)) THEN
-           CALL ErrorAbort('esubuijf(ns) != 0 in UPDATE_BFIELD_par')
-         ELSE IF (ANY(esubvijf(:,:,ns) .NE. zero)) THEN
-           CALL ErrorAbort('esubvijf(ns) != 0 in UPDATE_BFIELD_par')
-         END IF
-       END IF
+       IF (nsmax .EQ. ns) ltest = ALL(esubuijf(:,:,ns).EQ.zero)
+       CALL ASSERT(ltest,'esubuijf(ns) != 0 in UPDATE_BFIELD')
+       IF (nsmax .EQ. ns) ltest = ALL(esubvijf(:,:,ns).EQ.zero)
+       CALL ASSERT(ltest,'esubvijf(ns) != 0 in UPDATE_BFIELD')
 
 !
 !Note this will LOWER the energy due to eta*|J|||**2 heating
@@ -98,7 +95,7 @@
           IF (fsq_total < fsq_res) delt_cfl = delt_cfl*SQRT(fsq_total/fsq_res)
 
           ALLOCATE(resistivity(ntheta,nzeta,nsmin:nsmax), stat=istat)
-          IF (istat .NE. 0) CALL ErrorAbort('Allocation5 failed in UPDATE_BFIELD')
+          CALL ASSERT(istat.EQ.0,'Allocation3 failed in UPDATE_BFIELD')
 
           DO js = nsmin, nsmax
              rho = hs_i*(js-1)
@@ -108,7 +105,9 @@
 
           IF (ladd_pert) THEN
              resistivity = resistivity*buv_res(:,:,nsmin:nsmax)
-          END IF
+          ELSE
+             resistivity = resistivity/jacobf(:,:,nsmin:nsmax)            !divide out jacobf factor from cv_currents
+          ENDIF
 
 !Isotropic resistivity, E ~ eta*J; for ladd_pert=TRUE, K ~ B in init_state
           esubsijf = esubsijf + resistivity*ksubsijf(:,:,nsmin:nsmax)
@@ -123,12 +122,12 @@
                 esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                & 
                 esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_BFIELD')
+       CALL ASSERT(istat.EQ.0,'Allocation4 failed in UPDATE_BFIELD')
 
        ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in UPDATE_BFIELD')
+       CALL ASSERT(istat.EQ.0,'Allocation5 failed in UPDATE_BFIELD')
 
 !Update Bfield using Faraday's Law
        CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch, isym)
@@ -143,6 +142,7 @@
        time_update_bfield = time_update_bfield + (toff-ton)
 
        END SUBROUTINE update_bfield
+       
 
 !*******************************************************************************
 !>  \brief Use Faraday's law dB = -curl(E) to compute magnitic field perturbation

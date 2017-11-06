@@ -1219,8 +1219,8 @@ CONTAINS
       !------------------------------------------------
       SUBROUTINE saxpbylastntype(a, x, b, y, vec)
         REAL(dp), INTENT(IN),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: x, y
-	REAL(dp), INTENT(INOUT),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: vec
-	REAL(dp), INTENT(IN)  :: a, b
+	    REAL(dp), INTENT(INOUT),  DIMENSION(blocksize,par_ns,3*par_ntmax) :: vec
+	    REAL(dp), INTENT(IN)  :: a, b
         vec(:,t1lglob:t1rglob,:) = a*x(:,t1lglob:t1rglob,:) + b*y(:,t1lglob:t1rglob,:)
       END SUBROUTINE saxpbylastntype
       !------------------------------------------------

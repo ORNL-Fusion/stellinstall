@@ -37,27 +37,26 @@
 !*******************************************************************************
 
       MODULE siesta_pressure
-
+       USE v3_utilities, ONLY: assert
        USE stel_kinds
        USE stel_constants
        USE quantities
-       USE fourier       
        USE nscalingtools, ONLY: startglobrow, endglobrow
        USE utilities, ONLY: GradientHalf, to_half_mesh
        IMPLICIT NONE
 
        PRIVATE
-       INTEGER, PARAMETER  :: m0=0, m1=1, isym=0, iasym=1
+       INTEGER, PARAMETER  :: m0=0, m1=1, n0=0, isym=0, iasym=1
        INTEGER             :: nsmin, nsmax
        REAL(dp)            :: gamm1
-       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE, PRIVATE ::              &
+       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                       &
          work1, work2, vgradph, work3, work4, work5, work6,             &
          jvsupuijh, jvsupvijh
          
-       PUBLIC :: update_pres  
+       PUBLIC :: update_pres 
 
        CONTAINS
-!>     \brief Parallel subroutine to advance pressure from t to t+delta_t 
+!>     \brief Advance pressure from t to t+delta_t 
 !>     by updating jpmnc,sh (jacobh*presh)
        SUBROUTINE update_pres
        USE timer_mod, ONLY: time_update_pres
@@ -78,18 +77,17 @@
        ALLOCATE(work1(ntheta,nzeta,nsmin:nsmax),                        &
                 work2(ntheta,nzeta,nsmin:nsmax),                        &   
                 work3(ntheta,nzeta,nsmin:nsmax),                        &   
-                vgradph(ntheta,nzeta,nsmin:nsmax),                      &   
-                stat=istat)   
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in UPDATE_PRES')
+                vgradph(ntheta,nzeta,nsmin:nsmax),  stat=istat)
+       CALL ASSERT(istat.EQ.0,'Allocation1 failed in UPDATE_PRES')
 
        ALLOCATE(work4(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
                 work5(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
                 work6(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in UPDATE_PRES')
+       CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_PRES')
 
        ALLOCATE (jvsupuijh(ntheta,nzeta,nsmin:nsmax),                   &   
                  jvsupvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-       IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in UPDATE_PRES')
+       CALL ASSERT(istat.EQ.0,'Allocation3 failed in UPDATE_PRES')
 
 !On exit, jsupXh valid on [nsmin+1:nsmax]
        CALL to_half_mesh(jvsupuijf, jvsupuijh)
@@ -151,15 +149,18 @@
        IF (lasym) CALL Continuity(djpmnsh, iasym)
 
        DEALLOCATE(work1, work2, vgradph, work3, work4, work5, work6)
-
+       
        CALL second0(toff)
        time_update_pres = time_update_pres + (toff-ton)
 
        END SUBROUTINE update_pres
+       
 
-!>     \brief Uses density continuity equation, with p = n^gamma, to evolve p
+!>     \brief Evolve p, using density (n, continuity) equation, with p = n^gamma, 
        SUBROUTINE Continuity(djpmnh, ipar)
        USE shared_data, ONLY: delta_t
+       USE fourier       
+       USE island_params, ONLY: ns=>ns_i
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -168,7 +169,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER   :: fours, fouru, fourv, m, n, mp, np
+       INTEGER   :: fours, fouru, fourv, m, n, np
        REAL(dp)  :: sparity
 !-----------------------------------------------
 !      djpmnh needed up to nsmax=endglobrow+1 to compute perturbed pressure
@@ -183,33 +184,35 @@
        END IF
 
        m = LBOUND(djpmnh,3);  n = UBOUND(djpmnh,3)
-       IF (m.GT.nsmin .OR. n.LT.nsmax) CALL ErrorAbort('djpmnh: wrong bounds - Continuity')
+       CALL ASSERT(nsmin.GE.m, nsmax.LE.n,                              &
+                  'djpmnh: wrong bounds - Continuity')
 
 !      FFT of gradp*Flux terms
        CALL tomnsp_par(vgradph, work4, fours)                            ! Calculate Fourier transform of v_dot_gradph
-       djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of Pres. Eq. (full mesh) 
+       djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of pres eq. (half mesh) 
 
-!      FFT of -Div(p*Flux) terms (multiply angular derivatives by m,n*nfp)
+!FFT of -Div(p*Flux) terms 
        CALL tomnsp_par(work1, work4, fours)
        CALL tomnsp_par(work2, work5, fouru)
        CALL tomnsp_par(work3, work6, fourv)
 
+!multiply angular derivatives by m ~ d/du, n*nfp ~d/dv
        DO m = 0, mpol
-          mp = m*sparity
           DO n = -ntor, ntor
-             np = n*nfp*sparity
-             work5(m,n,nsmin:nsmax) = mp*work5(m,n,nsmin:nsmax)         &
-                                    + np*work6(m,n,nsmin:nsmax)          ! mp: d/du; np: d/dv
+             np = n*nfp
+             work5(m,n,nsmin:nsmax) = m *work5(m,n,nsmin:nsmax)         &
+                                    + np*work6(m,n,nsmin:nsmax)
           ENDDO
        ENDDO
      
-       work4 = work4 + work5
+!sum radial and angular div terms     
+       work4 = work4 + work5*sparity
        
 !Gamma = adiabatic factor
        djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                &
                                - gamma*work4(:,:,nsmin:nsmax)
 
-!SPH   Evolve harmonics of (jacobh * pres)mn to conserve pressure
+!SPH Evolve harmonics of (jacobh * pres)mn to conserve pressure
        djpmnh = delta_t*djpmnh                                           ! calculate increment of pressure harmonics.
 
        IF (nsmin .EQ. 1) THEN

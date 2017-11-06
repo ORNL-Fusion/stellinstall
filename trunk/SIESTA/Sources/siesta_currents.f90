@@ -1,4 +1,5 @@
       MODULE siesta_currents
+      USE v3_utilities, ONLY: assert
       USE stel_kinds
       USE stel_constants
       USE descriptor_mod, ONLY: SIESTA_COMM
@@ -8,6 +9,7 @@
       USE nscalingtools, ONLY: nranks, startglobrow, endglobrow, MPI_ERR
       USE utilities, ONLY: GradientFull, to_full_mesh
       USE metrics, ONLY: tolowerf, tolowerh
+      USE quantities
 
       IMPLICIT NONE
       PRIVATE
@@ -70,7 +72,6 @@
       USE island_params, ONLY: nu_i, rmajor_i
       USE Hessian, ONLY: mupar_norm
       USE descriptor_mod, ONLY: iam
-      USE quantities
       USE timer_mod
       USE mpi_inc
       USE descriptor_mod, ONLY: SIESTA_COMM
@@ -86,12 +87,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: istat
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-         bsubsmnsh, bsubumnch, bsubvmnch,                               &
-         bsubsmnsf, bsubumncf, bsubvmncf,                               &
-         bsubsmnch, bsubumnsh, bsubvmnsh,                               &
-         bsubsmncf, bsubumnsf, bsubvmnsf,                               &
-         bsq_loc
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsq_loc
       REAL(dp) :: beta, r0, ton, toff, stes(6), rtes(6), wb0
 !-----------------------------------------------
       CALL second0(ton)
@@ -104,16 +100,20 @@
          nsmin=MAX(1, startglobrow);   nsmax=MIN(ns,endglobrow+1)
       END IF
 
-      IF (LBOUND(bsupsijh,3) .NE. nsmin) CALL ErrorAbort('BSUPSIJH HAS WRONG LB')
-      IF (UBOUND(bsupsijh,3) .NE. nsmax) CALL ErrorAbort('BSUPSIJH HAS WRONG UB')
-      IF (LBOUND(ksupsijf,3) .NE. nsmin) CALL ErrorAbort('KSUPSIJF HAS WRONG LB')
-      IF (UBOUND(ksupsijf,3) .NE. nsmax) CALL ErrorAbort('KSUPSIJF HAS WRONG UB')
+      CALL ASSERT(LBOUND(bsupsijh,3).EQ.nsmin,                          &
+                 'BSUPSIJH HAS WRONG LB IN CV_CURRENTS')
+      CALL ASSERT(UBOUND(bsupsijh,3).EQ.nsmax,                          &
+                 'BSUPSIJH HAS WRONG UB IN CV_CURRENTS')
+      CALL ASSERT(LBOUND(ksupsijf,3).EQ.nsmin,                          &
+                 'KSUPSIJF HAS WRONG LB IN CV_CURRENTS')
+      CALL ASSERT(UBOUND(ksupsijf,3).EQ.nsmax,                          &
+                 'KSUPSIJF HAS WRONG UB IN CV_CURRENTS')
 
 ! Calculate covariant BsubXh on half mesh
       ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                      &
                bsubuijh(ntheta,nzeta,nsmin:nsmax),                      &
                bsubvijh(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation1 failed in CV_CURRENTS')
+      CALL ASSERT(istat.EQ.0, 'Allocation1 failed in CV_CURRENTS')
      
       CALL tolowerh(bsupsijh, bsupuijh, bsupvijh,                       &
                     bsubsijh, bsubuijh, bsubvijh, nsmin, nsmax)
@@ -121,10 +121,11 @@
 !COMPUTE PARALLEL DAMPING SCALING COEFFICIENT <Bsupv**2/B**2> ~ k^2
       IF (.NOT. ALLOCATED(mupar_norm)) THEN
          ALLOCATE(mupar_norm(nsmin:nsmax), stat=istat)
-         IF (istat .NE. 0) CALL ErrorAbort('MUPAR_NORM ALLOCATION FAILED!')
+         CALL ASSERT(istat.EQ.0,'MUPAR_NORM ALLOCATION FAILED!')
          beta = MAX(1.E-5_dp, wp_i/wb_i)
          mupar_norm = signjac*beta / rmajor_i**2  !/ vp_f(nsmin:nsmax)     !put 1/jac correction factor in AddDamping
-         IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
+         IF (iam.EQ.0 .AND. lverbose)                                   &
+            PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
       END IF
 
       IF (lmagen) THEN
@@ -132,11 +133,8 @@
          bsq_loc = bsupsijh*bsubsijh  + bsupuijh*bsubuijh               &
                  + bsupvijh*bsubvijh
          IF (n1 .EQ. 1) bsq_loc(:,:,1) = 0
-         IF (n1 .GT. 1) THEN
-            IF (ANY(bsq_loc(:,:,n1:n2) .LE. zero)) THEN
-               CALL ErrorAbort('BSQ <= 0 in cv_currents_par!')
-            END IF
-         END IF
+         CALL ASSERT(n1.EQ.1 .OR. ALL(bsq_loc(:,:,n1:n2) .GT. zero),    &
+                     'BSQ <= 0 in cv_currents_par!')
 
          wb = SUM(bsq_loc(:,:,n1:n2)*jacobh(:,:,n1:n2)*wint(:,:,n1:n2))
          wb0 = signjac*(twopi*pi*hs_i)*wb
@@ -177,7 +175,8 @@
       CALL GETCV (ksupsmncf, ksupumnsf, ksupvmnsf, ksupsijf, ksupuijf,  &
                   ksupvijf, iasym)                       
 
-!Co-variant K in real space needed for current diffusion
+!Covariant K components (with jacob factor still there) in real space
+!==> needed for current diffusion
       IF (lcurr) THEN
          CALL tolowerf(ksupsijf, ksupuijf, ksupvijf,                    & 
                        ksubsijf, ksubuijf, ksubvijf, nsmin, nsmax)
@@ -201,11 +200,11 @@
          END IF
 #endif
          IF (iam .EQ. 0) THEN
-         DO iwrite = 6, 33, 27
-            IF (.not.lverbose .and. iwrite .eq. 6) CYCLE
+         DO iwrite = 6, unit_out, unit_out-6
+            IF (.NOT.lverbose .AND. iwrite .eq. 6) CYCLE
             WRITE(iwrite, 1008)' RMS EDGE CURRENT ||KSUPS(NS)|| = ', r0
          END DO
-         CALL FLUSH(33)
+         CALL FLUSH(unit_out)
          END IF
  1008 FORMAT(a,1p,e10.3)
 
@@ -217,8 +216,8 @@
          stes(6) = SUM(wint(:,:,n1:n2)*(bv_filter + bsubvijh(:,:,n1:n2))**2)         
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(stes,rtes,6,MPI_REAL8,MPI_SUM,              &
-                            SIESTA_COMM,MPI_ERR)
+         CALL MPI_ALLREDUCE(stes, rtes, 6, MPI_REAL8, MPI_SUM,          &
+                            SIESTA_COMM, MPI_ERR)
 #endif
          ELSE
          rtes = stes
@@ -239,10 +238,10 @@
       END SUBROUTINE cv_currents
 
   
+!>     \brief Compute fourier components of contravariant currents on 
+!>      full radial grid
       SUBROUTINE CURLB (ksupsmnf, ksupumnf, ksupvmnf, jsju_ratio,       &
                         ipar, lcurr)
-
-      USE quantities, ONLY: ohs
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -255,7 +254,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER  :: fours, fouru, fourv, fcomb, nmin, nmax,               &
-                  m, n, mp, np, sparity, istat, ns_span1
+                  m, n, mp, np, sparity, istat, ns_span
 !----------------------------------------------- 
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
          bsubsmnf, bsubumnf, bsubvmnf, bsubsmnh, bsubumnh, bsubvmnh,    &
@@ -273,16 +272,16 @@
       ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation2 failed in CURLB')
+      CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURLB')
 
       CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                          ! Calculate BSUBXMNH    
       CALL tomnsp_par(bsubuijh, bsubumnh, fouru)
       CALL tomnsp_par(bsubvijh, bsubvmnh, fourv)
 
-      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & ! Next, get BSUBXMNF
+      ALLOCATE(bsubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 & ! Compute BSUBXMNF
                bsubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation3 failed in CURLB')
+      CALL ASSERT(istat.EQ.0,'Allocation2 failed in CURLB')
  
       CALL to_full_mesh(bsubsmnh, bsubsmnf)                       
       CALL to_full_mesh(bsubumnh, bsubumnf)
@@ -290,10 +289,8 @@
 
 !     NOTE: bsubumncf is zero, even for m=1, since guu ~ s^2, guv ~ s
       IF (nsmin .EQ. 1) THEN
-         bsubsmnf(:,:,1) = 0
+!         bsubsmnf(:,:,1) = 0
          bsubumnf(:,:,1) = 0
-         bsubsmnf(m1,:,1) = bsubsmnh(m1,:,1)
-         bsubumnf(m1,:,1) = bsubumnh(m1,:,1)
 
 !     VARIATIONAL FORM BELOW: DOES NOT WORK WELL - PHYSICALLY, ERRONEOUS COUPLING
 !     TO M > 1 MODES IN BSUPX WITH METRIC ELEMENTS OCCURS
@@ -310,7 +307,7 @@
 !                   
       ALLOCATE(db_uds(0:mpol,-ntor:ntor,nsmin:nsmax),                   &
                db_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation4 failed in CURLB')
+      CALL ASSERT(istat.EQ.0,'Allocation3 failed in CURLB')
 
 !     Radial gradients of bsubmnu,v on full grid (excluding origin: treat separately)
       CALL GradientFull(db_uds, bsubumnh)
@@ -353,17 +350,17 @@
                                      + SUM(ksupsmnf(:,:,ns)**2)
 
 !Deallocated in calling routine
-         ns_span1 = n2-n1+1
+         ns_span = n2-n1+1
          IF (.NOT. ALLOCATED(bs_filter))                                &
-         ALLOCATE(bs_filter(ntheta,nzeta,ns_span1),                     &
-                  bu_filter(ntheta,nzeta,ns_span1),                     &
-                  bv_filter(ntheta,nzeta,ns_span1), stat=istat)
-         IF (istat .NE. 0) CALL ErrorAbort('Allocation5 failed in CURLB')
+         ALLOCATE(bs_filter(ntheta,nzeta,ns_span),                      &
+                  bu_filter(ntheta,nzeta,ns_span),                      &
+                  bv_filter(ntheta,nzeta,ns_span), stat=istat)
+         CALL ASSERT(istat.EQ.0,'Allocation4 failed in CURLB')
          CALL toijsp_par(bsubsmnh(:,:,n1:n2), bs_filter, fcomb, fours)
          CALL toijsp_par(bsubumnh(:,:,n1:n2), bu_filter, fcomb, fouru)
          CALL toijsp_par(bsubvmnh(:,:,n1:n2), bv_filter, fcomb, fourv)
-	 IF (n1 .EQ. 1) bv_filter(:,:,1) = bv_filter(:,:,2)
-	 IF (n1 .EQ. 1)	bsubvijh(:,:,1) = bsubvijh(:,:,2)
+	     IF (n1 .EQ. 1) bv_filter(:,:,1) = bv_filter(:,:,2)
+	     IF (n1 .EQ. 1)	bsubvijh(:,:,1) = bsubvijh(:,:,2)
 
 !K^s-r0*K^u at origin BEFORE bc applied
          IF (nsmin .EQ. 1) THEN
@@ -378,8 +375,9 @@
 
       END IF DIAGNO
 
-      DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh)
-      DEALLOCATE (bsubsmnf, bsubumnf, bsubvmnf)   
+      DEALLOCATE (bsubsmnh, bsubumnh, bsubvmnh,                         &
+                  bsubsmnf, bsubumnf, bsubvmnf, stat=istat)   
+      CALL ASSERT(istat.EQ.0,'Deallocation failed in CURLB')
 
 !Apply exact bc K^s = r0*K^u for m=1 at origin
       IF (nsmin .EQ. 1) THEN
@@ -392,6 +390,7 @@
       END SUBROUTINE CURLB
 
 
+!>     \brief Compute full-grid contravariant (sup) currents in real space
       SUBROUTINE GETCV (ksupsmnf, ksupumnf, ksupvmnf,                   &
                         ksupsijf, ksupuijf, ksupvijf, ipar)                       
 !-----------------------------------------------

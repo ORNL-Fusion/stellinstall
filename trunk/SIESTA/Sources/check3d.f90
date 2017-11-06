@@ -1,5 +1,5 @@
-      SUBROUTINE check3d_symmetry(a,b,c,ap,bp,cp,mblk,mblkc,nblocks,  &
-     &                            asym_index)
+      SUBROUTINE check3d_symmetry(a,b,c,ap,bp,cp,mblk,mblkc,nblocks,    &
+                                  asym_index)
       USE descriptor_mod, mm_loc=>mm, csrc_loc=>csrc
 !      USE prof_mod
 !      USE ptrd_mod
@@ -17,12 +17,12 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(in) :: nblocks, mblk, mblkc
-      REAL(dp), TARGET, DIMENSION(mblk,mblkc,nblocks), INTENT(inout) ::  &
-     &                       a, b, c
-      REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks), INTENT(inout) ::   &
-     &                       ap
-      REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks-1), INTENT(inout) :: &
-     &                       bp, cp
+      REAL(dp), TARGET, DIMENSION(mblk,mblkc,nblocks), INTENT(inout) :: &
+                            a, b, c
+      REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks), INTENT(inout) ::  &
+                            ap
+      REAL(dp), TARGET, DIMENSION(Locq,Locp,nblocks-1), INTENT(inout) ::&
+                            bp, cp
 
       REAL(dp), INTENT(inout) :: asym_index
 
@@ -90,9 +90,9 @@
          beta = 0.0d0
          mm = descAtmp(M_)
          nn = descAtmp(N_)
-         CALL pdgeadd('Notranspose', mm,nn,                              &
-     &          alpha,   Asrc,1,1,descAtmp,                              &
-     &          beta,    Atmp,1,1,descAtmp )
+         CALL pdgeadd('Notranspose', mm,nn,                             &
+                alpha,   Asrc,1,1,descAtmp,                             &
+                beta,    Atmp,1,1,descAtmp )
 
          mm = descAtmp(M_)
          nn = descAtmp(N_)
@@ -105,9 +105,9 @@
          beta = 1.0d0
          mm = descAtmp(M_)
          nn = descAtmp(N_)
-         CALL pdgeadd('Transpose', mm,nn,                                &
-     &          alpha,   Asrc,1,1,descAtmp,                              &
-     &          beta,    Atmp,1,1,descAtmp )
+         CALL pdgeadd('Transpose', mm,nn,                               &
+                alpha,   Asrc,1,1,descAtmp,                             &
+                beta,    Atmp,1,1,descAtmp )
 
 
          mm = descAtmp(M_)
@@ -150,9 +150,9 @@
          beta = 0.0d0
          mm = descAtmp(M_)
          nn = descAtmp(N_)
-         CALL pdgeadd('Notranspose', mm,nn,                              &
-     &                alpha,Bsrc,1,1,descAtmp,                           &
-     &                beta,Atmp,1,1,descAtmp )
+         CALL pdgeadd('Notranspose', mm,nn,                             &
+                      alpha,Bsrc,1,1,descAtmp,                          &
+                      beta,Atmp,1,1,descAtmp )
 
 !        ----------------------
 !        compute  Atmp <- Atmp - transpose(Csrc)
@@ -162,9 +162,9 @@
          beta = 1.0d0
          mm = descAtmp(M_)
          nn = descAtmp(N_)
-         CALL pdgeadd('Transpose', mm,nn,                                &
-     &                alpha,Csrc,1,1,descAtmp,                           &
-     &                beta,Atmp,1,1,descAtmp )
+         CALL pdgeadd('Transpose', mm,nn,                               &
+                      alpha,Csrc,1,1,descAtmp,                          &
+                      beta,Atmp,1,1,descAtmp )
 
 
          mm = descAtmp(M_)
@@ -192,7 +192,7 @@
       END SUBROUTINE check3d_symmetry
 
 
-      SUBROUTINE check3d_symmetry_serial(dblk,lblk,ublk,mpol,ntor,       &
+      SUBROUTINE check3d_symmetry_serial(dblk,lblk,ublk,mpol,ntor,      &
                                          mblk,nblocks,asym_index)
       USE stel_kinds
       USE shared_data, ONLY: ndims
@@ -202,8 +202,8 @@
 !-----------------------------------------------
       INTEGER, INTENT(in)  :: mblk, nblocks, mpol, ntor
       REAL(dp), INTENT(inout)  :: asym_index
-      REAL(dp), INTENT(in), DIMENSION(mblk,mblk,nblocks) ::              &
-     &   dblk, lblk, ublk
+      REAL(dp), INTENT(in), DIMENSION(mblk,mblk,nblocks) ::             &
+         dblk, lblk, ublk
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
@@ -221,12 +221,12 @@
           DO m = 0, mpol
             icol = icol+1
             IF (m.EQ.0 .AND. n.LT.0) CYCLE
-               w1 = w1 +                                                 &
-                  SUM((ublk(icol,:,1:nblocks-1)                          &
+               w1 = w1 +                                                &
+                  SUM((ublk(icol,:,1:nblocks-1)                         &
                     -  lblk(:,icol,2:nblocks))**2)
-               w2 = w2 + SUM(ublk(icol,:,1:nblocks-1)**2                 &
+               w2 = w2 + SUM(ublk(icol,:,1:nblocks-1)**2                &
                        +     lblk(:,icol,2:nblocks)**2)
-               w1 = w1 + SUM((dblk(icol,:,:) -                           &
+               w1 = w1 + SUM((dblk(icol,:,:) -                          &
                               dblk(:,icol,:))**2)
                w2 = w2 + SUM(dblk(icol,:,:)**2)
             END DO
@@ -247,6 +247,7 @@
       USE shared_data, ONLY: wtotal, l_linearize, ndims
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
+      USE v3_utilities, ONLY: assert
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -279,7 +280,7 @@
 !Not sure where 2.5 factor arises from
       gc1 = gc/2.5_dp
       eps1 = 10*eps
-      IF (wtotal .EQ. 0._dp) CALL ErrorAbort('WTOTAL=0!')
+      CALL ASSERT(wtotal.GT.zero,'WTOTAL=0!')
 
       js = ns/2
 

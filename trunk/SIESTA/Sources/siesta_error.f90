@@ -8,6 +8,7 @@
 !>  This module contains all the code needed to define error.
 !*******************************************************************************
       MODULE siesta_error
+      USE v3_utilities, ONLY: assert
       USE shared_data, Only: lrecon
       USE mpi_inc
 
@@ -61,8 +62,8 @@
 !  Start of executable code.
       siesta_error_state = IBSET(siesta_error_state, error_code)
 
-      IF (iam .eq. 0) WRITE (*,*) TRIM(message)
-      IF (.NOT.lrecon) CALL ErrorAbort(message)
+      CALL ASSERT(lrecon, message)
+      IF (iam .EQ. 0) WRITE (*,*) TRIM(message)
 
       END SUBROUTINE
 

@@ -1,28 +1,29 @@
-
-!>  \brief Module contained subroutines and functions computing MHD forces and energy
+!>  \brief Module contained subroutines and functions updating MHD forces and Wmhd
 !!  \author S. P. Hirshman
 !!  \date July, 2014
       MODULE shared_functions
+      USE v3_utilities, ONLY: assert
       USE shared_data
-      USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam, SIESTA_COMM,     &
-                                in_hess_nfunct, out_hess_nfunct,         &
-                                SIESTA_COMM
+      USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam, SIESTA_COMM
       USE island_params, ns=>ns_i, hs=>hs_i
       USE hessian, ONLY: apply_precond, l_Compute_Hessian
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,             &
-                            fsupsmncf, fsupumnsf, fsupvmnsf,             &
-                            fsubsmnsf, fsubumncf, fsubvmncf,             &
-                            fsupsmnsf, fsupumncf, fsupvmncf,             &
-                            wb, wp, wint
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
+                            fsupsmncf, fsupumnsf, fsupvmnsf,            &
+                            fsubsmnsf, fsubumncf, fsubvmncf,            &
+                            fsupsmnsf, fsupumncf, fsupvmncf, wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
-      USE siesta_init, ONLY: init_state
-      USE nscalingtools, ONLY: rcountsNS, dispNS, PARFUNCTISL,           &
-                               startglobrow, endglobrow, MPI_ERR,        &
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
+      USE mpi_inc
+      USE GMRES_LIB, ONLY: Truncate
+      
+      IMPLICIT NONE
+
+      INTEGER, PRIVATE :: nsmin, nsmax
+      
       CONTAINS
 
-!>  \brief Parallel routine to compute MHD forces (both linear AND nonlinear)
-!!  depending on l_linearize = T/F
+!>  \brief Parallel/Serial routine to compute forces for perturbed state.
 !!  \author S. P. Hirshman, R. Sanchez, S. K. Seal
       SUBROUTINE funct_island
 !-----------------------------------------------
@@ -33,14 +34,11 @@
       USE siesta_pressure, ONLY: update_pres
       USE siesta_force, ONLY: update_force
       USE siesta_displacement, ONLY: update_upperv
-      USE mpi_inc
-      IMPLICIT NONE
+      USE siesta_init, ONLY: init_state
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(dp) :: ton, toff, skston, skstoff, fs, fa
-      INTEGER  :: nsmin, nsmax, js
-      REAL(dp) :: stmp(3), rtmp(3), sendbuf(ns), recbuf(ns)
+      REAL(dp) :: ton, toff, skston, skstoff
       LOGICAL  :: ltype
 !-----------------------------------------------
       CALL second0(ton)
@@ -52,6 +50,7 @@
          out_hess_nfunct=out_hess_nfunct+1
       END IF
 
+      l_update_state = .FALSE.
       IF (l_init_state) THEN
         CALL second0(skston)
         CALL init_state(.FALSE.)
@@ -61,50 +60,29 @@
       END IF
 
       CALL update_upperv
-      CALL update_bfield(.FALSE.)
+      CALL update_bfield (.FALSE.)
       CALL update_pres
       CALL update_force
 
-      IF (gamma .eq. 1._dp) CALL ErrorAbort('SIESTA REQUIRES gamma != 1')
+      CALL ASSERT(gamma.ne.one,'SIESTA REQUIRES gamma != 1')
       wtotal = wb + wp/(gamma-1)
 
       IF (wtotal0 == -1) wtotal0 = wtotal
       gc = gnorm_i*gc
 
 !     CALLED FROM GMRES: ADD BACK INITIAL FORCE gc0 or STORE UNPRECONDITIONED FORCES
-      IF (ALLOCATED(gc0) .AND. l_linearize .AND.                         &
-         .NOT.l_Compute_Hessian .AND. (l_getfsq .OR. l_conjgrad)) THEN
-         gc = gc+gc0
-      END IF
+      IF (ALLOCATED(gc0) .AND. (l_getfsq .OR. l_conjgrad) .AND.         &
+         l_linearize .AND. .NOT.l_Compute_Hessian) gc = gc+gc0
 
-      IF (l_getfsq .AND. INHESSIAN) CALL ErrorAbort('l_getfsq must be set to FALSE in Hessian')
+      CALL ASSERT(.not.(l_getfsq.and.inhessian),                        &
+                  'l_getfsq must be set to FALSE in Hessian')
 
-!     COMPUTE UN-PRECONDITIONED FORCE RESIDUES
       IF (l_getfsq) THEN
+! COMPUTE PRECONDITIONED, VOLUME-AVERAGED FORCE fsq_total 
          CALL toupper_forces
-!     VOLUME-AVERAGE |F|**2
-         stmp(1) = 0
-         DO js = nsmin,nsmax
-            stmp(1) = stmp(1) + vp_f(js)*SUM(                            &
-                      fsupsmncf(:,:,js)*fsubsmncf(:,:,js)                & 
-                    + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)                &
-                    + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
-            IF (lasym) THEN
-            stmp(1) = stmp(1) + vp_f(js)*SUM(                            &
-                      fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)                &
-                    + fsupumncf(:,:,js)*fsubumncf(:,:,js)                &
-                    + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
-            END IF
+         CALL GetFSQ(fsq_total)
 
-         END DO
-         stmp(2) = SUM(vp_f(nsmin:nsmax))
-         IF (PARSOLVER) THEN
-#if defined(MPI_OPT)
-         CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
-         stmp = rtmp
-#endif
-         END IF
-         fsq_total = stmp(1)/stmp(2)
+!COMPUTE UN-PRECONDITIONED, VOLUME-AVERAGED FORCE fsq_total1
          IF (ANY(col_scale .NE. one)) THEN
             fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)/col_scale(:,:,1,nsmin:nsmax)
             fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)/col_scale(:,:,2,nsmin:nsmax)
@@ -116,52 +94,8 @@
             END IF
 
             CALL toupper_forces
-!    
-!     THIS WAY GIVES GREATER PROCESSOR # INDEPENDENCE OF CONVERGENGE SEQUENCE   
-!
-            DO js = nsmin,nsmax
-               sendbuf(js) = vp_f(js)*SUM(                               &
-                         fsupsmncf(:,:,js)*fsubsmncf(:,:,js)             & 
-                       + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)             &
-                       + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
-            END DO
-            IF (lasym) THEN
-            DO js = nsmin,nsmax
-               sendbuf(js) =  sendbuf(js) + vp_f(js)*SUM(                &
-                         fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)             & 
-                       + fsupumncf(:,:,js)*fsubumncf(:,:,js)             &
-                       + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
-            END DO
-            END IF
-          
-            IF (PARSOLVER) THEN
-#if defined(MPI_OPT)
-            CALL MPI_ALLGATHERV(sendbuf(nsmin), nsmax-nsmin+1, MPI_REAL8,&
-                                recbuf, rcountsNS, dispNS, MPI_REAL8,    &
-                                SIESTA_COMM, MPI_ERR)
-            fsq_total1 = SUM(recbuf)/rtmp(2)
-#endif
-            ELSE
-            fsq_total1 = SUM(sendbuf)/stmp(2)
-            END IF
-
-            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
-            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
-            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
-            IF (lasym) THEN
-            stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
-            stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
-            stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
-            END IF
-
-            IF (PARSOLVER) THEN
-#if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
-            stmp = rtmp
-#endif
-            END IF
-            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
-
+            CALL GetFSQ(fsq_total1)
+            
             fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)*col_scale(:,:,1,nsmin:nsmax)
             fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)*col_scale(:,:,2,nsmin:nsmax)
             fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)*col_scale(:,:,3,nsmin:nsmax)
@@ -170,28 +104,12 @@
             fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)*col_scale(:,:,5,nsmin:nsmax)
             fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)*col_scale(:,:,6,nsmin:nsmax)
             END IF
-         ELSE         
-            stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
-            stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
-            stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
-            IF (lasym) THEN
-            stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
-            stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
-            stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
-            END IF
-
-            IF (PARSOLVER) THEN
-#if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,SIESTA_COMM,MPI_ERR)
-            stmp = rtmp
-#endif
-            END IF
-            fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+         ELSE
             fsq_total1 = fsq_total
          END IF
       END IF
 
-!      IF (l_Gmres .AND. l_ApplyPrecon) CALL ErrorAbort('l_ApplyPrecon must be FALSE in funct_island')
+!      IF (l_Gmres .AND. l_ApplyPrecon) STOP 'l_ApplyPrecon must be FALSE in funct_island'
 !
 !     GMRES handles preconditioning itself: do NOT apply
 !     Do not precondition when Hessian is being computed
@@ -203,31 +121,88 @@
       END SUBROUTINE funct_island
 
 
+      SUBROUTINE GetFSQ(fsqout)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(OUT) :: fsqout
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp) :: stmp(3), rtmp(3)
+      INTEGER  :: js
+!-----------------------------------------------
+      stmp(1) = SUM(fsubsmncf(:,:,nsmin:nsmax)**2)
+      stmp(2) = SUM(fsubumnsf(:,:,nsmin:nsmax)**2)
+      stmp(3) = SUM(fsubvmnsf(:,:,nsmin:nsmax)**2)
+      IF (lasym) THEN
+         stmp(1) = stmp(1) + SUM(fsubsmnsf(:,:,nsmin:nsmax)**2)
+         stmp(2) = stmp(2) + SUM(fsubumncf(:,:,nsmin:nsmax)**2)
+         stmp(3) = stmp(3) + SUM(fsubvmncf(:,:,nsmin:nsmax)**2)
+      END IF
+         
+#if defined(MPI_OPT)         
+      IF (PARSOLVER) THEN
+         CALL MPI_ALLREDUCE(stmp,rtmp,3,MPI_REAL8,MPI_SUM,              &
+                            SIESTA_COMM,MPI_ERR)
+         stmp = rtmp
+      END IF
+#endif         
+      fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+
+!VOLUME-AVERAGE |F|**2
+      stmp(1) = 0
+      DO js = nsmin,nsmax
+         stmp(1) = stmp(1) + vp_f(js)*SUM(                              &
+                   fsupsmncf(:,:,js)*fsubsmncf(:,:,js)                  & 
+                 + fsupumnsf(:,:,js)*fsubumnsf(:,:,js)                  &
+                 + fsupvmnsf(:,:,js)*fsubvmnsf(:,:,js))
+         IF (lasym) THEN
+         stmp(1) = stmp(1) + vp_f(js)*SUM(                              &
+                   fsupsmnsf(:,:,js)*fsubsmnsf(:,:,js)                  &
+                 + fsupumncf(:,:,js)*fsubumncf(:,:,js)                  &
+                 + fsupvmncf(:,:,js)*fsubvmncf(:,:,js))
+         END IF
+      END DO
+      stmp(2) = SUM(vp_f(nsmin:nsmax))
+#if defined(MPI_OPT)         
+      IF (PARSOLVER) THEN
+         CALL MPI_ALLREDUCE(stmp,rtmp,2,MPI_REAL8,MPI_SUM,              &
+                            SIESTA_COMM,MPI_ERR)
+         stmp = rtmp
+      END IF
+#endif
+      fsqout = stmp(1)/stmp(2)
+      
+      
+      END SUBROUTINE GetFSQ
+
+
       SUBROUTINE toupper_forces
-      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,                &
+      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,               &
                          mpol=>mpol_i, ntor=>ntor_i
-      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,   &
+      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,  &
                          f_sum
       USE metrics, ONLY: toupper
       IMPLICIT NONE
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                         &
-                                    fsubsijf, fsubuijf, fsubvijf,        &
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+                                    fsubsijf, fsubuijf, fsubvijf,       &
                                     fsupsijf, fsupuijf, fsupvijf
 !-----------------------------------------------
       INTEGER :: nsmin, nsmax, istat
 !-----------------------------------------------
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
 
-      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                       &
-               fsubuijf(ntheta,nzeta,nsmin:nsmax),                       &
-               fsubvijf(ntheta,nzeta,nsmin:nsmax),                       &
-               fsupsijf(ntheta,nzeta,nsmin:nsmax),                       &
-               fsupuijf(ntheta,nzeta,nsmin:nsmax),                       &
+      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsubuijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsubvijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsupsijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsupuijf(ntheta,nzeta,nsmin:nsmax),                      &
                fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort(' Allocation error in toupper_forces')
+      CALL ASSERT(istat.eq.0,' Allocation error in toupper_forces')
 
       CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
       CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
@@ -263,6 +238,34 @@
 
       END SUBROUTINE toupper_forces
 
+!>   \brief Returns perturbed MHD+KINETIC energy
+!!   \author S. P. Hirshman, R. Sanchez
+      FUNCTION getwmhd (p)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), INTENT(in) :: p(neqs)           !<displacement vector
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp) :: getwmhd
+!-----------------------------------------------
+        
+      xc = p
+      l_init_state = .TRUE.
+      l_linearize  = .FALSE.
+      l_getwmhd    = .TRUE.
+      l_getfsq     = .FALSE.
+
+      CALL funct_island
+
+      l_getwmhd    = .FALSE.
+
+      getwmhd = wtotal
+
+      RETURN
+
+      END FUNCTION getwmhd 
 
 !>    \brief Performs line search along xc vector for minimum fsq_total1
 !!    \author S. P. Hirshman (2016)
@@ -302,37 +305,7 @@
       END DO
 
  100  FORMAT(i5,3(3x,1pe12.3))
-
       END SUBROUTINE LineSearch
 
-
-!>   \brief Returns perturbed MHD+KINETIC energy
-!!   \author S. P. Hirshman, R. Sanchez
-      FUNCTION getwmhd (p)
-      USE GMRES_LIB, ONLY: Truncate
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN) :: p(neqs)           !<displacement vector
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp) :: getwmhd
-!-----------------------------------------------
-        
-      xc = p
-      l_init_state = .TRUE.
-      l_linearize  = .FALSE.
-      l_getwmhd    = .TRUE.
-      l_getfsq     = .FALSE.
-  
-      CALL funct_island
-
-      l_getwmhd    = .FALSE.
-
-      CALL Truncate(wtotal, 12)
-      getwmhd = wtotal
-
-      END FUNCTION getwmhd 
 
       END MODULE shared_functions

@@ -1,6 +1,9 @@
+!-------------------------------------------------------------------------------
+!>  \brief Module contains subroutines for computing FFT on parallel radial intervals 
+!!  \author  R. Sanchez and S. P. Hirshman, ORNL 
+!!  \date 2006-2017
       MODULE fourier
 !     
-!     WRITTEN 08-09-06 BY R. SANCHEZ AS PART OF THE ORNL SIESTA PROJECT (c)
 !     
 !     PURPOSE: CONVERTS QUANTITIES FROM FOURIER SPACE TO REAL SPACE AND VICEVERSA
 !
@@ -8,12 +11,15 @@
 !       to calculate all necessary cosine/sine factors on fixed mesh of collocation angles
 !       NS, NTOR, MPOL and NFP used as in the wout.file
 !
+      USE v3_utilities, ONLY: assert
       USE stel_kinds
       USE stel_constants
-      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,            &
+      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,           &
                    mpol=>mpol_i, ntor=>ntor_i, nfp=>nfp_i
       USE timer_mod
       USE descriptor_mod, ONLY: INHESSIAN, DIAGONALDONE
+      USE shared_data, ONLY: unit_out
+      
       IMPLICIT NONE
 !
 !     PARAMETER DECLARATIONS
@@ -82,7 +88,7 @@
       ALLOCATE(work0(0:mpol,-ntor:ntor), xuv1(ntheta,nzeta),            &         
                work1(ntheta,-ntor:ntor), work2(ntheta,-ntor:ntor),      &
                stat=lk)
-      IF (lk .NE. 0) CALL ErrorAbort('Allocation error in TOIJSP_PAR')
+      CALL ASSERT(lk.eq.0,'Allocation error in TOIJSP_PAR')
 !      in = 1 +ihalf
 
       NS_LOOP: DO js = 1, SIZE(xmn,3)
@@ -132,20 +138,20 @@
               - (work1(:,n) + work1(:,-n))*sinnvn(lk, n)                &
               - (work2(:,n) - work2(:,-n))*cosnvn(lk, n)
             ELSE
-              xuv1(:,lk) =  xuv1(:,lk)                                   &
-              + (work1(:,n) + work1(:,-n))*cosnv(lk, n)                  &
+              xuv1(:,lk) =  xuv1(:,lk)                                  &
+              + (work1(:,n) + work1(:,-n))*cosnv(lk, n)                 &
               - (work2(:,n) - work2(:,-n))*sinnv(lk, n)
             ENDIF
 
-          ELSE                                                             ! SINE series
+          ELSE                                                            ! SINE series
 
-            IF (BTEST(dflag, b_dv)) THEN                                   ! First toroidal derivative requested
-              xuv1(:,lk) =  xuv1(:,lk)                                   &
-              + (work1(:,n) - work1(:,-n))*cosnvn(lk, n)                 &
+            IF (BTEST(dflag, b_dv)) THEN                                  ! First toroidal derivative requested
+              xuv1(:,lk) =  xuv1(:,lk)                                  &
+              + (work1(:,n) - work1(:,-n))*cosnvn(lk, n)                &
               - (work2(:,n) + work2(:,-n))*sinnvn(lk, n)
             ELSE
-              xuv1(:,lk) =  xuv1(:,lk)                                   &
-              + (work1(:,n) - work1(:,-n))*sinnv(lk, n)                  &
+              xuv1(:,lk) =  xuv1(:,lk)                                  &
+              + (work1(:,n) - work1(:,-n))*sinnv(lk, n)                 &
               + (work2(:,n) + work2(:,-n))*cosnv(lk, n)
             ENDIF
 
@@ -187,10 +193,10 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-!      INTEGER, INTENT(IN) :: ihalf                                        ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
+!      INTEGER, INTENT(IN) :: ihalf                                       ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
       REAL(dp), DIMENSION(:,:,:), INTENT(IN):: xuv
       REAL(dp), DIMENSION(:,:,:), INTENT(OUT):: xmn
-      INTEGER, INTENT(IN):: ipar                                           ! = 0, cosine (EVEN); = 1; sine (ODD)
+      INTEGER, INTENT(IN):: ipar                                          ! = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -206,11 +212,11 @@
       CALL second0(skston)
 
 !      in = 1+ihalf
-      ALLOCATE(work1(0:mpol,nzeta), work2(0:mpol,nzeta),                 &
-               work3(0:mpol), work4(0:mpol),                             &
-               xuv1(ntheta,nzeta),  xmn1(0:mpol,-ntor:ntor),             &
+      ALLOCATE(work1(0:mpol,nzeta), work2(0:mpol,nzeta),                &
+               work3(0:mpol), work4(0:mpol),                            &
+               xuv1(ntheta,nzeta),  xmn1(0:mpol,-ntor:ntor),            &
                t1(nzeta), t2(nzeta), stat=ii)
-      IF (ii .NE. 0) CALL ErrorAbort('Allocation error in tomnsp_par')
+      CALL ASSERT(ii.eq.0,'Allocation error in tomnsp_par')
 
       NS_LOOP: DO js = 1, SIZE(xmn,3)
 
@@ -305,9 +311,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
 !        INTEGER, INTENT(IN):: ihalf                                        ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH     
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
           INTENT(IN) :: xmn
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
+        REAL(dp), DIMENSION(ntheta,nzeta,ns),                           &
           INTENT(INOUT) :: xuv
         INTEGER, INTENT(IN) :: dflag                                       ! DFLAG = order of poloidal/toroidal derivative
         INTEGER, INTENT(IN) :: ipar                                        ! = 0, cosine (EVEN); = 1, sine (ODD)
@@ -332,9 +338,9 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
 !        INTEGER, INTENT(IN):: ihalf                                        ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
+        REAL(dp), DIMENSION(ntheta,nzeta,ns),                           &
           INTENT(IN):: xuv
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
           INTENT(OUT):: xmn
         INTEGER, INTENT(IN):: ipar                                         ! = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
@@ -360,20 +366,20 @@
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
 !        INTEGER, INTENT(IN):: ihalf                                       ! IHALF = 0, FULL (radial) MESH); = 1, HALF MESH
-        REAL(dp), DIMENSION(ntheta,nzeta,ns),                            &
+        REAL(dp), DIMENSION(ntheta,nzeta,ns),                           &
           INTENT(IN):: xuv
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
           INTENT(OUT):: xmn
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
           INTENT(IN) :: lmns
-        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                       &
+        REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns),                      &
           INTENT(IN), OPTIONAL :: lmnc
         INTEGER, INTENT(IN):: ipar                                         ! = 0, cosine (EVEN); = 1; sine (ODD)
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER :: m, n, jk, lk, js, istat
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: work1, work2,         &
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: work1, work2,        &
           work3, work4, lambda, dupdu, cos1l, sin1l, cosml, sinml
         REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: cosmuip, sinmuip
         REAL(dp) :: ton, toff, skston, skstoff
@@ -384,11 +390,11 @@
 !
 !       1. COMPUTE LAMBDA
 !
-        ALLOCATE (lambda(ntheta,nzeta,ns), dupdu(ntheta,nzeta,ns),       &  
-                  cos1l(ntheta,nzeta,ns), cosml(ntheta,nzeta,ns),        &
-                  sin1l(ntheta,nzeta,ns), sinml(ntheta,nzeta,ns),        &
+        ALLOCATE (lambda(ntheta,nzeta,ns), dupdu(ntheta,nzeta,ns),      &  
+                  cos1l(ntheta,nzeta,ns), cosml(ntheta,nzeta,ns),       &
+                  sin1l(ntheta,nzeta,ns), sinml(ntheta,nzeta,ns),       &
                   stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in TOMNSP_PEST')
+        CALL ASSERT(istat.eq.0,'Allocation error #1 in TOMNSP_PEST')
         
         CALL TOIJSP(lmns, lambda, f_none, f_sin)
         CALL TOIJSP(lmns, dupdu,  f_du, f_sin)
@@ -428,10 +434,10 @@
 !              cosml(m+1) = cosml(m)*cosml(1) - sinml(m)*sinml(1)
 !              sinml(m+1) = sinml(m)*cosml(1) + cosml(m)*sinml(1)
 !
-        ALLOCATE(work1(0:mpol,nzeta,ns), work2(0:mpol,nzeta,ns),         &
-                 work3(ntheta,nzeta,ns), cosmuiP(nzeta,ns),              &
+        ALLOCATE(work1(0:mpol,nzeta,ns), work2(0:mpol,nzeta,ns),        &
+                 work3(ntheta,nzeta,ns), cosmuiP(nzeta,ns),             &
                  sinmuiP(nzeta,ns), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation error #2 in TOMNSP_PEST')
+        CALL ASSERT(istat.eq.0,'Allocation error #2 in TOMNSP_PEST')
         work1 = zero; work2 = zero
 
         DO m = 0, mpol
@@ -445,22 +451,22 @@
               sinml = sinml*cos1l + work3*sin1l
            END IF
            DO jk = 1, ntheta                                             ! First, add over poloidal collocation angles
-              cosmuiP(:,1:ns) = cosmui(jk,m)*cosml(jk,:,1:ns)            &
+              cosmuiP(:,1:ns) = cosmui(jk,m)*cosml(jk,:,1:ns)           &
                       - sinmui(jk,m)*sinml(jk,:,1:ns)
-              sinmuiP(:,1:ns) = sinmui(jk,m)*cosml(jk,:,1:ns)            &
+              sinmuiP(:,1:ns) = sinmui(jk,m)*cosml(jk,:,1:ns)           &
                       + cosmui(jk,m)*sinml(jk,:,1:ns)
-              work1(m,:,1:ns) = work1(m,:,1:ns)                          &
+              work1(m,:,1:ns) = work1(m,:,1:ns)                         &
                                + xuv(jk,:,1:ns)*cosmuiP(:,1:ns)          ! Note use of cosmuI/sinmuI; include norm. factors
-              work2(m,:,1:ns) = work2(m,:,1:ns)                          &
+              work2(m,:,1:ns) = work2(m,:,1:ns)                         &
                                + xuv(jk,:,1:ns)*sinmuiP(:,1:ns)
            ENDDO
         END DO
 
         DEALLOCATE (work3, cosmuip, sinmuip)
         xmn = zero                                                       ! Make sure that FOURIER variable is zeroed
-        ALLOCATE(work3(0:mpol,nzeta,ns), work4(0:mpol,nzeta, ns),        &
+        ALLOCATE(work3(0:mpol,nzeta,ns), work4(0:mpol,nzeta, ns),       &
                  stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation error #3 in TOMNSP_PEST')
+        CALL ASSERT(istat.eq.0,'Allocation error #3 in TOMNSP_PEST')
         work3 = zero; work4 = zero
 
         DO n = 0, ntor
@@ -468,19 +474,19 @@
             IF (ipar == f_cos) THEN                                      ! COSINE series
               work3(:,lk,1:ns) = work1(:,lk,1:ns)*cosnv(lk, n)
               work4(:,lk,1:ns) = work2(:,lk,1:ns)*sinnv(lk, n)
-              xmn(:,n,1:ns) =  xmn(:,n,1:ns)                             &
+              xmn(:,n,1:ns) =  xmn(:,n,1:ns)                            &
                  + work3(:,lk,1:ns) - work4(:,lk,1:ns)
               IF (n .ne. 0) THEN
-                xmn(1:,-n,1:ns) = xmn(1:,-n,1:ns)                        &
+                xmn(1:,-n,1:ns) = xmn(1:,-n,1:ns)                       &
                  + work3(1:,lk,1:ns) + work4(1:,lk,1:ns)
               ENDIF
             ELSE                                                         ! SINE series
               work3(:,lk,1:ns) = work1(:,lk,1:ns)*sinnv(lk, n)
               work4(:,lk,1:ns) = work2(:,lk,1:ns)*cosnv(lk, n)
-              xmn(:,n,1:ns) =  xmn(:,n,1:ns)                             &
+              xmn(:,n,1:ns) =  xmn(:,n,1:ns)                            &
                 + work3(:,lk,1:ns) + work4(:,lk,1:ns)
               IF (n .ne. 0) THEN
-                xmn(1:,-n,1:ns) = xmn(1:,-n,1:ns)                        &
+                xmn(1:,-n,1:ns) = xmn(1:,-n,1:ns)                       &
                 - work3(1:,lk,1:ns) + work4(1:,lk,1:ns)
               ENDIF
             ENDIF
@@ -493,7 +499,7 @@
            xmn(:,:,js) = orthonorm(0:mpol,-ntor:ntor)*xmn(:,:,js)
         END DO
          
-        DEALLOCATE(work1, work2, work3, work4, lambda, cos1l, sin1l,     &
+        DEALLOCATE(work1, work2, work3, work4, lambda, cos1l, sin1l,    &
                    sinml, cosml, dupdu)
 
         CALL second0(toff)
@@ -624,7 +630,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        REAL(dp), PARAMETER :: nfactor = 1.41421356237310_dp          ! RS: Normalization of m=0/n=0 Fourier modes.
+        REAL(dp), PARAMETER :: nfactor = 1.41421356237310_dp              ! RS: Normalization of m=0/n=0 Fourier modes.
         INTEGER     :: jk, m, n, lk, istat, ntheta1
         REAL(dp)    :: arg, cosi, sini
         REAL(dp)    :: pinorm
@@ -646,18 +652,18 @@
 !       EXTEND mpol, ntor FOR POST-PROCESSING OF PRESSURE B dot GRAD P
 !        mpol = mpol32_i;  ntor = ntor32_i
 
-        ALLOCATE(cosmu(ntheta,0:mpol), cosmum(ntheta,0:mpol),            &
-                 cosmui(ntheta,0:mpol), sinmu(ntheta,0:mpol),            &
-                 sinmum(ntheta,0:mpol), sinmui(ntheta,0:mpol),           &
-                 cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),              &
+        ALLOCATE(cosmu(ntheta,0:mpol), cosmum(ntheta,0:mpol),           &
+                 cosmui(ntheta,0:mpol), sinmu(ntheta,0:mpol),           &
+                 sinmum(ntheta,0:mpol), sinmui(ntheta,0:mpol),          &
+                 cosnv(nzeta,0:ntor), cosnvn(nzeta,0:ntor),             &
                  sinnv(nzeta,0:ntor), sinnvn(nzeta,0:ntor), stat=istat)
 
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation error in fixarray')
+        CALL ASSERT(istat.eq.0,'Allocation error in fixarray')
         
-        dnorm_i = one/(ntheta1*nzeta)                              ! ST:Norm for Fourier-Space -> UV-Space
+        dnorm_i = one/(ntheta1*nzeta)                                     ! ST:Norm for Fourier-Space -> UV-Space
 
         DO jk = 1, ntheta
-          arg = pinorm*(jk-1)/ntheta1                              ! Poloidal collocation points*m
+          arg = pinorm*(jk-1)/ntheta1                                     ! Poloidal collocation points*m
           DO m = 0, mpol
             cosi = COS(m*arg)
             sini = SIN(m*arg)
@@ -689,7 +695,7 @@
             CALL Round_Trig(cosi, sini)
 
             cosnv (lk, n)  = cosi                                 ! All normalization factors goes in poloidal quantities
-            cosnvn(lk, n)  = n*nfp*cosi                         ! NFP is number of field periods
+            cosnvn(lk, n)  = n*nfp*cosi                           ! NFP is number of field periods
             sinnv (lk, n)  = sini
             sinnvn(lk, n)  = n*nfp*sini
           ENDDO
@@ -700,7 +706,7 @@
 !BE SURE TO FIX THIS WHEN DOING ASYMMETRIC CASE!
 
         ALLOCATE (orthonorm(0:mpol,-ntor:ntor), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocate ORTHONORM failed in FIXARRAY!')
+        CALL ASSERT(istat.eq.0,'Allocate ORTHONORM failed in FIXARRAY!')
         orthonorm = nfactor                                       ! SQRT(2)
         orthonorm(0,0) = 1
         IF (ntheta .EQ. (mpol+1)) orthonorm(mpol,:) = 1
@@ -743,9 +749,9 @@
       IMPLICIT NONE
       INTEGER :: istat
 
-      DEALLOCATE(cosmu, cosmum, cosmui, sinmu, sinmum, sinmui,           &
+      DEALLOCATE(cosmu, cosmum, cosmui, sinmu, sinmum, sinmui,          &
                  cosnv, cosnvn, sinnv, sinnvn, orthonorm, stat=istat) 
-      IF (istat .ne. 0) CALL ErrorAbort('Allocation error in dealloc_fixarray')
+      CALL ASSERT(istat.eq.0,'Allocation error in dealloc_fixarray')
          
       END SUBROUTINE DEALLOC_FOURIER
 
@@ -758,7 +764,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER     :: m, n, lk, istat, n1, iblock, ns_save
-      REAL(dp) :: arg, cosi, sini, testcc, testsc,                       &
+      REAL(dp) :: arg, cosi, sini, testcc, testsc,                      &
                   testcs, testss, ton, toff
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: testr, testi
 !-----------------------------------------------
@@ -767,7 +773,7 @@
       ns_save = ns
       ns = 1
 !CHECK ORTHONORMALITY OF BASIS FUNCTIONS
-      ALLOCATE (testr(ntheta,nzeta,ns), testi(0:mpol,-ntor:ntor,ns),     &
+      ALLOCATE (testr(ntheta,nzeta,ns), testi(0:mpol,-ntor:ntor,ns),    &
                 stat=istat)
       testr = 0
       testi = 0
@@ -837,7 +843,7 @@
 
  100   CONTINUE
        IF (lverbose) PRINT *,'ORTHOGONALITY TEST FAILED FOR MODES ',m,n
-       CALL ErrorAbort('FOURIER ORTHOGONALITY TEST FAILED!')
+       CALL ASSERT(.FALSE.,'FOURIER ORTHOGONALITY TEST FAILED!')
 
  200   CONTINUE
 
@@ -848,7 +854,7 @@
        test_fourier_time=toff-ton
 
        IF (iam .EQ. 0) THEN
-          DO istat = 6, 33, 27
+          DO istat = 6, unit_out, unit_out-6
           IF (.NOT.lverbose .AND. istat.EQ.6) CYCLE
           WRITE (istat, 300) 'ORTHOGONALITY TEST SUCCEEDED - TIME: ', toff-ton,' s'
           END DO

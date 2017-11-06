@@ -8,12 +8,13 @@
 !>  Contains routines for writting the restart file.
 !*******************************************************************************
       MODULE restart_mod
+      USE v3_utilities, ONLY: assert
       USE ezcdf
       USE stel_kinds
       USE utilities, ONLY: GradientFull, to_full_mesh
       USE metrics, ONLY: tolowerh
       USE descriptor_mod, ONLY: iam
-      USE shared_data, ONLY: lasym, lrecon
+      USE shared_data, ONLY: lasym, lrecon, unit_out
 
       IMPLICIT NONE
 
@@ -31,7 +32,7 @@
       INTEGER, PARAMETER           :: restart_lrecon = 30
 
 !>  Dimension names.
-      CHARACTER (LEN=*), DIMENSION(3), PARAMETER ::                            &
+      CHARACTER (LEN=*), DIMENSION(3), PARAMETER ::                     &
      &   restart_dims = (/'m-mode','n-mode','radius'/)
 
 !>  Name for the restart file number of radial points.
@@ -130,9 +131,9 @@
 !>  @returns Error status of the read.
 !-------------------------------------------------------------------------------
       FUNCTION restart_read(restart_file_name, wout_file, mpolin, ntorin, nsin)
-      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                       &
-                            jbsupumnsh, jbsupumnch,                       &
-                            jbsupvmnsh, jbsupvmnch,                       &
+      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                     &
+                            jbsupumnsh, jbsupumnch,                     &
+                            jbsupvmnsh, jbsupvmnch,                     &
                             jpmnsh,     jpmnch
 
       IMPLICIT NONE
@@ -177,18 +178,18 @@
 
       IF (restart_read .NE. 0) THEN
          IF (iam .EQ. 0) THEN
-            filename = 'UNABLE TO READ SIESTA RESTART FILE: ' //         &
+            filename = 'UNABLE TO READ SIESTA RESTART FILE: ' //        &
                         TRIM(restart_file_name)
             PRINT 50, TRIM(filename)
          END IF
          RETURN
       ELSE
          IF (iam .EQ. 0) THEN
-            WRITE (33, 400) mpol, ntor, ns
-            filename = 'RESTART FILE WAS SUCCESSFULLY READ: ' //          &
+            WRITE (unit_out, 400) mpol, ntor, ns
+            filename = 'RESTART FILE WAS SUCCESSFULLY READ: ' //        &
                         TRIM(restart_file_name)
             PRINT 50, TRIM(filename)
-            CALL FLUSH(33)
+            CALL FLUSH(unit_out)
          END IF
       END IF
  50   FORMAT(' ************',/,1x,a,/,' ************')
@@ -261,19 +262,19 @@
 
 
       FUNCTION restart_read_txt(filename, mpolin, ntorin, nsin)
-      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                      &
-                            jbsupumnsh, jbsupumnch,                      &
-                            jbsupvmnsh, jbsupvmnch,                      &
+      USE quantities, ONLY: jbsupsmnsh, jbsupsmnch,                     &
+                            jbsupumnsh, jbsupumnch,                     &
+                            jbsupvmnsh, jbsupvmnch,                     &
                             jpmnsh,     jpmnch
       INTEGER, PARAMETER :: m0=0, m1=1
       INTEGER  :: restart_read_txt, mpolin, ntorin, nsin
       INTEGER  :: nmin, mpol, ntor, ns, istat, m, n, js
       CHARACTER (LEN=*), INTENT(IN)  :: filename
-      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    ::                     &
-                 bsupss, bsupuc, bsupvc, presc,                          &
+      REAL (dp), DIMENSION(:,:,:), ALLOCATABLE    ::                    &
+                 bsupss, bsupuc, bsupvc, presc,                         &
                  bsupsc, bsupus, bsupvs, press
     
-      OPEN (unit=15, file=TRIM(filename), status='old',                  &
+      OPEN (unit=15, file=TRIM(filename), status='old',                 &
             form='formatted', iostat=istat)
       IF (istat .NE. 0) THEN 
          restart_read_txt = 1
@@ -289,30 +290,30 @@
       READ (15,100) ns, mpol, ntor
       nmin = MIN(ntor, ntorin)
 
-      ALLOCATE (bsupss(0:mpol,-ntor:ntor,ns),                            &
-                bsupuc(0:mpol,-ntor:ntor,ns),                            &
-                bsupvc(0:mpol,-ntor:ntor,ns),                            & 
+      ALLOCATE (bsupss(0:mpol,-ntor:ntor,ns),                           &
+                bsupuc(0:mpol,-ntor:ntor,ns),                           &
+                bsupvc(0:mpol,-ntor:ntor,ns),                           & 
                 presc(0:mpol,-ntor:ntor,ns), stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error in restart_read_txt')
+      CALL ASSERT(istat.eq.0,'Allocation error in restart_read_txt')
 
       DO js=1,ns
       DO m=0,mpol
       DO n=-ntor,ntor
-      READ (15,300) bsupss(m,n,js), bsupuc(m,n,js),                      &
+      READ (15,300) bsupss(m,n,js), bsupuc(m,n,js),                     &
                     bsupvc(m,n,js), presc(m,n,js)
       ENDDO
       ENDDO
       ENDDO
 
       IF (lasym) THEN
-      ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                            &
-                bsupus(0:mpol,-ntor:ntor,ns),                            &
-                bsupvs(0:mpol,-ntor:ntor,ns),                            & 
+      ALLOCATE (bsupsc(0:mpol,-ntor:ntor,ns),                           &
+                bsupus(0:mpol,-ntor:ntor,ns),                           &
+                bsupvs(0:mpol,-ntor:ntor,ns),                           & 
                 press(0:mpol,-ntor:ntor,ns), stat=istat)
       DO js=1,ns
       DO m=0,mpol
       DO n=-ntor,ntor
-      READ (15,300) bsupsc(m,n,js), bsupus(m,n,js),                      &
+      READ (15,300) bsupsc(m,n,js), bsupus(m,n,js),                     &
                     bsupvs(m,n,js), press(m,n,js)
       ENDDO
       ENDDO
@@ -824,7 +825,7 @@ RECON0: IF (lrecon) THEN
       END IF
 
       ALLOCATE (temp1(0:mpol_min,-ntor_min:ntor_min,ns_old), stat=istat)
-      IF (istat .ne. 0) CALL ErrorAbort('Allocation error #1 in INTERPIT')
+      CALL ASSERT(istat.eq.0,'Allocation error #1 in INTERPIT')
 !
 !     FIRST INTERP TO FULL MESH FROM HALF-MESH
 !     ASSUMES js=1 FULL-MESH VALUE VALUE IS STORED IN aold(1)
@@ -843,11 +844,11 @@ RECON0: IF (lrecon) THEN
          x1 = x1/hs_old
          IF (x1 .GT. one) x1 = 1
          IF (x1 .LT. zero) x1 = 0
-         IF (js_old .gt. ns_old) CALL ErrorAbort('js_old >= ns_old in INTERPIT')
+         CALL ASSERT(js_old.le.ns_old,'js_old >= ns_old in INTERPIT')
          IF (js_old .eq. ns_old) THEN
             anew(:,:,js_new) = temp1(:,:,js_old)
          ELSE
-            anew(:,:,js_new) = (one-x1)*temp1(:,:,js_old)                      &
+            anew(:,:,js_new) = (one-x1)*temp1(:,:,js_old)               &
                              + x1*temp1(:,:,js_old+1)
          END IF
       END DO
@@ -856,7 +857,7 @@ RECON0: IF (lrecon) THEN
 !
       DEALLOCATE (temp1)
       ALLOCATE (temp1(0:mpol_min,-ntor_min:ntor_min,ns_new), stat=istat)
-      IF (istat .ne. 0) CALL ErrorAbort('Allocation error #2 in INTERPIT')
+      CALL ASSERT(istat.eq.0,'Allocation error #2 in INTERPIT')
       temp1 = anew
       anew(:,:,1) = 0
       anew(:,:,2:ns_new) = p5*(temp1(:,:,2:ns_new) + temp1(:,:,1:ns_new-1))

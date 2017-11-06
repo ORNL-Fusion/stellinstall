@@ -6,6 +6,7 @@
 !------------------------------------------------
 MODULE nscalingtools
 USE stel_kinds
+USE v3_utilities, ONLY: assert
 USE descriptor_mod, ONLY: SIESTA_COMM
 #if defined(MPI_OPT)
 #if defined(SKS)
@@ -156,7 +157,7 @@ NTOR=ntor_in
 M=ndims*(MPOL+1)*(2*NTOR+1)
 N=blkrownum
 
-IF(M.EQ.0 .OR. N.EQ.0) CALL ErrorAbort('M, N = 0 IN initRemap!')
+CALL ASSERT(M.NE.0, N.NE.0,'M, N = 0 IN initRemap')
 
 nranks=numprocs
 rank=myrank
@@ -201,11 +202,11 @@ IF (BUFFERED) THEN
       WRITE(7000+rank,*) '>>> MPI_BSEND_OVERHEAD : ', MPI_BSEND_OVERHEAD; CALL FLUSH(7000+rank)
       WRITE(7000+rank,*) '>>> nBuffsize          : ', nBuffsize; CALL FLUSH(7000+rank)
     END IF
-    CALL ErrorAbort('initRemap')
+    CALL ASSERT(nBuffsize.GT.0,'initRemap nBuffsize')
   END IF
 
   ALLOCATE(remapBuffer(nBuffsize), stat=i)
-  IF (i .NE. 0) CALL ErrorAbort('MPI remapBuffer allocation failed in initRemap!')
+  CALL ASSERT(i.eq.0,'MPI remapBuffer allocation failed in initRemap')
   CALL MPI_BUFFER_ATTACH(remapBuffer, nBuffsize, MPI_ERR)
 END IF
 
@@ -244,10 +245,10 @@ INTEGER :: startblock, endblock
 INTEGER :: lload, sload, myload
 INTEGER :: numL, numS
 INTEGER :: r, c
+LOGICAL :: lnum, lnumg=.TRUE.
 
-IF(.NOT.INITREMAPDONE) THEN
-  CALL ErrorAbort('Calling bcyclicMapping routine without calling initRemap')
-END IF
+CALL ASSERT(INITREMAPDONE,                                              &
+'Calling bcyclicMapping routine without calling initRemap')
 
 IF (MAPPINGDONE) RETURN
 
@@ -306,9 +307,12 @@ IF((bcyclicEndBlockProc(activeranks)-bcyclicStartBlockProc(activeranks)+1).GE.2)
 
 numBlocks=bcyclicEndBlockProc(rank+1)-bcyclicStartBlockProc(rank+1)+1
 
-IF (numBlocks.LT.2) THEN
-  CALL ErrorAbort('NS/nranks < 2...use smaller number of processors!')
-END  IF
+!This may only occur on SOME processors, not all, so send to all
+lnum = numBlocks.GE.2
+CALL MPI_REDUCE(lnum, lnumg, 1, MPI_LOGICAL, MPI_LAND, 0, SIESTA_COMM,  &
+                MPI_ERR)
+
+CALL ASSERT(lnumg,'NS/nranks < 2...use smaller number of processors')
 
 MAPPINGDONE=.TRUE.
 END SUBROUTINE bcyclicMapping
@@ -387,7 +391,7 @@ ELSE IF (it.EQ.SAVEDIAG) THEN  !SAVED DIAGONAL
   CALL StoreDiagonal(br,ic,coldata)
 ELSE
   WRITE(*,*)'Something wrong in ', rank,MPI_Status(MPI_TAG),br,ic,it 
-  CALL ErrorAbort('SetBlockTriDataStruct')
+  CALL ASSERT(.FALSE., 'IT wrong SetBlockTriDataStruct:')
 END IF
 END SUBROUTINE SetBlockTriDataStruct
 !------------------------------------------------
@@ -421,7 +425,7 @@ IF (FOUND) THEN
     ELSE IF (blockRowType.EQ.LOWER) THEN
       CALL SetBlockTriDataStruct(LOWER,blockRowNum,columnNum,columnData)
     ELSE
-      CALL ErrorAbort('send')
+      CALL ASSERT(.FALSE.,'send error, blockRowType:')
     END IF
   ELSE
     IF (BUFFERED) THEN     
@@ -457,7 +461,7 @@ IF (FLAG) THEN
   it=MPI_Status(MPI_TAG)
   IF (it.NE.1.AND.it.NE.2.AND.it.NE.3.AND.it.NE.4) THEN
     WRITE(TOFU,*) 'MPI_TAG:',it; FLUSH(TOFU)
-    CALL ErrorAbort('receive 1')
+    CALL ASSERT(.FALSE.,'receive 1 error')
   END IF
   positn=0
   CALL MPI_Unpack(recvbuf,PACKSIZE,positn,br,1,MPI_INTEGER,SIESTA_COMM,MPI_ERR)
@@ -467,7 +471,7 @@ IF (FLAG) THEN
 
   IF (localbrow.LT.1.OR.localbrow.GT.numBlocks) THEN 
     WRITE(TOFU,*) 'localbrow:',localbrow; FLUSH(TOFU)
-    CALL ErrorAbort('receive 2')
+    CALL ASSERT(.FALSE.,'receive 2 error')
   END IF
 
   IF (it.EQ.1) THEN      !UPPER DIAGONAL
@@ -480,7 +484,7 @@ IF (FLAG) THEN
     CALL StoreDiagonal(br,ic,coldata)
   ELSE
     WRITE(*,*)'Something wrong in ', rank,MPI_Status(MPI_TAG),br,ic,it 
-    CALL ErrorAbort('receive 3')
+    CALL ASSERT(.FALSE.,'receive 3 error')
   END IF
 END IF
 
@@ -714,22 +718,3 @@ END SUBROUTINE GetTimes
 !-------------------------------------------------------------------------------
 
 END MODULE nscalingtools
-!------------------------------------------------
-
-!-------------------------------------------------------------------------------
-SUBROUTINE ErrorAbort(message)
-USE descriptor_mod, ONLY: SIESTA_COMM
-USE nscalingtools, ONLY: MPI_ERR
-USE mpi_inc
-IMPLICIT NONE
-INTEGER  :: iprint = 0
-CHARACTER*(*), INTENT(IN) :: message
-IF (iprint .EQ. 0) PRINT *, TRIM(message)
-iprint = 1
-#if defined(MPI_OPT)
-CALL MPI_ABORT(MPI_COMM_WORLD, 1, MPI_ERR)
-#else
-STOP
-#endif
-END SUBROUTINE ErrorAbort
-

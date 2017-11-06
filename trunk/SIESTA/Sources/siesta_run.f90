@@ -11,6 +11,7 @@
 
       MODULE siesta_run
       USE stel_kinds
+      USE shared_data, ONLY: unit_out
       USE timer_mod
 
       IMPLICIT NONE
@@ -154,24 +155,24 @@
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_destruct(this, finalize_mpi, close_wout)
 #if defined(SKS)
-      USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,            &
-                               PARFUNCTISL, PARGMRES, SKSDBG, TOFU,            &
+      USE nscalingtools, ONLY: OUTPUT_TIMINGS, GetTimes, PARSOLVER,     &
+                               PARFUNCTISL, PARGMRES, SKSDBG, TOFU,     &
                                finalizeremap
       USE blocktridiagonalsolver_s, ONLY: finalize
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, PARGMRES, SKSDBG, TOFU
 #endif
       USE descriptor_mod, ONLY: iam, icontxt, LSCALAPACK, myrow, mycol, nprocs
-      USE shared_data, ONLY: nprecon, xc, gc, fsq_total1, mblk_size, niter,    &
-                             col_scale
+      USE shared_data, ONLY: nprecon, xc, gc, fsq_total1, mblk_size,    &
+                             niter, col_scale, lverbose, ngmres_type,   &
+                             lColScale
       USE hessian, ONLY: levmarq_param, mupar, asym_index, dealloc_hessian
       USE quantities, ONLY: fbdy, dealloc_quantities
       USE dumping_mod, ONLY: write_output
       USE diagnostics_mod, ONLY: write_profiles, dealloc_diagnostics
-      USE perturbation, ONLY: lresistive, nsin, wout_file
+      USE perturbation, ONLY: nsin, wout_file
       USE metrics, ONLY: cleanup_metric_elements, dealloc_full_lower_metrics
       USE prof_mod, ONLY: profstat
-      USE shared_data, ONLY: lverbose
 
       IMPLICIT NONE
 
@@ -197,8 +198,8 @@
 #endif
 
       IF (iam .EQ. 0) THEN
-         DO i = 6, 33, 27
-            IF (.not.lverbose .and. i .eq. 6) CYCLE
+         DO i = 6, unit_out, unit_out-6
+            IF (.NOT.lverbose .AND. i.EQ.6) CYCLE
             WRITE (i, 1000) nprecon, levmarq_param, mupar, asym_index
             WRITE (i,'(a,i5)') ' Number processors: ', nprocs
             WRITE (i, 1001)
@@ -225,31 +226,37 @@
             WRITE (i,*)
             IF (PARSOLVER) THEN
                WRITE (i,*)        'PARSOLVER=T    : NSCALED'
-            ELSE
-               WRITE (i,*)        'PARSOLVER=F    : ScaLAPACK'
+            ELSE IF (LSCALAPACK) THEN
+               WRITE (i,*)        'PARSOLVER=F    : SCALAPACK'
+            ELSE 
+               WRITE (i,*)        'PARSOLVER=F    : SERIAL'
             END IF
             WRITE (i,*)           'PARFUNCTISL    :', PARFUNCTISL
-            WRITE (i,'(1x,a,L2)') 'PARGMRES       :', PARGMRES
+            WRITE (i,*)           'COLUMN SCALING :', lColScale
+            WRITE (i,'(1x,a,L2,a,i2)') 'PARGMRES       :', PARGMRES,    &
+                                  ' GMRES_TYPE: ', ngmres_type
 #if defined(SKS)
             WRITE (i,*)           'OUTPUT_TIMINGS :', OUTPUT_TIMINGS
 #endif
             WRITE (i,*)
-            WRITE (i,'(a,3x,1p,e10.3)')' TIME DIVB  : ', time_divb
-            WRITE (i,'(a,3x,1p,e10.3)')' TIME DIVJ  : ', time_divj
-            WRITE (i,'(a,3x,1p,e10.3)')' TIME BGRADP: ', time_bgradp
-            WRITE (i,'(a,3x,1p,e10.3)')' TIME BDOTJ : ', time_bdotj
+            WRITE (i,101)' TIME DIVB      : ', time_divb
+            WRITE (i,101)' TIME DIVJ      : ', time_divj
+            WRITE (i,101)' TIME BGRADP    : ', time_bgradp
+            WRITE (i,101)' TIME BDOTJ     : ', time_bdotj
             WRITE (i,*)
-            WRITE (i,*) 'M (block size)         :', mblk_size
-            WRITE (i,*) 'N (block rows)         :', nsin
-            WRITE (i,*) 'P (processors)         :', nprocs
+            WRITE (i,102)' M (block size) :', mblk_size
+            WRITE (i,102)' N (block rows) :', nsin
+            WRITE (i,102)' P (processors) :', nprocs
          END DO
       ENDIF
-
+ 101  FORMAT(a,1p,e10.3)
+ 102  FORMAT(a,i5)
+ 
       CALL write_output(wout_file, niter, close_wout)
       CALL write_profiles(fsq_total1)  ! SPH: write jpmn, jbsupXmn, kbsubXmn, jvsupXmn profiles
       IF (iam .EQ. 0) THEN
          IF (lverbose) PRINT *,' Writing output to "siesta_profiles.txt" is finished!'
-         CLOSE (UNIT=33)
+         CLOSE (UNIT=unit_out)
       ENDIF
 
 !CLEAN UP ARRAYS
@@ -259,9 +266,8 @@
       CALL dealloc_hessian
       CALL dealloc_diagnostics
       CALL dealloc_full_lower_metrics
-      IF (ALLOCATED(xc)) THEN
-         DEALLOCATE(xc, gc, col_scale)
-      END IF
+      IF (ALLOCATED(xc)) DEALLOCATE(xc, gc)
+      IF (ALLOCATED(col_scale)) DEALLOCATE(col_scale)
 
 #if defined(MPI_OPT)
       IF (LSCALAPACK) THEN
@@ -269,8 +275,8 @@
          CALL blacs_gridexit(icontxt)
 
          CALL blacs_exit(0)
-         IF ((myrow .eq. 0) .and. (mycol .eq. 0)) THEN
-            CALL profstat()
+         IF ((myrow.EQ.0) .AND. (mycol.EQ.0)) THEN
+            CALL profstat
          END IF
 
 #if defined(SKS)
@@ -291,7 +297,7 @@
              ' Symmetry Index: ',1pe9.2)
 1001  FORMAT(/,'==============================',14x,'=======================', &
              /,                                                                &
-             /,'  TIMING INFORMATION          ',14x,' RMS BOUNDARY FORCES',    &
+             /,' TIMING INFORMATION           ',14x,' RMS BOUNDARY FORCES',    &
              /,                                                                &
              /,'==============================',14x,'=======================')
 1002  FORMAT(' Total runtime  : ',  f12.3,15x,'fs(1,m=1)  :',1pe10.2/,         &
@@ -374,7 +380,6 @@
       USE shared_data, ONLY: nprecon
       USE evolution, ONLY: init_evolution, converge_diagonal, converge_blocks
       USE descriptor_mod, ONLY: iam, nprocs, DIAGONALDONE
-      USE shared_data, ONLY: ndims, mblk_size
       USE island_params, mpol=>mpol_i, ntor=>ntor_i
       USE perturbation, ONLY: nsin, mpolin, ntorin, ftol, lrestart, wout_file
 #if defined(SKS)

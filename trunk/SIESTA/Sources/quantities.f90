@@ -12,6 +12,7 @@
 !
       USE stel_kinds
       USE stel_constants      
+      USE v3_utilities, ONLY: assert
       USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,            &
           mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,        &
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
@@ -100,11 +101,14 @@
 !>  \brief Initializes mpi and computes jacobian
 !*******************************************************************************
         SUBROUTINE init_quantities
+        USE descriptor_mod, ONLY: LSCALAPACK
         USE fourier, ONLY: getorigin, tomnsp, toijsp, f_none, f_cos,    &
                            f_sin, f_sum, Test_Fourier
         USE metrics, ONLY: sqrtg
-        USE island_params, ONLY: nu_i
         USE shared_data, ONLY: mblk_size, ndims, lasym
+#if defined(MPI_OPT)        
+        USE prof_mod, ONLY: SetUpScalingAllGather
+#endif        
 #if defined(SKS)
         USE blocktridiagonalsolver_s, ONLY: Initialize
 #endif
@@ -119,7 +123,7 @@
         p_factor = w_factor
         b_factor = SQRT(w_factor)
         gnorm_i  = gnorm_i/w_factor
-
+        
 !Store dimensions
         IF (lasym) THEN
            ndims = 6
@@ -129,9 +133,15 @@
                 
         mblk_size=ndims*(mpol+1)*(2*ntor+1)
         
+        CALL ASSERT(mblk_size.NE.0, 'mblk_size = 0 in init_quantities')
+        
         IF (PARSOLVER) THEN
 #if defined(SKS)
            CALL Initialize(ns, mblk_size) 
+#endif
+        ELSE IF (LSCALAPACK) THEN
+#if defined(MPI_OPT)
+        CALL SetUpScalingAllGather(mblk_size)
 #endif
         ELSE
            startglobrow = 1; endglobrow = ns
@@ -165,7 +175,7 @@
         jbsupsmnch = 0
         END IF
         
-        IF (ANY(jacobh*signjac .LE. 0)) CALL ErrorAbort('FILTERED JACOBIAN CHANGED SIGN!')
+        CALL ASSERT(ALL(jacobh*signjac.GT.0),'FILTERED JACOBIAN CHANGED SIGN!')
         sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/                  &
                    (jacobh(:,:,2:)+jacobf(:,:,2:))**2)
         IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1pe8.2)',              &
@@ -177,12 +187,12 @@
         jacobf(:,:,1) = jacobh(:,:,1)
         jacobf(:,:,ns)= jacobh(:,:,ns)
 
-        DO l = 1, nu_i
+        DO l = 1, ntheta
             wint(l,:,:) = cosmui(l,m0)
         END DO         
 
         ALLOCATE (vp_f(ns), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation error in init_bcovar')
+        CALL ASSERT(istat.EQ.0,'Allocation error in init_quantities')
         CALL SurfAverage(vp_f, jacobf, 1, ns)
 
 !SANITY CHECK: COMPARE TO volume_i
@@ -191,7 +201,6 @@
         IF (ABS((sum1-volume_i)/volume_i) .GT. 1.E-3_dp) THEN
 
             IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',volume_i,' THIS VOLUME: ', sum1
-!           CALL ErrorAbort('Volume does not agree with VMEC input!')
         END IF
         
       
@@ -272,7 +281,7 @@
         END IF
 
         DEALLOCATE (phiph, chiph, stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Deallocate error #1 in init_fields')
+        CALL ASSERT(istat.EQ.0,'Deallocate error #1 in init_fields')
 
 !
 !       Initialize half mesh pressure
@@ -280,7 +289,7 @@
         nloc = MAX(1,startglobrow-1)
         ALLOCATE(presih(ntheta,nzeta,nloc:nsmax),                       &
                  presif(ntheta,nzeta,nloc:nsmax), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocate error #1 in init_field')
+        CALL ASSERT(istat.EQ.0, 'Allocate error #1 in init_fields')
 
         DO js = nloc, nsmax
            presif(:,:,js) = p_factor*presf_i(js)
@@ -305,7 +314,7 @@
         END IF
 
         DEALLOCATE(presif, presih, stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Deallocate error #2 in init_fields')
+        CALL ASSERT(istat.EQ.0, 'Deallocate error #2 in init_fields')
 
 !
 !       Gather jbsupmnX's, jpmn onto all processors (same as in update_state but for initial values)
@@ -348,10 +357,10 @@
         ALLOCATE (atemp(nuv), btemp(nuv), cosmni(nuv,mnmax),            &
                   cosmnp(nuv,mnmax),                                    &
                   brhs(mnmax,n2), amat(mnmax*n2, mnmax*n2), stat=info)
-        IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
+        CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
         IF (lasym) THEN
         ALLOCATE (sinmni(nuv,mnmax), sinmnp(nuv,mnmax), stat=info)
-        IF (info .NE. 0) CALL ErrorAbort('Allocation error in Recompute_Lambda')
+        CALL ASSERT(info.EQ.0,'Allocation error in Recompute_Lambda')
         END IF
 !COMPUTE MATRIX ELEMENTS, SURFACE BY SURFACE (can parallelize this: Sudip)
 
@@ -430,13 +439,13 @@
         END DO
 
         CALL solver(amat, brhs, mnmax*n2, 1, info)
-        IF (info .NE. 0) CALL ErrorAbort('INFO != 0 IN RECOMPUTE_LAMBDA')
+        CALL ASSERT(info.EQ.0,'INFO != 0 IN RECOMPUTE_LAMBDA')
         lmns(:,js) = brhs(:,1)/orthonorm/phiph(js)                        !Divide by phiph -> old style
         IF (lasym) lmnc(:,js) = brhs(:,2)/orthonorm/phiph(js)
 
         END DO
 
-        IF (mn.NE.mnmax .OR. mnp.NE.mnmax) CALL ErrorAbort('mn or mnp != mnmax in RECOMPUTE_LAMBDA')
+        CALL ASSERT(mn.EQ.mnmax, mnp.EQ.mnmax, 'mn or mnp != mnmax in RECOMPUTE_LAMBDA')
 
         DEALLOCATE(atemp, btemp, cosmni, cosmnp, brhs, amat)
         IF (lasym) DEALLOCATE(sinmni, sinmnp)
@@ -458,24 +467,25 @@
 !-----------------------------------------------
         INTEGER :: istat
 !-----------------------------------------------
-!       Half mesh quantities (harmonics) evolved: 3 magnetic field components and pressure                
+! Half mesh quantities (harmonics) evolved: 3 magnetic field components and pressure                
+! CONTRAVARIANT MAGNETIC FIELDS
         ALLOCATE(jbsupsmnsh(0:mpol,-ntor:ntor,ns),                      &  ! Half mesh quantities (harmonics)
                  jbsupumnch(0:mpol,-ntor:ntor,ns),                      &  ! B^s (sine), B^u (cosine), B^v (cosine)
                  jbsupvmnch(0:mpol,-ntor:ntor,ns),                      & 
                  jpmnch    (0:mpol,-ntor:ntor,ns), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation #1 failed in ALLOC_QUANTITIES')      ! CONTRAVARIANT MAGNETIC FIELDS
+        CALL ASSERT(istat.EQ.0,'Allocation #1 failed in ALLOC_QUANTITIES')
         jbsupsmnsh = zero; jbsupumnch = zero; jbsupvmnch = zero        
         jpmnch = zero
 
         ALLOCATE (pwr_spec_s(0:mpol,-ntor:ntor,ns,4),                   &
                   pwr_spec_a(0:mpol,-ntor:ntor,ns,4), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation #2 failed in ALLOC_QUANTITIES')      ! CONTRAVARIANT MAGNETIC FIELDS
+        CALL ASSERT(istat.EQ.0,'Allocation #2 failed in ALLOC_QUANTITIES')
 
 
         ALLOCATE(fsupsmncf(0:mpol,-ntor:ntor,ns),                       &  ! Full mesh quantities (harmonics)
                  fsupumnsf(0:mpol,-ntor:ntor,ns),                       &  ! F_s (cosine), F_u (sine), F_v (sine)
                  fsupvmnsf(0:mpol,-ntor:ntor,ns), stat=istat) 
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation #3 failed in ALLOC_QUANTITIES')      ! CONTRAVARIANT MHD FORCES
+        CALL ASSERT(istat.EQ.0,'Allocation #3 failed in ALLOC_QUANTITIES')
 
         IF (lasym) THEN
 
@@ -483,22 +493,21 @@
                  jbsupumnsh(0:mpol,-ntor:ntor,ns),                      &  ! B^s (sine), B^u (cosine), B^v (cosine)
                  jbsupvmnsh(0:mpol,-ntor:ntor,ns),                      & 
                  jpmnsh    (0:mpol,-ntor:ntor,ns), stat=istat)
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation #4 failed in ALLOC_QUANTITIES')      ! CONTRAVARIANT MAGNETIC FIELDS
+        CALL ASSERT(istat.EQ.0,'Allocation #4 failed in ALLOC_QUANTITIES')
         jbsupsmnch = zero; jbsupumnsh = zero; jbsupvmnsh = zero        
         jpmnsh = zero
 
         ALLOCATE(fsupsmnsf(0:mpol,-ntor:ntor,ns),                       &  ! Full mesh quantities (harmonics)
                  fsupumncf(0:mpol,-ntor:ntor,ns),                       &  ! F_s (sine), F_u (cosine), F_v (cosine)
                  fsupvmncf(0:mpol,-ntor:ntor,ns), stat=istat) 
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation #5 failed in ALLOC_QUANTITIES')      ! CONTRAVARIANT MHD FORCES
+        CALL ASSERT(istat.EQ.0,'Allocation #5 failed in ALLOC_QUANTITIES')
 
         ENDIF
                 
         ALLOCATE (bsq(ntheta,nzeta,ns),                                 &
                   jacobh(ntheta,nzeta,ns), jacobf(ntheta,nzeta,ns),     &
                   wint(ntheta,nzeta,ns), stat=istat)
-
-        IF (istat .NE. 0) CALL ErrorAbort('Allocation #6 failed in ALLOC_QUANTITIES')
+        CALL ASSERT(istat.EQ.0,'Allocation #6 failed in ALLOC_QUANTITIES')
 
         END SUBROUTINE alloc_quantities
         
@@ -534,7 +543,7 @@
         IF(ALLOCATED(ksupsijf0)) DEALLOCATE(ksupsijf0, ksupuijf0, ksupvijf0)
         IF(ALLOCATED(bsubsijf))  DEALLOCATE(bsubsijf,  bsubuijf, bsubvijf)
  
-        IF (istat .NE. 0) CALL ErrorAbort('Deallocation failed in dealloc_quantities!')
+        CALL ASSERT(istat.EQ.0,'Deallocation failed in dealloc_quantities')
         
 
       END SUBROUTINE dealloc_quantities
@@ -579,13 +588,12 @@
 !
       nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
 
-      IF (.NOT.ALLOCATED(jbsupsmnh))                                    &
-         CALL ErrorAbort('input arrays not allocated in quantities::gather_fields')
+      CALL ASSERT(ALLOCATED(jbsupsmnh), 'input arrays not allocated in gather_fields')
 
       ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns), &
                 tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns), &
                 stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in gather_fields')
+      CALL ASSERT(istat.EQ.0,'Allocation error #1 in gather_fields')
       k1 = SIZE(tmps,1)*SIZE(tmps,2)
 
       CALL gather_array(jbsupsmnh(:,:,nsmin:nsmax), tmps)
@@ -601,7 +609,7 @@
                    jbsupumnh(0:mpol,-ntor:ntor,ns),                     &
                    jbsupvmnh(0:mpol,-ntor:ntor,ns),                     &
                    jpmnh(0:mpol,-ntor:ntor,ns), stat=istat)
-         IF (istat .NE. 0) CALL ErrorAbort('Allocation error #2 in quantities::gather_fields')
+         CALL ASSERT(istat.EQ.0,'Allocation error #2 in gather_fields')
       END IF
 
       jbsupsmnh = tmps
@@ -633,13 +641,12 @@
 !
       nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
 
-      IF (.NOT.ALLOCATED(djbsupsmnh))                                    &
-         CALL ErrorAbort('input arrays not allocated in pad_fields')
+      CALL ASSERT(ALLOCATED(djbsupsmnh),'input arrays not allocated in pad_fields')
 
       ALLOCATE (tmps(0:mpol,-ntor:ntor,ns), tmpu(0:mpol,-ntor:ntor,ns),  &
                 tmpv(0:mpol,-ntor:ntor,ns), tmpp(0:mpol,-ntor:ntor,ns),  &
                 stat=istat)
-      IF (istat .NE. 0) CALL ErrorAbort('Allocation error #1 in pad_fields')
+      CALL ASSERT(istat.EQ.0,'Allocation error #1 in pad_fields')
 
       k1 = SIZE(tmps,1)*SIZE(tmps,2)
       tmps(:,:,nsmin:nsmax) = djbsupsmnh(:,:,nsmin:nsmax)
@@ -652,8 +659,8 @@
       CALL PadSides(tmpp, k1, 1, 2)
 
       k1 = LBOUND(djpmnh,3);  k2 = UBOUND(djpmnh,3)
- 	  IF (k1 .NE. MAX(1,startglobrow-1)) CALL ErrorAbort('k1 wrong in pad_fields')
-	  IF (k2 .NE. MIN(ns,endglobrow+2)) CALL ErrorAbort('k2 wrong in pad_fields')
+ 	  CALL ASSERT(k1.EQ.MAX(1,startglobrow-1),'k1 wrong in pad_fields')
+	  CALL ASSERT(k2.EQ.MIN(ns,endglobrow+2),'k2 wrong in pad_fields')
 
       djbsupsmnh(:,:,k1:k2) = tmps(:,:,k1:k2)
       djbsupumnh(:,:,k1:k2) = tmpu(:,:,k1:k2)

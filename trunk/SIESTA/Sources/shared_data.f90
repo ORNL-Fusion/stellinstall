@@ -6,6 +6,7 @@
       INTEGER, PARAMETER :: ngmres_steps = 100      !<max number of gmres steps (10-100) should scale with ns?
       INTEGER, PARAMETER :: PREDIAG=1               !<diagonal preconditioning
       INTEGER, PARAMETER :: PREBLOCK=2              !<block preconditioning
+      INTEGER, PARAMETER :: unit_out=336            !<output file unit no.
       INTEGER            :: neqs                    !<No. elements in xc array
       INTEGER            :: ndims                   !<No. independent (real) variables, =3 (stell sym) or 6
       INTEGER            :: mblk_size               !<mpol X ntor X ndims linear block size in Fourier space
@@ -16,17 +17,20 @@
       INTEGER            :: iortho = 3              !controls orthogonalization in GMRES
                                                     !3: ICGS (recommended); 2: CGS; 1: IMGS; 0: MGS
       INTEGER            :: hessPass_Test=-1        !for dumping block and data files (testing)
+      INTEGER            :: in_hess_nfunct, out_hess_nfunct
       REAL(dp)           :: mupar_test
 
       REAL(dp),PARAMETER   :: fsq_res = 1.E-16_dp   !<threshold force for turning off resistive perturbations
-      REAL(dp), PARAMETER  :: levm_ped=1.E-08_dp, mu_ped=1.E-6_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
+      REAL(dp), PARAMETER  :: levm_ped=1.E-10_dp, mu_ped=1.E-8_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
       REAL(dp), DIMENSION(:), ALLOCATABLE, TARGET :: gc  !<1D Array of Fourier mode MHD force components
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE     :: buv_res  !<Resonant magnetic field perturbation
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc  !<1D array of Fourier mode displacement components
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc0, gc0
       REAL(dp), DIMENSION(:,:,:,:), ALLOCATABLE   :: col_scale  !<column scaling factor
 
-      REAL(dp)        :: fsq_total, fsq_total1, fsq_gmres, fsq_lin, etak_tol
+      REAL(dp)        :: fsq_total                 !< |F|^2 WITH column scaling
+      REAL(dp)        :: fsq_total1                !< |F|^2 WITHOUT column scaling (raw forces)
+      REAL(dp)        :: fsq_gmres, fsq_lin, etak_tol
       REAL(dp)        :: levm_scale = 1
       REAL(dp)        :: wtotal, wtotal0, xmax_lin
       REAL(dp)        :: delta_t
@@ -41,7 +45,8 @@
 !Logicals for evolving origin and edge
       LOGICAL         :: l_push_edge                !<=FALSE, u,v components of forces NOT solved at s=1
       LOGICAL         :: l_push_s, l_push_u, l_push_v !<=FALSE, s,u,v components of forces NOT solved at s=0
-      LOGICAL         :: l_natural=.TRUE.           !<=TRUE use natural bc at s=0 (preferred: maintains symmetry)
+!      LOGICAL,        :: l_natural=.TRUE.           !<=TRUE use natural bc at s=0 (preferred: maintains symmetry)
+      LOGICAL         :: l_natural=.FALSE.       !<=FALSE evolves all forces at origin
       LOGICAL         :: l_linearize, l_conjgrad
       LOGICAL         :: l_getwmhd                  !<=TRUE to compute MHD energy
       LOGICAL         :: l_getfsq                   !<=TRUE to compute integrated MHD force
@@ -51,6 +56,7 @@
       LOGICAL         :: l_update_state=.FALSE.     !<=TRUE before funct_island called to get ste array
       LOGICAL         :: l_par_state                !<=TRUE if parallel allocation state (in init_state)
       LOGICAL         :: lcolscale                  !<=TRUE to apply col-scaling to Hessian
+      LOGICAL         :: l_infnorm = .TRUE.         !<=Infinity norm(T) or L2 norm(F) for column scaling
       LOGICAL         :: lasym = .FALSE.            !<=FALSE, symmetric; =TRUE, asymmetric plasma
       LOGICAL         :: lrecon = .FALSE.
       LOGICAL         :: lverbose = .TRUE.

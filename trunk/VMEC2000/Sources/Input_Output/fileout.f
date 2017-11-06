@@ -6,7 +6,7 @@
       USE xstuff, ONLY: xc, gc, xsave, scalxc
       USE vmec_main, ONLY: vp, iotas, phips, chips, mass, icurv
       USE vmec_main, ONLY: ireflect, nznt, phipf, specw, sp, sm
-      USE vmec_params, ONLY: uminus
+      USE vmec_params, ONLY: uminus, output_flag
       USE realspace, ONLY: phip, sqrts, shalf, wint
 #if defined(SKS)
       USE realspace, ONLY: pphip, psqrts, pshalf, pwint
@@ -72,7 +72,8 @@ C-----------------------------------------------
          END DO
       END DO
 
-      IF(grank.LT.nranks) THEN
+      IF(grank.LT.nranks .AND.
+     &   IAND(ictrl_flag, output_flag).NE.0) THEN
         CALL Gather1XArray(vp)
         CALL Gather1XArray(iotas)
         CALL Gather1XArray(phips)

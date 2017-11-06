@@ -1,25 +1,28 @@
 !>  \brief Module contained subroutines for updating (from t to t+delta_t) the magnetic field and pressure as part of the SIESTA project.
-!!  Stores updated values of JPMN?H, JBSUPXMN?H in Quantities
+!!  Stores updated values of JPMN?H, JBSUBXMN?H in Quantities Module
 !!  \author S. P. Hirshman and R. Sanchez
 !!  \date Sep 15, 2006
       MODULE siesta_state
-#define DUMP_STATE
+
       USE stel_kinds
       USE quantities
+      USE descriptor_mod, ONLY: iam, SIESTA_COMM
       USE diagnostics_mod
-      USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a
+      USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a, &
+                             unit_out
       USE timer_mod, ONLY: time_update_state
-      USE siesta_init, ONLY: init_state
-      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
+      USE siesta_init, ONLY: init_state, init_allocate_arrays
+      USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
+                               PARSOLVER
       USE mpi_inc
-
       IMPLICIT NONE
-      LOGICAL, PUBLIC :: lfirst=.TRUE.      
+
+      LOGICAL, PUBLIC :: lfirst=.TRUE.
       INTEGER, PARAMETER, PRIVATE :: isym=0, iasym=1
 
       CONTAINS
 
-!>  \brief subroutine (parallel and serial) for updating the SIESTA state
+!>  \brief Parallel/Serial subroutine for updating the SIESTA state
       SUBROUTINE update_state (lprint, fsq_total, ftol)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -29,10 +32,8 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: m1=1
-      INTEGER     :: istat, js, n1, n2
-      REAL(dp) :: ton, toff, r0
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: work4
+      REAL(dp) :: ton, toff
+      INTEGER  :: nsmin, nsmax, istat
 !-----------------------------------------------
       CALL second0(ton)
        
@@ -44,7 +45,10 @@
 
 !     Gather new total fields onto all processors
       IF (PARSOLVER) CALL GatherFields
-       
+
+      CALL second0(toff)
+      time_update_state = time_update_state + (toff-ton)
+
 !     Reset perturbations
       CALL Clear_Field_Perts
 
@@ -58,6 +62,7 @@
       IF (.NOT.lprint) RETURN
 
       CALL second0(ton)
+
       CALL Update_Diagnostics(jbsupsmnsh, jbsupumnch, jbsupumnch,       &
                               jpmnch, bs0(1:6), bu0(1:6),               &
                               bsbu_ratio_s, pwr_spec_s, isym)
@@ -67,22 +72,21 @@
                               bsbu_ratio_a, pwr_spec_a, iasym)
       lfirst = .FALSE.
 
-      lcurr_init=.TRUE.                             
-      CALL init_state(.TRUE.)                                            ! Compute co/contra variant currents for divJ, bdotj
+      nsmin=MAX(1,startglobrow); nsmax=MIN(endglobrow,ns)
 
-      n1 = startglobrow;  n2 = endglobrow
-
-      CALL divb(n1, n2)
-      CALL divj(n1, n2)                                                   !(RS) Added, 09/10/07  = compute rms of divergence of J
-      CALL bgradp(n1, n2)
+      CALL init_state (.TRUE.)                          
+!   Compute co-variant and contravariant components of current (times jacobian) - need for divJ, BdotJ
+      lcurr_init=.TRUE.
+      CALL divb(nsmin,nsmax)
+      CALL divj(nsmin,nsmax)
+      CALL bgradp(nsmin,nsmax)
       CALL tflux
       CALL bdotj_par      
-      CALL beta
       lcurr_init=.FALSE.                             
 
       toroidal_flux = toroidal_flux - toroidal_flux0
       IF (iam .EQ. 0) THEN
-      DO ISTAT = 6, 33, 27
+      DO ISTAT = 6, unit_out, unit_out-6
          IF (.NOT.lverbose .AND. ISTAT.EQ.6) CYCLE
          WRITE (ISTAT , 110) ste(1), ste(2), ste(3), ste(4),            &
                              divb_rms, toroidal_flux, wp/wb,            &
@@ -99,10 +103,12 @@
            /,' (J*B)/|JxB| (rms): ', 1pe11.3,                           &
              ' (J_par)/|J_tot| (rms): ', 1pe11.3,                       &
              '   DIV-J (rms): ', 1pe11.3)
+
       CALL second0(toff)
       time_update_state = time_update_state + (toff-ton)
-       
+
       END SUBROUTINE update_state
+
 
 !>  \brief Subroutine for updating the fields (B,p) of the SIESTA state
 !!   based on dJBSUPXMNH perturbations computed in update_bfield and update_pressure
@@ -119,8 +125,7 @@
 !-----------------------------------------------
       INTEGER :: n1, n2
 !-----------------------------------------------
-      n1 = startglobrow !LBOUND(djbsupsmnh,3)
-      n2 = endglobrow   !UBOUND(djbsupsmnh,3)
+      n1 = startglobrow;  n2 = endglobrow
 
       jbsupsmnh(:,:,n1:n2) = jbsupsmnh(:,:,n1:n2) + djbsupsmnh(:,:,n1:n2)
       jbsupumnh(:,:,n1:n2) = jbsupumnh(:,:,n1:n2) + djbsupumnh(:,:,n1:n2)
@@ -129,17 +134,15 @@
 
       END SUBROUTINE UpdateFields
 
-  
 !>  \brief Subroutine for writing SIESTA diagnostic (screen) output per iteration
       SUBROUTINE Update_Diagnostics(jbsupsmnh, jbsupumnh, jbsupvmnh,    &
                                     jpmnh, bs, bu, bsbu_ratio,          &
                                     pwr_spec, ipar)
       USE island_params, ns=>ns_i, hs=>hs_i
-      USE descriptor_mod, ONLY: iam, SIESTA_COMM
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN) ::           &
+      REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(IN) ::          &
                 jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh
       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns,4), INTENT(INOUT) ::  pwr_spec
       REAL(dp), INTENT(OUT) :: bs(6), bu(6), bsbu_ratio
@@ -179,7 +182,7 @@
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
          d2 = d1
-         CALL MPI_ALLREDUCE(d2, d1, 12, MPI_REAL8, MPI_SUM,              &
+         CALL MPI_ALLREDUCE(d2, d1, 12, MPI_REAL8, MPI_SUM,             &
                             SIESTA_COMM, MPI_ERR)
          END IF
 #endif
@@ -195,22 +198,22 @@
          pwr_spec(:,:,n1:n2,3) = jbsupvmnh(:,:,n1:n2)
          pwr_spec(:,:,n1:n2,4) = jpmnh(:,:,n1:n2)
       ELSE
-         d1(1) = SUM((jbsupsmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,1))**2     &
-                +    (jbsupumnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,2))**2     &
+         d1(1) = SUM((jbsupsmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,1))**2    &
+                +    (jbsupumnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,2))**2    &
                 +    (jbsupvmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,3))**2)              
          d1(2) = SUM((jpmnh(:,:,n1:n2)-pwr_spec(:,:,n1:n2,4))**2)
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
          d2 = d1
-         CALL MPI_ALLREDUCE(d2, d1, 2, MPI_REAL8, MPI_SUM,               &
+         CALL MPI_ALLREDUCE(d2, d1, 2, MPI_REAL8, MPI_SUM,              &
                             SIESTA_COMM, MPI_ERR)
 		 END IF
 #endif		 
          diag_b = d1(1);  diag_p = d1(2)
          IF (iam .EQ. 0) THEN
-         DO js = 6, 33, 27
+         DO js = 6, unit_out, unit_out-6
          IF (.NOT.lverbose .AND. js.EQ.6) CYCLE
-         WRITE(js, 100) 'POWER SPECTRA(', def(itype),                    &
+         WRITE(js, 100) 'POWER SPECTRA(', def(itype),                   &
                         ') -- dB: ', diag_b, ' dP: ', diag_p
          END DO 
          END IF
@@ -218,7 +221,6 @@
  100  FORMAT(1x, 2a,2(a,1p,e10.3))
 #endif
       END SUBROUTINE Update_Diagnostics
-
 
 !>  \brief Subroutine for resetting the perturbations of the SIESTA state
       SUBROUTINE Clear_Field_Perts
@@ -229,12 +231,10 @@
       djpmnch     = 0
 
       IF (lasym) THEN
-
-      djbsupsmnch = 0
-      djbsupumnsh = 0
-      djbsupvmnsh = 0
-      djpmnsh     = 0
-
+         djbsupsmnch = 0
+         djbsupumnsh = 0
+         djbsupvmnsh = 0
+         djpmnsh     = 0
       END IF
 
       END SUBROUTINE Clear_Field_Perts

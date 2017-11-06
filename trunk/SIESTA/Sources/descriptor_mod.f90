@@ -7,7 +7,7 @@
       INTEGER, PARAMETER :: nrhs1 = 1
       INTEGER :: iam, nprocs
 
-      REAL(rprec), TARGET,ALLOCATABLE, DIMENSION(:,:) :: ublkp, dblkp, lblkp
+      REAL(dp), TARGET, ALLOCATABLE, DIMENSION(:,:) :: ublkp, dblkp, lblkp
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: tempp
       INTEGER :: icontxt_global, icontxt, icontxt_px1, icontxt_1xp
       INTEGER, DIMENSION(DLEN_) :: descA, descX, descR, descA_1xp, descR_all
@@ -21,7 +21,6 @@
       LOGICAL :: ININITSTATE=.FALSE.
       LOGICAL :: INUPDATEFORCE=.FALSE.
       INTEGER :: GMRESPASS, WRAPPASS, MATVECPASS
-      INTEGER :: in_hess_nfunct=0, out_hess_nfunct=0
 #if defined(MPI_OPT)
       INTEGER :: SIESTA_COMM=MPI_COMM_WORLD
 #else
