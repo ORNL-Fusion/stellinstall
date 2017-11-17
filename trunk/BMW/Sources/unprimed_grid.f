@@ -78,6 +78,7 @@
       REAL (rprec)                                :: x
       REAL (rprec)                                :: y
       REAL (rprec)                                :: r
+      REAL (rprec)                                :: z
       REAL (rprec)                                :: v
       REAL (rprec)                                :: ax
       REAL (rprec)                                :: ay
@@ -120,13 +121,14 @@
       ALLOCATE(unprimed_grid_construct%b_p(num_r, num_z, num_p))
       ALLOCATE(unprimed_grid_construct%b_z(num_r, num_z, num_p))
 
-      total = num_p*num_z*num_r
-!$    total = total/OMP_GET_MAX_THREADS()
+      total = num_p
+!$    total = CEILING(total/OMP_GET_MAX_THREADS())
+      total = total*num_z*num_r
       current = 0.0
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, j, k, v, r, zp, x, y, ax, ay, rp, cosv, sinv, ar_p,
+!$OMP& PRIVATE(i, j, k, v, r, z, zp, x, y, ax, ay, rp, cosv, sinv, ar_p,
 !$OMP&         ar_m, ap_p, ap_m, az_p, az_m, r_p, r_m, k_p, k_m, done,
 !$OMP&         current)
 
@@ -147,7 +149,13 @@
          sinv = SIN(v)
 
          DO j = 1, num_z
-            zp = (pgrid%z - ((j - 1.0)*mgrid%dz + mgrid%zmin))**2.0
+            z = (j - 1.0)*mgrid%dz + mgrid%zmin
+#define test
+#if defined(test)
+            zp = (pgrid%z - z)*(pgrid%z - z)
+#else
+            zp = (pgrid%z - z)**2.0
+#endif
 
             DO i = 1, num_r
 
@@ -171,9 +179,15 @@
                x = r*cosv
                y = r*sinv
 
+#if defined(test)
+               rp = SQRT((pgrid%x - x)*(pgrid%x - x) +                         &
+     &                   (pgrid%y - y)*(pgrid%y - y) +                         &
+     &                   zp)
+#else
                rp = SQRT((pgrid%x - x)**2.0 +                                  &
      &                   (pgrid%y - y)**2.0 +                                  &
      &                   zp)
+#endif
 
                ax = SUM(pgrid%j_x/rp)*pgrid%dvol
                ay = SUM(pgrid%j_y/rp)*pgrid%dvol

@@ -1,3 +1,24 @@
+//------------------------------------------------------------------------------
+//  The @fixed_width, @begin_table, @item2 and @end_table commands are custom
+//  defined commands in Doxygen.in. They are defined under ALIASES. For the page
+//  created here, the 80 column limit is exceeded. Arguments of aliases are
+//  separated by ','. If you intended ',' to be a string you must use an escaped
+//  comma '\,'.
+//
+///  @page lgrid_sec Limiter Gird File
+///
+///  @tableofcontents
+///  @section lgrid_intro_sec Introduction
+///  LGRID is a code to precompute the distance from a grid point to the closest
+///  point on a limiter. Limiters are specified as a series of line segments in
+///  a counter clockwise fasion. That is a polygon with vertices ordered in a
+///  counter clockwise will have the inside of the polygon represent the
+///  interior. Clockwise ordering will have the outside of the polygon represent
+///  the interior.
+///
+///  @section lgrid_input_sec Input Configuation
+///  Limiters are defined using a structured file with phi
+//------------------------------------------------------------------------------
 //******************************************************************************
 ///  @file main.cpp
 ///  @brief Contains the main rotutines for LGRID.

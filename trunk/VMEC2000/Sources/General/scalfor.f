@@ -66,7 +66,7 @@ C-----------------------------------------------
      1                    + cx(js)*(n*nfp)**2)
           END DO
 
-          IF (m .eq. 1) THEN
+          IF (m .eq. 1 .and. nsmin .eq. 2) THEN
             dx(n,m,2) = dx(n,m,2) + bx(n,m,2)
           END IF
         END DO
@@ -129,7 +129,7 @@ C-----------------------------------------------
       DEALLOCATE (ax, bx, dx)
 
       CALL second0(scalfortoff)
-      scalfor_time =  scalfor_time + (scalfortoff-scalforton)
+!      scalfor_time =  scalfor_time + (scalfortoff-scalforton)
 
       END SUBROUTINE scalfor_par
 

@@ -473,6 +473,14 @@
             this%te_min = value
 
          CASE (model_pressure_fraction_id)
+            IF (this%te_type .eq. model_te_ne_p_type) THEN
+               this%state_flags = IBSET(this%state_flags,                      &
+     &                                  model_state_te_flag)
+            END IF
+            IF (this%ne_type .eq. model_ne_te_p_type) THEN
+               this%state_flags = IBSET(this%state_flags,                      &
+     &                                  model_state_ne_flag)
+            END IF
             this%pressure_fraction = value
 
          CASE DEFAULT
@@ -581,7 +589,7 @@
          CASE ('te_min')
             model_get_param_id = model_te_min_id
 
-         CASE ('pressure_fraction')
+         CASE ('pressure_fraction', 'e_pressure_fraction')
             model_get_param_id = model_pressure_fraction_id
 
          CASE ('ne_grid')

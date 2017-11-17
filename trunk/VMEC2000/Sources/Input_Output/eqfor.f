@@ -161,7 +161,6 @@ C-----------------------------------------------
      4         '             FORCE>      FLUX                  ',
      5         '                       d(PHI) ',
      6         '    d(PHI)                             ',/,148('-'),/)
-
       ALLOCATE (phipf_loc(ns))
 
       phipf_loc(1) = twopi*signgs*(c1p5*phip(2) - p5*phip(3))
