@@ -205,7 +205,7 @@
 !>  @param[in] yy    Y positions defining the line segments.
 !>  @param[in] ilow  Index of the lower bound.
 !>  @param[in] ihigh Index of the upper bound.
-!>  @returns The slope of the line between the indicies.
+!>  @return The slope of the line between the indicies.
 !-------------------------------------------------------------------------------
       PURE FUNCTION slope(yy, xx, ilow, ihigh)
 

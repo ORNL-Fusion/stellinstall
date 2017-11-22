@@ -142,14 +142,14 @@
 !>  Allocates memory and initializes a @ref reconstruction_class object.
 !>
 !>  @param[in] num_steps              Number of reconstruction steps.
-!>                                    @ref signal::signal_get_e
+!>                                    @ref v3fit_input::nrstep
 !>  @param[in] num_signals            Number of signals.
 !>  @param[in] num_derived_parameters Number of derived parameters.
 !>  @param[in] num_parameters         Number of reconstruction parameters.
 !>  @param[in] step_type              Reconstruction step type.
-!>                                    @ref signal::step_type
+!>                                    @ref v3fit_input::step_type
 !>  @param[in] step_max               Reconstruction step size.
-!>                                    @ref signal::astep_max
+!>                                    @ref v3fit_input::astep_max
 !>  @param[in] cut_svd                Cutoff value for relative singular values.
 !>                                    @ref v3fit_input::cut_svd
 !>  @param[in] cut_eff                Cutoff value for expected step efficiency.

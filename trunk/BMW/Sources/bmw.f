@@ -30,7 +30,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief BMW main program.
 !>
-!>  Highest level BMW routine.
+!>  Highest level BMW routine. This computes the vector potential on the mgrid
+!>  grid.
 !-------------------------------------------------------------------------------
       PROGRAM bmw
 !$    USE omp_lib

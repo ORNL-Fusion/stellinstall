@@ -411,7 +411,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref vmec_class types using
-!>  @ref vmec_construct_full or @ref vmec_construct_wout
+!>  @ref vmec_construct_full or @ref vmec_construct_eq
 !-------------------------------------------------------------------------------
       INTERFACE vmec_construct
          MODULE PROCEDURE vmec_construct_eq,                                   &
@@ -420,7 +420,8 @@
 
 !-------------------------------------------------------------------------------
 !>  Interface for the setting the @ref vmec_magnetic_cache types using
-!>  @ref vmec_set_magnetic_cache_init or @ref vmec_set_magnetic_cache_calc. 
+!>  @ref vmec_set_magnetic_cache_responce, @ref vmec_set_magnetic_cache_point or
+!>  @ref vmec_set_magnetic_cache_calc.
 !-------------------------------------------------------------------------------
       INTERFACE vmec_set_magnetic_cache
          MODULE PROCEDURE vmec_set_magnetic_cache_responce,                    &
@@ -684,6 +685,9 @@
 !>                               diagnostics in radians.
 !>  @param[in]    z_offset       Initial Z offset of the plasma relative to the
 !>                               machine center.
+!>  @param[in]    pol_rad_ratio  Ratio of poloidal grid to radial grid. Defines
+!>                               the gird sizes when computing magnetic
+!>                               diagnostics.
 !>  @param[in]    iou            Input/output unit to log messages to.
 !>  @param[in]    eq_comm        MPI communicator pool for VMEC.
 !>  @param[in]    recon_comm     MPI communicator pool for reconstruction.
@@ -1142,7 +1146,8 @@
 !>  no array allocations.
 !>
 !>  @param[inout] this            A @ref vmec_class instance.
-!>  @param[in]    response_object A @ref magnetic_response_class instance.
+!>  @param[in]    response_object A @ref magnetic_response::magnetic_response_class
+!>                                instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vmec_set_magnetic_cache_responce(this, response_object)
       USE vmec_input, only: ns_array, mpol
@@ -1350,7 +1355,7 @@
 !>  component arrays every time. The v components can change if phi_offset is
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
-!>  @ref vmec_set_magnetic_cache_init.
+!>  @ref vmec_set_magnetic_cache_responce.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(s,u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,ju,jv,
@@ -1564,7 +1569,7 @@
 !>  component arrays every time. The v components can change if phi_offset is
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
-!>  @ref vmec_set_magnetic_cache_init.
+!>  @ref vmec_set_magnetic_cache_responce.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r,
@@ -1666,7 +1671,7 @@
 !>  component arrays every time. The v components can change if phi_offset is
 !>  being reconstructed. The u components can be cached in the
 !>  @ref vmec_magnetic_cache and calculated once in
-!>  @ref vmec_set_magnetic_cache_init.
+!>  @ref vmec_set_magnetic_cache_responce.
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(u,v,cosz,sinz,cosz_nyq,sinz_nyq,ru,zu,rv,zv,bu,bv,r, z,

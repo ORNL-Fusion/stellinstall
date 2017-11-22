@@ -61,11 +61,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref limiter_class types either using
-!>  @ref limiter_construct_iso, @ref limiter_construct_polygon or
-!>  @ref limiter_construct_mpi
-!>
-!>  @note
-!>  @ref limiter_construct_polygon has not been implemented yet.
+!>  @ref limiter_construct_iso or @ref limiter_construct_polygon.
 !-------------------------------------------------------------------------------
       INTERFACE limiter_construct
          MODULE PROCEDURE limiter_construct_iso,                               &

@@ -1,9 +1,14 @@
 !*******************************************************************************
-!>  @file wout_converter
+!>  @file wout_converter.f
 !>  @brief Utility to convert a NetCDF based wout file to a text based wout 
 !>  file.
 !>  @ref vmec_equilibrium
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief wout_converter main program.
+!>
+!>  Converts a text based wout file to a netcdf file.
+!-------------------------------------------------------------------------------
       PROGRAM wout_converter
       USE read_wout_mod
       USE v3_utilities

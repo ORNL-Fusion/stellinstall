@@ -60,7 +60,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref mse_class types using
-!>  @ref mse_construct_new or @ref mse_construct_mpi
+!>  @ref mse_construct_vec or @ref mse_construct_rad.
 !-------------------------------------------------------------------------------
       INTERFACE mse_construct
 		 MODULE PROCEDURE mse_construct_vec,                                   &

@@ -60,7 +60,7 @@
 !>
 !>  @note Phi must be in radians.
 !>
-!>  @param[in] cart Point in cylindical coordinates.
+!>  @param[in] cyl Point in cylindical coordinates.
 !>  @returns The point in cartesian coordinates.
 !-------------------------------------------------------------------------------
       PURE FUNCTION cyl_to_cart(cyl)

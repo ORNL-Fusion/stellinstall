@@ -177,11 +177,11 @@
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Deconstruct a @ref intpol_class object.
+!>  @brief Deconstruct a @ref thomson_class object.
 !>
-!>  Deallocates memory and uninitializes a @ref intpol_class object.
+!>  Deallocates memory and uninitializes a @ref thomson_class object.
 !>
-!>  @param[inout] this A @ref intpol_class instance.
+!>  @param[inout] this A @ref thomson_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE thomson_destruct(this)
 

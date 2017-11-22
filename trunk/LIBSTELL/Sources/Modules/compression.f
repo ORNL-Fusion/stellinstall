@@ -45,16 +45,16 @@
 !>  Base class containing buffers for compressed and uncompressed data.
 !-------------------------------------------------------------------------------
       TYPE compression_class
-!  Uncompressed buffer
+!>  Uncompressed buffer
          REAL (rprec), DIMENSION(:,:), POINTER :: data_buffer => null()
 
-!  Singular Value U buffer
+!>  Singular Value U buffer
          REAL (rprec), DIMENSION(:,:), POINTER :: u_buffer => null()
-!  Singular Value V transpose buffer
+!>  Singular Value V transpose buffer
          REAL (rprec), DIMENSION(:,:), POINTER :: wvt_buffer => null()
 
-!  Dimensions of the data buffer. This is used in the special case that the
-!  orginal data buffer is all zeros. Otherwise it remains unallocated.
+!>  Dimensions of the data buffer. This is used in the special case that the
+!>  orginal data buffer is all zeros. Otherwise it remains unallocated.
          INTEGER, DIMENSION(:), POINTER        :: data_dim => null()
       END TYPE
 
@@ -64,12 +64,18 @@
 !>  directly.
 !-------------------------------------------------------------------------------
       TYPE compression_pointer
+!>  Pointer to a @ref compression_class. Used for building arrays of
+!>  @ref compression_class objects.
          TYPE (compression_class), POINTER :: p => null()
       END TYPE
 
 !*******************************************************************************
 !  INTERFACE BLOCKS
 !*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  Interface for the construction of @ref compression_class types using
+!>  @ref compression_construct_new or @ref compression_construct_netcdf
+!-------------------------------------------------------------------------------
       INTERFACE compression_construct
          MODULE PROCEDURE compression_construct_new,                           &
      &                    compression_construct_netcdf
@@ -549,6 +555,8 @@
 !>  data buffer. Otherwise the data is stored uncompressed.
 !>
 !>  @param[inout] this A @ref compression_class instance.
+!>  @param[in]    ncid A netcdf file handle.
+!>  @param[in]    name The name to write the variable to.
 !-------------------------------------------------------------------------------
       SUBROUTINE compression_write(this, ncid, name)
       USE ezcdf

@@ -84,11 +84,11 @@
 !>  Index of the first instance of a @ref limiter signal. The default -1
 !>  represents no @ref limiter signal created.
          INTEGER :: limiter_index = -1
-!>  Index of the first instance of a @ref prior_guassian signal. The default -1
-!>  represents no @ref prior_guassian signal created.
-         INTEGER :: prior_guassian_index = -1
-!>  Index of the first instance of a @ref prior_guassian signal. The default -1
-!>  represents no @ref prior_guassian signal created.
+!>  Index of the first instance of a @ref prior_gaussian signal. The default -1
+!>  represents no @ref prior_gaussian signal created.
+         INTEGER :: prior_gaussian_index = -1
+!>  Index of the first instance of a @ref prior_gaussian signal. The default -1
+!>  represents no @ref prior_gaussian signal created.
          INTEGER :: sxrem_ratio_index = -1
 !>  Index of the first instance of a @ref combination_class signal. The default
 !>  -1 represents no @ref combination_class signal created.
@@ -239,7 +239,7 @@
 	  this%mse_index = -1
 	  this%ece_index = -1
       this%limiter_index = -1
-      this%prior_guassian_index = -1
+      this%prior_gaussian_index = -1
       this%sxrem_ratio_index = -1
       this%combination_index = -1
 
@@ -432,8 +432,9 @@
 !>  Writes out the results of v3fit to the recout file.
 !>
 !>  @param[inout] this A @ref v3fit_context_class instance.
-!>  @note The 'this' parameter is intent(inout) because @ref signal_write calls
-!>  @ref signal_get_g2 which needs to be intent(inout).
+!>  @note The 'this' parameter is intent(inout) because
+!>        @ref signal::signal_write calls @ref signal::signal_get_g2 which needs
+!>        to be intent(inout).
 !-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_write(this)
 
@@ -619,7 +620,7 @@
      &          (this%mse_index .eq. i) .or.                                   &
      &          (this%ece_index .eq. i) .or.                                   &
      &          (this%limiter_index .eq. i) .or.                               &
-     &          (this%prior_guassian_index .eq. i) .or.                        &
+     &          (this%prior_gaussian_index .eq. i) .or.                        &
      &          (this%sxrem_ratio_index .eq. i) .or.                           &
      &          (this%combination_index .eq. i)) THEN
 
@@ -654,10 +655,11 @@
 !>  @param[in]    params    Array of parameter objects.
 !>  @param[in]    prefix    Prefix string to format the header.
 !>  @param[in]    type_name Type name of the parameters.
-!>  @note The 'this' parameter is intent(inout) because @ref signal_write calls
+!>  @note The 'this' parameter is intent(inout) because
+!>        @ref signal::signal_write calls @ref signal::signal_get_g2 which needs
+!>        to be intent(inout).
 !>  @node The 'prefix' parameter must be an exact length string with all white
 !>        space predefined.
-!>  @ref signal_get_g2 which needs to be intent(inout).
 !-------------------------------------------------------------------------------
       SUBROUTINE v3fit_context_write_param_header(this, params, prefix,        &
      &                                            type_name)
@@ -731,7 +733,7 @@
 !>     @item{maxnsteps,   The max number of reconstruction steps., v3fit_input::nrstep}
 !>     @item{ndparam,     Number of derived parameters.,           v3fit_input::n_dp}
 !>     @item{nparam,      Number of reconstruction parameters.,    v3fit_input::n_rp}
-!>     @item{nparamindex, Number of parameter indices.,            data_parameters::data_max_indicies}
+!>     @item{nparamindex, Number of parameter indices.,            data_parameters::data_max_indices}
 !>     @item{nsignal,     Number of constructed signals.,          v3fit_context::v3fit_context_class::signals}
 !>     @item{string_len,  Max lenth of strings.,                   data_parameters::data_name_length}
 !>  @end_table
@@ -748,18 +750,18 @@
 !>  @end_table
 !>  @table_section{result_file_main_dir_param_var_sec, Derived Parameter Variables}
 !>     @item{derived_param_name (string_len\, ndparam),           Name of the derived parameter.,               v3fit_params::param_get_name}
-!>     @item{derived_param_index (nparamindex\, ndparam),         Indices of the derived parameter.,            v3fit_params::param_class::indicies}
+!>     @item{derived_param_index (nparamindex\, ndparam),         Indices of the derived parameter.,            v3fit_params::param_class::indices}
 !>     @item{derived_param_value (ndparam\, maxnsteps),           Parameter values for each derived step.,      v3fit_params::param_get_value}
 !>     @item{derived_param_sigma (ndparam\, maxnsteps),           Parameter sigmas for each derived step.,      v3fit_params::param_class::sigma}
 !>     @item{derived_param_corr  (ndparam\, ndparam\, maxnsteps), Correlation matrix of the derived parameters, v3fit_params::param_class::correlation}
 !>  @end_table
 !>  @table_section{result_file_main_param_var_sec, Reconstruction Parameter Variables}
 !>     @item{param_name (string_len\, nparam),                 Name of the reconstruction parameter.,               v3fit_params::param_get_name}
-!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,            v3fit_params::param_class::indicies}
+!>     @item{param_index (nparamindex\, nparam),               Indices of the reconstruction parameter.,            v3fit_params::param_class::indices}
 !>     @item{param_value (nparam\, maxnsteps),                 Parameter values for each reconstruction step.,      v3fit_params::param_get_value}
 !>     @item{param_sigma (nparam\, maxnsteps),                 Parameter sigmas for each reconstruction step.,      v3fit_params::param_class::sigma}
 !>     @item{param_corr  (nparam\, nparam\, maxnsteps),        Correlation matrix of the reconstruction parameters, v3fit_params::param_class::correlation}
-!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step.,  v3fit_params::param_class::sem}
+!>     @item{signal_eff_matrix (nsignal\, nparam\, maxnsteps), Signal effectiveness for each reconstruction step.,  v3fit_params::param_recon_class::sem}
 !>  @end_table
 !>  @table_section{result_file_main_sig_var_sec, Signal Variables}
 !>     @item{signal_name (string_len\, nsignal),       Short name of the signal.,                                signal::signal_class::s_name}

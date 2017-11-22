@@ -24,8 +24,9 @@
 !>  reconstructed that change the equilibirum. These parameters require
 !>  the equilibrium to reconverge.
 !>  @begin_table
+!>     @item{helpert,       1D Array of helical perturbation amplitudes.,         @ref siesta_context::helpert}
 !>  @end_table
-!>  @subsection vmec_equilibrium_aux_recon_param_sec SIESTA Auxiliary Reconstruction Parameters
+!>  @subsection siesta_equilibrium_aux_recon_param_sec SIESTA Auxiliary Reconstruction Parameters
 !>  SIESTA Auxiliary reconstruction parameters are parameters that maybe
 !>  reconstructed that do not change the equilibirum. These parameters do not
 !>  require the equilibrium to reconverge.
@@ -213,7 +214,7 @@
 
 !>  Ratio of the poloidal grid points to the poloidal grid points.
          REAL (rprec)                           :: pol_rad_ratio
-!>  Instance of a @ref vmec_magnetic_cache object.
+!>  Instance of a @ref siesta_magnetic_cache object.
          TYPE (siesta_magnetic_cache), POINTER  ::                             &
      &      magnetic_cache => null()
 
@@ -235,7 +236,8 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the setting the @ref siesta_magnetic_cache types using
-!>  @ref siesta_set_magnetic_cache_init or @ref siesta_set_magnetic_cache_calc.
+!>  @ref siesta_set_magnetic_cache_responce,
+!>  @ref siesta_set_magnetic_cache_point or @ref siesta_set_magnetic_cache_calc.
 !-------------------------------------------------------------------------------
       INTERFACE siesta_set_magnetic_cache
          MODULE PROCEDURE siesta_set_magnetic_cache_responce,                  &
@@ -672,11 +674,12 @@
 !>  @brief Set magnetic cache for plasma resonce.
 !>
 !>  This method overrides @ref equilibrium::equilibrium_set_magnetic_cache. This
-!>  allocates a @ref vmec_magnetic_cache structure. Point measurements require
+!>  allocates a @ref siesta_magnetic_cache structure. Point measurements require
 !>  no array allocations.
 !>
 !>  @param[inout] this            A @ref siesta_class instance.
-!>  @param[in]    response_object A @ref magnetic_response_class instance.
+!>  @param[in]    response_object A @ref magnetic_response::magnetic_response_class
+!>                                instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_set_magnetic_cache_responce(this,                      &
      &                                              response_object)
@@ -3051,7 +3054,7 @@
 !>
 !>  This method overrides @ref equilibrium::equilibrium_is_recon_param.
 !>
-!>  @param[in] this A @ref vmec_class instance.
+!>  @param[in] this A @ref siesta_class instance.
 !>  @param[in] id   ID of the parameter.
 !>  @returns True if the parameter is a reconstruction parameter and false if
 !>  otherwise.
@@ -3136,7 +3139,7 @@
 !>  computing modeled signals. If the vmec equilibrium needs updating, it solves
 !>  that in addition.
 !>
-!>  @param[inout] this        A @ref vmec_class instance.
+!>  @param[inout] this        A @ref siesta_class instance.
 !>  @param[inout] num_iter    Counter to track the number of iterations.
 !>  @param[in]    iou         Input/Output unit of the runlog file.
 !>  @param[in]    eq_comm     MPI communicator pool for siesta/vmec.
@@ -3848,7 +3851,8 @@
 !>
 !>    b = 1 + i_low                                                          (5)
 !>
-!>  @param[in] s A position on the siesta radial grid.
+!>  @param[in] s    A position on the siesta radial grid.
+!>  @param[in] ilow Nearest lower index.
 !>  @returns Weight of the lower vmec index.
 !-------------------------------------------------------------------------------
       PURE FUNCTION siesta_to_w_vmec_low(s, ilow)

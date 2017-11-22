@@ -57,7 +57,7 @@
 !>  Parses the filename to generate a base name. Looks for a v3fit. and trims
 !>  off the remainder.
 !>
-!>  @param[in] namelist_file The file name of the input file.
+!>  @param[in] filename The file name of the input file.
 !>  @returns The base filename.
 !-------------------------------------------------------------------------------
       FUNCTION filename_base(filename)

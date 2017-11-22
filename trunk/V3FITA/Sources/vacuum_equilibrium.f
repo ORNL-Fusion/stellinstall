@@ -8,7 +8,7 @@
 !>  @page vacuum_equilibrium_sec Vacuum Equilibrium Manual
 !>
 !>  @tableofcontents
-!>  @section model_intro_sec Introduction
+!>  @section vacuum_equilibrium_model_intro_sec Introduction
 !>  This page documents the V3FIT interface to the vacuum equilibrium. This
 !>  lists all the parameters associated with a vacuum equilibrium. All
 !>  parameters are documented in a table of the following form.
@@ -156,11 +156,11 @@
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Deconstruct a @ref vmec_class object.
+!>  @brief Deconstruct a @ref vacuum_class object.
 !>
-!>  Deallocates memory and uninitializes a @ref vmec_class object.
+!>  Deallocates memory and uninitializes a @ref vacuum_class object.
 !>
-!>  @param[inout] this A @ref vmec_class instance.
+!>  @param[inout] this A @ref vacuum_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE vacuum_destruct(this)
 
@@ -189,21 +189,19 @@
 !>  always returns false because a vacuum equilibrium never needs to be
 !>  reconverged.
 !>
-!>  @param[inout] this        A @ref vmec_class instance.
+!>  @param[inout] this        A @ref vacuum_class instance.
 !>  @param[in]    id          ID of the parameter.
 !>  @param[in]    i_index     The ith index of the parameter.
 !>  @param[in]    value       The value of the parameter.
-!>  @param[inout] state_flags Bitwise flags to indicate which parts of the model
-!>                            changed.
 !-------------------------------------------------------------------------------
-      SUBROUTINE vacuum_set_param(this, id, i_index, j_index, value)
+      SUBROUTINE vacuum_set_param(this, id, i_index, value)
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (vacuum_class), INTENT(inout) :: this
       INTEGER, INTENT(in)                :: id
-      INTEGER, INTENT(in)                :: i_index, j_index
+      INTEGER, INTENT(in)                :: i_index
       REAL (rprec), INTENT(in)           :: value
 
 !  local variables
@@ -277,7 +275,7 @@
 !>  @param[in] i_index The ith index of the parameter.
 !>  @returns The value of the parameter.
 !-------------------------------------------------------------------------------
-      FUNCTION vacuum_get_param_value(this, id, i_index, j_index)
+      FUNCTION vacuum_get_param_value(this, id, i_index)
 
       IMPLICIT NONE
 
@@ -285,7 +283,7 @@
       REAL (rprec)                    :: vacuum_get_param_value
       TYPE (vacuum_class), INTENT(in) :: this
       INTEGER, INTENT(in)             :: id
-      INTEGER, INTENT(in)             :: i_index, j_index
+      INTEGER, INTENT(in)             :: i_index
 
 !  local variables
       REAL (rprec)                    :: start_time
@@ -596,7 +594,7 @@
 !>  boundary and other fixed parameters do not get updated as the reconstruction
 !>  progresses. Need to update them manually if in free boundary mode.
 !>
-!>  @param[in] this         A @ref vmec_class instance.
+!>  @param[in] this         A @ref vacuum_class instance.
 !>  @param[in] current_step Step number to append to input filename.
 !-------------------------------------------------------------------------------
       SUBROUTINE vacuum_write_input(this, current_step)

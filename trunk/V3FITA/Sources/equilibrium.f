@@ -69,7 +69,7 @@
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref equilibrium_class types using
 !>  @ref equilibrium_construct_vmec, @ref equilibrium_construct_vacuum or
-!>  @ref equilibrium_construct_mpi
+!>  @ref equilibrium_construct_siesta
 !-------------------------------------------------------------------------------
       INTERFACE equilibrium_construct
          MODULE PROCEDURE equilibrium_construct_vmec,                          &
@@ -200,7 +200,7 @@
 !>
 !>  Allocates memory and initializes a @ref equilibrium_class object.
 !>
-!>  @param[in] vacuum_object An instance of a @ref siesta_equilibrium subclass.
+!>  @param[in] siesta_object An instance of a @ref siesta_equilibrium subclass.
 !>  @param[in] force_solve   If true, forces the equilbirum to resolve every
 !>                           time.
 !>  @returns A pointer to a constructed @ref equilibrium_class object.
@@ -282,6 +282,7 @@
 !>  state flags.
 !>  @see vmec_equilibrium::vmec_set_param
 !>  @see vacuum_equilibrium::vacuum_set_param
+!>  @see siesta_equilibrium::siesta_set_param
 !>
 !>  @param[inout] this        A @ref equilibrium_class instance.
 !>  @param[in]    id          ID of the parameter.
@@ -322,8 +323,7 @@
      &                          eq_comm, state_flags)
 
          CASE (equilibrium_vacuum_type)
-            CALL vacuum_set_param(this%vacuum, id, i_index, j_index,           &
-     &                            value)
+            CALL vacuum_set_param(this%vacuum, id, i_index, value)
 
          CASE (equilibrium_siesta_type)
             CALL siesta_set_param(this%siesta, id, i_index, j_index,           &
@@ -345,11 +345,11 @@
 !>  method does not need to be overridden. This method is meant to only be
 !>  called once to tell the equilibrium it needs to use a magnetic cache.
 !>  @see vmec_equilibrium::vmec_set_magnetic_cache
+!>  @see siesta_equilibrium::siesta_set_magnetic_cache
 !>
 !>  @param[inout] this            A @ref equilibrium_class instance.
-!>  @param[in]    response_object A @ref magnetic_response_class instance.
-!>  @param[in]    use_axi         Magnetics can subtract off axisymmetric
-!>                                components.
+!>  @param[in]    response_object A @ref magnetic_response::magnetic_response_class
+!>                                instance.
 !>  @param[in]    state_flags     Bitwise flags to indicate which parts of the
 !>                                model changed.
 !-------------------------------------------------------------------------------
@@ -407,6 +407,7 @@
 !>  method does not need to be overridden. This method is meant to only be
 !>  called once to tell the equilibrium it needs to use a magnetic cache.
 !>  @see vmec_equilibrium::vmec_set_magnetic_cache
+!>  @see siesta_equilibrium::siesta_set_magnetic_cache
 !>
 !>  @param[inout] this        A @ref equilibrium_class instance.
 !>  @param[in]    use_axi     Magnetics can subtract off axisymmetric
@@ -466,6 +467,7 @@
 !>  id should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_param_id
 !>  @see vacuum_equilibrium::vacuum_get_param_id
+!>  @see siesta_equilibrium::siesta_get_param_id
 !>
 !>  @param[in] this       A @ref equilibrium_class instance.
 !>  @param[in] param_name Name of a reconstruction parameter.
@@ -517,6 +519,7 @@
 !>  value should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_param_value
 !>  @see vacuum_equilibrium::vacuum_get_param_value
+!>  @see siesta_equilibrium::siesta_get_param_value
 !>
 !>  @param[in] this    A @ref equilibrium_class instance.
 !>  @param[in] id      ID of the parameter.
@@ -549,7 +552,7 @@
 
          CASE (equilibrium_vacuum_type)
             equilibrium_get_param_value =                                      &
-     &         vacuum_get_param_value(this%vacuum, id, i_index, j_index)
+     &         vacuum_get_param_value(this%vacuum, id, i_index)
 
          CASE (equilibrium_siesta_type)
             equilibrium_get_param_value =                                      &
@@ -572,6 +575,7 @@
 !>  name should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_param_name
 !>  @see vacuum_equilibrium::vacuum_get_param_name
+!>  @see siesta_equilibrium::siesta_get_param_name
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -622,6 +626,7 @@
 !>  This method is virtual. The actual getting of the electron density should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_ne
+!>  @see siesta_equilibrium::siesta_get_ne
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron density at.
@@ -668,6 +673,7 @@
 !>  This method is virtual. The actual getting of the electron density should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_ne
+!>  @see siesta_equilibrium::siesta_get_ne
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] r    Radial position to get the electron density at.
@@ -714,6 +720,7 @@
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_te
+!>  @see siesta_equilibrium::siesta_get_te
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the electron temperature at.
@@ -760,6 +767,7 @@
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_te
+!>  @see siesta_equilibrium::siesta_get_te
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] r    Cartesian position to get the electron temperature at.
@@ -806,6 +814,7 @@
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_sxrem
+!>  @see siesta_equilibrium::siesta_get_sxrem
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the soft x-ray emissivity at.
@@ -856,6 +865,7 @@
 !>  This method is virtual. The actual getting of the electron temperature
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_sxrem
+!>  @see siesta_equilibrium::siesta_get_sxrem
 !>
 !>  @param[in] this  A @ref equilibrium_class instance.
 !>  @param[in] r     Cartesian position to get the soft x-ray emissivity at.
@@ -906,6 +916,7 @@
 !>  This method is virtual. The actual getting of the plasma pressure should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_p
+!>  @see siesta_equilibrium::siesta_get_p
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the plasma pressure at.
@@ -952,6 +963,7 @@
 !>  This method is virtual. The actual getting of the plasma pressure should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_p
+!>  @see siesta_equilibrium::siesta_get_p
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] r    Cartesian position to get the plasma pressure at.
@@ -1000,6 +1012,7 @@
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_B_vec
 !>  @see vacuum_equilibrium::vacuum_get_B_vec
+!>  @see siesta_equilibrium::siesta_get_B_vec
 !>
 !>  @param[in] this   A @ref equilibrium_class instance.
 !>  @param[in] x_cart Cartesian position to get the magnetic field vector at.
@@ -1054,6 +1067,7 @@
 !>  integration of the magnetic field to determine the enclosed current.
 !>  @see vmec_equilibrium::vmec_get_Int_B_dphi
 !>  @see vacuum_equilibrium::vacuum_get_Int_B_dphi
+!>  @see siesta_equilibrium::siesta_get_Int_B_dphi
 !>
 !>  @param[in] this  A @ref equilibrium_class instance.
 !>  @param[in] r     Radial position to integrate about.
@@ -1106,6 +1120,7 @@
 !>  This method is virtual. The actual getting of the magnetic field vector
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_plasma_edge
+!>  @see siesta_equilibrium::siesta_get_plasma_edge
 !>
 !>  @param[in]  this A @ref equilibrium_class instance.
 !>  @param[in]  phi  Toroidal angle to determine the outer surface at.
@@ -1166,6 +1181,7 @@
 !>  This method is virtual. The actual getting of the radial grid points
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_magnetic_volume_rgrid
+!>  @see siesta_equilibrium::siesta_get_magnetic_volume_rgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The radial grid points. 
@@ -1211,6 +1227,7 @@
 !>  This method is virtual. The actual getting of the z grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_magnetic_volume_zgrid
+!>  @see siesta_equilibrium::siesta_get_magnetic_volume_zgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The z grid points.
@@ -1256,6 +1273,7 @@
 !>  This method is virtual. The actual getting of the jr grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_magnetic_volume_jrgrid
+!>  @see siesta_equilibrium::siesta_get_magnetic_volume_jrgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The jr grid points.
@@ -1301,6 +1319,7 @@
 !>  This method is virtual. The actual getting of the jphi grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_magnetic_volume_jphigrid
+!>  @see siesta_equilibrium::siesta_get_magnetic_volume_jphigrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The jphi grid points.
@@ -1346,6 +1365,7 @@
 !>  This method is virtual. The actual getting of the jz grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_magnetic_volume_jzgrid
+!>  @see siesta_equilibrium::siesta_get_magnetic_volume_jzgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The jz grid points.
@@ -1391,6 +1411,7 @@
 !>  This method is virtual. The actual getting of the volume integration element
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_volume_int_element
+!>  @see siesta_equilibrium::siesta_get_volume_int_element
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The volume integration element.
@@ -1435,6 +1456,7 @@
 !>  This method is virtual. The actual getting of the kr grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_con_surface_krgrid
+!>  @see siesta_equilibrium::siesta_get_con_surface_krgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The kr grid points.
@@ -1480,6 +1502,7 @@
 !>  This method is virtual. The actual getting of the kphi grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_con_surface_kphigrid
+!>  @see siesta_equilibrium::siesta_get_con_surface_kphigrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The kphi grid points.
@@ -1525,6 +1548,7 @@
 !>  This method is virtual. The actual getting of the kz grid points should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_con_surface_kzgrid
+!>  @see siesta_equilibrium::siesta_get_con_surface_kzgrid
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The kz grid points.
@@ -1570,6 +1594,7 @@
 !>  This method is virtual. The actual getting of the area integration element
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_area_int_element
+!>  @see siesta_equilibrium::siesta_get_area_int_element
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns The volume integration element.
@@ -1620,6 +1645,7 @@
 !>  if need be.
 !>  @see vmec_equilibrium::vmec_get_ext_currents
 !>  @see vacuum_equilibrium::vacuum_get_ext_currents
+!>  @see siesta_equilibrium::siesta_get_ext_currents
 !>
 !>  @param[in]  this           A @ref equilibrium_class instance.
 !>  @param[in]  num_currents   Forces the number of currents to return if
@@ -1680,6 +1706,7 @@
 !>  This method is virtual. The actual getting of the external current should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_ext_b_plasma
+!>  @see siesta_equilibrium::siesta_get_ext_b_plasma
 !>
 !>  @param[in] this     A @ref equilibrium_class instance.
 !>  @param[in] position Position to compute the fields at.
@@ -1729,6 +1756,7 @@
 !>  This method is virtual. The actual getting of the radial grid size should be
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_grid_size
+!>  @see siesta_equilibrium::siesta_get_grid_size
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns Size of the radial grid.
@@ -1772,6 +1800,7 @@
 !>  This method is virtual. The actual getting of the radial grid start should
 !>  be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_grid_start
+!>  @see siesta_equilibrium::siesta_get_grid_start
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns Start of the radial grid.
@@ -1815,6 +1844,7 @@
 !>  This method is virtual. The actual getting of the radial grid stop should
 !>  be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_get_grid_stop
+!>  @see siesta_equilibrium::siesta_get_grid_stop
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns Stop of the radial grid.
@@ -1861,6 +1891,7 @@
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_scaler_value
+!>  @see siesta_equilibrium::siesta_is_scaler_value
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -1908,6 +1939,7 @@
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_1d_array
 !>  @see vacuum_equilibrium::vacuum_is_1d_array
+!>  @see siesta_equilibrium::siesta_is_1d_array
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -1956,6 +1988,7 @@
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_2d_array
+!>  @see siesta_equilibrium::siesta_is_2d_array
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -2001,6 +2034,7 @@
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_recon_param
 !>  @see vacuum_equilibrium::vacuum_is_recon_param
+!>  @see siesta_equilibrium::siesta_is_recon_param
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] id   ID of the parameter.
@@ -2052,6 +2086,7 @@
 !>  This method is virtual. The actual check should be handled by a subclass
 !>  method.
 !>  @see vmec_equilibrium::vmec_is_using_point
+!>  @see siesta_equilibrium::siesta_is_using_point
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @returns True if the point magnetic are being used.
@@ -2096,11 +2131,9 @@
 !>  @brief Solves the equilibrium.
 !>
 !>  This method is virtual. The actual solving of the equilibrium should be
-!>  handled by a subclass method. The equilibrium is only reconverged if it is
-!>  in an unconverged state. If the equilibrium was converged, this sets the
-!>  @ref equilibrium_class::not_converged to false to inform future calls that
-!>  the equilibirum is already in a converged state.
+!>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_converge
+!>  @see siesta_equilibrium::siesta_converge
 !>
 !>  @param[inout] this        A @ref equilibrium_class instance.
 !>  @param[inout] num_iter    Counter to track the number of iterations.
@@ -2160,8 +2193,10 @@
 !>  Loads the vacuum magnetic field file. This will get on multiple processes to
 !>  allow parallel loading of vacuum files.
 !>  @see vmec_equilibrium::vmec_read_vac_file
+!>  @see siesta_equilibrium::siesta_read_vac_file
 !>
-!>  @param[in] this    A @ref vmec_class instance.
+!>  @param[in] this    A @ref equilibrium_class instance.
+!>  @param[in] index   Index of the changed current.
 !>  @param[in] eq_comm MPI communicator pool for VMEC.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_read_vac_file(this, index, eq_comm)
@@ -2191,7 +2226,8 @@
 !>
 !>  This method is virtual. The actual saving of the equilibrium state should be
 !>  handled by a subclass method. 
-!>  @see vmec_equilibrium::vmec_converge
+!>  @see vmec_equilibrium::vmec_save_state
+!>  @see siesta_equilibrium::siesta_save_state
 !>
 !>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
@@ -2228,7 +2264,8 @@
 !>  This method is virtual. The actual reseting of the equilibrium state should
 !>  be handled by a subclass method. Sub classes need to make sure that the
 !>  equilibrium is reset to a converged state.
-!>  @see vmec_equilibrium::vmec_converge
+!>  @see vmec_equilibrium::vmec_reset_state
+!>  @see siesta_equilibrium::siesta_reset_state
 !>
 !>  @param[inout] this A @ref equilibrium_class instance.
 !-------------------------------------------------------------------------------
@@ -2267,6 +2304,7 @@
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_write
 !>  @see vacuum_equilibrium::vacuum_write
+!>  @see siesta_equilibrium::siesta_write
 !>
 !>  @param[in] this A @ref equilibrium_class instance.
 !>  @param[in] iou  Input/output unit of the output file.
@@ -2309,6 +2347,7 @@
 !>  handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_write_input
 !>  @see vaccum_equilibrium::vacuum_write_input
+!>  @see siesta_equilibrium::siesta_write_input
 !>
 !>  @param[in] this         A @ref equilibrium_class instance.
 !>  @param[in] current_step Step number to append to input filename.
@@ -2353,6 +2392,7 @@
 !>  This method is virtual. The actual defining of the equilibrium variables
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_def_result
+!>  @see siesta_equilibrium::siesta_def_result
 !>
 !>  @param[in] this             A @ref equilibrium_class instance.
 !>  @param[in] result_ncid      NetCDF file id of the result file.
@@ -2397,6 +2437,7 @@
 !>  This method is virtual. The actual writing of the equilibrium variables
 !>  should be handled by a subclass method.
 !>  @see vmec_equilibrium::vmec_write_init_data
+!>  @see siesta_equilibrium::siesta_write_init_data
 !>
 !>  @param[in] this        A @ref equilibrium_class instance.
 !>  @param[in] result_ncid NetCDF file id of the result file.
@@ -2439,7 +2480,7 @@
 !>  @see siesta_equilibrium::siesta_write_step_data
 !>
 !>  @param[in] this         A @ref equilibrium_class instance.
-!>  @param[in] iou          NetCDF file id of the result file.
+!>  @param[in] result_ncid  NetCDF file id of the result file.
 !>  @param[in] current_step Step index to write variables to.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_write_step_data(this, result_ncid,                &
@@ -2484,7 +2525,7 @@
 !>  @see siesta_equilibrium::siesta_restart
 !>
 !>  @param[in] this         A @ref equilibrium_class instance.
-!>  @param[in] iou          NetCDF file id of the result file.
+!>  @param[in] result_ncid  NetCDF file id of the result file.
 !>  @param[in] current_step Step index to write variables to.
 !-------------------------------------------------------------------------------
       SUBROUTINE equilibrium_restart(this, result_ncid, current_step)

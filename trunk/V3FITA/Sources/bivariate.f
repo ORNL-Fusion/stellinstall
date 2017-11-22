@@ -51,12 +51,8 @@
 !  INTERFACE BLOCKS
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Interface for the construction of @ref limiter_class types either using
-!>  @ref limiter_construct_iso, @ref limiter_construct_polygon or
-!>  @ref limiter_construct_mpi
-!>
-!>  @note
-!>  @ref limiter_construct_polygon has not been implemented yet.
+!>  Interface for the setting of @ref bivariate_type types either using
+!>  @ref bivariate_set_grids_1d or @ref bivariate_set_grids_2d.
 !-------------------------------------------------------------------------------
       INTERFACE bivariate_set_grids
          MODULE PROCEDURE bivariate_set_grids_1d,                              &
@@ -236,7 +232,7 @@
             rad0 = rsu(js, ku)
             zee0 = zsu(js, ku)
 
-            IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nr) .or.
+            IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nr) .or.                   &
      &          zee0.lt.zgrid(1) .or. zee0.gt.zgrid(nz)) THEN
                STOP 'Plasma point outside response function grid!'
             END IF
@@ -337,7 +333,7 @@
          rad0 = rsu(ku)
          zee0 = zsu(ku)
 
-         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nr) .or.
+         IF (rad0.lt.rgrid(1) .or. rad0.gt.rgrid(nr) .or.                      &
      &       zee0.lt.zgrid(1) .or. zee0.gt.zgrid(nz)) THEN
             STOP 'Plasma point outside response function grid!'
          END IF
@@ -408,9 +404,9 @@
 !
 !       COMPUTE RESPONSE AT R, PHI (fixed kin), Z BY 4-PT INTERPOLATION
 !
-         resp_su(jsu) = this%w11_bi(jsu)*resp_rz(this%irz11_bi(jsu))
-     &                + this%w22_bi(jsu)*resp_rz(this%irz22_bi(jsu))
-     &                + this%w21_bi(jsu)*resp_rz(this%irz21_bi(jsu))
+         resp_su(jsu) = this%w11_bi(jsu)*resp_rz(this%irz11_bi(jsu))           &
+     &                + this%w22_bi(jsu)*resp_rz(this%irz22_bi(jsu))           &
+     &                + this%w21_bi(jsu)*resp_rz(this%irz21_bi(jsu))           &
      &                + this%w12_bi(jsu)*resp_rz(this%irz12_bi(jsu))
 
       END DO

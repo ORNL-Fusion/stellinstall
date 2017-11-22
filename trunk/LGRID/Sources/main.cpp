@@ -17,7 +17,53 @@
 ///  the interior.
 ///
 ///  @section lgrid_input_sec Input Configuation
-///  Limiters are defined using a structured file with phi
+///  All limiters are defined using the same format. A key word, the number of
+///  phi planes the limiter surface is associated with, a list of phi values and
+///  then a list of r z segment positions terminated by a
+///  @fixed_width{end_limiter} keyword.
+///
+///  @fixed_width{keyword\n}
+///  @fixed_width{num_phi\n}
+///  @fixed_width{phi1(REAL) phi2(REAL) ... phiN(REAL)\n}
+///  @fixed_width{r1(REAL) z1(REAL)\n}
+///  @fixed_width{r2(REAL) z2(REAL)\n}
+///  @fixed_width{...\n}
+///  @fixed_width{rM(REAL) zM(REAL)\n}
+///  @fixed_width{end_limiter\n}
+///
+///  @subsection lgrid_input_keyword_sec Keywords
+///  @begin_table
+///  @item2{@fixed_width{new_limiter_deg}, A limiter at phi angles specified in degrees.}
+///  @item2{@fixed_width{new_limiter_rad}, A limiter at phi angles specified in radians.}
+///  @item2{@fixed_width{end_limiter},     End of the limiter.}
+///  @end_table
+///
+///  @subsection lgrid_input_exam_sec Example File
+///  @code
+///  new_limiter_deg
+///  3
+///  10.0 50.0 175.0
+///  0.5 -0.25
+///  1.0 -0.25
+///  1.0  0.25
+///  0.5  0.25
+///  end_limiter
+///  @endcode
+///
+///  @section lgrid_command_line_sec Command Line Arguments
+///  LGRID is run with the following command.
+///
+///  @fixed_width{lgrid filename r0 dr numr z0 dz numz}
+///
+///  @begin_table
+///  @item2{@fixed_width{filename}, Path to file containing the limiter configuation.}
+///  @item2{@fixed_width{r0},       Starting radial grid position.}
+///  @item2{@fixed_width{dr},       Radial grid width.}
+///  @item2{@fixed_width{numr},     Number of radial grid points.}
+///  @item2{@fixed_width{z0},       Starting vertical grid position.}
+///  @item2{@fixed_width{dz},       Vertical grid width.}
+///  @item2{@fixed_width{numz},     Number of vertical grid points.}
+///  @end_table
 //------------------------------------------------------------------------------
 //******************************************************************************
 ///  @file main.cpp
@@ -90,7 +136,7 @@ const limiter_type get_next_keyword(std::ifstream &file) {
 ///  @param[inout] limiters Limiter vertex data.
 ///  @param[in]    type     Limiter type.
 //------------------------------------------------------------------------------
-void parse_limiter(std::ifstream &file, std::map<double, std::vector<vertex *> > &limiters, const limiter_type type) {
+void parse_limiter(std::ifstream &file, std::map<const double, std::vector<vertex *> > &limiters, const limiter_type type) {
     size_t num_phi;
     file >> num_phi;
     
@@ -137,11 +183,11 @@ void parse_limiter(std::ifstream &file, std::map<double, std::vector<vertex *> >
 ///  @param[in] file_name Limiter type.
 ///  @return An @ref limiter_type token.
 //------------------------------------------------------------------------------
-std::map<double, std::vector<vertex *> > parse_limiter_file(const std::string file_name) {
+std::map<const double, std::vector<vertex *> > parse_limiter_file(const std::string &file_name) {
 
     std::ifstream file(file_name);
     
-    std::map<double, std::vector<vertex *> > limiters;
+    std::map<const double, std::vector<vertex *> > limiters;
     
     for (limiter_type type = get_next_keyword(file); type != eof; type = get_next_keyword(file)) {
         parse_limiter(file, limiters, type);
@@ -178,15 +224,15 @@ int main(int argc, const char * argv[]) {
         std::cout << "lgrid filename r0 dr numr z0 dz numz" << std::endl;
     }
     
-    std::map<double, std::vector<vertex *> > limiters = parse_limiter_file(argv[1]);
+    std::map<const double, std::vector<vertex *> > limiters = parse_limiter_file(argv[1]);
     
-    double r0 = atof(argv[2]);
-    double dr = atof(argv[3]);
-    size_t num_r = atoll(argv[4]);
+    const double r0 = atof(argv[2]);
+    const double dr = atof(argv[3]);
+    const size_t num_r = atoll(argv[4]);
 
-    double z0 = atof(argv[5]);
-    double dz = atof(argv[6]);
-    size_t num_z = atoll(argv[7]);
+    const double z0 = atof(argv[5]);
+    const double dz = atof(argv[6]);
+    const size_t num_z = atoll(argv[7]);
     
     std::vector<double> grids;
     
@@ -205,9 +251,9 @@ int main(int argc, const char * argv[]) {
     for (std::pair<double, std::vector<vertex *> > phi : limiters) {
         phi_angles.push_back(phi.first);
         for (size_t j = 0; j < num_z; j++) {
-            double z = z0 + j*dz;
+            const double z = z0 + j*dz;
             for (size_t i = 0; i < num_r; i++) {
-                double r = r0 + i*dr;
+                const double r = r0 + i*dr;
                 std::vector<double> d;
                 for (vertex *limiter : phi.second) {
                     vertex::distance(limiter, vector3d(r, z, 0.0), d);

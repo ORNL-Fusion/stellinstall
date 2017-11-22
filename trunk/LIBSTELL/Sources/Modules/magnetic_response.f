@@ -29,7 +29,7 @@
      &   magnetic_response_current = 'MRC 2015-04-27'
 !  Previous versions -----------------------------------------------------------
 !>  Version for the MDSIG files. This version adds the conducting shell.
-!>  @depreicated
+!>  @deprecated
       CHARACTER (len=*), PARAMETER ::                                          &
      &   magnetic_response_20140928 = 'MRC 2014-09-28'
 
@@ -94,7 +94,7 @@
      &   'mddc_mrf_n_field_periods'
 
 !>  NETCDF stell symmetric variable.
-!>  @depricated
+!>  @deprecated
       CHARACTER (len=*), PARAMETER :: nc_stell_sym =                           &
      &   'mddc_mrf_lstell_sym'
 
@@ -107,7 +107,7 @@
 
 !  Conducting Shell Response Arrays --------------------------------------------
 !>  NETCDF use conducting shell variable.
-!>  @depricated
+!>  @deprecated
       CHARACTER (len=*), PARAMETER :: nc_use_shell =                           &
      &   'mddc_mrf_use_con_shell'
 !>  NETCDF number torodial shell grid points variable.
@@ -229,7 +229,6 @@
 !>  Allocates memory and initializes a @ref magnetic_response_class object.
 !>
 !>  @param[in] name            Name of the code which computed the responses.
-!>  @param[in] version         Version of the code.
 !>  @param[in] date            Data and time the code was run.
 !>  @param[in] coil_id         Idenifier of field-coils.
 !>  @param[in] inductance      Array of diagnostic field-coil-group responses.
@@ -254,7 +253,7 @@
 !>  @param[in] a_s_z           Z component of the conducting shell response
 !>                             function.
 !>  @param[in] svd_cut_off     Cutoff on singular values for data compression.
-!>  @returns A pointer to a constructed @ref magnetic_class object.
+!>  @returns A pointer to a constructed @ref magnetic_response_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_response_construct_new(name, date,                     &
      &                                         coil_id, inductance,            &
@@ -399,13 +398,13 @@
 !>  Allocates memory and initializes a @ref magnetic_response_class object.
 !>
 !>  @param[in] name          Name of the code which computed the responses.
-!>  @param[in] version       Version of the code.
 !>  @param[in] date          Data and time the code was run.
 !>  @param[in] coil_id       Idenifier of field-coils.
 !>  @param[in] position      Position of the point measurement.
 !>  @param[in] direction     Direction of the point measurement.
 !>  @param[in] vacuum        Array of diagnostic vacuum responses.
 !>  @param[in] current_scale Array of external current scales.
+!>  @returns A pointer to a constructed @ref magnetic_response_class object.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_response_construct_point(name, date,                   &
      &                                           coil_id, position,            &
@@ -477,8 +476,8 @@
 !-------------------------------------------------------------------------------
 !>  @brief Construct a @ref magnetic_response_class object.
 !>
-!>  Allocates memory and initializes a @ref magnetic_class object from a mdsig
-!>  file.
+!>  Allocates memory and initializes a @ref magnetic_response_class object from
+!>  a mdsig file.
 !>
 !>  @param[in] mdsig_iou   An instance of a the netcdf id of the open mdsig
 !>                         file.

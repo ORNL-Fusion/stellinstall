@@ -113,6 +113,8 @@
 !>  This is needed because fortran does not allow arrays of pointers directly.
 !-------------------------------------------------------------------------------
       TYPE signal_pointer
+!>  Pointer to a @ref signal_class. Used for building arrays of
+!>  @ref signal_class objects.
          TYPE (signal_class), POINTER :: p => null()
       END TYPE
 
@@ -356,13 +358,13 @@
 !>
 !>  Allocates memory and initializes a @ref signal_class object.
 !>
-!>  @param[in] prior_object An instance of a @ref prior subclass.
-!>  @param[in] s_name       The short name of the signal.
-!>  @param[in] l_name       The short name of the signal.
-!>  @param[in] units        The units of the signal.
-!>  @param[in] observed     Observed value of the signal.
-!>  @param[in] sigma        Observed sigma of the signal.
-!>  @param[in] weight       Weight factor of the signal.
+!>  @param[in] feedback_object An instance of a @ref feedback subclass.
+!>  @param[in] s_name          The short name of the signal.
+!>  @param[in] l_name          The short name of the signal.
+!>  @param[in] units           The units of the signal.
+!>  @param[in] observed        Observed value of the signal.
+!>  @param[in] sigma           Observed sigma of the signal.
+!>  @param[in] weight          Weight factor of the signal.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_feedback(feedback_object, s_name,              &

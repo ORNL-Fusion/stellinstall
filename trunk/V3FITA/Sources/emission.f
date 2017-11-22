@@ -18,8 +18,8 @@
 !>  @section emission_file_contents_sec File Contents
 !>  @header{Variable, Description, Dimension}
 !>  @begin_table
-!>     @item{te_start,    Initial temperature.,         Scalar}
-!>     @item{te_step,     Temperature step.,            Scalar}
+!>     @item{te_start,   Initial temperature.,          Scalar}
+!>     @item{te_step,    Temperature step.,             Scalar}
 !>     @item{emissivity, Soft X-Ray emission function., (Number Cameras\, Number Energies)}
 !>  @end_table
 !>
@@ -151,7 +151,7 @@
 !  GETTER SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @bried Gets the emission as a function of energy for a fixed temperature.
+!>  @brief Gets the emission as a function of energy for a fixed temperature.
 !>
 !>  The emission for a fixed temperature is interpolated from a the temperature
 !>  grid points. The emission array columns are the temperature and rows are the

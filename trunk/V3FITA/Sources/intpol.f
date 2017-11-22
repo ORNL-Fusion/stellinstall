@@ -59,8 +59,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref intpol_class types using
-!>  @ref intpol_construct_int, @ref intpol_construct_pol or
-!>  @ref intpol_construct_mpi
+!>  @ref intpol_construct_int or @ref intpol_construct_pol.
 !-------------------------------------------------------------------------------
       INTERFACE intpol_construct
          MODULE PROCEDURE intpol_construct_int,                                &
@@ -307,16 +306,12 @@
 !>
 !>  @see integration_path
 !>
-!>  @param[in] context A @ref the model.
-!>  @param[in] xcart   A the integration point.
+!>  @param[in] context A @ref model.
+!>  @param[in] xcart   A integration point.
 !>  @param[in] dxcart  A vector change in path. Not used in this function.
 !>  @param[in] length  Length along the integration. Not used in this function.
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The ne(x)*dl at point x.
-!>
-!>  @note context in this case if not that same as @ref context. It refers to
-!>  generic passed to the function. This is the fortran eqivalent to a void
-!>  pointer in C.
 !-------------------------------------------------------------------------------
       FUNCTION int_function(context, xcart, dxcart, length, dx)
       USE model
@@ -354,16 +349,12 @@
 !>
 !>  @see integration_path
 !>
-!>  @param[in] context A @ref the model.
-!>  @param[in] xcart   A the integration point.
+!>  @param[in] context A @ref model.
+!>  @param[in] xcart   A integration point.
 !>  @param[in] dxcart  A vector change in path.
 !>  @param[in] length  Length along the integration. Not used in this function.
 !>  @param[in] dx      A scalar change in path. Not used in this function.
 !>  @returns The ne(x)*B.dl at point x.
-!>
-!>  @note context in this case if not that same as @ref context. It refers to
-!>  generic passed to the function. This is the fortran eqivalent to a void
-!>  pointer in C.
 !-------------------------------------------------------------------------------
       FUNCTION pol_function(context, xcart, dxcart, length, dx)
       USE model

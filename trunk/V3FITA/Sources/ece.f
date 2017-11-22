@@ -42,7 +42,7 @@
       TYPE ece_context
 !>  The index of the emissivity profile model.
          REAL (rprec)                :: resonance
-!>  Reference to a @ref model_class object.
+!>  Reference to a @ref model::model_class object.
          TYPE (model_class), POINTER :: model => null()
       END TYPE
 
@@ -268,12 +268,9 @@
 !>  @see integration_path
 !>
 !>  @param[in] context A @ref ece_context for the model.
-!>  @param[in] xcart   The search point.
+!>  @param[in] xcart1  The upper search point.
+!>  @param[in] xcart2  The lower search point.
 !>  @returns True if the resonace was found.
-!>
-!>  @note context in this case if not that same as @ref context. It refers to
-!>  generic passed to the function. This is the fortran eqivalent to a void
-!>  pointer in C.
 !-------------------------------------------------------------------------------
       FUNCTION ece_function(context, xcart1, xcart2)
       USE coordinate_utilities

@@ -7,7 +7,7 @@
 !
 !>  @page v3rfun_namelist_sec Namelist v3r_coils definition
 !>
-!>  @tableofcentents
+!>  @tableofcontents
 !>  @section v3rfun_namelist_intro_sec Introduction
 !>  This page documents the contents of a namelist input file. V3RFUN namelist
 !>  variables are defined in the @fixed_width{v3r_coils} common block.
@@ -85,7 +85,7 @@
 !>  /
 !>  @endcode
 !>
-!>  @section namelist_prog_ref_sec Programmers Reference
+!>  @section v3rfun_namelist_prog_ref_sec Programmers Reference
 !>  Reference material for the coding to implement this namelist is found in the
 !>  @ref v3rfun_input module.
 !-------------------------------------------------------------------------------
@@ -104,7 +104,7 @@
 !>  @ref v3rfun_context object. All non-parameters are inputs to the namelist
 !>  input file.
 !>
-!>  @ref v3fit_namelist_sec "Namelist v3r_coils definition"
+!>  @ref v3rfun_namelist_sec "Namelist v3r_coils definition"
 !>
 !>  @note Some of the references are missing here. This is due to a bug in
 !>  Doxygen when variable decalarations span multiple lines.

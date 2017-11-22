@@ -14,7 +14,7 @@
 !>
 !>  @fixed_width{-arg=value}
 !>
-!>  @section cl_parsing_arg_sec Command Line Arguments
+!>  @section bmw_cl_parsing_arg_sec Command Line Arguments
 !>  @header2{Argument, Takes Value, Discription}
 !>  @begin_table
 !>     @item3{@fixed_width{-h},      N, Displays the help text and exits the program.}
@@ -29,7 +29,7 @@
 !>  OpenMP and MPI support must be configured at compile time to use. A simple way to check if support has been
 !>  included is to check the command line help @fixed_width{-h}.
 !>
-!>  @section bmw_cl_pasring_prog_ref_secProgrammers Reference
+!>  @section bmw_cl_pasring_prog_ref_sec Programmers Reference
 !>  Reference material for the coding to implement command line parsing is found
 !>  in the @ref bmw_commandline_parser module.
 !-------------------------------------------------------------------------------

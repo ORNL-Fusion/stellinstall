@@ -26,7 +26,7 @@
 !>     @item3{@fixed_width{-h},     N, Displays the help text and exits the program.}
 !>  @end_table
 !>
-!>  @section cl_pasring_prog_ref_secProgrammers Reference
+!>  @section v3rfun_cl_pasring_prog_ref_sec Programmers Reference
 !>  Reference material for the coding to implement command line parsing is found
 !>  in the @ref v3rfun.f
 !-------------------------------------------------------------------------------

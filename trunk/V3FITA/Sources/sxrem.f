@@ -44,7 +44,7 @@
       TYPE sxrem_context
 !>  The index of the emissivity profile model.
          INTEGER                     :: profile_number
-!>  Reference to a @ref model_class object.
+!>  Reference to a @ref model::model_class object.
          TYPE (model_class), POINTER :: model => null()
       END TYPE
 
@@ -232,8 +232,9 @@
 !>  @brief Soft x-ray callback function.
 !>
 !>  Returns the value of the soft x-ray emissivity times the change in path
-!>  length. This function is passed to @ref path_integrate to act as a callback.
-!>  The soft x-ray emissivity is provided by @ref model::model_get_sxrem.
+!>  length. This function is passed to @ref integration_path::path_integrate to
+!>  act as a callback. The soft x-ray emissivity is provided by
+!>  @ref model::model_get_sxrem.
 !>
 !>  @see integration_path
 !>
@@ -243,10 +244,6 @@
 !>  @param[in] length  Length along the integration.
 !>  @param[in] dx      A scalar change in path.
 !>  @returns The sxrem(x)*dl at point x.
-!>
-!>  @note context in this case if not that same as @ref context. It refers to
-!>  generic passed to the function. This is the fortran eqivalent to a void
-!>  pointer in C. 
 !-------------------------------------------------------------------------------
       FUNCTION sxr_function(context, xcart, dxcart, length, dx)
       USE coordinate_utilities

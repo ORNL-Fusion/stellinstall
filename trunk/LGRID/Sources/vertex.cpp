@@ -127,6 +127,7 @@ const double vertex::c(const vertex &v1, const vertex &v2) {
 ///
 ///  @param[in] v1 First vertex.
 ///  @param[in] v2 Second vertex.
+///  @param[in] p  Point of interest.
 ///  @return The minimum x along the line to the point.
 //------------------------------------------------------------------------------
 const double vertex::x_min(const vertex &v1, const vertex &v2, const vector3d &p) {
@@ -142,6 +143,7 @@ const double vertex::x_min(const vertex &v1, const vertex &v2, const vector3d &p
 ///
 ///  @param[in] v1 First vertex.
 ///  @param[in] v2 Second vertex.
+///  @param[in] p  Point of interest.
 ///  @return The minimum y along the line to the point.
 //------------------------------------------------------------------------------
 const double vertex::y_min(const vertex &v1, const vertex &v2, const vector3d &p) {
@@ -171,8 +173,7 @@ const double vertex::length(const vertex &v1, const vertex &v2, const vector3d &
 ///
 ///  The length of a line from a point to the vertex.
 ///
-///  @param[in] v1 First vertex.
-///  @param[in] v2 Second vertex.
+///  @param[in] v First vertex.
 ///  @param[in] p  Point of interest.
 ///  @return The length to a from a point to the line.
 //------------------------------------------------------------------------------
@@ -202,9 +203,9 @@ const bool vertex::in_range(const vertex &v1, const vertex &v2, const double x, 
 ///  A point is in range when the line normal to the limiter face that
 ///  intersects the point is between the two verticies.
 ///
-///  @param[in] v1 First vertex.
-///  @param[in] n  Vector normal to the vertex.
-///  @param[in] p  Point of interest.
+///  @param[in] v First vertex.
+///  @param[in] n Vector normal to the vertex.
+///  @param[in] p Point of interest.
 ///  @return The length to a from a point to the line.
 //------------------------------------------------------------------------------
 const double vertex::direction(const vertex &v, const vector3d &n, const vector3d &p) {

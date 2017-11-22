@@ -55,15 +55,17 @@
 !>  * @ref param_range_infinity_type
 !>  * @ref param_range_parameter_type
          INTEGER, DIMENSION(2) :: range_type = param_range_no_type
-!>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
-!>  holds the parameter id's of the lower(1) and upper(2) boundary. Id's are
-!>  provided by either the @ref model or the @ref equilibrium.
+!>  If the @ref param_recon_class::range_type is
+!>  @ref param_range_parameter_type, this holds the parameter id's of the
+!>  lower(1) and upper(2) boundary. Id's are provided by either the @ref model
+!>  or the @ref equilibrium.
          INTEGER, DIMENSION(2) :: range_id = data_no_id
-!>  If the @ref param_class::range_type is @ref param_range_parameter_type, this
-!>  holds the parameter indices of the lower(1,:) and upper(2,:) boundary.
+!>  If the @ref param_recon_class::range_type is
+!>  @ref param_range_parameter_type, this holds the parameter indices of the
+!>  lower(1,:) and upper(2,:) boundary.
          INTEGER, DIMENSION(2,data_max_indices) :: range_indices = 0
-!>  If the @ref param_class::range_type is @ref param_range_value_type, this
-!>  holds the value of the lower(1) and upper(2) boundary.
+!>  If the @ref param_recon_class::range_type is @ref param_range_value_type,
+!>  this holds the value of the lower(1) and upper(2) boundary.
          REAL (rprec), DIMENSION(2) :: range_value = 0.0
 
 !>  The contraints can change the normalization size of the patarameter when
@@ -106,7 +108,7 @@
 
 !>  Stored value of the parameter uncertainty for the current reconstruction
 !>  step. This value is calculated by
-!>  @ref reconstruction::reconstruction_eval_pos_covar.
+!>  @ref reconstruction::reconstruction_eval_sem.
          REAL (rprec)                         :: sigma = 0.0
 !>  Stored row of the correlation matrix. When the parameter is interpreted as a
 !>  locking parameter, this array contains the parameter coefficents.
@@ -118,6 +120,8 @@
 !>  This is needed because fortran does not allow arrays of pointers directly.
 !-------------------------------------------------------------------------------
       TYPE param_pointer
+!>  Pointer to a @ref param_class. Used for building arrays of @ref param_class
+!>  objects.
          TYPE (param_class), POINTER :: p => null()
       END TYPE
 
@@ -217,7 +221,7 @@
 !>  @param[in] range_indices  The array indices of the boundary parameter.
 !>  @param[in] range_value    Value of a boundary.
 !>  @param[in] num_signals    Number of signals. Used to determine the size of
-!>                            the @ref param_class::sem arrays.
+!>                            the @ref param_recon_class::sem arrays.
 !>  @param[in] num_params     Number of parameters. USed to determine the size
 !>                            of the @ref param_class::correlation arrays.
 !>  @returns A pointer to a constructed @ref param_class object.
@@ -338,7 +342,7 @@
 !>  @param[in] a_model     An instance of a @ref model object.
 !>  @param[in] param_name  The name of the parameter.
 !>  @param[in] indices     The array indices of the parameter.
-!>  @param[in] sets        Array of parameters to lock to.
+!>  @param[in] set         Array of parameters to lock to.
 !>  @param[in] set_indices Array of parameters indices for parameters to lock
 !>                         to.
 !>  @param[in] set_coeff   Coefficients for the parameters to lock to.
@@ -526,7 +530,7 @@
             set_value = lower_value + off_set_value
 
 !  Need to check the upper range if using central differencing.
-            IF (is_central .and. (this%recon%range_type(2) .ne.                               &
+            IF (is_central .and. (this%recon%range_type(2) .ne.                &
      &                            param_range_infinity_type)) THEN
 
                upper_value = param_get_upper_range_value(this, a_model)
@@ -965,8 +969,8 @@
 !>  incremented in the opposite direction. If the incremented value is outside
 !>  of both ranges, the step size value is halved and the procedure is repeated.
 !>  Five attempts are made until the function quits with an error. If
-!>  successful, the actual step size used is cached in @ref param_class::delta
-!>  for normalization purposes.
+!>  successful, the actual step size used is cached in
+!>  @ref param_recon_class::delta for normalization purposes.
 !>
 !>  If central differencing is used, both the upper and lower bounds must be
 !>  checked. Starting with half the parameter vrnc, the change in parameter is

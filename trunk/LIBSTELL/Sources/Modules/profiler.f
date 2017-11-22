@@ -58,11 +58,10 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref profiler_table object.
+!>  @brief Construct a profiler.
 !>
-!>  Allocates memory for a profiler table.
-!>
-!>  @returns A pointer to a constructed @ref profiler_table object.
+!>  This only sets up OpenMP locks if OpenMP support is compiled in. The profile
+!>  table uses a fixed memory size in global memory.
 !-------------------------------------------------------------------------------
       SUBROUTINE profiler_construct()
 
@@ -83,11 +82,10 @@
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Deconstruct a @ref profiler_table object.
+!>  @brief Deconstruct a profiler.
 !>
-!>  Deallocates memory for a @ref profiler_table object.
-!>
-!>  @param[inout] this A @ref profiler_table instance.
+!>  This only destroys OpenMP locks if OpenMP support is compiled in. The
+!>  profile table uses a fixed memory size in global memory.
 !-------------------------------------------------------------------------------
       SUBROUTINE profiler_destruct()
 

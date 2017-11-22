@@ -96,7 +96,7 @@
 !>
 !>  Allocates memory and initializes a @ref v3rfun_context_class object.
 !>
-!>  @returns A pointer to a constructed @ref v3fit_context_class object.
+!>  @returns A pointer to a constructed @ref v3rfun_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION v3rfun_context_construct(filename)
       USE v3_utilities
@@ -528,8 +528,8 @@
 !>  Computes the magnetic response function for each a coil and writes the
 !>  results to an mdsig file.
 !>
-!>  @param[inout] this   A @ref reconstruction_class instance.
-!>  @param[in]    d_coil A @ref diagnostic_dot_coil instance.
+!>  @param[inout] this   A @ref v3rfun_context_class instance.
+!>  @param[in]    d_coil A @ref diagnostic_dot::diagnostic_dot_coil instance.
 !>  @param[in]    id_num Diagnostic coil number.
 !-------------------------------------------------------------------------------
       SUBROUTINE v3rfun_context_write_mrf(this, d_coil, id_num)
@@ -798,8 +798,8 @@
 !>  Computes the response function for the vacuum field at the point
 !>  measurement. Point probes are assumed to be outside of the plasma.
 !>
-!>  @param[inout] this   A @ref reconstruction_class instance.
-!>  @param[in]    d_coil A @ref diagnostic_dot_coil instance.
+!>  @param[inout] this   A @ref v3rfun_context_class instance.
+!>  @param[in]    d_coil A @ref diagnostic_dot::diagnostic_dot_coil instance.
 !>  @param[in]    id_num Diagnostic coil number.
 !-------------------------------------------------------------------------------
       SUBROUTINE v3rfun_context_write_point(this, d_coil, id_num)

@@ -94,7 +94,7 @@
  ctest
  @endcode
  * Individual or ranges of tests maybe run by using the 
- * @fixed_width{ctest -R <regex>} command. As an example to run all the tests 
+ * @fixed_width{ctest -R &ltregex&gt} command. As an example to run all the tests
  * for diagnostic rotation use the command 
  * @code
  ctest -R ^diagnostic_rotation

@@ -242,8 +242,8 @@
 !>
 !>  Creates new directory by calling the appropriate command for the plaform.
 !>
-!>  @param[in]  file_source The file to delete.
-!>  @param[out] error       The result of the copy.
+!>  @param[in]  directory_source The directory to create.
+!>  @param[out] error            The result of the copy.
 !-------------------------------------------------------------------------------
       SUBROUTINE create_directory(directory_source, error)
 
@@ -272,8 +272,8 @@
 !>  Deletes directory by calling the appropriate command for the plaform. This
 !>  deletes all files inside the directory as well.
 !>
-!>  @param[in]  file_source The file to delete.
-!>  @param[out] error       The result of the copy.
+!>  @param[in]  directory_source The directory to delete.
+!>  @param[out] error            The result of the copy.
 !-------------------------------------------------------------------------------
       SUBROUTINE delete_directory(directory_source, error)
       IMPLICIT NONE
@@ -347,7 +347,7 @@
 !>
 !>  Searches a path for last path separator and returns the directory path.
 !>
-!>  @param[in] path Path to file.
+!>  @param[in] file Path to file.
 !>  @returns The path of the file.
 !-------------------------------------------------------------------------------
       FUNCTION get_path_of_file(file)
@@ -407,7 +407,8 @@
 !>  Changes the current working directory of the running process. CHDIR is an
 !>  extension on many compilers. Check for compatability.
 !>
-!>  @param[in] path Path of the working directory to change to.
+!>  @param[in]  path  Path of the working directory to change to.
+!>  @param[out] error Returned error code.
 !-------------------------------------------------------------------------------
       SUBROUTINE change_directory(path, error)
 #if defined(__INTEL_COMPILER)

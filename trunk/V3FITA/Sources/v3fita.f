@@ -730,7 +730,8 @@
 !>  @brief Initialize an equilibrium.
 !>
 !>  This constructs and initializes an equilibrium. Currently only
-!>  @ref vmec_equilibium and @ref vacuum_equilibium are supported.
+!>  @ref vmec_equilibium, @ref vacuum_equilibium and @ref siesta_equilibium are
+!>  supported.
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
@@ -992,7 +993,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Constructs the @ref signal array.
 !>
-!>  This constructs all @ref v3fit_context::signals.
+!>  This constructs all @ref v3fit_context::v3fit_context_class::signals.
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------
@@ -1272,7 +1273,7 @@
 !>  @brief Constructs @ref intpol signals.
 !>
 !>  This constructs all @ref intpol signals from the specified
-!>  @ref v3fit_input::ipch_dot_filenam.
+!>  @ref v3fit_input::ipch_dot_filename.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
 !>  @param[inout] signals_created Count of the current number of signals
@@ -1677,7 +1678,7 @@
 !-------------------------------------------------------------------------------
 !>  @brief Constructs @ref prior signals.
 !>
-!>  For now only @ref prior_guassian signals are constructed.
+!>  For now only @ref prior_gaussian signals are constructed.
 !>
 !>  @param[inout] context         An instance of a @ref v3fit_context object.
 !>  @param[inout] signals_created Count of the current number of signals
@@ -1730,8 +1731,8 @@
 
 !  At lease one prior signal was made. Mark the index of it in the context.
 !  This should only be run once.
-         IF (context%prior_guassian_index .eq. -1) THEN
-            context%prior_guassian_index = signals_created
+         IF (context%prior_gaussian_index .eq. -1) THEN
+            context%prior_gaussian_index = signals_created
          END IF
 
       END DO
@@ -1876,10 +1877,10 @@
       END SUBROUTINE
 
 !-------------------------------------------------------------------------------
-!>  @brief Constructs the @ref parameter array.
+!>  @brief Constructs the @ref v3fit_context::v3fit_context_class::params array.
 !>
-!>  This constructs all reconstruction @ref v3fit_context::params and derived
-!>  @ref v3fit_context::params .
+!>  This constructs all reconstruction @ref v3fit_params::param_class and
+!>  derived @ref v3fit_params::param_class objects.
 !>
 !>  @param[inout] context An instance of a @ref v3fit_context object.
 !-------------------------------------------------------------------------------

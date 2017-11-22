@@ -8,7 +8,7 @@
 !>  @page profile_sec Profiles types.
 !>
 !>  @tableofcontents
-!>  @section namelist_intro_sec Introduction
+!>  @section profile_namelist_intro_sec Introduction
 !>  This page contains discriptions of the types of profiles that can be used
 !>  for parameterized profiles. Profiles are tagged in the
 !>  @ref model_profile_sec, as @fixed_width{pp_*_} where @fixed_width{*} refers

@@ -48,7 +48,7 @@
 !>  OpenMP and MPI support must be configured at compile time to use. A simple way to check if support has been
 !>  included is to check the command line help @fixed_width{-h}.
 !>
-!>  @section cl_pasring_prog_ref_secProgrammers Reference
+!>  @section cl_pasring_prog_ref_sec Programmers Reference
 !>  Reference material for the coding to implement command line parsing is found
 !>  in the @ref commandline_parser module.
 !-------------------------------------------------------------------------------

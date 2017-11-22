@@ -91,7 +91,8 @@
 !>  Interface for the construction of @ref diagnostic_class types using
 !>  @ref diagnostic_construct_magnetic, @ref diagnostic_construct_sxrem,
 !>  @ref diagnostic_construct_intpol, @ref diagnostic_construct_thomson,
-!>  @ref diagnostic_construct_extcurz or @ref diagnostic_construct_mpi
+!>  @ref diagnostic_construct_extcurz, @ref diagnostic_construct_mse or
+!>  @ref diagnostic_construct_ece.
 !-------------------------------------------------------------------------------
       INTERFACE diagnostic_construct
          MODULE PROCEDURE diagnostic_construct_magnetic,                       &
@@ -412,7 +413,6 @@
 !>  @param[in]  this       A @ref diagnostic_class instance.
 !>  @param[in]  a_model    A @ref model instance.
 !>  @param[out] sigma      The modeled sigma.
-!>  @param[out] changed    Indicates if there was a change in the signal.
 !>  @param[in]  last_value Last good value in case the signal did not change.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------

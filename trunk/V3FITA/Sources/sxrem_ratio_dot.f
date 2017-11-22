@@ -31,7 +31,7 @@
 !>
 !>  @section sxrem_ratio_dot_chord_spec_sec Point Specification
 !>  All thomson scattering points are specified in the following manner. Indices
-!>  a specified such that the order defines tha ration as index1/index2.
+!>  a specified such that the order defines the ratio as index1/index2.
 !>
 !>  @fixed_width{key_word\n}
 !>  @fixed_width{name(STRING len:@ref data_parameters::data_short_name_length)\n}
@@ -61,14 +61,14 @@
 !>  @ref signal_dot and @ref sxrem_ratio_dot modules.
 !-------------------------------------------------------------------------------
 !*******************************************************************************
-!>  @file thscte_dot.f
-!>  @brief Contains module @ref thscte_dot
+!>  @file sxrem_ratio_dot.f
+!>  @brief Contains module @ref sxrem_ratio_dot
 !
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  Module for opening and reading a 'thscte.' file. The file format for these
-!>  files are documented in @ref thomson_dot_sec.
+!>  Module for opening and reading a 'sxrem_ratio.' file. The file format for these
+!>  files are documented in @ref sxrem_ratio_dot_sec.
 !*******************************************************************************
       MODULE sxrem_ratio_dot
 

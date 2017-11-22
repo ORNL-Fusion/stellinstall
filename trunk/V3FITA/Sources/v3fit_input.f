@@ -28,8 +28,8 @@
 !>        @item{sxrch_dot_filename,       File holding soft x-ray chord information. The file specification is described in the @ref sxrem_dot_sec.,                  v3fit_input::sxrch_dot_filename}
 !>        @item{thscte_dot_filename,      File holding Thomson scattering information. The file specification is described in the @ref thomson_dot_sec.,              v3fit_input::thscte_dot_filename}
 !>        @item{ipch_dot_filename,        File holding interferometry-polarimetry chord information. The file specification is described in the @ref intpol_dot_sec., v3fit_input::ipch_dot_filename}
-!>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_ratio_dot_sec.,         v3fit_input::mse_dot_filename}
-!>        @item{ece_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref ece_ratio_dot_sec.,         v3fit_input::ece_dot_filename}
+!>        @item{mse_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref mse_dot_sec.,               v3fit_input::mse_dot_filename}
+!>        @item{ece_dot_filename,         File holding motional stark effect information. The file specification is described in the @ref ece_dot_sec.,               v3fit_input::ece_dot_filename}
 !>        @item{sxrem_ratio_dot_filename, File holding soft x-ray emissivity ratio information. The file specification is described in the @ref sxrem_ratio_dot_sec., v3fit_input::sxrem_ratio_dot_filename}
 !>        @item{limiter_grid_file,        File to load the limiter grid functions.,                                                                                   v3fit_input::limiter_grid_file}
 !>  @end_table
@@ -142,6 +142,7 @@
 !>                           * @ref model_sec
 !>                           * @ref vmec_equilibrium_sec
 !>                           * @ref vacuum_equilibrium_sec
+!>                           * @ref siesta_equilibrium_sec
 !>
 !>                           The second index contains the low and high range types
 !>                           respectively.,                                                      v3fit_input::rp_range_type}
@@ -158,13 +159,13 @@
 !>     @item{n_lp,           Number of derived parameters,                                   v3fit_input::n_dp}
 !>     @item{lp_type,        Array of locking parameter types. Any reconstuction parameter
 !>                           can be a locking parameter. Valid reconstruction parameters are
-!>                           defined by the @ref model or the @ref equilibirum.
+!>                           defined by the @ref model or the @ref equilibrium.
 !>                           * @ref model_recon_param_sec
 !>                           * @ref vmec_equilibrium_recon_param_sec
 !>                           * @ref vacuum_equilibrium_recon_param_sec,                      v3fit_input::lp_type}
 !>     @item{lp_index,       Array of locking parameter indices,                             v3fit_input::lp_index}
 !>     @item{lp_index2,      Array of locking parameter 2nd indices,                         v3fit_input::lp_index2}
-!>     @item{lp_sets,        Array of parameter to lock to. Any model or equilirbium
+!>     @item{lp_sets,        Array of parameter to lock to. Any model or equilibrium
 !>                           parameter maybe locked to.
 !>                           * @ref model_sec
 !>                           * @ref vmec_equilibrium_sec

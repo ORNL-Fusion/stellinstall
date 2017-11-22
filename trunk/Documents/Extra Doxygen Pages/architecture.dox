@@ -59,7 +59,7 @@
  * conatines an ID obtained from the model that represents a reconstructable 
  * quantitiy. This quanitily may be subjected to a set of constraints. Access to
  * the underlying quanitiy is handled through the model object's setter and
- * getter routines. The parameter class is implemented in the @ref parameter
+ * getter routines. The parameter class is implemented in the @ref v3fit_params
  * module.
  *
  * @subsection architecture_class_objects_signal Signal
@@ -106,5 +106,5 @@
  * important of these auxiliary objects is the context class. This class is a
  * single object that contains all the memory and objects used by V3FIT. This 
  * context can be used to store, copy and reset the state of V3FIT. The context 
- * class is implemented in the @ref context module.
+ * class is implemented in the @ref v3fit_context module.
  */

@@ -23,7 +23,8 @@
 !*******************************************************************************
 !>  Type descriptor for the @ref prior_class no sub class.
       INTEGER, PARAMETER :: prior_no_type       = -1
-!>  Type descriptor for the @ref prior_class subclass @ref prior_guassian
+!>  Type descriptor for the @ref prior_class subclass
+!>  @ref prior_gaussian::prior_gaussian_class
       INTEGER, PARAMETER :: prior_gaussian_type = 0
 
 !*******************************************************************************
@@ -44,7 +45,7 @@
 !>  * @ref prior_no_type
 !>  * @ref prior_gaussian_type
          INTEGER                             :: type = prior_no_type
-!>  An instance of a @ref sxrem object.
+!>  An instance of a @ref prior_gaussian_class object.
          TYPE(prior_gaussian_class), POINTER :: gaussian => null()
       END TYPE prior_class
 
@@ -53,7 +54,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref prior_class types using
-!>  @ref prior_construct_gaussian or @ref prior_construct_mpi
+!>  @ref prior_construct_gaussian.
 !-------------------------------------------------------------------------------
       INTERFACE prior_construct
          MODULE PROCEDURE prior_construct_gaussian
@@ -64,11 +65,14 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref prior_class containing a @ref prior_guassian object.
+!>  @brief Construct a @ref prior_class containing a
+!>  @ref prior_gaussian::prior_gaussian_class object.
 !>
 !>  Allocates memory and initializes a @ref prior_class object.
 !>
-!>  @param[in] gaussian_object An instance of a @ref prior_guassian subclass.
+!>  @param[in] gaussian_object An instance of a
+!>                             @ref prior_gaussian::prior_gaussian_class
+!>                             subclass.
 !>  @returns A pointer to a constructed @ref prior_class object.
 !-------------------------------------------------------------------------------
       FUNCTION prior_construct_gaussian(gaussian_object)

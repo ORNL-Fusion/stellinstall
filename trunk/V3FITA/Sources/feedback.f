@@ -5,7 +5,7 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  Defines the base class of the type @ref prior_class.
+!>  Defines the base class of the type @ref feedback_class.
 !>  @par Super Class:
 !>  @ref signal
 !>  @par Sub Classes:
@@ -23,7 +23,7 @@
 !*******************************************************************************
 !>  Type descriptor for the @ref feedback_class no sub class.
       INTEGER, PARAMETER :: feedback_no_type          = -1
-!>  Type descriptor for the @ref diagnostic_class subclass @ref sxrem_ratio
+!>  Type descriptor for the @ref feedback_class subclass @ref sxrem_ratio
       INTEGER, PARAMETER :: feedback_sxrem_ratio_type = 0
 
 !*******************************************************************************
@@ -53,7 +53,7 @@
 !*******************************************************************************
 !-------------------------------------------------------------------------------
 !>  Interface for the construction of @ref feedback_class types using
-!>  @ref feedback_construct_ratio or @ref feedback_construct_mpi
+!>  @ref feedback_construct_ratio.
 !-------------------------------------------------------------------------------
       INTERFACE feedback_construct
          MODULE PROCEDURE feedback_construct_ratio
@@ -68,8 +68,8 @@
 !>
 !>  Allocates memory and initializes a @ref feedback_class object.
 !>
-!>  @param[in] gaussian_object An instance of a @ref sxrem_ratio subclass.
-!>  @returns A pointer to a constructed @ref prior_class object.
+!>  @param[in] ratio_object An instance of a @ref sxrem_ratio subclass.
+!>  @returns A pointer to a constructed @ref feedback_class object.
 !-------------------------------------------------------------------------------
       FUNCTION feedback_construct_ratio(ratio_object)
 
@@ -347,7 +347,6 @@
 !>  @param[in] this    A @ref feedback_class instance.
 !>  @param[in] iou     A input/output representing the file to write to.
 !>  @param[in] index   A index of this signal.
-!>  @param[in] a_model The equilibrium model.
 !-------------------------------------------------------------------------------
       SUBROUTINE feedback_write_auxiliary(this, iou, index)
 

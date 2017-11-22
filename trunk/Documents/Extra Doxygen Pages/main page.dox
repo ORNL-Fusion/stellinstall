@@ -27,6 +27,9 @@
  * * @ref vacuum_equilibrium_sec "Vacuum Equilibrium Manual" User manual for the Vacuum equilibrium.
  * * @ref vacuum_namelist_sec "Vacuum namelist input file." User manual for the vacuum equilibrium namelist input file.
  *
+ * @subsubsection user_siesta_equilibirum SIESTA Equilibrium manuals.
+ * * @ref siesta_equilibrium_sec "SIESTA Equilibrium Manual" User manual for the SIESTA equilibrium.
+ *
  * @subsection user_diagnostic Diagnostic input files.
  * Certain diagnostics require input files to describe the diagnostic. Below are
  * documentation for the various files needed to define diagnostics.
@@ -37,11 +40,15 @@
  * * @ref ece_dot_sec "ECE Diagnostic Dot File" User manual for the ECE diagnostic dot file.
  * * @ref sxrem_ratio_dot_sec "Soft X-ray Ratio Diagnostic Dot File" User manual for the soft x-ray ratio diagnostic dot file.
  *
- * @subsubsection user_v3rfun V3RFUN manuals.
+ * @subsubsection user_v3rfun V3RFUN manual.
  * Magnetic diagnostics require a preprocessing code V3RFUN to generate the input discription files.
  * * @ref diagnostic_dot_sec "Magnetic Diagnostic Dot File" User manual for the magnetic diagnostic dot file.
  * * @ref v3rfun_namelist_sec "V3RFUN namelist input file" User manual for the V3RFUN namelist input file.
  * * @ref v3rfun_cl_parsing_sec "V3RFUN Command Line Arguments" User manual for the V3RFUN command line arguments.
+ *
+ * @subsubsection user_lgrid LGIRD manual.
+ * Limiter grids require a preprocessing code LGRID to generate the input discription file.
+ * * @ref lgrid_sec "LGRID User Documentation." User manual for the LGIRD code. 
  *
  * @section programmer Programmer Manuals
  * These manuals are meant to document the various tools and structure used by

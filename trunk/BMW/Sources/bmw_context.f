@@ -146,18 +146,21 @@
 !>  @section result_file_bmw_intro_sec Introduction
 !>  This page documents the contents of a result NetCDF.
 !>
-!>  @section result_file_vmec_var_sec Variables
+!>  @section result_file_bmw_var_sec Variables
 !>  @header{Variable(Dimensions), Description, Code Reference}
 !>  @begin_table
 !>     @item{series,                          Version number.,                    bmw_context::series}
-!>     @item{nfp,                             Number of field periods,            m_grid_class::m_grid_class::nfp}
-!>     @item{rmin,                            Minimum R point.,                   m_grid_class::m_grid_class::rmin}
-!>     @item{rmax,                            Maximum R point.,                   m_grid_class::m_grid_class::rmax}
-!>     @item{zmin,                            Minimum Z point.,                   m_grid_class::m_grid_class::rmin}
-!>     @item{zmax,                            Maximum Z point.,                   m_grid_class::m_grid_class::zmax}
-!>     @item{ar_grid (num_p\, num_z\, num_r), Vector potential in R direction.,   unprimed_grid::unprimed_grid_class::ar_grid}
-!>     @item{ap_grid (num_p\, num_z\, num_r), Vector potential in Phi direction., unprimed_grid::unprimed_grid_class::ap_grid}
-!>     @item{az_grid (num_p\, num_z\, num_r), Vector potential in Z direction.,   unprimed_grid::unprimed_grid_class::az_grid}
+!>     @item{nfp,                             Number of field periods,            m_grid::m_grid_class::nfp}
+!>     @item{rmin,                            Minimum R point.,                   m_grid::m_grid_class::rmin}
+!>     @item{rmax,                            Maximum R point.,                   m_grid::m_grid_class::rmax}
+!>     @item{zmin,                            Minimum Z point.,                   m_grid::m_grid_class::rmin}
+!>     @item{zmax,                            Maximum Z point.,                   m_grid::m_grid_class::zmax}
+!>     @item{ar_grid (num_p\, num_z\, num_r), Vector potential in R direction.,   unprimed_grid::unprimed_grid_class::a_r}
+!>     @item{ap_grid (num_p\, num_z\, num_r), Vector potential in Phi direction., unprimed_grid::unprimed_grid_class::a_p}
+!>     @item{az_grid (num_p\, num_z\, num_r), Vector potential in Z direction.,   unprimed_grid::unprimed_grid_class::a_z}
+!>     @item{br_grid (num_p\, num_z\, num_r), Magnetic field in R direction.,     unprimed_grid::unprimed_grid_class::b_r}
+!>     @item{bp_grid (num_p\, num_z\, num_r), Magnetic field in Phi direction.,   unprimed_grid::unprimed_grid_class::b_p}
+!>     @item{bz_grid (num_p\, num_z\, num_r), Magnetic field in Z direction.,     unprimed_grid::unprimed_grid_class::b_z}
 !>  @end_table
 !-------------------------------------------------------------------------------
 !>  @brief Write NetCDF based result file

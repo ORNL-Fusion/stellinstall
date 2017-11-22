@@ -54,10 +54,10 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref primed_grid_class object.
+!>  @brief Construct a @ref m_grid_class object.
 !>
-!>  Allocates memory and initializes a @ref primed_grid_class object with an
-!>  This computes the currents and positions on the primed grid.
+!>  Allocates memory and initializes a @ref m_grid_class object with an mgrid
+!>  file. This computes the currents and positions on the primed grid.
 !>
 !>  @param[in] mgrid_file_name File name for vacuum fields.
 !>  @returns A pointer to a constructed @ref m_grid_class object.

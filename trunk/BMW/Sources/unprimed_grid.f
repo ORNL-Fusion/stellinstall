@@ -5,8 +5,9 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  Defines the base class of the type @ref primed_grid_class. This contains the
-!>  state variables to define the currents and positions of the volumn integral.
+!>  Defines the base class of the type @ref unprimed_grid_class. This contains
+!>  the state variables to define the currents and positions of the volumn
+!>  integral.
 !*******************************************************************************
       MODULE unprimed_grid
       USE stel_kinds, ONLY: rprec
@@ -51,8 +52,8 @@
 !>  Due to the central differencing, field componetents cannot be provided for
 !>  first and last points on the r and z grids.
 !>
-!>  @param[in] mgrid A @ref m_grid_class object.
-!>  @param[in] pgrid A @ref primed_grid_class object.
+!>  @param[in] mgrid A @ref m_grid::m_grid_class object.
+!>  @param[in] pgrid A @ref primed_grid::primed_grid_class object.
 !>  @returns A pointer to a constructed @ref unprimed_grid_class object.
 !-------------------------------------------------------------------------------
       FUNCTION unprimed_grid_construct(mgrid, pgrid)
@@ -291,9 +292,9 @@
 !  DESTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Deconstruct a @ref primed_grid_class object.
+!>  @brief Deconstruct a @ref unprimed_grid_class object.
 !>
-!>  Deallocates memory and uninitializes a @ref primed_grid_class object.
+!>  Deallocates memory and uninitializes a @ref unprimed_grid_class object.
 !>
 !>  @param[inout] this A @ref unprimed_grid_class instance.
 !-------------------------------------------------------------------------------

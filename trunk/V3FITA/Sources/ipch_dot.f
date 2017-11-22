@@ -265,22 +265,21 @@
 !>  If the signal is a polarimetry chord, then also read a single real for the
 !>  wavelength.
 !>
-!>  @param[in]    ipch_file       Name of the ipch. file.
-!>  @param[in]    coordinate_type Specifies the cartesian or cylindrical
-!>                                coordinate type.
-!>  @param[in]    chord_type      Specifies if the cord is a 'i'nterferometer or
-!>                                'p'olarimetry.
-!>  @param[in]    inDegrees       Specifies if signal measures degrees or
-!>                                radians.
-!>  @param[inout] signals         Array of pointers to the a signal
-!>  @param[inout] signals_created Number valid signals in the array, or index of
-!>                                the last signal created.
-!>  @param[in]    observed        Array of observed values.
-!>  @param[in]    sigma           Array of observed sigma values
-!>  @param[in]    weight          Array of signal weight values
-!>  @param[inout] first_index     Index of the first instance of an intpol
-!>                                signal.
-!>  @todo FIXME: Remove the _new when removing the old code.
+!>  @param[in]    ipch_dot_file_ref Name of the ipch. file.
+!>  @param[in]    coordinate_type   Specifies the cartesian or cylindrical
+!>                                  coordinate type.
+!>  @param[in]    chord_type        Specifies if the cord is a 'i'nterferometer
+!>                                  or 'p'olarimetry.
+!>  @param[in]    inDegrees         Specifies if signal measures degrees or
+!>                                  radians.
+!>  @param[inout] signals           Array of pointers to the a signal
+!>  @param[inout] signals_created   Number valid signals in the array, or index
+!>                                  or the last signal created.
+!>  @param[in]    observed          Array of observed values.
+!>  @param[in]    sigma             Array of observed sigma values
+!>  @param[in]    weight            Array of signal weight values
+!>  @param[inout] first_index       Index of the first instance of an intpol
+!>                                  signal.
 !-------------------------------------------------------------------------------
       SUBROUTINE ipch_dot_parse_chord(ipch_dot_file_ref,                       &
      &                                coordinate_type,                         &

@@ -34,8 +34,6 @@
 !>  Base class representing a magnetic signal.
 !>  @par Super Class:
 !>  @ref diagnostic
-!>
-!>  @note Copied from @ref mddc_mrf.
 !-------------------------------------------------------------------------------
       TYPE magnetic_class
 !>  Setting to force the computing of the coil constribution.
@@ -60,8 +58,8 @@
 !  CONSTRUCTION SUBROUTINES
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  @brief Construct a @ref magnetic_class object containing a @ref mddc_mrf
-!>  object.
+!>  @brief Construct a @ref magnetic_class object containing a
+!>  @ref magnetic_response::magnetic_response_class object.
 !>
 !>  Allocates memory and initializes a @ref magnetic_class object.
 !>
@@ -317,7 +315,7 @@
 !>  phi = Int[dV J_plasma * A_diag]
 !>
 !>  J_plasma and dV are obtained from the @ref equilibrium. A_diag is obtained
-!>  from the @ref mddc_mrf
+!>  from the @ref magnetic_response
 !-------------------------------------------------------------------------------
 !>
 !>  External current contribrutions are included by the dot product of the

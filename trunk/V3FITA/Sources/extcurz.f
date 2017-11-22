@@ -32,7 +32,9 @@
 !>  @ref diagnostic
 !-------------------------------------------------------------------------------
       TYPE extcurz_class
+!>  Radial surface to compute external current from.
          REAL (rprec) :: r
+!>  Poloidal angle to compute current from.
          REAL (rprec) :: theta
       END TYPE extcurz_class
 
@@ -47,7 +49,7 @@
 !>
 !>  @param[in] r     The radial position to integrate at.
 !>  @param[in] theta The poloidal angle to integrate at.
-!>  @returns A pointer to a constructed @ref thomson_class object.
+!>  @returns A pointer to a constructed @ref extcurz_class object.
 !-------------------------------------------------------------------------------
       FUNCTION extcurz_construct(r, theta)
 
@@ -105,7 +107,7 @@
 !>
 !>  Calculates the inclused Z current from Ampere's Law from an loop integration
 !>  of the magnetic field. The loop integrated magnetic field is provided by
-!>  @ref equilibrium_get_Int_B_dphi
+!>  @ref equilibrium::equilibrium_get_Int_B_dphi
 !>
 !>  @param[in]  this       A @ref extcurz_class instance.
 !>  @param[in]  a_model    A @ref model instance.

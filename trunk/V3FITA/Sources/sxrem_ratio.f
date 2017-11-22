@@ -31,7 +31,7 @@
 !>  @ref feedback
 !-------------------------------------------------------------------------------
       TYPE sxrem_ratio_class
-!>  Radial position to feedback the
+!>  Radial position to feedback the soft x-ray emission from.
          REAL (rprec), DIMENSION(3) :: x_cart
 !>  Indicies of soft x-ray emissivity profiles to take the ratios of.
          INTEGER, DIMENSION(2)      :: indices
@@ -46,9 +46,8 @@
 !>
 !>  Allocates memory and initializes a @ref sxrem_ratio_class object.
 !>
-!>  @param[in] a_model    An instance of a @ref model object.
-!>  @param[in] param_name The name the parameter.
-!>  @param[in] indices    Indicies of the parameter.
+!>  @param[in] x_cart  Radial position to feedback the soft x-ray emission from.
+!>  @param[in] indices Indicies of the two cords.
 !>  @returns A pointer to a constructed @ref sxrem_ratio_class object.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_construct(x_cart, indices)
