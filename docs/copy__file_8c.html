@@ -107,17 +107,18 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:a1e0530382af0df8d085cb78fd51caea4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1e0530382af0df8d085cb78fd51caea4"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>COPYFILE_ALL</b>&#160;&#160;&#160;0</td></tr>
+#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="copy__file_8c.html#a1e0530382af0df8d085cb78fd51caea4">COPYFILE_ALL</a>&#160;&#160;&#160;0</td></tr>
+<tr class="memdesc:a1e0530382af0df8d085cb78fd51caea4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flag to copy the enture file. <br /></td></tr>
 <tr class="separator:a1e0530382af0df8d085cb78fd51caea4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a84fd3dab88b752d678aa1a6a0c94c4e6"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="copy__file_8c.html#a84fd3dab88b752d678aa1a6a0c94c4e6">copyfile</a> (char *src, char *dest, int unused_1, int unused_2)</td></tr>
-<tr class="memdesc:a84fd3dab88b752d678aa1a6a0c94c4e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a file from the source to the destination.  <a href="#a84fd3dab88b752d678aa1a6a0c94c4e6">More...</a><br /></td></tr>
-<tr class="separator:a84fd3dab88b752d678aa1a6a0c94c4e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1176708d37efcf092c05635956aa8017"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="copy__file_8c.html#a1176708d37efcf092c05635956aa8017">copy_file_c</a> (char *src, char *dest)</td></tr>
-<tr class="memdesc:a1176708d37efcf092c05635956aa8017"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a file from the source to the destination.  <a href="#a1176708d37efcf092c05635956aa8017">More...</a><br /></td></tr>
-<tr class="separator:a1176708d37efcf092c05635956aa8017"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8472decee39a9ca455c8f6fe8de55f8f"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="copy__file_8c.html#a8472decee39a9ca455c8f6fe8de55f8f">copyfile</a> (const char *src, const char *dest, const int unused_1, const int unused_2)</td></tr>
+<tr class="memdesc:a8472decee39a9ca455c8f6fe8de55f8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a file from the source to the destination.  <a href="#a8472decee39a9ca455c8f6fe8de55f8f">More...</a><br /></td></tr>
+<tr class="separator:a8472decee39a9ca455c8f6fe8de55f8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a324aa78d4d222db4ce35e8ef383fef1d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="copy__file_8c.html#a324aa78d4d222db4ce35e8ef383fef1d">copy_file_c</a> (const char *src, const char *dest)</td></tr>
+<tr class="memdesc:a324aa78d4d222db4ce35e8ef383fef1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a file from the source to the destination.  <a href="#a324aa78d4d222db4ce35e8ef383fef1d">More...</a><br /></td></tr>
+<tr class="separator:a324aa78d4d222db4ce35e8ef383fef1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Functions to fast copy files. </p>
@@ -125,20 +126,20 @@ Functions</h2></td></tr>
 
 <p>Definition in file <a class="el" href="copy__file_8c_source.html">copy_file.c</a>.</p>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a class="anchor" id="a1176708d37efcf092c05635956aa8017"></a>
+<a class="anchor" id="a324aa78d4d222db4ce35e8ef383fef1d"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">int copy_file_c </td>
           <td>(</td>
-          <td class="paramtype">char *&#160;</td>
+          <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>src</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">char *&#160;</td>
+          <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>dest</em>&#160;</td>
         </tr>
         <tr>
@@ -153,43 +154,43 @@ Functions</h2></td></tr>
 <p>Copy file returns the error status. Check errno to see the error that occurred.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">src[in]</td><td>Path to the source file to copy. </td></tr>
-    <tr><td class="paramname">dest[in]</td><td>Path to the destination file to copy. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>Path to the source file to copy. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dest</td><td>Path to the destination file to copy. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Error code. </dd></dl>
 
-<p>Definition at line <a class="el" href="copy__file_8c_source.html#l00068">68</a> of file <a class="el" href="copy__file_8c_source.html">copy_file.c</a>.</p>
+<p>Definition at line <a class="el" href="copy__file_8c_source.html#l00069">69</a> of file <a class="el" href="copy__file_8c_source.html">copy_file.c</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a84fd3dab88b752d678aa1a6a0c94c4e6"></a>
+<a class="anchor" id="a8472decee39a9ca455c8f6fe8de55f8f"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">size_t copyfile </td>
           <td>(</td>
-          <td class="paramtype">char *&#160;</td>
+          <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>src</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">char *&#160;</td>
+          <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>dest</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int&#160;</td>
+          <td class="paramtype">const int&#160;</td>
           <td class="paramname"><em>unused_1</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int&#160;</td>
+          <td class="paramtype">const int&#160;</td>
           <td class="paramname"><em>unused_2</em>&#160;</td>
         </tr>
         <tr>
@@ -204,23 +205,23 @@ Functions</h2></td></tr>
 <p>Linux does not define the copyfile function. Define one using the <a href="http://stackoverflow.com/questions/2180079/how-can-i-copy-a-file-on-unix-using-c/2180157#2180157">sendfile(2)</a> function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">src[in]</td><td>Path to the source file to copy. </td></tr>
-    <tr><td class="paramname">dest[in]</td><td>Path to the destination file to copy. </td></tr>
-    <tr><td class="paramname">unused_1[in]</td><td>Unused argument. </td></tr>
-    <tr><td class="paramname">unused_2[in]</td><td>Unused argument. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>Path to the source file to copy. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dest</td><td>Path to the destination file to copy. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">unused_1</td><td>Unused argument. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">unused_2</td><td>Unused argument. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Error status. </dd></dl>
 
-<p>Definition at line <a class="el" href="copy__file_8c_source.html#l00034">34</a> of file <a class="el" href="copy__file_8c_source.html">copy_file.c</a>.</p>
+<p>Definition at line <a class="el" href="copy__file_8c_source.html#l00035">35</a> of file <a class="el" href="copy__file_8c_source.html">copy_file.c</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:52 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

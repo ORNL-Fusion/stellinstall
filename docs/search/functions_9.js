@@ -39,6 +39,7 @@ var searchData=
   ['model_5fget_5fparam_5fid',['model_get_param_id',['../namespacemodel.html#a0410fe025b7317ff0256580b6fdc8e4a',1,'model']]],
   ['model_5fget_5fparam_5fname',['model_get_param_name',['../namespacemodel.html#a3ca24f831d2002ee26314de823344ef6',1,'model']]],
   ['model_5fget_5fparam_5fvalue',['model_get_param_value',['../namespacemodel.html#a1505f0e988ed7337652bf62874052820',1,'model']]],
+  ['model_5fget_5fsignal_5ffactor',['model_get_signal_factor',['../namespacemodel.html#ad1458152390260f06d7442de36bdbd98',1,'model']]],
   ['model_5fget_5fsxrem_5fcart',['model_get_sxrem_cart',['../interfacemodel_1_1model__get__sxrem.html#a46d9aabd15dad34f3fd6eb300cd4cd59',1,'model::model_get_sxrem::model_get_sxrem_cart()'],['../namespacemodel.html#afee0b0995d6fb4b7021336d13745e512',1,'model::model_get_sxrem_cart()']]],
   ['model_5fget_5fsxrem_5fradial',['model_get_sxrem_radial',['../namespacemodel.html#ab6613013e6047eab5cde6d6107dc65e6',1,'model']]],
   ['model_5fget_5fsxrem_5fratio',['model_get_sxrem_ratio',['../namespacemodel.html#ac0c13b272f321765061b7ea58d78497e',1,'model']]],
@@ -66,6 +67,6 @@ var searchData=
   ['mse_5fdot_5fparse_5fvec',['mse_dot_parse_vec',['../namespacemse__dot.html#a3e52bea9511bf9ffcb67e2d8df54ee16',1,'mse_dot']]],
   ['mse_5fdot_5fread',['mse_dot_read',['../namespacemse__dot.html#aefb79a235578fe040105cd6cda9d9ea9',1,'mse_dot']]],
   ['mse_5fget_5fheader',['mse_get_header',['../namespacemse.html#a11c4d001ed31bafb33b00cad45afeda2',1,'mse']]],
-  ['mse_5fget_5fmodeled_5fsignal',['mse_get_modeled_signal',['../namespacemse.html#a3a078696f20855ea14f591c8f5f66db7',1,'mse']]],
+  ['mse_5fget_5fmodeled_5fsignal',['mse_get_modeled_signal',['../namespacemse.html#a12299cf6b4a1a32285b7109433865cab',1,'mse']]],
   ['mse_5fget_5fsignal_5ftype',['mse_get_signal_type',['../namespacemse.html#aa1994e229443826305fbe144a6117ace',1,'mse']]]
 ];

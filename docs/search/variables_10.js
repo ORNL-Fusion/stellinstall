@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['r',['r',['../structextcurz_1_1extcurz__class.html#a2424df3e863f8d39ceb7799f8aa64f05',1,'extcurz::extcurz_class']]],
   ['r0',['r0',['../structlimiter__grid_1_1limiter__grid__class.html#ae3ae1e97e8877f799818791b2552aaa2',1,'limiter_grid::limiter_grid_class']]],
   ['r_5fmajor_5fradius',['r_major_radius',['../namespacev3fit__input.html#a9059b0461b1526f0b37edd0ed8471f1b',1,'v3fit_input']]],
   ['range_5fid',['range_id',['../structv3fit__params_1_1param__recon__class.html#a7fbbbfdad4df15babebf17200d24ca4a',1,'v3fit_params::param_recon_class']]],

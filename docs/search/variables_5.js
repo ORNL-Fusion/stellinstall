@@ -7,5 +7,7 @@ var searchData=
   ['feedback_5fsxrem_5fratio_5ftype',['feedback_sxrem_ratio_type',['../namespacefeedback.html#a7d16f362ad9f9338493767fad1c74a2e',1,'feedback']]],
   ['flags',['flags',['../structmagnetic__response_1_1magnetic__response__class.html#a1b23cfb3312f19da74182ad431cf9005',1,'magnetic_response::magnetic_response_class::flags()'],['../structmse_1_1mse__class.html#ad9e3e1970c18e833fea22e8f4f04c221',1,'mse::mse_class::flags()']]],
   ['force_5fsolve',['force_solve',['../structequilibrium_1_1equilibrium__class.html#acda058731cbf9b3deeba5058de328519',1,'equilibrium::equilibrium_class']]],
-  ['fsq_5fres',['fsq_res',['../namespaceshared__data.html#ad2a9e50e044e08667c6309e4c1586da6',1,'shared_data']]]
+  ['fsq_5fres',['fsq_res',['../namespaceshared__data.html#ad2a9e50e044e08667c6309e4c1586da6',1,'shared_data']]],
+  ['fsq_5ftotal',['fsq_total',['../namespaceshared__data.html#a300fc46b82b4260619e0c39b76242719',1,'shared_data']]],
+  ['fsq_5ftotal1',['fsq_total1',['../namespaceshared__data.html#abbd0196d737d3fcf1a92245dc204944b',1,'shared_data']]]
 ];

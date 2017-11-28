@@ -112,6 +112,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a3ee7923a0e8823098df46d2929d1b0ab"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a3ee7923a0e8823098df46d2929d1b0ab">v3fit_input::v3fit_input_read_namelist</a> (namelist_file)</td></tr>
 <tr class="memdesc:a3ee7923a0e8823098df46d2929d1b0ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads the namelist input file.  <a href="namespacev3fit__input.html#a3ee7923a0e8823098df46d2929d1b0ab">More...</a><br /></td></tr>
 <tr class="separator:a3ee7923a0e8823098df46d2929d1b0ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ebb1c33783f13106c703abf6927e186"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a3ebb1c33783f13106c703abf6927e186">v3fit_input::v3fit_input_find_scale_index</a> (index)</td></tr>
+<tr class="memdesc:a3ebb1c33783f13106c703abf6927e186"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finds the index of the scaling spec.  <a href="namespacev3fit__input.html#a3ebb1c33783f13106c703abf6927e186">More...</a><br /></td></tr>
+<tr class="separator:a3ebb1c33783f13106c703abf6927e186"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -511,6 +514,15 @@ logical, dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valig
 real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a7a3cf3ce87524d4a927e44343ff6690a">v3fit_input::pol_rad_ratio</a> = 1.0</td></tr>
 <tr class="memdesc:a7a3cf3ce87524d4a927e44343ff6690a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ratio of the number of poloidal grid points to radial grid points. <br /></td></tr>
 <tr class="separator:a7a3cf3ce87524d4a927e44343ff6690a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d7388793df867a50aae96474807c9ae"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7d7388793df867a50aae96474807c9ae"></a>
+integer, dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><b>v3fit_input::sfactor_spec_imin</b> = 0</td></tr>
+<tr class="separator:a7d7388793df867a50aae96474807c9ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c9e757dd5e7fc3203b6da6363cbd31b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0c9e757dd5e7fc3203b6da6363cbd31b"></a>
+integer, dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><b>v3fit_input::sfactor_spec_imax</b> = 0</td></tr>
+<tr class="separator:a0c9e757dd5e7fc3203b6da6363cbd31b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeedb001946f7995fdb6e7549e4fc1729"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aeedb001946f7995fdb6e7549e4fc1729"></a>
+real(rprec), dimension(v3fit_max_spec_size)&#160;</td><td class="memItemRight" valign="bottom"><b>v3fit_input::sfactor_spec_fac</b> = 0.0</td></tr>
+<tr class="separator:aeedb001946f7995fdb6e7549e4fc1729"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11987511aea794ac429ac277a0e5ea9d"><td class="memItemLeft" align="right" valign="top">real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a11987511aea794ac429ac277a0e5ea9d">v3fit_input::extcurz_s0</a> = -1.0</td></tr>
 <tr class="memdesc:a11987511aea794ac429ac277a0e5ea9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">External Z current radial position.  <a href="namespacev3fit__input.html#a11987511aea794ac429ac277a0e5ea9d">More...</a><br /></td></tr>
 <tr class="separator:a11987511aea794ac429ac277a0e5ea9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -676,7 +688,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

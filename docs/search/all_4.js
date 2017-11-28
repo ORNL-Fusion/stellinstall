@@ -16,7 +16,7 @@ var searchData=
   ['ece_20diagnostic_20dot_20file',['ECE Diagnostic Dot File',['../ece_dot_sec.html',1,'']]],
   ['ece_5ffunction',['ece_function',['../namespaceece.html#ae6bdcafb76d8cfe62f77443aff6ae3be',1,'ece']]],
   ['ece_5fget_5fheader',['ece_get_header',['../namespaceece.html#af420a5b37eb2a9a944f20d6061ddd6d8',1,'ece']]],
-  ['ece_5fget_5fmodeled_5fsignal',['ece_get_modeled_signal',['../namespaceece.html#a788642ab237a2cba51665e07304397c3',1,'ece']]],
+  ['ece_5fget_5fmodeled_5fsignal',['ece_get_modeled_signal',['../namespaceece.html#ab9560c000d389361fad3cd5437e382a8',1,'ece']]],
   ['ece_5fget_5fsignal_5ftype',['ece_get_signal_type',['../namespaceece.html#ab891d4fa4dccd7f69fbe97b2e69eebec',1,'ece']]],
   ['ece_5findex',['ece_index',['../structv3fit__context_1_1v3fit__context__class.html#a0e1f79b55351e20dd41e81c6953f42c1',1,'v3fit_context::v3fit_context_class']]],
   ['ece_5fresonance_5frange',['ece_resonance_range',['../namespacev3fit__input.html#a5ea57408967601f98371a8a2f9985895',1,'v3fit_input']]],

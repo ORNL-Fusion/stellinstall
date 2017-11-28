@@ -100,7 +100,7 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memdesc:a596b8272febe9ba87c593cd8508c212c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs initial convergence of force residuals using diagonal preconditioner only. Terminates when the force residual stops changing by more than a factor of 2.  <a href="#a596b8272febe9ba87c593cd8508c212c">More...</a><br /></td></tr>
 <tr class="separator:a596b8272febe9ba87c593cd8508c212c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef2385574119ef6f91c8bf7c6f42a6c3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#aef2385574119ef6f91c8bf7c6f42a6c3">converge_blocks</a> (wout_file, ftol)</td></tr>
-<tr class="memdesc:aef2385574119ef6f91c8bf7c6f42a6c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs convergence of force residuals using block preconditioner. Terminates when the force residual drops below ftol or the number of iterations exceeds a specified value (hard coded for now). Applies an external island perturbation if not previously done.  <a href="#aef2385574119ef6f91c8bf7c6f42a6c3">More...</a><br /></td></tr>
+<tr class="memdesc:aef2385574119ef6f91c8bf7c6f42a6c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs convergence of force residuals using block preconditioner. Terminates when the force residual drops below ftol or the number of iterations exceeds a specified value (niter_max) Applies an external island perturbation if not previously done.  <a href="#aef2385574119ef6f91c8bf7c6f42a6c3">More...</a><br /></td></tr>
 <tr class="separator:aef2385574119ef6f91c8bf7c6f42a6c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae946c887aee3d4b139ce34baf770b8e0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae946c887aee3d4b139ce34baf770b8e0"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#ae946c887aee3d4b139ce34baf770b8e0">init_evolution</a></td></tr>
@@ -124,69 +124,76 @@ subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
-<tr class="memitem:ae1e2950e48a9d5e35fe979b61d835341"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae1e2950e48a9d5e35fe979b61d835341"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><b>n_bsupu_full</b> =1</td></tr>
-<tr class="separator:ae1e2950e48a9d5e35fe979b61d835341"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1d2eb4b46b18ffcf3d6755c031461351"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1d2eb4b46b18ffcf3d6755c031461351"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a1d2eb4b46b18ffcf3d6755c031461351">ndamp</a> = 10</td></tr>
-<tr class="memdesc:a1d2eb4b46b18ffcf3d6755c031461351"><td class="mdescLeft">&#160;</td><td class="mdescRight">number smoothing steps for conj grad <br /></td></tr>
-<tr class="separator:a1d2eb4b46b18ffcf3d6755c031461351"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa4ff3326a94f94c3929d4ff6a5850d4b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa4ff3326a94f94c3929d4ff6a5850d4b"></a>
-integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#aa4ff3326a94f94c3929d4ff6a5850d4b">ncongrad_steps</a> = 100</td></tr>
-<tr class="memdesc:aa4ff3326a94f94c3929d4ff6a5850d4b"><td class="mdescLeft">&#160;</td><td class="mdescRight">max number of conj grad steps <br /></td></tr>
-<tr class="separator:aa4ff3326a94f94c3929d4ff6a5850d4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a88b3887c4a36557659492e194517b0ac"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a88b3887c4a36557659492e194517b0ac"></a>
-logical, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a88b3887c4a36557659492e194517b0ac">l_hess_sym</a> =.FALSE.</td></tr>
-<tr class="memdesc:a88b3887c4a36557659492e194517b0ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">forces symmetrization of Hessian if TRUE <br /></td></tr>
-<tr class="separator:a88b3887c4a36557659492e194517b0ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9c48e92bd3e8d4a76e1327f2a1f2f6a7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9c48e92bd3e8d4a76e1327f2a1f2f6a7"></a>
-logical, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a9c48e92bd3e8d4a76e1327f2a1f2f6a7">l_epar</a></td></tr>
-<tr class="memdesc:a9c48e92bd3e8d4a76e1327f2a1f2f6a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE when applying parallel tearing perturbations <br /></td></tr>
-<tr class="separator:a9c48e92bd3e8d4a76e1327f2a1f2f6a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a16f3c100870d2c4a1f74cb927a211a2a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a16f3c100870d2c4a1f74cb927a211a2a"></a>
-logical, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a16f3c100870d2c4a1f74cb927a211a2a">l_gmres</a></td></tr>
-<tr class="memdesc:a16f3c100870d2c4a1f74cb927a211a2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE performs GMRES iterations <br /></td></tr>
-<tr class="separator:a16f3c100870d2c4a1f74cb927a211a2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a65a3dedea614a5d185a287f017c134b6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a65a3dedea614a5d185a287f017c134b6"></a>
-logical, private&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a65a3dedea614a5d185a287f017c134b6">l_conjmin</a></td></tr>
-<tr class="memdesc:a65a3dedea614a5d185a287f017c134b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE if conjugate gradient lowers fsq_min <br /></td></tr>
-<tr class="separator:a65a3dedea614a5d185a287f017c134b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2623e6340f325af506f555b3da87a644"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2623e6340f325af506f555b3da87a644"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>nprint_step</b> =1</td></tr>
-<tr class="separator:a2623e6340f325af506f555b3da87a644"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8421c4e051ac7a60634a04b1de3d460d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8421c4e051ac7a60634a04b1de3d460d"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>nfun_calls</b></td></tr>
-<tr class="separator:a8421c4e051ac7a60634a04b1de3d460d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a20c83f6b82ec18492ed22f722d6bd259"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a20c83f6b82ec18492ed22f722d6bd259"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>js</b></td></tr>
-<tr class="separator:a20c83f6b82ec18492ed22f722d6bd259"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4b7dba51f4bcecbaf405cddf3fa72b3a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4b7dba51f4bcecbaf405cddf3fa72b3a"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>moff</b></td></tr>
-<tr class="separator:a4b7dba51f4bcecbaf405cddf3fa72b3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aef61fdf9577f8ad1b6d37f9925efa291"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aef61fdf9577f8ad1b6d37f9925efa291"></a>
-integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>noff</b></td></tr>
-<tr class="separator:aef61fdf9577f8ad1b6d37f9925efa291"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7fc97a159f3ddba225c58e13bd635fee"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7fc97a159f3ddba225c58e13bd635fee"></a>
-real(dp), private&#160;</td><td class="memItemRight" valign="bottom"><b>fsqprev</b></td></tr>
-<tr class="separator:a7fc97a159f3ddba225c58e13bd635fee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae471442060bfaa208afeb60d02a1049d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae471442060bfaa208afeb60d02a1049d"></a>
-real(dp), private&#160;</td><td class="memItemRight" valign="bottom"><b>fsqprev1</b></td></tr>
-<tr class="separator:ae471442060bfaa208afeb60d02a1049d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5cd54c993939cce0354f5385855bfa50"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5cd54c993939cce0354f5385855bfa50"></a>
-real(dp), private&#160;</td><td class="memItemRight" valign="bottom"><b>levm_loc</b></td></tr>
-<tr class="separator:a5cd54c993939cce0354f5385855bfa50"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a81fd40f380927093d9556962f0d57078"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a81fd40f380927093d9556962f0d57078"></a>
-real(dp), private&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_min</b></td></tr>
-<tr class="separator:a81fd40f380927093d9556962f0d57078"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab94e04357c1c0eaa4db272171cf6fcdc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab94e04357c1c0eaa4db272171cf6fcdc"></a>
-real(dp), private&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_ratio</b></td></tr>
-<tr class="separator:ab94e04357c1c0eaa4db272171cf6fcdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0bfc3656d5f77feb4151157b48ddf7cf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0bfc3656d5f77feb4151157b48ddf7cf"></a>
-real(dp), private&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_ratio1</b></td></tr>
-<tr class="separator:a0bfc3656d5f77feb4151157b48ddf7cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac37184d8cab0fd9bf8ee936f72012aaf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac37184d8cab0fd9bf8ee936f72012aaf"></a>
-real(dp), dimension(<a class="el" href="namespaceevolution.html#a1d2eb4b46b18ffcf3d6755c031461351">ndamp</a>), private&#160;</td><td class="memItemRight" valign="bottom"><b>otau</b></td></tr>
-<tr class="separator:ac37184d8cab0fd9bf8ee936f72012aaf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaaac9fe5343b3c1ca70b724532da82ba"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aaaac9fe5343b3c1ca70b724532da82ba"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>n_bsupu_full</b> =1</td></tr>
+<tr class="separator:aaaac9fe5343b3c1ca70b724532da82ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25beb97e50686375b2d6f2c8066848b0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a25beb97e50686375b2d6f2c8066848b0"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a25beb97e50686375b2d6f2c8066848b0">ndamp</a> = 20</td></tr>
+<tr class="memdesc:a25beb97e50686375b2d6f2c8066848b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">number smoothing steps for conj grad <br /></td></tr>
+<tr class="separator:a25beb97e50686375b2d6f2c8066848b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a103e1de71de4ceb6c351593beea2e160"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a103e1de71de4ceb6c351593beea2e160"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a103e1de71de4ceb6c351593beea2e160">ncongrad_steps</a> = 100</td></tr>
+<tr class="memdesc:a103e1de71de4ceb6c351593beea2e160"><td class="mdescLeft">&#160;</td><td class="mdescRight">max number of conj grad steps <br /></td></tr>
+<tr class="separator:a103e1de71de4ceb6c351593beea2e160"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a307b32c6e601f008ee9e3ca8c188cfb6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a307b32c6e601f008ee9e3ca8c188cfb6"></a>
+logical, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a307b32c6e601f008ee9e3ca8c188cfb6">l_hess_sym</a> =.FALSE.</td></tr>
+<tr class="memdesc:a307b32c6e601f008ee9e3ca8c188cfb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">forces symmetrization of Hessian if TRUE <br /></td></tr>
+<tr class="separator:a307b32c6e601f008ee9e3ca8c188cfb6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4dbc81c69b7b28fcc07b0db6efe43777"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4dbc81c69b7b28fcc07b0db6efe43777"></a>
+logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a4dbc81c69b7b28fcc07b0db6efe43777">l_epar</a></td></tr>
+<tr class="memdesc:a4dbc81c69b7b28fcc07b0db6efe43777"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE when applying parallel tearing perturbations <br /></td></tr>
+<tr class="separator:a4dbc81c69b7b28fcc07b0db6efe43777"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adc6a893273fb8d876cb8cdd59639b9a0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adc6a893273fb8d876cb8cdd59639b9a0"></a>
+logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#adc6a893273fb8d876cb8cdd59639b9a0">l_gmres</a></td></tr>
+<tr class="memdesc:adc6a893273fb8d876cb8cdd59639b9a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE performs GMRES iterations <br /></td></tr>
+<tr class="separator:adc6a893273fb8d876cb8cdd59639b9a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af308456e02e18fab1a54f149829e42cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af308456e02e18fab1a54f149829e42cc"></a>
+logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#af308456e02e18fab1a54f149829e42cc">l_conjmin</a></td></tr>
+<tr class="memdesc:af308456e02e18fab1a54f149829e42cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE if conjugate gradient lowers fsq_min <br /></td></tr>
+<tr class="separator:af308456e02e18fab1a54f149829e42cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a797086762ae4e36ec4caf5784f34999b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a797086762ae4e36ec4caf5784f34999b"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>nprint_step</b> =1</td></tr>
+<tr class="separator:a797086762ae4e36ec4caf5784f34999b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a9af1cb198c5628c0e7a87e1aa39728"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4a9af1cb198c5628c0e7a87e1aa39728"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceevolution.html#a4a9af1cb198c5628c0e7a87e1aa39728">nfun_calls</a></td></tr>
+<tr class="memdesc:a4a9af1cb198c5628c0e7a87e1aa39728"><td class="mdescLeft">&#160;</td><td class="mdescRight">average number of funct_island calls per processor <br /></td></tr>
+<tr class="separator:a4a9af1cb198c5628c0e7a87e1aa39728"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7c691dc6cc79adae6e27edb5572bdf5b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7c691dc6cc79adae6e27edb5572bdf5b"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>js</b></td></tr>
+<tr class="separator:a7c691dc6cc79adae6e27edb5572bdf5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a31eb7bb79daa8e8fcd882dff71a39d34"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a31eb7bb79daa8e8fcd882dff71a39d34"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>moff</b></td></tr>
+<tr class="separator:a31eb7bb79daa8e8fcd882dff71a39d34"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1ebf0d6dcfe8c825dc0da6e69f62ede"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af1ebf0d6dcfe8c825dc0da6e69f62ede"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>noff</b></td></tr>
+<tr class="separator:af1ebf0d6dcfe8c825dc0da6e69f62ede"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9e789bfdb0233d0cd89947d890a88deb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9e789bfdb0233d0cd89947d890a88deb"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>tau_damp</b></td></tr>
+<tr class="separator:a9e789bfdb0233d0cd89947d890a88deb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0baee13cadea1b2257af3f4b094e105e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0baee13cadea1b2257af3f4b094e105e"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>delt_cg</b> =1</td></tr>
+<tr class="separator:a0baee13cadea1b2257af3f4b094e105e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a020c0a7b0008569751111c7516173c33"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a020c0a7b0008569751111c7516173c33"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsqprev</b></td></tr>
+<tr class="separator:a020c0a7b0008569751111c7516173c33"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58ee3732c29ce8519f4acd1becc79a4d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a58ee3732c29ce8519f4acd1becc79a4d"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsqprev1</b></td></tr>
+<tr class="separator:a58ee3732c29ce8519f4acd1becc79a4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a331bbe3924675bd74f2dfa01504a1d50"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a331bbe3924675bd74f2dfa01504a1d50"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>levm_loc</b></td></tr>
+<tr class="separator:a331bbe3924675bd74f2dfa01504a1d50"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85d60aa3685942d1449e6271ea8237e3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a85d60aa3685942d1449e6271ea8237e3"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_min</b></td></tr>
+<tr class="separator:a85d60aa3685942d1449e6271ea8237e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad809c87520cd106573d32012c826a8b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aad809c87520cd106573d32012c826a8b"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_ratio</b></td></tr>
+<tr class="separator:aad809c87520cd106573d32012c826a8b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ada0086fa9500bf03d25bb37bd70fb8e2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ada0086fa9500bf03d25bb37bd70fb8e2"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_ratio1</b></td></tr>
+<tr class="separator:ada0086fa9500bf03d25bb37bd70fb8e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7afcc41e8f86db818666906447be8a0e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7afcc41e8f86db818666906447be8a0e"></a>
+real(dp), dimension(<a class="el" href="namespaceevolution.html#a25beb97e50686375b2d6f2c8066848b0">ndamp</a>)&#160;</td><td class="memItemRight" valign="bottom"><b>otau</b></td></tr>
+<tr class="separator:a7afcc41e8f86db818666906447be8a0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa636475101970989bcd350fab217fe00"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa636475101970989bcd350fab217fe00"></a>
 real(dp), dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>xcdot</b></td></tr>
 <tr class="separator:aa636475101970989bcd350fab217fe00"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -230,7 +237,7 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
       </table>
 </div><div class="memdoc">
 
-<p>Performs convergence of force residuals using block preconditioner. Terminates when the force residual drops below ftol or the number of iterations exceeds a specified value (hard coded for now). Applies an external island perturbation if not previously done. </p>
+<p>Performs convergence of force residuals using block preconditioner. Terminates when the force residual drops below ftol or the number of iterations exceeds a specified value (niter_max) Applies an external island perturbation if not previously done. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">wout_file</td><td>name of VMEC wout file that SIESTA reads</td></tr>
@@ -239,7 +246,7 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00109">109</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
+<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00108">108</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
 
 </div>
 </div>
@@ -276,7 +283,7 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00054">54</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
+<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00052">52</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
 
 </div>
 </div>
@@ -345,14 +352,14 @@ integer(kind=selected_int_kind(10)), dimension(1048)&#160;</td><td class="memIte
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00268">268</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
+<p>Definition at line <a class="el" href="evolution_8f90_source.html#l00265">265</a> of file <a class="el" href="evolution_8f90_source.html">evolution.f90</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

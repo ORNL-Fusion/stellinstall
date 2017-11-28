@@ -107,6 +107,10 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#a462ae7b254709bc1082d49d8b1baf0dc">preblock</a> =2</td></tr>
 <tr class="memdesc:a462ae7b254709bc1082d49d8b1baf0dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">block preconditioning <br /></td></tr>
 <tr class="separator:a462ae7b254709bc1082d49d8b1baf0dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4ea632850995d16e455ac7d74bb2f808"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4ea632850995d16e455ac7d74bb2f808"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#a4ea632850995d16e455ac7d74bb2f808">unit_out</a> =336</td></tr>
+<tr class="memdesc:a4ea632850995d16e455ac7d74bb2f808"><td class="mdescLeft">&#160;</td><td class="mdescRight">output file unit no. <br /></td></tr>
+<tr class="separator:a4ea632850995d16e455ac7d74bb2f808"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67e206bccb6d01b748b128771203436d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a67e206bccb6d01b748b128771203436d"></a>
 integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#a67e206bccb6d01b748b128771203436d">neqs</a></td></tr>
 <tr class="memdesc:a67e206bccb6d01b748b128771203436d"><td class="mdescLeft">&#160;</td><td class="mdescRight">No. elements in xc array. <br /></td></tr>
@@ -138,6 +142,12 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><b>iortho</b> = 3</td
 <tr class="memitem:abc2e97d9043baaf076efe1e5034b7f84"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abc2e97d9043baaf076efe1e5034b7f84"></a>
 integer&#160;</td><td class="memItemRight" valign="bottom"><b>hesspass_test</b> =-1</td></tr>
 <tr class="separator:abc2e97d9043baaf076efe1e5034b7f84"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a361402311d7f8d1d5a71e3788015f4de"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a361402311d7f8d1d5a71e3788015f4de"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>in_hess_nfunct</b></td></tr>
+<tr class="separator:a361402311d7f8d1d5a71e3788015f4de"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a4aba0c35915ced4f6a3cbcb2d7c13f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4a4aba0c35915ced4f6a3cbcb2d7c13f"></a>
+integer&#160;</td><td class="memItemRight" valign="bottom"><b>out_hess_nfunct</b></td></tr>
+<tr class="separator:a4a4aba0c35915ced4f6a3cbcb2d7c13f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a938f512439e31752083fe415da06fa1f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a938f512439e31752083fe415da06fa1f"></a>
 real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>mupar_test</b></td></tr>
 <tr class="separator:a938f512439e31752083fe415da06fa1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -146,10 +156,10 @@ real(dp), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class=
 <tr class="memdesc:ad2a9e50e044e08667c6309e4c1586da6"><td class="mdescLeft">&#160;</td><td class="mdescRight">threshold force for turning off resistive perturbations <br /></td></tr>
 <tr class="separator:ad2a9e50e044e08667c6309e4c1586da6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2ee814d7fc55cb34887a25d113df2ffe"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2ee814d7fc55cb34887a25d113df2ffe"></a>
-real(dp), parameter&#160;</td><td class="memItemRight" valign="bottom"><b>levm_ped</b> =1.E-08_dp</td></tr>
+real(dp), parameter&#160;</td><td class="memItemRight" valign="bottom"><b>levm_ped</b> =1.E-10_dp</td></tr>
 <tr class="separator:a2ee814d7fc55cb34887a25d113df2ffe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac4ae27429043acae6df88cf73c53eb35"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac4ae27429043acae6df88cf73c53eb35"></a>
-real(dp), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#ac4ae27429043acae6df88cf73c53eb35">mu_ped</a> =1.E-6_dp</td></tr>
+real(dp), parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#ac4ae27429043acae6df88cf73c53eb35">mu_ped</a> =1.E-8_dp</td></tr>
 <tr class="memdesc:ac4ae27429043acae6df88cf73c53eb35"><td class="mdescLeft">&#160;</td><td class="mdescRight">pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10) <br /></td></tr>
 <tr class="separator:ac4ae27429043acae6df88cf73c53eb35"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abfb92ff7d52f4380ae1e5a0d633dee7e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abfb92ff7d52f4380ae1e5a0d633dee7e"></a>
@@ -175,10 +185,12 @@ real(dp), dimension(:,:,:,:), allocatable&#160;</td><td class="memItemRight" val
 <tr class="memdesc:ae1ff7bcb6fd97f19a43689b0b5d0f193"><td class="mdescLeft">&#160;</td><td class="mdescRight">column scaling factor <br /></td></tr>
 <tr class="separator:ae1ff7bcb6fd97f19a43689b0b5d0f193"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a300fc46b82b4260619e0c39b76242719"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a300fc46b82b4260619e0c39b76242719"></a>
-real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_total</b></td></tr>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#a300fc46b82b4260619e0c39b76242719">fsq_total</a></td></tr>
+<tr class="memdesc:a300fc46b82b4260619e0c39b76242719"><td class="mdescLeft">&#160;</td><td class="mdescRight">|F|^2 WITH column scaling <br /></td></tr>
 <tr class="separator:a300fc46b82b4260619e0c39b76242719"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abbd0196d737d3fcf1a92245dc204944b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abbd0196d737d3fcf1a92245dc204944b"></a>
-real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_total1</b></td></tr>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#abbd0196d737d3fcf1a92245dc204944b">fsq_total1</a></td></tr>
+<tr class="memdesc:abbd0196d737d3fcf1a92245dc204944b"><td class="mdescLeft">&#160;</td><td class="mdescRight">|F|^2 WITHOUT column scaling (raw forces) <br /></td></tr>
 <tr class="separator:abbd0196d737d3fcf1a92245dc204944b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae5f27d9727f1e4ad9138dca073357836"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae5f27d9727f1e4ad9138dca073357836"></a>
 real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_gmres</b></td></tr>
@@ -186,9 +198,9 @@ real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_gmres</b></td
 <tr class="memitem:a2779c0614be7a68c880d75ed1c5267e0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2779c0614be7a68c880d75ed1c5267e0"></a>
 real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>fsq_lin</b></td></tr>
 <tr class="separator:a2779c0614be7a68c880d75ed1c5267e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8d0e6835bf52aec54a8265a0d58cc836"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8d0e6835bf52aec54a8265a0d58cc836"></a>
-real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>etak</b></td></tr>
-<tr class="separator:a8d0e6835bf52aec54a8265a0d58cc836"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa20e3059af9143dcf785c6d8bc3f117"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afa20e3059af9143dcf785c6d8bc3f117"></a>
+real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>etak_tol</b></td></tr>
+<tr class="separator:afa20e3059af9143dcf785c6d8bc3f117"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab654bcd4626cf31cc9ec1080b4597bea"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab654bcd4626cf31cc9ec1080b4597bea"></a>
 real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>levm_scale</b> = 1</td></tr>
 <tr class="separator:ab654bcd4626cf31cc9ec1080b4597bea"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -256,8 +268,8 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <tr class="memdesc:af771b1e74df5b57a9d2c521318f2c4f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">=FALSE, s,u,v components of forces NOT solved at s=0 <br /></td></tr>
 <tr class="separator:af771b1e74df5b57a9d2c521318f2c4f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afa0a75b3e6049e6147ae82ceeb1ff6a9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afa0a75b3e6049e6147ae82ceeb1ff6a9"></a>
-logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#afa0a75b3e6049e6147ae82ceeb1ff6a9">l_natural</a> =.TRUE.</td></tr>
-<tr class="memdesc:afa0a75b3e6049e6147ae82ceeb1ff6a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE use natural bc at s=0 (preferred: maintains symmetry) <br /></td></tr>
+logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#afa0a75b3e6049e6147ae82ceeb1ff6a9">l_natural</a> =.FALSE.</td></tr>
+<tr class="memdesc:afa0a75b3e6049e6147ae82ceeb1ff6a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">=FALSE evolves all forces at origin <br /></td></tr>
 <tr class="separator:afa0a75b3e6049e6147ae82ceeb1ff6a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6545c83fcebbb90a389e3046ca3cd2f6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6545c83fcebbb90a389e3046ca3cd2f6"></a>
 logical&#160;</td><td class="memItemRight" valign="bottom"><b>l_linearize</b></td></tr>
@@ -295,6 +307,10 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#acd61b4f909ffaba70b0084fb06fdc4df">lcolscale</a></td></tr>
 <tr class="memdesc:acd61b4f909ffaba70b0084fb06fdc4df"><td class="mdescLeft">&#160;</td><td class="mdescRight">=TRUE to apply col-scaling to Hessian <br /></td></tr>
 <tr class="separator:acd61b4f909ffaba70b0084fb06fdc4df"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9e69ce16da2d4c0017b76f7c40bce10"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac9e69ce16da2d4c0017b76f7c40bce10"></a>
+logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#ac9e69ce16da2d4c0017b76f7c40bce10">l_infnorm</a> = .TRUE.</td></tr>
+<tr class="memdesc:ac9e69ce16da2d4c0017b76f7c40bce10"><td class="mdescLeft">&#160;</td><td class="mdescRight">=Infinity norm(T) or L2 norm(F) for column scaling <br /></td></tr>
+<tr class="separator:ac9e69ce16da2d4c0017b76f7c40bce10"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d807a0397226b49764c470d9c2e32a5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5d807a0397226b49764c470d9c2e32a5"></a>
 logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__data.html#a5d807a0397226b49764c470d9c2e32a5">lasym</a> = .FALSE.</td></tr>
 <tr class="memdesc:a5d807a0397226b49764c470d9c2e32a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">=FALSE, symmetric; =TRUE, asymmetric plasma <br /></td></tr>
@@ -311,7 +327,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><b>lverbose</b> = .TR
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

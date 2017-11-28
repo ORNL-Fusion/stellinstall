@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['r',['r',['../structextcurz_1_1extcurz__class.html#a2424df3e863f8d39ceb7799f8aa64f05',1,'extcurz::extcurz_class']]],
   ['r0',['r0',['../structlimiter__grid_1_1limiter__grid__class.html#ae3ae1e97e8877f799818791b2552aaa2',1,'limiter_grid::limiter_grid_class']]],
   ['r8akherm0',['r8akherm0',['../interfacepspline__calls_1_1r8akherm0.html',1,'pspline_calls']]],
   ['r8akherm1',['r8akherm1',['../interfacepspline__calls_1_1r8akherm1.html',1,'pspline_calls']]],

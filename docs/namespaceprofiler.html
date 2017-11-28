@@ -104,10 +104,10 @@ Data Types</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ab266b6acb4f5255931690b43d31780e5"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprofiler.html#ab266b6acb4f5255931690b43d31780e5">profiler_construct</a> ()</td></tr>
-<tr class="memdesc:ab266b6acb4f5255931690b43d31780e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a profiler_table object.  <a href="#ab266b6acb4f5255931690b43d31780e5">More...</a><br /></td></tr>
+<tr class="memdesc:ab266b6acb4f5255931690b43d31780e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a profiler.  <a href="#ab266b6acb4f5255931690b43d31780e5">More...</a><br /></td></tr>
 <tr class="separator:ab266b6acb4f5255931690b43d31780e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a641db19a17afa3c6f3084c859aa86aa1"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprofiler.html#a641db19a17afa3c6f3084c859aa86aa1">profiler_destruct</a> ()</td></tr>
-<tr class="memdesc:a641db19a17afa3c6f3084c859aa86aa1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a profiler_table object.  <a href="#a641db19a17afa3c6f3084c859aa86aa1">More...</a><br /></td></tr>
+<tr class="memdesc:a641db19a17afa3c6f3084c859aa86aa1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a profiler.  <a href="#a641db19a17afa3c6f3084c859aa86aa1">More...</a><br /></td></tr>
 <tr class="separator:a641db19a17afa3c6f3084c859aa86aa1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af5df6115cae0fb6066c65922c4c34240"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprofiler.html#af5df6115cae0fb6066c65922c4c34240">profiler_set_stop_time</a> (symbol_name, start_time)</td></tr>
 <tr class="memdesc:af5df6115cae0fb6066c65922c4c34240"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the end time of profiled function.  <a href="#af5df6115cae0fb6066c65922c4c34240">More...</a><br /></td></tr>
@@ -156,11 +156,10 @@ type(<a class="el" href="structprofiler_1_1profiler__bucket.html">profiler_bucke
       </table>
 </div><div class="memdoc">
 
-<p>Construct a profiler_table object. </p>
-<p>Allocates memory for a profiler table.</p>
-<dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed profiler_table object. </dd></dl>
+<p>Construct a profiler. </p>
+<p>This only sets up OpenMP locks if OpenMP support is compiled in. The profile table uses a fixed memory size in global memory. </p>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00068">68</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00067">67</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
@@ -177,16 +176,10 @@ type(<a class="el" href="structprofiler_1_1profiler__bucket.html">profiler_bucke
       </table>
 </div><div class="memdoc">
 
-<p>Deconstruct a profiler_table object. </p>
-<p>Deallocates memory for a profiler_table object.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A profiler_table instance. </td></tr>
-  </table>
-  </dd>
-</dl>
+<p>Deconstruct a profiler. </p>
+<p>This only destroys OpenMP locks if OpenMP support is compiled in. The profile table uses a fixed memory size in global memory. </p>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00093">93</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00091">91</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
@@ -207,7 +200,7 @@ type(<a class="el" href="structprofiler_1_1profiler__bucket.html">profiler_bucke
 <p>Gets a starting time of a function. When profiling is turned off, this returns 0 instead.</p>
 <dl class="section return"><dt>Returns</dt><dd>The start time of a function. </dd></dl>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00196">196</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00194">194</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
@@ -237,7 +230,7 @@ hash_i+1 = hash_i * 33 ^ c_i
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The hash value of the symbol. </dd></dl>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00308">308</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00306">306</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
@@ -275,7 +268,7 @@ hash_i+1 = hash_i * 33 ^ c_i
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00123">123</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00121">121</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
@@ -313,7 +306,7 @@ hash_i+1 = hash_i * 33 ^ c_i
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00223">223</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00221">221</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
@@ -340,14 +333,14 @@ hash_i+1 = hash_i * 33 ^ c_i
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="profiler_8f_source.html#l00338">338</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
+<p>Definition at line <a class="el" href="profiler_8f_source.html#l00336">336</a> of file <a class="el" href="profiler_8f_source.html">profiler.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

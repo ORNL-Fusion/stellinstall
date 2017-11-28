@@ -199,7 +199,7 @@ character(len=*), parameter&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Array of plasma response functions. </p>
 <p>Array of stellarator symmetric plasma response functions. Array of cartesian coordinates for the conducting shell response function grid. Array of phi values for the conducting shell response function grid. Array of conducting shell response functions. Array of stellarator symmetric conducting shell response functions. Construct a <a class="el" href="structv3rfun__context_1_1v3rfun__context__class.html">v3rfun_context_class</a> object.</p>
 <p>Allocates memory and initializes a <a class="el" href="structv3rfun__context_1_1v3rfun__context__class.html">v3rfun_context_class</a> object.</p>
-<dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed v3fit_context_class object. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structv3rfun__context_1_1v3rfun__context__class.html">v3rfun_context_class</a> object. </dd></dl>
 
 <p>Definition at line <a class="el" href="v3rfun__context_8f_source.html#l00102">102</a> of file <a class="el" href="v3rfun__context_8f_source.html">v3rfun_context.f</a>.</p>
 
@@ -310,8 +310,8 @@ character(len=*), parameter&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Computes the magnetic response function for each a coil and writes the results to an mdsig file.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A reconstruction_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">d_coil</td><td>A diagnostic_dot_coil instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structv3rfun__context_1_1v3rfun__context__class.html">v3rfun_context_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">d_coil</td><td>A <a class="el" href="structdiagnostic__dot_1_1diagnostic__dot__coil.html">diagnostic_dot::diagnostic_dot_coil</a> instance. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">id_num</td><td>Diagnostic coil number. </td></tr>
   </table>
   </dd>
@@ -355,8 +355,8 @@ character(len=*), parameter&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Computes the response function for the vacuum field at the point measurement. Point probes are assumed to be outside of the plasma.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A reconstruction_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">d_coil</td><td>A diagnostic_dot_coil instance. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structv3rfun__context_1_1v3rfun__context__class.html">v3rfun_context_class</a> instance. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">d_coil</td><td>A <a class="el" href="structdiagnostic__dot_1_1diagnostic__dot__coil.html">diagnostic_dot::diagnostic_dot_coil</a> instance. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">id_num</td><td>Diagnostic coil number. </td></tr>
   </table>
   </dd>
@@ -369,7 +369,7 @@ character(len=*), parameter&#160;</td><td class="memItemRight" valign="bottom"><
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:19 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

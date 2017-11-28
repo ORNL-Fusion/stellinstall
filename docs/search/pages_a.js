@@ -1,6 +1,8 @@
 var searchData=
 [
-  ['testing_20framework_20documentation',['Testing Framework Documentation',['../testing.html',1,'']]],
-  ['thomson_20scattering_20diagnostic_20dot_20file',['Thomson Scattering Diagnostic Dot File',['../thomson_dot_sec.html',1,'']]],
-  ['todo_20list',['Todo List',['../todo.html',1,'']]]
+  ['soft_20x_2dray_20emission_20file_20manual',['Soft X-Ray Emission File Manual',['../emission_file_sec.html',1,'']]],
+  ['siesta_20result_20file',['SIESTA Result File',['../result_file_siesta.html',1,'']]],
+  ['siesta_20equilibrium_20manual',['SIESTA Equilibrium Manual',['../siesta_equilibrium_sec.html',1,'']]],
+  ['soft_20x_2dray_20diagnostic_20dot_20file',['Soft X-Ray Diagnostic Dot File',['../sxrem_dot_sec.html',1,'']]],
+  ['soft_20x_2dray_20emissivity_20ratio_20dot_20file',['Soft X-ray Emissivity Ratio Dot File',['../sxrem_ratio_dot_sec.html',1,'']]]
 ];

@@ -81,6 +81,19 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="title">Namelist v3r_coils definition </div>  </div>
 </div><!--header-->
 <div class="contents">
+<div class="toc"><h3>Table of Contents</h3>
+<ul><li class="level1"><a href="#v3rfun_namelist_intro_sec">Introduction</a></li>
+<li class="level1"><a href="#v3rfun_namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#v3rfun_filename_sec">Filename Variables</a></li>
+<li class="level2"><a href="#v3rfun_control_sec">Control Variables</a></li>
+<li class="level2"><a href="#v3rfun_super_sec">Super Conducting Coils</a></li>
+<li class="level2"><a href="#v3rfun_grid_sec">Response Grid Variables</a></li>
+<li class="level2"><a href="#v3rfun_shift_sec">Tilt and Shift Variables</a></li>
+</ul>
+</li>
+<li class="level1"><a href="#v3r_coils">Example File</a></li>
+<li class="level1"><a href="#v3rfun_namelist_prog_ref_sec">Programmers Reference</a></li>
+</ul>
+</div>
 <div class="textblock"><h1><a class="anchor" id="v3rfun_namelist_intro_sec"></a>
 Introduction</h1>
 <p>This page documents the contents of a namelist input file. V3RFUN namelist variables are defined in the <code>v3r_coils</code> common block.</p>
@@ -168,13 +181,13 @@ Tilt and Shift Variables</h2>
 </table>
 <h1><a class="anchor" id="v3r_coils"></a>
 Example File</h1>
-<div class="fragment"><div class="line"><span class="comment">! Example V3RFUN input file.</span></div><div class="line">&amp;v3fit_main_nli</div><div class="line">  idrfun = <span class="stringliteral">&#39;example&#39;</span></div><div class="line">  name_coils_dot = <span class="stringliteral">&#39;coils.example&#39;</span></div><div class="line">  name_diagnostic_dot = <span class="stringliteral">&#39;diagnostic.example.dot&#39;</span></div><div class="line">  rmin=0.98</div><div class="line">  rmax=2.02</div><div class="line">  zmin=-0.52</div><div class="line">  zmax=0.52</div><div class="line">  ir=101</div><div class="line">  jz=101</div><div class="line">  kp=32</div><div class="line">  lstell_sym =  f</div><div class="line"></div><div class="line">  use_con_shell = t</div><div class="line">  major_radius = 1.5</div><div class="line">  minor_radius = 0.525</div><div class="line">  kp_shell = 128</div><div class="line">/</div></div><!-- fragment --><h1><a class="anchor" id="namelist_prog_ref_sec"></a>
+<div class="fragment"><div class="line"><span class="comment">! Example V3RFUN input file.</span></div><div class="line">&amp;v3fit_main_nli</div><div class="line">  idrfun = <span class="stringliteral">&#39;example&#39;</span></div><div class="line">  name_coils_dot = <span class="stringliteral">&#39;coils.example&#39;</span></div><div class="line">  name_diagnostic_dot = <span class="stringliteral">&#39;diagnostic.example.dot&#39;</span></div><div class="line">  rmin=0.98</div><div class="line">  rmax=2.02</div><div class="line">  zmin=-0.52</div><div class="line">  zmax=0.52</div><div class="line">  ir=101</div><div class="line">  jz=101</div><div class="line">  kp=32</div><div class="line">  lstell_sym =  f</div><div class="line"></div><div class="line">  use_con_shell = t</div><div class="line">  major_radius = 1.5</div><div class="line">  minor_radius = 0.525</div><div class="line">  kp_shell = 128</div><div class="line">/</div></div><!-- fragment --><h1><a class="anchor" id="v3rfun_namelist_prog_ref_sec"></a>
 Programmers Reference</h1>
 <p>Reference material for the coding to implement this namelist is found in the <a class="el" href="namespacev3rfun__input.html">v3rfun_input</a> module. </p>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

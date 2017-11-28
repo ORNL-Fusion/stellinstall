@@ -1,6 +1,7 @@
 var searchData=
 [
   ['in_5frange',['in_range',['../classvertex.html#aff5a66ce6e401e15c0930f46b3504d9c',1,'vertex']]],
+  ['init_5fallocate_5farrays',['init_allocate_arrays',['../namespacesiesta__init.html#af18768afcf285c219bc9996fc5582c69',1,'siesta_init']]],
   ['init_5fcombination_5fsignals',['init_combination_signals',['../v3fita_8f.html#ad93cd3ffa7b89476b1adfb684db072a6',1,'v3fita.f']]],
   ['init_5fece_5fsignals',['init_ece_signals',['../v3fita_8f.html#a33225eaa9f4991197cb0a6e0e98bb006',1,'v3fita.f']]],
   ['init_5fequilibrium',['init_equilibrium',['../v3fita_8f.html#a2b78c5799a90818d923f8dec84287c73',1,'v3fita.f']]],

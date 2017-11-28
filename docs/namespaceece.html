@@ -111,9 +111,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a90fdeae2d7692fff569ffa3a1262828b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceece.html#a90fdeae2d7692fff569ffa3a1262828b">ece_destruct</a> (this)</td></tr>
 <tr class="memdesc:a90fdeae2d7692fff569ffa3a1262828b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structece_1_1ece__class.html">ece_class</a> object.  <a href="#a90fdeae2d7692fff569ffa3a1262828b">More...</a><br /></td></tr>
 <tr class="separator:a90fdeae2d7692fff569ffa3a1262828b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a788642ab237a2cba51665e07304397c3"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(4)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceece.html#a788642ab237a2cba51665e07304397c3">ece_get_modeled_signal</a> (this, a_model, sigma, last_value)</td></tr>
-<tr class="memdesc:a788642ab237a2cba51665e07304397c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates the modeled signal.  <a href="#a788642ab237a2cba51665e07304397c3">More...</a><br /></td></tr>
-<tr class="separator:a788642ab237a2cba51665e07304397c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9560c000d389361fad3cd5437e382a8"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(4)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceece.html#ab9560c000d389361fad3cd5437e382a8">ece_get_modeled_signal</a> (this, a_model, sigma, last_value,            </td></tr>
+<tr class="memdesc:ab9560c000d389361fad3cd5437e382a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates the modeled signal.  <a href="#ab9560c000d389361fad3cd5437e382a8">More...</a><br /></td></tr>
+<tr class="separator:ab9560c000d389361fad3cd5437e382a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab891d4fa4dccd7f69fbe97b2e69eebec"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceece.html#ab891d4fa4dccd7f69fbe97b2e69eebec">ece_get_signal_type</a> (this)</td></tr>
 <tr class="memdesc:ab891d4fa4dccd7f69fbe97b2e69eebec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the ece type.  <a href="#ab891d4fa4dccd7f69fbe97b2e69eebec">More...</a><br /></td></tr>
 <tr class="separator:ab891d4fa4dccd7f69fbe97b2e69eebec"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -248,14 +248,14 @@ Functions/Subroutines</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A <a class="el" href="structece_1_1ece__context.html">ece_context</a> for the model. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">xcart</td><td>The search point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">xcart1</td><td>The upper search point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">xcart2</td><td>The lower search point. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>True if the resonace was found.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>context in this case if not that same as context. It refers to generic passed to the function. This is the fortran eqivalent to a void pointer in C. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>True if the resonace was found. </dd></dl>
 
-<p>Definition at line <a class="el" href="ece_8f_source.html#l00279">279</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
+<p>Definition at line <a class="el" href="ece_8f_source.html#l00280">280</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
 
 </div>
 </div>
@@ -283,11 +283,11 @@ Functions/Subroutines</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 
-<p>Definition at line <a class="el" href="ece_8f_source.html#l00232">232</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
+<p>Definition at line <a class="el" href="ece_8f_source.html#l00236">236</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a788642ab237a2cba51665e07304397c3"></a>
+<a class="anchor" id="ab9560c000d389361fad3cd5437e382a8"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -331,12 +331,13 @@ Functions/Subroutines</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p>Definition at line <a class="el" href="ece_8f_source.html#l00138">138</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
+<p>Definition at line <a class="el" href="ece_8f_source.html#l00139">139</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
 
 </div>
 </div>
@@ -364,7 +365,7 @@ Functions/Subroutines</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the ece type. </dd></dl>
 
-<p>Definition at line <a class="el" href="ece_8f_source.html#l00202">202</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
+<p>Definition at line <a class="el" href="ece_8f_source.html#l00206">206</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
 
 </div>
 </div>
@@ -418,14 +419,14 @@ Functions/Subroutines</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the resonace was found. </dd></dl>
 
-<p>Definition at line <a class="el" href="ece_8f_source.html#l00333">333</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
+<p>Definition at line <a class="el" href="ece_8f_source.html#l00334">334</a> of file <a class="el" href="ece_8f_source.html">ece.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

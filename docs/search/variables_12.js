@@ -7,7 +7,7 @@ var searchData=
   ['te_5fstart',['te_start',['../structemission_1_1emission__class.html#a8c9e94a46561f055181fe240ba242f4a',1,'emission::emission_class']]],
   ['te_5fstep',['te_step',['../structemission_1_1emission__class.html#aad3b87d7c9017ca5fe4316c9c4eb936e',1,'emission::emission_class']]],
   ['te_5ftype',['te_type',['../structmodel_1_1model__class.html#a643ab844758277b242ebde4524cbf2a6',1,'model::model_class']]],
-  ['theta',['theta',['../structmse_1_1mse__class.html#a7e5b235a1ce8742944cd7c8576c098b8',1,'mse::mse_class']]],
+  ['theta',['theta',['../structextcurz_1_1extcurz__class.html#ae64f8fc21e6457a62700d2d42930bb62',1,'extcurz::extcurz_class::theta()'],['../structmse_1_1mse__class.html#a7e5b235a1ce8742944cd7c8576c098b8',1,'mse::mse_class::theta()']]],
   ['thomson',['thomson',['../structdiagnostic_1_1diagnostic__class.html#ad4d84cbeb666c1122c61e9a357171fba',1,'diagnostic::diagnostic_class']]],
   ['thomson_5fdensity_5ftype',['thomson_density_type',['../namespacethomson.html#a5b0e65d00c3eaef98f178c2d2b07a658',1,'thomson']]],
   ['thomson_5findex',['thomson_index',['../structv3fit__context_1_1v3fit__context__class.html#a1d7c297ed85c504710411982dd9986b7',1,'v3fit_context::v3fit_context_class']]],

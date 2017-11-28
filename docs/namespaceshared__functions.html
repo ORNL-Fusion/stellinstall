@@ -84,32 +84,45 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#func-members">Functions/Subroutines</a>  </div>
+<a href="#func-members">Functions/Subroutines</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
 <div class="title">shared_functions Module Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>Module contained subroutines and functions computing MHD forces and energy.  
+<p>Module contained subroutines and functions updating MHD forces and Wmhd.  
 <a href="#details">More...</a></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:acf4798ab31263a8a1958a5d83da6cadc"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__functions.html#acf4798ab31263a8a1958a5d83da6cadc">funct_island</a></td></tr>
-<tr class="memdesc:acf4798ab31263a8a1958a5d83da6cadc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel routine to compute MHD forces (both linear AND nonlinear) depending on l_linearize = T/F.  <a href="#acf4798ab31263a8a1958a5d83da6cadc">More...</a><br /></td></tr>
+<tr class="memdesc:acf4798ab31263a8a1958a5d83da6cadc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel/Serial routine to compute forces for perturbed state.  <a href="#acf4798ab31263a8a1958a5d83da6cadc">More...</a><br /></td></tr>
 <tr class="separator:acf4798ab31263a8a1958a5d83da6cadc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5599b32909f0210f0376a69e0edc3562"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5599b32909f0210f0376a69e0edc3562"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>getfsq</b> (fsqout)</td></tr>
+<tr class="separator:a5599b32909f0210f0376a69e0edc3562"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac6fac0e9458a840835b754d83c24b88"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aac6fac0e9458a840835b754d83c24b88"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>toupper_forces</b></td></tr>
 <tr class="separator:aac6fac0e9458a840835b754d83c24b88"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a61e8b9047c8d56be66ec7ff0c7ca38c4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__functions.html#a61e8b9047c8d56be66ec7ff0c7ca38c4">linesearch</a> (xcmin, fsq_min)</td></tr>
-<tr class="memdesc:a61e8b9047c8d56be66ec7ff0c7ca38c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs line search along xc vector for minimum fsq_total1.  <a href="#a61e8b9047c8d56be66ec7ff0c7ca38c4">More...</a><br /></td></tr>
-<tr class="separator:a61e8b9047c8d56be66ec7ff0c7ca38c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a521a673d0c0753c3dd66fdc49599d9d7"><td class="memItemLeft" align="right" valign="top">real(dp) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__functions.html#a521a673d0c0753c3dd66fdc49599d9d7">getwmhd</a> (p)</td></tr>
 <tr class="memdesc:a521a673d0c0753c3dd66fdc49599d9d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns perturbed MHD+KINETIC energy.  <a href="#a521a673d0c0753c3dd66fdc49599d9d7">More...</a><br /></td></tr>
 <tr class="separator:a521a673d0c0753c3dd66fdc49599d9d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a61e8b9047c8d56be66ec7ff0c7ca38c4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceshared__functions.html#a61e8b9047c8d56be66ec7ff0c7ca38c4">linesearch</a> (xcmin, fsq_min)</td></tr>
+<tr class="memdesc:a61e8b9047c8d56be66ec7ff0c7ca38c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs line search along xc vector for minimum fsq_total1.  <a href="#a61e8b9047c8d56be66ec7ff0c7ca38c4">More...</a><br /></td></tr>
+<tr class="separator:a61e8b9047c8d56be66ec7ff0c7ca38c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:ab8fc3f4f83fe9c5dfd1c8c7d69a58862"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab8fc3f4f83fe9c5dfd1c8c7d69a58862"></a>
+integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>nsmin</b></td></tr>
+<tr class="separator:ab8fc3f4f83fe9c5dfd1c8c7d69a58862"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a309c1a4bf4ca99f5d266ef91e409408b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a309c1a4bf4ca99f5d266ef91e409408b"></a>
+integer, private&#160;</td><td class="memItemRight" valign="bottom"><b>nsmax</b></td></tr>
+<tr class="separator:a309c1a4bf4ca99f5d266ef91e409408b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Module contained subroutines and functions computing MHD forces and energy. </p>
+<div class="textblock"><p>Module contained subroutines and functions updating MHD forces and Wmhd. </p>
 <dl class="section author"><dt>Author</dt><dd>S. P. Hirshman </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>July, 2014 </dd></dl>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
@@ -126,10 +139,10 @@ subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>toupper_forces<
       </table>
 </div><div class="memdoc">
 
-<p>Parallel routine to compute MHD forces (both linear AND nonlinear) depending on l_linearize = T/F. </p>
+<p>Parallel/Serial routine to compute forces for perturbed state. </p>
 <dl class="section author"><dt>Author</dt><dd>S. P. Hirshman, R. Sanchez, S. K. Seal </dd></dl>
 
-<p>Definition at line <a class="el" href="shared__functions_8f90_source.html#l00028">28</a> of file <a class="el" href="shared__functions_8f90_source.html">shared_functions.f90</a>.</p>
+<p>Definition at line <a class="el" href="shared__functions_8f90_source.html#l00029">29</a> of file <a class="el" href="shared__functions_8f90_source.html">shared_functions.f90</a>.</p>
 
 </div>
 </div>
@@ -156,7 +169,7 @@ subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>toupper_forces<
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="shared__functions_8f90_source.html#l00312">312</a> of file <a class="el" href="shared__functions_8f90_source.html">shared_functions.f90</a>.</p>
+<p>Definition at line <a class="el" href="shared__functions_8f90_source.html#l00244">244</a> of file <a class="el" href="shared__functions_8f90_source.html">shared_functions.f90</a>.</p>
 
 </div>
 </div>
@@ -187,14 +200,14 @@ subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>toupper_forces<
 <p>Performs line search along xc vector for minimum fsq_total1. </p>
 <dl class="section author"><dt>Author</dt><dd>S. P. Hirshman (2016) </dd></dl>
 
-<p>Definition at line <a class="el" href="shared__functions_8f90_source.html#l00270">270</a> of file <a class="el" href="shared__functions_8f90_source.html">shared_functions.f90</a>.</p>
+<p>Definition at line <a class="el" href="shared__functions_8f90_source.html#l00273">273</a> of file <a class="el" href="shared__functions_8f90_source.html">shared_functions.f90</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

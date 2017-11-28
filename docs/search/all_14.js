@@ -1,5 +1,7 @@
 var searchData=
 [
+  ['u_5fbuffer',['u_buffer',['../structcompression_1_1compression__class.html#a3180e0c9e237ff91e0385f44c49da7ab',1,'compression::compression_class']]],
+  ['unit_5fout',['unit_out',['../namespaceshared__data.html#a4ea632850995d16e455ac7d74bb2f808',1,'shared_data']]],
   ['units',['units',['../structdiagnostic__dot_1_1diagnostic__dot__coil.html#a51eb238f0f1e9a3d8d7f771814a54f3c',1,'diagnostic_dot::diagnostic_dot_coil']]],
   ['unprimed_5fgrid',['unprimed_grid',['../namespaceunprimed__grid.html',1,'']]],
   ['unprimed_5fgrid_2ef',['unprimed_grid.f',['../unprimed__grid_8f.html',1,'']]],

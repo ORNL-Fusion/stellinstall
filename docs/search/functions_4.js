@@ -6,7 +6,7 @@ var searchData=
   ['ece_5fdot_5fread',['ece_dot_read',['../namespaceece__dot.html#ac78048f4c5465665560e12a274947dfd',1,'ece_dot']]],
   ['ece_5ffunction',['ece_function',['../namespaceece.html#ae6bdcafb76d8cfe62f77443aff6ae3be',1,'ece']]],
   ['ece_5fget_5fheader',['ece_get_header',['../namespaceece.html#af420a5b37eb2a9a944f20d6061ddd6d8',1,'ece']]],
-  ['ece_5fget_5fmodeled_5fsignal',['ece_get_modeled_signal',['../namespaceece.html#a788642ab237a2cba51665e07304397c3',1,'ece']]],
+  ['ece_5fget_5fmodeled_5fsignal',['ece_get_modeled_signal',['../namespaceece.html#ab9560c000d389361fad3cd5437e382a8',1,'ece']]],
   ['ece_5fget_5fsignal_5ftype',['ece_get_signal_type',['../namespaceece.html#ab891d4fa4dccd7f69fbe97b2e69eebec',1,'ece']]],
   ['emission_5fconstruct_5fnetcdf',['emission_construct_netcdf',['../interfaceemission_1_1emission__construct.html#a72f7714468eb765f346f57bf5101fcf7',1,'emission::emission_construct::emission_construct_netcdf()'],['../namespaceemission.html#af91115875d353acc004f2005fa23e18e',1,'emission::emission_construct_netcdf()']]],
   ['emission_5fdestruct',['emission_destruct',['../namespaceemission.html#ae6c9bf4b2afee77d7a3d9eb7eb569571',1,'emission']]],

@@ -160,11 +160,12 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>Path of the working directory to change to. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">error</td><td>Returned error code. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="file__opts_8f_source.html#l00413">413</a> of file <a class="el" href="file__opts_8f_source.html">file_opts.f</a>.</p>
+<p>Definition at line <a class="el" href="file__opts_8f_source.html#l00414">414</a> of file <a class="el" href="file__opts_8f_source.html">file_opts.f</a>.</p>
 
 </div>
 </div>
@@ -241,7 +242,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Creates new directory by calling the appropriate command for the plaform.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file_source</td><td>The file to delete. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">directory_source</td><td>The directory to create. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error</td><td>The result of the copy. </td></tr>
   </table>
   </dd>
@@ -279,7 +280,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Deletes directory by calling the appropriate command for the plaform. This deletes all files inside the directory as well.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file_source</td><td>The file to delete. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">directory_source</td><td>The directory to delete. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error</td><td>The result of the copy. </td></tr>
   </table>
   </dd>
@@ -345,7 +346,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <p>Searches a path for last path separator and returns the directory path.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>Path to file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>Path to file. </td></tr>
   </table>
   </dd>
 </dl>
@@ -431,7 +432,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

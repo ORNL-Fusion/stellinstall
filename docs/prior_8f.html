@@ -108,7 +108,7 @@ Data Types</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a prior signal.  <a href="structprior_1_1prior__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceprior_1_1prior__construct.html">prior::prior_construct</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structprior_1_1prior__class.html">prior_class</a> types using <a class="el" href="interfaceprior_1_1prior__construct.html#a4360be82cf3aa41903d429731e86c129">prior_construct_gaussian</a> or prior_construct_mpi.  <a href="interfaceprior_1_1prior__construct.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structprior_1_1prior__class.html">prior_class</a> types using <a class="el" href="interfaceprior_1_1prior__construct.html#a4360be82cf3aa41903d429731e86c129">prior_construct_gaussian</a>.  <a href="interfaceprior_1_1prior__construct.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="namespaces"></a>
@@ -120,7 +120,7 @@ Modules</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a4545902bb8cf4f70aeb9acf9a369aaf5"><td class="memItemLeft" align="right" valign="top">type(prior_class) function, pointer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#a4545902bb8cf4f70aeb9acf9a369aaf5">prior::prior_construct_gaussian</a> (gaussian_object)</td></tr>
-<tr class="memdesc:a4545902bb8cf4f70aeb9acf9a369aaf5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structprior_1_1prior__class.html">prior_class</a> containing a prior_guassian object.  <a href="namespaceprior.html#a4545902bb8cf4f70aeb9acf9a369aaf5">More...</a><br /></td></tr>
+<tr class="memdesc:a4545902bb8cf4f70aeb9acf9a369aaf5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <a class="el" href="structprior_1_1prior__class.html">prior_class</a> containing a <a class="el" href="structprior__gaussian_1_1prior__gaussian__class.html">prior_gaussian::prior_gaussian_class</a> object.  <a href="namespaceprior.html#a4545902bb8cf4f70aeb9acf9a369aaf5">More...</a><br /></td></tr>
 <tr class="separator:a4545902bb8cf4f70aeb9acf9a369aaf5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af627fd6013c62a1563a936271773e874"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#af627fd6013c62a1563a936271773e874">prior::prior_destruct</a> (this)</td></tr>
 <tr class="memdesc:af627fd6013c62a1563a936271773e874"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structprior_1_1prior__class.html">prior_class</a> object.  <a href="namespaceprior.html#af627fd6013c62a1563a936271773e874">More...</a><br /></td></tr>
@@ -149,7 +149,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <tr class="separator:a66858c6223107600fa053c53f286529e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a24f41bc8fb35c06a04a8ec8c6783d267"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a24f41bc8fb35c06a04a8ec8c6783d267"></a>
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceprior.html#a24f41bc8fb35c06a04a8ec8c6783d267">prior::prior_gaussian_type</a> = 0</td></tr>
-<tr class="memdesc:a24f41bc8fb35c06a04a8ec8c6783d267"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the <a class="el" href="structprior_1_1prior__class.html">prior_class</a> subclass prior_guassian. <br /></td></tr>
+<tr class="memdesc:a24f41bc8fb35c06a04a8ec8c6783d267"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type descriptor for the <a class="el" href="structprior_1_1prior__class.html">prior_class</a> subclass <a class="el" href="structprior__gaussian_1_1prior__gaussian__class.html">prior_gaussian::prior_gaussian_class</a>. <br /></td></tr>
 <tr class="separator:a24f41bc8fb35c06a04a8ec8c6783d267"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -159,7 +159,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

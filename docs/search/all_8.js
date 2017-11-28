@@ -10,6 +10,7 @@ var searchData=
   ['in_5frange',['in_range',['../classvertex.html#aff5a66ce6e401e15c0930f46b3504d9c',1,'vertex']]],
   ['indices',['indices',['../structprior__gaussian_1_1prior__gaussian__class.html#a940991b9e09e9b7a32ceba787bde0e14',1,'prior_gaussian::prior_gaussian_class::indices()'],['../structsxrem__ratio_1_1sxrem__ratio__class.html#aa627980da653db3f9a045b0873c4a630',1,'sxrem_ratio::sxrem_ratio_class::indices()'],['../structv3fit__params_1_1param__locking__class.html#a5c3aae6762db6b32c8663414cc101c0f',1,'v3fit_params::param_locking_class::indices()'],['../structv3fit__params_1_1param__class.html#a49d29b2f4a7d9073065fa6de1fbf4bf3',1,'v3fit_params::param_class::indices()']]],
   ['inductance',['inductance',['../structmagnetic__response_1_1magnetic__response__class.html#a58b640b0e3a5d2d28dfa27da28562a6a',1,'magnetic_response::magnetic_response_class']]],
+  ['init_5fallocate_5farrays',['init_allocate_arrays',['../namespacesiesta__init.html#af18768afcf285c219bc9996fc5582c69',1,'siesta_init']]],
   ['init_5fcombination_5fsignals',['init_combination_signals',['../v3fita_8f.html#ad93cd3ffa7b89476b1adfb684db072a6',1,'v3fita.f']]],
   ['init_5fece_5fsignals',['init_ece_signals',['../v3fita_8f.html#a33225eaa9f4991197cb0a6e0e98bb006',1,'v3fita.f']]],
   ['init_5fequilibrium',['init_equilibrium',['../v3fita_8f.html#a2b78c5799a90818d923f8dec84287c73',1,'v3fita.f']]],

@@ -95,9 +95,9 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions/Subroutines</h2></td></tr>
-<tr class="memitem:a7191588e71eeec414f8349135725cdf4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacethscte__dot.html#a7191588e71eeec414f8349135725cdf4">thscte_dot_read</a> (thscte_file, signals, signals_created,</td></tr>
-<tr class="memdesc:a7191588e71eeec414f8349135725cdf4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read an thomson scattering diagnostic dot file.  <a href="#a7191588e71eeec414f8349135725cdf4">More...</a><br /></td></tr>
-<tr class="separator:a7191588e71eeec414f8349135725cdf4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a223d027effdcec8a8c191370fafefecd"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacethscte__dot.html#a223d027effdcec8a8c191370fafefecd">thscte_dot_read</a> (thscte_file, signals, signals_created,                                                                                                                                   observed, sigma, weight, first_index)</td></tr>
+<tr class="memdesc:a223d027effdcec8a8c191370fafefecd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Read an thomson scattering diagnostic dot file.  <a href="#a223d027effdcec8a8c191370fafefecd">More...</a><br /></td></tr>
+<tr class="separator:a223d027effdcec8a8c191370fafefecd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab9e730365dde975e8b4017695e36b7bf"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacethscte__dot.html#ab9e730365dde975e8b4017695e36b7bf">thscte_dot_parse_chord</a> (thscte_dot_file_ref,                                                                                                                                                                                                           coordinate_type,                                                                                                                                                                                                                           point_type,                                                                                                                                                                                                                                               signals,                                                                                                                                                                                                                                                           signals_created,                                                                                                                                                                                                                           observed, sigma, weight,                                                                                                                                                                                           first_index)</td></tr>
 <tr class="memdesc:ab9e730365dde975e8b4017695e36b7bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse thomson scattering diagnostic chord.  <a href="#ab9e730365dde975e8b4017695e36b7bf">More...</a><br /></td></tr>
 <tr class="separator:ab9e730365dde975e8b4017695e36b7bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -189,15 +189,16 @@ Functions/Subroutines</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sigma</td><td>Array of observed sigma values </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">weight</td><td>Array of signal weight values </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">first_index</td><td>Index of the first instance of an intpol signal. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">scale_index</td><td>Index of the signal scale factor. </td></tr>
   </table>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="thscte__dot_8f_source.html#l00245">245</a> of file <a class="el" href="thscte__dot_8f_source.html">thscte_dot.f</a>.</p>
+<p>Definition at line <a class="el" href="thscte__dot_8f_source.html#l00246">246</a> of file <a class="el" href="thscte__dot_8f_source.html">thscte_dot.f</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a7191588e71eeec414f8349135725cdf4"></a>
+<a class="anchor" id="a223d027effdcec8a8c191370fafefecd"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -217,7 +218,31 @@ Functions/Subroutines</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">integer, intent(inout)&#160;</td>
-          <td class="paramname"><em>signals_created</em>&#160;</td>
+          <td class="paramname"><em>signals_created</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(:), intent(in)&#160;</td>
+          <td class="paramname"><em>observed</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(:), intent(in)&#160;</td>
+          <td class="paramname"><em>sigma</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real (rprec), dimension(:), intent(in)&#160;</td>
+          <td class="paramname"><em>weight</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">integer, intent(inout)&#160;</td>
+          <td class="paramname"><em>first_index</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -242,14 +267,14 @@ Functions/Subroutines</h2></td></tr>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="thscte__dot_8f_source.html#l00102">102</a> of file <a class="el" href="thscte__dot_8f_source.html">thscte_dot.f</a>.</p>
+<p>Definition at line <a class="el" href="thscte__dot_8f_source.html#l00103">103</a> of file <a class="el" href="thscte__dot_8f_source.html">thscte_dot.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

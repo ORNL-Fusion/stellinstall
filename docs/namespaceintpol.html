@@ -101,7 +101,7 @@ Data Types</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a intpol signal.  <a href="structintpol_1_1intpol__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceintpol_1_1intpol__construct.html">intpol_construct</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structintpol_1_1intpol__class.html">intpol_class</a> types using <a class="el" href="interfaceintpol_1_1intpol__construct.html#aa462d87f7478e9101107286d49c1d02a">intpol_construct_int</a>, <a class="el" href="namespaceintpol.html#ac0939864d7b560097d535444ba90dce5">intpol_construct_pol</a> or intpol_construct_mpi.  <a href="interfaceintpol_1_1intpol__construct.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structintpol_1_1intpol__class.html">intpol_class</a> types using <a class="el" href="interfaceintpol_1_1intpol__construct.html#aa462d87f7478e9101107286d49c1d02a">intpol_construct_int</a> or <a class="el" href="namespaceintpol.html#ac0939864d7b560097d535444ba90dce5">intpol_construct_pol</a>.  <a href="interfaceintpol_1_1intpol__construct.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -202,18 +202,17 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespaceintegration__path.html" title="Module is part of the LIBSTELL. This modules contains code to define and integrate along an arbitray ...">integration_path</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A the model. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">xcart</td><td>A the integration point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A <a class="el" href="namespacemodel.html">model</a>. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">xcart</td><td>A integration point. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">dxcart</td><td>A vector change in path. Not used in this function. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">length</td><td>Length along the integration. Not used in this function. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">dx</td><td>A scalar change in path. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The ne(x)*dl at point x.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>context in this case if not that same as context. It refers to generic passed to the function. This is the fortran eqivalent to a void pointer in C. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The ne(x)*dl at point x. </dd></dl>
 
-<p>Definition at line <a class="el" href="intpol_8f_source.html#l00322">322</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
+<p>Definition at line <a class="el" href="intpol_8f_source.html#l00323">323</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
 
 </div>
 </div>
@@ -241,7 +240,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structintpol_1_1intpol__class.html">intpol_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="intpol_8f_source.html#l00086">86</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
+<p>Definition at line <a class="el" href="intpol_8f_source.html#l00085">85</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
 
 </div>
 </div>
@@ -287,7 +286,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to a constructed <a class="el" href="structintpol_1_1intpol__class.html">intpol_class</a> object. </dd></dl>
 
-<p>Definition at line <a class="el" href="intpol_8f_source.html#l00128">128</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
+<p>Definition at line <a class="el" href="intpol_8f_source.html#l00127">127</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
 
 </div>
 </div>
@@ -314,7 +313,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="intpol_8f_source.html#l00170">170</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
+<p>Definition at line <a class="el" href="intpol_8f_source.html#l00169">169</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
 
 </div>
 </div>
@@ -356,6 +355,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
   </table>
   </dd>
 </dl>
@@ -389,7 +389,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the intpol type. </dd></dl>
 
-<p>Definition at line <a class="el" href="intpol_8f_source.html#l00278">278</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
+<p>Definition at line <a class="el" href="intpol_8f_source.html#l00283">283</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
 
 </div>
 </div>
@@ -448,25 +448,24 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespaceintegration__path.html" title="Module is part of the LIBSTELL. This modules contains code to define and integrate along an arbitray ...">integration_path</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A the model. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">xcart</td><td>A the integration point. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>A <a class="el" href="namespacemodel.html">model</a>. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">xcart</td><td>A integration point. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">dxcart</td><td>A vector change in path. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">length</td><td>Length along the integration. Not used in this function. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">dx</td><td>A scalar change in path. Not used in this function. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The ne(x)*B.dl at point x.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>context in this case if not that same as context. It refers to generic passed to the function. This is the fortran eqivalent to a void pointer in C. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The ne(x)*B.dl at point x. </dd></dl>
 
-<p>Definition at line <a class="el" href="intpol_8f_source.html#l00369">369</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
+<p>Definition at line <a class="el" href="intpol_8f_source.html#l00366">366</a> of file <a class="el" href="intpol_8f_source.html">intpol.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

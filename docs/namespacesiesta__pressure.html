@@ -98,11 +98,11 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab4ff6dedbb8fd946ff14eefa93c92881"></a>
 subroutine, public&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__pressure.html#ab4ff6dedbb8fd946ff14eefa93c92881">update_pres</a></td></tr>
-<tr class="memdesc:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel subroutine to advance pressure from t to t+delta_t by updating jpmnc,sh (jacobh*presh) <br /></td></tr>
+<tr class="memdesc:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="mdescLeft">&#160;</td><td class="mdescRight">Advance pressure from t to t+delta_t by updating jpmnc,sh (jacobh*presh) <br /></td></tr>
 <tr class="separator:ab4ff6dedbb8fd946ff14eefa93c92881"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab049095ab321b72515e5dce19151a5d0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab049095ab321b72515e5dce19151a5d0"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__pressure.html#ab049095ab321b72515e5dce19151a5d0">continuity</a> (djpmnh, ipar)</td></tr>
-<tr class="memdesc:ab049095ab321b72515e5dce19151a5d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Uses density continuity equation, with p = n^gamma, to evolve p. <br /></td></tr>
+<tr class="memdesc:ab049095ab321b72515e5dce19151a5d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Evolve p, using density (n, continuity) equation, with p = n^gamma,. <br /></td></tr>
 <tr class="separator:ab049095ab321b72515e5dce19151a5d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
@@ -113,6 +113,9 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>m0</b> 
 <tr class="memitem:a62c96986eaf0a88c5e1b2a7e0eb436c0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a62c96986eaf0a88c5e1b2a7e0eb436c0"></a>
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>m1</b> =1</td></tr>
 <tr class="separator:a62c96986eaf0a88c5e1b2a7e0eb436c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5ff70024303f3a781564b1d4de50e57"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab5ff70024303f3a781564b1d4de50e57"></a>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>n0</b> =0</td></tr>
+<tr class="separator:ab5ff70024303f3a781564b1d4de50e57"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4eb7ca61d131de5896c2825f5fddf376"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4eb7ca61d131de5896c2825f5fddf376"></a>
 integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><b>isym</b> =0</td></tr>
 <tr class="separator:a4eb7ca61d131de5896c2825f5fddf376"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -128,33 +131,33 @@ integer&#160;</td><td class="memItemRight" valign="bottom"><b>nsmax</b></td></tr
 <tr class="memitem:a5f45d3ad3c192b9093a540b96126dbdc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5f45d3ad3c192b9093a540b96126dbdc"></a>
 real(dp)&#160;</td><td class="memItemRight" valign="bottom"><b>gamm1</b></td></tr>
 <tr class="separator:a5f45d3ad3c192b9093a540b96126dbdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a72f23a39b88cc06ad4e742cd6a019f2b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a72f23a39b88cc06ad4e742cd6a019f2b"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>work1</b></td></tr>
-<tr class="separator:a72f23a39b88cc06ad4e742cd6a019f2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a05b8bac36fbf836f24d57c6298cb4227"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a05b8bac36fbf836f24d57c6298cb4227"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>work2</b></td></tr>
-<tr class="separator:a05b8bac36fbf836f24d57c6298cb4227"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a46ffe94878479f1b2a5eb18e52112ffc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a46ffe94878479f1b2a5eb18e52112ffc"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>vgradph</b></td></tr>
-<tr class="separator:a46ffe94878479f1b2a5eb18e52112ffc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a56cfb0afe0e03cc58216d355b2e18b3f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a56cfb0afe0e03cc58216d355b2e18b3f"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>work3</b></td></tr>
-<tr class="separator:a56cfb0afe0e03cc58216d355b2e18b3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a46469347376b30cf04cab2f9bea69f31"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a46469347376b30cf04cab2f9bea69f31"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>work4</b></td></tr>
-<tr class="separator:a46469347376b30cf04cab2f9bea69f31"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa4ba9034908a965f4f5d18254fc521a1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa4ba9034908a965f4f5d18254fc521a1"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>work5</b></td></tr>
-<tr class="separator:aa4ba9034908a965f4f5d18254fc521a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae43965e58a9fc9147febe8c4373fb930"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae43965e58a9fc9147febe8c4373fb930"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>work6</b></td></tr>
-<tr class="separator:ae43965e58a9fc9147febe8c4373fb930"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a18646737fbc50bc2eec95bcce683cf2d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a18646737fbc50bc2eec95bcce683cf2d"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>jvsupuijh</b></td></tr>
-<tr class="separator:a18646737fbc50bc2eec95bcce683cf2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae185b4abe620b98aa7413e246d10208e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae185b4abe620b98aa7413e246d10208e"></a>
-real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRight" valign="bottom"><b>jvsupvijh</b></td></tr>
-<tr class="separator:ae185b4abe620b98aa7413e246d10208e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9be13654071596e9bd55449dc845a5b3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9be13654071596e9bd55449dc845a5b3"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>work1</b></td></tr>
+<tr class="separator:a9be13654071596e9bd55449dc845a5b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4ba1ecb9ac993b46cf6ac75f7b2ac13f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4ba1ecb9ac993b46cf6ac75f7b2ac13f"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>work2</b></td></tr>
+<tr class="separator:a4ba1ecb9ac993b46cf6ac75f7b2ac13f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b0c521fec1369097372fe840ea3c301"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5b0c521fec1369097372fe840ea3c301"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>vgradph</b></td></tr>
+<tr class="separator:a5b0c521fec1369097372fe840ea3c301"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ee2009bfeba1733687e1730cae16726"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5ee2009bfeba1733687e1730cae16726"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>work3</b></td></tr>
+<tr class="separator:a5ee2009bfeba1733687e1730cae16726"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1e798c216d00fc2379fe211d527aa42"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac1e798c216d00fc2379fe211d527aa42"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>work4</b></td></tr>
+<tr class="separator:ac1e798c216d00fc2379fe211d527aa42"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4d7f09925149df4e83f2d25df242a422"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4d7f09925149df4e83f2d25df242a422"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>work5</b></td></tr>
+<tr class="separator:a4d7f09925149df4e83f2d25df242a422"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7865014a02284bd69dd41956c34e37ee"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7865014a02284bd69dd41956c34e37ee"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>work6</b></td></tr>
+<tr class="separator:a7865014a02284bd69dd41956c34e37ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a99670bcd8e83a18c5f1807d5b719fbb1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a99670bcd8e83a18c5f1807d5b719fbb1"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>jvsupuijh</b></td></tr>
+<tr class="separator:a99670bcd8e83a18c5f1807d5b719fbb1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a17d8900629581f500e4d05f7d89fdeda"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a17d8900629581f500e4d05f7d89fdeda"></a>
+real(dp), dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><b>jvsupvijh</b></td></tr>
+<tr class="separator:a17d8900629581f500e4d05f7d89fdeda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Module contained subroutines for updating pressure as part of the SIESTA project. </p>
@@ -179,7 +182,7 @@ real(dp), dimension(:,:,:), allocatable, private&#160;</td><td class="memItemRig
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

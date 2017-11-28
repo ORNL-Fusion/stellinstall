@@ -111,17 +111,17 @@ Modules</h2></td></tr>
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a02e0516a91fb8f6abcd965a1c5037c6c"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a02e0516a91fb8f6abcd965a1c5037c6c">siesta_force::update_force</a></td></tr>
-<tr class="memdesc:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel subroutine to update MHD force. <br /></td></tr>
+<tr class="memdesc:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel/Serial update MHD force on full radial mesh. <br /></td></tr>
 <tr class="separator:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab761599e4d6c0be21406c0d15436319d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab761599e4d6c0be21406c0d15436319d"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::incfields</b> (jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,  </td></tr>
-<tr class="separator:ab761599e4d6c0be21406c0d15436319d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa2b5fb9421f82c62b55b9a3d7aef1c2c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa2b5fb9421f82c62b55b9a3d7aef1c2c"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#aa2b5fb9421f82c62b55b9a3d7aef1c2c">siesta_force::getmhdforce</a> (fsubsmnf, fsubumnf, fsubvmnf, iparity)</td></tr>
-<tr class="memdesc:aa2b5fb9421f82c62b55b9a3d7aef1c2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) components of the MHD force in parallel. <br /></td></tr>
-<tr class="separator:aa2b5fb9421f82c62b55b9a3d7aef1c2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1fe9c159a52351787dcfbd135bd6dfd0"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::incfields</b> (jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,</td></tr>
+<tr class="separator:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a68fd7e5ada554d7410936a68adc7c099"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a68fd7e5ada554d7410936a68adc7c099"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a68fd7e5ada554d7410936a68adc7c099">siesta_force::getmhdforce</a> (fsubsmnf, fsubumnf, fsubvmnf, ipar)</td></tr>
+<tr class="memdesc:a68fd7e5ada554d7410936a68adc7c099"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) components of the MHD force in parallel. <br /></td></tr>
+<tr class="separator:a68fd7e5ada554d7410936a68adc7c099"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0369f42765e7aa8b517051b141db4ba8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8">siesta_force::get_force_harmonics</a> (pmnf,                                                      </td></tr>
-<tr class="memdesc:a0369f42765e7aa8b517051b141db4ba8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute harmonics of the MHD force in parallel.  <a href="namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8">More...</a><br /></td></tr>
+<tr class="memdesc:a0369f42765e7aa8b517051b141db4ba8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute harmonics of the MHD covariant force components.  <a href="namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8">More...</a><br /></td></tr>
 <tr class="separator:a0369f42765e7aa8b517051b141db4ba8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a13ac21552eeaf1816f8a8e63522f8554"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a13ac21552eeaf1816f8a8e63522f8554"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>siesta_force::addpardamping</b> (f_smnf, f_umnf, f_vmnf, work, ipar)</td></tr>
@@ -158,7 +158,7 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

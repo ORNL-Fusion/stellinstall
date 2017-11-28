@@ -82,7 +82,8 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 <div class="toc"><h3>Table of Contents</h3>
-<ul><li class="level1"><a href="#namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#filename_sec">Filename variables</a><ul><li class="level3"><a href="#eq_filename_sec">Equilibrium Filename variables</a></li>
+<ul><li class="level1"><a href="#namelist_intro_sec">Introduction</a></li>
+<li class="level1"><a href="#namelist_var_sec">Namelist Variables</a><ul><li class="level2"><a href="#filename_sec">Filename variables</a><ul><li class="level3"><a href="#eq_filename_sec">Equilibrium Filename variables</a></li>
 <li class="level3"><a href="#signal_filename_sec">Singnal Filename variables</a></li>
 </ul>
 </li>
@@ -97,6 +98,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <li class="level2"><a href="#signal_spec_sec">Signal Data specification</a><ul><li class="level3"><a href="#sigma_spec_sec">Signal Data sigma specification</a></li>
 <li class="level3"><a href="#weight_spec_sec">Signal Data weight specification</a></li>
 <li class="level3"><a href="#magnetic_spec_sec">Magnetic signal specification</a></li>
+<li class="level3"><a href="#sfactor_spec_sec">Signal Factor Specification</a></li>
 </ul>
 </li>
 <li class="level2"><a href="#magnetic_sec">Magnetic signal parameters</a></li>
@@ -159,9 +161,9 @@ Singnal Filename variables</h3>
 <tr>
 <td width="20%"><code>ipch_dot_filename</code></td><td width="50%">File holding interferometry-polarimetry chord information. The file specification is described in the <a class="el" href="intpol_dot_sec.html">Inteferometry/Polarimetry Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ae1fe6c8994f39bfe0b7a5b2a576fccdb">v3fit_input::ipch_dot_filename</a> </td></tr>
 <tr>
-<td width="20%"><code>mse_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the mse_ratio_dot_sec.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a21c831b5d3eb6144de874851c67e9f93">v3fit_input::mse_dot_filename</a> </td></tr>
+<td width="20%"><code>mse_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the <a class="el" href="mse_dot_sec.html">Motional Stark Effect Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a21c831b5d3eb6144de874851c67e9f93">v3fit_input::mse_dot_filename</a> </td></tr>
 <tr>
-<td width="20%"><code>ece_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the ece_ratio_dot_sec.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af786af93e310aa065e95b891ae9cb5ab">v3fit_input::ece_dot_filename</a> </td></tr>
+<td width="20%"><code>ece_dot_filename</code></td><td width="50%">File holding motional stark effect information. The file specification is described in the <a class="el" href="ece_dot_sec.html">ECE Diagnostic Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#af786af93e310aa065e95b891ae9cb5ab">v3fit_input::ece_dot_filename</a> </td></tr>
 <tr>
 <td width="20%"><code>sxrem_ratio_dot_filename</code></td><td width="50%">File holding soft x-ray emissivity ratio information. The file specification is described in the <a class="el" href="sxrem_ratio_dot_sec.html">Soft X-ray Emissivity Ratio Dot File</a>.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ab1c443867144c97b12aaafbee516fad4">v3fit_input::sxrem_ratio_dot_filename</a> </td></tr>
 <tr>
@@ -333,6 +335,7 @@ Reconstruction parameter specification</h2>
 <li><a class="el" href="model_sec.html">Model Manual</a></li>
 <li><a class="el" href="vmec_equilibrium_sec.html">VMEC Equilibrium Manual</a></li>
 <li><a class="el" href="vacuum_equilibrium_sec.html">Vacuum Equilibrium Manual</a></li>
+<li><a class="el" href="siesta_equilibrium_sec.html">SIESTA Equilibrium Manual</a></li>
 </ul>
 <p class="endtd">The second index contains the low and high range types respectively.</p>
 </td><td width="30%"><a class="el" href="namespacev3fit__input.html#ad37a237759d4d29d0d8b029a7c3274be">v3fit_input::rp_range_type</a> </td></tr>
@@ -347,7 +350,7 @@ Locking parameter specification</h2>
 <tr>
 <td width="20%"><code>n_lp</code></td><td width="50%">Number of derived parameters</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7adc371e0b3a169e5e4beacbf6be9478">v3fit_input::n_dp</a> </td></tr>
 <tr>
-<td width="20%"><code>lp_type</code></td><td width="50%">Array of locking parameter types. Any reconstuction parameter can be a locking parameter. Valid reconstruction parameters are defined by the <a class="el" href="namespacemodel.html">model</a> or the equilibirum.<ul>
+<td width="20%"><code>lp_type</code></td><td width="50%">Array of locking parameter types. Any reconstuction parameter can be a locking parameter. Valid reconstruction parameters are defined by the <a class="el" href="namespacemodel.html">model</a> or the <a class="el" href="namespaceequilibrium.html">equilibrium</a>.<ul>
 <li><a class="el" href="model_sec.html#model_recon_param_sec">Model Reconstruction Parameters</a></li>
 <li><a class="el" href="vmec_equilibrium_sec.html#vmec_equilibrium_recon_param_sec">VMEC Reconstruction Parameters</a></li>
 <li><a class="el" href="vacuum_equilibrium_sec.html#vacuum_equilibrium_recon_param_sec">Vacuum Reconstruction Parameters</a></li>
@@ -358,7 +361,7 @@ Locking parameter specification</h2>
 <tr>
 <td width="20%"><code>lp_index2</code></td><td width="50%">Array of locking parameter 2nd indices</td><td width="30%"><a class="el" href="namespacev3fit__input.html#ab9fa5501afe4180f079943391a110241">v3fit_input::lp_index2</a> </td></tr>
 <tr>
-<td width="20%"><code>lp_sets</code></td><td width="50%">Array of parameter to lock to. Any model or equilirbium parameter maybe locked to.<ul>
+<td width="20%"><code>lp_sets</code></td><td width="50%">Array of parameter to lock to. Any model or equilibrium parameter maybe locked to.<ul>
 <li><a class="el" href="model_sec.html">Model Manual</a></li>
 <li><a class="el" href="vmec_equilibrium_sec.html">VMEC Equilibrium Manual</a></li>
 <li><a class="el" href="vacuum_equilibrium_sec.html">Vacuum Equilibrium Manual</a></li>
@@ -429,13 +432,23 @@ Magnetic signal specification</h3>
 <tr>
 <td width="20%"><code>mag_spec_use_induced</code></td><td width="50%">Array of logicals for specifying plasma only signals</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a35eea91e2c76dcd3e49b9d20574e3157">v3fit_input::mag_spec_use_induced</a> </td></tr>
 </table>
+<h3><a class="anchor" id="sfactor_spec_sec"></a>
+Signal Factor Specification</h3>
+<table  border="1px" width="80%">
+<tr>
+<td width="20%"><code>sfactor_spec_imin</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%">v3fit_input::sfactor_spec_imin </td></tr>
+<tr>
+<td width="20%"><code>sfactor_spec_imax</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%">v3fit_input::sfactor_spec_imax </td></tr>
+<tr>
+<td width="20%"><code>sfactor_spec_fac</code></td><td width="50%">Array of minimum index values for specifying thomson scale factors</td><td width="30%">v3fit_input::sfactor_spec_fac </td></tr>
+</table>
 <h2><a class="anchor" id="magnetic_sec"></a>
 Magnetic signal parameters</h2>
 <table  border="1px" width="80%">
 <tr>
 <td width="20%"><code>pol_rad_ratio</code></td><td width="50%">Ratio of the radial grid points to the poloidal grid points for the plasma only volumn integration.</td><td width="30%"><a class="el" href="namespacev3fit__input.html#a7a3cf3ce87524d4a927e44343ff6690a">v3fit_input::pol_rad_ratio</a> </td></tr>
 </table>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000010">Todo:</a></b></dt><dd>FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000009">Todo:</a></b></dt><dd>FIXME: S and U are VMEC specific. Make these a radial position and poloidal angle. </dd></dl>
 <h2><a class="anchor" id="extcurz_sec"></a>
 These two are used by the extcurz diagnostic signal.</h2>
 <table  border="1px" width="80%">
@@ -579,7 +592,7 @@ Programmers Reference</h1>
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

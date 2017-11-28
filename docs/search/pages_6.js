@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['namelist_20v3fit_5fmain_5fnli_20definition',['Namelist v3fit_main_nli definition',['../namelist_sec.html',1,'']]],
-  ['namelist_20v3r_5fcoils_20definition',['Namelist v3r_coils definition',['../v3rfun_namelist_sec.html',1,'']]],
-  ['namelist_20vacuum_5fmain_5fnli_20definition',['Namelist vacuum_main_nli definition',['../vacuum_namelist_sec.html',1,'']]]
+  ['magnetic_20diagnostic_20dot_20file',['Magnetic Diagnostic Dot File',['../diagnostic_dot_sec.html',1,'']]],
+  ['model_20manual',['Model Manual',['../model_sec.html',1,'']]],
+  ['motional_20stark_20effect_20diagnostic_20dot_20file',['Motional Stark Effect Diagnostic Dot File',['../mse_dot_sec.html',1,'']]],
+  ['model_20result_20file',['Model Result File',['../result_file_model.html',1,'']]]
 ];

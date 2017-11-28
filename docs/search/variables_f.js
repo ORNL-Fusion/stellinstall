@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['p',['p',['../namespaceblocktridiagonalsolver__s.html#ae5d5f840a06aeecfad6ef8e5e437a2b1',1,'blocktridiagonalsolver_s::p()'],['../namespaceblocktridiagonalsolver.html#a89ecbaeafa19ceb157eccf114b592e2d',1,'blocktridiagonalsolver::p()']]],
+  ['p',['p',['../structcompression_1_1compression__pointer.html#ab1e63b0c9c932f0299275a1fdf666965',1,'compression::compression_pointer::p()'],['../structsignal_1_1signal__pointer.html#aef169613590bb38d99350f3e8e32e9d1',1,'signal::signal_pointer::p()'],['../structv3fit__params_1_1param__pointer.html#a422477f1deb8922990f1ee32ca37be46',1,'v3fit_params::param_pointer::p()'],['../namespaceblocktridiagonalsolver__s.html#ae5d5f840a06aeecfad6ef8e5e437a2b1',1,'blocktridiagonalsolver_s::p()'],['../namespaceblocktridiagonalsolver.html#a89ecbaeafa19ceb157eccf114b592e2d',1,'blocktridiagonalsolver::p()']]],
   ['p_5ffactor',['p_factor',['../structsiesta__context_1_1siesta__context__class.html#ab47f565bc8f0f1d4ebd4f6a890de9088',1,'siesta_context::siesta_context_class']]],
   ['p_5fgrid',['p_grid',['../structbmw__context_1_1bmw__context__class.html#afda0d06e760cdce67d23bf02c52683c7',1,'bmw_context::bmw_context_class']]],
   ['p_5fmax',['p_max',['../structsiesta__context_1_1siesta__context__class.html#abaead99df4cdf6b9b27a2cdebefd92ba',1,'siesta_context::siesta_context_class']]],
@@ -56,8 +56,8 @@ var searchData=
   ['primed_5fgrid_5fjv_5fflag',['primed_grid_jv_flag',['../namespaceprimed__grid.html#a3290e4bb2b4fd0dfb731f7291daf0f07',1,'primed_grid']]],
   ['primed_5fgrid_5fsiesta_5fflag',['primed_grid_siesta_flag',['../namespaceprimed__grid.html#a45ebc76da7180425bc9ecabbfcc1f097',1,'primed_grid']]],
   ['prior',['prior',['../structsignal_1_1signal__class.html#a45b07e6f2141cab8053a90062a80ceee',1,'signal::signal_class']]],
+  ['prior_5fgaussian_5findex',['prior_gaussian_index',['../structv3fit__context_1_1v3fit__context__class.html#aacc30f661a3441ab69e3297ba3fcf211',1,'v3fit_context::v3fit_context_class']]],
   ['prior_5fgaussian_5ftype',['prior_gaussian_type',['../namespaceprior.html#a24f41bc8fb35c06a04a8ec8c6783d267',1,'prior']]],
-  ['prior_5fguassian_5findex',['prior_guassian_index',['../structv3fit__context_1_1v3fit__context__class.html#a383f642eb4e048cf7c93a3b581da4ac6',1,'v3fit_context::v3fit_context_class']]],
   ['prior_5findices',['prior_indices',['../namespacev3fit__input.html#aaf059e86644d4f94716216ee191c60b2',1,'v3fit_input']]],
   ['prior_5fname',['prior_name',['../namespacev3fit__input.html#a30b5db6c5eae2374369b9be3d8b189d6',1,'v3fit_input']]],
   ['prior_5fno_5ftype',['prior_no_type',['../namespaceprior.html#a66858c6223107600fa053c53f286529e',1,'prior']]],

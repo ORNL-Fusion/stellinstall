@@ -176,7 +176,7 @@ Functions/Subroutines</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Soft x-ray callback function. </p>
-<p>Returns the value of the soft x-ray emissivity times the change in path length. This function is passed to path_integrate to act as a callback. The soft x-ray emissivity is provided by <a class="el" href="interfacemodel_1_1model__get__sxrem.html">model::model_get_sxrem</a>.</p>
+<p>Returns the value of the soft x-ray emissivity times the change in path length. This function is passed to <a class="el" href="namespaceintegration__path.html#a2fd9b0da9231d25c6feefab478f38531">integration_path::path_integrate</a> to act as a callback. The soft x-ray emissivity is provided by <a class="el" href="interfacemodel_1_1model__get__sxrem.html">model::model_get_sxrem</a>.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespaceintegration__path.html" title="Module is part of the LIBSTELL. This modules contains code to define and integrate along an arbitray ...">integration_path</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -188,8 +188,7 @@ Functions/Subroutines</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The sxrem(x)*dl at point x.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>context in this case if not that same as context. It refers to generic passed to the function. This is the fortran eqivalent to a void pointer in C. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The sxrem(x)*dl at point x. </dd></dl>
 
 <p>Definition at line <a class="el" href="sxrem_8f_source.html#l00252">252</a> of file <a class="el" href="sxrem_8f_source.html">sxrem.f</a>.</p>
 
@@ -307,12 +306,13 @@ Functions/Subroutines</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p>Definition at line <a class="el" href="sxrem_8f_source.html#l00146">146</a> of file <a class="el" href="sxrem_8f_source.html">sxrem.f</a>.</p>
+<p>Definition at line <a class="el" href="sxrem_8f_source.html#l00147">147</a> of file <a class="el" href="sxrem_8f_source.html">sxrem.f</a>.</p>
 
 </div>
 </div>
@@ -340,14 +340,14 @@ Functions/Subroutines</h2></td></tr>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the sxrem type. </dd></dl>
 
-<p>Definition at line <a class="el" href="sxrem_8f_source.html#l00206">206</a> of file <a class="el" href="sxrem_8f_source.html">sxrem.f</a>.</p>
+<p>Definition at line <a class="el" href="sxrem_8f_source.html#l00209">209</a> of file <a class="el" href="sxrem_8f_source.html">sxrem.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

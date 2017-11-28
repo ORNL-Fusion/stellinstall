@@ -1,6 +1,8 @@
 var searchData=
 [
   ['d_5ftype',['d_type',['../structdiagnostic__dot_1_1diagnostic__dot__coil.html#a6ed15665f6b21755fffe5bbc114df155',1,'diagnostic_dot::diagnostic_dot_coil']]],
+  ['data_5fbuffer',['data_buffer',['../structcompression_1_1compression__class.html#a25d6f159ac4a9f7356efe1f6aac6ec46',1,'compression::compression_class']]],
+  ['data_5fdim',['data_dim',['../structcompression_1_1compression__class.html#afb77f6bbf0003016e1b2040f844e1fec',1,'compression::compression_class']]],
   ['data_5fmax_5findices',['data_max_indices',['../namespacedata__parameters.html#a71ff4854fd6b5cf86c1c4f46a19db20c',1,'data_parameters']]],
   ['data_5fname_5flength',['data_name_length',['../namespacedata__parameters.html#a5af930b6b7d6148f98708d2b522eba76',1,'data_parameters']]],
   ['data_5fno_5fid',['data_no_id',['../namespacedata__parameters.html#a491450e0d772225d91151608e1435846',1,'data_parameters']]],

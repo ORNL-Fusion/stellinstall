@@ -109,15 +109,15 @@ Public Attributes</h2></td></tr>
 <tr class="separator:ac59fc58ad92a7abb21a9d17cc33d3dbc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7fbbbfdad4df15babebf17200d24ca4a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7fbbbfdad4df15babebf17200d24ca4a"></a>
 integer, dimension(2)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structv3fit__params_1_1param__recon__class.html#a7fbbbfdad4df15babebf17200d24ca4a">range_id</a> = data_no_id</td></tr>
-<tr class="memdesc:a7fbbbfdad4df15babebf17200d24ca4a"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the param_class::range_type is <a class="el" href="namespacev3fit__params.html#a3356363a8a30a7c7fd8300cfb28c03b5">param_range_parameter_type</a>, this holds the parameter id's of the lower(1) and upper(2) boundary. Id's are provided by either the <a class="el" href="namespacemodel.html">model</a> or the <a class="el" href="namespaceequilibrium.html">equilibrium</a>. <br /></td></tr>
+<tr class="memdesc:a7fbbbfdad4df15babebf17200d24ca4a"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the <a class="el" href="structv3fit__params_1_1param__recon__class.html#ac59fc58ad92a7abb21a9d17cc33d3dbc">param_recon_class::range_type</a> is <a class="el" href="namespacev3fit__params.html#a3356363a8a30a7c7fd8300cfb28c03b5">param_range_parameter_type</a>, this holds the parameter id's of the lower(1) and upper(2) boundary. Id's are provided by either the <a class="el" href="namespacemodel.html">model</a> or the <a class="el" href="namespaceequilibrium.html">equilibrium</a>. <br /></td></tr>
 <tr class="separator:a7fbbbfdad4df15babebf17200d24ca4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad5b2916fe298aeab30e8f4996c6d1579"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad5b2916fe298aeab30e8f4996c6d1579"></a>
 integer, dimension(2, data_max_indices)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structv3fit__params_1_1param__recon__class.html#ad5b2916fe298aeab30e8f4996c6d1579">range_indices</a> = 0</td></tr>
-<tr class="memdesc:ad5b2916fe298aeab30e8f4996c6d1579"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the param_class::range_type is <a class="el" href="namespacev3fit__params.html#a3356363a8a30a7c7fd8300cfb28c03b5">param_range_parameter_type</a>, this holds the parameter indices of the lower(1,:) and upper(2,:) boundary. <br /></td></tr>
+<tr class="memdesc:ad5b2916fe298aeab30e8f4996c6d1579"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the <a class="el" href="structv3fit__params_1_1param__recon__class.html#ac59fc58ad92a7abb21a9d17cc33d3dbc">param_recon_class::range_type</a> is <a class="el" href="namespacev3fit__params.html#a3356363a8a30a7c7fd8300cfb28c03b5">param_range_parameter_type</a>, this holds the parameter indices of the lower(1,:) and upper(2,:) boundary. <br /></td></tr>
 <tr class="separator:ad5b2916fe298aeab30e8f4996c6d1579"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae3ba6fc3030b819bb09862c3a9392abb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae3ba6fc3030b819bb09862c3a9392abb"></a>
 real(rprec), dimension(2)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structv3fit__params_1_1param__recon__class.html#ae3ba6fc3030b819bb09862c3a9392abb">range_value</a> = 0.0</td></tr>
-<tr class="memdesc:ae3ba6fc3030b819bb09862c3a9392abb"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the param_class::range_type is <a class="el" href="namespacev3fit__params.html#aa8fb6a41420df6beab495bfe91ad7287">param_range_value_type</a>, this holds the value of the lower(1) and upper(2) boundary. <br /></td></tr>
+<tr class="memdesc:ae3ba6fc3030b819bb09862c3a9392abb"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the <a class="el" href="structv3fit__params_1_1param__recon__class.html#ac59fc58ad92a7abb21a9d17cc33d3dbc">param_recon_class::range_type</a> is <a class="el" href="namespacev3fit__params.html#aa8fb6a41420df6beab495bfe91ad7287">param_range_value_type</a>, this holds the value of the lower(1) and upper(2) boundary. <br /></td></tr>
 <tr class="separator:ae3ba6fc3030b819bb09862c3a9392abb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a93821e8af38014b0811a32439d4dcb5e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a93821e8af38014b0811a32439d4dcb5e"></a>
 real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structv3fit__params_1_1param__recon__class.html#a93821e8af38014b0811a32439d4dcb5e">delta</a></td></tr>
@@ -179,7 +179,7 @@ real(rprec), dimension(:), pointer&#160;</td><td class="memItemRight" valign="bo
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:19 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

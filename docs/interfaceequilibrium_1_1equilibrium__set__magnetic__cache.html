@@ -125,12 +125,13 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Sets the magnetic cache of the equilibrium for the magnetic responce. </p>
-<p>This method is virtual. The actual setting of the magnetic cache should be handled a subclass method. The magnetic cache is any pre compuation that needs to be performed so that magnetic signals may compute a modeled signal. If the equilibrium does not require any information to be cached, this method does not need to be overridden. This method is meant to only be called once to tell the equilibrium it needs to use a magnetic cache. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="interfacevmec__equilibrium_1_1vmec__set__magnetic__cache.html" title="Interface for the setting the vmec_magnetic_cache types using vmec_set_magnetic_cache_init or vmec_se...">vmec_equilibrium::vmec_set_magnetic_cache</a></dd></dl>
+<p>This method is virtual. The actual setting of the magnetic cache should be handled a subclass method. The magnetic cache is any pre compuation that needs to be performed so that magnetic signals may compute a modeled signal. If the equilibrium does not require any information to be cached, this method does not need to be overridden. This method is meant to only be called once to tell the equilibrium it needs to use a magnetic cache. </p><dl class="section see"><dt>See also</dt><dd><a class="el" href="interfacevmec__equilibrium_1_1vmec__set__magnetic__cache.html" title="Interface for the setting the vmec_magnetic_cache types using vmec_set_magnetic_cache_responce, vmec_set_magnetic_cache_point or vmec_set_magnetic_cache_calc. ">vmec_equilibrium::vmec_set_magnetic_cache</a> </dd>
+<dd>
+<a class="el" href="interfacesiesta__equilibrium_1_1siesta__set__magnetic__cache.html" title="Interface for the setting the siesta_magnetic_cache types using siesta_set_magnetic_cache_responce, siesta_set_magnetic_cache_point or siesta_set_magnetic_cache_calc. ">siesta_equilibrium::siesta_set_magnetic_cache</a></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">this</td><td>A <a class="el" href="structequilibrium_1_1equilibrium__class.html">equilibrium_class</a> instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">response_object</td><td>A magnetic_response_class instance. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">use_axi</td><td>Magnetics can subtract off axisymmetric components. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">response_object</td><td>A <a class="el" href="structmagnetic__response_1_1magnetic__response__class.html">magnetic_response::magnetic_response_class</a> instance. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">state_flags</td><td>Bitwise flags to indicate which parts of the model changed. </td></tr>
   </table>
   </dd>
@@ -146,7 +147,7 @@ Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

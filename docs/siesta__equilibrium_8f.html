@@ -111,7 +111,7 @@ Data Types</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a <a class="el" href="namespacesiesta__equilibrium.html" title="Defines the base class of the type siesta_class. This module contains all the code necessary to inter...">siesta_equilibrium</a>.  <a href="structsiesta__equilibrium_1_1siesta__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacesiesta__equilibrium_1_1siesta__set__magnetic__cache.html">siesta_equilibrium::siesta_set_magnetic_cache</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the setting the <a class="el" href="structsiesta__equilibrium_1_1siesta__magnetic__cache.html">siesta_magnetic_cache</a> types using siesta_set_magnetic_cache_init or <a class="el" href="namespacesiesta__equilibrium.html#aeacc50357fd0c9adb56459a920dbd7b0">siesta_set_magnetic_cache_calc</a>.  <a href="interfacesiesta__equilibrium_1_1siesta__set__magnetic__cache.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the setting the <a class="el" href="structsiesta__equilibrium_1_1siesta__magnetic__cache.html">siesta_magnetic_cache</a> types using <a class="el" href="interfacesiesta__equilibrium_1_1siesta__set__magnetic__cache.html#afb0f113847e743d6592969855bf235ee">siesta_set_magnetic_cache_responce</a>, <a class="el" href="namespacesiesta__equilibrium.html#af2386d38f75c334868b6d8438d195056">siesta_set_magnetic_cache_point</a> or <a class="el" href="namespacesiesta__equilibrium.html#aeacc50357fd0c9adb56459a920dbd7b0">siesta_set_magnetic_cache_calc</a>.  <a href="interfacesiesta__equilibrium_1_1siesta__set__magnetic__cache.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacesiesta__equilibrium_1_1siesta__get__ne.html">siesta_equilibrium::siesta_get_ne</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the siesta pressure profile values.  <a href="interfacesiesta__equilibrium_1_1siesta__get__ne.html#details">More...</a><br /></td></tr>
@@ -321,51 +321,51 @@ Functions/Subroutines</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
 <tr class="memitem:a189e9a27ef66c1f77f23daf39c6a6bfe"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a189e9a27ef66c1f77f23daf39c6a6bfe"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a189e9a27ef66c1f77f23daf39c6a6bfe">siesta_equilibrium::siesta_pp_ne_b_id</a> = 51</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a189e9a27ef66c1f77f23daf39c6a6bfe">siesta_equilibrium::siesta_pp_ne_b_id</a> = 52</td></tr>
 <tr class="memdesc:a189e9a27ef66c1f77f23daf39c6a6bfe"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of function density profile parameters. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a189e9a27ef66c1f77f23daf39c6a6bfe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aad6ec8517be418ea53a4f275e0505860"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aad6ec8517be418ea53a4f275e0505860"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#aad6ec8517be418ea53a4f275e0505860">siesta_equilibrium::siesta_pp_ne_as_id</a> = 52</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#aad6ec8517be418ea53a4f275e0505860">siesta_equilibrium::siesta_pp_ne_as_id</a> = 53</td></tr>
 <tr class="memdesc:aad6ec8517be418ea53a4f275e0505860"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of segment density profile s poitions. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:aad6ec8517be418ea53a4f275e0505860"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a639288d39790f5f0843c7ce2772f1856"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a639288d39790f5f0843c7ce2772f1856"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a639288d39790f5f0843c7ce2772f1856">siesta_equilibrium::siesta_pp_ne_af_id</a> = 53</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a639288d39790f5f0843c7ce2772f1856">siesta_equilibrium::siesta_pp_ne_af_id</a> = 54</td></tr>
 <tr class="memdesc:a639288d39790f5f0843c7ce2772f1856"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of segment density profile f values. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a639288d39790f5f0843c7ce2772f1856"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a41604add0ca122fc364b03596129bb0f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a41604add0ca122fc364b03596129bb0f"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a41604add0ca122fc364b03596129bb0f">siesta_equilibrium::siesta_pp_sxrem_b_id</a> = 54</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a41604add0ca122fc364b03596129bb0f">siesta_equilibrium::siesta_pp_sxrem_b_id</a> = 55</td></tr>
 <tr class="memdesc:a41604add0ca122fc364b03596129bb0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of function sxrem profile parameters. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a41604add0ca122fc364b03596129bb0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a78b63cb12bd7d882ccccfb2d946b164b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a78b63cb12bd7d882ccccfb2d946b164b"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a78b63cb12bd7d882ccccfb2d946b164b">siesta_equilibrium::siesta_pp_sxrem_as_id</a> = 55</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a78b63cb12bd7d882ccccfb2d946b164b">siesta_equilibrium::siesta_pp_sxrem_as_id</a> = 56</td></tr>
 <tr class="memdesc:a78b63cb12bd7d882ccccfb2d946b164b"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of segment sxrem profile s poitions. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a78b63cb12bd7d882ccccfb2d946b164b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a78a72460e1dd54b7428f2bac98b16965"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a78a72460e1dd54b7428f2bac98b16965"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a78a72460e1dd54b7428f2bac98b16965">siesta_equilibrium::siesta_pp_sxrem_af_id</a> = 56</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a78a72460e1dd54b7428f2bac98b16965">siesta_equilibrium::siesta_pp_sxrem_af_id</a> = 57</td></tr>
 <tr class="memdesc:a78a72460e1dd54b7428f2bac98b16965"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of segment sxrem profile f values. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a78a72460e1dd54b7428f2bac98b16965"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0be857fc148e7a7612a7aa902c6843cb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0be857fc148e7a7612a7aa902c6843cb"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a0be857fc148e7a7612a7aa902c6843cb">siesta_equilibrium::siesta_pp_te_b_id</a> = 57</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a0be857fc148e7a7612a7aa902c6843cb">siesta_equilibrium::siesta_pp_te_b_id</a> = 58</td></tr>
 <tr class="memdesc:a0be857fc148e7a7612a7aa902c6843cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of function temperature profile parameters. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a0be857fc148e7a7612a7aa902c6843cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ebf05292ed967285440b8f2898fa9d4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1ebf05292ed967285440b8f2898fa9d4"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a1ebf05292ed967285440b8f2898fa9d4">siesta_equilibrium::siesta_pp_te_as_id</a> = 58</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a1ebf05292ed967285440b8f2898fa9d4">siesta_equilibrium::siesta_pp_te_as_id</a> = 59</td></tr>
 <tr class="memdesc:a1ebf05292ed967285440b8f2898fa9d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of segment temperature profile s poitions. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a1ebf05292ed967285440b8f2898fa9d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2502694f201333487363cd479ad09e61"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2502694f201333487363cd479ad09e61"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a2502694f201333487363cd479ad09e61">siesta_equilibrium::siesta_pp_te_af_id</a> = 59</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a2502694f201333487363cd479ad09e61">siesta_equilibrium::siesta_pp_te_af_id</a> = 60</td></tr>
 <tr class="memdesc:a2502694f201333487363cd479ad09e61"><td class="mdescLeft">&#160;</td><td class="mdescRight">1D Array of segment temperature profile f values. Defined in pprofile_T. <br /></td></tr>
 <tr class="separator:a2502694f201333487363cd479ad09e61"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a54a009081c325e79293dbc8bad9a26e0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a54a009081c325e79293dbc8bad9a26e0"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a54a009081c325e79293dbc8bad9a26e0">siesta_equilibrium::siesta_phi_offset_id</a> = 69</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a54a009081c325e79293dbc8bad9a26e0">siesta_equilibrium::siesta_phi_offset_id</a> = 70</td></tr>
 <tr class="memdesc:a54a009081c325e79293dbc8bad9a26e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Plasma Phi offset. This is a parameter to allow changing the phi angle of a quasi helical state in an RFP. Defined in <a class="el" href="namespacevmec__equilibrium.html">vmec_equilibrium</a>. <br /></td></tr>
 <tr class="separator:a54a009081c325e79293dbc8bad9a26e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1393619c11b1de783129f55a0be4d3b8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1393619c11b1de783129f55a0be4d3b8"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a1393619c11b1de783129f55a0be4d3b8">siesta_equilibrium::siesta_z_offset_id</a> = 70</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#a1393619c11b1de783129f55a0be4d3b8">siesta_equilibrium::siesta_z_offset_id</a> = 71</td></tr>
 <tr class="memdesc:a1393619c11b1de783129f55a0be4d3b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Plasma z offset. This is a parameter to allow changing the vertical shift of the plasma. <br /></td></tr>
 <tr class="separator:a1393619c11b1de783129f55a0be4d3b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af0ee35a1a4de414752e0d74fac846cf1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af0ee35a1a4de414752e0d74fac846cf1"></a>
-integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#af0ee35a1a4de414752e0d74fac846cf1">siesta_equilibrium::siesta_helpert_id</a> = 71</td></tr>
+integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__equilibrium.html#af0ee35a1a4de414752e0d74fac846cf1">siesta_equilibrium::siesta_helpert_id</a> = 72</td></tr>
 <tr class="memdesc:af0ee35a1a4de414752e0d74fac846cf1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helical perturbation parameter. <br /></td></tr>
 <tr class="separator:af0ee35a1a4de414752e0d74fac846cf1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -376,7 +376,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:17 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

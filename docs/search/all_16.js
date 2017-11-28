@@ -7,9 +7,12 @@ var searchData=
   ['wavelength',['wavelength',['../structintpol_1_1intpol__class.html#a768936df6f9f4dba7046dd81bfaad53c',1,'intpol::intpol_class']]],
   ['weight',['weight',['../structsignal_1_1signal__class.html#ac8c29f7c1ffb2980dae3dc06bce53b0e',1,'signal::signal_class']]],
   ['wfunc',['wfunc',['../namespacef1dim__mod.html#a71240e7133d89406a60514ef4593a933',1,'f1dim_mod']]],
+  ['wout_5fconverter',['wout_converter',['../wout__converter_8f.html#a18258d68040426c818d6e4de02a38f0c',1,'wout_converter.f']]],
+  ['wout_5fconverter_2ef',['wout_converter.f',['../wout__converter_8f.html',1,'']]],
   ['wout_5ffile_5fname',['wout_file_name',['../structvmec__equilibrium_1_1vmec__class.html#a31929fb764bd503d781f77983a407797',1,'vmec_equilibrium::vmec_class']]],
   ['write_5farray',['write_array',['../interfacewrite__array__generic_1_1write__array.html',1,'write_array_generic']]],
   ['write_5finvac',['write_invac',['../interfacevacfield__mod_1_1write__invac.html',1,'vacfield_mod']]],
   ['writeproblemfile',['writeproblemfile',['../namespaceblocktridiagonalsolver__s.html#afe31e2c8652ce53f977e4a31a2138bc7',1,'blocktridiagonalsolver_s::writeproblemfile()'],['../namespaceblocktridiagonalsolver.html#ab89347b7aed5e915d4f669934f4ff0f4',1,'blocktridiagonalsolver::writeproblemfile()']]],
-  ['writesolution',['writesolution',['../namespaceblocktridiagonalsolver__s.html#aa6eaf60f9aadee1196f87caae947392a',1,'blocktridiagonalsolver_s::writesolution()'],['../namespaceblocktridiagonalsolver.html#a25d1adcc7f6d18e80a8ebd9cb2f1dad8',1,'blocktridiagonalsolver::writesolution()']]]
+  ['writesolution',['writesolution',['../namespaceblocktridiagonalsolver__s.html#aa6eaf60f9aadee1196f87caae947392a',1,'blocktridiagonalsolver_s::writesolution()'],['../namespaceblocktridiagonalsolver.html#a25d1adcc7f6d18e80a8ebd9cb2f1dad8',1,'blocktridiagonalsolver::writesolution()']]],
+  ['wvt_5fbuffer',['wvt_buffer',['../structcompression_1_1compression__class.html#ada8f9e096776455f92cdfdb0913d10f1',1,'compression::compression_class']]]
 ];

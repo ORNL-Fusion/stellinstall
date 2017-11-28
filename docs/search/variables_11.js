@@ -1,6 +1,7 @@
 var searchData=
 [
   ['s_5fname',['s_name',['../structsignal_1_1signal__class.html#ac189e7767d60286a0f70faa5fce91dd1',1,'signal::signal_class']]],
+  ['scale_5findex',['scale_index',['../structsignal_1_1signal__class.html#a08fa81278f96f751b256872e2fab3d28',1,'signal::signal_class']]],
   ['sdo_5fdata_5fa',['sdo_data_a',['../namespacev3fit__input.html#a5eccf98434b659e7a02f3cfe51b43fed',1,'v3fit_input']]],
   ['sdo_5fs_5fspec_5ffloor',['sdo_s_spec_floor',['../namespacev3fit__input.html#a640d556ef08bd4ecdd97af9788d1bfd8',1,'v3fit_input']]],
   ['sdo_5fs_5fspec_5ffraction',['sdo_s_spec_fraction',['../namespacev3fit__input.html#a0e1a5aa868d02a69a147362a819b6674',1,'v3fit_input']]],
@@ -41,6 +42,7 @@ var searchData=
   ['signal_5fcombination_5ftype',['signal_combination_type',['../namespacesignal.html#aa9cec11b05b4a7068e302304acd1c3ee',1,'signal']]],
   ['signal_5fdiagnostic_5ftype',['signal_diagnostic_type',['../namespacesignal.html#a408d32cbfe7ccbb482e486f113a8a6a2',1,'signal']]],
   ['signal_5fdot_5fline_5flen',['signal_dot_line_len',['../namespacesignal__dot.html#a4424b615aa57d5f2ece45bd5feb4bf40',1,'signal_dot']]],
+  ['signal_5ffactor',['signal_factor',['../structmodel_1_1model__class.html#acb04711e18d5ad032c0f3dc18dd22352',1,'model::model_class']]],
   ['signal_5ffeedback_5ftype',['signal_feedback_type',['../namespacesignal.html#a64ff9cbe2bd12ae95dce9e9b0c93ffff',1,'signal']]],
   ['signal_5fgeometric_5ftype',['signal_geometric_type',['../namespacesignal.html#aa158ea5f48fcf7abd7229b072153149b',1,'signal']]],
   ['signal_5fid',['signal_id',['../structsignal__dot_1_1signal__dot__file.html#a26fb92866ff7cc15f247779e7658ef91',1,'signal_dot::signal_dot_file']]],

@@ -101,7 +101,7 @@ Data Types</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Base class representing a mse signal.  <a href="structmse_1_1mse__class.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">interface &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfacemse_1_1mse__construct.html">mse_construct</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structmse_1_1mse__class.html">mse_class</a> types using mse_construct_new or mse_construct_mpi.  <a href="interfacemse_1_1mse__construct.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Interface for the construction of <a class="el" href="structmse_1_1mse__class.html">mse_class</a> types using <a class="el" href="interfacemse_1_1mse__construct.html#ad2f91b720b9559c96f9c40549a6e1674">mse_construct_vec</a> or <a class="el" href="namespacemse.html#abd433a00522796b5b9dcaf4f106b1d00">mse_construct_rad</a>.  <a href="interfacemse_1_1mse__construct.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
@@ -115,9 +115,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:afc15d7634705d68f50d7d5ce8f6f0f8b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemse.html#afc15d7634705d68f50d7d5ce8f6f0f8b">mse_destruct</a> (this)</td></tr>
 <tr class="memdesc:afc15d7634705d68f50d7d5ce8f6f0f8b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deconstruct a <a class="el" href="structmse_1_1mse__class.html">mse_class</a> object.  <a href="#afc15d7634705d68f50d7d5ce8f6f0f8b">More...</a><br /></td></tr>
 <tr class="separator:afc15d7634705d68f50d7d5ce8f6f0f8b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3a078696f20855ea14f591c8f5f66db7"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(4)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemse.html#a3a078696f20855ea14f591c8f5f66db7">mse_get_modeled_signal</a> (this, a_model, sigma, last_value)</td></tr>
-<tr class="memdesc:a3a078696f20855ea14f591c8f5f66db7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates the modeled signal.  <a href="#a3a078696f20855ea14f591c8f5f66db7">More...</a><br /></td></tr>
-<tr class="separator:a3a078696f20855ea14f591c8f5f66db7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12299cf6b4a1a32285b7109433865cab"><td class="memItemLeft" align="right" valign="top">real(rprec) function, dimension(4)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemse.html#a12299cf6b4a1a32285b7109433865cab">mse_get_modeled_signal</a> (this, a_model, sigma, last_value,            </td></tr>
+<tr class="memdesc:a12299cf6b4a1a32285b7109433865cab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Calculates the modeled signal.  <a href="#a12299cf6b4a1a32285b7109433865cab">More...</a><br /></td></tr>
+<tr class="separator:a12299cf6b4a1a32285b7109433865cab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1994e229443826305fbe144a6117ace"><td class="memItemLeft" align="right" valign="top">character(len=data_name_length) function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemse.html#aa1994e229443826305fbe144a6117ace">mse_get_signal_type</a> (this)</td></tr>
 <tr class="memdesc:aa1994e229443826305fbe144a6117ace"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets a discription of the mse type.  <a href="#aa1994e229443826305fbe144a6117ace">More...</a><br /></td></tr>
 <tr class="separator:aa1994e229443826305fbe144a6117ace"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -193,7 +193,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The projected angle between the vector and the toroidal </dd></dl>
 
-<p>Definition at line <a class="el" href="mse_8f_source.html#l00433">433</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
+<p>Definition at line <a class="el" href="mse_8f_source.html#l00440">440</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
 
 </div>
 </div>
@@ -230,7 +230,7 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The projected angle between the vector and horizontal </dd></dl>
 
-<p>Definition at line <a class="el" href="mse_8f_source.html#l00473">473</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
+<p>Definition at line <a class="el" href="mse_8f_source.html#l00480">480</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
 
 </div>
 </div>
@@ -397,11 +397,11 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the model and model sigma array indices. </dd></dl>
 
-<p>Definition at line <a class="el" href="mse_8f_source.html#l00384">384</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
+<p>Definition at line <a class="el" href="mse_8f_source.html#l00391">391</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="a3a078696f20855ea14f591c8f5f66db7"></a>
+<a class="anchor" id="a12299cf6b4a1a32285b7109433865cab"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -462,12 +462,13 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
     <tr><td class="paramdir">[in]</td><td class="paramname">a_model</td><td>A <a class="el" href="namespacemodel.html">model</a> instance. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">sigma</td><td>The modeled sigma. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">last_value</td><td>Last good value in case the signal did not change. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">scale_factor</td><td>Factor to scale the modeled signal. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The model value. </dd></dl>
 
-<p>Definition at line <a class="el" href="mse_8f_source.html#l00283">283</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
+<p>Definition at line <a class="el" href="mse_8f_source.html#l00284">284</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
 
 </div>
 </div>
@@ -495,14 +496,14 @@ integer, parameter&#160;</td><td class="memItemRight" valign="bottom"><a class="
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A string describing the mse type. </dd></dl>
 
-<p>Definition at line <a class="el" href="mse_8f_source.html#l00354">354</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
+<p>Definition at line <a class="el" href="mse_8f_source.html#l00361">361</a> of file <a class="el" href="mse_8f_source.html">mse.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:53 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

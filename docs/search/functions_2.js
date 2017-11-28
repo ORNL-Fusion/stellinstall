@@ -11,6 +11,7 @@ var searchData=
   ['check_5fint',['check_int',['../interfaceintegration__path_1_1check.html#a28399e5d62c4d80adc58f10ed95cbd58',1,'integration_path::check::check_int()'],['../namespaceintegration__path.html#a7747207b6f5bc6d90b6ee6232f7d8116',1,'integration_path::check_int()']]],
   ['check_5flog',['check_log',['../interfaceintegration__path_1_1check.html#a8614af2194990fc83b852b1e7b9cb13c',1,'integration_path::check::check_log()'],['../namespaceintegration__path.html#ac6211124e34e5bff0c1a33d960014a49',1,'integration_path::check_log()']]],
   ['check_5freal',['check_real',['../interfaceintegration__path_1_1check.html#a2f08df4b2a994b3588e63af14d948d55',1,'integration_path::check::check_real()'],['../namespaceintegration__path.html#a5cb973890262ac40b7ae68e145bf89bd',1,'integration_path::check_real()']]],
+  ['checkpressure',['checkpressure',['../namespacesiesta__init.html#aeece1a0437d108586597cb41dd5c0a2b',1,'siesta_init']]],
   ['cleanup_5fparallelism',['cleanup_parallelism',['../v3fita_8f.html#aefdae3f839844539491f11571c279de6',1,'v3fita.f']]],
   ['clear_5ffield_5fperts',['clear_field_perts',['../namespacesiesta__state.html#aeb1a2c68bb299701c31b8cdbf599d37e',1,'siesta_state']]],
   ['combination_5fconstruct',['combination_construct',['../namespacesignal.html#a59e74c72b6c7947bee1a9d3c72dd6645',1,'signal']]],
@@ -44,10 +45,11 @@ var searchData=
   ['converge_5fdiagonal',['converge_diagonal',['../namespaceevolution.html#a596b8272febe9ba87c593cd8508c212c',1,'evolution']]],
   ['cood_5futils_5ftest',['cood_utils_test',['../namespacecoordinate__utilities.html#a4f531069f6907d8690b1e7eb58937423',1,'coordinate_utilities']]],
   ['copy_5ffile',['copy_file',['../namespacefile__opts.html#a075d04f0f20493be9b1f3cc8f750e51d',1,'file_opts']]],
-  ['copy_5ffile_5fc',['copy_file_c',['../copy__file_8c.html#a1176708d37efcf092c05635956aa8017',1,'copy_file.c']]],
-  ['copyfile',['copyfile',['../copy__file_8c.html#a84fd3dab88b752d678aa1a6a0c94c4e6',1,'copy_file.c']]],
+  ['copy_5ffile_5fc',['copy_file_c',['../copy__file_8c.html#a324aa78d4d222db4ce35e8ef383fef1d',1,'copy_file.c']]],
+  ['copyfile',['copyfile',['../copy__file_8c.html#a8472decee39a9ca455c8f6fe8de55f8f',1,'copy_file.c']]],
   ['create_5fdirectory',['create_directory',['../namespacefile__opts.html#aa038029606ef34c059b42be25c60c6e8',1,'file_opts']]],
   ['cross_5fproduct',['cross_product',['../classvector3d.html#a9a6ae4bece405d27680479007f4d179d',1,'vector3d']]],
+  ['curlb',['curlb',['../siesta__currents_8f90.html#ab5b4b1cc3eb596645ff6fac95260bfb2',1,'siesta_currents']]],
   ['cyl_5fto_5fcart',['cyl_to_cart',['../namespacecoordinate__utilities.html#a51949672f1c2a60753327fa3f40a4d4c',1,'coordinate_utilities']]],
   ['cyl_5fto_5fcart_5fvec',['cyl_to_cart_vec',['../namespacecoordinate__utilities.html#adb7ff5eab44f20841ba5300d94aa8f93',1,'coordinate_utilities']]]
 ];

@@ -99,6 +99,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a3ee7923a0e8823098df46d2929d1b0ab"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a3ee7923a0e8823098df46d2929d1b0ab">v3fit_input_read_namelist</a> (namelist_file)</td></tr>
 <tr class="memdesc:a3ee7923a0e8823098df46d2929d1b0ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads the namelist input file.  <a href="#a3ee7923a0e8823098df46d2929d1b0ab">More...</a><br /></td></tr>
 <tr class="separator:a3ee7923a0e8823098df46d2929d1b0ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ebb1c33783f13106c703abf6927e186"><td class="memItemLeft" align="right" valign="top">integer function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a3ebb1c33783f13106c703abf6927e186">v3fit_input_find_scale_index</a> (index)</td></tr>
+<tr class="memdesc:a3ebb1c33783f13106c703abf6927e186"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finds the index of the scaling spec.  <a href="#a3ebb1c33783f13106c703abf6927e186">More...</a><br /></td></tr>
+<tr class="separator:a3ebb1c33783f13106c703abf6927e186"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -498,6 +501,15 @@ logical, dimension(<a class="el" href="namespacev3fit__input.html#aac2c714ea366a
 real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a7a3cf3ce87524d4a927e44343ff6690a">pol_rad_ratio</a> = 1.0</td></tr>
 <tr class="memdesc:a7a3cf3ce87524d4a927e44343ff6690a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ratio of the number of poloidal grid points to radial grid points. <br /></td></tr>
 <tr class="separator:a7a3cf3ce87524d4a927e44343ff6690a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7d7388793df867a50aae96474807c9ae"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7d7388793df867a50aae96474807c9ae"></a>
+integer, dimension(<a class="el" href="namespacev3fit__input.html#aac2c714ea366acf1f172fd2d67c46bfd">v3fit_max_spec_size</a>)&#160;</td><td class="memItemRight" valign="bottom"><b>sfactor_spec_imin</b> = 0</td></tr>
+<tr class="separator:a7d7388793df867a50aae96474807c9ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c9e757dd5e7fc3203b6da6363cbd31b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0c9e757dd5e7fc3203b6da6363cbd31b"></a>
+integer, dimension(<a class="el" href="namespacev3fit__input.html#aac2c714ea366acf1f172fd2d67c46bfd">v3fit_max_spec_size</a>)&#160;</td><td class="memItemRight" valign="bottom"><b>sfactor_spec_imax</b> = 0</td></tr>
+<tr class="separator:a0c9e757dd5e7fc3203b6da6363cbd31b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeedb001946f7995fdb6e7549e4fc1729"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aeedb001946f7995fdb6e7549e4fc1729"></a>
+real(rprec), dimension(<a class="el" href="namespacev3fit__input.html#aac2c714ea366acf1f172fd2d67c46bfd">v3fit_max_spec_size</a>)&#160;</td><td class="memItemRight" valign="bottom"><b>sfactor_spec_fac</b> = 0.0</td></tr>
+<tr class="separator:aeedb001946f7995fdb6e7549e4fc1729"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11987511aea794ac429ac277a0e5ea9d"><td class="memItemLeft" align="right" valign="top">real(rprec)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacev3fit__input.html#a11987511aea794ac429ac277a0e5ea9d">extcurz_s0</a> = -1.0</td></tr>
 <tr class="memdesc:a11987511aea794ac429ac277a0e5ea9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">External Z current radial position.  <a href="#a11987511aea794ac429ac277a0e5ea9d">More...</a><br /></td></tr>
 <tr class="separator:a11987511aea794ac429ac277a0e5ea9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -661,6 +673,33 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p><a class="el" href="namelist_sec.html">Namelist v3fit_main_nli definition</a></p>
 <dl class="section note"><dt>Note</dt><dd>Some of the references are missing here. This is due to a bug in Doxygen when variable decalarations span multiple lines. </dd></dl>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
+<a class="anchor" id="a3ebb1c33783f13106c703abf6927e186"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">integer function v3fit_input::v3fit_input_find_scale_index </td>
+          <td>(</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
+          <td class="paramname"><em>index</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Finds the index of the scaling spec. </p>
+<p>The signal factor specification sets ranges of signal indices associated with a reconstructable scale factor. If the index is not within one of these ranges an index of -1 is returned.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Index of the current signal. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l01357">1357</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+
+</div>
+</div>
 <a class="anchor" id="a3ee7923a0e8823098df46d2929d1b0ab"></a>
 <div class="memitem">
 <div class="memproto">
@@ -676,8 +715,8 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </div><div class="memdoc">
 
 <p>Reads the namelist input file. </p>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000014">Todo:</a></b></dt><dd>FIXME: The label of s0 and u0 are vmec specific. These should be changed to a radial coordinate and poloidal angle. </dd></dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000015">Todo:</a></b></dt><dd>FIXME: The implementation is VMEC specific. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000013">Todo:</a></b></dt><dd>FIXME: The label of s0 and u0 are vmec specific. These should be changed to a radial coordinate and poloidal angle. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000014">Todo:</a></b></dt><dd>FIXME: The implementation is VMEC specific. </dd></dl>
 <p>Reads the namelist input file. Replaces the sigma and weight values with the the computed specification. If using the old, major and minor radius, add a new limiter to the limiter specification. Determines the number of combination signals if the user has not specified <a class="el" href="namespacev3fit__input.html#abf490c25c8051f8da13d6c686f94d321">n_sig_coosig</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -685,9 +724,9 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
   </table>
   </dd>
 </dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000016">Todo:</a></b></dt><dd>FIXME: Remove this when n_sig_coosig is mandatory. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000015">Todo:</a></b></dt><dd>FIXME: Remove this when n_sig_coosig is mandatory. </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l01095">1095</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l01110">1110</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -705,7 +744,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Combination type. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacesignal.html" title="Defines the base class of the type signal_class and the base class of combination_class. ">signal</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00953">953</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00966">966</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -720,9 +759,9 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </div><div class="memdoc">
 
 <p>External Z current radial position. </p>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000012">Todo:</a></b></dt><dd>FIXME: The label of s0 and u0 are vmec specific. These should be changed to a radial coordinate and poloidal angle. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000011">Todo:</a></b></dt><dd>FIXME: The label of s0 and u0 are vmec specific. These should be changed to a radial coordinate and poloidal angle. </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00888">888</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00901">901</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -737,9 +776,9 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </div><div class="memdoc">
 
 <p>Zero out vmec xcdot array. </p>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000013">Todo:</a></b></dt><dd>FIXME: VMEC specific. Not implemented. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000012">Todo:</a></b></dt><dd>FIXME: VMEC specific. Not implemented. </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l01001">1001</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l01014">1014</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -755,9 +794,9 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 
 <p>Specify how electron density is computed by the model. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacemodel.html" title="Defines the base class of the type model_class. The model contains information not specific to the eq...">model</a> </dd></dl>
-<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000011">Todo:</a></b></dt><dd>FIXME: New coding contains a model_ne_type that old code did not have. Make the default value pp_ne for compatibility. Eventially this shoud be set back to none and users should set model_ne_type in the namelist input. </dd></dl>
+<dl class="todo"><dt><b><a class="el" href="todo.html#_todo000010">Todo:</a></b></dt><dd>FIXME: New coding contains a model_ne_type that old code did not have. Make the default value pp_ne for compatibility. Eventially this shoud be set back to none and users should set model_ne_type in the namelist input. </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00709">709</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00714">714</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -770,10 +809,10 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000005">Deprecated:</a></b></dt><dd>Specify how soft x-ray emissivity is computed by the model. </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000008">Deprecated:</a></b></dt><dd>Specify how soft x-ray emissivity is computed by the model. </dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacemodel.html" title="Defines the base class of the type model_class. The model contains information not specific to the eq...">model</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00713">713</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00718">718</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -790,7 +829,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Specify how soft x-ray emissivity is computed by the model. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacemodel.html" title="Defines the base class of the type model_class. The model contains information not specific to the eq...">model</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00716">716</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00721">721</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -807,7 +846,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Specify how electron temperature is computed by the model. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacemodel.html" title="Defines the base class of the type model_class. The model contains information not specific to the eq...">model</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00721">721</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00726">726</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -820,9 +859,9 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000006">Deprecated:</a></b></dt><dd>Number of observed signals. </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000009">Deprecated:</a></b></dt><dd>Number of observed signals. </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00821">821</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00826">826</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -839,7 +878,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Maximum number of signals to create. </p>
 <dl class="section note"><dt>Note</dt><dd>this needs to be greater than or equal to total number of signals used. The signal arrays are resized to free up memory if this value is larger than the number of signals constructed. If this value is equal to the number of signals, the resize step can be avoided. </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00608">608</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00613">613</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -856,7 +895,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of af_coefficients electron density splines. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00634">634</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00639">639</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -873,7 +912,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of as_coefficients electron density splines. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00631">631</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00636">636</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -890,7 +929,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of b_coefficients for the electron density profile. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00628">628</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00633">633</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -912,7 +951,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00625">625</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00630">630</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -925,10 +964,10 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000004">Deprecated:</a></b></dt><dd>Array of af_coefficients soft x-ray emissvity profile splines </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000007">Deprecated:</a></b></dt><dd>Array of af_coefficients soft x-ray emissvity profile splines </dd></dl>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00654">654</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00659">659</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -945,7 +984,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of af_coefficients soft x-ray emissvity profile splines. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00675">675</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00680">680</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -958,10 +997,10 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000003">Deprecated:</a></b></dt><dd>Array of as_coefficients soft x-ray emissvity profile splines </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000006">Deprecated:</a></b></dt><dd>Array of as_coefficients soft x-ray emissvity profile splines </dd></dl>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00650">650</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00655">655</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -978,7 +1017,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of as_coefficients soft x-ray emissvity profile splines. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00671">671</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00676">676</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -991,10 +1030,10 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000002">Deprecated:</a></b></dt><dd>Array of b_coefficients for the soft x-ray emissvity profile </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000005">Deprecated:</a></b></dt><dd>Array of b_coefficients for the soft x-ray emissvity profile </dd></dl>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00646">646</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00651">651</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1011,7 +1050,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of b_coefficients for the soft x-ray emissvity profile. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00667">667</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00672">672</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1024,14 +1063,14 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Model soft x-ray emissvity profile, parameterized profile type.<ol type="1">
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000004">Deprecated:</a></b></dt><dd>Model soft x-ray emissvity profile, parameterized profile type.<ol type="1">
 <li><code>'none'</code> Not part of the model.</li>
 <li><code>'pp_sxrem'</code> Calculated from the parameterized profile pp_sxrem. </li>
 </ol>
 </dd></dl>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00642">642</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00647">647</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1052,7 +1091,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00663">663</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00668">668</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1069,7 +1108,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of af_coefficients electron temperature splines. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00693">693</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00698">698</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1086,7 +1125,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of as_coefficients electron temperature splines. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00690">690</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00695">695</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1103,7 +1142,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <p>Array of b_coefficients for the electron temperature profile. </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00687">687</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00692">692</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1125,7 +1164,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </p>
 <dl class="section see"><dt>See also</dt><dd>pprofile_T </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00684">684</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00689">689</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1147,7 +1186,7 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="namespacereconstruction.html" title="Defines the base class of the type reconstruction_class. This class contains the minimization algorit...">reconstruction</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00991">991</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l01004">1004</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
@@ -1176,14 +1215,14 @@ logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="n
 <dd>
 <a class="el" href="namespacev3fit__input.html#a2b0c487db8a1b6aa5eb18d3919aa31fc" title="Weight specification weight. ">sdo_w_spec_weight</a> </dd></dl>
 
-<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00547">547</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
+<p>Definition at line <a class="el" href="v3fit__input_8f_source.html#l00552">552</a> of file <a class="el" href="v3fit__input_8f_source.html">v3fit_input.f</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:19 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

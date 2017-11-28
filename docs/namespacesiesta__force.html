@@ -98,17 +98,17 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a02e0516a91fb8f6abcd965a1c5037c6c"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a02e0516a91fb8f6abcd965a1c5037c6c">update_force</a></td></tr>
-<tr class="memdesc:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel subroutine to update MHD force. <br /></td></tr>
+<tr class="memdesc:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parallel/Serial update MHD force on full radial mesh. <br /></td></tr>
 <tr class="separator:a02e0516a91fb8f6abcd965a1c5037c6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab761599e4d6c0be21406c0d15436319d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab761599e4d6c0be21406c0d15436319d"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>incfields</b> (jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,  </td></tr>
-<tr class="separator:ab761599e4d6c0be21406c0d15436319d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa2b5fb9421f82c62b55b9a3d7aef1c2c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa2b5fb9421f82c62b55b9a3d7aef1c2c"></a>
-subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#aa2b5fb9421f82c62b55b9a3d7aef1c2c">getmhdforce</a> (fsubsmnf, fsubumnf, fsubvmnf, iparity)</td></tr>
-<tr class="memdesc:aa2b5fb9421f82c62b55b9a3d7aef1c2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) components of the MHD force in parallel. <br /></td></tr>
-<tr class="separator:aa2b5fb9421f82c62b55b9a3d7aef1c2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1fe9c159a52351787dcfbd135bd6dfd0"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>incfields</b> (jbsupsmnh, jbsupumnh, jbsupvmnh, jpmnh,</td></tr>
+<tr class="separator:a1fe9c159a52351787dcfbd135bd6dfd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a68fd7e5ada554d7410936a68adc7c099"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a68fd7e5ada554d7410936a68adc7c099"></a>
+subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a68fd7e5ada554d7410936a68adc7c099">getmhdforce</a> (fsubsmnf, fsubumnf, fsubvmnf, ipar)</td></tr>
+<tr class="memdesc:a68fd7e5ada554d7410936a68adc7c099"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute covariant (sub) components of the MHD force in parallel. <br /></td></tr>
+<tr class="separator:a68fd7e5ada554d7410936a68adc7c099"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0369f42765e7aa8b517051b141db4ba8"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacesiesta__force.html#a0369f42765e7aa8b517051b141db4ba8">get_force_harmonics</a> (pmnf,                                                      </td></tr>
-<tr class="memdesc:a0369f42765e7aa8b517051b141db4ba8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute harmonics of the MHD force in parallel.  <a href="#a0369f42765e7aa8b517051b141db4ba8">More...</a><br /></td></tr>
+<tr class="memdesc:a0369f42765e7aa8b517051b141db4ba8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compute harmonics of the MHD covariant force components.  <a href="#a0369f42765e7aa8b517051b141db4ba8">More...</a><br /></td></tr>
 <tr class="separator:a0369f42765e7aa8b517051b141db4ba8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a13ac21552eeaf1816f8a8e63522f8554"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a13ac21552eeaf1816f8a8e63522f8554"></a>
 subroutine&#160;</td><td class="memItemRight" valign="bottom"><b>addpardamping</b> (f_smnf, f_umnf, f_vmnf, work, ipar)</td></tr>
@@ -169,7 +169,7 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
       </table>
 </div><div class="memdoc">
 
-<p>Compute harmonics of the MHD force in parallel. </p>
+<p>Compute harmonics of the MHD covariant force components. </p>
 <p>The MHD forces are pressure gradient and the magnetic pressure</p>
 <p>F = J X B - Grad(p) (1)</p>
 <p>where J is the plasma current density. In curvilinear coodinates, the forces components becomes</p>
@@ -186,19 +186,19 @@ integer, parameter, private&#160;</td><td class="memItemRight" valign="bottom"><
     <tr><td class="paramdir">[out]</td><td class="paramname">f_smnf</td><td>F_s component of the MHD force. (cos, ipar=0) </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">f_umnf</td><td>F_u component of the MHD force. (sin, ipar=0) </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">f_vmnf</td><td>F_v component of the MHD force. (sin, ipar=0) </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">iparity</td><td>=isym (default lasym=F), =iasym (lasym=T) </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ipar</td><td>=isym (default lasym=F), =iasym (lasym=T) </td></tr>
   </table>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="siesta__force_8f90_source.html#l00375">375</a> of file <a class="el" href="siesta__force_8f90_source.html">siesta_force.f90</a>.</p>
+<p>Definition at line <a class="el" href="siesta__force_8f90_source.html#l00370">370</a> of file <a class="el" href="siesta__force_8f90_source.html">siesta_force.f90</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Oct 24 2017 07:49:54 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Tue Nov 28 2017 10:22:18 for V3FIT by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>
