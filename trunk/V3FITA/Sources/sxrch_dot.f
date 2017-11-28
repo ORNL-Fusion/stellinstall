@@ -268,7 +268,8 @@
      &                                 current_profile, first_index,           &
      &                                 use_geo)
       USE signal
-      USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3fit_input, only: v3fit_max_diagnostics,                            &
+     &                       v3fit_input_find_scale_index
       USE v3_utilities, only: err_fatal
 
       IMPLICIT NONE
@@ -317,7 +318,8 @@
      &   diagnostic_construct(                                                 &
      &      sxrem_construct(xcart_i, xcart_f, geo, current_profile)),          &
      &   chord_name, chord_name, 'arb', observed(signals_created + 1),         &
-     &   sigma(signals_created + 1), weight(signals_created + 1))
+     &   sigma(signals_created + 1), weight(signals_created + 1),              &
+     &   v3fit_input_find_scale_index(signals_created + 1))
       signals_created = signals_created + 1
 
 !  At lease one sxrem signal was made. Set the first index. This should only be

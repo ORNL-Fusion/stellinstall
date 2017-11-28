@@ -79,43 +79,43 @@
 !  siesta equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface. Parameter id's start at 7 since 0-6 are
+!  outside of the vmec interface. Parameter id's start at 8 since 0-7 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added. Siesta uses the VMEC model
 !  parameters but overwrites the auxilary parameters.
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 51
+      INTEGER, PARAMETER :: siesta_pp_ne_b_id     = 52
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 52
+      INTEGER, PARAMETER :: siesta_pp_ne_as_id    = 53
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 53
+      INTEGER, PARAMETER :: siesta_pp_ne_af_id    = 54
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 54
+      INTEGER, PARAMETER :: siesta_pp_sxrem_b_id  = 55
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 55
+      INTEGER, PARAMETER :: siesta_pp_sxrem_as_id = 56
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 56
+      INTEGER, PARAMETER :: siesta_pp_sxrem_af_id = 57
 !>  1D Array of function temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 57
+      INTEGER, PARAMETER :: siesta_pp_te_b_id     = 58
 !>  1D Array of segment temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 58
+      INTEGER, PARAMETER :: siesta_pp_te_as_id    = 59
 !>  1D Array of segment temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 59
+      INTEGER, PARAMETER :: siesta_pp_te_af_id    = 60
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: siesta_phi_offset_id  = 69
+      INTEGER, PARAMETER :: siesta_phi_offset_id  = 70
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: siesta_z_offset_id    = 70
+      INTEGER, PARAMETER :: siesta_z_offset_id    = 71
 
 !>  Helical perturbation parameter.
-      INTEGER, PARAMETER :: siesta_helpert_id     = 71
+      INTEGER, PARAMETER :: siesta_helpert_id     = 72
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS

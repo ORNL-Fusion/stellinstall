@@ -196,14 +196,15 @@
 !>  integration function is provided by @ref int_function for interferometer
 !>  diagnostics and @ ref pol_function for polarimetry diagnostics.
 !>
-!>  @param[in]  this       A @ref intpol_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref intpol_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION intpol_get_modeled_signal(this, a_model, sigma,                 &
-     &                                   last_value)
+     &                                   last_value, scale_factor)
       USE model
 
       IMPLICIT NONE
@@ -214,6 +215,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -229,10 +231,11 @@
       intpol_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_ne_flag) .or.                 &
-     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+     &    BTEST(a_model%state_flags, model_state_ne_flag)     .or.             &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
 !  Cast model into a data to a context. This is the equivalent to casting to a
 !  void pointer in C.
@@ -256,6 +259,9 @@
                ENDIF
 
          END SELECT
+
+         intpol_get_modeled_signal(1) = intpol_get_modeled_signal(1)           &
+     &                                * scale_factor
 
          DEALLOCATE(context)
       END IF

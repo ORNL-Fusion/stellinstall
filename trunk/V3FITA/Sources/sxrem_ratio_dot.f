@@ -189,14 +189,14 @@
 !>  @param[in]    sxrem_ratio_dot_file_ref Name of the sxrem_ratio file.
 !>  @param[in]    coordinate_type          Specifies the cartesian or
 !>                                         cylindrical coordinate type.
-!>  @param[inout] signals                  Array of pointers to the a signal
+!>  @param[inout] signals                  Array of pointers to the a signal.
 !>  @param[inout] signals_created          Number valid signals in the array, or
 !>                                         index of the last signal created.
 !>  @param[in]    observed                 Array of observed values.
-!>  @param[in]    sigma                    Array of observed sigma values
-!>  @param[in]    weight                   Array of signal weight values
+!>  @param[in]    sigma                    Array of observed sigma values.
+!>  @param[in]    weight                   Array of signal weight values.
 !>  @param[inout] first_index              Index of the first instance of an
-!>                                         intpol
+!>                                         intpol.
 !-------------------------------------------------------------------------------
       SUBROUTINE sxrem_ratio_dot_parse_chord(sxrem_ratio_dot_file_ref,         &
      &                                       coordinate_type,                  &
@@ -204,7 +204,8 @@
      &                                       observed, sigma, weight,          &
      &                                       first_index)
       USE signal
-      USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3fit_input, only: v3fit_max_diagnostics,                            &
+     &                       v3fit_input_find_scale_index
       USE v3_utilities, only: err_fatal
       IMPLICIT NONE
 
@@ -248,10 +249,9 @@
 
       signals(signals_created + 1)%p =>                                        &
      &   signal_construct(feedback_construct(ratio_obj), point_name,           &
-     &                    point_name, units,                                   &
-     &                    observed(signals_created + 1),                       &
-     &                    sigma(signals_created + 1),                          &
-     &                    weight(signals_created + 1))
+     &      point_name, units, observed(signals_created + 1),                  &
+     &      sigma(signals_created + 1), weight(signals_created + 1),           &
+     &      v3fit_input_find_scale_index(signals_created + 1))
 
       signals_created = signals_created + 1
 

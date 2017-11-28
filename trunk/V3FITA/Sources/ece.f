@@ -128,13 +128,15 @@
 !>  Calculates the ECE signal by searching along the chord for the resonance.
 !>  The search criteria is provided by the @ref ece_function.
 !>
-!>  @param[in]  this       A @ref ece_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref ece_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION ece_get_modeled_signal(this, a_model, sigma, last_value)
+      FUNCTION ece_get_modeled_signal(this, a_model, sigma, last_value,        &
+     &                                scale_factor)
 
       IMPLICIT NONE
 
@@ -144,6 +146,7 @@
       TYPE (model_class), TARGET, INTENT(in)  :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 ! local variables
       CHARACTER(len=1), ALLOCATABLE           :: context(:)
@@ -158,10 +161,11 @@
       ece_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_te_flag) .or.                 &
-     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+     &    BTEST(a_model%state_flags, model_state_te_flag)     .or.             &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
 !  The relevant data for the ece context.
          temp_context%resonance = this%resonance

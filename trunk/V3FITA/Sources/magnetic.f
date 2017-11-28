@@ -171,14 +171,15 @@
 !>  The modeled signal can be computed in one of two ways. Modeled as a full
 !>  coil or as a point measurement.
 !>
-!>  @param[in]  this       A @ref magnetic_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref magnetic_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION magnetic_get_modeled_signal(this, a_model, sigma,               &
-     &                                     last_value)
+     &                                     last_value, scale_factor)
       USE model
 
       IMPLICIT NONE
@@ -189,6 +190,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -199,9 +201,10 @@
       magnetic_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
          IF (magnetic_response_is_point(this%response)) THEN
             magnetic_get_modeled_signal =                                      &
@@ -210,6 +213,9 @@
             magnetic_get_modeled_signal =                                      &
      &         magnetic_get_modeled_signal_coil(this, a_model, sigma)
          END IF
+
+         magnetic_get_modeled_signal = magnetic_get_modeled_signal             &
+     &                               * scale_factor
       END IF
 
       CALL profiler_set_stop_time('magnetic_get_modeled_signal',               &

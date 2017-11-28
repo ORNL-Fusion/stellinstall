@@ -107,14 +107,15 @@
 !>
 !>  The modeled signal is the ratio of the soft x-ray emissivity profiles.
 !>
-!>  @param[in]  this       A @ref sxrem_ratio_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref sxrem_ratio_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION sxrem_ratio_get_modeled_signal(this, a_model, sigma,            &
-     &                                        last_value)
+     &                                        last_value, scale_factor)
 
       IMPLICIT NONE
 
@@ -124,6 +125,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec)                            :: emissivity
@@ -135,13 +137,14 @@
       sxrem_ratio_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_shift_flag) .or.              &
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
      &    BTEST(a_model%state_flags, model_state_sxrem_flag +                  &
-     &                               (this%indices(1) - 1)) .or.               &
+     &                               (this%indices(1) - 1))   .or.             &
      &    BTEST(a_model%state_flags, model_state_sxrem_flag +                  &
-     &                               (this%indices(2) - 1))) THEN
+     &                               (this%indices(2) - 1))   .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
          emissivity = model_get_sxrem_cart(a_model, this%x_cart,               &
      &                                     this%indices(2))
@@ -153,6 +156,9 @@
      &         model_get_sxrem_cart(a_model, this%x_cart,                      &
      &                              this%indices(1))/emissivity
          END IF
+
+         sxrem_ratio_get_modeled_signal(1) =                                   &
+     &      sxrem_ratio_get_modeled_signal(1)*scale_factor
       END IF
 
       CALL profiler_set_stop_time('sxrem_ratio_get_modeled_signal',            &

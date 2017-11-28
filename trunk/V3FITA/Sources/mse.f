@@ -273,13 +273,15 @@
 !>  * theta: Angle between the view and the horizontal. Defined such that 90 is
 !>    in the positive z direction.
 !>
-!>  @param[in]  this       A @ref mse_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref mse_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
-      FUNCTION mse_get_modeled_signal(this, a_model, sigma, last_value)
+      FUNCTION mse_get_modeled_signal(this, a_model, sigma, last_value,        &
+     &                                scale_factor)
       USE model
 
       IMPLICIT NONE
@@ -290,6 +292,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec), DIMENSION(3)              :: b_cyl
@@ -301,9 +304,10 @@
       mse_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
 
 !  Get the magnetic field vector.
          b_cyl = equilibrium_get_B_vec(a_model%equilibrium, this%point,        &
@@ -336,6 +340,9 @@
      &                                   / degree
             END IF
          END IF
+
+         mse_get_modeled_signal(1) = mse_get_modeled_signal(1)                 &
+     &                             * scale_factor
       END IF
 
       CALL profiler_set_stop_time('mse_get_modeled_signal', start_time)

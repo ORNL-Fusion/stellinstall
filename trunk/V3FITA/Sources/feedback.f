@@ -136,14 +136,15 @@
 !>
 !>  @see sxrem_ratio::sxrem_ratio_get_modeled_signal
 !>
-!>  @param[in]  this       A @ref feedback_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref feedback_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION feedback_get_modeled_signal(this, a_model, sigma,               &
-     &                                     last_value)
+     &                                     last_value, scale_factor)
 
       IMPLICIT NONE
 
@@ -153,6 +154,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(:), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -165,7 +167,8 @@
          CASE (feedback_sxrem_ratio_type)
             feedback_get_modeled_signal =                                      &
      &         sxrem_ratio_get_modeled_signal(this%ratio, a_model,             &
-     &                                        sigma, last_value)
+     &                                        sigma, last_value,               &
+     &                                        scale_factor)
 
       END SELECT
 

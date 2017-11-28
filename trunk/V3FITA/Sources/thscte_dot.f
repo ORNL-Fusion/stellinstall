@@ -98,7 +98,7 @@
 !>  @param[inout] first_index     Index of the first instance of an intpol
 !>                                signal.
 !-------------------------------------------------------------------------------
-      SUBROUTINE thscte_dot_read(thscte_file, signals, signals_created,
+      SUBROUTINE thscte_dot_read(thscte_file, signals, signals_created,        &
      &                           observed, sigma, weight, first_index)
       USE signal
       USE data_parameters
@@ -234,6 +234,7 @@
 !>  @param[in]    weight              Array of signal weight values
 !>  @param[inout] first_index         Index of the first instance of an intpol
 !>                                    signal.
+!>  @param[in]    scale_index         Index of the signal scale factor.
 !-------------------------------------------------------------------------------
       SUBROUTINE thscte_dot_parse_chord(thscte_dot_file_ref,                   &
      &                                  coordinate_type,                       &
@@ -243,7 +244,8 @@
      &                                  observed, sigma, weight,               &
      &                                  first_index)
       USE signal
-      USE v3fit_input, only: v3fit_max_diagnostics
+      USE v3fit_input, only: v3fit_max_diagnostics,                            &
+     &                       v3fit_input_find_scale_index
       USE v3_utilities, only: err_fatal
       IMPLICIT NONE
 
@@ -299,7 +301,8 @@
       signals(signals_created + 1)%p => signal_construct(                      &
      &   diagnostic_construct(thomson_obj), point_name, point_name,            &
      &   units, observed(signals_created + 1),                                 &
-     &   sigma(signals_created + 1), weight(signals_created + 1))
+     &   sigma(signals_created + 1), weight(signals_created + 1),              &
+     &   v3fit_input_find_scale_index(signals_created + 1))
 
       signals_created = signals_created + 1
 

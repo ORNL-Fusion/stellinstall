@@ -96,6 +96,8 @@
          REAL (rprec), DIMENSION(4)         :: modeled
 !>  Cached value of the modeled sigma.
          REAL (rprec), DIMENSION(4)         :: modeled_sigma
+!>  Scale factor index.
+         INTEGER                            :: scale_index
 !>  An instance of a @ref diagnostic object.
          TYPE (diagnostic_class), POINTER   :: diagnostic => null()
 !>  An instance of a @ref geometric object.
@@ -170,11 +172,12 @@
 !>  @param[in] units       The units of the signal.
 !>  @param[in] observed    Observed value of the signal.
 !>  @param[in] sigma       Observed sigma of the signal.
-!>  @param[in] weight            Weight factor of the signal.
+!>  @param[in] weight      Weight factor of the signal.
+!>  @param[in] index       Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_new(signal_type, s_name, l_name, units,        &
-     &                              observed, sigma, weight)
+     &                              observed, sigma, weight, index)
 
       IMPLICIT NONE
 
@@ -187,6 +190,7 @@
       REAL(rprec), INTENT(in)      :: observed
       REAL(rprec), INTENT(in)      :: sigma
       REAL(rprec), INTENT(in)      :: weight
+      INTEGER, INTENT(in)          :: index
 
 !  local variables
       REAL (rprec)                 :: start_time
@@ -210,6 +214,7 @@
       signal_construct_new%weight = weight
       signal_construct_new%modeled = 0.0
       signal_construct_new%modeled_sigma = 0.0
+      signal_construct_new%scale_index = index
 
       CALL profiler_set_stop_time('signal_construct_new', start_time)
 
@@ -229,33 +234,35 @@
 !>  @param[in] observed          Observed value of the signal.
 !>  @param[in] sigma             Observed sigma of the signal.
 !>  @param[in] weight            Weight factor of the signal.
+!>  @param[in] index             Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_diagnostic(diagnostic_object, s_name,          &
      &                                     l_name, units, observed,            &
-     &                                     sigma, weight)
+     &                                     sigma, weight, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER        :: signal_construct_diagnostic
-      TYPE (diagnostic_class), POINTER    :: diagnostic_object
-      CHARACTER(len=*), INTENT(in)        :: s_name
-      CHARACTER(len=*), INTENT(in)        :: l_name
-      CHARACTER(len=*), INTENT(in)        :: units
-      REAL(rprec), INTENT(in)             :: observed
-      REAL(rprec), INTENT(in)             :: sigma
-      REAL(rprec), INTENT(in)             :: weight
+      TYPE (signal_class), POINTER     :: signal_construct_diagnostic
+      TYPE (diagnostic_class), POINTER :: diagnostic_object
+      CHARACTER(len=*), INTENT(in)     :: s_name
+      CHARACTER(len=*), INTENT(in)     :: l_name
+      CHARACTER(len=*), INTENT(in)     :: units
+      REAL(rprec), INTENT(in)          :: observed
+      REAL(rprec), INTENT(in)          :: sigma
+      REAL(rprec), INTENT(in)          :: weight
+      INTEGER, INTENT(in)              :: index
 
 !  local variables
-      REAL (rprec)                        :: start_time
+      REAL (rprec)                     :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       signal_construct_diagnostic =>                                           &
      &   signal_construct(signal_diagnostic_type, s_name, l_name, units,       &
-     &                    observed, sigma, weight)
+     &                    observed, sigma, weight, index)
       signal_construct_diagnostic%diagnostic => diagnostic_object
 
       CALL profiler_set_stop_time('signal_construct_diagnostic',               &
@@ -275,33 +282,35 @@
 !>  @param[in] observed         Observed value of the signal.
 !>  @param[in] sigma            Observed sigma of the signal.
 !>  @param[in] weight           Weight factor of the signal.
+!>  @param[in] index            Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_geometric(geometric_object, s_name,            &
      &                                    l_name, units, observed,             &
-     &                                    sigma, weight)
+     &                                    sigma, weight, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER       :: signal_construct_geometric
-      TYPE (geometric_class), POINTER    :: geometric_object
-      CHARACTER(len=*), INTENT(in)       :: s_name
-      CHARACTER(len=*), INTENT(in)       :: l_name
-      CHARACTER(len=*), INTENT(in)       :: units
-      REAL(rprec), INTENT(in)            :: observed
-      REAL(rprec), INTENT(in)            :: sigma
-      REAL(rprec), INTENT(in)            :: weight
+      TYPE (signal_class), POINTER    :: signal_construct_geometric
+      TYPE (geometric_class), POINTER :: geometric_object
+      CHARACTER(len=*), INTENT(in)    :: s_name
+      CHARACTER(len=*), INTENT(in)    :: l_name
+      CHARACTER(len=*), INTENT(in)    :: units
+      REAL(rprec), INTENT(in)         :: observed
+      REAL(rprec), INTENT(in)         :: sigma
+      REAL(rprec), INTENT(in)         :: weight
+      INTEGER, INTENT(in)             :: index
 
 !  local variables
-      REAL (rprec)                       :: start_time
+      REAL (rprec)                    :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       signal_construct_geometric =>                                            &
      &   signal_construct(signal_geometric_type, s_name, l_name, units,        &
-     &                    observed, sigma, weight)
+     &                    observed, sigma, weight, index)
       signal_construct_geometric%geometric => geometric_object
 
       CALL profiler_set_stop_time('signal_construct_geometric',                &
@@ -321,32 +330,35 @@
 !>  @param[in] observed     Observed value of the signal.
 !>  @param[in] sigma        Observed sigma of the signal.
 !>  @param[in] weight       Weight factor of the signal.
+!>  @param[in] index        Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_prior(prior_object, s_name, l_name,            &
-     &                                units, observed, sigma, weight)
+     &                                units, observed, sigma, weight,          &
+     &                                index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER       :: signal_construct_prior
-      TYPE (prior_class), POINTER        :: prior_object
-      CHARACTER(len=*), INTENT(in)       :: s_name
-      CHARACTER(len=*), INTENT(in)       :: l_name
-      CHARACTER(len=*), INTENT(in)       :: units
-      REAL(rprec), INTENT(in)            :: observed
-      REAL(rprec), INTENT(in)            :: sigma
-      REAL(rprec), INTENT(in)            :: weight
+      TYPE (signal_class), POINTER :: signal_construct_prior
+      TYPE (prior_class), POINTER  :: prior_object
+      CHARACTER(len=*), INTENT(in) :: s_name
+      CHARACTER(len=*), INTENT(in) :: l_name
+      CHARACTER(len=*), INTENT(in) :: units
+      REAL(rprec), INTENT(in)      :: observed
+      REAL(rprec), INTENT(in)      :: sigma
+      REAL(rprec), INTENT(in)      :: weight
+      INTEGER, INTENT(in)          :: index
 
 !  local variables
-      REAL (rprec)                       :: start_time
+      REAL (rprec)                 :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       signal_construct_prior =>                                                &
      &   signal_construct(signal_prior_type, s_name, l_name, units,            &
-     &                    observed, sigma, weight)
+     &                    observed, sigma, weight, index)
       signal_construct_prior%prior => prior_object
 
       CALL profiler_set_stop_time('signal_construct_prior', start_time)
@@ -365,33 +377,35 @@
 !>  @param[in] observed        Observed value of the signal.
 !>  @param[in] sigma           Observed sigma of the signal.
 !>  @param[in] weight          Weight factor of the signal.
+!>  @param[in] index           Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_feedback(feedback_object, s_name,              &
      &                                   l_name, units, observed, sigma,       &
-     &                                   weight)
+     &                                   weight, index)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (signal_class), POINTER       :: signal_construct_feedback
-      TYPE (feedback_class), POINTER     :: feedback_object
-      CHARACTER(len=*), INTENT(in)       :: s_name
-      CHARACTER(len=*), INTENT(in)       :: l_name
-      CHARACTER(len=*), INTENT(in)       :: units
-      REAL(rprec), INTENT(in)            :: observed
-      REAL(rprec), INTENT(in)            :: sigma
-      REAL(rprec), INTENT(in)            :: weight
+      TYPE (signal_class), POINTER   :: signal_construct_feedback
+      TYPE (feedback_class), POINTER :: feedback_object
+      CHARACTER(len=*), INTENT(in)   :: s_name
+      CHARACTER(len=*), INTENT(in)   :: l_name
+      CHARACTER(len=*), INTENT(in)   :: units
+      REAL(rprec), INTENT(in)        :: observed
+      REAL(rprec), INTENT(in)        :: sigma
+      REAL(rprec), INTENT(in)        :: weight
+      INTEGER, INTENT(in)            :: index
 
 !  local variables
-      REAL (rprec)                       :: start_time
+      REAL (rprec)                   :: start_time
 
 !  Start of executable code
       start_time = profiler_get_start_time()
 
       signal_construct_feedback =>                                             &
      &   signal_construct(signal_feedback_type, s_name, l_name, units,         &
-     &                    observed, sigma, weight)
+     &                    observed, sigma, weight, index)
       signal_construct_feedback%feedback => feedback_object
 
       CALL profiler_set_stop_time('signal_construct_feedback',                 &
@@ -413,11 +427,12 @@
 !>  @param[in] observed           Observed value of the signal.
 !>  @param[in] sigma              Observed sigma of the signal.
 !>  @param[in] weight             Weight factor of the signal.
+!>  @param[in] index              Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_combination(combination_object, s_name,        &
      &                                      l_name, units, observed,           &
-     &                                      sigma, weight)
+     &                                      sigma, weight, index)
 
       IMPLICIT NONE
 
@@ -430,6 +445,7 @@
       REAL(rprec), INTENT(in)           :: observed
       REAL(rprec), INTENT(in)           :: sigma
       REAL(rprec), INTENT(in)           :: weight
+      INTEGER, INTENT(in)               :: index
 
 !  local variables
       REAL (rprec)                      :: start_time
@@ -439,7 +455,7 @@
 
       signal_construct_combination =>                                          &
      &   signal_construct(signal_combination_type, s_name, l_name,             &
-     &                    units, observed, sigma, weight)
+     &                    units, observed, sigma, weight, index)
       signal_construct_combination%combination => combination_object
 
       CALL profiler_set_stop_time('signal_construct_combination',              &
@@ -458,11 +474,12 @@
 !>  @param[in] observed          Observed value of the signal.
 !>  @param[in] sigma             Observed sigma of the signal.
 !>  @param[in] weight            Weight factor of the signal.
+!>  @param[in] index             Index of the model signal scale factor.
 !>  @returns A pointer to a constructed @ref signal_class object.
 !-------------------------------------------------------------------------------
       FUNCTION signal_construct_diagnostic_netcdf(diagnostic_object,           &
      &                                            mdsig_iou, observed,         &
-     &                                            sigma, weight)
+     &                                            sigma, weight, index)
       USE ezcdf
 
       IMPLICIT NONE
@@ -474,6 +491,7 @@
       REAL(rprec), INTENT(in)                :: observed
       REAL(rprec), INTENT(in)                :: sigma
       REAL(rprec), INTENT(in)                :: weight
+      INTEGER, INTENT(in)                    :: index
 
 !  local variables
       CHARACTER (len=data_short_name_length) :: s_name
@@ -490,7 +508,7 @@
 
       signal_construct_diagnostic_netcdf =>                                    &
      &   signal_construct(diagnostic_object, s_name, l_name, units,            &
-     &                    observed, sigma, weight)
+     &                    observed, sigma, weight, index)
 
       CALL profiler_set_stop_time('signal_construct_diagnostic_netcdf',        &
      &                            start_time)
@@ -595,6 +613,7 @@
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
 
 !  local variables
+      REAL (rprec)                            :: scale_factor
       REAL (rprec)                            :: start_time
 
 !  Start of executable code
@@ -604,36 +623,43 @@
          sigma = this%modeled_sigma
          signal_get_modeled_signal = this%modeled
       ELSE
+         scale_factor = model_get_signal_factor(a_model,                       &
+     &                                          this%scale_index)
 
          SELECT CASE(this%type)
             CASE (signal_diagnostic_type)
                signal_get_modeled_signal =                                     &
      &            diagnostic_get_modeled_signal(this%diagnostic,               &
      &                                          a_model, sigma,                &
-     &                                          last_value)
+     &                                          last_value,                    &
+     &                                          scale_factor)
 
             CASE (signal_geometric_type)
                signal_get_modeled_signal =                                     &
      &            geometric_get_modeled_signal(this%geometric,                 &
      &                                         a_model, sigma,                 &
-     &                                         last_value)
+     &                                         last_value, scale_factor)
 
             CASE (signal_prior_type)
 !  There is no way to know if a prior changed. Since they are very low cost,
 !  just recompute them anyway. So priors don't use the last_value argument.
                signal_get_modeled_signal =                                     &
      &            prior_get_modeled_signal(this%prior, a_model, sigma)
+               signal_get_modeled_signal(1) =                                  &
+     &            signal_get_modeled_signal(1)*scale_factor
 
             CASE (signal_feedback_type)
                signal_get_modeled_signal =                                     &
      &            feedback_get_modeled_signal(this%feedback, a_model,          &
-     &                                        sigma, last_value)
+     &                                        sigma, last_value,               &
+     &                                        scale_factor)
 
             CASE (signal_combination_type)
                signal_get_modeled_signal =                                     &
      &            combination_get_modeled_signal(this%combination,             &
      &                                           a_model, sigma,               &
-     &                                           last_value)
+     &                                           last_value,                   &
+     &                                           scale_factor)
 
          END SELECT
 
@@ -1396,10 +1422,11 @@
 !>  @param[in]  a_model    A @ref model instance.
 !>  @param[out] sigma      The modeled sigma.
 !>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION combination_get_modeled_signal(this, a_model, sigma,            &
-     &                                        last_value)
+     &                                        last_value, scale_factor)
       USE model
       IMPLICIT NONE
 
@@ -1409,6 +1436,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  Local Variables
       INTEGER                                 :: i
@@ -1461,6 +1489,9 @@
             END DO
 
       END SELECT
+
+      combination_get_modeled_signal(1) =                                      &
+     &   combination_get_modeled_signal(1)*scale_factor
 
       CALL profiler_set_stop_time('combination_get_modeled_signal',            &
      &                            start_time)

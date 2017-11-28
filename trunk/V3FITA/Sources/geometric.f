@@ -137,14 +137,15 @@
 !>
 !>  @see limiter::limiter_get_modeled_signal
 !>
-!>  @param[in]  this       A @ref geometric_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref geometric_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION geometric_get_modeled_signal(this, a_model, sigma,              &
-     &                                      last_value)
+     &                                      last_value, scale_factor)
       USE model
 
       IMPLICIT NONE
@@ -155,6 +156,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -167,7 +169,8 @@
          CASE (geometric_limiter_type)
             geometric_get_modeled_signal =                                     &
      &         limiter_get_modeled_signal(this%limiter, a_model,               &
-     &                                    sigma, last_value)
+     &                                    sigma, last_value,                   &
+     &                                    scale_factor)
 
       END SELECT
 

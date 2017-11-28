@@ -410,14 +410,15 @@
 !>  @see mse::mse_get_modeled_signal
 !>  @see ece::ece_get_modeled_signal
 !>
-!>  @param[in]  this       A @ref diagnostic_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      The modeled sigma.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref diagnostic_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        The modeled sigma.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns The model value.
 !-------------------------------------------------------------------------------
       FUNCTION diagnostic_get_modeled_signal(this, a_model, sigma,             &
-     &                                       last_value)
+     &                                       last_value, scale_factor)
       USE model
 
       IMPLICIT NONE
@@ -428,6 +429,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -439,37 +441,38 @@
          CASE (diagnostic_magnetic_type)
             diagnostic_get_modeled_signal =                                    &
      &         magnetic_get_modeled_signal(this%magnetic, a_model,             &
-     &                                     sigma, last_value)
+     &                                     sigma, last_value,                  &
+     &                                     scale_factor)
 
          CASE (diagnostic_sxrem_type)
             diagnostic_get_modeled_signal =                                    &
      &         sxrem_get_modeled_signal(this%sxrem, a_model, sigma,            &
-     &                                  last_value)
+     &                                  last_value, scale_factor)
 
          CASE (diagnostic_intpol_type)
             diagnostic_get_modeled_signal =                                    &
      &         intpol_get_modeled_signal(this%intpol, a_model, sigma,          &
-     &                                   last_value)
+     &                                   last_value, scale_factor)
 
          CASE (diagnostic_thomson_type)
             diagnostic_get_modeled_signal =                                    &
      &         thomson_get_modeled_signal(this%thomson, a_model, sigma,        &
-     &                                    last_value)
+     &                                    last_value, scale_factor)
 
          CASE (diagnostic_extcurz_type)
             diagnostic_get_modeled_signal =                                    &
      &         extcurz_get_modeled_signal(this%extcurz, a_model, sigma,        &
-     &                                    last_value)
+     &                                    last_value, scale_factor)
 
          CASE (diagnostic_mse_type)
             diagnostic_get_modeled_signal =                                    &
      &         mse_get_modeled_signal(this%mse, a_model, sigma,                &
-     &                                last_value)
+     &                                last_value, scale_factor)
 
          CASE (diagnostic_ece_type)
             diagnostic_get_modeled_signal =                                    &
      &         ece_get_modeled_signal(this%ece, a_model, sigma,                &
-     &                                last_value)
+     &                                last_value, scale_factor)
 
       END SELECT
 

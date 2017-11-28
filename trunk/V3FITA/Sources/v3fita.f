@@ -852,7 +852,8 @@
      &   model_sxrem_type_a(1:num_sxrem_p), model_te_type,                     &
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
      &   emission_func, equilibrium_construct(vmec, force_solve),              &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags)
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags,          &
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)))
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
 
@@ -896,7 +897,8 @@
      &                                          context%runlog_iou),           &
      &                         force_solve),                                   &
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range,                       &
-     &   model_state_all_off)
+     &   model_state_all_off,                                                  &
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)))
 
       CALL profiler_set_stop_time('init_vacuum_equilibrium', start_time)
 
@@ -984,7 +986,8 @@
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
      &   emission_func,                                                        &
      &   equilibrium_construct_siesta(siesta, force_solve),                                                      &
-     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags)
+     &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags,          &
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)))
 
       CALL profiler_set_stop_time('init_siesta_equilibrium', start_time)
 
@@ -1181,7 +1184,8 @@
          context%signals(signals_created)%p => signal_construct(               &
      &      diagnostic_construct(magnetic_object),                             &
      &      mdsig_iou, sdo_data_a(signals_created),                            &
-     &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created))
+     &      sdo_sigma_a(signals_created), sdo_weight_a(signals_created),       &
+     &      v3fit_input_find_scale_index(signals_created))
 
          CALL cdf_close(mdsig_iou)
 
@@ -1432,7 +1436,8 @@
      &   'extcurz', 'EXTernal CURrent along Z', 'A',                           &
      &   sdo_data_a(signals_created + 1),                                      &
      &   sdo_sigma_a(signals_created + 1),                                     &
-     &   sdo_weight_a(signals_created + 1))
+     &   sdo_weight_a(signals_created + 1),                                    &
+     &   v3fit_input_find_scale_index(signals_created + 1))
 
       signals_created = signals_created + 1
 
@@ -1636,7 +1641,8 @@
      &            lif_on_edge(i))),                                            &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1))
+     &      sdo_weight_a(signals_created + 1),                                 &
+     &      v3fit_input_find_scale_index(signals_created + 1))
 
          signals_created = signals_created + 1
 
@@ -1659,7 +1665,8 @@
      &                                   lif_on_edge(n_lif + 1))),             &
      &      s_name, l_name, 'm', sdo_data_a(signals_created + 1),              &
      &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1))
+     &      sdo_weight_a(signals_created + 1),                                 &
+     &      v3fit_input_find_scale_index(signals_created + 1))
 
          signals_created = signals_created + 1
 
@@ -1725,7 +1732,8 @@
      &      TRIM(signal_make_short_name('prior_', i)), prior_name(i),          &
      &      prior_units(i), sdo_data_a(signals_created + 1),                   &
      &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1))
+     &      sdo_weight_a(signals_created + 1),                                 &
+     &      v3fit_input_find_scale_index(signals_created + 1))
 
          signals_created = signals_created + 1
 
@@ -1859,7 +1867,8 @@
      &      combination_signal, coosig_name(i), coosig_name(i),                &
      &      coosig_units(i), sdo_data_a(signals_created + 1),                  &
      &      sdo_sigma_a(signals_created + 1),                                  &
-     &      sdo_weight_a(signals_created + 1))
+     &      sdo_weight_a(signals_created + 1),                                 &
+     &      v3fit_input_find_scale_index(signals_created + 1))
 
          signals_created = signals_created + 1
 

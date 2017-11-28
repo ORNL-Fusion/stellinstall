@@ -136,154 +136,154 @@
 !  vmec equilibrium module parameters
 !*******************************************************************************
 !  Define id's only for values that can change. All others shouldn't be needed
-!  outside of the vmec interface. Parameter id's start at 7 since 0-6 are
+!  outside of the vmec interface. Parameter id's start at 8 since 0-7 are
 !  reserved for non equilibrium model parameters. These numbers will need to be
 !  updated if any new model parameters are added.
 
 !  Variable Parameters
 !>  1D Array of function current profile parameters. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_id          = 7
+      INTEGER, PARAMETER :: vmec_ac_id          = 8
 !>  1D Array of segment current profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_aux_s_id    = 8
+      INTEGER, PARAMETER :: vmec_ac_aux_s_id    = 9
 !>  1D Array of segment current profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ac_aux_f_id    = 9
+      INTEGER, PARAMETER :: vmec_ac_aux_f_id    = 10
 !>  1D Array of function iotabar profile parameters. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_id          = 10
+      INTEGER, PARAMETER :: vmec_ai_id          = 11
 !>  1D Array of segment iotabar profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_aux_s_id    = 11
+      INTEGER, PARAMETER :: vmec_ai_aux_s_id    = 12
 !>  1D Array of segment iotabar profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_ai_aux_f_id    = 12
+      INTEGER, PARAMETER :: vmec_ai_aux_f_id    = 13
 !>  1D Array of function pressure profile parameters. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_id          = 13
+      INTEGER, PARAMETER :: vmec_am_id          = 14
 !>  1D Array of segment pressure profile s poitions. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 14
+      INTEGER, PARAMETER :: vmec_am_aux_s_id    = 15
 !>  1D Array of segment pressure profile f values. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 15
+      INTEGER, PARAMETER :: vmec_am_aux_f_id    = 16
 !>  Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_bloat_id       = 16
+      INTEGER, PARAMETER :: vmec_bloat_id       = 17
 !>  2D Array of outer boundary R cosine coeffiecents. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_rbc_id         = 17
+      INTEGER, PARAMETER :: vmec_rbc_id         = 18
 !>  2D Array of outer boundary Z sine coeffiecents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_zbs_id         = 18
+      INTEGER, PARAMETER :: vmec_zbs_id         = 19
 !>  2D Array of outer boundary R sine coeffiecents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_rbs_id         = 19
+      INTEGER, PARAMETER :: vmec_rbs_id         = 20
 !>  2D Array of outer boundary Z cosine coeffiecents. Defined in
 !>  @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_zbc_id         = 20
+      INTEGER, PARAMETER :: vmec_zbc_id         = 21
 !>  1D Array of external currents. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_extcur_id      = 21
+      INTEGER, PARAMETER :: vmec_extcur_id      = 22
 !>  The toroidal current. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_curtor_id      = 22
+      INTEGER, PARAMETER :: vmec_curtor_id      = 23
 !>  The edge magnetic flux. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_phiedge_id     = 23
+      INTEGER, PARAMETER :: vmec_phiedge_id     = 24
 !>  The scaling parameter for the pressure. Defined in @ref vmec_input.
-      INTEGER, PARAMETER :: vmec_pres_scale_id  = 24
+      INTEGER, PARAMETER :: vmec_pres_scale_id  = 25
 
 !  Derived Parameters
 !>  2D Array of surface R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmnc_id        = 25
+      INTEGER, PARAMETER :: vmec_rmnc_id        = 26
 !>  2D Array of surface Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmns_id        = 26
+      INTEGER, PARAMETER :: vmec_zmns_id        = 27
 !>  2D Array of surface lambda cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmns_id        = 27
+      INTEGER, PARAMETER :: vmec_lmns_id        = 28
 !>  2D Array of surface g cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmnc_id        = 28
+      INTEGER, PARAMETER :: vmec_gmnc_id        = 29
 !>  2D Array of surface B_s sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 29
+      INTEGER, PARAMETER :: vmec_bsubsmns_id    = 30
 !>  2D Array of surface B_u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 30
+      INTEGER, PARAMETER :: vmec_bsubumnc_id    = 31
 !>  2D Array of surface B_v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 31
+      INTEGER, PARAMETER :: vmec_bsubvmnc_id    = 32
 !>  2D Array of surface B^u cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 32
+      INTEGER, PARAMETER :: vmec_bsupumnc_id    = 33
 !>  2D Array of surface B^v cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 33
+      INTEGER, PARAMETER :: vmec_bsupvmnc_id    = 34
 !>  2D Array of surface R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_rmns_id        = 34
+      INTEGER, PARAMETER :: vmec_rmns_id        = 35
 !>  2D Array of surface Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zmnc_id        = 35
+      INTEGER, PARAMETER :: vmec_zmnc_id        = 36
 !>  2D Array of surface lambda sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_lmnc_id        = 36
+      INTEGER, PARAMETER :: vmec_lmnc_id        = 37
 !>  2D Array of surface g sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_gmns_id        = 37
+      INTEGER, PARAMETER :: vmec_gmns_id        = 38
 !>  2D Array of surface B_s cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 38
+      INTEGER, PARAMETER :: vmec_bsubsmnc_id    = 39
 !>  2D Array of surface B_u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubumns_id    = 39
+      INTEGER, PARAMETER :: vmec_bsubumns_id    = 40
 !>  2D Array of surface B_v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 40
+      INTEGER, PARAMETER :: vmec_bsubvmns_id    = 41
 !>  2D Array of surface B^u sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupumns_id    = 41
+      INTEGER, PARAMETER :: vmec_bsupumns_id    = 42
 !>  2D Array of surface B^v sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 42
+      INTEGER, PARAMETER :: vmec_bsupvmns_id    = 43
 !>  Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_phi_id         = 43
+      INTEGER, PARAMETER :: vmec_phi_id         = 44
 !>  1D Array of full grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotaf_id       = 44
+      INTEGER, PARAMETER :: vmec_iotaf_id       = 45
 !>  1D Array of half grid iotabar. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_iotas_id       = 45
+      INTEGER, PARAMETER :: vmec_iotas_id       = 46
 !>  1D Array of magnetic axis R cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 46
+      INTEGER, PARAMETER :: vmec_raxis_cc_id    = 47
 !>  1D Array of magnetic axis R sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 47
+      INTEGER, PARAMETER :: vmec_raxis_cs_id    = 48
 !>  1D Array of magnetic axis Z cosine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 48
+      INTEGER, PARAMETER :: vmec_zaxis_cc_id    = 49
 !>  1D Array of magnetic axis Z sine coeffiecents. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 49
+      INTEGER, PARAMETER :: vmec_zaxis_cs_id    = 50
 !>  1D Array of full grid safety factor. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_qfact_id       = 50
+      INTEGER, PARAMETER :: vmec_qfact_id       = 51
 
 !  Auxiliary Model Parameters
 !>  1D Array of function density profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 51
+      INTEGER, PARAMETER :: vmec_pp_ne_b_id     = 52
 !>  1D Array of segment density profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 52
+      INTEGER, PARAMETER :: vmec_pp_ne_as_id    = 53
 !>  1D Array of segment density profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 53
+      INTEGER, PARAMETER :: vmec_pp_ne_af_id    = 54
 !>  1D Array of function sxrem profile parameters. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 54
+      INTEGER, PARAMETER :: vmec_pp_sxrem_b_id  = 55
 !>  1D Array of segment sxrem profile s poitions. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 55
+      INTEGER, PARAMETER :: vmec_pp_sxrem_as_id = 56
 !>  1D Array of segment sxrem profile f values. Defined in @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 56
+      INTEGER, PARAMETER :: vmec_pp_sxrem_af_id = 57
 !>  1D Array of function temperature profile parameters. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 57
+      INTEGER, PARAMETER :: vmec_pp_te_b_id     = 58
 !>  1D Array of segment temperature profile s poitions. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 58
+      INTEGER, PARAMETER :: vmec_pp_te_as_id    = 59
 !>  1D Array of segment temperature profile f values. Defined in
 !>  @ref pprofile_T.
-      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 59
+      INTEGER, PARAMETER :: vmec_pp_te_af_id    = 60
 
 !  Derived Parameters
 !>  Internal inducance. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 60
+      INTEGER, PARAMETER :: vmec_vvc_smaleli_id = 61
 !>  Mean elongation. Defined in @ref v3f_vmec_comm. Computed in @ref eqfor.
-      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 61
+      INTEGER, PARAMETER :: vmec_vvc_kappa_p_id = 62
 !>  Total Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betatot_id     = 62
+      INTEGER, PARAMETER :: vmec_betatot_id     = 63
 !>  Poloidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betapol_id     = 63
+      INTEGER, PARAMETER :: vmec_betapol_id     = 64
 !>  Toroidal Beta. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betator_id     = 64
+      INTEGER, PARAMETER :: vmec_betator_id     = 65
 !>  Beta on axis. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_betaxis_id     = 65
+      INTEGER, PARAMETER :: vmec_betaxis_id     = 66
 !>  Poloidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcuru_id       = 66
+      INTEGER, PARAMETER :: vmec_jcuru_id       = 67
 !>  Toroidal current density. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jcurv_id       = 67
+      INTEGER, PARAMETER :: vmec_jcurv_id       = 68
 !>  Current density in direction of b field. Defined in read_wout_mod.
-      INTEGER, PARAMETER :: vmec_jdotb_id       = 68
+      INTEGER, PARAMETER :: vmec_jdotb_id       = 69
 
 !>  Plasma Phi offset. This is a parameter to allow changing the phi angle of a
 !>  quasi helical state in an RFP. Defined in @ref vmec_equilibrium.
-      INTEGER, PARAMETER :: vmec_phi_offset_id  = 69
+      INTEGER, PARAMETER :: vmec_phi_offset_id  = 70
 !>  Plasma z offset. This is a parameter to allow changing the vertical shift of
 !>  the plasma
-      INTEGER, PARAMETER :: vmec_z_offset_id    = 70
+      INTEGER, PARAMETER :: vmec_z_offset_id    = 71
 
 !>  Virtual casing grid points for vacuum field measurements.
       INTEGER, PARAMETER :: magnetic_cache_vc_min_grid_points = 101

@@ -204,6 +204,10 @@
 !>        @item{mag_spec_imin,        Array of minimum index values for specifying plasma only signals,                                    v3fit_input::mag_spec_imin}
 !>        @item{mag_spec_imax,        Array of maximum index values for specifying plasma only signals,                                    v3fit_input::mag_spec_imax}
 !>        @item{mag_spec_use_induced, Array of logicals for specifying plasma only signals,                                                v3fit_input::mag_spec_use_induced}
+!>     @table_subsection{sfactor_spec_sec, Signal Factor Specification}
+!>        @item{sfactor_spec_imin,    Array of minimum index values for specifying thomson scale factors,                                  v3fit_input::sfactor_spec_imin}
+!>        @item{sfactor_spec_imax,    Array of minimum index values for specifying thomson scale factors,                                  v3fit_input::sfactor_spec_imax}
+!>        @item{sfactor_spec_fac,     Array of minimum index values for specifying thomson scale factors,                                  v3fit_input::sfactor_spec_fac}
 !>  @end_table
 !>
 !>  @table_section{magnetic_sec, Magnetic signal parameters}
@@ -882,6 +886,14 @@
 !>  Ratio of the number of poloidal grid points to radial grid points.
       REAL (rprec) :: pol_rad_ratio = 1.0
 
+!  Signal factor parameter specification.
+      INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
+     &   sfactor_spec_imin = 0
+      INTEGER, DIMENSION(v3fit_max_spec_size)      ::                          &
+     &   sfactor_spec_imax = 0
+      REAL (rprec), DIMENSION(v3fit_max_spec_size) ::                          &
+     &   sfactor_spec_fac = 0.0
+
 !  External current signal specification
 !>  External Z current radial position.
 !>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
@@ -1046,6 +1058,8 @@
      &   sdo_spec_can_overwrite,                                               &
 !  Magnetic integration parameters
      &   pol_rad_ratio,                                                        &
+!  Signal factor parameters
+     &   sfactor_spec_imin, sfactor_spec_imax, sfactor_spec_fac,               &
 !  External current signal specification
 !>  @todo FIXME: The label of s0 and u0 are vmec specific. These should be
 !>  changed to a radial coordinate and poloidal angle.
@@ -1329,5 +1343,47 @@
      &                            start_time)
 
       END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Finds the index of the scaling spec.
+!>
+!>  The signal factor specification sets ranges of signal indices associated
+!>  with a reconstructable scale factor. If the index is not within one of these
+!>  ranges an index of -1 is returned.
+!>
+!>  @param[in] index Index of the current signal.
+!-------------------------------------------------------------------------------
+      FUNCTION v3fit_input_find_scale_index(index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      INTEGER             :: v3fit_input_find_scale_index
+      INTEGER, INTENT(in) :: index
+
+!  local variables
+      INTEGER             :: i
+      REAL (rprec)        :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      v3fit_input_find_scale_index = 0;
+      DO i = 0, v3fit_max_spec_size
+         IF (sfactor_spec_fac(i) .eq. 0.0) THEN
+            EXIT
+         END IF
+
+         IF (sfactor_spec_imin(i) .le. index .and.                             &
+     &       sfactor_spec_imax(i) .ge. index) THEN
+            v3fit_input_find_scale_index = i
+            EXIT
+         END IF
+      END DO
+
+      CALL profiler_set_stop_time('v3fit_input_find_scale_index',              &
+     &                            start_time)
+
+      END FUNCTION
 
       END MODULE

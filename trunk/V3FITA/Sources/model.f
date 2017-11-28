@@ -21,6 +21,7 @@
 !>     @item{ne_min,            Minimum electron density.,                                @ref model::model_class::ne_min}
 !>     @item{te_min,            Minimum electron temperature.,                            @ref model::model_class::te_min}
 !>     @item{pressure_fraction, Fractional portion of the pressure due to the electrons., @ref model::model_class::pressure_fraction}
+!>     @item{signal_factor,     Signal scaling factor for signal models.,                 @ref model::model_class::signal_factor}
 !>  @end_table
 !>
 !>  @section model_derived_param_sec Model Derived Parameters
@@ -85,14 +86,16 @@
       INTEGER, PARAMETER :: model_te_min_id            = 2
 !>  Parameter id for the electrion fraction of the pressure.
       INTEGER, PARAMETER :: model_pressure_fraction_id = 3
+!>  Parameter id for the modeled signal scale factors.
+      INTEGER, PARAMETER :: model_signal_factor_id     = 4
 
 !  Derived Parameters
 !>  Parameter id for the electrion density grid.
-      INTEGER, PARAMETER :: model_ne_grid_id           = 4
+      INTEGER, PARAMETER :: model_ne_grid_id           = 5
 !>  Parameter id for the electrion temperature grid.
-      INTEGER, PARAMETER :: model_te_grid_id           = 5
+      INTEGER, PARAMETER :: model_te_grid_id           = 6
 !>  Parameter id for the soft x-ray emissivity grid.
-      INTEGER, PARAMETER :: model_sxrem_grid_id        = 6
+      INTEGER, PARAMETER :: model_sxrem_grid_id        = 7
 !  NOTE: When model parameters are added here, the equilibrium id's need to be
 !  updated in additon.
 
@@ -155,6 +158,9 @@
 
 !>  ECE resonance range.
          REAL (rprec) :: resonace_range
+
+!>  Model Signal factor
+         REAL (rprec), DIMENSION(:), POINTER :: signal_factor => null()
       END TYPE
 
 !*******************************************************************************
@@ -207,13 +213,16 @@
 !>                               unconverged state.
 !>  @param[in] state_flags       Bitwise flags to indicate which parts of the
 !>                               model changed.
+!>  @param[in] signal_factor     Array of signal factors to add scale model
+!>                               signals by.
 !>  @returns A pointer to a constructed @ref model_class object.
 !-------------------------------------------------------------------------------
       FUNCTION model_construct(ne_type, sxrem_type, te_type,                   &
      &                         ne_unit, ne_min, te_min,                        &
      &                         pressure_fraction, emission,                    &
      &                         equilibrium, sxrem_te, sxrem_ratio,             &
-     &                         resonace_range, state_flags)
+     &                         resonace_range, state_flags,                    &
+     &                         signal_factor)
       USE model_state
 
       IMPLICIT NONE
@@ -234,6 +243,7 @@
       REAL (rprec), DIMENSION(:), INTENT(in)        :: sxrem_ratio
       REAL (rprec), INTENT(in)                      :: resonace_range
       INTEGER, INTENT(in)                           :: state_flags
+      REAL (rprec), DIMENSION(:)                    :: signal_factor
 
 !  local variables
       INTEGER                                       :: i, grid_size
@@ -350,6 +360,9 @@
          model_construct%sxrem_ratio = sxrem_ratio(1:grid_size)
       END IF
 
+      ALLOCATE(model_construct%signal_factor(SIZE(signal_factor)))
+      model_construct%signal_factor = signal_factor
+
       model_construct%resonace_range = resonace_range
 
       CALL profiler_set_stop_time('model_construct', start_time)
@@ -412,6 +425,11 @@
       IF (ASSOCIATED(this%sxrem_ratio)) THEN
          DEALLOCATE(this%sxrem_ratio)
          this%sxrem_ratio => null()
+      END IF
+
+      IF (ASSOCIATED(this%signal_factor)) THEN
+         DEALLOCATE(this%signal_factor)
+         this%signal_factor => null()
       END IF
 
       DEALLOCATE(this)
@@ -482,6 +500,12 @@
      &                                  model_state_ne_flag)
             END IF
             this%pressure_fraction = value
+
+         CASE (model_signal_factor_id)
+            this%state_flags = IBSET(this%state_flags,                         &
+     &                               model_state_signal_flag)
+            this%signal_factor(i_index) = value
+     &
 
          CASE DEFAULT
             CALL equilibrium_set_param(this%equilibrium, id,                   &
@@ -592,6 +616,9 @@
          CASE ('pressure_fraction', 'e_pressure_fraction')
             model_get_param_id = model_pressure_fraction_id
 
+         CASE ('signal_factor', 'sfactor_spec_fac')
+            model_get_param_id = model_signal_factor_id
+
          CASE ('ne_grid')
             model_get_param_id = model_ne_grid_id
 
@@ -654,6 +681,9 @@
 
          CASE (model_pressure_fraction_id)
             model_get_param_value = this%pressure_fraction
+
+         CASE (model_signal_factor_id)
+            model_get_param_value = this%signal_factor(i_index)
 
 !  Not every equilibrium will provide a grid for these profiles.
          CASE (model_ne_grid_id)
@@ -727,6 +757,9 @@
 
          CASE (model_pressure_fraction_id)
             model_get_param_name = 'pressure_fraction'
+
+         CASE (model_signal_factor_id)
+            model_get_param_name = 'signal_factor'
 
          CASE (model_ne_grid_id)
             model_get_param_name = 'ne_grid'
@@ -1198,6 +1231,40 @@
       END SELECT
 
       CALL profiler_set_stop_time('model_get_sxrem_type', start_time)
+
+      END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Get the scale factor for a signal.
+!>
+!>  Gets the model scale factor.
+!>
+!>  @param[in] this  A @ref model_class instance.
+!>  @param[in] index Index of the scale factor.
+!>  @returns Scale factor value.
+!-------------------------------------------------------------------------------
+      FUNCTION model_get_signal_factor(this, index)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                   :: model_get_signal_factor
+      TYPE (model_class), INTENT(in) :: this
+      INTEGER, INTENT(in)            :: index
+
+!  local variables
+      REAL (rprec)                   :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      IF (index .lt. 1) THEN
+         model_get_signal_factor = 1.0
+      ELSE
+         model_get_signal_factor = this%signal_factor(index)
+      END IF
+
+      CALL profiler_set_stop_time('model_get_signal_factor', start_time)
 
       END FUNCTION
 

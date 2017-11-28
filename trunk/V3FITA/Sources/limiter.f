@@ -193,17 +193,18 @@
 !>  If the limiter is defined by an iso function returns the value of
 !>  @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>
-!>  @param[in]  this       A @ref limiter_class instance.
-!>  @param[in]  a_model    A @ref model instance.
-!>  @param[out] sigma      If the limiter type is defined by an iso function,
-!>                         sigma value of @ref limiter_get_modeled_iso_signal.
-!>  @param[in]  last_value Last good value in case the signal did not change.
+!>  @param[in]  this         A @ref limiter_class instance.
+!>  @param[in]  a_model      A @ref model instance.
+!>  @param[out] sigma        If the limiter type is defined by an iso function,
+!>                           sigma value of @ref limiter_get_modeled_iso_signal.
+!>  @param[in]  last_value   Last good value in case the signal did not change.
+!>  @param[in]  scale_factor Factor to scale the modeled signal.
 !>  @returns If the limiter type is defined by an iso function, return the value
 !>           of @ref limiter_get_modeled_iso_signal. Otherwise returns zero.
 !>  @note Polygon limiters have not be implemented yet.
 !-------------------------------------------------------------------------------
       FUNCTION limiter_get_modeled_signal(this, a_model, sigma,                &
-     &                                    last_value)
+     &                                    last_value, scale_factor)
       USE model
 
       IMPLICIT NONE
@@ -214,6 +215,7 @@
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
+      REAL (rprec), INTENT(in)                :: scale_factor
 
 !  local variables
       REAL (rprec)                            :: start_time
@@ -224,9 +226,10 @@
       limiter_get_modeled_signal = last_value
       sigma = 0.0
 
-      IF (BTEST(a_model%state_flags, model_state_vmec_flag) .or.               &
+      IF (BTEST(a_model%state_flags, model_state_vmec_flag)   .or.             &
      &    BTEST(a_model%state_flags, model_state_siesta_flag) .or.             &
-     &    BTEST(a_model%state_flags, model_state_shift_flag)) THEN
+     &    BTEST(a_model%state_flags, model_state_shift_flag)  .or.             &
+     &    BTEST(a_model%state_flags, model_state_signal_flag)) THEN
          SELECT CASE (this%type)
 
             CASE (limiter_iso_type)
@@ -239,6 +242,9 @@
      &                                               sigma)
 
          END SELECT
+
+         limiter_get_modeled_signal(1) = limiter_get_modeled_signal(1)         &
+     &                                 * scale_factor
       END IF
 
       CALL profiler_set_stop_time('limiter_get_modeled_signal',                &
