@@ -2547,7 +2547,7 @@
       TYPE (reconstruction_class), INTENT(inout)      :: this
       INTEGER, INTENT(in)                             :: result_ncid
       INTEGER, INTENT(in)                             :: current_step
-      TYPE (signal_pointer), DIMENSION(:), INTENT(in) :: signals
+      TYPE (signal_pointer), DIMENSION(:), INTENT(inout) :: signals
       TYPE (param_pointer), DIMENSION(:), INTENT(in)  :: derived_params
       TYPE (model_class), INTENT(inout)               :: a_model
 

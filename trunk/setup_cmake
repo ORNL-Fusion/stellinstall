@@ -342,7 +342,7 @@ then
 
 elif [ $MACHINE_ID == "hydra01" ] || \
      [ $MACHINE_ID == "hydra02" ] || \
-     [ $MACHINE_ID == "hydra03" ]|| \
+     [ $MACHINE_ID == "hydra03" ] || \
      [ $MACHINE_ID == "hydra04" ]
 then
     # Config for IPP hydra cluster
@@ -369,6 +369,23 @@ then
           -DNETCDF_LIB_PATH="${NETCDF_HOME}/lib"      \
           -DSCALAPACK_LIB="${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a;${MKLROOT}/lib/intel64/libmkl_gf_lp64.a;${MKLROOT}/lib/intel64/libmkl_gnu_thread.a;${MKLROOT}/lib/intel64/libmkl_core.a;${MKLROOT}/lib/intel64/libmkl_blacs_intelmpi_lp64.a" \
           -DEXTRA_FLAGS="-lgomp -lpthread -lm -ldl -I${MKLROOT}/include/intel64/lp64 -m64 -I${MKLROOT}/include -DNEW_CODE -O3"
+
+elif [ $MACHINE_ID == "irisa.cluster" ] || \
+     [ $MACHINE_ID == "irisb.cluster" ] || \ 
+     [ $MACHINE_ID == "irisc.cluster" ]
+then
+
+     # iris cluster at GA
+
+     module load mpich/3.2-gcc4.7.2
+     module load netcdf/4.4.1-mpich3.2-gcc4.7.2
+     cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                    \
+           -DNETCDF_INC_PATH=$NETCDF_DIR/include                    \
+           -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                        \
+           -DCMAKE_PREFIX_PATH:FILEPATH="$MPICH_DIR;$SCALAPACK_DIR" \
+           -DCMAKE_C_COMPILER=/act/gcc-4.7.2/bin/gcc                \
+           -DCMAKE_CXX_COMPILER=/act/gcc-4.7.2/bin/g++              \
+           -DCMAKE_Fortran_COMPILER=/act/gcc-4.7.2/bin/gfortran
 
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.

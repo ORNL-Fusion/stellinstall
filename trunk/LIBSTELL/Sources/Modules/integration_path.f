@@ -158,7 +158,7 @@
 
 !  Declare Arguments
       REAL (rprec)                  :: total
-      TYPE (vertex), INTENT(inout)  :: this
+      TYPE (vertex), INTENT(in)     :: this
       CHARACTER (len=1), INTENT(in) :: context(:)
       INTERFACE
          FUNCTION integration_function(context, xcart, dxcart,                 &
@@ -203,7 +203,7 @@
      &                               found) RESULT(xcart)
 
       REAL (rprec), DIMENSION(3)    :: xcart
-      TYPE (vertex), INTENT(inout)  :: this
+      TYPE (vertex), INTENT(in)     :: this
       CHARACTER (len=1), INTENT(in) :: context(:)
       LOGICAL, INTENT(out)          :: found
       INTERFACE

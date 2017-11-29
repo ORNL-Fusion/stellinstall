@@ -1432,7 +1432,7 @@
 
 !  Declare Arguments
       REAL (rprec), DIMENSION(4)      :: combination_get_modeled_signal
-      TYPE (combination_class), INTENT(in)    :: this
+      TYPE (combination_class), INTENT(inout) :: this
       TYPE (model_class), INTENT(in)          :: a_model
       REAL (rprec), DIMENSION(4), INTENT(out) :: sigma
       REAL (rprec), DIMENSION(4), INTENT(in)  :: last_value
