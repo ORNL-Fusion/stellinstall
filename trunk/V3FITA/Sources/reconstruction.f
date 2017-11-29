@@ -2775,13 +2775,15 @@
       END IF
 
 !  Sync the delta used to find the jacobians.
-      DO i = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +                  &
-     &                                 stride(mpi_rank + 1)
-         CALL param_send_delta(params(i)%p, i, recon_comm)
-      END DO
+      IF (mpi_rank .ne. 0) THEN
+         DO i = offset(mpi_rank + 1) + 1, offset(mpi_rank + 1) +               &
+     &                                    stride(mpi_rank + 1)
+            CALL param_send_delta(params(i)%p, i, recon_comm)
+         END DO
+      END IF
 
       IF (mpi_rank .eq. 0) THEN
-         DO i = 1, SIZE(params)
+         DO i = offset(1) + stride(1) + 1, SIZE(params)
             CALL param_recv_delta(params(i)%p, i, recon_comm)
          END DO
       END IF

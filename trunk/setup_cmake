@@ -377,15 +377,16 @@ then
 
      # iris cluster at GA
 
-     module load mpich/3.2-gcc4.7.2
-     module load netcdf/4.4.1-mpich3.2-gcc4.7.2
+     module purge
+     module load scalapack
+     module load netcdf
      cmake -DCMAKE_BUILD_TYPE:String=$BUILD_TYPE                    \
            -DNETCDF_INC_PATH=$NETCDF_DIR/include                    \
            -DNETCDF_LIB_PATH=$NETCDF_DIR/lib                        \
-           -DCMAKE_PREFIX_PATH:FILEPATH="$MPICH_DIR;$SCALAPACK_DIR" \
-           -DCMAKE_C_COMPILER=/act/gcc-4.7.2/bin/gcc                \
-           -DCMAKE_CXX_COMPILER=/act/gcc-4.7.2/bin/g++              \
-           -DCMAKE_Fortran_COMPILER=/act/gcc-4.7.2/bin/gfortran
+           -DCMAKE_C_COMPILER=gcc                                   \
+           -DCMAKE_CXX_COMPILER=g++                                 \
+           -DCMAKE_Fortran_COMPILER=gfortran                        \
+           -DCMAKE_PREFIX_PATH:FILEPATH="$MPICH_DIR;$SCALAPACK_DIR"
 
 else
 # MACHINE_ID is new and unknown. Inform the user how to add support for this new machine.
