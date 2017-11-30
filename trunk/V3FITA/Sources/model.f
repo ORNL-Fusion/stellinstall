@@ -1299,7 +1299,7 @@
       SELECT CASE (id)
 
          CASE (model_ne_unit_id, model_ne_min_id, model_te_min_id,             &
-     &         model_pressure_fraction_id)
+     &         model_pressure_fraction_id, model_signal_factor_id)
             model_is_recon_param = .true.
 
          CASE DEFAULT
