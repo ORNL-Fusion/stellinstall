@@ -1369,7 +1369,7 @@
       start_time = profiler_get_start_time()
 
       v3fit_input_find_scale_index = 0;
-      DO i = 0, v3fit_max_spec_size
+      DO i = 1, v3fit_max_spec_size
          IF (sfactor_spec_fac(i) .eq. 0.0) THEN
             EXIT
          END IF

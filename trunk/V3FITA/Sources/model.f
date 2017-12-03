@@ -1491,6 +1491,8 @@
       WRITE (iou, 1000) 'te_min is ', this%te_min
       WRITE (iou, 1000) 'e_pressure_fraction is ',                             &
      &                  this%pressure_fraction
+      WRITE (iou, 1000) 'signal_factors are ',                                 &
+     &                  this%signal_factor
 1000  FORMAT(1x,a,2x,es12.5)
 
       CALL equilibrium_write(this%equilibrium, iou)

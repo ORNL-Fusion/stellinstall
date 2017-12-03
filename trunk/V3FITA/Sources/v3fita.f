@@ -853,7 +853,7 @@
      &   ne_pp_unit, ne_min, te_min, e_pressure_fraction,                      &
      &   emission_func, equilibrium_construct(vmec, force_solve),              &
      &   sxrem_te_a, sxrem_ratio_a, ece_resonance_range, state_flags,          &
-     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1)))
+     &   sfactor_spec_fac(:MINLOC(sfactor_spec_imin, 1) - 1))
 
       CALL profiler_set_stop_time('init_vmec_equilibrium', start_time)
 
