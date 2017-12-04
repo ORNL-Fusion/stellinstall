@@ -110,7 +110,7 @@ INTEGER, INTENT(IN), OPTIONAL :: &
                          !=else default cylindrical coordinates (R,phi,Z)
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -167,7 +167,7 @@ CALL AJAX_GLOBALS(iflag,message, &
 !Check messages
 IF(iflag /= 0) THEN
 
-  message='TRACK(1)/'//message
+  message='TRACK(1) ' // message
   IF(iflag > 0) GOTO 9999
 
 ENDIF
@@ -217,7 +217,7 @@ IF(k == 1) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='TRACK(2)/'//message
+      message='TRACK(2) ' // message
       IF(iflag > 0) GOTO 9999
 
     ENDIF
@@ -620,7 +620,7 @@ DO i=1,n_seg-1 !Over segments
         IF(iflag > 0 .OR. &
            tau < 0.0) THEN
 
-          message='TRACK(6)/'//message
+          message='TRACK(6) ' // message
           GOTO 9999
 
         ENDIF
@@ -717,7 +717,7 @@ DO i=1,n_seg-1 !Over segments
         IF(iflag > 0 .OR. &
            tau < 0.0) THEN
 
-          message='TRACK(8)/'//message
+          message='TRACK(8) ' // message
           GOTO 9999
 
         ENDIF
@@ -849,7 +849,7 @@ DO i=1,n_seg-1 !Over segments
       IF(iflag > 0 .OR. &
          tau < 0.0) THEN
 
-        message='TRACK(9)/'//message
+        message='TRACK(9) ' // message
         GOTO 9999
 
       ENDIF
@@ -1024,7 +1024,7 @@ REAL(KIND=rspec), INTENT(INOUT) :: &
   r_flx(:)               !flux coordinates (rho,theta,zeta) [rho,rad,rad]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -1069,7 +1069,7 @@ CALL AJAX_CYL2FLX(r_cyl, &
 !Check messages
 IF(iflag >0) THEN
 
-  message='TRACK_D/'//message
+  message='TRACK_D ' // message
 
 ENDIF
 

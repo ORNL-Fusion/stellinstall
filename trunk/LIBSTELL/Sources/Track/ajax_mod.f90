@@ -214,7 +214,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   d1                     !edge triangularity normalized to a0 [-]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -360,7 +360,7 @@ CALL AJAX_LOAD_RZLAM(nr_rz,nk_rz,rho_rz,m,n,r,z, &
                      NK_LAM=nk_lam)
 
 !Check messages
-IF(iflag /= 0) message='AJAX_LOAD_RZBDY/'//message
+IF(iflag /= 0) message='AJAX_LOAD_RZBDY '// message
 
 !-------------------------------------------------------------------------------
 !Cleanup and exit
@@ -425,7 +425,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   z(:,:)                 !expansion coeffs for Z [m]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -800,7 +800,7 @@ DO k=1,krz_3d !Over modes
   !Check messages
   IF(iflag > 0) THEN
 
-    message='AJAX_LOAD_RZLAM(6)/'//message
+    message='AJAX_LOAD_RZLAM(6) '// message
     GOTO 9999
 
   ENDIF
@@ -823,7 +823,7 @@ DO k=1,krz_3d !Over modes
   !Check messages
   IF(iflag > 0) THEN
 
-    message='AJAX_LOAD_RZLAM(7)/'//message
+    message='AJAX_LOAD_RZLAM(7) '// message
     GOTO 9999
 
   ENDIF
@@ -854,7 +854,7 @@ IF(PRESENT(NR_LAM) .AND. &
                         RHO_LAM,LAM,iflag,message)
 
   !Check messages
-  IF(iflag /= 0) message='AJAX_LOAD_RZLAM(8)/'//message
+  IF(iflag /= 0) message='AJAX_LOAD_RZLAM(8) '// message
 
 ELSEIF(nper_3d == 0) THEN
 
@@ -867,7 +867,7 @@ ELSEIF(nper_3d == 0) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_LOAD_RZLAM(9)/'//message
+    message='AJAX_LOAD_RZLAM(9) '// message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -934,7 +934,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   phitot                 !total toroidal flux [Wb]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -1030,7 +1030,7 @@ CALL SPLINE1_INTERP(k_vopt,nr_pflx,rho_pflx,fspl,nrho_3d,rho_3d, &
 !Check messages
 IF(iflag > 0) THEN
 
-  message='AJAX_LOAD_MAGFLUX(2)/'//message
+  message='AJAX_LOAD_MAGFLUX(2) '// message
   GOTO 9999
 
 ENDIF
@@ -1168,7 +1168,7 @@ REAL(KIND=rspec), INTENT(INOUT) :: &
   r_flx(:)               !flux coordinates (rho,theta,zeta) [rho,rad,rad]
       
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -1250,7 +1250,7 @@ DO it=1,itmax !Over iteration
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_CYL2FLX(1)/'//message
+    message='AJAX_CYL2FLX(1) '// message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -1392,7 +1392,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   r_flx(:)               !flux coordinates (rho,theta,zeta) [rho,rad,rad]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -1573,7 +1573,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
                          ! [m/rho,m,      m,     m/rho,m,      m     ]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -1624,7 +1624,7 @@ CALL AJAX_MAGFLUX(1,r_flx, &
 !Check messages
 IF(iflag /= 0) THEN
 
-  message='AJAX_B/'//message
+  message='AJAX_B '// message
   IF (iflag > 0 ) GOTO 9999
 
 ENDIF
@@ -1824,7 +1824,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   rho_r(:)               !radial nodes [rho]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -1881,7 +1881,7 @@ IF(.NOT. l_fluxavg_3d) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(1)/'//message
+    message='AJAX_FLUXAV_B(1) ' // message
     GOTO 9999
 
   ENDIF
@@ -1979,7 +1979,7 @@ IF(PRESENT(B2_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(2)/'//message
+    message='AJAX_FLUXAV_B(2) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2029,7 +2029,7 @@ IF(PRESENT(BM2_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(3)/'//message
+    message='AJAX_FLUXAV_B(3) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2085,7 +2085,7 @@ IF(PRESENT(GR2BM2_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(4)/'//message
+    message='AJAX_FLUXAV_B(4) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2182,7 +2182,7 @@ IF(PRESENT(FTRAP_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(5)/'//message
+    message='AJAX_FLUXAV_B(5) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2232,7 +2232,7 @@ IF(PRESENT(FM_R)) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='AJAX_FLUXAV_B(6)/'//message
+      message='AJAX_FLUXAV_B(6) ' // message
       IF(iflag > 0) GOTO 9999
 
     ENDIF
@@ -2344,7 +2344,7 @@ IF(PRESENT(FM_R)) THEN
       !Check messages
       IF(iflag /= 0) THEN
 
-        message='AJAX_FLUXAV_B(7)/'//message
+        message='AJAX_FLUXAV_B(7) ' // message
         IF(iflag > 0) GOTO 9999
 
       ENDIF
@@ -2383,7 +2383,7 @@ IF(PRESENT(GRTH_R)) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='AJAX_FLUXAV_B(8)/'//message
+      message='AJAX_FLUXAV_B(8) ' // message
       IF(iflag > 0) GOTO 9999
 
     ENDIF
@@ -2438,7 +2438,7 @@ IF(PRESENT(SUS11_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(9)/'//message
+    message='AJAX_FLUXAV_B(9) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2500,7 +2500,7 @@ IF(PRESENT(SUS12_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(10)/'//message
+    message='AJAX_FLUXAV_B(10) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2558,7 +2558,7 @@ IF(PRESENT(SUS21_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(11)/'//message
+    message='AJAX_FLUXAV_B(11) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2621,7 +2621,7 @@ IF(PRESENT(SUS22_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_B(12)/'//message
+    message='AJAX_FLUXAV_B(12) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2670,7 +2670,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   rho_r(:)               !radial nodes [rho]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -2713,7 +2713,7 @@ IF(.NOT. l_fluxavg_3d) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_G(1)/'//message
+    message='AJAX_FLUXAV_G(1) ' // message
     GOTO 9999
 
   ENDIF
@@ -2754,7 +2754,7 @@ IF(PRESENT(AREA_R) .OR. &
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_G(2)/'//message
+    message='AJAX_FLUXAV_G(2) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2813,7 +2813,7 @@ IF(PRESENT(AREA_R) .OR. &
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_G(3)/'//message
+    message='AJAX_FLUXAV_G(3) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2931,7 +2931,7 @@ IF(PRESENT(GRHO2_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_G(4)/'//message
+    message='AJAX_FLUXAV_G(4) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -2988,7 +2988,7 @@ IF(PRESENT(GRHO2RM2_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_G(5)/'//message
+    message='AJAX_FLUXAV_G(5) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3039,7 +3039,7 @@ IF(PRESENT(RM2_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_FLUXAV_G(6)/'//message
+    message='AJAX_FLUXAV_G(6) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3127,7 +3127,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   rho_r(:)               !radial nodes [rho]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -3221,7 +3221,7 @@ DO i=imin,nrho_r !Over radial nodes
       !Check messages
       IF(iflag /= 0) THEN
 
-        message='AJAX_I(1)/'//message
+        message='AJAX_I(1) ' // message
         IF(iflag > 0) GOTO 9999
 
       ENDIF
@@ -3234,7 +3234,7 @@ DO i=imin,nrho_r !Over radial nodes
       !Check messages
       IF(iflag /= 0) THEN
 
-        message='AJAX_I(2)/'//message
+        message='AJAX_I(2) ' // message
         IF(iflag > 0) GOTO 9999
 
       ENDIF
@@ -3332,7 +3332,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   rho_r(:)               !radial nodes [rho]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -3462,7 +3462,7 @@ IF(PRESENT(PSI_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_MAGFLUX/'//message
+    message='AJAX_MAGFLUX ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3510,7 +3510,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   rho_r(:)               !radial nodes [rho]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -3592,7 +3592,7 @@ CALL AJAX_MINMAX_RZ(l_rminmax,r_flx,r_cyl,iflag,message)
 !Check messages
 IF(iflag /= 0) THEN
 
-  message='AJAX_SHAPE(1)/'//message
+  message='AJAX_SHAPE(1) ' // message
   IF(iflag > 0) GOTO 9999
 
 ENDIF
@@ -3610,7 +3610,7 @@ CALL AJAX_MINMAX_RZ(l_rminmax,r_flx,r_cyl,iflag,message)
 !Check messages
 IF(iflag /= 0) THEN
 
-  message='AJAX_SHAPE(2)/'//message
+  message='AJAX_SHAPE(2) ' // message
   IF(iflag > 0) GOTO 9999
 
 ENDIF
@@ -3639,7 +3639,7 @@ DO i=2,nrho_3d !Over radial nodes
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(3)/'//message
+    message='AJAX_SHAPE(3) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3657,7 +3657,7 @@ DO i=2,nrho_3d !Over radial nodes
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(4)/'//message
+    message='AJAX_SHAPE(4) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3675,7 +3675,7 @@ DO i=2,nrho_3d !Over radial nodes
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(5)/'//message
+    message='AJAX_SHAPE(5) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3694,7 +3694,7 @@ DO i=2,nrho_3d !Over radial nodes
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(6)/'//message
+    message='AJAX_SHAPE(6) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -3726,7 +3726,7 @@ IF(PRESENT(SHIFT_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(7)/'//message
+    message='AJAX_SHAPE(7) ' // message
     GOTO 9999
 
   ENDIF
@@ -3763,7 +3763,7 @@ IF(PRESENT(ELONG_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(8)/'//message
+    message='AJAX_SHAPE(8) ' // message
     GOTO 9999
 
   ENDIF
@@ -3801,7 +3801,7 @@ IF(PRESENT(TRIANG_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(9)/'//message
+    message='AJAX_SHAPE(9) ' // message
     GOTO 9999
 
   ENDIF
@@ -3836,7 +3836,7 @@ IF(PRESENT(RMAX_R)) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='AJAX_SHAPE(10)/'//message
+      message='AJAX_SHAPE(10) ' // message
       GOTO 9999
 
     ENDIF
@@ -3850,7 +3850,7 @@ IF(PRESENT(RMAX_R)) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='AJAX_SHAPE(11)/'//message
+      message='AJAX_SHAPE(11) ' // message
       GOTO 9999
 
     ENDIF
@@ -3870,7 +3870,7 @@ IF(PRESENT(RMAX_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(12)/'//message
+    message='AJAX_SHAPE(12) ' // message
     GOTO 9999
 
   ENDIF
@@ -3898,7 +3898,7 @@ IF(PRESENT(RMIN_R)) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='AJAX_SHAPE(13)/'//message
+      message='AJAX_SHAPE(13) ' // message
       GOTO 9999
 
     ENDIF
@@ -3912,7 +3912,7 @@ IF(PRESENT(RMIN_R)) THEN
     !Check messages
     IF(iflag /= 0) THEN
 
-      message='AJAX_SHAPE(14)/'//message
+      message='AJAX_SHAPE(14) ' // message
       GOTO 9999
 
     ENDIF
@@ -3932,7 +3932,7 @@ IF(PRESENT(RMIN_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(15)/'//message
+    message='AJAX_SHAPE(15) ' // message
     GOTO 9999
 
   ENDIF
@@ -3958,7 +3958,7 @@ IF(PRESENT(ZMAX_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(16)/'//message
+    message='AJAX_SHAPE(16) ' // message
     GOTO 9999
 
   ENDIF
@@ -3984,7 +3984,7 @@ IF(PRESENT(ZMIN_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(17)/'//message
+    message='AJAX_SHAPE(17) ' // message
     GOTO 9999
 
   ENDIF
@@ -4010,7 +4010,7 @@ IF(PRESENT(RTOP_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(18)/'//message
+    message='AJAX_SHAPE(18) ' // message
     GOTO 9999
 
   ENDIF
@@ -4036,7 +4036,7 @@ IF(PRESENT(RBOT_R)) THEN
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_SHAPE(19)/'//message
+    message='AJAX_SHAPE(19) ' // message
     GOTO 9999
 
   ENDIF
@@ -4061,7 +4061,7 @@ SUBROUTINE AJAX_GLOBALS(iflag,message, &
 !-------------------------------------------------------------------------------
       
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -4131,7 +4131,7 @@ REAL(KIND=rspec), INTENT(INOUT) :: &
   r_flx(:)               !flux coordinates (rho,theta,zeta) [rho,rad,rad]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -4190,7 +4190,7 @@ CALL AJAX_FLX2CYL(r_flx0,r_cyl,iflag,message, &
 !Check messages
 IF(iflag /= 0) THEN
 
-  message='AJAX_MINMAX_RZ(1)/'//message
+  message='AJAX_MINMAX_RZ(1) ' // message
   IF(iflag > 0) GOTO 9999
 
 ENDIF
@@ -4205,7 +4205,7 @@ CALL AJAX_FLX2CYL(r_flx1,r_cyl,iflag,message, &
 !Check messages
 IF(iflag /= 0) THEN
 
-  message='AJAX_MINMAX_RZ(2)/'//message
+  message='AJAX_MINMAX_RZ(2) ' // message
   IF(iflag > 0) GOTO 9999
 
 ENDIF
@@ -4225,7 +4225,7 @@ LOOP_I: DO i=1,10 !Over iteration
   !Check messages
   IF(iflag /= 0) THEN
 
-    message='AJAX_MINMAX_RZ(3)/'//message
+    message='AJAX_MINMAX_RZ(3) ' // message
     IF(iflag > 0) GOTO 9999
 
   ENDIF
@@ -4722,7 +4722,7 @@ SUBROUTINE AJAX_INIT_FLUXAV_G(iflag,message)
 !-------------------------------------------------------------------------------
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -4823,7 +4823,7 @@ DO i=2,nrho_3d !Over radial nodes
       !Check messages
       IF(iflag /= 0) THEN
 
-        message='AJAX_INIT_FLUXAV_G/'//message
+        message='AJAX_INIT_FLUXAV_G '// message
         IF(iflag > 0) GOTO 9999
 
       ENDIF
@@ -4956,7 +4956,7 @@ REAL(KIND=rspec), INTENT(IN) :: &
   lam(:,:)               !expansion coeffs for lambda [-]
 
 !Declaration of output variables
-CHARACTER(len=*), INTENT(OUT) :: &
+CHARACTER(LEN=1024), INTENT(OUT) :: &
   message                !warning or error message [character]
 
 INTEGER, INTENT(OUT) :: &
@@ -5126,7 +5126,7 @@ DO k=1,klam_3d !Over modes
   !Check messages
   IF(iflag > 0) THEN
 
-    message='AJAX_LOAD_LAM/'//message
+    message='AJAX_LOAD_LAM '// message
     GOTO 9999
 
   ENDIF

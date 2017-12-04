@@ -82,10 +82,9 @@
       IF (gi%icntl(6) .EQ. 1) work(1:n) = x0/bnorm
       work(n+1:2*n) = b(1:n)/bnorm
 
-      icount=0; jcount=0; fsq_min=-1
+      icount=0; jcount=0
       IF (lprint) PRINT 900
- 900  FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------',/,1x,     
-     1      'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
+ 900  FORMAT(1x,'GMRES (SERIAL) CONVERGENCE SUMMARY',/,1x,15('-'))     
 
       !****************************************
       !* Reverse communication implementation
@@ -158,11 +157,12 @@
 
         fsq_lin = (rinfo(1)*bnorm)**2
         icount = icount+1
-        lStore = (fsq_nl .LT. 0.95_dp*fsq_min)
+        lStore = (fsq_nl .LT. fsq_min)
         fsq_min = MIN(fsq_min, fsq_nl)
         fsq_min_lin = MIN(fsq_min_lin, fsq_lin)
         IF (fsq_lin .LT. 1.E-30_dp) gi%icntl(7)=gi%info(1)
 
+        IF (lprint .AND. icount.EQ.1) PRINT 905
         kout = gi%info(1)
         IF (icount.EQ.1 .OR. MOD(icount,10).EQ.0) THEN
            kprint = kout
@@ -174,7 +174,7 @@
            IF (lprint) PRINT 910, kout, fsq_nl, xmod, xmax, fsq_lin
         END IF
 
-        IF (gi%ngmres_type .EQ. 1) GOTO 10                                  !OLDSTYLE:IGNORE LOGIC BELOW
+        IF (gi%ngmres_type .EQ. 1) GOTO 10                               !OLDSTYLE:IGNORE LOGIC BELOW
 
         delfsq = (fsq_last-fsq_nl)/fsq_min                              
         IF (delfsq .LT. 0.05_dp) THEN
@@ -183,18 +183,17 @@
           jcount = 0
         END IF
 
-        IF (fsq_nl .GT. (3*fsq_min) .OR. jcount.GT.3) THEN
-          ! STOPPING CRITERIA (reset max iterations to current iteration)         
-          gi%icntl(7)=gi%info(1)
-        ELSE IF (lStore) THEN
+! STOPPING CRITERIA (reset max iterations to current iteration)         
+        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3 
+     &            .OR. fsq_nl.LE.gi%ftol) gi%icntl(7) = gi%info(1)
+        IF (lStore) THEN
           IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(n))
           xmin = work(colx:colx+n-1)
-          IF (fsq_nl .LE. gi%ftol) gi%icntl(7)=gi%info(1)
-          fsq_min = fsq_nl; fsq_min_lin = fsq_lin
         END IF
         GOTO 10
 
       ENDIF
+ 905  FORMAT(1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',9x,'FSQ_ARN')
  910  FORMAT(i5, 4(3x,1pe12.3))
 
       IF (ALLOCATED (xmin)) THEN
@@ -206,10 +205,12 @@
 
       DEALLOCATE (work)
 
-      IF (lprint .AND. kprint.NE.kout)
-     &    PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
-
       x0 = bnorm*x0
+      IF (lprint .AND. kprint.NE.kout) THEN
+         xmod = SQRT(SUM(x0*x0));  xmax = MAXVAL(ABS(x0))
+         PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+      END IF
+
       gi%ftol = fsq_min
 
       END SUBROUTINE gmres_ser
@@ -290,7 +291,7 @@
       work(nloc+1:2*nloc) = b(myrowstart:myrowend)/bnorm
 
       IF (lprint) PRINT 900
-900   FORMAT(1x,'GMRES CONVERGENCE SUMMARY',/,' -------------')
+900   FORMAT(1x,'GMRES (PARALLEL) CONVERGENCE SUMMARY',/,1x,15('-'),/)
 
       ENDIF LACTIVE0
 
@@ -408,7 +409,7 @@
 
         fsq_lin = (rinfo(1)*bnorm)**2
         icount = icount+1
-        lStore = (fsq_nl .LT. 0.95_dp*fsq_min)
+        lStore = (fsq_nl .LT. fsq_min)
         fsq_min = MIN(fsq_min, fsq_nl)
         fsq_min_lin = MIN(fsq_min_lin, fsq_lin)
            
@@ -438,17 +439,16 @@
 
 !       LACTIVE1: IF (lactive) THEN
         delfsq = (fsq_last-fsq_nl)/fsq_min                              
-        IF (delfsq .LT. 0.05_dp) THEN
+        IF (delfsq .LT. 0.05_dp) THEN                                     !PROGRESS COUNTER
           jcount = jcount+1
         ELSE
           jcount = 0
         END IF
 
-        IF (fsq_nl .GT. (3*fsq_min) .OR. jcount.GT.3) THEN
-          ! STOPPING CRITERIA (reset max iterations to current iteration)         
-          gi%icntl(7)=gi%info(1)
-        ELSE IF (lStore) THEN
-          IF (fsq_nl .LE. gi%ftol) gi%icntl(7)=gi%info(1)
+! STOPPING CRITERIA (reset max iterations to current iteration)         
+        IF (fsq_nl.GT.(3*fsq_min) .OR. jcount.GT.3                    
+     &            .OR. fsq_nl.LE.gi%ftol) gi%icntl(7) = gi%info(1)
+        IF (lStore) THEN
           IF (.NOT.ALLOCATED(xmin)) ALLOCATE (xmin(nloc))
           xmin = work(colx:colx+nloc-1)
         END IF
@@ -468,13 +468,13 @@
 
       nout = 11
       OPEN(nout,FILE='sol_dTestgmres',STATUS='unknown')
-      IF (gi%icntl(5).EQ.0) then
+      IF (gi%icntl(5).EQ.0) THEN
         WRITE(nout,*) 'Orthogonalisation : MGS'
-      ELSEIF (gi%icntl(5).eq.1) then
+      ELSEIF (gi%icntl(5).eq.1) THEN
         WRITE(nout,*) 'Orthogonalisation : IMGS'
-      ELSEIF (gi%icntl(5).eq.2) then
+      ELSEIF (gi%icntl(5).eq.2) THEN
         WRITE(nout,*) 'Orthogonalisation : CGS'
-      ELSEIF (gi%icntl(5).eq.3) then
+      ELSEIF (gi%icntl(5).eq.3) THEN
         WRITE(nout,*) 'Orthogonalisation : ICGS'
       ENDIF
       WRITE(nout,*) 'Restart : ', m
@@ -502,7 +502,10 @@
       gi%ftol = fsq_min
       x0 = tmpbuf*bnorm
 
-      IF (lprint) PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+      IF (lprint .AND. kout.NE.kprint) THEN
+         xmod = SQRT(SUM(x0*x0)); xmax = MAXVAL(ABS(x0))
+         PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
+      END IF
 
       END IF LACTIVE3
 
@@ -512,13 +515,11 @@
 
       SUBROUTINE Truncate(num, iprec0)
       USE stel_kinds, ONLY: dp
-!     NEEDED TO RESOLVE CALL IN gmres_par
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
       INTEGER, INTENT(IN)     :: iprec0
       REAL(dp), INTENT(INOUT) :: num
-!-----------------------------------------------
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
