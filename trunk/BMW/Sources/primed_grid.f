@@ -150,6 +150,7 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: sinmn
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: cosmn_nyq
       REAL (rprec), DIMENSION(:), ALLOCATABLE :: sinmn_nyq
+      INTEGER                                 :: num_v_use
 
 !  local parameters
       INTEGER, PARAMETER                      :: num_u = 101
@@ -160,16 +161,22 @@
 
       ALLOCATE(primed_grid_construct_both)
 
-      ALLOCATE(primed_grid_construct_both%x(ns,num_u,num_v))
-      ALLOCATE(primed_grid_construct_both%y(ns,num_u,num_v))
-      ALLOCATE(primed_grid_construct_both%z(ns,num_u,num_v))
+      IF (num_v .eq. 1) THEN
+         num_v_use = 360
+      ELSE
+         num_v_use = num_v
+      END IF
 
-      ALLOCATE(primed_grid_construct_both%j_x(ns,num_u,num_v))
-      ALLOCATE(primed_grid_construct_both%j_y(ns,num_u,num_v))
-      ALLOCATE(primed_grid_construct_both%j_z(ns,num_u,num_v))
+      ALLOCATE(primed_grid_construct_both%x(ns,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_both%y(ns,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_both%z(ns,num_u,num_v_use))
+
+      ALLOCATE(primed_grid_construct_both%j_x(ns,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_both%j_y(ns,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_both%j_z(ns,num_u,num_v_use))
 
       ds = 1.0/(ns - 1.0)
-      primed_grid_construct_both%dv = twopi/num_v
+      primed_grid_construct_both%dv = twopi/num_v_use
 
       primed_grid_construct_both%dvol = isigng*ds*du                           &
      &   * primed_grid_construct_both%dv/(2.0*twopi)
@@ -188,7 +195,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO vi = 1, num_v
+      DO vi = 1, num_v_use
          v = (vi - 0.5)*primed_grid_construct_both%dv
 
          cosv = COS(v)
@@ -325,6 +332,7 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: p_prime
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosmn_nyq
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sinmn_nyq
+      INTEGER                                   :: num_v_use
 
 !  local parameters
       INTEGER, PARAMETER                        :: num_u = 101
@@ -335,13 +343,19 @@
 
       ALLOCATE(primed_grid_construct_ju)
 
-      ALLOCATE(primed_grid_construct_ju%x(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_ju%y(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_ju%z(ns - 1,num_u,num_v))
+      IF (num_v .eq. 1) THEN
+         num_v_use = 360
+      ELSE
+         num_v_use = num_v
+      END IF
 
-      ALLOCATE(primed_grid_construct_ju%j_x(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_ju%j_y(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_ju%j_z(ns - 1,num_u,num_v))
+      ALLOCATE(primed_grid_construct_ju%x(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_ju%y(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_ju%z(ns - 1,num_u,num_v_use))
+
+      ALLOCATE(primed_grid_construct_ju%j_x(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_ju%j_y(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_ju%j_z(ns - 1,num_u,num_v_use))
 
       ALLOCATE(rmnch(mnmax,ns - 1))
       ALLOCATE(zmnsh(mnmax,ns - 1))
@@ -356,7 +370,7 @@
       ALLOCATE(p_prime(ns - 1))
 
       ds = 1.0/(ns - 1.0)
-      primed_grid_construct_ju%dv = twopi/num_v
+      primed_grid_construct_ju%dv = twopi/num_v_use
 
       primed_grid_construct_ju%dvol = isigng*ds*du                             &
      &   * primed_grid_construct_ju%dv/(2.0*twopi)
@@ -395,7 +409,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO vi = 1, num_v
+      DO vi = 1, num_v_use
          v = (vi - 0.5)*primed_grid_construct_ju%dv
 
          cosv = COS(v)
@@ -541,6 +555,7 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: p_prime
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: cosmn_nyq
       REAL (rprec), DIMENSION(:), ALLOCATABLE   :: sinmn_nyq
+      INTEGER                                   :: num_v_use
 
 !  local parameters
       INTEGER, PARAMETER                        :: num_u = 101
@@ -551,13 +566,19 @@
 
       ALLOCATE(primed_grid_construct_jv)
 
-      ALLOCATE(primed_grid_construct_jv%x(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_jv%y(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_jv%z(ns - 1,num_u,num_v))
+      IF (num_v .eq. 1) THEN
+         num_v_use = 360
+      ELSE
+         num_v_use = num_v
+      END IF
 
-      ALLOCATE(primed_grid_construct_jv%j_x(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_jv%j_y(ns - 1,num_u,num_v))
-      ALLOCATE(primed_grid_construct_jv%j_z(ns - 1,num_u,num_v))
+      ALLOCATE(primed_grid_construct_jv%x(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_jv%y(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_jv%z(ns - 1,num_u,num_v_use))
+
+      ALLOCATE(primed_grid_construct_jv%j_x(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_jv%j_y(ns - 1,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_jv%j_z(ns - 1,num_u,num_v_use))
 
       ALLOCATE(rmnch(mnmax,ns - 1))
       ALLOCATE(zmnsh(mnmax,ns - 1))
@@ -572,7 +593,7 @@
       ALLOCATE(p_prime(ns - 1))
 
       ds = 1.0/(ns - 1.0)
-      primed_grid_construct_jv%dv = twopi/num_v
+      primed_grid_construct_jv%dv = twopi/num_v_use
 
       primed_grid_construct_jv%dvol = isigng*ds*du                             &
      &   * primed_grid_construct_jv%dv/(2.0*twopi)
@@ -611,7 +632,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO vi = 1, num_v
+      DO vi = 1, num_v_use
          v = (vi - 0.5)*primed_grid_construct_jv%dv
 
          cosv = COS(v)
@@ -775,6 +796,7 @@
       REAL (rprec), DIMENSION(:), ALLOCATABLE     :: rmnsint
       REAL (rprec), DIMENSION(:), ALLOCATABLE     :: zmncint
       REAL (rprec), DIMENSION(:), ALLOCATABLE     :: zmnsint
+      INTEGER                                     :: num_v_use
 
 !  local parameters
       INTEGER, PARAMETER                          :: num_u = 101
@@ -816,16 +838,22 @@
 
       ALLOCATE(primed_grid_construct_siesta)
 
-      ALLOCATE(primed_grid_construct_siesta%x(nrad,num_u,num_v))
-      ALLOCATE(primed_grid_construct_siesta%y(nrad,num_u,num_v))
-      ALLOCATE(primed_grid_construct_siesta%z(nrad,num_u,num_v))
+      IF (num_v .eq. 1) THEN
+         num_v_use = 360
+      ELSE
+         num_v_use = num_v
+      END IF
 
-      ALLOCATE(primed_grid_construct_siesta%j_x(nrad,num_u,num_v))
-      ALLOCATE(primed_grid_construct_siesta%j_y(nrad,num_u,num_v))
-      ALLOCATE(primed_grid_construct_siesta%j_z(nrad,num_u,num_v))
+      ALLOCATE(primed_grid_construct_siesta%x(nrad,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_siesta%y(nrad,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_siesta%z(nrad,num_u,num_v_use))
+
+      ALLOCATE(primed_grid_construct_siesta%j_x(nrad,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_siesta%j_y(nrad,num_u,num_v_use))
+      ALLOCATE(primed_grid_construct_siesta%j_z(nrad,num_u,num_v_use))
 
       ds = 1.0/(ns - 1.0)
-      primed_grid_construct_siesta%dv = twopi/num_v
+      primed_grid_construct_siesta%dv = twopi/num_v_use
 
       primed_grid_construct_siesta%dvol = isigng*ds*du                         &
      &   * primed_grid_construct_siesta%dv/(2.0*twopi)
@@ -852,7 +880,7 @@
 
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO vi = 1, num_v
+      DO vi = 1, num_v_use
          v = (vi - 0.5)*primed_grid_construct_siesta%dv
 
          cosv = COS(v)

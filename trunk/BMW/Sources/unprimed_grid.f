@@ -122,16 +122,22 @@
       ALLOCATE(unprimed_grid_construct%b_p(num_r, num_z, num_p))
       ALLOCATE(unprimed_grid_construct%b_z(num_r, num_z, num_p))
 
-      total = num_p
-!$    total = CEILING(total/OMP_GET_MAX_THREADS())
-      total = total*num_z*num_r
-      current = 0.0
+      IF (num_p .eq. 1) THEN
+         total = num_z
+!$       total = CEILING(total/OMP_GET_MAX_THREADS())
+         total = total*num_r
+      ELSE
+         total = num_p
+!$       total = CEILING(total/OMP_GET_MAX_THREADS())
+         total = total*num_z*num_r
+      END IF
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
 !$OMP& PRIVATE(i, j, k, v, r, z, zp, x, y, ax, ay, rp, cosv, sinv, ar_p,
 !$OMP&         ar_m, ap_p, ap_m, az_p, az_m, r_p, r_m, k_p, k_m, done,
 !$OMP&         current)
+      current = 0.0
 
       ALLOCATE(rp(SIZE(pgrid%x, 1),                                            &
      &            SIZE(pgrid%x, 2),                                            &
@@ -141,22 +147,14 @@
      &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
 
+!  Need to move the parallel loop to the j index when dealing with axi-symmetric
+!  cases.
+      IF (num_p .eq. 1) THEN
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO k = 1, num_p
-         v = (k - 1.0)*pgrid%dv
-
-         cosv = COS(v)
-         sinv = SIN(v)
-
          DO j = 1, num_z
             z = (j - 1.0)*mgrid%dz + mgrid%zmin
-#define test
-#if defined(test)
-            zp = (pgrid%z - z)*(pgrid%z - z)
-#else
             zp = (pgrid%z - z)**2.0
-#endif
 
             DO i = 1, num_r
 
@@ -177,51 +175,91 @@
 
                r = (i - 1.0)*mgrid%dr + mgrid%rmin
 
-               x = r*cosv
-               y = r*sinv
+               x = r
+               y = 0.0
 
-#if defined(test)
-               rp = SQRT((pgrid%x - x)*(pgrid%x - x) +                         &
-     &                   (pgrid%y - y)*(pgrid%y - y) +                         &
-     &                   zp)
-#else
                rp = SQRT((pgrid%x - x)**2.0 +                                  &
      &                   (pgrid%y - y)**2.0 +                                  &
      &                   zp)
-#endif
 
                ax = SUM(pgrid%j_x/rp)*pgrid%dvol
                ay = SUM(pgrid%j_y/rp)*pgrid%dvol
 
-               unprimed_grid_construct%a_r(i,j,k) =  x/r*ax + y/r*ay           &
-     &                                            + mgrid%a_r(i,j,k)
-               unprimed_grid_construct%a_p(i,j,k) = -y/r*ax + x/r*ay           &
-     &                                            + mgrid%a_p(i,j,k)
-               unprimed_grid_construct%a_z(i,j,k) = SUM(pgrid%j_z/rp)          &
+               unprimed_grid_construct%a_r(i,j,1) =  x/r*ax + y/r*ay           &
+     &                                            + mgrid%a_r(i,j,1)
+               unprimed_grid_construct%a_p(i,j,1) = -y/r*ax + x/r*ay           &
+     &                                            + mgrid%a_p(i,j,1)
+               unprimed_grid_construct%a_z(i,j,1) = SUM(pgrid%j_z/rp)          &
      &                                            * pgrid%dvol                 &
-     &                                            + mgrid%a_z(i,j,k)
+     &                                            + mgrid%a_z(i,j,1)
             END DO
          END DO
-      END DO
 !$OMP END DO
+      ELSE
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO k = 1, num_p
+            v = (k - 1.0)*pgrid%dv
+
+            cosv = COS(v)
+            sinv = SIN(v)
+
+            DO j = 1, num_z
+               z = (j - 1.0)*mgrid%dz + mgrid%zmin
+               zp = (pgrid%z - z)**2.0
+
+               DO i = 1, num_r
+
+!$                IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
+                     current = current + 1.0
+                     done = 100*current/total
+                     SELECT CASE (MOD(INT(current),4))
+                        CASE (0)
+                           WRITE (*,1000,ADVANCE='NO') clear_screen,           &
+     &                                                 done
+                        CASE (1)
+                           WRITE (*,1001,ADVANCE='NO') clear_screen,           &
+     &                                                 done
+                        CASE (2)
+                           WRITE (*,1002,ADVANCE='NO') clear_screen,           &
+     &                                                 done
+                        CASE (3)
+                           WRITE (*,1003,ADVANCE='NO') clear_screen,           &
+     &                                                 done
+                     END SELECT
+!$                END IF
+
+                  r = (i - 1.0)*mgrid%dr + mgrid%rmin
+
+                  x = r*cosv
+                  y = r*sinv
+
+                  rp = SQRT((pgrid%x - x)**2.0 +                               &
+     &                      (pgrid%y - y)**2.0 +                               &
+     &                      zp)
+
+                  ax = SUM(pgrid%j_x/rp)*pgrid%dvol
+                  ay = SUM(pgrid%j_y/rp)*pgrid%dvol
+
+                  unprimed_grid_construct%a_r(i,j,k) =  x/r*ax + y/r*ay        &
+     &                                               + mgrid%a_r(i,j,k)
+                  unprimed_grid_construct%a_p(i,j,k) = -y/r*ax + x/r*ay        &
+     &                                               + mgrid%a_p(i,j,k)
+                  unprimed_grid_construct%a_z(i,j,k) = SUM(pgrid%j_z/rp)       &
+     &                                               * pgrid%dvol              &
+     &                                               + mgrid%a_z(i,j,k)
+               END DO
+            END DO
+         END DO
+!$OMP END DO
+      END IF
 
       DEALLOCATE(rp)
       DEALLOCATE(zp)
 
+      IF (num_p .eq. 1) THEN
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-      DO k = 1, num_p
-         IF (k .eq. 1) THEN
-            k_p = k + 1
-            k_m = num_p
-         ELSE IF (k .eq. num_p) THEN
-            k_p = 1
-            k_m = k - 1
-         ELSE
-            k_p = k + 1
-            k_m = k - 1
-         END IF
-
          DO j = 2, num_z - 1
 
             DO i = 2, num_r - 1
@@ -229,34 +267,78 @@
                r_m = (i - 2.0)*mgrid%dr + mgrid%rmin
                r = (i - 1.0)*mgrid%dr + mgrid%rmin
 
-               az_p = unprimed_grid_construct%a_z(i,j,k_p)
-               az_m = unprimed_grid_construct%a_z(i,j,k_m)
-               ap_p = unprimed_grid_construct%a_p(i,j + 1,k)
-               ap_m = unprimed_grid_construct%a_p(i,j - 1,k)
-               unprimed_grid_construct%b_r(i,j,k) =                            & ! 1/rdazdp - dapdz
-     &            (az_p - az_m)/(2.0*pgrid%dv*r) -                             &
-     &            (ap_p - ap_m)/(2.0*mgrid%dz)
+               ap_p = unprimed_grid_construct%a_p(i,j + 1,1)
+               ap_m = unprimed_grid_construct%a_p(i,j - 1,1)
+               unprimed_grid_construct%b_r(i,j,1) =                            & ! 1/rdazdp - dapdz
+     &            -(ap_p - ap_m)/(2.0*mgrid%dz)
 
-               ar_p = unprimed_grid_construct%a_r(i,j + 1,k)
-               ar_m = unprimed_grid_construct%a_r(i,j - 1,k)
-               az_p = unprimed_grid_construct%a_z(i + 1,j,k)
-               az_m = unprimed_grid_construct%a_z(i - 1,j,k)
-               unprimed_grid_construct%b_p(i,j,k) =                            & ! dardz - dazdr
+               ar_p = unprimed_grid_construct%a_r(i,j + 1,1)
+               ar_m = unprimed_grid_construct%a_r(i,j - 1,1)
+               az_p = unprimed_grid_construct%a_z(i + 1,j,1)
+               az_m = unprimed_grid_construct%a_z(i - 1,j,1)
+               unprimed_grid_construct%b_p(i,j,1) =                            & ! dardz - dazdr
      &            (ar_p - ar_m)/(2.0*mgrid%dz) -                               &
      &            (az_p - az_m)/(2.0*mgrid%dr)
 
-               ar_p = unprimed_grid_construct%a_r(i,j,k_p)
-               ar_m = unprimed_grid_construct%a_r(i,j,k_m)
-               ap_p = unprimed_grid_construct%a_p(i + 1,j,k)
-               ap_m = unprimed_grid_construct%a_p(i - 1,j,k)
-               unprimed_grid_construct%b_z(i,j,k) =                            & ! 1/r(drapdr - dardp)
-     &            (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r) -                     &
-     &            (ar_p - ar_m)/(2.0*pgrid%dv*r)
+               ap_p = unprimed_grid_construct%a_p(i + 1,j,1)
+               ap_m = unprimed_grid_construct%a_p(i - 1,j,1)
+               unprimed_grid_construct%b_z(i,j,1) =                            & ! 1/r(drapdr - dardp)
+     &            (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r)
 
             END DO
          END DO
-      END DO
 !$OMP END DO
+      ELSE
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+         DO k = 1, num_p
+            IF (k .eq. 1) THEN
+               k_p = k + 1
+               k_m = num_p
+            ELSE IF (k .eq. num_p) THEN
+               k_p = 1
+               k_m = k - 1
+            ELSE
+               k_p = k + 1
+               k_m = k - 1
+            END IF
+
+            DO j = 2, num_z - 1
+
+               DO i = 2, num_r - 1
+                  r_p = i*mgrid%dr + mgrid%rmin
+                  r_m = (i - 2.0)*mgrid%dr + mgrid%rmin
+                  r = (i - 1.0)*mgrid%dr + mgrid%rmin
+
+                  az_p = unprimed_grid_construct%a_z(i,j,k_p)
+                  az_m = unprimed_grid_construct%a_z(i,j,k_m)
+                  ap_p = unprimed_grid_construct%a_p(i,j + 1,k)
+                  ap_m = unprimed_grid_construct%a_p(i,j - 1,k)
+                  unprimed_grid_construct%b_r(i,j,k) =                         & ! 1/rdazdp - dapdz
+     &               (az_p - az_m)/(2.0*pgrid%dv*r) -                          &
+     &               (ap_p - ap_m)/(2.0*mgrid%dz)
+
+                  ar_p = unprimed_grid_construct%a_r(i,j + 1,k)
+                  ar_m = unprimed_grid_construct%a_r(i,j - 1,k)
+                  az_p = unprimed_grid_construct%a_z(i + 1,j,k)
+                  az_m = unprimed_grid_construct%a_z(i - 1,j,k)
+                  unprimed_grid_construct%b_p(i,j,k) =                         & ! dardz - dazdr
+     &               (ar_p - ar_m)/(2.0*mgrid%dz) -                            &
+     &               (az_p - az_m)/(2.0*mgrid%dr)
+
+                  ar_p = unprimed_grid_construct%a_r(i,j,k_p)
+                  ar_m = unprimed_grid_construct%a_r(i,j,k_m)
+                  ap_p = unprimed_grid_construct%a_p(i + 1,j,k)
+                  ap_m = unprimed_grid_construct%a_p(i - 1,j,k)
+                  unprimed_grid_construct%b_z(i,j,k) =                         & ! 1/r(drapdr - dardp)
+     &               (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r) -                  &
+     &               (ar_p - ar_m)/(2.0*pgrid%dv*r)
+
+               END DO
+            END DO
+         END DO
+!$OMP END DO
+      END IF
 
 !$OMP WORKSHARE
       unprimed_grid_construct%b_r(1,:,:) = 0.0
