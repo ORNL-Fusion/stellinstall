@@ -468,7 +468,10 @@
      &        (this%delta_a_len(1:num_sv) .ge. this%cut_delta_a) .and.         &
      &        (ABS(dg2exp(1:num_sv)) .ge. this%cut_dg2)
 
-!  Find the largest number of sinular values to use.
+
+!  Find the largest number of singular values to use. All the selection criteria
+!  could fail so initalize it to use no sigular values.
+      reconstruction_get_k_use = 0
       DO k = num_sv, 1, -1
          IF (l_all(k)) THEN
             reconstruction_get_k_use = k
@@ -1106,7 +1109,7 @@
       INTEGER, INTENT(in)                                :: eq_comm
 
 !  local variables
-      INTEGER                                    :: i, j
+      INTEGER                                    :: i
       REAL (rprec), DIMENSION(:,:), ALLOCATABLE  :: temp_jacobian
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work
       REAL (rprec), DIMENSION(:), ALLOCATABLE    :: temp_work2
