@@ -2,8 +2,11 @@
 list (APPEND bmw_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/bmw_commandline_parser.f
 	${CMAKE_CURRENT_SOURCE_DIR}/bmw_context.f
+	${CMAKE_CURRENT_SOURCE_DIR}/bmw_parallel_context.f
+	${CMAKE_CURRENT_SOURCE_DIR}/bmw_state_flags.f
 	${CMAKE_CURRENT_SOURCE_DIR}/m_grid.f
 	${CMAKE_CURRENT_SOURCE_DIR}/primed_grid.f
 	${CMAKE_CURRENT_SOURCE_DIR}/unprimed_grid.f
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_file.f
 )
 set (bmw_sources "${bmw_sources}" PARENT_SCOPE)

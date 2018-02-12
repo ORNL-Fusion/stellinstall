@@ -11,6 +11,10 @@
 !*******************************************************************************
       MODULE unprimed_grid
       USE stel_kinds, ONLY: rprec
+      USE profiler
+      USE bmw_parallel_context
+      USE m_grid
+      USE primed_grid
 
       IMPLICIT NONE
 
@@ -52,58 +56,63 @@
 !>  Due to the central differencing, field componetents cannot be provided for
 !>  first and last points on the r and z grids.
 !>
-!>  @param[in] mgrid A @ref m_grid::m_grid_class object.
-!>  @param[in] pgrid A @ref primed_grid::primed_grid_class object.
+!>  @param[in] mgrid    A @ref m_grid::m_grid_class object.
+!>  @param[in] pgrid    A @ref primed_grid::primed_grid_class object.
+!>  @param[in] p_start  Starting phi index to compute fields to.
+!>  @param[in] p_end    Ending phi index to compute fields to.
+!>  @param[in] parallel @ref bmw_parallel_context::bmw_parallel_context_class
+!>                      object instance.
 !>  @returns A pointer to a constructed @ref unprimed_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION unprimed_grid_construct(mgrid, pgrid)
-      USE primed_grid
-      USE m_grid
+      FUNCTION unprimed_grid_construct(mgrid, pgrid, p_start, p_end,           &
+     &                                 parallel)
 !$    USE omp_lib
+      USE bmw_state_flags, ONLY: clear_screen, bmw_state_flags_off
 
       IMPLICIT NONE
 
 !  Declare Arguments
       TYPE (unprimed_grid_class), POINTER :: unprimed_grid_construct
-      TYPE (m_grid_class), INTENT(in)             :: mgrid
-      TYPE (primed_grid_class), INTENT(in)        :: pgrid
+      TYPE (m_grid_class), INTENT(in)               :: mgrid
+      TYPE (primed_grid_class), INTENT(in)          :: pgrid
+      INTEGER, INTENT(in)                           :: p_start
+      INTEGER, INTENT(in)                           :: p_end
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                :: start_time
-      INTEGER                                     :: i
-      INTEGER                                     :: j
-      INTEGER                                     :: k
-      INTEGER                                     :: num_r
-      INTEGER                                     :: num_p
-      INTEGER                                     :: num_z
-      REAL (rprec)                                :: x
-      REAL (rprec)                                :: y
-      REAL (rprec)                                :: r
-      REAL (rprec)                                :: z
-      REAL (rprec)                                :: v
-      REAL (rprec)                                :: ax
-      REAL (rprec)                                :: ay
-      REAL (rprec)                                :: ar_p
-      REAL (rprec)                                :: ar_m
-      REAL (rprec)                                :: ap_p
-      REAL (rprec)                                :: ap_m
-      REAL (rprec)                                :: az_p
-      REAL (rprec)                                :: az_m
-      REAL (rprec)                                :: r_p
-      REAL (rprec)                                :: r_m
-      INTEGER                                     :: k_p
-      INTEGER                                     :: k_m
-      REAL (rprec)                                :: cosv
-      REAL (rprec)                                :: sinv
-      REAL (rprec)                                :: done
-      REAL (rprec)                                :: total
-      REAL (rprec)                                :: current
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: rp
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: zp
-
-!  local parameters
-      CHARACTER (len=*), PARAMETER                :: clear_screen =            &
-     &   achar(27)//"[2K"//achar(13)
+      REAL (rprec)                                  :: start_time
+      INTEGER                                       :: i
+      INTEGER                                       :: j
+      INTEGER                                       :: k
+      INTEGER                                       :: ri
+      INTEGER                                       :: zi
+      INTEGER                                       :: vi
+      INTEGER                                       :: num_r
+      INTEGER                                       :: num_p
+      INTEGER                                       :: num_z
+      REAL (rprec)                                  :: x
+      REAL (rprec)                                  :: y
+      REAL (rprec)                                  :: z
+      REAL (rprec)                                  :: ax
+      REAL (rprec)                                  :: ay
+      INTEGER                                       :: k_p
+      INTEGER                                       :: k_m
+      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r
+      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r_p
+      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: r_m
+      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: cosv
+      REAL (rprec), DIMENSION(:), ALLOCATABLE       :: sinv
+      REAL (rprec)                                  :: total
+      REAL (rprec)                                  :: done
+      REAL (rprec)                                  :: current
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: rp
+      REAL (rprec), DIMENSION(:,:,:,:), ALLOCATABLE :: zp
+      REAL (rprec)                                  :: ar_p
+      REAL (rprec)                                  :: ar_m
+      REAL (rprec)                                  :: ap_p
+      REAL (rprec)                                  :: ap_m
+      REAL (rprec)                                  :: az_p
+      REAL (rprec)                                  :: az_m
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -114,249 +123,229 @@
       num_p = SIZE(mgrid%a_p, 3)
       num_z = SIZE(mgrid%a_z, 2)
 
-      ALLOCATE(unprimed_grid_construct%a_r(num_r, num_z, num_p))
-      ALLOCATE(unprimed_grid_construct%a_p(num_r, num_z, num_p))
-      ALLOCATE(unprimed_grid_construct%a_z(num_r, num_z, num_p))
+      ALLOCATE(unprimed_grid_construct%a_r(num_r,num_z,num_p))
+      ALLOCATE(unprimed_grid_construct%a_p(num_r,num_z,num_p))
+      ALLOCATE(unprimed_grid_construct%a_z(num_r,num_z,num_p))
 
-      ALLOCATE(unprimed_grid_construct%b_r(num_r, num_z, num_p))
-      ALLOCATE(unprimed_grid_construct%b_p(num_r, num_z, num_p))
-      ALLOCATE(unprimed_grid_construct%b_z(num_r, num_z, num_p))
+      ALLOCATE(unprimed_grid_construct%b_r(num_r,num_z,num_p))
+      ALLOCATE(unprimed_grid_construct%b_p(num_r,num_z,num_p))
+      ALLOCATE(unprimed_grid_construct%b_z(num_r,num_z,num_p))
 
-      IF (num_p .eq. 1) THEN
-         total = num_z
-!$       total = CEILING(total/OMP_GET_MAX_THREADS())
-         total = total*num_r
-      ELSE
-         total = num_p
-!$       total = CEILING(total/OMP_GET_MAX_THREADS())
-         total = total*num_z*num_r
-      END IF
+      ALLOCATE(cosv(num_p))
+      ALLOCATE(sinv(num_p))
+
+      ALLOCATE(r(num_r))
+      ALLOCATE(r_p(num_r))
+      ALLOCATE(r_m(num_r))
+
+      ALLOCATE(zp(SIZE(pgrid%x, 1),SIZE(pgrid%x, 2),SIZE(pgrid%x, 3),          &
+     &         num_z))
+
+      total = bmw_parallel_context_end(parallel, num_r*num_z*num_p)
+      total = CEILING(total/parallel%num_threads)
 
 !$OMP PARALLEL
 !$OMP& DEFAULT(SHARED)
-!$OMP& PRIVATE(i, j, k, v, r, z, zp, x, y, ax, ay, rp, cosv, sinv, ar_p,
-!$OMP&         ar_m, ap_p, ap_m, az_p, az_m, r_p, r_m, k_p, k_m, done,
-!$OMP&         current)
+!$OMP& PRIVATE(i, ri, zi, vi, x, y, z, ax, ay, rp, k_p, k_m,                   &
+!$OMP&         ar_p, ar_m, ap_p, ap_m, az_p, az_m, current)
+
+!  Multi process will do an all reduce so these arrays need to be initalized.
+      IF (parallel%stride .gt. 1) THEN
+!$OMP WORKSHARE
+         unprimed_grid_construct%a_r = 0.0
+         unprimed_grid_construct%a_p = 0.0
+         unprimed_grid_construct%a_z = 0.0
+         unprimed_grid_construct%b_r = 0.0
+         unprimed_grid_construct%b_p = 0.0
+         unprimed_grid_construct%b_z = 0.0
+         cosv = 0.0
+         sinv = 0.0
+!$OMP END WORKSHARE
+      END IF
+
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+      DO i = bmw_parallel_context_start(parallel, num_r),                      &
+     &       bmw_parallel_context_end(parallel, num_r)
+         x = (i - 1.0)*mgrid%dr + mgrid%rmin
+         r(i) = (i - 1.0)*mgrid%dr + mgrid%rmin
+         r_p(i) = i*mgrid%dr + mgrid%rmin
+         r_m(i) = (i - 2.0)*mgrid%dr + mgrid%rmin
+      END DO
+!$OMP END DO
+
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+      DO i = bmw_parallel_context_start(parallel, num_z),                      &
+     &       bmw_parallel_context_end(parallel, num_z)
+         z = (i - 1.0)*mgrid%dz + mgrid%zmin
+         zp(:,:,:,i) = (pgrid%z - z)**2.0
+      END DO
+!$OMP END DO
+
+!$OMP DO
+!$OMP& SCHEDULE(STATIC)
+      DO i = bmw_parallel_context_start(parallel, num_p),                      &
+     &       bmw_parallel_context_end(parallel, num_p)
+         x = (i - 1.0)*pgrid%dv
+         cosv(i) = COS(x)
+         sinv(i) = SIN(x)
+      END DO
+!$OMP END DO
+
+!$OMP SINGLE
+      IF (parallel%stride .gt. 1) THEN
+         CALL bmw_parallel_context_reduce(parallel, cosv)
+         CALL bmw_parallel_context_reduce(parallel, sinv)
+         CALL bmw_parallel_context_reduce(parallel, zp)
+         CALL bmw_parallel_context_reduce(parallel, r)
+         CALL bmw_parallel_context_reduce(parallel, r_p)
+         CALL bmw_parallel_context_reduce(parallel, r_m)
+      END IF
+!$OMP END SINGLE
+
       current = 0.0
 
       ALLOCATE(rp(SIZE(pgrid%x, 1),                                            &
      &            SIZE(pgrid%x, 2),                                            &
      &            SIZE(pgrid%x, 3)))
 
-      ALLOCATE(zp(SIZE(pgrid%x, 1),                                            &
-     &            SIZE(pgrid%x, 2),                                            &
-     &            SIZE(pgrid%x, 3)))
-
-!  Need to move the parallel loop to the j index when dealing with axi-symmetric
-!  cases.
-      IF (num_p .eq. 1) THEN
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO j = 1, num_z
-            z = (j - 1.0)*mgrid%dz + mgrid%zmin
-            zp = (pgrid%z - z)**2.0
+      DO i = bmw_parallel_context_start(parallel, num_r*num_z*num_p),          &
+     &       bmw_parallel_context_end(parallel, num_r*num_z*num_p)
+         ri = bmw_parallel_context_i(i, num_r)
+         zi = bmw_parallel_context_j(i, num_r, num_z)
+         vi = bmw_parallel_context_k(i, num_r, num_z)
 
-            DO i = 1, num_r
+         IF (parallel%offset .eq. 0) THEN
+!$          IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
+               current = current + 1.0
+               done = 100*current/total
+               SELECT CASE (MOD(INT(current),4))
+                  CASE (0)
+                     WRITE (*,1000,ADVANCE='NO') clear_screen, done
+                  CASE (1)
+                     WRITE (*,1001,ADVANCE='NO') clear_screen, done
+                  CASE (2)
+                     WRITE (*,1002,ADVANCE='NO') clear_screen, done
+                  CASE (3)
+                     WRITE (*,1003,ADVANCE='NO') clear_screen, done
+               END SELECT
+!$          END IF
+         END IF
 
-!$             IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
-                  current = current + 1.0
-                  done = 100*current/total
-                  SELECT CASE (MOD(INT(current),4))
-                     CASE (0)
-                        WRITE (*,1000,ADVANCE='NO') clear_screen, done
-                     CASE (1)
-                        WRITE (*,1001,ADVANCE='NO') clear_screen, done
-                     CASE (2)
-                        WRITE (*,1002,ADVANCE='NO') clear_screen, done
-                     CASE (3)
-                        WRITE (*,1003,ADVANCE='NO') clear_screen, done
-                  END SELECT
-!$             END IF
+         z = (ri - 1.0)*mgrid%dr + mgrid%rmin
 
-               r = (i - 1.0)*mgrid%dr + mgrid%rmin
+         x = z*cosv(vi)
+         y = z*sinv(vi)
 
-               x = r
-               y = 0.0
+         rp = SQRT((pgrid%x - x)**2.0 + (pgrid%y - y)**2.0 +                   &
+     &             zp(:,:,:,zi))
 
-               rp = SQRT((pgrid%x - x)**2.0 +                                  &
-     &                   (pgrid%y - y)**2.0 +                                  &
-     &                   zp)
+         ax = SUM(pgrid%j_x/rp)*pgrid%dvol
+         ay = SUM(pgrid%j_y/rp)*pgrid%dvol
 
-               ax = SUM(pgrid%j_x/rp)*pgrid%dvol
-               ay = SUM(pgrid%j_y/rp)*pgrid%dvol
-
-               unprimed_grid_construct%a_r(i,j,1) =  x/r*ax + y/r*ay           &
-     &                                            + mgrid%a_r(i,j,1)
-               unprimed_grid_construct%a_p(i,j,1) = -y/r*ax + x/r*ay           &
-     &                                            + mgrid%a_p(i,j,1)
-               unprimed_grid_construct%a_z(i,j,1) = SUM(pgrid%j_z/rp)          &
-     &                                            * pgrid%dvol                 &
-     &                                            + mgrid%a_z(i,j,1)
-            END DO
-         END DO
-!$OMP END DO
-      ELSE
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-         DO k = 1, num_p
-            v = (k - 1.0)*pgrid%dv
-
-            cosv = COS(v)
-            sinv = SIN(v)
-
-            DO j = 1, num_z
-               z = (j - 1.0)*mgrid%dz + mgrid%zmin
-               zp = (pgrid%z - z)**2.0
-
-               DO i = 1, num_r
-
-!$                IF (OMP_GET_THREAD_NUM() .eq. 0) THEN
-                     current = current + 1.0
-                     done = 100*current/total
-                     SELECT CASE (MOD(INT(current),4))
-                        CASE (0)
-                           WRITE (*,1000,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                        CASE (1)
-                           WRITE (*,1001,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                        CASE (2)
-                           WRITE (*,1002,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                        CASE (3)
-                           WRITE (*,1003,ADVANCE='NO') clear_screen,           &
-     &                                                 done
-                     END SELECT
-!$                END IF
-
-                  r = (i - 1.0)*mgrid%dr + mgrid%rmin
-
-                  x = r*cosv
-                  y = r*sinv
-
-                  rp = SQRT((pgrid%x - x)**2.0 +                               &
-     &                      (pgrid%y - y)**2.0 +                               &
-     &                      zp)
-
-                  ax = SUM(pgrid%j_x/rp)*pgrid%dvol
-                  ay = SUM(pgrid%j_y/rp)*pgrid%dvol
-
-                  unprimed_grid_construct%a_r(i,j,k) =  x/r*ax + y/r*ay        &
-     &                                               + mgrid%a_r(i,j,k)
-                  unprimed_grid_construct%a_p(i,j,k) = -y/r*ax + x/r*ay        &
-     &                                               + mgrid%a_p(i,j,k)
-                  unprimed_grid_construct%a_z(i,j,k) = SUM(pgrid%j_z/rp)       &
-     &                                               * pgrid%dvol              &
-     &                                               + mgrid%a_z(i,j,k)
-               END DO
-            END DO
-         END DO
-!$OMP END DO
-      END IF
+         unprimed_grid_construct%a_r(ri,zi,vi) =  x/z*ax + y/z*ay              &
+     &                                         + mgrid%a_r(ri,zi,vi)
+         unprimed_grid_construct%a_p(ri,zi,vi) = -y/z*ax + x/z*ay              &
+     &                                         + mgrid%a_p(ri,zi,vi)
+         unprimed_grid_construct%a_z(ri,zi,vi) =                               &
+     &      SUM(pgrid%j_z/rp)*pgrid%dvol + mgrid%a_z(ri,zi,vi)
+      END DO
 
       DEALLOCATE(rp)
-      DEALLOCATE(zp)
 
-      IF (num_p .eq. 1) THEN
+!$OMP SINGLE
+!  Multi process did not fill out the entire array. Get the missing pieces from
+!  the other processes.
+      IF (parallel%stride .gt. 1) THEN
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct%a_r)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct%a_p)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct%a_z)
+      END IF
+!$OMP END SINGLE
+
 !$OMP DO
 !$OMP& SCHEDULE(STATIC)
-         DO j = 2, num_z - 1
+      DO i = bmw_parallel_context_start(parallel, num_p*num_r*num_z),          &
+     &       bmw_parallel_context_end(parallel, num_p*num_r*num_z)
+         ri = bmw_parallel_context_i(i, num_r)
+         zi = bmw_parallel_context_j(i, num_r, num_z)
+         vi = bmw_parallel_context_k(i, num_r, num_z)
 
-            DO i = 2, num_r - 1
-               r_p = i*mgrid%dr + mgrid%rmin
-               r_m = (i - 2.0)*mgrid%dr + mgrid%rmin
-               r = (i - 1.0)*mgrid%dr + mgrid%rmin
-
-               ap_p = unprimed_grid_construct%a_p(i,j + 1,1)
-               ap_m = unprimed_grid_construct%a_p(i,j - 1,1)
-               unprimed_grid_construct%b_r(i,j,1) =                            & ! 1/rdazdp - dapdz
-     &            -(ap_p - ap_m)/(2.0*mgrid%dz)
-
-               ar_p = unprimed_grid_construct%a_r(i,j + 1,1)
-               ar_m = unprimed_grid_construct%a_r(i,j - 1,1)
-               az_p = unprimed_grid_construct%a_z(i + 1,j,1)
-               az_m = unprimed_grid_construct%a_z(i - 1,j,1)
-               unprimed_grid_construct%b_p(i,j,1) =                            & ! dardz - dazdr
-     &            (ar_p - ar_m)/(2.0*mgrid%dz) -                               &
-     &            (az_p - az_m)/(2.0*mgrid%dr)
-
-               ap_p = unprimed_grid_construct%a_p(i + 1,j,1)
-               ap_m = unprimed_grid_construct%a_p(i - 1,j,1)
-               unprimed_grid_construct%b_z(i,j,1) =                            & ! 1/r(drapdr - dardp)
-     &            (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r)
-
-            END DO
-         END DO
-!$OMP END DO
-      ELSE
-!$OMP DO
-!$OMP& SCHEDULE(STATIC)
-         DO k = 1, num_p
-            IF (k .eq. 1) THEN
-               k_p = k + 1
-               k_m = num_p
-            ELSE IF (k .eq. num_p) THEN
+         IF (ri .eq. 1 .or. ri .eq. num_r .or.                                 &
+     &       zi .eq. 1 .or. zi .eq. num_z) THEN
+            unprimed_grid_construct%b_r(ri,zi,vi) = 0.0
+            unprimed_grid_construct%b_p(ri,zi,vi) = 0.0
+            unprimed_grid_construct%b_z(ri,zi,vi) = 0.0
+         ELSE
+            IF (num_p .eq. 1) THEN
                k_p = 1
-               k_m = k - 1
+               k_m = 1
             ELSE
-               k_p = k + 1
-               k_m = k - 1
+               IF (vi .eq. 1) THEN
+                  k_p = 2
+                  k_m = num_p
+               ELSE IF (k .eq. num_p) THEN
+                  k_p = 1
+                  k_m = num_p - 1
+               ELSE
+                  k_p = vi + 1
+                  k_m = vi - 1
+               END IF
             END IF
 
-            DO j = 2, num_z - 1
+! 1/rdazdp - dapdz
+            az_p = unprimed_grid_construct%a_z(i,j,k_p)
+            az_m = unprimed_grid_construct%a_z(i,j,k_m)
+            ap_p = unprimed_grid_construct%a_p(i,j + 1,k)
+            ap_m = unprimed_grid_construct%a_p(i,j - 1,k)
+            unprimed_grid_construct%b_r(i,j,k) =                               &
+     &         (az_p - az_m)/(2.0*pgrid%dv*r(ri)) -                            &
+     &         (ap_p - ap_m)/(2.0*mgrid%dz)
 
-               DO i = 2, num_r - 1
-                  r_p = i*mgrid%dr + mgrid%rmin
-                  r_m = (i - 2.0)*mgrid%dr + mgrid%rmin
-                  r = (i - 1.0)*mgrid%dr + mgrid%rmin
+! dardz - dazdr
+            ar_p = unprimed_grid_construct%a_r(i,j + 1,k)
+            ar_m = unprimed_grid_construct%a_r(i,j - 1,k)
+            az_p = unprimed_grid_construct%a_z(i + 1,j,k)
+            az_m = unprimed_grid_construct%a_z(i - 1,j,k)
+            unprimed_grid_construct%b_p(i,j,k) =                               &
+     &         (ar_p - ar_m)/(2.0*mgrid%dz) -                                  &
+     &         (az_p - az_m)/(2.0*mgrid%dr)
 
-                  az_p = unprimed_grid_construct%a_z(i,j,k_p)
-                  az_m = unprimed_grid_construct%a_z(i,j,k_m)
-                  ap_p = unprimed_grid_construct%a_p(i,j + 1,k)
-                  ap_m = unprimed_grid_construct%a_p(i,j - 1,k)
-                  unprimed_grid_construct%b_r(i,j,k) =                         & ! 1/rdazdp - dapdz
-     &               (az_p - az_m)/(2.0*pgrid%dv*r) -                          &
-     &               (ap_p - ap_m)/(2.0*mgrid%dz)
+! 1/r(drapdr - dardp)
+            ar_p = unprimed_grid_construct%a_r(i,j,k_p)
+            ar_m = unprimed_grid_construct%a_r(i,j,k_m)
+            ap_p = unprimed_grid_construct%a_p(i + 1,j,k)
+            ap_m = unprimed_grid_construct%a_p(i - 1,j,k)
+            unprimed_grid_construct%b_z(i,j,k) =                               &
+     &         (r_p(ri)*ap_p - r_m(ri)*ap_m)/(2.0*mgrid%dr*r(ri)) -            &
+     &         (ar_p - ar_m)/(2.0*pgrid%dv*r(ri))
 
-                  ar_p = unprimed_grid_construct%a_r(i,j + 1,k)
-                  ar_m = unprimed_grid_construct%a_r(i,j - 1,k)
-                  az_p = unprimed_grid_construct%a_z(i + 1,j,k)
-                  az_m = unprimed_grid_construct%a_z(i - 1,j,k)
-                  unprimed_grid_construct%b_p(i,j,k) =                         & ! dardz - dazdr
-     &               (ar_p - ar_m)/(2.0*mgrid%dz) -                            &
-     &               (az_p - az_m)/(2.0*mgrid%dr)
-
-                  ar_p = unprimed_grid_construct%a_r(i,j,k_p)
-                  ar_m = unprimed_grid_construct%a_r(i,j,k_m)
-                  ap_p = unprimed_grid_construct%a_p(i + 1,j,k)
-                  ap_m = unprimed_grid_construct%a_p(i - 1,j,k)
-                  unprimed_grid_construct%b_z(i,j,k) =                         & ! 1/r(drapdr - dardp)
-     &               (r_p*ap_p - r_m*ap_m)/(2.0*mgrid%dr*r) -                  &
-     &               (ar_p - ar_m)/(2.0*pgrid%dv*r)
-
-               END DO
-            END DO
-         END DO
+         END IF
+      END DO
 !$OMP END DO
+!$OMP END PARALLEL
+
+      IF (parallel%stride .gt. 1) THEN
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct%b_r)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct%b_p)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &           unprimed_grid_construct%b_z)
       END IF
 
-!$OMP WORKSHARE
-      unprimed_grid_construct%b_r(1,:,:) = 0.0
-      unprimed_grid_construct%b_p(1,:,:) = 0.0
-      unprimed_grid_construct%b_z(1,:,:) = 0.0
-      unprimed_grid_construct%b_r(num_r,:,:) = 0.0
-      unprimed_grid_construct%b_p(num_r,:,:) = 0.0
-      unprimed_grid_construct%b_z(num_r,:,:) = 0.0
-
-      unprimed_grid_construct%b_r(:,1,:) = 0.0
-      unprimed_grid_construct%b_p(:,1,:) = 0.0
-      unprimed_grid_construct%b_z(:,1,:) = 0.0
-      unprimed_grid_construct%b_r(:,num_z,:) = 0.0
-      unprimed_grid_construct%b_p(:,num_z,:) = 0.0
-      unprimed_grid_construct%b_z(:,num_z,:) = 0.0
-!$OMP END WORKSHARE
-
-!$OMP END PARALLEL
+      DEALLOCATE(cosv)
+      DEALLOCATE(sinv)
+      DEALLOCATE(r)
+      DEALLOCATE(r_p)
+      DEALLOCATE(r_m)
+      DEALLOCATE(zp)
 
       WRITE (*,1004) clear_screen
 

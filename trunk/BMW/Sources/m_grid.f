@@ -16,12 +16,12 @@
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
-!  1) primed grid base class
+!  1) m grid base class
 !
 !*******************************************************************************
 !-------------------------------------------------------------------------------
-!>  Base class representing a primed grid. This is grid the volume integral will
-!>  be summed over.
+!>  Base class representing a m grid. This is grid contains information about
+!>  the vacuum fields.
 !-------------------------------------------------------------------------------
       TYPE m_grid_class
 !>  Minimum R position.
@@ -57,32 +57,36 @@
 !>  @brief Construct a @ref m_grid_class object.
 !>
 !>  Allocates memory and initializes a @ref m_grid_class object with an mgrid
-!>  file. This computes the currents and positions on the primed grid.
+!>  file.
 !>
 !>  @param[in] mgrid_file_name File name for vacuum fields.
+!>  @param[in] parallel        @ref bmw_parallel_context_class object instance.
 !>  @returns A pointer to a constructed @ref m_grid_class object.
 !-------------------------------------------------------------------------------
-      FUNCTION m_grid_construct(mgrid_file_name)
+      FUNCTION m_grid_construct(mgrid_file_name, parallel)
       USE ezcdf
       USE read_wout_mod, Only: extcur
+      USE bmw_parallel_context
+
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (m_grid_class), POINTER                :: m_grid_construct
-      CHARACTER (len=*), INTENT(in)               :: mgrid_file_name
+      TYPE (m_grid_class), POINTER                  :: m_grid_construct
+      CHARACTER (len=*), INTENT(in)                 :: mgrid_file_name
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                :: start_time
-      INTEGER                                     :: mgrid_ncid
-      INTEGER                                     :: i
-      INTEGER                                     :: status
-      INTEGER                                     :: varid
-      INTEGER                                     :: num_r
-      INTEGER                                     :: num_p
-      INTEGER                                     :: num_z
-      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE :: temp_buffer
-      CHARACTER (len=6)                           :: temp_string
-      INTEGER, DIMENSION(3)                       :: temp_dims
+      REAL (rprec)                                  :: start_time
+      INTEGER                                       :: mgrid_ncid
+      INTEGER                                       :: i
+      INTEGER                                       :: status
+      INTEGER                                       :: varid
+      INTEGER                                       :: num_r
+      INTEGER                                       :: num_p
+      INTEGER                                       :: num_z
+      REAL (rprec), DIMENSION(:,:,:), ALLOCATABLE   :: temp_buffer
+      CHARACTER (len=6)                             :: temp_string
+      INTEGER, DIMENSION(3)                         :: temp_dims
 
 !  Start of executable code
       start_time = profiler_get_start_time()
@@ -93,8 +97,10 @@
 
       CALL cdf_inquire(mgrid_ncid, 'ar_001', temp_dims, ier=status)
       IF (status .ne. 0) THEN
-         WRITE (*,3000) TRIM(mgrid_file_name)
-         CALL EXIT(status)
+         IF (parallel%offset .eq. 0) THEN
+            WRITE (*,3000) TRIM(mgrid_file_name)
+         END IF
+         CALL bmw_parallel_context_abort(status)
       END IF
 
       CALL cdf_read(mgrid_ncid, 'ir', num_r)
@@ -117,9 +123,17 @@
       ALLOCATE(m_grid_construct%a_p(num_r, num_z, num_p))
       ALLOCATE(m_grid_construct%a_z(num_r, num_z, num_p))
 
+!$OMP PARALLEL
+!$OMP WORKSHARE
+      m_grid_construct%a_r = 0.0
+      m_grid_construct%a_p = 0.0
+      m_grid_construct%a_z = 0.0
+!$OMP END WORKSHARE
+!$OMP END PARALLEL
+
       ALLOCATE(temp_buffer(num_r, num_z, num_p))
 
-      DO i = 1, SIZE(extcur)
+      DO i = 1 + parallel%offset, SIZE(extcur), parallel%stride
          WRITE (temp_string, 1000) i
          CALL cdf_read(mgrid_ncid, temp_string, temp_buffer)
          m_grid_construct%a_r = m_grid_construct%a_r                           &
@@ -136,11 +150,22 @@
      &                        + temp_buffer*extcur(i)
       END DO
 
+      IF (parallel%stride .gt. 1) THEN
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &                                    m_grid_construct%a_r)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &                                    m_grid_construct%a_p)
+         CALL bmw_parallel_context_reduce(parallel,                            &
+     &                                    m_grid_construct%a_z)
+      END IF
+
       DEALLOCATE(temp_buffer)
 
       CALL cdf_close(mgrid_ncid)
 
-      WRITE (*,2000)
+      IF (parallel%offset .eq. 0) THEN
+         WRITE (*,2000)
+      END IF
 
       CALL profiler_set_stop_time('m_grid_construct', start_time)
 

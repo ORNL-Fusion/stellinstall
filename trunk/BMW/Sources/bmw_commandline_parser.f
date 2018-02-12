@@ -17,12 +17,22 @@
 !>  @section bmw_cl_parsing_arg_sec Command Line Arguments
 !>  @header2{Argument, Takes Value, Discription}
 !>  @begin_table
-!>     @item3{@fixed_width{-h},      N, Displays the help text and exits the program.}
-!>     @item3{@fixed_width{-mgridf}, Y, Specify the mgrid input file name.}
-!>     @item3{@fixed_width{-woutf},  Y, Specify the wout input file name.}
-!>     @item3{@fixed_width{-outf},   Y, Specify the output input file name.}
-!>     @item3{@fixed_width{-para},   Y, Configures openmp parallelism. The value of this flag sets the maximum
-!>                                      number of threads to use. A value of @fixed_width{-1} uses the default.}
+!>     @item3{@fixed_width{-h},       N, Displays the help text and exits the program.}
+!>     @item3{@fixed_width{-mgridf},  Y, Specify the mgrid input file name.}
+!>     @item3{@fixed_width{-woutf},   Y, Specify the wout input file name.}
+!>     @item3{@fixed_width{-siestaf}, Y, Specify the siesta input file name.}
+!>     @item3{@fixed_width{-outf},    Y, Specify the output input file name.}
+!>     @item3{@fixed_wdith{-jv},      N, Force balance j^v from curl derived j^u. Overrdes the -ju flag.}
+!>     @item3{@fixed_wdith{-ju},      N, Force balance j^u from curl derived j^v.}
+!>     @item3{@fixed_wdith{-p_start}, Y, Starting phi index to compute fields. If this flag is not set, default
+!>                                       to index 1.}
+!>     @item3{@fixed_wdith{-p_end},   Y, Ending phi index to compute fields. If this flag is not set, default to
+!>                                       the last index.}
+!>     @item3{@fixed_width{-para},    Y, Configures openmp parallelism. The value of this flag sets the maximum
+!>                                       number of threads to use. A value of @fixed_width{-1} uses the default.}
+!>     @item3{@fixed_width{-force},   Y, Force override of error conditions. To prevent loss of valid data, BMW will
+!>                                       terminate if an error condition is triggerd. This flag overrides that error
+!>                                       potential overwritting valid data.}
 !>  @end_table
 !>
 !>  @note
@@ -47,6 +57,7 @@
       USE stel_kinds
       USE file_opts, only: path_length
       USE profiler
+      USE bmw_parallel_context
 
       IMPLICIT NONE
 
@@ -98,16 +109,18 @@
 !>  -flag=value. If the '=' is missing, it is assumed there is no value. If -h
 !>  is found, the help text is printed out and the program terminated.
 !>
+!>  @param[in] parallel @ref bmw_parallel_context_class object instance.
 !>  @returns A pointer to a constructed @ref bmw_commandline_parser_class
 !>           object.
 !-------------------------------------------------------------------------------
-      FUNCTION bmw_commandline_parser_construct()
+      FUNCTION bmw_commandline_parser_construct(parallel)
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_commandline_parser_class), POINTER ::                              &
+      TYPE (bmw_commandline_parser_class), POINTER  ::                         &
      &   bmw_commandline_parser_construct
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
       CHARACTER (len=max_length) :: temp
@@ -127,7 +140,7 @@
       CALL getcarg(0, bmw_commandline_parser_construct%command,                &
      &             num_args)
 
-      IF (num_args .le. 0) THEN
+      IF (num_args .le. 0 .and. parallel%offset .eq. 0) THEN
          CALL bmw_commandline_parser_print_help
       END IF
 
@@ -145,7 +158,8 @@
             value_index = INDEX(temp, '=')
             IF (value_index .eq. 0) THEN
 !  Check for help command.
-               IF (TRIM(temp) .eq. '-h') THEN
+               IF (TRIM(temp) .eq. '-h' .and.                                  &
+     &             parallel%offset .eq. 0) THEN
                   CALL bmw_commandline_parser_print_help
                END IF
 
@@ -453,12 +467,27 @@
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -ju      N Force balance j^u from curl derived j^v.'
       WRITE(*,*) '                                                     '
-!$    WRITE(*,*) '  -para    Y Determines number of parallel insatnces '
-!$    WRITE(*,*) '             to run with. A value of -1 means use the'
+!     WRITE(*,*) '  -p_start Y Starting phi index to compute fields. If'
+!     WRITE(*,*) '             this flag is not set, default to index  '
+!     WRITE(*,*) '             1.                                      '
+!     WRITE(*,*) '                                                     '
+!     WRITE(*,*) '  -p_end   Y Ending phi index to compute fields. If  '
+!     WRITE(*,*) '             this flag is not set, default to the    '
+!     WRITE(*,*) '             last index.                             '
+!     WRITE(*,*) '                                                     '
+!$    WRITE(*,*) '  -para    Y Determines number of threads threads to '
+!$    WRITE(*,*) '             run with. A value of -1 means use the   '
 !$    WRITE(*,*) '             default number of threads.              '
 !$    WRITE(*,*) '                                                     '
+!     WRITE(*,*) '                                                     '
+!     WRITE(*,*) '  -force   N Force override of error conditions. To  '
+!     WRITE(*,*) '             prevent loss of valid data, BMW will    '
+!     WRITE(*,*) '             terminate if an error condition is      '
+!     WRITE(*,*) '             triggerd. This flag overrides that error'
+!     WRITE(*,*) '             potential overwritting valid data.      '
+!     WRITE(*,*) '                                                     '
 
-      STOP
+      CALL bmw_parallel_context_abort(0)
 
       END SUBROUTINE
 

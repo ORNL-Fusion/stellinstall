@@ -12,6 +12,7 @@
       USE m_grid
       USE primed_grid
       USE unprimed_grid
+      USE bmw_parallel_context
 
       IMPLICIT NONE
 
@@ -19,7 +20,7 @@
 !  bmw context module parameters
 !*******************************************************************************
 !>  Version number.
-      INTEGER, PARAMETER :: series = 1
+      INTEGER, PARAMETER :: series = 2
 
 !*******************************************************************************
 !  DERIVED-TYPE DECLARATIONS
@@ -52,10 +53,14 @@
 !>  @param[in] wout_file_name   Path and name of the wout file.
 !>  @param[in] siesta_file_name Path and name of the siesta file.
 !>  @param[in] flags            Option flags.
+!>  @param[in] p_start          Starting phi index to compute fields to.
+!>  @param[in] p_end            Ending phi index to compute fields to.
+!>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name,          &
-     &                               siesta_file_name, flags)
+     &                               siesta_file_name, flags,                  &
+     &                               p_start, p_end, parallel)
       USE read_wout_mod, Only: read_wout_file
 
       IMPLICIT NONE
@@ -66,6 +71,9 @@
       CHARACTER (len=*), INTENT(in)     :: wout_file_name
       CHARACTER (len=*), INTENT(in)     :: siesta_file_name
       INTEGER, INTENT(in)               :: flags
+      INTEGER, INTENT(in)               :: p_start
+      INTEGER, INTENT(in)               :: p_end
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
       REAL (rprec)                      :: start_time
@@ -75,24 +83,26 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
+      ALLOCATE(bmw_context_construct)
+
       CALL read_wout_file(wout_file_name, status)
       IF (status .ne. 0) THEN
          WRITE (*,1000) TRIM(wout_file_name)
          CALL EXIT(status)
       END IF
 
-      ALLOCATE(bmw_context_construct)
-
-      bmw_context_construct%m_grid => m_grid_construct(mgrid_file_name)
+      bmw_context_construct%m_grid =>                                          &
+     &   m_grid_construct(mgrid_file_name, parallel)
 
       num_p = SIZE(bmw_context_construct%m_grid%a_p, 3)
 
       bmw_context_construct%p_grid =>                                          &
      &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp,         &
-     &                         flags, siesta_file_name)
+     &                         flags, siesta_file_name, parallel)
       bmw_context_construct%up_grid =>                                         &
      &   unprimed_grid_construct(bmw_context_construct%m_grid,                 &                                        &
-     &                           bmw_context_construct%p_grid)
+     &                           bmw_context_construct%p_grid,                 &
+     &                           p_start, p_end, parallel)
 
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
 
@@ -163,27 +173,54 @@
 !>     @item{bz_grid (num_p\, num_z\, num_r), Magnetic field in Z direction.,     unprimed_grid::unprimed_grid_class::b_z}
 !>  @end_table
 !-------------------------------------------------------------------------------
-!>  @brief Write NetCDF based result file
+!>  @brief Initialize NetCDF based result file.
+!>
+!>  If a result file already exists, open it. If a previous result file does not
+!>  already exist create a new one.
+!>
+!>  @param[in] this             A @ref bmw_context_class instance.
+!>  @param[in] result_file_name NetCDF file id of the result file.
+!>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bmw_context_init_nc(this, result_file_name, parallel)
+      USE ezcdf
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (bmw_context_class), INTENT(in)          :: this
+      CHARACTER (len=*), INTENT(in)                 :: result_file_name
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+
+!  local variables
+      REAL (rprec)                                  :: start_time
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Write NetCDF based result file.
 !>
 !>  Defines dimensions and variables for the BMW result file. Flat internal
 !>  arrays need to be reshaped to the dimension.
 !>
 !>  @param[in] this             A @ref bmw_context_class instance.
 !>  @param[in] result_file_name NetCDF file id of the result file.
+!>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
 !-------------------------------------------------------------------------------
-      SUBROUTINE bmw_context_write(this, result_file_name)
+      SUBROUTINE bmw_context_write(this, result_file_name, parallel)
       USE ezcdf
 
       IMPLICIT NONE
 
 !  Declare Arguments
-      TYPE (bmw_context_class), INTENT(in)        :: this
-      CHARACTER (len=*), INTENT(in)               :: result_file_name
+      TYPE (bmw_context_class), INTENT(in)          :: this
+      CHARACTER (len=*), INTENT(in)                 :: result_file_name
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
-      REAL (rprec)                                :: start_time
-      INTEGER                                     :: status
-      INTEGER                                     :: result_iou
+      REAL (rprec)                                  :: start_time
+      INTEGER                                       :: status
+      INTEGER                                       :: result_iou
 
 !  local parameters
       CHARACTER (len=*), DIMENSION(3), PARAMETER  ::                           &
@@ -192,49 +229,51 @@
 !  Start of executable code
       start_time = profiler_get_start_time()
 
-      CALL cdf_open(result_iou, TRIM(result_file_name), 'w', status)
+      IF (parallel%offset .eq. 0) THEN
+         CALL cdf_open(result_iou, TRIM(result_file_name), 'w', status)
 
-      CALL cdf_define(result_iou, 'series', series)
+         CALL cdf_define(result_iou, 'series', series)
 
-      CALL cdf_define(result_iou, 'nfp', this%m_grid%nfp)
+         CALL cdf_define(result_iou, 'nfp', this%m_grid%nfp)
 
-      CALL cdf_define(result_iou, 'rmin', this%m_grid%rmin)
-      CALL cdf_define(result_iou, 'rmax', this%m_grid%rmax)
-      CALL cdf_define(result_iou, 'zmin', this%m_grid%zmin)
-      CALL cdf_define(result_iou, 'zmax', this%m_grid%zmax)
+         CALL cdf_define(result_iou, 'rmin', this%m_grid%rmin)
+         CALL cdf_define(result_iou, 'rmax', this%m_grid%rmax)
+         CALL cdf_define(result_iou, 'zmin', this%m_grid%zmin)
+         CALL cdf_define(result_iou, 'zmax', this%m_grid%zmax)
 
-      CALL cdf_define(result_iou, 'ar_grid', this%up_grid%a_r,                 &
-     &                dimname=dims)
-      CALL cdf_define(result_iou, 'ap_grid', this%up_grid%a_p,                 &
-     &                dimname=dims)
-      CALL cdf_define(result_iou, 'az_grid', this%up_grid%a_z,                 &
-     &                dimname=dims)
+         CALL cdf_define(result_iou, 'ar_grid', this%up_grid%a_r,              &
+     &                   dimname=dims)
+         CALL cdf_define(result_iou, 'ap_grid', this%up_grid%a_p,              &
+     &                   dimname=dims)
+         CALL cdf_define(result_iou, 'az_grid', this%up_grid%a_z,              &
+     &                   dimname=dims)
 
-      CALL cdf_define(result_iou, 'br_grid', this%up_grid%b_r,                 &
-     &                dimname=dims)
-      CALL cdf_define(result_iou, 'bp_grid', this%up_grid%b_p,                 &
-     &                dimname=dims)
-      CALL cdf_define(result_iou, 'bz_grid', this%up_grid%b_z,                 &
-     &                dimname=dims)
+         CALL cdf_define(result_iou, 'br_grid', this%up_grid%b_r,              &
+     &                   dimname=dims)
+         CALL cdf_define(result_iou, 'bp_grid', this%up_grid%b_p,              &
+     &                   dimname=dims)
+         CALL cdf_define(result_iou, 'bz_grid', this%up_grid%b_z,              &
+     &                   dimname=dims)
 
-      CALL cdf_write(result_iou, 'series', series)
+         CALL cdf_write(result_iou, 'series', series)
 
-      CALL cdf_write(result_iou, 'nfp', this%m_grid%nfp)
+         CALL cdf_write(result_iou, 'nfp', this%m_grid%nfp)
 
-      CALL cdf_write(result_iou, 'rmin', this%m_grid%rmin)
-      CALL cdf_write(result_iou, 'rmax', this%m_grid%rmax)
-      CALL cdf_write(result_iou, 'zmin', this%m_grid%zmin)
-      CALL cdf_write(result_iou, 'zmax', this%m_grid%zmax)
+         CALL cdf_write(result_iou, 'rmin', this%m_grid%rmin)
+         CALL cdf_write(result_iou, 'rmax', this%m_grid%rmax)
+         CALL cdf_write(result_iou, 'zmin', this%m_grid%zmin)
+         CALL cdf_write(result_iou, 'zmax', this%m_grid%zmax)
 
-      CALL cdf_write(result_iou, 'ar_grid', this%up_grid%a_r)
-      CALL cdf_write(result_iou, 'ap_grid', this%up_grid%a_p)
-      CALL cdf_write(result_iou, 'az_grid', this%up_grid%a_z)
+         CALL cdf_write(result_iou, 'ar_grid', this%up_grid%a_r)
+         CALL cdf_write(result_iou, 'ap_grid', this%up_grid%a_p)
+         CALL cdf_write(result_iou, 'az_grid', this%up_grid%a_z)
 
-      CALL cdf_write(result_iou, 'br_grid', this%up_grid%b_r)
-      CALL cdf_write(result_iou, 'bp_grid', this%up_grid%b_p)
-      CALL cdf_write(result_iou, 'bz_grid', this%up_grid%b_z)
+         CALL cdf_write(result_iou, 'br_grid', this%up_grid%b_r)
+         CALL cdf_write(result_iou, 'bp_grid', this%up_grid%b_p)
+         CALL cdf_write(result_iou, 'bz_grid', this%up_grid%b_z)
 
-      CALL cdf_close(result_iou)
+         CALL cdf_close(result_iou)
+      END IF
 
       CALL profiler_set_stop_time('bmw_context_write', start_time)
 

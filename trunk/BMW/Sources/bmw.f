@@ -34,14 +34,15 @@
 !>  grid.
 !-------------------------------------------------------------------------------
       PROGRAM bmw
-!$    USE omp_lib
       USE bmw_context
       USE bmw_commandline_parser
       USE, INTRINSIC :: iso_fortran_env, Only : output_unit
+      USE bmw_state_flags
 
       IMPLICIT NONE
 
 !  local variables
+      TYPE (bmw_parallel_context_class), POINTER   :: parallel => null()
       TYPE (bmw_context_class), POINTER            :: context => null()
       TYPE (bmw_commandline_parser_class), POINTER ::                          &
      &   cl_parser => null()
@@ -54,55 +55,69 @@
 
       start_time = profiler_get_start_time()
 
-      WRITE (*,*)
-      WRITE (*,1000) series
-      WRITE (*,*)
+      parallel => bmw_parallel_context_construct(                              &
+#if defined (MPI_OPT)
+     &                                           MPI_COMM_WORLD                &
+#endif
+     &                                          )
 
-      cl_parser => bmw_commandline_parser_construct()
+      cl_parser => bmw_commandline_parser_construct(parallel)
 
-      flags = 0
+      CALL bmw_parallel_context_set_threads(parallel,                          &
+     &        bmw_commandline_parser_get_integer(cl_parser, '-para', 1))
+
+      flags = bmw_state_flags_off
+      IF (bmw_commandline_parser_is_flag_set(cl_parser, '-force')) THEN
+         flags = IBSET(flags, bmw_state_flags_force)
+      END IF
       IF (bmw_commandline_parser_is_flag_set(cl_parser, '-ju')) THEN
-         flags = IBSET(flags, primed_grid_ju_flag)
+         flags = IBSET(flags, bmw_state_flags_ju)
       END IF
       IF (bmw_commandline_parser_is_flag_set(cl_parser, '-jv')) THEN
-         flags = IBSET(flags, primed_grid_jv_flag)
-         flags = IBCLR(flags, primed_grid_ju_flag)
+         flags = IBSET(flags, bmw_state_flags_jv)
+         flags = IBCLR(flags, bmw_state_flags_ju)
       END IF
       IF (bmw_commandline_parser_is_flag_set(cl_parser,                        &
      &                                       '-siestaf')) THEN
-         flags = IBSET(flags, primed_grid_siesta_flag)
-         flags = IBCLR(flags, primed_grid_ju_flag)
-         flags = IBCLR(flags, primed_grid_jv_flag)
+         flags = IBSET(flags, bmw_state_flags_siesta)
+         flags = IBCLR(flags, bmw_state_flags_ju)
+         flags = IBCLR(flags, bmw_state_flags_jv)
       END IF
 
-!  Configure the number of threeds to use.
-!$    num_threads = bmw_commandline_parser_get_integer(cl_parser,              &
-!$   &                                                 '-para', 1)
-
-!$    IF (num_threads .gt. 0) THEN
-!$       CALL OMP_SET_NUM_THREADS(num_threads)
-!$    END IF
-!$OMP PARALLEL
-!$    num_threads = OMP_GET_MAX_THREADS()
-!$OMP END PARALLEL
-!$    WRITE (*,1001) num_threads
+      IF (parallel%offset .eq. 0) THEN
+         WRITE (*,*)
+         WRITE (*,1000) series
+         WRITE (*,*)
+      END IF
+      CALL bmw_parallel_context_report(parallel)
 
       context => bmw_context_construct(                                        &
      &   bmw_commandline_parser_get_string(cl_parser, '-mgridf'),              &
      &   bmw_commandline_parser_get_string(cl_parser, '-woutf'),               &
      &   bmw_commandline_parser_get_string(cl_parser, '-siestaf'),             &
-     &   flags)
+     &   flags,                                                                &
+     &   bmw_commandline_parser_get_integer(cl_parser, '-p_start', -1),        &
+     &   bmw_commandline_parser_get_integer(cl_parser, '-p_end', -1),          &
+     &   parallel)
       CALL bmw_context_write(context,                                          &
-     &        bmw_commandline_parser_get_string(cl_parser, '-outf'))
+     &        bmw_commandline_parser_get_string(cl_parser, '-outf'),           &
+     &        parallel)
 
       CALL bmw_context_destruct(context)
       CALL bmw_commandline_parser_destruct(cl_parser)
 
       CALL profiler_set_stop_time('bmw_main', start_time)
-      CALL profiler_write(output_unit)
+      IF (parallel%offset .eq. 0) THEN
+         CALL profiler_write(output_unit)
+      END IF
       CALL profiler_destruct
 
+      CALL bmw_parallel_context_destruct(parallel                              &
+#if defined (MPI_OPT)
+     &                                   ,.true.                               &
+#endif
+     &                                  )
+
 1000  FORMAT('BMW ',i4,' Series.')
-1001  FORMAT('Using ',i4,' threads.')
 
       END PROGRAM
