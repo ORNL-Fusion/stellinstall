@@ -478,7 +478,7 @@
 #if defined(MPI_OPT)   
       snum_funct(1)=in_hess_nfunct; snum_funct(2)=out_hess_nfunct
       CALL MPI_ALLREDUCE(snum_funct, rnum_funct, 2, MPI_INTEGER,        &
-                         MPI_SUM,MPI_COMM_WORLD,MPI_ERR)
+                         MPI_SUM,SIESTA_COMM,MPI_ERR)
       nfun_calls=nfun_calls+(rnum_funct(1)+rnum_funct(2))/nprocs
 #else 
       nfun_calls=nfun_calls+(in_hess_nfunct+out_hess_nfunct)
