@@ -61,7 +61,7 @@
       FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name,          &
      &                               siesta_file_name, flags,                  &
      &                               p_start, p_end, parallel)
-      USE read_wout_mod, Only: read_wout_file
+      USE read_wout_mod, Only: read_wout_file, extcur
 
       IMPLICIT NONE
 
@@ -87,8 +87,16 @@
 
       CALL read_wout_file(wout_file_name, status)
       IF (status .ne. 0) THEN
-         WRITE (*,1000) TRIM(wout_file_name)
-         CALL EXIT(status)
+         IF (parallel%offset .eq. 0) THEN
+            WRITE (*,1000) TRIM(wout_file_name)
+         END IF
+         CALL bmw_parallel_context_abort(status)
+      END IF
+      IF (.not.ALLOCATED(extcur)) THEN
+         IF (parallel%offset .eq. 0) THEN
+            WRITE (*,1001) TRIM(wout_file_name)
+         END IF
+         CALL bmw_parallel_context_abort(status)
       END IF
 
       bmw_context_construct%m_grid =>                                          &
@@ -107,6 +115,7 @@
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
 
 1000  FORMAT(a,' is an invalid wout file.')
+1001  FORMAT(a,' is not a free boundary wout file.')
 
       END FUNCTION
 

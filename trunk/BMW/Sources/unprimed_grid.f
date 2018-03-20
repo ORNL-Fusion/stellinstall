@@ -347,7 +347,9 @@
       DEALLOCATE(r_m)
       DEALLOCATE(zp)
 
-      WRITE (*,1004) clear_screen
+      IF (parallel%offset .eq. 0) THEN
+         WRITE (*,1004) clear_screen
+      END IF
 
       CALL profiler_set_stop_time('unprimed_grid_construct', start_time)
 
