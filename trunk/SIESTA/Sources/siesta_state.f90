@@ -3,7 +3,7 @@
 !!  \author S. P. Hirshman and R. Sanchez
 !!  \date Sep 15, 2006
       MODULE siesta_state
-
+#define DUMP_STATE
       USE stel_kinds
       USE quantities
       USE descriptor_mod, ONLY: iam, SIESTA_COMM
@@ -11,7 +11,7 @@
       USE shared_data, ONLY: ste, bs0, bu0, bsbu_ratio_s, bsbu_ratio_a, &
                              unit_out
       USE timer_mod, ONLY: time_update_state
-      USE siesta_init, ONLY: init_state, init_allocate_arrays
+      USE siesta_init, ONLY: init_state
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
       USE mpi_inc
@@ -123,6 +123,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
+      REAL(dp) :: rho
       INTEGER :: n1, n2
 !-----------------------------------------------
       n1 = startglobrow;  n2 = endglobrow
@@ -152,19 +153,33 @@
 !-----------------------------------------------
       CHARACTER*(4)      :: def(2) = (/'SYM ', 'ASYM'/)
       INTEGER, PARAMETER :: m1=1
-      REAL(dp) :: r0, diag_b, diag_p, d1(12), d2(12)
+      REAL(dp) :: r12, diag_b, diag_p, d1(12), d2(12)
       INTEGER  :: js, itype, n1, n2
 !-----------------------------------------------
       n1 = startglobrow;  n2 = endglobrow
 
       IF (ipar .EQ. isym) THEN
-         itype=1; r0 = hs/2
+         itype=1; r12 = hs/2
       ELSE
-         itype=2; r0 =-hs/2
+         itype=2; r12 =-hs/2
       END IF
 
-      bs(1) = SQRT(SUM((jbsupsmnh(m1,:,2) - r0*jbsupumnh(m1,:,2))**2))/r0
-      bu(1) = SQRT(SUM((jbsupsmnh(m1,:,2) + r0*jbsupumnh(m1,:,2))**2))/r0
+#undef _TEST_STATE
+!#define _TEST_STATE
+#if defined(_TEST_STATE)
+      IF (iam .EQ. 0) THEN
+         PRINT *,'ipar: ', ipar
+         PRINT *,'  n       B^s        r12*B^u'
+         DO js = -ntor,ntor
+            PRINT 20, js, jbsupsmnh(m1,js,2), r12*jbsupumnh(m1,js,2)
+         END DO
+ 20      FORMAT(i4,1p,2e14.4)         
+      END IF
+#endif
+
+      bs(1) = SQRT(SUM((jbsupsmnh(m1,:,2) - r12*jbsupumnh(m1,:,2))**2))/r12
+      bu(1) = SQRT(SUM((jbsupsmnh(m1,:,2) + r12*jbsupumnh(m1,:,2))**2))/r12
+      
 #if defined(MPI_OPT)
       IF (PARSOLVER) THEN
       d1(1) = bs(1); d1(2) = bu(1)
@@ -176,7 +191,7 @@
          bsbu_ratio = bs(1)/bu(1)
          d1 = 0
          DO js=n1, MIN(6, n2)
-            d1(js)   = SQRT(SUM(jbsupsmnh(m1,:,js)**2))/ABS(r0)
+            d1(js)   = SQRT(SUM(jbsupsmnh(m1,:,js)**2))/ABS(r12)
             d1(js+6) = SQRT(SUM(jbsupumnh(m1,:,js)**2))
          END DO
 #if defined(MPI_OPT)

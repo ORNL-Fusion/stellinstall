@@ -6,7 +6,7 @@
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE timer_mod
       USE quantities
-      USE metrics, ONLY: tolowerh
+      USE metrics, ONLY: tolowerh, nsh
       USE utilities, ONLY: to_half_mesh
 #if defined(MPI_OPT)
       USE mpi_inc
@@ -53,20 +53,29 @@
         CALL second0(ton)
 
         nsmin=ns_min;  nsmax=ns_max
-        
-        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
-        ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)     ! Otherwise, allocate first time called
-        CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
-        divbmnsf = 0
-
         n1 = MAX(2, nsmin)
-        n2 = MIN(ns-1, nsmax)
+        n2 = MIN(ns-1, nsmax)       
+ 
+        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
+        IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
+        ALLOCATE(divbmnsf(0:mpol,-ntor:ntor,nsmin:nsmax),               &
+                 divbmncf(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
+        CALL ASSERT(istat.EQ.0,'Allocation failed in divb')
+        
+        divbmnsf = 0; divbmncf = 0
+
         DO m = 0, mpol
            DO n = -ntor, ntor
            divbmnsf(m,n,n1:n2) =                                        &
                 -m*(jbsupumnch(m,n,n1+1:n2+1)+jbsupumnch(m,n,n1:n2))/2  &
             -n*nfp*(jbsupvmnch(m,n,n1+1:n2+1)+jbsupvmnch(m,n,n1:n2))/2  &
             + ohs *(jbsupsmnsh(m,n,n1+1:n2+1)-jbsupsmnsh(m,n,n1:n2))
+           IF (lasym) THEN
+           divbmncf(m,n,n1:n2) =                                        &
+                 m*(jbsupumnsh(m,n,n1+1:n2+1)+jbsupumnsh(m,n,n1:n2))/2  &
+            +n*nfp*(jbsupvmnsh(m,n,n1+1:n2+1)+jbsupvmnsh(m,n,n1:n2))/2  &
+            + ohs *(jbsupsmnch(m,n,n1+1:n2+1)-jbsupsmnch(m,n,n1:n2))
+           END IF
            END DO
         END DO
 
@@ -74,7 +83,7 @@
               +          jbsupvmnch(:,:,nsmin:nsmax)**2                 &
               +          jbsupsmnsh(:,:,nsmin:nsmax)**2)
        
-        divb_rms = SUM(divbmnsf**2)
+        divb_rms = SUM(divbmnsf**2 + divbmncf**2)
 #if defined(MPI_OPT)        
         s1(1) = divb_rms; s1(2) = tnorm
         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
@@ -84,7 +93,9 @@
         IF (tnorm .NE. zero) THEN
            divb_rms = SQRT(divb_rms/tnorm)
            divbmnsf = divbmnsf/SQRT(tnorm)
+           divbmncf = divbmncf/SQRT(tnorm)
         END IF
+
 
         CALL second0(toff)
         time_divb = time_divb + (toff-ton)
@@ -94,8 +105,6 @@
          
         SUBROUTINE WRITE_PROFILES(fsq_total)
         USE safe_open_mod
-        USE metrics, ONLY: lmns_i, lmnc_i
-        USE fourier, ONLY: tomnsp_pest
         USE siesta_init, ONLY: init_state
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
@@ -104,18 +113,17 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-        INTEGER                  :: istat, m, js
-        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijh, pmnch
-        REAL(dp)                 :: tnorm, average(ns)
+        INTEGER, PARAMETER       :: ifull=0, ihalf=1
+        INTEGER                  :: istat, js
+        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: pijh, pmnh
+        REAL(dp)                 :: average(ns)
 !-----------------------------------------------
 !
 !       IT IS ASSUMED COMING IN HERE THAT THE PROFILES HAVE BEEN GATHERED
 !       (IN UPDATE_STATE)
 !
-        IF (iam.EQ.0 .AND. lverbose) PRINT *,'--- GENERALIZE WRITE_PROFILES FOR lasym=T ---'
-
-        ALLOCATE(pijh(ntheta,nzeta,ns), stat=istat)
-        ALLOCATE(pmnch(0:mpol,-ntor:ntor,ns), stat=istat)      
+        ALLOCATE (pijh(ntheta,nzeta,ns),                                &
+                  pmnh(0:mpol,-ntor:ntor,ns), stat=istat)      
         CALL ASSERT(istat.EQ.0,'Allocation failed in WRITE_PROFILES')
 
         CALL safe_open(unit35, istat, "siesta_profiles.txt", 'replace', &
@@ -123,78 +131,47 @@
         CALL safe_open(unit36, istat, "siesta_profiles_pest.txt",       &
                        'replace','formatted')
 
-        CALL ASSERT(istat.EQ.0,'Error writing siesta profiles data file')
+        CALL ASSERT(istat.EQ.0,'Error opening siesta profiles data file')
 
-        pijh = 0
+!USE pijh, pmnh scratch arrays to compute pressure and bsupX components on half-mesh
+
+!pressure
         CALL toijsp(jpmnch, pijh, f_none, f_cos)
-        IF (lasym) THEN
-           CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
-        END IF
-        pijh = pijh/jacobh                                                 ! Need first to remove jacobian...
-        pmnch = 0
-        CALL tomnsp(pijh, pmnch, f_cos)
-        CALL siesta_profiles (unit35,pmnch, fsq_total, 'pmnch(jrad);  fsq_total: ')
-        IF (lasym) THEN
-           CALL tomnsp(pijh, pmnch, f_sin)
-           CALL siesta_profiles (unit35,pmnch, fsq_total, 'pmnsh(jrad);  fsq_total: ')
-           CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos, lmnc=lmnc_i)
-        ELSE
-           CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        END IF
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'pmnch(jrad);  fsq_total: ')
-        IF (lasym) THEN
-           CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin, lmnc=lmnc_i)
-           CALL siesta_profiles (unit36, pmnch, fsq_total, 'pmnsh(jrad);  fsq_total: ')
-        END IF
+        IF (lasym) CALL toijsp(jpmnsh, pijh, f_sum, f_sin)
+        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'p', fsq_total)
 
-!USE pijh, pmnch to compute components of bsupX on half-mesh
 !BSUPS
         CALL toijsp(jbsupsmnsh, pijh, f_none, f_sin)
-        pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_sin)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'B^s_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'B^s_mn;  fsq_total: ')
+        IF (lasym) CALL toijsp(jbsupsmnch, pijh, f_sum, f_cos)
+        CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ihalf, 'B^s', fsq_total)
 
 !BSUPU
         CALL toijsp(jbsupumnch, pijh, f_none, f_cos)
-        pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'B^u_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'B^u_mn;  fsq_total: ')
+        IF (lasym) CALL toijsp(jbsupumnsh, pijh, f_sum, f_sin)
+        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'B^u', fsq_total)
 
 !BSUPV
         CALL toijsp(jbsupvmnch, pijh, f_none, f_cos)
-        pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'B^v_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'B^v_mn;  fsq_total: ')
+        IF (lasym) CALL toijsp(jbsupvmnsh, pijh, f_sum, f_sin)
+        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'B^v', fsq_total)
 
 !KSUPS CRCook
         CALL toijsp(ksupsmnsf, pijh, f_none, f_sin)
-        pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_sin)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'J^s_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_sin)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'J^s_mn;  fsq_total: ')
+        IF (lasym) CALL toijsp(ksupsmncf, pijh, f_sum, f_cos)
+        pijh = pijh/jacobf
+        CALL WRITE_SPECTRA (pijh, pmnh, f_sin, f_cos, ifull, 'J^s', fsq_total)
 
 !KSUPU CRCook
         CALL toijsp(ksupumncf, pijh, f_none, f_cos)
-        pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'J^u_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'J^u_mn;  fsq_total: ')
+        IF (lasym) CALL toijsp(ksupumnsf, pijh, f_sum, f_sin)
+        pijh = pijh/jacobf
+        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^u', fsq_total)
 
 !KSUPV CRCook
         CALL toijsp(ksupvmncf, pijh, f_none, f_cos)
-        pijh = pijh/jacobh
-        CALL tomnsp(pijh, pmnch, f_cos)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'J^v_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'J^v_mn;  fsq_total: ')
+        IF (lasym) CALL toijsp(ksupvmnsf, pijh, f_sum, f_sin)
+        pijh = pijh/jacobf
+        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ifull, 'J^v', fsq_total)
 
 !K|| = (J*B)/B**2 (SPH:040915)
         lcurr_init=.TRUE.                             
@@ -203,21 +180,15 @@
         pijh = 0
         WHERE (bsq .NE. zero) pijh = bdotjijh/bsq
         DEALLOCATE(bdotjijh)
-        CALL tomnsp(pijh, pmnch, f_cos)
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'K||_mn;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'K||_mn;  fsq_total: ')
+        pijh = pijh*jacobh
+        CALL WRITE_SPECTRA (pijh, pmnh, f_cos, f_sin, ihalf, 'K||', fsq_total)
 
-!K|| (non-axisymmetric part only: SPH090816)
-        CALL tomnsp(pijh, pmnch, f_cos)
-        pmnch(:,0,:) = 0
-        CALL siesta_profiles (unit35, pmnch, fsq_total, 'K||_mn - nonaxisymmetric;  fsq_total: ')
-        CALL tomnsp_pest(pijh, pmnch, lmns_i, f_cos)
-        pmnch(:,0,:) = 0
-        CALL siesta_profiles (unit36, pmnch, fsq_total, 'K||_mn - nonaxisymmetric;  fsq_total: ')
 
 !<K||-nonaxi> : RWILCOX metric in PEST coordinates
-        CALL toijsp(pmnch, pijh, f_none, f_cos)
+!need to extend this to lasym=T
+        CALL tomnsp(pijh, pmnh, f_cos)
+        pmnh(:,0,:) = 0
+        CALL toijsp(pmnh, pijh, f_none, f_cos)
         CALL SurfAverage(average, ABS(pijh), 1, ns)
         WRITE (unit36, *) 
         WRITE (unit36, *) '<ABS(K||) - nonaxisymmetric>'
@@ -225,39 +196,90 @@
            WRITE (unit36, '(i4,1p,e10.2)') js, average(js)
         END DO
         
-
 !Displacements X jac (SPH:052114)
-        CALL siesta_profiles (unit35, jvsupsmncf, fsq_total, 'vel^s_mn(jrad);  fsq_total: ')
-        CALL siesta_profiles (unit35, jvsupumnsf, fsq_total, 'vel^u_mn(jrad);  fsq_total: ')
-        CALL siesta_profiles (unit35, jvsupvmnsf, fsq_total, 'vel^v_mn(jrad);  fsq_total: ')
+        CALL siesta_profiles (unit35, jvsupsmncf, 'vel^s_cosmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles (unit35, jvsupsmnsf, 'vel^s_sinmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles (unit35, jvsupumnsf, 'vel^u_sinmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles (unit35, jvsupumncf, 'vel^u_cosmn;  fsq_total: ', fsq_total)
+        CALL siesta_profiles (unit35, jvsupvmnsf, 'vel^v_sinmn;  fsq_total: ', fsq_total)
+        IF (lasym) CALL siesta_profiles (unit35, jvsupvmncf, 'vel^v_cosmn;  fsq_total: ', fsq_total)
 
-        DEALLOCATE (pijh, pmnch)
+
+        DEALLOCATE (pijh, pmnh)
 
         CLOSE (unit35)
         CLOSE (unit36)
 
       END SUBROUTINE WRITE_PROFILES
-
-      SUBROUTINE SIESTA_PROFILES (iunit, value, fsq_total, label)
+      
+      
+      SUBROUTINE WRITE_SPECTRA (XIJ, XMN, FSYM, FASYM, IGRID,  LABEL, FSQ_TOTAL)
+      USE fourier, ONLY: tomnsp_pest
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(in)       :: iunit
-      REAL(dp), INTENT(in)   :: value(0:mpol,-ntor:ntor,ns)
-      REAL(dp), INTENT(in)   :: fsq_total
-      CHARACTER*(*), INTENT(in) :: label
+      INTEGER, INTENT(IN)   :: FSYM, FASYM, IGRID
+      REAL(dp), INTENT(IN)  :: fsq_total
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: XIJ, XMN
+      CHARACTER*(*)         :: LABEL
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER :: n, m, js
-      INTEGER :: mnmax
-      CHARACTER (len=19) :: p_format
+      INTEGER               :: n1, n2, n3
+      REAL(dp), ALLOCATABLE :: xijf(:,:,:)
+      CHARACTER(LEN=128)    :: MYLABEL
+!-----------------------------------------------
+      IF (igrid .EQ. 1) THEN
+         n1 = SIZE(xij,1); n2 = SIZE(xij,2); n3 = SIZE(xij,3)
+         ALLOCATE(xijf(n1,n2,n3))
+         CALL to_full_mesh(xij, xijf)
+         xij = xijf
+         DEALLOCATE(xijf)
+      END IF
+ 
+      xij = xij/jacobf
+
+      IF (fsym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
+      IF (fsym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
+      
+      CALL tomnsp(xij, xmn, fsym)
+      CALL siesta_profiles (unit35, xmn, TRIM(mylabel), fsq_total)
+      CALL tomnsp_pest(xij, xmn, fsym)
+      CALL siesta_profiles (unit36, xmn, TRIM(mylabel), fsq_total)
+      IF (lasym) THEN
+
+         IF (fasym .EQ. f_cos) MYLABEL = TRIM(LABEL) // "_cosmn; fsq_total: "
+         IF (fasym .EQ. f_sin) MYLABEL = TRIM(LABEL) // "_sinmn; fsq_total: "
+
+         CALL tomnsp(xij, xmn, fasym)
+         CALL siesta_profiles (unit35, xmn, TRIM(mylabel), fsq_total)
+         CALL tomnsp_pest(xij, xmn, fasym)
+         CALL siesta_profiles (unit36, xmn, TRIM(mylabel), fsq_total)
+      END IF
+      
+      END SUBROUTINE WRITE_SPECTRA
+
+      SUBROUTINE SIESTA_PROFILES (iunit, arr_value, label, fsq_total)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)       :: iunit
+      REAL(dp), INTENT(IN)      :: arr_value(0:mpol,-ntor:ntor,ns)
+      REAL(dp), INTENT(IN)      :: fsq_total
+      CHARACTER*(*), INTENT(IN) :: label
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER  :: n, m, js
+      INTEGER  :: mnmax
+      REAL(dp) :: sj, rms_value
+      CHARACTER (LEN=35) :: p_format
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: m_array
       INTEGER, DIMENSION(:,:), ALLOCATABLE :: n_array
 !-----------------------------------------------
 
       WRITE (iunit, *)
-      WRITE (iunit, *) TRIM(label), fsq_total
+      WRITE (iunit, '(1x,a,1p,e12.4)') TRIM(label), fsq_total
 
       ALLOCATE(m_array(0:mpol,-ntor:ntor))
       ALLOCATE(n_array(0:mpol,-ntor:ntor))
@@ -272,20 +294,21 @@
       mnmax = (mpol + 1)*(2*ntor + 1)
 
       WRITE (p_format,1000) mnmax
-      WRITE (iunit,p_format) 'MPOL', m_array
-      WRITE (p_format,1001) mnmax
-      WRITE (iunit,p_format) 'NTOR', n_array
+      WRITE (iunit,p_format) '      ','   ','MPOL--->', m_array
+      WRITE (p_format,1000) mnmax
+      WRITE (iunit,p_format) 'RADIUS','RMS','NTOR--->', n_array
 
       WRITE (p_format,1002) mnmax
       DO js = 2, ns
-         WRITE(iunit,p_format) js, value(:,:,js)
+         sj = hs_i*(js-1)
+         rms_value = SQRT(SUM(arr_value(:,:,js)**2)/mnmax)
+         WRITE(iunit,p_format) sj, rms_value, arr_value(:,:,js)
       END DO
 
       DEALLOCATE(m_array, n_array)
 
-1000  FORMAT('(a,',i3,'(2x,i12))')
-1001  FORMAT('(a,',i3,'(2x,i12))')
-1002  FORMAT('(i4,',i3,'(2x,es12.5))')
+1000  FORMAT('(a,8x,a,6x,a,',i3,'(2x,i12))')
+1002  FORMAT('(f6.3,2x,es12.5,14x',i4,'(2x,es12.5))')
 
       END SUBROUTINE SIESTA_PROFILES
 
@@ -299,7 +322,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-        INTEGER, INTENT(IN) :: ns_min, ns_max
+      INTEGER, INTENT(IN) :: ns_min, ns_max
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -331,11 +354,8 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER  :: jsh=3
       INTEGER     :: istat, n1, n2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
-          dpduijh, dpdvijh, pijh,                                       &
-          bsupsijh0, bsupuijh0, bsupvijh0
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::  dpduijf, dpdvijf
       REAL(dp)    :: s1(2), r1(2), ton, toff
 !-----------------------------------------------
 !
@@ -349,53 +369,29 @@
 
 !     Compute pressure and angle derivatives
 !
-      ALLOCATE(pijh(ntheta,nzeta,nsmin:nsmax),                          &
-               dpduijh(ntheta,nzeta,nsmin:nsmax),                       &
-               dpdvijh(ntheta,nzeta,nsmin:nsmax),                       &
-               bsupsijh0(ntheta,nzeta,nsmin:nsmax),                     &
-               bsupuijh0(ntheta,nzeta,nsmin:nsmax),                     &
-               bsupvijh0(ntheta,nzeta,nsmin:nsmax), stat=istat)                         
+      ALLOCATE(dpduijf(ntheta,nzeta,nsmin:nsmax),                       &
+               dpdvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
       CALL ASSERT(istat.EQ.0,'Allocation failed in GET_BGRADP_PAR')
 
       CALL ASSERT(ALLOCATED(jbsupsmnsh),'jbsupXmn UNALLOCATED IN GET_BGRADP_PAR')
 
-      CALL GetPressure_par (pijh, dpduijh, dpdvijh)
-! 
-!     Compute contravariant components of magnetic field
-!           
-      CALL toijsp_par(jbsupsmnsh(:,:,nsmin:nsmax), bsupsijh0, f_none, f_sin)
-      CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh0, f_none, f_cos)
-      CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh0, f_none, f_cos)
-
-      IF (.NOT.lasym) GOTO 100
-      CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh0, f_sum, f_cos)
-      CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh0, f_sum, f_sin)
-      CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh0, f_sum, f_sin)
-
- 100  CONTINUE
-
-      bsupsijh0 = bsupsijh0/jacobh(:,:,nsmin:nsmax)
-      bsupuijh0 = bsupuijh0/jacobh(:,:,nsmin:nsmax)
-      bsupvijh0 = bsupvijh0/jacobh(:,:,nsmin:nsmax)
+      CALL GetPressure (dpduijf, dpdvijf)
 
       nsmax=MIN(endglobrow,ns)
       n1 = MAX(2, nsmin); n2 = MIN(nsh, nsmax)
       bgradpf(:,:,n1:n2) =                                              &   ! Get all values except first and
-               (bsupsijh0(:,:,n1+1:n2+1) + bsupsijh0(:,:,n1:n2))        &   ! last surface from half mesh values.
-             *ohs/2*(pijh(:,:,n1+1:n2+1) -      pijh(:,:,n1:n2))        &
-             + (bsupuijh0(:,:,n1+1:n2+1) + bsupuijh0(:,:,n1:n2))        &
-              *(  dpduijh(:,:,n1+1:n2+1) +   dpduijh(:,:,n1:n2))/4      &
-             + (bsupvijh0(:,:,n1+1:n2+1) + bsupvijh0(:,:,n1:n2))        &
-              *(  dpdvijh(:,:,n1+1:n2+1) +   dpdvijh(:,:,n1:n2))/4                   
+               bsupsijf0(:,:,n1:n2)*pijf0_ds(:,:,n1:n2)                 &
+             + bsupuijf0(:,:,n1:n2)*dpduijf(:,:,n1:n2)                  &
+             + bsupvijf0(:,:,n1:n2)*dpdvijf(:,:,n1:n2)         
     
-      tnorm_bgradp = SUM((bsupsijh0(:,:,n1:nsmax)**2                    &
-                   +      bsupuijh0(:,:,n1:nsmax)**2                    &
-                   +      bsupvijh0(:,:,n1:nsmax)**2)                   &
-                   *           pijh(:,:,n1:nsmax)**2)
+      tnorm_bgradp = SUM((bsupsijf0(:,:,n1:nsmax)**2                    &
+                   +      bsupuijf0(:,:,n1:nsmax)**2                    &
+                   +      bsupvijf0(:,:,n1:nsmax)**2)                   &
+                   *          pijf0(:,:,n1:nsmax)**2*wint(:,:,n1:nsmax))
 
 !SPH10-31-16: ignore inner s<.1 for this diagnostic
       n1 = MAX(ns/20, nsmin)
-      wbgradp = SUM(bgradpf(:,:, n1:n2)**2)
+      wbgradp = SUM(bgradpf(:,:, n1:n2)**2*wint(:,:,n1:nsmax))
       s1(1)=tnorm_bgradp;  s1(2)=wbgradp
       IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
@@ -409,7 +405,7 @@
 
       IF (tnorm_bgradp .GT. zero) THEN
          bgradp_rms = SQRT(wbgradp/tnorm_bgradp)
-         tnorm_bgradp = SQRT(tnorm_bgradp/(ns*nuv))
+         tnorm_bgradp = SQRT(tnorm_bgradp/ns)
 
 !IGNORE FIRST POINT
          max_bgradp = MAXVAL(bgradpf(:,:,n1:n2))/tnorm_bgradp
@@ -431,8 +427,7 @@
          END IF
       END IF
 
-      DEALLOCATE (pijh, dpdvijh, dpduijh,                               &
-                  bsupsijh0, bsupuijh0, bsupvijh0, stat=istat)
+      DEALLOCATE (dpdvijf, dpduijf, stat=istat)
 
       CALL second0(toff)
       time_bgradp = time_bgradp+(toff-ton)
@@ -440,61 +435,33 @@
       END SUBROUTINE get_bgradp
       
 
-      SUBROUTINE GetPressure (pijh, dpduijh, dpdvijh)
+      SUBROUTINE GetPressure (dpduijf, dpdvijf)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), DIMENSION(ntheta,nzeta,ns), INTENT(OUT)  ::             &
-           dpduijh, dpdvijh, pijh
-!-----------------------------------------------
-      nsmin = 1; nsmax = ns
-      CALL GetPressure_par(pijh, dpduijh, dpdvijh)
-
-      END SUBROUTINE GetPressure
-
-      SUBROUTINE GetPressure_par (pijh, dpduijh, dpdvijh)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION(ntheta,nzeta, nsmin:nsmax),                   &
-               INTENT(OUT)  :: dpduijh, dpdvijh, pijh
+      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: dpduijf, dpdvijf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  :: istat, m1, m2
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: pmnch, pmnsh
+      INTEGER  :: istat, n2
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ph0_du, ph0_dv
 !-----------------------------------------------
-
-      CALL toijsp_par(jpmnch(:,:,nsmin:nsmax), pijh, f_none, f_cos)
-      IF (lasym) THEN
-      CALL toijsp_par(jpmnsh(:,:,nsmin:nsmax), pijh, f_sum,  f_sin)
-      END IF
-      pijh = pijh/jacobh(:,:,nsmin:nsmax)                                 ! Remove jacobian factor
+    
+      n2 = MIN(ns,endglobrow+1)
       
-      ALLOCATE(pmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
-      CALL ASSERT(istat.EQ.0,'Allocation error in GetPressure_par')
-      CALL tomnsp_par(pijh, pmnch, f_cos)
+      ALLOCATE(ph0_du(ntheta,nzeta,nsmin:n2),                           &
+               ph0_dv(ntheta,nzeta,nsmin:n2), stat=istat)
+      CALL ASSERT(istat.EQ.0,'Allocation error in GetPressure_par')               
+      ph0_du(:,:,nsmin:n2) = pijh0_du(:,:,nsmin:n2)
+      ph0_dv(:,:,nsmin:n2) = pijh0_dv(:,:,nsmin:n2)
 
-      CALL toijsp_par(pmnch, pijh, f_none, f_cos)
-      CALL toijsp_par(pmnch, dpduijh, f_du, f_cos)                        ! Get theta and phi pressure derivatives
-      CALL toijsp_par(pmnch, dpdvijh, f_dv, f_cos)
+      CALL to_full_mesh(ph0_du, dpduijf)
+      CALL to_full_mesh(ph0_dv, dpdvijf)
+      
+      DEALLOCATE(ph0_du, ph0_dv, stat=istat)
+      CALL ASSERT(istat.EQ.0,'Deallocation error in GetPressure_par')               
 
-      IF (lasym) THEN
-      ALLOCATE(pmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)      
-      CALL ASSERT(istat.EQ.0,'Allocation error in GetPressure_par')
-      CALL tomnsp_par(pijh, pmnsh, f_sin)
-
-      m1 = IOR(f_sum,f_du);  m2 = IOR(f_sum,f_dv)
-      CALL toijsp_par(pmnsh, pijh, f_sum, f_sin)
-      CALL toijsp_par(pmnsh, dpduijh, m1, f_sin)                          ! Get theta and phi pressure derivatives
-      CALL toijsp_par(pmnsh, dpdvijh, m2, f_sin)
-      END IF
-
-     
-      DEALLOCATE (pmnch)
-      IF (lasym) DEALLOCATE (pmnsh)
-
-      END SUBROUTINE GetPressure_par
+      END SUBROUTINE GetPressure
 
       SUBROUTINE BETA
 
@@ -735,9 +702,9 @@
         CALL toijsp_par(jbsupumnch(:,:,nsmin:nsmax), bsupuijh, f_none, f_cos)
         CALL toijsp_par(jbsupvmnch(:,:,nsmin:nsmax), bsupvijh, f_none, f_cos)
         IF (lasym) THEN
-        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_sin)
-        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_cos)
-        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_cos)
+        CALL toijsp_par(jbsupsmnch(:,:,nsmin:nsmax), bsupsijh, f_sum, f_cos)
+        CALL toijsp_par(jbsupumnsh(:,:,nsmin:nsmax), bsupuijh, f_sum, f_sin)
+        CALL toijsp_par(jbsupvmnsh(:,:,nsmin:nsmax), bsupvijh, f_sum, f_sin)
         END IF
 
         bsupsijh = bsupsijh/jacobh(:,:,nsmin:nsmax)
@@ -886,7 +853,7 @@
         
         CALL tomnsp_par(bdotjijh, bdotjmnch, f_cos)                       ! Keep harmonics of BDOTJ for output
         IF (lasym) THEN
-        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_cos)                       ! Keep harmonics of BDOTJ for output
+        CALL tomnsp_par(bdotjijh, bdotjmnsh, f_sin)                       ! Keep harmonics of BDOTJ for output
         END IF
 
         DEALLOCATE (bdotjijh)
@@ -924,9 +891,11 @@
         nsmin=ns_min; nsmax = ns_max
 
         IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
-        ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)     ! Otherwise, allocate first time called
+        IF (ALLOCATED(divjmnch)) DEALLOCATE(divjmnch)
+        ALLOCATE(divjmnsh(0:mpol,-ntor:ntor,nsmin:nsmax),               &
+                 divjmnch(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat) 
         CALL ASSERT(istat.EQ.0,'Allocation failed in DIVJ')
-        divjmnsh = 0
+        divjmnsh = 0; divjmnch = 0
 
 !
 !  Compute divergence of J. It is a SINE parity quantity.
@@ -938,6 +907,12 @@
                -m*(ksupumncf(m,n,n1:n2)+ksupumncf(m,n,n1-1:n2-1))/2     &
            -n*nfp*(ksupvmncf(m,n,n1:n2)+ksupvmncf(m,n,n1-1:n2-1))/2     &
            + ohs *(ksupsmnsf(m,n,n1:n2)-ksupsmnsf(m,n,n1-1:n2-1))
+             IF (lasym) THEN
+             divjmnch(m,n,n1:n2) =                                      &
+                m*(ksupumnsf(m,n,n1:n2)+ksupumnsf(m,n,n1-1:n2-1))/2     &
+           +n*nfp*(ksupvmnsf(m,n,n1:n2)+ksupvmnsf(m,n,n1-1:n2-1))/2     &
+           + ohs *(ksupsmncf(m,n,n1:n2)-ksupsmncf(m,n,n1-1:n2-1))
+             END IF
            END DO
         END DO
 !
@@ -962,7 +937,8 @@
 
         DEALLOCATE(temp1, temp2, stat=istat)
 
-        divj_rms = SUM(divjmnsh(:,:,nsmin:nsmax)**2)
+        divj_rms = SUM(divjmnsh(:,:,n1:n2)**2                           &
+                 +     divjmnch(:,:,n1:n2)**2)
 #if defined(MPI_OPT)
         s1(1) = divj_rms; s1(2) = tnorm
         CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_SUM,                  &
@@ -973,6 +949,7 @@
  !     
         IF (tnorm .GE. zero) THEN
            divjmnsh = divjmnsh/SQRT(tnorm)
+           divjmnch = divjmnch/SQRT(tnorm)
            divj_rms = SQRT(divj_rms/tnorm)
         END IF
 
@@ -986,11 +963,11 @@
        SUBROUTINE dealloc_diagnostics
 
        IF (ALLOCATED(divbmnsf)) DEALLOCATE(divbmnsf)
+       IF (ALLOCATED(divbmncf)) DEALLOCATE(divbmncf)
        IF (ALLOCATED(divjmnsh)) DEALLOCATE(divjmnsh)
+       IF (ALLOCATED(divjmnch)) DEALLOCATE(divjmnch)
        IF (ALLOCATED(bdotjmnch)) DEALLOCATE(bdotjmnch)
-       IF (lasym) THEN
        IF (ALLOCATED(bdotjmnsh)) DEALLOCATE(bdotjmnsh)
-       END IF
 
        END SUBROUTINE dealloc_diagnostics
 

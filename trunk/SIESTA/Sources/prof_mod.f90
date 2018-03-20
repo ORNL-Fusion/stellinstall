@@ -19,6 +19,7 @@
         INTEGER, ALLOCATABLE, public :: scalcounts(:), scaldisps(:)
         INTEGER, ALLOCATABLE :: StartBlockProc(:), EndBlockProc(:)
 
+#if defined(MPI_OPT)
         public :: profstart,profend,profstat,profinit,dclock
         public :: SetUpScalingAllGather
 
@@ -281,7 +282,6 @@
 
 
         END SUBROUTINE numrocMapping
-       
-
+#endif
       end module prof_mod
 

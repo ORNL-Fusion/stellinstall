@@ -514,9 +514,9 @@
 !  Start of executable code
       check_log = expected .eqv. received
       IF (.not.check_log) THEN
-         write(*,*) "integration_path.f: ", name, " test", testNum,            &
+         WRITE(*,*) "integration_path.f: ", name, " test", testNum,            &
      &              "failed."
-         write(*,*) "Expected", expected, "Received", received
+         WRITE(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION
@@ -547,9 +547,9 @@
 !  Start of executable code
       check_real = expected .eq. received
       IF (.not.check_real) THEN
-         write(*,*) "integration_path.f: ", name, " test", testNum,            &
+         WRITE(*,*) "integration_path.f: ", name, " test", testNum,            &
      &              "failed."
-         write(*,*) "Expected", expected, "Received", received
+         WRITE(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION
@@ -580,9 +580,9 @@
 !  Start of executable code
       check_int = expected .eq. received
       IF (.not.check_int) THEN
-         write(*,*) "integration_path.f: ", name, " test", testNum,            &
+         WRITE(*,*) "integration_path.f: ", name, " test", testNum,            &
      &              "failed."
-         write(*,*) "Expected", expected, "Received", received
+         WRITE(*,*) "Expected", expected, "Received", received
       END IF
 
       END FUNCTION

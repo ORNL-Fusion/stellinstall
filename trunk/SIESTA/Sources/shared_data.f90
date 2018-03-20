@@ -22,7 +22,7 @@
 
       REAL(dp),PARAMETER   :: fsq_res = 1.E-16_dp   !<threshold force for turning off resistive perturbations
       REAL(dp), PARAMETER  :: levm_ped=1.E-10_dp, mu_ped=1.E-8_dp  !<pedestal values of levenberg/mu|| (levm_ped between 10^-5 and 10^-10)
-      REAL(dp), DIMENSION(:), ALLOCATABLE, TARGET :: gc  !<1D Array of Fourier mode MHD force components
+      REAL(dp), DIMENSION(:), ALLOCATABLE, TARGET :: gc,gc_sup  !<1D Array of Fourier mode MHD force components
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE     :: buv_res  !<Resonant magnetic field perturbation
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc  !<1D array of Fourier mode displacement components
       REAL(dp), DIMENSION(:), ALLOCATABLE         :: xc0, gc0
@@ -32,7 +32,7 @@
       REAL(dp)        :: fsq_total1                !< |F|^2 WITHOUT column scaling (raw forces)
       REAL(dp)        :: fsq_gmres, fsq_lin, etak_tol
       REAL(dp)        :: levm_scale = 1
-      REAL(dp)        :: wtotal, wtotal0, xmax_lin
+      REAL(dp)        :: wtotal, wtotal0           !<MHD energy (sum magnetic and thermal)
       REAL(dp)        :: delta_t
       REAL(dp)        :: fsqvs, fsqvu, fsqvv
       REAL(dp)        :: ste(4)                    !<Spectral Truncation RMS Error    
@@ -43,10 +43,13 @@
 
       
 !Logicals for evolving origin and edge
+      LOGICAL,PARAMETER :: l_pedge = .TRUE.        !<=TRUE, preserve s=1 as iso-pressure surface
       LOGICAL         :: l_push_edge                !<=FALSE, u,v components of forces NOT solved at s=1
       LOGICAL         :: l_push_s, l_push_u, l_push_v !<=FALSE, s,u,v components of forces NOT solved at s=0
 !      LOGICAL,        :: l_natural=.TRUE.           !<=TRUE use natural bc at s=0 (preferred: maintains symmetry)
       LOGICAL         :: l_natural=.FALSE.       !<=FALSE evolves all forces at origin
+      
+!Logicals for controlling force calculations      
       LOGICAL         :: l_linearize, l_conjgrad
       LOGICAL         :: l_getwmhd                  !<=TRUE to compute MHD energy
       LOGICAL         :: l_getfsq                   !<=TRUE to compute integrated MHD force
@@ -56,9 +59,9 @@
       LOGICAL         :: l_update_state=.FALSE.     !<=TRUE before funct_island called to get ste array
       LOGICAL         :: l_par_state                !<=TRUE if parallel allocation state (in init_state)
       LOGICAL         :: lcolscale                  !<=TRUE to apply col-scaling to Hessian
-      LOGICAL         :: l_infnorm = .TRUE.         !<=Infinity norm(T) or L2 norm(F) for column scaling
       LOGICAL         :: lasym = .FALSE.            !<=FALSE, symmetric; =TRUE, asymmetric plasma
       LOGICAL         :: lrecon = .FALSE.
       LOGICAL         :: lverbose = .TRUE.
+      LOGICAL         :: lequi1=.TRUE.              !=T, equilibrate matrix with col 1-norm; =F, equilibrate with col infinity-norm
 
       END MODULE shared_data

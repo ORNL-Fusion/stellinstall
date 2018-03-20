@@ -1,11 +1,11 @@
 !>  \brief updates resistive contribution to B with resistive currents
       SUBROUTINE add_resistive_E
       USE stel_kinds
-      USE evolution, ONLY: nprecon, fsq_total1, xc
       USE shared_data, ONLY: l_getfsq, l_init_state, lverbose,          &
-                             l_update_state, unit_out
+                             l_update_state, unit_out, nprecon,         &
+                             fsq_total1, xc, gc
       USE shared_functions, ONLY: funct_island
-      USE perturbation, ONLY: ftol, eta_factor
+      USE siesta_namelist, ONLY: ftol, eta_factor
       USE descriptor_mod, ONLY: iam
       USE siesta_bfield, ONLY: update_bfield
       USE siesta_displacement, ONLY: update_upperv
@@ -17,10 +17,12 @@
 !-----------------------------------------------
       INTEGER, PARAMETER   :: nits = 10
       REAL(dp), PARAMETER  :: zero = 0
-      REAL(dp)             :: save_eta, fmhd
+      REAL(dp)             :: save_eta, fmhd, eps
       INTEGER              :: itime, j
       LOGICAL, PARAMETER   :: lcurrent_only=.TRUE.
       LOGICAL              :: lverb_save
+      
+      INTEGER, SAVE        :: nCheck = 0
 !-----------------------------------------------
       IF (fsq_total1 .LE. ftol) RETURN
 
@@ -48,10 +50,14 @@
 
       END DO
 
+      nCheck = nCheck+1
+      IF (nCheck .EQ. 0) CALL CheckForces(xc, gc)                        !set iteration value > 0 at which force check is done
+
       l_getfsq = .TRUE.
       l_init_state = .TRUE.
       CALL funct_island
-
+      
+      
       eta_factor = save_eta
       lverbose = lverb_save
       
@@ -71,8 +77,4 @@
          eta_factor = eta_factor*(1.1_dp*fmhd/fsq_total1)
       END IF
       
-
-!SPH101116 NEED THIS FOR GMRES TO INITIALIZE CORRECTLY
-!      fsq_total1 = fmhd
-
       END SUBROUTINE add_resistive_E

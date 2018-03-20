@@ -7,22 +7,14 @@
                              lasym, hesspass_test, mupar_test,          &
                              buv_res, lrecon, unit_out
       USE nscalingtools, ONLY: startglobrow, endglobrow
+      IMPLICIT NONE
       
+      PRIVATE
+
       INTEGER  :: nsmin, nsmax
       INTEGER  :: irad_scale=11
-      INTEGER  :: nsin=101, mpolin=12, ntorin=3
-      INTEGER  :: mres1, nres1, mres2, nres2                              !Backwards compat
-      INTEGER  :: mres(20)
-      INTEGER  :: niter_max
-      REAL(dp) :: HelPert1, HelPert2, rad1, rad2                          !Backwards compat
-      REAL(dp) :: HelPert(20)
-      REAL(dp) :: ftol = 1.E-20_dp
-      REAL(dp) :: eta_factor = 1.E-2_dp
+      INTEGER, PUBLIC  :: niter_max
       REAL(dp) :: p_width                                                 !width of perturbation (relative to 1)
-      LOGICAL  :: ladd_pert = .TRUE.
-      LOGICAL  :: lresistive = .TRUE.                                     !RS: If true, add resistive electric field.
-      LOGICAL  :: lrestart = .FALSE.
-      CHARACTER(LEN=256) :: wout_file, restart_ext
       REAL(dp), ALLOCATABLE :: jdotb(:,:,:)                               !parallel current
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bmnc_res, bmns_res       !resonant components of JDOTB
 
@@ -40,36 +32,21 @@
       REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: bsupss, bsupuc, bsupvc, &
                 presc, bsupsc, bsupus, bsupvs, press
 
-!OUTPUT FILE PARAMETERS
-      INTEGER :: nrs=200, nzs=200, nphis=2                                ! BField resolution (CYL):  R and Z
-      INTEGER :: nvs=100, nus=150, nss=150                                ! BField resolution (VMEC): V (and PHI), U, S      
-      LOGICAL :: l_tracing = .FALSE.                                      ! Do not produce file with CYL field for Poincare plots.
-      LOGICAL :: l_silo_output = .FALSE.
-      LOGICAL :: l_silo3D = .FALSE.
-      LOGICAL :: l_output_alliter = .FALSE.                               ! Default: do not dump output at every iteration on file (RS, Jul'10)
-      LOGICAL :: l_VMEC_Uniform
-
       CHARACTER(LEN=256) :: filename
+
+      PUBLIC :: init_data, add_perturb, write_restart_file, read_restart_file
 
       CONTAINS
 
-      SUBROUTINE init_data (nprecon)
+      SUBROUTINE init_data (nprecon_out)
       USE date_and_computer
       USE Hessian, ONLY: levmarq_param, mupar, levmarq_param0, mupar0
-      IMPLICIT NONE
-      INTEGER, INTENT(OUT) :: nprecon
-      INTEGER              :: istat, index1, imon, niter, numargs
+      USE siesta_namelist
+      INTEGER, INTENT(OUT) :: nprecon_out
+      INTEGER              :: istat, index1, imon, numargs
       CHARACTER(LEN=10)    :: date0, time0, zone0
       CHARACTER(LEN=256)   :: temp, short_name
       CHARACTER(LEN=100), DIMENSION(10) :: command_arg
-      NAMELIST /SIESTA_INFO/ ladd_pert, lresistive, lrestart, niter,    &
-               nsin, mpolin, ntorin, ftol, wout_file, restart_ext,      &
-               mres1, nres1, rad1, helpert1, mres2, nres2, rad2,        &
-               helpert2, mres, HelPert, levmarq_param, mupar,           &
-               eta_factor, nphis, nrs, nzs, nvs, nus, nss, l_tracing,   &
-               ngmres_type, iortho, lcolscale,                          &
-               l_silo_output, l_silo3D, nprecon, l_output_alliter,      & 
-               l_VMEC_Uniform, lasym, HessPass_Test, mupar_test, lrecon
 
 !-----------------------------------------------
 !     
@@ -82,7 +59,7 @@
       HelPert1      = 0
       HelPert2      = 0
       mres          = 0
-      HelPert       = 0
+      HelPert       = 0;  HelPertA = 0
       lresistive    = .TRUE.
       lcolscale     = .TRUE.
       mupar_test    = 0
@@ -99,16 +76,15 @@
       IF (numargs .GT. 0) THEN
          temp = command_arg(1)
          IF (LEN_TRIM(temp) .NE. 0) THEN
-            temp = 'siesta_' // TRIM(temp) // '.jcf'
+            IF (temp(1:7).NE."siesta_" .AND. temp(1:7).NE."SIESTA_")     &
+               temp = "siesta_" // TRIM(temp)
+            istat = LEN_TRIM(temp)
+            IF (temp(istat-3:istat).NE.".jcf" .AND.                      &
+                temp(istat-3:istat).NE.".JCF") temp = TRIM(temp) // ".jcf"
          END IF
       END IF
-      
-      OPEN (unit=30, file=TRIM(temp), delim='apostrophe', iostat=istat)
-      CALL ASSERT(istat.eq.0,'SIESTA.JCF file not found')
 
-      READ (30, NML=SIESTA_INFO, iostat=istat) 
-      CALL ASSERT(istat.eq.0,'Error reading siesta.jcf file')
-      CLOSE (UNIT=30)
+      CALL siesta_namelist_read(temp)
 
       irad_scale = MIN(irad_scale, nsin)
       ngmres_type = MIN(2, MAX(1,ngmres_type))
@@ -121,7 +97,7 @@
       temp = wout_file
       index1 = INDEX(temp,'WOUT')
       IF (index1 .EQ. 0) index1 = INDEX(temp,'wout')
-      CALL ASSERT(index1.ne.0,'ERROR: WRONG WOUT FILE NAME')
+      CALL ASSERT(index1.NE.0,'ERROR: WRONG WOUT FILE NAME')
       temp = wout_file(index1:)
 !
 !     STRIP FILE EXTENSION: NAME COULD INCLUDE '.' IN IT!
@@ -133,31 +109,33 @@
          temp = TRIM(temp(6:index1-1))
       END IF
 
-      IF (HelPert1.ne.zero .or. HelPert2.ne.zero) THEN
+      IF (HelPert1.NE.zero .OR. HelPert2.NE.zero) THEN
          HelPert(1) = HelPert1; mres(1) = mres1
          HelPert(2) = HelPert2; mres(2) = mres2
       END IF
 
 
 !     WOUT FILE MUST BE OF FORM "wout_NAME.nc (or txt)" or "wout_NAME"
+      istat = 0
       IF (iam .EQ. 0) THEN
 	     WRITE (filename,'(3a,i4.4,a,2(i3.3,a))') "output_", TRIM(temp),&
 	            '_',nsin,'X',mpolin,'X',ntorin,".txt"
 	     OPEN (unit=unit_out, file=filename,iostat=istat)
       END IF
 
-      CALL ASSERT(istat.eq.0,'ERROR WRITING SIESTA OUTPUT FILE')
+      CALL ASSERT(istat.EQ.0,'ERROR WRITING SIESTA OUTPUT FILE')
       IF (iam .NE. 0) RETURN
 
       DO istat = 6, unit_out, unit_out-6
-         IF (.not.lverbose .and. istat .eq. 6) CYCLE
+         IF (.NOT.lverbose .AND. istat.EQ.6) CYCLE
 	     WRITE (istat, 10)                                              & 
                'SIESTA MHD EQUILIBRIUM CODE v4.0 (100917)',             &
                'Scalable Island Equilibrium ',                          &
                'Solver for Toroidal Applications' 
-         IF (HelPert1.ne.zero .or. HelPert2.ne.zero) THEN
+         IF (HelPert1.NE.zero .OR. HelPert2.NE.zero) THEN
             WRITE (istat, *) 'Please update jcf file to new format'
-            WRITE (istat, *) 'Replace mres1,2 with mres array, HelPert1,2 with HelPert array'
+            WRITE (istat, *) 'Replace mres1,2 with mres array, ' //     &
+                             'HelPert1,2 with HelPert array'
          END IF
       END DO
 
@@ -175,15 +153,18 @@
 20    FORMAT(' DATE = ',a3,' ',a2,',',a4,' ',' TIME = ',2(a2,':'),a2,/)
 
       DO istat = 1, SIZE(HelPert)
-         IF (HelPert(istat) .ne. zero) THEN
-            WRITE (unit_out, 30) istat, mres(istat), HelPert(istat)
+         IF (HelPert(istat).NE.zero .OR. HelPertA(istat).NE.zero) THEN
+            WRITE (unit_out, 30) istat, mres(istat), HelPert(istat),    &
+                                 HelPertA(istat)
          END IF
       END DO
 
       WRITE (unit_out, 32) ngmres_type, iortho, lColScale
       CALL FLUSH(unit_out)
 
-30    FORMAT(i2,' mres: ',i4,' HelPert: ',1pe9.2)
+      nprecon_out = nprecon
+
+30    FORMAT(i2,' mres: ',i4,' HelPert: ',1pe9.2,' HelPertA: ',1pe9.2)
 32    FORMAT(/,' ngmres_type: ', i4,' iOrtho: ', i4, ' lColScale: ', l2)
 
       END SUBROUTINE init_data
@@ -191,7 +172,7 @@
       SUBROUTINE add_perturb (xc, getwmhd)
       USE siesta_error
       USE fourier, ONLY: tomnsp_par, f_cos, f_sin, f_none
-      IMPLICIT NONE
+      USE siesta_namelist, ONLY: HelPert, HelPertA, eta_factor, lresistive, mres
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -204,14 +185,16 @@
       INTEGER            :: js, l, iprint, mres0, nres0, isign1, icount, &
                             irscale, imin(2), jstart, istat, jsave
       REAL(dp)           :: w0, w1, wmhd, eta_factor_save, p_width_min
-      REAL(dp)           :: normal, HelPert0, HP, rad, chip0, phip0
+      REAL(dp)           :: normal, HelPert0, HelPert0A, HP, rad,       &
+                            chip0, phip0
       LOGICAL            :: lresist_save
 !-----------------------------------------------
 !
 !     Add helical RESISTIVE flux perturbation on full mesh
 !     Approximate nonideal E_sub ~ f(mu+nv) B_sub in update_bfield (E ~ B)
 !
-      IF (ntor.EQ.0 .OR. ALL(HelPert.EQ.zero)) RETURN
+      IF (ntor.EQ.0 .OR. (ALL(HelPert.EQ.zero)                          &
+                    .AND. ALL(HelPertA.EQ.zero))) RETURN
 
 !     INITIAL STATE: allocate buv_res so bsubXijf will be computed in init_state
       nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+1)
@@ -258,8 +241,10 @@
 
       RES_TEST: DO icount = 1, SIZE(HelPert)
          HelPert0 = ABS(HelPert(icount)/normal)
+         HelPert0A= ABS(HelPertA(icount)/normal)
          mres0 = ABS(mres(icount))
-         IF (HelPert0.EQ.zero .OR. mres0.GT.mpol) CYCLE
+         IF ((HelPert0.EQ.zero .AND. HelPert0A.EQ.zero)                 &
+            .OR. mres0.GT.mpol) CYCLE
 
 !Scan in radius to determine primary resonance
 
@@ -279,7 +264,7 @@
  
          SCALE_TEST: DO irscale = 1, irad_scale
             CALL GetResPert(irscale, isign1, mres0, nres0, rad,         &
-                            HelPert0, chip0, phip0)
+                            HelPert0, HelPert0A, chip0, phip0)
             xc = 0
             wmhd = getwmhd(xc)
             IF (wmhd .LT. w1) THEN
@@ -312,7 +297,7 @@
          END IF
          
          CALL GetResPert(irscale, isign1, mres0, nres0, rad,            &
-                         HelPert0, chip0, phip0)
+                         HelPert0, HelPert0A, chip0, phip0)
 
          wmhd = getwmhd(xc)
          IF (ABS(wmhd-w1) .GT. 1.E-12_dp) THEN
@@ -342,7 +327,6 @@
 
 
       LOGICAL FUNCTION FindResonance(mres0, nres0, resrad, jstart)
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -402,9 +386,9 @@
 
 
       SUBROUTINE GetResPert(irscale, isign1, mres0, nres0, rad,         &
-                            HelPert0, chip0, phip0)
+                            HelPert0, HelPert0A, chip0, phip0)
       USE fourier, ONLY: toijsp_par, toijsp2, f_cos, f_sin, f_sum, f_none
-      IMPLICIT NONE
+      USE siesta_namelist, ONLY: mpolin, ntorin
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -412,20 +396,23 @@
       INTEGER, INTENT(in)       :: mres0, nres0
       REAL(dp), INTENT(in)   :: rad
       REAL(dp), INTENT(out)  :: chip0, phip0
-      REAL(dp), INTENT(in)   :: HelPert0
+      REAL(dp), INTENT(in)   :: HelPert0, HelPert0A
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER     :: js, istat
-      REAL(dp)    :: rho, rhores, pert_prof(ns), HelP_local, locrad
+      REAL(dp)    :: rho, rhores, pert_prof(ns), HelP_local,            &
+                     HelPA_local, locrad
       REAL(dp), ALLOCATABLE   :: bmn_res(:,:)
       REAL(dp), ALLOCATABLE   :: resc(:,:,:), ress(:,:,:)
-      REAL(dp), ALLOCATABLE   :: temp_uv(:,:,:)
 !-----------------------------------------------
       IF (mres0.GT.mpolin .OR. ABS(nres0).GT.ntorin) RETURN
 
-      HelP_local = HelPert0
-      IF (isign1 .EQ. 2) HelP_local = -HelPert0
+      HelP_local = HelPert0; HelPA_local = HelPert0A
+      IF (isign1 .EQ. 2) THEN
+         HelP_local = -HelPert0
+         HelPA_local = -HelPert0A
+      END IF
 
 !	Compute radial form factor (window-function)
       js = INT(rad/hs_i) + 1
@@ -458,8 +445,7 @@
       CALL toijsp_par(resc, buv_res, f_none, f_cos)
       
       IF (lasym) THEN
-!NOTE TO MRC: eventually use separate HelPertS here
-         ress(mres0,nres0,:) = HelP_local*bmns_res(mres0,nres0,:)
+         ress(mres0,nres0,:) = HelPA_local*bmns_res(mres0,nres0,:)
          CALL toijsp_par(ress, buv_res, f_sum, f_sin)
       END IF
       
@@ -477,15 +463,11 @@
       bmn_res = 0
          
       bmn_res(mres0,nres0) = HelP_local
-      CALL toijsp2(bmn_res, buv_res, f_cos, nsmin)
+      CALL toijsp2(bmn_res, buv_res, f_cos, f_none, nsmin)
       
       IF (lasym) THEN
-         ALLOCATE (temp_uv(ntheta,nzeta,1), stat=istat)
-!NOTE TO MRC: eventually use separate HelPertS here 
-         bmn_res(mres0,nres0) = HelP_local
-         CALL toijsp2(bmn_res, temp_uv, f_sin, 1)
-         buv_res(:,:,nsmin) = buv_res(:,:,nsmin) + temp_uv(:,:,1)
-         DEALLOCATE(temp_uv)
+         bmn_res(mres0,nres0) = HelPA_local
+         CALL toijsp2(bmn_res, buv_res, f_sin, f_sum, nsmin)
       END IF
       DO js = nsmin+1, nsmax
          buv_res(:,:,js) = buv_res(:,:,nsmin)*pert_prof(js)
@@ -501,7 +483,7 @@
 
       SUBROUTINE write_restart_file
       USE restart_mod
-      IMPLICIT NONE
+      USE siesta_namelist, ONLY: restart_ext, wout_file
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -521,15 +503,13 @@
 
       SUBROUTINE read_restart_file (nprecon)
       USE restart_mod
-      IMPLICIT NONE
+      USE siesta_namelist, ONLY: lrestart, mpolin, ntorin, nsin, restart_ext,  &
+                                 wout_file
       INTEGER, INTENT(OUT) :: nprecon
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER, PARAMETER :: m0=0, m1=1
-      INTEGER            :: istat, m, n, js, ns, ntor, mpol, nmin
-      REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: temp
-      REAL(dp)        :: r0
+      INTEGER            :: istat
       CHARACTER*(256)    :: filename
 !-----------------------------------------------
       filename = "siesta_" // TRIM(restart_ext)
@@ -571,7 +551,8 @@
             jstart = 2
             DO WHILE (jstart .lt. ns-1)
                IF (.NOT.FindResonance(mres, nres, rad, jstart)) EXIT
-               CALL AddResonantE (eparmn(:,mres,nres), rad, jstart)
+			   CALL ASSERT(.FALSE.,'AddResonantE not implemented')
+!NOT IMPLEMENTED     CALL AddResonantE (eparmn(:,mres,nres), rad, jstart)
             END DO
          END DO
       END DO
@@ -579,17 +560,6 @@
       DEALLOCATE(eparmn)
 
       END SUBROUTINE Compute_Resonant_Epar
-
-      SUBROUTINE AddResonantE(eres, rad, jstart)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(inout) :: eres(ns)
-      REAL(dp), INTENT(in)    :: rad
-      INTEGER,  INTENT(in)    :: jstart
-!-----------------------------------------------
-
-      END SUBROUTINE AddResonantE
 
 
       END MODULE PERTURBATION

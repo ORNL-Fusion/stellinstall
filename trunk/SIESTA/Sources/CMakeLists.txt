@@ -35,5 +35,7 @@ list (APPEND siesta_sources
 	${CMAKE_CURRENT_SOURCE_DIR}/restart_mod.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_run.f90
 	${CMAKE_CURRENT_SOURCE_DIR}/siesta_error.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/siesta_namelist.f90
+	${CMAKE_CURRENT_SOURCE_DIR}/vmec_info.f90
 )
 set (siesta_sources "${siesta_sources}" PARENT_SCOPE)

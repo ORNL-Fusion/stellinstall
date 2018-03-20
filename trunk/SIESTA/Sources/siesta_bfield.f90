@@ -28,7 +28,7 @@
 !>  for both ideal and resistive perturbations.
 !>
 !>  Advances half-mesh magnetic field components in nm space from time t to
-!>  t + dt. Used to update values of BSUPMNF and BSUPIJF in \ref quantities
+!>  t + dt. Used to update values of BSUPMNH and BSUPIJH stored in \ref quantities
 !>  module.
 !*******************************************************************************
        SUBROUTINE update_bfield (l_add_res)
@@ -39,8 +39,8 @@
 !
        USE quantities
        USE descriptor_mod, ONLY: INHESSIAN
-       USE perturbation, ONLY: lresistive, eta_factor, buv_res
-       USE shared_data, ONLY: lasym, fsq_res, fsq_total
+       USE siesta_namelist, ONLY: lresistive, eta_factor
+       USE shared_data, ONLY: lasym, fsq_res, fsq_total, buv_res
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -52,7 +52,7 @@
        LOGICAL  :: ladd_pert, ltest=.TRUE.
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: resistivity
        REAL(dp) :: ton, toff, rho
-       REAL(dp) :: delt_cfl, eta_prof, r0
+       REAL(dp) :: delt_cfl, eta_prof
  !-----------------------------------------------
        CALL second0(ton)
 
@@ -77,7 +77,7 @@
        esubvijf =-(jvsupsijf(:,:,nsmin:nsmax)*bsupuijf0(:,:,nsmin:nsmax) &
                  - jvsupuijf(:,:,nsmin:nsmax)*bsupsijf0(:,:,nsmin:nsmax))  ! -E_v = V^sB^u - V^uB^s  (COSINE)
 
-!confirm boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy => dB^s = 0)
+!verify boundary condition: esubu,v(s=1) = 0 (tangential E vanishes at bdy => dB^s = 0)
        IF (nsmax .EQ. ns) ltest = ALL(esubuijf(:,:,ns).EQ.zero)
        CALL ASSERT(ltest,'esubuijf(ns) != 0 in UPDATE_BFIELD')
        IF (nsmax .EQ. ns) ltest = ALL(esubvijf(:,:,ns).EQ.zero)
@@ -121,13 +121,10 @@
        ALLOCATE(esubsmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubumnf(0:mpol,-ntor:ntor,nsmin:nsmax),                & 
                 esubvmnf(0:mpol,-ntor:ntor,nsmin:nsmax),                &
-                stat=istat)  
-       CALL ASSERT(istat.EQ.0,'Allocation4 failed in UPDATE_BFIELD')
-
-       ALLOCATE(esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
+                esubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                &
                 esubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-       CALL ASSERT(istat.EQ.0,'Allocation5 failed in UPDATE_BFIELD')
+       CALL ASSERT(istat.EQ.0,'Allocation4 failed in UPDATE_BFIELD')
 
 !Update Bfield using Faraday's Law
        CALL Faraday(djbsupsmnsh, djbsupumnch, djbsupvmnch, isym)
@@ -149,6 +146,7 @@
 !*******************************************************************************
        SUBROUTINE Faraday(djbsupsmnh, djbsupumnh, djbsupvmnh, ipar)
        USE shared_data, ONLY: l_natural, delta_t 
+       USE hessian, ONLY: l_compute_hessian
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -159,52 +157,78 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        INTEGER   :: fours, fouru, fourv, m, n, nmin, nmax
-       REAL(dp)  :: sparity, r0, mp, np
+       REAL(dp)  :: sparity, r12, mp, np
 !-----------------------------------------------
        nmin=nsmin; nmax=nsmax
 
-       IF (ipar .EQ. isym) THEN                                            !e_s (sin), e_u (cos), e_v (cos)
-          fours=f_sin; fouru=f_cos; fourv=f_cos
-          r0 = hs_i/2; sparity = 1
-       ELSE                                                                !e_s (cos), e_u (sin), e_v (sin)
-          fours=f_cos; fouru=f_sin; fourv=f_sin
-          r0 = -hs_i/2; sparity = -1
+       IF (ipar .EQ. isym) THEN                                           !e_s (sin), e_u (cos), e_v (cos)
+          fours=f_sin; fouru=f_cos; fourv=f_cos; sparity = 1
+       ELSE                                                               !e_s (cos), e_u (sin), e_v (sin)
+          fours=f_cos; fouru=f_sin; fourv=f_sin; sparity = -1
        END IF
+       r12 = sparity*hs_i/2
 
 !Calculate harmonics of electric field
        CALL tomnsp_par(esubsijf, esubsmnf, fours)
        CALL tomnsp_par(esubuijf, esubumnf, fouru)
        CALL tomnsp_par(esubvijf, esubvmnf, fourv)
        
+!IMPOSE BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
+       IF (startglobrow .EQ. 1) THEN
+!These conditions are needed so that delta-W jogs (CheckForces) agree with forces at origin
+          esubsmnf(m2:,:,1) = 0                                          !f_v(1) wrong w/0 this
+          esubumnf(m0,:,1) = 0; esubumnf(m2:,:,1) = 0                    !f_v(1) wrong w/0 this
+          esubvmnf(m1:,:,1) = 0
+          
+          IF (.NOT.l_natural) THEN
+             esubsmnh(m1,:,2) = (esubsmnf(m1,:,1) + esubsmnf(m1,:,2))/2
+             esubumnh(m1,:,2) = (esubumnf(m1,:,1) + esubumnf(m1,:,2))/2
+             djbsupsmnh(m1,:,1) = r12*esubsmnh(m1,:,2) - esubumnh(m1,:,2)          !-> 0
+             !This constrains [esubs(2)*r12 - esubu(2)] = 0 at s=r12 (first half grid pt)
+             !needed to make djb^s ~ r12*djb^u there
+             esubsmnf(m1,:,1) = esubsmnf(m1,:,1) - djbsupsmnh(m1,:,1)/r12
+             esubumnf(m1,:,1) = esubumnf(m1,:,1) + djbsupsmnh(m1,:,1)
+          END IF
+       END IF       
+
 !On exit, esubXh valid on [nsmin+1:nsmax]
        CALL to_half_mesh(esubsmnf, esubsmnh)
        CALL to_half_mesh(esubumnf, esubumnh)
        CALL to_half_mesh(esubvmnf, esubvmnh)
+      
 
-!Gradients of esubu,v on half grid j-half=2,ns: note esubu,v(1) used here!
-!On exit, work1,2 valid on [nsmin+1:nsmax]
+!Gradients of full-grid esubu,v on half grid j-half=2,ns: note v(1) components used at j-half=2
+!On exit, de_u,vds are valid on [nsmin+1:nsmax]
+!       IF (nsmin .EQ. 1) esubumnf(m1,:,1) = 0  !Keep this: impacts Hessian symmetry!
        CALL GradientHalf(de_uds, esubumnf)
        CALL GradientHalf(de_vds, esubvmnf)
-
-
-!IMPOSE NATURAL BOUNDARY CONDITION AT FIRST HALF-GRID POINT (SPH 04-28-16)
-       IF (nmin.EQ.1 .AND. .NOT.l_natural) THEN
-          djbsupsmnh(m1,:,1) = (esubsmnh(m1,:,2)*r0-esubumnh(m1,:,2))/2
-          esubsmnh(m1,:,2) = esubsmnh(m1,:,2) - djbsupsmnh(m1,:,1)/r0
-          esubumnh(m1,:,2) = esubumnh(m1,:,2) + djbsupsmnh(m1,:,1)
-          de_uds(m1,:,2) = de_uds(m1,:,2) - djbsupsmnh(m1,:,1)/r0         !Preserves div B = 0
+#undef _DUMP_BFIELD
+!#define _DUMP_BFIELD       
+#if defined(_DUMP_BFIELD)
+       IF (nsmin.EQ.1 .AND. .NOT.l_Compute_Hessian .AND.                &
+           ANY(ABS(esubsmnf(m1,:,2)).GT.1.E-12_dp)) THEN
+        PRINT *,'IPAR: ', ipar
+          PRINT *,'  n      E_s(1)   E_u(1)/r12   E_s(2)     ' //       &
+                  'E_u(2)/r12   E_s(3)     E_u(3)/r12'
+          DO n = -ntor, ntor
+             PRINT 20, n, esubsmnf(m1,n,1), esubumnf(m1,n,1)/r12,       &
+                          esubsmnf(m1,n,2), esubumnf(m1,n,2)/r12,       &
+                          esubsmnf(m1,n,3), esubumnf(m1,n,3)/r12
+          END DO
+ 20    FORMAT(i4,1p,6e12.4)          
        END IF
-
-!Calculate -curl(E) = r.h.s. of Faraday's equation for all components of jacobh*BSUPX
-!Compute contravariant components of -jacobian*curl(E). Need nmax=endglobrow+1 to
-!compute perturbed currents on full mesh in siesta_forces
+#endif
+       
+!Compute contravariant components of -jacobian*curl(E) = r.h.s. of 
+!Faraday's equation used to evolve components of jacobh*BSUPX
+!Need nmax=endglobrow+1 to compute perturbed currents on full mesh in siesta_forces
        nmin=startglobrow
        DO m = 0, mpol
-         mp = sparity*m
-         DO n = -ntor, ntor
-           np = sparity*n*nfp
-           djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)       & ! -mp  ~ d/du
-                                     - np*esubumnh(m,n,nmin:nmax)          ! -np  ~ d/dv
+         mp = sparity*m                                                   ! -mp  ~ d/du
+         DO n = -ntor, ntor                                  
+           np = sparity*n*nfp                                             ! -np  ~ d/dv
+           djbsupsmnh(m,n,nmin:nmax) = mp*esubvmnh(m,n,nmin:nmax)       & 
+                                     - np*esubumnh(m,n,nmin:nmax)         
            djbsupumnh(m,n,nmin:nmax) =-np*esubsmnh(m,n,nmin:nmax)       &
 		                             + de_vds(m,n,nmin:nmax)
            djbsupvmnh(m,n,nmin:nmax) = mp*esubsmnh(m,n,nmin:nmax)       &
@@ -212,25 +236,12 @@
           ENDDO
        ENDDO
 
-!CONSTRAINT AT ORIGIN [jbsups(m=1) = r0*jbsupu(m=1) <=> esubumnch = r0*esubsmnsh]
-!Origin bc for m=1: e_u = r0*e_s (Follows from v X B at origin)
-!This suffices to make B^s = r0*B^u
+!BOUNDARY CONDITIONS AT ORIGIN (used to compute bfields at origin in siesta_init, siesta_forces)
        IF (nmin .EQ. 1) THEN
-          djbsupsmnh(:,:,1) = 0
-          djbsupumnh(:,:,1) = 0
-          djbsupvmnh(:,:,1) = 0
-      
-!      SYMMETRIC FORM (THESE AREN'T USED ANYWHERE)
-          djbsupumnh(m1,:,1) = djbsupumnh(m1,:,2)
-          IF (l_natural) THEN
-             djbsupsmnh(m1,:,1) = r0*djbsupumnh(m1,:,1)
-          ELSE
-             djbsupsmnh(m1,:,1) = djbsupsmnh(m1,:,2)
-          END IF
-
-          djbsupvmnh(m0,:,1) = djbsupvmnh(m0,:,2)
+          djbsupsmnh(:,:,1) = 0; djbsupsmnh(m1,:,1) = djbsupsmnh(m1,:,2)
+          djbsupumnh(:,:,1) = 0; djbsupumnh(m0:m1,:,1) = djbsupumnh(m0:m1,:,2)
+          djbsupvmnh(:,:,1) = 0; djbsupvmnh(m0,:,1) = djbsupvmnh(m0,:,2);
        END IF
-
 !
 !      Calculate INCREMENT of magnetic field harmonics: use Euler scheme with DT given by VSUBMN advance equations.
 !      Results computed here for HALF-GRID perturbations in MN space are used in the calculation of the force and
@@ -239,8 +250,9 @@
        djbsupsmnh = delta_t*djbsupsmnh
        djbsupumnh = delta_t*djbsupumnh
        djbsupvmnh = delta_t*djbsupvmnh
-
+       
        END SUBROUTINE Faraday
 
        END MODULE siesta_bfield
+
 

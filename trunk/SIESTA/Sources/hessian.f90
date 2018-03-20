@@ -5,8 +5,8 @@
       USE stel_constants, ONLY: pi
       USE descriptor_mod
       USE shared_data, ONLY: col_scale, neqs, lcolscale, l_ApplyPrecon, &
-                             l_linearize, fsq_total1, l_getfsq,         &
-                             ndims, mblk_size, lverbose, unit_out
+                             l_linearize, l_getfsq, lverbose,           &
+                             ndims, mblk_size, unit_out, nprecon
 #if defined(MPI_OPT)
       USE prof_mod
       USE ptrd_mod
@@ -17,14 +17,16 @@
         SKSDBG, TOFU, UPPER, LOWER, DIAG, SAVEDIAG, nrecd,              &
         SYMMETRYCHECK, totRecvs, PACKSIZE, WriteTime, send, receive,    &
         SetBlockTriDataStruct, GetFullSolution
-      USE blocktridiagonalsolver_s, ONLY: GetColSum, ParallelScaling,   &
+      USE blocktridiagonalsolver_s, ONLY: ApplyParallelScaling,         &
         ForwardSolve, SetMatrixRHS, BackwardSolve, GetSolutionVector,   &
-        CheckSymmetry, Dmin_TRI, MAXEIGEN_TRI, FindMinMax_Tri
+        CheckSymmetry, Dmin_TRI, MAXEIGEN_TRI, FindMinMax_Tri,          &
+        CheckConditionNumber, PadSides
       USE mpi_inc
 #else
       USE nscalingtools, ONLY: PARSOLVER, PARFUNCTISL, SKSDBG, TOFU,    &
                                startglobrow, endglobrow
 #endif
+      USE v3_utilities, ONLY: ASSERT
       IMPLICIT NONE
 !-----------------------------------------------
 !SPH 090116: EVENTUALLY MOVE TO nscalingtools? ASK SKS
@@ -37,29 +39,32 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       PRIVATE
-      INTEGER, PARAMETER :: jstart(3) = (/1,2,3/)
+      INTEGER, PARAMETER   :: jstart(3) = (/1,2,3/)
       INTEGER, ALLOCATABLE :: ipiv_blk(:,:)
 
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ublk, dblk, lblk
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: ublk_s, dblk_s, lblk_s
-      LOGICAL :: l_backslv = .FALSE., l_dumpslv = .FALSE.
+      LOGICAL, PUBLIC :: l_backslv = .FALSE.
 
       REAL(dp), ALLOCATABLE, DIMENSION(:) :: DataItem
 
       INTEGER :: myStartBlock, myEndBlock, mynumBlockRows 
       INTEGER :: mystart(3), myend(3)
-      REAL(dp), ALLOCATABLE, DIMENSION(:) :: SavedDiag
 
-      REAL(dp) :: eps, ton, toff
+      REAL(dp) :: eps, ton, toff, rcond, anorm
+#if !defined(SKS)
+      REAL(dp) :: DMIN_TRI
+#endif
       REAL(dp), DIMENSION(:,:), ALLOCATABLE  :: colsum
       REAL(dp), PARAMETER, PUBLIC :: eps_factor = 1._dp 
       REAL(dp), ALLOCATABLE, PUBLIC :: mupar_norm(:)
       REAL(dp), PUBLIC  :: levmarq_param, levmarq_param0, asym_index,   &
                            mupar, mupar0, maxeigen, mindiag
       LOGICAL, PUBLIC   :: l_Compute_Hessian, l_Diagonal_Only
+      LOGICAL, PUBLIC, PARAMETER :: l_Hess_sym=.FALSE.                     !<forces symmetrization of Hessian if TRUE (only implemented for Thomas, 1 proc)
       INTEGER, PUBLIC :: HESSPASS=0
       PUBLIC  :: apply_precond, dealloc_hessian, InitHess,              &
-                 Compute_Hessian_Blocks, PadSides
+                 Compute_Hessian_Blocks, apply_colscale
 
       CONTAINS
 
@@ -94,7 +99,7 @@
       IF (PARSOLVER) THEN
 #if defined(SKS)
         ALLOCATE (section(mblk_size,myStartBlock:myEndBlock), stat=istat)
-        CALL ASSERT(istat.EQ.0,'Allocation error in gather_array')
+        CALL ASSERT(istat.EQ.0,'Allocation error in gather_array1')
 
         section(:,myStartBlock:myEndBlock) = gc(:,myStartBlock:myEndBlock)
         CALL gather_array2(section, gc)
@@ -211,12 +216,27 @@
 
       END SUBROUTINE InitHess
 
-      SUBROUTINE Compute_Hessian_Blocks (func, l_Hess_sym, ldiagonal)
-      USE shared_data, ONLY: xc, gc, l_linearize, lasym
+
+      SUBROUTINE Apply_ColScale(gc, colscale, n1, n2)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      LOGICAL, INTENT(IN)     :: l_Hess_sym, ldiagonal
+      INTEGER, INTENT(IN)     :: n1, n2
+      REAL(dp), INTENT(INOUT) :: gc(mblk_size, ns)
+      REAL(dp), INTENT(IN)    :: colscale(mblk_size, ns)
+!-----------------------------------------------
+      
+      gc(:,n1:n2) = gc(:,n1:n2)*colscale(:,n1:n2)
+            
+      END SUBROUTINE Apply_ColScale
+
+
+      SUBROUTINE Compute_Hessian_Blocks (func, ldiagonal)
+      USE shared_data, ONLY: xc, gc, l_linearize
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      LOGICAL, INTENT(IN)     :: ldiagonal
       EXTERNAL                :: func
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
@@ -229,8 +249,6 @@
 
       l_Compute_Hessian = .TRUE.
       l_Diagonal_Only   = ldiagonal
-      IF (l_backslv) l_dumpslv = .TRUE.
-
       l_linearize = .TRUE.
       IF (lColScale) col_scale = 1
 
@@ -259,18 +277,18 @@
           IF(SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_No_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
           IF (lprint) PRINT *,'HESSIAN AND INVERSE CALCULATION' //      &
                           ' USING BCYCLIC WITH NO COLUMN REDISTRIBUTION'
-          CALL Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc, func, l_Hess_sym)
+          CALL Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc, func)
         ELSE
           IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_With_Col_Redist'; IF(SKSDBG) CALL FLUSH(TOFU)
           IF (lprint) PRINT *,'HESSIAN AND INVERSE CALCULATION' //      &
                              ' USING BCYCLIC WITH COLUMN REDISTRIBUTION'
-          CALL Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func, l_Hess_sym)
+          CALL Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func)
         END IF 
       ELSE 
         IF (SKSDBG) WRITE(TOFU,*) 'Executing Compute_Hessian_Blocks_Thomas'; CALL FLUSH(TOFU)
         IF (lprint) PRINT *,'HESSIAN AND INVERSE CALCULATION' //        &
                             ' USING SERIAL THOMAS ALGORITHM'
-        CALL Compute_Hessian_Blocks_Thomas (xc, gc, func, l_Hess_sym)
+        CALL Compute_Hessian_Blocks_Thomas (xc, gc, func)
       END IF
 
       IF (HESSPASS.EQ.0) THEN
@@ -289,9 +307,10 @@
 
          IF (iam .EQ. 0) THEN
             DO iunit = 6, unit_out, unit_out-6
-               IF (.not.lverbose .and. iunit .eq. 6) CYCLE
-               WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ', mblk_size, &
-                  '^2  Preconditioner size: ', bsize, TRIM(label)
+               IF (.NOT.lverbose .AND. iunit.EQ.6) CYCLE
+               WRITE (iunit, '(1x,a,i4,a,f6.2,a)') 'Block dim: ',       &
+                  mblk_size, '^2  Preconditioner size: ', bsize,        &
+                  TRIM(label)
             END DO
             CALL FLUSH(unit_out)
          ENDIF 
@@ -304,12 +323,11 @@
       END SUBROUTINE Compute_Hessian_Blocks
 
       SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist (xc, gc,     &
-                 func, l_Hess_sym)
+                 func)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), DIMENSION((1+mpol)*(2*ntor+1)*ndims,ns) :: xc, gc
-      LOGICAL, INTENT(IN) :: l_Hess_sym
+      REAL(dp), DIMENSION(mblk_size,ns) :: xc, gc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !----------------------------------------------
@@ -317,6 +335,7 @@
       INTEGER  :: n, m, js, mesh, ntype, istat, iunit, icol
       EXTERNAL    :: func
       INTEGER  :: js1
+      
 #if defined(SKS)
       REAL(dp) :: starttime, endtime, usedtime
       REAL(dp) :: colstarttime, colendtime, colusedtime
@@ -333,22 +352,18 @@
 
       CALL second0(ton)
       eps = SQRT(EPSILON(eps))*ABS(eps_factor)
+!      eps =  1.E-3_dp
+      
       nsmin = MAX(1, startglobrow-1);  nsmax = MIN(ns, endglobrow+1)
 
       ALLOCATE (DataItem(mblk_size), stat=istat)
       CALL ASSERT(istat.EQ.0,'DataItem allocation failed:')
       DataItem = 0
-      ALLOCATE (SavedDiag(mblk_size), stat=istat)
-      CALL ASSERT(istat.EQ.0,'SavedDiag allocation failed:')
-      SavedDiag = 0
 
       xc(:,nsmin:nsmax) = 0
-!      CALL func
-      nsmin = MAX(1, startglobrow-1);  nsmax = MIN(ns, endglobrow+1)
 
       !----------------------------
       ! Column generation begins
-      ! REVERSE js ORDER IN XC, GC AND INTERNALLY IN ALL _PAR ROUTINES
       !----------------------------
       CALL second0(colstarttime)
 
@@ -367,16 +382,16 @@
 
               INHESSIAN=.TRUE.
               CALL second0(skston)
+              
               CALL func
               CALL second0(skstoff)
               hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
               INHESSIAN=.FALSE.
 
-              DO js = mystart(mesh), myend(mesh), 3
-                 xc(icol, js) = 0
-              END DO
-
+             
               SKIP3_MESH_LG: DO js = mystart(mesh), myend(mesh), 3
+
+                xc(icol, js) = 0
 
                 !ublk(js-1)
                 js1=js-1
@@ -393,13 +408,14 @@
                 !dblk(js)
                 IF (startglobrow.LE.js .AND. js.LE.endglobrow) THEN
                    DataItem = gc(:,js)/eps
-                   IF (ALL(DataItem .EQ. zero)) DataItem(icol) = -one
+                   IF (ALL(DataItem .EQ. zero)) DataItem(icol) = one
  
                    IF (l_diagonal_only) THEN
                       temp=DataItem(icol)
                       DataItem=0
                       DataItem(icol)=temp
                    END IF
+
                    CALL SetBlockTriDataStruct(SAVEDIAG,js,icol,DataItem) 
                    CALL SetBlockTriDataStruct(DIAG,js,icol,DataItem) 
                  END IF
@@ -427,31 +443,33 @@
       
       DEALLOCATE (DataItem, stat=istat)
       CALL ASSERT(istat.EQ.0,'DataItem deallocation error:')
-      DEALLOCATE (SavedDiag, stat=istat)
-      CALL ASSERT(istat.EQ.0,'SavedDiag deallocation error:')
 !----------------------------
 ! Column generation ends
 !----------------------------
 
       IF (lColScale) THEN
-         CALL second0(ton)
-         ALLOCATE (colsum(mblk_size,startglobrow:endglobrow))
-         CALL GetColSum(colsum)
-         CALL VectorCopyPar (colsum, col_scale)
-         CALL ParallelScaling(levmarq_param,colsum)
-         DEALLOCATE(colsum)
-         CALL second0(toff)
-         IF (iam.EQ.0 .AND. lverbose) PRINT '(1x,a,1p,e10.3)',          &
-             'COLUMN-SCALING TIME: ', toff-ton
+         CALL ApplyParallelScaling(levmarq_param, col_scale)
       ELSE 
          CALL FindMinMax_TRI (levmarq_param)
       END IF
 
       mindiag = Dmin_TRI
       maxeigen = MAXEIGEN_TRI
+!
+! CHECK CONDITION NUMBER
+!
+      IF (nprocs .EQ. 1) THEN
+         CALL second0(ton)
+         CALL CheckConditionNumber(ns,mblk_size,anorm,rcond,info)
+         CALL second0(toff)                  
+         IF (INFO .EQ. 0) THEN
+            PRINT '(1x,3(a,1p,e12.3))','RCOND = ', rcond,               &
+            ' ||A|| = ', ANORM,' TIME: ', toff-ton
+         END IF
+      END IF
 
 !
-!     CHECK SYMMETRY OF BLOCKS 
+! CHECK SYMMETRY OF BLOCKS 
 !
       IF (SYMMETRYCHECK) THEN
         CALL second0(skston)
@@ -459,9 +477,7 @@
         CALL second0(skstoff)
         asymmetry_check_time=asymmetry_check_time+(skstoff-skston)
       ENDIF      
-!
-!     SYMMETRIZE BLOCKS
-!
+
       CALL second0(toff)
       IF (l_Diagonal_Only) THEN
          time_diag_prec = time_diag_prec+(toff-ton)
@@ -474,7 +490,7 @@
       ton = toff
       skston = ton
 !
-!     FACTORIZE (Invert) HESSIAN
+!FACTORIZE (Invert) HESSIAN
 !
       IF (ALLOCATED(ipiv_blk)) DEALLOCATE(ipiv_blk,stat=istat)
       CALL ForwardSolve
@@ -489,74 +505,19 @@
 #endif
       END SUBROUTINE Compute_Hessian_Blocks_With_No_Col_Redist
 
-      SUBROUTINE PadSides(arrin, blksize, top, bot)
+
+      SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)     :: top, bot, blksize
-      REAL(dp), INTENT(INOUT) :: arrin(blksize, ns)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-#if defined(SKS)
-      INTEGER                 :: MPI_STAT(MPI_STATUS_SIZE)
-      INTEGER                 :: M1, left, right, tag1=1, tag2=2,       &
-                                 tr, t1l, tl, t1r
-!-----------------------------------------------
-      left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
-      right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
-
-      tr = endglobrow;              tl = startglobrow
-      t1r= MIN(endglobrow+1, ns);   t1l= MAX(1, startglobrow-1)
-
-!Send top / Rec bottom elements
-      M1 = blksize*top
-      CALL MPI_Sendrecv(arrin(:,tr-(top-1):tr), M1, MPI_REAL8,          &
-               right, tag1, arrin(:,t1l-(top-1):t1l), M1, MPI_REAL8,    &
-               left,  tag1, SIESTA_COMM, MPI_STAT, MPI_ERR)
-
-!Send bottom / Rec top boundary elements
-      M1 = blksize*bot
-      CALL MPI_Sendrecv(arrin(:,tl:tl+(bot-1)), M1, MPI_REAL8,          &
-               left,  tag2, arrin(:,t1r:t1r+(bot-1)), M1, MPI_REAL8,    &
-               right, tag2, SIESTA_COMM, MPI_STAT, MPI_ERR)
-#endif
-      END SUBROUTINE PadSides
-
-#if defined(SKS)
-      SUBROUTINE VectorCopyPar (colsum, colscale)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), INTENT(IN)  :: colsum(mblk_size,startglobrow:endglobrow)
-      REAL(dp), INTENT(OUT) :: colscale(mblk_size,ns)
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      INTEGER               :: js
-!-----------------------------------------------
-      DO js = startglobrow, endglobrow 
-        colscale(:,js) = colsum(:,js)
-      END DO
-
-      CALL PadSides(colscale, mblk_size, 1, 1)
-
-      END SUBROUTINE VectorCopyPar
-#endif
-
-      SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist (xc, gc, func,  &
-                 l_Hess_sym)
-!-----------------------------------------------
-!   D u m m y   A r g u m e n t s
-!-----------------------------------------------
-      REAL(dp), DIMENSION((1+mpol)*(2*ntor+1)*ndims,ns) :: xc, gc
-      LOGICAL, INTENT(IN) :: l_Hess_sym
+      REAL(dp), DIMENSION(mblk_size,ns) :: xc, gc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !----------------------------------------------
       REAL(dp), PARAMETER    :: zero=0, one=1
       INTEGER  :: n, m, js, js1, mesh, ntype, istat, iunit, icol, icolmpi
       EXTERNAL    :: func
+      REAL(dp), ALLOCATABLE, DIMENSION(:) :: SavedDiag
 #if defined(SKS)
       INTEGER, ALLOCATABLE, DIMENSION (:) :: sendCount, recvCount
       REAL(dp), ALLOCATABLE, DIMENSION (:) :: recvBuf
@@ -624,11 +585,9 @@
                   hessian_funct_island_time=hessian_funct_island_time+(skstoff-skston)
                   INHESSIAN=.FALSE.
 
-                  DO js = mystart(mesh), myend(mesh), 3
-                     xc(icol,js) = 0
-                  END DO
-
                   SKIP3_MESH: DO js = jstart(mesh), ns, 3
+
+                     xc(icol,js) = 0
 
                      !ublk(js-1)
                      js1 = js-1
@@ -651,7 +610,7 @@
                      !dblk(js)
                      DataItem = gc(:,js)/eps
                      IF (m.eq.0 .and. n.lt.0) DataItem = 0
-                     IF (ALL(DataItem .EQ. zero)) DataItem(icol) = -one
+                     IF (ALL(DataItem .EQ. zero)) DataItem(icol) = one
 
                      
                      IF (l_diagonal_only) THEN
@@ -766,13 +725,12 @@
 #endif
       END SUBROUTINE Compute_Hessian_Blocks_With_Col_Redist
 
-      SUBROUTINE Compute_Hessian_Blocks_Thomas (xc, gc, func, l_Hess_sym)
+
+      SUBROUTINE Compute_Hessian_Blocks_Thomas (xc, gc, func)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), DIMENSION((1+mpol)*(2*ntor+1)*ndims,ns),                &
-               INTENT(INOUT)  :: xc, gc
-      LOGICAL, INTENT(IN) :: l_Hess_sym
+      REAL(dp), DIMENSION(mblk_size,ns), INTENT(INOUT)  :: xc, gc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !----------------------------------------------
@@ -791,7 +749,6 @@
       starttime=0; endtime=0; usedtime=0
       colstarttime=0; colendtime=0; colusedtime=0
 #endif
-
 
 !------------------------------------------------------------
 !     COMPUTE (U)pper, (D)iagonal, and (L)ower Block matrices
@@ -880,7 +837,6 @@
       ALLOCATE (DataItem(mblk_size), stat=istat)
       CALL ASSERT(istat.EQ.0,'DataItem allocation failed!')
       DataItem = 0
-
       xc = 0
 
 #if defined(MPI_OPT)
@@ -914,8 +870,6 @@
 #endif
                   MESH_3PT: DO mesh = 1, 3
 
-                  xc = 0
-
                   DO js = jstart(mesh), ns, 3
                      xc(icol,js) = eps
                   END DO
@@ -943,6 +897,8 @@
 !              HESSIAN IS H(k,j) == dF(k)/dx(j); aj == lblk; dj == dblk; bj = ublk
 
                   SKIP3_MESH: DO js = jstart(mesh), ns, 3
+                  
+                     xc(icol,js) = 0
 
 !FORCE RESPONSE AT mp,np,nptype TO m,n,js,ntype VELOCITY PERTURBATION
  
@@ -961,21 +917,13 @@
 
                      !dblk(js)
                      DataItem = gc(:,js)/eps
-                     IF (ALL(DataItem .eq. zero)) DataItem(icol) = -one
+                     IF (ALL(DataItem .EQ. zero)) DataItem(icol) = one  
 
                      IF (l_Diagonal_Only) THEN
                         temp=DataItem(icol)
                         DataItem=0
                         DataItem(icol)=temp
                      END IF
-
-!Replace with FindMinMax_Ser call                     
-                     !IF (.NOT. lColScale) THEN                               
-                     !   temp = levmarq_param*DataItem(icol)
-                     !   DataItem(icol) = DataItem(icol)                 &
-					 !                  + SIGN(temp,DataItem(icol))
-					 !END IF
-                     
 
                      dblk(:,icolmpi,js) = DataItem
 
@@ -1008,7 +956,7 @@
          time_block_prec = time_block_prec+(toff-ton)
       END IF
 
-!SPH 071416 ADD COLUMN SCALING
+!SPH 071416 ADDED COLUMN SCALING OPTION
       IF (lColScale) THEN
          CALL SerialScaling
       ELSE
@@ -1026,8 +974,41 @@
       DEALLOCATE (DataItem, stat=istat)
       CALL ASSERT(istat.EQ.0,'DataItem deallocation error!')
 
+      IF (nprocs .EQ. 1) THEN
+
 !
-!     CHECK SYMMETRY OF BLOCKS 
+!SYMMETRIZE BLOCKS: REWRITE FOR nprocs>1 USING SCALAPACK (only works now for mblk_size2=mblk_size)
+!
+      IF (.NOT.l_Hess_sym .OR. nprocs.GT.1) GOTO 1000
+      ALLOCATE(gc1(mblk_size,ns), dblk_s(mblk_size, mblk_size2,ns))
+
+      DO icol = 1, mblk_size2      
+         gc1(:,1:nsh) = (ublk(icol,:,1:nsh) + lblk(:,icol,2:ns))/2
+         ublk(icol,:,1:nsh) = gc1(:,1:nsh)
+         lblk(:,icol,2:ns)  = gc1(:,1:nsh)
+         dblk_s(:,icol,:) = (dblk(icol,:,:) + dblk(:,icol,:))/2
+      END DO
+      
+      dblk = dblk_s
+ 
+      DEALLOCATE (gc1, dblk_s)
+ 1000 CONTINUE
+
+!
+!CHECK CONDITION NUMBER
+!
+         CALL second0(ton)
+         CALL CheckEigenvalues_Serial(ns, mblk_size)
+         CALL CheckConditionNumber_Serial(ns,mblk_size,anorm,rcond,info)
+         CALL second0(toff)                  
+         IF (INFO .EQ. 0) THEN
+            PRINT '(1x,3(a,1p,e12.3))','RCOND = ', rcond,               &
+            ' ||A|| = ', ANORM,' TIME: ', toff-ton
+         END IF
+      END IF
+
+!
+!CHECK SYMMETRY OF BLOCKS 
 !
       CALL second0(skston)
       IF (LSCALAPACK) THEN
@@ -1044,37 +1025,13 @@
 
  900  CONTINUE
 
-!
-!     SYMMETRIZE BLOCKS
-!
-      IF (.not. l_Hess_sym) GOTO 1000
-      icol = 0
-      ALLOCATE(gc1(mblk_size,ns))
-      
-      DO m = 0, mpol
-         DO n = -ntor, ntor
-            DO ntype = 1, ndims
-               icol = icol+1
-               gc1(:,1:nsh) = (ublk(icol,:,1:nsh)                       &
-                            +  lblk(:,icol,2:ns))/2
-               ublk(icol,:,1:nsh) = gc1(:,1:nsh)
-               lblk(:,icol,2:ns)  = gc1(:,1:nsh)
-               gc1(:,:) = (dblk(icol,:,:)                               &
-                       +  dblk(:,icol,:))/2
-               dblk(icol,:,:) = gc1(:,:)
-               dblk(:,icol,:) = gc1(:,:)
-            END DO
-         END DO
-      END DO
-
-      DEALLOCATE (gc1)
- 1000 CONTINUE
-
 !      IF (l_Diagonal_Only) RETURN
 
 
-!      IF (nprecon .eq. 4) l_backslv = .TRUE.
+!      l_backslv = (nprocs.EQ.1 .AND. nprecon.GE.2)                        !Controls when dump is made
       IF (l_backslv) THEN
+         istat = 0
+         IF (.NOT.ALLOCATED(dblk_s))                                    &
          ALLOCATE(ublk_s(mblk_size,mblk_size,ns),                       &
                   dblk_s(mblk_size,mblk_size,ns),                       &
                   lblk_s(mblk_size,mblk_size,ns),                       &   
@@ -1131,61 +1088,69 @@
 
       
       SUBROUTINE SerialScaling
-      USE shared_data, ONLY:    l_infnorm, niter
+      USE shared_data, ONLY:    lequi1, niter
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !----------------------------------------------
       REAL(dp), PARAMETER   :: zero=0, one=1
-      INTEGER               :: js, icol
-      REAL(dp)              :: eps, minScale, ton, toff
+      INTEGER               :: js, icol, icount
+      REAL(dp)              :: eps, minScale, ton, toff, colcnd
       REAL(dp), ALLOCATABLE :: col2(:), coltmp(:), col0(:,:)
 !----------------------------------------------
+      CALL ASSERT(ALL(col_scale.EQ.1), 'COL_SCALE != 1 INITIALLY IN SERIAL SCALING')
+      icount = 0
+
       CALL second0(ton)
 
-      IF (l_infnorm) THEN
-         minScale = 1.E-8_dp 
+      IF (lequi1) THEN
+         minScale = 1.E-5_dp 
       ELSE
-         minScale = 1.E-5_dp
+         minScale = 1.E-8_dp
       END IF
 
       ALLOCATE(colsum(mblk_size, ns), col2(mblk_size),                  &
                coltmp(mblk_size2), col0(mblk_size2, ns))
 
+ 111  CONTINUE
+
       BLOCK_ROW1: DO js = 1, ns    
       COLS1: DO icol = 1, mblk_size2
-         col2 = dblk(:,icol,js)**2
-         IF (l_infnorm) THEN
-            coltmp(icol) = MAXVAL(col2)
-         ELSE
+         col2 = ABS(dblk(:,icol,js))
+         IF (lequi1) THEN
             coltmp(icol) = SUM(col2)
+         ELSE
+            coltmp(icol) = MAXVAL(col2)
          END IF
          IF (js .GT. 1) THEN
-            col2 = ublk(:,icol,js-1)**2
-            IF (l_infnorm) THEN
-               coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))         
-            ELSE
+            col2 = ABS(ublk(:,icol,js-1))
+            IF (lequi1) THEN
                coltmp(icol) = coltmp(icol) + SUM(col2)         
+            ELSE
+               coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))         
             END IF
          END IF
          IF (js .LT. ns) THEN
-            col2 = lblk(:,icol,js+1)**2
-            IF (l_infnorm) THEN
-               coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))         
-            ELSE
+            col2 = ABS(lblk(:,icol,js+1))
+            IF (lequi1) THEN
                coltmp(icol) = coltmp(icol) + SUM(col2)         
+            ELSE
+               coltmp(icol) = MAX(coltmp(icol),MAXVAL(col2))         
             END IF
          END IF
       ENDDO COLS1
-         coltmp = SQRT(coltmp)
-         eps = minScale*MAXVAL(coltmp)
-         IF (eps .EQ. ZERO) eps = 1
-         WHERE (coltmp .LT. eps) coltmp = eps
+         eps = minScale*MAXVAL(coltmp)                                   !need ALL(DataItem.eq.zero) check
+         CALL ASSERT(eps.GT.zero,' coltmp == 0 in SerialScaling')
+         coltmp = MAX(coltmp, eps)
          coltmp = one/SQRT(coltmp)
          col0(:,js) = coltmp                                             !save original ordering for col factors
 
 !gather colsum onto mblk_size from nprocs (each with mblk_size2 cols)
 !and reorder ROW indices
-         IF (LSCALAPACK) CALL GatherCols(colsum(:,js), coltmp)
+         IF (LSCALAPACK) THEN
+            CALL GatherCols(colsum(:,js), coltmp)
+         ELSE
+            colsum(:,js) = coltmp
+         END IF
 
       ENDDO BLOCK_ROW1
 
@@ -1204,53 +1169,73 @@
          END DO COLS2
       END DO BLOCK_ROW2
 
+!MAXIMUM COLUMN VARIATIONS (like an inverse "Condition number")
+      colcnd = MAXVAL(colsum)
+      IF (colcnd .NE. ZERO) THEN
+         colcnd = ABS(MINVAL(colsum)/colcnd)
+      ELSE
+         colcnd = 1
+      END IF         
+
+      icount = icount + 1
+         
+!      IF (icount.LE.6 .AND. colcnd.LT.0.01_dp) GO TO 111                 !dgeequ logic
+
       DEALLOCATE(colsum, col0, col2, coltmp)
 
-      CALL second0(toff)
-      IF (iam.EQ.0 .AND. lverbose) PRINT '(1x,a,1p,e10.3)',             &
-         'COLUMN-SCALING TIME: ', toff-ton
-      
       CALL FindMinMax_TRI_Serial
+      CALL second0(toff)
+      IF (iam.EQ.0 .AND. lverbose) PRINT '(1x,3(a,1p,e10.3))',          &
+         'COLUMN-SCALING TIME: ', toff-ton, ' COLCND: ', colcnd,        &
+         ' DMINL: ', DMIN_TRI*ABS(levmarq_param)
+
 
       END SUBROUTINE SerialScaling
       
-      
+!>  \brief subroutine for adding levmarq parameter to diagonal matrix elements
       SUBROUTINE FindMinMax_TRI_Serial
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !----------------------------------------------
       REAL(dp), PARAMETER  :: minThreshold=1.E-6, zero=0
       INTEGER              :: js, icol, jrow
-      REAL(dp)             :: eps, Dmin_TRI, DminL, s1, ton, toff
+      REAL(dp)             :: eps, DminL, s1(2), r1(2), sign_diag=-1
 !----------------------------------------------
       maxeigen = 0
+      
       Dmin_TRI = HUGE(Dmin_TRI)
-
-      CALL second0(ton)
 
       BLOCK_ROW3: DO js = 1, ns
          mindiag = 0
          jrow = 1+iam
          COLS1: DO icol = 1, mblk_size2
-            mindiag = MAX(mindiag, ABS(dblk(jrow,icol,js)))
+            eps = dblk(jrow,icol,js)
+            IF (ABS(eps) .GT. minDiag) THEN
+               minDiag = ABS(eps)
+               sign_diag = eps/minDiag
+            END IF 
+            maxeigen = MAX(maxeigen, ABS(lblk(jrow,icol,js))            &
+                     + ABS(dblk(jrow,icol,js)) + ABS(ublk(jrow,icol,js)))
+      
             jrow = jrow + nprocs
          END DO COLS1
 
 #if defined(MPI_OPT)      
          IF (LSCALAPACK) THEN
-            s1 = mindiag
-            CALL MPI_ALLREDUCE(s1,mindiag,1,MPI_REAL8, MPI_MAX,         &
+            s1(1) = minDiag; s1(2) = maxeigen
+            CALL MPI_ALLREDUCE(s1,r1,1,MPI_REAL8, MPI_MAX,              &
                                SIESTA_COMM, MPI_ERR)
+            minDiag = r1(1);  maxeigen = r1(2)
          END IF
 #endif      
-         mindiag = minThreshold*mindiag
+         minDiag = minThreshold*minDiag
          IF (minDiag .EQ. zero) minDiag = minThreshold
          
          jrow = 1+iam
       COLS2: DO icol = 1, mblk_size2
          eps = dblk(jrow,icol,js) 
 	     IF (ABS(eps) .LE. mindiag) THEN
-	        dblk(jrow,icol,js) = -mindiag
+	        dblk(jrow,icol,js) = sign_diag*mindiag
          ELSE IF (js .LT. ns) THEN
 	        Dmin_TRI = MIN(MAX(1.E-12_dp,ABS(eps)), Dmin_TRI)
 	     END IF
@@ -1265,16 +1250,16 @@
                             SIESTA_COMM, MPI_ERR)
       END IF
 #endif
-      mindiag = SIGN(Dmin_TRI, eps)
-      DminL = levmarq_param*mindiag
+      minDiag = sign_diag*Dmin_TRI
+      DminL = ABS(levmarq_param)*minDiag
       
-!      IF (iam .eq. 0) WRITE(1000+nprocs,*) Dmin_TRI
-
 !SPH061016: RESTORE LM PARAMETER
       DO js = 1, ns
          jrow = 1+iam
 	  COLS3: DO icol = 1, mblk_size2
           eps = dblk(jrow,icol,js)
+          CALL ASSERT(sign_diag*eps.GT.zero,                            &
+                     ' EPS*SIGN_DIAG < 0 IN FindMinMax_TRI_Serial')
           IF (lColScale) THEN
              dblk(jrow,icol,js) = eps + SIGN(DminL,eps)
           ELSE
@@ -1285,95 +1270,9 @@
       END DO
 
       CALL second0(toff)
-      IF (iam.EQ.0 .AND. lverbose) PRINT '(1x,a,1p,e10.3)',             &
-         'FINDMINMAX TIME: ', toff-ton
       
       END SUBROUTINE FindMinMax_TRI_Serial
       
-
-      SUBROUTINE FindMinMax_TRI_Serial_SCAL_SLOW
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!----------------------------------------------
-      REAL(dp), PARAMETER   :: minThreshold=1.E-6, zero=0
-      INTEGER               :: js, icol, istat
-      REAL(dp)              :: eps, Dmin_TRI, DminL, alpha, s1
-      REAL(dp), ALLOCATABLE :: diag(:,:)
-      CHARACTER(LEN=1), PARAMETER  :: TOP =' ', SCOPE='C'
-      
-      REAL(dp) :: ton, toff
-!----------------------------------------------
-      maxeigen = 0
-      Dmin_TRI = HUGE(Dmin_TRI)
-      ALLOCATE (diag(mblk_size, ns), stat=istat)
-      CALL ASSERT(istat.EQ.0,'Allocation error in FindMinMax')
-
-      CALL second0(ton)
-      
-!THE SCALAPACK WAY
-      BLOCK_ROW1: DO js = 1, ns
-         mindiag = 0
-         COLS1: DO icol = 1, mblk_size
-            IF (LSCALAPACK) THEN
-#if defined(MPI_OPT)            
-               CALL PDELGET(SCOPE, TOP, ALPHA, dblk(:,:,js),            &  !'C' is much faster than 'A' (or 'R')
-                            ICOL, ICOL, DESCA_1xp)
-#endif               
-            ELSE
-               ALPHA=dblk(icol,icol,js)
-            END IF
-            diag(icol,js) = alpha
-            mindiag = MAX(mindiag, ABS(alpha))
-         END DO COLS1
-         
-         IF (LSCALAPACK .AND. SCOPE.NE.'A') THEN
-            s1 = mindiag
-            CALL MPI_ALLREDUCE(s1,mindiag,1,MPI_REAL8, MPI_MAX,         &
-                               SIESTA_COMM, MPI_ERR)
-         END IF
-
-         mindiag = minThreshold*mindiag
-         IF (minDiag .EQ. zero) minDiag = minThreshold
-         
-      COLS2: DO icol = 1, mblk_size
-         eps = diag(icol, js)
-	     IF (ABS(eps) .LE. mindiag) THEN
-            diag(icol, js) = -mindiag
-         ELSE IF (js .LT. ns) THEN
-	        Dmin_TRI = MIN(MAX(1.E-12_dp,ABS(eps)), Dmin_TRI)
-	     END IF
-      END DO COLS2
-      END DO BLOCK_ROW1
-
-      mindiag=SIGN(Dmin_TRI, eps)
-      DminL = levmarq_param*mindiag
-            
-!RESTORE LM PARAMETER
-      BLOCK_ROW2: DO js = 1, ns
-	  COLS3: DO icol = 1, mblk_size
-          eps = diag(icol, js)
-          IF (lColScale) THEN
-             alpha = eps + SIGN(DminL,eps)
-          ELSE
-             alpha = eps*(1+ABS(levmarq_param))
-          END IF
-          IF (LSCALAPACK) THEN
-#if defined(MPI_OPT)            
-             CALL PDELSET(dblk(:,:,js), ICOL, ICOL, DESCA_1xp, ALPHA)
-#endif
-          ELSE
-             dblk(icol,icol,js) = alpha
-          ENDIF
-	  END DO COLS3
-      END DO BLOCK_ROW2
-
-      DEALLOCATE (diag)
-      
-      CALL second0(toff)
-      IF (iam.EQ.0 .AND. lverbose) PRINT '(1x,a,1p,e10.3)',             &
-         'FINDMINMAX TIME: ', toff-ton
-      
-      END SUBROUTINE FindMinMax_TRI_Serial_SCAL_SLOW
 
       SUBROUTINE VECTOR_COPY_SER(colsum, colscale)
 !-----------------------------------------------
@@ -1383,19 +1282,171 @@
       REAL(dp), INTENT(OUT) :: COLSCALE(mblk_size,ns)
 !-----------------------------------------------
       
-      COLSCALE = COLSUM
+      COLSCALE = COLSUM * COLSCALE
 
-      END SUBROUTINE
+      END SUBROUTINE VECTOR_COPY_SER
+      
+      
+      SUBROUTINE CheckEigenvalues_Serial(nblock, bsize)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)    :: nblock, bsize
+!-----------------------------------------------
+      INTEGER, SAVE          :: nCount=0
+      CHARACTER*1, PARAMETER :: JOBZ='N', UPLO='U'
+      INTEGER                :: KD, N, LWORK, LDZ, OFFK, OFFS, OFFSU,   &
+                                ROWMIN, ROWMAX, I, J, ICOL, JS, LDAB
+      REAL(dp), ALLOCATABLE, DIMENSION(:)  :: W, ACOL, WORK
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: AB, Z, BAND
+      REAL(dp)               :: ton, toff
+!-----------------------------------------------
+      nCount = nCount+1
+      
+      IF (nCount .NE. 17) RETURN
+      CALL second0(ton)
+      
+      KD = 2*bsize-1
+      N = nblock*bsize; LDAB = KD+1; LDZ = 1
+      LWORK = MAX(1,3*N-2)
+      offk = kd+1
+      offs = 0
+      offsu = bsize
+      
+      ALLOCATE (W(N), ACOL(N), WORK(LWORK), AB(LDAB,N), stat=I)
+      CALL ASSERT(I.EQ.0,'Allocation error in CheckEigenvalues_Serial')
+      IF (JOBZ .NE. 'N') ALLOCATE(Z(LDZ,N))
+      AB = 0    !stores (upper) bands (A assumed symmetric)
+      
+!compute each col (labelled "j") for all rows ACOL(1:n1)
+      DO JS = 1, nblock
+         DO ICOL = 1, bsize
+            j = offs + icol
+            ROWMIN = offs-bsize+1; ROWMAX = offsu+bsize
+            IF (JS .GT. 1)                                              &
+            ACOL(rowmin:offs) = ublk(:,icol,js-1)  
+            IF (JS .LT. nblock)                                         &
+            ACOL(offsu+1:rowmax) = lblk(:,icol,js+1) 
+            ACOL(offs+1:offsu) = dblk(:,icol,js) 
+          
+            DO i = MAX(1,j-kd,rowmin), MIN(j,n,rowmax)
+               AB(offk+i-j,j) = ACOL(i)
+            END DO
+            
+         END DO
+
+         offs = offsu
+         offsu = offsu + bsize
+         
+      END DO
+
+!real SYMMETRIC band matrix
+      CALL DSBEV( JOBZ, UPLO, N, KD, AB, LDAB, W, Z, LDZ, WORK, INFO )
+
+      DEALLOCATE (AB, ACOL)
+      
+      DO J = 1, N
+         WRITE (4000+ncount, '(i5,1p,2e12.4)') J, W(J), W(J)/W(1)
+      END DO
+      CALL FLUSH(4000+ncount)
+
+      DEALLOCATE (W)
+      IF (JOBZ .NE. 'N') DEALLOCATE(Z)
+      
+      CALL second0(toff)
+      PRINT 100,' Eigenvalue TIME: ', (toff-ton), ' INFO: ', info,      &
+                ' Eigenvalues written to FORT.',4000+ncount
+ 100  FORMAT(a,1p,e10.2,2(a,i4))      
+      
+      END SUBROUTINE CheckEigenvalues_Serial
+      
+
+      SUBROUTINE CheckConditionNumber_Serial(nblock,bsize,anorm,rcond,info)
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      INTEGER, INTENT(IN)   :: nblock, bsize
+      INTEGER, INTENT(OUT)  :: info
+      REAL(dp), INTENT(OUT) :: anorm, rcond
+!-----------------------------------------------
+      REAL(dp), PARAMETER   :: zero=0, one=1
+      CHARACTER(LEN=1),PARAMETER :: CHNORM='1'                          !1 (1-norm) or 'I' for infinity norm
+      INTEGER :: N1, JS, ICOL, ISTAT, OFFS, OFFSU, I, J, KU, KL,        &
+                 LDAB, OFFK, ROWMIN, ROWMAX
+      INTEGER, ALLOCATABLE     :: IWORK(:), IPIV(:)
+      REAL(dp), ALLOCATABLE    :: WORK(:), ACOL(:), AB(:,:)
+      REAL(dp)                 :: ROWCND, COLCND, AMAX
+!-----------------------------------------------
+      N1 = bsize*nblock
+
+      ALLOCATE (ACOL(N1), stat=istat)     
+      CALL ASSERT(ISTAT.EQ.0,'COND # ALLOCATION1 FAILED IN HESSIAN')
+
+      ku = 2*bsize-1
+      kl = 2*bsize-1
+      ldab = 2*kl+ku+1
+      offk = kl+ku+1
+  
+      ALLOCATE(AB(ldab, n1), ipiv(n1), iwork(n1), work(3*n1),         &
+               stat=istat)
+      CALL ASSERT(ISTAT.EQ.0,'COND # ALLOCATION2 FAILED IN HESSIAN')
+
+      offs = 0
+      offsu = bsize
+      ANORM = 0
+      AB = 0    !stores bands
+
+!compute each col (labelled "j") for all rows ACOL(1:n1)
+      DO JS = 1, nblock
+         DO ICOL = 1, bsize
+            j = offs + icol
+            ROWMIN = offs-bsize+1; ROWMAX = offsu+bsize
+            IF (JS .GT. 1)                                              &
+            ACOL(rowmin:offs) = ublk(:,icol,js-1)  
+            IF (JS .LT. nblock)                                         &
+            ACOL(offsu+1:rowmax) = lblk(:,icol,js+1) 
+            ACOL(offs+1:offsu) = dblk(:,icol,js) 
+
+            IF (JS.EQ.1) THEN
+            ROWMIN = offs+1
+            ELSE IF (JS.EQ.nblock) THEN
+            ROWMAX = offsu
+            END IF
+            ANORM = MAX(ANORM, SUM(ABS(ACOL(rowmin:rowmax))))      
+           
+            DO i = MAX(1,j-ku,rowmin), MIN(n1,j+kl,rowmax)
+               AB(offk+i-j,j) = ACOL(i)
+            END DO
+            
+         END DO
+
+         offs = offsu
+         offsu = offsu + bsize
+         
+      END DO
+      
+      DEALLOCATE (ACOL)
+
+      CALL DGBTRF( N1, N1, KL, KU, AB, LDAB, IPIV, INFO )
+      IF (INFO.EQ.0)                                                    &
+      CALL DGBCON( '1', N1, KL, KU, AB, LDAB, IPIV, ANORM, RCOND,       &
+                  WORK, IWORK, INFO )
+
+      DEALLOCATE(AB, work, iwork, ipiv)
+
+      IF (info.EQ.0 .AND. rcond.NE.zero) THEN
+         RCOND = one/RCOND
+      ELSE
+         RCOND = -one
+      END IF
+
+      END SUBROUTINE CheckConditionNumber_Serial
 
 !#define SVD_ON
 !#undef SVD_ON
 
       SUBROUTINE blk3d_factor(a, bm1, bp1, ipiv, mblk, nblocks)
       USE stel_constants, ONLY: one, zero
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
-      INTEGER, PARAMETER  :: bytes_per_rprec2 = 8
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -1413,7 +1464,7 @@
       REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: temp
 #if defined(SVD_ON)
       REAL(dp), ALLOCATABLE, DIMENSION(:)   :: w, work
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: v, u
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:) :: vt, u
       REAL(dp), PARAMETER :: small = 1.E-300_dp
       INTEGER :: nw
       INTEGER :: lwork
@@ -1487,23 +1538,12 @@
 !
 !      ndisk = mblk
 
-!  create disk file for doing direct access i/o.
-
-!      incnow = ndisk
-!      irecl  = bytes_per_rprec2*incnow
-!      incbu = 1 + (ndisk - 1)/incnow
-!      ibuph = 0
-
-!      iunit = 10
-!      CALL safe_open(iunit, ier, 'NULL', 'scratch', 'unformatted',
-!     1     irecl, 'DIRECT')
-
 !  main loop. load and process (backwards) block-rows nblocks to 1. 
 
 #if defined(SVD_ON)
       lwork = 10*mblk
-      ALLOCATE(v(mblk,mblk), w(mblk),   &
-     &         u(mblk,mblk), work(lwork), stat=ier)
+      ALLOCATE(vt(mblk,mblk), w(mblk),                                  &
+               u(mblk,mblk), work(lwork), stat=ier)
       CALL ASSERT(ier.EQ.0,'Allocation error in blk3d_factor!')
 #endif
       ipiv = 0
@@ -1519,21 +1559,23 @@
 #if defined(SVD_ON)
 !NOTE: v = vt coming out here
          CALL dgesvd (jobu, jobvt, mblk, mblk, amat, mblk, w, u, mblk,  &
-        &             v, mblk, work, lwork, ier)
+                      vt, mblk, work, lwork, ier)
 !Set SVD weights w to 0 for weights below the allowed threshold, so backsolver
 !will compute pseudo-inverse
          WRITE (35, '(a,i4,a,1pe12.4)') 'Block: ',k, ' Condition #: ', SQRT(w(1)/w(mblk))
+         PRINT '(a,i4,a,1pe12.4)',' BLOCK: ',k,' SVD COND #: ', SQRT(w(1)/w(mblk))
          DO nw = 2, mblk
-            IF (w(nw) .le. small*w(1)) w(nw) = 0
+            IF (w(nw) .LE. small*w(1)) w(nw) = 0
          END DO
+	     CALL ASSERT(ier.EQ.0,'SVD ERROR')
 !
-!        STORE svd pseudo-inverse IN AMAT since u,v,w will be deallocated at end
-         CALL svdinv2 (amat, u, v, w, mblk)
+!        STORE svd pseudo-inverse IN AMAT since u,vt,w will be deallocated at end
+         CALL svdinv2 (amat, u, vt, w, mblk)
 #else
          ipivot => ipiv(:,k)
          CALL dgetrf (mblk, mblk, amat, mblk, ipivot, ier)
+	     CALL ASSERT(ier.EQ.0,'DGETRF ERROR')
 #endif
-         IF (ier .NE. 0) GOTO 200
          IF (k .eq. 1) EXIT
 
          bmat => bm1(:,:,k)
@@ -1546,8 +1588,8 @@
          bmat = MATMUL(amat, temp)
 #else
          CALL dgetrs('n', mblk, mblk, amat, mblk, ipivot,               &
-     &                bmat, mblk, ier)
-         IF (ier .NE. 0) GOTO 305
+                      bmat, mblk, ier)
+         CALL ASSERT(ier.EQ.0,'dgetrs INFO != 0')
 #endif
 !         CALL wrdisk(iunit, ql, ndisk, incnow, ibuph, incbu, ier)
 !         IF (ier .NE. 0) GOTO 302
@@ -1560,12 +1602,12 @@
          cmat => a(:,:,k1)
 !         cmat = cmat - MATMUL(amat, bmat)
          CALL dgemm('N','N',mblk,mblk,mblk,-one,amat,mblk,              &
-     &              bmat, mblk, one, cmat, mblk)
+                    bmat, mblk, one, cmat, mblk)
 
       END DO BLOCKS
 
 #if defined(SVD_ON)
-      DEALLOCATE(v, w, u, work)
+      DEALLOCATE(vt, w, u, work)
 #endif
 !
 !     COMPUTE TRANSPOSES HERE, SINCE REPEATEDLY CALLING MATMUL OPERATION
@@ -1585,37 +1627,6 @@
 
       DEALLOCATE (temp)
 
-      GOTO 400
-
-!  error returns. ------------------------------------------------------
-
-  200 CONTINUE
-!          < 0:  if info = -i, the i-th argument had an illegal value
-!          > 0:  if info = i, u(i,i) is exactly zero. the factorization
-      WRITE (6, '(2x,a,i4)') 'Error factoring matrix in blk3d: block = '&
-                             , k
-      IF (ier < 0)WRITE (6,'(i4, a)') ier, 'th argument has illegal value'
-      IF (ier > 0)WRITE (6,'(i4, a)') ier, 'th diagonal factor exactly zero'
-      CALL ASSERT(.FALSE.,'Error in blk3d_factor')
-  301 CONTINUE
-!      WRITE (6, '(a,i8)') ' BLK3D:   error in opening file:  ',
-!     1   'RECL = ', irecl
-  302 CONTINUE
-      WRITE (6, '(a)') ' BLK3D:   error in I/O routine WRDISK'
-  303 CONTINUE
-      WRITE (6, '(a)') ' BLK3D:   error in I/O routine RDDISK'
-      ier = -2
-  305 CONTINUE
-      WRITE (6, '(2/a,i10,2/)')                                         &
-      ' BLK3D-FACTOR:   error detected:   ier =', ier
-      CALL ASSERT(.FALSE.,'Error in blk3d_factor')
-
-!  destroy disk file and return. ---------------------------------------
- 
-  400 CONTINUE
-
-!      CLOSE (iunit)
-
       END SUBROUTINE blk3d_factor
 
 
@@ -1629,7 +1640,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       REAL(dp), PARAMETER  ::  zero = 0
-      INTEGER :: m, n, js, ntype, istat, icol
+      INTEGER :: m, n, js, ntype, istat, irow
       REAL(dp) :: t1, error, error_sum, b_sum
       REAL(dp), ALLOCATABLE :: gc_s(:,:)
 #if defined(MPI_OPT)
@@ -1681,6 +1692,7 @@
          CALL second0(starttime)
 #endif
          IF (l_backslv) THEN
+            istat = 0
             IF (.NOT.ALLOCATED(gc_s)) ALLOCATE (gc_s(mblk_size,ns), stat=istat)
             CALL ASSERT(istat.EQ.0,'Allocation error0 in block_precond')
             gc_s = gc
@@ -1751,48 +1763,42 @@
       PRECONDPASS = PRECONDPASS + 1
 #endif
 
-#if !defined(MPI_OPT)
-      IF (l_backslv .AND. l_dumpslv) THEN
-	     l_dumpslv = .FALSE.
-         error_sum = 0;  b_sum = SUM(gc_s*gc_s)/neqs
+      IF (l_backslv .AND. ALLOCATED(dblk_s) .AND. .NOT.l_linearize) THEN
+         error_sum = 0;  b_sum = SQRT(SUM(gc_s*gc_s)/neqs)
+         CALL ASSERT(ALLOCATED(gc_s),'gc_s is not allocated')
 
-         WRITE (34, '(2(/,a))') ' BLK3D FACTORIZATION CHECK: Ax = b',    &
-              '  ICOL     M     N NTYPE         FORCE       DELTA*FORCE'
+         WRITE (34, '(2(/,a))') ' BLK3D FACTORIZATION CHECK: Ax = b',   &
+              '  IROW     M     N NTYPE         FORCE       DELTA-FORCE'
         
          DO js = startglobrow, endglobrow
-            icol = 0
+            irow = 0
 			WRITE (34,*) ' JS: ', js
          DO ntype = 1, ndims
             DO n = -ntor, ntor
                DO m = 0, mpol
-                  icol = icol+1
-				  IF (js .EQ. 1) THEN
-                  t1 = SUM(dblk_s(icol,:,js)*gc(:,js)                   &
-                     + ublk_s(icol,:,js)*gc(:,js+1))
-			      ELSE IF (js .EQ. ns) THEN
-                  t1 = SUM(lblk_s(icol,:,js)*gc(:,js-1)                 &
-                     + dblk_s(icol,:,js)*gc(:,js))
-				  ELSE
-                  t1 = SUM(lblk_s(icol,:,js)*gc(:,js-1)                 &
-                         + dblk_s(icol,:,js)*gc(:,js)                   &
-                         + ublk_s(icol,:,js)*gc(:,js+1))
-				  END IF
+                  irow = irow+1
+                  t1 = SUM(dblk_s(irow,:,js)*gc(:,js))                   
+				  IF (js .LT. ns)                                       &
+                     t1 = t1 + SUM(ublk_s(irow,:,js)*gc(:,js+1))
+			      IF (js .GT. 1)                                        &
+                     t1 = t1 + SUM(lblk_s(irow,:,js)*gc(:,js-1)) 
 
-                  error = t1 - gc_s(icol,js)
-                  error_sum = error_sum + error*error
-                  WRITE(34,110) icol, m, n, ntype, gc_s(icol,js)/SQRT(b_sum), error/SQRT(b_sum)
+                  error = t1 - gc_s(irow,js)
+                  error_sum = error_sum + error**2
+                  WRITE(34,110) irow, m, n, ntype,                      &
+                  gc_s(irow,js)/b_sum, error/b_sum
                END DO
             END DO
          END DO
          END DO
 
-!         DEALLOCATE(dblk_s, lblk_s, ublk_s, gc_s, stat=istat)
-
-         IF (lverbose) PRINT *,'Hessian Error: ', SQRT((error_sum/neqs)/b_sum)
+         DEALLOCATE(dblk_s, lblk_s, ublk_s, gc_s, stat=istat)
+         IF (lverbose) PRINT '(3(a,1pe12.4))',' |b|: ', b_sum,          &
+                       ' |x| = ', SQRT(SUM(gc*gc)/neqs),                &
+                       ' Hessian Error: ', SQRT(error_sum/neqs)/b_sum
 
       END IF
  110  FORMAT(4i6,1p,2e16.4)
-#endif
 
  100  FORMAT(i6,1p,5e14.4)
  101  FORMAT(i6,1p,5e14.4,'  *')
@@ -1804,8 +1810,7 @@
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp), DIMENSION(mblk_size,ns), INTENT(inout) :: gc
-!      LOGICAL, INTENT(in)                              :: ltype
+      REAL(dp), DIMENSION(mblk_size,ns), INTENT(INOUT) :: gc
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
@@ -1826,10 +1831,6 @@
       SUBROUTINE blk3d_slv(ablk, qblk, bp1, source, ipiv, mblk, nblocks)
       USE stel_kinds
       USE stel_constants, ONLY: one
-!-----------------------------------------------
-!   L o c a l   P a r a m e t e r s
-!-----------------------------------------------
-      INTEGER, PARAMETER :: bytes_per_rprec2 = 8
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -1905,17 +1906,6 @@
 !                       Faster than dgesl
 !      ndisk = mblk
 
-!  create disk file for doing direct access i/o.
-
-!      incnow = ndisk
-!      irecl  = bytes_per_rprec2*incnow
-!      incbu = 1 + (ndisk - 1)/incnow
-!      ibuph = 0
-
-!      iunit = 10
-!      CALL safe_open(iunit, ier, 'NULL', 'scratch', 'unformatted',
-!     1     irecl, 'DIRECT')
-
 !  main loop. load and process (backwards) block-rows nblocks to 1. 
 !  note: about equal time is spent in calling dgetrs and in performing
 !  the two loop sums: on ibm-pc, 2 s (trs) vs 3 s (sums); on linux (logjam),
@@ -1929,11 +1919,11 @@
          source_ptr => source(:,k)
          amat => ablk(:,:,k)
 #if defined(SVD_ON)
-         !source_sp = MATMUL(amat, source_sp)
+         source_ptr = MATMUL(amat, source_ptr)
 #else
          ipivot => ipiv(:,k);   
          CALL dgetrs('n', mblk, 1, amat, mblk, ipivot, source_ptr, mblk, ier)
-         IF (ier .NE. 0) GOTO 305
+		 CALL ASSERT(ier.EQ.0,'DGETRS INFO != 0')
 #endif
          IF (k .eq. 1) EXIT
 !
@@ -1942,8 +1932,6 @@
 !
          amat => bp1(:,:,k-1)
          x1 => source(:,k);  source_ptr => source(:,k-1)
-!         source_ptr = source_ptr - MATMUL(x1,amat)  !USE THIS FORM IF TRANSPOSED bp1
-!         source_ptr = source_ptr - MATMUL(amat,x1)  !UNTRANSPOSED FORM
          CALL dgemv('T',mblk,mblk,-one,amat,mblk,x1,1,one,source_ptr,1)
 
       END DO BLOCKS
@@ -1963,28 +1951,6 @@
          CALL dgemv('T',mblk,mblk,-one,amat,mblk,x1,1,one,source_ptr,1)
 
       END DO
-
-      GOTO 400
-
-!  error returns. ------------------------------------------------------
-
-  301 CONTINUE
-!      WRITE (6, '(a,i8)') ' BLK3D:   error in opening file:  ',
-!     1   'RECL = ', irecl
-  302 CONTINUE
-      WRITE (6, '(a)') ' BLK3D:   error in I/O routine WRDISK'
-  303 CONTINUE
-      WRITE (6, '(a)') ' BLK3D:   error in I/O routine RDDISK'
-      ier = -2
-  305 CONTINUE
-      WRITE (6, '(2/a,i10,2/)') ' BLK3D-SLV:   error detected:   ier =', ier
-      CALL ASSERT(.FALSE.,'Error in blk3d_slv')
-
-!  destroy disk file and return. ---------------------------------------
-
-  400 CONTINUE
-
-!      CLOSE (iunit)
 
       END SUBROUTINE blk3d_slv
 

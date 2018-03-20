@@ -47,7 +47,9 @@
                                 nprow, npcol, icontxt, icontxt_1xp,            &
                                 icontxt_px1, icontxt_global, isroot,           &
                                 myrow, mycol
+#if defined(MPI_OPT)
       USE prof_mod, ONLY: profinit
+#endif      
       USE shared_data, ONLY: nprecon, lverbose
       USE perturbation, ONLY: init_data
       USE hessian, ONLY: HESSPASS
@@ -133,7 +135,9 @@
 
       CALL init_data(nprecon)
       CALL second0(toff)
+#if defined(SKS)      
       init_data_time = toff - ton
+#endif      
 
 1000  FORMAT('nprow,npcol ',2(x,i5))
 1001  FORMAT('icontxt_global,icontxt,icontxt_1xp,icontxt_px1 ',4(x,i5))
@@ -165,15 +169,17 @@
       USE descriptor_mod, ONLY: iam, icontxt, LSCALAPACK, myrow, mycol, nprocs
       USE shared_data, ONLY: nprecon, xc, gc, fsq_total1, mblk_size,    &
                              niter, col_scale, lverbose, ngmres_type,   &
-                             lColScale
+                             lColScale, gc_sup
       USE hessian, ONLY: levmarq_param, mupar, asym_index, dealloc_hessian
       USE quantities, ONLY: fbdy, dealloc_quantities
       USE dumping_mod, ONLY: write_output
       USE diagnostics_mod, ONLY: write_profiles, dealloc_diagnostics
-      USE perturbation, ONLY: nsin, wout_file
+      USE siesta_namelist, ONLY: wout_file
+      USE island_params, ONLY: ns_i
       USE metrics, ONLY: cleanup_metric_elements, dealloc_full_lower_metrics
+#if defined(MPI_OPT)
       USE prof_mod, ONLY: profstat
-
+#endif
       IMPLICIT NONE
 
 !  Declare Arguments
@@ -189,8 +195,9 @@
 !  Start of executable code
       CALL second0(toff)
       time_total = toff - this%time_on
+#if defined(SKS)
       total_time = toff - this%time_on
-      
+#endif      
 #if defined(SKS)
       IF (OUTPUT_TIMINGS) THEN
          CALL GetTimes
@@ -245,7 +252,7 @@
             WRITE (i,101)' TIME BDOTJ     : ', time_bdotj
             WRITE (i,*)
             WRITE (i,102)' M (block size) :', mblk_size
-            WRITE (i,102)' N (block rows) :', nsin
+            WRITE (i,102)' N (block rows) :', ns_i
             WRITE (i,102)' P (processors) :', nprocs
          END DO
       ENDIF
@@ -266,7 +273,7 @@
       CALL dealloc_hessian
       CALL dealloc_diagnostics
       CALL dealloc_full_lower_metrics
-      IF (ALLOCATED(xc)) DEALLOCATE(xc, gc)
+      IF (ALLOCATED(xc)) DEALLOCATE(xc, gc, gc_sup)
       IF (ALLOCATED(col_scale)) DEALLOCATE(col_scale)
 
 #if defined(MPI_OPT)
@@ -336,7 +343,7 @@
 !>  @param[inout] this A @ref siesta_run_class instance.
 !-------------------------------------------------------------------------------
       SUBROUTINE siesta_run_set_vmec(this)
-      USE perturbation, ONLY: nsin, mpolin, ntorin, wout_file
+      USE siesta_namelist, ONLY: nsin, nsin_ext, mpolin, ntorin, wout_file
       USE metrics, ONLY: init_metric_elements
       USE quantities, ONLY: init_quantities
       IMPLICIT NONE
@@ -350,15 +357,17 @@
 
 !  Start of executable code
       CALL second0(ton)
-      CALL init_metric_elements(nsin, mpolin, ntorin, wout_file)
+      CALL init_metric_elements(nsin, nsin_ext, mpolin, ntorin, wout_file)
       CALL second0(toff)
+#if defined(SKS)
       init_metric_elements_time = toff - ton
-
+#endif
       CALL second0(ton)
       CALL init_quantities
       CALL second0(toff)
+#if defined(SKS)
       init_quantities_time = toff - ton
-
+#endif
       END SUBROUTINE
 
 !*******************************************************************************
@@ -380,8 +389,8 @@
       USE shared_data, ONLY: nprecon
       USE evolution, ONLY: init_evolution, converge_diagonal, converge_blocks
       USE descriptor_mod, ONLY: iam, nprocs, DIAGONALDONE
-      USE island_params, mpol=>mpol_i, ntor=>ntor_i
-      USE perturbation, ONLY: nsin, mpolin, ntorin, ftol, lrestart, wout_file
+      USE island_params, mpol=>mpol_i, ntor=>ntor_i, ns=>ns_i
+      USE siesta_namelist, ONLY: ftol, lrestart, wout_file
 #if defined(SKS)
       USE nscalingtools, ONLY: initRemap
 #endif
@@ -406,32 +415,37 @@
       CALL second0(ton)
       CALL init_evolution
 #if defined(SKS)
-      CALL initRemap(mpolin, ntorin, nsin, nprocs, iam)
+      CALL initRemap(mpol, ntor, ns, nprocs, iam)
 #endif
       CALL InitHess
       CALL second0(toff)
+#if defined(SKS)
       init_evolution_time = init_evolution_time + (toff - ton)
-
+#endif
       CALL second0(ton)
       IF (.not.lrestart) CALL Init_Fields
       DEALLOCATE (sqrtg)
       CALL second0(toff)
+#if defined(SKS)
       init_quantities_time = init_quantities_time + (toff - ton)
-
+#endif
 !  Converge initial residues with diagonal preconditioner
       DIAGONALDONE = .FALSE.
       CALL second0(ton)
       CALL converge_diagonal(wout_file, ftol)
       CALL second0(toff)
+#if defined(SKS)
       converge_diagonal_time = converge_diagonal_time + (toff - ton)
+#endif
       DIAGONALDONE=.TRUE.
 
 !  Converge using block preconditioner
       CALL second0(ton)
       CALL converge_blocks(wout_file, ftol)
       CALL second0(toff)
+#if defined(SKS)
       converge_blocks_time = converge_blocks_time + (toff - ton)
-
-      END SUBROUTINE
+#endif
+      END SUBROUTINE siesta_run_converge
 
       END MODULE

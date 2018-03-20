@@ -88,26 +88,17 @@
 !-----------------------------------------------
       INTEGER :: istat
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: bsq_loc
-      REAL(dp) :: beta, r0, ton, toff, stes(6), rtes(6), wb0
+      REAL(dp) :: beta, ton, toff, stes(6), rtes(6), tmp
 !-----------------------------------------------
       CALL second0(ton)
 
       n1=MAX(1, startglobrow); n2=MIN(ns,endglobrow)
+      nsmin = LBOUND(bsupsijh,3); nsmax = UBOUND(bsupsijh,3)
 
-      IF (lcurr) THEN
-         nsmin=MAX(1, startglobrow-1); nsmax=MIN(ns,endglobrow+2)
-      ELSE
-         nsmin=MAX(1, startglobrow);   nsmax=MIN(ns,endglobrow+1)
-      END IF
-
-      CALL ASSERT(LBOUND(bsupsijh,3).EQ.nsmin,                          &
-                 'BSUPSIJH HAS WRONG LB IN CV_CURRENTS')
-      CALL ASSERT(UBOUND(bsupsijh,3).EQ.nsmax,                          &
-                 'BSUPSIJH HAS WRONG UB IN CV_CURRENTS')
-      CALL ASSERT(LBOUND(ksupsijf,3).EQ.nsmin,                          &
-                 'KSUPSIJF HAS WRONG LB IN CV_CURRENTS')
-      CALL ASSERT(UBOUND(ksupsijf,3).EQ.nsmax,                          &
-                 'KSUPSIJF HAS WRONG UB IN CV_CURRENTS')
+!      CALL ASSERT(LBOUND(ksupsijf,3).EQ.nsmin,                          &
+!                 'KSUPSIJF HAS WRONG LB IN CV_CURRENTS')
+!      CALL ASSERT(UBOUND(ksupsijf,3).EQ.nsmax,                          &
+!                 'KSUPSIJF HAS WRONG UB IN CV_CURRENTS')
 
 ! Calculate covariant BsubXh on half mesh
       ALLOCATE(bsubsijh(ntheta,nzeta,nsmin:nsmax),                      &
@@ -123,7 +114,7 @@
          ALLOCATE(mupar_norm(nsmin:nsmax), stat=istat)
          CALL ASSERT(istat.EQ.0,'MUPAR_NORM ALLOCATION FAILED!')
          beta = MAX(1.E-5_dp, wp_i/wb_i)
-         mupar_norm = signjac*beta / rmajor_i**2  !/ vp_f(nsmin:nsmax)     !put 1/jac correction factor in AddDamping
+         mupar_norm = signjac*beta / rmajor_i**2  !/ vp_f(nsmin:nsmax)     !add 1/jac correction factor in AddDamping
          IF (iam.EQ.0 .AND. lverbose)                                   &
             PRINT '(a,1p,e12.3)',' Rmajor_i = ',rmajor_i
       END IF
@@ -141,8 +132,8 @@
          
          IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-            CALL MPI_ALLREDUCE(wb0,wb,1,MPI_REAL8, MPI_SUM,             &
-                               SIESTA_COMM,MPI_ERR)
+            CALL MPI_ALLREDUCE(wb0, wb, 1, MPI_REAL8, MPI_SUM,          &
+                               SIESTA_COMM, MPI_ERR)
 #endif
          ELSE
             wb = wb0
@@ -190,19 +181,19 @@
 !     (Use ksupsijf for temporary FILTERED bsubXijh values)
 !
          IF (nsmax .EQ. ns) THEN 
-            r0 = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)**2                  &
-               +                   bsubuijh(:,:,ns)**2))
-            r0 = SQRT(edge_cur/r0)
+            tmp = SUM(wint(:,:,ns)*(bsubvijh(:,:,ns)**2                  &
+                +                   bsubuijh(:,:,ns)**2))
+            IF (tmp .NE. zero) tmp = SQRT(edge_cur/tmp)
          END IF
 #if defined(MPI_OPT)
          IF (PARSOLVER) THEN
-         CALL MPI_BCAST(r0,1,MPI_REAL8,nranks-1,SIESTA_COMM,MPI_ERR)
+         CALL MPI_BCAST(tmp,1,MPI_REAL8,nranks-1,SIESTA_COMM,MPI_ERR)
          END IF
 #endif
          IF (iam .EQ. 0) THEN
          DO iwrite = 6, unit_out, unit_out-6
-            IF (.NOT.lverbose .AND. iwrite .eq. 6) CYCLE
-            WRITE(iwrite, 1008)' RMS EDGE CURRENT ||KSUPS(NS)|| = ', r0
+            IF (.NOT.lverbose .AND. iwrite.EQ.6) CYCLE
+            WRITE(iwrite, 1008)' RMS EDGE CURRENT ||KSUPS(NS)|| = ', tmp
          END DO
          CALL FLUSH(unit_out)
          END IF
@@ -230,9 +221,10 @@
 
       DEALLOCATE (bsubsijh, bsubuijh, bsubvijh) 
 
-
       CALL second0(toff)
+#if defined(SKS)      
       cv_current_time=cv_current_time+(toff-ton)
+#endif      
       time_current = time_current+(toff-ton)
 
       END SUBROUTINE cv_currents
@@ -259,22 +251,23 @@
       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
          bsubsmnf, bsubumnf, bsubvmnf, bsubsmnh, bsubumnh, bsubvmnh,    &
          db_uds, db_vds
-      REAL(dp) :: r0, temp(-ntor:ntor)
+      REAL(dp) :: r12, temp(-ntor:ntor)
 !-----------------------------------------------
       IF (ipar .EQ. isym) THEN
          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
-         r0 = hs_i/2; sparity=1; edge_cur = 0
+         sparity=1; edge_cur = 0
       ELSE
          fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
-         r0 = -hs_i/2; sparity=-1
+         sparity=-1
       END IF
+      r12 = sparity*hs_i/2
 
       ALLOCATE(bsubsmnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubumnh(0:mpol,-ntor:ntor,nsmin:nsmax),                 &
                bsubvmnh(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)   
       CALL ASSERT(istat.EQ.0,'Allocation1 failed in CURLB')
 
-      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                          ! Calculate BSUBXMNH    
+      CALL tomnsp_par(bsubsijh, bsubsmnh, fours)                          ! Compute BSUBXMNH    
       CALL tomnsp_par(bsubuijh, bsubumnh, fouru)
       CALL tomnsp_par(bsubvijh, bsubvmnh, fourv)
 
@@ -287,20 +280,6 @@
       CALL to_full_mesh(bsubumnh, bsubumnf)
       CALL to_full_mesh(bsubvmnh, bsubvmnf)
 
-!     NOTE: bsubumncf is zero, even for m=1, since guu ~ s^2, guv ~ s
-      IF (nsmin .EQ. 1) THEN
-!         bsubsmnf(:,:,1) = 0
-         bsubumnf(:,:,1) = 0
-
-!     VARIATIONAL FORM BELOW: DOES NOT WORK WELL - PHYSICALLY, ERRONEOUS COUPLING
-!     TO M > 1 MODES IN BSUPX WITH METRIC ELEMENTS OCCURS
-
-!     NOTE: the contributions from gvu B^u + gvs B^s cancel at the origin,
-!     so there is ONLY an m=0 contribution to B_v but need m=1 too for correct
-!     limit at js=1 for k^s,u(m1)
-         bsubvmnf(:,:,1) = 0
-         bsubvmnf(m0:m1,:,1) = bsubvmnh(m0:m1,:,2)
-      END IF
 !
 !     Compute K^X == sqrt(g)J^X contravariant current components in Fourier space
 !             
@@ -309,21 +288,33 @@
                db_vds(0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)
       CALL ASSERT(istat.EQ.0,'Allocation3 failed in CURLB')
 
-!     Radial gradients of bsubmnu,v on full grid (excluding origin: treat separately)
+!     Radial gradients of bsubmnu,v on full grid (excluding origin and edge: treat separately)
       CALL GradientFull(db_uds, bsubumnh)
       CALL GradientFull(db_vds, bsubvmnh)
 
 !     Approximate end values...(factor of 2 at origin due to 1/2*hs interval)
 !     Forces will be multiplied by 1/2 in get_force_harmonics
+!     NOTE: the bc B^s = 0 at js=ns means there are no contributions from 
+!           these derivative terms there
       IF (nsmin .EQ. 1) THEN
-         db_uds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
-         bsubvmnf(m1,:,1) = bsubvmnh(m1,:,2)
-         db_vds(m1,:,1)    = 2*ohs*bsubvmnh(m1,:,2)                      !--> 0
-         bsubumnf(m1,:,1) = r0*bsubsmnf(m1,:,1)                          !--> 0
+         bsubsmnf(m2:,:,1) = 0
+         bsubumnf(:,:,1) = 0;  bsubumnf(m1,:,1) = bsubumnh(m1,:,2)
+!     to satisfy k^s = r12*k^u at s=r12, for m=1, must have b_u = r12*b_s for m=1
+!     this is not completely consistent with the delta-W jogs in CheckForces!
+         IF (.NOT.l_natural) THEN
+            temp = (r12*bsubsmnf(m1,:,1) - bsubumnf(m1,:,1))/2
+            bsubsmnf(m1,:,1) = bsubsmnf(m1,:,1) - temp/r12
+            bsubumnf(m1,:,1) = bsubumnf(m1,:,1) + temp
+         END IF
+
+         db_uds(:,:,1) = 0;  db_uds(m0:m1,:,1) = 2*ohs*bsubumnh(m0:m1,:,2)
+         db_vds(:,:,1) = 0;  db_vds(m1,:,1) = 2*ohs*bsubvmnh(m1,:,2)
+         bsubvmnf(m1+1:,:,1) = 0  
+         CALL ASSERT(ALL(bsubvmnf(m1,:,1).EQ.bsubvmnh(m1,:,2)),         &
+                     'b_vmnf(1) ! b_vmnh(2) in CURLB')
       END IF
 
-!     NOTE: ksupsmnsf(ns) is REALLY ksupsmnsh(ns) a half-grid point in from edge
-!           to satisfy k^s = r0*k^u at s=r0, for m=1, must have b_u = r0*b_s for m=1
+!     NOTE: ksupXmnf(ns) is approximately ksupXmnh(ns) a half-grid point in from edge
 
       nmin = nsmin
       IF (lcurr) THEN
@@ -362,12 +353,12 @@
 	     IF (n1 .EQ. 1) bv_filter(:,:,1) = bv_filter(:,:,2)
 	     IF (n1 .EQ. 1)	bsubvijh(:,:,1) = bsubvijh(:,:,2)
 
-!K^s-r0*K^u at origin BEFORE bc applied
+!K^s-r12*K^u at origin BEFORE bc applied
          IF (nsmin .EQ. 1) THEN
-            temp = ksupsmnf(m1,:,1) + r0*ksupumnf(m1,:,1)
+            temp = ksupsmnf(m1,:,1) + r12*ksupumnf(m1,:,1)
             jsju_ratio = SUM(temp**2)
             IF (jsju_ratio .GT. zero) THEN
-               temp = ksupsmnf(m1,:,1) - r0*ksupumnf(m1,:,1)
+               temp = ksupsmnf(m1,:,1) - r12*ksupumnf(m1,:,1)
                jsju_ratio = SUM(temp**2) / jsju_ratio
                jsju_ratio = SQRT(jsju_ratio)
             END IF
@@ -379,12 +370,10 @@
                   bsubsmnf, bsubumnf, bsubvmnf, stat=istat)   
       CALL ASSERT(istat.EQ.0,'Deallocation failed in CURLB')
 
-!Apply exact bc K^s = r0*K^u for m=1 at origin
       IF (nsmin .EQ. 1) THEN
-         IF (l_natural) ksupsmnf(m1,:,1) = r0*ksupumnf(m1,:,1)
-         ksupsmnf(m0,:,1) = 0;  ksupsmnf(m2:,:,1) = 0
-         ksupumnf(m0,:,1) = 0;  ksupumnf(m2:,:,1) = 0
-         ksupvmnf(m1:,:,1)= 0
+          ksupsmnf(m0,:,1) = 0; ksupsmnf(m2:,:,1) = 0
+          ksupumnf(m2:,:,1) = 0
+          ksupvmnf(m1:,:,1) = 0
       END IF
 
       END SUBROUTINE CURLB

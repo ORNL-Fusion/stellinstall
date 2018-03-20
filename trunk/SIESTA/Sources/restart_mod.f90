@@ -215,7 +215,7 @@
       jbsupsmnsh(:,:,1) = 0
       CALL interpit(tempmn, jbsupsmnsh, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupsmnsh(m1,-nmin:nmin,1) = jbsupsmnsh(m1,-nmin:nmin,2)
-
+      
       CALL cdf_read(ncid, vn_jbsupuc, tempmn)
       CALL interpit(tempmn, jbsupumnch, ns, nsin, mpol, mpolin, ntor, ntorin)
       jbsupumnch(m1,-nmin:nmin,1) = jbsupumnch(m1,-nmin:nmin,2)
@@ -229,6 +229,7 @@
       CALL cdf_read(ncid, vn_jpresc,  tempmn)
       CALL interpit(tempmn, jpmnch,     ns, nsin, mpol, mpolin, ntor, ntorin)
       jpmnch(m0,-nmin:nmin,1) = jpmnch(m0,-nmin:nmin,2)
+
 
       IF (BTEST(flags, restart_lasym) .and. lasym) THEN
          jbsupsmnch(:,:,1) = 0

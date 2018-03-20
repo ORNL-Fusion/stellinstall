@@ -13,12 +13,12 @@
       USE stel_kinds
       USE stel_constants      
       USE v3_utilities, ONLY: assert
-      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,            &
-          mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,        &
+      USE island_params, ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i,           &
+          mpol=>mpol_i, ntor=>ntor_i, nuv=>nuv_i, mnmax=>mnmax_i,       &
           ohs=>ohs_i, nfp=>nfp_i    !, mpol32=>mpol32_i, ntor32=>ntor32_i
-      USE descriptor_mod, ONLY: iam, nprocs
+      USE descriptor_mod, ONLY: iam, nprocs, SIESTA_COMM
       USE shared_data, ONLY: lasym, lverbose
-      USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER
+      USE nscalingtools, ONLY: startglobrow, endglobrow, PARSOLVER, MPI_ERR
       USE utilities, ONLY: to_half_mesh, to_full_mesh
       IMPLICIT NONE
 
@@ -35,36 +35,40 @@
 !       Radial meshes
 !           velocity, force components       :: full mesh
 !           p, contravariant components of B :: half mesh
-!           jacobh (jacobian to curvilinear coordinates) :: half mesh (stores <jacobh(2)> in jacobh(1))
+!           jacobh (jacobian to curvilinear coordinates) :: half mesh
+!                  store m0 (poloidal average) component of jacobh(2) in jacobh(1)
+!           jacobf : full mesh average of jacobh, with jacobf(1) = jacobh(1)
+!                    so values of p and B at origin can be extrapolated
 !     VARIABLE DECLARATIONS  
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
+       INTEGER, PRIVATE :: isym=0, iasym=1
        REAL(dp) :: b_factor, w_factor, p_factor                            ! Scale internal energy <wb+wp/(gam-1)> to 1
        REAL(dp) :: signjac
-       REAL(dp) :: wp, wb
+       REAL(dp) :: wp, wb, wp0, wb0                                        ! summed (over procs) energies/local energies
 !---- Fourier Space Arrays - lasym=F parity
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &  ! Fourier harmonics= BSUP?, VSUB?, P
         jbsupsmnsh, jbsupumnch, jbsupvmnch, jpmnch,                     & 
         ksupsmnsf,  ksupumncf,  ksupvmncf,                              &
-        djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch,                 &  ! Array names starting with "d" represent perturbations
-        fsupsmncf, fsupumnsf, fsupvmnsf                                  
+        djpmnch, djbsupsmnsh, djbsupumnch, djbsupvmnch                     ! Array names starting with "d" represent perturbations
 
 !----  Pointers are subsections of xc, gc
        REAL(dp), POINTER, DIMENSION(:,:,:) ::                           &  ! Fourier harmonics= JVSUP?mn?F
         jvsupsmncf, jvsupumnsf, jvsupvmnsf,                             &  ! Evolved quantities
-        fsubsmncf, fsubumnsf, fsubvmnsf                                    ! Computed forces
+        fsubsmncf, fsubumnsf, fsubvmnsf,                                &  ! Computed forces
+        fsupsmncf, fsupumnsf, fsupvmnsf                                  
 
 !---- Fourier Space Arrays - lasym=T parity
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &  ! Fourier harmonics= BSUP?, VSUB?, P
         jbsupsmnch, jbsupumnsh, jbsupvmnsh, jpmnsh,                     & 
         ksupsmncf,  ksupumnsf,  ksupvmnsf,                              &
-        djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh,                 &  ! Array names starting with "d" represent perturbations
-        fsupsmnsf, fsupumncf, fsupvmncf                                  
+        djpmnsh, djbsupsmnch, djbsupumnsh, djbsupvmnsh                     ! Array names starting with "d" represent perturbations
 
        REAL(dp), POINTER, DIMENSION(:,:,:) ::                           &  ! Fourier harmonics= JVSUP?mn?F
         jvsupsmnsf, jvsupumncf, jvsupvmncf,                             &  ! Evolved quantities
-        fsubsmnsf, fsubumncf, fsubvmncf                                    ! Computed forces
+        fsubsmnsf, fsubumncf, fsubvmncf,                                &  ! Computed forces
+        fsupsmnsf, fsupumncf, fsupvmncf                                  
 
 !---- Fourier Initial Power Spectrum Storage
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:,:) ::                     &
@@ -77,9 +81,11 @@
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
         bsupsijf0, bsupuijf0, bsupvijf0,                                &
         bsupsijh0, bsupuijh0, bsupvijh0,                                &
+        bsupsijf,  bsupuijf,  bsupvijf,                                 &
         bsubsijf,  bsubuijf,  bsubvijf, bsq,                            &
         ksubsijf, ksubuijf, ksubvijf,                                   &
-        ksupsijf0, ksupuijf0, ksupvijf0
+        ksupsijf0, ksupuijf0, ksupvijf0,                                &
+        ksupsijf,  ksupuijf,  ksupvijf
 
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
         pijh0, pijh0_du, pijh0_dv,                                      &
@@ -92,8 +98,8 @@
 !               BSUP?MN:                updated by UPDATE_STATE;        used in UPDATE_FORCE   
 !               PMN:                    updated in UPDATE_STATE;        used in UPDATE_FORCE     
 !               JVSUP?IJ:               updated in UPDATE_UPPERV;       used in UPDATE_BFIELD + UPDATE_PRES 
-!               FSUB?MN:                updated in UPDATE_FORCE;        used in UPDATE_VEL
-!               VSUB?MN:                updated by UPDATE_VEL;          used in UPDATE_UPPERV
+!               FSUB?MN:                updated in UPDATE_FORCE;        used in UPDATE_STATE
+!               VSUB?MN:                updated by UPDATE_VEL;          used in UPDATE_DISPLACEMENT
 !-----------------------------------------------
 
       CONTAINS
@@ -157,7 +163,7 @@
 
 !AVOID DIVIDE BY ZERO AND STORE AVERAGED VALUE (OVER THETA) 
 !AT FIRST 1/2 GRID PT AT ORIGIN IN JACOBH(1)
-        CALL getorigin (jacobh, m0, 0)
+        CALL getorigin (jacobh, m0)
         signjac = jacobh(1,1,2)/ABS(jacobh(1,1,2))
 
 !TO PRESERVE UNPERTURBED (CONSTANT IN s) PART OF PRESSURE, NYQUIST-FILTER JACOBIAN
@@ -165,9 +171,7 @@
 !        IF (.FALSE.) THEN                                                !SET TO FALSE TO TURN THIS OFF
         jacobf = jacobh
         CALL tomnsp(jacobh, jbsupsmnsh, f_cos)                            !use jbsupsmnsh for dummy storage
-        IF (lasym) THEN
-           CALL tomnsp(jacobh, jbsupsmnch, f_sin)
-        END IF
+        IF (lasym) CALL tomnsp(jacobh, jbsupsmnch, f_sin)
         CALL toijsp(jbsupsmnsh, jacobh, f_none, f_cos)
         jbsupsmnsh = 0
         IF (lasym) THEN
@@ -178,7 +182,7 @@
         CALL ASSERT(ALL(jacobh*signjac.GT.0),'FILTERED JACOBIAN CHANGED SIGN!')
         sum1 = SUM((jacobh(:,:,2:)-jacobf(:,:,2:))**2/                  &
                    (jacobh(:,:,2:)+jacobf(:,:,2:))**2)
-        IF (iam .EQ. 0 .and. lverbose) PRINT '(a,1pe8.2)',              &
+        IF (iam .EQ. 0 .AND. lverbose) PRINT '(a,1pe8.2)',              &
            ' JACOBIAN SPECTRAL TRUNCATION ERROR: ', SQRT(sum1/SIZE(jacobh))
 !        END IF
 
@@ -199,8 +203,8 @@
         sum1 = 0.5*hs_i*(SUM(vp_f(2:ns)) + SUM(vp_f(1:ns-1)))*signjac
         sum1 = (twopi*twopi)*sum1
         IF (ABS((sum1-volume_i)/volume_i) .GT. 1.E-3_dp) THEN
-
-            IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',volume_i,' THIS VOLUME: ', sum1
+            IF (IAM .EQ. 0 .and. lverbose) PRINT *,'VMEC VOLUME: ',     &
+               volume_i,' SIESTA VOLUME: ', sum1
         END IF
         
       
@@ -219,8 +223,7 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
         INTEGER, PARAMETER :: m0=0, m1=1
-        INTEGER  :: istat, m, n, nsmin, nsmax, nloc, js
-        REAL(dp)           :: r0
+        INTEGER  :: istat, nsmin, nsmax, nloc, js
         REAL(dp), DIMENSION(:), ALLOCATABLE :: phiph, chiph
         REAL(dp), DIMENSION(:,:), ALLOCATABLE :: pmnf
         REAL(dp), DIMENSION(:,:,:), ALLOCATABLE:: presif, presih
@@ -239,46 +242,12 @@
 
         CALL ReCompute_Lambda(lmns_i, lmnc_i, jacobh, orthonorm,        &
                               phiph, chiph, nsmin, nsmax)
-
-        DO m = 0,mpol
-           DO n = -ntor, ntor
-               jbsupumnch(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-n*nfp*lmns_i(m,n,nsmin:nsmax))
-               jbsupvmnch(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*( m    *lmns_i(m,n,nsmin:nsmax))
-           END DO
-        END DO
-
-        jbsupumnch(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax) / orthonorm(0,0)
-        jbsupvmnch(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax) / orthonorm(0,0)
-
-        r0 = hs_i/2
-        jbsupsmnsh(:,:,nsmin:nsmax) = 0
-        jbsupumnch(m1,:,1) = 0 
-
-!STORE m=0 component of jbsupvmnch at origin in half-grid js=1
-        jbsupvmnch(m0,:,1) = jbsupvmnch(m0,:,2) 
-        jbsupvmnch(m1:,:,1) = 0
-
-        jbsupumnch(:,:,nsmin:nsmax) = b_factor*jbsupumnch(:,:,nsmin:nsmax) 
-        jbsupvmnch(:,:,nsmin:nsmax) = b_factor*jbsupvmnch(:,:,nsmin:nsmax) 
-
-        IF (lasym) THEN
-           DO m = 0, mpol
-              DO n = -ntor, ntor
-                 jbsupumnsh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*( n*nfp*lmnc_i(m,n,nsmin:nsmax))
-                 jbsupvmnsh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-m    *lmnc_i(m,n,nsmin:nsmax))
-              END DO
-           END DO
-
-           jbsupsmnch(:,:,nsmin:nsmax) = 0
-           jbsupumnsh(m1,:,1) = 0   
-
-!STORE m=0 component of jbsupvmnch at origin in half-grid js=1
-           jbsupvmnsh(m0,:,1) = jbsupvmnsh(m0,:,2)
-           jbsupvmnsh(m1:,:,1) = 0
-
-           jbsupumnsh(:,:,nsmin:nsmax) = b_factor*jbsupumnsh(:,:,nsmin:nsmax)
-           jbsupvmnsh(:,:,nsmin:nsmax) = b_factor*jbsupvmnsh(:,:,nsmin:nsmax)
-        END IF
+         
+		CALL Init_Bfield(jbsupsmnsh, jbsupumnch, jbsupvmnch, lmns_i,    &
+		                 phiph, chiph, nsmin, nsmax, isym)
+		IF (lasym)                                                      &
+		CALL Init_Bfield(jbsupsmnch, jbsupumnsh, jbsupvmnsh, lmnc_i,    &
+		                 phiph, chiph, nsmin, nsmax, iasym)
 
         DEALLOCATE (phiph, chiph, stat=istat)
         CALL ASSERT(istat.EQ.0,'Deallocate error #1 in init_fields')
@@ -322,6 +291,68 @@
         CALL GatherFields
 
         END SUBROUTINE Init_Fields
+
+
+        SUBROUTINE Init_Bfield(jbsupsmnh, jbsupumnh, jbsupvmnh,         &
+		                       lmn, phiph, chiph, nsmin, nsmax, ipar)
+        USE fourier, ONLY: orthonorm
+#if defined(MPI_OPT)        
+        USE mpi_inc
+#endif        
+!-----------------------------------------------
+	    INTEGER, INTENT(IN)  :: ipar, nsmin, nsmax
+		REAL(dp), INTENT(IN) :: phiph(ns), chiph(ns)
+		REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                      &
+		                        jbsupsmnh, jbsupumnh, jbsupvmnh, lmn
+!-----------------------------------------------
+        INTEGER, PARAMETER :: m0=0, m1=1
+        INTEGER  :: m, n, sparity, mp, np
+        REAL(dp) :: r12, temp(-ntor:ntor)
+!-----------------------------------------------
+
+		IF (ipar .EQ. isym) THEN
+		   sparity = 1
+		ELSE
+		   sparity = -1
+		END IF
+		r12 = sparity*hs_i/2
+		
+        DO m = 0,mpol
+		   mp = m*sparity
+           DO n = -ntor, ntor
+		      np = n*nfp*sparity
+              jbsupumnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*(-np*lmn(m,n,nsmin:nsmax))
+              jbsupvmnh(m,n,nsmin:nsmax) = phiph(nsmin:nsmax)*( mp*lmn(m,n,nsmin:nsmax))
+           END DO
+        END DO
+
+        IF (ipar .EQ. isym) THEN
+           jbsupumnh(m0,0,nsmin:nsmax) = chiph(nsmin:nsmax) / orthonorm(0,0)
+           jbsupvmnh(m0,0,nsmin:nsmax) = phiph(nsmin:nsmax) / orthonorm(0,0)
+		END IF
+
+        jbsupsmnh(:,:,nsmin:nsmax) = 0
+        jbsupumnh(:,:,nsmin:nsmax) = b_factor*jbsupumnh(:,:,nsmin:nsmax) 
+        jbsupvmnh(:,:,nsmin:nsmax) = b_factor*jbsupvmnh(:,:,nsmin:nsmax) 
+
+!STORE m=0 component of jbsupvmnh (and m=0,1 of jbsupumnh)  at origin of half-grid js=1
+        IF (nsmin .EQ. 1) THEN
+           jbsupumnh(:,:,1) = 0;  jbsupumnh(m0:m1,:,1) = jbsupumnh(m0:m1,:,2)
+           jbsupvmnh(m0,:,1) = jbsupvmnh(m0,:,2) 
+           jbsupvmnh(m1:,:,1) = 0
+        END IF
+
+        RETURN
+        
+        temp = jbsupumnh(m1,:,2)*r12
+#if defined(MPI_OPT)
+        CALL MPI_BCAST(temp,SIZE(temp),MPI_REAL8, 0, SIESTA_COMM, MPI_ERR)
+#endif     
+        DO m=nsmin, nsmax
+           jbsupsmnh(m1,:,m) = temp
+        END DO
+        
+		END SUBROUTINE Init_Bfield
 
 !*******************************************************************************
 !>  \brief recomputes "lambda" for VMEC equilibrium on sqrt(flux) mesh
@@ -482,11 +513,6 @@
         CALL ASSERT(istat.EQ.0,'Allocation #2 failed in ALLOC_QUANTITIES')
 
 
-        ALLOCATE(fsupsmncf(0:mpol,-ntor:ntor,ns),                       &  ! Full mesh quantities (harmonics)
-                 fsupumnsf(0:mpol,-ntor:ntor,ns),                       &  ! F_s (cosine), F_u (sine), F_v (sine)
-                 fsupvmnsf(0:mpol,-ntor:ntor,ns), stat=istat) 
-        CALL ASSERT(istat.EQ.0,'Allocation #3 failed in ALLOC_QUANTITIES')
-
         IF (lasym) THEN
 
         ALLOCATE(jbsupsmnch(0:mpol,-ntor:ntor,ns),                      &  ! Half mesh quantities (harmonics)
@@ -496,11 +522,6 @@
         CALL ASSERT(istat.EQ.0,'Allocation #4 failed in ALLOC_QUANTITIES')
         jbsupsmnch = zero; jbsupumnsh = zero; jbsupvmnsh = zero        
         jpmnsh = zero
-
-        ALLOCATE(fsupsmnsf(0:mpol,-ntor:ntor,ns),                       &  ! Full mesh quantities (harmonics)
-                 fsupumncf(0:mpol,-ntor:ntor,ns),                       &  ! F_s (sine), F_u (cosine), F_v (cosine)
-                 fsupvmncf(0:mpol,-ntor:ntor,ns), stat=istat) 
-        CALL ASSERT(istat.EQ.0,'Allocation #5 failed in ALLOC_QUANTITIES')
 
         ENDIF
                 
@@ -521,7 +542,6 @@
         
         DEALLOCATE(jpmnch, jbsupsmnsh, jbsupumnch, jbsupvmnch, djpmnch, &
           djbsupsmnsh, djbsupumnch, djbsupvmnch,                        &
-          fsupsmncf, fsupumnsf, fsupvmnsf,                              &
           ksupsmnsf, ksupumncf, ksupvmncf, pwr_spec_s, pwr_spec_a,      &
           stat=istat)
         IF(ALLOCATED(lmns_i)) DEALLOCATE(lmns_i)
@@ -529,7 +549,6 @@
         IF (lasym) THEN
         DEALLOCATE(jpmnsh, jbsupsmnch, jbsupumnsh, jbsupvmnsh, djpmnsh, &
           djbsupsmnch, djbsupumnsh, djbsupvmnsh,                        &
-          fsupsmnsf, fsupumncf, fsupvmncf,                              &
           ksupsmncf, ksupumnsf, ksupvmnsf, stat=istat)
         IF(ALLOCATED(lmnc_i)) DEALLOCATE(lmnc_i)
         END IF
@@ -547,6 +566,70 @@
         
 
       END SUBROUTINE dealloc_quantities
+
+!>  \brief Parallel/Serial routine to compute contravariant force components
+!!  \author S. P. Hirshman
+      SUBROUTINE toupper_forces
+      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,               &
+                         mpol=>mpol_i, ntor=>ntor_i
+      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,  &
+                         f_sum
+      USE metrics, ONLY: toupper
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
+                                    fsubsijf, fsubuijf, fsubvijf,       &
+                                    fsupsijf, fsupuijf, fsupvijf
+!-----------------------------------------------
+      INTEGER :: nsmin, nsmax, istat
+!-----------------------------------------------
+      nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
+
+      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsubuijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsubvijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsupsijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsupuijf(ntheta,nzeta,nsmin:nsmax),                      &
+               fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
+      CALL ASSERT(istat.eq.0,' Allocation error in toupper_forces')
+
+      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
+      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
+      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
+ 
+      IF (lasym) THEN
+
+      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
+      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
+      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
+ 
+      END IF
+
+!      
+!     COMPUTE CONTRAVARIANT FORCES NEEDED TO COMPUTE <||F||^2>
+!
+
+      CALL toupper(fsubsijf, fsubuijf, fsubvijf,                        &
+                   fsupsijf, fsupuijf, fsupvijf, nsmin, nsmax) 
+      DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
+
+      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
+      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
+      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
+
+      IF (lasym) THEN
+
+      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
+      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
+      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
+
+      END IF
+
+      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)
+
+      END SUBROUTINE toupper_forces
+
 
       SUBROUTINE GATHERFIELDS
       
@@ -622,7 +705,7 @@
 
 #if 0          
       SUBROUTINE PAD_FIELDS(djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh)
-      USE hessian, ONLY: PadSides
+      USE blocktridiagonalsolver_s, ONLY: PadSides
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -671,10 +754,10 @@
       END SUBROUTINE PAD_FIELDS
 #endif
 
+
       SUBROUTINE SurfAverage(average, q3d, nsmin, nsmax)
       USE stel_kinds, ONLY: dp
       USE island_params, ONLY: ns=>ns_i, ntheta=>nu_i, nzeta=>nv_i
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------

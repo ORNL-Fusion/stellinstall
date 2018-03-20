@@ -6,11 +6,8 @@
       USE shared_data
       USE descriptor_mod, ONLY: INHESSIAN, nprocs, iam, SIESTA_COMM
       USE island_params, ns=>ns_i, hs=>hs_i
-      USE hessian, ONLY: apply_precond, l_Compute_Hessian
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
-                            fsupsmncf, fsupumnsf, fsupvmnsf,            &
-                            fsubsmnsf, fsubumncf, fsubvmncf,            &
-                            fsupsmnsf, fsupumncf, fsupvmncf, wb, wp
+      USE hessian, ONLY: apply_precond, l_Compute_Hessian, apply_colscale
+      USE quantities, ONLY: wb, wp
       USE timer_mod, ONLY: time_init_state, time_funci
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR,       &
                                PARSOLVER
@@ -64,52 +61,37 @@
       CALL update_pres
       CALL update_force
 
-      CALL ASSERT(gamma.ne.one,'SIESTA REQUIRES gamma != 1')
+      CALL ASSERT(gamma.NE.one,'SIESTA REQUIRES gamma != 1')
       wtotal = wb + wp/(gamma-1)
-
       IF (wtotal0 == -1) wtotal0 = wtotal
+      
       gc = gnorm_i*gc
 
 !     CALLED FROM GMRES: ADD BACK INITIAL FORCE gc0 or STORE UNPRECONDITIONED FORCES
       IF (ALLOCATED(gc0) .AND. (l_getfsq .OR. l_conjgrad) .AND.         &
          l_linearize .AND. .NOT.l_Compute_Hessian) gc = gc+gc0
 
-      CALL ASSERT(.not.(l_getfsq.and.inhessian),                        &
+      CALL ASSERT(.NOT.(l_getfsq.AND.inhessian),                        &
                   'l_getfsq must be set to FALSE in Hessian')
 
       IF (l_getfsq) THEN
 ! COMPUTE PRECONDITIONED, VOLUME-AVERAGED FORCE fsq_total 
-         CALL toupper_forces
          CALL GetFSQ(fsq_total)
 
 !COMPUTE UN-PRECONDITIONED, VOLUME-AVERAGED FORCE fsq_total1
          IF (ANY(col_scale .NE. one)) THEN
-            fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)/col_scale(:,:,1,nsmin:nsmax)
-            fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)/col_scale(:,:,2,nsmin:nsmax)
-            fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)/col_scale(:,:,3,nsmin:nsmax)
-            IF (lasym) THEN
-            fsubsmnsf(:,:,nsmin:nsmax)=fsubsmnsf(:,:,nsmin:nsmax)/col_scale(:,:,4,nsmin:nsmax)
-            fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)/col_scale(:,:,5,nsmin:nsmax)
-            fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)/col_scale(:,:,6,nsmin:nsmax)
-            END IF
+            col_scale(:,:,:,nsmin:nsmax) = one/col_scale(:,:,:,nsmin:nsmax)
+            CALL Apply_ColScale(gc, col_scale, nsmin, nsmax)
 
-            CALL toupper_forces
             CALL GetFSQ(fsq_total1)
-            
-            fsubsmncf(:,:,nsmin:nsmax)=fsubsmncf(:,:,nsmin:nsmax)*col_scale(:,:,1,nsmin:nsmax)
-            fsubumnsf(:,:,nsmin:nsmax)=fsubumnsf(:,:,nsmin:nsmax)*col_scale(:,:,2,nsmin:nsmax)
-            fsubvmnsf(:,:,nsmin:nsmax)=fsubvmnsf(:,:,nsmin:nsmax)*col_scale(:,:,3,nsmin:nsmax)
-            IF (lasym) THEN
-            fsubsmnsf(:,:,nsmin:nsmax)=fsubsmnsf(:,:,nsmin:nsmax)*col_scale(:,:,4,nsmin:nsmax)
-            fsubumncf(:,:,nsmin:nsmax)=fsubumncf(:,:,nsmin:nsmax)*col_scale(:,:,5,nsmin:nsmax)
-            fsubvmncf(:,:,nsmin:nsmax)=fsubvmncf(:,:,nsmin:nsmax)*col_scale(:,:,6,nsmin:nsmax)
-            END IF
+
+            col_scale(:,:,:,nsmin:nsmax) = one/col_scale(:,:,:,nsmin:nsmax)            
+            CALL Apply_ColScale(gc, col_scale, nsmin, nsmax)
          ELSE
             fsq_total1 = fsq_total
          END IF
       END IF
 
-!      IF (l_Gmres .AND. l_ApplyPrecon) STOP 'l_ApplyPrecon must be FALSE in funct_island'
 !
 !     GMRES handles preconditioning itself: do NOT apply
 !     Do not precondition when Hessian is being computed
@@ -122,6 +104,11 @@
 
 
       SUBROUTINE GetFSQ(fsqout)
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
+                            fsupsmncf, fsupumnsf, fsupvmnsf,            &
+                            fsubsmnsf, fsubumncf, fsubvmncf,            &
+                            fsupsmnsf, fsupumncf, fsupvmncf,            &
+                            toupper_forces
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -149,6 +136,8 @@
       END IF
 #endif         
       fsqvs=hs*stmp(1); fsqvu=hs*stmp(2); fsqvv=hs*stmp(3)
+
+      CALL toupper_forces
 
 !VOLUME-AVERAGE |F|**2
       stmp(1) = 0
@@ -178,66 +167,6 @@
       END SUBROUTINE GetFSQ
 
 
-      SUBROUTINE toupper_forces
-      USE island_params, ONLY: ntheta=>nu_i, nzeta=>nv_i,               &
-                         mpol=>mpol_i, ntor=>ntor_i
-      USE fourier, ONLY: toijsp_par, tomnsp_par, f_none, f_cos, f_sin,  &
-                         f_sum
-      USE metrics, ONLY: toupper
-      IMPLICIT NONE
-!-----------------------------------------------
-!   L o c a l   V a r i a b l e s
-!-----------------------------------------------
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-                                    fsubsijf, fsubuijf, fsubvijf,       &
-                                    fsupsijf, fsupuijf, fsupvijf
-!-----------------------------------------------
-      INTEGER :: nsmin, nsmax, istat
-!-----------------------------------------------
-      nsmin=MAX(1,startglobrow); nsmax=MIN(ns,endglobrow)
-
-      ALLOCATE(fsubsijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsubuijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsubvijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsupsijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsupuijf(ntheta,nzeta,nsmin:nsmax),                      &
-               fsupvijf(ntheta,nzeta,nsmin:nsmax), stat=istat)
-      CALL ASSERT(istat.eq.0,' Allocation error in toupper_forces')
-
-      CALL toijsp_par(fsubsmncf(:,:,nsmin:nsmax), fsubsijf, f_none, f_cos)
-      CALL toijsp_par(fsubumnsf(:,:,nsmin:nsmax), fsubuijf, f_none, f_sin)
-      CALL toijsp_par(fsubvmnsf(:,:,nsmin:nsmax), fsubvijf, f_none, f_sin)
- 
-      IF (lasym) THEN
-
-      CALL toijsp_par(fsubsmnsf(:,:,nsmin:nsmax), fsubsijf, f_sum, f_sin)
-      CALL toijsp_par(fsubumncf(:,:,nsmin:nsmax), fsubuijf, f_sum, f_cos)
-      CALL toijsp_par(fsubvmncf(:,:,nsmin:nsmax), fsubvijf, f_sum, f_cos)
- 
-      END IF
-
-!      
-!     COMPUTE CONTRAVARIANT COMPONENTS FOR CHECKING OUTPUT
-!
-      CALL toupper(fsubsijf, fsubuijf, fsubvijf, fsupsijf, fsupuijf, fsupvijf) 
-      DEALLOCATE(fsubsijf, fsubuijf, fsubvijf)
-
-      CALL tomnsp_par(fsupsijf, fsupsmncf(:,:,nsmin:nsmax), f_cos)
-      CALL tomnsp_par(fsupuijf, fsupumnsf(:,:,nsmin:nsmax), f_sin)
-      CALL tomnsp_par(fsupvijf, fsupvmnsf(:,:,nsmin:nsmax), f_sin)
-
-      IF (lasym) THEN
-
-      CALL tomnsp_par(fsupsijf, fsupsmnsf(:,:,nsmin:nsmax), f_sin)
-      CALL tomnsp_par(fsupuijf, fsupumncf(:,:,nsmin:nsmax), f_cos)
-      CALL tomnsp_par(fsupvijf, fsupvmncf(:,:,nsmin:nsmax), f_cos)
-
-      END IF
-
-      DEALLOCATE(fsupsijf, fsupuijf, fsupvijf, stat=istat)
-
-      END SUBROUTINE toupper_forces
-
 !>   \brief Returns perturbed MHD+KINETIC energy
 !!   \author S. P. Hirshman, R. Sanchez
       FUNCTION getwmhd (p)
@@ -266,31 +195,38 @@
       RETURN
 
       END FUNCTION getwmhd 
+      
 
 !>    \brief Performs line search along xc vector for minimum fsq_total1
 !!    \author S. P. Hirshman (2016)
       SUBROUTINE LineSearch(xcmin, fsq_min)
-      USE perturbation, ONLY: ftol
-      IMPLICIT NONE
+      USE siesta_namelist, ONLY: ftol
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(dp), INTENT(INOUT) :: xcmin(neqs)
       REAL(dp), INTENT(INOUT) :: fsq_min
-      REAL(dp), PARAMETER :: facmin = 2
+!-----------------------------------------------
+      REAL(dp) :: facmin
       INTEGER  :: iter, j
+      LOGICAL  :: lwrite
+!-----------------------------------------------
+      facmin = 2
+      l_init_state = .FALSE.
+      l_getfsq = .TRUE.
+      
+      lwrite = (iam .EQ. 0 .and. lverbose) 
+      IF (lwrite) PRINT 90
+ 90   FORMAT(/,1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,1x,15('-'), &
+           /,1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|',10x,'FAC')
 
-      IF (iam .EQ. 0 .and. lverbose) PRINT 90
- 90   FORMAT(1x,'LINE SEARCH - SCAN ||X|| FOR MIN FSQ_NL',/,'-------------',   &
-           /,1x,'ITER',7x,'FSQ_NL',10x,'||X||',9x,'MAX|X|')
-
-      xc = xcmin
+      xc = facmin*xcmin
       iter = 0
+      fsq_min = HUGE(fsq_min)
 
       DO j = 1, 100
          CALL funct_island
-         IF (j .EQ. 1) THEN
-            fsq_min = fsq_total1
-            xc = facmin*xcmin
-            CYCLE
-         ELSE IF (j.NE.4 .AND. fsq_total1.LT.fsq_min) THEN
+         IF (fsq_total1 .LT. fsq_min) THEN
             xcmin = xc
             IF (fsq_total1 .GT. 0.98_dp*fsq_min) iter=iter+1
             IF (fsq_total1 .LT. 0.85_dp*fsq_min) iter = 0
@@ -298,13 +234,17 @@
          ELSE IF (j .GT. 4) THEN
             iter = iter+1
          END IF
-         IF (iam .EQ. 0 .and. lverbose)                                        &
-            PRINT 100, j-1, fsq_total1, SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
+         IF (iam .EQ. 0 .AND. lverbose) THEN
+            PRINT 100, j, fsq_total1, SQRT(SUM(xc*xc)),                 &
+                       MAXVAL(ABS(xc)), facmin
+            facmin = facmin/SQRT2
+         END IF
          IF (iter.GT.2 .OR. fsq_total1.LE.ftol) EXIT
          xc = xc/SQRT2
       END DO
 
- 100  FORMAT(i5,3(3x,1pe12.3))
+ 100  FORMAT(i5,4(3x,1pe12.3))
+ 
       END SUBROUTINE LineSearch
 
 

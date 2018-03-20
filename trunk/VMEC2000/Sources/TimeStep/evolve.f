@@ -303,13 +303,13 @@ C-----------------------------------------------
          iter1 = iter2
 #if defined (SKS)      
          IF (PARVMEC) THEN
-           CALL funct3d_par (.FALSE., ier_flag)
+            CALL funct3d_par (.FALSE., ier_flag)
          ELSE
 #endif
-           CALL funct3d (.FALSE., ier_flag)
-#if defined (SKS)      
-         END IF
-	IF (irst .NE. 1) STOP 'Logic error in TimeStepControl!'
+         CALL funct3d (.FALSE., ier_flag)
+#if defined (SKS)
+      END IF
+      IF (irst .NE. 1) STOP 'Logic error in TimeStepControl!'
 #endif
       END IF
 

@@ -1,5 +1,9 @@
       MODULE utilities
-
+      USE stel_kinds
+      USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i
+      USE v3_utilities, ONLY: assert
+      IMPLICIT NONE
+      
       INTERFACE to_full_mesh
          MODULE PROCEDURE to_full_mesh2, to_full_mesh3
       END INTERFACE
@@ -7,9 +11,6 @@
       CONTAINS
       
       SUBROUTINE GradientHalf(gradienth, vectorf)
-      USE stel_kinds
-      USE island_params, ONLY: ohs=>ohs_i
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -33,9 +34,6 @@
 
 !---------------------------------------------------------------------------------------------
       SUBROUTINE GradientFull(gradientf, vectorh)
-      USE stel_kinds
-      USE island_params, ONLY: ohs=>ohs_i, ns=>ns_i
-      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -65,9 +63,6 @@
 
 !---------------------------------------------------------------------------------------------
       SUBROUTINE to_half_mesh(vecf, vech)
-      USE stel_kinds
-      USE island_params, ns=>ns_i
-      IMPLICIT NONE        
 !  
 !     This subroutine migrates a full mesh quantity to the half mesh
 !
@@ -97,9 +92,6 @@
 
 !---------------------------------------------------------------------------------------------
       SUBROUTINE to_full_mesh3(vech, vecf)
-      USE stel_kinds
-      USE island_params, ns=>ns_i
-      IMPLICIT NONE        
 !  
 !     This subroutine migrates a half mesh quantity to the full mesh.
 !     First and last point are extrapolated linearly.
@@ -119,22 +111,21 @@
 !     INPUT (vech)   : [nsmin:nsmax]
 !     OUTPUT(vecf)   : [nsmin:nsmax-1]
 
-      nsmin = LBOUND(vech,3)
-      nsmax = UBOUND(vech,3)
+      nsmin = LBOUND(vecf,3)
+      nsmax = UBOUND(vecf,3)
+      CALL ASSERT(nsmin.GE.LBOUND(vech,3),'LBOUND WRONG IN to_full_mesh3')
+      CALL ASSERT(nsmax.LE.UBOUND(vech,3),'UBOUND WRONG IN to_full_mesh3')
 
       vecf(:,:,nsmin:nsmax-1) = p5*(vech(:,:,nsmin:nsmax-1)             &
                               +     vech(:,:,nsmin+1:nsmax))
       IF (nsmin .EQ. 1)  vecf(:,:,1) = vech(:,:,2)
       IF (nsmax .EQ. ns) vecf(:,:,ns)= vech(:,:,ns)
-
+      
       END SUBROUTINE to_full_mesh3
 !---------------------------------------------------------------------------------------------
 
 !---------------------------------------------------------------------------------------------
       SUBROUTINE to_full_mesh2(vech, vecf)
-      USE stel_kinds
-      USE island_params, ns=>ns_i
-      IMPLICIT NONE        
 !  
 !     This subroutine migrates a half mesh quantity to the full mesh.
 !     First and last point are extrapolated linearly.
@@ -154,8 +145,10 @@
 !     INPUT (vech)   : [nsmin:nsmax]
 !     OUTPUT(vecf)   : [nsmin:nsmax-1]
 
-      nsmin = LBOUND(vech,2)
-      nsmax = UBOUND(vech,2)
+      nsmin = LBOUND(vecf,2)
+      nsmax = UBOUND(vecf,2)
+      CALL ASSERT(nsmin.GE.LBOUND(vech,2),'LBOUND WRONG IN to_full_mesh2')
+      CALL ASSERT(nsmax.LE.UBOUND(vech,2),'UBOUND WRONG IN to_full_mesh2')
 
       vecf(:,nsmin:nsmax-1) = p5*(vech(:,nsmin:nsmax-1)                 &
                             +     vech(:,nsmin+1:nsmax))

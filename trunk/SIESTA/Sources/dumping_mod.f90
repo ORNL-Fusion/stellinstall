@@ -30,7 +30,7 @@
          ohs => ohs_i, nfp => nfp_i, ntheta => nu_i, nzeta => nv_i  
       USE metrics, rmax_v => rmax, rmin_v => rmin, zmax_v => zmax,      &
          zmin_v => zmin           
-      USE perturbation, ONLY: nphis1=>nphis, nrs1=>nrs, nzs1=>nzs,      & ! NPHIS = number of toroidal planes (CYL or VMEC)
+      USE siesta_namelist, ONLY: nphis1=>nphis, nrs1=>nrs, nzs1=>nzs,   & ! NPHIS = number of toroidal planes (CYL or VMEC)
           nus1=>nus, nss1=>nss, nvs1=>nvs, restart_ext,                 & ! NSS, NUS = resolution(VMEC) in PHI-plane
           l_tracing1=>l_tracing,                                        & ! NRS, NZS = resolution(CYL) in PHI-plane
           l_silo_output1=>l_silo_output, l_silo3D1=> l_silo3D   
@@ -212,13 +212,14 @@
            CALL allocate_SILO
         ENDIF
 #endif
-        IF (iam .EQ. 0 .and. lverbose) THEN
-           WRITE(*,'(/,1x,a)') '>> Starting dump of graphics data...'
-           WRITE(*,'(6x,a)') 'Creating plot box between:'
-           WRITE(*,'(6x,2(a,1p,e10.3,2x))') 'RMIN = ', rminx, 'RMAX = ', rmaxx 
-           WRITE(*,'(6x,2(a,1p,e10.3,2x))') 'ZMIN = ', zminx, 'ZMAX = ', zmaxx 
-           WRITE(*,'(6x,a,i4)') 'Toroidal sections computed: ', nphis                
+        IF (iam.EQ.0 .AND. lverbose) THEN
+           WRITE(6,'(/,1x,a)') '>> Starting dump of graphics data...'
+           WRITE(6,'(6x,a)') 'Creating plot box between:'
+           WRITE(6,49) 'RMIN = ', rminx, 'RMAX = ', rmaxx 
+           WRITE(6,49) 'ZMIN = ', zminx, 'ZMAX = ', zmaxx 
+           WRITE(6,'(6x,a,i4)') 'Toroidal sections computed: ', nphis
         END IF
+ 49  FORMAT(6x,2(a,1p,e10.3,2x))         
 
         nmpi=0
         maxprocs = nphis*nzs*nrs
@@ -675,7 +676,7 @@
         USE fourier, ONLY: tomnsp, toijsp
         USE diagnostics_mod, ONLY: divj, divb, bdotj, lcurr_init,       &
                                    bdotjijh
-        USE perturbation, ONLY: lresistive
+        USE siesta_namelist, ONLY: lresistive
         USE nscalingtools, ONLY: startglobrow, endglobrow
         USE quantities, ONLY: pijh=>pijh0, jacobh,                      &  ! Remember that the JBSUPs and the KSUBs have a jacobian factor that needs to be removed
           b_factor, p_factor, jvsupsmncf,                               &
@@ -907,7 +908,7 @@
                               ksupsmncf,  ksupumnsf,  ksupvmnsf
         USE diagnostics_mod, ONLY: bdotjmnch, divjmnsh, divbmnsf,       &
                                    bdotjmnsh, divjmnch, divbmncf
-        USE perturbation, ONLY: mres1, nres1, mres2, nres2
+        USE siesta_namelist, ONLY: mres1, nres1, mres2, nres2
         LOGICAL, INTENT(IN)    :: lbfld, lsilo
         REAL(dp), INTENT(IN):: rr, zz, vv, ss, uu                          ! flux-coordinates: (s, u, v) = (SS, UU, VV)
         REAL(dp):: pp, bs, bu, bv, ru, rv, rs, zu, zv, zs,              &

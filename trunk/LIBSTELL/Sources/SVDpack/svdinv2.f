@@ -26,6 +26,11 @@
 !-----------------------------------------------
       INTEGER :: i, j
 !-----------------------------------------------
+!
+!     APEUDO-INV = V * WINV * UT
+!     RECALL, VT = TRANSPOSE(V)
+!
+
       DO i = 1, m
          IF (w(i) .gt. zero) THEN
 !divide ith row of Utr by w(i)
@@ -36,12 +41,7 @@
          END IF
       END DO
 
-!next multiply by V matrix (recall, vt = transpose of V) to get A inverse, store it in A
-      DO i = 1, m                               !multiply ith row vector of V by
-         DO j = 1, m                            !jth column vector of wU
-                                                !vector multiply V and wU
-            amat(i,j) = SUM(vt(:m,i)*u(j,:m))   !Put inverse back in A
-         END DO
-      END DO
+
+      AMAT = MATMUL(TRANSPOSE(VT), TRANSPOSE(U))
 
       END SUBROUTINE svdinv2

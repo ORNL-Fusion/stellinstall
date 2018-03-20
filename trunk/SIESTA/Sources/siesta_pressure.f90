@@ -51,12 +51,12 @@
        REAL(dp)            :: gamm1
        REAL(dp), DIMENSION(:,:,:), ALLOCATABLE ::                       &
          work1, work2, vgradph, work3, work4, work5, work6,             &
-         jvsupuijh, jvsupvijh
+         jvsupuijh, jvsupvijh, pijf0_du, pijf0_dv
          
        PUBLIC :: update_pres 
 
        CONTAINS
-!>     \brief Advance pressure from t to t+delta_t 
+!>     \brief Advance pressure on half radial grid from t to t+delta_t 
 !>     by updating jpmnc,sh (jacobh*presh)
        SUBROUTINE update_pres
        USE timer_mod, ONLY: time_update_pres
@@ -65,7 +65,7 @@
 !-----------------------------------------------
        INTEGER             :: istat
        REAL(dp)            :: ton, toff
-       LOGICAL, PARAMETER  :: l_upwind=.FALSE.
+       LOGICAL, PARAMETER  :: l_upwind=.FALSE.                            !does not work well, keep it off
 !-----------------------------------------------
        CALL second0(ton)
        nsmin=MAX(1,startglobrow-1); nsmax=MIN(ns,endglobrow+1)
@@ -100,43 +100,28 @@
 !      IF (l_linearize) gamm1 = gamma
 
 !On exit, vgradph is valid on [nsmin+1:nsmax]
+!MIXED HALF/FULL FORM: DIAGONAL IN ANGULAR DERIVATIVES - EXACTLY CANCEL 
+!div(pV) TERM WHEN div(V) = 0
        work1 = pijf0_ds(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
-!MIXED HALF/FULL: DIAGONAL IN ANGULAR DERIVATIVES - CANCEL div(pV) FOR
-!div(V) = 0
        CALL to_half_mesh(work1, vgradph)
        vgradph = vgradph                                                &
                + jvsupuijh(:,:,nsmin:nsmax)*pijh0_du(:,:,nsmin:nsmax)   &
                + jvsupvijh(:,:,nsmin:nsmax)*pijh0_dv(:,:,nsmin:nsmax)
 
-!Upwinding correction (makes 1st order streaming dominantly diagonal)
-!NOTE: since it enters conservatively, it doesn't effect MHD force, only HESSIAN
-!Can multiply this by a positive factor to increase numerical diffusion
-       IF (l_upwind) THEN
-          work1 = -0.5_dp*signjac*                                      &
-             pijf0_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
-          IF (nsmin .EQ. 1) work1(:,:,1) = 0
-          CALL GradientHalf(work3, work1)
-          vgradph = vgradph + hs_i*work3
-       END IF
+!Compute second term on r.h.s. ~gamma*Div(p*V)
+!Note that near axis, MUST set jvsupsijf == 0 since it makes no
+!contribution to the Div term
+       work2 = pijf0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
 
-!=====================================
-!      Compute second term on r.h.s. ~gamma*Div(p*V)
-!      Note that near axis, jvsups ~ s cos(u+nv), jvsupv -> s sin(nv) due to jacobian element
-!      In particular, pijf(1)*jvsupsijf makes no contribution to forces (integrates to zero,
-!      since jvsupsijf(1) ~ cos(u) + O(s)!)
-!      jvsupu may be finite, although dp/du -> 0 at axis
-!=====================================
 
-!Upwind to suppress grid separation in radial direction
-       IF (l_upwind) THEN
-          work1 = -0.5_dp*signjac*hs_i*                                 &
-             pijf0_ds(:,:,nsmin:nsmax)*ABS(jvsupsijf(:,:,nsmin:nsmax))
-          work2 = work1 +                                               &
-             pijh0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax) 
-       ELSE
-          work2 = pijf0(:,:,nsmin:nsmax)*jvsupsijf(:,:,nsmin:nsmax)
-       END IF
-
+!"Upwinding" to suppress grid separation of pressure in radial direction
+!makes diagonal contribution to 1st order streaming. Conservative so 
+!makes no contribution to MHD force (integrates to zero). NOTE: this is
+!not REAL upwinding, since the ABS(jvsupsijf) does not lead to a good
+!derivative around velocity = 0!
+       IF (l_upwind) work2 = work2 - hs_i*work1
+       
+       IF (nsmin .EQ. 1) work2(:,:,1) = 0                                 ! enforce bc at origin in div(pv) term
 !On exit, work1 is valid on [nsmin+1:nsmax]
        CALL GradientHalf(work1, work2)
 
@@ -148,7 +133,7 @@
        CALL Continuity(djpmnch, isym)
        IF (lasym) CALL Continuity(djpmnsh, iasym)
 
-       DEALLOCATE(work1, work2, vgradph, work3, work4, work5, work6)
+       DEALLOCATE(work1, work2, work3, work4, work5, work6, vgradph)
        
        CALL second0(toff)
        time_update_pres = time_update_pres + (toff-ton)
@@ -188,7 +173,7 @@
                   'djpmnh: wrong bounds - Continuity')
 
 !      FFT of gradp*Flux terms
-       CALL tomnsp_par(vgradph, work4, fours)                            ! Calculate Fourier transform of v_dot_gradph
+       CALL tomnsp_par(vgradph, work4, fours)                            ! Calculate Fourier transform of v*gradp
        djpmnh(:,:,nsmin:nsmax) = gamm1*work4(:,:,nsmin:nsmax)            ! Harmonics of r.h.s. of pres eq. (half mesh) 
 
 !FFT of -Div(p*Flux) terms 
@@ -196,17 +181,17 @@
        CALL tomnsp_par(work2, work5, fouru)
        CALL tomnsp_par(work3, work6, fourv)
 
-!multiply angular derivatives by m ~ d/du, n*nfp ~d/dv
+!multiply angular derivatives by m ~d/du, n*nfp ~d/dv (*sparity below)
        DO m = 0, mpol
-          DO n = -ntor, ntor
-             np = n*nfp
-             work5(m,n,nsmin:nsmax) = m *work5(m,n,nsmin:nsmax)         &
-                                    + np*work6(m,n,nsmin:nsmax)
-          ENDDO
+          work5(m,:,nsmin:nsmax) = m *work5(m,:,nsmin:nsmax)         
+       END DO
+       DO n = -ntor, ntor
+          np = n*nfp
+          work6(:,n,nsmin:nsmax) = np*work6(:,n,nsmin:nsmax)
        ENDDO
      
 !sum radial and angular div terms     
-       work4 = work4 + work5*sparity
+       work4 = work4 + (work5 + work6)*sparity
        
 !Gamma = adiabatic factor
        djpmnh(:,:,nsmin:nsmax) = djpmnh(:,:,nsmin:nsmax)                &
@@ -218,8 +203,10 @@
        IF (nsmin .EQ. 1) THEN
           djpmnh(:,:,1)  = 0
           djpmnh(m0,:,1) = djpmnh(m0,:,2)                                ! store js=1, m=0 value
+          CALL ASSERT(ALL(djpmnh(m0,-ntor:-1,:).EQ.zero),'djpmn(m0,-n) NONZERO')
        END IF
-
+       
+      
        END SUBROUTINE Continuity
 
        END MODULE siesta_pressure

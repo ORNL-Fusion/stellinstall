@@ -5,7 +5,7 @@
 !  Note separating the Doxygen comment block here so detailed decription is
 !  found in the Module not the file.
 !
-!>  \brief Update the JxB - Grad(p) force balance.
+!>  \brief Compute the JxB - Grad(p) covariant force components
 !>  \author S. P. Hirshman and R. Sanchez
 !>  \date August 21, 2006
 !>
@@ -14,16 +14,15 @@
 !>
 !>     F = J X B - Grad(p) = 0                                               (1)
 !>
-!>  where J is the current density. Updates for B and p where computed in
-!>  \ref siesta_bfield and \ref siesta_pressure.
+!>  where J is the current density. Updates for B (dB) and p (dp) were computed in
+!>  \ref siesta_bfield and \ref siesta_pressure, respectively.
 !>
 !>     B_i+1 = B_i + dB                                                     (2a)
 !>
 !>     p_i+1 = p_i + dp                                                     (2b)
 !>
-!>  These values must be updated first to update the MHD force. Note that the
-!>  magnetic field and pressure terms contain a Jacobian term in them. New
-!>  current density term can be found from the updated magnetic field.
+!>  Note that the magnetic field and pressure terms contain a Jacobian factor. 
+!>  Updated current density can be found from the updated magnetic field.
 !>
 !>     J = Curl(B)/mu0                                                       (3)
 !>
@@ -39,14 +38,14 @@
 !>  where K^i = sqrt(g) J^i.
 !*******************************************************************************
       MODULE siesta_force
-      USE v3_utilities, ONLY: assert
-      USE descriptor_mod, ONLY: SIESTA_COMM, iam, nprocs
       USE stel_kinds
       USE stel_constants
+      USE v3_utilities, ONLY: assert
+      USE descriptor_mod, ONLY: SIESTA_COMM, iam, nprocs
       USE fourier 
       USE island_params, ONLY: nu_i, hs_i, dnorm_i
       USE timer_mod
-      USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose
+      USE shared_data, ONLY: l_linearize, l_getwmhd, lverbose, l_pedge
       USE nscalingtools, ONLY: startglobrow, endglobrow, MPI_ERR
       USE utilities, ONLY: GradientFull, to_full_mesh
       USE quantities
@@ -54,15 +53,22 @@
 
       IMPLICIT NONE
 
-      INTEGER, PRIVATE  :: nsmin, nsmax
-      INTEGER, PRIVATE, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2, &
-                                     n0 = 0
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), PRIVATE ::               &
+      PRIVATE
+      
+      INTEGER, PARAMETER :: isym=0, iasym=1, m0=0, m1=1, m2=2, n0=0
+      INTEGER  :: nsmin, nsmax
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
          bsupsijh, bsupuijh, bsupvijh, pijh, KxBsij, KxBuij, KxBvij
-
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
+         jbsupsmnh_i, jbsupumnh_i, jbsupvmnh_i, jpmnh_i
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)  ::                       &
+         pmnh, pmnf, pmnf_ds
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:)    ::  pardamp
+      
+      PUBLIC :: update_force
 
       CONTAINS
-!>  \brief Parallel/Serial update MHD force on full radial mesh
+!>  \brief Parallel/Serial update MHD forces on full radial mesh
       SUBROUTINE update_force
 !     
 !     PURPOSE: UPDATES FORCE using the advanced values of B and p obtained
@@ -71,20 +77,17 @@
 !
 !      Linearized force is Flin ~ delta_v has ONLY the linear part (not DC part and not non-linear)
 !
+       USE shared_data, ONLY: gc, col_scale
        USE siesta_currents, ONLY: cv_currents
+       USE hessian, ONLY: Apply_ColScale
        USE bhtobf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER  :: istat, n1, n2, i, j, irefl, jrefl
        REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                       &
-         pmncf_ds, pmncf, pmnch,                                        &
-         pmnsf_ds, pmnsf, pmnsh,                                        &
-         ksupsijf, ksupuijf, ksupvijf,                                  &
-         bsupsijf1,bsupuijf1,bsupvijf1, pijf1,                          &
-         KxBsmnc, KxBumns, KxBvmns,                                     &
-         KxBsmns, KxBumnc, KxBvmnc
-       REAL(dp)    :: ton, toff, skston, skstoff, wp0
+                 pijf1
+       INTEGER  :: istat, n1, n2
+       REAL(dp)    :: ton, toff, skston, skstoff
        LOGICAL     :: ltest=.TRUE.
 !-----------------------------------------------
        CALL second0(skston)
@@ -98,7 +101,19 @@
        CALL ASSERT(istat.EQ.0,'Allocation1 failed in UPDATE_FORCE')
 
 
-!Convert to real-space contravariant components of B and p
+!Compute real-space contravariant components of B and p
+!
+!     Allocate space for TOTAL values of BSUPXMNH_i and pmnh_i
+!     (fields are updated in UPDATE_STATE, not here => UNPERTURBED fields 
+!      are unchanged until UPDATE_STATE call)
+!     perturbed fields were calculated in UPDATE_BFIELD and UPDATE_PRES
+!
+       ALLOCATE(jbsupsmnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),             &
+                jbsupumnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),             &
+                jbsupvmnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),             &  
+                jpmnh_i    (0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
+       CALL ASSERT(istat.EQ.0,'Allocation failed before INCFIELDS')
+
        CALL IncFields ( jbsupsmnsh,  jbsupumnch,  jbsupvmnch,  jpmnch,  &
                        djbsupsmnsh, djbsupumnch, djbsupvmnch, djpmnch,  &
                         isym)
@@ -106,53 +121,44 @@
        CALL IncFields ( jbsupsmnch,  jbsupumnsh,  jbsupvmnsh,  jpmnsh,  &
                        djbsupsmnch, djbsupumnsh, djbsupvmnsh, djpmnsh,  &
                         iasym)
+       DEALLOCATE(jbsupsmnh_i,jbsupumnh_i,jbsupvmnh_i,jpmnh_i,stat=istat)
 
 !UPDATE THERMAL (PRESSURE) ENERGY (pijh = jac * pres at this point)
        WPRES: IF (l_getwmhd) THEN
           CALL ASSERT(.NOT.INHESSIAN,                                   &
              'l_getwmhd must be set to FALSE in Hessian')
           n2=MIN(ns,endglobrow)
-          IF (nsmin .EQ. 1) pijh(:,:,1) = 0
+          IF (nsmin .EQ. 1) n1 = MAX(2,n1)
           wp = SUM(pijh(:,:,n1:n2)*wint(:,:,n1:n2))
           wp0 = signjac*(twopi*twopi * hs_i)*wp
+          n1 = nsmin
           n2=nsmax
           IF (PARSOLVER) THEN
 #if defined(MPI_OPT)
-          CALL MPI_ALLREDUCE(wp0,wp,1,MPI_REAL8, MPI_SUM,               &
-                             SIESTA_COMM,MPI_ERR)
+             CALL MPI_ALLREDUCE(wp0, wp, 1, MPI_REAL8, MPI_SUM,         & 
+                                SIESTA_COMM, MPI_ERR)
 #endif
           ELSE
-          wp = wp0
+             wp = wp0
           END IF
        END IF WPRES
 
-       ALLOCATE(ksupsijf(ntheta,nzeta,n1:n2),                           & ! Full mesh quantities (real space)
-                ksupuijf(ntheta,nzeta,n1:n2),                           & ! K_s (sine), K_u (cosine), K_v (cosine)
-                ksupvijf(ntheta,nzeta,n1:n2),                           &
-                bsupsijf1(ntheta,nzeta,n1:n2),                          &
-                bsupuijf1(ntheta,nzeta,n1:n2),                          &
-                bsupvijf1(ntheta,nzeta,n1:n2),                          &
-                pijf1(ntheta,nzeta,n1:n2), stat=istat)
+       ALLOCATE(pijf1(ntheta,nzeta,n1:n2), stat=istat)
        CALL ASSERT(istat.EQ.0,'Allocation2 failed in UPDATE_FORCE')
 
 !
-!Calculate updated FULL-MESH components of BSUPX and PRESSURE in real-space by averaging
-!
-       bsupsijh = bsupsijh/jacobh(:,:,n1:n2)
-       bsupvijh = bsupvijh/jacobh(:,:,n1:n2)
-       pijh = pijh/jacobh(:,:,n1:n2)
+!Update FULL-MESH components of BSUPX and PRESSURE in real-space by averaging
        CALL bhalftobfull (bsupsijh, bsupuijh, bsupvijh,                 &
-                          bsupsijf1,bsupuijf1,bsupvijf1)
+                          bsupsijf, bsupuijf, bsupvijf, pijh, pijf1)
                                  
 !
 !Calculate contravariant components of J = curl B (Ksup = gsqrt*Jsup)
 !and update the magnetic energy if nonlinear force is being computed
-!Note: origin currents are X1/2 (1/2 factor in grad-p too, in update_pres)
        CALL cv_currents (bsupsijh, bsupuijh, bsupvijh,                  &
                          ksupsijf, ksupuijf, ksupvijf,                  &
-                         ( .NOT.l_linearize .OR. l_getwmhd), .FALSE.)
+                         (.NOT.l_linearize .OR. l_getwmhd), .FALSE.)
 
-       DEALLOCATE(bsupsijh, bsupuijh, bsupvijh, pijf1, stat=istat)
+       DEALLOCATE(bsupsijh, bsupuijh, bsupvijh, stat=istat)
 
        nsmax=MIN(ns,endglobrow); n2 = nsmax
 
@@ -161,53 +167,49 @@
                 KxBvij(ntheta,nzeta,n1:n2), stat=istat)  
        CALL ASSERT(istat.EQ.0,'Allocation3 failed in UPDATE_FORCE')
 
+       CALL InitParDamping (KxBsij)                                       !KxBsij -> scratch array
+
+!Compute curvilinear Lorentz force components
        IF (l_linearize) THEN
-!dJ X B0 (ksupXijf is the perturbed current)
-          KxBsij = bsupvijf0(:,:,n1:n2)*ksupuijf(:,:,n1:n2)             &
-                 - bsupuijf0(:,:,n1:n2)*ksupvijf(:,:,n1:n2)
-          KxBuij = bsupsijf0(:,:,n1:n2)*ksupvijf(:,:,n1:n2)             &
-                 - bsupvijf0(:,:,n1:n2)*ksupsijf(:,:,n1:n2)
-          KxBvij = bsupuijf0(:,:,n1:n2)*ksupsijf(:,:,n1:n2)             &
-                 - bsupsijf0(:,:,n1:n2)*ksupuijf(:,:,n1:n2)
-
-!J0 X dB (Ignored for pos-def preconditioner AND linearized forces)
-!bsupXijf1 is the perturbed B-field
-
-          KxBsij = KxBsij                                               &
-          +  (bsupvijf1(:,:,n1:n2)*ksupuijf0(:,:,n1:n2)                 &
-          -   bsupuijf1(:,:,n1:n2)*ksupvijf0(:,:,n1:n2))
-          KxBuij = KxBuij                                               &
-          +  (bsupsijf1(:,:,n1:n2)*ksupvijf0(:,:,n1:n2)                 &
-          -   bsupvijf1(:,:,n1:n2)*ksupsijf0(:,:,n1:n2))
-          KxBvij = KxBvij                                               &
-          +  (bsupuijf1(:,:,n1:n2)*ksupsijf0(:,:,n1:n2)                 &
-          -   bsupsijf1(:,:,n1:n2)*ksupuijf0(:,:,n1:n2))
+!dJ X B0
+          CALL Lorentz(bsupsijf0, bsupuijf0, bsupvijf0,                 &
+                       ksupsijf,  ksupuijf,  ksupvijf, f_none)
+!J0 X dB
+          CALL Lorentz(bsupsijf,  bsupuijf,  bsupvijf,                  &
+                       ksupsijf0, ksupuijf0, ksupvijf0, f_sum)
        ELSE
-          KxBsij = bsupvijf1(:,:,n1:n2)*ksupuijf(:,:,n1:n2)             &
-                 - bsupuijf1(:,:,n1:n2)*ksupvijf(:,:,n1:n2)
-          KxBuij = bsupsijf1(:,:,n1:n2)*ksupvijf(:,:,n1:n2)             &
-                 - bsupvijf1(:,:,n1:n2)*ksupsijf(:,:,n1:n2)
-          KxBvij = bsupuijf1(:,:,n1:n2)*ksupsijf(:,:,n1:n2)             &
-                 - bsupsijf1(:,:,n1:n2)*ksupuijf(:,:,n1:n2)
+!(J0+dJ) X (B0+dB)
+          CALL Lorentz(bsupsijf, bsupuijf, bsupvijf,                    &
+                       ksupsijf, ksupuijf, ksupvijf,  f_none)
        END IF
 
-       IF (nsmax .EQ. ns) ltest = ALL(bsupsijf1(:,:,ns).EQ.zero)
-       CALL ASSERT(ltest, 'bsupsijf1(ns) != 0 in UPDATE_FORCE')
+       IF (nsmax .EQ. ns) ltest = ALL(bsupsijf(:,:,ns).EQ.zero)
+       CALL ASSERT(ltest, 'bsupsijf(ns) != 0 in UPDATE_FORCE')
+
+       n2 = MIN(ns,endglobrow+1)
+
+       ALLOCATE(pmnf_ds(0:mpol,-ntor:ntor,nsmin:n2),                    &
+                pmnf(0:mpol,-ntor:ntor,nsmin:n2),                       &
+                pmnh(0:mpol,-ntor:ntor,nsmin:n2), stat=istat)         
+       CALL ASSERT(istat.EQ.0,'Allocation failed before GETMHDFORCE')
 
        CALL GetMHDForce(fsubsmncf, fsubumnsf, fsubvmnsf, isym)
-       IF (lasym)                                                       &     
+       IF (lasym)                                                       &
 	   CALL GetMHDForce(fsubsmnsf, fsubumncf, fsubvmncf, iasym)
 
-       DEALLOCATE(ksupsijf, ksupuijf, ksupvijf,                         &
-	              bsupsijf1,bsupuijf1,bsupvijf1,                        &
+       CALL Apply_ColScale (gc, col_scale, nsmin, nsmax)                  
+	   
+       DEALLOCATE(pmnf, pmnf_ds, pmnh, pijf1,                           &
                   KxBsij, KxBuij, KxBvij, pijh, stat=istat)
+       IF (ALLOCATED(pardamp)) DEALLOCATE(pardamp)
 
        CALL second0(skstoff)
        time_update_force = time_update_force + (skstoff-skston)
 
       END SUBROUTINE update_force
 
-
+!>  \brief Compute nonlinear or linearized contravariant magnetic field
+!>   components and pressure in real space
       SUBROUTINE IncFields( jbsupsmnh,  jbsupumnh,  jbsupvmnh,  jpmnh,  &
                            djbsupsmnh, djbsupumnh, djbsupvmnh, djpmnh,  &
                             ipar)
@@ -223,9 +225,6 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER  :: fours, fouru, fourv, fcomb, istat
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) ::                        &
-         bsupsmnh_i, bsupumnh_i, bsupvmnh_i, pmnh_i
-      REAL(dp)           :: xfact
 !----------------------------------------------- 
       IF (ipar .EQ. isym) THEN
          fcomb = f_none; fours = f_sin; fouru = f_cos; fourv = f_cos
@@ -233,230 +232,285 @@
          fcomb = f_sum;  fours = f_cos; fouru = f_sin; fourv = f_sin
       END IF
 !
-!     Allocate space for TOTAL values of BSUPXMNH_i and pmnh_i
-!     (they are actually updated in UPDATE_STATE, not here, so UNPERTURBED
-!      values are not changed until UPDATE_STATE is called)
-!     increments were calculated previously in UPDATE_BFIELD and UPDATE_PRES
+!     IF nonlinear force, add perturbation to unperturbed value
+!     IF linear force, compute JUST perturbed fields here
 !
-      ALLOCATE(bsupsmnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-               bsupumnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),               &
-               bsupvmnh_i(0:mpol,-ntor:ntor,nsmin:nsmax),               &  
-               pmnh_i    (0:mpol,-ntor:ntor,nsmin:nsmax), stat=istat)  
-      CALL ASSERT(istat.EQ.0,'Allocation failed in INCFIELDS')
-!
-!     IF nonlinear force, add perturbation to DC (initial) value
-!     IF linear force, compute JUST perturbed fields here (add unperturbed force gc0 in funct_island)
-!
-      xfact = 1
-      IF (l_linearize) xfact = 0
-      bsupsmnh_i = xfact*jbsupsmnh(:,:,nsmin:nsmax) + djbsupsmnh(:,:,nsmin:nsmax)
-      bsupumnh_i = xfact*jbsupumnh(:,:,nsmin:nsmax) + djbsupumnh(:,:,nsmin:nsmax)
-      bsupvmnh_i = xfact*jbsupvmnh(:,:,nsmin:nsmax) + djbsupvmnh(:,:,nsmin:nsmax)
-      pmnh_i     = xfact*jpmnh(:,:,nsmin:nsmax)     + djpmnh(:,:,nsmin:nsmax)
+      jbsupsmnh_i = djbsupsmnh
+      jbsupumnh_i = djbsupumnh
+      jbsupvmnh_i = djbsupvmnh
+      jpmnh_i     = djpmnh
+      IF (.NOT.l_linearize) THEN
+         jbsupsmnh_i = jbsupsmnh_i + jbsupsmnh(:,:,nsmin:nsmax)
+         jbsupumnh_i = jbsupumnh_i + jbsupumnh(:,:,nsmin:nsmax)
+         jbsupvmnh_i = jbsupvmnh_i + jbsupvmnh(:,:,nsmin:nsmax)
+         jpmnh_i     = jpmnh_i     + jpmnh(:,:,nsmin:nsmax)
+      END IF
 
-! Calculate real-space BSUPX on half mesh
-      CALL toijsp_par(bsupsmnh_i, bsupsijh, fcomb, fours)   
-      CALL toijsp_par(bsupumnh_i, bsupuijh, fcomb, fouru)
-      CALL toijsp_par(bsupvmnh_i, bsupvijh, fcomb, fourv)
-      CALL toijsp_par(pmnh_i, pijh, fcomb, fourv)
- 
-      DEALLOCATE (bsupsmnh_i, bsupumnh_i, bsupvmnh_i, pmnh_i)
-      
+! js=1 origin values
+      IF (nsmin .EQ. 1) THEN
+         jbsupsmnh_i(:,:,1) = 0; jbsupsmnh_i(m1,:,1) = jbsupsmnh_i(m1,:,2)
+         jbsupumnh_i(:,:,1) = 0; jbsupumnh_i(m0:m1,:,1) = jbsupumnh_i(m0:m1,:,2)
+         jbsupvmnh_i(:,:,1) = 0; jbsupvmnh_i(m0,:,1) = jbsupvmnh_i(m0,:,2)
+         jpmnh_i(:,:,1) = 0;     jpmnh_i(m0,:,1) = jpmnh_i(m0,:,2)
+      END IF
+
+! Calculate real-space JBSUPXIJH and JPIJH (half mesh)
+      CALL toijsp_par(jbsupsmnh_i, bsupsijh, fcomb, fours)   
+      CALL toijsp_par(jbsupumnh_i, bsupuijh, fcomb, fouru)
+      CALL toijsp_par(jbsupvmnh_i, bsupvijh, fcomb, fourv)
+      CALL toijsp_par(jpmnh_i, pijh, fcomb, fourv)
+       
       END SUBROUTINE IncFields
 
-!*******************************************************************************
-!>  \brief Compute covariant (sub) components of the MHD force in parallel.
-!>
-!*******************************************************************************
-     
-      SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, ipar)
+!>  \brief Compute covariant (sub) eal-space components of the Lorentz K X B force
+      SUBROUTINE Lorentz (bsupsijf, bsupuijf, bsupvijf,                 &
+                          ksupsijf, ksupuijf, ksupvijf, fcomb)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      INTEGER, INTENT(IN)  :: ipar
-      REAL(dp), POINTER, DIMENSION(:,:,:) :: fsubsmnf, fsubumnf, fsubvmnf
+      INTEGER, INTENT(IN)  :: fcomb
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN) ::            &
+             bsupsijf, bsupuijf, bsupvijf, ksupsijf, ksupuijf, ksupvijf
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-      INTEGER  ::  fours, fouru, fourv, istat, k1, k2, k3, k4
-      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:)                           &
-               ::  KxBsmn, KxBumn, KxBvmn, pmnh, pmnf, pmnf_ds
-      REAL(dp) :: p00
-!----------------------------------------------- 
-      IF (ipar .EQ. isym) THEN
-         fours = f_cos; fouru = f_sin; fourv = f_sin
-      ELSE
-         fours = f_sin; fouru = f_cos; fourv = f_cos
+      INTEGER  ::  n1, n2
+!-----------------------------------------------
+      n1 = LBOUND(KxBsij,3);  n2 = UBOUND(KXBsij,3)
+
+      
+ !Initialize to avoid NaN errors!
+      IF (fcomb .EQ. f_none) THEN
+         KxBsij = 0; KxBuij = 0; KxBvij = 0
       END IF
 
-      k1 = nsmin; k2 = nsmax; k3 = k1; k4 = MIN(ns,endglobrow+1)
+      KxBsij = KxBsij                                                   &
+             + ksupuijf(:,:,n1:n2)*bsupvijf(:,:,n1:n2)                  &
+             - ksupvijf(:,:,n1:n2)*bsupuijf(:,:,n1:n2)
+      KxBuij = KxBuij                                                   &
+             + ksupvijf(:,:,n1:n2)*bsupsijf(:,:,n1:n2)                  &
+             - ksupsijf(:,:,n1:n2)*bsupvijf(:,:,n1:n2)
+      KxBvij = KxBvij                                                   &
+             + ksupsijf(:,:,n1:n2)*bsupuijf(:,:,n1:n2)                  &
+             - ksupuijf(:,:,n1:n2)*bsupsijf(:,:,n1:n2)
+      
+      END SUBROUTINE Lorentz
 
-      ALLOCATE(KxBsmn(0:mpol,-ntor:ntor,k1:k2),                         &
-               KxBumn(0:mpol,-ntor:ntor,k1:k2),                         &
-               KxBvmn(0:mpol,-ntor:ntor,k1:k2),                         &
-               pmnf_ds(0:mpol,-ntor:ntor,k3:k4),                        &
-               pmnf(0:mpol,-ntor:ntor,k3:k4),                           &
-               pmnh(0:mpol,-ntor:ntor,k3:k4), stat=istat)         
-      CALL ASSERT(istat.EQ.0,'Allocation failed in GETMHDFORCE')
-
-!Harmonics of Lorentz force on full grid
-      CALL tomnsp_par(KxBsij, KxBsmn, fours)
-      CALL tomnsp_par(KxBuij, KxBumn, fouru)
-      CALL tomnsp_par(KxBvij, KxBvmn, fourv)
-
-!Harmonics of "true" pressure (after dividing out jacobian factor in pijh)
-      CALL tomnsp_par(pijh, pmnh, fours)
-
-      CALL to_full_mesh(pmnh, pmnf)
-      IF (nsmax .EQ. ns) THEN
-         p00 = pmnf(m0, n0, ns)
-         pmnf(:,:,ns) = 0; pmnf(m0, n0, ns) = p00
-      END IF
-
-!Radial derivative of pressure valid for [k3, k4-1]
-      CALL GradientFull(pmnf_ds, pmnh)
-
-!SPH041408 : NEED FOR grad-p - apply 1/2 factor in get_force_harmonics to pmncf_ds(1)
-!      NEED pmncf(1,m1) so limit at r0=hs_i/2 in dp/du is taken correctly
-      IF (k3 .EQ. 1) THEN
-         pmnf(:,:,1) = 0; pmnf_ds(:,:,1) = 0
-         pmnf(m0:m1,:,1) = pmnh(m0:m1,:,2)
-         pmnf_ds(m1,:,1) = 2*ohs*pmnh(m1,:,2)
-      END IF
-
-!
-!Calculate harmonics of MHD force (F = JxB - grad p) on full mesh
-!For l_linearize=T:  PERTURBED Force (ignore F(xc=0) part)
-!For l_linearize=F:  NONLINEAR Force
-!
-      CALL ASSERT(nsmax.eq.k2,'NSMAX != K2')
-      KxBsmn = KxBsmn - pmnf_ds(:,:,k1:k2)
-      CALL get_force_harmonics(pmnf, KxBsmn, KxBumn, KxBvmn,            &
-                               fsubsmnf, fsubumnf, fsubvmnf, ipar)
-      DEALLOCATE(KxBsmn, KxBumn, KxBvmn, pmnf, pmnf_ds, pmnh, stat=istat)
-
-      END SUBROUTINE GetMHDForce
-
-!*******************************************************************************
-!>  \brief Compute harmonics of the MHD covariant force components
-!>
-!>  The MHD forces are pressure gradient and the magnetic pressure
+!>  \brief Compute covariant (sub) components of the MHD force J X B - grad p
+!>  The MHD forces are sum of Lorentz and pressure gradient forces
 !>
 !>     F = J X B - Grad(p)                                                 (1)
 !>
 !>  where J is the plasma current density. In curvilinear coodinates, the forces
 !>  components becomes
 !>
-!>     F_s = (K^u*B^v - K^v*B^u) - dpds                                    (2a)
+!>     F_s = (K^u*B^v - K^v*B^u) - dp/ds                                   (2a)
 !>
-!>     F_u = (K^v*B^s - K^s*B^v) - dpdu                                    (2b)
+!>     F_u = (K^v*B^s - K^s*B^v) - dp/du                                   (2b)
 !>
-!>     F_v = (K^s*B^u - K^u*B^s) - dpdv                                    (2c)
+!>     F_v = (K^s*B^u - K^u*B^s) - dp/dv                                   (2c)
 !>
-!>  where K^i = sqrt(g)*J^i . Note this routine only works on a
-!>  single parity at a time.
-!>
-!>  \param[in]  pmnf        Fourier pressure.
-!>  \param[in]  kxb_smn     Fourier magnetic pressure and radial pressure
-!>                          gradient in the radial direction.
-!>  \param[in]  kxb_umn     Fourier magnetic pressure in the poloidal direction.
-!>  \param[in]  kxb_vmn     Fourier magnetic pressure in the toroidal direction.
-!>  \param[out] f_smnf      F_s component of the MHD force. (cos, ipar=0)
-!>  \param[out] f_umnf      F_u component of the MHD force. (sin, ipar=0)
-!>  \param[out] f_vmnf      F_v component of the MHD force. (sin, ipar=0)
-!>  \param[in]  ipar        =isym (default lasym=F), =iasym (lasym=T)
-!*******************************************************************************
-       SUBROUTINE get_force_harmonics(pmnf,                             &
-                                      KxB_smn, KxB_umn, KxB_vmn,        &
-                                      f_smnf, f_umnf, f_vmnf, ipar) 
-       USE hessian, ONLY: muPar, l_Compute_Hessian
-       USE shared_data, ONLY: nprecon, l_PrintOriginForces,             &
-                              l_push_s, l_push_u, l_push_v, l_push_edge,&
-                              col_scale
-       USE nscalingtools, ONLY: FIRSTPARTITION_GE_2, LASTPARTITION_GE_2
+!>  where K^i = sqrt(g)*J^i . 
+!>  Note this routine works on one parity at a time.
+      SUBROUTINE GetMHDForce(fsubsmnf, fsubumnf, fsubvmnf, ipar)
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:), INTENT(IN)  ::          &
-           KxB_smn, KxB_umn, KxB_vmn, pmnf
-       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,ns), INTENT(OUT) ::        &
+      INTEGER, INTENT(IN)  :: ipar
+      REAL(dp), POINTER, DIMENSION(:,:,:) ::                           &
+         fsubsmnf, fsubumnf, fsubvmnf
+!-----------------------------------------------
+!   L o c a l   V a r i a b l e s
+!-----------------------------------------------
+      INTEGER  ::  fours, fouru, fourv
+      REAL(dp), POINTER, DIMENSION(:,:,:)  :: KxBsmn, KXBumn, KXBvmn
+      LOGICAL  ::  ltest
+!----------------------------------------------- 
+!
+!Calculate harmonics of MHD force (F = JxB - grad p) on full mesh
+!For l_linearize=T:  PERTURBED Force (ignore F(xc=0) part)
+!For l_linearize=F:  FULL NONLINEAR Force (F(xc=0) part only)
+!
+      IF (ipar .EQ. isym) THEN
+         fours = f_cos; fouru = f_sin; fourv = f_sin
+      ELSE
+         fours = f_sin; fouru = f_cos; fourv = f_cos
+      END IF
+      
+      KXBsmn => fsubsmnf(:,:,nsmin:nsmax)
+      KXBumn => fsubumnf(:,:,nsmin:nsmax)
+      KXBvmn => fsubvmnf(:,:,nsmin:nsmax)
+
+!Harmonics of covariant Lorentz force components on full grid
+      CALL tomnsp_par(KxBsij, KxBsmn, fours)
+      CALL tomnsp_par(KxBuij, KxBumn, fouru)
+      CALL tomnsp_par(KxBvij, KxBvmn, fourv)
+
+!Harmonics of "true" pressure (jacobian factor has been divided out of pijh)
+      CALL tomnsp_par(pijh, pmnh, fours)
+      CALL to_full_mesh(pmnh, pmnf)
+
+!Radial derivative of pressure
+      CALL GradientFull(pmnf_ds, pmnh)
+
+!SPH041408 : NEED FOR grad-p - apply 1/2 factor in get_force_harmonics to pmnf_ds(1)
+!            NEED pmn(m1,:,1) so limit at r12=hs_i/2 for dp/du, dp/dv is numerically correct
+      IF (nsmin .EQ. 1) THEN
+         pmnf(:,:,1) = 0; pmnf_ds(:,:,1) = 0
+         pmnf(m0:m1,:,1) = pmnh(m0:m1,:,2)
+         pmnf_ds(m1,:,1) = 2*ohs*pmnh(m1,:,2)
+      END IF
+      
+      IF (nsmax.EQ.ns .AND. l_pedge) THEN
+         pmnf(:,:,ns) = 0
+         pmnf(m0,0,ns) = pmnh(m0,0,ns)
+      END IF
+
+      CALL get_force_harmonics (KxBsmn, KxBumn, KxBvmn, ipar)
+
+      END SUBROUTINE GetMHDForce
+      
+      
+!>  \brief Compute scaling factors for parallel flow damping
+!>
+      SUBROUTINE InitParDamping(parscale)
+      USE hessian, ONLY:  l_Compute_Hessian, mupar, mupar_norm
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+      REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: parscale                 !Scratch array
+!-----------------------------------------------
+      IF (muPar.EQ.zero .OR. .NOT.l_Compute_Hessian) RETURN
+
+      CALL ASSERT(LBOUND(parscale,3).EQ.nsmin,'PARSCALE LBOUND WRONG!')
+      CALL ASSERT(UBOUND(parscale,3).EQ.nsmax,'PARSCALE UBOUND WRONG!')
+      ALLOCATE(pardamp(nsmin:nsmax,3))
+
+!SPH 05-6-16 UPDATE mupar_norm IN cv_currents and put in 1/jacobh factor
+!SIMPLER, FASTER APPROXIMATION: KEEP ONLY DIAGONAL DISPLACEMENT TERMS FROM v dot B
+      muPar = ABS(muPar)
+
+      parscale = bsubsijf(:,:,nsmin:nsmax)**2/jacobf(:,:,nsmin:nsmax)
+      CALL SurfAverage(pardamp(nsmin:nsmax,1), parscale, nsmin, nsmax)
+      pardamp(:,1) = pardamp(:,1)*muPar*mupar_norm(nsmin:nsmax)
+
+      parscale = bsubuijf(:,:,nsmin:nsmax)**2/jacobf(:,:,nsmin:nsmax)
+      CALL SurfAverage(pardamp(nsmin:nsmax,2), parscale, nsmin, nsmax)
+      pardamp(:,2) = pardamp(:,2)*muPar*mupar_norm(nsmin:nsmax)
+      
+      parscale = bsubvijf(:,:,nsmin:nsmax)**2/jacobf(:,:,nsmin:nsmax)
+      CALL SurfAverage(pardamp(nsmin:nsmax,3), parscale, nsmin, nsmax)
+      pardamp(:,3) = pardamp(:,3)*muPar*mupar_norm(nsmin:nsmax)
+     
+      END SUBROUTINE InitParDamping
+
+!>  \brief Final computation of the MHD covariant Fourier force components.
+!>  Add pressure gradients and parallel damping (to Hessian), and scale 
+!>  and print boundary values.
+!>
+!>
+!>  \param[inout] f_smnf      F_s component of the MHD force. (cos, ipar=0)
+!>  \param[inout] f_umnf      F_u component of the MHD force. (sin, ipar=0)
+!>  \param[inout] f_vmnf      F_v component of the MHD force. (sin, ipar=0)
+!>  \param[in]  ipar          =isym (lasym=F/T), =iasym (only for lasym=T)
+!*******************************************************************************
+       SUBROUTINE get_force_harmonics(f_smnf, f_umnf, f_vmnf, ipar) 
+       USE hessian, ONLY: muPar, l_Compute_Hessian
+       USE shared_data, ONLY: nprecon, l_PrintOriginForces,             &
+                              l_push_s, l_push_u, l_push_v,             &
+                              l_push_edge, col_scale
+       USE nscalingtools, ONLY: FIRSTPARTITION_GE_2, LASTPARTITION_GE_2
+       
+!these were computed in siesta_displacment and are used for || damping      
+       USE quantities, ONLY: gvsupsmncf => fsupsmncf, gvsupumnsf => fsupumnsf,  &
+             gvsupvmnsf => fsupvmnsf, gvsupsmnsf => fsupsmnsf,          &
+             gvsupumncf => fsupumncf, gvsupvmncf => fsupvmncf
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
+       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,nsmin:nsmax)  ::           &
            f_smnf, f_umnf, f_vmnf
        INTEGER, INTENT(IN) ::  ipar
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
        REAL(dp), PARAMETER :: p5 = 0.5_dp
-       INTEGER             :: m, n, mp, np, mcol, ioff, joff
        REAL(dp)            :: skston, skstoff 
-       REAL(dp)            :: f1, f2, f3, r0, tmps(6) 
-       INTEGER             :: from, sparity
+       REAL(dp)            :: f1, f2, f3, tmps(6)
+       INTEGER             :: from, sparity, m, mp, n, np
        LOGICAL             :: ltest
 !-----------------------------------------------
-!
-!      NOTE: there is an m=1 part of pmnf retained at js=1, which is REALLY at js=hs/2
-!      It contributes a spurious piece to f_vmnf, which is correctly zeroed
-!
        CALL second0(skston)
-       IF (ipar .EQ. isym) THEN
-          mcol=1; sparity = 1
-          r0 = hs_i/2
-       ELSE
-          mcol=4; sparity = -1
-          r0 =-hs_i/2
-       END IF
        
-       nsmin = LBOUND(KXB_smn,3);  nsmax = UBOUND(KXB_smn,3)
+      IF (ipar .EQ. isym) THEN
+         sparity=1
+      ELSE
+         sparity=-1
+      END IF
 
-       f_smnf(:,:,nsmin:nsmax) = KxB_smn
-       DO m = 0, mpol
-          mp = m*sparity
-          DO n = -ntor, ntor       
-             np = n*nfp*sparity
-             f_umnf(m,n,nsmin:nsmax) = KxB_umn(m,n,nsmin:nsmax)         &
-                               + mp*pmnf(m,n,nsmin:nsmax)                 ! mp ~ -(d/du)pres
-             f_vmnf(m,n,nsmin:nsmax) = KxB_vmn(m,n,nsmin:nsmax)         &
-                               + np*pmnf(m,n,nsmin:nsmax)                 ! np ~ -(d/dv)pres
-          ENDDO
-       ENDDO
-
-       ltest = ALL(f_smnf(m0,-ntor:-1,nsmin:nsmax).EQ.zero)
+!add pressure gradient to Lorentz force
+      f_smnf = f_smnf - pmnf_ds(:,:,nsmin:nsmax)
+      
+      DO m = 0, mpol
+         mp = m*sparity
+         f_umnf(m,:,:) = f_umnf(m,:,:) + mp*pmnf(m,:,nsmin:nsmax)         ! mp ~ -(d/du)p
+      END DO
+       
+      DO n = -ntor, ntor       
+         np = n*nfp*sparity
+         f_vmnf(:,n,:) = f_vmnf(:,n,:) + np*pmnf(:,n,nsmin:nsmax)         ! np ~ -(d/dv)p
+      ENDDO
+       
+       
+!#undef _TESTF
+#define _TESTF
+#if defined(_TESTF)
+       ltest = ALL(f_smnf(m0,-ntor:-1,:).EQ.zero)
        CALL ASSERT(ltest,'f_smnf != 0, m=0, n<0')
-       ltest = ALL(f_umnf(m0,-ntor:-1,nsmin:nsmax).EQ.zero)
+       ltest = ALL(f_umnf(m0,-ntor:-1,:).EQ.zero)
        CALL ASSERT(ltest,'f_umnf != 0, m=0, n<0')
-       ltest = ALL(f_vmnf(m0,-ntor:-1,nsmin:nsmax).EQ.zero)
+       ltest = ALL(f_vmnf(m0,-ntor:-1,:).EQ.zero)
        CALL ASSERT(ltest,'f_vmnf != 0, m=0, n<0')
-
-!      ADD SYMMETRIC DAMPING TERMS -B v dot B TO SUPPRESS NULL SPACE
-!      WORKS BEST: comment out IF statement below, allowing -mu v|| term
-!      to be added to BOTH linear and nonlinear forces. However, must
-!      guarantee that v->0 at end for this to work well
-
-!CALL funct_island WITH vsupXmn...=0 to get un-augmented MHD force
-       IF (muPar.NE.zero .AND. l_Compute_Hessian)                       &
-!       IF (muPar .NE. zero)                                             &
-       CALL AddParDamping(f_smnf, f_umnf, f_vmnf, KxB_vmn, ipar)
+#endif
+       IF (ipar .EQ. isym) THEN
+          CALL AddParDamping(f_smnf, f_umnf, f_vmnf,                    &
+                             gvsupsmncf, gvsupumnsf, gvsupvmnsf, ipar)
+#if defined(_TESTF)                             
+          ltest = ALL(f_umnf(m0,0,:).EQ.zero)
+          CALL ASSERT(ltest,'f_umnf(m0,0) != 0')
+          ltest = ALL(f_vmnf(m0,0,:).EQ.zero)
+          CALL ASSERT(ltest,'f_vmnf(m0,0) != 0')
+#endif          
+       ELSE
+          CALL AddParDamping(f_smnf, f_umnf, f_vmnf,                    &
+                             gvsupsmnsf, gvsupumncf, gvsupvmncf, ipar)
+#if defined(_TESTF)                             
+          ltest = ALL(f_smnf(m0,0,:).EQ.zero)
+          CALL ASSERT(ltest,'f_smnf(m0,0) != 0')
+#endif          
+       END IF
 
 !GATHER BDY FORCES AND PRINT OUT ON PROC=0
        PRINT_O: IF (l_PrintOriginForces) THEN
-             fbdy(1) = SQRT(SUM(f_smnf(m1,:,1)**2))
-             fbdy(2) = SQRT(SUM(f_smnf(m1,:,2)**2))
-             fbdy(3) = SQRT(SUM(f_smnf(m0,:,2)**2) + SUM(f_smnf(m2:,:,2)**2))
+          fbdy(1) = SQRT(SUM(f_smnf(m1,:,1)**2))
+          fbdy(2) = SQRT(SUM(f_smnf(m1,:,2)**2))
+          fbdy(3) = SQRT(SUM(f_smnf(m0,:,2)**2) + SUM(f_smnf(m2:,:,2)**2))
 
-             fbdy(4) = SQRT(SUM(f_umnf(m1,:,1)**2))
-             fbdy(5) = SQRT(SUM(f_umnf(m1,:,2)**2))
-             fbdy(6) = SQRT(SUM(f_umnf(m0,:,2)**2) + SUM(f_umnf(m2:,:,2)**2))
+          fbdy(4) = SQRT(SUM(f_umnf(m1,:,1)**2))
+          fbdy(5) = SQRT(SUM(f_umnf(m1,:,2)**2))
+          fbdy(6) = SQRT(SUM(f_umnf(m0,:,2)**2) + SUM(f_umnf(m2:,:,2)**2))
 
-             fbdy(7) = SQRT(SUM(f_vmnf(m0,:,1)**2))
-             fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
-             fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
+          fbdy(7) = SQRT(SUM(f_vmnf(m0,:,1)**2))
+          fbdy(8) = SQRT(SUM(f_vmnf(m0,:,2)**2))
+          fbdy(9) = SQRT(SUM(f_vmnf(m1:,:,2)**2))
 
-             fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
-             fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
-             fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
-             fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
+          fbdy(11) = SQRT(SUM(f_umnf(:,:,ns)**2))
+          fbdy(10) = SQRT(SUM(f_umnf(:,:,ns-1)**2))
+          fbdy(13) = SQRT(SUM(f_vmnf(:,:,ns)**2))
+          fbdy(12) = SQRT(SUM(f_vmnf(:,:,ns-1)**2))
 
 #if defined(MPI_OPT)
-           NPROCS_0: IF (nprocs.GT.1) THEN
+           NPROCS_0: IF (nprocs .GT. 1) THEN
              IF (.NOT.FIRSTPARTITION_GE_2) THEN
                 tmps(1)=fbdy(2); tmps(2)=fbdy(3)
                 tmps(3)=fbdy(5); tmps(4)=fbdy(6)
@@ -504,9 +558,9 @@
  125   FORMAT(' fv(ns-1) : ',1p,e12.3,' fv(ns)   : ',1pe12.3,/)
 
 !      ORIGIN BOUNDARY CONDITIONS
+!      p5 factors below are needed to preserve hessian symmetry
        NSMIN_1: IF (nsmin .EQ. 1) THEN
        f_smnf(m0,:,1) = 0; f_smnf(m2:,:,1) = 0
-!       IF (.NOT.l_natural) f_umnf(m1,:,1) = f_umnf(m1,:,1)-r0*f_smnf(m1,:,1) 
        IF (.NOT.l_push_s) THEN 
           f_smnf(m1,:,1) = 0
        ELSE
@@ -514,6 +568,7 @@
        END IF
 
        f_umnf(m0,:,1) = 0; f_umnf(m2:,:,1) = 0
+       
        IF (.NOT.l_push_u) THEN
           f_umnf(m1,:,1) = 0
        ELSE
@@ -524,29 +579,23 @@
        IF (.NOT.l_push_v) THEN
           f_vmnf(m0,:,1) = 0
        ELSE
-          f_vmnf(m0,:,1) = p5*f_vmnf(m0,:,1)                              !MAINTAIN SYMMETRY OF HESSIAN
+          f_vmnf(m0,:,1) = p5*f_vmnf(m0,:,1)
        END IF
 
        END IF NSMIN_1
  
 !      EDGE BOUNDARY CONDITIONS
-       NSMAX_NS: IF (nsmax .EQ. ns) THEN
+       EDGE: IF (nsmax .EQ. ns) THEN
           f_smnf(:,:,ns) = 0
+          IF (l_pedge) f_umnf(:,:,ns) = 0
           IF (.NOT.l_push_edge) THEN
              f_umnf(:,:,ns) = 0
              f_vmnf(:,:,ns) = 0
-          ELSE                                                            !MAINTAIN SYMMETRY OF HESSIAN
+          ELSE
              f_umnf(:,:,ns) = p5*f_umnf(:,:,ns)
              f_vmnf(:,:,ns) = p5*f_vmnf(:,:,ns)
           END IF
-       END IF NSMAX_NS
-
-       f_smnf(:,:,nsmin:nsmax) = signjac*f_smnf(:,:,nsmin:nsmax)        &
-                               * col_scale(:,:,mcol,nsmin:nsmax)
-       f_umnf(:,:,nsmin:nsmax) = signjac*f_umnf(:,:,nsmin:nsmax)        &
-                               * col_scale(:,:,mcol+1,nsmin:nsmax)
-       f_vmnf(:,:,nsmin:nsmax) = signjac*f_vmnf(:,:,nsmin:nsmax)        &
-                               * col_scale(:,:,mcol+2,nsmin:nsmax)
+       END IF EDGE
 
        CALL second0(skstoff)
        get_force_harmonics_time=get_force_harmonics_time+(skstoff-skston)
@@ -554,119 +603,47 @@
        END SUBROUTINE get_force_harmonics
 
 
-       SUBROUTINE addpardamping (f_smnf, f_umnf, f_vmnf, work, ipar)
-       USE hessian, ONLY: muPar, mupar_norm, l_Compute_Hessian
+!>  \brief Add parallel flow damping terms to forces (for Hessian calculation)
+!>   to suppress null space at resonances
+!>
+       SUBROUTINE addpardamping (f_smnf, f_umnf, f_vmnf,                &
+                                 jvsupsmnf, jvsupumnf, jvsupvmnf, ipar)
        USE shared_data, ONLY:  col_scale
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
        INTEGER, INTENT(IN) :: ipar
-       REAL(dp)            :: work(0:mpol,-ntor:ntor,nsmin:nsmax)
-       REAL(dp), INTENT(INOUT), DIMENSION(0:mpol,-ntor:ntor,ns) ::      &
+       REAL(dp), DIMENSION(0:mpol,-ntor:ntor,nsmin:nsmax) ::            &
                  f_smnf, f_umnf, f_vmnf          
+       REAL(dp), POINTER, DIMENSION(:,:,:) ::                           &
+                 jvsupsmnf, jvsupumnf, jvsupvmnf                          !scaled in siesta_displacement
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
-       INTEGER  :: js, istat, mcol, fours, fouru, fourv
-       REAL(dp) :: av(ns)
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: vdotB, tmp
-       REAL(dp), ALLOCATABLE, DIMENSION(:,:,:) :: xsubsij, xsubuij, xsubvij
+       INTEGER    :: js  !, mcol, fours, fouru, fourv
 !-----------------------------------------------
 !
 !      Compute parallel (to B) damping force and add it to (linearized) forces
+!      to suppress null space in preconditioner
 !
-       IF (ipar .EQ. isym) THEN
-          mcol = 1; fours=f_cos; fouru=f_sin; fourv=f_sin
-       ELSE
-          mcol = 4; fours=f_sin; fouru=f_cos; fourv=f_cos
-       END IF
-
-       ALLOCATE (vdotB(ntheta,nzeta,nsmin:nsmax),                       &
-                 tmp(ntheta,nzeta,nsmin:nsmax), stat=istat)
+       IF (.NOT.ALLOCATED(pardamp)) RETURN
+       CALL ASSERT(LBOUND(f_smnf,3).EQ.nsmin,'LBOUND(f_smnf) != nsmin')
+       CALL ASSERT(UBOUND(f_smnf,3).EQ.nsmax,'UBOUND(f_smnf) != nsmax')
 
 !SPH 05-6-16 UPDATE mupar_norm IN cv_currents and put in 1/jacobh factor
-!SIMPLER (FASTER, APPROXIMATE) FORM
-!
-!       GOTO 200
-
-       tmp = bsubsijf(:,:,nsmin:nsmax)**2/jacobf(:,:,nsmin:nsmax)
-       CALL SurfAverage(av(nsmin:nsmax), tmp, nsmin, nsmax)
+!SIMPLER (FASTER, APPROXIMATELY DIAGONAL) FORM
 
        DO js = nsmin,nsmax
-          av(js) = av(js)*muPar*mupar_norm(js)
-          IF (ipar .EQ. 0) THEN
-             work(:,:,js) = jvsupsmncf(:,:,js)
-          ELSE
-             work(:,:,js) = jvsupsmnsf(:,:,js)
-          END IF
           f_smnf(:,:,js) = f_smnf(:,:,js)                               &
-                         + work(:,:,js)*av(js)*col_scale(:,:,mcol,js)
-       END DO   
+                         + jvsupsmnf(:,:,js)*pardamp(js,1)
 
-       tmp = bsubuijf(:,:,nsmin:nsmax)**2/jacobf(:,:,nsmin:nsmax)
-       CALL SurfAverage(av(nsmin:nsmax), tmp, nsmin, nsmax)
-
-       DO js = nsmin,nsmax
-          av(js) = av(js)*muPar*mupar_norm(js)
-          IF (ipar .EQ. 0) THEN
-             work(:,:,js) = jvsupumnsf(:,:,js)
-          ELSE
-             work(:,:,js) = jvsupumncf(:,:,js)
-          END IF
           f_umnf(:,:,js) = f_umnf(:,:,js)                               &
-                         + work(:,:,js)*av(js)*col_scale(:,:,mcol+1,js) 
-       END DO   
+                         + jvsupumnf(:,:,js)*pardamp(js,2)
 
-       tmp = bsubvijf(:,:,nsmin:nsmax)**2/jacobf(:,:,nsmin:nsmax)
-       CALL SurfAverage(av(nsmin:nsmax), tmp, nsmin, nsmax)
-
-       DO js = nsmin,nsmax
-          av(js) = av(js)*muPar*mupar_norm(js)
-          IF (ipar .EQ. 0) THEN
-             work(:,:,js) = jvsupvmnsf(:,:,js)
-          ELSE
-             work(:,:,js) = jvsupvmncf(:,:,js)
-          END IF
           f_vmnf(:,:,js) = f_vmnf(:,:,js)                               &
-                         + work(:,:,js)*av(js)*col_scale(:,:,mcol+2,js)
+                         + jvsupvmnf(:,:,js)*pardamp(js,3)
        END DO   
 
-       GO TO 100       
-
- 200   CONTINUE
-
-!
-!col_scale factor already in real-space jvsupXijf
-       IF (nsmin .EQ. 1) bsubuijf(:,:,1) = 0
-       vdotB(:,:,nsmin:nsmax) =                                         &
-           jvsupsijf(:,:,nsmin:nsmax)*bsubsijf(:,:,nsmin:nsmax)         &
-         + jvsupuijf(:,:,nsmin:nsmax)*bsubuijf(:,:,nsmin:nsmax)         &
-         + jvsupvijf(:,:,nsmin:nsmax)*bsubvijf(:,:,nsmin:nsmax)
-
-       DO js = nsmin,nsmax
-          vdotB(:,:,js) = muPar*mupar_norm(js)*vdotB(:,:,js)/jacobf(:,:,js)
-       END DO
-
-       tmp = bsubsijf(:,:,nsmin:nsmax)*vdotB
-       CALL tomnsp_par(tmp, work, fours)
-       DO js=nsmin,nsmax
-          f_smnf(:,:,js) = f_smnf(:,:,js) + work(:,:,js)
-       END DO
-
-       tmp = bsubuijf(:,:,nsmin:nsmax)*vdotB
-       CALL tomnsp_par(tmp, work, fouru)
-       DO js=nsmin,nsmax
-          f_umnf(:,:,js) = f_umnf(:,:,js) + work(:,:,js)
-       END DO
-
-       tmp = bsubvijf(:,:,nsmin:nsmax)*vdotB
-       CALL tomnsp_par(tmp, work, fourv)
-       DO js=nsmin,nsmax
-          f_vmnf(:,:,js) = f_vmnf(:,:,js) + work(:,:,js)
-       END DO
-
- 100   CONTINUE
-       DEALLOCATE (vdotB, tmp)
 
        END SUBROUTINE addpardamping
 

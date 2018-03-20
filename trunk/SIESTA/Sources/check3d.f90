@@ -3,7 +3,6 @@
       USE descriptor_mod, mm_loc=>mm, csrc_loc=>csrc
 !      USE prof_mod
 !      USE ptrd_mod
-#if defined(MPI_OPT)
       IMPLICIT NONE
 
 !Written 03-12-10 by Eduardo D'Azevedo
@@ -25,11 +24,7 @@
                             bp, cp
 
       REAL(dp), INTENT(inout) :: asym_index
-
-
-      REAL(dp), POINTER :: amat(:,:), bmat(:,:), cmat(:,:)
-      REAL(dp), POINTER :: amatp(:,:), bmatp(:,:), cmatp(:,:)
-
+#if defined(MPI_OPT)
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
@@ -39,6 +34,8 @@
 
       REAL(dp), parameter :: tol = 1.0d-6
 
+      REAL(dp), POINTER :: amat(:,:), bmat(:,:), cmat(:,:)
+      REAL(dp), POINTER :: amatp(:,:), bmatp(:,:), cmatp(:,:)
       REAL(dp), DIMENSION(:,:), POINTER :: Asrc, Bsrc, Csrc
       REAL(dp), DIMENSION(:,:), ALLOCATABLE :: Atmp
       INTEGER, DIMENSION(DLEN_) :: descAtmp
@@ -242,114 +239,174 @@
       END SUBROUTINE check3d_symmetry_serial
 
 
-      SUBROUTINE CheckForces(xc, gc, eps, func)
+      SUBROUTINE CheckForces(xc, gc)
       USE stel_kinds, ONLY: dp
-      USE shared_data, ONLY: wtotal, l_linearize, ndims
-      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
+      USE stel_constants, ONLY: zero, twopi
+      USE descriptor_mod, ONLY: iam
+      USE shared_data, ONLY: wtotal, l_linearize, l_init_state,         &
+                             l_getfsq, l_getwmhd, l_ApplyPrecon,        &
+                             l_push_edge, l_push_s, l_push_u, l_push_v, &
+                             ndims
+      USE shared_functions, ONLY: funct_island
+      USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf,            &
+                            mpol, ntor, ns, wp0, wb0, hs_i
       USE hessian, ONLY: l_Compute_Hessian
+      USE nscalingtools, ONLY: startglobrow, endglobrow
       USE v3_utilities, ONLY: assert
+      IMPLICIT NONE
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
-      REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns), gc(ndims*(1+mpol)*(2*ntor+1),ns)
-      REAL(dp) ::  eps
-      EXTERNAL :: func
+      REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns),                     &
+                  gc(ndims*(1+mpol)*(2*ntor+1),ns)
 !-----------------------------------------------
 !   L o c a l   P a r a m e t e r s
 !-----------------------------------------------
       REAL(dp), ALLOCATABLE :: gc1(:,:)
-      INTEGER  :: ntype, n, m, icol, js, mblk, nt1
-      REAL(dp) ::  wplus, wmins, force, eps1
-      LOGICAL  :: lsave, lsave2
+      INTEGER  :: ntype, n, m, icol, js, mblk, nt1, icount
+      REAL(dp) ::  wplus, wmins, force, eps, fnorm
+      LOGICAL  :: lsave, lsave2, lwrite, l_edge, l_s, l_u, l_v
       CHARACTER*(10) :: force_array(3) = (/' FORCE-S: ',' FORCE-U: ',' FORCE-V: '/)
 !-----------------------------------------------
 !
 !     COMPUTES F = -GRAD(WMHD) NUMERICALLY
 !
-      mblk = SIZE(xc,2)
+      mblk = SIZE(xc,1)
       icol = 0
       lsave = l_linearize
       lsave2= l_Compute_Hessian
+      l_edge = l_push_edge
+      l_s = l_push_s; l_u = l_push_u; l_v = l_push_v
       l_linearize = .FALSE.
       l_Compute_Hessian = .FALSE.
-      xc = 0
-      gc = 0
-      wtotal = 0
-      CALL func
-      ALLOCATE (gc1(ns,mblk))
-!Not sure where 2.5 factor arises from
-      gc1 = gc/2.5_dp
-      eps1 = 10*eps
-      CALL ASSERT(wtotal.GT.zero,'WTOTAL=0!')
+      l_init_state = .FALSE.
+      l_ApplyPrecon = .FALSE.
+      l_getfsq = .FALSE.
+      l_getwmhd = .TRUE.
+      l_push_edge = .TRUE.
+      l_push_s = .TRUE.; l_push_u = .TRUE.; l_push_v = .TRUE.
 
-      js = ns/2
+      xc = 0
+      CALL funct_island
+      ALLOCATE (gc1(mblk,ns))
+      
+      fnorm = (twopi*twopi)*hs_i
+      gc1 = gc*fnorm
+
+      IF (iam .EQ. 0) PRINT *,'WRITING CHECK-FORCES FILES FORT.(3000+iam)'
+      
+      WRITE (3000+iam, *) 'fnorm: ', fnorm,' iam: ', iam
+
+!      eps = 10*SQRT(epsilon(eps))
+      eps = 1.E-3_dp
+
+      CALL ASSERT(wtotal.GT.zero,'WTOTAL=0!')
+      
+      !Need l_push_s,u,v = T for js=1; l_push_edge = T for js=ns
+
+      RADIAL: DO icount = 1, 4
+      
+         IF (icount .EQ. 1) js = 1
+         IF (icount .EQ. 2) js = 2
+         IF (icount .EQ. 3) js = ns/2
+         IF (icount .EQ. 4) js = ns
+      
+         lWrite = (startglobrow.LE.js .AND. endglobrow.GE.js)
+         IF (lWrite)                                                    &
+         WRITE (3000+iam, *)'POINT: ', js,' START: ',                   &
+                             startglobrow,' END: ', endglobrow
+
+      icol = 0
 
       DO ntype = 1, ndims
          DO n = -ntor, ntor
             DO m = 0, mpol
             icol = icol+1
-
-!            IF (m.eq.0 .and. n.lt.0) CYCLE
-            xc(icol,js) = eps1
-            CALL func
+            
+            xc(icol,js) = eps
+            CALL funct_island
             wplus = wtotal
 
-            xc(icol,js) = -eps1
-            CALL func
+            xc(icol,js) = -eps
+            CALL funct_island
             wmins = wtotal
-            force = -(wplus-wmins)/(2*eps1)
+            force = -(wplus-wmins)/(2*eps)
+            
+            CALL ASSERT(l_getwmhd,'L_GETWMHD = FALSE!')
 
             xc(icol,js) = 0
 
+            IF (lWrite) THEN
             nt1 = ntype
             IF (ntype .GT. 3) nt1 = ntype-3            
-            PRINT 100, m, n, force, force_array(nt1), gc1(icol,js)
-            WRITE (66,100) m, n, force, force_array(nt1), gc1(icol,js)
+            WRITE (3000+iam,100) m, n, ntype, force, force_array(nt1),  &
+                           gc1(icol,js)
+            END IF
 
             END DO
          END DO
       END DO
 
- 100  FORMAT(1x,'M: ',i4,' N: ',i4,' GRAD-W: ',1pe14.4, a, 1pe14.4)
+      IF (lWrite) WRITE (3000+iam,*)
+      CALL FLUSH(3000+iam)
+      
+      END DO RADIAL
+      
 
+ 100  FORMAT(1x,'M: ',i4,' N: ',i4,' NTYPE: ',i4,' GRAD-W: ',1pe14.4, a, 1pe14.4)
+
+      CALL ASSERT(icol.EQ.mblk,'icol != mblk in CheckForces')
       l_linearize = lsave
       l_Compute_Hessian = lsave2
+      l_push_edge = l_edge
+      l_push_s = l_s; l_push_u = l_u; l_push_v = l_v
       xc = 0
       DEALLOCATE (gc1)
-
+      
       END SUBROUTINE CheckForces
 
 
       SUBROUTINE TriDiag_Test (xc, gc, eps)
 !
-!     TESTS Tridiagonal STRUCTURE OF HESSIAN!
+!     TESTS Tridiagonal STRUCTURE OF HESSIAN at js=ns/2
 !
       USE stel_kinds, ONLY: dp
-      USE evolution, ONLY: l_linearize, l_init_state, l_ApplyPrecon, funct_island
+      USE stel_constants, ONLY: zero
       USE quantities, ONLY: fsubsmncf, fsubumnsf, fsubvmnsf, mpol, ntor, ns
       USE hessian, ONLY: l_Compute_Hessian
-      USE shared_data, ONLY: ndims
+      USE shared_data, ONLY: ndims, l_linearize, l_init_state,          &
+                                    l_ApplyPrecon, l_getwmhd
+      USE shared_functions, ONLY: funct_island
+      USE descriptor_mod, ONLY: iam
+      USE v3_utilities, ONLY: assert
       IMPLICIT NONE
-      REAL(dp), PARAMETER :: zero = 0
+!-----------------------------------------------
+!   D u m m y   A r g u m e n t s
+!-----------------------------------------------
       REAL(dp) :: xc(ndims*(1+mpol)*(2*ntor+1),ns), gc(ndims*(1+mpol)*(2*ntor+1),ns), eps
+!-----------------------------------------------
+!   L o c a l   P a r a m e t e r s
+!-----------------------------------------------
       INTEGER :: js, icol, ntype, n, m
       REAL(dp), ALLOCATABLE :: gc0(:,:)
-      LOGICAL :: l_save, lPass, l_AppSave
+      LOGICAL :: l_save, l_AppSave
+!-----------------------------------------------
 
-      js = 2
+      js = ns/2
       l_save=l_linearize
       l_linearize=.FALSE.
       l_init_state = .TRUE.
       l_AppSave = l_ApplyPrecon
       l_ApplyPrecon = .FALSE.
+      l_getwmhd = .TRUE.
 
       ALLOCATE (gc0(SIZE(gc,1), SIZE(gc,2)))
       xc = 0
       CALL funct_island
       gc0 = gc
+      l_getwmhd = .FALSE.
 
       icol = 0
-      lPass = .TRUE.
       DO ntype = 1, ndims
          DO n = -ntor, ntor
             DO m = 0, mpol
@@ -359,18 +416,15 @@
                CALL funct_island
                xc(icol,js) = 0
                gc = gc - gc0
-               IF (ANY(gc(:,1:js-2) .ne. zero)) THEN
-                  lPass = .FALSE.
-                  PRINT *,'TRI_DIAGONAL FAILED: LOWER BANDS < -1 ',m,n,ntype
-               ELSE IF (ANY(gc(:,js+2:ns) .ne. zero)) THEN
-                  lPass = .FALSE.
-                  PRINT *,'TRI_DIAGONAL FAILED: UPPER BANDS > 1 ',m,n,ntype
-               END IF
+               CALL ASSERT(ALL(gc(:,1:js-2) .EQ. zero),                 &
+                          'TRI_DIAGONAL FAILED FOR LOWER BANDS')
+               CALL ASSERT(ALL(gc(:,js+2:ns) .EQ. zero),                &
+                          'TRI_DIAGONAL FAILED FOR UPPER BANDS')
             END DO
          END DO
       END DO
 
-      IF (lPass) PRINT *,'TRI_DIAGONAL TEST PASSED'
+      IF (iam .EQ. 0) PRINT *,'TRI_DIAGONAL TEST PASSED'
       l_linearize=l_save
       l_ApplyPrecon = l_AppSave
       DEALLOCATE (gc0)

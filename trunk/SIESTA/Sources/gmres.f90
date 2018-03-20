@@ -1,7 +1,7 @@
-
-!!  \authors S. P. Hirshman and S. K. Seal
-!!  \date Jan, 2014
-
+!>  \file gmres.f90
+!>  \brief Contains the \ref gmres module.
+!>  \authors S. P. Hirshman and S. K. Seal
+!>  \date Jan, 2014
       MODULE gmres
       USE v3_utilities, ONLY: assert
       USE stel_kinds
@@ -18,18 +18,15 @@
 #endif
       IMPLICIT NONE
 
-      INTEGER, PRIVATE  :: icounter=0
-
       CONTAINS
 
 !>  \brief Uses gmres to find approximate solution of Ax=b (linearized MHD equations)
-!!   that minimize the nonlinear MHD forces
-
+!>   that minimize the nonlinear MHD forces
       SUBROUTINE gmres_fun
       USE hessian, ONLY: levmarq_param, Dmin=>mindiag, Apply_Precond,   &
                          levmarq_param0, l_diagonal_only, gather_array, &
                          muPar
-      USE perturbation, ONLY: lresistive, ftol
+      USE siesta_namelist, ONLY: lresistive, ftol
 #if defined(SKS)
       USE blocktridiagonalsolver_s, ONLY: RefactorHessian
 #endif
@@ -37,10 +34,9 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       INTEGER :: j, iter, istat
-      INTEGER :: nsteps
       REAL(dp), PARAMETER :: levscan(1) = (/16._dp/)           !!007C
 !      REAL(dp), PARAMETER :: levscan(2) = (/4._dp, 16._dp/)   !!007B
-      REAL(dp) :: wmhd, fmhd, skston, skstoff, eps, lm0, fsq_min,  &
+      REAL(dp) :: wmhd, fmhd, skston, skstoff, eps, lm0, fsq_min,       &
                   xmax_lin, muparS, scale_fac
       REAL(dp), ALLOCATABLE :: xc1(:), xcmin(:), brhs(:)
       LOGICAL               :: bTerm
@@ -73,10 +69,11 @@
       IF (PARFUNCTISL) CALL gather_array(brhs)     
       l_getwmhd=.FALSE.
       CALL second0(skstoff)
+#if defined(SKS)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-
+#endif
       wmhd = wtotal
-      fsq_min = HUGE(fsq_min)   !Capture one xc at least
+      fsq_min = fsq_total1
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FAST CONVERGENCE - SPH 083016 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       ALLOCATE(xc1(neqs), xcmin(neqs), stat=istat)
@@ -91,9 +88,10 @@
 !
 !     FAST CONVERGENCE GUESS
 !     ITERATIVELY SOLVE (A* - eps*I) x = b, WHERE A* = A + eps*I 
-!     WHERE x = x0 + x1 + ..., eps = lev_marq_param*Dmin
-!     x0 = P*b   where P = (A*)^-1
-!     xn = P*(lm*x[n-1])
+!     eps = lev_marq_param*Dmin
+!     THEN x = x0 + x1 + ..., 
+!     x0 = P*b   where P* = (A*)^-1
+!     xn = eps*P*(x[n-1])
 !
       LFAST: IF (.NOT.l_Diagonal_Only .AND. lcolscale) THEN
 
@@ -101,16 +99,17 @@
 925   FORMAT(' DMIN: ',1pe12.3,/,1x,'FAST CONVERGENCE SUMMARY',         &
              /,' -------------',/,1x,'ITER',7x,'FSQ_NL',                &
              10x,'||X||',9x,'MAX|X|')
-
-      xc = 0; l_getfsq=.TRUE.
+      CALL ASSERT(ALL(xc.EQ.zero),' XC != 0')
+      l_getfsq=.TRUE.
       l_linearize = .FALSE.
       CALL funct_island
       xc = -gc
-      eps = levmarq_param*Dmin
+      eps = ABS(levmarq_param)*Dmin
       IF (.NOT.l_ApplyPrecon) CALL Apply_Precond(xc)
       xc1 = xc
       DO j = 1, 10
          IF (j .GT. 1) THEN
+            IF (eps .EQ. zero) GOTO 927
             gc = xc1
             CALL Apply_Precond(gc)
             xc1 = eps*gc            !nth partial sum: store for next j iteration
@@ -129,8 +128,13 @@
             SQRT(SUM(xc*xc)), MAXVAL(ABS(xc))
          IF (fsq_min.LE.ftol .OR. bTerm .OR. eps.EQ.zero) EXIT
       END DO
+      
+!      ELSE IF (l_backslv) THEN
+!         IF (.NOT.l_ApplyPrecon) CALL Apply_Precond(gc)
       ENDIF LFAST
 
+ 927  CONTINUE
+ 
       LGMRES: IF (fsq_min.GT.ftol .AND. fsq_min.GT.fmhd/10) THEN
 
 !!!START GMRES CONVERGENCE
@@ -138,14 +142,16 @@
 !     THIS IS STANDARD GMRES CALL
 !
       CALL second0(skston)
+      xc = xcmin
       CALL gmres_wrap (xc, brhs)
       CALL second0(skstoff)
+#if defined(SKS)
       gmres_wrap_time=gmres_wrap_time+(skstoff-skston)
-
-      IF (fsq_total1 .LT. fsq_min) THEN
+#endif
+      IF (fsq_total1.LT.fsq_min .OR. ALL(xcmin.EQ.zero)) THEN
          xcmin = xc
          fsq_min = fsq_total1
-         scale_fac = levmarq_param/lm0
+         IF (lm0 .GT. zero) scale_fac = levmarq_param/lm0
       END IF
 !!!END GMRES CONVERGENCE
 #if defined(SKS)
@@ -190,12 +196,12 @@
       IF (fsq_min .GT. ftol) THEN
 
 !     TURN OFF NEXT 2 LINES FOR TESTING f1=levm IN EVOLUTION
-      levm_scale = levm_scale*scale_fac  
-      levm_scale = MIN(100._dp, levm_scale)      
+         levm_scale = levm_scale*scale_fac  
+         levm_scale = MIN(100._dp, levm_scale)      
 !
 !     SIMPLE LINE SEARCH SCAN OF |F| FOR VARIOUS |X| 
-      muPar = 0
-      CALL LineSearch(xcmin, fsq_min)
+         muPar = 0
+         CALL LineSearch(xcmin, fsq_min)
 
       END IF
 
@@ -212,14 +218,15 @@
       CALL funct_island
 !      CALL update_state(.FALSE., zero, zero)                           !Get this in evolution, line 455
       CALL second0(skstoff)
+#if defined(SKS)
       gmres_funct_island_time=gmres_funct_island_time+(skstoff-skston)
-      
+#endif      
       l_PrintOriginForces=.FALSE.
 
       muPar = muParS
 
       DEALLOCATE (xcmin, brhs)
-
+      
       END SUBROUTINE gmres_fun
 
       SUBROUTINE init_gmres0 (icntl, cntl, etak, m, n)
@@ -278,7 +285,7 @@
       END SUBROUTINE init_gmres0
 
       SUBROUTINE gmres_wrap (x0, b)
-      USE perturbation, ONLY: ftol
+      USE siesta_namelist, ONLY: ftol
       USE nscalingtools, ONLY: PARGMRES, rcounts, disp
       USE hessian, ONLY: apply_precond
       USE gmres_lib, ONLY: gmres_info, gmres_par, gmres_ser
@@ -293,7 +300,6 @@
       TYPE(gmres_info)   :: gi
       INTEGER :: n
 !-----------------------------------------------
-      x0  = 0 
       l_linearize = .TRUE.
       l_getfsq = .FALSE.         !So call to funct in matvec does not include gc0
 
@@ -303,6 +309,7 @@
       CALL init_gmres0(gi%icntl, gi%cntl, etak, gi%m, n)
       gi%ftol=ftol
       gi%lverbose = lverbose
+      gi%icntl(6) = 1
 
 !
 !     EASY-TO-USE WRAPPER FOR GMRES DRIVER CALL
@@ -318,24 +325,25 @@
          gi%my_comm = SIESTA_COMM
          gi%my_comm_world = SIESTA_COMM
 !         gi%lactive = lactive
-
+#if defined(SKS)
          CALL gmres_par (n, gi, matvec_par, apply_precond, GetNLForce,  &
                          x0, b)
+#endif                         
       ELSE
          CALL gmres_ser (n, gi, matvec, apply_precond, GetNLForce,      &
                          x0, b)
       END IF
 
       fsq_total1 = gi%ftol
-      xc = x0
+      CALL ASSERT(ALL(xc.EQ.x0),'XC != X0 IN GMRES_WRAP')
 
       END SUBROUTINE gmres_wrap
 
 #if defined (SKS)
       SUBROUTINE matvec_par (ploc, Ap, nloc)
       USE island_params, ONLY: ns=>ns_i
-      USE hessian, ONLY: eps_factor, mupar, PadSides, gather_array
-      USE blocktridiagonalsolver_s, ONLY: ParMatVec
+      USE hessian, ONLY: eps_factor, mupar, gather_array
+      USE blocktridiagonalsolver_s, ONLY: ParMatVec, PadSides 
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -358,7 +366,7 @@
 !
       CALL ASSERT(.NOT.l_init_state,'l_init_state = T in matvec_par')
       istat = (endglobrow-startglobrow+1)*mblk_size
-      CALL ASSERT(istat.eq.nloc, 'nloc wrong in matvec_par')
+      CALL ASSERT(istat.EQ.nloc, 'nloc wrong in matvec_par')
 
       myrowstart=(startglobrow-1)*mblk_size+1
       myrowend=myrowstart+nloc-1
@@ -415,8 +423,6 @@
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
       REAL(dp), PARAMETER   :: zero=0
-      INTEGER               :: nloc, myrowstart, myrowend
-      REAL(dp), ALLOCATABLE :: gc1(:)
       REAL(dp)              :: delta
 !-----------------------------------------------
       CALL ASSERT(.not.l_init_state,'l_init_state = T in matvec')
@@ -429,7 +435,7 @@
 !      delta = delta*(pnorm + SUM(p*xc0))/pnorm
 
 !IF CALLED IN PAR MODE, FIRST GATHER THE xc's
-      CALL ASSERT(SIZE(gc).eq.SIZE(Ap),'gc and Ap wrong sizes')
+      CALL ASSERT(SIZE(gc).EQ.SIZE(Ap),'gc and Ap wrong sizes')
       xc = delta*p
 
       l_getwmhd=.TRUE.
@@ -475,6 +481,9 @@
  
 
       SUBROUTINE GetNLForce(xcstate, fsq_nl, bnorm)
+#if defined(MPI_OPT)
+      USE blocktridiagonalsolver_s, ONLY: PadSides 
+#endif
 !-----------------------------------------------
 !   D u m m y   A r g u m e n t s
 !-----------------------------------------------
@@ -483,6 +492,7 @@
 !-----------------------------------------------
 !   L o c a l   V a r i a b l e s
 !-----------------------------------------------
+      INTEGER              :: nloc, myrowstart, myrowend
       LOGICAL              :: l_linloc, l_Apploc, l_getloc
 !-----------------------------------------------
       CALL ASSERT(.not.l_init_state,'l_init_state=T in GetNLForce!')
@@ -490,13 +500,20 @@
       l_linloc = l_linearize
       l_Apploc = l_ApplyPrecon
       l_getloc = l_getfsq
+      
+      nloc=(endglobrow-startglobrow+1)*mblk_size
+      myrowstart=(startglobrow-1)*mblk_size+1
+      myrowend=myrowstart+nloc-1
+
 
 !Set state variables
-      xc(1:neqs) = bnorm*xcstate(1:neqs)                                  !undo internal gmres normalization
-
+      xc(myrowstart:myrowend) = bnorm*xcstate(myrowstart:myrowend)       !undo internal gmres normalization
+#if defined(MPI_OPT)
+      IF (PARSOLVER) CALL PadSides(xc, mblk_size, 1, 1)
+#endif
+      l_init_state = .FALSE.
       l_linearize = .FALSE.
       l_getfsq = .TRUE.
-      l_init_state = .NOT.l_par_state
       l_ApplyPrecon=.FALSE.
 
       CALL funct_island

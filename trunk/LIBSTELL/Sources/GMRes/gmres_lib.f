@@ -84,7 +84,7 @@
 
       icount=0; jcount=0
       IF (lprint) PRINT 900
- 900  FORMAT(1x,'GMRES (SERIAL) CONVERGENCE SUMMARY',/,1x,15('-'))     
+ 900  FORMAT(/,1x,'GMRES (SERIAL) CONVERGENCE SUMMARY',/,1x,15('-'))     
 
       !****************************************
       !* Reverse communication implementation
@@ -157,7 +157,7 @@
 
         fsq_lin = (rinfo(1)*bnorm)**2
         icount = icount+1
-        lStore = (fsq_nl .LT. fsq_min)
+        lStore = (fsq_nl.LT.fsq_min .OR. icount.EQ.1)
         fsq_min = MIN(fsq_min, fsq_nl)
         fsq_min_lin = MIN(fsq_min_lin, fsq_lin)
         IF (fsq_lin .LT. 1.E-30_dp) gi%icntl(7)=gi%info(1)
@@ -201,17 +201,21 @@
         DEALLOCATE (xmin)
       ELSE
         x0(1:n) = work(1:n)
+        fsq_min = fsq_nl
       END IF
 
-      DEALLOCATE (work)
-
+      gi%ftol = fsq_min
       x0 = bnorm*x0
       IF (lprint .AND. kprint.NE.kout) THEN
          xmod = SQRT(SUM(x0*x0));  xmax = MAXVAL(ABS(x0))
          PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
       END IF
 
-      gi%ftol = fsq_min
+      DEALLOCATE (work)
+
+!Sanity check
+!      CALL GetNLForce(x0, fsq_nl, one)
+!      IF (iam .EQ. 0) PRINT *,'FSQ_MIN: ', fsq_min,' FSQ_NL: ', fsq_nl
 
       END SUBROUTINE gmres_ser
 
@@ -291,7 +295,7 @@
       work(nloc+1:2*nloc) = b(myrowstart:myrowend)/bnorm
 
       IF (lprint) PRINT 900
-900   FORMAT(1x,'GMRES (PARALLEL) CONVERGENCE SUMMARY',/,1x,15('-'),/)
+900   FORMAT(/,1x,'GMRES (PARALLEL) CONVERGENCE SUMMARY',/,1x,15('-'))
 
       ENDIF LACTIVE0
 
@@ -409,7 +413,7 @@
 
         fsq_lin = (rinfo(1)*bnorm)**2
         icount = icount+1
-        lStore = (fsq_nl .LT. fsq_min)
+        lStore = (fsq_nl.LT.fsq_min .OR. icount.EQ.1)
         fsq_min = MIN(fsq_min, fsq_nl)
         fsq_min_lin = MIN(fsq_min_lin, fsq_lin)
            
@@ -495,11 +499,12 @@
       IF (ALLOCATED (xmin)) THEN                                        ! otherwise, work(1:nloc) holds final state
         work(1:nloc) = xmin(1:nloc)
         DEALLOCATE (xmin)
+      ELSE
+        fsq_min=fsq_nl
       END IF
 
       CALL MPI_ALLGATHERV(work, nloc, MPI_REAL8, tmpbuf, gi%rcounts,
      &                    gi%disp, MPI_REAL8, MY_COMM, MPI_ERR)
-      gi%ftol = fsq_min
       x0 = tmpbuf*bnorm
 
       IF (lprint .AND. kout.NE.kprint) THEN
@@ -507,7 +512,14 @@
          PRINT 910, kout, fsq_min, xmod, xmax, fsq_min_lin
       END IF
 
+      gi%ftol = fsq_min
+
+!Sanity check
+!      CALL GetNLForce(tmpbuf, fsq_nl, bnorm)
+!      IF (iam .EQ. 0) PRINT *,'FSQ_MIN: ',fsq_min,' FSQ_NL: ', fsq_nl
+
       END IF LACTIVE3
+
 
       DEALLOCATE (work, tmpbuf, aux, itest)
 #endif

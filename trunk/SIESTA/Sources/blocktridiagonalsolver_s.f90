@@ -10,7 +10,7 @@ USE v3_utilities, ONLY: assert
 USE mpi_inc
 #endif
 USE descriptor_mod, ONLY: SIESTA_COMM
-USE shared_data, ONLY: l_infnorm
+USE shared_data, ONLY: lequi1
 IMPLICIT NONE
 PRIVATE
 !-------------------------------------------------------------------------------
@@ -74,6 +74,8 @@ INTEGER :: N !<Num of row blocks in input block tri-diag matrix
 INTEGER :: M !<Size of each square sub-matrix block
 INTEGER :: startglobrow !<Starting row number of this processor at first level
 INTEGER :: endglobrow !<Ending row number (inclusive) at first level
+INTEGER :: startrow1  !<1 row less than startglobrow
+INTEGER :: endrow1    !<1 row greater than endglobrow
 INTEGER :: nlevels !<Total number of levels in recursion
 LOGICAL :: matdirtied !<Has a new matrix been set after ForwardSolve?
 LOGICAL :: rhsdirtied !<Has a new RHS been set after ForwardSolve?
@@ -228,13 +230,12 @@ END TYPE PBLASTempArray
 !-------------------------------------------------------------------------------
 !PUBLIC METHODS
 #if defined(SKS)
-PUBLIC :: SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU,          &
-          GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU,          &
-          GetMatrixRHS, StoreDiagonal, Initialize, ForwardSolve,         &
-          SetMatrixRHS, BackwardSolve, GetSolutionVector, CheckSymmetry, &
-          GetScaleFactors, FinalizeScaleFactors,                         &
-          ParallelScaling, GetColSum, FindMinMax_TRI, RefactorHessian,   &
-          ParMatvec, Finalize, GetRanks
+PUBLIC :: SetMatrixRowColL, SetMatrixRowColD, SetMatrixRowColU,         &
+          GetMatrixRowColL, GetMatrixRowColD, GetMatrixRowColU,         &
+          GetMatrixRHS, StoreDiagonal, Initialize, ForwardSolve,        &
+          SetMatrixRHS, BackwardSolve, GetSolutionVector, PadSides,     &
+          CheckSymmetry, ApplyParallelScaling, FindMinMax_TRI, GetRanks,&
+          RefactorHessian, ParMatvec, Finalize, CheckConditionNumber
 REAL(dp), PUBLIC :: MAXEIGEN_TRI  !<maximum eigenvalue from Gerschgorin theorem
 REAL(dp), PUBLIC :: DMIN_TRI      !<minimum non-zero diagonal element, used to scale Levenberg parameter (SPH 08-31-16)
 #endif
@@ -349,7 +350,7 @@ SUBROUTINE TimeCountInit( tc )
   TYPE(TimeCount), INTENT(INOUT) :: tc
 
   !----------------------------------------------
-  tc%tm = 0.0
+  tc%tm = 0
   tc%cnt = 0
 END SUBROUTINE TimeCountInit
 
@@ -370,7 +371,7 @@ SUBROUTINE TimeCountPrint( tc, msg )
   DOUBLE PRECISION :: avg
 
   !----------------------------------------------
-  avg = 0.0
+  avg = 0
   IF (tc%cnt .GT. 0) avg = tc%tm / tc%cnt
   IF(KPDBG) WRITE(OFU,'(A,I5.1,A,F8.4,A,F8.4,A)') msg,tc%cnt,' * ',avg,' sec = ',tc%tm,' sec'
 END SUBROUTINE TimeCountPrint
@@ -2265,7 +2266,7 @@ SUBROUTINE SetMatrixRow( globrow, L, D, U )
   DO i = 1, M
     DO j = 1, M
       IF ( globrow .EQ. 1 ) THEN
-          val = 0.0
+          val = 0
       ELSE
           val = L(i,j)
       END IF
@@ -2275,7 +2276,7 @@ SUBROUTINE SetMatrixRow( globrow, L, D, U )
       lelement(1, globrowoff)%D(i,j) = val
 
       IF ( globrow .EQ. N ) THEN
-          val = 0.0
+          val = 0
       ELSE
           val = U(i,j)
       END IF
@@ -2332,7 +2333,7 @@ SUBROUTINE SetMatrixRowL( globrow, L )
   DO i = 1, M
     DO j = 1, M
       IF ( globrow .EQ. 1 ) THEN
-          val = 0.0
+          val = 0
       ELSE
           val = L(i,j)
       END IF
@@ -2438,7 +2439,7 @@ SUBROUTINE SetMatrixRowU( globrow, U )
   DO i = 1, M
     DO j = 1, M
       IF ( globrow .EQ. N ) THEN
-          val = 0.0
+          val = 0
       ELSE
           val = U(i,j)
       END IF
@@ -2497,7 +2498,7 @@ SUBROUTINE SetMatrixRowColL( globrow, Lj, j )
   !-------------------------------------------
   DO i = 1, M
     IF ( globrow .EQ. 1 ) THEN
-      val = 0.0
+      val = 0
     ELSE
       val = Lj(i)
     END IF
@@ -2609,7 +2610,7 @@ SUBROUTINE SetMatrixRowColU( globrow, Uj, j )
   !-------------------------------------------
   DO i = 1, M
     IF ( globrow .EQ. N ) THEN
-      val = 0.0
+      val = 0
     ELSE
       val = Uj(i)
     END IF
@@ -2716,7 +2717,7 @@ SUBROUTINE GetMatrixRowColL( globrow, Lj, j )
   !-------------------------------------------
   DO i = 1, M
     IF ( globrow .EQ. 1 ) THEN
-      val = 0.0
+      val = 0
     ELSE
       val = lelement(1, globrowoff)%L(i,j)
     END IF
@@ -2812,7 +2813,7 @@ SUBROUTINE GetMatrixRowColU( globrow, Uj, j )
   !-------------------------------------------
   DO i = 1, M
     IF ( globrow .EQ. N ) THEN
-      val = 0.0
+      val = 0
     ELSE
       val = lelement(1, globrowoff)%U(i,j)
     END IF
@@ -3024,7 +3025,7 @@ SUBROUTINE SetRandomTestCase
     DO i = 1, M
       DO j = 1, M
         IF ( globrow .EQ. 1 ) THEN
-          randval = 0.0
+          randval = 0
         ELSE
           CALL RANDOM_NUMBER(randval); randval = rmin+(rmax-rmin)*randval
           IF( writeproblemfile ) THEN !<Print i, j, a[i,j]
@@ -3040,7 +3041,7 @@ SUBROUTINE SetRandomTestCase
         END IF
 
         IF ( globrow .EQ. N ) THEN
-          randval = 0.0
+          randval = 0
         ELSE
           CALL RANDOM_NUMBER(randval); randval = rmin+(rmax-rmin)*randval
           IF( writeproblemfile ) THEN !<Print i, j, a[i,j]
@@ -4733,11 +4734,11 @@ SUBROUTINE VerifySolution
   END IF
 
   !-----------------------------------------------------------------------------
-  totrmserr = 0.0
+  totrmserr = 0
   DO globrow = startglobrow, endglobrow, 1
     globrowoff = globrow - startglobrow + 1
     DO i = 1, M, 1
-      term = 0.0
+      term = 0
       IF ( globrow .GT. 1 ) THEN
         term = term + SUM( orig(globrowoff)%L(i,:) * selement(globrow-1)%x )
       END IF
@@ -4771,6 +4772,84 @@ END SUBROUTINE VerifySolution
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
+SUBROUTINE CheckConditionNumber(nblkrow,bsize,anorm,rcond,info)
+  
+  INTEGER, INTENT(IN)   :: nblkrow, bsize
+  INTEGER, INTENT(OUT)  :: info
+  REAL(dp), INTENT(OUT) :: rcond, anorm
+  
+  
+  INTEGER :: iblkrow, n1, i, j, offs, offsu, offk, kl, ku, ldab, icol,  &
+             rowmin, rowmax
+  REAL(dp), ALLOCATABLE :: Band(:,:), Acol(:), work(:)
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: iwork, ipiv
+
+
+  n1=nblkrow*bsize
+  IF (nranks.NE.1) THEN
+    PRINT *, "Returning from CheckConditionNumber"
+    info = -1
+    RETURN
+  END IF
+
+  ku = 2*bsize-1
+  kl = 2*bsize-1
+  ldab = 2*kl+ku+1
+  offk = kl+ku+1
+  
+  ALLOCATE(Acol(n1))
+  ALLOCATE(Band(ldab, n1), ipiv(n1), iwork(n1), work(3*n1))
+  
+  offs = 0
+  offsu = bsize
+  anorm = 0
+  Band = 0
+
+!compute all cols (labelled by "j"), row-by-row Acol(1:n1)
+  DO iblkrow = 1, nblkrow
+    DO icol = 1, bsize
+       j = offs+icol
+       rowmin = offs-bsize+1; rowmax = offsu+bsize
+       IF (iblkrow.GT.1)                                                &
+       Acol(rowmin:offs)=orig(iblkrow-1)%U(:,icol)
+       IF (iblkrow.LT.nblkrow)                                          &
+       Acol(offsu+1:rowmax)=orig(iblkrow+1)%L(:,icol)
+       Acol(offs+1:offsu)=orig(iblkrow)%D(:,icol)
+
+       IF (iblkrow.EQ.1) THEN
+          ROWMIN = offs+1
+       ELSE IF (iblkrow.EQ.nblkrow) THEN
+          ROWMAX = offsu
+       END IF
+       ANORM = MAX(ANORM, SUM(ABS(Acol(rowmin:rowmax))))
+       
+       DO i = MAX(1,j-ku,rowmin), MIN(n1,j+kl,rowmax)
+          Band(offk+i-j,j) = Acol(i)
+       END DO
+       
+    END DO
+    offs = offsu
+    offsu = offsu + bsize
+  END DO
+
+
+  DEALLOCATE (Acol)
+
+  CALL DGBTRF( N1, N1, KL, KU, BAND, LDAB, IPIV, INFO )
+  CALL DGBCON( '1', N1, KL, KU, BAND, LDAB, IPIV, ANORM, RCOND,          &
+               WORK, IWORK, INFO )
+
+  IF (info.eq.0 .and. rcond.ne.zero) THEN
+     RCOND = one/RCOND
+  ELSE
+     RCOND = -one
+  END IF
+
+  DEALLOCATE(Band,work,iwork,ipiv)
+
+END SUBROUTINE CheckConditionNumber
+
+
 SUBROUTINE CheckSymmetry (asymIndx)
 
 REAL(dp), INTENT (OUT) :: asymIndx                                       !On Processor 0 only
@@ -4782,15 +4861,10 @@ INTEGER :: topNeighbor, bottomNeighbor
 INTEGER :: mpistatus(MPI_STATUS_SIZE), mpi_err
 INTEGER :: blkrow,blktype,i,j,k
 
-IF (.NOT.ALLOCATED(bottomLeftMatrix)) THEN 
-  ALLOCATE(bottomLeftMatrix(M,M))
-  bottomLeftMatrix=0
-END IF
-
-IF (.NOT.ALLOCATED(sendBuf)) THEN 
-  ALLOCATE(sendBuf(M,M))
-  sendBuf=0
-END IF
+ALLOCATE(bottomLeftMatrix(M,M), sendBuf(M,M), stat=i)
+CALL ASSERT(i.EQ.0,'Allocation error in CheckSymmetry')
+bottomLeftMatrix=0
+sendBuf=0
 
 IF(nranks.EQ.1) THEN
   topNeighbor=MPI_PROC_NULL
@@ -4810,12 +4884,12 @@ ELSE
   END IF
 END IF
 
-CALL MPI_Sendrecv(sendBuf,M*M,MPI_REAL8,topNeighbor,1,&
-&bottomLeftMatrix,M*M,MPI_REAL8,bottomNeighbor,1,SIESTA_COMM,&
-&mpistatus,mpi_err)
+CALL MPI_Sendrecv(sendBuf,M*M,MPI_REAL8,topNeighbor,1,                  &
+     bottomLeftMatrix,M*M,MPI_REAL8,bottomNeighbor,1,SIESTA_COMM,       &
+     mpistatus,mpi_err)
 
-IF (ALLOCATED(sendBuf)) DEALLOCATE(sendBuf)
-IF (rank.EQ.nranks-1) bottomLeftMatrix=0.0
+DEALLOCATE(sendBuf)
+IF (rank.EQ.nranks-1) bottomLeftMatrix=0
 
 summ=0; diff=0; norm=0
 
@@ -4864,7 +4938,7 @@ END DO
 
 CALL FLUSH(360+rank)
 
-IF (ALLOCATED(bottomLeftMatrix)) DEALLOCATE(bottomLeftMatrix)
+DEALLOCATE(bottomLeftMatrix)
 
 CALL MPI_Reduce(diff,tdiff,1,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
 CALL MPI_Reduce(norm,tnorm,1,MPI_REAL8,MPI_SUM,0,SIESTA_COMM,mpi_err)
@@ -5022,7 +5096,7 @@ INTEGER :: col, row, offset
 INTEGER :: globalrow, localblkrow, cnt, dcnt
 REAL(dp) :: melement, velement, total
 
-outvec=0.0; cnt=0; dcnt=0
+outvec=0; cnt=0; dcnt=0
 DO globalrow=startglobrow,endglobrow
 
   localblkrow=globalrow-startglobrow+1
@@ -5035,7 +5109,7 @@ DO globalrow=startglobrow,endglobrow
   
   IF (globalrow.EQ.1) THEN
     DO row=1,M
-      total=0.0
+      total=0
       DO col=1,2*M
         velement=invec(offset+col)
         IF (col.LE.M) THEN
@@ -5055,7 +5129,7 @@ DO globalrow=startglobrow,endglobrow
     END DO
   ELSE IF (globalrow.EQ.N) THEN
     DO row=1,M
-      total=0.0
+      total=0
       DO col=1,2*M
         velement=invec(offset+col)
         IF (col.LE.M) THEN 
@@ -5075,7 +5149,7 @@ DO globalrow=startglobrow,endglobrow
     END DO
   ELSE
     DO row=1,M
-      total=0.0
+      total=0
       DO col=1,3*M
         velement=invec(offset+col)
         IF (col.LE.M) THEN
@@ -5105,15 +5179,16 @@ END SUBROUTINE ParMatVec
 
 !-------------------------------------------------------------------------------
 SUBROUTINE GetColSum(cs)
-REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(OUT) :: cs
-REAL(dp):: minScale
-REAL(dp) :: eps
+!-------------------------------------------------------------------------------
+REAL(dp), DIMENSION(M, N), INTENT(OUT) :: cs
+!-------------------------------------------------------------------------------
+REAL(dp):: minScale, eps
 INTEGER  :: js
-
-IF (l_infnorm) THEN
-   minScale = 1.E-8_dp                                                  !less sensitive than l_infnorm=F
+!-------------------------------------------------------------------------------
+IF (lequi1) THEN
+   minScale = 1.E-5_dp                                          
 ELSE
-   minScale = 1.E-5_dp
+   minScale = 1.E-8_dp                                                    !less sensitive than lequi1=T
 END IF
 CALL InitScaleFactors
 DO js = startglobrow, endglobrow
@@ -5123,8 +5198,8 @@ END DO
 !FILTER COLS OF CS
 DO js = startglobrow, endglobrow
    eps = minScale*MAXVAL(cs(:,js))
-   IF (eps .EQ. ZERO) eps = 1                                           !catch sin(m=0) terms
-   WHERE (cs(:,js) .LT. eps) cs(:,js) = eps
+   CALL ASSERT(eps.GT.zero,' cs == 0 in GetColSum')           
+   cs(:,js) = MAX(cs(:,js), eps)
 END DO
 
 cs = one/SQRT(cs)
@@ -5147,16 +5222,16 @@ numBlockRows = endglobrow-startglobrow+1
 top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
 bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
 
-ALLOCATE (TopScaleFac(M),BotScaleFac(M))
-ALLOCATE (tmp1(M),tmp2(M))
+ALLOCATE (TopScaleFac(M), BotScaleFac(M), tmp1(M), tmp2(M), stat=ic)
+CALL ASSERT(ic.eq.0,'STAT != 0 IN InitScaleFactors')
 
 DO ic=1, M
-IF (l_infnorm) THEN
-  tmp1(ic)=MAXVAL(orig(1)%L(:,ic)**2)
-  tmp2(ic)=MAXVAL(orig(numBlockRows)%U(:,ic)**2)
+IF (lequi1) THEN
+  tmp1(ic)=SUM(ABS(orig(1)%L(:,ic)))
+  tmp2(ic)=SUM(ABS(orig(numBlockRows)%U(:,ic)))
 ELSE
-  tmp1(ic)=SUM(orig(1)%L(:,ic)**2)
-  tmp2(ic)=SUM(orig(numBlockRows)%U(:,ic)**2)
+  tmp1(ic)=MAXVAL(ABS(orig(1)%L(:,ic)))
+  tmp2(ic)=MAXVAL(ABS(orig(numBlockRows)%U(:,ic)))
 ENDIF
 END DO
 
@@ -5173,79 +5248,59 @@ END SUBROUTINE InitScaleFactors
 
 !-------------------------------------------------------------------------------
 SUBROUTINE GetScaleFactors(js,scalevector)
-IMPLICIT NONE
-
+!-------------------------------------------------------------------------------
 INTEGER, INTENT(IN)   :: js
 REAL(dp), INTENT(OUT) :: scalevector(M)
+!-------------------------------------------------------------------------------
+REAL(dp), ALLOCATABLE :: coltmp(:)
 REAL(dp) :: eps
-INTEGER  :: ic, ir, numBlockRows
+INTEGER  :: ic, ir
+!-------------------------------------------------------------------------------
 
-numBlockRows = endglobrow-startglobrow+1
-!SUMS: 2-norm; MAXVAL: infinity norm
+ALLOCATE (coltmp(M))
 
-IF (js.EQ.startglobrow) THEN
-  IF (js.EQ.1) THEN
-    DO ic=1, M
-      IF (l_infnorm) THEN
-      scalevector(ic)=MAX(MAXVAL(orig(1)%D(:,ic)**2),                   &
-                          MAXVAL(orig(2)%L(:,ic)**2)) 
-      ELSE
-      scalevector(ic)=SUM(orig(1)%D(:,ic)**2 + orig(2)%L(:,ic)**2) 
-      END IF
-    END DO
-  ELSE
-    ir = js-startglobrow+1
-    DO ic=1, M
-      IF (l_infnorm) THEN
-      scalevector(ic) = MAX(TopScaleFac(ic),                            &
-                            MAXVAL(orig(ir)%D(:,ic)**2),                &
-                            MAXVAL(orig(ir+1)%L(:,ic)**2)) 
-      ELSE
-      scalevector(ic) = TopScaleFac(ic) +                               &
-        SUM(orig(ir)%D(:,ic)**2 + orig(ir+1)%L(:,ic)**2) 
-      END IF
-    END DO
-  END IF
-ELSE IF (js.EQ.endglobrow) THEN
-  IF (js.EQ.N) THEN
-    DO ic=1, M
-      IF (l_infnorm) THEN
-      scalevector(ic) = MAX(MAXVAL(orig(numBlockRows)%D(:,ic)**2),      &
-                            MAXVAL(orig(numBlockRows-1)%U(:,ic)**2))
-      ELSE
-      scalevector(ic) = SUM(orig(numBlockRows)%D(:,ic)**2               &
-                     +    orig(numBlockRows-1)%U(:,ic)**2)
-      END IF
-    END DO
-  ELSE
-    DO ic=1, M
-      IF (l_infnorm) THEN
-      scalevector(ic) = MAX(BotScaleFac(ic),                            &
-                        MAXVAL(orig(numBlockRows)%D(:,ic)**2),          &
-                        MAXVAL(orig(numBlockRows-1)%U(:,ic)**2))
-      ELSE
-      scalevector(ic) = BotScaleFac(ic) +                               &
-        SUM(orig(numBlockRows)%D(:,ic)**2 +                             &
-            orig(numBlockRows-1)%U(:,ic)**2)  
-      END IF
-    END DO
-  END IF
-ELSE
-  ir = js-startglobrow+1
-  DO ic=1, M
-    IF (l_infnorm) THEN
-    scalevector(ic) = MAX(MAXVAL(orig(ir)%D(:,ic)**2),                  &
-                          MAXVAL(orig(ir-1)%U(:,ic)**2),                &
-                          MAXVAL(orig(ir+1)%L(:,ic)**2)) 
-    ELSE
-    scalevector(ic) = SUM(orig(ir)%D(:,ic)**2 +                         &
-                          orig(ir-1)%U(:,ic)**2 + orig(ir+1)%L(:,ic)**2) 
-    END IF
-  END DO
-END IF
+ir = js-startglobrow+1
 
-CALL ASSERT(ALL(scalevector.GT.zero),'SCALEVECTOR < 0!')
-scalevector = SQRT(scalevector)
+!COLUMN SUMS: 1-norm; MAXVAL: infinity norm
+DO ic=1, M
+
+   coltmp = ABS(orig(ir)%D(:,ic))
+   IF (lequi1) THEN
+      scalevector(ic) = SUM(coltmp)
+   ELSE
+      scalevector(ic) = MAXVAL(coltmp)
+   END IF
+
+   IF (js.GT.startglobrow) THEN
+   coltmp = ABS(orig(ir-1)%U(:,ic))
+   IF (lequi1) THEN
+      scalevector(ic) = scalevector(ic) + SUM(coltmp)
+      IF (js.EQ.endglobrow .AND. js.NE.N)                               &
+      scalevector(ic) = scalevector(ic) + BotScaleFac(ic)
+   ELSE
+      scalevector(ic) = MAX(scalevector(ic),MAXVAL(coltmp))
+      IF (js.EQ.endglobrow .AND. js.NE.N)                               &
+      scalevector(ic) = MAX(scalevector(ic),BotScaleFac(ic))
+   END IF
+   END IF
+
+   IF (js.LT.endglobrow) THEN
+   coltmp = ABS(orig(ir+1)%L(:,ic))
+   IF (lequi1) THEN
+      scalevector(ic) = scalevector(ic) + SUM(coltmp)
+      IF (js.EQ.startglobrow .AND. js.NE.1)                             &
+      scalevector(ic) = scalevector(ic) + TopScaleFac(ic)
+   ELSE
+      scalevector(ic) = MAX(scalevector(ic),MAXVAL(coltmp))
+      IF (js.EQ.startglobrow .AND. js.NE.1)                             &
+      scalevector(ic) = MAX(scalevector(ic),TopScaleFac(ic))
+   END IF
+   END IF
+   
+END DO
+
+DEALLOCATE (coltmp)
+CALL ASSERT(ALL(scalevector.GE.zero),'SCALEVECTOR < 0 IN GETSCALEFACTORS')
 
 END SUBROUTINE GetScaleFactors
 !-------------------------------------------------------------------------------
@@ -5257,27 +5312,70 @@ END SUBROUTINE FinalizeScaleFactors
 !-------------------------------------------------------------------------------
 
 !-------------------------------------------------------------------------------
-SUBROUTINE ParallelScaling(lmp,colsum)
+SUBROUTINE ApplyParallelScaling(lmp, colscale)
+!-------------------------------------------------------------------------------
+REAL(dp), INTENT(IN)    :: lmp
+REAL(dp), INTENT(INOUT) :: colscale(M,N)
+!-------------------------------------------------------------------------------
+INTEGER               :: icount, istat
+REAL(dp)              :: ton, toff, colcnd, colcnd1, tmp1(2), tmp2(2)
+REAL(dp), ALLOCATABLE :: colpad(:,:)
+!-------------------------------------------------------------------------------
+CALL second0(ton)
 
-REAL(dp), INTENT(IN) :: lmp
-REAL(dp), DIMENSION(M,startglobrow:endglobrow), INTENT(IN) :: colsum
+icount = 0
+startrow1 = MAX(1, startglobrow-1); endrow1 = MIN(N, endglobrow+1)
+CALL ASSERT(ALL(colscale(:,startrow1:endrow1).EQ.1),                    &
+            'COLSCALE !=1 INITIALLY IN APPLYPARALLELSCALING')
 
-INTEGER  :: js, icol, ir, top, bot, MPI_ERR, i4, i3, dcnt
-REAL(dp) :: eps, s1(1), r1(1)
-REAL(dp), DIMENSION(:), ALLOCATABLE :: toprow, botrow
-INTEGER :: MPI_STAT(MPI_STATUS_SIZE)
+ALLOCATE (colpad(M,N), stat=istat)
+CALL ASSERT(istat.eq.0,' Allocation error in ApplyParallelScaling')
 
-top=rank-1; IF(rank.EQ.0) top=MPI_PROC_NULL
-bot=rank+1; IF(rank.EQ.nranks-1) bot=MPI_PROC_NULL
-ALLOCATE (toprow(M),botrow(M))
+100 CONTINUE
+
+CALL GetColSum(colpad)
+CALL PadSides(colpad, M, 1, 1)
+CALL VectorCopyPar(colpad, colscale)
+CALL ParallelScaling(colpad)
+
+icount = icount + 1
+!MAXIMUM COLUMN VARIATIONS (like an inverse "Condition number")
+tmp1(1) = MAXVAL(colpad(:,startglobrow:endglobrow))      
+tmp1(2) = MAXVAL(-colpad(:,startglobrow:endglobrow))
+CALL MPI_ALLREDUCE(tmp1, tmp2, 2, MPI_REAL8, MPI_MAX,  SIESTA_COMM,     &
+                MPI_ERR)
+colcnd1 = tmp2(1); colcnd =-tmp2(2)
+                
+IF (colcnd1 .NE. ZERO) THEN
+   colcnd = ABS(colcnd/colcnd1)
+ELSE 
+   colcnd = 1
+ENDIF
+                
+!IF (icount.LE.6 .AND. colcnd.LT.0.01_dp) GO TO 100                       !dgeequ logic
+
+DEALLOCATE(colpad)
+
+!Add levenberg to diagonals
+CALL FindMinMax_TRI(lmp)
+
+CALL second0(toff)
+IF (rank.EQ.0) PRINT '(1x,3(a,1p,e10.3))',                              &
+              'COLUMN-SCALING TIME: ', toff-ton, ' COLCND: ', colcnd,   &
+              ' DMINL: ', DMIN_TRI*lmp
+
+END SUBROUTINE ApplyParallelScaling
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE ParallelScaling(colsum)
+!-------------------------------------------------------------------------------
+REAL(dp), DIMENSION(M,N), INTENT(IN) :: colsum
+!-------------------------------------------------------------------------------
+INTEGER  :: js, icol, ir, dcnt
+!-------------------------------------------------------------------------------
 
 L_COLSCALE = .TRUE.
-
-CALL MPI_Sendrecv(colsum(:,endglobrow),M,MPI_REAL8,bot,1,&
-  toprow,M,MPI_REAL8,top,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
-
-CALL MPI_Sendrecv(colsum(:,startglobrow),M,MPI_REAL8,top,1,&
-  botrow,M,MPI_REAL8,bot,1,SIESTA_COMM,MPI_STAT,MPI_ERR)
 
 dcnt = 0
 DO js = startglobrow, endglobrow
@@ -5288,39 +5386,26 @@ DO js = startglobrow, endglobrow
     dcnt=dcnt+1
     OrigDiagElement(dcnt) = orig(ir)%D(icol,icol)
     IF (js .GT. 1) THEN
-      IF (ir.EQ.1) THEN
-        lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*toprow(icol)
-      ELSE
-        lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*colsum(icol,js-1)
-      END IF
-      orig(ir)%L(:,icol) = lelement(1,ir)%L(:,icol)
+       lelement(1,ir)%L(:,icol) = colsum(:,js)*orig(ir)%L(:,icol)*colsum(icol,js-1)
+       orig(ir)%L(:,icol) = lelement(1,ir)%L(:,icol)
     END IF
     IF (js .LT. N) THEN
-      IF (ir.EQ.(endglobrow-startglobrow+1)) THEN
-        lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*botrow(icol)
-      ELSE
-        lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*colsum(icol,js+1)
-      END IF
-      orig(ir)%U(:,icol) = lelement(1,ir)%U(:,icol)
+       lelement(1,ir)%U(:,icol) = colsum(:,js)*orig(ir)%U(:,icol)*colsum(icol,js+1)
+       orig(ir)%U(:,icol) = lelement(1,ir)%U(:,icol)
     END IF
   END DO
 END DO
-DEALLOCATE (toprow,botrow)
-
-!Find DMIN_TRI, MAXEIGEN_TRI used for scaling
-CALL FindMinMax_TRI(lmp)
 
 END SUBROUTINE ParallelScaling
 !-------------------------------------------------------------------------------
-
 
 !-------------------------------------------------------------------------------
 SUBROUTINE FindMinMax_TRI(lmp)
 !SPH 091616: Find min diagonal element and max eigenvalue (Gerschgorin Theorem)
 REAL(dp), PARAMETER  :: minThreshold=1.E-6_dp
 REAL(dp), INTENT(IN) :: lmp
-INTEGER  :: js, icol, ir, dcnt
-REAL(dp) :: eps, s1(2), r1(2), minDiag
+INTEGER  :: js, icol, ir, dcnt, imax_diag(1)
+REAL(dp) :: eps, s1(2), r1(2), minDiag, sign_diag = -1
 
 dcnt=0
 maxeigen_tri = 0
@@ -5330,14 +5415,19 @@ DO js = startglobrow, endglobrow
 
 !Minimum allowable diagonal element after scaling
   minDiag = minThreshold*MAXVAL(ABS(OrigDiagElement(dcnt+1:dcnt+M)))
-  IF (minDiag .EQ. ZERO) minDiag = minThreshold
+  IF (minDiag .EQ. ZERO) THEN
+     minDiag = minThreshold
+  ELSE
+     imax_diag = MAXLOC(ABS(OrigDiagElement(dcnt+1:dcnt+M)))
+     sign_diag = SIGN(one, OrigDiagElement(imax_diag(1)))
+  END IF
 
   DO icol = 1, M
     dcnt = dcnt+1
     eps = OrigDiagElement(dcnt)
 
-    IF (ABS(eps) .LE. minDiag) THEN                                      !Can happen for lcolscale=FALSE
-       eps = -minDiag
+    IF (ABS(eps) .LE. minDiag) THEN                                      !Can happen for l_colscale=FALSE
+       eps = sign_diag*minDiag
        OrigDiagElement(dcnt) = eps
        orig(ir)%D(icol,icol) = eps
        lelement(1,ir)%D(icol,icol) = eps
@@ -5355,7 +5445,6 @@ CALL MPI_ALLREDUCE(s1,r1,2,MPI_REAL8, MPI_MAX, SIESTA_COMM,MPI_ERR)
 Dmin_TRI=SIGN(-r1(1), eps)
 maxeigen_tri=r1(2)
 
-!IF (rank .eq. 0) WRITE(2000+nranks, *) Dmin_TRI
 
 !ADD LEVENBERG PARAMETER LM*DMIN TO DIAGONAL [OR D*(1+LM) IF NO COL-SCALING]
 CALL ResetDiagonal(lmp, .FALSE.)
@@ -5368,21 +5457,24 @@ END SUBROUTINE FindMinMax_TRI
 SUBROUTINE ResetDiagonal(lmp, bReset)
 REAL(dp), INTENT(IN) :: lmp
 LOGICAL,  INTENT(IN) :: bReset
-REAL(dp)             :: DminL, eps
+REAL(dp)             :: DminL, eps, eps0
 INTEGER              :: dcnt, js, ir, icol
 
 !ADD CONSTANT (SCALED BY DMIN) LEVENBERG PARAMETER TO DIAGONAL [NOT D*(1+LM)]
-DminL = Dmin_TRI*lmp
+eps0 = SIGN(one, OrigDiagElement(1))
+Dmin_TRI = SIGN(Dmin_TRI,eps0)
+DminL = Dmin_TRI*ABS(lmp)
+
 dcnt = 0
+
 DO js = startglobrow, endglobrow
   ir=js-startglobrow+1
   DO icol = 1, M
     dcnt=dcnt+1
     eps = OrigDiagElement(dcnt)
-!SPH 11-14-16: remove redundancy of edge force K^s=0? Works better without this
-!    IF (js.EQ.N .AND. icol.GT.(M/3)) DminL = Dmin_TRI*MAX(ABS(lmp),1.E-7_dp)
+    CALL ASSERT(SIGN(one,eps).EQ.eps0,'WRONG SIGN IN RESET DIAGONAL')
     IF (L_COLSCALE) THEN
-       lelement(1,ir)%D(icol,icol) = eps + SIGN(DminL,eps)
+       lelement(1,ir)%D(icol,icol) = eps + DminL
     ELSE
        lelement(1,ir)%D(icol,icol) = eps*(1 + ABS(lmp))
     END IF
@@ -5421,6 +5513,49 @@ SUBROUTINE ComputeTranspose
 END SUBROUTINE ComputeTranspose
 !-------------------------------------------------------------------------------
 
+!-------------------------------------------------------------------------------
+SUBROUTINE VectorCopyPar (colsum, colscale)
+!-----------------------------------------------
+REAL(dp), INTENT(IN)  :: colsum(M,N)
+REAL(dp), INTENT(OUT) :: colscale(M,N)
+!-----------------------------------------------
+INTEGER               :: js
+!-----------------------------------------------
+DO js = startrow1, endrow1
+   colscale(:,js) = colsum(:,js)*colscale(:,js)
+END DO
+
+END SUBROUTINE VectorCopyPar
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+SUBROUTINE PadSides(arrin, blksize, top, bot)
+!-----------------------------------------------
+INTEGER, INTENT(IN)     :: top, bot, blksize
+REAL(dp), INTENT(INOUT) :: arrin(blksize, N)
+!-----------------------------------------------
+INTEGER                 :: MPI_STAT(MPI_STATUS_SIZE)
+INTEGER                 :: M1, left, right, tag1=1, tag2=2,             &
+                           tr, t1l, tl, t1r
+!-----------------------------------------------
+left=rank-1;  IF(rank.EQ.0) left=MPI_PROC_NULL
+right=rank+1; IF(rank.EQ.nranks-1) right=MPI_PROC_NULL
+
+tr = endglobrow;              tl = startglobrow
+t1r= MIN(endglobrow+1, N);    t1l= MAX(1, startglobrow-1)
+
+!Send top / Rec bottom elements
+M1 = blksize*top
+CALL MPI_Sendrecv(arrin(:,tr-(top-1):tr), M1, MPI_REAL8,                &
+                  right, tag1, arrin(:,t1l-(top-1):t1l), M1, MPI_REAL8, &
+                  left,  tag1, SIESTA_COMM, MPI_STAT, MPI_ERR)
+
+!Send bottom / Rec top boundary elements
+M1 = blksize*bot
+CALL MPI_Sendrecv(arrin(:,tl:tl+(bot-1)), M1, MPI_REAL8,                &
+                  left,  tag2, arrin(:,t1r:t1r+(bot-1)), M1, MPI_REAL8, &
+                  right, tag2, SIESTA_COMM, MPI_STAT, MPI_ERR)
+END SUBROUTINE PadSides
 
 #endif
 END MODULE blocktridiagonalsolver_s
