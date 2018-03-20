@@ -574,7 +574,7 @@
       CHARACTER (len=path_length) :: main_nli_filename = ''
 
 !  Equilibrium input files
-!>  File name for VMEC namelist input
+!>  File name for VMEC namelist input.
       CHARACTER (len=path_length) :: vmec_nli_filename = ''
 !>  File name for the VMEC wout input.
       CHARACTER (len=path_length) :: vmec_wout_input = ''
@@ -1385,5 +1385,48 @@
      &                            start_time)
 
       END FUNCTION
+
+!-------------------------------------------------------------------------------
+!>  @brief Write the namelist input file.
+!>
+!>  Writes a formatted namelist input file.
+!>
+!>  @param[in] namelist_file The file name of the namelist input file.
+!-------------------------------------------------------------------------------
+      SUBROUTINE v3fit_input_write_namelist(namelist_file)
+      USE safe_open_mod
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      CHARACTER (len=*), INTENT(in) :: namelist_file
+
+!  local variables
+      INTEGER                       :: iou_mnli
+      INTEGER                       :: status
+      REAL (rprec)                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+!  FIXME: Update namelist variables from the context.
+
+!  Initalize a default value of the I\O unit. SIESTA increments from there.
+      iou_mnli = 0
+      CALL safe_open(iou_mnli, status, TRIM(namelist_file),                    &
+     &               'replace', 'formatted', delim_in='quote')
+      CALL assert_eq(0, status, 'v3fit_input_write_namelist' //                &
+     &   ': Safe_open of ' // TRIM(namelist_file) // ' failed')
+
+!  Write the namelist input file.
+      WRITE (iou_mnli, nml=siesta_info)
+      CLOSE (iou_mnli, iostat=status)
+      CALL assert_eq(0, status, 'v3fit_input_write_namelist' //                &
+     &   ': Error closing ' // TRIM(namelist_file) // ' failed')
+
+      CALL profiler_set_stop_time('v3fit_input_write_namelist',                &
+     &                            start_time)
+
+      END SUBROUTINE
 
       END MODULE

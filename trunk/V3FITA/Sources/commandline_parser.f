@@ -26,21 +26,25 @@
 !>  @section cl_parsing_arg_sec Command Line Arguments
 !>  @header2{Argument, Takes Value, Discription}
 !>  @begin_table
-!>     @item3{@fixed_width{-h},     N, Displays the help text and exits the program.}
-!>     @item3{@fixed_width{-d},     N, Use the default namelist input file. The default input filename is
-!>                                     @fixed_width{v3fit.in}.}
-!>     @item3{@fixed_width{-file},  Y, Specify the v3fit namelist input file.}
-!>     @item3{@fixed_width{-test},  N, Overwrites the @ref v3fit_input::my_task variable and runs the internal
-!>                                     unit tests instead.}
-!>     @item3{@fixed_width{-force}, N, Forces the equilibrium to re-solve on every reconstruction parameter}
-!>     @item3{@fixed_width{-para},  Y, Configures openmp parallelism. The value of this flag sets the maximum
-!>                                     number of threads to use. A value of @fixed_width{-1} uses the default.}
-!>     @item3{@fixed_width{-mpi},   Y, Configures mpi parallelism. This flag takes one of three values.
-!>                                     * @fixed_width{default}  Processes are configured externally.
-!>                                     * @fixed_width{auto}     Sets up one sub process per reconstruction parameter.
-!>                                     * @fixed_width{[number]} Sets the number of sub processes manually.}
-!>     @item3{@fixed_width{-out},   N, Writes out the input file for each reconstruction step.}
-!>     @item3{@fixed_width{-c},     Y, Compress magnetic response functions using the cutoff.}
+!>     @item3{@fixed_width{-h},       N, Displays the help text and exits the program.}
+!>     @item3{@fixed_width{-d},       N, Use the default namelist input file. The default input filename is
+!>                                       @fixed_width{v3fit.in}.}
+!>     @item3{@fixed_width{-file},    Y, Specify the v3fit namelist input file.}
+!>     @item3{@fixed_width{-test},    N, Overwrites the @ref v3fit_input::my_task variable and runs the internal
+!>                                       unit tests instead.}
+!>     @item3{@fixed_width{-force},   N, Forces the equilibrium to re-solve on every reconstruction parameter}
+!>     @item3{@fixed_width{-para},    Y, Configures openmp parallelism. The value of this flag sets the maximum
+!>                                       number of threads to use. A value of @fixed_width{-1} uses the default.}
+!>     @item3{@fixed_width{-mpi},     Y, Configures mpi parallelism. This flag takes one of three values.
+!>                                       * @fixed_width{default}  Processes are configured externally.
+!>                                       * @fixed_width{auto}     Sets up one sub process per reconstruction parameter.
+!>                                       * @fixed_width{[number]} Sets the number of sub processes manually.}
+!>     @item3{@fixed_width{-out},     N, Writes out the input file for each reconstruction step.}
+!>     @item3{@fixed_width{-c},       Y, Compress magnetic response functions using the cutoff.}
+!>     @item3{@fixed_width{-c_diff},  N, Use central differencing to compute the Jacobian.}
+!>     @item3{@fixed_width{-serial},  N, Run the reconstruction serially and with parallel equilibria.}
+!>     @item3{@fixed_width{-restart}, Y, Specify v3fit to restart from the provided result file. Must have
+!>                                       the last valid wout and/or siesta restart file.}
 !>
 !>  @end_table
 !>
@@ -491,10 +495,10 @@
       WRITE(*,*) '             in the namelist input.                  '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -c_diff  N Use central differencing to compute the '
-      WRITE(*,*) '             the Jacobian.                           '
+      WRITE(*,*) '             Jacobian.                               '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -serial  N Run the reconstruction serially and with'
-      WRITE(*,*) '             parallel equilibria                     '
+      WRITE(*,*) '             parallel equilibria.                    '
       WRITE(*,*) '                                                     '
       WRITE(*,*) '  -restart Y Specify v3fit to restart from the       '
       WRITE(*,*) '             provided result file. Must have the last'
