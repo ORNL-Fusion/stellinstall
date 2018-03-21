@@ -253,6 +253,7 @@
          unprimed_grid_construct%a_z(ri,zi,vi) =                               &
      &      SUM(pgrid%j_z/rp)*pgrid%dvol + mgrid%a_z(ri,zi,vi)
       END DO
+!$OMP END DO
 
       DEALLOCATE(rp)
 
