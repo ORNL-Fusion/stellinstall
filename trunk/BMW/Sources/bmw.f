@@ -95,7 +95,8 @@
      &   bmw_commandline_parser_get_string(cl_parser, '-mgridf'),              &
      &   bmw_commandline_parser_get_string(cl_parser, '-woutf'),               &
      &   bmw_commandline_parser_get_string(cl_parser, '-siestaf'),             &
-     &   flags,                                                                &
+     &   flags, parallel)
+      CALL bmw_context_set_up_grid(context,                                    &
      &   bmw_commandline_parser_get_integer(cl_parser, '-p_start', -1),        &
      &   bmw_commandline_parser_get_integer(cl_parser, '-p_end', -1),          &
      &   parallel)

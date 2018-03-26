@@ -117,7 +117,8 @@
 !  Configure the number of threads to use.
       bmw_parallel_context_construct%num_threads = 1
 
-      CALL profiler_set_stop_time('primed_grid_construct', start_time)
+      CALL profiler_set_stop_time('bmw_parallel_context_construct',            &
+     &                            start_time)
 
       END FUNCTION
 

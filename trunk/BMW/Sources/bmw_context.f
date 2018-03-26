@@ -40,6 +40,14 @@
          TYPE (unprimed_grid_class), POINTER :: up_grid => null()
       END TYPE
 
+!-------------------------------------------------------------------------------
+!>  Interface to set the unprimed grid.
+!-------------------------------------------------------------------------------
+      INTERFACE bmw_context_set_up_grid
+         MODULE PROCEDURE bmw_context_set_up_grid_m,                           &
+     &                    bmw_context_set_up_grid_a
+      END INTERFACE
+
       CONTAINS
 !*******************************************************************************
 !  CONSTRUCTION SUBROUTINES
@@ -53,14 +61,11 @@
 !>  @param[in] wout_file_name   Path and name of the wout file.
 !>  @param[in] siesta_file_name Path and name of the siesta file.
 !>  @param[in] flags            Option flags.
-!>  @param[in] p_start          Starting phi index to compute fields to.
-!>  @param[in] p_end            Ending phi index to compute fields to.
 !>  @param[in] parallel         @ref bmw_parallel_context_class object instance.
 !>  @returns A pointer to a constructed @ref bmw_context_class object.
 !-------------------------------------------------------------------------------
       FUNCTION bmw_context_construct(mgrid_file_name, wout_file_name,          &
-     &                               siesta_file_name, flags,                  &
-     &                               p_start, p_end, parallel)
+     &                               siesta_file_name, flags, parallel)
       USE read_wout_mod, Only: read_wout_file, extcur
 
       IMPLICIT NONE
@@ -71,8 +76,6 @@
       CHARACTER (len=*), INTENT(in)     :: wout_file_name
       CHARACTER (len=*), INTENT(in)     :: siesta_file_name
       INTEGER, INTENT(in)               :: flags
-      INTEGER, INTENT(in)               :: p_start
-      INTEGER, INTENT(in)               :: p_end
       TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
 
 !  local variables
@@ -107,10 +110,6 @@
       bmw_context_construct%p_grid =>                                          &
      &   primed_grid_construct(num_p*bmw_context_construct%m_grid%nfp,         &
      &                         flags, siesta_file_name, parallel)
-      bmw_context_construct%up_grid =>                                         &
-     &   unprimed_grid_construct(bmw_context_construct%m_grid,                 &                                        &
-     &                           bmw_context_construct%p_grid,                 &
-     &                           p_start, p_end, parallel)
 
       CALL profiler_set_stop_time('bmw_context_construct', start_time)
 
@@ -153,6 +152,86 @@
       END IF
 
       DEALLOCATE(this)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  SETTER SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Set the unprimed grid.
+!>
+!>  This initializes the unprimed file using the mgrid grid as the unprimed
+!>  grid.
+!>
+!>  @param[inout] this     A @ref bmw_context_class instance.
+!>  @param[in]    p_start  Starting phi index to compute fields to.
+!>  @param[in]    p_end    Ending phi index to compute fields to.
+!>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
+!>  @returns A pointer to a constructed @ref bmw_context_class object.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bmw_context_set_up_grid_m(this, p_start, p_end,               &
+     &                                     parallel)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (bmw_context_class), INTENT(inout)       :: this
+      INTEGER, INTENT(in)                           :: p_start
+      INTEGER, INTENT(in)                           :: p_end
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+
+!  local variables
+      REAL (rprec)                                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%up_grid => unprimed_grid_construct(this%m_grid, this%p_grid,        &
+     &                                        p_start, p_end, parallel)
+
+      CALL profiler_set_stop_time('bmw_context_set_up_grid_m',                 &
+     &                            start_time)
+
+      END SUBROUTINE
+
+!-------------------------------------------------------------------------------
+!>  @brief Set the unprimed grid.
+!>
+!>  This initializes the unprimed file using supplied grid as the unprimed
+!>  grid.
+!>
+!>  @param[inout] this     A @ref bmw_context_class instance.
+!>  @param[in]    r_grid   3D Array of r positions.
+!>  @param[in]    z_grid   3D Array of z positions.
+!>  @param[in]    dphi     Phi grid spacing.
+!>  @param[in]    parallel @ref bmw_parallel_context_class object instance.
+!>  @returns A pointer to a constructed @ref bmw_context_class object.
+!-------------------------------------------------------------------------------
+      SUBROUTINE bmw_context_set_up_grid_a(this, r_grid, z_grid, dphi,         &
+     &                                     parallel)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (bmw_context_class), INTENT(inout)       :: this
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: r_grid
+      REAL (rprec), DIMENSION(:,:,:), INTENT(in)    :: z_grid
+      REAL (rprec), INTENT(in)                      :: dphi
+      TYPE (bmw_parallel_context_class), INTENT(in) :: parallel
+
+!  local variables
+      REAL (rprec)                                  :: start_time
+
+!  Start of executable code
+      start_time = profiler_get_start_time()
+
+      this%up_grid => unprimed_grid_construct(this%m_grid, this%p_grid,        &
+     &                                        r_grid, z_grid, dphi,            &
+     &                                        parallel)
+
+      CALL profiler_set_stop_time('bmw_context_set_up_grid_a',                 &
+     &                            start_time)
 
       END SUBROUTINE
 

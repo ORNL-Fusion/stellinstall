@@ -216,4 +216,155 @@
 
       END SUBROUTINE
 
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+!-------------------------------------------------------------------------------
+!>  @brief Interpolate the vector potential at a point.
+!>
+!>  This interpolates the vector potential to from the mgrid grid to an
+!>  arbitrary point. This performs a trilinear interpolation.
+!>
+!>  @param[in]  this A @ref m_grid_class instance.
+!>  @param[in]  r    Radial position to interpolate to.
+!>  @param[in]  phi  Phi position to interpolate to.
+!>  @param[in]  z    Vertical position to interpolate to.
+!>  @param[out] ar   Interpolated radial component of the vector potential.
+!>  @param[out] ap   Interpolated phi component of the vector potential.
+!>  @param[out] az   Interpolated vertial component of the vector potential.
+!-------------------------------------------------------------------------------
+      PURE SUBROUTINE m_grid_interpolate(this, r, phi, z, ar, ap, az)
+      USE stel_constants, ONLY: twopi
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      TYPE (m_grid_class), INTENT(in) :: this
+      REAL (rprec), INTENT(in)        :: r
+      REAL (rprec), INTENT(in)        :: phi
+      REAL (rprec), INTENT(in)        :: z
+      REAL (rprec), INTENT(out)       :: ar
+      REAL (rprec), INTENT(out)       :: ap
+      REAL (rprec), INTENT(out)       :: az
+
+!  local variables
+      REAL (rprec)                    :: dphi
+      REAL (rprec)                    :: i
+      REAL (rprec)                    :: j
+      REAL (rprec)                    :: k
+      INTEGER                         :: ilow
+      INTEGER                         :: ihigh
+      INTEGER                         :: jlow
+      INTEGER                         :: jhigh
+      INTEGER                         :: klow
+      INTEGER                         :: khigh
+
+!  Start of executable code
+      dphi = twopi/(this%nfp*SIZE(this%a_r, 3))
+
+!  Find the nearest index positions.
+      i = (r - this%rmin)/this%dr + 1.0
+      j = (z - this%zmin)/this%dz + 1.0
+      k = phi/dphi + 1.0
+
+      ilow = FLOOR(i)
+      ihigh = CEILING(i)
+      jlow = FLOOR(j)
+      jhigh = CEILING(j)
+      klow = FLOOR(k)
+      IF (k .gt. SIZE(this%a_r, 3)) THEN
+         khigh = 1
+      ELSE
+         khigh = CEILING(k)
+      END IF
+
+      ar = m_grid_intf(                                                        &
+     &        m_grid_intf(                                                     &
+     &           m_grid_intf(                                                  &
+     &              this%a_r(ilow,jlow,klow),                                  &
+     &              this%a_r(ihigh,jlow,klow),                                 &
+     &              i),                                                        &
+     &           m_grid_intf(                                                  &
+     &              this%a_r(ilow,jhigh,klow),                                 &
+     &              this%a_r(ihigh,jhigh,klow),                                &
+     &              i),                                                        &
+     &           j),                                                           &
+     &        m_grid_intf(                                                     &
+     &           m_grid_intf(                                                  &
+     &              this%a_r(ilow,jlow,khigh),                                 &
+     &              this%a_r(ihigh,jlow,khigh),                                &
+     &              i),                                                        &
+     &           m_grid_intf(                                                  &
+     &              this%a_r(ilow,jhigh,khigh),                                &
+     &              this%a_r(ihigh,jhigh,khigh),                               &
+     &              i),                                                        &
+     &           j),                                                           &
+     &        k)
+
+      ap = m_grid_intf(                                                        &
+     &        m_grid_intf(                                                     &
+     &           m_grid_intf(                                                  &
+     &              this%a_p(ilow,jlow,klow),                                  &
+     &              this%a_p(ihigh,jlow,klow),                                 &
+     &              i),                                                        &
+     &           m_grid_intf(                                                  &
+     &              this%a_p(ilow,jhigh,klow),                                 &
+     &              this%a_p(ihigh,jhigh,klow),                                &
+     &              i),                                                        &
+     &           j),                                                           &
+     &        m_grid_intf(                                                     &
+     &           m_grid_intf(                                                  &
+     &              this%a_p(ilow,jlow,khigh),                                 &
+     &              this%a_p(ihigh,jlow,khigh),                                &
+     &              i),                                                        &
+     &           m_grid_intf(                                                  &
+     &              this%a_p(ilow,jhigh,khigh),                                &
+     &              this%a_p(ihigh,jhigh,khigh),                               &
+     &              i),                                                        &
+     &           j),                                                           &
+     &        k)
+
+      az = m_grid_intf(                                                        &
+     &        m_grid_intf(                                                     &
+     &           m_grid_intf(                                                  &
+     &              this%a_z(ilow,jlow,klow),                                  &
+     &              this%a_z(ihigh,jlow,klow),                                 &
+     &              i),                                                        &
+     &           m_grid_intf(                                                  &
+     &              this%a_z(ilow,jhigh,klow),                                 &
+     &              this%a_z(ihigh,jhigh,klow),                                &
+     &                      i),                                                &
+     &           j),                                                           &
+     &        m_grid_intf(                                                     &
+     &           m_grid_intf(                                                  &
+     &              this%a_z(ilow,jlow,khigh),                                 &
+     &              this%a_z(ihigh,jlow,khigh),                                &
+     &              i),                                                        &
+     &           m_grid_intf(                                                  &
+     &              this%a_z(ilow,jhigh,khigh),                                &
+     &              this%a_z(ihigh,jhigh,khigh),                               &
+     &              i),                                                        &
+     &           j),                                                           &
+     &        k)
+
+      END SUBROUTINE
+
+!*******************************************************************************
+!  UTILITY SUBROUTINES
+!*******************************************************************************
+      PURE FUNCTION m_grid_intf(w1, w2, x)
+
+      IMPLICIT NONE
+
+!  Declare Arguments
+      REAL (rprec)                    :: m_grid_intf
+      REAL (rprec), INTENT(in)        :: w1
+      REAL (rprec), INTENT(in)        :: w2
+      REAL (rprec), INTENT(in)        :: x
+
+!  Start of executable code
+      m_grid_intf = w1*(1.0 - x) + w2*x
+
+      END FUNCTION
+
       END MODULE
