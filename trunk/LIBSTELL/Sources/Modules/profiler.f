@@ -69,8 +69,17 @@
 
 !  local variables
 !$    INTEGER :: i
+#if defined (MPI_OPT)
+      INTEGER :: isinit
+      INTEGER :: status
 
 !  Start of executable code
+      CALL MPI_INITIALIZED(isinit, status)
+      IF (isinit .ne. 1) THEN
+         CALL MPI_INIT(status)
+      END IF
+#endif
+
 #if PROFILE_ON
 !$    DO i = 1, profiler_bucket_size
 !$       CALL OMP_INIT_LOCK(buckets(i)%lock)
